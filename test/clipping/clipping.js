@@ -6,6 +6,10 @@ if (isNode) {
 var options = {w: 1280, h: 720, measureDetails: false, useTextureAtlas:true, glClearColor: [1, 1, 1, 1]};
 var stage = new Stage(options);
 
+if (!isNode) {
+    document.body.appendChild(stage.getCanvas());
+}
+
 stage.root.x = 100;
 stage.root.y = 100;
 stage.root.w = 1080;

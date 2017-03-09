@@ -8,5 +8,10 @@
     "canvas": "^1.6.2",
     "node-wpe-webgl": "git@github.com:WebPlatformForEmbedded/node-wpe-webgl.git",
     "request": "^2.79.0"
+  },
+  "devDependencies": {
+    "grunt-contrib-concat": "*",
+    "grunt-contrib-uglify": "*",
+    "grunt-strip-code": "*"
   }
 }
