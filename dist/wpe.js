@@ -347,7 +347,6 @@ Stage.prototype.progressAnimations = function() {
     if (this.activeAnimations.size) {
         this.activeAnimations.forEach(function (animation) {
             animation.progress(self.dt);
-            animation.updateComponents();
             animation.applyTransforms();
             if (!animation.isActive()) {
                 animation.cleanUpCachedTaggedComponents();
@@ -2029,7 +2028,9 @@ function TextureAtlas(stage, gl) {
     this.gl = gl;
 
     this.vertexShaderSrc = [
+        "#ifdef GL_ES",
         "precision lowp float;",
+        "#endif",
         "attribute vec2 aVertexPosition;",
         "attribute vec2 aTextureCoord;",
         "uniform mat4 projectionMatrix;",
@@ -2041,7 +2042,9 @@ function TextureAtlas(stage, gl) {
     ].join("\n");
 
     this.fragmentShaderSrc = [
+        "#ifdef GL_ES",
         "precision lowp float;",
+        "#endif",
         "varying vec2 vTextureCoord;",
         "uniform sampler2D uSampler;",
         "void main(void){",
@@ -2771,22 +2774,31 @@ var Component = function(stage) {
      * Tags that can be used to identify/search for a specific component.
      * @type {Set}
      */
-    this._tags = null;
+    this.tags = null;
 
     /**
-     * The tree's tags mapping.
-     * This contains all components for all known tags, at all times.
-     * @type {Map}
-     * @private
+     * All of the direct children that have the tag enabled somewhere in their branches.
+     * @type {Map<String,Component[]>}
      */
-    this._treeTags = null;
+    this.taggedBranches = null;
 
     /**
-     * Holds, per tag, the last frame number that the treeTags were updated.
-     * Frame numbers are only registered if the tag key was added manually.
-     * @type {Map}
+     * Cache for the .tag method.
+     * @type {Map<String,Component>}
      */
-    this._treeTagsUpdatedFrame = null;
+    this.tagCache = null;
+
+    /**
+     * Cache for the .mtag method.
+     * @type {Map<String,Component[]>}
+     */
+    this.mtagCache = null;
+
+    /**
+     * The tags that have been requested (by this or ancestor) since the last tag cache clear.
+     * @type {Set<String>}
+     */
+    this.cachedTags = null;
 
     this._x = 0;
     this._y = 0;
@@ -2883,36 +2895,19 @@ Component.prototype.setAsRoot = function() {
 Component.prototype.setParent = function(parent) {
     if (this.parent === parent) return;
 
-    var tags = null;
-    var n = 0;
-    if (this._treeTags) {
-        tags = Utils.iteratorToArray(this.treeTags.keys());
-        n = tags.length;
+    var tags = this.tags ? Utils.setToArray(this.tags) : [];
+    if (this.taggedBranches) {
+        tags = tags.concat(Utils.iteratorToArray(this.taggedBranches.keys()));
     }
-    var i, p;
-    var tagSet, parentTreeTags;
 
     if (this.parent) {
         this.parent.hasChildren = (this.parent.children.length > 1);
-        if (n > 0) {
-            for (i = 0; i < n; i++) {
-                tagSet = this.treeTags.get(tags[i]);
 
-                // Remove from treeTags.
-                p = this;
-                while (p = p.parent) {
-                    parentTreeTags = p.treeTags.get(tags[i]);
+        if (tags.length) {
+            this.parent.clearCachedTags(tags);
 
-                    var changed = false;
-                    tagSet.forEach(function(comp) {
-                        changed = true;
-                        parentTreeTags.delete(comp);
-                    });
-
-                    if (changed && p.treeTagsUpdatedFrame.has(tags[i])) {
-                        p.treeTagsUpdatedFrame.set(tags[i], this.stage.frameCounter);
-                    }
-                }
+            for (var i = 0, n = tags.length; i < n; i++) {
+                this.parent.removeTaggedBranch(tags[i], this);
             }
         }
     }
@@ -2925,29 +2920,14 @@ Component.prototype.setParent = function(parent) {
 
         parent.hasChildren = true;
 
-        if (n > 0) {
-            // Add to treeTags.
-            for (i = 0; i < n; i++) {
-                tagSet = this.treeTags.get(tags[i]);
-
-                p = this;
-                while (p = p.parent) {
-                    if (!p.treeTags.has(tags[i])) {
-                        var s = new Set();
-                        p.treeTags.set(tags[i], s);
-                    }
-                    parentTreeTags = p.treeTags.get(tags[i]);
-
-                    if (p.treeTagsUpdatedFrame.has(tags[i])) {
-                        p.treeTagsUpdatedFrame.set(tags[i], this.stage.frameCounter);
-                    }
-
-                    tagSet.forEach(function(comp) {
-                        parentTreeTags.add(comp);
-                    });
-                }
-            }
+        for (var i = 0, n = tags.length; i < n; i++) {
+            parent.addTaggedBranch(tags[i], this);
         }
+
+        if (tags.length) {
+            parent.clearCachedTags(tags);
+        }
+
     }
 
     this.updateActiveFlag();
@@ -3380,7 +3360,7 @@ Component.prototype.getLocationString = function() {
 };
 
 Component.prototype.getLocalTags = function() {
-    return Utils.iteratorToArray(this.tags.keys());
+    return this.tags ? Utils.setToArray(this.tags) : [];
 };
 
 Component.prototype.setTags = function(tags) {
@@ -3392,12 +3372,12 @@ Component.prototype.setTags = function(tags) {
     var removes = [];
     var adds = [];
     for (i = 0; i < n; i++) {
-        if (!this.tags.has(tags[i])) {
+        if (!this.hasTag(tags[i])) {
             adds.push(tags[i]);
         }
     }
 
-    var currentTags = Utils.setToArray(this.tags);
+    var currentTags = this.tags ? Utils.setToArray(this.tags) : [];
     n = currentTags.length;
     for (i = 0; i < n; i++) {
         if (tags.indexOf(currentTags[i]) == -1) {
@@ -3416,77 +3396,219 @@ Component.prototype.setTags = function(tags) {
 };
 
 Component.prototype.addTag = function(tag) {
-    if (this.tags.has(tag)) {
-        return;
+    if (!this.tags) this.tags = new Set();
+    if (!this.tags.has(tag)) {
+        this.tags.add(tag);
+        if (!this.hasTaggedBranches(tag) && this.parent) {
+            this.parent.addTaggedBranch(tag, this);
+        }
+
+        this.clearCachedTag(tag);
     }
-
-    this.tags.add(tag);
-
-    // Add to treeTags hierarchy.
-    var p = this;
-    do {
-        if (!p.treeTags.has(tag)) {
-            var s = new Set();
-            s.add(this);
-            p.treeTags.set(tag, s);
-        } else {
-            p.treeTags.get(tag).add(this);
-        }
-
-        if (p.treeTagsUpdatedFrame.has(tag)) {
-            p.treeTagsUpdatedFrame.set(tag, this.stage.frameCounter);
-        }
-    } while (p = p.parent);
 };
 
 Component.prototype.removeTag = function(tag) {
-    this.tags.delete(tag);
-
-    // Remove from treeTags hierarchy.
-    var p = this;
-    do {
-        var list = p.treeTags.get(tag);
-        if (list) {
-            list.delete(this);
-
-            if (p.treeTagsUpdatedFrame.has(tag)) {
-                p.treeTagsUpdatedFrame.set(tag, this.stage.frameCounter);
-            }
+    if (this.hasTag(tag)) {
+        this.tags.delete(tag);
+        if (!this.hasTaggedBranches(tag) && this.parent) {
+            this.parent.removeTaggedBranch(tag, this);
         }
-    } while (p = p.parent);
+
+        this.clearCachedTag(tag);
+    }
 };
 
 Component.prototype.hasTag = function(tag) {
-    return this.tags.has(tag);
+    return this.tags && this.tags.has(tag);
+};
+
+Component.prototype.getTaggedBranches = function(tag) {
+    return this.taggedBranches && this.taggedBranches.get(tag);
+};
+
+Component.prototype.hasTaggedBranches = function(tag) {
+    return this.taggedBranches && this.taggedBranches.has(tag);
+};
+
+Component.prototype.addTaggedBranch = function(tag, component) {
+    if (!this.taggedBranches) {
+        this.taggedBranches = new Map();
+    }
+
+    var components = this.taggedBranches.get(tag);
+    if (!components) {
+        this.taggedBranches.set(tag, [component]);
+
+        if (this.parent) {
+            this.parent.addTaggedBranch(tag, this);
+
+            // Ensure that caches are cleared properly when adding children.
+            if (this.parent.hasCachedTag(tag)) {
+                this.addCachedTag(tag);
+            }
+        }
+    } else {
+        components.push(component);
+    }
+};
+
+Component.prototype.removeTaggedBranch = function(tag, component) {
+    var components = this.taggedBranches.get(tag);
+
+    // Quickly remove component from list.
+    var n = components.length;
+    if (n === 1) {
+        this.taggedBranches.delete(tag);
+
+        if (this.tagCache) this.tagCache.delete(tag);
+        if (this.mtagCache) this.mtagCache.delete(tag);
+        if (this.cachedTags) this.cachedTags.delete(tag);
+
+        if (this.parent) {
+            this.parent.removeTaggedBranch(tag, this);
+        }
+    } else {
+        var i = components.indexOf(component);
+        if (i < n - 1) {
+            components[i] = components[n - 1];
+        }
+        components.pop();
+    }
 };
 
 /**
  * Returns all components from the subtree that have this tag.
- * @note this component is not considered.
  * @param {string} tag
  * @returns {Component[]}
  */
-Component.prototype.getByTag = function(tag) {
-    if (this.treeTags.has(tag)) {
-        // This looks slow, but is fast: https://jsperf.com/set-iterator-vs-foreach.
-        return Utils.setToArray(this.treeTags.get(tag));
+Component.prototype.mtag = function(tag) {
+    if (!this.mtagCache) {
+        this.mtagCache = new Map();
+    }
+
+    var tc = this.mtagCache.get(tag);
+    if (tc) {
+        return tc;
     } else {
-        return [];
+        var arr = [];
+        this.getTaggedComponents(tag, arr);
+        this.mtagCache.set(tag, arr);
+        return arr;
     }
 };
 
 Component.prototype.tag = function(tag) {
-    if (this.treeTags.has(tag)) {
-        var v = this.treeTags.get(tag).values().next();
-        if (v.done) return null;
-        return v.value;
+    if (!this.tagCache) {
+        this.tagCache = new Map();
+    }
+
+    var tc = this.tagCache.get(tag);
+    if (tc) {
+        return tc;
     } else {
-        return null;
+        var tc = this.getTaggedComponent(tag);
+        this.tagCache.set(tag, tc);
+        return tc;
     }
 };
 
-Component.prototype.setByTag = function(tag, settings) {
-    var t = this.getByTag(tag);
+Component.prototype.getTaggedComponent = function(tag) {
+    if (!this.cachedTags) {
+        this.cachedTags = new Set();
+    }
+
+
+    this.cachedTags.add(tag);
+
+    if (this.hasTag(tag)) {
+        return this;
+    } else {
+        var branches = this.getTaggedBranches(tag);
+        if (branches) {
+            return branches[0].getTaggedComponent(tag);
+        }
+    }
+    return null;
+}
+
+Component.prototype.getTaggedComponents = function(tag, arr) {
+    this.addCachedTag(tag);
+
+    if (this.hasTag(tag)) {
+        return arr.push(this);
+    } else {
+        var branches = this.getTaggedBranches(tag);
+        if (branches) {
+            for (var i = 0, n = branches.length; i < n; i++) {
+                branches[i].getTaggedComponents(tag, arr);
+            }
+        }
+    }
+}
+
+Component.prototype.hasCachedTag = function(tag) {
+    return this.cachedTags && this.cachedTags.has(tag);
+};
+
+Component.prototype.addCachedTag = function(tag) {
+    if (!this.cachedTags) {
+        this.cachedTags = new Set();
+    }
+
+    this.cachedTags.add(tag);
+};
+
+Component.prototype.clearCachedTag = function(tag) {
+    var c = this;
+
+    while(c.hasCachedTag(tag) && (c !== null)) {
+        c.cachedTags.delete(tag);
+
+        if (c.tagCache) {
+            c.tagCache.delete(tag);
+        }
+        if (c.mtagCache) {
+            c.mtagCache.delete(tag);
+        }
+
+        c = c.parent;
+    }
+};
+
+Component.prototype.clearCachedTags = function(tags) {
+    var i, n;
+    var c = this;
+
+    var hasAny = true;
+    while(c !== null && hasAny) {
+
+        hasAny = false;
+        for (i = 0, n = tags.length; i < n; i++) {
+            if (c.hasCachedTag(tags[i])) {
+                c.cachedTags.delete(tags[i]);
+                hasAny = true;
+            }
+        }
+
+        if (hasAny) {
+            if (c.tagCache) {
+                for (i = 0, n = tags.length; i < n; i++) {
+                    c.tagCache.delete(tags[i]);
+                }
+            }
+            if (c.mtagCache) {
+                for (i = 0, n = tags.length; i < n; i++) {
+                    c.mtagCache.delete(tags[i]);
+                }
+            }
+        }
+
+        c = c.parent;
+    }
+};
+
+Component.prototype.stag = function(tag, settings) {
+    var t = this.mtag(tag);
     var n = t.length;
     for (var i = 0; i < n; i++) {
         t[i].set(settings);
@@ -3613,7 +3735,7 @@ Component.prototype.getSettingsObject = function() {
 Component.prototype.getNonDefaults = function() {
     var nonDefaults = {};
 
-    if (this._tags && this.tags.size) {
+    if (this.tags && this.tags.size) {
         nonDefaults['tags'] = Utils.setToArray(this.tags);
     }
 
@@ -4715,33 +4837,6 @@ Object.defineProperty(Component.prototype, 'rect', {
         } else {
             this.texture = null;
         }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'tags', {
-    get: function() {
-        if (!this._tags) {
-            this._tags = new Set();
-        }
-        return this._tags;
-    }
-});
-
-Object.defineProperty(Component.prototype, 'treeTags', {
-    get: function() {
-        if (!this._treeTags) {
-            this._treeTags = new Map();
-        }
-        return this._treeTags;
-    }
-});
-
-Object.defineProperty(Component.prototype, 'treeTagsUpdatedFrame', {
-    get: function() {
-        if (!this._treeTagsUpdatedFrame) {
-            this._treeTagsUpdatedFrame = new Map();
-        }
-        return this._treeTagsUpdatedFrame;
     }
 });
 
@@ -6823,26 +6918,6 @@ function AnimationAction(animation) {
     this._tags = [];
 
     /**
-     * The updated frame numbers for the tags.
-     * @type {Map<string, number>}
-     */
-    this.tagUpdatedFrameNumbers = new Map();
-
-    /**
-     * The latest found (and cached) components for this animation.
-     * Notice that this really needs to be cleared when an animation becomes inactive, because it could lead to memory
-     * leaks.
-     * @type {Component[]}
-     */
-    this.taggedComponents = [];
-
-    /**
-     * Forces an update of the tagged components.
-     * @type {boolean}
-     */
-    this.taggedComponentsForceRefresh = false;
-
-    /**
      * If a function, then it is evaluated with the progress argument. If a literal value, it is used directly.
      * @type {*}
      * @private
@@ -6884,114 +6959,52 @@ function AnimationAction(animation) {
 }
 
 /**
- * Updates the subject components if necessary.
- * @returns {boolean}
+ * Returns the components to be animated.
  */
-AnimationAction.prototype.updateComponents = function() {
+AnimationAction.prototype.getAnimatedComponents = function() {
     if (!this.animation.subject) {
         return false;
     }
-    var i, n = this.tags.length, j, m, k, l, uf, cf, tagPath, frame;
-    var needsUpdate = this.taggedComponentsForceRefresh;
-    if (!needsUpdate) {
-        for (i = 0; i < n; i++) {
-            if (this.tags[i]) { // Ignore 'empty' tag (means: subject itself).
-                if (!this.hasComplexTags || (this.complexTags[i].length === 1)) {
-                    uf = this.animation.subject.treeTagsUpdatedFrame.get(this.tags[i]);
-                    if (uf === undefined) {
-                        needsUpdate = true;
-                        break;
-                    } else {
-                        cf = this.tagUpdatedFrameNumbers.get(this.tags[i]);
-                        if (cf === undefined || cf < uf) {
-                            needsUpdate = true;
-                            break;
-                        }
-                    }
+    var i, n = this.tags.length, j, m, k, l;
+
+    var taggedComponents = [];
+    for (i = 0; i < n; i++) {
+        if (this.tags[i] === '') {
+            taggedComponents.push(this.animation.subject);
+        } else {
+            if (!this.hasComplexTags || (this.complexTags[i].length === 1)) {
+                var comps = this.animation.subject.mtag(this.tags[i]);
+                if (n === 1) {
+                    taggedComponents = comps;
                 } else {
-                    // Complex path.
-                    tagPath = this.complexTags[i];
-                    l = tagPath.length;
-                    cf = this.tagUpdatedFrameNumbers.get(this.tags[i]);
-                    for (k = 0; k < l; k++) {
-                        uf = this.animation.subject.treeTagsUpdatedFrame.get(tagPath[k]);
-                        if (uf === undefined) {
-                            needsUpdate = true;
-                            break;
-                        } else {
-                            if (cf === undefined || cf < uf) {
-                                needsUpdate = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    if (needsUpdate) {
-        this.taggedComponents = [];
-
-        for (i = 0; i < n; i++) {
-            if (this.tags[i] === '') {
-                this.taggedComponents.push(this.animation.subject);
-            } else {
-                if (!this.hasComplexTags || (this.complexTags[i].length === 1)) {
-                    // Set frame number to be able to detect changes later.
-                    frame = this.animation.subject.treeTagsUpdatedFrame.get(this.tags[i]);
-                    if (frame === undefined) {
-                        frame = 0;
-                        this.animation.subject.treeTagsUpdatedFrame.set(this.tags[i], frame);
-                    }
-                    this.tagUpdatedFrameNumbers.set(this.tags[i], frame);
-
-                    var comps = this.animation.subject.getByTag(this.tags[i]);
                     m = comps.length;
                     for (j = 0; j < m; j++) {
-                        this.taggedComponents.push(comps[j]);
+                        taggedComponents.push(comps[j]);
                     }
-                } else {
-                    // Complex path: check hierarchically.
-                    tagPath = this.complexTags[i];
-                    l = tagPath.length;
-                    var maxFrame = 0;
-                    var finalComps = [this.animation.subject];
-                    for (k = 0; k < l; k++) {
-                        // Set frame number to be able to detect changes later.
-                        frame = this.animation.subject.treeTagsUpdatedFrame.get(tagPath[k]);
-                        if (frame !== undefined) {
-                            maxFrame = Math.max(frame, maxFrame);
-                        } else {
-                            this.animation.subject.treeTagsUpdatedFrame.set(tagPath[k], 0);
-                        }
-
-                        m = finalComps.length;
-                        var newFinalComps = [];
-                        for (j = 0; j < m; j++) {
-                            newFinalComps = newFinalComps.concat(finalComps[j].getByTag(tagPath[k]));
-                        }
-                        finalComps = newFinalComps;
-                    }
-
+                }
+            } else {
+                // Complex path: check hierarchically.
+                tagPath = this.complexTags[i];
+                l = tagPath.length;
+                var finalComps = [this.animation.subject];
+                for (k = 0; k < l; k++) {
                     m = finalComps.length;
+                    var newFinalComps = [];
                     for (j = 0; j < m; j++) {
-                        this.taggedComponents.push(finalComps[j]);
+                        newFinalComps = newFinalComps.concat(finalComps[j].mtag(tagPath[k]));
                     }
+                    finalComps = newFinalComps;
+                }
 
-                    this.tagUpdatedFrameNumbers.set(this.tags[i], maxFrame);
+                m = finalComps.length;
+                for (j = 0; j < m; j++) {
+                    taggedComponents.push(finalComps[j]);
                 }
             }
         }
-
-        // Make array unique, so that no animation action is applied twice to the same item because it matches in multiple tags.
-        this.taggedComponents = this.taggedComponents.sort(function(a, b) {return a.id == b.id}).filter(function(item, pos, ary) {
-            return !pos || item !== ary[pos - 1];
-        });
-
-        this.taggedComponentsForceRefresh = false;
     }
 
-    return needsUpdate;
+    return taggedComponents;
 };
 
 AnimationAction.prototype.set = function(settings) {
@@ -7037,8 +7050,6 @@ AnimationAction.prototype.applyTransforms = function(p, f, a, m) {
         }
     }
 
-    this.updateComponents();
-
     // Apply transformation to all components.
     var self = this;
     var n = this._properties.length;
@@ -7065,10 +7076,6 @@ AnimationAction.prototype.applyTransforms = function(p, f, a, m) {
 
 };
 
-AnimationAction.prototype.getAnimatedComponents = function() {
-    return this.taggedComponents;
-};
-
 AnimationAction.prototype.resetTransforms = function(a) {
     var v = 0;
 
@@ -7088,8 +7095,6 @@ AnimationAction.prototype.resetTransforms = function(a) {
     if (a !== 1 && Utils.isNumber(v)) {
         v = v * a;
     }
-
-    this.updateComponents();
 
     // Apply transformation to all components.
     var self = this;
@@ -7305,19 +7310,6 @@ TimedAnimation.prototype.run = function(subject) {
     this.onFinish.listen(this.runFinishFunc);
 
     this.play();
-};
-
-/**
- * Updates the subject components for all animation elements if necessary.
- * @returns {boolean}
- */
-TimedAnimation.prototype.updateComponents = function() {
-    var n = this.actions.length;
-    for (var i = 0; i < n; i++) {
-        if (this.actions[i].updateComponents()) {
-            return true;
-        }
-    }
 };
 
 TimedAnimation.prototype.progress = function(dt) {
@@ -7754,7 +7746,9 @@ function Renderer(stage, w, h) {
     this.program = null;
 
     this.vertexShaderSrc = [
+        "#ifdef GL_ES",
         "precision lowp float;",
+        "#endif",
         "attribute vec2 aVertexPosition;",
         "attribute vec2 aTextureCoord;",
         "attribute vec4 aColor;",
@@ -7769,7 +7763,9 @@ function Renderer(stage, w, h) {
     ].join("\n");
 
     this.fragmentShaderSrc = [
+        "#ifdef GL_ES",
         "precision lowp float;",
+        "#endif",
         "varying vec2 vTextureCoord;",
         "varying vec4 vColor;",
         "uniform sampler2D uSampler;",

@@ -9,9 +9,9 @@ if (isNode) {
     var Renderer = require('./Renderer');
     var TextureManager = require('./TextureManager');
     var TextureAtlas = require('./TextureAtlas');
-    var EventType = require('./EventType');
     var StageUtils = require('./StageUtils');
     var CustomAnimation = require('./CustomAnimation');
+    var EventEmitter = require('events');
 }
 
 /**
@@ -19,11 +19,14 @@ if (isNode) {
  * @constructor
  */
 function Stage(options) {
+    EventEmitter.call(this);
+
     this.adapter = options.adapter;
     if (!this.adapter) {
         if (isNode) {
-            this.adapter = new NodeAdapter();
-        } else {
+            this.adapter = new NodeAdapter(options.window);
+        }
+        if (!isNode) {
             this.adapter = new WebAdapter();
         }
     }
@@ -87,10 +90,6 @@ function Stage(options) {
      */
     this.textureAtlas = this.useTextureAtlas ? new TextureAtlas(this, this.renderer.gl) : null;
 
-    this.onFrameStart = new EventType();
-    this.onUpdate = new EventType();
-    this.onFrameEnd = new EventType();
-
     /**
      * The rendering state of this stage.
      * @type {number}
@@ -112,9 +111,9 @@ function Stage(options) {
 
     /**
      * The currently active transitions.
-     * @type {{c : Component, p : Number}[]}
+     * @type {Set<Transition>}
      */
-    this.activeTransitions = [];
+    this.activeTransitions = new Set();
 
     /**
      * The currently active animations.
@@ -153,6 +152,8 @@ function Stage(options) {
     this.destroyed = false;
 
 }
+
+Utils.extendClass(Stage, EventEmitter);
 
 Stage.prototype.destroy = function() {
     this.adapter.stopAnimationLoop();
@@ -228,21 +229,8 @@ Stage.prototype.getRectangleTexture = function() {
     return this.rectangleTexture;
 };
 
-Stage.prototype.addActiveTransition = function(component, propertyIndex) {
-    this.activeTransitions.push({c: component, p: propertyIndex});
-};
-
-Stage.prototype.removeActiveTransition = function(component, propertyIndex) {
-    for (var i = 0, n = this.activeTransitions.length; i < n; i++) {
-        if (this.activeTransitions[i].c === component && this.activeTransitions[i].p === propertyIndex) {
-            var info = this.activeTransitions[i];
-            info.c.transitions[info.p].setInactive();
-            break;
-        }
-    }
-    if (i < n) {
-        this.activeTransitions.splice(i, 1);
-    }
+Stage.prototype.addActiveTransition = function(transition) {
+    this.activeTransitions.add(transition);
 };
 
 Stage.prototype.addActiveAnimation = function(a) {
@@ -251,10 +239,6 @@ Stage.prototype.addActiveAnimation = function(a) {
 
 Stage.prototype.removeActiveAnimation = function(a) {
     this.activeAnimations.delete(a);
-
-    // Clear tagged components to prevent memory leaks.
-    a.taggedComponents = [];
-    a.taggedComponentsForceRefresh = true;
 };
 
 Stage.prototype.drawFrame = function() {
@@ -268,7 +252,7 @@ Stage.prototype.drawFrame = function() {
     this.currentTime = (new Date()).getTime();
 
     this.measureDetails && this.timeStart('frame start');
-    this.onFrameStart.trigger();
+    this.emit('frameStart');
     this.measureDetails && this.timeEnd('frame start');
     this.state = Stage.STATES.TRANSITIONS;
 
@@ -284,7 +268,7 @@ Stage.prototype.drawFrame = function() {
 
     this.measureDetails && this.timeStart('update');
     this.state = Stage.STATES.UPDATE;
-    this.onUpdate.trigger();
+    this.emit('update');
     this.measureDetails && this.timeEnd('update');
 
     if (this.textureManager.isFull()) {
@@ -306,9 +290,11 @@ Stage.prototype.drawFrame = function() {
 
     this.state = Stage.STATES.IDLE;
     this.measureDetails && this.timeStart('frame end');
-    this.onFrameEnd.trigger();
+    this.emit('frameEnd');
     this.measureDetails && this.timeEnd('frame end');
     this.measure && this.timeEnd('total');
+
+    this.adapter.nextFrame(this.renderNeeded);
 
     this.frameCounter++;
 };
@@ -316,44 +302,15 @@ Stage.prototype.drawFrame = function() {
 Stage.prototype.progressTransitions = function() {
     var self = this;
 
-    if (this.activeTransitions.length) {
-        var renew = false;
+    if (this.activeTransitions.size) {
 
-        // Use clone to prevent event changes in the activeTransitions caused by event listeners to cause problems.
-        for (var j = 0, m = this.activeTransitions.length; j < m; j++) {
-            var info = this.activeTransitions[j];
-            var component = info.c;
-            var propertyIndex = info.p;
-            var t = component.transitions[propertyIndex];
-            if (t) {
-                t.progress(self.dt);
-                Component.propertySettersFinal[propertyIndex](component, t.lastResultValue);
-                t.invokeListeners();
-
-                if (!t.isActive()) {
-                    t.setInactive();
-                }
+        this.activeTransitions.forEach(function(transition) {
+            if (transition.component.attached && transition.isActive()) {
+                transition.progress(self.dt);
+            } else {
+                self.activeTransitions.delete(transition);
             }
-
-            if (!t || !t.isActive()) {
-                renew = true;
-            }
-        }
-
-        if (renew) {
-            var arr = [];
-            for (j = 0, m = this.activeTransitions.length; j < m; j++) {
-                info = this.activeTransitions[j];
-                component = info.c;
-                propertyIndex = info.p;
-                t = component.transitions[propertyIndex];
-
-                if (t && t.isActive()) {
-                    arr.push(this.activeTransitions[j]);
-                }
-            }
-            this.activeTransitions = arr;
-        }
+        });
     }
 };
 
@@ -362,10 +319,8 @@ Stage.prototype.progressAnimations = function() {
     if (this.activeAnimations.size) {
         this.activeAnimations.forEach(function (animation) {
             animation.progress(self.dt);
-            animation.updateComponents();
             animation.applyTransforms();
             if (!animation.isActive()) {
-                animation.cleanUpCachedTaggedComponents();
                 self.removeActiveAnimation(animation);
             }
         });
@@ -500,3 +455,4 @@ Stage.H = 720;
 if (isNode) {
     module.exports = Stage;
 }
+

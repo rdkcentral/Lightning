@@ -3,7 +3,7 @@ if (isNode) {
     var Stage = require('../../wpe');
 }
 
-var options = {w: 1280, h: 720, measureDetails: false, useTextureAtlas:true, glClearColor: [1, 1, 1, 1]};
+var options = {w: 1280, h: 720, measureDetails: false, useTextureAtlas:true, glClearColor: [1, 1, 1, 1], window: {title: "Clipping demo", fullscreen: false}};
 var stage = new Stage(options);
 
 if (!isNode) {
@@ -32,5 +32,16 @@ bunny.scale = 30;
 stage.root.addChild(bunny);
 
 setTimeout(function() {
+    stage.root.removeChild(bunny);
+}, 5000);
+setTimeout(function() {
+    stage.root.addChild(bunny);
+}, 6000);
+
+setTimeout(function() {
     stage.pause();
 }, 15000);
+
+stage.on('update', function() {
+    console.log(stage.dt);
+});

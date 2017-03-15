@@ -3,7 +3,6 @@ var isNode = !!(((typeof module !== "undefined") && module.exports));
 if (isNode) {
     var Utils = require('./Utils');
     var StageUtils = require('./StageUtils');
-    var EventType = require('./EventType');
     var AnimationAction = require('./AnimationAction');
 }
 
@@ -29,9 +28,6 @@ function Animation(stage) {
      */
     this.p = 0;
 
-    this.onAttach = new EventType();
-    this.onDetach = new EventType();
-
     /**
      * This value can be used to increase or decrease all changes that this animation makes to the subjects.
      * @type {number}
@@ -49,27 +45,7 @@ function Animation(stage) {
 Animation.prototype.setSubject = function(subject) {
     var prevSubject = this.subject;
 
-    if (this.subject) {
-        // Detach animation from previous subject.
-        if (this.onDetach.hasListeners) {
-            this.onDetach.trigger({subject: prevSubject, newSubject: subject});
-        }
-    }
-
     this.subject = subject;
-
-    if (this.subject) {
-        // Attach animation to this subject.
-        if (this.onAttach.hasListeners) {
-            this.onAttach.trigger({subject: subject, prevSubject: prevSubject});
-        }
-    }
-
-    // Make sure that the tags are all reloaded next frame.
-    var m = this.actions.length;
-    for (var j = 0; j < m; j++) {
-        this.actions[j].taggedComponentsForceRefresh = true;
-    }
 };
 
 Animation.prototype.set = function(settings) {
@@ -127,17 +103,6 @@ Animation.prototype.resetTransforms = function() {
     var n = this.actions.length;
     for (var i = 0; i < n; i++) {
         this.actions[i].resetTransforms(this.amplitude);
-    }
-};
-
-/**
- * Cleans up this animation so that memory leaks are prevented.
- */
-Animation.prototype.cleanUpCachedTaggedComponents = function() {
-    var m = this.actions.length;
-    for (var j = 0; j < m; j++) {
-        this.actions[j].taggedComponents = [];
-        this.actions[j].taggedComponentsForceRefresh = true;
     }
 };
 

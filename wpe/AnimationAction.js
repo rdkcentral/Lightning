@@ -20,26 +20,6 @@ function AnimationAction(animation) {
     this._tags = [];
 
     /**
-     * The updated frame numbers for the tags.
-     * @type {Map<string, number>}
-     */
-    this.tagUpdatedFrameNumbers = new Map();
-
-    /**
-     * The latest found (and cached) components for this animation.
-     * Notice that this really needs to be cleared when an animation becomes inactive, because it could lead to memory
-     * leaks.
-     * @type {Component[]}
-     */
-    this.taggedComponents = [];
-
-    /**
-     * Forces an update of the tagged components.
-     * @type {boolean}
-     */
-    this.taggedComponentsForceRefresh = false;
-
-    /**
      * If a function, then it is evaluated with the progress argument. If a literal value, it is used directly.
      * @type {*}
      * @private
@@ -81,114 +61,52 @@ function AnimationAction(animation) {
 }
 
 /**
- * Updates the subject components if necessary.
- * @returns {boolean}
+ * Returns the components to be animated.
  */
-AnimationAction.prototype.updateComponents = function() {
+AnimationAction.prototype.getAnimatedComponents = function() {
     if (!this.animation.subject) {
         return false;
     }
-    var i, n = this.tags.length, j, m, k, l, uf, cf, tagPath, frame;
-    var needsUpdate = this.taggedComponentsForceRefresh;
-    if (!needsUpdate) {
-        for (i = 0; i < n; i++) {
-            if (this.tags[i]) { // Ignore 'empty' tag (means: subject itself).
-                if (!this.hasComplexTags || (this.complexTags[i].length === 1)) {
-                    uf = this.animation.subject.treeTagsUpdatedFrame.get(this.tags[i]);
-                    if (uf === undefined) {
-                        needsUpdate = true;
-                        break;
-                    } else {
-                        cf = this.tagUpdatedFrameNumbers.get(this.tags[i]);
-                        if (cf === undefined || cf < uf) {
-                            needsUpdate = true;
-                            break;
-                        }
-                    }
+    var i, n = this.tags.length, j, m, k, l;
+
+    var taggedComponents = [];
+    for (i = 0; i < n; i++) {
+        if (this.tags[i] === '') {
+            taggedComponents.push(this.animation.subject);
+        } else {
+            if (!this.hasComplexTags || (this.complexTags[i].length === 1)) {
+                var comps = this.animation.subject.mtag(this.tags[i]);
+                if (n === 1) {
+                    taggedComponents = comps;
                 } else {
-                    // Complex path.
-                    tagPath = this.complexTags[i];
-                    l = tagPath.length;
-                    cf = this.tagUpdatedFrameNumbers.get(this.tags[i]);
-                    for (k = 0; k < l; k++) {
-                        uf = this.animation.subject.treeTagsUpdatedFrame.get(tagPath[k]);
-                        if (uf === undefined) {
-                            needsUpdate = true;
-                            break;
-                        } else {
-                            if (cf === undefined || cf < uf) {
-                                needsUpdate = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    if (needsUpdate) {
-        this.taggedComponents = [];
-
-        for (i = 0; i < n; i++) {
-            if (this.tags[i] === '') {
-                this.taggedComponents.push(this.animation.subject);
-            } else {
-                if (!this.hasComplexTags || (this.complexTags[i].length === 1)) {
-                    // Set frame number to be able to detect changes later.
-                    frame = this.animation.subject.treeTagsUpdatedFrame.get(this.tags[i]);
-                    if (frame === undefined) {
-                        frame = 0;
-                        this.animation.subject.treeTagsUpdatedFrame.set(this.tags[i], frame);
-                    }
-                    this.tagUpdatedFrameNumbers.set(this.tags[i], frame);
-
-                    var comps = this.animation.subject.getByTag(this.tags[i]);
                     m = comps.length;
                     for (j = 0; j < m; j++) {
-                        this.taggedComponents.push(comps[j]);
+                        taggedComponents.push(comps[j]);
                     }
-                } else {
-                    // Complex path: check hierarchically.
-                    tagPath = this.complexTags[i];
-                    l = tagPath.length;
-                    var maxFrame = 0;
-                    var finalComps = [this.animation.subject];
-                    for (k = 0; k < l; k++) {
-                        // Set frame number to be able to detect changes later.
-                        frame = this.animation.subject.treeTagsUpdatedFrame.get(tagPath[k]);
-                        if (frame !== undefined) {
-                            maxFrame = Math.max(frame, maxFrame);
-                        } else {
-                            this.animation.subject.treeTagsUpdatedFrame.set(tagPath[k], 0);
-                        }
-
-                        m = finalComps.length;
-                        var newFinalComps = [];
-                        for (j = 0; j < m; j++) {
-                            newFinalComps = newFinalComps.concat(finalComps[j].getByTag(tagPath[k]));
-                        }
-                        finalComps = newFinalComps;
-                    }
-
+                }
+            } else {
+                // Complex path: check hierarchically.
+                tagPath = this.complexTags[i];
+                l = tagPath.length;
+                var finalComps = [this.animation.subject];
+                for (k = 0; k < l; k++) {
                     m = finalComps.length;
+                    var newFinalComps = [];
                     for (j = 0; j < m; j++) {
-                        this.taggedComponents.push(finalComps[j]);
+                        newFinalComps = newFinalComps.concat(finalComps[j].mtag(tagPath[k]));
                     }
+                    finalComps = newFinalComps;
+                }
 
-                    this.tagUpdatedFrameNumbers.set(this.tags[i], maxFrame);
+                m = finalComps.length;
+                for (j = 0; j < m; j++) {
+                    taggedComponents.push(finalComps[j]);
                 }
             }
         }
-
-        // Make array unique, so that no animation action is applied twice to the same item because it matches in multiple tags.
-        this.taggedComponents = this.taggedComponents.sort(function(a, b) {return a.id == b.id}).filter(function(item, pos, ary) {
-            return !pos || item !== ary[pos - 1];
-        });
-
-        this.taggedComponentsForceRefresh = false;
     }
 
-    return needsUpdate;
+    return taggedComponents;
 };
 
 AnimationAction.prototype.set = function(settings) {
@@ -234,8 +152,6 @@ AnimationAction.prototype.applyTransforms = function(p, f, a, m) {
         }
     }
 
-    this.updateComponents();
-
     // Apply transformation to all components.
     var self = this;
     var n = this._properties.length;
@@ -262,10 +178,6 @@ AnimationAction.prototype.applyTransforms = function(p, f, a, m) {
 
 };
 
-AnimationAction.prototype.getAnimatedComponents = function() {
-    return this.taggedComponents;
-};
-
 AnimationAction.prototype.resetTransforms = function(a) {
     var v = 0;
 
@@ -285,8 +197,6 @@ AnimationAction.prototype.resetTransforms = function(a) {
     if (a !== 1 && Utils.isNumber(v)) {
         v = v * a;
     }
-
-    this.updateComponents();
 
     // Apply transformation to all components.
     var self = this;
@@ -327,8 +237,6 @@ Object.defineProperty(AnimationAction.prototype, 'tags', {
         } else {
             this.complexTags = null;
         }
-
-        this.taggedComponentsForceRefresh = true;
     }
 });
 

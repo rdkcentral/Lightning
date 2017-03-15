@@ -50,7 +50,9 @@ function TextureAtlas(stage, gl) {
     this.gl = gl;
 
     this.vertexShaderSrc = [
+        "#ifdef GL_ES",
         "precision lowp float;",
+        "#endif",
         "attribute vec2 aVertexPosition;",
         "attribute vec2 aTextureCoord;",
         "uniform mat4 projectionMatrix;",
@@ -62,7 +64,9 @@ function TextureAtlas(stage, gl) {
     ].join("\n");
 
     this.fragmentShaderSrc = [
+        "#ifdef GL_ES",
         "precision lowp float;",
+        "#endif",
         "varying vec2 vTextureCoord;",
         "uniform sampler2D uSampler;",
         "void main(void){",

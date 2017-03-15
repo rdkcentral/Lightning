@@ -23,7 +23,9 @@ function Renderer(stage, w, h) {
     this.program = null;
 
     this.vertexShaderSrc = [
+        "#ifdef GL_ES",
         "precision lowp float;",
+        "#endif",
         "attribute vec2 aVertexPosition;",
         "attribute vec2 aTextureCoord;",
         "attribute vec4 aColor;",
@@ -38,7 +40,9 @@ function Renderer(stage, w, h) {
     ].join("\n");
 
     this.fragmentShaderSrc = [
+        "#ifdef GL_ES",
         "precision lowp float;",
+        "#endif",
         "varying vec2 vTextureCoord;",
         "varying vec4 vColor;",
         "uniform sampler2D uSampler;",
@@ -214,9 +218,6 @@ Renderer.prototype.renderItems = function() {
         gl.disableVertexAttribArray(this.colorAttribute);
     }
     this.stage.measureDetails && this.stage.timeEnd('renderGl');
-
-    this.stage.adapter.blit();
-
 };
 
 /**

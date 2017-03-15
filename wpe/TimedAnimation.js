@@ -3,8 +3,7 @@ var isNode = !!(((typeof module !== "undefined") && module.exports));
 if (isNode) {
     var Utils = require('./Utils');
     var Animation = require('./Animation');
-    var EventType = require('./EventType');
-    var Transition = require('./Transition');
+    var EventEmitter = require('events');
 }
 
 /**
@@ -13,6 +12,7 @@ if (isNode) {
  */
 var TimedAnimation = function(stage) {
     Animation.call(this, stage);
+    EventEmitter.call(this);
 
     var self = this;
 
@@ -44,17 +44,6 @@ var TimedAnimation = function(stage) {
      */
     this._autostop = false;
 
-    this.onStart = new EventType();
-    this.onRepeat = new EventType();
-    this.onDelayEnd = new EventType();
-    this.onProgress = new EventType();
-    this.onFinish = new EventType();
-
-    this.onStop = new EventType();
-    this.onStopDelayEnd = new EventType();
-    this.onStopFinish = new EventType();
-    this.onStopContinue = new EventType();
-
     /**
      * The way that the animation 'stops'.
      * @type {number}
@@ -77,14 +66,11 @@ var TimedAnimation = function(stage) {
 
     this.state = TimedAnimation.STATES.IDLE;
 
-    this.stoppingProgressTransition = new Transition(0);
-
-    this.runFinishFunc = null;
-    this.runStopFinishFunc = null;
-
-}
+};
 
 Utils.extendClass(TimedAnimation, Animation);
+
+TimedAnimation.prototype = Object.assign(TimedAnimation.prototype, EventEmitter.prototype);
 
 TimedAnimation.prototype.isActive = function() {
     return this.subject && (this.state == TimedAnimation.STATES.PLAYING || this.state == TimedAnimation.STATES.STOPPING);
@@ -111,10 +97,10 @@ TimedAnimation.prototype.run = function(subject) {
     this.setSubject(subject);
 
     if (this.runFinishFunc) {
-        this.onFinish.removeListener(this.runFinishFunc);
+        this.off('finish', this.runFinishFunc);
     }
     if (this.runStopFinishFunc) {
-        this.onStopFinish.removeListener(this.runStopFinishFunc);
+        this.off('stopFinish', this.runStopFinishFunc);
     }
 
     var self = this;
@@ -123,28 +109,14 @@ TimedAnimation.prototype.run = function(subject) {
 
         self.runStopFinishFunc = function() {
             self.setSubject(null);
-            self.onFinish.removeListener(self.runFinishFunc);
-            self.onStopFinish.removeListener(self.runStopFinishFunc);
         };
-        self.onStopFinish.listen(self.runStopFinishFunc);
+
+        self.once('stopFinish', self.runStopFinishFunc);
     };
 
-    this.onFinish.listen(this.runFinishFunc);
+    this.once('finish', this.runFinishFunc);
 
     this.play();
-};
-
-/**
- * Updates the subject components for all animation elements if necessary.
- * @returns {boolean}
- */
-TimedAnimation.prototype.updateComponents = function() {
-    var n = this.actions.length;
-    for (var i = 0; i < n; i++) {
-        if (this.actions[i].updateComponents()) {
-            return true;
-        }
-    }
 };
 
 TimedAnimation.prototype.progress = function(dt) {
@@ -168,9 +140,7 @@ TimedAnimation.prototype.progress = function(dt) {
             dt = -this.delayLeft;
             this.delayLeft = 0;
 
-            if (this.onDelayEnd.hasListeners) {
-                this.onDelayEnd.trigger();
-            }
+            this.emit('delayEnd');
         } else {
             return;
         }
@@ -193,23 +163,17 @@ TimedAnimation.prototype.progress = function(dt) {
                 this.delayLeft = this.repeatDelay;
             }
 
-            if (this.onRepeat.hasListeners) {
-                this.onRepeat.trigger({repeatsLeft: this.repeatsLeft});
-            }
+            this.emit('repeat', this.repeatsLeft);
         } else {
             this.p = 1;
             this.state = TimedAnimation.STATES.FINISHED;
-            if (this.onFinish.hasListeners) {
-                this.onFinish.trigger();
-            }
+            this.emit('finish');
             if (this.autostop) {
                 this.stop();
             }
         }
     } else {
-        if (this.onProgress.hasListeners) {
-            this.onProgress.trigger();
-        }
+        this.emit('progress', this.p);
     }
 };
 
@@ -219,9 +183,7 @@ TimedAnimation.prototype.stopProgress = function(dt) {
     if (this.delayLeft > 0) {
         // TimedAnimation wasn't even started yet: directly finish!
         this.state = TimedAnimation.STATES.STOPPED;
-        if (this.onStopFinish.hasListeners) {
-            this.onStopFinish.trigger();
-        }
+        this.emit('stopFinish');
     }
 
     if (this.stopDelayLeft > 0) {
@@ -231,22 +193,16 @@ TimedAnimation.prototype.stopProgress = function(dt) {
             dt = -this.stopDelayLeft;
             this.stopDelayLeft = 0;
 
-            if (this.onStopDelayEnd.hasListeners) {
-                this.onStopDelayEnd.trigger();
-            }
+            this.emit('stopDelayEnd');
         } else {
             return;
         }
     }
     if (this.stopMethod == TimedAnimation.STOP_METHODS.IMMEDIATE) {
         this.state = TimedAnimation.STATES.STOPPED;
-        if (this.onStop.hasListeners) {
-            this.onStop.trigger();
-        }
-        if (this.onStopFinish.hasListeners) {
-            this.onStopFinish.trigger();
-        }
-    } else if (this.stopMethod ==TimedAnimation.STOP_METHODS.REVERSE) {
+        this.emit('stop');
+        this.emit('stopFinish');
+    } else if (this.stopMethod == TimedAnimation.STOP_METHODS.REVERSE) {
         if (duration === 0) {
             this.p = 0;
         } else if (duration > 0) {
@@ -256,18 +212,10 @@ TimedAnimation.prototype.stopProgress = function(dt) {
         if (this.p <= 0) {
             this.p = 0;
             this.state = TimedAnimation.STATES.STOPPED;
-            if (this.onStopFinish.hasListeners) {
-                this.onStopFinish.trigger();
-            }
+            this.emit('stopFinish');
         }
     } else if (this.stopMethod == TimedAnimation.STOP_METHODS.FADE) {
-        this.stoppingProgressTransition.progress(dt);
-        if (this.stoppingProgressTransition.p >= 1) {
-            this.state = TimedAnimation.STATES.STOPPED;
-            if (this.onStopFinish.hasListeners) {
-                this.onStopFinish.trigger();
-            }
-        }
+        //@todo: transition.
     } else if (this.stopMethod == TimedAnimation.STOP_METHODS.ONETOTWO) {
         if (this.p < 2) {
             if (duration === 0) {
@@ -282,13 +230,9 @@ TimedAnimation.prototype.stopProgress = function(dt) {
             if (this.p >= 2) {
                 this.p = 2;
                 this.state = TimedAnimation.STATES.STOPPED;
-                if (this.onStopFinish.hasListeners) {
-                    this.onStopFinish.trigger();
-                }
+                this.emit('stopFinish');
             } else {
-                if (this.onProgress.hasListeners) {
-                    this.onProgress.trigger();
-                }
+                this.emit('progress', this.p);
             }
         }
     } else {
@@ -302,28 +246,20 @@ TimedAnimation.prototype.stopProgress = function(dt) {
                 if (this.stopMethod == TimedAnimation.STOP_METHODS.FORWARD) {
                     this.p = 1;
                     this.state = TimedAnimation.STATES.STOPPED;
-                    if (this.onStopFinish.hasListeners) {
-                        this.onStopFinish.trigger();
-                    }
+                    this.emit('stopFinish');
                 } else {
                     if (this.repeatsLeft > 0) {
                         this.repeatsLeft--;
                         this.p = 0;
-                        if (this.onRepeat.hasListeners) {
-                            this.onRepeat.trigger({repeatsLeft: this.repeatsLeft});
-                        }
+                        this.emit('repeat', this.repeatsLeft);
                     } else {
                         this.p = 1;
                         this.state = TimedAnimation.STATES.STOPPED;
-                        if (this.onStopFinish.hasListeners) {
-                            this.onStopFinish.trigger();
-                        }
+                        this.emit('finish');
                     }
                 }
             } else {
-                if (this.onProgress.hasListeners) {
-                    this.onProgress.trigger();
-                }
+                this.emit('progress', this.p);
             }
         }
     }
@@ -341,7 +277,7 @@ TimedAnimation.prototype.start = function() {
     this.delayLeft = this.delay;
     this.repeatsLeft = this.repeat;
     this.state = TimedAnimation.STATES.PLAYING;
-    this.onStart.trigger(null);
+    this.emit('start');
 
     if (this.subject) {
         this.stage.addActiveAnimation(this);
@@ -362,7 +298,7 @@ TimedAnimation.prototype.play = function() {
     if (this.state == TimedAnimation.STATES.STOPPING && this.stopMethod == TimedAnimation.STOP_METHODS.REVERSE) {
         // Continue.
         this.state = TimedAnimation.STATES.PLAYING;
-        this.onStopContinue.trigger();
+        this.emit('stopContinue');
     } else if (this.state != TimedAnimation.STATES.PLAYING && this.state != TimedAnimation.STATES.FINISHED) {
         // Restart.
         this.start();
@@ -398,20 +334,20 @@ TimedAnimation.prototype.stop = function() {
     if ((this.stopMethod == TimedAnimation.STOP_METHODS.IMMEDIATE && !this.stopDelayLeft) || this.delayLeft > 0) {
         // Stop upon next progress.
         this.state = TimedAnimation.STATES.STOPPING;
-        this.onStop.trigger();
+        this.emit('stop');
     } else {
         if (this.stopMethod == TimedAnimation.STOP_METHODS.FADE) {
             if (this.stopMethodOptions.duration) {
-                this.stoppingProgressTransition.duration = this.stopMethodOptions.duration;
+                //@todo.
             }
             if (this.stopMethodOptions.timingFunction) {
-                this.stoppingProgressTransition.timingFunction = this.stopMethodOptions.timingFunction;
+                //@todo.
             }
-            this.stoppingProgressTransition.reset(0, 1, 0);
+            //@todo.
         }
 
         this.state = TimedAnimation.STATES.STOPPING;
-        this.onStop.trigger();
+        this.emit('stop');
     }
 
 };
@@ -420,10 +356,10 @@ TimedAnimation.prototype.stopNow = function() {
     if (this.state !== TimedAnimation.STATES.STOPPED || this.state !== TimedAnimation.STATES.IDLE) {
         this.state = TimedAnimation.STATES.STOPPING;
         this.p = 0;
-        this.onStop.trigger();
+        this.emit('stop');
         this.resetTransforms();
         this.state = TimedAnimation.STATES.STOPPED;
-        this.onStopFinish.trigger();
+        this.emit('stopFinish');
     }
 };
 
@@ -439,7 +375,9 @@ TimedAnimation.prototype.applyTransforms = function() {
         // Apply possible fade out effect.
         var factor = 1;
         if (this.state == TimedAnimation.STATES.STOPPING && this.stopMethod == TimedAnimation.STOP_METHODS.FADE) {
-            factor = (1 - this.stoppingProgressTransition.getProgress());
+            var progress = 0;
+            //@todo: stop transition progress.
+            factor = (1 - progress);
         }
 
         var p = this.progressFunction(this.p);

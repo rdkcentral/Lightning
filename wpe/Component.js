@@ -4,7 +4,6 @@ if (isNode) {
     var Utils = require('./Utils');
     var Stage = require('./Stage');
     var StageUtils = require('./StageUtils');
-    var Transition = require('./Transition');
     var Texture = require('./Texture');
     var ComponentText = require('./ComponentText');
 }
@@ -96,22 +95,31 @@ var Component = function(stage) {
      * Tags that can be used to identify/search for a specific component.
      * @type {Set}
      */
-    this._tags = null;
+    this.tags = null;
 
     /**
-     * The tree's tags mapping.
-     * This contains all components for all known tags, at all times.
-     * @type {Map}
-     * @private
+     * All of the direct children that have the tag enabled somewhere in their branches.
+     * @type {Map<String,Component[]>}
      */
-    this._treeTags = null;
+    this.taggedBranches = null;
 
     /**
-     * Holds, per tag, the last frame number that the treeTags were updated.
-     * Frame numbers are only registered if the tag key was added manually.
-     * @type {Map}
+     * Cache for the .tag method.
+     * @type {Map<String,Component>}
      */
-    this._treeTagsUpdatedFrame = null;
+    this.tagCache = null;
+
+    /**
+     * Cache for the .mtag method.
+     * @type {Map<String,Component[]>}
+     */
+    this.mtagCache = null;
+
+    /**
+     * The tags that have been requested (by this or ancestor) since the last tag cache clear.
+     * @type {Set<String>}
+     */
+    this.cachedTags = null;
 
     this._x = 0;
     this._y = 0;
@@ -208,36 +216,19 @@ Component.prototype.setAsRoot = function() {
 Component.prototype.setParent = function(parent) {
     if (this.parent === parent) return;
 
-    var tags = null;
-    var n = 0;
-    if (this._treeTags) {
-        tags = Utils.iteratorToArray(this.treeTags.keys());
-        n = tags.length;
+    var tags = this.tags ? Utils.setToArray(this.tags) : [];
+    if (this.taggedBranches) {
+        tags = tags.concat(Utils.iteratorToArray(this.taggedBranches.keys()));
     }
-    var i, p;
-    var tagSet, parentTreeTags;
 
     if (this.parent) {
         this.parent.hasChildren = (this.parent.children.length > 1);
-        if (n > 0) {
-            for (i = 0; i < n; i++) {
-                tagSet = this.treeTags.get(tags[i]);
 
-                // Remove from treeTags.
-                p = this;
-                while (p = p.parent) {
-                    parentTreeTags = p.treeTags.get(tags[i]);
+        if (tags.length) {
+            this.parent.clearCachedTags(tags);
 
-                    var changed = false;
-                    tagSet.forEach(function(comp) {
-                        changed = true;
-                        parentTreeTags.delete(comp);
-                    });
-
-                    if (changed && p.treeTagsUpdatedFrame.has(tags[i])) {
-                        p.treeTagsUpdatedFrame.set(tags[i], this.stage.frameCounter);
-                    }
-                }
+            for (var i = 0, n = tags.length; i < n; i++) {
+                this.parent.removeTaggedBranch(tags[i], this);
             }
         }
     }
@@ -250,29 +241,14 @@ Component.prototype.setParent = function(parent) {
 
         parent.hasChildren = true;
 
-        if (n > 0) {
-            // Add to treeTags.
-            for (i = 0; i < n; i++) {
-                tagSet = this.treeTags.get(tags[i]);
-
-                p = this;
-                while (p = p.parent) {
-                    if (!p.treeTags.has(tags[i])) {
-                        var s = new Set();
-                        p.treeTags.set(tags[i], s);
-                    }
-                    parentTreeTags = p.treeTags.get(tags[i]);
-
-                    if (p.treeTagsUpdatedFrame.has(tags[i])) {
-                        p.treeTagsUpdatedFrame.set(tags[i], this.stage.frameCounter);
-                    }
-
-                    tagSet.forEach(function(comp) {
-                        parentTreeTags.add(comp);
-                    });
-                }
-            }
+        for (var i = 0, n = tags.length; i < n; i++) {
+            parent.addTaggedBranch(tags[i], this);
         }
+
+        if (tags.length) {
+            parent.clearCachedTags(tags);
+        }
+
     }
 
     this.updateActiveFlag();
@@ -621,14 +597,7 @@ Component.prototype.setPropertyTransition = function(property, settings) {
                 this.transitionProperties = [];
             }
             if (!this.transitions[propertyIndex]) {
-                var mf = Component.getMergeFunction(property);
-                var t = new Transition(this[property], mf);
-                var self = this;
-                t.onActivate = function() {
-                    self.stage.addActiveTransition(self, propertyIndex);
-                };
-                t.property = property.toUpperCase();
-                this.transitions[propertyIndex] = t;
+                this.transitions[propertyIndex] = new Transition(this, property);
                 this.transitionProperties.push(propertyIndex);
             }
             this.transitions[propertyIndex].set(settings);
@@ -680,12 +649,6 @@ Component.prototype.fastForward = function(property) {
             var t = this.transitions[propertyIndex];
             if (t && t.isActive()) {
                 t.reset(t.targetValue, t.targetValue, 1);
-                Component.propertySettersFinal[propertyIndex](this, t.targetValue);
-
-                // Immediately invoke onFinish event.
-                t.invokeListeners();
-
-                this.stage.removeActiveTransition(this, propertyIndex);
             }
         }
     }
@@ -705,7 +668,7 @@ Component.prototype.getLocationString = function() {
 };
 
 Component.prototype.getLocalTags = function() {
-    return Utils.iteratorToArray(this.tags.keys());
+    return this.tags ? Utils.setToArray(this.tags) : [];
 };
 
 Component.prototype.setTags = function(tags) {
@@ -717,12 +680,12 @@ Component.prototype.setTags = function(tags) {
     var removes = [];
     var adds = [];
     for (i = 0; i < n; i++) {
-        if (!this.tags.has(tags[i])) {
+        if (!this.hasTag(tags[i])) {
             adds.push(tags[i]);
         }
     }
 
-    var currentTags = Utils.setToArray(this.tags);
+    var currentTags = this.tags ? Utils.setToArray(this.tags) : [];
     n = currentTags.length;
     for (i = 0; i < n; i++) {
         if (tags.indexOf(currentTags[i]) == -1) {
@@ -741,77 +704,219 @@ Component.prototype.setTags = function(tags) {
 };
 
 Component.prototype.addTag = function(tag) {
-    if (this.tags.has(tag)) {
-        return;
+    if (!this.tags) this.tags = new Set();
+    if (!this.tags.has(tag)) {
+        this.tags.add(tag);
+        if (!this.hasTaggedBranches(tag) && this.parent) {
+            this.parent.addTaggedBranch(tag, this);
+        }
+
+        this.clearCachedTag(tag);
     }
-
-    this.tags.add(tag);
-
-    // Add to treeTags hierarchy.
-    var p = this;
-    do {
-        if (!p.treeTags.has(tag)) {
-            var s = new Set();
-            s.add(this);
-            p.treeTags.set(tag, s);
-        } else {
-            p.treeTags.get(tag).add(this);
-        }
-
-        if (p.treeTagsUpdatedFrame.has(tag)) {
-            p.treeTagsUpdatedFrame.set(tag, this.stage.frameCounter);
-        }
-    } while (p = p.parent);
 };
 
 Component.prototype.removeTag = function(tag) {
-    this.tags.delete(tag);
-
-    // Remove from treeTags hierarchy.
-    var p = this;
-    do {
-        var list = p.treeTags.get(tag);
-        if (list) {
-            list.delete(this);
-
-            if (p.treeTagsUpdatedFrame.has(tag)) {
-                p.treeTagsUpdatedFrame.set(tag, this.stage.frameCounter);
-            }
+    if (this.hasTag(tag)) {
+        this.tags.delete(tag);
+        if (!this.hasTaggedBranches(tag) && this.parent) {
+            this.parent.removeTaggedBranch(tag, this);
         }
-    } while (p = p.parent);
+
+        this.clearCachedTag(tag);
+    }
 };
 
 Component.prototype.hasTag = function(tag) {
-    return this.tags.has(tag);
+    return this.tags && this.tags.has(tag);
+};
+
+Component.prototype.getTaggedBranches = function(tag) {
+    return this.taggedBranches && this.taggedBranches.get(tag);
+};
+
+Component.prototype.hasTaggedBranches = function(tag) {
+    return this.taggedBranches && this.taggedBranches.has(tag);
+};
+
+Component.prototype.addTaggedBranch = function(tag, component) {
+    if (!this.taggedBranches) {
+        this.taggedBranches = new Map();
+    }
+
+    var components = this.taggedBranches.get(tag);
+    if (!components) {
+        this.taggedBranches.set(tag, [component]);
+
+        if (this.parent) {
+            this.parent.addTaggedBranch(tag, this);
+
+            // Ensure that caches are cleared properly when adding children.
+            if (this.parent.hasCachedTag(tag)) {
+                this.addCachedTag(tag);
+            }
+        }
+    } else {
+        components.push(component);
+    }
+};
+
+Component.prototype.removeTaggedBranch = function(tag, component) {
+    var components = this.taggedBranches.get(tag);
+
+    // Quickly remove component from list.
+    var n = components.length;
+    if (n === 1) {
+        this.taggedBranches.delete(tag);
+
+        if (this.tagCache) this.tagCache.delete(tag);
+        if (this.mtagCache) this.mtagCache.delete(tag);
+        if (this.cachedTags) this.cachedTags.delete(tag);
+
+        if (this.parent) {
+            this.parent.removeTaggedBranch(tag, this);
+        }
+    } else {
+        var i = components.indexOf(component);
+        if (i < n - 1) {
+            components[i] = components[n - 1];
+        }
+        components.pop();
+    }
 };
 
 /**
  * Returns all components from the subtree that have this tag.
- * @note this component is not considered.
  * @param {string} tag
  * @returns {Component[]}
  */
-Component.prototype.getByTag = function(tag) {
-    if (this.treeTags.has(tag)) {
-        // This looks slow, but is fast: https://jsperf.com/set-iterator-vs-foreach.
-        return Utils.setToArray(this.treeTags.get(tag));
+Component.prototype.mtag = function(tag) {
+    if (!this.mtagCache) {
+        this.mtagCache = new Map();
+    }
+
+    var tc = this.mtagCache.get(tag);
+    if (tc) {
+        return tc;
     } else {
-        return [];
+        var arr = [];
+        this.getTaggedComponents(tag, arr);
+        this.mtagCache.set(tag, arr);
+        return arr;
     }
 };
 
 Component.prototype.tag = function(tag) {
-    if (this.treeTags.has(tag)) {
-        var v = this.treeTags.get(tag).values().next();
-        if (v.done) return null;
-        return v.value;
+    if (!this.tagCache) {
+        this.tagCache = new Map();
+    }
+
+    var tc = this.tagCache.get(tag);
+    if (tc) {
+        return tc;
     } else {
-        return null;
+        var tc = this.getTaggedComponent(tag);
+        this.tagCache.set(tag, tc);
+        return tc;
     }
 };
 
-Component.prototype.setByTag = function(tag, settings) {
-    var t = this.getByTag(tag);
+Component.prototype.getTaggedComponent = function(tag) {
+    if (!this.cachedTags) {
+        this.cachedTags = new Set();
+    }
+
+
+    this.cachedTags.add(tag);
+
+    if (this.hasTag(tag)) {
+        return this;
+    } else {
+        var branches = this.getTaggedBranches(tag);
+        if (branches) {
+            return branches[0].getTaggedComponent(tag);
+        }
+    }
+    return null;
+}
+
+Component.prototype.getTaggedComponents = function(tag, arr) {
+    this.addCachedTag(tag);
+
+    if (this.hasTag(tag)) {
+        return arr.push(this);
+    } else {
+        var branches = this.getTaggedBranches(tag);
+        if (branches) {
+            for (var i = 0, n = branches.length; i < n; i++) {
+                branches[i].getTaggedComponents(tag, arr);
+            }
+        }
+    }
+}
+
+Component.prototype.hasCachedTag = function(tag) {
+    return this.cachedTags && this.cachedTags.has(tag);
+};
+
+Component.prototype.addCachedTag = function(tag) {
+    if (!this.cachedTags) {
+        this.cachedTags = new Set();
+    }
+
+    this.cachedTags.add(tag);
+};
+
+Component.prototype.clearCachedTag = function(tag) {
+    var c = this;
+
+    while(c.hasCachedTag(tag) && (c !== null)) {
+        c.cachedTags.delete(tag);
+
+        if (c.tagCache) {
+            c.tagCache.delete(tag);
+        }
+        if (c.mtagCache) {
+            c.mtagCache.delete(tag);
+        }
+
+        c = c.parent;
+    }
+};
+
+Component.prototype.clearCachedTags = function(tags) {
+    var i, n;
+    var c = this;
+
+    var hasAny = true;
+    while(c !== null && hasAny) {
+
+        hasAny = false;
+        for (i = 0, n = tags.length; i < n; i++) {
+            if (c.hasCachedTag(tags[i])) {
+                c.cachedTags.delete(tags[i]);
+                hasAny = true;
+            }
+        }
+
+        if (hasAny) {
+            if (c.tagCache) {
+                for (i = 0, n = tags.length; i < n; i++) {
+                    c.tagCache.delete(tags[i]);
+                }
+            }
+            if (c.mtagCache) {
+                for (i = 0, n = tags.length; i < n; i++) {
+                    c.mtagCache.delete(tags[i]);
+                }
+            }
+        }
+
+        c = c.parent;
+    }
+};
+
+Component.prototype.stag = function(tag, settings) {
+    var t = this.mtag(tag);
     var n = t.length;
     for (var i = 0; i < n; i++) {
         t[i].set(settings);
@@ -938,7 +1043,7 @@ Component.prototype.getSettingsObject = function() {
 Component.prototype.getNonDefaults = function() {
     var nonDefaults = {};
 
-    if (this._tags && this.tags.size) {
+    if (this.tags && this.tags.size) {
         nonDefaults['tags'] = Utils.setToArray(this.tags);
     }
 
@@ -2043,33 +2148,6 @@ Object.defineProperty(Component.prototype, 'rect', {
     }
 });
 
-Object.defineProperty(Component.prototype, 'tags', {
-    get: function() {
-        if (!this._tags) {
-            this._tags = new Set();
-        }
-        return this._tags;
-    }
-});
-
-Object.defineProperty(Component.prototype, 'treeTags', {
-    get: function() {
-        if (!this._treeTags) {
-            this._treeTags = new Map();
-        }
-        return this._treeTags;
-    }
-});
-
-Object.defineProperty(Component.prototype, 'treeTagsUpdatedFrame', {
-    get: function() {
-        if (!this._treeTagsUpdatedFrame) {
-            this._treeTagsUpdatedFrame = new Map();
-        }
-        return this._treeTagsUpdatedFrame;
-    }
-});
-
 Component.prototype.setTransitionTargetValue = function(transition, targetValue, currentValue) {
     if (transition.targetValue !== targetValue) {
         transition.updateTargetValue(targetValue, currentValue);
@@ -2345,6 +2423,69 @@ Component.propertySettersFinal = [
     function(component, value) {component.clipping = value;}
 ];
 
+Component.propertyGetters = [
+    function(component) { return component.x; },
+    function(component) { return component.y; },
+    function(component) { return component.w; },
+    function(component) { return component.h; },
+    function(component) { return component.scaleX; },
+    function(component) { return component.scaleY; },
+    function(component) { return component.pivotX; },
+    function(component) { return component.pivotY; },
+    function(component) { return component.mountX; },
+    function(component) { return component.mountY; },
+    function(component) { return component.alpha; },
+    function(component) { return component.rotation; },
+    function(component) { return component.borderWidthTop; },
+    function(component) { return component.borderWidthBottom; },
+    function(component) { return component.borderWidthLeft; },
+    function(component) { return component.borderWidthRight; },
+    function(component) { return component.borderColorTop; },
+    function(component) { return component.borderColorBottom; },
+    function(component) { return component.borderColorLeft; },
+    function(component) { return component.borderColorRight; },
+    function(component) { return component.colorTopLeft; },
+    function(component) { return component.colorTopRight; },
+    function(component) { return component.colorBottomLeft; },
+    function(component) { return component.colorBottomRight; },
+    function(component) { return component.visible; },
+    function(component) { return component.zIndex; },
+    function(component) { return component.forceZIndexContext; },
+    function(component) { return component.clipping; }
+];
+
+Component.propertyGettersFinal = [
+    function(component) { return component.X; },
+    function(component) { return component.Y; },
+    function(component) { return component.W; },
+    function(component) { return component.H; },
+    function(component) { return component.SCALEX; },
+    function(component) { return component.SCALEY; },
+    function(component) { return component.PIVOTX; },
+    function(component) { return component.PIVOTY; },
+    function(component) { return component.MOUNTX; },
+    function(component) { return component.MOUNTY; },
+    function(component) { return component.ALPHA; },
+    function(component) { return component.ROTATION; },
+    function(component) { return component.BORDERWIDTHTOP; },
+    function(component) { return component.BORDERWIDTHBOTTOM; },
+    function(component) { return component.BORDERWIDTHLEFT; },
+    function(component) { return component.BORDERWIDTHRIGHT; },
+    function(component) { return component.BORDERCOLORTOP; },
+    function(component) { return component.BORDERCOLORBOTTOM; },
+    function(component) { return component.BORDERCOLORLEFT; },
+    function(component) { return component.BORDERCOLORRIGHT; },
+    function(component) { return component.COLORTOPLEFT; },
+    function(component) { return component.COLORTOPRIGHT; },
+    function(component) { return component.COLORBOTTOMLEFT; },
+    function(component) { return component.COLORBOTTOMRIGHT; },
+    function(component) { return component.visible; },
+    function(component) { return component.zIndex; },
+    function(component) { return component.forceZIndexContext; },
+    function(component) { return component.clipping; }
+];
+
 if (isNode) {
     module.exports = Component;
+    var Transition = require('./Transition');
 }

@@ -3,6 +3,7 @@ module.exports = function(grunt) {
         concat: {
             'wpe-browser' : {
                 src : [
+                    'browser/EventEmitter.js',
                     'wpe/Stage.js',
                     'wpe/Utils.js',
                     'wpe/StageUtils.js',

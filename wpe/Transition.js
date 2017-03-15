@@ -3,20 +3,29 @@ var isNode = !!(((typeof module !== "undefined") && module.exports));
 if (isNode) {
     var Utils = require('./Utils');
     var StageUtils = require('./StageUtils');
-    var EventType = require('./EventType');
+    var EventEmitter = require('events');
 }
 
 /**
  * A transition for some element.
  * @constructor
  */
-function Transition(value, mergeFunction) {
+function Transition(component, property) {
+    EventEmitter.call(this);
+
+    this.component = component;
+
+    this.property = property;
+
+    this.propertyIndex = Component.getPropertyIndex(property);
 
     /**
      * The merge function. If null then use plain numeric interpolation merge.
      * @type {Function}
      */
-    this.mergeFunction = mergeFunction;
+    this.mergeFunction = Component.getMergeFunction(property);
+
+    this.valueSetterFunction = Component.propertySettersFinal[this.propertyIndex];
 
     this._delay = 0;
     this._duration = 1;
@@ -35,62 +44,34 @@ function Transition(value, mergeFunction) {
     /**
      * @access private
      */
-    this.startValue = value;
+    this.startValue = Component.propertyGetters[this.propertyIndex](this.component);
 
     /**
      * @access private
      */
-    this.targetValue = value;
-
-    /**
-     * @access private
-     */
-    this.lastResultValue = value;
-
-    this.onStart = new EventType();
-    this.onDelayEnd = new EventType();
-    this.onProgress = new EventType();
-    this.onFinish = new EventType();
-
-    this.onActivate = null;
-
-    this.active = false;
+    this.targetValue = this.startValue;
 
 }
 
-Transition.prototype.getChangeSpeed = function() {
-    if ((this.delayLeft > 0) || (this.p >= 1)) {
-        return 0;
-    }
-
-    var dv = this.getDrawValue();
-    this.p += 1e-2;
-    var v = this.getDrawValue();
-    this.p -= 1e-2;
-
-    return (v - dv) * 1e2 / this.duration;
-};
+Utils.extendClass(Transition, EventEmitter);
 
 Transition.prototype.reset = function(startValue, targetValue, p) {
     this.startValue = startValue;
-    this.lastResultValue = startValue;
     this.targetValue = targetValue;
     this.p = p;
 
-    if (!this.active && this.isActive()) {
-        this.active = true;
-        if (this.onActivate) {
-            this.onActivate();
-        }
+    if (this.isActive()) {
+        this.component.stage.addActiveTransition(this);
+    } else if (p === 1) {
+        this.valueSetterFunction(this.component, this.getDrawValue());
+
+        // Immediately invoke onFinish event.
+        this.invokeListeners();
     }
 };
 
 Transition.prototype.isActive = function() {
     return this.p < 1.0;
-};
-
-Transition.prototype.setInactive = function() {
-    this.active = false;
 };
 
 /**
@@ -111,11 +92,10 @@ Transition.prototype.updateTargetValue = function(targetValue, startValue) {
 
         this.delayLeft = this.delay;
 
-        this.onStart.trigger(null);
+        this.emit('start');
 
-        if (!this.active && this.isActive()) {
-            this.active = true;
-            this.onActivate();
+        if (this.isActive()) {
+            this.component.stage.addActiveTransition(this);
         }
     }
 
@@ -133,7 +113,7 @@ Transition.prototype.progress = function(dt) {
                 dt = -this.delayLeft;
                 this.delayLeft = 0;
 
-                this.onDelayEnd.trigger(null);
+                this.emit('delayEnd');
             } else {
                 return;
             }
@@ -150,17 +130,15 @@ Transition.prototype.progress = function(dt) {
         }
     }
 
-    this.lastResultValue = this.getDrawValue();
+    this.valueSetterFunction(this.component, this.getDrawValue());
+
+    this.invokeListeners();
 };
 
 Transition.prototype.invokeListeners = function() {
-    if (this.onProgress.hasListeners) {
-        this.onProgress.trigger({p: this.p});
-    }
+    this.emit('progress', this.p);
     if (this.p === 1) {
-        if (this.onFinish.hasListeners) {
-            this.onFinish.trigger(null);
-        }
+        this.emit('finish');
     }
 };
 
@@ -251,4 +229,5 @@ Object.defineProperty(Transition.prototype, 'timingFunction', {
 
 if (isNode) {
     module.exports = Transition;
+    var Component = require('./Component');
 }

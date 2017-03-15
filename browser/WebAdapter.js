@@ -99,7 +99,7 @@ WebAdapter.prototype.getUComponentContext = function() {
     return this.uComponentContext;
 };
 
-WebAdapter.prototype.blit = function() {
+WebAdapter.prototype.nextFrame = function(swapBuffers) {
     /* WebGL blits automatically */
 };
 

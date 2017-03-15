@@ -13,6 +13,8 @@ var NodeAdapter = function(options) {
     this.glClearColor = [0, 0, 0, 1];
 
     this.stage = null;
+
+    this.options = options || {title: "WebGL"};
 };
 
 NodeAdapter.prototype.setStage = function(stage) {
@@ -111,6 +113,11 @@ NodeAdapter.prototype.getHrTime = function() {
 NodeAdapter.prototype.getWebGLRenderingContext = function(w, h) {
 
     var options = {width: w, height: h};
+    for (var key in this.options) {
+        if (this.options.hasOwnProperty(key)) {
+            options[key] = this.options[key];
+        }
+    }
     var gl = gles2.init(options);
 
     return gl;
@@ -125,8 +132,8 @@ NodeAdapter.prototype.getUComponentContext = function() {
     return this.uComponentContext;
 };
 
-NodeAdapter.prototype.blit = function() {
-    gles2.blit();
+NodeAdapter.prototype.nextFrame = function(swapBuffers) {
+    gles2.nextFrame(swapBuffers);
 };
 
 module.exports = NodeAdapter;
