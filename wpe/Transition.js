@@ -2,7 +2,6 @@ var isNode = !!(((typeof module !== "undefined") && module.exports));
 
 if (isNode) {
     var Utils = require('./Utils');
-    var StageUtils = require('./StageUtils');
     var EventEmitter = require('events');
 }
 
@@ -10,22 +9,8 @@ if (isNode) {
  * A transition for some element.
  * @constructor
  */
-function Transition(component, property) {
+function Transition(v) {
     EventEmitter.call(this);
-
-    this.component = component;
-
-    this.property = property;
-
-    this.propertyIndex = Component.getPropertyIndex(property);
-
-    /**
-     * The merge function. If null then use plain numeric interpolation merge.
-     * @type {Function}
-     */
-    this.mergeFunction = Component.getMergeFunction(property);
-
-    this.valueSetterFunction = Component.propertySettersFinal[this.propertyIndex];
 
     this._delay = 0;
     this._duration = 1;
@@ -44,7 +29,7 @@ function Transition(component, property) {
     /**
      * @access private
      */
-    this.startValue = Component.propertyGetters[this.propertyIndex](this.component);
+    this.startValue = v;
 
     /**
      * @access private
@@ -61,9 +46,9 @@ Transition.prototype.reset = function(startValue, targetValue, p) {
     this.p = p;
 
     if (this.isActive()) {
-        this.component.stage.addActiveTransition(this);
+        this.activate();
     } else if (p === 1) {
-        this.valueSetterFunction(this.component, this.getDrawValue());
+        this.setValue(this.getDrawValue());
 
         // Immediately invoke onFinish event.
         this.invokeListeners();
@@ -95,10 +80,12 @@ Transition.prototype.updateTargetValue = function(targetValue, startValue) {
         this.emit('start');
 
         if (this.isActive()) {
-            this.component.stage.addActiveTransition(this);
+            this.activate();
         }
     }
+};
 
+Transition.prototype.activate = function() {
 };
 
 /**
@@ -130,7 +117,7 @@ Transition.prototype.progress = function(dt) {
         }
     }
 
-    this.valueSetterFunction(this.component, this.getDrawValue());
+    this.setValue(this.getDrawValue());
 
     this.invokeListeners();
 };
@@ -187,13 +174,16 @@ Transition.prototype.getDrawValue = function() {
         return this.targetValue;
     } else {
         var v = this.timingFunction(this.p);
-        if (!this.mergeFunction) {
-            // Numeric merge. Inline for performance.
-            return this.targetValue * v + this.startValue * (1 - v);
-        } else {
-            return this.mergeFunction(this.targetValue, this.startValue, v);
-        }
+        return this.getMergedValue(v);
     }
+};
+
+Transition.prototype.setValue = function(v) {
+};
+
+Transition.prototype.getMergedValue = function(v) {
+    // Numeric merge. Inline for performance.
+    return this.targetValue * v + this.startValue * (1 - v);
 };
 
 Object.defineProperty(Transition.prototype, 'delay', {
@@ -229,5 +219,5 @@ Object.defineProperty(Transition.prototype, 'timingFunction', {
 
 if (isNode) {
     module.exports = Transition;
-    var Component = require('./Component');
+    var StageUtils = require('./StageUtils');
 }

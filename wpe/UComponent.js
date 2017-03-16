@@ -2,7 +2,6 @@ var isNode = !!(((typeof module !== "undefined") && module.exports));
 
 if (isNode) {
     var Utils = require('./Utils');
-    var GeometryUtils = require('./GeometryUtils');
 }
 
 var UComponent = function(ctx) {
@@ -1097,4 +1096,5 @@ var getVboTextureCoords = function(x, y) {
 
 if (isNode) {
     module.exports = UComponent;
+    var GeometryUtils = require('./GeometryUtils');
 }

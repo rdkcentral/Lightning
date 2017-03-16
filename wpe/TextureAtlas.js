@@ -2,7 +2,6 @@ var isNode = !!(((typeof module !== "undefined") && module.exports));
 
 if (isNode) {
     var Utils = require('./Utils');
-    var TextureAtlasTree = require('./TextureAtlasTree');
 }
 
 /**
@@ -600,4 +599,5 @@ TextureAtlas.prototype.flush = function() {
 
 if (isNode) {
     module.exports = TextureAtlas;
+    var TextureAtlasTree = require('./TextureAtlasTree');
 }

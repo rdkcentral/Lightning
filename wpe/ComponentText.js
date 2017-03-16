@@ -2,8 +2,6 @@ var isNode = !!(((typeof module !== "undefined") && module.exports));
 
 if (isNode) {
     var Utils = require('./Utils');
-    var TextRendererSettings = require('./TextRendererSettings');
-    var TextRenderer = require('./TextRenderer');
 }
 
 /**
@@ -435,4 +433,6 @@ Object.defineProperty(ComponentText.prototype, 'cutEy', {
 
 if (isNode) {
     module.exports = ComponentText;
+    var TextRendererSettings = require('./TextRendererSettings');
+    var TextRenderer = require('./TextRenderer');
 }

@@ -2,7 +2,6 @@ var isNode = !!(((typeof module !== "undefined") && module.exports));
 
 if (isNode) {
     var Utils = require('./Utils');
-    var Component = require('./Component');
 }
 
 /**
@@ -286,4 +285,5 @@ Object.defineProperty(AnimationAction.prototype, 'resetValue', {
 
 if (isNode) {
     module.exports = AnimationAction;
+    var Component = require('./Component');
 }

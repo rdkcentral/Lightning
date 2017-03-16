@@ -2,8 +2,6 @@ var isNode = !!(((typeof module !== "undefined") && module.exports));
 
 if (isNode) {
     var Utils = require('./Utils');
-    var StageUtils = require('./StageUtils');
-    var AnimationAction = require('./AnimationAction');
 }
 
 /**
@@ -17,7 +15,7 @@ function Animation(stage) {
     /**
      * @type {Component}
      */
-    this.subject = null;
+    this._subject = null;
 
     this.actions = [];
 
@@ -41,12 +39,6 @@ function Animation(stage) {
     this.duration = 0;
 
 }
-
-Animation.prototype.setSubject = function(subject) {
-    var prevSubject = this.subject;
-
-    this.subject = subject;
-};
 
 Animation.prototype.set = function(settings) {
     var propNames = Object.keys(settings);
@@ -126,6 +118,15 @@ Object.defineProperty(Animation.prototype, 'amplitude', {
     }
 });
 
+Object.defineProperty(Animation.prototype, 'subject', {
+    get: function() { return this._subject; },
+    set: function(v) {
+        this._subject = v;
+    }
+});
+
 if (isNode) {
     module.exports = Animation;
+    var StageUtils = require('./StageUtils');
+    var AnimationAction = require('./AnimationAction');
 }

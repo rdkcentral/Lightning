@@ -20,6 +20,7 @@ module.exports = function(grunt) {
                     'wpe/TextRenderer.js',
                     'wpe/TextRendererSettings.js',
                     'wpe/Transition.js',
+                    'wpe/PropertyTransition.js',
                     'wpe/Animation.js',
                     'wpe/AnimationAction.js',
                     'wpe/TimedAnimation.js',

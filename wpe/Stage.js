@@ -1,17 +1,8 @@
 var isNode = !!(((typeof module !== "undefined") && module.exports));
 
 if (isNode) {
-    var NodeAdapter = require('../node/NodeAdapter');
-
-    var Component = require('./Component');
-    var TimedAnimation = require('./TimedAnimation');
-    var Utils = require('./Utils');
-    var Renderer = require('./Renderer');
-    var TextureManager = require('./TextureManager');
-    var TextureAtlas = require('./TextureAtlas');
-    var StageUtils = require('./StageUtils');
-    var CustomAnimation = require('./CustomAnimation');
     var EventEmitter = require('events');
+    var Utils = require('./Utils');
 }
 
 /**
@@ -111,7 +102,7 @@ function Stage(options) {
 
     /**
      * The currently active transitions.
-     * @type {Set<Transition>}
+     * @type {Set<PropertyTransition>}
      */
     this.activeTransitions = new Set();
 
@@ -237,10 +228,6 @@ Stage.prototype.addActiveAnimation = function(a) {
     this.activeAnimations.add(a);
 };
 
-Stage.prototype.removeActiveAnimation = function(a) {
-    this.activeAnimations.delete(a);
-};
-
 Stage.prototype.drawFrame = function() {
     this.measure && this.timeStart('total');
     if (this.fixedDt) {
@@ -303,7 +290,6 @@ Stage.prototype.progressTransitions = function() {
     var self = this;
 
     if (this.activeTransitions.size) {
-
         this.activeTransitions.forEach(function(transition) {
             if (transition.component.attached && transition.isActive()) {
                 transition.progress(self.dt);
@@ -318,10 +304,11 @@ Stage.prototype.progressAnimations = function() {
     var self = this;
     if (this.activeAnimations.size) {
         this.activeAnimations.forEach(function (animation) {
-            animation.progress(self.dt);
-            animation.applyTransforms();
-            if (!animation.isActive()) {
-                self.removeActiveAnimation(animation);
+            if (animation.subject && animation.subject.attached && animation.isActive()) {
+                animation.progress(self.dt);
+                animation.applyTransforms();
+            } else {
+                self.activeAnimations.delete(animation);
             }
         });
     }
@@ -394,24 +381,8 @@ Stage.prototype.c = function(settings) {
     return component;
 };
 
-Stage.prototype.timedAnimation = function(settings, actions) {
+Stage.prototype.animation = function(settings, actions) {
     var a = new TimedAnimation(this);
-    if (settings) {
-        a.set(settings);
-    }
-
-    if (actions) {
-        var n = actions.length;
-        for (var i = 0; i < n; i++) {
-            a.add(actions[i]);
-        }
-    }
-
-    return a;
-};
-
-Stage.prototype.customAnimation = function(settings, actions) {
-    var a = new CustomAnimation(this);
     if (settings) {
         a.set(settings);
     }
@@ -454,5 +425,13 @@ Stage.H = 720;
 
 if (isNode) {
     module.exports = Stage;
+
+    var NodeAdapter = require('../node/NodeAdapter');
+    var TimedAnimation = require('./TimedAnimation');
+    var Renderer = require('./Renderer');
+    var TextureManager = require('./TextureManager');
+    var TextureAtlas = require('./TextureAtlas');
+    var StageUtils = require('./StageUtils');
+    var Component = require('./Component');
 }
 

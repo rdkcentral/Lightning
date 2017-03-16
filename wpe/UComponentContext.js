@@ -2,7 +2,6 @@ var isNode = !!(((typeof module !== "undefined") && module.exports));
 
 if (isNode) {
     var Utils = require('./Utils');
-    var UComponent = require('./UComponent');
 }
 
 var UComponentContext = function() {
@@ -139,4 +138,5 @@ Object.defineProperty(UComponentContext.prototype, 'staticStage', {
 
 if (isNode) {
     module.exports = UComponentContext;
+    var UComponent = require('./UComponent');
 }

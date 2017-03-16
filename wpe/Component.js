@@ -2,10 +2,6 @@ var isNode = !!(((typeof module !== "undefined") && module.exports));
 
 if (isNode) {
     var Utils = require('./Utils');
-    var Stage = require('./Stage');
-    var StageUtils = require('./StageUtils');
-    var Texture = require('./Texture');
-    var ComponentText = require('./ComponentText');
 }
 
 /**
@@ -87,9 +83,21 @@ var Component = function(stage) {
 
     /**
      * The transitions (indexed by property index, null if not used).
-     * @type {Transition[]}
+     * @type {PropertyTransition[]}
      */
     this.transitions = null;
+
+    /**
+     * All transitions, for quick looping.
+     * @type {Set<PropertyTransition>}
+     */
+    this.transitionSet = null;
+
+    /**
+     * All timed animations that have this component has subject.
+     * @type {Set<TimedAnimation>}
+     */
+    this.timedAnimationSet = null;
 
     /**
      * Tags that can be used to identify/search for a specific component.
@@ -499,6 +507,27 @@ Component.prototype.updateAttachedFlag = function() {
     if (this.attached !== newAttached) {
         this.attached = newAttached;
 
+        if (newAttached) {
+            var self = this;
+
+            // Check if there are remaining active transitions that should be re-activated.
+            if (this.transitionSet) {
+                this.transitionSet.forEach(function(transition) {
+                    if (transition.isActive()) {
+                        self.stage.addActiveTransition(transition);
+                    }
+                });
+            }
+
+            if (this.timedAnimationSet) {
+                this.timedAnimationSet.forEach(function(timedAnimation) {
+                    if (timedAnimation.isActive()) {
+                        self.stage.addActiveAnimation(timedAnimation);
+                    }
+                });
+            }
+        }
+
         var m = this.children.length;
         if (m > 0) {
             for (var i = 0; i < m; i++) {
@@ -508,6 +537,16 @@ Component.prototype.updateAttachedFlag = function() {
     }
 };
 
+Component.prototype.addTimedAnimation = function(a) {
+    if (!this.timedAnimationSet) {
+        this.timedAnimationSet = new Set();
+    }
+    this.timedAnimationSet.add(a);
+};
+
+Component.prototype.removeTimedAnimation = function(a) {
+    this.timedAnimationSet.delete(a);
+};
 
 Component.prototype.getRenderWidth = function() {
     if (this.active) {
@@ -588,17 +627,20 @@ Component.prototype.setPropertyTransition = function(property, settings) {
 
         if (!settings) {
             if (this.transitions) {
+                if (this.transitions[propertyIndex]) {
+                    this.transitionSet.delete(this.transitions[propertyIndex]);
+                }
                 this.transitions[propertyIndex] = null;
             }
         } else {
             // Only reset on change.
             if (!this.transitions) {
                 this.transitions = new Array(Component.nProperties);
-                this.transitionProperties = [];
+                this.transitionSet = new Set();
             }
             if (!this.transitions[propertyIndex]) {
-                this.transitions[propertyIndex] = new Transition(this, property);
-                this.transitionProperties.push(propertyIndex);
+                this.transitions[propertyIndex] = new PropertyTransition(this, property);
+                this.transitionSet.add(this.transitions[propertyIndex]);
             }
             this.transitions[propertyIndex].set(settings);
         }
@@ -2487,5 +2529,9 @@ Component.propertyGettersFinal = [
 
 if (isNode) {
     module.exports = Component;
-    var Transition = require('./Transition');
+    var Stage = require('./Stage');
+    var PropertyTransition = require('./PropertyTransition');
+    var StageUtils = require('./StageUtils');
+    var Texture = require('./Texture');
+    var ComponentText = require('./ComponentText');
 }

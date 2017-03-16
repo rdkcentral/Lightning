@@ -2,8 +2,8 @@ var isNode = !!(((typeof module !== "undefined") && module.exports));
 
 if (isNode) {
     var Utils = require('./Utils');
-    var Animation = require('./Animation');
     var EventEmitter = require('events');
+    var Animation = require('./Animation');
 }
 
 /**
@@ -13,8 +13,6 @@ if (isNode) {
 var TimedAnimation = function(stage) {
     Animation.call(this, stage);
     EventEmitter.call(this);
-
-    var self = this;
 
     this._delay = 0;
 
@@ -66,6 +64,8 @@ var TimedAnimation = function(stage) {
 
     this.state = TimedAnimation.STATES.IDLE;
 
+    this.stoppingProgressTransition = new Transition(0);
+
 };
 
 Utils.extendClass(TimedAnimation, Animation);
@@ -76,47 +76,8 @@ TimedAnimation.prototype.isActive = function() {
     return this.subject && (this.state == TimedAnimation.STATES.PLAYING || this.state == TimedAnimation.STATES.STOPPING);
 };
 
-TimedAnimation.prototype.setSubject = function(subject) {
-    var prevSubject = this.subject;
-
-    var active = (this.p > 0 || this.state == TimedAnimation.STATES.PLAYING);
-    if (!prevSubject && subject && active) {
-        // Becomes active.
-        this.stage.addActiveAnimation(this);
-    }
-    Animation.prototype.setSubject.apply(this, arguments);
-};
-
-/**
- * Runs this animation once on the subject, stop it and remove it.
- * @param subject
- */
-TimedAnimation.prototype.run = function(subject) {
-    this.stopNow();
-
-    this.setSubject(subject);
-
-    if (this.runFinishFunc) {
-        this.off('finish', this.runFinishFunc);
-    }
-    if (this.runStopFinishFunc) {
-        this.off('stopFinish', this.runStopFinishFunc);
-    }
-
-    var self = this;
-    this.runFinishFunc = function() {
-        self.stop();
-
-        self.runStopFinishFunc = function() {
-            self.setSubject(null);
-        };
-
-        self.once('stopFinish', self.runStopFinishFunc);
-    };
-
-    this.once('finish', this.runFinishFunc);
-
-    this.play();
+TimedAnimation.prototype.activate = function() {
+    this.component.stage.addActiveAnimation(this);
 };
 
 TimedAnimation.prototype.progress = function(dt) {
@@ -215,7 +176,11 @@ TimedAnimation.prototype.stopProgress = function(dt) {
             this.emit('stopFinish');
         }
     } else if (this.stopMethod == TimedAnimation.STOP_METHODS.FADE) {
-        //@todo: transition.
+        this.stoppingProgressTransition.progress(dt);
+        if (this.stoppingProgressTransition.p >= 1) {
+            this.state = TimedAnimation.STATES.STOPPED;
+            this.emit('stopFinish');
+        }
     } else if (this.stopMethod == TimedAnimation.STOP_METHODS.ONETOTWO) {
         if (this.p < 2) {
             if (duration === 0) {
@@ -255,7 +220,7 @@ TimedAnimation.prototype.stopProgress = function(dt) {
                     } else {
                         this.p = 1;
                         this.state = TimedAnimation.STATES.STOPPED;
-                        this.emit('finish');
+                        this.emit('stopFinish');
                     }
                 }
             } else {
@@ -338,12 +303,12 @@ TimedAnimation.prototype.stop = function() {
     } else {
         if (this.stopMethod == TimedAnimation.STOP_METHODS.FADE) {
             if (this.stopMethodOptions.duration) {
-                //@todo.
+                this.stoppingProgressTransition.duration = this.stopMethodOptions.duration;
             }
             if (this.stopMethodOptions.timingFunction) {
-                //@todo.
+                this.stoppingProgressTransition.timingFunction = this.stopMethodOptions.timingFunction;
             }
-            //@todo.
+            this.stoppingProgressTransition.reset(0, 1, 0);
         }
 
         this.state = TimedAnimation.STATES.STOPPING;
@@ -375,9 +340,7 @@ TimedAnimation.prototype.applyTransforms = function() {
         // Apply possible fade out effect.
         var factor = 1;
         if (this.state == TimedAnimation.STATES.STOPPING && this.stopMethod == TimedAnimation.STOP_METHODS.FADE) {
-            var progress = 0;
-            //@todo: stop transition progress.
-            factor = (1 - progress);
+            factor = (1 - this.stoppingProgressTransition.getProgress());
         }
 
         var p = this.progressFunction(this.p);
@@ -469,6 +432,25 @@ Object.defineProperty(TimedAnimation.prototype, 'stopMethodOptions', {
     }
 });
 
+Object.defineProperty(TimedAnimation.prototype, 'subject', {
+    get: function() { return this._subject; },
+    set: function(subject) {
+        if (subject !== this._subject) {
+            if (this._subject) {
+                this._subject.removeTimedAnimation(this);
+            }
+            if (subject) {
+                subject.addTimedAnimation(this);
+            }
+
+            this._subject = subject;
+            if (this.isActive()) {
+                this.activate();
+            }
+        }
+    }
+});
+
 TimedAnimation.STATES = {
     IDLE: 0,
     PLAYING: 1,
@@ -487,4 +469,5 @@ TimedAnimation.STOP_METHODS = {
 
 if (isNode) {
     module.exports = TimedAnimation;
+    var Transition = require('./Transition');
 }

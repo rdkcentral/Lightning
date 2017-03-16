@@ -2,8 +2,6 @@ var isNode = !!(((typeof module !== "undefined") && module.exports));
 
 if (isNode) {
     var Utils = require('./Utils');
-    var TextureSource = require('./TextureSource');
-    var Texture = require('./Texture');
 }
 
 /**
@@ -305,4 +303,6 @@ TextureManager.prototype.removeTextureSource = function(textureSource) {
 
 if (isNode) {
     module.exports = TextureManager;
+    var TextureSource = require('./TextureSource');
+    var Texture = require('./Texture');
 }

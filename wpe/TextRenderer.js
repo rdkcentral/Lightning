@@ -2,7 +2,6 @@ var isNode = !!(((typeof module !== "undefined") && module.exports));
 
 if (isNode) {
     var Utils = require('./Utils');
-    var StageUtils = require('./StageUtils');
 }
 
 function TextRenderer(stage, settings) {
@@ -286,4 +285,5 @@ TextRenderer.prototype.wrapText = function(text, wordWrapWidth) {
 
 if (isNode) {
     module.exports = TextRenderer;
+    var StageUtils = require('./StageUtils');
 }
