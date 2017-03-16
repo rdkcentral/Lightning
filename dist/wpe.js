@@ -1,486 +1,339 @@
+/*
+ The MIT License (MIT)
+
+ https://github.com/primus/eventemitter3
+ Copyright (c) 2014 Arnout Kazemier
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+ */
+
+'use strict';
+
+var has = Object.prototype.hasOwnProperty
+    , prefix = '~';
 
 /**
- * Container for a tree structure of components.
+ * Constructor to create a storage for our `EE` objects.
+ * An `Events` instance is a plain object whose properties are event names.
+ *
  * @constructor
+ * @api private
  */
-function Stage(options) {
-    this.adapter = options.adapter;
-    if (!this.adapter) {
-        if (isNode) {
-            this.adapter = new NodeAdapter();
-        } else {
-            this.adapter = new WebAdapter();
-        }
-    }
+function Events() {}
 
-    this.adapter.stage = this;
+//
+// We try to not inherit from `Object.prototype`. In some engines creating an
+// instance in this way is faster than calling `Object.create(null)` directly.
+// If `Object.create(null)` is not supported we prefix the event names with a
+// character to make sure that the built-in object properties are not
+// overridden or used as an attack vector.
+//
+if (Object.create) {
+    Events.prototype = Object.create(null);
 
-    var w = options && options.w;
-    var h = options && options.h;
-
-    if (!w || !h) {
-        w = 1280;
-        h = 720;
-    }
-
-    this.w = w;
-    this.h = h;
-
-    this.reuseCanvas = (options && options.reuseCanvas) || null;
-
-    this.renderWidth = (options && options.rw) || this.w;
-    this.renderHeight = (options && options.rh) || this.h;
-
-    this.textureMemory = (options && options.textureMemory) || 12e6;
-
-    if (options && options.hasOwnProperty('glClearColor')) {
-        this.setGlClearColor(options.glClearColor);
-    } else {
-        this.setGlClearColor(this.adapter.glClearColor || [0, 0, 0, 0]);
-    }
-
-    this.defaultFontFace = (options && options.defaultFontFace) || "Arial";
-
-    this.fixedDt = (options && options.fixedDt) || 0;
-
-    /**
-     * Counts the number of drawn frames.
-     * @type {number}
-     */
-    this.frameCounter = 0;
-
-    /**
-     * Whether or not to use a texture atlas to prevent bindTexture switching.
-     */
-    this.useTextureAtlas = (options && options.hasOwnProperty('useTextureAtlas')) ? options.useTextureAtlas : false;
-    if (this.useTextureAtlas) {
-        console.log('Using texture atlas.');
-    }
-
-    this.debugTextureAtlas = this.useTextureAtlas && (options && options.hasOwnProperty('debugTextureAtlas')) ? options.debugTextureAtlas : false;
-    if (this.debugTextureAtlas) {
-        console.log('Showing texture atlas for debug.');
-    }
-
-    this.renderer = new Renderer(this, w, h);
-
-    this.textureManager = new TextureManager(this, this.renderer.gl);
-
-    /**
-     * Create a texture atlas which helps us to prevent texture switches.
-     * @type {TextureAtlas}
-     */
-    this.textureAtlas = this.useTextureAtlas ? new TextureAtlas(this, this.renderer.gl) : null;
-
-    this.onFrameStart = new EventType();
-    this.onUpdate = new EventType();
-    this.onFrameEnd = new EventType();
-
-    /**
-     * The rendering state of this stage.
-     * @type {number}
-     */
-    this.state = Stage.STATES.IDLE;
-
-    /**
-     * @type {Component}
-     */
-    this.root = this.c();
-    this.root.active = true;
-    this.root.setAsRoot();
-
-    /**
-     * The current frame time delta.
-     * @type {number}
-     */
-    this.dt = 0;
-
-    /**
-     * The currently active transitions.
-     * @type {{c : Component, p : Number}[]}
-     */
-    this.activeTransitions = [];
-
-    /**
-     * The currently active animations.
-     * @type {Set<TimedAnimation>}
-     */
-    this.activeAnimations = new Set();
-
-    this.measure = !!options.measure;
-    this.measureDetails = !!options.measureDetails;
-
-    // Measurement stuff.
-    this.measureStart = {};
-    this.measureTotalMs = {};
-    this.measureMs = {};
-    this.measureLastFrameCounter = {};
-    this.measureCount = {};
-
-    this.rectangleTexture = this.getTexture(Stage.rectangleSource.src, Stage.rectangleSource);
-
-    if (this.adapter.setStage) {
-        this.adapter.setStage(this);
-    }
-
-    this.uComponentContext = this.adapter.getUComponentContext();
-
-    /**
-     * Counts the number of attached components that are using z-indices.
-     * This is used to determine if we can use a single-pass or dual-pass update/render loop.
-     * @type {number}
-     */
-    this.zIndexUsage = 0;
-
-    // Start.
-    this.init();
-
-    this.destroyed = false;
-
+    //
+    // This hack is needed because the `__proto__` property is still inherited in
+    // some old browsers like Android 4, iPhone 5.1, Opera 11 and Safari 5.
+    //
+    if (!new Events().__proto__) prefix = false;
 }
 
-Stage.prototype.destroy = function() {
-    this.adapter.stopAnimationLoop();
-    if (this.useTextureAtlas) {
-        this.textureAtlas.destroy();
+/**
+ * Representation of a single event listener.
+ *
+ * @param {Function} fn The listener function.
+ * @param {Mixed} context The context to invoke the listener with.
+ * @param {Boolean} [once=false] Specify if the listener is a one-time listener.
+ * @constructor
+ * @api private
+ */
+function EE(fn, context, once) {
+    this.fn = fn;
+    this.context = context;
+    this.once = once || false;
+}
+
+/**
+ * Minimal `EventEmitter` interface that is molded against the Node.js
+ * `EventEmitter` interface.
+ *
+ * @constructor
+ * @api public
+ */
+function EventEmitter() {
+    this._events = new Events();
+    this._eventsCount = 0;
+}
+
+/**
+ * Return an array listing the events for which the emitter has registered
+ * listeners.
+ *
+ * @returns {Array}
+ * @api public
+ */
+EventEmitter.prototype.eventNames = function eventNames() {
+    var names = []
+        , events
+        , name;
+
+    if (this._eventsCount === 0) return names;
+
+    for (name in (events = this._events)) {
+        if (has.call(events, name)) names.push(prefix ? name.slice(1) : name);
     }
-    this.renderer.destroy();
-    this.textureManager.destroy();
-    this.destroyed = true;
+
+    if (Object.getOwnPropertySymbols) {
+        return names.concat(Object.getOwnPropertySymbols(events));
+    }
+
+    return names;
 };
 
+/**
+ * Return the listeners registered for a given event.
+ *
+ * @param {String|Symbol} event The event name.
+ * @param {Boolean} exists Only check if there are listeners.
+ * @returns {Array|Boolean}
+ * @api public
+ */
+EventEmitter.prototype.listeners = function listeners(event, exists) {
+    var evt = prefix ? prefix + event : event
+        , available = this._events[evt];
 
-Stage.prototype.setGlClearColor = function(clearColor) {
-    if (Array.isArray(clearColor)) {
-        this.glClearColor = clearColor;
+    if (exists) return !!available;
+    if (!available) return [];
+    if (available.fn) return [available.fn];
+
+    for (var i = 0, l = available.length, ee = new Array(l); i < l; i++) {
+        ee[i] = available[i].fn;
+    }
+
+    return ee;
+};
+
+/**
+ * Calls each of the listeners registered for a given event.
+ *
+ * @param {String|Symbol} event The event name.
+ * @returns {Boolean} `true` if the event had listeners, else `false`.
+ * @api public
+ */
+EventEmitter.prototype.emit = function emit(event, a1, a2, a3, a4, a5) {
+    var evt = prefix ? prefix + event : event;
+
+    if (!this._events[evt]) return false;
+
+    var listeners = this._events[evt]
+        , len = arguments.length
+        , args
+        , i;
+
+    if (listeners.fn) {
+        if (listeners.once) this.removeListener(event, listeners.fn, undefined, true);
+
+        switch (len) {
+            case 1: return listeners.fn.call(listeners.context), true;
+            case 2: return listeners.fn.call(listeners.context, a1), true;
+            case 3: return listeners.fn.call(listeners.context, a1, a2), true;
+            case 4: return listeners.fn.call(listeners.context, a1, a2, a3), true;
+            case 5: return listeners.fn.call(listeners.context, a1, a2, a3, a4), true;
+            case 6: return listeners.fn.call(listeners.context, a1, a2, a3, a4, a5), true;
+        }
+
+        for (i = 1, args = new Array(len -1); i < len; i++) {
+            args[i - 1] = arguments[i];
+        }
+
+        listeners.fn.apply(listeners.context, args);
     } else {
-        this.glClearColor = StageUtils.getRgbaComponents(clearColor);
-    }
-};
+        var length = listeners.length
+            , j;
 
-Stage.prototype.getCanvas = function() {
-    return this.adapter.canvas;
-};
+        for (i = 0; i < length; i++) {
+            if (listeners[i].once) this.removeListener(event, listeners[i].fn, undefined, true);
 
-Stage.prototype.timeStart = function(name) {
-    this.measureCount[name]++;
-    if (this.frameCounter != this.measureLastFrameCounter[name]) {
-        this.measureLastFrameCounter[name] = this.frameCounter;
-        this.measureTotalMs[name] += this.measureMs[name];
-        if (this.frameCounter % 100 == 0) {
-            console.log(name + ': ' + ((this.measureTotalMs[name] / 100) - (name == 'global' ? 4.5 : 0)).toFixed(3) + ' (' + (this.measureCount[name] / 100) + ')');
-            this.measureTotalMs[name] = 0;
-            this.measureCount[name] = 0;
-        }
-        this.measureMs[name] = 0;
-    }
-    this.measureStart[name] = this.adapter.getHrTime();
-};
+            switch (len) {
+                case 1: listeners[i].fn.call(listeners[i].context); break;
+                case 2: listeners[i].fn.call(listeners[i].context, a1); break;
+                case 3: listeners[i].fn.call(listeners[i].context, a1, a2); break;
+                case 4: listeners[i].fn.call(listeners[i].context, a1, a2, a3); break;
+                default:
+                    if (!args) for (j = 1, args = new Array(len -1); j < len; j++) {
+                        args[j - 1] = arguments[j];
+                    }
 
-Stage.prototype.timeEnd = function(name) {
-    var e = this.adapter.getHrTime();
-    this.measureMs[name] += (e - this.measureStart[name]);
-};
-
-Stage.prototype.pause = function() {
-    this.adapter.stopAnimationLoop();
-};
-
-Stage.prototype.resume = function() {
-    this.adapter.startAnimationLoop();
-};
-
-Stage.prototype.init = function() {
-    if (this.adapter.init) {
-        this.adapter.init();
-    }
-
-    // Preload rectangle texture, so that we can skip some border checks for loading textures.
-    var self = this;
-    var rect = this.getRectangleTexture();
-    var src = rect.source;
-    src.onload = function() {
-        self.adapter.startAnimationLoop(function() {self.drawFrame();});
-        src.permanent = true;
-        if (self.useTextureAtlas) {
-            self.textureAtlas.add(src);
-        }
-    };
-    rect.load();
-};
-
-Stage.prototype.getRectangleTexture = function() {
-    return this.rectangleTexture;
-};
-
-Stage.prototype.addActiveTransition = function(component, propertyIndex) {
-    this.activeTransitions.push({c: component, p: propertyIndex});
-};
-
-Stage.prototype.removeActiveTransition = function(component, propertyIndex) {
-    for (var i = 0, n = this.activeTransitions.length; i < n; i++) {
-        if (this.activeTransitions[i].c === component && this.activeTransitions[i].p === propertyIndex) {
-            var info = this.activeTransitions[i];
-            info.c.transitions[info.p].setInactive();
-            break;
+                    listeners[i].fn.apply(listeners[i].context, args);
+            }
         }
     }
-    if (i < n) {
-        this.activeTransitions.splice(i, 1);
+
+    return true;
+};
+
+/**
+ * Add a listener for a given event.
+ *
+ * @param {String|Symbol} event The event name.
+ * @param {Function} fn The listener function.
+ * @param {Mixed} [context=this] The context to invoke the listener with.
+ * @returns {EventEmitter} `this`.
+ * @api public
+ */
+EventEmitter.prototype.on = function on(event, fn, context) {
+    var listener = new EE(fn, context || this)
+        , evt = prefix ? prefix + event : event;
+
+    if (!this._events[evt]) this._events[evt] = listener, this._eventsCount++;
+    else if (!this._events[evt].fn) this._events[evt].push(listener);
+    else this._events[evt] = [this._events[evt], listener];
+
+    return this;
+};
+
+/**
+ * Add a one-time listener for a given event.
+ *
+ * @param {String|Symbol} event The event name.
+ * @param {Function} fn The listener function.
+ * @param {Mixed} [context=this] The context to invoke the listener with.
+ * @returns {EventEmitter} `this`.
+ * @api public
+ */
+EventEmitter.prototype.once = function once(event, fn, context) {
+    var listener = new EE(fn, context || this, true)
+        , evt = prefix ? prefix + event : event;
+
+    if (!this._events[evt]) this._events[evt] = listener, this._eventsCount++;
+    else if (!this._events[evt].fn) this._events[evt].push(listener);
+    else this._events[evt] = [this._events[evt], listener];
+
+    return this;
+};
+
+/**
+ * Remove the listeners of a given event.
+ *
+ * @param {String|Symbol} event The event name.
+ * @param {Function} fn Only remove the listeners that match this function.
+ * @param {Mixed} context Only remove the listeners that have this context.
+ * @param {Boolean} once Only remove one-time listeners.
+ * @returns {EventEmitter} `this`.
+ * @api public
+ */
+EventEmitter.prototype.removeListener = function removeListener(event, fn, context, once) {
+    var evt = prefix ? prefix + event : event;
+
+    if (!this._events[evt]) return this;
+    if (!fn) {
+        if (--this._eventsCount === 0) this._events = new Events();
+        else delete this._events[evt];
+        return this;
     }
-};
 
-Stage.prototype.addActiveAnimation = function(a) {
-    this.activeAnimations.add(a);
-};
+    var listeners = this._events[evt];
 
-Stage.prototype.removeActiveAnimation = function(a) {
-    this.activeAnimations.delete(a);
-
-    // Clear tagged components to prevent memory leaks.
-    a.taggedComponents = [];
-    a.taggedComponentsForceRefresh = true;
-};
-
-Stage.prototype.drawFrame = function() {
-    this.measure && this.timeStart('total');
-    if (this.fixedDt) {
-        this.dt = this.fixedDt;
+    if (listeners.fn) {
+        if (
+            listeners.fn === fn
+            && (!once || listeners.once)
+            && (!context || listeners.context === context)
+        ) {
+            if (--this._eventsCount === 0) this._events = new Events();
+            else delete this._events[evt];
+        }
     } else {
-        this.dt = (!this.startTime) ? .02 : .001 * (this.currentTime - this.startTime);
-    }
-    this.startTime = this.currentTime;
-    this.currentTime = (new Date()).getTime();
-
-    this.measureDetails && this.timeStart('frame start');
-    this.onFrameStart.trigger();
-    this.measureDetails && this.timeEnd('frame start');
-    this.state = Stage.STATES.TRANSITIONS;
-
-    this.measureDetails && this.timeStart('transitions');
-    this.progressTransitions();
-    this.measureDetails && this.timeEnd('transitions');
-
-    // Apply animations.
-    this.state = Stage.STATES.ANIMATIONS;
-    this.measureDetails && this.timeStart('animations');
-    this.progressAnimations();
-    this.measureDetails && this.timeEnd('animations');
-
-    this.measureDetails && this.timeStart('update');
-    this.state = Stage.STATES.UPDATE;
-    this.onUpdate.trigger();
-    this.measureDetails && this.timeEnd('update');
-
-    if (this.textureManager.isFull()) {
-        console.log('clean up');
-        // Clean up all textures instead of those in the last frame.
-        this.textureManager.freeUnusedTextureSources();
-    }
-
-    this.measureDetails && this.timeStart('perform updates');
-    this.performUpdates();
-    this.measureDetails && this.timeEnd('perform updates');
-
-    if (this.renderNeeded) {
-        // We will render the stage even if it's stable shortly after importing a texture in the texture atlas, to prevent out-of-syncs.
-        this.measureDetails && this.timeStart('render');
-        this.renderer.render();
-        this.measureDetails && this.timeEnd('render');
-    }
-
-    this.state = Stage.STATES.IDLE;
-    this.measureDetails && this.timeStart('frame end');
-    this.onFrameEnd.trigger();
-    this.measureDetails && this.timeEnd('frame end');
-    this.measure && this.timeEnd('total');
-
-    this.frameCounter++;
-};
-
-Stage.prototype.progressTransitions = function() {
-    var self = this;
-
-    if (this.activeTransitions.length) {
-        var renew = false;
-
-        // Use clone to prevent event changes in the activeTransitions caused by event listeners to cause problems.
-        for (var j = 0, m = this.activeTransitions.length; j < m; j++) {
-            var info = this.activeTransitions[j];
-            var component = info.c;
-            var propertyIndex = info.p;
-            var t = component.transitions[propertyIndex];
-            if (t) {
-                t.progress(self.dt);
-                Component.propertySettersFinal[propertyIndex](component, t.lastResultValue);
-                t.invokeListeners();
-
-                if (!t.isActive()) {
-                    t.setInactive();
-                }
-            }
-
-            if (!t || !t.isActive()) {
-                renew = true;
+        for (var i = 0, events = [], length = listeners.length; i < length; i++) {
+            if (
+                listeners[i].fn !== fn
+                || (once && !listeners[i].once)
+                || (context && listeners[i].context !== context)
+            ) {
+                events.push(listeners[i]);
             }
         }
 
-        if (renew) {
-            var arr = [];
-            for (j = 0, m = this.activeTransitions.length; j < m; j++) {
-                info = this.activeTransitions[j];
-                component = info.c;
-                propertyIndex = info.p;
-                t = component.transitions[propertyIndex];
+        //
+        // Reset the array, or remove it completely if we have no more listeners.
+        //
+        if (events.length) this._events[evt] = events.length === 1 ? events[0] : events;
+        else if (--this._eventsCount === 0) this._events = new Events();
+        else delete this._events[evt];
+    }
 
-                if (t && t.isActive()) {
-                    arr.push(this.activeTransitions[j]);
-                }
-            }
-            this.activeTransitions = arr;
+    return this;
+};
+
+/**
+ * Remove all listeners, or those of the specified event.
+ *
+ * @param {String|Symbol} [event] The event name.
+ * @returns {EventEmitter} `this`.
+ * @api public
+ */
+EventEmitter.prototype.removeAllListeners = function removeAllListeners(event) {
+    var evt;
+
+    if (event) {
+        evt = prefix ? prefix + event : event;
+        if (this._events[evt]) {
+            if (--this._eventsCount === 0) this._events = new Events();
+            else delete this._events[evt];
         }
-    }
-};
-
-Stage.prototype.progressAnimations = function() {
-    var self = this;
-    if (this.activeAnimations.size) {
-        this.activeAnimations.forEach(function (animation) {
-            animation.progress(self.dt);
-            animation.applyTransforms();
-            if (!animation.isActive()) {
-                animation.cleanUpCachedTaggedComponents();
-                self.removeActiveAnimation(animation);
-            }
-        });
-    }
-};
-
-/**
- * Actually perform the updates.
- */
-Stage.prototype.performUpdates = function() {
-    if (this.useTextureAtlas) {
-        // Add new texture sources to the texture atlas.
-        this.textureAtlas.flush();
+    } else {
+        this._events = new Events();
+        this._eventsCount = 0;
     }
 
-    var ctx = this.adapter.getUComponentContext();
-    this.renderNeeded = ctx.updateAndFillVbo(this.zIndexUsage > 0);
+    return this;
 };
 
-/**
- * Returns the specified texture.
- * @param {string|function} source
- * @param {object} options
- *   - id: number
- *     Fixed id. Handy when using base64 strings or when using canvas textures.
- *   - x: number
- *     Clipping offset x.
- *   - y: number
- *     Clipping offset y.
- *   - w: number
- *     Clipping offset w.
- *   - h: number
- *     Clipping offset h.
- * @returns {Texture}
- */
-Stage.prototype.getTexture = function(source, options) {
-    return this.textureManager.getTexture(source, options);
+//
+// Alias methods names because people roll like that.
+//
+EventEmitter.prototype.off = EventEmitter.prototype.removeListener;
+EventEmitter.prototype.addListener = EventEmitter.prototype.on;
+
+//
+// This function doesn't apply anymore.
+//
+EventEmitter.prototype.setMaxListeners = function setMaxListeners() {
+    return this;
 };
 
-Stage.prototype.hasTexture = function(id) {
-    return this.textureManager.hasTexture(id);
-};
+//
+// Expose the prefix.
+//
+EventEmitter.prefixed = prefix;
 
-/**
- * Creates a new component.
- * @returns {Component}
- */
-Stage.prototype.create = function(settings, children) {
-    var component = new Component(this);
+//
+// Allow `EventEmitter` to be imported as module namespace.
+//
+EventEmitter.EventEmitter = EventEmitter;
 
-    if (children) {
-        for (var i = 0; i < children.length; i++) {
-            component.addChild(children[i]);
-        }
-    }
-    if (settings) {
-        component.set(settings);
-    }
-    return component;
-};
-
-/**
- * Creates a new component.
- * @returns {Component}
- */
-Stage.prototype.c = function(settings) {
-    var component = new Component(this);
-    if (settings) {
-        component.set(settings);
-    }
-    return component;
-};
-
-Stage.prototype.timedAnimation = function(settings, actions) {
-    var a = new TimedAnimation(this);
-    if (settings) {
-        a.set(settings);
-    }
-
-    if (actions) {
-        var n = actions.length;
-        for (var i = 0; i < n; i++) {
-            a.add(actions[i]);
-        }
-    }
-
-    return a;
-};
-
-Stage.prototype.customAnimation = function(settings, actions) {
-    var a = new CustomAnimation(this);
-    if (settings) {
-        a.set(settings);
-    }
-
-    if (actions) {
-        var n = actions.length;
-        for (var i = 0; i < n; i++) {
-            a.add(actions[i]);
-        }
-    }
-
-    return a;
-};
-
-/**
- * The rendering loop states.
- * @type {object}
- */
-Stage.STATES = {
-    IDLE: 0,
-    TRANSITIONS: 1,
-    ANIMATIONS: 2,
-    UPDATE: 3,
-    RENDER: 4
-};
-
-/**
- * Auto-increment component id.
- * @type {number}
- */
-Stage.componentId = 0;
-
-Stage.rectangleSource = {src: function(cb) {
-    var whitePixel = new Uint8Array([255, 255, 255, 255]);
-    return cb(whitePixel, {w: 1, h: 1});
-}, id:"__whitepix"};
-
-Stage.W = 1280;
-Stage.H = 720;
-
+//
+// Expose the module.
+//
+if ('undefined' !== typeof module) {
+    module.exports = EventEmitter;
+}
 var isNode = !!(((typeof module !== "undefined") && module.exports));
 
 var Utils = {};
@@ -618,6 +471,424 @@ Utils.async = {
         }
     }
 };
+
+
+/**
+ * Container for a tree structure of components.
+ * @constructor
+ */
+function Stage(options) {
+    EventEmitter.call(this);
+
+    this.adapter = options.adapter;
+    if (!this.adapter) {
+                if (!isNode) {
+            this.adapter = new WebAdapter();
+        }
+    }
+
+    this.adapter.stage = this;
+
+    var w = options && options.w;
+    var h = options && options.h;
+
+    if (!w || !h) {
+        w = 1280;
+        h = 720;
+    }
+
+    this.w = w;
+    this.h = h;
+
+    this.reuseCanvas = (options && options.reuseCanvas) || null;
+
+    this.renderWidth = (options && options.rw) || this.w;
+    this.renderHeight = (options && options.rh) || this.h;
+
+    this.textureMemory = (options && options.textureMemory) || 12e6;
+
+    if (options && options.hasOwnProperty('glClearColor')) {
+        this.setGlClearColor(options.glClearColor);
+    } else {
+        this.setGlClearColor(this.adapter.glClearColor || [0, 0, 0, 0]);
+    }
+
+    this.defaultFontFace = (options && options.defaultFontFace) || "Arial";
+
+    this.fixedDt = (options && options.fixedDt) || 0;
+
+    /**
+     * Counts the number of drawn frames.
+     * @type {number}
+     */
+    this.frameCounter = 0;
+
+    /**
+     * Whether or not to use a texture atlas to prevent bindTexture switching.
+     */
+    this.useTextureAtlas = (options && options.hasOwnProperty('useTextureAtlas')) ? options.useTextureAtlas : false;
+    if (this.useTextureAtlas) {
+        console.log('Using texture atlas.');
+    }
+
+    this.debugTextureAtlas = this.useTextureAtlas && (options && options.hasOwnProperty('debugTextureAtlas')) ? options.debugTextureAtlas : false;
+    if (this.debugTextureAtlas) {
+        console.log('Showing texture atlas for debug.');
+    }
+
+    this.renderer = new Renderer(this, w, h);
+
+    this.textureManager = new TextureManager(this, this.renderer.gl);
+
+    /**
+     * Create a texture atlas which helps us to prevent texture switches.
+     * @type {TextureAtlas}
+     */
+    this.textureAtlas = this.useTextureAtlas ? new TextureAtlas(this, this.renderer.gl) : null;
+
+    /**
+     * The rendering state of this stage.
+     * @type {number}
+     */
+    this.state = Stage.STATES.IDLE;
+
+    /**
+     * @type {Component}
+     */
+    this.root = this.c();
+    this.root.active = true;
+    this.root.setAsRoot();
+
+    /**
+     * The current frame time delta.
+     * @type {number}
+     */
+    this.dt = 0;
+
+    /**
+     * The currently active transitions.
+     * @type {Set<PropertyTransition>}
+     */
+    this.activeTransitions = new Set();
+
+    /**
+     * The currently active animations.
+     * @type {Set<TimedAnimation>}
+     */
+    this.activeAnimations = new Set();
+
+    this.measure = !!options.measure;
+    this.measureDetails = !!options.measureDetails;
+
+    // Measurement stuff.
+    this.measureStart = {};
+    this.measureTotalMs = {};
+    this.measureMs = {};
+    this.measureLastFrameCounter = {};
+    this.measureCount = {};
+
+    this.rectangleTexture = this.getTexture(Stage.rectangleSource.src, Stage.rectangleSource);
+
+    if (this.adapter.setStage) {
+        this.adapter.setStage(this);
+    }
+
+    this.uComponentContext = this.adapter.getUComponentContext();
+
+    /**
+     * Counts the number of attached components that are using z-indices.
+     * This is used to determine if we can use a single-pass or dual-pass update/render loop.
+     * @type {number}
+     */
+    this.zIndexUsage = 0;
+
+    // Start.
+    this.init();
+
+    this.destroyed = false;
+
+}
+
+Utils.extendClass(Stage, EventEmitter);
+
+Stage.prototype.destroy = function() {
+    this.adapter.stopAnimationLoop();
+    if (this.useTextureAtlas) {
+        this.textureAtlas.destroy();
+    }
+    this.renderer.destroy();
+    this.textureManager.destroy();
+    this.destroyed = true;
+};
+
+
+Stage.prototype.setGlClearColor = function(clearColor) {
+    if (Array.isArray(clearColor)) {
+        this.glClearColor = clearColor;
+    } else {
+        this.glClearColor = StageUtils.getRgbaComponents(clearColor);
+    }
+};
+
+Stage.prototype.getCanvas = function() {
+    return this.adapter.canvas;
+};
+
+Stage.prototype.timeStart = function(name) {
+    this.measureCount[name]++;
+    if (this.frameCounter != this.measureLastFrameCounter[name]) {
+        this.measureLastFrameCounter[name] = this.frameCounter;
+        this.measureTotalMs[name] += this.measureMs[name];
+        if (this.frameCounter % 100 == 0) {
+            console.log(name + ': ' + ((this.measureTotalMs[name] / 100) - (name == 'global' ? 4.5 : 0)).toFixed(3) + ' (' + (this.measureCount[name] / 100) + ')');
+            this.measureTotalMs[name] = 0;
+            this.measureCount[name] = 0;
+        }
+        this.measureMs[name] = 0;
+    }
+    this.measureStart[name] = this.adapter.getHrTime();
+};
+
+Stage.prototype.timeEnd = function(name) {
+    var e = this.adapter.getHrTime();
+    this.measureMs[name] += (e - this.measureStart[name]);
+};
+
+Stage.prototype.pause = function() {
+    this.adapter.stopAnimationLoop();
+};
+
+Stage.prototype.resume = function() {
+    this.adapter.startAnimationLoop();
+};
+
+Stage.prototype.init = function() {
+    if (this.adapter.init) {
+        this.adapter.init();
+    }
+
+    // Preload rectangle texture, so that we can skip some border checks for loading textures.
+    var self = this;
+    var rect = this.getRectangleTexture();
+    var src = rect.source;
+    src.onload = function() {
+        self.adapter.startAnimationLoop(function() {self.drawFrame();});
+        src.permanent = true;
+        if (self.useTextureAtlas) {
+            self.textureAtlas.add(src);
+        }
+    };
+    rect.load();
+};
+
+Stage.prototype.getRectangleTexture = function() {
+    return this.rectangleTexture;
+};
+
+Stage.prototype.addActiveTransition = function(transition) {
+    this.activeTransitions.add(transition);
+};
+
+Stage.prototype.addActiveAnimation = function(a) {
+    this.activeAnimations.add(a);
+};
+
+Stage.prototype.drawFrame = function() {
+    this.measure && this.timeStart('total');
+    if (this.fixedDt) {
+        this.dt = this.fixedDt;
+    } else {
+        this.dt = (!this.startTime) ? .02 : .001 * (this.currentTime - this.startTime);
+    }
+    this.startTime = this.currentTime;
+    this.currentTime = (new Date()).getTime();
+
+    this.measureDetails && this.timeStart('frame start');
+    this.emit('frameStart');
+    this.measureDetails && this.timeEnd('frame start');
+    this.state = Stage.STATES.TRANSITIONS;
+
+    this.measureDetails && this.timeStart('transitions');
+    this.progressTransitions();
+    this.measureDetails && this.timeEnd('transitions');
+
+    // Apply animations.
+    this.state = Stage.STATES.ANIMATIONS;
+    this.measureDetails && this.timeStart('animations');
+    this.progressAnimations();
+    this.measureDetails && this.timeEnd('animations');
+
+    this.measureDetails && this.timeStart('update');
+    this.state = Stage.STATES.UPDATE;
+    this.emit('update');
+    this.measureDetails && this.timeEnd('update');
+
+    if (this.textureManager.isFull()) {
+        console.log('clean up');
+        // Clean up all textures instead of those in the last frame.
+        this.textureManager.freeUnusedTextureSources();
+    }
+
+    this.measureDetails && this.timeStart('perform updates');
+    this.performUpdates();
+    this.measureDetails && this.timeEnd('perform updates');
+
+    if (this.renderNeeded) {
+        // We will render the stage even if it's stable shortly after importing a texture in the texture atlas, to prevent out-of-syncs.
+        this.measureDetails && this.timeStart('render');
+        this.renderer.render();
+        this.measureDetails && this.timeEnd('render');
+    }
+
+    this.state = Stage.STATES.IDLE;
+    this.measureDetails && this.timeStart('frame end');
+    this.emit('frameEnd');
+    this.measureDetails && this.timeEnd('frame end');
+    this.measure && this.timeEnd('total');
+
+    this.adapter.nextFrame(this.renderNeeded);
+
+    this.frameCounter++;
+};
+
+Stage.prototype.progressTransitions = function() {
+    var self = this;
+
+    if (this.activeTransitions.size) {
+        this.activeTransitions.forEach(function(transition) {
+            if (transition.component.attached && transition.isActive()) {
+                transition.progress(self.dt);
+            } else {
+                self.activeTransitions.delete(transition);
+            }
+        });
+    }
+};
+
+Stage.prototype.progressAnimations = function() {
+    var self = this;
+    if (this.activeAnimations.size) {
+        this.activeAnimations.forEach(function (animation) {
+            if (animation.subject && animation.subject.attached && animation.isActive()) {
+                animation.progress(self.dt);
+                animation.applyTransforms();
+            } else {
+                self.activeAnimations.delete(animation);
+            }
+        });
+    }
+};
+
+/**
+ * Actually perform the updates.
+ */
+Stage.prototype.performUpdates = function() {
+    if (this.useTextureAtlas) {
+        // Add new texture sources to the texture atlas.
+        this.textureAtlas.flush();
+    }
+
+    var ctx = this.adapter.getUComponentContext();
+    this.renderNeeded = ctx.updateAndFillVbo(this.zIndexUsage > 0);
+};
+
+/**
+ * Returns the specified texture.
+ * @param {string|function} source
+ * @param {object} options
+ *   - id: number
+ *     Fixed id. Handy when using base64 strings or when using canvas textures.
+ *   - x: number
+ *     Clipping offset x.
+ *   - y: number
+ *     Clipping offset y.
+ *   - w: number
+ *     Clipping offset w.
+ *   - h: number
+ *     Clipping offset h.
+ * @returns {Texture}
+ */
+Stage.prototype.getTexture = function(source, options) {
+    return this.textureManager.getTexture(source, options);
+};
+
+Stage.prototype.hasTexture = function(id) {
+    return this.textureManager.hasTexture(id);
+};
+
+/**
+ * Creates a new component.
+ * @returns {Component}
+ */
+Stage.prototype.create = function(settings, children) {
+    var component = new Component(this);
+
+    if (children) {
+        for (var i = 0; i < children.length; i++) {
+            component.addChild(children[i]);
+        }
+    }
+    if (settings) {
+        component.set(settings);
+    }
+    return component;
+};
+
+/**
+ * Creates a new component.
+ * @returns {Component}
+ */
+Stage.prototype.c = function(settings) {
+    var component = new Component(this);
+    if (settings) {
+        component.set(settings);
+    }
+    return component;
+};
+
+Stage.prototype.animation = function(settings, actions, custom) {
+    var a = custom ? new Animation(this) : new TimedAnimation(this);
+    if (settings) {
+        a.set(settings);
+    }
+
+    if (actions) {
+        var n = actions.length;
+        for (var i = 0; i < n; i++) {
+            a.add(actions[i]);
+        }
+    }
+
+    return a;
+};
+
+/**
+ * The rendering loop states.
+ * @type {object}
+ */
+Stage.STATES = {
+    IDLE: 0,
+    TRANSITIONS: 1,
+    ANIMATIONS: 2,
+    UPDATE: 3,
+    RENDER: 4
+};
+
+/**
+ * Auto-increment component id.
+ * @type {number}
+ */
+Stage.componentId = 0;
+
+Stage.rectangleSource = {src: function(cb) {
+    var whitePixel = new Uint8Array([255, 255, 255, 255]);
+    return cb(whitePixel, {w: 1, h: 1});
+}, id:"__whitepix"};
+
+Stage.W = 1280;
+Stage.H = 720;
+
+
 
 
 var StageUtils = {};
@@ -1327,63 +1598,6 @@ GeometryUtils.intersectConvex = function(a, b) {
             }
         }
     }
-};
-
-
-
-/**
- * Data object sent when an event is triggered.
- * @param {object} data
- * @constructor
- */
-function EventData(data) {
-
-    this.data = data;
-
-    /**
-     * If the event supports this, it will cancel the operation (if possible).
-     * @type {boolean}
-     */
-    this.preventDefault = false;
-
-    /**
-     * This will stop propagation of the event (if possible).
-     * @type {boolean}
-     */
-    this.stopPropagation = false;
-
-}
-
-
-var EventType = function() {
-    this.listeners = [];
-    this.hasListeners = false;
-};
-
-EventType.prototype.listen = function(f) {
-    this.listeners.push(f);
-    this.hasListeners = true;
-};
-
-EventType.prototype.removeListener = function(f) {
-    var index = this.listeners.indexOf(f);
-    if (index >= 0) {
-        this.listeners.splice(index, 1);
-    }
-
-    this.hasListeners = (this.listeners.length > 0);
-};
-
-EventType.prototype.trigger = function(data) {
-    if (!this.hasListeners) return;
-
-    var eventData = (data && data instanceof EventData) ? data : new EventData(data || {});
-    var i;
-    for (i = 0; i < this.listeners.length; i++) {
-        this.listeners[i](eventData);
-    }
-
-    return eventData;
 };
 
 
@@ -2766,9 +2980,21 @@ var Component = function(stage) {
 
     /**
      * The transitions (indexed by property index, null if not used).
-     * @type {Transition[]}
+     * @type {PropertyTransition[]}
      */
     this.transitions = null;
+
+    /**
+     * All transitions, for quick looping.
+     * @type {Set<PropertyTransition>}
+     */
+    this.transitionSet = null;
+
+    /**
+     * All timed animations that have this component has subject.
+     * @type {Set<TimedAnimation>}
+     */
+    this.timedAnimationSet = null;
 
     /**
      * Tags that can be used to identify/search for a specific component.
@@ -3178,6 +3404,27 @@ Component.prototype.updateAttachedFlag = function() {
     if (this.attached !== newAttached) {
         this.attached = newAttached;
 
+        if (newAttached) {
+            var self = this;
+
+            // Check if there are remaining active transitions that should be re-activated.
+            if (this.transitionSet) {
+                this.transitionSet.forEach(function(transition) {
+                    if (transition.isActive()) {
+                        self.stage.addActiveTransition(transition);
+                    }
+                });
+            }
+
+            if (this.timedAnimationSet) {
+                this.timedAnimationSet.forEach(function(timedAnimation) {
+                    if (timedAnimation.isActive()) {
+                        self.stage.addActiveAnimation(timedAnimation);
+                    }
+                });
+            }
+        }
+
         var m = this.children.length;
         if (m > 0) {
             for (var i = 0; i < m; i++) {
@@ -3187,6 +3434,16 @@ Component.prototype.updateAttachedFlag = function() {
     }
 };
 
+Component.prototype.addTimedAnimation = function(a) {
+    if (!this.timedAnimationSet) {
+        this.timedAnimationSet = new Set();
+    }
+    this.timedAnimationSet.add(a);
+};
+
+Component.prototype.removeTimedAnimation = function(a) {
+    this.timedAnimationSet.delete(a);
+};
 
 Component.prototype.getRenderWidth = function() {
     if (this.active) {
@@ -3267,24 +3524,20 @@ Component.prototype.setPropertyTransition = function(property, settings) {
 
         if (!settings) {
             if (this.transitions) {
+                if (this.transitions[propertyIndex]) {
+                    this.transitionSet.delete(this.transitions[propertyIndex]);
+                }
                 this.transitions[propertyIndex] = null;
             }
         } else {
             // Only reset on change.
             if (!this.transitions) {
                 this.transitions = new Array(Component.nProperties);
-                this.transitionProperties = [];
+                this.transitionSet = new Set();
             }
             if (!this.transitions[propertyIndex]) {
-                var mf = Component.getMergeFunction(property);
-                var t = new Transition(this[property], mf);
-                var self = this;
-                t.onActivate = function() {
-                    self.stage.addActiveTransition(self, propertyIndex);
-                };
-                t.property = property.toUpperCase();
-                this.transitions[propertyIndex] = t;
-                this.transitionProperties.push(propertyIndex);
+                this.transitions[propertyIndex] = new PropertyTransition(this, property);
+                this.transitionSet.add(this.transitions[propertyIndex]);
             }
             this.transitions[propertyIndex].set(settings);
         }
@@ -3335,12 +3588,6 @@ Component.prototype.fastForward = function(property) {
             var t = this.transitions[propertyIndex];
             if (t && t.isActive()) {
                 t.reset(t.targetValue, t.targetValue, 1);
-                Component.propertySettersFinal[propertyIndex](this, t.targetValue);
-
-                // Immediately invoke onFinish event.
-                t.invokeListeners();
-
-                this.stage.removeActiveTransition(this, propertyIndex);
             }
         }
     }
@@ -5115,6 +5362,68 @@ Component.propertySettersFinal = [
     function(component, value) {component.clipping = value;}
 ];
 
+Component.propertyGetters = [
+    function(component) { return component.x; },
+    function(component) { return component.y; },
+    function(component) { return component.w; },
+    function(component) { return component.h; },
+    function(component) { return component.scaleX; },
+    function(component) { return component.scaleY; },
+    function(component) { return component.pivotX; },
+    function(component) { return component.pivotY; },
+    function(component) { return component.mountX; },
+    function(component) { return component.mountY; },
+    function(component) { return component.alpha; },
+    function(component) { return component.rotation; },
+    function(component) { return component.borderWidthTop; },
+    function(component) { return component.borderWidthBottom; },
+    function(component) { return component.borderWidthLeft; },
+    function(component) { return component.borderWidthRight; },
+    function(component) { return component.borderColorTop; },
+    function(component) { return component.borderColorBottom; },
+    function(component) { return component.borderColorLeft; },
+    function(component) { return component.borderColorRight; },
+    function(component) { return component.colorTopLeft; },
+    function(component) { return component.colorTopRight; },
+    function(component) { return component.colorBottomLeft; },
+    function(component) { return component.colorBottomRight; },
+    function(component) { return component.visible; },
+    function(component) { return component.zIndex; },
+    function(component) { return component.forceZIndexContext; },
+    function(component) { return component.clipping; }
+];
+
+Component.propertyGettersFinal = [
+    function(component) { return component.X; },
+    function(component) { return component.Y; },
+    function(component) { return component.W; },
+    function(component) { return component.H; },
+    function(component) { return component.SCALEX; },
+    function(component) { return component.SCALEY; },
+    function(component) { return component.PIVOTX; },
+    function(component) { return component.PIVOTY; },
+    function(component) { return component.MOUNTX; },
+    function(component) { return component.MOUNTY; },
+    function(component) { return component.ALPHA; },
+    function(component) { return component.ROTATION; },
+    function(component) { return component.BORDERWIDTHTOP; },
+    function(component) { return component.BORDERWIDTHBOTTOM; },
+    function(component) { return component.BORDERWIDTHLEFT; },
+    function(component) { return component.BORDERWIDTHRIGHT; },
+    function(component) { return component.BORDERCOLORTOP; },
+    function(component) { return component.BORDERCOLORBOTTOM; },
+    function(component) { return component.BORDERCOLORLEFT; },
+    function(component) { return component.BORDERCOLORRIGHT; },
+    function(component) { return component.COLORTOPLEFT; },
+    function(component) { return component.COLORTOPRIGHT; },
+    function(component) { return component.COLORBOTTOMLEFT; },
+    function(component) { return component.COLORBOTTOMRIGHT; },
+    function(component) { return component.visible; },
+    function(component) { return component.zIndex; },
+    function(component) { return component.forceZIndexContext; },
+    function(component) { return component.clipping; }
+];
+
 
 /**
  * Renders text as a component texture.
@@ -5130,8 +5439,6 @@ function ComponentText(component) {
     this.updatingTexture = false;
 
     this.settings = new TextRendererSettings();
-
-    this.renderInfo = null;
 
     this.texture = null;
 
@@ -6508,13 +6815,8 @@ Object.defineProperty(TextRendererSettings.prototype, 'cutEy', {
  * A transition for some element.
  * @constructor
  */
-function Transition(value, mergeFunction) {
-
-    /**
-     * The merge function. If null then use plain numeric interpolation merge.
-     * @type {Function}
-     */
-    this.mergeFunction = mergeFunction;
+function Transition(v) {
+    EventEmitter.call(this);
 
     this._delay = 0;
     this._duration = 1;
@@ -6533,62 +6835,34 @@ function Transition(value, mergeFunction) {
     /**
      * @access private
      */
-    this.startValue = value;
+    this.startValue = v;
 
     /**
      * @access private
      */
-    this.targetValue = value;
-
-    /**
-     * @access private
-     */
-    this.lastResultValue = value;
-
-    this.onStart = new EventType();
-    this.onDelayEnd = new EventType();
-    this.onProgress = new EventType();
-    this.onFinish = new EventType();
-
-    this.onActivate = null;
-
-    this.active = false;
+    this.targetValue = this.startValue;
 
 }
 
-Transition.prototype.getChangeSpeed = function() {
-    if ((this.delayLeft > 0) || (this.p >= 1)) {
-        return 0;
-    }
-
-    var dv = this.getDrawValue();
-    this.p += 1e-2;
-    var v = this.getDrawValue();
-    this.p -= 1e-2;
-
-    return (v - dv) * 1e2 / this.duration;
-};
+Utils.extendClass(Transition, EventEmitter);
 
 Transition.prototype.reset = function(startValue, targetValue, p) {
     this.startValue = startValue;
-    this.lastResultValue = startValue;
     this.targetValue = targetValue;
     this.p = p;
 
-    if (!this.active && this.isActive()) {
-        this.active = true;
-        if (this.onActivate) {
-            this.onActivate();
-        }
+    if (this.isActive()) {
+        this.activate();
+    } else if (p === 1) {
+        this.setValue(this.getDrawValue());
+
+        // Immediately invoke onFinish event.
+        this.invokeListeners();
     }
 };
 
 Transition.prototype.isActive = function() {
     return this.p < 1.0;
-};
-
-Transition.prototype.setInactive = function() {
-    this.active = false;
 };
 
 /**
@@ -6609,14 +6883,15 @@ Transition.prototype.updateTargetValue = function(targetValue, startValue) {
 
         this.delayLeft = this.delay;
 
-        this.onStart.trigger(null);
+        this.emit('start');
 
-        if (!this.active && this.isActive()) {
-            this.active = true;
-            this.onActivate();
+        if (this.isActive()) {
+            this.activate();
         }
     }
+};
 
+Transition.prototype.activate = function() {
 };
 
 /**
@@ -6631,7 +6906,7 @@ Transition.prototype.progress = function(dt) {
                 dt = -this.delayLeft;
                 this.delayLeft = 0;
 
-                this.onDelayEnd.trigger(null);
+                this.emit('delayEnd');
             } else {
                 return;
             }
@@ -6648,17 +6923,15 @@ Transition.prototype.progress = function(dt) {
         }
     }
 
-    this.lastResultValue = this.getDrawValue();
+    this.setValue(this.getDrawValue());
+
+    this.invokeListeners();
 };
 
 Transition.prototype.invokeListeners = function() {
-    if (this.onProgress.hasListeners) {
-        this.onProgress.trigger({p: this.p});
-    }
+    this.emit('progress', this.p);
     if (this.p === 1) {
-        if (this.onFinish.hasListeners) {
-            this.onFinish.trigger(null);
-        }
+        this.emit('finish');
     }
 };
 
@@ -6707,13 +6980,16 @@ Transition.prototype.getDrawValue = function() {
         return this.targetValue;
     } else {
         var v = this.timingFunction(this.p);
-        if (!this.mergeFunction) {
-            // Numeric merge. Inline for performance.
-            return this.targetValue * v + this.startValue * (1 - v);
-        } else {
-            return this.mergeFunction(this.targetValue, this.startValue, v);
-        }
+        return this.getMergedValue(v);
     }
+};
+
+Transition.prototype.setValue = function(v) {
+};
+
+Transition.prototype.getMergedValue = function(v) {
+    // Numeric merge. Inline for performance.
+    return this.targetValue * v + this.startValue * (1 - v);
 };
 
 Object.defineProperty(Transition.prototype, 'delay', {
@@ -6749,6 +7025,49 @@ Object.defineProperty(Transition.prototype, 'timingFunction', {
 
 
 /**
+ * A transition for some element.
+ * @constructor
+ */
+function PropertyTransition(component, property) {
+    this.component = component;
+
+    this.property = property;
+
+    this.propertyIndex = Component.getPropertyIndex(property);
+
+    Transition.call(this, Component.propertyGetters[this.propertyIndex](this.component));
+
+    /**
+     * The merge function. If null then use plain numeric interpolation merge.
+     * @type {Function}
+     */
+    this.mergeFunction = Component.getMergeFunction(property);
+
+    this.valueSetterFunction = Component.propertySettersFinal[this.propertyIndex];
+
+}
+
+Utils.extendClass(PropertyTransition, Transition);
+
+PropertyTransition.prototype.setValue = function(v) {
+    this.valueSetterFunction(this.component, v);
+};
+
+PropertyTransition.prototype.getMergedValue = function(v) {
+    if (!this.mergeFunction) {
+        // Numeric merge. Inline for performance.
+        return this.targetValue * v + this.startValue * (1 - v);
+    } else {
+        return this.mergeFunction(this.targetValue, this.startValue, v);
+    }
+};
+
+PropertyTransition.prototype.activate = function() {
+    this.component.stage.addActiveTransition(this);
+};
+
+
+/**
  * An animation.
  * @constructor
  */
@@ -6759,7 +7078,7 @@ function Animation(stage) {
     /**
      * @type {Component}
      */
-    this.subject = null;
+    this._subject = null;
 
     this.actions = [];
 
@@ -6769,9 +7088,6 @@ function Animation(stage) {
      * @access private
      */
     this.p = 0;
-
-    this.onAttach = new EventType();
-    this.onDetach = new EventType();
 
     /**
      * This value can be used to increase or decrease all changes that this animation makes to the subjects.
@@ -6786,32 +7102,6 @@ function Animation(stage) {
     this.duration = 0;
 
 }
-
-Animation.prototype.setSubject = function(subject) {
-    var prevSubject = this.subject;
-
-    if (this.subject) {
-        // Detach animation from previous subject.
-        if (this.onDetach.hasListeners) {
-            this.onDetach.trigger({subject: prevSubject, newSubject: subject});
-        }
-    }
-
-    this.subject = subject;
-
-    if (this.subject) {
-        // Attach animation to this subject.
-        if (this.onAttach.hasListeners) {
-            this.onAttach.trigger({subject: subject, prevSubject: prevSubject});
-        }
-    }
-
-    // Make sure that the tags are all reloaded next frame.
-    var m = this.actions.length;
-    for (var j = 0; j < m; j++) {
-        this.actions[j].taggedComponentsForceRefresh = true;
-    }
-};
 
 Animation.prototype.set = function(settings) {
     var propNames = Object.keys(settings);
@@ -6871,17 +7161,6 @@ Animation.prototype.resetTransforms = function() {
     }
 };
 
-/**
- * Cleans up this animation so that memory leaks are prevented.
- */
-Animation.prototype.cleanUpCachedTaggedComponents = function() {
-    var m = this.actions.length;
-    for (var j = 0; j < m; j++) {
-        this.actions[j].taggedComponents = [];
-        this.actions[j].taggedComponentsForceRefresh = true;
-    }
-};
-
 Object.defineProperty(Animation.prototype, 'progressFunction', {
     get: function() { return this._progressFunction; },
     set: function(v) {
@@ -6899,6 +7178,13 @@ Object.defineProperty(Animation.prototype, 'amplitude', {
             throw new TypeError('amplitude must be a number');
         }
         this._amplitude = v;
+    }
+});
+
+Object.defineProperty(Animation.prototype, 'subject', {
+    get: function() { return this._subject; },
+    set: function(v) {
+        this._subject = v;
     }
 });
 
@@ -6930,6 +7216,20 @@ function AnimationAction(animation) {
      * @private
      */
     this._properties = [];
+
+    /**
+     * Merger functions for the properties.
+     * @type {Function[]}
+     * @private
+     */
+    this._propertyMergers = [];
+
+    /**
+     * Setter functions for the properties.
+     * @type {Function[]}
+     * @private
+     */
+    this._propertySetters = [];
 
     /**
      * The value to reset to when stopping the timed animation.
@@ -6984,7 +7284,7 @@ AnimationAction.prototype.getAnimatedComponents = function() {
                 }
             } else {
                 // Complex path: check hierarchically.
-                tagPath = this.complexTags[i];
+                var tagPath = this.complexTags[i];
                 l = tagPath.length;
                 var finalComps = [this.animation.subject];
                 for (k = 0; k < l; k++) {
@@ -7059,8 +7359,9 @@ AnimationAction.prototype.applyTransforms = function(p, f, a, m) {
     var c = this.getAnimatedComponents();
     var tcl = c.length;
     for (var i = 0; i < n; i++) {
+        var prop = this._properties[i];
         if (m !== 1) {
-            var mf = Component.getMergeFunction(this._properties[i]);
+            var mf = this._propertyMergers[i];
             if (!mf) {
                 // Unmergable property.
                 fv = v;
@@ -7070,7 +7371,11 @@ AnimationAction.prototype.applyTransforms = function(p, f, a, m) {
         }
 
         for (var j = 0; j < tcl; j++) {
-            c[j][self._properties[i]] = fv;
+            if (this._propertySetters[i]) {
+                this._propertySetters[i](c[j], fv);
+            } else {
+                c[j][prop] = fv;
+            }
         }
     }
 
@@ -7097,14 +7402,17 @@ AnimationAction.prototype.resetTransforms = function(a) {
     }
 
     // Apply transformation to all components.
-    var self = this;
     var n = this._properties.length;
 
     var c = this.getAnimatedComponents();
     var tcl = c.length;
     for (var i = 0; i < n; i++) {
         for (var j = 0; j < tcl; j++) {
-            c[j][self._properties[i]] = v;
+            if (this._propertySetters[i]) {
+                this._propertySetters[i](c[j], v);
+            } else {
+                c[j][this._properties[i]] = v;
+            }
         }
     }
 
@@ -7135,8 +7443,6 @@ Object.defineProperty(AnimationAction.prototype, 'tags', {
         } else {
             this.complexTags = null;
         }
-
-        this.taggedComponentsForceRefresh = true;
     }
 });
 
@@ -7165,6 +7471,16 @@ Object.defineProperty(AnimationAction.prototype, 'property', {
             }
         }
 
+        this._propertySetters = [];
+        this._propertyMergers = [];
+        for (i = 0, n = names.length; i < n; i++) {
+            var f = Component.propertySettersFinal[Component.getPropertyIndex(names[i])] || null;
+            this._propertySetters.push(f);
+
+            var mf = Component.getMergeFunction(this._properties[i]) || null;
+            this._propertyMergers.push(mf);
+        }
+
         this._properties = names;
     }
 });
@@ -7191,8 +7507,7 @@ Object.defineProperty(AnimationAction.prototype, 'resetValue', {
  */
 var TimedAnimation = function(stage) {
     Animation.call(this, stage);
-
-    var self = this;
+    EventEmitter.call(this);
 
     this._delay = 0;
 
@@ -7222,17 +7537,6 @@ var TimedAnimation = function(stage) {
      */
     this._autostop = false;
 
-    this.onStart = new EventType();
-    this.onRepeat = new EventType();
-    this.onDelayEnd = new EventType();
-    this.onProgress = new EventType();
-    this.onFinish = new EventType();
-
-    this.onStop = new EventType();
-    this.onStopDelayEnd = new EventType();
-    this.onStopFinish = new EventType();
-    this.onStopContinue = new EventType();
-
     /**
      * The way that the animation 'stops'.
      * @type {number}
@@ -7257,59 +7561,18 @@ var TimedAnimation = function(stage) {
 
     this.stoppingProgressTransition = new Transition(0);
 
-    this.runFinishFunc = null;
-    this.runStopFinishFunc = null;
-
-}
+};
 
 Utils.extendClass(TimedAnimation, Animation);
+
+TimedAnimation.prototype = Object.assign(TimedAnimation.prototype, EventEmitter.prototype);
 
 TimedAnimation.prototype.isActive = function() {
     return this.subject && (this.state == TimedAnimation.STATES.PLAYING || this.state == TimedAnimation.STATES.STOPPING);
 };
 
-TimedAnimation.prototype.setSubject = function(subject) {
-    var prevSubject = this.subject;
-
-    var active = (this.p > 0 || this.state == TimedAnimation.STATES.PLAYING);
-    if (!prevSubject && subject && active) {
-        // Becomes active.
-        this.stage.addActiveAnimation(this);
-    }
-    Animation.prototype.setSubject.apply(this, arguments);
-};
-
-/**
- * Runs this animation once on the subject, stop it and remove it.
- * @param subject
- */
-TimedAnimation.prototype.run = function(subject) {
-    this.stopNow();
-
-    this.setSubject(subject);
-
-    if (this.runFinishFunc) {
-        this.onFinish.removeListener(this.runFinishFunc);
-    }
-    if (this.runStopFinishFunc) {
-        this.onStopFinish.removeListener(this.runStopFinishFunc);
-    }
-
-    var self = this;
-    this.runFinishFunc = function() {
-        self.stop();
-
-        self.runStopFinishFunc = function() {
-            self.setSubject(null);
-            self.onFinish.removeListener(self.runFinishFunc);
-            self.onStopFinish.removeListener(self.runStopFinishFunc);
-        };
-        self.onStopFinish.listen(self.runStopFinishFunc);
-    };
-
-    this.onFinish.listen(this.runFinishFunc);
-
-    this.play();
+TimedAnimation.prototype.activate = function() {
+    this.component.stage.addActiveAnimation(this);
 };
 
 TimedAnimation.prototype.progress = function(dt) {
@@ -7333,9 +7596,7 @@ TimedAnimation.prototype.progress = function(dt) {
             dt = -this.delayLeft;
             this.delayLeft = 0;
 
-            if (this.onDelayEnd.hasListeners) {
-                this.onDelayEnd.trigger();
-            }
+            this.emit('delayEnd');
         } else {
             return;
         }
@@ -7358,23 +7619,17 @@ TimedAnimation.prototype.progress = function(dt) {
                 this.delayLeft = this.repeatDelay;
             }
 
-            if (this.onRepeat.hasListeners) {
-                this.onRepeat.trigger({repeatsLeft: this.repeatsLeft});
-            }
+            this.emit('repeat', this.repeatsLeft);
         } else {
             this.p = 1;
             this.state = TimedAnimation.STATES.FINISHED;
-            if (this.onFinish.hasListeners) {
-                this.onFinish.trigger();
-            }
+            this.emit('finish');
             if (this.autostop) {
                 this.stop();
             }
         }
     } else {
-        if (this.onProgress.hasListeners) {
-            this.onProgress.trigger();
-        }
+        this.emit('progress', this.p);
     }
 };
 
@@ -7384,9 +7639,7 @@ TimedAnimation.prototype.stopProgress = function(dt) {
     if (this.delayLeft > 0) {
         // TimedAnimation wasn't even started yet: directly finish!
         this.state = TimedAnimation.STATES.STOPPED;
-        if (this.onStopFinish.hasListeners) {
-            this.onStopFinish.trigger();
-        }
+        this.emit('stopFinish');
     }
 
     if (this.stopDelayLeft > 0) {
@@ -7396,22 +7649,16 @@ TimedAnimation.prototype.stopProgress = function(dt) {
             dt = -this.stopDelayLeft;
             this.stopDelayLeft = 0;
 
-            if (this.onStopDelayEnd.hasListeners) {
-                this.onStopDelayEnd.trigger();
-            }
+            this.emit('stopDelayEnd');
         } else {
             return;
         }
     }
     if (this.stopMethod == TimedAnimation.STOP_METHODS.IMMEDIATE) {
         this.state = TimedAnimation.STATES.STOPPED;
-        if (this.onStop.hasListeners) {
-            this.onStop.trigger();
-        }
-        if (this.onStopFinish.hasListeners) {
-            this.onStopFinish.trigger();
-        }
-    } else if (this.stopMethod ==TimedAnimation.STOP_METHODS.REVERSE) {
+        this.emit('stop');
+        this.emit('stopFinish');
+    } else if (this.stopMethod == TimedAnimation.STOP_METHODS.REVERSE) {
         if (duration === 0) {
             this.p = 0;
         } else if (duration > 0) {
@@ -7421,17 +7668,13 @@ TimedAnimation.prototype.stopProgress = function(dt) {
         if (this.p <= 0) {
             this.p = 0;
             this.state = TimedAnimation.STATES.STOPPED;
-            if (this.onStopFinish.hasListeners) {
-                this.onStopFinish.trigger();
-            }
+            this.emit('stopFinish');
         }
     } else if (this.stopMethod == TimedAnimation.STOP_METHODS.FADE) {
         this.stoppingProgressTransition.progress(dt);
         if (this.stoppingProgressTransition.p >= 1) {
             this.state = TimedAnimation.STATES.STOPPED;
-            if (this.onStopFinish.hasListeners) {
-                this.onStopFinish.trigger();
-            }
+            this.emit('stopFinish');
         }
     } else if (this.stopMethod == TimedAnimation.STOP_METHODS.ONETOTWO) {
         if (this.p < 2) {
@@ -7447,13 +7690,9 @@ TimedAnimation.prototype.stopProgress = function(dt) {
             if (this.p >= 2) {
                 this.p = 2;
                 this.state = TimedAnimation.STATES.STOPPED;
-                if (this.onStopFinish.hasListeners) {
-                    this.onStopFinish.trigger();
-                }
+                this.emit('stopFinish');
             } else {
-                if (this.onProgress.hasListeners) {
-                    this.onProgress.trigger();
-                }
+                this.emit('progress', this.p);
             }
         }
     } else {
@@ -7467,28 +7706,20 @@ TimedAnimation.prototype.stopProgress = function(dt) {
                 if (this.stopMethod == TimedAnimation.STOP_METHODS.FORWARD) {
                     this.p = 1;
                     this.state = TimedAnimation.STATES.STOPPED;
-                    if (this.onStopFinish.hasListeners) {
-                        this.onStopFinish.trigger();
-                    }
+                    this.emit('stopFinish');
                 } else {
                     if (this.repeatsLeft > 0) {
                         this.repeatsLeft--;
                         this.p = 0;
-                        if (this.onRepeat.hasListeners) {
-                            this.onRepeat.trigger({repeatsLeft: this.repeatsLeft});
-                        }
+                        this.emit('repeat', this.repeatsLeft);
                     } else {
                         this.p = 1;
                         this.state = TimedAnimation.STATES.STOPPED;
-                        if (this.onStopFinish.hasListeners) {
-                            this.onStopFinish.trigger();
-                        }
+                        this.emit('stopFinish');
                     }
                 }
             } else {
-                if (this.onProgress.hasListeners) {
-                    this.onProgress.trigger();
-                }
+                this.emit('progress', this.p);
             }
         }
     }
@@ -7506,7 +7737,7 @@ TimedAnimation.prototype.start = function() {
     this.delayLeft = this.delay;
     this.repeatsLeft = this.repeat;
     this.state = TimedAnimation.STATES.PLAYING;
-    this.onStart.trigger(null);
+    this.emit('start');
 
     if (this.subject) {
         this.stage.addActiveAnimation(this);
@@ -7527,7 +7758,7 @@ TimedAnimation.prototype.play = function() {
     if (this.state == TimedAnimation.STATES.STOPPING && this.stopMethod == TimedAnimation.STOP_METHODS.REVERSE) {
         // Continue.
         this.state = TimedAnimation.STATES.PLAYING;
-        this.onStopContinue.trigger();
+        this.emit('stopContinue');
     } else if (this.state != TimedAnimation.STATES.PLAYING && this.state != TimedAnimation.STATES.FINISHED) {
         // Restart.
         this.start();
@@ -7563,7 +7794,7 @@ TimedAnimation.prototype.stop = function() {
     if ((this.stopMethod == TimedAnimation.STOP_METHODS.IMMEDIATE && !this.stopDelayLeft) || this.delayLeft > 0) {
         // Stop upon next progress.
         this.state = TimedAnimation.STATES.STOPPING;
-        this.onStop.trigger();
+        this.emit('stop');
     } else {
         if (this.stopMethod == TimedAnimation.STOP_METHODS.FADE) {
             if (this.stopMethodOptions.duration) {
@@ -7576,7 +7807,7 @@ TimedAnimation.prototype.stop = function() {
         }
 
         this.state = TimedAnimation.STATES.STOPPING;
-        this.onStop.trigger();
+        this.emit('stop');
     }
 
 };
@@ -7585,10 +7816,10 @@ TimedAnimation.prototype.stopNow = function() {
     if (this.state !== TimedAnimation.STATES.STOPPED || this.state !== TimedAnimation.STATES.IDLE) {
         this.state = TimedAnimation.STATES.STOPPING;
         this.p = 0;
-        this.onStop.trigger();
+        this.emit('stop');
         this.resetTransforms();
         this.state = TimedAnimation.STATES.STOPPED;
-        this.onStopFinish.trigger();
+        this.emit('stopFinish');
     }
 };
 
@@ -7696,6 +7927,25 @@ Object.defineProperty(TimedAnimation.prototype, 'stopMethodOptions', {
     }
 });
 
+Object.defineProperty(TimedAnimation.prototype, 'subject', {
+    get: function() { return this._subject; },
+    set: function(subject) {
+        if (subject !== this._subject) {
+            if (this._subject) {
+                this._subject.removeTimedAnimation(this);
+            }
+            if (subject) {
+                subject.addTimedAnimation(this);
+            }
+
+            this._subject = subject;
+            if (this.isActive()) {
+                this.activate();
+            }
+        }
+    }
+});
+
 TimedAnimation.STATES = {
     IDLE: 0,
     PLAYING: 1,
@@ -7711,20 +7961,6 @@ TimedAnimation.STOP_METHODS = {
     IMMEDIATE: 3,
     ONETOTWO: 4
 };
-
-
-/**
- * A custom-progress animation.
- * @param stage
- * @constructor
- * @extends Animation
- */
-function CustomAnimation(stage) {
-    Animation.call(this, stage);
-}
-
-Utils.extendClass(CustomAnimation, Animation);
-
 
 
 /**
@@ -7941,9 +8177,6 @@ Renderer.prototype.renderItems = function() {
         gl.disableVertexAttribArray(this.colorAttribute);
     }
     this.stage.measureDetails && this.stage.timeEnd('renderGl');
-
-    this.stage.adapter.blit();
-
 };
 
 /**
@@ -9297,7 +9530,7 @@ WebAdapter.prototype.getUComponentContext = function() {
     return this.uComponentContext;
 };
 
-WebAdapter.prototype.blit = function() {
+WebAdapter.prototype.nextFrame = function(swapBuffers) {
     /* WebGL blits automatically */
 };
 

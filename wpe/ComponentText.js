@@ -19,8 +19,6 @@ function ComponentText(component) {
 
     this.settings = new TextRendererSettings();
 
-    this.renderInfo = null;
-
     this.texture = null;
 
     this.updateTexture();

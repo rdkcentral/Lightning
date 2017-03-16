@@ -33,6 +33,20 @@ function AnimationAction(animation) {
     this._properties = [];
 
     /**
+     * Merger functions for the properties.
+     * @type {Function[]}
+     * @private
+     */
+    this._propertyMergers = [];
+
+    /**
+     * Setter functions for the properties.
+     * @type {Function[]}
+     * @private
+     */
+    this._propertySetters = [];
+
+    /**
      * The value to reset to when stopping the timed animation.
      * @type {*}
      * @private
@@ -85,7 +99,7 @@ AnimationAction.prototype.getAnimatedComponents = function() {
                 }
             } else {
                 // Complex path: check hierarchically.
-                tagPath = this.complexTags[i];
+                var tagPath = this.complexTags[i];
                 l = tagPath.length;
                 var finalComps = [this.animation.subject];
                 for (k = 0; k < l; k++) {
@@ -160,8 +174,9 @@ AnimationAction.prototype.applyTransforms = function(p, f, a, m) {
     var c = this.getAnimatedComponents();
     var tcl = c.length;
     for (var i = 0; i < n; i++) {
+        var prop = this._properties[i];
         if (m !== 1) {
-            var mf = Component.getMergeFunction(this._properties[i]);
+            var mf = this._propertyMergers[i];
             if (!mf) {
                 // Unmergable property.
                 fv = v;
@@ -171,7 +186,11 @@ AnimationAction.prototype.applyTransforms = function(p, f, a, m) {
         }
 
         for (var j = 0; j < tcl; j++) {
-            c[j][self._properties[i]] = fv;
+            if (this._propertySetters[i]) {
+                this._propertySetters[i](c[j], fv);
+            } else {
+                c[j][prop] = fv;
+            }
         }
     }
 
@@ -198,14 +217,17 @@ AnimationAction.prototype.resetTransforms = function(a) {
     }
 
     // Apply transformation to all components.
-    var self = this;
     var n = this._properties.length;
 
     var c = this.getAnimatedComponents();
     var tcl = c.length;
     for (var i = 0; i < n; i++) {
         for (var j = 0; j < tcl; j++) {
-            c[j][self._properties[i]] = v;
+            if (this._propertySetters[i]) {
+                this._propertySetters[i](c[j], v);
+            } else {
+                c[j][this._properties[i]] = v;
+            }
         }
     }
 
@@ -262,6 +284,16 @@ Object.defineProperty(AnimationAction.prototype, 'property', {
             } else {
                 names.push(v);
             }
+        }
+
+        this._propertySetters = [];
+        this._propertyMergers = [];
+        for (i = 0, n = names.length; i < n; i++) {
+            var f = Component.propertySettersFinal[Component.getPropertyIndex(names[i])] || null;
+            this._propertySetters.push(f);
+
+            var mf = Component.getMergeFunction(this._properties[i]) || null;
+            this._propertyMergers.push(mf);
         }
 
         this._properties = names;

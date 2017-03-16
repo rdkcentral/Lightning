@@ -4,8 +4,8 @@ module.exports = function(grunt) {
             'wpe-browser' : {
                 src : [
                     'browser/EventEmitter.js',
-                    'wpe/Stage.js',
                     'wpe/Utils.js',
+                    'wpe/Stage.js',
                     'wpe/StageUtils.js',
                     'wpe/GeometryUtils.js',
                     'wpe/EventData.js',
@@ -24,7 +24,6 @@ module.exports = function(grunt) {
                     'wpe/Animation.js',
                     'wpe/AnimationAction.js',
                     'wpe/TimedAnimation.js',
-                    'wpe/CustomAnimation.js',
                     'wpe/Renderer.js',
                     'wpe/RenderItem.js',
                     'wpe/UComponent.js',
