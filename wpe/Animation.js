@@ -50,10 +50,19 @@ Animation.prototype.set = function(settings) {
 };
 
 Animation.prototype.setSetting = function(name, value) {
-    if (this[name] === undefined) {
-        throw new TypeError('Unknown property:' + name);
+    switch(name) {
+        case 'actions':
+            this.actions = [];
+            for (var i = 0, n = value.length; i < n; i++) {
+                this.add(value[i]);
+            }
+            break;
+        default:
+            if (this[name] === undefined) {
+                throw new TypeError('Unknown property:' + name);
+            }
+            this[name] = value;
     }
-    this[name] = value;
 };
 
 Animation.prototype.add = function(settings) {

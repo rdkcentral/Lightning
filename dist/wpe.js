@@ -846,19 +846,11 @@ Stage.prototype.c = function(settings) {
     return component;
 };
 
-Stage.prototype.animation = function(settings, actions, custom) {
-    var a = custom ? new Animation(this) : new TimedAnimation(this);
+Stage.prototype.animation = function(settings) {
+    var a = new TimedAnimation(this);
     if (settings) {
         a.set(settings);
     }
-
-    if (actions) {
-        var n = actions.length;
-        for (var i = 0; i < n; i++) {
-            a.add(actions[i]);
-        }
-    }
-
     return a;
 };
 
@@ -3443,6 +3435,12 @@ Component.prototype.addTimedAnimation = function(a) {
 
 Component.prototype.removeTimedAnimation = function(a) {
     this.timedAnimationSet.delete(a);
+};
+
+Component.prototype.animation = function(settings) {
+    var a = this.stage.animation(settings);
+    a.subject = this;
+    return a;
 };
 
 Component.prototype.getRenderWidth = function() {
@@ -7113,10 +7111,19 @@ Animation.prototype.set = function(settings) {
 };
 
 Animation.prototype.setSetting = function(name, value) {
-    if (this[name] === undefined) {
-        throw new TypeError('Unknown property:' + name);
+    switch(name) {
+        case 'actions':
+            this.actions = [];
+            for (var i = 0, n = value.length; i < n; i++) {
+                this.add(value[i]);
+            }
+            break;
+        default:
+            if (this[name] === undefined) {
+                throw new TypeError('Unknown property:' + name);
+            }
+            this[name] = value;
     }
-    this[name] = value;
 };
 
 Animation.prototype.add = function(settings) {
@@ -7723,13 +7730,6 @@ TimedAnimation.prototype.stopProgress = function(dt) {
             }
         }
     }
-};
-
-TimedAnimation.prototype.setSetting = function(name, value) {
-    if (this[name] === undefined) {
-        throw new TypeError('Unknown property:' + name);
-    }
-    this[name] = value;
 };
 
 TimedAnimation.prototype.start = function() {

@@ -548,6 +548,12 @@ Component.prototype.removeTimedAnimation = function(a) {
     this.timedAnimationSet.delete(a);
 };
 
+Component.prototype.animation = function(settings) {
+    var a = this.stage.animation(settings);
+    a.subject = this;
+    return a;
+};
+
 Component.prototype.getRenderWidth = function() {
     if (this.active) {
         return this._renderWidth;

@@ -381,19 +381,11 @@ Stage.prototype.c = function(settings) {
     return component;
 };
 
-Stage.prototype.animation = function(settings, actions, custom) {
-    var a = custom ? new Animation(this) : new TimedAnimation(this);
+Stage.prototype.animation = function(settings) {
+    var a = new TimedAnimation(this);
     if (settings) {
         a.set(settings);
     }
-
-    if (actions) {
-        var n = actions.length;
-        for (var i = 0; i < n; i++) {
-            a.add(actions[i]);
-        }
-    }
-
     return a;
 };
 

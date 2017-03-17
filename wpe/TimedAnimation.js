@@ -230,13 +230,6 @@ TimedAnimation.prototype.stopProgress = function(dt) {
     }
 };
 
-TimedAnimation.prototype.setSetting = function(name, value) {
-    if (this[name] === undefined) {
-        throw new TypeError('Unknown property:' + name);
-    }
-    this[name] = value;
-};
-
 TimedAnimation.prototype.start = function() {
     this.p = 0;
     this.delayLeft = this.delay;
