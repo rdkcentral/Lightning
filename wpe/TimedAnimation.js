@@ -327,7 +327,7 @@ TimedAnimation.prototype.applyTransforms = function() {
         // After being stopped, reset all values to their start positions.
         var n = this.actions.length;
         for (var i = 0; i < n; i++) {
-            this.actions[i].resetTransforms(this.amplitude);
+            this.actions[i].resetTransforms();
         }
     } else {
         // Apply possible fade out effect.
@@ -340,7 +340,7 @@ TimedAnimation.prototype.applyTransforms = function() {
 
         var n = this.actions.length;
         for (var i = 0; i < n; i++) {
-            this.actions[i].applyTransforms(p, this.getFrameForProgress(p), this.amplitude, factor);
+            this.actions[i].applyTransforms(p, this.getFrameForProgress(p), factor);
         }
     }
 };

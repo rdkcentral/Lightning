@@ -19,11 +19,11 @@ function AnimationAction(animation) {
     this._tags = [];
 
     /**
-     * If a function, then it is evaluated with the progress argument. If a literal value, it is used directly.
-     * @type {*}
+     * The value items, ordered by progress offset.
+     * @type {{f: boolean, v: *, ..}[]}
      * @private
      */
-    this._value = null;
+    this._items = [];
 
     /**
      * The affected properties (names).
@@ -31,13 +31,6 @@ function AnimationAction(animation) {
      * @private
      */
     this._properties = [];
-
-    /**
-     * Merger functions for the properties.
-     * @type {Function[]}
-     * @private
-     */
-    this._propertyMergers = [];
 
     /**
      * Setter functions for the properties.
@@ -54,12 +47,6 @@ function AnimationAction(animation) {
     this._resetValue = null;
 
     /**
-     * Whether or not a reset value was specified.
-     * @type {boolean}
-     */
-    this.hasResetValue = false;
-
-    /**
      * Whether or not this action has complex tags (if not, we can choose a more performant path).
      * @type {boolean}
      */
@@ -70,6 +57,13 @@ function AnimationAction(animation) {
      * @type {string[][]}
      */
     this.complexTags = null;
+
+    /**
+     * Mergable function for values.
+     * @type {Function}
+     * @private
+     */
+    this.mergeFunction = null;
 
 }
 
@@ -122,99 +116,205 @@ AnimationAction.prototype.getAnimatedComponents = function() {
     return taggedComponents;
 };
 
-AnimationAction.prototype.set = function(settings) {
-    var propNames = Object.keys(settings);
-    for (var i = 0; i < propNames.length; i++) {
-        var name = propNames[i];
-        var v = settings[name];
-        this.setSetting(name, v);
+AnimationAction.prototype.setValue = function(def) {
+    var i, n;
+    if (!Utils.isPlainObject(def)) {
+        def = {0: def};
+    }
+
+    var items = [];
+    for (var key in def) {
+        if (def.hasOwnProperty(key)) {
+            var obj = def[key];
+            if (!Utils.isPlainObject(obj)) {
+                obj = {v: obj};
+            }
+
+            var p = parseFloat(key);
+            if (!isNaN(p) && p >= 0 && p <= 1) {
+                obj.p = p;
+
+                obj.f = Utils.isFunction(obj.v);
+                obj.lv = obj.f ? obj.v(0, 0) : obj.v;
+
+                items.push(obj);
+            }
+        }
+    }
+
+    // Sort by progress value.
+    items = items.sort(function(a, b) {return a.p - b.p});
+
+    n = items.length;
+
+    for (i = 0; i < n; i++) {
+        var last = (i == n - 1);
+        if (!items[i].hasOwnProperty('pe')) {
+            // Progress.
+            items[i].pe = last ? 1 : items[i + 1].p;
+        } else {
+            // Prevent multiple items at the same time.
+            var max = i < n - 1 ? items[i + 1].p : 1;
+            if (items[i].pe > max) {
+                items[i].pe = max;
+            }
+        }
+        if (items[i].pe === items[i].p) {
+            items[i].idp = 0;
+        } else {
+            items[i].idp = 1 / (items[i].pe - items[i].p);
+        }
+    }
+
+    if (this.mergeFunction) {
+        var rgba = (this.mergeFunction === StageUtils.mergeColors);
+
+        // Calculate bezier helper values.
+        for (i = 0; i < n; i++) {
+            if (!items[i].hasOwnProperty('sm')) {
+                // Smoothness.
+                items[i].sm = 0.5;
+            }
+            if (!items[i].hasOwnProperty('s')) {
+                // Slope.
+                if (i === 0 || i === n - 1) {
+                    // Horizontal slope at start and end.
+                    items[i].s = rgba ? [0, 0, 0, 0] : 0;
+                } else {
+                    var pi = items[i - 1];
+                    var ni = items[i + 1];
+                    if (pi.p === ni.p) {
+                        items[i].s = rgba ? [0, 0, 0, 0] : 0;
+                    } else {
+                        if (rgba) {
+                            var nc = StageUtils.getRgbaComponents(ni.lv);
+                            var pc = StageUtils.getRgbaComponents(pi.lv);
+                            var d = 1 / (ni.p - pi.p);
+                            items[i].s = [
+                                d * (nc[0] - pc[0]),
+                                d * (nc[1] - pc[1]),
+                                d * (nc[2] - pc[2]),
+                                d * (nc[3] - pc[3])
+                            ];
+                        } else {
+                            items[i].s = (ni.lv - pi.lv) / (ni.p - pi.p);
+                        }
+                    }
+                }
+            }
+        }
+
+        for (i = 0; i < n - 1; i++) {
+            // Calculate value function.
+            if (!items[i].f) {
+                var last = (i === n - 1);
+                if (!items[i].hasOwnProperty('sme')) {
+                    items[i].sme = last ? 0.5 : items[i + 1].sm;
+                }
+                if (!items[i].hasOwnProperty('se')) {
+                    items[i].se = last ? (rgba ? [0, 0, 0, 0] : 0) : items[i + 1].s;
+                }
+                if (!items[i].hasOwnProperty('ve')) {
+                    items[i].ve = last ? items[i].lv : items[i + 1].lv;
+                }
+
+                // Generate spline.
+                if (rgba) {
+                    items[i].v = StageUtils.getSplineRgbaValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
+                } else {
+                    items[i].v = StageUtils.getSplineValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
+                }
+                items[i].f = true;
+            }
+        }
+    }
+
+    this._items = items;
+};
+
+AnimationAction.prototype.getItem = function(p) {
+    var n = this._items.length;
+    if (!n) {
+        return null;
+    }
+
+    if (p < this._items[0].p) {
+        return null;
+    }
+
+    for (var i = 0; i < n; i++) {
+        if (this._items[i].p <= p && p < this._items[i].pe) {
+            return this._items[i];
+        }
+    }
+
+    return this._items[n - 1];
+};
+
+AnimationAction.prototype.getValue = function(item, p) {
+    // Found it.
+    if (item.f) {
+        var o = (p - item.p) * item.idp;
+        return item.v(o, p);
+    } else {
+        return item.v;
     }
 };
 
-AnimationAction.prototype.setSetting = function(name, value) {
-    if (this[name] === undefined) {
-        throw new TypeError('Unknown property:' + name);
+AnimationAction.prototype.getResetValue = function() {
+    if (this.resetValue !== null) {
+        return this.resetValue;
+    } else {
+        if (this._items.length) {
+            return this._items[0].lv;
+        }
     }
-    this[name] = value;
+    return 0;
 };
 
-AnimationAction.prototype.applyTransforms = function(p, f, a, m) {
-    var v = 0;
-
+AnimationAction.prototype.applyTransforms = function(p, f, m) {
     if (!this._properties.length) {
         return;
     }
 
-    if (Utils.isFunction(this.value)) {
-        v = this.value(p, f);
-    } else {
-        v = this.value;
+    var item = this.getItem(p);
+    if (!item) {
+        return;
     }
 
-    // Apply amplitude.
-    if (a !== 1 && Utils.isNumber(v)) {
-        v = v * a;
-    }
+    var v = this.getValue(item, p);
 
-    var sv = 0;
     if (m !== 1) {
-        if (Utils.isFunction(this.value)) {
-            sv = this.value(0, 0);
-        } else {
-            sv = this.value;
+        var sv = this.getResetValue();
+        if (this.mergeFunction) {
+            v = this.mergeFunction(v, sv, m);
         }
     }
 
     // Apply transformation to all components.
-    var self = this;
     var n = this._properties.length;
-
-    var fv = v;
 
     var c = this.getAnimatedComponents();
     var tcl = c.length;
     for (var i = 0; i < n; i++) {
         var prop = this._properties[i];
-        if (m !== 1) {
-            var mf = this._propertyMergers[i];
-            if (!mf) {
-                // Unmergable property.
-                fv = v;
-            } else {
-                fv = mf(v, sv, m);
-            }
-        }
-
         for (var j = 0; j < tcl; j++) {
             if (this._propertySetters[i]) {
-                this._propertySetters[i](c[j], fv);
+                this._propertySetters[i](c[j], v);
             } else {
-                c[j][prop] = fv;
+                c[j][prop] = v;
             }
         }
     }
 
 };
 
-AnimationAction.prototype.resetTransforms = function(a) {
-    var v = 0;
-
+AnimationAction.prototype.resetTransforms = function() {
     if (!this._properties.length) {
         return;
     }
 
-    if (this.hasResetValue) {
-        v = this.resetValue;
-    } else if (Utils.isFunction(this.value)) {
-        v = this.value(0, 0);
-    } else {
-        v = this.value;
-    }
-
-    // Apply amplitude.
-    if (a !== 1 && Utils.isNumber(v)) {
-        v = v * a;
-    }
+    var v = this.getResetValue();
 
     // Apply transformation to all components.
     var n = this._properties.length;
@@ -233,11 +333,34 @@ AnimationAction.prototype.resetTransforms = function(a) {
 
 };
 
+AnimationAction.prototype.set = function(settings) {
+    var propNames = Object.keys(settings);
+    for (var i = 0; i < propNames.length; i++) {
+        var name = propNames[i];
+        var v = settings[name];
+        this.setSetting(name, v);
+    }
+};
+
+AnimationAction.prototype.setSetting = function(name, value) {
+    switch(name) {
+        case 'value':
+            this.value = value;
+            break;
+        default:
+            if (this[name] === undefined) {
+                throw new TypeError('Unknown property:' + name);
+            }
+            this[name] = value;
+    }
+};
+
+
 Object.defineProperty(AnimationAction.prototype, 'tags', {
     get: function() { return this._tags; },
     set: function(v) {
         if (!Utils.isArray(v)) {
-            throw new TypeError('tags must be an array of strings');
+            v = [v];
         }
         this._tags = v;
 
@@ -264,7 +387,6 @@ Object.defineProperty(AnimationAction.prototype, 'tags', {
 Object.defineProperty(AnimationAction.prototype, 'property', {
     get: function() { return this._properties; },
     set: function(v) {
-
         var vs = v;
         if (!Utils.isArray(v)) {
             vs = [vs];
@@ -286,14 +408,24 @@ Object.defineProperty(AnimationAction.prototype, 'property', {
             }
         }
 
+        this.mergeFunction = null;
+        var mergeFunctionConflict = false;
         this._propertySetters = [];
-        this._propertyMergers = [];
         for (i = 0, n = names.length; i < n; i++) {
             var f = Component.propertySettersFinal[Component.getPropertyIndex(names[i])] || null;
             this._propertySetters.push(f);
 
-            var mf = Component.getMergeFunction(this._properties[i]) || null;
-            this._propertyMergers.push(mf);
+            var mf = Component.getMergeFunction(names[i]);
+            if (i == 0) {
+                this.mergeFunction = mf;
+            } else {
+                if (mf !== this.mergeFunction) {
+                    mergeFunctionConflict = true;
+                }
+            }
+        }
+        if (mergeFunctionConflict) {
+            this.mergeFunction = null;
         }
 
         this._properties = names;
@@ -301,9 +433,8 @@ Object.defineProperty(AnimationAction.prototype, 'property', {
 });
 
 Object.defineProperty(AnimationAction.prototype, 'value', {
-    get: function() { return this._value; },
     set: function(v) {
-        this._value = v;
+        this.setValue(v);
     }
 });
 
@@ -311,11 +442,11 @@ Object.defineProperty(AnimationAction.prototype, 'resetValue', {
     get: function() { return this._resetValue; },
     set: function(v) {
         this._resetValue = v;
-        this.hasResetValue = true;
     }
 });
 
 if (isNode) {
     module.exports = AnimationAction;
     var Component = require('./Component');
+    var StageUtils = require('./StageUtils');
 }

@@ -27,12 +27,6 @@ function Animation(stage) {
     this.p = 0;
 
     /**
-     * This value can be used to increase or decrease all changes that this animation makes to the subjects.
-     * @type {number}
-     */
-    this._amplitude = 1;
-
-    /**
      * Dummy for getFrameForProgress. Causes frame to be 0 when this is not a timed animation.
      * @type {number}
      */
@@ -96,14 +90,14 @@ Animation.prototype.applyTransforms = function() {
 
     var n = this.actions.length;
     for (var i = 0; i < n; i++) {
-        this.actions[i].applyTransforms(p, this.getFrameForProgress(p), this.amplitude, 1);
+        this.actions[i].applyTransforms(p, this.getFrameForProgress(p), 1);
     }
 };
 
 Animation.prototype.resetTransforms = function() {
     var n = this.actions.length;
     for (var i = 0; i < n; i++) {
-        this.actions[i].resetTransforms(this.amplitude);
+        this.actions[i].resetTransforms();
     }
 };
 
@@ -114,16 +108,6 @@ Object.defineProperty(Animation.prototype, 'progressFunction', {
             throw new TypeError('progressFunction must be a function');
         }
         this._progressFunction = v;
-    }
-});
-
-Object.defineProperty(Animation.prototype, 'amplitude', {
-    get: function() { return this._amplitude; },
-    set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError('amplitude must be a number');
-        }
-        this._amplitude = v;
     }
 });
 

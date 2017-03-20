@@ -161,7 +161,7 @@ Stage.prototype.setGlClearColor = function(clearColor) {
     if (Array.isArray(clearColor)) {
         this.glClearColor = clearColor;
     } else {
-        this.glClearColor = StageUtils.getRgbaComponents(clearColor);
+        this.glClearColor = StageUtils.getRgbaComponentsNormalized(clearColor);
     }
 };
 

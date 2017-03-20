@@ -52,6 +52,11 @@ Utils.isObject = function(value) {
     return !!value && (type == 'object' || type == 'function');
 };
 
+Utils.isPlainObject = function(value) {
+    var type = typeof value;
+    return !!value && (type == 'object');
+};
+
 Utils.getArrayIndex = function(index, arr) {
     return Utils.getModuloIndex(index, arr.length);
 };

@@ -26,12 +26,32 @@ StageUtils.getRgbaString = function(color) {
     return 'rgba(' + r + ',' + g + ',' + b + ',' + a.toFixed(4) + ')';
 };
 
-StageUtils.getRgbaComponents = function(color) {
-    var r = ((color / 65536)|0) % 256;
-    var g = ((color / 256)|0) % 256;
-    var b = color % 256;
-    var a = ((color / 16777216)|0);
-    return [r/255.0, g/255.0, b/255.0, a/255.0];
+StageUtils.getRgbaComponentsNormalized = function(argb) {
+    var r = ((argb / 65536)|0) % 256;
+    var g = ((argb / 256)|0) % 256;
+    var b = argb % 256;
+    var a = ((argb / 16777216)|0);
+    return [r*0.003921569, g*0.003921569, b*0.003921569, a*0.003921569];
+};
+
+StageUtils.getRgbaComponents = function(argb) {
+    var r = ((argb / 65536)|0) % 256;
+    var g = ((argb / 256)|0) % 256;
+    var b = argb % 256;
+    var a = ((argb / 16777216)|0);
+    return [r, g, b, a];
+};
+
+StageUtils.getArgbNumber = function(rgba) {
+    rgba[0] = Math.max(0, Math.min(255, rgba[0]));
+    rgba[1] = Math.max(0, Math.min(255, rgba[1]));
+    rgba[2] = Math.max(0, Math.min(255, rgba[2]));
+    rgba[3] = Math.max(0, Math.min(255, rgba[3]));
+    var v = ((rgba[3]|0) << 24) + ((rgba[0]|0) << 16) + ((rgba[1]|0) << 8) + (rgba[2]|0);
+    if (v < 0) {
+        v = 0xFFFFFFFF + v + 1;
+    }
+    return v;
 };
 
 StageUtils.mergeColors = function(c1, c2, p) {
@@ -183,131 +203,120 @@ StageUtils.TIMING = {
     BEZIER: function (a,b,c,d) {return StageUtils.getTimingBezier(a,b,c,d);}
 };
 
-// Value functions.
-StageUtils.VALUE = {
-    VALUE: function(elements) {
-        return StageUtils.getDiscreteValueFunction(elements);
-    },
-    SMOOTH: function (elements) {
-        return StageUtils.getSmoothValueFunction(elements);
-    },
-    SMOOTHCOLOR: function (elements) {
-        return StageUtils.getSmoothColorValueFunction(elements);
+StageUtils.getSplineValueFunction = function(v1, v2, p1, p2, o1, i2, s1, s2) {
+    // Normalize slopes because we use a spline that goes from 0 to 1.
+    var dp = p2 - p1;
+    s1 *= dp;
+    s2 *= dp;
+
+    var helpers = StageUtils.getSplineHelpers(v1, v2, o1, i2, s1, s2);
+    if (!helpers) {
+        return function(p) {
+            if (p == 0) return v1;
+            if (p == 1) return v2;
+
+            return v2 * p + v1 * (1 - p);
+        };
+    } else {
+        return function(p) {
+            if (p == 0) return v1;
+            if (p == 1) return v2;
+
+            return StageUtils.calculateSpline(helpers, p);
+        };
     }
 };
 
-/**
- * Smooth value function for colors.
- */
-StageUtils.getSmoothColorValueFunction = function(keyframes) {
-    var i, n = keyframes.length;
-    var alphaKeyframes = [];
-    var redKeyframes = [];
-    var greenKeyframes = [];
-    var blueKeyframes = [];
-    for (i = 0; i < n; i++) {
-        var k = keyframes[i];
-        var alpha = ((k.v & 0xFF000000) >>> 24);
-        var red = (k.v & 0x00FF0000) >> 16;
-        var green = (k.v & 0x0000FF00) >> 8;
-        var blue = k.v & 0x000000FF;
+StageUtils.getSplineRgbaValueFunction = function(v1, v2, p1, p2, o1, i2, s1, s2) {
+    // Normalize slopes because we use a spline that goes from 0 to 1.
+    var dp = p2 - p1;
+    s1[0] *= dp;
+    s1[1] *= dp;
+    s1[2] *= dp;
+    s1[3] *= dp;
+    s2[0] *= dp;
+    s2[1] *= dp;
+    s2[2] *= dp;
+    s2[3] *= dp;
 
-        k = Utils.cloneObj(k);
-        k.v = alpha;
-        alphaKeyframes.push(k);
+    var cv1 = StageUtils.getRgbaComponents(v1);
+    var cv2 = StageUtils.getRgbaComponents(v2);
 
-        k = Utils.cloneObj(k);
-        k.v = red;
-        redKeyframes.push(k);
+    var helpers = [
+        StageUtils.getSplineHelpers(cv1[0], cv2[0], o1, i2, s1[0], s2[0]),
+        StageUtils.getSplineHelpers(cv1[1], cv2[1], o1, i2, s1[1], s2[1]),
+        StageUtils.getSplineHelpers(cv1[2], cv2[2], o1, i2, s1[2], s2[2]),
+        StageUtils.getSplineHelpers(cv1[3], cv2[3], o1, i2, s1[3], s2[3])
+    ];
 
-        k = Utils.cloneObj(k);
-        k.v = green;
-        greenKeyframes.push(k);
+    if (!helpers[0]) {
+        return function(p) {
+            // Linear.
+            if (p == 0) return v1;
+            if (p == 1) return v2;
 
-        k = Utils.cloneObj(k);
-        k.v = blue;
-        blueKeyframes.push(k);
-    }
+            return StageUtils.mergeColors(v2, v1, p);
+        };
+    } else {
+        return function(p) {
+            if (p == 0) return v1;
+            if (p == 1) return v2;
 
-    var alphaFunction = StageUtils.getSmoothValueFunction(alphaKeyframes);
-    var redFunction = StageUtils.getSmoothValueFunction(redKeyframes);
-    var greenFunction = StageUtils.getSmoothValueFunction(greenKeyframes);
-    var blueFunction = StageUtils.getSmoothValueFunction(blueKeyframes);
-
-    return function(p) {
-        var alpha = Math.min(Math.max(alphaFunction(p), 0), 255);
-        var red = Math.min(Math.max(redFunction(p), 0), 255);
-        var green = Math.min(Math.max(greenFunction(p), 0), 255);
-        var blue = Math.min(Math.max(blueFunction(p), 0), 255);
-        var v = ((alpha|0) << 24) + ((red|0) << 16) + ((green|0) << 8) + (blue|0);
-        if (v < 0) {
-            v = 0xFFFFFFFF + v + 1;
-        }
-
-        return v;
-    };
-
-};
-
-/**
- * Returns a function which returns a discrete value during time.
- * @param {{t:number, v:number}[]} keyframes
- */
-StageUtils.getDiscreteValueFunction = function(keyframes) {
-    // Split keyframes into different arrays.
-    var values = [];
-    var times = [];
-
-    var i, n = keyframes.length;
-    var lastT = -1;
-
-    for (i = 0; i < n; i++) {
-        var k = keyframes[i];
-        if (k.t <= lastT) {
-            throw new Error('The keyframe timings should increase.');
-        }
-        lastT = k.t;
-
-        times.push(k.t);
-        values.push(k.v);
-    }
-
-    return function(p) {
-        for (i = 0; i < n; i++) {
-            if (times[i] > p) {
-                break;
-            }
-        }
-
-        if (i == 0) {
-            // Before first offset.
-            return values[i];
-        }
-
-        if (i == n) {
-            // After last offset.
-            return values[n - 1];
-        }
-
-        // Get correct spline index.
-        i = i - 1;
-
-        return values[i];
+            return StageUtils.getArgbNumber([
+                Math.min(255, StageUtils.calculateSpline(helpers[0], p)),
+                Math.min(255, StageUtils.calculateSpline(helpers[1], p)),
+                Math.min(255, StageUtils.calculateSpline(helpers[2], p)),
+                Math.min(255, StageUtils.calculateSpline(helpers[3], p))
+            ]);
+        };
     }
 
 };
 
 /**
- * Returns a smoothened linear interpolation function based on a cubic bezier.
- * @param {{t:number, v:number, [i]:number, [o]:number, [s]:number}[]} keyframes
- *   t is the time of the keyframe. 0 = start of animation, 1 = end of animation.
- *   v is the value at the keyframe point.
- *   i is the 'incoming smoothness'. 0 = linear, 1 = as smooth as possible.
- *   o is the 'outgoing smoothness'. 0 = linear, 1 = as smooth as possible.
- *   s is the 'slope' for the bezier curve at the specified point.
- * @return {Function}
- *   Linear value function.
+ * Creates helpers to be used in the spline function.
+ * @param {number} v1
+ *   From value.
+ * @param {number} v2
+ *   To value.
+ * @param {number} o1
+ *   From smoothness (0 = linear, 1 = smooth).
+ * @param {number} s1
+ *   From slope (0 = horizontal, infinite = vertical).
+ * @param {number} i2
+ *   To smoothness.
+ * @param {number} s2
+ *   To slope.
+ * @returns {Number[]}
+ *   The helper values to be supplied to the spline function.
+ *   If the configuration is actually linear, null is returned.
  */
+StageUtils.getSplineHelpers = function(v1, v2, o1, i2, s1, s2) {
+    if (!o1 && !i2) {
+        // Linear.
+        return null;
+    }
+
+    // Cubic bezier points.
+    // http://cubic-bezier.com/
+    var csx = o1;
+    var csy = v1 + s1 * o1;
+    var cex = 1 - i2;
+    var cey = v2 - s2 * i2;
+
+    // Helper variables.
+    var xa = 3 * csx - 3 * cex + 1;
+    var xb = -6 * csx + 3 * cex;
+    var xc = 3 * csx;
+
+    var ya = 3 * csy - 3 * cey + v2 - v1;
+    var yb = 3 * (cey + v1) -6 * csy;
+    var yc = 3 * (csy - v1);
+    var yd = v1;
+
+    return [xa, xb, xc, ya, yb, yc, yd];
+};
+
 StageUtils.getSmoothValueFunction = function(keyframes) {
     // Split keyframes into different arrays.
     var values = [];
@@ -451,6 +460,76 @@ StageUtils.getSmoothValueFunction = function(keyframes) {
 
         return t;
     }
+};
+
+/**
+ * Calculates the intermediate spline value based on the specified helpers.
+ * @param {number[]} helpers
+ *   Obtained from getSplineHelpers.
+ * @param {number} p
+ * @return {number}
+ */
+StageUtils.calculateSpline = function(helpers, p) {
+    var xa = helpers[0];
+    var xb = helpers[1];
+    var xc = helpers[2];
+    var ya = helpers[3];
+    var yb = helpers[4];
+    var yc = helpers[5];
+    var yd = helpers[6];
+
+    if (xa == -2 && ya == -2 && xc == 0 && yc == 0) {
+        // Linear.
+        return p;
+    }
+
+    // Find t for p.
+    var t = 0.5, cbx, dx;
+
+    for (var it = 0; it < 20; it++) {
+        // Cubic bezier function: f(t)=t*(t*(t*a+b)+c).
+        cbx = t*(t*(t*xa+xb)+xc);
+
+        dx = p - cbx;
+        if (dx > -1e-8 && dx < 1e-8) {
+            // Solution found!
+            return t*(t*(t*ya+yb)+yc)+yd;
+        }
+
+        // Cubic bezier derivative function: f'(t)=t*(t*(3*a)+2*b)+c
+        var cbxd = t*(t*(3*xa)+2*xb)+xc;
+
+        if (cbxd > 1e-10 && cbxd < 1e-10) {
+            // Problematic. Fall back to binary search method.
+            break;
+        }
+
+        t += dx / cbxd;
+    }
+
+    // Fallback: binary search method. This is more reliable when there are near-0 slopes.
+    var minT = 0;
+    var maxT = 1;
+    for (it = 0; it < 20; it++) {
+        t = 0.5 * (minT + maxT);
+
+        // Cubic bezier function: f(t)=t*(t*(t*a+b)+c)+d.
+        cbx = t*(t*(t*xa+xb)+xc);
+
+        dx = p - cbx;
+        if (dx > -1e-8 && dx < 1e-8) {
+            // Solution found!
+            return t*(t*(t*ya+yb)+yc)+yd;
+        }
+
+        if (dx < 0) {
+            maxT = t;
+        } else {
+            minT = t;
+        }
+    }
+
+    return t;
 };
 
 StageUtils.getRoundRect = function(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor) {
