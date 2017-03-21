@@ -20,18 +20,18 @@ stage.root.rect = true;
 stage.root.color = 0xff00ff00;
 stage.root.borderColor = 0xff000000;
 
-var bunny = stage.c({src: './bunny.png', x: 200, y: 200, rotation: 0.2, tag: 'bunny'});
-bunny.setTransition('x',{duration: 10, delay: 2});
+var bunny = stage.root.add({src: './bunny.png', x: 200, y: 200, rotation: 0.2, tag: 'bunny'});
+
+bunny.t('x',{duration: 10, delay: 2});
 // bunny.x = 1050;
 bunny.rotation = 4;
 bunny.scale = 1;
-bunny.setTransition('rotation',{duration: 5, delay: 2});
-bunny.setTransition('scale',{duration: 5, delay: 2});
+bunny.t('rotation',{duration: 5, delay: 2});
+bunny.t('scale',{duration: 5, delay: 2});
 // bunny.rotation = 11;
 // bunny.scale = 30;
-stage.root.addChild(bunny);
 
-var a = stage.animation({duration: 3, subject: stage.root.tag('bunny'), autostop: true, actions: [
+var a = stage.root.tag('bunny').animation({duration: 3, autostop: true, actions: [
 //    {property: ['y'], value: {0:0,1:400}},
     {property: ['color'], value: {0:0xFFFFFFFF,1:0xFFFF0000}},
 

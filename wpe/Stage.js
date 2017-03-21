@@ -355,7 +355,7 @@ Stage.prototype.hasTexture = function(id) {
  * Creates a new component.
  * @returns {Component}
  */
-Stage.prototype.create = function(settings, children) {
+Stage.prototype.component = function(settings, children) {
     var component = new Component(this);
 
     if (children) {

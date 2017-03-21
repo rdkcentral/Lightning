@@ -265,6 +265,22 @@ Component.prototype.setParent = function(parent) {
     this.updateAttachedFlag();
 };
 
+Component.prototype.add = function(o) {
+    if (o instanceof Component) {
+        this.addChild(o);
+        return o;
+    } else if (Utils.isArray(o)) {
+        for (var i = 0, n = o.length; i < n; i++) {
+            this.add(o[i]);
+        }
+        return null;
+    } else if (Utils.isPlainObject(o)) {
+        var c = this.stage.c(o);
+        this.addChild(c);
+        return c;
+    }
+};
+
 Component.prototype.addChild = function (child) {
     if (child.parent === this && this.children.indexOf(child) >= 0) {
         return child;
@@ -555,6 +571,56 @@ Component.prototype.animation = function(settings) {
     return a;
 };
 
+Component.prototype.a = function(settings) {
+    return this.animation(settings);
+};
+
+Component.prototype.transition = function(property, settings) {
+    var props = Component.propAliases.get(property);
+    if (settings || settings === null) {
+        if (props) {
+            for (var i = 0, n = props.length; i < n; i++) {
+                this.setPropertyTransition(props[i], settings);
+            }
+            return this.getPropertyTransition(props[0]);
+        } else {
+            return this.setPropertyTransition(property, settings)
+        }
+    } else {
+        return this.getPropertyTransition(property, settings);
+    }
+};
+
+Component.prototype.t = function(property, settings) {
+    this.transition(property, settings);
+};
+
+Component.prototype.transitions = function(properties, settings) {
+    var all = [];
+    for (var i = 0, n = properties.length; i < n; i++) {
+        var props = Component.propAliases.get(properties[i]);
+        if (props) {
+            all = all.concat(props);
+        } else {
+            all.push(properties[i]);
+        }
+    }
+
+    if (settings || settings === null) {
+        var rval = [];
+        for (i = 0, n = all.length; i < n; i++) {
+            rval.push(this.setPropertyTransition(all[i], settings));
+        }
+        return rval;
+    } else {
+        var rval = [];
+        for (i = 0, n = all.length; i < n; i++) {
+            rval.push(this.getPropertyTransition(all[i], settings));
+        }
+        return rval;
+    }
+};
+
 Component.prototype.getRenderWidth = function() {
     if (this.active) {
         return this._renderWidth;
@@ -613,56 +679,36 @@ Component.prototype._getRenderHeight = function() {
     }
 };
 
-Component.prototype.setTransition = function(properties, settings) {
-    if (Utils.isArray(properties)) {
-        for (var i = 0; i < properties.length; i++) {
-            this.setPropertyTransition(properties[i], settings);
-        }
-    } else {
-        this.setPropertyTransition(properties, settings);
-    }
-};
-
 Component.prototype.setPropertyTransition = function(property, settings) {
-    if (Component.propAliases.has(property)) {
-        this.setTransition(Component.propAliases.get(property), settings);
+    var propertyIndex = Component.getPropertyIndex(property);
+    if (propertyIndex == -1) {
+        throw new Error("Unknown transition property: " + property);
+    }
+
+    if (!settings) {
+        if (this.transitions) {
+            if (this.transitions[propertyIndex]) {
+                this.transitionSet.delete(this.transitions[propertyIndex]);
+            }
+            this.transitions[propertyIndex] = null;
+        }
     } else {
-        var propertyIndex = Component.getPropertyIndex(property);
-        if (propertyIndex == -1) {
-            throw new Error("Unknown transition property: " + property);
+        // Only reset on change.
+        if (!this.transitions) {
+            this.transitions = new Array(Component.nTransitions);
+            this.transitionSet = new Set();
         }
-
-        if (!settings) {
-            if (this.transitions) {
-                if (this.transitions[propertyIndex]) {
-                    this.transitionSet.delete(this.transitions[propertyIndex]);
-                }
-                this.transitions[propertyIndex] = null;
-            }
-        } else {
-            // Only reset on change.
-            if (!this.transitions) {
-                this.transitions = new Array(Component.nTransitions);
-                this.transitionSet = new Set();
-            }
-            if (!this.transitions[propertyIndex]) {
-                this.transitions[propertyIndex] = new PropertyTransition(this, property);
-                this.transitionSet.add(this.transitions[propertyIndex]);
-            }
-            this.transitions[propertyIndex].set(settings);
+        if (!this.transitions[propertyIndex]) {
+            this.transitions[propertyIndex] = new PropertyTransition(this, property);
+            this.transitionSet.add(this.transitions[propertyIndex]);
         }
-    }
-};
-
-Component.prototype.getCornerPoints = function() {
-    return this.uComponent.getCornerPoints();
-};
-
-Component.prototype.getTransition = function(property) {
-    if (Component.propAliases.has(property)) {
-        property = Component.propAliases.get(property)[0];
+        this.transitions[propertyIndex].set(settings);
     }
 
+    return this.transitions[propertyIndex];
+};
+
+Component.prototype.getPropertyTransition = function(property) {
     var propertyIndex = Component.getPropertyIndex(property);
     if (propertyIndex == -1) {
         throw new Error("Unknown transition property: " + property);
@@ -673,6 +719,10 @@ Component.prototype.getTransition = function(property) {
     } else {
         return null;
     }
+};
+
+Component.prototype.getCornerPoints = function() {
+    return this.uComponent.getCornerPoints();
 };
 
 /**
@@ -1036,7 +1086,7 @@ Component.prototype.setSetting = function(name, value) {
             }
 
             for (var key in value) {
-                this.setTransition(key, value[key]);
+                this.transition(key, value[key]);
             }
 
             break;

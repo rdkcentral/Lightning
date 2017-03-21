@@ -106,8 +106,7 @@ function List(stage, settings, componentSettings) {
      * The list scroll transition.
      * @type {Transition}
      */
-    this.wrapper.setTransition(this.horizontal ? 'x' : 'y', {});
-    this.scrollTransition = this.wrapper.getTransition(this.horizontal ? 'x' : 'y');
+    this.scrollTransition = this.wrapper.transition(this.horizontal ? 'x' : 'y', {});
 
     /**
      * The currently visible items.
