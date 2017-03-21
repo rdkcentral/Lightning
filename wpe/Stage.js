@@ -189,7 +189,7 @@ Stage.prototype.timeEnd = function(name) {
     this.measureMs[name] += (e - this.measureStart[name]);
 };
 
-Stage.prototype.pause = function() {
+Stage.prototype.stop = function() {
     this.adapter.stopAnimationLoop();
 };
 

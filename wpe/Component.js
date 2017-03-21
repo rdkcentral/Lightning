@@ -1120,13 +1120,6 @@ Component.prototype.getNonDefaults = function() {
         nonDefaults['text'] = this.textRenderer.settings.getNonDefaults();
     }
 
-    if (this.texture) {
-        var tnd = this.texture.getNonDefaults();
-        if (Object.keys(tnd).length) {
-            nonDefaults['texture'] = tnd;
-        }
-    }
-
     if (this.src) nonDefaults['src'] = this.src;
 
     if (this.rect) nonDefaults['rect'] = true;
@@ -1170,6 +1163,13 @@ Component.prototype.getNonDefaults = function() {
         if (this.colorTopRight !== 0xffffffff) nonDefaults['colorTopRight'] = this.colorTopRight;
         if (this.colorBottomLeft !== 0xffffffff) nonDefaults['colorBottomLeft'] = this.colorBottomLeft;
         if (this.colorBottomRight !== 0xffffffff) nonDefaults['colorBottomRight'] = this.colorBottomRight;
+    }
+
+    if (this.texture) {
+        var tnd = this.texture.getNonDefaults();
+        if (Object.keys(tnd).length) {
+            nonDefaults['texture'] = tnd;
+        }
     }
 
     return nonDefaults;
@@ -2041,38 +2041,44 @@ Object.defineProperty(Component.prototype, 'borderColor', {
 Object.defineProperty(Component.prototype, 'texture', {
     get: function() { return this._texture; },
     set: function(v) {
-        var prevValue = this._texture;
-        if (v !== prevValue) {
-            if (v !== null && !(v instanceof Texture)) {
-                throw new Error('incorrect value for texture');
-            }
+        if (v === null || v instanceof Texture) {
+            var prevValue = this._texture;
+            if (v !== prevValue) {
+                if (v !== null && !(v instanceof Texture)) {
+                    throw new Error('incorrect value for texture');
+                }
 
-            this._texture = v;
+                this._texture = v;
 
-            if (this.active && prevValue && this.displayedTexture !== prevValue) {
-                prevValue.removeComponent(this);
+                if (this.active && prevValue && this.displayedTexture !== prevValue) {
+                    prevValue.removeComponent(this);
 
-                if (!v || prevValue.source !== v.source) {
-                    if (!this.displayedTexture || (this.displayedTexture.source !== prevValue.source)) {
-                        prevValue.source.removeComponent(this);
+                    if (!v || prevValue.source !== v.source) {
+                        if (!this.displayedTexture || (this.displayedTexture.source !== prevValue.source)) {
+                            prevValue.source.removeComponent(this);
+                        }
                     }
                 }
+
+                if (v) {
+                    if (this.active) {
+                        // When the texture is changed, maintain the texture's sprite registry.
+                        // While the displayed texture is different from the texture (not yet loaded), two textures are referenced.
+                        v.addComponent(this);
+                        v.source.addComponent(this);
+                    }
+
+                    if (v.source.glTexture) {
+                        this.displayedTexture = v;
+                    }
+                } else {
+                    // Make sure that current texture is cleared when the texture is explicitly set to null.
+                    this.displayedTexture = null;
+                }
             }
-
-            if (v) {
-                if (this.active) {
-                    // When the texture is changed, maintain the texture's sprite registry.
-                    // While the displayed texture is different from the texture (not yet loaded), two textures are referenced.
-                    v.addComponent(this);
-                    v.source.addComponent(this);
-                }
-
-                if (v.source.glTexture) {
-                    this.displayedTexture = v;
-                }
-            } else {
-                // Make sure that current texture is cleared when the texture is explicitly set to null.
-                this.displayedTexture = null;
+        } else if (Utils.isPlainObject(v)) {
+            if (this._texture) {
+                this._texture.set(v);
             }
         }
     }
@@ -2081,36 +2087,42 @@ Object.defineProperty(Component.prototype, 'texture', {
 Object.defineProperty(Component.prototype, 'displayedTexture', {
     get: function() { return this._displayedTexture; },
     set: function(v) {
-        var prevValue = this._displayedTexture;
-        if (v !== prevValue) {
-            if (this.active && prevValue) {
-                // We can assume that this._texture === this._displayedTexture.
+        if (v === null || v instanceof Texture) {
+            var prevValue = this._displayedTexture;
+            if (v !== prevValue) {
+                if (this.active && prevValue) {
+                    // We can assume that this._texture === this._displayedTexture.
 
-                if (prevValue !== this.texture) {
-                    // The old displayed texture is deprecated.
-                    prevValue.removeComponent(this);
+                    if (prevValue !== this.texture) {
+                        // The old displayed texture is deprecated.
+                        prevValue.removeComponent(this);
+                    }
+
+                    if (!v || (prevValue.source !== v.source)) {
+                        prevValue.source.removeComponent(this);
+                    }
                 }
 
-                if (!v || (prevValue.source !== v.source)) {
-                    prevValue.source.removeComponent(this);
+                var beforeW = this._renderWidth;
+                var beforeH = this._renderHeight;
+                this._displayedTexture = v;
+                this._renderWidth = this._getRenderWidth();
+                this._renderHeight = this._getRenderHeight();
+                if (!prevValue || beforeW != this._renderWidth || beforeH != this._renderHeight) {
+                    // Due to width/height change: update the translation vector and borders.
+                    this._updateLocalDimensions();
+                }
+                if (v) {
+                    // We don't need to reference the displayed texture because it was already referenced (this.texture === this.displayedTexture).
+                    this._updateTextureCoords();
+                    this.stage.uComponentContext.setDisplayedTextureSource(this.uComponent, v.source);
+                } else {
+                    this.stage.uComponentContext.setDisplayedTextureSource(this.uComponent, null);
                 }
             }
-
-            var beforeW = this._renderWidth;
-            var beforeH = this._renderHeight;
-            this._displayedTexture = v;
-            this._renderWidth = this._getRenderWidth();
-            this._renderHeight = this._getRenderHeight();
-            if (!prevValue || beforeW != this._renderWidth || beforeH != this._renderHeight) {
-                // Due to width/height change: update the translation vector and borders.
-                this._updateLocalDimensions();
-            }
-            if (v) {
-                // We don't need to reference the displayed texture because it was already referenced (this.texture === this.displayedTexture).
-                this._updateTextureCoords();
-                this.stage.uComponentContext.setDisplayedTextureSource(this.uComponent, v.source);
-            } else {
-                this.stage.uComponentContext.setDisplayedTextureSource(this.uComponent, null);
+        } else if (Utils.isPlainObject(v)) {
+            if (this._displayedTexture) {
+                this._displayedTexture.set(v);
             }
         }
     }

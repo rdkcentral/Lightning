@@ -106,7 +106,7 @@ Texture.prototype.updateClipping = function(overrule) {
     if (overrule === true || overrule === false) {
         this.clipping = overrule;
     } else {
-        this.clipping = (this._x || this._y || this._w || this._h);
+        this.clipping = !!(this._x || this._y || this._w || this._h);
     }
 
     var self = this;

@@ -23,7 +23,7 @@ var TimedAnimation = function(stage) {
     this._duration = 1;
 
     this._repeat = 0;
-    this._repeatProgress = 0;
+    this._repeatOffset = 0;
     this._repeatDelay = 0;
 
     /**
@@ -118,7 +118,7 @@ TimedAnimation.prototype.progress = function(dt) {
             if (this.repeatsLeft > 0) {
                 this.repeatsLeft--;
             }
-            this.p = this.repeatProgress;
+            this.p = this.repeatOffset;
 
             if (this.repeatDelay) {
                 this.delayLeft = this.repeatDelay;
@@ -385,13 +385,13 @@ Object.defineProperty(TimedAnimation.prototype, 'repeat', {
     }
 });
 
-Object.defineProperty(TimedAnimation.prototype, 'repeatProgress', {
-    get: function() { return this._repeatProgress; },
+Object.defineProperty(TimedAnimation.prototype, 'repeatOffset', {
+    get: function() { return this._repeatOffset; },
     set: function(v) {
         if (!Utils.isNumber(v) || v < 0) {
-            throw new TypeError('repeatProgress must be a positive number');
+            throw new TypeError('repeatOffset must be a positive number');
         }
-        this._repeatProgress = v;
+        this._repeatOffset = v;
     }
 });
 

@@ -39,15 +39,10 @@ var a = stage.animation({duration: 3, subject: stage.root.tag('bunny'), autostop
 ]});
 
 a.start();
-//
-// setTimeout(function() {
-//     stage.root.removeChild(bunny);
-// }, 5000);
-// setTimeout(function() {
-//     stage.root.addChild(bunny);
-// }, 6000);
 
-setTimeout(function() {
-    stage.pause();
-}, 6000);
+if (isNode) {
+    setTimeout(function() {
+        stage.stop();
+    }, 6000);
+}
 
