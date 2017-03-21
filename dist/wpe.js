@@ -659,7 +659,7 @@ Stage.prototype.timeEnd = function(name) {
     this.measureMs[name] += (e - this.measureStart[name]);
 };
 
-Stage.prototype.pause = function() {
+Stage.prototype.stop = function() {
     this.adapter.stopAnimationLoop();
 };
 
@@ -825,7 +825,7 @@ Stage.prototype.hasTexture = function(id) {
  * Creates a new component.
  * @returns {Component}
  */
-Stage.prototype.create = function(settings, children) {
+Stage.prototype.component = function(settings, children) {
     var component = new Component(this);
 
     if (children) {
@@ -1868,7 +1868,7 @@ Texture.prototype.updateClipping = function(overrule) {
     if (overrule === true || overrule === false) {
         this.clipping = overrule;
     } else {
-        this.clipping = (this._x || this._y || this._w || this._h);
+        this.clipping = !!(this._x || this._y || this._w || this._h);
     }
 
     var self = this;
@@ -3140,6 +3140,22 @@ Component.prototype.setParent = function(parent) {
     this.updateAttachedFlag();
 };
 
+Component.prototype.add = function(o) {
+    if (o instanceof Component) {
+        this.addChild(o);
+        return o;
+    } else if (Utils.isArray(o)) {
+        for (var i = 0, n = o.length; i < n; i++) {
+            this.add(o[i]);
+        }
+        return null;
+    } else if (Utils.isPlainObject(o)) {
+        var c = this.stage.c(o);
+        this.addChild(c);
+        return c;
+    }
+};
+
 Component.prototype.addChild = function (child) {
     if (child.parent === this && this.children.indexOf(child) >= 0) {
         return child;
@@ -3430,6 +3446,56 @@ Component.prototype.animation = function(settings) {
     return a;
 };
 
+Component.prototype.a = function(settings) {
+    return this.animation(settings);
+};
+
+Component.prototype.transition = function(property, settings) {
+    var props = Component.propAliases.get(property);
+    if (settings || settings === null) {
+        if (props) {
+            for (var i = 0, n = props.length; i < n; i++) {
+                this.setPropertyTransition(props[i], settings);
+            }
+            return this.getPropertyTransition(props[0]);
+        } else {
+            return this.setPropertyTransition(property, settings)
+        }
+    } else {
+        return this.getPropertyTransition(property, settings);
+    }
+};
+
+Component.prototype.t = function(property, settings) {
+    this.transition(property, settings);
+};
+
+Component.prototype.transitions = function(properties, settings) {
+    var all = [];
+    for (var i = 0, n = properties.length; i < n; i++) {
+        var props = Component.propAliases.get(properties[i]);
+        if (props) {
+            all = all.concat(props);
+        } else {
+            all.push(properties[i]);
+        }
+    }
+
+    if (settings || settings === null) {
+        var rval = [];
+        for (i = 0, n = all.length; i < n; i++) {
+            rval.push(this.setPropertyTransition(all[i], settings));
+        }
+        return rval;
+    } else {
+        var rval = [];
+        for (i = 0, n = all.length; i < n; i++) {
+            rval.push(this.getPropertyTransition(all[i], settings));
+        }
+        return rval;
+    }
+};
+
 Component.prototype.getRenderWidth = function() {
     if (this.active) {
         return this._renderWidth;
@@ -3488,56 +3554,36 @@ Component.prototype._getRenderHeight = function() {
     }
 };
 
-Component.prototype.setTransition = function(properties, settings) {
-    if (Utils.isArray(properties)) {
-        for (var i = 0; i < properties.length; i++) {
-            this.setPropertyTransition(properties[i], settings);
-        }
-    } else {
-        this.setPropertyTransition(properties, settings);
-    }
-};
-
 Component.prototype.setPropertyTransition = function(property, settings) {
-    if (Component.propAliases.has(property)) {
-        this.setTransition(Component.propAliases.get(property), settings);
+    var propertyIndex = Component.getPropertyIndex(property);
+    if (propertyIndex == -1) {
+        throw new Error("Unknown transition property: " + property);
+    }
+
+    if (!settings) {
+        if (this.transitions) {
+            if (this.transitions[propertyIndex]) {
+                this.transitionSet.delete(this.transitions[propertyIndex]);
+            }
+            this.transitions[propertyIndex] = null;
+        }
     } else {
-        var propertyIndex = Component.getPropertyIndex(property);
-        if (propertyIndex == -1) {
-            throw new Error("Unknown transition property: " + property);
+        // Only reset on change.
+        if (!this.transitions) {
+            this.transitions = new Array(Component.nTransitions);
+            this.transitionSet = new Set();
         }
-
-        if (!settings) {
-            if (this.transitions) {
-                if (this.transitions[propertyIndex]) {
-                    this.transitionSet.delete(this.transitions[propertyIndex]);
-                }
-                this.transitions[propertyIndex] = null;
-            }
-        } else {
-            // Only reset on change.
-            if (!this.transitions) {
-                this.transitions = new Array(Component.nTransitions);
-                this.transitionSet = new Set();
-            }
-            if (!this.transitions[propertyIndex]) {
-                this.transitions[propertyIndex] = new PropertyTransition(this, property);
-                this.transitionSet.add(this.transitions[propertyIndex]);
-            }
-            this.transitions[propertyIndex].set(settings);
+        if (!this.transitions[propertyIndex]) {
+            this.transitions[propertyIndex] = new PropertyTransition(this, property);
+            this.transitionSet.add(this.transitions[propertyIndex]);
         }
-    }
-};
-
-Component.prototype.getCornerPoints = function() {
-    return this.uComponent.getCornerPoints();
-};
-
-Component.prototype.getTransition = function(property) {
-    if (Component.propAliases.has(property)) {
-        property = Component.propAliases.get(property)[0];
+        this.transitions[propertyIndex].set(settings);
     }
 
+    return this.transitions[propertyIndex];
+};
+
+Component.prototype.getPropertyTransition = function(property) {
     var propertyIndex = Component.getPropertyIndex(property);
     if (propertyIndex == -1) {
         throw new Error("Unknown transition property: " + property);
@@ -3548,6 +3594,10 @@ Component.prototype.getTransition = function(property) {
     } else {
         return null;
     }
+};
+
+Component.prototype.getCornerPoints = function() {
+    return this.uComponent.getCornerPoints();
 };
 
 /**
@@ -3911,7 +3961,7 @@ Component.prototype.setSetting = function(name, value) {
             }
 
             for (var key in value) {
-                this.setTransition(key, value[key]);
+                this.transition(key, value[key]);
             }
 
             break;
@@ -3995,13 +4045,6 @@ Component.prototype.getNonDefaults = function() {
         nonDefaults['text'] = this.textRenderer.settings.getNonDefaults();
     }
 
-    if (this.texture) {
-        var tnd = this.texture.getNonDefaults();
-        if (Object.keys(tnd).length) {
-            nonDefaults['texture'] = tnd;
-        }
-    }
-
     if (this.src) nonDefaults['src'] = this.src;
 
     if (this.rect) nonDefaults['rect'] = true;
@@ -4045,6 +4088,13 @@ Component.prototype.getNonDefaults = function() {
         if (this.colorTopRight !== 0xffffffff) nonDefaults['colorTopRight'] = this.colorTopRight;
         if (this.colorBottomLeft !== 0xffffffff) nonDefaults['colorBottomLeft'] = this.colorBottomLeft;
         if (this.colorBottomRight !== 0xffffffff) nonDefaults['colorBottomRight'] = this.colorBottomRight;
+    }
+
+    if (this.texture) {
+        var tnd = this.texture.getNonDefaults();
+        if (Object.keys(tnd).length) {
+            nonDefaults['texture'] = tnd;
+        }
     }
 
     return nonDefaults;
@@ -4916,38 +4966,44 @@ Object.defineProperty(Component.prototype, 'borderColor', {
 Object.defineProperty(Component.prototype, 'texture', {
     get: function() { return this._texture; },
     set: function(v) {
-        var prevValue = this._texture;
-        if (v !== prevValue) {
-            if (v !== null && !(v instanceof Texture)) {
-                throw new Error('incorrect value for texture');
-            }
+        if (v === null || v instanceof Texture) {
+            var prevValue = this._texture;
+            if (v !== prevValue) {
+                if (v !== null && !(v instanceof Texture)) {
+                    throw new Error('incorrect value for texture');
+                }
 
-            this._texture = v;
+                this._texture = v;
 
-            if (this.active && prevValue && this.displayedTexture !== prevValue) {
-                prevValue.removeComponent(this);
+                if (this.active && prevValue && this.displayedTexture !== prevValue) {
+                    prevValue.removeComponent(this);
 
-                if (!v || prevValue.source !== v.source) {
-                    if (!this.displayedTexture || (this.displayedTexture.source !== prevValue.source)) {
-                        prevValue.source.removeComponent(this);
+                    if (!v || prevValue.source !== v.source) {
+                        if (!this.displayedTexture || (this.displayedTexture.source !== prevValue.source)) {
+                            prevValue.source.removeComponent(this);
+                        }
                     }
                 }
+
+                if (v) {
+                    if (this.active) {
+                        // When the texture is changed, maintain the texture's sprite registry.
+                        // While the displayed texture is different from the texture (not yet loaded), two textures are referenced.
+                        v.addComponent(this);
+                        v.source.addComponent(this);
+                    }
+
+                    if (v.source.glTexture) {
+                        this.displayedTexture = v;
+                    }
+                } else {
+                    // Make sure that current texture is cleared when the texture is explicitly set to null.
+                    this.displayedTexture = null;
+                }
             }
-
-            if (v) {
-                if (this.active) {
-                    // When the texture is changed, maintain the texture's sprite registry.
-                    // While the displayed texture is different from the texture (not yet loaded), two textures are referenced.
-                    v.addComponent(this);
-                    v.source.addComponent(this);
-                }
-
-                if (v.source.glTexture) {
-                    this.displayedTexture = v;
-                }
-            } else {
-                // Make sure that current texture is cleared when the texture is explicitly set to null.
-                this.displayedTexture = null;
+        } else if (Utils.isPlainObject(v)) {
+            if (this._texture) {
+                this._texture.set(v);
             }
         }
     }
@@ -4956,36 +5012,42 @@ Object.defineProperty(Component.prototype, 'texture', {
 Object.defineProperty(Component.prototype, 'displayedTexture', {
     get: function() { return this._displayedTexture; },
     set: function(v) {
-        var prevValue = this._displayedTexture;
-        if (v !== prevValue) {
-            if (this.active && prevValue) {
-                // We can assume that this._texture === this._displayedTexture.
+        if (v === null || v instanceof Texture) {
+            var prevValue = this._displayedTexture;
+            if (v !== prevValue) {
+                if (this.active && prevValue) {
+                    // We can assume that this._texture === this._displayedTexture.
 
-                if (prevValue !== this.texture) {
-                    // The old displayed texture is deprecated.
-                    prevValue.removeComponent(this);
+                    if (prevValue !== this.texture) {
+                        // The old displayed texture is deprecated.
+                        prevValue.removeComponent(this);
+                    }
+
+                    if (!v || (prevValue.source !== v.source)) {
+                        prevValue.source.removeComponent(this);
+                    }
                 }
 
-                if (!v || (prevValue.source !== v.source)) {
-                    prevValue.source.removeComponent(this);
+                var beforeW = this._renderWidth;
+                var beforeH = this._renderHeight;
+                this._displayedTexture = v;
+                this._renderWidth = this._getRenderWidth();
+                this._renderHeight = this._getRenderHeight();
+                if (!prevValue || beforeW != this._renderWidth || beforeH != this._renderHeight) {
+                    // Due to width/height change: update the translation vector and borders.
+                    this._updateLocalDimensions();
+                }
+                if (v) {
+                    // We don't need to reference the displayed texture because it was already referenced (this.texture === this.displayedTexture).
+                    this._updateTextureCoords();
+                    this.stage.uComponentContext.setDisplayedTextureSource(this.uComponent, v.source);
+                } else {
+                    this.stage.uComponentContext.setDisplayedTextureSource(this.uComponent, null);
                 }
             }
-
-            var beforeW = this._renderWidth;
-            var beforeH = this._renderHeight;
-            this._displayedTexture = v;
-            this._renderWidth = this._getRenderWidth();
-            this._renderHeight = this._getRenderHeight();
-            if (!prevValue || beforeW != this._renderWidth || beforeH != this._renderHeight) {
-                // Due to width/height change: update the translation vector and borders.
-                this._updateLocalDimensions();
-            }
-            if (v) {
-                // We don't need to reference the displayed texture because it was already referenced (this.texture === this.displayedTexture).
-                this._updateTextureCoords();
-                this.stage.uComponentContext.setDisplayedTextureSource(this.uComponent, v.source);
-            } else {
-                this.stage.uComponentContext.setDisplayedTextureSource(this.uComponent, null);
+        } else if (Utils.isPlainObject(v)) {
+            if (this._displayedTexture) {
+                this._displayedTexture.set(v);
             }
         }
     }
@@ -6930,7 +6992,7 @@ Animation.prototype.applyTransforms = function() {
 
     var n = this.actions.length;
     for (var i = 0; i < n; i++) {
-        this.actions[i].applyTransforms(p, this.getFrameForProgress(p), 1);
+        this.actions[i].applyTransforms(p, 1);
     }
 };
 
@@ -7207,7 +7269,8 @@ AnimationAction.prototype.getValue = function(item, p) {
     // Found it.
     if (item.f) {
         var o = (p - item.p) * item.idp;
-        return item.v(o, p);
+
+        return item.v(o, p, this.animation.getFrameForProgress(p));
     } else {
         return item.v;
     }
@@ -7224,7 +7287,7 @@ AnimationAction.prototype.getResetValue = function() {
     return 0;
 };
 
-AnimationAction.prototype.applyTransforms = function(p, f, m) {
+AnimationAction.prototype.applyTransforms = function(p, m) {
     if (!this._properties.length) {
         return;
     }
@@ -7298,6 +7361,7 @@ AnimationAction.prototype.set = function(settings) {
 AnimationAction.prototype.setSetting = function(name, value) {
     switch(name) {
         case 'value':
+        case 'v':
             this.value = value;
             break;
         default:
@@ -7826,7 +7890,7 @@ TimedAnimation.prototype.applyTransforms = function() {
 
         var n = this.actions.length;
         for (var i = 0; i < n; i++) {
-            this.actions[i].applyTransforms(p, this.getFrameForProgress(p), factor);
+            this.actions[i].applyTransforms(p, factor);
         }
     }
 };

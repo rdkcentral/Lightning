@@ -344,6 +344,7 @@ AnimationAction.prototype.set = function(settings) {
 AnimationAction.prototype.setSetting = function(name, value) {
     switch(name) {
         case 'value':
+        case 'v':
             this.value = value;
             break;
         default:
