@@ -2,6 +2,7 @@ var isNode = !!(((typeof module !== "undefined") && module.exports));
 
 if (isNode) {
     var Utils = require('./Utils');
+    var StageUtils = require('./StageUtils');
 }
 
 /**
@@ -26,25 +27,25 @@ function Texture(manager, source) {
      * The texture clipping x-offset.
      * @type {number}
      */
-    this.x = 0;
+    this._x = 0;
 
     /**
      * The texture clipping y-offset.
      * @type {number}
      */
-    this.y = 0;
+    this._y = 0;
 
     /**
      * The texture clipping width. If 0 then full width.
      * @type {number}
      */
-    this.w = 0;
+    this._w = 0;
 
     /**
      * The texture clipping height. If 0 then full height.
      * @type {number}
      */
-    this.h = 0;
+    this._h = 0;
 
     /**
      * Indicates if this texture uses clipping.
@@ -56,7 +57,7 @@ function Texture(manager, source) {
      * Precision (resolution, 1 = normal, 2 = twice as big as should be shown).
      * @type {number}
      */
-    this.precision = 1;
+    this._precision = 1;
 
     /**
      * All active Components that are using this texture (either as texture or displayedTexture, or both).
@@ -80,27 +81,33 @@ Texture.prototype.removeComponent = function(c) {
 };
 
 Texture.prototype.enableClipping = function(x, y, w, h) {
-    this.clipping = true;
-    this.x = x;
-    this.y = y;
-    this.w = w;
-    this.h = h;
+    if (this._x !== x || this._y !== y || this._w !== w || this._h !== h) {
+        this._x = x;
+        this._y = y;
+        this._w = w;
+        this._h = h;
 
-    var self = this;
-    this.components.forEach(function(component) {
-        // Ignore if not the currently displayed texture.
-        if (component.displayedTexture === self) {
-            component.displayedTextureClippingChanged();
-        }
-    });
+        this.updateClipping(true);
+    }
 };
 
 Texture.prototype.disableClipping = function() {
-    this.clipping = false;
-    this.x = 0;
-    this.y = 0;
-    this.w = 0;
-    this.h = 0;
+    if (this._x || this._y || this._w || this._h) {
+        this._x = 0;
+        this._y = 0;
+        this._w = 0;
+        this._h = 0;
+
+        this.updateClipping(false);
+    }
+};
+
+Texture.prototype.updateClipping = function(overrule) {
+    if (overrule === true || overrule === false) {
+        this.clipping = overrule;
+    } else {
+        this.clipping = (this._x || this._y || this._w || this._h);
+    }
 
     var self = this;
     this.components.forEach(function(component) {
@@ -147,6 +154,112 @@ Texture.prototype.load = function() {
  */
 Texture.prototype.free = function() {
     this.manager.freeTextureSource(this.source);
+};
+
+Texture.prototype.set = function(obj) {
+    var keys = Object.keys(obj);
+    for (var i = 0; i < keys.length; i++) {
+        var value = obj[keys[i]];
+        this.setSetting(keys[i], value);
+    }
+};
+
+Texture.prototype.setSetting = function(name, value) {
+    var setting = Texture.SETTINGS[name];
+    if (setting) {
+        setting.s(this, value);
+    } else {
+        console.warn("Unknown texture property: " + name);
+    }
+};
+
+Texture.prototype.getNonDefaults = function() {
+    var nonDefaults = {};
+    if (this.x !== 0) nonDefaults['x'] = this.x;
+    if (this.y !== 0) nonDefaults['y'] = this.x;
+    if (this.w !== 0) nonDefaults['w'] = this.x;
+    if (this.h !== 0) nonDefaults['h'] = this.x;
+    if (this.precision !== 1) nonDefaults['precision'] = this.precision;
+    return nonDefaults;
+};
+
+Object.defineProperty(Texture.prototype, 'x', {
+    get: function() {
+        return this._x;
+    },
+    set: function(v) {
+        if (this._x !== v) {
+            this._x = v;
+
+            this.updateClipping();
+        }
+    }
+});
+
+Object.defineProperty(Texture.prototype, 'y', {
+    get: function() {
+        return this._y;
+    },
+    set: function(v) {
+        if (this._y !== v) {
+            this._y = v;
+
+            this.updateClipping();
+        }
+    }
+});
+
+Object.defineProperty(Texture.prototype, 'w', {
+    get: function() {
+        return this._w;
+    },
+    set: function(v) {
+        if (this._w !== v) {
+            this._w = v;
+
+            this.updateClipping();
+        }
+    }
+});
+
+Object.defineProperty(Texture.prototype, 'h', {
+    get: function() {
+        return this._h;
+    },
+    set: function(v) {
+        if (this._h !== v) {
+            this._h = v;
+
+            this.updateClipping();
+        }
+    }
+});
+
+Object.defineProperty(Texture.prototype, 'precision', {
+    get: function() {
+        return this._precision;
+    },
+    set: function(v) {
+        if (this._precision !== v) {
+            this._precision = v;
+
+            var self = this;
+            this.components.forEach(function(component) {
+                // Ignore if not the currently displayed texture.
+                if (component.displayedTexture === self) {
+                    component.displayedTextureClippingChanged();
+                }
+            });
+        }
+    }
+});
+
+Texture.SETTINGS = {
+    'x': {s: function(obj, value) {obj.x = value}, m: StageUtils.mergeNumbers},
+    'y': {s: function(obj, value) {obj.y = value}, m: StageUtils.mergeNumbers},
+    'w': {s: function(obj, value) {obj.w = value}, m: StageUtils.mergeNumbers},
+    'h': {s: function(obj, value) {obj.h = value}, m: StageUtils.mergeNumbers},
+    'precision': {s: function(obj, value) {obj.precision = value}, m: StageUtils.mergeNumbers}
 };
 
 Texture.id = 0;

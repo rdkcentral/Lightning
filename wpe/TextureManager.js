@@ -275,8 +275,6 @@ TextureManager.prototype.freeTextureSource = function(textureSource) {
         textureSource.glTexture = null;
     }
 
-    //@todo: currently all images remain in cache while they can be used.
-
     // Should be reloaded.
     textureSource.loadingSince = null;
 

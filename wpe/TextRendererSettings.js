@@ -45,7 +45,7 @@ var TextRendererSettings = function() {
 
     // Flag that indicates if any property has changed.
     this.hasUpdates = false;
-}
+};
 
 TextRendererSettings.prototype.set = function(obj) {
     var keys = Object.keys(obj);
@@ -56,10 +56,12 @@ TextRendererSettings.prototype.set = function(obj) {
 };
 
 TextRendererSettings.prototype.setSetting = function(name, value) {
-    if (this[name] === undefined) {
-        throw new TypeError('Unknown property:' + name);
+    var setting = TextRendererSettings.SETTINGS[name];
+    if (setting) {
+        setting.s(this, value);
+    } else {
+        console.warn("Unknown text property: " + name);
     }
-    this[name] = value;
 };
 
 TextRendererSettings.prototype.getNonDefaults = function() {
@@ -159,9 +161,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'text', {
         return this._text;
     },
     set: function(v) {
-        if (!Utils.isString(v)) {
-            throw new TypeError("Not a string");
-        }
         var pv = this._text;
         if (pv !== v) {
             this._text = v;
@@ -175,9 +174,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'w', {
         return this._w;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._w;
         if (pv !== v) {
             this._w = v;
@@ -191,9 +187,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'h', {
         return this._h;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._h;
         if (pv !== v) {
             this._h = v;
@@ -207,9 +200,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'fontStyle', {
         return this._fontStyle;
     },
     set: function(v) {
-        if (!Utils.isString(v)) {
-            throw new TypeError("Not a string");
-        }
         var pv = this._fontStyle;
         if (pv !== v) {
             this._fontStyle = v;
@@ -223,9 +213,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'fontSize', {
         return this._fontSize;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._fontSize;
         if (pv !== v) {
             this._fontSize = v;
@@ -239,9 +226,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'fontFace', {
         return this._fontFace;
     },
     set: function(v) {
-        if (v !== null && !Utils.isString(v) && !Utils.isArray(v)) {
-            throw new TypeError("Not a string or array");
-        }
         var pv = this._fontFace;
         if (pv !== v) {
             this._fontFace = v;
@@ -255,9 +239,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'wordWrap', {
         return this._wordWrap;
     },
     set: function(v) {
-        if (!Utils.isBoolean(v)) {
-            throw new TypeError("Not a boolean");
-        }
         var pv = this._wordWrap;
         if (pv !== v) {
             this._wordWrap = v;
@@ -271,9 +252,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'wordWrapWidth', {
         return this._wordWrapWidth;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._wordWrapWidth;
         if (pv !== v) {
             this._wordWrapWidth = v;
@@ -287,9 +265,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'lineHeight', {
         return this._lineHeight;
     },
     set: function(v) {
-        if (v !== null && !Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._lineHeight;
         if (pv !== v) {
             this._lineHeight = v;
@@ -303,9 +278,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'textBaseline', {
         return this._textBaseline;
     },
     set: function(v) {
-        if (v !== null && !Utils.isString(v)) {
-            throw new TypeError("Not a string");
-        }
         var pv = this._textBaseline;
         if (pv !== v) {
             this._textBaseline = v;
@@ -319,9 +291,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'textAlign', {
         return this._textAlign;
     },
     set: function(v) {
-        if (!Utils.isString(v)) {
-            throw new TypeError("Not a string");
-        }
         var pv = this._textAlign;
         if (pv !== v) {
             this._textAlign = v;
@@ -335,9 +304,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'offsetY', {
         return this._offsetY;
     },
     set: function(v) {
-        if (v !== null && !Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._offsetY;
         if (pv !== v) {
             this._offsetY = v;
@@ -351,9 +317,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'maxLines', {
         return this._maxLines;
     },
     set: function(v) {
-        if (!Utils.isInteger(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._maxLines;
         if (pv !== v) {
             this._maxLines = v;
@@ -367,9 +330,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'maxLinesSuffix', {
         return this._maxLinesSuffix;
     },
     set: function(v) {
-        if (!Utils.isString(v)) {
-            throw new TypeError("Not a string");
-        }
         var pv = this._maxLinesSuffix;
         if (pv !== v) {
             this._maxLinesSuffix = v;
@@ -383,9 +343,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'precision', {
         return this._precision;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._precision;
         if (pv !== v) {
             this._precision = v;
@@ -399,9 +356,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'textColor', {
         return this._textColor;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._textColor;
         if (pv !== v) {
             this._textColor = v;
@@ -415,9 +369,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'paddingLeft', {
         return this._paddingLeft;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._paddingLeft;
         if (pv !== v) {
             this._paddingLeft = v;
@@ -431,9 +382,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'paddingRight', {
         return this._paddingRight;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._paddingRight;
         if (pv !== v) {
             this._paddingRight = v;
@@ -447,9 +395,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'shadow', {
         return this._shadow;
     },
     set: function(v) {
-        if (!Utils.isBoolean(v)) {
-            throw new TypeError("Not a boolean");
-        }
         var pv = this._shadow;
         if (pv !== v) {
             this._shadow = v;
@@ -463,9 +408,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'shadowColor', {
         return this._shadowColor;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._shadowColor;
         if (pv !== v) {
             this._shadowColor = v;
@@ -479,9 +421,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'shadowOffsetX', {
         return this._shadowOffsetX;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._shadowOffsetX;
         if (pv !== v) {
             this._shadowOffsetX = v;
@@ -495,9 +434,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'shadowOffsetY', {
         return this._shadowOffsetY;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._shadowOffsetY;
         if (pv !== v) {
             this._shadowOffsetY = v;
@@ -511,9 +447,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'shadowBlur', {
         return this._shadowBlur;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._shadowBlur;
         if (pv !== v) {
             this._shadowBlur = v;
@@ -527,9 +460,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'highlight', {
         return this._highlight;
     },
     set: function(v) {
-        if (!Utils.isBoolean(v)) {
-            throw new TypeError("Not a boolean");
-        }
         var pv = this._highlight;
         if (pv !== v) {
             this._highlight = v;
@@ -543,9 +473,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'highlightHeight', {
         return this._highlightHeight;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._highlightHeight;
         if (pv !== v) {
             this._highlightHeight = v;
@@ -559,9 +486,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'highlightColor', {
         return this._highlightColor;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._highlightColor;
         if (pv !== v) {
             this._highlightColor = v;
@@ -575,9 +499,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'highlightOffset', {
         return this._highlightOffset;
     },
     set: function(v) {
-        if (v !== null && !Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._highlightOffset;
         if (pv !== v) {
             this._highlightOffset = v;
@@ -591,9 +512,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'highlightPaddingLeft', {
         return this._highlightPaddingLeft;
     },
     set: function(v) {
-        if (v !== null && !Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._highlightPaddingLeft;
         if (pv !== v) {
             this._highlightPaddingLeft = v;
@@ -607,9 +525,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'highlightPaddingRight', {
         return this._highlightPaddingRight;
     },
     set: function(v) {
-        if (v !== null && !Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._highlightPaddingRight;
         if (pv !== v) {
             this._highlightPaddingRight = v;
@@ -623,12 +538,9 @@ Object.defineProperty(TextRendererSettings.prototype, 'cutSx', {
         return this._cutSx;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._cutSx;
         if (pv !== v) {
-            this._cutSx = v;
+            this._cutSx = Math.max(0, v);
             this.notifyUpdate();
         }
     }
@@ -639,12 +551,9 @@ Object.defineProperty(TextRendererSettings.prototype, 'cutEx', {
         return this._cutEx;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._cutEx;
         if (pv !== v) {
-            this._cutEx = v;
+            this._cutEx = Math.max(0, v);
             this.notifyUpdate();
         }
     }
@@ -655,12 +564,9 @@ Object.defineProperty(TextRendererSettings.prototype, 'cutSy', {
         return this._cutSy;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._cutSy;
         if (pv !== v) {
-            this._cutSy = v;
+            this._cutSy = Math.max(0, v);
             this.notifyUpdate();
         }
     }
@@ -671,17 +577,51 @@ Object.defineProperty(TextRendererSettings.prototype, 'cutEy', {
         return this._cutEy;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._cutEy;
         if (pv !== v) {
-            this._cutEy = v;
+            this._cutEy = Math.max(0, v);
             this.notifyUpdate();
         }
     }
 });
 
+TextRendererSettings.SETTINGS = {
+    'text': {s: function(obj, v) {obj.text = v;}, m: null},
+    'w': {s: function(obj, v) {obj.w = v;}, m: null},
+    'h': {s: function(obj, v) {obj.h = v;}, m: null},
+    'fontStyle': {s: function(obj, v) {obj.fontStyle = v;}, m: null},
+    'fontSize': {s: function(obj, v) {
+        obj.fontSize = v;
+    }, m: null},
+    'fontFace': {s: function(obj, v) {obj.fontFace = v;}, m: null},
+    'wordWrap': {s: function(obj, v) {obj.wordWrap = v;}, m: null},
+    'wordWrapWidth': {s: function(obj, v) {obj.wordWrapWidth = v;}, m: null},
+    'lineHeight': {s: function(obj, v) {obj.lineHeight = v;}, m: null},
+    'textBaseline': {s: function(obj, v) {obj.textBaseline = v;}, m: null},
+    'textAlign': {s: function(obj, v) {obj.textAlign = v;}, m: null},
+    'offsetY': {s: function(obj, v) {obj.offsetY = v;}, m: null},
+    'maxLines': {s: function(obj, v) {obj.maxLines = v;}, m: null},
+    'maxLinesSuffix': {s: function(obj, v) {obj.maxLinesSuffix = v;}, m: null},
+    'precision': {s: function(obj, v) {obj.precision = v;}, m: null},
+    'textColor': {s: function(obj, v) {obj.textColor = v;}, m: null},
+    'paddingLeft': {s: function(obj, v) {obj.paddingLeft = v;}, m: null},
+    'paddingRight': {s: function(obj, v) {obj.paddingRight = v;}, m: null},
+    'shadow': {s: function(obj, v) {obj.shadow = v;}, m: null},
+    'shadowColor': {s: function(obj, v) {obj.shadowColor = v;}, m: null},
+    'shadowOffsetX': {s: function(obj, v) {obj.shadowOffsetX = v;}, m: null},
+    'shadowOffsetY': {s: function(obj, v) {obj.shadowOffsetY = v;}, m: null},
+    'shadowBlur': {s: function(obj, v) {obj.shadowBlur = v;}, m: null},
+    'highlight': {s: function(obj, v) {obj.highlight = v;}, m: null},
+    'highlightHeight': {s: function(obj, v) {obj.highlightHeight = v;}, m: null},
+    'highlightColor': {s: function(obj, v) {obj.highlightColor = v;}, m: null},
+    'highlightOffset': {s: function(obj, v) {obj.highlightOffset = v;}, m: null},
+    'highlightPaddingLeft': {s: function(obj, v) {obj.highlightPaddingLeft = v;}, m: null},
+    'highlightPaddingRight': {s: function(obj, v) {obj.highlightPaddingRight = v;}, m: null},
+    'cutSx': {s: function(obj, v) {obj.cutSx = v;}, m: null},
+    'cutEx': {s: function(obj, v) {obj.cutEx = v;}, m: null},
+    'cutSy': {s: function(obj, v) {obj.cutSy = v;}, m: null},
+    'cutEy': {s: function(obj, v) {obj.cutEy = v;}, m: null}
+};
 
 if (isNode) {
     module.exports = TextRendererSettings;

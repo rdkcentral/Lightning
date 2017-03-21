@@ -2,6 +2,7 @@ var isNode = !!(((typeof module !== "undefined") && module.exports));
 
 if (isNode) {
     var Utils = require('./Utils');
+    var StageUtils = require('./StageUtils');
 }
 
 /**
@@ -641,7 +642,7 @@ Component.prototype.setPropertyTransition = function(property, settings) {
         } else {
             // Only reset on change.
             if (!this.transitions) {
-                this.transitions = new Array(Component.nProperties);
+                this.transitions = new Array(Component.nTransitions);
                 this.transitionSet = new Set();
             }
             if (!this.transitions[propertyIndex]) {
@@ -1001,48 +1002,56 @@ Component.prototype.set = function(obj) {
 };
 
 Component.prototype.setSetting = function(name, value) {
-    var index = Component.getPropertyIndex(name);
-    if (index >= 0) {
-        Component.propertySetters[index](this, value);
-    } else {
-        index = Component.getPropertyIndexFinal(name);
-        if (index >= 0) {
-            Component.propertySettersFinal[index](this, value);
-        } else {
-            switch(name) {
-                case 'tag':
-                case 'tags':
-                    this.setTags(value);
-                    break;
-                case 'children':
-                    var stage = this.stage;
-                    if (!Utils.isArray(value)) {
-                        throw new TypeError('Children must be array.');
-                    }
-                    var c = [];
-                    for (var i = 0, n = value.length; i < n; i++) {
-                        if (value[i] instanceof Component) {
-                            c[i] = value[i];
-                        } else {
-                            c[i] = stage.c(value[i]);
-                        }
-                    }
-                    this.setChildren(c);
-                    break;
-                case 'transitions':
-                    if (!Utils.isObject(value)) {
-                        throw new TypeError('Transitions must be object.');
-                    }
-
-                    for (var key in value) {
-                        this.setTransition(key, value[key]);
-                    }
-
-                    break;
-                default:
-                    this[name] = value;
-            }
+    var aliases = Component.propAliases.get(name);
+    if (aliases) {
+        for (var i = 0, n = aliases.length; i < n; i++) {
+            this.setSetting(aliases[i], value);
         }
+        return;
+    }
+
+    switch(name) {
+        case 'tag':
+        case 'tags':
+            this.setTags(value);
+            break;
+        case 'children':
+            var stage = this.stage;
+            if (!Utils.isArray(value)) {
+                throw new TypeError('Children must be array.');
+            }
+            var c = [];
+            for (var i = 0, n = value.length; i < n; i++) {
+                if (value[i] instanceof Component) {
+                    c[i] = value[i];
+                } else {
+                    c[i] = stage.c(value[i]);
+                }
+            }
+            this.setChildren(c);
+            break;
+        case 'transitions':
+            if (!Utils.isObject(value)) {
+                throw new TypeError('Transitions must be object.');
+            }
+
+            for (var key in value) {
+                this.setTransition(key, value[key]);
+            }
+
+            break;
+        default:
+            var setting = Component.SETTINGS[name];
+            if (setting) {
+                setting.s(this, value);
+            } else {
+                setting = Component.FINAL_SETTINGS[name];
+                if (setting) {
+                    setting.sf(this, value);
+                } else {
+                    console.warn("Unknown component property: " + name);
+                }
+            }
     }
 };
 
@@ -1109,6 +1118,13 @@ Component.prototype.getNonDefaults = function() {
 
     if (this.textRenderer) {
         nonDefaults['text'] = this.textRenderer.settings.getNonDefaults();
+    }
+
+    if (this.texture) {
+        var tnd = this.texture.getNonDefaults();
+        if (Object.keys(tnd).length) {
+            nonDefaults['texture'] = tnd;
+        }
     }
 
     if (this.src) nonDefaults['src'] = this.src;
@@ -2175,10 +2191,20 @@ Object.defineProperty(Component.prototype, 'text', {
         return this.textRenderer;
     },
     set: function(settings) {
-        if (Utils.isString(settings)) {
-            this.textRenderer.text = settings;
+        if (settings === null) {
+            if (this.textRenderer) {
+                this.textRenderer = null;
+                this.texture = null;
+            }
         } else {
-            this.text.set(settings);
+            if (!this.textRenderer) {
+                this.textRenderer = new ComponentText(this);
+            }
+            if (Utils.isString(settings)) {
+                this.textRenderer.text = settings;
+            } else {
+                this.textRenderer.set(settings);
+            }
         }
     }
 });
@@ -2308,236 +2334,63 @@ Component.prototype._updateTextureCoords = function() {
     }
 };
 
-Component.rectangleSource = {src:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAABmJLR0QAAAAAAAD5Q7t/AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3wsYCDk6C1pPiwAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAAAMSURBVAjXY/j//z8ABf4C/tzMWecAAAAASUVORK5CYII=", id:"__whitepix"};
-Component.getRectangleTexture = function(stage) {
-    return stage.getTexture(Component.rectangleSource.src, Component.rectangleSource);
-};
-
-Component.getMergeFunction = function(property) {
-    switch(property) {
-        case "visible":
-        case "clipping":
-        case "zIndex":
-        case "forceZIndexContext":
-            // Unmergable property.
-            return null;
-        case "borderColorTop":
-        case "borderColorBottom":
-        case "borderColorLeft":
-        case "borderColorRight":
-        case "colorTopLeft":
-        case "colorTopRight":
-        case "colorBottomLeft":
-        case "colorBottomRight":
-            return StageUtils.mergeColors;
-            break;
-        default:
-            // Use numeric method.
-            return StageUtils.mergeNumbers;
-    }
-};
-
 Component.getPropertyIndex = function(name) {
-    return Component.propertyIndices[name];
+    return Component.SETTINGS[name].i;
 };
 
 Component.getPropertyIndexFinal = function(name) {
-    return Component.propertyIndicesFinal[name];
+    return Component.FINAL_SETTINGS[name].i;
 };
 
-Component.nProperties = 28;
-
-Component.propertyIndices = {
-    'x': 0,
-    'y': 1,
-    'w': 2,
-    'h': 3,
-    'scaleX': 4,
-    'scaleY': 5,
-    'pivotX': 6,
-    'pivotY': 7,
-    'mountX': 8,
-    'mountY': 9,
-    'alpha': 10,
-    'rotation': 11,
-    'borderWidthTop': 12,
-    'borderWidthBottom': 13,
-    'borderWidthLeft': 14,
-    'borderWidthRight': 15,
-    'borderColorTop': 16,
-    'borderColorBottom': 17,
-    'borderColorLeft': 18,
-    'borderColorRight': 19,
-    'colorTopLeft': 20,
-    'colorTopRight': 21,
-    'colorBottomLeft': 22,
-    'colorBottomRight': 23,
-    'visible': 24,
-    'zIndex': 25,
-    'forceZIndexContext': 26,
-    'clipping': 27
+Component.SETTINGS = {
+    'x': {i:0, s: function(obj, value) {obj.x = value}, g: function(obj) {return obj.x}, sf: function(obj, value) {obj.X = value}, gf: function(obj) {return obj.X}, m: StageUtils.mergeNumbers},
+    'y': {i:1, s: function(obj, value) {obj.y = value}, g: function(obj) {return obj.y}, sf: function(obj, value) {obj.Y = value}, gf: function(obj) {return obj.Y}, m: StageUtils.mergeNumbers},
+    'w': {i:2, s: function(obj, value) {obj.w = value}, g: function(obj) {return obj.w}, sf: function(obj, value) {obj.W = value}, gf: function(obj) {return obj.W}, m: StageUtils.mergeNumbers},
+    'h': {i:3, s: function(obj, value) {obj.h = value}, g: function(obj) {return obj.h}, sf: function(obj, value) {obj.H = value}, gf: function(obj) {return obj.H}, m: StageUtils.mergeNumbers},
+    'scaleX': {i:4, s: function(obj, value) {obj.scaleX = value}, g: function(obj) {return obj.scaleX}, sf: function(obj, value) {obj.SCALEX = value}, gf: function(obj) {return obj.SCALEX}, m: StageUtils.mergeNumbers},
+    'scaleY': {i:5, s: function(obj, value) {obj.scaleY = value}, g: function(obj) {return obj.scaleY}, sf: function(obj, value) {obj.SCALEY = value}, gf: function(obj) {return obj.SCALEY}, m: StageUtils.mergeNumbers},
+    'pivotX': {i:6, s: function(obj, value) {obj.pivotX = value}, g: function(obj) {return obj.pivotX}, sf: function(obj, value) {obj.PIVOTX = value}, gf: function(obj) {return obj.PIVOTX}, m: StageUtils.mergeNumbers},
+    'pivotY': {i:7, s: function(obj, value) {obj.pivotY = value}, g: function(obj) {return obj.pivotY}, sf: function(obj, value) {obj.PIVOTY = value}, gf: function(obj) {return obj.PIVOTY}, m: StageUtils.mergeNumbers},
+    'mountX': {i:8, s: function(obj, value) {obj.mountX = value}, g: function(obj) {return obj.mountX}, sf: function(obj, value) {obj.MOUNTX = value}, gf: function(obj) {return obj.MOUNTX}, m: StageUtils.mergeNumbers},
+    'mountY': {i:9, s: function(obj, value) {obj.mountY = value}, g: function(obj) {return obj.mountY}, sf: function(obj, value) {obj.MOUNTY = value}, gf: function(obj) {return obj.MOUNTY}, m: StageUtils.mergeNumbers},
+    'alpha': {i:10, s: function(obj, value) {obj.alpha = value}, g: function(obj) {return obj.alpha}, sf: function(obj, value) {obj.ALPHA = value}, gf: function(obj) {return obj.ALPHA}, m: StageUtils.mergeNumbers},
+    'rotation': {i:11, s: function(obj, value) {obj.rotation = value}, g: function(obj) {return obj.rotation}, sf: function(obj, value) {obj.ROTATION = value}, gf: function(obj) {return obj.ROTATION}, m: StageUtils.mergeNumbers},
+    'borderWidthTop': {i:12, s: function(obj, value) {obj.borderWidthTop = value}, g: function(obj) {return obj.borderWidthTop}, sf: function(obj, value) {obj.BORDERWIDTHTOP = value}, gf: function(obj) {return obj.BORDERWIDTHTOP}, m: StageUtils.mergeNumbers},
+    'borderWidthBottom': {i:13, s: function(obj, value) {obj.borderWidthBottom = value}, g: function(obj) {return obj.borderWidthBottom}, sf: function(obj, value) {obj.BORDERWIDTHBOTTOM = value}, gf: function(obj) {return obj.BORDERWIDTHBOTTOM}, m: StageUtils.mergeNumbers},
+    'borderWidthLeft': {i:14, s: function(obj, value) {obj.borderWidthLeft = value}, g: function(obj) {return obj.borderWidthLeft}, sf: function(obj, value) {obj.BORDERWIDTHLEFT = value}, gf: function(obj) {return obj.BORDERWIDTHLEFT}, m: StageUtils.mergeNumbers},
+    'borderWidthRight': {i:15, s: function(obj, value) {obj.borderWidthRight = value}, g: function(obj) {return obj.borderWidthRight}, sf: function(obj, value) {obj.BORDERWIDTHRIGHT = value}, gf: function(obj) {return obj.BORDERWIDTHRIGHT}, m: StageUtils.mergeNumbers},
+    'borderColorTop': {i:16, s: function(obj, value) {obj.borderColorTop = value}, g: function(obj) {return obj.borderColorTop}, sf: function(obj, value) {obj.BORDERCOLORTOP = value}, gf: function(obj) {return obj.BORDERCOLORTOP}, m: StageUtils.mergeColors},
+    'borderColorBottom': {i:17, s: function(obj, value) {obj.borderColorBottom = value}, g: function(obj) {return obj.borderColorBottom}, sf: function(obj, value) {obj.BORDERCOLORBOTTOM = value}, gf: function(obj) {return obj.BORDERCOLORBOTTOM}, m: StageUtils.mergeColors},
+    'borderColorLeft': {i:18, s: function(obj, value) {obj.borderColorLeft = value}, g: function(obj) {return obj.borderColorLeft}, sf: function(obj, value) {obj.BORDERCOLORLEFT = value}, gf: function(obj) {return obj.BORDERCOLORLEFT}, m: StageUtils.mergeColors},
+    'borderColorRight': {i:19, s: function(obj, value) {obj.borderColorRight = value}, g: function(obj) {return obj.borderColorRight}, sf: function(obj, value) {obj.BORDERCOLORRIGHT = value}, gf: function(obj) {return obj.BORDERCOLORRIGHT}, m: StageUtils.mergeColors},
+    'colorTopLeft': {i:20, s: function(obj, value) {obj.colorTopLeft = value}, g: function(obj) {return obj.colorTopLeft}, sf: function(obj, value) {obj.COLORTOPLEFT = value}, gf: function(obj) {return obj.COLORTOPLEFT}, m: StageUtils.mergeColors},
+    'colorTopRight': {i:21, s: function(obj, value) {obj.colorTopRight = value}, g: function(obj) {return obj.colorTopRight}, sf: function(obj, value) {obj.COLORTOPRIGHT = value}, gf: function(obj) {return obj.COLORTOPRIGHT}, m: StageUtils.mergeColors},
+    'colorBottomLeft': {i:22, s: function(obj, value) {obj.colorBottomLeft = value}, g: function(obj) {return obj.colorBottomLeft}, sf: function(obj, value) {obj.COLORBOTTOMLEFT = value}, gf: function(obj) {return obj.COLORBOTTOMLEFT}, m: StageUtils.mergeColors},
+    'colorBottomRight': {i:23, s: function(obj, value) {obj.colorBottomRight = value}, g: function(obj) {return obj.colorBottomRight}, sf: function(obj, value) {obj.COLORBOTTOMRIGHT = value}, gf: function(obj) {return obj.COLORBOTTOMRIGHT}, m: StageUtils.mergeColors},
+    'visible': {s: function(obj, value) {obj.visible = value}, g: function(obj) {return obj.visible}, sf: function(obj, value) {obj.VISIBLE = value}, gf: function(obj) {return obj.VISIBLE}, m: null},
+    'zIndex': {s: function(obj, value) {obj.zIndex = value}, g: function(obj) {return obj.zIndex}, sf: function(obj, value) {obj.VISIBLE = value}, gf: function(obj) {return obj.VISIBLE}, m: null},
+    'forceZIndexContext': {s: function(obj, value) {obj.forceZIndexContext = value}, g: function(obj) {return obj.forceZIndexContext}, sf: function(obj, value) {obj.FORCEZINDEXCONTEXT = value}, gf: function(obj) {return obj.FORCEZINDEXCONTEXT}, m: null},
+    'clipping': {s: function(obj, value) {obj.clipping = value}, g: function(obj) {return obj.clipping}, sf: function(obj, value) {obj.CLIPPING = value}, gf: function(obj) {return obj.CLIPPING}, m: null},
+    'rect': {s: function(obj, value) {obj.rect = value}, g: function(obj) {return obj.rect}, m: null},
+    'src': {s: function(obj, value) {obj.src = value}, g: function(obj) {return obj.src}, m: null},
+    'text': {s: function(obj, value) {obj.text = value}, g: function(obj) {return obj.text}, m: null},
+    'texture': {s: function(obj, value) {obj.texture = value}, g: function(obj) {return obj.src}, m: null}
 };
 
-Component.propertyIndicesFinal = {
-    'X': 0,
-    'Y': 1,
-    'W': 2,
-    'H': 3,
-    'SCALEX': 4,
-    'SCALEY': 5,
-    'PIVOTX': 6,
-    'PIVOTY': 7,
-    'MOUNTX': 8,
-    'MOUNTY': 9,
-    'ALPHA': 10,
-    'ROTATION': 11,
-    'BORDERWIDTHTOP': 12,
-    'BORDERWIDTHBOTTOM': 13,
-    'BORDERWIDTHLEFT': 14,
-    'BORDERWIDTHRIGHT': 15,
-    'BORDERCOLORTOP': 16,
-    'BORDERCOLORBOTTOM': 17,
-    'BORDERCOLORLEFT': 18,
-    'BORDERCOLORRIGHT': 19,
-    'COLORTOPLEFT': 20,
-    'COLORTOPRIGHT': 21,
-    'COLORBOTTOMLEFT': 22,
-    'COLORBOTTOMRIGHT': 23,
-    'VISIBLE': 24,
-    'ZINDEX': 25,
-    'FORCEZINDEXCONTEXT': 26,
-    'CLIPPING': 27
-};
+Component.FINAL_SETTINGS = {};
+for (var key in Component.SETTINGS) {
+    if (Component.SETTINGS.hasOwnProperty(key)) {
+        Component.FINAL_SETTINGS[key.toUpperCase()] = Component.SETTINGS[key];
+    }
+}
 
-Component.propertySetters = [
-    function(component, value) {component.x = value;},
-    function(component, value) {component.y = value;},
-    function(component, value) {component.w = value;},
-    function(component, value) {component.h = value;},
-    function(component, value) {component.scaleX = value;},
-    function(component, value) {component.scaleY = value;},
-    function(component, value) {component.pivotX = value;},
-    function(component, value) {component.pivotY = value;},
-    function(component, value) {component.mountX = value;},
-    function(component, value) {component.mountY = value;},
-    function(component, value) {component.alpha = value;},
-    function(component, value) {component.rotation = value;},
-    function(component, value) {component.borderWidthTop = value;},
-    function(component, value) {component.borderWidthBottom = value;},
-    function(component, value) {component.borderWidthLeft = value;},
-    function(component, value) {component.borderWidthRight = value;},
-    function(component, value) {component.borderColorTop = value;},
-    function(component, value) {component.borderColorBottom = value;},
-    function(component, value) {component.borderColorLeft = value;},
-    function(component, value) {component.borderColorRight = value;},
-    function(component, value) {component.colorTopLeft = value;},
-    function(component, value) {component.colorTopRight = value;},
-    function(component, value) {component.colorBottomLeft = value;},
-    function(component, value) {component.colorBottomRight = value;},
-    function(component, value) {component.visible = value;},
-    function(component, value) {component.zIndex = value;},
-    function(component, value) {component.forceZIndexContext = value;},
-    function(component, value) {component.clipping = value;}
-];
+Component.nTransitions = 24;
 
-Component.propertySettersFinal = [
-    function(component, value) {component.X = value;},
-    function(component, value) {component.Y = value;},
-    function(component, value) {component.W = value;},
-    function(component, value) {component.H = value;},
-    function(component, value) {component.SCALEX = value;},
-    function(component, value) {component.SCALEY = value;},
-    function(component, value) {component.PIVOTX = value;},
-    function(component, value) {component.PIVOTY = value;},
-    function(component, value) {component.MOUNTX = value;},
-    function(component, value) {component.MOUNTY = value;},
-    function(component, value) {component.ALPHA = value;},
-    function(component, value) {component.ROTATION = value;},
-    function(component, value) {component.BORDERWIDTHTOP = value;},
-    function(component, value) {component.BORDERWIDTHBOTTOM = value;},
-    function(component, value) {component.BORDERWIDTHLEFT = value;},
-    function(component, value) {component.BORDERWIDTHRIGHT = value;},
-    function(component, value) {component.BORDERCOLORTOP = value;},
-    function(component, value) {component.BORDERCOLORBOTTOM = value;},
-    function(component, value) {component.BORDERCOLORLEFT = value;},
-    function(component, value) {component.BORDERCOLORRIGHT = value;},
-    function(component, value) {component.COLORTOPLEFT = value;},
-    function(component, value) {component.COLORTOPRIGHT = value;},
-    function(component, value) {component.COLORBOTTOMLEFT = value;},
-    function(component, value) {component.COLORBOTTOMRIGHT = value;},
-    function(component, value) {component.visible = value;},
-    function(component, value) {component.zIndex = value;},
-    function(component, value) {component.forceZIndexContext = value;},
-    function(component, value) {component.clipping = value;}
-];
-
-Component.propertyGetters = [
-    function(component) { return component.x; },
-    function(component) { return component.y; },
-    function(component) { return component.w; },
-    function(component) { return component.h; },
-    function(component) { return component.scaleX; },
-    function(component) { return component.scaleY; },
-    function(component) { return component.pivotX; },
-    function(component) { return component.pivotY; },
-    function(component) { return component.mountX; },
-    function(component) { return component.mountY; },
-    function(component) { return component.alpha; },
-    function(component) { return component.rotation; },
-    function(component) { return component.borderWidthTop; },
-    function(component) { return component.borderWidthBottom; },
-    function(component) { return component.borderWidthLeft; },
-    function(component) { return component.borderWidthRight; },
-    function(component) { return component.borderColorTop; },
-    function(component) { return component.borderColorBottom; },
-    function(component) { return component.borderColorLeft; },
-    function(component) { return component.borderColorRight; },
-    function(component) { return component.colorTopLeft; },
-    function(component) { return component.colorTopRight; },
-    function(component) { return component.colorBottomLeft; },
-    function(component) { return component.colorBottomRight; },
-    function(component) { return component.visible; },
-    function(component) { return component.zIndex; },
-    function(component) { return component.forceZIndexContext; },
-    function(component) { return component.clipping; }
-];
-
-Component.propertyGettersFinal = [
-    function(component) { return component.X; },
-    function(component) { return component.Y; },
-    function(component) { return component.W; },
-    function(component) { return component.H; },
-    function(component) { return component.SCALEX; },
-    function(component) { return component.SCALEY; },
-    function(component) { return component.PIVOTX; },
-    function(component) { return component.PIVOTY; },
-    function(component) { return component.MOUNTX; },
-    function(component) { return component.MOUNTY; },
-    function(component) { return component.ALPHA; },
-    function(component) { return component.ROTATION; },
-    function(component) { return component.BORDERWIDTHTOP; },
-    function(component) { return component.BORDERWIDTHBOTTOM; },
-    function(component) { return component.BORDERWIDTHLEFT; },
-    function(component) { return component.BORDERWIDTHRIGHT; },
-    function(component) { return component.BORDERCOLORTOP; },
-    function(component) { return component.BORDERCOLORBOTTOM; },
-    function(component) { return component.BORDERCOLORLEFT; },
-    function(component) { return component.BORDERCOLORRIGHT; },
-    function(component) { return component.COLORTOPLEFT; },
-    function(component) { return component.COLORTOPRIGHT; },
-    function(component) { return component.COLORBOTTOMLEFT; },
-    function(component) { return component.COLORBOTTOMRIGHT; },
-    function(component) { return component.visible; },
-    function(component) { return component.zIndex; },
-    function(component) { return component.forceZIndexContext; },
-    function(component) { return component.clipping; }
-];
 
 if (isNode) {
     module.exports = Component;
     var Stage = require('./Stage');
     var PropertyTransition = require('./PropertyTransition');
-    var StageUtils = require('./StageUtils');
     var Texture = require('./Texture');
     var ComponentText = require('./ComponentText');
 }

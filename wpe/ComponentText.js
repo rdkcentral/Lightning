@@ -104,7 +104,11 @@ Object.defineProperty(ComponentText.prototype, 'text', {
     },
     set: function(v) {
         this.settings.text = v;
-        if (this.settings.hasUpdates) this.updateTexture();
+        if (v === null) {
+            this.component.text = null;
+        } else {
+            if (this.settings.hasUpdates) this.updateTexture();
+        }
     }
 });
 

@@ -1,7 +1,6 @@
 var isNode = !!(((typeof module !== "undefined") && module.exports));
 if (isNode) {
     var Stage = require('../../wpe');
-    var StageUtils = require('../../wpe/StageUtils');
 }
 
 var options = {w: 1280, h: 720, measureDetails: false, useTextureAtlas:true, glClearColor: [1, 1, 1, 1], window: {title: "Clipping demo", fullscreen: false}};
@@ -25,15 +24,18 @@ var bunny = stage.c({src: './bunny.png', x: 200, y: 200, rotation: 0.2, tag: 'bu
 bunny.setTransition('x',{duration: 10, delay: 2});
 // bunny.x = 1050;
 bunny.rotation = 4;
-bunny.scale = 3;
+bunny.scale = 1;
 bunny.setTransition('rotation',{duration: 5, delay: 2});
 bunny.setTransition('scale',{duration: 5, delay: 2});
 // bunny.rotation = 11;
 // bunny.scale = 30;
 stage.root.addChild(bunny);
 
-var a = stage.animation({duration: 10, subject: stage.root.tag('bunny'), actions: [
-    {tags: [''], property: ['y'], value: {0:0,1:600}}
+var a = stage.animation({duration: 3, subject: stage.root.tag('bunny'), autostop: true, actions: [
+//    {property: ['y'], value: {0:0,1:400}},
+    {property: ['color'], value: {0:0xFFFFFFFF,1:0xFFFF0000}},
+
+    // {property: ['texture.w'], value: {0.5:26, 1: 0.001}}
 ]});
 
 a.start();
@@ -47,5 +49,5 @@ a.start();
 
 setTimeout(function() {
     stage.pause();
-}, 15000);
+}, 6000);
 

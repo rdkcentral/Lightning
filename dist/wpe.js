@@ -388,6 +388,11 @@ Utils.isObject = function(value) {
     return !!value && (type == 'object' || type == 'function');
 };
 
+Utils.isPlainObject = function(value) {
+    var type = typeof value;
+    return !!value && (type == 'object');
+};
+
 Utils.getArrayIndex = function(index, arr) {
     return Utils.getModuloIndex(index, arr.length);
 };
@@ -626,7 +631,7 @@ Stage.prototype.setGlClearColor = function(clearColor) {
     if (Array.isArray(clearColor)) {
         this.glClearColor = clearColor;
     } else {
-        this.glClearColor = StageUtils.getRgbaComponents(clearColor);
+        this.glClearColor = StageUtils.getRgbaComponentsNormalized(clearColor);
     }
 };
 
@@ -905,12 +910,32 @@ StageUtils.getRgbaString = function(color) {
     return 'rgba(' + r + ',' + g + ',' + b + ',' + a.toFixed(4) + ')';
 };
 
-StageUtils.getRgbaComponents = function(color) {
-    var r = ((color / 65536)|0) % 256;
-    var g = ((color / 256)|0) % 256;
-    var b = color % 256;
-    var a = ((color / 16777216)|0);
-    return [r/255.0, g/255.0, b/255.0, a/255.0];
+StageUtils.getRgbaComponentsNormalized = function(argb) {
+    var r = ((argb / 65536)|0) % 256;
+    var g = ((argb / 256)|0) % 256;
+    var b = argb % 256;
+    var a = ((argb / 16777216)|0);
+    return [r*0.003921569, g*0.003921569, b*0.003921569, a*0.003921569];
+};
+
+StageUtils.getRgbaComponents = function(argb) {
+    var r = ((argb / 65536)|0) % 256;
+    var g = ((argb / 256)|0) % 256;
+    var b = argb % 256;
+    var a = ((argb / 16777216)|0);
+    return [r, g, b, a];
+};
+
+StageUtils.getArgbNumber = function(rgba) {
+    rgba[0] = Math.max(0, Math.min(255, rgba[0]));
+    rgba[1] = Math.max(0, Math.min(255, rgba[1]));
+    rgba[2] = Math.max(0, Math.min(255, rgba[2]));
+    rgba[3] = Math.max(0, Math.min(255, rgba[3]));
+    var v = ((rgba[3]|0) << 24) + ((rgba[0]|0) << 16) + ((rgba[1]|0) << 8) + (rgba[2]|0);
+    if (v < 0) {
+        v = 0xFFFFFFFF + v + 1;
+    }
+    return v;
 };
 
 StageUtils.mergeColors = function(c1, c2, p) {
@@ -972,22 +997,6 @@ StageUtils.mergeMultiColorsEqual = function(c) {
 
 StageUtils.rad = function(deg) {
     return deg * (Math.PI / 180);
-};
-
-StageUtils.tlFade = function(v1, v2, a) {
-    return v1 * (1 - a) + v2 * a;
-};
-
-StageUtils.tlAdd = function(v1, v2, a) {
-    return v1 + v2 * a;
-};
-
-StageUtils.tlMul = function(v1, v2, a) {
-    return v1 * ((1 - a) + v2 * a);
-};
-
-StageUtils.tlCol = function(v1, v2, a) {
-    return Utils.mergeColors(v1, v2, (1 - a));
 };
 
 StageUtils.getTimingBezier = function(a, b, c, d) {
@@ -1062,320 +1071,188 @@ StageUtils.TIMING = {
     BEZIER: function (a,b,c,d) {return StageUtils.getTimingBezier(a,b,c,d);}
 };
 
-// Value functions.
-StageUtils.VALUE = {
-    VALUE: function(elements) {
-        return StageUtils.getDiscreteValueFunction(elements);
-    },
-    SMOOTH: function (elements) {
-        return StageUtils.getSmoothValueFunction(elements);
-    },
-    SMOOTHCOLOR: function (elements) {
-        return StageUtils.getSmoothColorValueFunction(elements);
+StageUtils.getSplineValueFunction = function(v1, v2, p1, p2, o1, i2, s1, s2) {
+    // Normalize slopes because we use a spline that goes from 0 to 1.
+    var dp = p2 - p1;
+    s1 *= dp;
+    s2 *= dp;
+
+    var helpers = StageUtils.getSplineHelpers(v1, v2, o1, i2, s1, s2);
+    if (!helpers) {
+        return function(p) {
+            if (p == 0) return v1;
+            if (p == 1) return v2;
+
+            return v2 * p + v1 * (1 - p);
+        };
+    } else {
+        return function(p) {
+            if (p == 0) return v1;
+            if (p == 1) return v2;
+
+            return StageUtils.calculateSpline(helpers, p);
+        };
     }
 };
 
-/**
- * Smooth value function for colors.
- */
-StageUtils.getSmoothColorValueFunction = function(keyframes) {
-    var i, n = keyframes.length;
-    var alphaKeyframes = [];
-    var redKeyframes = [];
-    var greenKeyframes = [];
-    var blueKeyframes = [];
-    for (i = 0; i < n; i++) {
-        var k = keyframes[i];
-        var alpha = ((k.v & 0xFF000000) >>> 24);
-        var red = (k.v & 0x00FF0000) >> 16;
-        var green = (k.v & 0x0000FF00) >> 8;
-        var blue = k.v & 0x000000FF;
+StageUtils.getSplineRgbaValueFunction = function(v1, v2, p1, p2, o1, i2, s1, s2) {
+    // Normalize slopes because we use a spline that goes from 0 to 1.
+    var dp = p2 - p1;
+    s1[0] *= dp;
+    s1[1] *= dp;
+    s1[2] *= dp;
+    s1[3] *= dp;
+    s2[0] *= dp;
+    s2[1] *= dp;
+    s2[2] *= dp;
+    s2[3] *= dp;
 
-        k = Utils.cloneObj(k);
-        k.v = alpha;
-        alphaKeyframes.push(k);
+    var cv1 = StageUtils.getRgbaComponents(v1);
+    var cv2 = StageUtils.getRgbaComponents(v2);
 
-        k = Utils.cloneObj(k);
-        k.v = red;
-        redKeyframes.push(k);
+    var helpers = [
+        StageUtils.getSplineHelpers(cv1[0], cv2[0], o1, i2, s1[0], s2[0]),
+        StageUtils.getSplineHelpers(cv1[1], cv2[1], o1, i2, s1[1], s2[1]),
+        StageUtils.getSplineHelpers(cv1[2], cv2[2], o1, i2, s1[2], s2[2]),
+        StageUtils.getSplineHelpers(cv1[3], cv2[3], o1, i2, s1[3], s2[3])
+    ];
 
-        k = Utils.cloneObj(k);
-        k.v = green;
-        greenKeyframes.push(k);
+    if (!helpers[0]) {
+        return function(p) {
+            // Linear.
+            if (p == 0) return v1;
+            if (p == 1) return v2;
 
-        k = Utils.cloneObj(k);
-        k.v = blue;
-        blueKeyframes.push(k);
-    }
+            return StageUtils.mergeColors(v2, v1, p);
+        };
+    } else {
+        return function(p) {
+            if (p == 0) return v1;
+            if (p == 1) return v2;
 
-    var alphaFunction = StageUtils.getSmoothValueFunction(alphaKeyframes);
-    var redFunction = StageUtils.getSmoothValueFunction(redKeyframes);
-    var greenFunction = StageUtils.getSmoothValueFunction(greenKeyframes);
-    var blueFunction = StageUtils.getSmoothValueFunction(blueKeyframes);
-
-    return function(p) {
-        var alpha = Math.min(Math.max(alphaFunction(p), 0), 255);
-        var red = Math.min(Math.max(redFunction(p), 0), 255);
-        var green = Math.min(Math.max(greenFunction(p), 0), 255);
-        var blue = Math.min(Math.max(blueFunction(p), 0), 255);
-        var v = ((alpha|0) << 24) + ((red|0) << 16) + ((green|0) << 8) + (blue|0);
-        if (v < 0) {
-            v = 0xFFFFFFFF + v + 1;
-        }
-
-        return v;
-    };
-
-};
-
-/**
- * Returns a function which returns a discrete value during time.
- * @param {{t:number, v:number}[]} keyframes
- */
-StageUtils.getDiscreteValueFunction = function(keyframes) {
-    // Split keyframes into different arrays.
-    var values = [];
-    var times = [];
-
-    var i, n = keyframes.length;
-    var lastT = -1;
-
-    for (i = 0; i < n; i++) {
-        var k = keyframes[i];
-        if (k.t <= lastT) {
-            throw new Error('The keyframe timings should increase.');
-        }
-        lastT = k.t;
-
-        times.push(k.t);
-        values.push(k.v);
-    }
-
-    return function(p) {
-        for (i = 0; i < n; i++) {
-            if (times[i] > p) {
-                break;
-            }
-        }
-
-        if (i == 0) {
-            // Before first offset.
-            return values[i];
-        }
-
-        if (i == n) {
-            // After last offset.
-            return values[n - 1];
-        }
-
-        // Get correct spline index.
-        i = i - 1;
-
-        return values[i];
+            return StageUtils.getArgbNumber([
+                Math.min(255, StageUtils.calculateSpline(helpers[0], p)),
+                Math.min(255, StageUtils.calculateSpline(helpers[1], p)),
+                Math.min(255, StageUtils.calculateSpline(helpers[2], p)),
+                Math.min(255, StageUtils.calculateSpline(helpers[3], p))
+            ]);
+        };
     }
 
 };
 
 /**
- * Returns a smoothened linear interpolation function based on a cubic bezier.
- * @param {{t:number, v:number, [i]:number, [o]:number, [s]:number}[]} keyframes
- *   t is the time of the keyframe. 0 = start of animation, 1 = end of animation.
- *   v is the value at the keyframe point.
- *   i is the 'incoming smoothness'. 0 = linear, 1 = as smooth as possible.
- *   o is the 'outgoing smoothness'. 0 = linear, 1 = as smooth as possible.
- *   s is the 'slope' for the bezier curve at the specified point.
- * @return {Function}
- *   Linear value function.
+ * Creates helpers to be used in the spline function.
+ * @param {number} v1
+ *   From value.
+ * @param {number} v2
+ *   To value.
+ * @param {number} o1
+ *   From smoothness (0 = linear, 1 = smooth).
+ * @param {number} s1
+ *   From slope (0 = horizontal, infinite = vertical).
+ * @param {number} i2
+ *   To smoothness.
+ * @param {number} s2
+ *   To slope.
+ * @returns {Number[]}
+ *   The helper values to be supplied to the spline function.
+ *   If the configuration is actually linear, null is returned.
  */
-StageUtils.getSmoothValueFunction = function(keyframes) {
-    // Split keyframes into different arrays.
-    var values = [];
-    var times = [];
-    var incomingSmoothness = [];
-    var outgoingSmoothness = [];
-
-    var i, n = keyframes.length;
-    var lastT = -1;
-
-    for (i = 0; i < n; i++) {
-        var k = keyframes[i];
-        if (k.t <= lastT) {
-            throw new Error('The keyframe timings should increase.');
-        }
-        lastT = k.t;
-
-        times.push(k.t);
-        values.push(k.v);
-        incomingSmoothness.push(k.i === undefined ? 0.5 : k.i);
-        outgoingSmoothness.push(k.o === undefined ? 0.5 : k.o);
+StageUtils.getSplineHelpers = function(v1, v2, o1, i2, s1, s2) {
+    if (!o1 && !i2) {
+        // Linear.
+        return null;
     }
 
-    // Calculate vertex spline slopes.
-    var slopes = [];
-    for (i = 0; i < n; i++) {
-        // Find smoothness slope.
-        var s;
+    // Cubic bezier points.
+    // http://cubic-bezier.com/
+    var csx = o1;
+    var csy = v1 + s1 * o1;
+    var cex = 1 - i2;
+    var cey = v2 - s2 * i2;
 
-        if (Utils.isNumber(keyframes[i].s)) {
-            // User-defined slope.
-            s = keyframes[i].s;
-        } else if (i == 0 || i == n - 1) {
-            // Start and end value 'smooth to 0'.
-            s = 0;
+    // Helper variables.
+    var xa = 3 * csx - 3 * cex + 1;
+    var xb = -6 * csx + 3 * cex;
+    var xc = 3 * csx;
+
+    var ya = 3 * csy - 3 * cey + v2 - v1;
+    var yb = 3 * (cey + v1) -6 * csy;
+    var yc = 3 * (csy - v1);
+    var yd = v1;
+
+    return [xa, xb, xc, ya, yb, yc, yd];
+};
+
+/**
+ * Calculates the intermediate spline value based on the specified helpers.
+ * @param {number[]} helpers
+ *   Obtained from getSplineHelpers.
+ * @param {number} p
+ * @return {number}
+ */
+StageUtils.calculateSpline = function(helpers, p) {
+    var xa = helpers[0];
+    var xb = helpers[1];
+    var xc = helpers[2];
+    var ya = helpers[3];
+    var yb = helpers[4];
+    var yc = helpers[5];
+    var yd = helpers[6];
+
+    if (xa == -2 && ya == -2 && xc == 0 && yc == 0) {
+        // Linear.
+        return p;
+    }
+
+    // Find t for p.
+    var t = 0.5, cbx, dx;
+
+    for (var it = 0; it < 20; it++) {
+        // Cubic bezier function: f(t)=t*(t*(t*a+b)+c).
+        cbx = t*(t*(t*xa+xb)+xc);
+
+        dx = p - cbx;
+        if (dx > -1e-8 && dx < 1e-8) {
+            // Solution found!
+            return t*(t*(t*ya+yb)+yc)+yd;
+        }
+
+        // Cubic bezier derivative function: f'(t)=t*(t*(3*a)+2*b)+c
+        var cbxd = t*(t*(3*xa)+2*xb)+xc;
+
+        if (cbxd > 1e-10 && cbxd < 1e-10) {
+            // Problematic. Fall back to binary search method.
+            break;
+        }
+
+        t += dx / cbxd;
+    }
+
+    // Fallback: binary search method. This is more reliable when there are near-0 slopes.
+    var minT = 0;
+    var maxT = 1;
+    for (it = 0; it < 20; it++) {
+        t = 0.5 * (minT + maxT);
+
+        // Cubic bezier function: f(t)=t*(t*(t*a+b)+c)+d.
+        cbx = t*(t*(t*xa+xb)+xc);
+
+        dx = p - cbx;
+        if (dx > -1e-8 && dx < 1e-8) {
+            // Solution found!
+            return t*(t*(t*ya+yb)+yc)+yd;
+        }
+
+        if (dx < 0) {
+            maxT = t;
         } else {
-            // We use the slope between the next and previous point because the result feels the most 'natural'.
-            s = (values[i+1] - values[i-1]) / (times[i+1] - times[i-1]);
+            minT = t;
         }
-        slopes.push(s);
     }
 
-    // Calculate spline helper valeus.
-    var xa = [], xb = [], xc = [], xd = [];
-    var ya = [], yb = [], yc = [], yd = [];
-    var dxa = [], dxb = [], dxc = [];
-    for (i = 0; i < n - 1; i++) {
-        // Calculate control points for start and end.
-        var td = (times[i+1]-times[i]);
-        var csx = times[i] + outgoingSmoothness[i] * td;
-        var csy = values[i] + slopes[i] * (outgoingSmoothness[i] * td);
-
-        var cex = times[i+1] - incomingSmoothness[i+1] * td;
-        var cey = values[i+1] - slopes[i+1] * (incomingSmoothness[i+1] * td);
-
-        xa[i] = -times[i] + 3 * csx - 3 * cex + times[i+1];
-        xb[i] = 3*times[i] - 6 * csx + 3 * cex;
-        xc[i] = -3*times[i] + 3 * csx;
-        xd[i] = times[i];
-
-        ya[i] = -values[i] + 3 * csy - 3 * cey + values[i+1];
-        yb[i] = 3*values[i] - 6 * csy + 3 * cey;
-        yc[i] = -3*values[i] + 3 * csy;
-        yd[i] = values[i];
-
-        // Derivative.
-        dxa[i] = 3*xa[i];
-        dxb[i] = 2*xb[i];
-        dxc[i] = 1*xc[i];
-    }
-
-    return function(p) {
-        for (i = 0; i < n; i++) {
-            if (times[i] == p) {
-                return values[i];
-            }
-            if (times[i] > p) {
-                break;
-            }
-        }
-
-        if (i == 0) {
-            // Before first offset.
-            return values[i];
-        }
-
-        if (i == n) {
-            // After last offset.
-            return values[n - 1];
-        }
-
-        // Get correct spline index.
-        i = i - 1;
-
-        // Find t for p.
-
-        var t = 0.5, cbx, cbxd, dx;
-
-        for (var it = 0; it < 20; it++) {
-            // Cubic bezier function: f(t)=t*(t*(t*a+b)+c)+d.
-            cbx = t*(t*(t*xa[i]+xb[i])+xc[i])+xd[i];
-
-            dx = p - cbx;
-            if (dx > -1e-8 && dx < 1e-8) {
-                // Solution found!
-                return t*(t*(t*ya[i]+yb[i])+yc[i])+yd[i];
-            }
-
-            // Cubic bezier derivative function: f'(t)=t*(t*(3*a)+2*b)+c
-            cbxd = t*(t*(3*xa[i])+2*xb[i])+xc[i];
-
-            if (cbxd > 1e-10 && cbxd < 1e-10) {
-                // Problematic. Fall back to binary search method.
-                break;
-            }
-
-            t += dx / cbxd;
-        }
-
-        // Fallback: binary search method. This is more reliable when there are near-0 slopes.
-        var minT = times[i];
-        var maxT = times[i+1];
-        for (it = 0; it < 20; it++) {
-            t = 0.5 * (minT + maxT);
-
-            // Cubic bezier function: f(t)=t*(t*(t*a+b)+c)+d.
-            cbx = t*(t*(t*xa[i]+xb[i])+xc[i])+xd[i];
-
-            dx = p - cbx;
-            if (dx > -1e-8 && dx < 1e-8) {
-                // Solution found!
-                return t*(t*(t*ya[i]+yb[i])+yc[i])+yd[i];
-            }
-
-            if (dx < 0) {
-                maxT = t;
-            } else {
-                minT = t;
-            }
-        }
-
-        return t;
-    }
-};
-
-StageUtils.getRoundRect = function(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor) {
-    if (fill === undefined) fill = true;
-    if (strokeWidth === undefined) strokeWidth = 0;
-
-    var canvas = stage.adapter.getDrawingCanvas();
-    var ctx = canvas.getContext('2d');
-    ctx.imageSmoothingEnabled = true;
-
-    var id = 'rect' + [w, h, radius, strokeWidth, strokeColor, fill ? 1 : 0, fillColor].join(",");
-    return stage.getTexture(function(cb) {
-        canvas.width = w + strokeWidth + 2;
-        canvas.height = h + strokeWidth + 2;
-
-        ctx.beginPath();
-        var x = 0.5 * strokeWidth + 1, y = 0.5 * strokeWidth + 1;
-        ctx.moveTo(x + radius, y);
-        ctx.lineTo(x + w - radius, y);
-        ctx.arcTo(x + w, y, x + w, y + radius, radius);
-        ctx.lineTo(x + w, y + h - radius);
-        ctx.arcTo(x + w, y + h, x + w - radius, y + h, radius);
-        ctx.lineTo(x + radius, y + h);
-        ctx.arcTo(x, y + h, x, y + h - radius, radius);
-        ctx.lineTo(x, y + radius);
-        ctx.arcTo(x, y, x + radius, y, radius);
-
-        if (fill) {
-            if (Utils.isNumber(fillColor)) {
-                fillColor = "#" + fillColor.toString(16);
-            }
-            ctx.fillStyle = fillColor || "white";
-            ctx.fill();
-        }
-
-        if (strokeWidth) {
-            if (Utils.isNumber(strokeColor)) {
-                strokeColor = "#" + strokeColor.toString(16);
-            }
-            ctx.strokeStyle = strokeColor || "white";
-            ctx.lineWidth = strokeWidth;
-            ctx.stroke();
-        }
-
-        cb(canvas, {});
-    }, {id: id});
+    return t;
 };
 
 
@@ -1865,8 +1742,6 @@ TextureManager.prototype.freeTextureSource = function(textureSource) {
         textureSource.glTexture = null;
     }
 
-    //@todo: currently all images remain in cache while they can be used.
-
     // Should be reloaded.
     textureSource.loadingSince = null;
 
@@ -1914,25 +1789,25 @@ function Texture(manager, source) {
      * The texture clipping x-offset.
      * @type {number}
      */
-    this.x = 0;
+    this._x = 0;
 
     /**
      * The texture clipping y-offset.
      * @type {number}
      */
-    this.y = 0;
+    this._y = 0;
 
     /**
      * The texture clipping width. If 0 then full width.
      * @type {number}
      */
-    this.w = 0;
+    this._w = 0;
 
     /**
      * The texture clipping height. If 0 then full height.
      * @type {number}
      */
-    this.h = 0;
+    this._h = 0;
 
     /**
      * Indicates if this texture uses clipping.
@@ -1944,7 +1819,7 @@ function Texture(manager, source) {
      * Precision (resolution, 1 = normal, 2 = twice as big as should be shown).
      * @type {number}
      */
-    this.precision = 1;
+    this._precision = 1;
 
     /**
      * All active Components that are using this texture (either as texture or displayedTexture, or both).
@@ -1968,27 +1843,33 @@ Texture.prototype.removeComponent = function(c) {
 };
 
 Texture.prototype.enableClipping = function(x, y, w, h) {
-    this.clipping = true;
-    this.x = x;
-    this.y = y;
-    this.w = w;
-    this.h = h;
+    if (this._x !== x || this._y !== y || this._w !== w || this._h !== h) {
+        this._x = x;
+        this._y = y;
+        this._w = w;
+        this._h = h;
 
-    var self = this;
-    this.components.forEach(function(component) {
-        // Ignore if not the currently displayed texture.
-        if (component.displayedTexture === self) {
-            component.displayedTextureClippingChanged();
-        }
-    });
+        this.updateClipping(true);
+    }
 };
 
 Texture.prototype.disableClipping = function() {
-    this.clipping = false;
-    this.x = 0;
-    this.y = 0;
-    this.w = 0;
-    this.h = 0;
+    if (this._x || this._y || this._w || this._h) {
+        this._x = 0;
+        this._y = 0;
+        this._w = 0;
+        this._h = 0;
+
+        this.updateClipping(false);
+    }
+};
+
+Texture.prototype.updateClipping = function(overrule) {
+    if (overrule === true || overrule === false) {
+        this.clipping = overrule;
+    } else {
+        this.clipping = (this._x || this._y || this._w || this._h);
+    }
 
     var self = this;
     this.components.forEach(function(component) {
@@ -2035,6 +1916,112 @@ Texture.prototype.load = function() {
  */
 Texture.prototype.free = function() {
     this.manager.freeTextureSource(this.source);
+};
+
+Texture.prototype.set = function(obj) {
+    var keys = Object.keys(obj);
+    for (var i = 0; i < keys.length; i++) {
+        var value = obj[keys[i]];
+        this.setSetting(keys[i], value);
+    }
+};
+
+Texture.prototype.setSetting = function(name, value) {
+    var setting = Texture.SETTINGS[name];
+    if (setting) {
+        setting.s(this, value);
+    } else {
+        console.warn("Unknown texture property: " + name);
+    }
+};
+
+Texture.prototype.getNonDefaults = function() {
+    var nonDefaults = {};
+    if (this.x !== 0) nonDefaults['x'] = this.x;
+    if (this.y !== 0) nonDefaults['y'] = this.x;
+    if (this.w !== 0) nonDefaults['w'] = this.x;
+    if (this.h !== 0) nonDefaults['h'] = this.x;
+    if (this.precision !== 1) nonDefaults['precision'] = this.precision;
+    return nonDefaults;
+};
+
+Object.defineProperty(Texture.prototype, 'x', {
+    get: function() {
+        return this._x;
+    },
+    set: function(v) {
+        if (this._x !== v) {
+            this._x = v;
+
+            this.updateClipping();
+        }
+    }
+});
+
+Object.defineProperty(Texture.prototype, 'y', {
+    get: function() {
+        return this._y;
+    },
+    set: function(v) {
+        if (this._y !== v) {
+            this._y = v;
+
+            this.updateClipping();
+        }
+    }
+});
+
+Object.defineProperty(Texture.prototype, 'w', {
+    get: function() {
+        return this._w;
+    },
+    set: function(v) {
+        if (this._w !== v) {
+            this._w = v;
+
+            this.updateClipping();
+        }
+    }
+});
+
+Object.defineProperty(Texture.prototype, 'h', {
+    get: function() {
+        return this._h;
+    },
+    set: function(v) {
+        if (this._h !== v) {
+            this._h = v;
+
+            this.updateClipping();
+        }
+    }
+});
+
+Object.defineProperty(Texture.prototype, 'precision', {
+    get: function() {
+        return this._precision;
+    },
+    set: function(v) {
+        if (this._precision !== v) {
+            this._precision = v;
+
+            var self = this;
+            this.components.forEach(function(component) {
+                // Ignore if not the currently displayed texture.
+                if (component.displayedTexture === self) {
+                    component.displayedTextureClippingChanged();
+                }
+            });
+        }
+    }
+});
+
+Texture.SETTINGS = {
+    'x': {s: function(obj, value) {obj.x = value}, m: StageUtils.mergeNumbers},
+    'y': {s: function(obj, value) {obj.y = value}, m: StageUtils.mergeNumbers},
+    'w': {s: function(obj, value) {obj.w = value}, m: StageUtils.mergeNumbers},
+    'h': {s: function(obj, value) {obj.h = value}, m: StageUtils.mergeNumbers},
+    'precision': {s: function(obj, value) {obj.precision = value}, m: StageUtils.mergeNumbers}
 };
 
 Texture.id = 0;
@@ -3530,7 +3517,7 @@ Component.prototype.setPropertyTransition = function(property, settings) {
         } else {
             // Only reset on change.
             if (!this.transitions) {
-                this.transitions = new Array(Component.nProperties);
+                this.transitions = new Array(Component.nTransitions);
                 this.transitionSet = new Set();
             }
             if (!this.transitions[propertyIndex]) {
@@ -3890,48 +3877,56 @@ Component.prototype.set = function(obj) {
 };
 
 Component.prototype.setSetting = function(name, value) {
-    var index = Component.getPropertyIndex(name);
-    if (index >= 0) {
-        Component.propertySetters[index](this, value);
-    } else {
-        index = Component.getPropertyIndexFinal(name);
-        if (index >= 0) {
-            Component.propertySettersFinal[index](this, value);
-        } else {
-            switch(name) {
-                case 'tag':
-                case 'tags':
-                    this.setTags(value);
-                    break;
-                case 'children':
-                    var stage = this.stage;
-                    if (!Utils.isArray(value)) {
-                        throw new TypeError('Children must be array.');
-                    }
-                    var c = [];
-                    for (var i = 0, n = value.length; i < n; i++) {
-                        if (value[i] instanceof Component) {
-                            c[i] = value[i];
-                        } else {
-                            c[i] = stage.c(value[i]);
-                        }
-                    }
-                    this.setChildren(c);
-                    break;
-                case 'transitions':
-                    if (!Utils.isObject(value)) {
-                        throw new TypeError('Transitions must be object.');
-                    }
-
-                    for (var key in value) {
-                        this.setTransition(key, value[key]);
-                    }
-
-                    break;
-                default:
-                    this[name] = value;
-            }
+    var aliases = Component.propAliases.get(name);
+    if (aliases) {
+        for (var i = 0, n = aliases.length; i < n; i++) {
+            this.setSetting(aliases[i], value);
         }
+        return;
+    }
+
+    switch(name) {
+        case 'tag':
+        case 'tags':
+            this.setTags(value);
+            break;
+        case 'children':
+            var stage = this.stage;
+            if (!Utils.isArray(value)) {
+                throw new TypeError('Children must be array.');
+            }
+            var c = [];
+            for (var i = 0, n = value.length; i < n; i++) {
+                if (value[i] instanceof Component) {
+                    c[i] = value[i];
+                } else {
+                    c[i] = stage.c(value[i]);
+                }
+            }
+            this.setChildren(c);
+            break;
+        case 'transitions':
+            if (!Utils.isObject(value)) {
+                throw new TypeError('Transitions must be object.');
+            }
+
+            for (var key in value) {
+                this.setTransition(key, value[key]);
+            }
+
+            break;
+        default:
+            var setting = Component.SETTINGS[name];
+            if (setting) {
+                setting.s(this, value);
+            } else {
+                setting = Component.FINAL_SETTINGS[name];
+                if (setting) {
+                    setting.sf(this, value);
+                } else {
+                    console.warn("Unknown component property: " + name);
+                }
+            }
     }
 };
 
@@ -3998,6 +3993,13 @@ Component.prototype.getNonDefaults = function() {
 
     if (this.textRenderer) {
         nonDefaults['text'] = this.textRenderer.settings.getNonDefaults();
+    }
+
+    if (this.texture) {
+        var tnd = this.texture.getNonDefaults();
+        if (Object.keys(tnd).length) {
+            nonDefaults['texture'] = tnd;
+        }
     }
 
     if (this.src) nonDefaults['src'] = this.src;
@@ -5064,10 +5066,20 @@ Object.defineProperty(Component.prototype, 'text', {
         return this.textRenderer;
     },
     set: function(settings) {
-        if (Utils.isString(settings)) {
-            this.textRenderer.text = settings;
+        if (settings === null) {
+            if (this.textRenderer) {
+                this.textRenderer = null;
+                this.texture = null;
+            }
         } else {
-            this.text.set(settings);
+            if (!this.textRenderer) {
+                this.textRenderer = new ComponentText(this);
+            }
+            if (Utils.isString(settings)) {
+                this.textRenderer.text = settings;
+            } else {
+                this.textRenderer.set(settings);
+            }
         }
     }
 });
@@ -5197,230 +5209,58 @@ Component.prototype._updateTextureCoords = function() {
     }
 };
 
-Component.rectangleSource = {src:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAABmJLR0QAAAAAAAD5Q7t/AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3wsYCDk6C1pPiwAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAAAMSURBVAjXY/j//z8ABf4C/tzMWecAAAAASUVORK5CYII=", id:"__whitepix"};
-Component.getRectangleTexture = function(stage) {
-    return stage.getTexture(Component.rectangleSource.src, Component.rectangleSource);
-};
-
-Component.getMergeFunction = function(property) {
-    switch(property) {
-        case "visible":
-        case "clipping":
-        case "zIndex":
-        case "forceZIndexContext":
-            // Unmergable property.
-            return null;
-        case "borderColorTop":
-        case "borderColorBottom":
-        case "borderColorLeft":
-        case "borderColorRight":
-        case "colorTopLeft":
-        case "colorTopRight":
-        case "colorBottomLeft":
-        case "colorBottomRight":
-            return StageUtils.mergeColors;
-            break;
-        default:
-            // Use numeric method.
-            return StageUtils.mergeNumbers;
-    }
-};
-
 Component.getPropertyIndex = function(name) {
-    return Component.propertyIndices[name];
+    return Component.SETTINGS[name].i;
 };
 
 Component.getPropertyIndexFinal = function(name) {
-    return Component.propertyIndicesFinal[name];
+    return Component.FINAL_SETTINGS[name].i;
 };
 
-Component.nProperties = 28;
-
-Component.propertyIndices = {
-    'x': 0,
-    'y': 1,
-    'w': 2,
-    'h': 3,
-    'scaleX': 4,
-    'scaleY': 5,
-    'pivotX': 6,
-    'pivotY': 7,
-    'mountX': 8,
-    'mountY': 9,
-    'alpha': 10,
-    'rotation': 11,
-    'borderWidthTop': 12,
-    'borderWidthBottom': 13,
-    'borderWidthLeft': 14,
-    'borderWidthRight': 15,
-    'borderColorTop': 16,
-    'borderColorBottom': 17,
-    'borderColorLeft': 18,
-    'borderColorRight': 19,
-    'colorTopLeft': 20,
-    'colorTopRight': 21,
-    'colorBottomLeft': 22,
-    'colorBottomRight': 23,
-    'visible': 24,
-    'zIndex': 25,
-    'forceZIndexContext': 26,
-    'clipping': 27
+Component.SETTINGS = {
+    'x': {i:0, s: function(obj, value) {obj.x = value}, g: function(obj) {return obj.x}, sf: function(obj, value) {obj.X = value}, gf: function(obj) {return obj.X}, m: StageUtils.mergeNumbers},
+    'y': {i:1, s: function(obj, value) {obj.y = value}, g: function(obj) {return obj.y}, sf: function(obj, value) {obj.Y = value}, gf: function(obj) {return obj.Y}, m: StageUtils.mergeNumbers},
+    'w': {i:2, s: function(obj, value) {obj.w = value}, g: function(obj) {return obj.w}, sf: function(obj, value) {obj.W = value}, gf: function(obj) {return obj.W}, m: StageUtils.mergeNumbers},
+    'h': {i:3, s: function(obj, value) {obj.h = value}, g: function(obj) {return obj.h}, sf: function(obj, value) {obj.H = value}, gf: function(obj) {return obj.H}, m: StageUtils.mergeNumbers},
+    'scaleX': {i:4, s: function(obj, value) {obj.scaleX = value}, g: function(obj) {return obj.scaleX}, sf: function(obj, value) {obj.SCALEX = value}, gf: function(obj) {return obj.SCALEX}, m: StageUtils.mergeNumbers},
+    'scaleY': {i:5, s: function(obj, value) {obj.scaleY = value}, g: function(obj) {return obj.scaleY}, sf: function(obj, value) {obj.SCALEY = value}, gf: function(obj) {return obj.SCALEY}, m: StageUtils.mergeNumbers},
+    'pivotX': {i:6, s: function(obj, value) {obj.pivotX = value}, g: function(obj) {return obj.pivotX}, sf: function(obj, value) {obj.PIVOTX = value}, gf: function(obj) {return obj.PIVOTX}, m: StageUtils.mergeNumbers},
+    'pivotY': {i:7, s: function(obj, value) {obj.pivotY = value}, g: function(obj) {return obj.pivotY}, sf: function(obj, value) {obj.PIVOTY = value}, gf: function(obj) {return obj.PIVOTY}, m: StageUtils.mergeNumbers},
+    'mountX': {i:8, s: function(obj, value) {obj.mountX = value}, g: function(obj) {return obj.mountX}, sf: function(obj, value) {obj.MOUNTX = value}, gf: function(obj) {return obj.MOUNTX}, m: StageUtils.mergeNumbers},
+    'mountY': {i:9, s: function(obj, value) {obj.mountY = value}, g: function(obj) {return obj.mountY}, sf: function(obj, value) {obj.MOUNTY = value}, gf: function(obj) {return obj.MOUNTY}, m: StageUtils.mergeNumbers},
+    'alpha': {i:10, s: function(obj, value) {obj.alpha = value}, g: function(obj) {return obj.alpha}, sf: function(obj, value) {obj.ALPHA = value}, gf: function(obj) {return obj.ALPHA}, m: StageUtils.mergeNumbers},
+    'rotation': {i:11, s: function(obj, value) {obj.rotation = value}, g: function(obj) {return obj.rotation}, sf: function(obj, value) {obj.ROTATION = value}, gf: function(obj) {return obj.ROTATION}, m: StageUtils.mergeNumbers},
+    'borderWidthTop': {i:12, s: function(obj, value) {obj.borderWidthTop = value}, g: function(obj) {return obj.borderWidthTop}, sf: function(obj, value) {obj.BORDERWIDTHTOP = value}, gf: function(obj) {return obj.BORDERWIDTHTOP}, m: StageUtils.mergeNumbers},
+    'borderWidthBottom': {i:13, s: function(obj, value) {obj.borderWidthBottom = value}, g: function(obj) {return obj.borderWidthBottom}, sf: function(obj, value) {obj.BORDERWIDTHBOTTOM = value}, gf: function(obj) {return obj.BORDERWIDTHBOTTOM}, m: StageUtils.mergeNumbers},
+    'borderWidthLeft': {i:14, s: function(obj, value) {obj.borderWidthLeft = value}, g: function(obj) {return obj.borderWidthLeft}, sf: function(obj, value) {obj.BORDERWIDTHLEFT = value}, gf: function(obj) {return obj.BORDERWIDTHLEFT}, m: StageUtils.mergeNumbers},
+    'borderWidthRight': {i:15, s: function(obj, value) {obj.borderWidthRight = value}, g: function(obj) {return obj.borderWidthRight}, sf: function(obj, value) {obj.BORDERWIDTHRIGHT = value}, gf: function(obj) {return obj.BORDERWIDTHRIGHT}, m: StageUtils.mergeNumbers},
+    'borderColorTop': {i:16, s: function(obj, value) {obj.borderColorTop = value}, g: function(obj) {return obj.borderColorTop}, sf: function(obj, value) {obj.BORDERCOLORTOP = value}, gf: function(obj) {return obj.BORDERCOLORTOP}, m: StageUtils.mergeColors},
+    'borderColorBottom': {i:17, s: function(obj, value) {obj.borderColorBottom = value}, g: function(obj) {return obj.borderColorBottom}, sf: function(obj, value) {obj.BORDERCOLORBOTTOM = value}, gf: function(obj) {return obj.BORDERCOLORBOTTOM}, m: StageUtils.mergeColors},
+    'borderColorLeft': {i:18, s: function(obj, value) {obj.borderColorLeft = value}, g: function(obj) {return obj.borderColorLeft}, sf: function(obj, value) {obj.BORDERCOLORLEFT = value}, gf: function(obj) {return obj.BORDERCOLORLEFT}, m: StageUtils.mergeColors},
+    'borderColorRight': {i:19, s: function(obj, value) {obj.borderColorRight = value}, g: function(obj) {return obj.borderColorRight}, sf: function(obj, value) {obj.BORDERCOLORRIGHT = value}, gf: function(obj) {return obj.BORDERCOLORRIGHT}, m: StageUtils.mergeColors},
+    'colorTopLeft': {i:20, s: function(obj, value) {obj.colorTopLeft = value}, g: function(obj) {return obj.colorTopLeft}, sf: function(obj, value) {obj.COLORTOPLEFT = value}, gf: function(obj) {return obj.COLORTOPLEFT}, m: StageUtils.mergeColors},
+    'colorTopRight': {i:21, s: function(obj, value) {obj.colorTopRight = value}, g: function(obj) {return obj.colorTopRight}, sf: function(obj, value) {obj.COLORTOPRIGHT = value}, gf: function(obj) {return obj.COLORTOPRIGHT}, m: StageUtils.mergeColors},
+    'colorBottomLeft': {i:22, s: function(obj, value) {obj.colorBottomLeft = value}, g: function(obj) {return obj.colorBottomLeft}, sf: function(obj, value) {obj.COLORBOTTOMLEFT = value}, gf: function(obj) {return obj.COLORBOTTOMLEFT}, m: StageUtils.mergeColors},
+    'colorBottomRight': {i:23, s: function(obj, value) {obj.colorBottomRight = value}, g: function(obj) {return obj.colorBottomRight}, sf: function(obj, value) {obj.COLORBOTTOMRIGHT = value}, gf: function(obj) {return obj.COLORBOTTOMRIGHT}, m: StageUtils.mergeColors},
+    'visible': {s: function(obj, value) {obj.visible = value}, g: function(obj) {return obj.visible}, sf: function(obj, value) {obj.VISIBLE = value}, gf: function(obj) {return obj.VISIBLE}, m: null},
+    'zIndex': {s: function(obj, value) {obj.zIndex = value}, g: function(obj) {return obj.zIndex}, sf: function(obj, value) {obj.VISIBLE = value}, gf: function(obj) {return obj.VISIBLE}, m: null},
+    'forceZIndexContext': {s: function(obj, value) {obj.forceZIndexContext = value}, g: function(obj) {return obj.forceZIndexContext}, sf: function(obj, value) {obj.FORCEZINDEXCONTEXT = value}, gf: function(obj) {return obj.FORCEZINDEXCONTEXT}, m: null},
+    'clipping': {s: function(obj, value) {obj.clipping = value}, g: function(obj) {return obj.clipping}, sf: function(obj, value) {obj.CLIPPING = value}, gf: function(obj) {return obj.CLIPPING}, m: null},
+    'rect': {s: function(obj, value) {obj.rect = value}, g: function(obj) {return obj.rect}, m: null},
+    'src': {s: function(obj, value) {obj.src = value}, g: function(obj) {return obj.src}, m: null},
+    'text': {s: function(obj, value) {obj.text = value}, g: function(obj) {return obj.text}, m: null},
+    'texture': {s: function(obj, value) {obj.texture = value}, g: function(obj) {return obj.src}, m: null}
 };
 
-Component.propertyIndicesFinal = {
-    'X': 0,
-    'Y': 1,
-    'W': 2,
-    'H': 3,
-    'SCALEX': 4,
-    'SCALEY': 5,
-    'PIVOTX': 6,
-    'PIVOTY': 7,
-    'MOUNTX': 8,
-    'MOUNTY': 9,
-    'ALPHA': 10,
-    'ROTATION': 11,
-    'BORDERWIDTHTOP': 12,
-    'BORDERWIDTHBOTTOM': 13,
-    'BORDERWIDTHLEFT': 14,
-    'BORDERWIDTHRIGHT': 15,
-    'BORDERCOLORTOP': 16,
-    'BORDERCOLORBOTTOM': 17,
-    'BORDERCOLORLEFT': 18,
-    'BORDERCOLORRIGHT': 19,
-    'COLORTOPLEFT': 20,
-    'COLORTOPRIGHT': 21,
-    'COLORBOTTOMLEFT': 22,
-    'COLORBOTTOMRIGHT': 23,
-    'VISIBLE': 24,
-    'ZINDEX': 25,
-    'FORCEZINDEXCONTEXT': 26,
-    'CLIPPING': 27
-};
+Component.FINAL_SETTINGS = {};
+for (var key in Component.SETTINGS) {
+    if (Component.SETTINGS.hasOwnProperty(key)) {
+        Component.FINAL_SETTINGS[key.toUpperCase()] = Component.SETTINGS[key];
+    }
+}
 
-Component.propertySetters = [
-    function(component, value) {component.x = value;},
-    function(component, value) {component.y = value;},
-    function(component, value) {component.w = value;},
-    function(component, value) {component.h = value;},
-    function(component, value) {component.scaleX = value;},
-    function(component, value) {component.scaleY = value;},
-    function(component, value) {component.pivotX = value;},
-    function(component, value) {component.pivotY = value;},
-    function(component, value) {component.mountX = value;},
-    function(component, value) {component.mountY = value;},
-    function(component, value) {component.alpha = value;},
-    function(component, value) {component.rotation = value;},
-    function(component, value) {component.borderWidthTop = value;},
-    function(component, value) {component.borderWidthBottom = value;},
-    function(component, value) {component.borderWidthLeft = value;},
-    function(component, value) {component.borderWidthRight = value;},
-    function(component, value) {component.borderColorTop = value;},
-    function(component, value) {component.borderColorBottom = value;},
-    function(component, value) {component.borderColorLeft = value;},
-    function(component, value) {component.borderColorRight = value;},
-    function(component, value) {component.colorTopLeft = value;},
-    function(component, value) {component.colorTopRight = value;},
-    function(component, value) {component.colorBottomLeft = value;},
-    function(component, value) {component.colorBottomRight = value;},
-    function(component, value) {component.visible = value;},
-    function(component, value) {component.zIndex = value;},
-    function(component, value) {component.forceZIndexContext = value;},
-    function(component, value) {component.clipping = value;}
-];
+Component.nTransitions = 24;
 
-Component.propertySettersFinal = [
-    function(component, value) {component.X = value;},
-    function(component, value) {component.Y = value;},
-    function(component, value) {component.W = value;},
-    function(component, value) {component.H = value;},
-    function(component, value) {component.SCALEX = value;},
-    function(component, value) {component.SCALEY = value;},
-    function(component, value) {component.PIVOTX = value;},
-    function(component, value) {component.PIVOTY = value;},
-    function(component, value) {component.MOUNTX = value;},
-    function(component, value) {component.MOUNTY = value;},
-    function(component, value) {component.ALPHA = value;},
-    function(component, value) {component.ROTATION = value;},
-    function(component, value) {component.BORDERWIDTHTOP = value;},
-    function(component, value) {component.BORDERWIDTHBOTTOM = value;},
-    function(component, value) {component.BORDERWIDTHLEFT = value;},
-    function(component, value) {component.BORDERWIDTHRIGHT = value;},
-    function(component, value) {component.BORDERCOLORTOP = value;},
-    function(component, value) {component.BORDERCOLORBOTTOM = value;},
-    function(component, value) {component.BORDERCOLORLEFT = value;},
-    function(component, value) {component.BORDERCOLORRIGHT = value;},
-    function(component, value) {component.COLORTOPLEFT = value;},
-    function(component, value) {component.COLORTOPRIGHT = value;},
-    function(component, value) {component.COLORBOTTOMLEFT = value;},
-    function(component, value) {component.COLORBOTTOMRIGHT = value;},
-    function(component, value) {component.visible = value;},
-    function(component, value) {component.zIndex = value;},
-    function(component, value) {component.forceZIndexContext = value;},
-    function(component, value) {component.clipping = value;}
-];
-
-Component.propertyGetters = [
-    function(component) { return component.x; },
-    function(component) { return component.y; },
-    function(component) { return component.w; },
-    function(component) { return component.h; },
-    function(component) { return component.scaleX; },
-    function(component) { return component.scaleY; },
-    function(component) { return component.pivotX; },
-    function(component) { return component.pivotY; },
-    function(component) { return component.mountX; },
-    function(component) { return component.mountY; },
-    function(component) { return component.alpha; },
-    function(component) { return component.rotation; },
-    function(component) { return component.borderWidthTop; },
-    function(component) { return component.borderWidthBottom; },
-    function(component) { return component.borderWidthLeft; },
-    function(component) { return component.borderWidthRight; },
-    function(component) { return component.borderColorTop; },
-    function(component) { return component.borderColorBottom; },
-    function(component) { return component.borderColorLeft; },
-    function(component) { return component.borderColorRight; },
-    function(component) { return component.colorTopLeft; },
-    function(component) { return component.colorTopRight; },
-    function(component) { return component.colorBottomLeft; },
-    function(component) { return component.colorBottomRight; },
-    function(component) { return component.visible; },
-    function(component) { return component.zIndex; },
-    function(component) { return component.forceZIndexContext; },
-    function(component) { return component.clipping; }
-];
-
-Component.propertyGettersFinal = [
-    function(component) { return component.X; },
-    function(component) { return component.Y; },
-    function(component) { return component.W; },
-    function(component) { return component.H; },
-    function(component) { return component.SCALEX; },
-    function(component) { return component.SCALEY; },
-    function(component) { return component.PIVOTX; },
-    function(component) { return component.PIVOTY; },
-    function(component) { return component.MOUNTX; },
-    function(component) { return component.MOUNTY; },
-    function(component) { return component.ALPHA; },
-    function(component) { return component.ROTATION; },
-    function(component) { return component.BORDERWIDTHTOP; },
-    function(component) { return component.BORDERWIDTHBOTTOM; },
-    function(component) { return component.BORDERWIDTHLEFT; },
-    function(component) { return component.BORDERWIDTHRIGHT; },
-    function(component) { return component.BORDERCOLORTOP; },
-    function(component) { return component.BORDERCOLORBOTTOM; },
-    function(component) { return component.BORDERCOLORLEFT; },
-    function(component) { return component.BORDERCOLORRIGHT; },
-    function(component) { return component.COLORTOPLEFT; },
-    function(component) { return component.COLORTOPRIGHT; },
-    function(component) { return component.COLORBOTTOMLEFT; },
-    function(component) { return component.COLORBOTTOMRIGHT; },
-    function(component) { return component.visible; },
-    function(component) { return component.zIndex; },
-    function(component) { return component.forceZIndexContext; },
-    function(component) { return component.clipping; }
-];
 
 
 /**
@@ -5523,7 +5363,11 @@ Object.defineProperty(ComponentText.prototype, 'text', {
     },
     set: function(v) {
         this.settings.text = v;
-        if (this.settings.hasUpdates) this.updateTexture();
+        if (v === null) {
+            this.component.text = null;
+        } else {
+            if (this.settings.hasUpdates) this.updateTexture();
+        }
     }
 });
 
@@ -6170,7 +6014,7 @@ var TextRendererSettings = function() {
 
     // Flag that indicates if any property has changed.
     this.hasUpdates = false;
-}
+};
 
 TextRendererSettings.prototype.set = function(obj) {
     var keys = Object.keys(obj);
@@ -6181,10 +6025,12 @@ TextRendererSettings.prototype.set = function(obj) {
 };
 
 TextRendererSettings.prototype.setSetting = function(name, value) {
-    if (this[name] === undefined) {
-        throw new TypeError('Unknown property:' + name);
+    var setting = TextRendererSettings.SETTINGS[name];
+    if (setting) {
+        setting.s(this, value);
+    } else {
+        console.warn("Unknown text property: " + name);
     }
-    this[name] = value;
 };
 
 TextRendererSettings.prototype.getNonDefaults = function() {
@@ -6284,9 +6130,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'text', {
         return this._text;
     },
     set: function(v) {
-        if (!Utils.isString(v)) {
-            throw new TypeError("Not a string");
-        }
         var pv = this._text;
         if (pv !== v) {
             this._text = v;
@@ -6300,9 +6143,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'w', {
         return this._w;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._w;
         if (pv !== v) {
             this._w = v;
@@ -6316,9 +6156,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'h', {
         return this._h;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._h;
         if (pv !== v) {
             this._h = v;
@@ -6332,9 +6169,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'fontStyle', {
         return this._fontStyle;
     },
     set: function(v) {
-        if (!Utils.isString(v)) {
-            throw new TypeError("Not a string");
-        }
         var pv = this._fontStyle;
         if (pv !== v) {
             this._fontStyle = v;
@@ -6348,9 +6182,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'fontSize', {
         return this._fontSize;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._fontSize;
         if (pv !== v) {
             this._fontSize = v;
@@ -6364,9 +6195,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'fontFace', {
         return this._fontFace;
     },
     set: function(v) {
-        if (v !== null && !Utils.isString(v) && !Utils.isArray(v)) {
-            throw new TypeError("Not a string or array");
-        }
         var pv = this._fontFace;
         if (pv !== v) {
             this._fontFace = v;
@@ -6380,9 +6208,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'wordWrap', {
         return this._wordWrap;
     },
     set: function(v) {
-        if (!Utils.isBoolean(v)) {
-            throw new TypeError("Not a boolean");
-        }
         var pv = this._wordWrap;
         if (pv !== v) {
             this._wordWrap = v;
@@ -6396,9 +6221,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'wordWrapWidth', {
         return this._wordWrapWidth;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._wordWrapWidth;
         if (pv !== v) {
             this._wordWrapWidth = v;
@@ -6412,9 +6234,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'lineHeight', {
         return this._lineHeight;
     },
     set: function(v) {
-        if (v !== null && !Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._lineHeight;
         if (pv !== v) {
             this._lineHeight = v;
@@ -6428,9 +6247,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'textBaseline', {
         return this._textBaseline;
     },
     set: function(v) {
-        if (v !== null && !Utils.isString(v)) {
-            throw new TypeError("Not a string");
-        }
         var pv = this._textBaseline;
         if (pv !== v) {
             this._textBaseline = v;
@@ -6444,9 +6260,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'textAlign', {
         return this._textAlign;
     },
     set: function(v) {
-        if (!Utils.isString(v)) {
-            throw new TypeError("Not a string");
-        }
         var pv = this._textAlign;
         if (pv !== v) {
             this._textAlign = v;
@@ -6460,9 +6273,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'offsetY', {
         return this._offsetY;
     },
     set: function(v) {
-        if (v !== null && !Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._offsetY;
         if (pv !== v) {
             this._offsetY = v;
@@ -6476,9 +6286,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'maxLines', {
         return this._maxLines;
     },
     set: function(v) {
-        if (!Utils.isInteger(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._maxLines;
         if (pv !== v) {
             this._maxLines = v;
@@ -6492,9 +6299,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'maxLinesSuffix', {
         return this._maxLinesSuffix;
     },
     set: function(v) {
-        if (!Utils.isString(v)) {
-            throw new TypeError("Not a string");
-        }
         var pv = this._maxLinesSuffix;
         if (pv !== v) {
             this._maxLinesSuffix = v;
@@ -6508,9 +6312,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'precision', {
         return this._precision;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._precision;
         if (pv !== v) {
             this._precision = v;
@@ -6524,9 +6325,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'textColor', {
         return this._textColor;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._textColor;
         if (pv !== v) {
             this._textColor = v;
@@ -6540,9 +6338,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'paddingLeft', {
         return this._paddingLeft;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._paddingLeft;
         if (pv !== v) {
             this._paddingLeft = v;
@@ -6556,9 +6351,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'paddingRight', {
         return this._paddingRight;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._paddingRight;
         if (pv !== v) {
             this._paddingRight = v;
@@ -6572,9 +6364,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'shadow', {
         return this._shadow;
     },
     set: function(v) {
-        if (!Utils.isBoolean(v)) {
-            throw new TypeError("Not a boolean");
-        }
         var pv = this._shadow;
         if (pv !== v) {
             this._shadow = v;
@@ -6588,9 +6377,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'shadowColor', {
         return this._shadowColor;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._shadowColor;
         if (pv !== v) {
             this._shadowColor = v;
@@ -6604,9 +6390,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'shadowOffsetX', {
         return this._shadowOffsetX;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._shadowOffsetX;
         if (pv !== v) {
             this._shadowOffsetX = v;
@@ -6620,9 +6403,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'shadowOffsetY', {
         return this._shadowOffsetY;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._shadowOffsetY;
         if (pv !== v) {
             this._shadowOffsetY = v;
@@ -6636,9 +6416,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'shadowBlur', {
         return this._shadowBlur;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._shadowBlur;
         if (pv !== v) {
             this._shadowBlur = v;
@@ -6652,9 +6429,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'highlight', {
         return this._highlight;
     },
     set: function(v) {
-        if (!Utils.isBoolean(v)) {
-            throw new TypeError("Not a boolean");
-        }
         var pv = this._highlight;
         if (pv !== v) {
             this._highlight = v;
@@ -6668,9 +6442,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'highlightHeight', {
         return this._highlightHeight;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._highlightHeight;
         if (pv !== v) {
             this._highlightHeight = v;
@@ -6684,9 +6455,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'highlightColor', {
         return this._highlightColor;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._highlightColor;
         if (pv !== v) {
             this._highlightColor = v;
@@ -6700,9 +6468,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'highlightOffset', {
         return this._highlightOffset;
     },
     set: function(v) {
-        if (v !== null && !Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._highlightOffset;
         if (pv !== v) {
             this._highlightOffset = v;
@@ -6716,9 +6481,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'highlightPaddingLeft', {
         return this._highlightPaddingLeft;
     },
     set: function(v) {
-        if (v !== null && !Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._highlightPaddingLeft;
         if (pv !== v) {
             this._highlightPaddingLeft = v;
@@ -6732,9 +6494,6 @@ Object.defineProperty(TextRendererSettings.prototype, 'highlightPaddingRight', {
         return this._highlightPaddingRight;
     },
     set: function(v) {
-        if (v !== null && !Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._highlightPaddingRight;
         if (pv !== v) {
             this._highlightPaddingRight = v;
@@ -6748,12 +6507,9 @@ Object.defineProperty(TextRendererSettings.prototype, 'cutSx', {
         return this._cutSx;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._cutSx;
         if (pv !== v) {
-            this._cutSx = v;
+            this._cutSx = Math.max(0, v);
             this.notifyUpdate();
         }
     }
@@ -6764,12 +6520,9 @@ Object.defineProperty(TextRendererSettings.prototype, 'cutEx', {
         return this._cutEx;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._cutEx;
         if (pv !== v) {
-            this._cutEx = v;
+            this._cutEx = Math.max(0, v);
             this.notifyUpdate();
         }
     }
@@ -6780,12 +6533,9 @@ Object.defineProperty(TextRendererSettings.prototype, 'cutSy', {
         return this._cutSy;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._cutSy;
         if (pv !== v) {
-            this._cutSy = v;
+            this._cutSy = Math.max(0, v);
             this.notifyUpdate();
         }
     }
@@ -6796,17 +6546,51 @@ Object.defineProperty(TextRendererSettings.prototype, 'cutEy', {
         return this._cutEy;
     },
     set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
         var pv = this._cutEy;
         if (pv !== v) {
-            this._cutEy = v;
+            this._cutEy = Math.max(0, v);
             this.notifyUpdate();
         }
     }
 });
 
+TextRendererSettings.SETTINGS = {
+    'text': {s: function(obj, v) {obj.text = v;}, m: null},
+    'w': {s: function(obj, v) {obj.w = v;}, m: null},
+    'h': {s: function(obj, v) {obj.h = v;}, m: null},
+    'fontStyle': {s: function(obj, v) {obj.fontStyle = v;}, m: null},
+    'fontSize': {s: function(obj, v) {
+        obj.fontSize = v;
+    }, m: null},
+    'fontFace': {s: function(obj, v) {obj.fontFace = v;}, m: null},
+    'wordWrap': {s: function(obj, v) {obj.wordWrap = v;}, m: null},
+    'wordWrapWidth': {s: function(obj, v) {obj.wordWrapWidth = v;}, m: null},
+    'lineHeight': {s: function(obj, v) {obj.lineHeight = v;}, m: null},
+    'textBaseline': {s: function(obj, v) {obj.textBaseline = v;}, m: null},
+    'textAlign': {s: function(obj, v) {obj.textAlign = v;}, m: null},
+    'offsetY': {s: function(obj, v) {obj.offsetY = v;}, m: null},
+    'maxLines': {s: function(obj, v) {obj.maxLines = v;}, m: null},
+    'maxLinesSuffix': {s: function(obj, v) {obj.maxLinesSuffix = v;}, m: null},
+    'precision': {s: function(obj, v) {obj.precision = v;}, m: null},
+    'textColor': {s: function(obj, v) {obj.textColor = v;}, m: null},
+    'paddingLeft': {s: function(obj, v) {obj.paddingLeft = v;}, m: null},
+    'paddingRight': {s: function(obj, v) {obj.paddingRight = v;}, m: null},
+    'shadow': {s: function(obj, v) {obj.shadow = v;}, m: null},
+    'shadowColor': {s: function(obj, v) {obj.shadowColor = v;}, m: null},
+    'shadowOffsetX': {s: function(obj, v) {obj.shadowOffsetX = v;}, m: null},
+    'shadowOffsetY': {s: function(obj, v) {obj.shadowOffsetY = v;}, m: null},
+    'shadowBlur': {s: function(obj, v) {obj.shadowBlur = v;}, m: null},
+    'highlight': {s: function(obj, v) {obj.highlight = v;}, m: null},
+    'highlightHeight': {s: function(obj, v) {obj.highlightHeight = v;}, m: null},
+    'highlightColor': {s: function(obj, v) {obj.highlightColor = v;}, m: null},
+    'highlightOffset': {s: function(obj, v) {obj.highlightOffset = v;}, m: null},
+    'highlightPaddingLeft': {s: function(obj, v) {obj.highlightPaddingLeft = v;}, m: null},
+    'highlightPaddingRight': {s: function(obj, v) {obj.highlightPaddingRight = v;}, m: null},
+    'cutSx': {s: function(obj, v) {obj.cutSx = v;}, m: null},
+    'cutEx': {s: function(obj, v) {obj.cutEx = v;}, m: null},
+    'cutSy': {s: function(obj, v) {obj.cutSy = v;}, m: null},
+    'cutEy': {s: function(obj, v) {obj.cutEy = v;}, m: null}
+};
 
 
 /**
@@ -7031,17 +6815,17 @@ function PropertyTransition(component, property) {
 
     this.property = property;
 
-    this.propertyIndex = Component.getPropertyIndex(property);
+    this.setting = Component.SETTINGS[property];
 
-    Transition.call(this, Component.propertyGetters[this.propertyIndex](this.component));
+    Transition.call(this, this.setting.g(this.component));
 
     /**
      * The merge function. If null then use plain numeric interpolation merge.
      * @type {Function}
      */
-    this.mergeFunction = Component.getMergeFunction(property);
+    this.mergeFunction = this.setting.m;
 
-    this.valueSetterFunction = Component.propertySettersFinal[this.propertyIndex];
+    this.valueSetterFunction = this.setting.sf;
 
 }
 
@@ -7052,12 +6836,7 @@ PropertyTransition.prototype.setValue = function(v) {
 };
 
 PropertyTransition.prototype.getMergedValue = function(v) {
-    if (!this.mergeFunction) {
-        // Numeric merge. Inline for performance.
-        return this.targetValue * v + this.startValue * (1 - v);
-    } else {
-        return this.mergeFunction(this.targetValue, this.startValue, v);
-    }
+    return this.mergeFunction(this.targetValue, this.startValue, v);
 };
 
 PropertyTransition.prototype.activate = function() {
@@ -7086,12 +6865,6 @@ function Animation(stage) {
      * @access private
      */
     this.p = 0;
-
-    /**
-     * This value can be used to increase or decrease all changes that this animation makes to the subjects.
-     * @type {number}
-     */
-    this._amplitude = 1;
 
     /**
      * Dummy for getFrameForProgress. Causes frame to be 0 when this is not a timed animation.
@@ -7157,14 +6930,14 @@ Animation.prototype.applyTransforms = function() {
 
     var n = this.actions.length;
     for (var i = 0; i < n; i++) {
-        this.actions[i].applyTransforms(p, this.getFrameForProgress(p), this.amplitude, 1);
+        this.actions[i].applyTransforms(p, this.getFrameForProgress(p), 1);
     }
 };
 
 Animation.prototype.resetTransforms = function() {
     var n = this.actions.length;
     for (var i = 0; i < n; i++) {
-        this.actions[i].resetTransforms(this.amplitude);
+        this.actions[i].resetTransforms();
     }
 };
 
@@ -7175,16 +6948,6 @@ Object.defineProperty(Animation.prototype, 'progressFunction', {
             throw new TypeError('progressFunction must be a function');
         }
         this._progressFunction = v;
-    }
-});
-
-Object.defineProperty(Animation.prototype, 'amplitude', {
-    get: function() { return this._amplitude; },
-    set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError('amplitude must be a number');
-        }
-        this._amplitude = v;
     }
 });
 
@@ -7211,32 +6974,18 @@ function AnimationAction(animation) {
     this._tags = [];
 
     /**
-     * If a function, then it is evaluated with the progress argument. If a literal value, it is used directly.
-     * @type {*}
+     * The value items, ordered by progress offset.
+     * @type {{f: boolean, v: *, ..}[]}
      * @private
      */
-    this._value = null;
+    this._items = [];
 
     /**
      * The affected properties (names).
-     * @type {string[]}
+     * @type {{n: String, [s]: Function, [o]: String}[]}
      * @private
      */
     this._properties = [];
-
-    /**
-     * Merger functions for the properties.
-     * @type {Function[]}
-     * @private
-     */
-    this._propertyMergers = [];
-
-    /**
-     * Setter functions for the properties.
-     * @type {Function[]}
-     * @private
-     */
-    this._propertySetters = [];
 
     /**
      * The value to reset to when stopping the timed animation.
@@ -7245,10 +6994,6 @@ function AnimationAction(animation) {
      */
     this._resetValue = null;
 
-    /**
-     * Whether or not a reset value was specified.
-     * @type {boolean}
-     */
     this.hasResetValue = false;
 
     /**
@@ -7263,6 +7008,15 @@ function AnimationAction(animation) {
      */
     this.complexTags = null;
 
+    /**
+     * Mergable function for values.
+     * @type {Function}
+     * @private
+     */
+    this.mergeFunction = null;
+
+    // Default.
+    this.tags = '';
 }
 
 /**
@@ -7314,6 +7068,224 @@ AnimationAction.prototype.getAnimatedComponents = function() {
     return taggedComponents;
 };
 
+AnimationAction.prototype.setValue = function(def) {
+    var i, n;
+    if (!Utils.isPlainObject(def)) {
+        def = {0: def};
+    }
+
+    var items = [];
+    for (var key in def) {
+        if (def.hasOwnProperty(key)) {
+            var obj = def[key];
+            if (!Utils.isPlainObject(obj)) {
+                obj = {v: obj};
+            }
+
+            var p = parseFloat(key);
+            if (!isNaN(p) && p >= 0 && p <= 1) {
+                obj.p = p;
+
+                obj.f = Utils.isFunction(obj.v);
+                obj.lv = obj.f ? obj.v(0, 0) : obj.v;
+
+                items.push(obj);
+            }
+        }
+    }
+
+    // Sort by progress value.
+    items = items.sort(function(a, b) {return a.p - b.p});
+
+    n = items.length;
+
+    for (i = 0; i < n; i++) {
+        var last = (i == n - 1);
+        if (!items[i].hasOwnProperty('pe')) {
+            // Progress.
+            items[i].pe = last ? 1 : items[i + 1].p;
+        } else {
+            // Prevent multiple items at the same time.
+            var max = i < n - 1 ? items[i + 1].p : 1;
+            if (items[i].pe > max) {
+                items[i].pe = max;
+            }
+        }
+        if (items[i].pe === items[i].p) {
+            items[i].idp = 0;
+        } else {
+            items[i].idp = 1 / (items[i].pe - items[i].p);
+        }
+    }
+
+    if (this.mergeFunction) {
+        var rgba = (this.mergeFunction === StageUtils.mergeColors);
+
+        // Calculate bezier helper values.
+        for (i = 0; i < n; i++) {
+            if (!items[i].hasOwnProperty('sm')) {
+                // Smoothness.
+                items[i].sm = 0.5;
+            }
+            if (!items[i].hasOwnProperty('s')) {
+                // Slope.
+                if (i === 0 || i === n - 1) {
+                    // Horizontal slope at start and end.
+                    items[i].s = rgba ? [0, 0, 0, 0] : 0;
+                } else {
+                    var pi = items[i - 1];
+                    var ni = items[i + 1];
+                    if (pi.p === ni.p) {
+                        items[i].s = rgba ? [0, 0, 0, 0] : 0;
+                    } else {
+                        if (rgba) {
+                            var nc = StageUtils.getRgbaComponents(ni.lv);
+                            var pc = StageUtils.getRgbaComponents(pi.lv);
+                            var d = 1 / (ni.p - pi.p);
+                            items[i].s = [
+                                d * (nc[0] - pc[0]),
+                                d * (nc[1] - pc[1]),
+                                d * (nc[2] - pc[2]),
+                                d * (nc[3] - pc[3])
+                            ];
+                        } else {
+                            items[i].s = (ni.lv - pi.lv) / (ni.p - pi.p);
+                        }
+                    }
+                }
+            }
+        }
+
+        for (i = 0; i < n - 1; i++) {
+            // Calculate value function.
+            if (!items[i].f) {
+                var last = (i === n - 1);
+                if (!items[i].hasOwnProperty('sme')) {
+                    items[i].sme = last ? 0.5 : items[i + 1].sm;
+                }
+                if (!items[i].hasOwnProperty('se')) {
+                    items[i].se = last ? (rgba ? [0, 0, 0, 0] : 0) : items[i + 1].s;
+                }
+                if (!items[i].hasOwnProperty('ve')) {
+                    items[i].ve = last ? items[i].lv : items[i + 1].lv;
+                }
+
+                // Generate spline.
+                if (rgba) {
+                    items[i].v = StageUtils.getSplineRgbaValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
+                } else {
+                    items[i].v = StageUtils.getSplineValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
+                }
+                items[i].f = true;
+            }
+        }
+    }
+
+    this._items = items;
+};
+
+AnimationAction.prototype.getItem = function(p) {
+    var n = this._items.length;
+    if (!n) {
+        return null;
+    }
+
+    if (p < this._items[0].p) {
+        return null;
+    }
+
+    for (var i = 0; i < n; i++) {
+        if (this._items[i].p <= p && p < this._items[i].pe) {
+            return this._items[i];
+        }
+    }
+
+    return this._items[n - 1];
+};
+
+AnimationAction.prototype.getValue = function(item, p) {
+    // Found it.
+    if (item.f) {
+        var o = (p - item.p) * item.idp;
+        return item.v(o, p);
+    } else {
+        return item.v;
+    }
+};
+
+AnimationAction.prototype.getResetValue = function() {
+    if (this.hasResetValue) {
+        return this.resetValue;
+    } else {
+        if (this._items.length) {
+            return this._items[0].lv;
+        }
+    }
+    return 0;
+};
+
+AnimationAction.prototype.applyTransforms = function(p, f, m) {
+    if (!this._properties.length) {
+        return;
+    }
+
+    var item = this.getItem(p);
+    if (!item) {
+        return;
+    }
+
+    var v = this.getValue(item, p);
+
+    if (m !== 1) {
+        var sv = this.getResetValue();
+        if (this.mergeFunction) {
+            v = this.mergeFunction(v, sv, m);
+        }
+    }
+
+    // Apply transformation to all components.
+    var n = this._properties.length;
+
+    var c = this.getAnimatedComponents();
+    var tcl = c.length;
+    for (var i = 0; i < n; i++) {
+        for (var j = 0; j < tcl; j++) {
+            if (this._properties[i].s) {
+                this._properties[i].s(c[j], v);
+            } else {
+                if (this._properties[i].o) {
+                    c[j][this._properties[i].o][this._properties[i].n] = v;
+                } else {
+                    c[j][this._properties[i].n] = v;
+                }
+            }
+        }
+    }
+
+};
+
+AnimationAction.prototype.resetTransforms = function() {
+    if (!this._properties.length) {
+        return;
+    }
+
+    var v = this.getResetValue();
+
+    // Apply transformation to all components.
+    var n = this._properties.length;
+
+    var c = this.getAnimatedComponents();
+    var tcl = c.length;
+    for (var i = 0; i < n; i++) {
+        for (var j = 0; j < tcl; j++) {
+            if (this._properties[i].s) {
+                this._properties[i].s(c[j], v);
+            }
+        }
+    }
+
+};
+
 AnimationAction.prototype.set = function(settings) {
     var propNames = Object.keys(settings);
     for (var i = 0; i < propNames.length; i++) {
@@ -7324,112 +7296,24 @@ AnimationAction.prototype.set = function(settings) {
 };
 
 AnimationAction.prototype.setSetting = function(name, value) {
-    if (this[name] === undefined) {
-        throw new TypeError('Unknown property:' + name);
+    switch(name) {
+        case 'value':
+            this.value = value;
+            break;
+        default:
+            if (this[name] === undefined) {
+                throw new TypeError('Unknown property:' + name);
+            }
+            this[name] = value;
     }
-    this[name] = value;
 };
 
-AnimationAction.prototype.applyTransforms = function(p, f, a, m) {
-    var v = 0;
-
-    if (!this._properties.length) {
-        return;
-    }
-
-    if (Utils.isFunction(this.value)) {
-        v = this.value(p, f);
-    } else {
-        v = this.value;
-    }
-
-    // Apply amplitude.
-    if (a !== 1 && Utils.isNumber(v)) {
-        v = v * a;
-    }
-
-    var sv = 0;
-    if (m !== 1) {
-        if (Utils.isFunction(this.value)) {
-            sv = this.value(0, 0);
-        } else {
-            sv = this.value;
-        }
-    }
-
-    // Apply transformation to all components.
-    var self = this;
-    var n = this._properties.length;
-
-    var fv = v;
-
-    var c = this.getAnimatedComponents();
-    var tcl = c.length;
-    for (var i = 0; i < n; i++) {
-        var prop = this._properties[i];
-        if (m !== 1) {
-            var mf = this._propertyMergers[i];
-            if (!mf) {
-                // Unmergable property.
-                fv = v;
-            } else {
-                fv = mf(v, sv, m);
-            }
-        }
-
-        for (var j = 0; j < tcl; j++) {
-            if (this._propertySetters[i]) {
-                this._propertySetters[i](c[j], fv);
-            } else {
-                c[j][prop] = fv;
-            }
-        }
-    }
-
-};
-
-AnimationAction.prototype.resetTransforms = function(a) {
-    var v = 0;
-
-    if (!this._properties.length) {
-        return;
-    }
-
-    if (this.hasResetValue) {
-        v = this.resetValue;
-    } else if (Utils.isFunction(this.value)) {
-        v = this.value(0, 0);
-    } else {
-        v = this.value;
-    }
-
-    // Apply amplitude.
-    if (a !== 1 && Utils.isNumber(v)) {
-        v = v * a;
-    }
-
-    // Apply transformation to all components.
-    var n = this._properties.length;
-
-    var c = this.getAnimatedComponents();
-    var tcl = c.length;
-    for (var i = 0; i < n; i++) {
-        for (var j = 0; j < tcl; j++) {
-            if (this._propertySetters[i]) {
-                this._propertySetters[i](c[j], v);
-            } else {
-                c[j][this._properties[i]] = v;
-            }
-        }
-    }
-
-};
 
 Object.defineProperty(AnimationAction.prototype, 'tags', {
     get: function() { return this._tags; },
     set: function(v) {
         if (!Utils.isArray(v)) {
-            throw new TypeError('tags must be an array of strings');
+            v = [v];
         }
         this._tags = v;
 
@@ -7453,49 +7337,142 @@ Object.defineProperty(AnimationAction.prototype, 'tags', {
     }
 });
 
-Object.defineProperty(AnimationAction.prototype, 'property', {
+Object.defineProperty(AnimationAction.prototype, 'tag', {
+    get: function() { return this.tags; },
+    set: function(v) {
+        this.tags = v;
+    }
+});
+
+Object.defineProperty(AnimationAction.prototype, 't', {
+    get: function() { return this.tags; },
+    set: function(v) {
+        this.tags = v;
+    }
+});
+
+Object.defineProperty(AnimationAction.prototype, 'properties', {
     get: function() { return this._properties; },
     set: function(v) {
-
         var vs = v;
         if (!Utils.isArray(v)) {
             vs = [vs];
         }
 
-        var names = [];
+        var properties = [];
         var n = vs.length;
         for (var i = 0; i < n; i++) {
             v = vs[i];
-
+            
             if (!Utils.isString(v)) {
                 throw new TypeError('property must be a string');
             }
 
             if (Component.propAliases.has(v)) {
-                names = names.concat(Component.propAliases.get(v));
+                var aliases = Component.propAliases.get(v);
+                for (var j = 0, m = aliases.length; j < m; j++) {
+                    properties.push({n: aliases[j]});
+                }
             } else {
-                names.push(v);
+                properties.push({n: v});
             }
         }
 
-        this._propertySetters = [];
-        this._propertyMergers = [];
-        for (i = 0, n = names.length; i < n; i++) {
-            var f = Component.propertySettersFinal[Component.getPropertyIndex(names[i])] || null;
-            this._propertySetters.push(f);
+        this.mergeFunction = null;
+        var mergeFunctionConflict = false;
+        for (i = 0, n = properties.length; i < n; i++) {
+            var p = properties[i];
+            
+            var name = p.n;
+            
+            var index = name.indexOf('.');
+            if (index >= 0) {
+                // Sub object.
+                p.o = name.substr(0, index);
+                p.n = name.substr(index + 1);
+            } else {
+                p.o = 'component';
+            }
+            
+            var setting = null;
+            switch(p.o) {
+                case 'text':
+                    setting = TextRendererSettings.SETTINGS[p.n];
+                    if (setting) {
+                        p.s = function(c, v) {
+                            setting.s(c.text, v)
+                        };
+                    }
+                    break;
+                case 'displayedTexture':
+                    setting = Texture.SETTINGS[p.n];
+                    if (setting) {
+                        p.s = function(c, v) {if (c.displayedTexture) {setting.s(c.displayedTexture, v)}};
+                    }
+                    break;
+                case 'texture':
+                    setting = Texture.SETTINGS[p.n];
+                    if (setting) {
+                        p.s = function(c, v) {if (c.texture) {setting.s(c.texture, v)}};
+                    }
+                    break;
+                case 'component':
+                    setting = Component.SETTINGS[p.n];
+                    if (setting) {
+                        p.s = setting.s;
+                    }
+                    break;
+                default:    
+            }
 
-            var mf = Component.getMergeFunction(this._properties[i]) || null;
-            this._propertyMergers.push(mf);
+            if (!setting) {
+                console.error("Unknown animation property:" + (p.o ? p.o + "." : "") + p.n);
+                properties.splice(i, 1);
+                i--;
+                n--;
+                continue;
+            }
+
+            if (i == 0) {
+                this.mergeFunction = setting.m;
+            } else {
+                if (setting.m !== this.mergeFunction) {
+                    mergeFunctionConflict = true;
+                }
+            }
+        }
+        if (mergeFunctionConflict) {
+            console.error("You can't mix mergable and non-mergable properties in an animation action (" + (properties.map(function(p) {return (p.o ? p.o + "." : "") + p.n;})).join(",") + ")");
+            this.mergeFunction = null;
         }
 
-        this._properties = names;
+        this._properties = properties;
+    }
+});
+
+Object.defineProperty(AnimationAction.prototype, 'property', {
+    get: function() { return this.properties; },
+    set: function(v) {
+        this.properties = v;
+    }
+});
+
+Object.defineProperty(AnimationAction.prototype, 'p', {
+    get: function() { return this.properties; },
+    set: function(v) {
+        this.properties = v;
     }
 });
 
 Object.defineProperty(AnimationAction.prototype, 'value', {
-    get: function() { return this._value; },
     set: function(v) {
-        this._value = v;
+        this.setValue(v);
+    }
+});
+
+Object.defineProperty(AnimationAction.prototype, 'v', {
+    set: function(v) {
+        this.value = v;
     }
 });
 
@@ -7504,6 +7481,13 @@ Object.defineProperty(AnimationAction.prototype, 'resetValue', {
     set: function(v) {
         this._resetValue = v;
         this.hasResetValue = true;
+    }
+});
+
+Object.defineProperty(AnimationAction.prototype, 'rv', {
+    get: function() { return this.resetValue; },
+    set: function(v) {
+        this.resetValue = v;
     }
 });
 
@@ -7829,7 +7813,7 @@ TimedAnimation.prototype.applyTransforms = function() {
         // After being stopped, reset all values to their start positions.
         var n = this.actions.length;
         for (var i = 0; i < n; i++) {
-            this.actions[i].resetTransforms(this.amplitude);
+            this.actions[i].resetTransforms();
         }
     } else {
         // Apply possible fade out effect.
@@ -7842,7 +7826,7 @@ TimedAnimation.prototype.applyTransforms = function() {
 
         var n = this.actions.length;
         for (var i = 0; i < n; i++) {
-            this.actions[i].applyTransforms(p, this.getFrameForProgress(p), this.amplitude, factor);
+            this.actions[i].applyTransforms(p, this.getFrameForProgress(p), factor);
         }
     }
 };

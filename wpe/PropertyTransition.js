@@ -14,17 +14,17 @@ function PropertyTransition(component, property) {
 
     this.property = property;
 
-    this.propertyIndex = Component.getPropertyIndex(property);
+    this.setting = Component.SETTINGS[property];
 
-    Transition.call(this, Component.propertyGetters[this.propertyIndex](this.component));
+    Transition.call(this, this.setting.g(this.component));
 
     /**
      * The merge function. If null then use plain numeric interpolation merge.
      * @type {Function}
      */
-    this.mergeFunction = Component.getMergeFunction(property);
+    this.mergeFunction = this.setting.m;
 
-    this.valueSetterFunction = Component.propertySettersFinal[this.propertyIndex];
+    this.valueSetterFunction = this.setting.sf;
 
 }
 
@@ -35,12 +35,7 @@ PropertyTransition.prototype.setValue = function(v) {
 };
 
 PropertyTransition.prototype.getMergedValue = function(v) {
-    if (!this.mergeFunction) {
-        // Numeric merge. Inline for performance.
-        return this.targetValue * v + this.startValue * (1 - v);
-    } else {
-        return this.mergeFunction(this.targetValue, this.startValue, v);
-    }
+    return this.mergeFunction(this.targetValue, this.startValue, v);
 };
 
 PropertyTransition.prototype.activate = function() {

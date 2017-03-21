@@ -28,6 +28,8 @@ module.exports = function(grunt) {
                     'wpe/RenderItem.js',
                     'wpe/UComponent.js',
                     'wpe/UComponentContext.js',
+                    'wpe/helpers/Tools.js',
+                    'wpe/helpers/List.js',
                     'browser/WebAdapter.js'
                 ],
                 dest : 'dist/wpe.js'
