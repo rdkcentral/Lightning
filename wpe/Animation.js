@@ -90,7 +90,7 @@ Animation.prototype.applyTransforms = function() {
 
     var n = this.actions.length;
     for (var i = 0; i < n; i++) {
-        this.actions[i].applyTransforms(p, this.getFrameForProgress(p), 1);
+        this.actions[i].applyTransforms(p, 1);
     }
 };
 

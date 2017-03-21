@@ -252,7 +252,8 @@ AnimationAction.prototype.getValue = function(item, p) {
     // Found it.
     if (item.f) {
         var o = (p - item.p) * item.idp;
-        return item.v(o, p);
+
+        return item.v(o, p, this.animation.getFrameForProgress(p));
     } else {
         return item.v;
     }
@@ -269,7 +270,7 @@ AnimationAction.prototype.getResetValue = function() {
     return 0;
 };
 
-AnimationAction.prototype.applyTransforms = function(p, f, m) {
+AnimationAction.prototype.applyTransforms = function(p, m) {
     if (!this._properties.length) {
         return;
     }

@@ -340,7 +340,7 @@ TimedAnimation.prototype.applyTransforms = function() {
 
         var n = this.actions.length;
         for (var i = 0; i < n; i++) {
-            this.actions[i].applyTransforms(p, this.getFrameForProgress(p), factor);
+            this.actions[i].applyTransforms(p, factor);
         }
     }
 };
