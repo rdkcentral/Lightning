@@ -333,14 +333,12 @@ TimedAnimation.prototype.applyTransforms = function() {
         // Apply possible fade out effect.
         var factor = 1;
         if (this.state == TimedAnimation.STATES.STOPPING && this.stopMethod == TimedAnimation.STOP_METHODS.FADE) {
-            factor = (1 - this.stoppingProgressTransition.getProgress());
+            factor = (1 - this.stoppingProgressTransition.getDrawValue());
         }
-
-        var p = this.progressFunction(this.p);
 
         var n = this.actions.length;
         for (var i = 0; i < n; i++) {
-            this.actions[i].applyTransforms(p, factor);
+            this.actions[i].applyTransforms(this.p, factor);
         }
     }
 };
@@ -398,9 +396,6 @@ Object.defineProperty(TimedAnimation.prototype, 'repeatOffset', {
 Object.defineProperty(TimedAnimation.prototype, 'stopMethod', {
     get: function() { return this._stopMethod; },
     set: function(v) {
-        if (!Utils.isInteger(v) || v < 0 || v > 4) {
-            throw new TypeError('stopMethod unknown');
-        }
         this._stopMethod = v;
     }
 });
@@ -453,14 +448,15 @@ TimedAnimation.STATES = {
 };
 
 TimedAnimation.STOP_METHODS = {
-    FADE: 0,
-    REVERSE: 1,
-    FORWARD: 2,
-    IMMEDIATE: 3,
-    ONETOTWO: 4
+    FADE: 'fade',
+    REVERSE: 'reverse',
+    FORWARD: 'forward',
+    IMMEDIATE: 'immediate',
+    ONETOTWO: 'onetotwo'
 };
 
 if (isNode) {
     module.exports = TimedAnimation;
     var Transition = require('./Transition');
+    var StageUtils = require('./StageUtils');
 }

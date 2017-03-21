@@ -14,7 +14,7 @@ function Transition(v) {
 
     this._delay = 0;
     this._duration = 1;
-    this._timingFunction = StageUtils.TIMING.EASE;
+    this.timingFunction = 'ease';
 
     /**
      * @access private
@@ -133,7 +133,7 @@ Transition.prototype.invokeListeners = function() {
  * Change current/target values while keeping the current transition ratio.
  */
 Transition.prototype.setValuesDynamic = function(targetValue, currentFinalValue) {
-    var v = this.timingFunction(this.p);
+    var v = this._timingFunctionImpl(this.p);
 
     if (v == 1) {
         this.targetValue = targetValue;
@@ -173,7 +173,7 @@ Transition.prototype.getDrawValue = function() {
     if (this.p >= 1) {
         return this.targetValue;
     } else {
-        var v = this.timingFunction(this.p);
+        var v = this._timingFunctionImpl(this.p);
         return this.getMergedValue(v);
     }
 };
@@ -209,10 +209,10 @@ Object.defineProperty(Transition.prototype, 'duration', {
 Object.defineProperty(Transition.prototype, 'timingFunction', {
     get: function() { return this._timingFunction; },
     set: function(v) {
-        if (!Utils.isFunction(v)) {
-            throw new TypeError('timingFunction must be a function');
+        if (v !== this._timingFunction) {
+            this._timingFunction = v;
+            this._timingFunctionImpl = StageUtils.getTimingFunction(v);
         }
-        this._timingFunction = v;
     }
 });
 

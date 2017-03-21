@@ -19,8 +19,6 @@ function Animation(stage) {
 
     this.actions = [];
 
-    this._progressFunction = StageUtils.TIMING.LINEAR;
-
     /**
      * @access private
      */
@@ -86,11 +84,9 @@ Animation.prototype.getFrameForProgress = function(p) {
 };
 
 Animation.prototype.applyTransforms = function() {
-    var p = this.progressFunction(this.p);
-
     var n = this.actions.length;
     for (var i = 0; i < n; i++) {
-        this.actions[i].applyTransforms(p, 1);
+        this.actions[i].applyTransforms(this.p, 1);
     }
 };
 
@@ -100,16 +96,6 @@ Animation.prototype.resetTransforms = function() {
         this.actions[i].resetTransforms();
     }
 };
-
-Object.defineProperty(Animation.prototype, 'progressFunction', {
-    get: function() { return this._progressFunction; },
-    set: function(v) {
-        if (!Utils.isFunction(v)) {
-            throw new TypeError('progressFunction must be a function');
-        }
-        this._progressFunction = v;
-    }
-});
 
 Object.defineProperty(Animation.prototype, 'subject', {
     get: function() { return this._subject; },

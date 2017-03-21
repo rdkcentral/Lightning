@@ -26,13 +26,13 @@ bunny.t('x',{duration: 10, delay: 2});
 // bunny.x = 1050;
 bunny.rotation = 4;
 bunny.scale = 1;
-bunny.t('rotation',{duration: 5, delay: 2});
+bunny.t('rotation',{duration: 5, delay: 2, timingFunction: 'cubic-bezier(0,1,2.3,1.2)'});
 bunny.t('scale',{duration: 5, delay: 2});
 // bunny.rotation = 11;
 // bunny.scale = 30;
 
-var a = stage.root.tag('bunny').animation({duration: 3, autostop: true, actions: [
-//    {property: ['y'], value: {0:0,1:400}},
+var a = stage.root.tag('bunny').animation({duration: 3, autostop: true, stopMethodOptions: {timingFunction: 'linear', duration: 3}, actions: [
+    {property: ['y'], value: {0:0,1:400}},
     {property: ['color'], value: {0:0xFFFFFFFF,1:0xFFFF0000}},
 
     // {property: ['texture.w'], value: {0.5:26, 1: 0.001}}

@@ -175,16 +175,49 @@ StageUtils.getTimingBezier = function(a, b, c, d) {
     };
 };
 
-// Timing functions.
-StageUtils.TIMING = {
-    LINEAR: function(time) {return time;},
-    EASE: StageUtils.getTimingBezier(0.25,0.1,0.25,1.0),
-    EASE_IN: StageUtils.getTimingBezier(0.42,0,1.0,1.0),
-    EASE_IN_OUT: StageUtils.getTimingBezier(0.42,0,0.58,1.0),
-    EASE_OUT: StageUtils.getTimingBezier(0,0,0.58,1.0),
-    STEP_START: function() {return 1;},
-    STEP_END: function(time) {return time === 1 ? 1 : 0;},
-    BEZIER: function (a,b,c,d) {return StageUtils.getTimingBezier(a,b,c,d);}
+StageUtils.getTimingFunction = function(str) {
+    switch(str) {
+        case "linear":
+            return function(time) {return time};
+        case "ease":
+            return StageUtils.getTimingBezier(0.25,0.1,0.25,1.0);
+        case "ease-in":
+            return StageUtils.getTimingBezier(0.42,0,1.0,1.0);
+        case "ease-out":
+            return StageUtils.getTimingBezier(0,0,0.58,1.0);
+        case "ease-in-out":
+            return StageUtils.getTimingBezier(0.42,0,0.58,1.0);
+        case "step-start":
+            return function() {return 1};
+        case "step-end":
+            return function(time) {return time === 1 ? 1 : 0;};
+        default:
+            var s = "cubic-bezier(";
+            if (str && str.indexOf(s) === 0) {
+                var parts = str.substr(s.length, str.length - s.length - 1).split(",");
+                if (parts.length !== 4) {
+                    console.warn("Unknown timing function: " + str);
+
+                    // Fallback: use linear.
+                    return function(time) {return time};
+                }
+                var a = parseFloat(parts[0]);
+                var b = parseFloat(parts[1]);
+                var c = parseFloat(parts[2]);
+                var d = parseFloat(parts[3]);
+                if (isNaN(a) || isNaN(b) || isNaN(c) || isNaN(d)) {
+                    console.warn("Unknown timing function: " + str);
+                    // Fallback: use linear.
+                    return function(time) {return time};
+                }
+
+                return StageUtils.getTimingBezier(a,b,c,d);
+            } else {
+                console.warn("Unknown timing function: " + str);
+                // Fallback: use linear.
+                return function(time) {return time};
+            }
+    }
 };
 
 StageUtils.getSplineValueFunction = function(v1, v2, p1, p2, o1, i2, s1, s2) {
