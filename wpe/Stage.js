@@ -239,7 +239,7 @@ Stage.prototype.drawFrame = function() {
     this.currentTime = (new Date()).getTime();
 
     this.measureDetails && this.timeStart('frame start');
-    this.emit('frameStart');
+    if (this._eventsCount) this.emit('frameStart');
     this.measureDetails && this.timeEnd('frame start');
     this.state = Stage.STATES.TRANSITIONS;
 
@@ -255,7 +255,7 @@ Stage.prototype.drawFrame = function() {
 
     this.measureDetails && this.timeStart('update');
     this.state = Stage.STATES.UPDATE;
-    this.emit('update');
+    if (this._eventsCount) this.emit('update');
     this.measureDetails && this.timeEnd('update');
 
     if (this.textureManager.isFull()) {
@@ -277,7 +277,7 @@ Stage.prototype.drawFrame = function() {
 
     this.state = Stage.STATES.IDLE;
     this.measureDetails && this.timeStart('frame end');
-    this.emit('frameEnd');
+    if (this._eventsCount) this.emit('frameEnd');
     this.measureDetails && this.timeEnd('frame end');
     this.measure && this.timeEnd('total');
 

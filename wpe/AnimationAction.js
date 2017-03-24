@@ -62,7 +62,11 @@ AnimationAction.prototype.getAnimatedComponents = function() {
     }
 
     if (n === 1) {
-        return this.animation.subject.mtag(this.tags[0]);
+        if (this.tags[0] == '') {
+            return [this.animation.subject];
+        } else {
+            return this.animation.subject.mtag(this.tags[0]);
+        }
     } else {
         return this.getAnimatedMultiComponents();
     }
@@ -110,6 +114,8 @@ AnimationAction.prototype.setValue = function(def) {
 
                 obj.f = Utils.isFunction(obj.v);
                 obj.lv = obj.f ? obj.v(0, 0) : obj.v;
+                obj.h = null;
+                obj.l = false;
 
                 items.push(obj);
             }
@@ -195,10 +201,15 @@ AnimationAction.prototype.setValue = function(def) {
                 // Generate spline.
                 if (rgba) {
                     items[i].v = StageUtils.getSplineRgbaValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
+                    items[i].f = true;
                 } else {
-                    items[i].v = StageUtils.getSplineValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
+                    var h = StageUtils.getSplineValueFunctionHelpers(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
+                    if (h === null) {
+                        items[i].l = true;
+                    } else {
+                        items[i].h = h;
+                    }
                 }
-                items[i].f = true;
             }
         }
     }
@@ -226,11 +237,25 @@ AnimationAction.prototype.getItem = function(p) {
 };
 
 AnimationAction.prototype.getValue = function(item, p) {
-    // Found it.
-    if (item.f) {
-        var o = (p - item.p) * item.idp;
-
-        return item.v(o, p, this.animation.getFrameForProgress(p));
+    if (item.l) {
+        if (p == 0) {
+            return item.v;
+        } else if (p === 1) {
+            return item.ve;
+        } else {
+            return item.ve * p + item.v * (1 - p);
+        }
+    } else if (item.h) {
+        if (p == 0) {
+            return item.v;
+        } else if (p === 1) {
+            return item.ve;
+        } else {
+            return StageUtils.calculateSpline(item.h, p);
+        }
+    } else if (item.f) {
+        // Dynamic function call.
+        return item.v(o);
     } else {
         return item.v;
     }
@@ -253,6 +278,7 @@ AnimationAction.prototype.applyTransforms = function(p, m) {
     }
 
     var c = this.getAnimatedComponents();
+
     if (!c.length) {
         return;
     }
@@ -367,7 +393,7 @@ Object.defineProperty(AnimationAction.prototype, 'properties', {
         var n = vs.length;
         for (var i = 0; i < n; i++) {
             v = vs[i];
-            
+
             if (!Utils.isString(v)) {
                 throw new TypeError('property must be a string');
             }
@@ -386,9 +412,9 @@ Object.defineProperty(AnimationAction.prototype, 'properties', {
         var mergeFunctionConflict = false;
         for (i = 0, n = properties.length; i < n; i++) {
             var p = properties[i];
-            
+
             var name = p.n;
-            
+
             var index = name.indexOf('.');
             if (index >= 0) {
                 // Sub object.
@@ -397,7 +423,7 @@ Object.defineProperty(AnimationAction.prototype, 'properties', {
             } else {
                 p.o = 'component';
             }
-            
+
             var setting = null;
             switch(p.o) {
                 case 'text':
@@ -426,7 +452,7 @@ Object.defineProperty(AnimationAction.prototype, 'properties', {
                         p.s = setting.s;
                     }
                     break;
-                default:    
+                default:
             }
 
             if (!setting) {

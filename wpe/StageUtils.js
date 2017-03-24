@@ -220,28 +220,13 @@ StageUtils.getTimingFunction = function(str) {
     }
 };
 
-StageUtils.getSplineValueFunction = function(v1, v2, p1, p2, o1, i2, s1, s2) {
+StageUtils.getSplineValueFunctionHelpers = function(v1, v2, p1, p2, o1, i2, s1, s2) {
     // Normalize slopes because we use a spline that goes from 0 to 1.
     var dp = p2 - p1;
     s1 *= dp;
     s2 *= dp;
 
-    var helpers = StageUtils.getSplineHelpers(v1, v2, o1, i2, s1, s2);
-    if (!helpers) {
-        return function(p) {
-            if (p == 0) return v1;
-            if (p == 1) return v2;
-
-            return v2 * p + v1 * (1 - p);
-        };
-    } else {
-        return function(p) {
-            if (p == 0) return v1;
-            if (p == 1) return v2;
-
-            return StageUtils.calculateSpline(helpers, p);
-        };
-    }
+    return StageUtils.getSplineHelpers(v1, v2, o1, i2, s1, s2);
 };
 
 StageUtils.getSplineRgbaValueFunction = function(v1, v2, p1, p2, o1, i2, s1, s2) {
@@ -287,7 +272,6 @@ StageUtils.getSplineRgbaValueFunction = function(v1, v2, p1, p2, o1, i2, s1, s2)
             ]);
         };
     }
-
 };
 
 /**
@@ -403,6 +387,7 @@ StageUtils.calculateSpline = function(helpers, p) {
 
     return t;
 };
+
 
 if (isNode) {
     module.exports = StageUtils;

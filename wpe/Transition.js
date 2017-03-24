@@ -77,7 +77,7 @@ Transition.prototype.updateTargetValue = function(targetValue, startValue) {
 
         this.delayLeft = this.delay;
 
-        this.emit('start');
+        if (this._eventsCount) this.emit('start');
 
         if (this.isActive()) {
             this.activate();
@@ -100,7 +100,7 @@ Transition.prototype.progress = function(dt) {
                 dt = -this.delayLeft;
                 this.delayLeft = 0;
 
-                this.emit('delayEnd');
+                if (this._eventsCount) this.emit('delayEnd');
             } else {
                 return;
             }
@@ -123,9 +123,9 @@ Transition.prototype.progress = function(dt) {
 };
 
 Transition.prototype.invokeListeners = function() {
-    this.emit('progress', this.p);
+    if (this._eventsCount) this.emit('progress', this.p);
     if (this.p === 1) {
-        this.emit('finish');
+        if (this._eventsCount) this.emit('finish');
     }
 };
 
