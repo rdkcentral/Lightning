@@ -20,10 +20,10 @@ function AnimationAction(animation) {
 
     /**
      * The value items, ordered by progress offset.
-     * @type {{f: boolean, v: *, ..}[]}
+     * @type {AnimationActionItems}
      * @private
      */
-    this._items = [];
+    this._items = new AnimationActionItems(this);
 
     /**
      * The affected properties (names).
@@ -95,119 +95,7 @@ AnimationAction.prototype.getAnimatedMultiComponents = function() {
 };
 
 AnimationAction.prototype.setValue = function(def) {
-    var i, n;
-    if (!Utils.isPlainObject(def)) {
-        def = {0: def};
-    }
-
-    var items = [];
-    for (var key in def) {
-        if (def.hasOwnProperty(key)) {
-            var obj = def[key];
-            if (!Utils.isPlainObject(obj)) {
-                obj = {v: obj};
-            }
-
-            var p = parseFloat(key);
-            if (!isNaN(p) && p >= 0 && p <= 1) {
-                obj.p = p;
-
-                obj.f = Utils.isFunction(obj.v);
-                obj.lv = obj.f ? obj.v(0, 0) : obj.v;
-
-                items.push(obj);
-            }
-        }
-    }
-
-    // Sort by progress value.
-    items = items.sort(function(a, b) {return a.p - b.p});
-
-    n = items.length;
-
-    for (i = 0; i < n; i++) {
-        var last = (i == n - 1);
-        if (!items[i].hasOwnProperty('pe')) {
-            // Progress.
-            items[i].pe = last ? 1 : items[i + 1].p;
-        } else {
-            // Prevent multiple items at the same time.
-            var max = i < n - 1 ? items[i + 1].p : 1;
-            if (items[i].pe > max) {
-                items[i].pe = max;
-            }
-        }
-        if (items[i].pe === items[i].p) {
-            items[i].idp = 0;
-        } else {
-            items[i].idp = 1 / (items[i].pe - items[i].p);
-        }
-    }
-
-    if (this.mergeFunction) {
-        var rgba = (this.mergeFunction === StageUtils.mergeColors);
-
-        // Calculate bezier helper values.
-        for (i = 0; i < n; i++) {
-            if (!items[i].hasOwnProperty('sm')) {
-                // Smoothness.
-                items[i].sm = 0.5;
-            }
-            if (!items[i].hasOwnProperty('s')) {
-                // Slope.
-                if (i === 0 || i === n - 1) {
-                    // Horizontal slope at start and end.
-                    items[i].s = rgba ? [0, 0, 0, 0] : 0;
-                } else {
-                    var pi = items[i - 1];
-                    var ni = items[i + 1];
-                    if (pi.p === ni.p) {
-                        items[i].s = rgba ? [0, 0, 0, 0] : 0;
-                    } else {
-                        if (rgba) {
-                            var nc = StageUtils.getRgbaComponents(ni.lv);
-                            var pc = StageUtils.getRgbaComponents(pi.lv);
-                            var d = 1 / (ni.p - pi.p);
-                            items[i].s = [
-                                d * (nc[0] - pc[0]),
-                                d * (nc[1] - pc[1]),
-                                d * (nc[2] - pc[2]),
-                                d * (nc[3] - pc[3])
-                            ];
-                        } else {
-                            items[i].s = (ni.lv - pi.lv) / (ni.p - pi.p);
-                        }
-                    }
-                }
-            }
-        }
-
-        for (i = 0; i < n - 1; i++) {
-            // Calculate value function.
-            if (!items[i].f) {
-                var last = (i === n - 1);
-                if (!items[i].hasOwnProperty('sme')) {
-                    items[i].sme = last ? 0.5 : items[i + 1].sm;
-                }
-                if (!items[i].hasOwnProperty('se')) {
-                    items[i].se = last ? (rgba ? [0, 0, 0, 0] : 0) : items[i + 1].s;
-                }
-                if (!items[i].hasOwnProperty('ve')) {
-                    items[i].ve = last ? items[i].lv : items[i + 1].lv;
-                }
-
-                // Generate spline.
-                if (rgba) {
-                    items[i].v = StageUtils.getSplineRgbaValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
-                } else {
-                    items[i].v = StageUtils.getSplineValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
-                }
-                items[i].f = true;
-            }
-        }
-    }
-
-    this._items = items;
+    this._items.parseDefinition(def);
 };
 
 AnimationAction.prototype.getItem = function(p) {
@@ -229,29 +117,18 @@ AnimationAction.prototype.getItem = function(p) {
     return this._items[n - 1];
 };
 
-AnimationAction.prototype.getValue = function(item, p) {
-    // Found it.
-    if (item.f) {
-        var o = (p - item.p) * item.idp;
-
-        return item.v(o, p, this.animation.getFrameForProgress(p));
-    } else {
-        return item.v;
-    }
-};
-
 AnimationAction.prototype.getResetValue = function() {
     if (this.hasResetValue) {
         return this.resetValue;
     } else {
         if (this._items.length) {
-            return this._items[0].lv;
+            return this._items.lv[0];
         }
     }
     return 0;
 };
 
-AnimationAction.prototype.applyTransforms = function(p, m) {
+AnimationAction.prototype.applyTransforms = function(m) {
     if (!this._properties.length) {
         return;
     }
@@ -261,12 +138,11 @@ AnimationAction.prototype.applyTransforms = function(p, m) {
         return;
     }
 
-    var item = this.getItem(p);
-    if (!item) {
+    var v = this._items.getCurrentValue();
+
+    if (v === undefined) {
         return;
     }
-
-    var v = this.getValue(item, p);
 
     if (m !== 1) {
         var sv = this.getResetValue();
@@ -286,7 +162,6 @@ AnimationAction.prototype.applyTransforms = function(p, m) {
             }
         }
     }
-
 };
 
 AnimationAction.prototype.resetTransforms = function() {
@@ -505,4 +380,5 @@ if (isNode) {
     var Texture = require('./Texture');
     var TextRendererSettings = require('./TextRendererSettings');
     var StageUtils = require('./StageUtils');
+    var AnimationActionItems = require('./AnimationActionItems');
 }
