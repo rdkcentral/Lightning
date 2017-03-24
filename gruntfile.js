@@ -16,6 +16,7 @@ module.exports = function(grunt) {
                     'wpe/TextureAtlas.js',
                     'wpe/TextureAtlasTree.js',
                     'wpe/Component.js',
+                    'wpe/ComponentTags.js',
                     'wpe/ComponentText.js',
                     'wpe/TextRenderer.js',
                     'wpe/TextRendererSettings.js',

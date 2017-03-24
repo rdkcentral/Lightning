@@ -42,18 +42,6 @@ function AnimationAction(animation) {
     this.hasResetValue = false;
 
     /**
-     * Whether or not this action has complex tags (if not, we can choose a more performant path).
-     * @type {boolean}
-     */
-    this.hasComplexTags = false;
-
-    /**
-     * In case of hasComplexTags, the pre-split tags.
-     * @type {string[][]}
-     */
-    this.complexTags = null;
-
-    /**
      * Mergable function for values.
      * @type {Function}
      * @private
@@ -68,9 +56,22 @@ function AnimationAction(animation) {
  * Returns the components to be animated.
  */
 AnimationAction.prototype.getAnimatedComponents = function() {
-    if (!this.animation.subject) {
-        return false;
+    var n = this.tags.length;
+    if (!this.animation.subject || !n) {
+        return [];
     }
+
+    if (n === 1) {
+        return this.animation.subject.mtag(this.tags[0]);
+    } else {
+        return this.getAnimatedMultiComponents();
+    }
+};
+
+/**
+ * Returns the components to be animated.
+ */
+AnimationAction.prototype.getAnimatedMultiComponents = function() {
     var i, n = this.tags.length, j, m, k, l;
 
     var taggedComponents = [];
@@ -78,34 +79,10 @@ AnimationAction.prototype.getAnimatedComponents = function() {
         if (this.tags[i] === '') {
             taggedComponents.push(this.animation.subject);
         } else {
-            if (!this.hasComplexTags || (this.complexTags[i].length === 1)) {
-                var comps = this.animation.subject.mtag(this.tags[i]);
-                if (n === 1) {
-                    taggedComponents = comps;
-                } else {
-                    m = comps.length;
-                    for (j = 0; j < m; j++) {
-                        taggedComponents.push(comps[j]);
-                    }
-                }
-            } else {
-                // Complex path: check hierarchically.
-                var tagPath = this.complexTags[i];
-                l = tagPath.length;
-                var finalComps = [this.animation.subject];
-                for (k = 0; k < l; k++) {
-                    m = finalComps.length;
-                    var newFinalComps = [];
-                    for (j = 0; j < m; j++) {
-                        newFinalComps = newFinalComps.concat(finalComps[j].mtag(tagPath[k]));
-                    }
-                    finalComps = newFinalComps;
-                }
-
-                m = finalComps.length;
-                for (j = 0; j < m; j++) {
-                    taggedComponents.push(finalComps[j]);
-                }
+            var comps = this.animation.subject.mtag(this.tags[i]);
+            m = comps.length;
+            for (j = 0; j < m; j++) {
+                taggedComponents.push(comps[j]);
             }
         }
     }
@@ -275,6 +252,11 @@ AnimationAction.prototype.applyTransforms = function(p, m) {
         return;
     }
 
+    var c = this.getAnimatedComponents();
+    if (!c.length) {
+        return;
+    }
+
     var item = this.getItem(p);
     if (!item) {
         return;
@@ -292,18 +274,11 @@ AnimationAction.prototype.applyTransforms = function(p, m) {
     // Apply transformation to all components.
     var n = this._properties.length;
 
-    var c = this.getAnimatedComponents();
     var tcl = c.length;
     for (var i = 0; i < n; i++) {
         for (var j = 0; j < tcl; j++) {
             if (this._properties[i].s) {
                 this._properties[i].s(c[j], v);
-            } else {
-                if (this._properties[i].o) {
-                    c[j][this._properties[i].o][this._properties[i].n] = v;
-                } else {
-                    c[j][this._properties[i].n] = v;
-                }
             }
         }
     }
@@ -363,24 +338,6 @@ Object.defineProperty(AnimationAction.prototype, 'tags', {
             v = [v];
         }
         this._tags = v;
-
-        this.hasComplexTags = false;
-        var i, n = v.length;
-        for (i = 0; i < n; i++) {
-            if (v[i].indexOf('.') !== -1) {
-                this.hasComplexTags = true;
-                break;
-            }
-        }
-
-        if (this.hasComplexTags) {
-            this.complexTags = new Array(n);
-            for (i = 0; i < n; i++) {
-                this.complexTags[i] = v[i].split('.');
-            }
-        } else {
-            this.complexTags = null;
-        }
     }
 });
 
