@@ -114,8 +114,6 @@ AnimationAction.prototype.setValue = function(def) {
 
                 obj.f = Utils.isFunction(obj.v);
                 obj.lv = obj.f ? obj.v(0, 0) : obj.v;
-                obj.h = null;
-                obj.l = false;
 
                 items.push(obj);
             }
@@ -201,15 +199,10 @@ AnimationAction.prototype.setValue = function(def) {
                 // Generate spline.
                 if (rgba) {
                     items[i].v = StageUtils.getSplineRgbaValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
-                    items[i].f = true;
                 } else {
-                    var h = StageUtils.getSplineValueFunctionHelpers(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
-                    if (h === null) {
-                        items[i].l = true;
-                    } else {
-                        items[i].h = h;
-                    }
+                    items[i].v = StageUtils.getSplineValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
                 }
+                items[i].f = true;
             }
         }
     }
@@ -237,25 +230,11 @@ AnimationAction.prototype.getItem = function(p) {
 };
 
 AnimationAction.prototype.getValue = function(item, p) {
-    if (item.l) {
-        if (p == 0) {
-            return item.v;
-        } else if (p === 1) {
-            return item.ve;
-        } else {
-            return item.ve * p + item.v * (1 - p);
-        }
-    } else if (item.h) {
-        if (p == 0) {
-            return item.v;
-        } else if (p === 1) {
-            return item.ve;
-        } else {
-            return StageUtils.calculateSpline(item.h, p);
-        }
-    } else if (item.f) {
-        // Dynamic function call.
-        return item.v(o);
+    // Found it.
+    if (item.f) {
+        var o = (p - item.p) * item.idp;
+
+        return item.v(o, p, this.animation.getFrameForProgress(p));
     } else {
         return item.v;
     }
@@ -278,7 +257,6 @@ AnimationAction.prototype.applyTransforms = function(p, m) {
     }
 
     var c = this.getAnimatedComponents();
-
     if (!c.length) {
         return;
     }
