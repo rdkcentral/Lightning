@@ -24,6 +24,7 @@ module.exports = function(grunt) {
                     'wpe/PropertyTransition.js',
                     'wpe/Animation.js',
                     'wpe/AnimationAction.js',
+                    'wpe/AnimationActionItems.js',
                     'wpe/TimedAnimation.js',
                     'wpe/Renderer.js',
                     'wpe/RenderItem.js',
