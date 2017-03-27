@@ -21,10 +21,10 @@ Install the dependencies and follow the installation instructions of node-canvas
 You start by initializing a Stage object. For a web browser:
 
 ```javascript
-    var options = {w: 1280, h: 720, glClearColor: 0xFF000000};
-    var stage = new Stage(options);
+var options = {w: 1280, h: 720, glClearColor: 0xFF000000};
+var stage = new Stage(options);
 
-    document.body.appendChild(stage.getCanvas());
+document.body.appendChild(stage.getCanvas());
 ```
 
 This initializes a new stage. The stage creates a canvas of the specified width and height for drawing, and uses the specified background color (in ARGB hexadecimal format). You should then get it using stage.getCanvas() add it to the DOM tree. You can also supply your own canvas object ny using the reuseCanvas option
@@ -32,10 +32,10 @@ This initializes a new stage. The stage creates a canvas of the specified width 
 For Node.js:
 
 ```javascript
-    var Stage = require('../../wpe');
+var Stage = require('../../wpe');
 
-    var options = {w: 1280, h: 720, glClearColor: 0xFF000000, window: {title: "Usage example", fullscreen: false}};
-    var stage = new Stage(options);
+var options = {w: 1280, h: 720, glClearColor: 0xFF000000, window: {title: "Usage example", fullscreen: false}};
+var stage = new Stage(options);
 ```
 
 This is similar as for the web browser, but node-wpe-webgl is used as OpenGL rendering target. This module allows some options for initialization that can be set in the window property. See https://github.com/WebPlatformForEmbedded/node-wpe-webgl#options.
@@ -57,19 +57,19 @@ This is similar as for the web browser, but node-wpe-webgl is used as OpenGL ren
 ## Rendering tree
 The `stage.root` property is the root of the rendering tree. It is an object of type `Component`, to which you can add other new components to it to define what should be rendered within the stage. The tree consists **only** out of objects of the Component type. Components are monolithical objects: they can be images, rectangles, texts or just containers, based on how the properties are set (mostly for performance reasons).
 
-A typical example usage:
+Example:
 
 ```javascript
-    var basePath = (isNode ? __dirname + '/' : './');
-    stage.root.add([
-        {tag: 'bg', rect: true, x: 100, y: 100, w: 1080, h: 520, colorTop: 0xFFFF0000, colorBottom: 0xFFFF6666, children: [
-            {tag: 'hello', text: {text: "hello world", fontSize: 200}, x: 540, y: 260, mountX: 0.5, mountY: 0.5, alpha: 0.5},
-            {tag: 'bunnies', x: 150, y: 150, w: 780, h: 220, clipping: true, borderWidth: 10, borderColor: 0xFF000000, children: [
-                {src: basePath + 'bunny.png', x: 20, y: 200, scale: 8, rotation: 0.3},
-                {src: basePath + 'bunny.png', x: 760, y: 200, scale: 8, rotation: -0.3}
-            ]}
+var basePath = (isNode ? __dirname + '/' : './');
+stage.root.add([
+    {tag: 'bg', rect: true, x: 100, y: 100, w: 1080, h: 520, colorTop: 0xFFFF0000, colorBottom: 0xFFFF6666, children: [
+        {tag: 'hello', text: {text: "hello world", fontSize: 200}, x: 540, y: 260, mountX: 0.5, mountY: 0.5, alpha: 0.5},
+        {tag: 'bunnies', x: 150, y: 150, w: 780, h: 220, clipping: true, borderWidth: 10, borderColor: 0xFF000000, children: [
+            {src: basePath + 'bunny.png', x: 20, y: 200, scale: 8, rotation: 0.3},
+            {src: basePath + 'bunny.png', x: 760, y: 200, scale: 8, rotation: -0.3}
         ]}
-    ]);
+    ]}
+]);
 ```
 
 ## Stopping
