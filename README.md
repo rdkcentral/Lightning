@@ -20,19 +20,23 @@ Install the dependencies and follow the installation instructions of node-canvas
 
 You start by initializing a Stage object. For a web browser:
 
+```javascript
     var options = {w: 1280, h: 720, glClearColor: 0xFF000000};
     var stage = new Stage(options);
 
     document.body.appendChild(stage.getCanvas());
+```
 
 This initializes a new stage. The stage creates a canvas of the specified width and height for drawing, and uses the specified background color (in ARGB hexadecimal format). You should then get it using stage.getCanvas() add it to the DOM tree. You can also supply your own canvas object ny using the reuseCanvas option
 
 For Node.js:
 
+```javascript
     var Stage = require('../../wpe');
 
     var options = {w: 1280, h: 720, glClearColor: 0xFF000000, window: {title: "Usage example", fullscreen: false}};
     var stage = new Stage(options);
+```
 
 This is similar as for the web browser, but node-wpe-webgl is used as OpenGL rendering target. This module allows some options for initialization that can be set in the window property. See https://github.com/WebPlatformForEmbedded/node-wpe-webgl#options.
 
@@ -55,6 +59,7 @@ The `stage.root` property is the root of the rendering tree. It is an object of 
 
 A typical example usage:
 
+```javascript
     var basePath = (isNode ? __dirname + '/' : './');
     stage.root.add([
         {tag: 'bg', rect: true, x: 100, y: 100, w: 1080, h: 520, colorTop: 0xFFFF0000, colorBottom: 0xFFFF6666, children: [
@@ -65,7 +70,7 @@ A typical example usage:
             ]}
         ]}
     ]);
-
+```
 
 ## Stopping
 When you want to gracefully stop your Node.js application, you must call `stage.stop()`. Otherwise Node.js will stay running forever.
