@@ -54,6 +54,7 @@ This is similar as for the web browser, but node-wpe-webgl is used as OpenGL ren
 The `stage.root` property is the root of the rendering tree. It is an object of type `Component`, to which you can add other new components to it to define what should be rendered within the stage. The tree consists **only** out of objects of the Component type. Components are monolithical objects: they can be images, rectangles, texts or just containers, based on how the properties are set (mostly for performance reasons).
 
 A typical example usage:
+
     var basePath = (isNode ? __dirname + '/' : './');
     stage.root.add([
         {tag: 'bg', rect: true, x: 100, y: 100, w: 1080, h: 520, colorTop: 0xFFFF0000, colorBottom: 0xFFFF6666, children: [
