@@ -72,7 +72,8 @@ ComponentText.prototype.createTextureSource = function() {
         // Generate the image.
         var rval = tr.draw();
         var renderInfo = rval.renderInfo;
-        cb(rval.canvas, {renderInfo: renderInfo});
+
+        cb(rval.canvas, {renderInfo: renderInfo, precision: rval.renderInfo.precision});
     }, tr.settings.getTextureId());
 };
 

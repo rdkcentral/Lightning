@@ -21,7 +21,7 @@ var TextRendererSettings = function() {
     this.offsetY = this._offsetY = null;
     this.maxLines = this._maxLines = 0;
     this.maxLinesSuffix = this._maxLinesSuffix = "..";
-    this.precision = this._precision = 1;
+    this.precision = this._precision = null;
     this.textColor = this._textColor = 0xffffffff;
     this.paddingLeft = this._paddingLeft = 0;
     this.paddingRight = this._paddingRight = 0;
@@ -81,7 +81,7 @@ TextRendererSettings.prototype.getNonDefaults = function() {
     if (this.offsetY !== null) nonDefaults["offsetY"] = this.offsetY;
     if (this.maxLines !== 0) nonDefaults["maxLines"] = this.maxLines;
     if (this.maxLinesSuffix !== "..") nonDefaults["maxLinesSuffix"] = this.maxLinesSuffix;
-    if (this.precision !== 1) nonDefaults["precision"] = this.precision;
+    if (this.precision !== null) nonDefaults["precision"] = this.precision;
     if (this.textColor !== 0xffffffff) nonDefaults["textColor"] = this.textColor;
     if (this.paddingLeft !== 0) nonDefaults["paddingLeft"] = this.paddingLeft;
     if (this.paddingRight !== 0) nonDefaults["paddingRight"] = this.paddingRight;
@@ -121,7 +121,7 @@ TextRendererSettings.prototype.getTextureId = function() {
     if (this.offsetY !== null) parts.push("oy" + this.offsetY);
     if (this.maxLines !== 0) parts.push("ml" + this.maxLines);
     if (this.maxLinesSuffix !== "..") parts.push("ms" + this.maxLinesSuffix);
-    if (this.precision !== 1) parts.push("pc" + this.precision);
+    if (this.precision !== null) parts.push("pc" + this.precision);
     if (this.textColor !== 0xffffffff) parts.push("co" + this.textColor.toString(16));
     if (this.paddingLeft !== 0) parts.push("pl" + this.paddingLeft);
     if (this.paddingRight !== 0) parts.push("pr" + this.paddingRight);

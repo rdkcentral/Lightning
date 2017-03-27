@@ -49,6 +49,8 @@ function Stage(options) {
     }
 
     this.defaultFontFace = (options && options.defaultFontFace) || "Arial";
+    
+    this.defaultPrecision = (options && options.defaultPrecision) || 1;
 
     this.fixedDt = (options && options.fixedDt) || 0;
 

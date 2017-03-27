@@ -54,12 +54,6 @@ function Texture(manager, source) {
     this.clipping = false;
 
     /**
-     * Precision (resolution, 1 = normal, 2 = twice as big as should be shown).
-     * @type {number}
-     */
-    this._precision = 1;
-
-    /**
      * All active Components that are using this texture (either as texture or displayedTexture, or both).
      * @type {Set<Component>}
      */
@@ -179,7 +173,6 @@ Texture.prototype.getNonDefaults = function() {
     if (this.y !== 0) nonDefaults['y'] = this.x;
     if (this.w !== 0) nonDefaults['w'] = this.x;
     if (this.h !== 0) nonDefaults['h'] = this.x;
-    if (this.precision !== 1) nonDefaults['precision'] = this.precision;
     return nonDefaults;
 };
 
@@ -235,31 +228,11 @@ Object.defineProperty(Texture.prototype, 'h', {
     }
 });
 
-Object.defineProperty(Texture.prototype, 'precision', {
-    get: function() {
-        return this._precision;
-    },
-    set: function(v) {
-        if (this._precision !== v) {
-            this._precision = v;
-
-            var self = this;
-            this.components.forEach(function(component) {
-                // Ignore if not the currently displayed texture.
-                if (component.displayedTexture === self) {
-                    component.displayedTextureClippingChanged();
-                }
-            });
-        }
-    }
-});
-
 Texture.SETTINGS = {
     'x': {s: function(obj, value) {obj.x = value}, m: StageUtils.mergeNumbers},
     'y': {s: function(obj, value) {obj.y = value}, m: StageUtils.mergeNumbers},
     'w': {s: function(obj, value) {obj.w = value}, m: StageUtils.mergeNumbers},
-    'h': {s: function(obj, value) {obj.h = value}, m: StageUtils.mergeNumbers},
-    'precision': {s: function(obj, value) {obj.precision = value}, m: StageUtils.mergeNumbers}
+    'h': {s: function(obj, value) {obj.h = value}, m: StageUtils.mergeNumbers}
 };
 
 Texture.id = 0;

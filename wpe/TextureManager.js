@@ -193,7 +193,7 @@ TextureManager.prototype.loadTexture = function(texture) {
 
                             textureSource.w = source.width || options.w;
                             textureSource.h = source.height || options.h;
-                            textureSource.precision = (options && options.precision) || 1;
+                            textureSource.precision = options.precision || 1;
 
                             if (options && options.renderInfo) {
                                 // Assign to id in cache so that it can be reused.

@@ -31,7 +31,7 @@ var UComponentContext = function() {
 };
 
 UComponentContext.prototype.setStage = function(stage) {
-    this.textureAtlasGlTexture = stage.textureAtlas.texture;
+    this.textureAtlasGlTexture = stage.textureAtlas ? stage.textureAtlas.texture : null;
     this.rectangleTextureSource = stage.getRectangleTexture().source;
 
     if (stage.debugTextureAtlas) {

@@ -3,7 +3,7 @@ if (isNode) {
     var Stage = require('../../wpe');
 }
 
-var options = {w: 1280, h: 720, measureDetails: false, useTextureAtlas:true, glClearColor: [1, 1, 1, 1], window: {title: "Clipping demo", fullscreen: false}};
+var options = {w: 1280, h: 720, rw: 1280, rh: 720, precision: 1, measureDetails: false, useTextureAtlas:true, glClearColor: [0, 0, 0, 1], window: {title: "Clipping demo", fullscreen: false}};
 var stage = new Stage(options);
 
 if (!isNode) {

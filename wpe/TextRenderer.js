@@ -16,10 +16,15 @@ function TextRenderer(stage, settings) {
     this.context = null;
 }
 
+TextRenderer.prototype.getPrecision = function() {
+    return (this.settings.precision || this.stage.defaultPrecision || 1);
+};
+
 TextRenderer.prototype.setFontProperties = function(withPrecision) {
     var ff = this.settings.fontFace || this.stage.defaultFontFace;
     var fonts = '"' + (Utils.isArray(ff) ? this.settings.fontFace.join('","') : ff) + '"';
-    this.context.font = this.settings.fontStyle + " " + (this.settings.fontSize * (withPrecision ? this.settings.precision : 1)) + "px " + fonts;
+    var precision = (withPrecision ? this.getPrecision() : 1);
+    this.context.font = this.settings.fontStyle + " " + (this.settings.fontSize * precision) + "px " + fonts;
     this.context.textBaseline = this.settings.textBaseline;
 };
 
@@ -42,7 +47,7 @@ TextRenderer.prototype.draw = function(noDraw) {
     this.setFontProperties(false);
 
     // Total width.
-    var width = this.settings.w || 2048;
+    var width = this.settings.w || (2048 / this.getPrecision());
 
     // Inner width.
     var innerWidth = width - (this.settings.paddingLeft + this.settings.paddingRight);
@@ -130,9 +135,12 @@ TextRenderer.prototype.draw = function(noDraw) {
 
     var offsetY = this.settings.offsetY === null ? this.settings.fontSize : this.settings.offsetY;
 
-    renderInfo.w = width;
-    renderInfo.h = height;
+    var precision = this.getPrecision();
+
+    renderInfo.w = width * precision;
+    renderInfo.h = height * precision;
     renderInfo.lines = lines;
+    renderInfo.precision = precision;
 
     if (!noDraw) {
         if (!width) {
@@ -154,14 +162,14 @@ TextRenderer.prototype.draw = function(noDraw) {
         }
 
         // Get corrected precision so that text
-        this.canvas.width = Math.ceil(width * this.settings.precision);
-        this.canvas.height = Math.ceil(height * this.settings.precision);
+        this.canvas.width = Math.ceil(width * precision);
+        this.canvas.height = Math.ceil(height * precision);
 
         // After changing the canvas, we need to reset the properties.
         this.setFontProperties(true);
 
         if (this.settings.cutSx || this.settings.cutSy) {
-            this.context.translate(-this.settings.cutSx, -this.settings.cutSy);
+            this.context.translate(-(this.settings.cutSx * precision), -(this.settings.cutSy * precision));
         }
 
         var linePositionX;
@@ -181,21 +189,21 @@ TextRenderer.prototype.draw = function(noDraw) {
             }
             linePositionX += this.settings.paddingLeft;
 
-            drawLines.push({text: lines[i], x: linePositionX * this.settings.precision, y: linePositionY * this.settings.precision, w: lineWidths[i] * this.settings.precision});
+            drawLines.push({text: lines[i], x: linePositionX * precision, y: linePositionY * precision, w: lineWidths[i] * precision});
         }
 
         // Highlight.
         if (this.settings.highlight) {
             var color = this.settings.highlightColor || 0x00000000;
-            var hlHeight = (this.settings.highlightHeight || this.settings.fontSize * 1.5) * this.settings.precision;
-            var offset = (this.settings.highlightOffset !== null ? this.settings.highlightOffset : -0.5 * this.settings.fontSize) * this.settings.precision;
-            var paddingLeft = (this.settings.highlightPaddingLeft !== null ? this.settings.highlightPaddingLeft : this.settings.paddingLeft) * this.settings.precision;
-            var paddingRight = (this.settings.highlightPaddingRight !== null ? this.settings.highlightPaddingRight : this.settings.paddingRight) * this.settings.precision;
+            var hlHeight = (this.settings.highlightHeight || this.settings.fontSize * 1.5);
+            var offset = (this.settings.highlightOffset !== null ? this.settings.highlightOffset : -0.5 * this.settings.fontSize);
+            var paddingLeft = (this.settings.highlightPaddingLeft !== null ? this.settings.highlightPaddingLeft : this.settings.paddingLeft);
+            var paddingRight = (this.settings.highlightPaddingRight !== null ? this.settings.highlightPaddingRight : this.settings.paddingRight);
 
             this.context.fillStyle = StageUtils.getRgbaString(color);
             for (i = 0; i < drawLines.length; i++) {
                 var drawLine = drawLines[i];
-                this.context.fillRect(drawLine.x - paddingLeft, drawLine.y + offset, drawLine.w + paddingRight + paddingLeft, hlHeight);
+                this.context.fillRect((drawLine.x - paddingLeft) * precision, (drawLine.y + offset) * precision, (drawLine.w + paddingRight + paddingLeft) * precision, hlHeight * precision);
             }
         }
 
@@ -205,9 +213,9 @@ TextRenderer.prototype.draw = function(noDraw) {
             prevShadowSettings = [this.context.shadowColor, this.context.shadowOffsetX, this.context.shadowOffsetY, this.context.shadowBlur];
 
             this.context.shadowColor = StageUtils.getRgbaString(this.settings.shadowColor);
-            this.context.shadowOffsetX = this.settings.shadowOffsetX * this.settings.precision;
-            this.context.shadowOffsetY = this.settings.shadowOffsetY * this.settings.precision;
-            this.context.shadowBlur = this.settings.shadowBlur * this.settings.precision;
+            this.context.shadowOffsetX = this.settings.shadowOffsetX * precision;
+            this.context.shadowOffsetY = this.settings.shadowOffsetY * precision;
+            this.context.shadowBlur = this.settings.shadowBlur * precision;
         }
 
         this.context.fillStyle = StageUtils.getRgbaString(this.settings.textColor);

@@ -1,3 +1,9 @@
+var isNode = !!(((typeof module !== "undefined") && module.exports));
+
+if (isNode) {
+    var Utils = require('./Utils');
+}
+
 var ComponentTags = function(component) {
     this.component = component;
 
@@ -536,3 +542,7 @@ ComponentTags.prototype.addCachedComplexTagParent = function(tag, parentTag) {
     }
     s.add(parentTag);
 };
+
+if (isNode) {
+    module.exports = ComponentTags;
+}

@@ -592,17 +592,9 @@ Component.prototype._getRenderWidth = function() {
         return this._w;
     } else if (this.texture && this.texture.source.glTexture) {
         // Texture already loaded, but not yet updated (probably because it's not active).
-        if (this.texture.precision != 1) {
-            return (this.texture.w || this.texture.source.w);
-        } else {
-            return (this.texture.w || this.texture.source.w) / this.texture.precision;
-        }
+        return (this.texture.w || (this.texture.source.w * this.texture.source.iprecision));
     } else if (this.displayedTexture) {
-        if (this.displayedTexture.precision != 1) {
-            return (this.displayedTexture.w || this.displayedTexture.source.w);
-        } else {
-            return (this.displayedTexture.w || this.displayedTexture.source.w) / this.displayedTexture.precision;
-        }
+        return (this.displayedTexture.w || (this.displayedTexture.source.w * this.displayedTexture.source.iprecision));
     } else {
         return 0;
     }
@@ -621,17 +613,9 @@ Component.prototype._getRenderHeight = function() {
         return this._h;
     } else if (this.texture && this.texture.source.glTexture) {
         // Texture already loaded, but not yet updated (probably because it's not active).
-        if (this.texture.precision != 1) {
-            return (this.texture.h || this.texture.source.h);
-        } else {
-            return (this.texture.h || this.texture.source.h) / this.texture.precision;
-        }
+        return (this.texture.h || this.texture.source.h) * this.texture.source.iprecision;
     } else if (this.displayedTexture) {
-        if (this.displayedTexture.precision != 1) {
-            return (this.displayedTexture.h || this.displayedTexture.source.h);
-        } else {
-            return (this.displayedTexture.h || this.displayedTexture.source.h) / this.displayedTexture.precision;
-        }
+        return (this.displayedTexture.h || this.displayedTexture.source.h) * this.displayedTexture.source.iprecision;
     } else {
         return 0;
     }
@@ -1852,8 +1836,8 @@ Object.defineProperty(Component.prototype, 'texture', {
                     if (this.active) {
                         // When the texture is changed, maintain the texture's sprite registry.
                         // While the displayed texture is different from the texture (not yet loaded), two textures are referenced.
-                        v.addComponent(this);
                         v.source.addComponent(this);
+                        v.addComponent(this);
                     }
 
                     if (v.source.glTexture) {
@@ -2084,31 +2068,33 @@ Component.prototype._updateTextureCoords = function() {
     if (this.displayedTexture && this.displayedTexture.source) {
         var displayedTexture = this.displayedTexture;
         var displayedTextureSource = this.displayedTexture.source;
-
+        
         var tx1 = 0, ty1 = 0, tx2 = 1.0, ty2 = 1.0;
         if (displayedTexture.clipping) {
             // Apply texture clipping.
-            var iw, ih, rw, rh;
-            iw = 1 / displayedTextureSource.w;
-            ih = 1 / displayedTextureSource.h;
+            var w = displayedTextureSource.getRenderWidth();
+            var h = displayedTextureSource.getRenderHeight()
+            var ih, rw, rh;
+            iw = 1 / w;
+            ih = 1 / h;
 
             if (displayedTexture.w) {
                 rw = displayedTexture.w * iw;
             } else {
-                rw = (displayedTextureSource.w - displayedTexture.x) * iw;
+                rw = (w - displayedTexture.x) * iw;
             }
 
             if (displayedTexture.h) {
                 rh = displayedTexture.h * ih;
             } else {
-                rh = (displayedTextureSource.h - displayedTexture.y) * ih;
+                rh = (h - displayedTexture.y) * ih;
             }
 
             iw *= displayedTexture.x;
             ih *= displayedTexture.y;
 
-            tx1 = Math.min(1.0, Math.max(0, tx1 * rw + iw));
-            ty1 = Math.min(1.0, Math.max(ty1 * rh + ih));
+            tx1 = Math.min(1.0, Math.max(0, iw));
+            ty1 = Math.min(1.0, Math.max(ih));
             tx2 = Math.min(1.0, Math.max(tx2 * rw + iw));
             ty2 = Math.min(1.0, Math.max(ty2 * rh + ih));
         }
@@ -2122,8 +2108,8 @@ Component.prototype._updateTextureCoords = function() {
             var dax = (displayedTextureSource.w * textureAtlasI);
             var day = (displayedTextureSource.h * textureAtlasI);
 
-            tx1 = tx1 * dax + tax;
-            ty1 = ty1 * day + tay;
+            tx1 = tax;
+            ty1 = tay;
 
             tx2 = tx2 * dax + tax;
             ty2 = ty2 * day + tay;
@@ -2186,11 +2172,11 @@ for (var key in Component.SETTINGS) {
 
 Component.nTransitions = 24;
 
-
 if (isNode) {
     module.exports = Component;
     var Stage = require('./Stage');
     var PropertyTransition = require('./PropertyTransition');
     var Texture = require('./Texture');
     var ComponentText = require('./ComponentText');
+    var ComponentTags = require('./ComponentTags');
 }
