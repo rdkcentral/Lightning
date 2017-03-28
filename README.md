@@ -11,6 +11,7 @@ WPE UI Framework runs in a any modern web browser using **WebGL** and in **Node.
 ## Browser
 Include the script dist/wpe.js or dist/wpe.min.js.
 These files can be re-generated from source using the command:
+
     grunt wpe-browser
 
 ## Node.js:
