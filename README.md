@@ -2,7 +2,7 @@
 
 WPE UI Framework is a javascript 2d graphics rendering and animation library using (Web)GL. It's geared towards developing animated User Interfaces that run nicely on low-performance (embedded) devices. The framework has been optimized for high performance and low CPU/memory usage, and has been carefully tested for memory leaks.
 
-WPE UI Framework offers a **rendering tree** that can be modified using a very *simple* and *usable* API. The rendering tree consists of **components** that have several properties (x, y, rotation, alpha, etc). An image or rendered text can be attached to a component, which is then rendered immediately on the screen, in the right way as specified by the properties. This rendering tree is comparable to the HTML DOM but has a simplified set of features, renders much faster and is easier to manage in a dynamical way.
+WPE UI Framework offers a **rendering tree** that can be modified using a very *simple* and *usable* API. The rendering tree consists of **components** that have several properties (x, y, rotation, alpha, etc). An image or rendered text can be attached to a component, which is then rendered immediately on the screens. It is a bit like the HTML DOM tree but has a simplified set of features, renders much faster and is easier to manage in a dynamical way.
 
 WPE UI Framework runs in a any modern web browser using **WebGL** and in **Node.js** (version 4 or higher). For Node.js, this module depends on node-canvas for text creation, and node-wpe-webgl for providing a WebGL interface to the native hardware. Out of the box, supported targets include (desktop) Linux, OSX, Windows and the Raspberry PI!
 
@@ -18,7 +18,11 @@ Install the dependencies and follow the installation instructions of node-canvas
 
 # Basic usage
 
-You start by initializing a Stage object. For a web browser:
+This section describes how to initialize and use the framework step-by-step.
+
+## Initialisation
+
+For a web browser:
 
 ```javascript
 var options = {w: 1280, h: 720, glClearColor: 0xFF000000};
@@ -40,7 +44,7 @@ var stage = new Stage(options);
 
 This is similar as for the web browser, but node-wpe-webgl is used as OpenGL rendering target. This module allows some options for initialization that can be set in the window property. See https://github.com/WebPlatformForEmbedded/node-wpe-webgl#options.
 
-## Stage options
+### Initialisation options
 | Name            |Default value| Description                                                                                          |
 | --------------- |-------------|------------------------------------------------------------------------------------------------------|
 | w               |         1280| stage width in px                                                                                    |
@@ -55,6 +59,7 @@ This is similar as for the web browser, but node-wpe-webgl is used as OpenGL ren
 | window          |             | node-wpe-webgl specific options, see https://github.com/WebPlatformForEmbedded/node-wpe-webgl#options |
 
 ## Rendering tree
+
 The `stage.root` property is the root of the rendering tree. It is an object of type `Component`, to which you can add other new components to it to define what should be rendered within the stage. The tree consists **only** out of objects of the Component type. Components are monolithical objects: they can be images, rectangles, texts or just containers, based on how the properties are set (mostly for performance reasons).
 
 Example:
@@ -73,4 +78,4 @@ stage.root.add([
 ```
 
 ## Stopping
-When you want to gracefully stop your Node.js application, you must call `stage.stop()`. Otherwise Node.js will stay running forever.
+When you want to gracefully stop your Node.js application, you *must* call `stage.stop()`. Otherwise Node.js will stay running forever because the task queue will never be empty.
