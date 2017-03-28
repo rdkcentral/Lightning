@@ -39,7 +39,7 @@ For Node.js:
 ```javascript
 var Stage = require('../../wpe');
 
-var options = {w: 1280, h: 720, glClearColor: 0xFF000000, window: {title: "Usage example", fullscreen: false}};
+var options = {w: 1280, h: 720, glClearColor: 0xFF000000, window: {title: "Example", fullscreen: false}};
 var stage = new Stage(options);
 ```
 
