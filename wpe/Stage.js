@@ -50,7 +50,7 @@ function Stage(options) {
 
     this.defaultFontFace = (options && options.defaultFontFace) || "Arial";
     
-    this.defaultPrecision = (options && options.defaultPrecision) || 1;
+    this.defaultPrecision = (options && options.defaultPrecision) || (this.h / this.renderHeight);
 
     this.fixedDt = (options && options.fixedDt) || 0;
 
@@ -138,6 +138,10 @@ function Stage(options) {
      * @type {number}
      */
     this.zIndexUsage = 0;
+
+    this.profile = new Array(60);
+    this.innerProfile = new Array(10);
+    this.profileLast = 0;
 
     // Start.
     this.init();
@@ -231,7 +235,24 @@ Stage.prototype.addActiveAnimation = function(a) {
 };
 
 Stage.prototype.drawFrame = function() {
-    this.measure && this.timeStart('total');
+    if (this.measure) {
+        var s = this.adapter.getHrTime();
+        if (this.profileLast) {
+            var f = Math.max(Math.round((s - this.profileLast)/(3*16.6667)) - 1, 0);
+            if (f > 19) f = 19;
+            this.profile[f]++;
+
+            if (this.frameCounter % 100 == 0) {
+                console.log('F ' + this.profile.join(" "));
+                for (var i = 0; i < 20; i++) {
+                    this.profile[i] = 0;
+                }
+            }
+        }
+        this.profileLast = s;
+    }
+
+    // this.measure && this.timeStart('total');
     if (this.fixedDt) {
         this.dt = this.fixedDt;
     } else {
@@ -245,6 +266,7 @@ Stage.prototype.drawFrame = function() {
     this.measureDetails && this.timeEnd('frame start');
     this.state = Stage.STATES.TRANSITIONS;
 
+    s = this.adapter.getHrTime();
     this.measureDetails && this.timeStart('transitions');
     this.progressTransitions();
     this.measureDetails && this.timeEnd('transitions');
@@ -281,9 +303,23 @@ Stage.prototype.drawFrame = function() {
     this.measureDetails && this.timeStart('frame end');
     if (this._eventsCount) this.emit('frameEnd');
     this.measureDetails && this.timeEnd('frame end');
-    this.measure && this.timeEnd('total');
+    //this.measure && this.timeEnd('total');
 
     this.adapter.nextFrame(this.renderNeeded);
+
+    if (this.measure) {
+        s = this.adapter.getHrTime() - this.profileLast;
+        var f = Math.max(Math.round(s / (3 * 16.66667)) - 1, 0);
+        if (f > 19) f = 19;
+        this.innerProfile[f]++;
+
+        if (this.frameCounter % 100 == 0) {
+            console.log('I ' + this.innerProfile.join(" "));
+            for (var i = 0; i < 20; i++) {
+                this.innerProfile[i] = 0;
+            }
+        }
+    }
 
     this.frameCounter++;
 };
