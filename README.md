@@ -79,4 +79,4 @@ stage.root.add([
 ```
 
 ## Stopping
-When you want to gracefully stop your Node.js application, you *must* call `stage.stop()`. Otherwise Node.js will stay running forever because the task queue will never be empty.
+When you want to gracefully stop your Node.js application (or want to completely remove the stage from your webpage), you *must* call `stage.destroy()`. This will make sure that all resources are freed, and will stop the render loop, allowing Node.js to quit.
