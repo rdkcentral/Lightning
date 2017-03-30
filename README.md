@@ -89,7 +89,7 @@ Usage: `new Stage({w: 600, h: 600, ...})`.
 | rh              |          720| the px which corresponds the bottom edge of the stage                                                |
 | textureMemory   |         12e6| the amount of squared pixels that may be stored in GPU memory for texture storage / caching          |
 | glClearColor    |   0xFF000000| the background color (ARGB)                                                                          |
-| defaultFontFace |        Arial| the font face to use for rendering if none is explicitly specified                                   |
+| <a name="initialisation-options-default-font-face"></a>defaultFontFace |        Arial| the font face to use for rendering if none is explicitly specified                                   |
 | fixedDt         |            0| if specified, the ms to progress in each is fixed instead of dynamic                                 |
 | window          |             | node-wpe-webgl specific options, see https://github.com/WebPlatformForEmbedded/node-wpe-webgl#options |
 
@@ -129,7 +129,7 @@ Todo.
 | --------------------------------- |-------------|-------------|
 | text                              |           ""| the text to be shown |
 | fontSize                          |           40| text font size |
-| fontFace                          |      "Arial"| the font face (as used in CSS); may be an array to use (multiple) fallbacks. If nothing is specified, the  |
+| fontFace                          |      "Arial"| the font face (as used in CSS); may be an array to use (multiple) fallbacks. If nothing is specified, the [defaultFontFace](#initialisation-options-default-font-face) |
 
 ### Methods
 Todo.
