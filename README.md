@@ -92,3 +92,44 @@ Usage: `new Stage({w: 600, h: 600, ...})`.
 | defaultFontFace |        Arial| the font face to use for rendering if none is explicitly specified                                   |
 | fixedDt         |            0| if specified, the ms to progress in each is fixed instead of dynamic                                 |
 | window          |             | node-wpe-webgl specific options, see https://github.com/WebPlatformForEmbedded/node-wpe-webgl#options |
+
+### Methods
+Todo.
+
+### Events
+Todo.
+
+## Component
+
+### Properties
+
+| Name                              |Default value| Description |
+| --------------------------------- |-------------|-------------|
+| x, y                              |            0| Relative offset to the parent component in px |
+| w, h                              |            0| Width/height of the component in px (if applicable) |
+| scale(X,Y)                        |            1| Scales this component (and all descendants), relative to the pivot position |
+| rotation                          |            0| Rotation around the pivot point in radians |
+| pivot(X,Y)                        |          0.5| Specifies the pivot point for scale and rotation (0 = left/top, 1 = bottom/right) |
+| mount(X,Y)                        |            0| Specifies the alignment for the x, y offset (0 = left/top, 1 = bottom/right) |
+| alpha                             |            1| Opacity of this component (and all descendants) |
+| borderWidth(Top,Left,Right,Bottom)|            1| Border width |
+| borderColor(Top,Left,Right,Bottom)|   0xFFFFFFFF| Border color (ARGB integer) |
+| color(Top,Bottom)(Left,Right)     |   0xFFFFFFFF| Color/tinting/gradients of the drawn texture |
+| visible                           |         true| Toggles visibility for this component (and all descendants) |
+| zIndex                            |            0| Specifies drawing order (just as in HTML) |
+| forceZIndexContext                |        false| Creates a z-index stacking context without changing the drawing order of this component itself |
+| clipping                          |        false| Do not draw descendant component parts that are outside of this component (overflow:hidden) |
+| rect                              |        false| When set to true, this component becomes a colored rectangle |
+| src                               |         null| When set, this component will render the image; URL (Node.js / web) or file (Node.js) |
+| text                              |         null| When set, this component will render the text as specified (an object with the options specified below) |
+| texture                           |         null| When set, this component will render the custom texture (see Stage.getTexture(..)). By specifying a plain object with x,y,w,h properties you can affect the clipping |
+
+#### Text object properties
+| Name                              |Default value| Description |
+| --------------------------------- |-------------|-------------|
+| text                              |           ""| the text to be shown |
+| fontSize                          |           40| text font size |
+| fontFace                          |      "Arial"| the font face (as used in CSS); may be an array to use (multiple) fallbacks. If nothing is specified, the  |
+
+### Methods
+Todo.
