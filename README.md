@@ -70,8 +70,62 @@ stage.root.add([
 ```
 https://jsfiddle.net/basvanmeurs/4qy5j7am/
 
-Todo: quick start next steps
+## Dynamic changes
 
+You can dynamically change the rendering tree by using their tags:
+
+```javascript
+// Get a single component by tag, and modify properties.
+var bunniesCtr = stage.root.tag('bunnies');
+bunniesCtr.borderWidth -= 5;
+
+// You can access the component's children directly.
+var bunnies = bunniesCtr.children;
+bunnies.forEach(function(b) {
+  // Set properties using a JSON object.
+  b.set({alpha: 0.5, scale:8});
+
+  // Add tag for later use.
+  b.addTag('bunny');
+});
+
+// Use the just added tags, and clear the tags using a setting.
+bunniesCtr.stag('bunny', {borderWidth: 1, tags: []});
+
+// Because tags were just removed, this does nothing.
+bunniesCtr.stag('bunny', {borderWidth: 0});
+
+// Set by complex tag (set components tagged 'hello' that have an ancestor tagged 'bg').
+stage.root.stag('bg.hello', {text: {text: "Hello World"}, alpha: 1});
+```
+https://jsfiddle.net/basvanmeurs/m2z8ctu7/
+
+You can also create, add and remove components dynamically:
+
+```javascript
+// Add new branch.
+stage.root.tag('bunnies').add({tag: 'stuff', w: 400, h: 60, x: 50, y: 10, rect: true, color: 0xAAFFFFFF, borderWidth: 2, borderColor: 0xFF000000, children: [
+	{src: basePath + 'bunny.png', x: 10, y: 30, mountY: 0.5},
+  {text: {text: "this is a demo showing you how to define a branch of components via json and how to add that to the render branch.", fontSize: 12, lineHeight: 14, fontFace: ["Verdana", "Sans-Serif"], wordWrapWidth: 330}, x: 50, y:10, color: 0xFF000000}
+]});
+
+var c;
+setTimeout(function() {
+  // Remove the bunny.
+  c = stage.root.tag('stuff').children[0];
+	stage.root.tag('stuff').removeChild(c);
+
+  setTimeout(function() {
+    // Re-add the bunny, this time to the stage root.
+    stage.root.addChild(c);
+  }, 1000);
+}, 1000);
+```
+https://jsfiddle.net/basvanmeurs/r0hkamd7/
+
+## Transitions
+
+## Animations
 
 ## Stopping
 When you want to gracefully stop your Node.js application (or want to completely remove the stage from your webpage), you *must* call `stage.destroy()`. This will make sure that all resources are freed, and will stop the render loop, allowing Node.js to quit.
