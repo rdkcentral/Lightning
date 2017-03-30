@@ -80,7 +80,7 @@ stage.root.add([
     ]}
 ]);
 ```
-https://jsfiddle.net/vda3o8v6/
+https://jsfiddle.net/basvanmeurs/4qy5j7am/
 
 ## Stopping
 When you want to gracefully stop your Node.js application (or want to completely remove the stage from your webpage), you *must* call `stage.destroy()`. This will make sure that all resources are freed, and will stop the render loop, allowing Node.js to quit.
