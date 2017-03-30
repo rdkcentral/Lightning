@@ -1,10 +1,10 @@
-# WPE UI Framework
+# UI Framework
 
-WPE UI Framework is a javascript 2d graphics rendering and animation library using (Web)GL. It's geared towards developing animated User Interfaces that run nicely on low-performance (embedded) devices. The framework has been optimized for high performance and low CPU/memory usage, and has been carefully tested for memory leaks.
+UI Framework is a javascript 2d graphics rendering and animation library using (Web)GL. It's geared towards developing animated User Interfaces that run nicely on low-performance (embedded) devices. The framework has been optimized for high performance and low CPU/memory usage, and has been carefully tested for memory leaks.
 
-WPE UI Framework offers a **rendering tree** that can be modified using a very *simple* and *usable* API. The rendering tree consists of **components** that have several properties (x, y, rotation, alpha, etc). An image or rendered text can be attached to a component, which is then rendered immediately on the screens. It is a bit like the HTML DOM tree but has a simplified set of features, renders much faster and is easier to manage in a dynamical way.
+The framework offers a **rendering tree** that can be modified using a very *simple* and *usable* API. The rendering tree consists of **components** that have several properties (x, y, rotation, alpha, etc). An image or rendered text can be attached to a component, which is then rendered immediately on the screens. It is a bit like the HTML DOM tree but has a simplified set of features, renders much faster and is easier to manage in a dynamical way.
 
-WPE UI Framework runs in a any modern web browser using **WebGL** and in **Node.js** (version 4 or higher). For Node.js, this module depends on node-canvas for text creation, and node-wpe-webgl for providing a WebGL interface to the native hardware. Out of the box, supported targets include (desktop) Linux, OSX, Windows and the Raspberry PI!
+UI Framework runs in a any modern web browser using **WebGL** and in **Node.js** (version 4 or higher). For Node.js, this module depends on node-canvas for text creation, and node-wpe-webgl for providing a WebGL interface to the native hardware. Out of the box, supported targets include (desktop) Linux, OSX, Windows and the Raspberry PI!
 
 # Installation instructions
 
@@ -26,7 +26,7 @@ This section describes how to initialize and use the framework step-by-step.
 For a web browser:
 
 ```javascript
-var options = {w: 1280, h: 720, glClearColor: 0xFF000000};
+var options = {w: 600, h: 600, glClearColor: 0xFF000000};
 var stage = new Stage(options);
 
 document.body.appendChild(stage.getCanvas());
@@ -39,7 +39,7 @@ For Node.js:
 ```javascript
 var Stage = require('../../wpe');
 
-var options = {w: 1280, h: 720, glClearColor: 0xFF000000, window: {title: "Example", fullscreen: false}};
+var options = {w: 600, h: 600, glClearColor: 0xFF000000, window: {title: "Example", fullscreen: false}};
 var stage = new Stage(options);
 ```
 
@@ -66,17 +66,21 @@ The `stage.root` property is the root of the rendering tree. It is an object of 
 Example:
 
 ```javascript
+// Determine base path to be used for images.
+var isNode = !!(((typeof module !== "undefined") && module.exports));
 var basePath = (isNode ? __dirname + '/' : './');
+
 stage.root.add([
-    {tag: 'bg', rect: true, x: 100, y: 100, w: 1080, h: 520, colorTop: 0xFFFF0000, colorBottom: 0xFFFF6666, children: [
-        {tag: 'hello', text: {text: "hello world", fontSize: 200}, x: 540, y: 260, mountX: 0.5, mountY: 0.5, alpha: 0.5},
-        {tag: 'bunnies', x: 150, y: 150, w: 780, h: 220, clipping: true, borderWidth: 10, borderColor: 0xFF000000, children: [
-            {src: basePath + 'bunny.png', x: 20, y: 200, scale: 8, rotation: 0.3},
-            {src: basePath + 'bunny.png', x: 760, y: 200, scale: 8, rotation: -0.3}
+    {tag: 'bg', rect: true, x: 20, y: 20, w: 560, h: 560, colorTop: 0xFFFF0000, colorBottom: 0xFFFF6666, children: [
+        {tag: 'hello', text: {text: "hello world", fontSize: 100}, x: 280, y: 170, mountX: 0.5, mountY: 0.5, alpha: 0.5},
+        {tag: 'bunnies', x: 30, y: 30, w: 500, h: 500, clipping: true, borderWidth: 10, borderColor: 0xFF000000, children: [
+            {src: basePath + 'bunny.png', x: 20, y: 400, scale: 8, rotation: 0.3},
+            {src: basePath + 'bunny.png', x: 480, y: 400, scale: 8, rotation: -0.3}
         ]}
     ]}
 ]);
 ```
+https://jsfiddle.net/vda3o8v6/
 
 ## Stopping
 When you want to gracefully stop your Node.js application (or want to completely remove the stage from your webpage), you *must* call `stage.destroy()`. This will make sure that all resources are freed, and will stop the render loop, allowing Node.js to quit.
