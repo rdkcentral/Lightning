@@ -85,16 +85,16 @@ Usage: `new Stage({w: 600, h: 600, ...})`.
 
 | Name            |Default value| Description                                                                                          |
 | --------------- |-------------|------------------------------------------------------------------------------------------------------|
-| w               |         1280| stage width in px                                                                                    |
-| h               |          720| stage height in px                                                                                   |
-| reuseCanvas     |         null| canvas object to use instead of creating a new one (web only)                                        |
-| rw              |         1280| the px which corresponds the right edge of the stage                                                 |
-| rh              |          720| the px which corresponds the bottom edge of the stage                                                |
-| textureMemory   |         12e6| the amount of squared pixels that may be stored in GPU memory for texture storage / caching          |
-| glClearColor    |   0xFF000000| the background color (ARGB)                                                                          |
-| <a name="initialisation-options-default-font-face"></a>defaultFontFace |        Arial| the font face to use for rendering if none is explicitly specified                                   |
-| fixedDt         |            0| if specified, the ms to progress in each is fixed instead of dynamic                                 |
-| window          |             | node-wpe-webgl specific options, see https://github.com/WebPlatformForEmbedded/node-wpe-webgl#options |
+| `w`               |         `1280`| stage width in px                                                                                    |
+| `h`               |          `720`| stage height in px                                                                                   |
+| `reuseCanvas`     |         `null`| canvas object to use instead of creating a new one (web only)                                        |
+| `rw`              |         `1280`| the px which corresponds the right edge of the stage                                                 |
+| `rh`              |          `720`| the px which corresponds the bottom edge of the stage                                                |
+| `textureMemory`   |         `12e6`| the amount of squared pixels that may be stored in GPU memory for texture storage / caching          |
+| `glClearColor`    |   `0xFF000000`| the background color (ARGB)                                                                          |
+| <a name="initialisation-options-default-font-face"></a>`defaultFontFace` |        Arial| the font face to use for rendering if none is explicitly specified                                   |
+| `fixedDt`         |            `0`| if specified, the ms to progress in each is fixed instead of dynamic                                 |
+| `window`          |             | node-wpe-webgl specific options, see https://github.com/WebPlatformForEmbedded/node-wpe-webgl#options |
 
 ### Methods
 Todo.
@@ -108,31 +108,48 @@ Todo.
 
 | Name                              |Default value| Description |
 | --------------------------------- |-------------|-------------|
-| x, y                              |            0| Relative offset to the parent component in px |
-| w, h                              |            0| Width/height of the component in px (if applicable) |
-| scale(X,Y)                        |            1| Scales this component (and all descendants), relative to the pivot position |
-| rotation                          |            0| Rotation around the pivot point in radians |
-| pivot(X,Y)                        |          0.5| Specifies the pivot point for scale and rotation (0 = left/top, 1 = bottom/right) |
-| mount(X,Y)                        |            0| Specifies the alignment for the x, y offset (0 = left/top, 1 = bottom/right) |
-| alpha                             |            1| Opacity of this component (and all descendants) |
-| borderWidth(Top,Left,Right,Bottom)|            1| Border width |
-| borderColor(Top,Left,Right,Bottom)|   0xFFFFFFFF| Border color (ARGB integer) |
-| color(Top,Bottom)(Left,Right)     |   0xFFFFFFFF| Color/tinting/gradients of the drawn texture |
-| visible                           |         true| Toggles visibility for this component (and all descendants) |
-| zIndex                            |            0| Specifies drawing order (just as in HTML) |
-| forceZIndexContext                |        false| Creates a z-index stacking context without changing the drawing order of this component itself |
-| clipping                          |        false| Do not draw descendant component parts that are outside of this component (overflow:hidden) |
-| rect                              |        false| When set to true, this component becomes a colored rectangle |
-| src                               |         null| When set, this component will render the image; URL (Node.js / web) or file (Node.js) |
-| text                              |         null| When set, this component will render the text as specified (an object with the options specified below) |
-| texture                           |         null| When set, this component will render the custom texture (see Stage.getTexture(..)). By specifying a plain object with x,y,w,h properties you can affect the clipping |
+| `x`, `y`                              |            `0`| Relative offset to the parent component in px |
+| `w`, `h`                              |            `0`| Width/height of the component in px (if applicable) |
+| `scale`(`X`,`Y`)                        |            `1`| Scales this component (and all descendants), relative to the pivot position |
+| `rotation`                          |            `0`| Rotation around the pivot point in radians |
+| `pivot`(`X`,`Y`)                        |          `0.5`| Specifies the pivot point for scale and rotation (0 = left/top, 1 = bottom/right) |
+| `mount`(`X`,`Y`)                        |            `0`| Specifies the alignment for the x, y offset (0 = left/top, 1 = bottom/right) |
+| `alpha`                             |            `1`| Opacity of this component (and all descendants) |
+| `borderWidth`(`Top`,`Left`,`Right`,`Bottom`)|            `1`| Border width |
+| `borderColor`(`Top`,`Left`,`Right`,`Bottom`)|   `0xFFFFFFFF`| Border color (ARGB integer) |
+| `color`(`Top`,`Bottom`)(`Left`,`Right`)     |   `0xFFFFFFFF`| Color/tinting/gradients of the drawn texture |
+| `visible`                           |         `true`| Toggles visibility for this component (and all descendants) |
+| `zIndex`                            |            `0`| Specifies drawing order (just as in HTML) |
+| `forceZIndexContext`                |        `false`| Creates a z-index stacking context without changing the drawing order of this component itself |
+| `clipping`                          |        `false`| Do not draw descendant component parts that are outside of this component (overflow:hidden) |
+| `rect`                              |        `false`| When set to true, this component becomes a colored rectangle |
+| `src`                               |         `null`| When set, this component will render the image; URL (Node.js / web) or file (Node.js) |
+| `text`                              |         `null`| When set, this component will render the text as specified (an object with the options specified below) |
+| `texture`                           |         `null`| When set, this component will render the custom texture (see `Stage.getTexture(..)`). By specifying a plain object with x,y,w,h properties you can affect the clipping |
 
 #### Text object properties
+
 | Name                              |Default value| Description |
 | --------------------------------- |-------------|-------------|
-| text                              |           ""| the text to be shown |
-| fontSize                          |           40| text font size |
-| fontFace                          |      "Arial"| the font face (as used in CSS); may be an array to use (multiple) fallbacks. If nothing is specified, the [defaultFontFace](#initialisation-options-default-font-face) is used. |
+| `text`                            |         `""`| The text to be shown. |
+| `fontSize`                        |         `40`| Text font size, in px. |
+| `fontFace`                        |    `"Arial"`| the font face (as used in CSS); may be an array to use (multiple) fallbacks. If nothing is specified, the [defaultFontFace](#initialisation-options-default-font-face) is used. |
+| `fontStyle`                       |   `"normal"`| Font-style property (https://developer.mozilla.org/en-US/docs/Web/CSS/font-style). |
+| `wordWrap`                        |       `true`| Should words wrap be enabled? |
+| `wordWrapWidth`                   |          `0`| The word wrap max line width in px. If not set, w property is used. |
+| `lineHeight`                      |       `null`| The line height; if not set the font size is used. |
+| `textBaseline`                    | `alphabetic`| https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/textBaseline |
+| `textAlign`                       |       `left`| Text alignment: left, center or right. |
+| `textAlign`                       |       `left`| Text alignment: left, center or right. |
+| `offsetY`                         |          `0`| Additional offset to start drawing text from the top. |
+| `maxLines`                        |          `0`| Limits the number of lines to be drawn. |
+| `maxLinesSuffix`                  |       `".."`| If there were more text lines that have been drawn, append this to the final line. |
+| `textColor`                       | `0xFFFFFFFF`| Normally, you will use the color property of the component to specify the color. But when using highlighting or text shadows, this will also affect those. You will then have to set this text drawing color. |
+| `padding`(`Left`,`Right`)         |          `0`| Additional padding on the sides of the text. |
+| `shadow`                          |      `false`| Enable text shadows. |
+| `shadowColor`                     | `0xFF000000`| https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/shadowColor |
+| `shadowOffset`(`X`,`Y`)           |          `0`| https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/shadowOffsetX |
+| `shadowBlur`                      |          `5`| https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/shadowBlur |
 
 ### Methods
 Todo.
