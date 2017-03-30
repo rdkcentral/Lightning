@@ -174,10 +174,25 @@ Usage: `new Stage({w: 600, h: 600, ...})`.
 | `window`          |             | node-wpe-webgl specific options, see https://github.com/WebPlatformForEmbedded/node-wpe-webgl#options |
 
 ### Methods
-Todo.
+
+| Name                              | Description |
+| --------------------------------- |-------------|
+| `destroy()`                       | Destroys this stage and release all resources. It is no longer usable after calling this method. |
+| `setGlClearColor(color)`          | Sets the background color (example: 0xFF000000). |
+| `getCanvas()`                     | Returns the canvas. |
+| `stops()`                         | Temporarily stops the stage rendering loop. |
+| `resume()`                        | Resumes the stage rendering loop. |
+| `texture(source, options)`        | Creates a new texture. Source can be either a string (URL/file path), a TextureSource object, or a function which has a callback argument, which it calls with an actual source (Canvas, Image or Uint8Array with RGBA data). Options are id (texture sources with the same id are reused), and x, y, w, h for clipping. |
+| `component(settings)`                     | Creates a new component object |
+| `c(settings)`                     | See component() |
 
 ### Events
-Todo.
+
+| Name                              |Arguments| Description |
+| --------------------------------- |---------|-------------|
+| `frameStart`                      |         | Emitted on every frame. |
+| `update`                          |         | Emitted on every frame, after applying transitions and animations. |
+| `frameEnd`                        |         | Emitted on every frame, after rendering. |
 
 ## <a name="component"></a>Component
 
