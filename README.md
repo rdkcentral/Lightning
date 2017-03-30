@@ -70,6 +70,9 @@ stage.root.add([
 ```
 https://jsfiddle.net/basvanmeurs/4qy5j7am/
 
+Todo: quick start next steps
+
+
 ## Stopping
 When you want to gracefully stop your Node.js application (or want to completely remove the stage from your webpage), you *must* call `stage.destroy()`. This will make sure that all resources are freed, and will stop the render loop, allowing Node.js to quit.
 
@@ -129,7 +132,13 @@ Todo.
 | --------------------------------- |-------------|-------------|
 | text                              |           ""| the text to be shown |
 | fontSize                          |           40| text font size |
-| fontFace                          |      "Arial"| the font face (as used in CSS); may be an array to use (multiple) fallbacks. If nothing is specified, the [defaultFontFace](#initialisation-options-default-font-face) |
+| fontFace                          |      "Arial"| the font face (as used in CSS); may be an array to use (multiple) fallbacks. If nothing is specified, the [defaultFontFace](#initialisation-options-default-font-face) is used. |
 
 ### Methods
+Todo.
+
+## Transitions
+Todo.
+
+## Animations
 Todo.
