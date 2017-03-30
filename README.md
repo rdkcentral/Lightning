@@ -54,10 +54,6 @@ The `stage.root` property is the root of the rendering tree. It is an object of 
 Example:
 
 ```javascript
-// Determine base path to be used for images.
-var isNode = !!(((typeof module !== "undefined") && module.exports));
-var basePath = (isNode ? __dirname + '/' : './');
-
 stage.root.add([
     {tag: 'bg', rect: true, x: 20, y: 20, w: 560, h: 560, colorTop: 0xFFFF0000, colorBottom: 0xFFFF6666, children: [
         {tag: 'hello', text: {text: "hello world", fontSize: 100}, x: 280, y: 170, mountX: 0.5, mountY: 0.5, alpha: 0.5},
@@ -122,6 +118,16 @@ setTimeout(function() {
 }, 1000);
 ```
 https://jsfiddle.net/basvanmeurs/r0hkamd7/
+
+You can also hook into the frame loop, which runs at 60fps:
+```javascript
+stage.on('frameStart', function(dt) {
+	stage.root.tag('left').scaleX += stage.dt * 10;
+	stage.root.tag('right').rotation += stage.dt * 1;
+	stage.root.tag('hello').x += 30 * stage.dt;
+});
+```
+https://jsfiddle.net/basvanmeurs/c4f7kh70/
 
 ## Transitions
 
