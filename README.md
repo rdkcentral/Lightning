@@ -1,4 +1,4 @@
-# UI Framework
+# WPE UI Framework
 
 UI Framework is a javascript 2d graphics rendering and animation library using (Web)GL. It's geared towards developing animated User Interfaces that run nicely on low-performance (embedded) devices. The framework has been optimized for high performance and low CPU/memory usage, and has been carefully tested for memory leaks.
 
@@ -45,19 +45,7 @@ var stage = new Stage(options);
 
 This is similar as for the web browser, but node-wpe-webgl is used as OpenGL rendering target. This module allows some options for initialization that can be set in the window property. See https://github.com/WebPlatformForEmbedded/node-wpe-webgl#options.
 
-### Initialisation options
-| Name            |Default value| Description                                                                                          |
-| --------------- |-------------|------------------------------------------------------------------------------------------------------|
-| w               |         1280| stage width in px                                                                                    |
-| h               |          720| stage height in px                                                                                   |
-| reuseCanvas     |         null| canvas object to use instead of creating a new one (web only)                                        |
-| rw              |         1280| the px which corresponds the right edge of the stage                                                 |
-| rh              |          720| the px which corresponds the bottom edge of the stage                                                |
-| textureMemory   |         12e6| the amount of squared pixels that may be stored in GPU memory for texture storage / caching          |
-| glClearColor    |   0xFF000000| the background color (ARGB)                                                                          |
-| defaultFontFace |        Arial| the font face to use for rendering if none is explicitly specified                                   |
-| fixedDt         |            0| if specified, the ms to progress in each is fixed instead of dynamic                                 |
-| window          |             | node-wpe-webgl specific options, see https://github.com/WebPlatformForEmbedded/node-wpe-webgl#options |
+Check the API for a list of all [initialisation options](#initialisation-options).
 
 ## Rendering tree
 
@@ -84,3 +72,23 @@ https://jsfiddle.net/basvanmeurs/4qy5j7am/
 
 ## Stopping
 When you want to gracefully stop your Node.js application (or want to completely remove the stage from your webpage), you *must* call `stage.destroy()`. This will make sure that all resources are freed, and will stop the render loop, allowing Node.js to quit.
+
+# API
+
+## Stage
+
+### <a name="initialisation-options"></a>Initialisation options
+Usage: `new Stage({w: 600, h: 600, ...})`.
+
+| Name            |Default value| Description                                                                                          |
+| --------------- |-------------|------------------------------------------------------------------------------------------------------|
+| w               |         1280| stage width in px                                                                                    |
+| h               |          720| stage height in px                                                                                   |
+| reuseCanvas     |         null| canvas object to use instead of creating a new one (web only)                                        |
+| rw              |         1280| the px which corresponds the right edge of the stage                                                 |
+| rh              |          720| the px which corresponds the bottom edge of the stage                                                |
+| textureMemory   |         12e6| the amount of squared pixels that may be stored in GPU memory for texture storage / caching          |
+| glClearColor    |   0xFF000000| the background color (ARGB)                                                                          |
+| defaultFontFace |        Arial| the font face to use for rendering if none is explicitly specified                                   |
+| fixedDt         |            0| if specified, the ms to progress in each is fixed instead of dynamic                                 |
+| window          |             | node-wpe-webgl specific options, see https://github.com/WebPlatformForEmbedded/node-wpe-webgl#options |
