@@ -15,7 +15,7 @@ Tools.getRoundRect = function(stage, w, h, radius, strokeWidth, strokeColor, fil
     ctx.imageSmoothingEnabled = true;
 
     var id = 'rect' + [w, h, radius, strokeWidth, strokeColor, fill ? 1 : 0, fillColor].join(",");
-    return stage.getTexture(function(cb) {
+    return stage.texture(function(cb) {
         canvas.width = w + strokeWidth + 2;
         canvas.height = h + strokeWidth + 2;
 

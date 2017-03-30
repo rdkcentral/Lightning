@@ -124,7 +124,7 @@ function Stage(options) {
     this.measureLastFrameCounter = {};
     this.measureCount = {};
 
-    this.rectangleTexture = this.getTexture(Stage.rectangleSource.src, Stage.rectangleSource);
+    this.rectangleTexture = this.texture(Stage.rectangleSource.src, Stage.rectangleSource);
 
     if (this.adapter.setStage) {
         this.adapter.setStage(this);
@@ -252,7 +252,7 @@ Stage.prototype.drawFrame = function() {
         this.profileLast = s;
     }
 
-    // this.measure && this.timeStart('total');
+    this.measure && this.timeStart('total');
     if (this.fixedDt) {
         this.dt = this.fixedDt;
     } else {
@@ -303,7 +303,7 @@ Stage.prototype.drawFrame = function() {
     this.measureDetails && this.timeStart('frame end');
     if (this._eventsCount) this.emit('frameEnd');
     this.measureDetails && this.timeEnd('frame end');
-    //this.measure && this.timeEnd('total');
+    this.measure && this.timeEnd('total');
 
     this.adapter.nextFrame(this.renderNeeded);
 
@@ -381,7 +381,7 @@ Stage.prototype.performUpdates = function() {
  *     Clipping offset h.
  * @returns {Texture}
  */
-Stage.prototype.getTexture = function(source, options) {
+Stage.prototype.texture = function(source, options) {
     return this.textureManager.getTexture(source, options);
 };
 
@@ -393,14 +393,9 @@ Stage.prototype.hasTexture = function(id) {
  * Creates a new component.
  * @returns {Component}
  */
-Stage.prototype.component = function(settings, children) {
+Stage.prototype.component = function(settings) {
     var component = new Component(this);
 
-    if (children) {
-        for (var i = 0; i < children.length; i++) {
-            component.addChild(children[i]);
-        }
-    }
     if (settings) {
         component.set(settings);
     }

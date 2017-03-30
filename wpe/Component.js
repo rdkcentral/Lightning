@@ -2121,11 +2121,11 @@ Component.prototype._updateTextureCoords = function() {
 };
 
 Component.getPropertyIndex = function(name) {
-    return Component.SETTINGS[name].i;
+    return Component.SETTINGS[name] ? Component.SETTINGS[name].i : -1;
 };
 
 Component.getPropertyIndexFinal = function(name) {
-    return Component.FINAL_SETTINGS[name].i;
+    return Component.FINAL_SETTINGS[name] ? Component.FINAL_SETTINGS[name].i : -1;
 };
 
 Component.SETTINGS = {

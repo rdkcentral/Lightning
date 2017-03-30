@@ -13,7 +13,7 @@ var defaultTextAttributes = {
     offsetY: null,
     maxLines: 0,
     maxLinesSuffix: "..",
-    precision: 1,
+    precision: null,
     textColor: 0xffffffff,
     paddingLeft: 0,
     paddingRight: 0,
@@ -358,18 +358,19 @@ Stage.prototype.init = function() {
     oInit.apply(this, arguments);
 };
 
-var oAddTag = oComponent.prototype.addTag;
-Component.prototype.addTag = function(tag) {
+var oComponentTags = ComponentTags;
+var oAddTag = oComponentTags.prototype.addTag;
+ComponentTags.prototype.addTag = function(tag) {
     oAddTag.apply(this, arguments);
 
-    this.dhtml().classList.add(tag);
+    this.component.dhtml().classList.add(tag);
 };
 
-var oRemoveTag = oComponent.prototype.removeTag;
-Component.prototype.removeTag = function(tag) {
+var oRemoveTag = oComponentTags.prototype.removeTag;
+ComponentTags.prototype.removeTag = function(tag) {
     oRemoveTag.apply(this, arguments);
 
-    this.dhtml().classList.remove(tag);
+    this.component.dhtml().classList.remove(tag);
 };
 
 // Change an attribute due to new value inputs.

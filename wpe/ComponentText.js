@@ -45,7 +45,7 @@ ComponentText.prototype.updateTexture = function() {
 
     // Create a dummy texture that loads the actual texture.
     var self = this;
-    this.component.texture = this.texture = this.stage.getTexture(function(cb) {
+    this.component.texture = this.texture = this.stage.texture(function(cb) {
         self.updatingTexture = false;
 
         // Create 'real' texture and set it.
