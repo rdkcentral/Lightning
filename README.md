@@ -66,6 +66,8 @@ stage.root.add([
 ```
 https://jsfiddle.net/basvanmeurs/4qy5j7am/
 
+Check the API for a list of all [component properties](#component).
+
 ## Dynamic changes
 
 You can dynamically change the rendering tree by using their tags:
@@ -130,6 +132,21 @@ stage.on('frameStart', function(dt) {
 https://jsfiddle.net/basvanmeurs/c4f7kh70/
 
 ## Transitions
+In a UI, in most situations a gradual transition looks nicer than setting a property directly. That's why this framework provides transitions in a very simple API:
+
+```javascript
+
+var t = stage.root.tag('bunnies').transition('rotation', {delay: 2, duration: 8, timingFunction: 'ease'});
+t.on('finish', function() {
+	stage.root.tag('bunnies').x = 400;
+});
+stage.root.tag('bunnies').transition('x', {delay: 2, duration: 5, timingFunction: 'linear'});
+stage.root.tag('bunnies').rotation = 2 * Math.PI * 8;
+
+```
+Check the API for a list of all [transition properties and events](#transition).
+
+https://jsfiddle.net/basvanmeurs/3eakcyrh/
 
 ## Animations
 
@@ -162,7 +179,7 @@ Todo.
 ### Events
 Todo.
 
-## Component
+## <a name="component"></a>Component
 
 ### Properties
 
@@ -187,7 +204,7 @@ Todo.
 | `text`                              |         `null`| When set, this component will render the text as specified (an object with the options specified below) |
 | `texture`                           |         `null`| When set, this component will render the custom texture (see `Stage.getTexture(..)`). By specifying a plain object with x,y,w,h properties you can affect the clipping |
 
-#### Text object properties
+Text properties:
 
 | Name                              |Default value| Description |
 | --------------------------------- |-------------|-------------|
@@ -196,7 +213,7 @@ Todo.
 | `fontFace`                        |    `"Arial"`| the font face (as used in CSS); may be an array to use (multiple) fallbacks. If nothing is specified, the [defaultFontFace](#initialisation-options-default-font-face) is used. |
 | `fontStyle`                       |   `"normal"`| Font-style property (https://developer.mozilla.org/en-US/docs/Web/CSS/font-style). |
 | `wordWrap`                        |       `true`| Should words wrap be enabled? |
-| `wordWrapWidth`                   |          `0`| The word wrap max line width in px. If not set, w property is used. |
+| `wordWrapWidth`                   |          `0`| The word wrap max line width in px. If not set, w property is used. |###
 | `lineHeight`                      |       `null`| The line height; if not set the font size is used. |
 | `textBaseline`                    | `alphabetic`| https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/textBaseline |
 | `textAlign`                       |       `left`| Text alignment: left, center or right. |
@@ -214,8 +231,25 @@ Todo.
 ### Methods
 Todo.
 
-## Transitions
-Todo.
+## <a name="transition"></a>Transition
 
-## Animations
+### Properties
+
+| Name                              |Default value| Description |
+| --------------------------------- |-------------|-------------|
+| `delay`                           |          `0`| Delay in s before starting the transition after updating the value. |
+| `duration`                        |          `1`| Defines how long the transition takes from start to finish. |
+| `timingFunction`                  |       `ease`| The timing function. Supported are: `linear ease ease-in ease-out ease-in-out step-start step-end cubic-bezier(n,n,n,n)`|
+
+### Events
+
+| Name                              |Arguments| Description |
+| --------------------------------- |---------|-------------|
+| `start`                           |         | Emitted when a transition starts. |
+| `delayEnd`                        |         | Emitted when a delay ends. |
+| `progress`                        | p (value between 0 and 1) | Emitted on every transition step. |
+| `finish`                        |         | Emitted when a delay finishes. |
+
+## <a name="animation"></a>Animation
+
 Todo.
