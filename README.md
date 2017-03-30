@@ -117,7 +117,7 @@ Todo.
 | `alpha`                             |            `1`| Opacity of this component (and all descendants) |
 | `borderWidth`(`Top`,`Left`,`Right`,`Bottom`)|            `1`| Border width |
 | `borderColor`(`Top`,`Left`,`Right`,`Bottom`)|   `0xFFFFFFFF`| Border color (ARGB integer) |
-| `color`(`Top`,`Bottom`)(`Left`,`Right`)     |   `0xFFFFFFFF`| Color/tinting/gradients of the drawn texture |
+| `color`(`Top`,`Bottom`)(`Left`,`Right`)     |   `0xFFFFFFFF`| Color/tinting/gradients of the drawn texture. *Note: gradients do not work on textures that are being clipped due to technical limitations.* |
 | `visible`                           |         `true`| Toggles visibility for this component (and all descendants) |
 | `zIndex`                            |            `0`| Specifies drawing order (just as in HTML) |
 | `forceZIndexContext`                |        `false`| Creates a z-index stacking context without changing the drawing order of this component itself |
