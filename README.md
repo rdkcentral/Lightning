@@ -1,10 +1,10 @@
 # WPE UI Framework
 
-UI Framework is a javascript 2d graphics rendering and animation library using (Web)GL. It's geared towards developing animated User Interfaces that run nicely on low-performance (embedded) devices. The framework has been optimized for high performance and low CPU/memory usage, and has been carefully tested for memory leaks.
+WPE UI Framework is a javascript 2d graphics rendering and animation library using (Web)GL. It's geared towards developing animated User Interfaces that run nicely on low-performance (embedded) devices. The framework has been optimized for high performance and low CPU/memory usage, and has been carefully tested for memory leaks.
 
-The framework offers a **rendering tree** that can be modified using a very *simple* and *usable* API. The rendering tree consists of **components** that have several properties (x, y, rotation, alpha, etc). An image or rendered text can be attached to a component, which is then rendered immediately on the screens. It is a bit like the HTML DOM tree but has a simplified set of features, renders much faster and is easier to manage in a dynamical way.
+The framework offers a **rendering tree** that can be modified using a very *simple* and *usable* API. The rendering tree consists of **components** that have several properties (x, y, rotation, alpha, etc). An image or rendered text can be attached to a component, which is then rendered immediately on the screen.
 
-UI Framework runs in a any modern web browser using **WebGL** and in **Node.js** (version 4 or higher). For Node.js, this module depends on node-canvas for text creation, and node-wpe-webgl for providing a WebGL interface to the native hardware. Out of the box, supported targets include (desktop) Linux, OSX, Windows and the Raspberry PI!
+UI Framework runs in a any modern web browser using **WebGL** and in **Node.js** (version 4 or higher) on several targets including (desktop) Linux, OSX, Windows and the Raspberry PI.
 
 # Installation instructions
 
@@ -15,7 +15,7 @@ These files can be re-generated from source using the command:
     grunt wpe-browser
 
 ## Node.js:
-Install the dependencies and follow the installation instructions of node-canvas (https://github.com/Automattic/node-canvas) and node-wpe-webgl (https://github.com/WebPlatformForEmbedded/node-wpe-webgl).
+For Node.js, this module depends on node-canvas for image loading and text creation, and node-wpe-webgl for providing a WebGL interface to the native hardware. Install the dependencies and follow the installation instructions of node-canvas (https://github.com/Automattic/node-canvas) and node-wpe-webgl (https://github.com/WebPlatformForEmbedded/node-wpe-webgl).
 
 # Basic usage
 
@@ -32,7 +32,7 @@ var stage = new Stage(options);
 document.body.appendChild(stage.getCanvas());
 ```
 
-This initializes a new stage. The stage creates a canvas of the specified width and height for drawing, and uses the specified background color (in ARGB hexadecimal format). You should then get it using stage.getCanvas() add it to the DOM tree. You can also supply your own canvas object ny using the reuseCanvas option
+This initializes a new stage. The stage creates a canvas of the specified width and height for drawing, and uses the specified background color (in ARGB hexadecimal format). You should then get it using `stage.getCanvas(`) add it to the DOM tree. You can also supply your own canvas object by using the reuseCanvas option.
 
 For Node.js:
 
@@ -49,7 +49,7 @@ Check the API for a list of all [initialisation options](#initialisation-options
 
 ## Rendering tree
 
-The `stage.root` property is the root of the rendering tree. It is an object of type `Component`, to which you can add other new components to it to define what should be rendered within the stage. The tree consists **only** out of objects of the Component type. Components are monolithical objects: they can be images, rectangles, texts or just containers, based on how the properties are set (mostly for performance reasons).
+The `stage.root` property is the root of the rendering tree. It is an object of type `Component`, to which you can add other new components to it to define what should be rendered within the stage. The tree consists **only** out of objects of the Component type. Components are monolithical objects: they can be images, rectangles, texts or containers, based on how the properties are set (mostly for performance reasons).
 
 Example:
 
@@ -70,7 +70,7 @@ Check the API for a list of all [component properties](#component).
 
 ## Dynamic changes
 
-You can dynamically change the rendering tree by using their tags:
+You can dynamically change the rendering tree by accessing components using their tags:
 
 ```javascript
 // Get a single component by tag, and modify properties.
@@ -182,7 +182,7 @@ Usage: `new Stage({w: 600, h: 600, ...})`.
 | `getCanvas()`                     | Returns the canvas. |
 | `stops()`                         | Temporarily stops the stage rendering loop. |
 | `resume()`                        | Resumes the stage rendering loop. |
-| `texture(source, options)`        | Creates a new texture. Source can be either a string (URL/file path), a TextureSource object, or a function which has a callback argument, which it calls with an actual source (Canvas, Image or Uint8Array with RGBA data). Options are id (texture sources with the same id are reused), and x, y, w, h for clipping. |
+| `texture(source, options)`        | Creates a new texture. Source can be either a string (URL/file path), a TextureSource object, or a function which has a callback argument, which it invokes with an actual source (Canvas, Image or Uint8Array with RGBA data) and as second argument an object with properties w, h which should be specified in case of Uint8Array. Options are id (texture sources with the same id are reused), and x, y, w, h for clipping. |
 | `component(settings)`                     | Creates a new component object |
 | `c(settings)`                     | See component() |
 
