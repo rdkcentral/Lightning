@@ -5,6 +5,7 @@ if (isNode) {
 }
 
 var ComponentTags = function(component) {
+
     this.component = component;
 
     /**
@@ -12,88 +13,124 @@ var ComponentTags = function(component) {
      * @type {ComponentTags}
      */
     this.parent = null;
-    
+
     /**
      * Tags that can be used to identify/search for a specific component.
-     * @type {Set}
+     * @type {String[]}
      */
     this.tags = null;
 
     /**
-     * All of the direct children that have the tag enabled somewhere in their branches.
+     * The tree's tags mapping.
+     * This contains all components for all known tags, at all times.
+     * @type {Map}
+     * @private
+     */
+    this.treeTags = null;
+
+    /**
+     * Cache for the tag/mtag methods.
      * @type {Map<String,Component[]>}
      */
-    this.taggedBranches = null;
+    this.cache = null;
 
     /**
-     * Cache for the .tag method.
-     * @type {Map<String,Component>}
+     * Tag-to-complex cache (all tags that are part of the complex caches).
+     * This maps tags to cached complex tags in the cache.
+     * @type {Map<String,String[]>}
      */
-    this.tagCache = null;
+    this.tagToComplex = null;
 
-    /**
-     * Cache for the .mtag method.
-     * @type {Map<String,Component[]>}
-     */
-    this.mtagCache = null;
+};
 
-    /**
-     * The tags (simple only) that have been requested (by this or ancestor).
-     * @type {Set<String>}
-     */
-    this.cachedTags = null;
+/**
+ * Clears the cache(s) for the specified tag.
+ * @param {String} tag
+ */
+ComponentTags.prototype.clearCache = function(tag) {
+    if (this.cache) {
+        this.cache.delete(tag);
 
-    /**
-     * The parent's cached complex tags that should be cleared if the indexed cached complex tag is cleared.
-     * @type {Map<String,Set<String>>}
-     */
-    this.cachedComplexTagParents = null;
-
-    /**
-     * The complex tags, lookup map for first (primary) tag segment.
-     * @type {Map<String,Set<String>>}
-     */
-    this.cachedComplexTagLookup = null;
-    
+        if (this.tagToComplex) {
+            var s = this.tagToComplex.get(tag);
+            if (s) {
+                for (var i = 0, n = s.length; i < n; i++) {
+                    this.cache.delete(s[i]);
+                }
+                this.tagToComplex.delete(tag);
+            }
+        }
+    }
 };
 
 ComponentTags.prototype.unsetParent = function() {
-    var tags = this.tags ? Utils.setToArray(this.tags) : [];
-    if (this.taggedBranches) {
-        tags = tags.concat(Utils.iteratorToArray(this.taggedBranches.keys()));
-    }
+    var tags = null;
+    var n = 0;
+    if (this.treeTags) {
+        tags = Utils.iteratorToArray(this.treeTags.keys());
+        n = tags.length;
 
-    if (tags.length) {
-        this.parent.clearCachedTags(tags, []);
+        if (n > 0) {
+            for (var i = 0; i < n; i++) {
+                var tagSet = this.treeTags.get(tags[i]);
 
-        for (var i = 0, n = tags.length; i < n; i++) {
-            this.parent.removeTaggedBranch(tags[i], this.component);
+                // Remove from treeTags.
+                var p = this;
+                while (p = p.parent) {
+                    var parentTreeTags = p.treeTags.get(tags[i]);
+
+                    tagSet.forEach(function(comp) {
+                        parentTreeTags.delete(comp);
+                    });
+
+
+                    p.clearCache(tags[i]);
+                }
+            }
         }
     }
 
-    this.parent = null;
 };
 
 ComponentTags.prototype.setParent = function(parent) {
     this.parent = parent;
 
-    var tags = this.tags ? Utils.setToArray(this.tags) : [];
-    if (this.taggedBranches) {
-        tags = tags.concat(Utils.iteratorToArray(this.taggedBranches.keys()));
-    }
+    var tags = null;
+    var n = 0;
+    if (this.treeTags) {
+        tags = Utils.iteratorToArray(this.treeTags.keys());
+        n = tags.length;
 
-    for (var i = 0, n = tags.length; i < n; i++) {
-        this.parent.addTaggedBranch(tags[i], this.component);
-    }
+        if (n > 0) {
+            for (var i = 0; i < n; i++) {
+                var tagSet = this.treeTags.get(tags[i]);
 
-    if (tags.length) {
-        this.parent.clearCachedTags(tags, []);
-    }
+                // Add to treeTags.
+                var p = this;
+                while (p = p.parent) {
+                    if (!p.treeTags) {
+                        p.treeTags = new Map();
+                    }
 
+                    var s = p.treeTags.get(tags[i]);
+                    if (!s) {
+                        s = new Set();
+                        p.treeTags.set(tags[i], s);
+                    }
+
+                    tagSet.forEach(function(comp) {
+                        s.add(comp);
+                    });
+
+                    p.clearCache(tags[i]);
+                }
+            }
+        }
+    }
 };
 
 ComponentTags.prototype.getLocalTags = function() {
-    return this.tags ? Utils.setToArray(this.tags) : [];
+    return this.tags;
 };
 
 ComponentTags.prototype.setTags = function(tags) {
@@ -110,7 +147,7 @@ ComponentTags.prototype.setTags = function(tags) {
         }
     }
 
-    var currentTags = this.tags ? Utils.setToArray(this.tags) : [];
+    var currentTags = this.tags || [];
     n = currentTags.length;
     for (i = 0; i < n; i++) {
         if (tags.indexOf(currentTags[i]) == -1) {
@@ -128,134 +165,67 @@ ComponentTags.prototype.setTags = function(tags) {
 };
 
 ComponentTags.prototype.addTag = function(tag) {
-    if (!this.tags) this.tags = new Set();
-    if (!this.tags.has(tag)) {
-        this.tags.add(tag);
-        if (!this.hasTaggedBranches(tag) && this.parent) {
-            this.parent.addTaggedBranch(tag, this.component);
+    if (!this.tags) {
+        this.tags = [];
+    }
+    if (this.tags.indexOf(tag) === -1) {
+        this.tags.push(tag);
 
-            if (this.parent.hasCachedTag(tag)) {
-                this.addCachedTag(tag);
+        // Add to treeTags hierarchy.
+        var p = this;
+        do {
+            if (!p.treeTags) {
+                p.treeTags = new Map();
             }
-        }
 
-        this.clearCachedTag(tag);
+            var s = p.treeTags.get(tag);
+            if (!s) {
+                var s = new Set();
+                p.treeTags.set(tag, s);
+            }
+
+            s.add(this.component);
+
+            p.clearCache(tag);
+        } while (p = p.parent);
     }
 };
 
 ComponentTags.prototype.removeTag = function(tag) {
-    if (this.hasTag(tag)) {
-        this.clearCachedTag(tag);
+    var i = this.tags.indexOf(tag);
+    if (i !== -1) {
+        this.tags.splice(i, 1);
 
-        this.tags.delete(tag);
+        // Remove from treeTags hierarchy.
+        var p = this;
+        do {
+            var list = p.treeTags.get(tag);
+            if (list) {
+                list.delete(this.component);
 
-        if (!this.hasTaggedBranches(tag) && this.parent) {
-            this.parent.removeTaggedBranch(tag, this.component);
-        }
+                p.clearCache(tag);
+            }
+        } while (p = p.parent);
     }
 };
 
 ComponentTags.prototype.hasTag = function(tag) {
-    return this.tags && this.tags.has(tag);
-};
-
-
-ComponentTags.prototype.getTaggedBranches = function(tag) {
-    return this.taggedBranches && this.taggedBranches.get(tag);
-};
-
-ComponentTags.prototype.hasTaggedBranches = function(tag) {
-    return this.taggedBranches && this.taggedBranches.has(tag);
-};
-
-ComponentTags.prototype.addTaggedBranch = function(tag, component) {
-    if (!this.taggedBranches) {
-        this.taggedBranches = new Map();
-    }
-
-    var components = this.taggedBranches.get(tag);
-    if (!components) {
-        this.taggedBranches.set(tag, [component]);
-
-        if (this.parent) {
-            this.parent.addTaggedBranch(tag, this.component);
-
-            // Ensure that caches are cleared properly when adding children.
-            if (this.parent.hasCachedTag(tag)) {
-                this.addCachedTag(tag);
-            }
-        }
-    } else {
-        components.push(component);
-    }
-};
-
-ComponentTags.prototype.removeTaggedBranch = function(tag, component) {
-    var components = this.taggedBranches.get(tag);
-
-    // Quickly remove component from list.
-    var n = components.length;
-    if (n === 1) {
-        this.taggedBranches.delete(tag);
-
-        if (this.tagCache) this.tagCache.delete(tag);
-        if (this.mtagCache) this.mtagCache.delete(tag);
-        if (this.cachedTags) this.cachedTags.delete(tag);
-
-        if (this.parent) {
-            this.parent.removeTaggedBranch(tag, this.component);
-        }
-    } else {
-        var i = components.indexOf(component);
-        if (i < n - 1) {
-            components[i] = components[n - 1];
-        }
-        components.pop();
-    }
+    return (this.tags && (this.tags.indexOf(tag) !== -1));
 };
 
 /**
- * Returns all components from the subtree that have this tag.
+ * Returns one of the components from the subtree that have this tag.
  * @param {string} tag
- * @returns {Component[]}
+ * @returns {Component}
  */
 ComponentTags.prototype.tag = function(tag) {
-    var idx = tag.indexOf(".");
-    if (idx >= 0) {
-        var results = this.mtagComplex(tag, null);
-        return results.length ? results[0] : null;
-    } else {
-        return this.tagSimple(tag);
-    }
+    var res = this.mtag(tag);
+    return res[0];
 };
 
-ComponentTags.prototype.tagSimple = function(tag) {
-    if (!this.tagCache) {
-        this.tagCache = new Map();
-    }
-
-    var tc = this.tagCache.get(tag);
-    if (tc) {
-        return tc;
-    } else {
-        var tc = this.getTaggedComponent(tag);
-        this.tagCache.set(tag, tc);
-        return tc;
-    }
-};
-
-ComponentTags.prototype.getTaggedComponent = function(tag) {
-    this.addCachedTag(tag);
-
-    if (this.hasTag(tag)) {
-        return this.component;
-    } else {
-        var branches = this.getTaggedBranches(tag);
-        if (branches) {
-            return branches[0].tags.getTaggedComponent(tag);
-        }
-    }
-    return null;
+ComponentTags.prototype.get = function(tag) {
+    var t = this.treeTags.get(tag);
+    return t ? Utils.setToArray(t) : [];
 };
 
 /**
@@ -264,283 +234,38 @@ ComponentTags.prototype.getTaggedComponent = function(tag) {
  * @returns {Component[]}
  */
 ComponentTags.prototype.mtag = function(tag) {
-    var idx = tag.indexOf(".");
-    if (idx >= 0) {
-        return this.mtagComplex(tag, null);
-    } else {
-        return this.mtagSimple(tag);
-    }
-};
-
-/**
- * Returns all components from the subtree that have this tag.
- * @param {string} tag
- * @returns {Component[]}
- */
-ComponentTags.prototype.mtagSimple = function(tag) {
-    if (!this.mtagCache) {
-        this.mtagCache = new Map();
+    var res = null;
+    if (this.cache) {
+        res = this.cache.get(tag);
     }
 
-    var tc = this.mtagCache.get(tag);
-    if (tc) {
-        return tc;
-    } else {
-        var arr = [];
-        this.getTaggedComponents(tag, arr);
-        this.mtagCache.set(tag, arr);
-        return arr;
-    }
-};
-
-ComponentTags.prototype.getTaggedComponents = function(tag, arr) {
-    this.addCachedTag(tag);
-
-    if (this.hasTag(tag)) {
-        return arr.push(this.component);
-    } else {
-        var branches = this.getTaggedBranches(tag);
-        if (branches) {
-            for (var i = 0, n = branches.length; i < n; i++) {
-                branches[i].tags.getTaggedComponents(tag, arr);
-            }
-        }
-    }
-};
-
-/**
- * Mtag implementation for complex tags.
- * @param {string} tag
- * @param {string|null} parentTag
- *   If this query is actually part of a larger complex tag query, the parent.
- * @returns {Component[]}
- */
-ComponentTags.prototype.mtagComplex = function(tag, parentTag) {
-    if (!this.mtagCache) {
-        this.mtagCache = new Map();
-    }
-
-    var tc = this.mtagCache.get(tag);
-    if (tc) {
-        return tc;
-    } else {
+    if (!res) {
         var idx = tag.indexOf(".");
-        var primaryTag = tag.substr(0, idx);
-        var remainingTag = tag.substr(idx + 1);
+        if (idx >= 0) {
+            var parts = tag.split('.');
+            res = this.get(parts[0]);
+            var level = 1;
+            var c = parts.length;
+            while (res.length && level < c) {
+                var resn = [];
+                for (var j = 0, n = res.length; j < n; j++) {
+                    resn = resn.concat(res[j].tags.get(parts[level]));
+                }
 
-        var s = [];
-        this.getTaggedComponentsForComplex(primaryTag, tag, s);
-
-        var remainingTagIsComplex = (remainingTag.indexOf(".") >= 0);
-
-        var res = [];
-        if (!remainingTagIsComplex) {
-            for (var i = 0, n = s.length; i < n; i++) {
-                s[i].tags.getTaggedComponents(remainingTag, res);
-                s[i].tags.addCachedComplexTagParent(remainingTag, tag);
+                res = resn;
+                level++;
             }
         } else {
-            for (i = 0, n = s.length; i < n; i++) {
-                res = res.concat(s[i].tags.mtagComplex(remainingTag, tag));
-            }
+            res = this.get(tag);
         }
 
-        this.mtagCache.set(tag, res);
-
-        this.addCachedComplexTagLookup(primaryTag, tag);
-        if (parentTag) {
-            this.addCachedComplexTagParent(tag, parentTag);
+        if (!this.cache) {
+            this.cache = new Map();
         }
 
-        return res;
+        this.cache.set(tag, res);
     }
-};
-
-ComponentTags.prototype.getTaggedComponentsForComplex = function(tag, complexTag, arr) {
-    this.addCachedTag(tag);
-    this.addCachedTag(complexTag);
-
-    if (this.hasTag(tag)) {
-        return arr.push(this.component);
-    } else {
-        var branches = this.getTaggedBranches(tag);
-        if (branches) {
-            for (var i = 0, n = branches.length; i < n; i++) {
-                branches[i].tags.getTaggedComponents(tag, arr, complexTag);
-            }
-        }
-    }
-};
-
-ComponentTags.prototype.hasCachedTag = function(tag) {
-    return this.cachedTags && this.cachedTags.has(tag);
-};
-
-ComponentTags.prototype.addCachedTag = function(tag) {
-    if (!this.cachedTags) {
-        this.cachedTags = new Set();
-    }
-
-    this.cachedTags.add(tag);
-};
-
-ComponentTags.prototype.clearCachedTag = function(tag) {
-    var c = this;
-    while(c !== null && c.hasCachedTag(tag)) {
-        if (c.cachedComplexTagLookup) {
-            var s = c.cachedComplexTagLookup.get(tag);
-            if (s && s.size) {
-                // Upgrade to multi-clear.
-                c.clearCachedTags([tag], []);
-                return;
-            }
-        }
-
-        if (c.cachedComplexTagParents && c.parent) {
-            var s = c.cachedComplexTagParents.get(tag);
-            if (s && s.size) {
-                // Upgrade to multi-clear.
-                c.clearCachedTags([tag], []);
-                return;
-            }
-        }
-
-        c.cachedTags.delete(tag);
-
-        if (c.tagCache) {
-            c.tagCache.delete(tag);
-        }
-
-        if (c.mtagCache) {
-            c.mtagCache.delete(tag);
-        }
-
-        c = c.parent;
-    }
-};
-
-ComponentTags.prototype.clearCachedTags = function(tags, complexTags) {
-    var i, n;
-    var c = this;
-
-    while(c !== null && (tags.length || complexTags.length)) {
-
-        var remaining;
-        if (tags.length) {
-            remaining = [];
-            for (i = 0, n = tags.length; i < n; i++) {
-                if (c.hasCachedTag(tags[i])) {
-                    c.cachedTags.delete(tags[i]);
-                    remaining.push(tags[i]);
-                }
-            }
-            tags = remaining;
-        }
-
-        if (complexTags.length) {
-            remaining = [];
-            for (i = 0, n = complexTags.length; i < n; i++) {
-                if (c.hasCachedTag(complexTags[i])) {
-                    c.cachedTags.delete(complexTags[i]);
-                    remaining.push(complexTags[i]);
-                }
-            }
-            complexTags = remaining;
-        }
-
-        if (tags.length) {
-            n = tags.length;
-            if (c.cachedComplexTagLookup) {
-                for (i = 0; i < n; i++) {
-                    var s = c.cachedComplexTagLookup.get(tags[i]);
-                    if (s && s.size) {
-                        s.forEach(function(value) {
-                            complexTags.push(value);
-                        });
-                        s.clear();
-                    }
-                }
-            }
-
-            if (c.tagCache) {
-                for (i = 0; i < n; i++) {
-                    c.tagCache.delete(tags[i]);
-                }
-            }
-            if (c.mtagCache) {
-                for (i = 0; i < n; i++) {
-                    c.mtagCache.delete(tags[i]);
-                }
-            }
-
-            if (c.cachedComplexTagParents && c.parent) {
-                for (i = 0; i < n; i++) {
-                    s = c.cachedComplexTagParents.get(tags[i]);
-                    if (s && s.size) {
-                        s.forEach(function (value) {
-                            complexTags.push(value);
-                        });
-                        s.clear();
-                    }
-                }
-            }
-        }
-
-
-        if (complexTags.length) {
-            n = complexTags.length;
-
-            if (c.tagCache) {
-                for (i = 0; i < n; i++) {
-                    c.tagCache.delete(complexTags[i]);
-                }
-            }
-            if (c.mtagCache) {
-                for (i = 0; i < n; i++) {
-                    c.mtagCache.delete(complexTags[i]);
-                }
-            }
-
-            if (c.cachedComplexTagParents && c.parent) {
-                for (i = 0; i < n; i++) {
-                    s = c.cachedComplexTagParents.get(complexTags[i]);
-                    if (s && s.size) {
-                        s.forEach(function(value) {
-                            complexTags.push(value);
-                        });
-                        s.clear();
-                    }
-                }
-            }
-        }
-
-        c = c.parent;
-    }
-};
-
-
-ComponentTags.prototype.addCachedComplexTagLookup = function(primaryTag, tag) {
-    if (!this.cachedComplexTagLookup) {
-        this.cachedComplexTagLookup = new Map();
-    }
-    var s = this.cachedComplexTagLookup.get(primaryTag);
-    if (!s) {
-        s = new Set();
-        this.cachedComplexTagLookup.set(primaryTag, s);
-    }
-    s.add(tag);
-};
-
-ComponentTags.prototype.addCachedComplexTagParent = function(tag, parentTag) {
-    if (!this.cachedComplexTagParents) {
-        this.cachedComplexTagParents = new Map();
-    }
-    var s = this.cachedComplexTagParents.get(tag);
-    if (!s) {
-        s = new Set();
-        this.cachedComplexTagParents.set(tag, s);
-    }
-    s.add(parentTag);
+    return res;
 };
 
 if (isNode) {
