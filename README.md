@@ -17,7 +17,7 @@ These files can be re-generated from source using the command:
 ## Node.js:
 For Node.js, this module depends on node-canvas for image loading and text creation, and node-wpe-webgl for providing a WebGL interface to the native hardware. Install the dependencies and follow the installation instructions of node-canvas (https://github.com/Automattic/node-canvas) and node-wpe-webgl (https://github.com/WebPlatformForEmbedded/node-wpe-webgl).
 
-# Basic usage
+# Tutorial
 
 This section describes how to initialize and use the framework step-by-step.
 
@@ -47,7 +47,7 @@ This is similar as for the web browser, but node-wpe-webgl is used as OpenGL ren
 
 Check the API for a list of all [initialisation options](#initialisation-options).
 
-## Defining what to render
+## Tree Definition
 
 The `stage.root` property is the root of the rendering tree. It is an object of type `Component`, to which you can add other new components to it to define what should be rendered within the stage. The tree consists **only** out of objects of the Component type. Components are monolithical objects: they can be images, rectangles, texts or containers, based on how the properties are set (mostly for performance reasons).
 
@@ -68,7 +68,7 @@ https://jsfiddle.net/basvanmeurs/4qy5j7am/
 
 Check the API for a list of all [component properties](#component).
 
-## Dynamic changes
+## Dynamic Changes
 
 You can dynamically change the rendering tree by accessing components using their tags:
 
@@ -121,7 +121,7 @@ setTimeout(function() {
 ```
 https://jsfiddle.net/basvanmeurs/r0hkamd7/
 
-You can also hook into the frame loop, which runs at 60fps:
+You can also hook into the frame loop event, which runs at 60fps:
 ```javascript
 stage.on('frameStart', function(dt) {
 	stage.root.tag('left').scaleX += stage.dt * 10;
@@ -177,7 +177,7 @@ t.on('finish', function() {
 
 https://jsfiddle.net/basvanmeurs/4sukLurc/
 
-Sometimes you may want to fast-forward a transition. You can do this using the fastForward method:
+Sometimes you may want to fast-forward a transition. You can do this using the `Component.fastForward` method:
 
 ```javascript
 setTimeout(function() {
@@ -193,14 +193,30 @@ https://jsfiddle.net/basvanmeurs/2cttjrhw/
 
 ## Animations
 
-## Development Tools
-There is a handy tool available for inspection of rendered compontents. It keeps a 'real' HTML DOM rendering tree syncronized with the WPE UI Framework rendering tree, so that you are able to use the browser's web inspector to check on the layout of your rendering tree.
+UX designers like to push the limits. Just a random idea: a page with items that appears by sliding from outside of the screen to the left, ending with a little wiggle, and then have the items fading in. To create this using the framework presented so far, you'll have to hook up several transitions and/or manually compute the necessary actions during the animation. For the latter you'll have to create or grab some smoothing algorithm. Then, you may want to emit an event when the animation is ready so that the rest of your UI logic can hook into it. This is a lot of work, and needs to be re-implemented carfully for any animation within your UI. Not handy!
+
+That's why WPE UI Framework provides a standardized way of specifying and using animations. It takes care of timing requirements, repeating, smoothing values, changing component properties and emitting events. It provides functionality for starting and stopping and it makes sure that animations are progressed from frame to frame with the right time step. Furthermore, it makes sure that animations that belong to components that are no longer attached to the rendering tree are detached and stop eating up your CPU resources. And we have spent a lot of effort on testing and optimizing it as well!
+
+@todo: example of running an animation.
+@todo: describe action definition (tags, property, value, smoothing options)
+@todo: describe animation stopping.
+
+## Lists
+
+Our aim is to provide a lean-and-mean framework that makes it easy to create your own custom stages and utilities. In practice, we find that it is often quicker and leaner to create your own grids, sliders, menus and other helper utilities. However, we decided to make an exception for the *repeating list* element, which scrolls through a bunch of items. We added it to the framework because it is well standardizable and often handy in UI development. 
+
+@todo: example of the list in action (movie reel?).
+
+# Development Tools
+There is a handy tool available for inspection of rendered compontents. It keeps a 'real' HTML DOM rendering tree syncronized with the WPE UI Framework rendering tree, so that you are able to use the browser's web inspector to check on the layout of your rendering tree. You can even change the properties on the fly and see the result reflected in your stage!
 
 To use it, include the script `browser/inspect.js` script *after* the wpe.js source file.
 
 As an example, open the following jsfiddle and try the inspector on the graphics output:
 
 https://jsfiddle.net/basvanmeurs/pybm5r9b/
+
+Other helpful commands are the `component.getLocationString()` and `component.toString()` methods. They provide information about the tree location and the component branch.
 
 ## Cleaning Up
 When you want to gracefully stop your Node.js application (or want to completely remove the stage from your webpage), you *must* call `stage.destroy()`. This will make sure that all resources are freed, and will stop the render loop, allowing Node.js to quit.
@@ -362,7 +378,7 @@ Text sub object properties:
 | `finish` | | Emitted when a delay finishes. |
 
 ## <a name="animation"></a>Animation
+@todo
 
 ## <a name="animation"></a>List
-
-Todo.
+@todo
