@@ -79,7 +79,7 @@ TextureManager.prototype.getTexture = function(source, options) {
     var w = options && options.w || 0;
     var h = options && options.h || 0;
 
-    var texture, textureSource, hash;
+    var texture, textureSource;
     if (Utils.isString(source)) {
         id = id || source;
 

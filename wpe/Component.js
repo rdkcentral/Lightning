@@ -71,7 +71,7 @@ var Component = function(stage) {
      * 'Normal' children.
      * @type {Component[]}
      */
-    this.children = [];
+    this._children = [];
 
     /**
      * Color tint of this sprite.
@@ -104,7 +104,7 @@ var Component = function(stage) {
      * Manages the tags for this component.
      * @type {ComponentTags}
      */
-    this.tags = new ComponentTags(this);
+    this._tags = new ComponentTags(this);
     
     this._x = 0;
     this._y = 0;
@@ -147,7 +147,11 @@ var Component = function(stage) {
      */
     this.displayedTexture = this._displayedTexture = null;
 
-    // The texture source.
+    /**
+     * Image source, if set.
+     * @type {String}
+     * @private
+     */
     this._src = null;
 
     /**
@@ -202,9 +206,9 @@ Component.prototype.setParent = function(parent) {
     if (this.parent === parent) return;
 
     if (this.parent) {
-        this.parent.hasChildren = (this.parent.children.length > 1);
+        this.parent.hasChildren = (this.parent._children.length > 1);
 
-        this.tags.unsetParent();
+        this._tags.unsetParent();
     }
 
     this.parent = parent;
@@ -215,7 +219,7 @@ Component.prototype.setParent = function(parent) {
 
         parent.hasChildren = true;
 
-        this.tags.setParent(parent.tags);
+        this._tags.setParent(parent._tags);
     }
 
     this.updateActiveFlag();
@@ -240,10 +244,10 @@ Component.prototype.add = function(o) {
 };
 
 Component.prototype.addChild = function (child) {
-    if (child.parent === this && this.children.indexOf(child) >= 0) {
+    if (child.parent === this && this._children.indexOf(child) >= 0) {
         return child;
     }
-    this.addChildAt(child, this.children.length);
+    this.addChildAt(child, this._children.length);
 };
 
 Component.prototype.addChildren = function (children) {
@@ -264,8 +268,8 @@ Component.prototype.addChildAt = function (child, index) {
         return
     }
 
-    if (index >= 0 && index <= this.children.length) {
-        if (child.parent === this && this.children.indexOf(child) === index) {
+    if (index >= 0 && index <= this._children.length) {
+        if (child.parent === this && this._children.indexOf(child) === index) {
             // Ignore.
         } else {
             if (child.parent) {
@@ -274,7 +278,7 @@ Component.prototype.addChildAt = function (child, index) {
             }
 
             child.setParent(this);
-            this.children.splice(index, 0, child);
+            this._children.splice(index, 0, child);
 
             // Sync.
             this.uComponent.insertChild(index, child.uComponent);
@@ -287,11 +291,11 @@ Component.prototype.addChildAt = function (child, index) {
 };
 
 Component.prototype.getChildIndex = function (child) {
-    return this.children.indexOf(child);
+    return this._children.indexOf(child);
 };
 
 Component.prototype.removeChild = function (child) {
-    var index = this.children.indexOf(child);
+    var index = this._children.indexOf(child);
 
     if (index !== -1) {
         this.removeChildAt(index);
@@ -299,10 +303,10 @@ Component.prototype.removeChild = function (child) {
 };
 
 Component.prototype.removeChildAt = function (index) {
-    var child = this.children[index];
+    var child = this._children[index];
 
     child.setParent(null);
-    this.children.splice(index, 1);
+    this._children.splice(index, 1);
 
     // Sync.
     this.uComponent.removeChild(index);
@@ -311,13 +315,13 @@ Component.prototype.removeChildAt = function (index) {
 };
 
 Component.prototype.removeChildren = function() {
-    var n = this.children.length;
+    var n = this._children.length;
     if (n) {
         for (var i = 0; i < n; i++) {
-            var child = this.children[i];
+            var child = this._children[i];
             child.setParent(null);
         }
-        this.children.splice(0, n);
+        this._children.splice(0, n);
 
         // Sync.
         this.uComponent.clearChildren();
@@ -454,14 +458,14 @@ Component.prototype.updateActiveFlag = function() {
             this.active = newActive;
         }
 
-        var m = this.children.length;
+        var m = this._children.length;
         if (m > 0) {
             for (var i = 0; i < m; i++) {
-                this.children[i].updateActiveFlag();
+                this._children[i].updateActiveFlag();
             }
         }
 
-        // Run this after all children because we'd like to see (de)activating a branch as an 'atomic' operation.
+        // Run this after all _children because we'd like to see (de)activating a branch as an 'atomic' operation.
         if (newActive) {
             this.notifyActivate && this.notifyActivate();
         } else {
@@ -501,10 +505,10 @@ Component.prototype.updateAttachedFlag = function() {
             }
         }
 
-        var m = this.children.length;
+        var m = this._children.length;
         if (m > 0) {
             for (var i = 0; i < m; i++) {
-                this.children[i].updateAttachedFlag();
+                this._children[i].updateAttachedFlag();
             }
         }
     }
@@ -659,7 +663,7 @@ Component.prototype.getCornerPoints = function() {
 Component.prototype.getLocationString = function() {
     var i;
     if (this.parent) {
-        i = this.parent.children.indexOf(this);
+        i = this.parent._children.indexOf(this);
         if (i >= 0) {
             var localTags = this.getLocalTags();
             return this.parent.getLocationString() + ":" + i + "[" + this.id + "]" + (localTags.length ? "(" + localTags.join(",") + ")" : "");
@@ -669,31 +673,31 @@ Component.prototype.getLocationString = function() {
 };
 
 Component.prototype.getTags = function() {
-    return this.tags.getLocalTags();
+    return this._tags.getLocalTags();
 };
 
 Component.prototype.setTags = function(tags) {
-    this.tags.setTags(tags);
+    this._tags.setTags(tags);
 };
 
 Component.prototype.addTag = function(tag) {
-    this.tags.addTag(tag);
+    this._tags.addTag(tag);
 };
 
 Component.prototype.removeTag = function(tag) {
-    this.tags.removeTag(tag);
+    this._tags.removeTag(tag);
 };
 
 Component.prototype.hasTag = function(tag) {
-    return this.tags.hasTag(tag);
+    return this._tags.hasTag(tag);
 };
 
 Component.prototype.tag = function(tag) {
-    return this.tags.tag(tag);
+    return this._tags.tag(tag);
 };
 
 Component.prototype.mtag = function(tag) {
-    return this.tags.mtag(tag);
+    return this._tags.mtag(tag);
 };
 
 Component.prototype.stag = function(tag, settings) {
@@ -743,25 +747,6 @@ Component.prototype.setSetting = function(name, value) {
     }
 
     switch(name) {
-        case 'tag':
-        case 'tags':
-            this.setTags(value);
-            break;
-        case 'children':
-            var stage = this.stage;
-            if (!Utils.isArray(value)) {
-                throw new TypeError('Children must be array.');
-            }
-            var c = [];
-            for (var i = 0, n = value.length; i < n; i++) {
-                if (value[i] instanceof Component) {
-                    c[i] = value[i];
-                } else {
-                    c[i] = stage.c(value[i]);
-                }
-            }
-            this.setChildren(c);
-            break;
         case 'transitions':
             if (!Utils.isObject(value)) {
                 throw new TypeError('Transitions must be object.');
@@ -781,7 +766,7 @@ Component.prototype.setSetting = function(name, value) {
                 if (setting) {
                     setting.sf(this, value);
                 } else {
-                    console.warn("Unknown component property: " + name);
+                    throw new Error("Unknown component property: " + name);
                 }
             }
     }
@@ -822,7 +807,7 @@ Component.getPrettyJsonified = function(obj, indent) {
 Component.prototype.getSettingsObject = function() {
     var obj = this.getNonDefaults();
     if (this.hasChildren) {
-        obj.children = this.children.map(function(c) {
+        obj.children = this._children.map(function(c) {
             return c.getSettingsObject();
         });
     }
@@ -832,7 +817,7 @@ Component.prototype.getSettingsObject = function() {
 Component.prototype.getNonDefaults = function() {
     var nonDefaults = {};
 
-    if (this.tags && this.tags.size) {
+    if (this._tags && this._tags.tags.size) {
         nonDefaults['tags'] = this.getLocalTags();
     }
 
@@ -1907,22 +1892,17 @@ Object.defineProperty(Component.prototype, 'src', {
     set: function(v) {
         var prevValue = this._src;
 
-        if (!prevValue || prevValue.src !== v || !this.texture || !this.texture.source.renderInfo || this.texture.source.renderInfo.src !== v) {
+        if (!prevValue || prevValue !== v || !this.texture || !this.texture.source.renderInfo || this.texture.source.renderInfo.src !== v) {
             if (!v) {
                 if (prevValue) {
                     this.texture = null;
                 }
                 this._src = null;
-                return;
+            } else {
+                this.texture = this.stage.textureManager.getTexture(v);
+
+                this._src = v;
             }
-
-            if (Utils.isString(v)) {
-                v = {src:v};
-            }
-
-            this.texture = this.stage.textureManager.getTexture(v.src, v);
-
-            this._src = v;
         }
     }
 });
@@ -1963,6 +1943,38 @@ Object.defineProperty(Component.prototype, 'rect', {
         } else {
             this.texture = null;
         }
+    }
+});
+
+Object.defineProperty(Component.prototype, 'tags', {
+    get: function() {
+        // Copy to make sure they aren't changed externally.
+        return this.getTags();
+    },
+    set: function(v) {
+        this.setTags(v);
+    }
+});
+
+Object.defineProperty(Component.prototype, 'children', {
+    get: function() {
+        // Copy to make sure they aren't changed externally.
+        return this._children;
+    },
+    set: function(v) {
+        var stage = this.stage;
+        if (!Utils.isArray(v)) {
+            throw new TypeError('Children must be array.');
+        }
+        var c = [];
+        for (var i = 0, n = v.length; i < n; i++) {
+            if (v[i] instanceof Component) {
+                c[i] = v[i];
+            } else {
+                c[i] = stage.c(v[i]);
+            }
+        }
+        this.setChildren(c);
     }
 });
 
@@ -2118,12 +2130,15 @@ Component.SETTINGS = {
     'rect': {s: function(obj, value) {obj.rect = value}, g: function(obj) {return obj.rect}, m: null},
     'src': {s: function(obj, value) {obj.src = value}, g: function(obj) {return obj.src}, m: null},
     'text': {s: function(obj, value) {obj.text = value}, g: function(obj) {return obj.text}, m: null},
-    'texture': {s: function(obj, value) {obj.texture = value}, g: function(obj) {return obj.src}, m: null}
+    'texture': {s: function(obj, value) {obj.texture = value}, g: function(obj) {return obj.src}, m: null},
+    'tag': {s: function(obj, value) {obj.tags = value}, g: function(obj) {return obj.tags}, m: null},
+    'tags': {s: function(obj, value) {obj.tags = value}, g: function(obj) {return obj.tags}, m: null},
+    'children': {s: function(obj, value) {obj.children = value}, g: function(obj) {return obj.children;}, m: null}
 };
 
 Component.FINAL_SETTINGS = {};
 for (var key in Component.SETTINGS) {
-    if (Component.SETTINGS.hasOwnProperty(key)) {
+    if (Component.SETTINGS.hasOwnProperty(key) && Component.SETTINGS[key]['sf']) {
         Component.FINAL_SETTINGS[key.toUpperCase()] = Component.SETTINGS[key];
     }
 }

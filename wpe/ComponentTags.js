@@ -131,7 +131,7 @@ ComponentTags.prototype.setParent = function(parent) {
 
 ComponentTags.prototype.getLocalTags = function() {
     // We clone it to make sure it's not changed externally.
-    return this.tags.slice();
+    return this.tags;
 };
 
 ComponentTags.prototype.setTags = function(tags) {

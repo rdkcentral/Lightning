@@ -385,10 +385,6 @@ Stage.prototype.texture = function(source, options) {
     return this.textureManager.getTexture(source, options);
 };
 
-Stage.prototype.hasTexture = function(id) {
-    return this.textureManager.hasTexture(id);
-};
-
 /**
  * Creates a new component.
  * @returns {Component}
