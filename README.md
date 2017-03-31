@@ -193,7 +193,16 @@ https://jsfiddle.net/basvanmeurs/2cttjrhw/
 
 ## Animations
 
-## Stopping
+## Development Tools
+There is a handy tool available for inspection of rendered compontents. It keeps a 'real' HTML DOM rendering tree syncronized with the WPE UI Framework rendering tree, so that you are able to use the browser's web inspector to check on the layout of your rendering tree.
+
+To use it, include the script `browser/inspect.js` script *after* the wpe.js source file.
+
+As an example, open the following jsfiddle and try the inspector on the graphics output:
+
+https://jsfiddle.net/basvanmeurs/pybm5r9b/
+
+## Cleaning Up
 When you want to gracefully stop your Node.js application (or want to completely remove the stage from your webpage), you *must* call `stage.destroy()`. This will make sure that all resources are freed, and will stop the render loop, allowing Node.js to quit.
 
 # API
@@ -353,5 +362,7 @@ Text sub object properties:
 | `finish` | | Emitted when a delay finishes. |
 
 ## <a name="animation"></a>Animation
+
+## <a name="animation"></a>List
 
 Todo.
