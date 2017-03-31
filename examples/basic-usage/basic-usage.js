@@ -32,9 +32,11 @@ t.on('finish', function() {
 stage.root.tag('bunnies').transition('x', {delay: 2, duration: 5, timingFunction: 'linear'});
 stage.root.tag('bunnies').rotation = 2 * Math.PI * 8;
 
-if (isNode) {
-    setTimeout(function() {
-        stage.stop();
-    }, 20000);
-}
-
+setTimeout(function() {
+    // If you set the final property value and then the property value to the same value,
+    // the transition will automatically skip to the end.
+    var b = stage.root.tag('bunnies');
+    var r = b.rotation;
+    b.ROTATION = r;
+    b.rotation = r;
+}, 3000);

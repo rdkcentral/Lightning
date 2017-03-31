@@ -542,9 +542,9 @@ Component.prototype.transition = function(property, settings) {
             for (var i = 0, n = props.length; i < n; i++) {
                 this.setPropertyTransition(props[i], settings);
             }
-            return this.getPropertyTransition(props[0]);
+            return settings ? this.getPropertyTransition(props[0]) : null;
         } else {
-            return this.setPropertyTransition(property, settings)
+            return this.setPropertyTransition(property, settings);
         }
     } else {
         return this.getPropertyTransition(property, settings);
@@ -623,9 +623,12 @@ Component.prototype.setPropertyTransition = function(property, settings) {
     if (!settings) {
         if (this.transitions) {
             if (this.transitions[propertyIndex]) {
+                var setting = Component.SETTINGS[property];
+                setting.sf(this, setting.g(this));
+                this.stage.activeTransitions.delete(this.transitions[propertyIndex]);
                 this.transitionSet.delete(this.transitions[propertyIndex]);
+                this.transitions[propertyIndex] = null;
             }
-            this.transitions[propertyIndex] = null;
         }
     } else {
         // Only reset on change.
