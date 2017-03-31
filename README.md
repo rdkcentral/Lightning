@@ -17,7 +17,7 @@ These files can be re-generated from source using the command:
 ## Node.js:
 For Node.js, this module depends on node-canvas for image loading and text creation, and node-wpe-webgl for providing a WebGL interface to the native hardware. Install the dependencies and follow the installation instructions of node-canvas (https://github.com/Automattic/node-canvas) and node-wpe-webgl (https://github.com/WebPlatformForEmbedded/node-wpe-webgl).
 
-# Basic usage
+# Tutorial
 
 This section describes how to initialize and use the framework step-by-step.
 
@@ -47,7 +47,7 @@ This is similar as for the web browser, but node-wpe-webgl is used as OpenGL ren
 
 Check the API for a list of all [initialisation options](#initialisation-options).
 
-## Defining what to render
+## Tree Definition
 
 The `stage.root` property is the root of the rendering tree. It is an object of type `Component`, to which you can add other new components to it to define what should be rendered within the stage. The tree consists **only** out of objects of the Component type. Components are monolithical objects: they can be images, rectangles, texts or containers, based on how the properties are set (mostly for performance reasons).
 
@@ -68,7 +68,7 @@ https://jsfiddle.net/basvanmeurs/4qy5j7am/
 
 Check the API for a list of all [component properties](#component).
 
-## Dynamic changes
+## Dynamic Changes
 
 You can dynamically change the rendering tree by accessing components using their tags:
 
@@ -121,7 +121,7 @@ setTimeout(function() {
 ```
 https://jsfiddle.net/basvanmeurs/r0hkamd7/
 
-You can also hook into the frame loop, which runs at 60fps:
+You can also hook into the frame loop event, which runs at 60fps:
 ```javascript
 stage.on('frameStart', function(dt) {
 	stage.root.tag('left').scaleX += stage.dt * 10;
@@ -135,24 +135,90 @@ https://jsfiddle.net/basvanmeurs/c4f7kh70/
 In a UI, in most situations a gradual transition looks nicer than setting a property directly. That's why this framework provides transitions in a very simple API:
 
 ```javascript
-
 var t = stage.root.tag('bunnies').transition('rotation', {delay: 2, duration: 8, timingFunction: 'ease'});
 t.on('finish', function() {
 	stage.root.tag('bunnies').x = 400;
 });
 stage.root.tag('bunnies').transition('x', {delay: 2, duration: 5, timingFunction: 'linear'});
 stage.root.tag('bunnies').rotation = 2 * Math.PI * 8;
-
 ```
 Check the API for a list of all [transition properties and events](#transition).
 
 https://jsfiddle.net/basvanmeurs/3eakcyrh/
 
-Todo: fast forward.
+You can remove a previously set transition like this:
+
+```javascript
+setTimeout(function() {
+  stage.root.tag('bunnies').transition('rotation', null);
+}, 3000);
+```
+
+https://jsfiddle.net/basvanmeurs/4sukLurc/
+
+Every property of the Component type that can be used in a transition has a 'normal' value and a **final** value, which is represented by the upper case property name. So, for example, the property `component.rotation` has a final equivalent `component.ROTATION`. If no transition is active, setting `component.rotation` automatically also sets `component.ROTATION`. If a transition is active, it will change the `component.ROTATION` property every frame. The `component.ROTATION` property is the one that's actually being used when rendering the tree. It is good to know about this distinction, because sometimes you may wish to adjust something in the rendering tree based on the final value rather than the normal value, as in the following example, in which the text is kept aligned with the container box:
+
+```javascript
+var t = stage.root.tag('box').transition('x', {delay: 0.5, duration: 2, timingFunction: 'ease'});
+stage.root.tag('box').x = -300;
+t.on('progress', function(p) {
+  var x = stage.root.tag('box').X;
+  if (x < 0) {
+     stage.root.tag('hello').x = Math.min(150, 10 - x);
+  } else {
+     stage.root.tag('hello').x = 10;
+  }
+});
+
+t.on('finish', function() {
+  stage.root.tag('box').x = Math.random() * 1000 - 500;
+});
+```
+
+https://jsfiddle.net/basvanmeurs/4sukLurc/
+
+Sometimes you may want to fast-forward a transition. You can do this using the `Component.fastForward` method:
+
+```javascript
+setTimeout(function() {
+  // If you set the final property value and then the property value to the same value,
+  // the transition will automatically skip to the end.
+  stage.root.tag('bunnies').fastForward('rotation');
+}, 3000);
+```
+
+Notice that, when fast-forwarding, the finish event is emitted, whereas when removing the transition it is not.
+
+https://jsfiddle.net/basvanmeurs/2cttjrhw/
 
 ## Animations
 
-## Stopping
+UX designers like to push the limits. Just a random idea: a page with items that appears by sliding from outside of the screen to the left, ending with a little wiggle, and then have the items fading in. To create this using the framework presented so far, you'll have to hook up several transitions and/or manually compute the necessary actions during the animation. For the latter you'll have to create or grab some smoothing algorithm. Then, you may want to emit an event when the animation is ready so that the rest of your UI logic can hook into it. This is a lot of work, and needs to be re-implemented carfully for any animation within your UI. Not handy!
+
+That's why WPE UI Framework provides a standardized way of specifying and using animations. It takes care of timing requirements, repeating, smoothing values, changing component properties and emitting events. It provides functionality for starting and stopping and it makes sure that animations are progressed from frame to frame with the right time step. Furthermore, it makes sure that animations that belong to components that are no longer attached to the rendering tree are detached and stop eating up your CPU resources. And we have spent a lot of effort on testing and optimizing it as well!
+
+@todo: example of running an animation.
+@todo: describe action definition (tags, property, value, smoothing options)
+@todo: describe animation stopping.
+
+## Lists
+
+Our aim is to provide a lean-and-mean framework that makes it easy to create your own custom stages and utilities. In practice, we find that it is often quicker and leaner to create your own grids, sliders, menus and other helper utilities. However, we decided to make an exception for the *repeating list* element, which scrolls through a bunch of items. We added it to the framework because it is well standardizable and often handy in UI development. 
+
+@todo: example of the list in action (movie reel?).
+
+# Development Tools
+There is a handy tool available for inspection of rendered compontents. It keeps a 'real' HTML DOM rendering tree syncronized with the WPE UI Framework rendering tree, so that you are able to use the browser's web inspector to check on the layout of your rendering tree. You can even change the properties on the fly and see the result reflected in your stage!
+
+To use it, include the script `browser/inspect.js` script *after* the wpe.js source file.
+
+As an example, open the following jsfiddle and try the inspector on the graphics output:
+
+https://jsfiddle.net/basvanmeurs/pybm5r9b/
+
+Other helpful commands are the `component.getLocationString()` and `component.toString()` methods. They provide information about the tree location and the component branch.
+
+## Cleaning Up
 When you want to gracefully stop your Node.js application (or want to completely remove the stage from your webpage), you *must* call `stage.destroy()`. This will make sure that all resources are freed, and will stop the render loop, allowing Node.js to quit.
 
 # API
@@ -312,5 +378,7 @@ Text sub object properties:
 | `finish` | | Emitted when a delay finishes. |
 
 ## <a name="animation"></a>Animation
+@todo
 
-Todo.
+## <a name="animation"></a>List
+@todo
