@@ -2,7 +2,7 @@
 
 WPE UI Framework is a javascript 2d graphics rendering and animation library using (Web)GL. It's geared towards developing animated User Interfaces that run nicely on low-performance (embedded) devices. The framework has been optimized for high performance and low CPU/memory usage, and has been carefully tested for memory leaks.
 
-The framework offers a **rendering tree** that can be modified using a very *simple* and *usable* API. The rendering tree consists of **components** that have several properties (x, y, rotation, alpha, etc). An image or rendered text can be attached to a component, which is then rendered immediately on the screen.
+The framework provides a **rendering tree** that can be modified using a very *simple* API. The rendering tree consists of **components** that have properties that define where and how it is rendered (x, y, rotation, alpha, etc). An image or rendered text can be attached to a component, which is then rendered immediately on the screen.
 
 UI Framework runs in a any modern web browser using **WebGL** and in **Node.js** (version 4 or higher) on several targets including (desktop) Linux, OSX, Windows and the Raspberry PI.
 
@@ -21,7 +21,7 @@ For Node.js, this module depends on node-canvas for image loading and text creat
 
 This section describes how to initialize and use the framework step-by-step.
 
-## Initialisation
+## Initialization
 
 For a web browser:
 
@@ -148,6 +148,8 @@ Check the API for a list of all [transition properties and events](#transition).
 
 https://jsfiddle.net/basvanmeurs/3eakcyrh/
 
+Todo: fast forward.
+
 ## Animations
 
 ## Stopping
@@ -160,110 +162,143 @@ When you want to gracefully stop your Node.js application (or want to completely
 ### <a name="initialisation-options"></a>Initialisation options
 Usage: `new Stage({w: 600, h: 600, ...})`.
 
-| Name            |Default value| Description                                                                                          |
+| Name |Default value| Description |
 | --------------- |-------------|------------------------------------------------------------------------------------------------------|
-| `w`               |         `1280`| stage width in px                                                                                    |
-| `h`               |          `720`| stage height in px                                                                                   |
-| `reuseCanvas`     |         `null`| canvas object to use instead of creating a new one (web only)                                        |
-| `rw`              |         `1280`| the px which corresponds the right edge of the stage                                                 |
-| `rh`              |          `720`| the px which corresponds the bottom edge of the stage                                                |
-| `textureMemory`   |         `12e6`| the amount of squared pixels that may be stored in GPU memory for texture storage / caching          |
-| `glClearColor`    |   `0xFF000000`| the background color (ARGB)                                                                          |
-| <a name="initialisation-options-default-font-face"></a>`defaultFontFace` |        Arial| the font face to use for rendering if none is explicitly specified                                   |
-| `fixedDt`         |            `0`| if specified, the ms to progress in each is fixed instead of dynamic                                 |
-| `window`          |             | node-wpe-webgl specific options, see https://github.com/WebPlatformForEmbedded/node-wpe-webgl#options |
+| `w` | `1280`| Stage width in px. |
+| `h` | `720`| Stage height in px |
+| `reuseCanvas` | `null`| Canvas object to use instead of creating a new one (browser only). |
+| `rw` | `1280`| The px which corresponds the right edge of the stage. |
+| `rh` | `720`| The px which corresponds the bottom edge of the stage. |
+| `textureMemory` | `12e6`| The amount of squared pixels that may be stored in GPU memory for texture storage / caching. |
+| `glClearColor` | `0xFF000000`| The background color (ARGB). |
+| <a name="initialisation-options-default-font-face"></a>`defaultFontFace` | Arial| The font face to use for rendering if none is explicitly specified. |
+| `fixedDt` | `0`| If specified, the ms to progress in each is fixed instead of dynamic. |
+| `window` | | Specific node-wpe-webgl options, see https://github.com/WebPlatformForEmbedded/node-wpe-webgl#options. |
+| `useTextureAtlas` | true | This allocates a 2048x2048px texture to which small textures that are currently visible are being cached. This makes rendering a lot faster but takes memory.
 
 ### Methods
 
-| Name                              | Description |
+| Method | Description |
 | --------------------------------- |-------------|
-| `destroy()`                       | Destroys this stage and release all resources. It is no longer usable after calling this method. |
-| `setGlClearColor(color)`          | Sets the background color (example: 0xFF000000). |
-| `getCanvas()`                     | Returns the canvas. |
-| `stops()`                         | Temporarily stops the stage rendering loop. |
-| `resume()`                        | Resumes the stage rendering loop. |
-| `texture(source, options)`        | Creates a new texture. Source can be either a string (URL/file path), a TextureSource object, or a function which has a callback argument, which it invokes with an actual source (Canvas, Image or Uint8Array with RGBA data) and as second argument an object with properties w, h which should be specified in case of Uint8Array. Options are id (texture sources with the same id are reused), and x, y, w, h for clipping. |
-| `component(settings)`                     | Creates a new component object |
-| `c(settings)`                     | See component() |
+| `destroy()` | Destroys this stage and release all resources. It is no longer usable after calling this method. |
+| `setGlClearColor(color)` | Sets the background color (example: 0xFF000000). |
+| `getCanvas()` | Returns the canvas. |
+| `stops()` | Temporarily stops the stage rendering loop. |
+| `resume()` | Resumes the stage rendering loop. |
+| `texture(source, options)` | Creates a new texture. Source can be either a string (URL/file path), a TextureSource object, or a function which has a callback argument, which it invokes with an actual source (Canvas, Image or Uint8Array with RGBA data) and as second argument an object with properties w, h which should be specified in case of Uint8Array. Options are id (texture sources with the same id are reused), and x, y, w, h for clipping. |
+| `component(settings)` | Creates an returns a new component object. |
+| `c(settings)` | See component(). |
+| `animation(settings)` | Creates and returns a new animation (without a subject). |
+| `a(settings)` | See animation(). |
 
 ### Events
 
-| Name                              |Arguments| Description |
+| Name | Arguments | Description |
 | --------------------------------- |---------|-------------|
-| `frameStart`                      |         | Emitted on every frame. |
-| `update`                          |         | Emitted on every frame, after applying transitions and animations. |
-| `frameEnd`                        |         | Emitted on every frame, after rendering. |
+| `frameStart` | | Emitted on every frame. |
+| `update` | | Emitted on every frame, after applying transitions and animations. |
+| `frameEnd` | | Emitted on every frame, after rendering. |
 
 ## <a name="component"></a>Component
 
 ### Properties
 
-| Name                              |Default value| Description |
+| Name | Default value | Description |
 | --------------------------------- |-------------|-------------|
-| `x`, `y`                              |            `0`| Relative offset to the parent component in px |
-| `w`, `h`                              |            `0`| Width/height of the component in px (if applicable) |
-| `scale`(`X`,`Y`)                        |            `1`| Scales this component (and all descendants), relative to the pivot position |
-| `rotation`                          |            `0`| Rotation around the pivot point in radians |
-| `pivot`(`X`,`Y`)                        |          `0.5`| Specifies the pivot point for scale and rotation (0 = left/top, 1 = bottom/right) |
-| `mount`(`X`,`Y`)                        |            `0`| Specifies the alignment for the x, y offset (0 = left/top, 1 = bottom/right) |
-| `alpha`                             |            `1`| Opacity of this component (and all descendants) |
-| `borderWidth`(`Top`,`Left`,`Right`,`Bottom`)|            `1`| Border width |
-| `borderColor`(`Top`,`Left`,`Right`,`Bottom`)|   `0xFFFFFFFF`| Border color (ARGB integer) |
-| `color`(`Top`,`Bottom`)(`Left`,`Right`)     |   `0xFFFFFFFF`| Color/tinting/gradients of the drawn texture. *Note: gradients do not work on textures that are being clipped due to technical limitations.* |
-| `visible`                           |         `true`| Toggles visibility for this component (and all descendants) |
-| `zIndex`                            |            `0`| Specifies drawing order (just as in HTML) |
-| `forceZIndexContext`                |        `false`| Creates a z-index stacking context without changing the drawing order of this component itself |
-| `clipping`                          |        `false`| Do not draw descendant component parts that are outside of this component (overflow:hidden) |
-| `rect`                              |        `false`| When set to true, this component becomes a colored rectangle |
-| `src`                               |         `null`| When set, this component will render the image; URL (Node.js / web) or file (Node.js) |
-| `text`                              |         `null`| When set, this component will render the text as specified (an object with the options specified below) |
-| `texture`                           |         `null`| When set, this component will render the custom texture (see `Stage.getTexture(..)`). By specifying a plain object with x,y,w,h properties you can affect the clipping |
+| `x`, `y` | `0`| Relative offset to the parent component in px. |
+| `w`, `h` | `0`| Width/height of the component in px (if applicable). |
+| `scale`(`X`,`Y`) | `1`| Scales this component (and all descendants), relative to the pivot position. |
+| `rotation` | `0`| Rotation around the pivot point in radian.s |
+| `pivot`(`X`,`Y`) | `0.5`| Specifies the pivot point for scale and rotation (0 = left/top, 1 = bottom/right). |
+| `mount`(`X`,`Y`) | `0`| Specifies the alignment for the x, y offset (0 = left/top, 1 = bottom/right). |
+| `alpha` | `1`| Opacity of this component (and all descendants). |
+| `borderWidth`(`Top`,`Left`,`Right`,`Bottom`)| `1`| Border width. |
+| `borderColor`(`Top`,`Left`,`Right`,`Bottom`)| `0xFFFFFFFF`| Border color (ARGB integer). |
+| `color`(`Top`,`Bottom`)(`Left`,`Right`) | `0xFFFFFFFF`| Color/tinting/gradients of the drawn texture. *Note: gradients do not work on textures that are being clipped due to technical limitations.* |
+| `visible` | `true`| Toggles visibility for this component (and all descendants). |
+| `zIndex` | `0`| Specifies drawing order (just as in HTML). |
+| `forceZIndexContext` | `false`| Creates a z-index stacking context without changing the drawing order of this component itself. |
+| `clipping` | `false`| Do not draw descendant component parts that are outside of this component (overflow:hidden). |
+| `rect` | `false`| When set to true, this component becomes a colored rectangle. |
+| `src` | `null`| When set, this component will render the image; URL (Node.js / web) or file (Node.js). |
+| `text` | `null`| When set, this component will render the text as specified (an object with the options specified below). |
+| `texture` | `null`| When set, this component will render the custom texture (see `Stage.getTexture(..)`). By specifying a plain object with x,y,w,h properties you can select a specific area of the texture. |
+| `tags` | `[]`| Replaces the tags of this component (`this.setTags(..)`). Can be a string or an array of strings. |
+| `children` | `[]`| Replaces the children of this component (`this.setChildren(..)`). |
+| `transitions` | `{}`| Adds transitions (for every key-value: `this.transition(key,value)`). It does not remove the existing transitions. |
 
-Text properties:
+Text object properties:
 
-| Name                              |Default value| Description |
+| Name | Default value | Description |
 | --------------------------------- |-------------|-------------|
-| `text`                            |         `""`| The text to be shown. |
-| `fontSize`                        |         `40`| Text font size, in px. |
-| `fontFace`                        |    `"Arial"`| the font face (as used in CSS); may be an array to use (multiple) fallbacks. If nothing is specified, the [defaultFontFace](#initialisation-options-default-font-face) is used. |
-| `fontStyle`                       |   `"normal"`| Font-style property (https://developer.mozilla.org/en-US/docs/Web/CSS/font-style). |
-| `wordWrap`                        |       `true`| Should words wrap be enabled? |
-| `wordWrapWidth`                   |          `0`| The word wrap max line width in px. If not set, w property is used. |###
-| `lineHeight`                      |       `null`| The line height; if not set the font size is used. |
-| `textBaseline`                    | `alphabetic`| https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/textBaseline |
-| `textAlign`                       |       `left`| Text alignment: left, center or right. |
-| `textAlign`                       |       `left`| Text alignment: left, center or right. |
-| `offsetY`                         |          `0`| Additional offset to start drawing text from the top. |
-| `maxLines`                        |          `0`| Limits the number of lines to be drawn. |
-| `maxLinesSuffix`                  |       `".."`| If there were more text lines that have been drawn, append this to the final line. |
-| `textColor`                       | `0xFFFFFFFF`| Normally, you will use the color property of the component to specify the color. But when using highlighting or text shadows, this will also affect those. You will then have to set this text drawing color. |
-| `padding`(`Left`,`Right`)         |          `0`| Additional padding on the sides of the text. |
-| `shadow`                          |      `false`| Enable text shadows. |
-| `shadowColor`                     | `0xFF000000`| https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/shadowColor |
-| `shadowOffset`(`X`,`Y`)           |          `0`| https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/shadowOffsetX |
-| `shadowBlur`                      |          `5`| https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/shadowBlur |
+| `text` | `""`| The text to be shown. |
+| `fontSize` | `40`| Text font size, in px. |
+| `fontFace` | `"Arial"`| the font face (as used in CSS); may be an array to use (multiple) fallbacks. If nothing is specified, the [defaultFontFace](#initialisation-options-default-font-face) is used. |
+| `fontStyle` | `"normal"`| Font-style property (https://developer.mozilla.org/en-US/docs/Web/CSS/font-style). |
+| `wordWrap` | `true`| Should words wrap be enabled? |
+| `wordWrapWidth` | `0`| The word wrap max line width in px. If not set, w property is used. |###
+| `lineHeight` | `null`| The line height; if not set the font size is used. |
+| `textBaseline` | `alphabetic`| https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/textBaseline |
+| `textAlign` | `left`| Text alignment: left, center or right. |
+| `textAlign` | `left`| Text alignment: left, center or right. |
+| `offsetY` | `0`| Additional offset to start drawing text from the top. |
+| `maxLines` | `0`| Limits the number of lines to be drawn. |
+| `maxLinesSuffix` | `".."`| If there were more text lines that have been drawn, append this to the final line. |
+| `textColor` | `0xFFFFFFFF`| Normally, you will use the color property of the component to specify the color. But when using highlighting or text shadows, this will also affect those. You will then have to set this text drawing color. |
+| `padding`(`Left`,`Right`) | `0`| Additional padding on the sides of the text. |
+| `shadow` | `false`| Enable text shadows. |
+| `shadowColor` | `0xFF000000`| https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/shadowColor |
+| `shadowOffset`(`X`,`Y`) | `0`| https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/shadowOffsetX |
+| `shadowBlur` | `5`| https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/shadowBlur |
 
 ### Methods
-Todo.
+| Method | Description |
+| --------------------------------- |-------------|
+| `add(children)` | Appends one or more children. Argument can be either a Component object, a plain object with component properties, or an array of either. |
+| `addChild(component)` | Appends a single component to the children. |
+| `addChildAt(component, index)` | Appends a single component at the specified position in the children array. |
+| `removeChild(component)` | Removes the specified child component. |
+| `removeChildAt(index)` | Removes the child at the specified index. |
+| `removeChildren(components)` | Removes the specified child components. |
+| `addChildren(components)` | appends multiple components to the children. |
+| `setChildren(components)` | Replaces the current children with the array of components. |
+| `getChildIndex(component)` | Returns the child index of the specified component (-1 if not a child of this component). |
+| `getDepth()` | Returns the tree depth (root = 0). |
+| `getAncestor(l)` | Returns the ancestor, `l` levels above this one (if `l` too high, root is returned). |
+| `getAncestorAtDepth(l)` | Returns the ancestor at the specified level. |
+| `isAncestorOf(component)` | Returns true iff this component is an ancestor of the specified component. |
+| `getSharedAncestor(component)` | Returns the shared ancestor between this and the specified component (`null` if not in the same tree). |
+| `isAttached()` | Returns true iff this component is attached to the stage rendering tree. |
+| `isActive()` | Returns true iff this component is attached to the stage rendering tree and is visible. |
+| `animation(settings)` | Creates and returns an animation that has this component as subject. |
+| `a(settings)` | See animation(). |
+| `transition(property, settings)` | If settings is a plain object, it enables the transition on the specified property. If settings is `null`, it removes the animation on the specified property. The following properties can be transitioned: `x y w h scale(X,Y) pivot(X,Y) mount(X,Y) alpha rotation borderWidth(Top,Bottom,Left,Right) borderColor(Top,Bottom,Left,Right) color(Top,Bottom)(Left,Right)` |
+| `t(property, settings)` | See transition(). |
+| `fastForward(property)` | Fast-forwards the specified transition. |
+| `getRenderWidth()` | Returns the render width of this component (either the set w property, or the width of the texture actually being shown). |
+| `getRenderHeight()` | Returns the render height of this component. |
+| `getCornerPoints()` | Returns the [x1,y1,x2,y2,x3,y3,x4,y4] coordinates of the component's corner points in world coordinates. |
+| `getLocationString()` | Returns a nicely formatted string describing the tree location of this component. |
+todo: tags and other methods
 
 ## <a name="transition"></a>Transition
 
 ### Properties
 
-| Name                              |Default value| Description |
+| Name |Default value| Description |
 | --------------------------------- |-------------|-------------|
-| `delay`                           |          `0`| Delay in s before starting the transition after updating the value. |
-| `duration`                        |          `1`| Defines how long the transition takes from start to finish. |
-| `timingFunction`                  |       `ease`| The timing function. Supported are: `linear ease ease-in ease-out ease-in-out step-start step-end cubic-bezier(n,n,n,n)`|
+| `delay` | `0`| Delay in s before starting the transition after updating the value. |
+| `duration` | `1`| Defines how long the transition takes from start to finish. |
+| `timingFunction` | `ease`| The timing function. Supported are: `linear ease ease-in ease-out ease-in-out step-start step-end cubic-bezier(n,n,n,n)`|
 
 ### Events
 
-| Name                              |Arguments| Description |
+| Name |Arguments| Description |
 | --------------------------------- |---------|-------------|
-| `start`                           |         | Emitted when a transition starts. |
-| `delayEnd`                        |         | Emitted when a delay ends. |
-| `progress`                        | p (value between 0 and 1) | Emitted on every transition step. |
-| `finish`                        |         | Emitted when a delay finishes. |
+| `start` | | Emitted when a transition starts. |
+| `delayEnd` | | Emitted when a delay ends. |
+| `progress` | p (value between 0 and 1) | Emitted on every transition step. |
+| `finish` | | Emitted when a delay finishes. |
 
 ## <a name="animation"></a>Animation
 
