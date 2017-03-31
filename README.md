@@ -47,7 +47,7 @@ This is similar as for the web browser, but node-wpe-webgl is used as OpenGL ren
 
 Check the API for a list of all [initialisation options](#initialisation-options).
 
-## Rendering tree
+## Defining what to render
 
 The `stage.root` property is the root of the rendering tree. It is an object of type `Component`, to which you can add other new components to it to define what should be rendered within the stage. The tree consists **only** out of objects of the Component type. Components are monolithical objects: they can be images, rectangles, texts or containers, based on how the properties are set (mostly for performance reasons).
 
@@ -181,15 +181,15 @@ Usage: `new Stage({w: 600, h: 600, ...})`.
 | Method | Description |
 | --------------------------------- |-------------|
 | `destroy()` | Destroys this stage and release all resources. It is no longer usable after calling this method. |
-| `setGlClearColor(color : Integer)` | Sets the background color (example: 0xFF000000). |
+| `setGlClearColor(color:Integer)` | Sets the background color (example: 0xFF000000). |
 | `getCanvas() : HTMLCanvasElement` | Returns the canvas. |
 | `stop()` | Temporarily stops the stage rendering loop. |
 | `resume()` | Resumes the stage rendering loop. |
-| `texture(source : String|TextureSource|Function, options : object)` | Creates a new texture. Source can be either a string (URL/file path), a TextureSource object, or a function which has a callback as only argument, which should be called with as first argument the pixel data (Canvas, Image or Uint8Array with RGBA data) and as second argument an object with properties w, h which should be specified in case of Uint8Array. Options are id (texture sources with the same id are reused), and x, y, w, h for clipping. |
-| `component(settings : Object) : Component` | Creates an returns a new component object. |
-| `c(settings : Object) : Component` | See component(). |
-| `animation(settings : Object) : Animation` | Creates and returns a new animation (without a subject). |
-| `a(settings : Object) : Animation` | See animation(). |
+| `texture(source:String|TextureSource|Function,options:object)` | Creates a new texture. Source can be either a string (URL/file path), a TextureSource object, or a function which has a callback as only argument, which should be called with as first argument the pixel data (Canvas, Image or Uint8Array with RGBA data) and as second argument an object with properties w, h which should be specified in case of Uint8Array. Options are id (texture sources with the same id are reused), and x, y, w, h for clipping. |
+| `component(settings:Object):Component` | Creates an returns a new component object. |
+| `c(settings:Object):Component` | See component(). |
+| `animation(settings:Object):Animation` | Creates and returns a new animation (without a subject). |
+| `a(settings:Object):Animation` | See animation(). |
 
 ### Events
 
@@ -220,14 +220,15 @@ Usage: `new Stage({w: 600, h: 600, ...})`.
 | `forceZIndexContext` | `false`| Creates a z-index stacking context without changing the drawing order of this component itself. |
 | `clipping` | `false`| Do not draw descendant component parts that are outside of this component (overflow:hidden). |
 | `rect` | `false`| When set to true, this component becomes a colored rectangle. |
-| `src` | `null`| When set, this component will render the image; URL (Node.js / web) or file (Node.js). |
-| `text` | `null`| When set, this component will render the text as specified (an object with the options specified below). |
-| `texture` | `null`| When set, this component will render the custom texture (see `Stage.getTexture(..)`). By specifying a plain object with x,y,w,h properties you can select a specific area of the texture. |
-| `tags` | `[]`| Replaces the tags of this component (`this.setTags(..)`). Can be a string or an array of strings. |
-| `children` | `[]`| Replaces the children of this component (`this.setChildren(..)`). |
-| `transitions` | `{}`| Adds transitions (for every key-value: `this.transition(key,value)`). It does not remove the existing transitions. |
+| `src` | `null`| The image source URL (string). When set, this component will render the image; URL (Node.js / web) or file (Node.js). |
+| `text` | `null`| The text settings. When set, this component will render the text as specified (an object with the options specified below). |
+| `texture` | `null`| The texture that's being shown, or null if this component is only a container. When set (`Texture` object or `null`), this component will render the custom texture (see `Stage.getTexture(..)`). By setting it with a plain object with x,y,w,h properties, the current texture is kept but a specific area of the texture is selected for display. |
+| `tags` | `[]`| The tags of this component. When get, you should *never* modify this array manually! When set, replaces the tags of this component. Can be both a string or an array of strings. |
+| `children` | `[]`| The children of this component. When get, you should *never* modify this array manually! When set, replaces the children of this component. |
 
-Text object properties:
+All of these properties can be set directly (using `component.pivotX = 0.5`) or via the set or stag method: `component.set({pivotX: 0.5})`.
+
+Text sub object properties:
 
 | Name | Default value | Description |
 | --------------------------------- |-------------|-------------|
@@ -254,40 +255,42 @@ Text object properties:
 ### Methods
 | Method | Description |
 | --------------------------------- |-------------|
-| `add(children : mixed) : Component|null` | Appends one or more children. Argument can be either a Component object, a plain object with component properties, or an array of either. |
-| `addChild(child : Component)` | Appends a single component to the children. |
-| `addChildAt(child : Component, index : Integer)` | Appends a single component at the specified position in the children array. |
-| `removeChild(child : Component)` | Removes the specified child component. |
-| `removeChildAt(index : Integer) : Component` | Removes the child at the specified index. |
+| `add(children:mixed):Component|null` | Appends one or more children. Argument can be either a Component object, a plain object with component properties, or an array of either. |
+| `addChild(child:Component)` | Appends a single component to the children. |
+| `addChildAt(child:Component,index:Integer)` | Appends a single component at the specified position in the children array. |
+| `removeChild(child:Component)` | Removes the specified child component. |
+| `removeChildAt(index:Integer):Component` | Removes the child at the specified index. |
 | `removeChildren()` | Removes the specified child components. |
-| `addChildren(children : Component[])` | appends multiple components to the children. |
-| `setChildren(children : Component[])` | Replaces the current children with the array of components. |
-| `getChildIndex(child : Component) : Integer` | Returns the child index of the specified component (-1 if not a child of this component). |
-| `getDepth() : Integer` | Returns the tree depth (root = 0). |
-| `getAncestor(level : Integer) : Component` | Returns the ancestor, `l` levels above this one (if `l` too high, root is returned). |
-| `getAncestorAtDepth(depth : Integer) : Component` | Returns the ancestor at the specified depth of the tree. |
-| `isAncestorOf(child : Component) : Boolean ` | Returns true iff this component is an ancestor of the specified component. |
-| `getSharedAncestor(other : Component) : Component` | Returns the shared ancestor between this and the specified component (`null` if not in the same tree). |
-| `isAttached() : Boolean` | Returns true iff this component is attached to the stage rendering tree. |
-| `isActive() : Boolean` | Returns true iff this component is attached to the stage rendering tree and is visible. |
-| `animation(settings : Object) : TimedAnimation` | Creates and returns an animation that has this component as subject. |
-| `a(settings : Object) : TimedAnimation` | See animation(). |
-| `transition(property : String, settings : Object) : Transition` | If settings is a plain object, it enables the transition on the specified property. If settings is `null`, it removes the animation on the specified property. The following properties can be transitioned: `x y w h scale(X,Y) pivot(X,Y) mount(X,Y) alpha rotation borderWidth(Top,Bottom,Left,Right) borderColor(Top,Bottom,Left,Right) color(Top,Bottom)(Left,Right)` |
-| `t(property : String, settings : Object) : Transition` | See transition(). |
-| `fastForward(property : String)` | Fast-forwards a currently running transition. |
-| `getRenderWidth() : Number` | Returns the render width of this component (either the set w property, or the width of the texture actually being shown). |
-| `getRenderHeight() : Number` | Returns the render height of this component. |
-| `getCornerPoints() : Number[]` | Returns the `[x1,y1,x2,y2,x3,y3,x4,y4]` coordinates of the component's corner points in canvas coordinates. |
-| `getLocationString() : String` | Returns a nicely formatted string describing the tree location of this component. |
-| `getTags() : String[]` | Returns an array with the component tags. |
-| `setTags(tags : String[])` | Replace the current tags by the specified tags. |
-| `addTag(tag : String)` | Adds the specified tag. |
-| `removeTag(tag : String)` | Removes the specified tag. |
-| `hasTag(tag : String) : Boolean` | Returns true iff this component has the specified tag. |
-| `tag(tag : String) : Component` | Returns the (single) component with the specified tag within this branch, or `null` if none found. |
-| `mtag(tag : String) : Component` | Returns all of the components with the specified tag within this branch. |
-| `stag(tag : String, settings : Object)` | Combination of mtag and setSettings in one method call. |
-todo: tags and other methods
+| `addChildren(children:Component[])` | appends multiple components to the children. |
+| `setChildren(children:Component[])` | Replaces the current children with the array of components. |
+| `getChildIndex(child:Component):Integer` | Returns the child index of the specified component (-1 if not a child of this component). |
+| `getDepth():Integer` | Returns the tree depth (root = 0). |
+| `getAncestor(level:Integer):Component` | Returns the ancestor, `l` levels above this one (if `l` too high, root is returned). |
+| `getAncestorAtDepth(depth:Integer):Component` | Returns the ancestor at the specified depth of the tree. |
+| `isAncestorOf(child:Component):Boolean ` | Returns true iff this component is an ancestor of the specified component. |
+| `getSharedAncestor(other:Component):Component` | Returns the shared ancestor between this and the specified component (`null` if not in the same tree). |
+| `isAttached():Boolean` | Returns true iff this component is attached to the stage rendering tree. |
+| `isActive():Boolean` | Returns true iff this component is attached to the stage rendering tree and is visible. |
+| `animation(settings:Object):TimedAnimation` | Creates and returns an animation that has this component as subject. |
+| `a(settings:Object):TimedAnimation` | See animation(). |
+| `transition(property:String,settings:Object):Transition` | If settings is a plain object,it enables the transition on the specified property. If settings is `null`, it removes the animation on the specified property. The following properties can be transitioned: `x y w h scale(X,Y) pivot(X,Y) mount(X,Y) alpha rotation borderWidth(Top,Bottom,Left,Right) borderColor(Top,Bottom,Left,Right) color(Top,Bottom)(Left,Right)` |
+| `t(property:String,settings:Object):Transition` | See transition(). |
+| `fastForward(property:String)` | Fast-forwards a currently running transition. |
+| `getRenderWidth():Number` | Returns the render width of this component (either the set w property, or the width of the texture actually being shown). |
+| `getRenderHeight():Number` | Returns the render height of this component. |
+| `getCornerPoints():Number[]` | Returns the `[x1,y1,x2,y2,x3,y3,x4,y4]` coordinates of the component's corner points in canvas coordinates. |
+| `getLocationString():String` | Returns a nicely formatted string describing the tree location of this component. |
+| `getTags():String[]` | Returns an array with the component tags. |
+| `setTags(tags:String[])` | Replace the current tags by the specified tags. |
+| `addTag(tag:String)` | Adds the specified tag. |
+| `removeTag(tag:String)` | Removes the specified tag. |
+| `hasTag(tag:String):Boolean` | Returns true iff this component has the specified tag. |
+| `tag(tag:String):Component` | Returns the (single) component with the specified tag within this branch, or `null` if none found. |
+| `mtag(tag:String):Component` | Returns all of the components with the specified tag within this branch. |
+| `stag(tag:String,settings:Object)` | Combination of mtag and set in one method call. |
+| `set(settings:Object)` | Sets the specified properties. |
+| `toString():String` | Returns a JSON-formatted string describing this branch. |
+| `getSettingsObject():Object` | Returns a JSON object describing this component's branch. It can be imported using the `add` method. |
 
 ## <a name="transition"></a>Transition
 
