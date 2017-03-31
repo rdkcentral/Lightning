@@ -135,20 +135,61 @@ https://jsfiddle.net/basvanmeurs/c4f7kh70/
 In a UI, in most situations a gradual transition looks nicer than setting a property directly. That's why this framework provides transitions in a very simple API:
 
 ```javascript
-
 var t = stage.root.tag('bunnies').transition('rotation', {delay: 2, duration: 8, timingFunction: 'ease'});
 t.on('finish', function() {
 	stage.root.tag('bunnies').x = 400;
 });
 stage.root.tag('bunnies').transition('x', {delay: 2, duration: 5, timingFunction: 'linear'});
 stage.root.tag('bunnies').rotation = 2 * Math.PI * 8;
-
 ```
 Check the API for a list of all [transition properties and events](#transition).
 
 https://jsfiddle.net/basvanmeurs/3eakcyrh/
 
-Todo: fast forward.
+You can remove a previously set transition like this:
+
+```javascript
+setTimeout(function() {
+  stage.root.tag('bunnies').transition('rotation', null);
+}, 3000);
+```
+
+https://jsfiddle.net/basvanmeurs/4sukLurc/
+
+Every property of the Component type that can be used in a transition has a 'normal' value and a **final** value, which is represented by the upper case property name. So, for example, the property `component.rotation` has a final equivalent `component.ROTATION`. If no transition is active, setting `component.rotation` automatically also sets `component.ROTATION`. If a transition is active, it will change the `component.ROTATION` property every frame. The `component.ROTATION` property is the one that's actually being used when rendering the tree. It is good to know about this distinction, because sometimes you may wish to adjust something in the rendering tree based on the final value rather than the normal value, as in the following example, in which the text is kept aligned with the container box:
+
+```javascript
+var t = stage.root.tag('box').transition('x', {delay: 0.5, duration: 2, timingFunction: 'ease'});
+stage.root.tag('box').x = -300;
+t.on('progress', function(p) {
+  var x = stage.root.tag('box').X;
+  if (x < 0) {
+     stage.root.tag('hello').x = Math.min(150, 10 - x);
+  } else {
+     stage.root.tag('hello').x = 10;
+  }
+});
+
+t.on('finish', function() {
+  stage.root.tag('box').x = Math.random() * 1000 - 500;
+});
+```
+
+https://jsfiddle.net/basvanmeurs/4sukLurc/
+
+Sometimes you may want to fast-forward a transition. You can do this using the fastForward method:
+
+```javascript
+setTimeout(function() {
+  // If you set the final property value and then the property value to the same value,
+  // the transition will automatically skip to the end.
+  stage.root.tag('bunnies').fastForward('rotation');
+}, 3000);
+```
+
+Notice that, when fast-forwarding, the finish event is emitted, whereas when removing the transition it is not.
+
+https://jsfiddle.net/basvanmeurs/2cttjrhw/
 
 ## Animations
 
