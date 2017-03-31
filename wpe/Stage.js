@@ -110,7 +110,7 @@ function Stage(options) {
 
     /**
      * The currently active animations.
-     * @type {Set<TimedAnimation>}
+     * @type {Set<Animation>}
      */
     this.activeAnimations = new Set();
 
@@ -415,7 +415,7 @@ Stage.prototype.c = function(settings) {
 };
 
 Stage.prototype.animation = function(settings) {
-    var a = new TimedAnimation(this);
+    var a = new Animation(this);
     if (settings) {
         a.set(settings);
     }
@@ -452,7 +452,7 @@ if (isNode) {
     module.exports = Stage;
 
     var NodeAdapter = require('../node/NodeAdapter');
-    var TimedAnimation = require('./TimedAnimation');
+    var Animation = require('./Animation');
     var Renderer = require('./Renderer');
     var TextureManager = require('./TextureManager');
     var TextureAtlas = require('./TextureAtlas');

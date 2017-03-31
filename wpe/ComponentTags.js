@@ -130,7 +130,8 @@ ComponentTags.prototype.setParent = function(parent) {
 };
 
 ComponentTags.prototype.getLocalTags = function() {
-    return this.tags;
+    // We clone it to make sure it's not changed externally.
+    return this.tags.slice();
 };
 
 ComponentTags.prototype.setTags = function(tags) {

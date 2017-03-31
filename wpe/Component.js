@@ -95,10 +95,10 @@ var Component = function(stage) {
     this.transitionSet = null;
 
     /**
-     * All timed animations that have this component has subject.
-     * @type {Set<TimedAnimation>}
+     * All animations that have this component has subject.
+     * @type {Set<Animation>}
      */
-    this.timedAnimationSet = null;
+    this.animationSet = null;
 
     /**
      * Manages the tags for this component.
@@ -243,7 +243,7 @@ Component.prototype.addChild = function (child) {
     if (child.parent === this && this.children.indexOf(child) >= 0) {
         return child;
     }
-    return this.addChildAt(child, this.children.length);
+    this.addChildAt(child, this.children.length);
 };
 
 Component.prototype.addChildren = function (children) {
@@ -261,7 +261,7 @@ Component.prototype.setChildren = function (children) {
 Component.prototype.addChildAt = function (child, index) {
     // prevent adding self as child
     if (child === this) {
-        return child;
+        return
     }
 
     if (index >= 0 && index <= this.children.length) {
@@ -280,7 +280,7 @@ Component.prototype.addChildAt = function (child, index) {
             this.uComponent.insertChild(index, child.uComponent);
         }
 
-        return child;
+        return;
     } else {
         throw new Error(child + 'addChildAt: The index '+ index +' supplied is out of bounds ' + this.children.length);
     }
@@ -293,11 +293,9 @@ Component.prototype.getChildIndex = function (child) {
 Component.prototype.removeChild = function (child) {
     var index = this.children.indexOf(child);
 
-    if (index === -1) {
-        return;
+    if (index !== -1) {
+        this.removeChildAt(index);
     }
-
-    return this.removeChildAt(index);
 };
 
 Component.prototype.removeChildAt = function (index) {
@@ -347,8 +345,8 @@ Component.prototype.getAncestor = function(l) {
     return p;
 };
 
-Component.prototype.getAncestorAtDepth = function(l) {
-    var levels = this.getDepth() - l;
+Component.prototype.getAncestorAtDepth = function(depth) {
+    var levels = this.getDepth() - depth;
     if (levels < 0) {
         return null;
     }
@@ -494,10 +492,10 @@ Component.prototype.updateAttachedFlag = function() {
                 });
             }
 
-            if (this.timedAnimationSet) {
-                this.timedAnimationSet.forEach(function(timedAnimation) {
-                    if (timedAnimation.isActive()) {
-                        self.stage.addActiveAnimation(timedAnimation);
+            if (this.animationSet) {
+                this.animationSet.forEach(function(animation) {
+                    if (animation.isActive()) {
+                        self.stage.addActiveAnimation(animation);
                     }
                 });
             }
@@ -512,15 +510,15 @@ Component.prototype.updateAttachedFlag = function() {
     }
 };
 
-Component.prototype.addTimedAnimation = function(a) {
-    if (!this.timedAnimationSet) {
-        this.timedAnimationSet = new Set();
+Component.prototype.addAnimation = function(a) {
+    if (!this.animationSet) {
+        this.animationSet = new Set();
     }
-    this.timedAnimationSet.add(a);
+    this.animationSet.add(a);
 };
 
-Component.prototype.removeTimedAnimation = function(a) {
-    this.timedAnimationSet.delete(a);
+Component.prototype.removeAnimation = function(a) {
+    this.animationSet.delete(a);
 };
 
 Component.prototype.animation = function(settings) {
@@ -553,29 +551,20 @@ Component.prototype.t = function(property, settings) {
     this.transition(property, settings);
 };
 
-Component.prototype.transitions = function(properties, settings) {
-    var all = [];
-    for (var i = 0, n = properties.length; i < n; i++) {
-        var props = Component.propAliases.get(properties[i]);
-        if (props) {
-            all = all.concat(props);
+Component.prototype.fastForward = function(property) {
+    var props = Component.propAliases.get(property);
+    if (!props) props = [property];
+    for (var i = 0, n = props.length; i < n; i++) {
+        var name = props[i];
+        var setting = Component.SETTINGS[name];
+        if (setting && setting.m) {
+            var t = this.getPropertyTransition(name);
+            if (t) {
+                t.updateTargetValue(setting.g(this), setting.g(this));
+            }
         } else {
-            all.push(properties[i]);
+            console.warn("Unknown transition property: " + name);
         }
-    }
-
-    if (settings || settings === null) {
-        var rval = [];
-        for (i = 0, n = all.length; i < n; i++) {
-            rval.push(this.setPropertyTransition(all[i], settings));
-        }
-        return rval;
-    } else {
-        var rval = [];
-        for (i = 0, n = all.length; i < n; i++) {
-            rval.push(this.getPropertyTransition(all[i], settings));
-        }
-        return rval;
     }
 };
 
@@ -641,7 +630,7 @@ Component.prototype.setPropertyTransition = function(property, settings) {
             this.transitionSet = new Set();
         }
         if (!this.transitions[propertyIndex]) {
-            this.transitions[propertyIndex] = new PropertyTransition(this, property);
+            this.transitions[propertyIndex] = new Transition(this, property);
             this.transitionSet.add(this.transitions[propertyIndex]);
         }
         this.transitions[propertyIndex].set(settings);
@@ -667,35 +656,6 @@ Component.prototype.getCornerPoints = function() {
     return this.uComponent.getCornerPoints();
 };
 
-/**
- * Fast-forwards the transition(s).
- * @param {string} property
- */
-Component.prototype.fastForward = function(property) {
-    var i, n;
-
-    if (Component.propAliases.has(property)) {
-        var aliasedProperties = Component.propAliases.get(property);
-        n = aliasedProperties.length;
-        for (i = 0; i < n; i++) {
-            this.fastForward(aliasedProperties[i]);
-        }
-    } else {
-        var propertyIndex = Component.getPropertyIndex(property);
-        if (propertyIndex == -1) {
-            throw new Error("Unknown transition property: " + property);
-        }
-
-        if (this.transitions && this.transitions[propertyIndex]) {
-            var t = this.transitions[propertyIndex];
-            if (t && t.isActive()) {
-                t.reset(t.targetValue, t.targetValue, 1);
-            }
-        }
-    }
-
-};
-
 Component.prototype.getLocationString = function() {
     var i;
     if (this.parent) {
@@ -708,7 +668,7 @@ Component.prototype.getLocationString = function() {
     return "";
 };
 
-Component.prototype.getLocalTags = function() {
+Component.prototype.getTags = function() {
     return this.tags.getLocalTags();
 };
 
@@ -2007,9 +1967,7 @@ Object.defineProperty(Component.prototype, 'rect', {
 });
 
 Component.prototype.setTransitionTargetValue = function(transition, targetValue, currentValue) {
-    if (transition.targetValue !== targetValue) {
-        transition.updateTargetValue(targetValue, currentValue);
-    }
+    transition.updateTargetValue(targetValue, currentValue);
 };
 
 Component.prototype._updateLocalTransform = function() {
@@ -2175,7 +2133,7 @@ Component.nTransitions = 24;
 if (isNode) {
     module.exports = Component;
     var Stage = require('./Stage');
-    var PropertyTransition = require('./PropertyTransition');
+    var Transition = require('./Transition');
     var Texture = require('./Texture');
     var ComponentText = require('./ComponentText');
     var ComponentTags = require('./ComponentTags');
