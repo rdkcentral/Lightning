@@ -193,9 +193,8 @@ https://jsfiddle.net/basvanmeurs/2cttjrhw/
 
 ## Animations
 
-UX designers like to push the limits. Just a random idea: a page with items that appears by sliding from outside of the screen to the left, ending with a little wiggle, and then have the items fading in. To create this using the framework presented so far, you'll have to hook up several transitions and/or manually compute the necessary actions during the animation. For the latter you'll have to create or grab some smoothing algorithm. Then, you may want to emit an event when the animation is ready so that the rest of your UI logic can hook into it. This is a lot of work, and needs to be re-implemented carfully for any animation within your UI. Not handy!
+WPE UI Framework provides a standardized way of specifying and using animations. Animations are a collection of actions (property settings) that take place at the particular point in time. An animation has a **subject** Component, on which (or one of its descendants) the actions are applied.
 
-That's why WPE UI Framework provides a standardized way of specifying and using animations. It takes care of timing requirements, repeating, smoothing values, changing component properties and emitting events. It provides functionality for starting and stopping and it makes sure that animations are progressed from frame to frame with the right time step. Furthermore, it makes sure that animations that belong to components that are no longer attached to the rendering tree are detached and stop eating up your CPU resources. And we have spent a lot of effort on testing and optimizing it as well!
 
 @todo: example of running an animation.
 @todo: describe action definition (tags, property, value, smoothing options)
@@ -319,6 +318,7 @@ Text sub object properties:
 | `shadowBlur` | `5`| https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/shadowBlur |
 
 ### Methods
+
 | Method | Description |
 | --------------------------------- |-------------|
 | `add(children:mixed):Component|null` | Appends one or more children. Argument can be either a Component object, a plain object with component properties, or an array of either. |
@@ -366,19 +366,57 @@ Text sub object properties:
 | --------------------------------- |-------------|-------------|
 | `delay` | `0`| Delay in s before starting the transition after updating the value. |
 | `duration` | `1`| Defines how long the transition takes from start to finish. |
-| `timingFunction` | `ease`| The timing function. Supported are: `linear ease ease-in ease-out ease-in-out step-start step-end cubic-bezier(n,n,n,n)`|
+| `timingFunction` | `"ease"`| The timing function. Options: `linear ease ease-in ease-out ease-in-out step-start step-end cubic-bezier(n,n,n,n)`|
 
 ### Events
 
 | Name |Arguments| Description |
 | --------------------------------- |---------|-------------|
 | `start` | | Emitted when a transition starts. |
-| `delayEnd` | | Emitted when a delay ends. |
+| `delayEnd` | | Emitted when the delay ends. |
 | `progress` | p (value between 0 and 1) | Emitted on every transition step. |
-| `finish` | | Emitted when a delay finishes. |
+| `finish` | | Emitted when the transition finishes. |
 
 ## <a name="animation"></a>Animation
-@todo
+
+### Methods
+| Method | Description |
+| --------------------------------- |-------------|
+| `start()` | Restarts the animation. |
+| `play()` | If not already running (or finished), starts the animation. If stopping in 'reverse' mode, go into playing mode |
+| `replay()` | Like `play()`, but restart if finished. |
+| `fastForward()` | If playing, goes to the finish state. If stopping, goes to the stopped state. |
+| `isPlaying():Boolean` | Returns true iff this animation is currently playing. |
+| `skipDelay()` | Skip delay if currently waiting for it. |
+| `stop()` | Stop the current animation. |
+| `stopNow()` | Stop the current animation *immediately*. |
+
+### Properties
+
+| Name |Default value| Description |
+| --------------------------------- |-------------|-------------|
+| `delay` | `0`| Delay in s before actually starting the animation after starting it. |
+| `duration` | `1`| Defines how long the animation takes from start to finish. |
+| `repeat` | `0`| How many times the animation should be repeated before finishing (-1 = repeat forever). |
+| `autostop` | `false`| Stop automatically after the animation finishes. |
+| `subject` | `null`| The component that is the subject of this animation. |
+| `stopMethod` | `fade`| The way to *stop* the animation. Options: `fade immediate reverse forward onetotwo`. Forward means: continue until repeat finishes and then stop. Onetotwo means: keep progressing until progress reaches 2 (value definition goes up to 2). |
+| `stopMethodOptions` | `{}` | Additional options for the stop method. Properties: duration, delay, timingFunction |
+
+### Events
+
+| Name |Arguments| Description |
+| --------------------------------- |---------|-------------|
+| `start` | | Emitted when the animation starts. |
+| `delayEnd` | | Emitted when the delay ends. |
+| `progress` | p (value between 0 and 1) | Emitted on every animation step. |
+| `repeat` | repeatsLeft | Emitted when a repeat is started. |
+| `finish` | | Emitted when the animation finishes. |
+| `stop` | | Emitted when the animation is starting to stop. |
+| `stopFinish` | | Emitted when the animation finishes stopping. |
+| `stopDelayEnd` | | Emitted when the stop delay ends. |
+| `stopContinue` | | Emitted when an animation is started while it was stopping. |
+| `finish` | | Emitted when the animation finishes. |
 
 ## <a name="animation"></a>List
 @todo
