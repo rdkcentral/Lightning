@@ -49,7 +49,7 @@ Check the API for a list of all [initialisation options](#initialisation-options
 
 ## Tree Definition
 
-The `stage.root` property is the root of the rendering tree. It is an object of type `Component`, to which you can add other new components to it to define what should be rendered within the stage. The tree consists **only** out of objects of the Component type. Components are monolithical objects: they can be images, rectangles, texts or containers, based on how the properties are set (mostly for performance reasons).
+The `stage.root` property is the root of the rendering tree. You can add other new components to this tree to define what should be rendered within the stage. All of the nodes in the rendering tree are of the Component type, and based on their property settings they can be images, rectangles, texts or containers.
 
 Example:
 
@@ -191,6 +191,8 @@ Notice that, when fast-forwarding, the finish event is emitted, whereas when rem
 
 https://jsfiddle.net/basvanmeurs/2cttjrhw/
 
+Check the API for a list of all [transition methods, properties and events](#transition).
+
 ## Animations
 
 WPE UI Framework provides a standardized way of specifying and using animations. Animations are a collection of actions (property settings) that take place at the particular point in time. An animation has a **subject** Component, on which (or one of its descendants) the actions are applied.
@@ -249,6 +251,8 @@ As you can see, the default is to 'fade' the animation settings back to the orig
 | `immediate` | https://jsfiddle.net/basvanmeurs/2oco85qk/ |
 | `onetotwo` | https://jsfiddle.net/basvanmeurs/e0yp6a18/ |
 | `forward` | This continues the animation until it is finished. |
+
+Check the API for a list of all [animation methods, properties and events](#animation).
 
 # Development Tools
 There is a handy tool available for inspection of rendered compontents. It keeps a 'real' HTML DOM rendering tree syncronized with the WPE UI Framework rendering tree, so that you are able to use the browser's web inspector to check on the layout of your rendering tree. You can even change the properties on the fly and see the result reflected in your stage!
