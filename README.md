@@ -242,14 +242,13 @@ setTimeout(function() {
 https://jsfiddle.net/basvanmeurs/q4om4fje/
 
 As you can see, the default is to 'fade' the animation settings back to the original values gradually within one second. You affect this transition by setting the `stopMethodOptions`. Some other stop methods:
-`"reverse"`: 
 
-
-## Lists
-
-Our aim is to provide a lean-and-mean framework that makes it easy to create your own custom stages and utilities. In practice, we find that it is often quicker and leaner to create your own grids, sliders, menus and other helper utilities. However, we decided to make an exception for the *repeating list* element, which scrolls through a bunch of items. We added it to the framework because it is well standardizable and often handy in UI development. 
-
-@todo: example of the list in action (movie reel?).
+| Name | Example |
+| -----|---------|
+| `reverse` | https://jsfiddle.net/basvanmeurs/q4om4fje/ |
+| `immediate` | https://jsfiddle.net/basvanmeurs/2oco85qk/ |
+| `onetotwo` | https://jsfiddle.net/basvanmeurs/e0yp6a18/ |
+| `forward` | This continues the animation until it is finished. |
 
 # Development Tools
 There is a handy tool available for inspection of rendered compontents. It keeps a 'real' HTML DOM rendering tree syncronized with the WPE UI Framework rendering tree, so that you are able to use the browser's web inspector to check on the layout of your rendering tree. You can even change the properties on the fly and see the result reflected in your stage!
@@ -486,5 +485,3 @@ Action value item sub object properties
 | `stopContinue` | | Emitted when an animation is started while it was stopping. |
 | `finish` | | Emitted when the animation finishes. |
 
-## <a name="animation"></a>List
-@todo
