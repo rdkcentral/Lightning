@@ -1,5 +1,9 @@
 var isNode = !!(((typeof module !== "undefined") && module.exports));
 
+if (isNode) {
+    var Utils = require('./Utils');
+}
+
 var AnimationActionItems = function(animationAction) {
     this.animationAction = animationAction;
     this.clear();
@@ -198,4 +202,5 @@ AnimationActionItems.prototype.getCurrentValue = function() {
 
 if (isNode) {
     module.exports = AnimationActionItems;
+    var StageUtils = require('./StageUtils');
 }
