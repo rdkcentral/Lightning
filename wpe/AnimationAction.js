@@ -50,6 +50,7 @@ function AnimationAction(animation) {
 
     // Default.
     this.tags = '';
+
 }
 
 /**
@@ -76,7 +77,7 @@ AnimationAction.prototype.getAnimatedComponents = function() {
  * Returns the components to be animated.
  */
 AnimationAction.prototype.getAnimatedMultiComponents = function() {
-    var i, n = this.tags.length, j, m, k, l;
+    var i, n = this.tags.length, j, m;
 
     var taggedComponents = [];
     for (i = 0; i < n; i++) {
@@ -235,7 +236,7 @@ Object.defineProperty(AnimationAction.prototype, 't', {
 });
 
 Object.defineProperty(AnimationAction.prototype, 'properties', {
-    get: function() { return this._properties; },
+    get: function() { return this._properties.map(function(p) {return p.name;}); },
     set: function(v) {
         var vs = v;
         if (!Utils.isArray(v)) {

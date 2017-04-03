@@ -51,7 +51,7 @@ AnimationActionItems.prototype.parseDefinition = function(def) {
             }
 
             var p = parseFloat(key);
-            if (!isNaN(p) && p >= 0 && p <= 1) {
+            if (!isNaN(p) && p >= 0 && p <= 2) {
                 obj.p = p;
 
                 obj.f = Utils.isFunction(obj.v);
@@ -71,7 +71,7 @@ AnimationActionItems.prototype.parseDefinition = function(def) {
         var last = (i == n - 1);
         if (!items[i].hasOwnProperty('pe')) {
             // Progress.
-            items[i].pe = last ? 1 : items[i + 1].p;
+            items[i].pe = last ? (items[i].p <= 1 ? 1 : 2 /* support onetotwo stop */) : items[i + 1].p;
         } else {
             // Prevent multiple items at the same time.
             var max = i < n - 1 ? items[i + 1].p : 1;
@@ -97,7 +97,7 @@ AnimationActionItems.prototype.parseDefinition = function(def) {
             }
             if (!items[i].hasOwnProperty('s')) {
                 // Slope.
-                if (i === 0 || i === n - 1) {
+                if (i === 0 || i === n - 1 || (items[i].p === 1 /* for onetotwo */)) {
                     // Horizontal slope at start and end.
                     items[i].s = rgba ? [0, 0, 0, 0] : 0;
                 } else {
