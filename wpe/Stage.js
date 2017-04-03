@@ -104,7 +104,7 @@ function Stage(options) {
 
     /**
      * The currently active transitions.
-     * @type {Set<PropertyTransition>}
+     * @type {Set<Transition>}
      */
     this.activeTransitions = new Set();
 

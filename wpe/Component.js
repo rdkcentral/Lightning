@@ -84,13 +84,13 @@ var Component = function(stage) {
 
     /**
      * The transitions (indexed by property index, null if not used).
-     * @type {PropertyTransition[]}
+     * @type {Transition[]}
      */
     this.transitions = null;
 
     /**
      * All transitions, for quick looping.
-     * @type {Set<PropertyTransition>}
+     * @type {Set<Transition>}
      */
     this.transitionSet = null;
 

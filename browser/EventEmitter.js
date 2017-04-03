@@ -23,10 +23,8 @@
  SOFTWARE.
  */
 
-'use strict';
-
-var has = Object.prototype.hasOwnProperty
-    , prefix = '~';
+var has = Object.prototype.hasOwnProperty;
+var prefix = '~';
 
 /**
  * Constructor to create a storage for our `EE` objects.
