@@ -239,7 +239,7 @@ setTimeout(function() {
 }, 5000)
 ```
 
-https://jsfiddle.net/basvanmeurs/q4om4fje/
+https://jsfiddle.net/basvanmeurs/mh50egcx/
 
 As you can see, the default is to 'fade' the animation settings back to the original values gradually within one second. You affect this transition by setting the `stopMethodOptions`. Some other stop methods:
 
