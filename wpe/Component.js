@@ -2046,8 +2046,8 @@ Component.prototype._updateTextureCoords = function() {
         if (displayedTexture.clipping) {
             // Apply texture clipping.
             var w = displayedTextureSource.getRenderWidth();
-            var h = displayedTextureSource.getRenderHeight()
-            var ih, rw, rh;
+            var h = displayedTextureSource.getRenderHeight();
+            var iw, ih, rw, rh;
             iw = 1 / w;
             ih = 1 / h;
 

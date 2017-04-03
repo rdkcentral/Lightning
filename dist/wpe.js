@@ -580,7 +580,7 @@ function Stage(options) {
 
     /**
      * The currently active animations.
-     * @type {Set<TimedAnimation>}
+     * @type {Set<Animation>}
      */
     this.activeAnimations = new Set();
 
@@ -594,7 +594,7 @@ function Stage(options) {
     this.measureLastFrameCounter = {};
     this.measureCount = {};
 
-    this.rectangleTexture = this.getTexture(Stage.rectangleSource.src, Stage.rectangleSource);
+    this.rectangleTexture = this.texture(Stage.rectangleSource.src, Stage.rectangleSource);
 
     if (this.adapter.setStage) {
         this.adapter.setStage(this);
@@ -851,26 +851,17 @@ Stage.prototype.performUpdates = function() {
  *     Clipping offset h.
  * @returns {Texture}
  */
-Stage.prototype.getTexture = function(source, options) {
+Stage.prototype.texture = function(source, options) {
     return this.textureManager.getTexture(source, options);
-};
-
-Stage.prototype.hasTexture = function(id) {
-    return this.textureManager.hasTexture(id);
 };
 
 /**
  * Creates a new component.
  * @returns {Component}
  */
-Stage.prototype.component = function(settings, children) {
+Stage.prototype.component = function(settings) {
     var component = new Component(this);
 
-    if (children) {
-        for (var i = 0; i < children.length; i++) {
-            component.addChild(children[i]);
-        }
-    }
     if (settings) {
         component.set(settings);
     }
@@ -890,7 +881,7 @@ Stage.prototype.c = function(settings) {
 };
 
 Stage.prototype.animation = function(settings) {
-    var a = new TimedAnimation(this);
+    var a = new Animation(this);
     if (settings) {
         a.set(settings);
     }
@@ -1617,7 +1608,7 @@ TextureManager.prototype.getTexture = function(source, options) {
     var w = options && options.w || 0;
     var h = options && options.h || 0;
 
-    var texture, textureSource, hash;
+    var texture, textureSource;
     if (Utils.isString(source)) {
         id = id || source;
 
@@ -3020,7 +3011,7 @@ var Component = function(stage) {
      * 'Normal' children.
      * @type {Component[]}
      */
-    this.children = [];
+    this._children = [];
 
     /**
      * Color tint of this sprite.
@@ -3044,16 +3035,16 @@ var Component = function(stage) {
     this.transitionSet = null;
 
     /**
-     * All timed animations that have this component has subject.
-     * @type {Set<TimedAnimation>}
+     * All animations that have this component has subject.
+     * @type {Set<Animation>}
      */
-    this.timedAnimationSet = null;
+    this.animationSet = null;
 
     /**
      * Manages the tags for this component.
      * @type {ComponentTags}
      */
-    this.tags = new ComponentTags(this);
+    this._tags = new ComponentTags(this);
     
     this._x = 0;
     this._y = 0;
@@ -3096,7 +3087,11 @@ var Component = function(stage) {
      */
     this.displayedTexture = this._displayedTexture = null;
 
-    // The texture source.
+    /**
+     * Image source, if set.
+     * @type {String}
+     * @private
+     */
     this._src = null;
 
     /**
@@ -3151,9 +3146,9 @@ Component.prototype.setParent = function(parent) {
     if (this.parent === parent) return;
 
     if (this.parent) {
-        this.parent.hasChildren = (this.parent.children.length > 1);
+        this.parent.hasChildren = (this.parent._children.length > 1);
 
-        this.tags.unsetParent();
+        this._tags.unsetParent();
     }
 
     this.parent = parent;
@@ -3164,7 +3159,7 @@ Component.prototype.setParent = function(parent) {
 
         parent.hasChildren = true;
 
-        this.tags.setParent(parent.tags);
+        this._tags.setParent(parent._tags);
     }
 
     this.updateActiveFlag();
@@ -3189,10 +3184,10 @@ Component.prototype.add = function(o) {
 };
 
 Component.prototype.addChild = function (child) {
-    if (child.parent === this && this.children.indexOf(child) >= 0) {
+    if (child.parent === this && this._children.indexOf(child) >= 0) {
         return child;
     }
-    return this.addChildAt(child, this.children.length);
+    this.addChildAt(child, this._children.length);
 };
 
 Component.prototype.addChildren = function (children) {
@@ -3210,11 +3205,11 @@ Component.prototype.setChildren = function (children) {
 Component.prototype.addChildAt = function (child, index) {
     // prevent adding self as child
     if (child === this) {
-        return child;
+        return
     }
 
-    if (index >= 0 && index <= this.children.length) {
-        if (child.parent === this && this.children.indexOf(child) === index) {
+    if (index >= 0 && index <= this._children.length) {
+        if (child.parent === this && this._children.indexOf(child) === index) {
             // Ignore.
         } else {
             if (child.parent) {
@@ -3223,37 +3218,35 @@ Component.prototype.addChildAt = function (child, index) {
             }
 
             child.setParent(this);
-            this.children.splice(index, 0, child);
+            this._children.splice(index, 0, child);
 
             // Sync.
             this.uComponent.insertChild(index, child.uComponent);
         }
 
-        return child;
+        return;
     } else {
         throw new Error(child + 'addChildAt: The index '+ index +' supplied is out of bounds ' + this.children.length);
     }
 };
 
 Component.prototype.getChildIndex = function (child) {
-    return this.children.indexOf(child);
+    return this._children.indexOf(child);
 };
 
 Component.prototype.removeChild = function (child) {
-    var index = this.children.indexOf(child);
+    var index = this._children.indexOf(child);
 
-    if (index === -1) {
-        return;
+    if (index !== -1) {
+        this.removeChildAt(index);
     }
-
-    return this.removeChildAt(index);
 };
 
 Component.prototype.removeChildAt = function (index) {
-    var child = this.children[index];
+    var child = this._children[index];
 
     child.setParent(null);
-    this.children.splice(index, 1);
+    this._children.splice(index, 1);
 
     // Sync.
     this.uComponent.removeChild(index);
@@ -3262,13 +3255,13 @@ Component.prototype.removeChildAt = function (index) {
 };
 
 Component.prototype.removeChildren = function() {
-    var n = this.children.length;
+    var n = this._children.length;
     if (n) {
         for (var i = 0; i < n; i++) {
-            var child = this.children[i];
+            var child = this._children[i];
             child.setParent(null);
         }
-        this.children.splice(0, n);
+        this._children.splice(0, n);
 
         // Sync.
         this.uComponent.clearChildren();
@@ -3296,8 +3289,8 @@ Component.prototype.getAncestor = function(l) {
     return p;
 };
 
-Component.prototype.getAncestorAtDepth = function(l) {
-    var levels = this.getDepth() - l;
+Component.prototype.getAncestorAtDepth = function(depth) {
+    var levels = this.getDepth() - depth;
     if (levels < 0) {
         return null;
     }
@@ -3405,14 +3398,14 @@ Component.prototype.updateActiveFlag = function() {
             this.active = newActive;
         }
 
-        var m = this.children.length;
+        var m = this._children.length;
         if (m > 0) {
             for (var i = 0; i < m; i++) {
-                this.children[i].updateActiveFlag();
+                this._children[i].updateActiveFlag();
             }
         }
 
-        // Run this after all children because we'd like to see (de)activating a branch as an 'atomic' operation.
+        // Run this after all _children because we'd like to see (de)activating a branch as an 'atomic' operation.
         if (newActive) {
             this.notifyActivate && this.notifyActivate();
         } else {
@@ -3443,33 +3436,33 @@ Component.prototype.updateAttachedFlag = function() {
                 });
             }
 
-            if (this.timedAnimationSet) {
-                this.timedAnimationSet.forEach(function(timedAnimation) {
-                    if (timedAnimation.isActive()) {
-                        self.stage.addActiveAnimation(timedAnimation);
+            if (this.animationSet) {
+                this.animationSet.forEach(function(animation) {
+                    if (animation.isActive()) {
+                        self.stage.addActiveAnimation(animation);
                     }
                 });
             }
         }
 
-        var m = this.children.length;
+        var m = this._children.length;
         if (m > 0) {
             for (var i = 0; i < m; i++) {
-                this.children[i].updateAttachedFlag();
+                this._children[i].updateAttachedFlag();
             }
         }
     }
 };
 
-Component.prototype.addTimedAnimation = function(a) {
-    if (!this.timedAnimationSet) {
-        this.timedAnimationSet = new Set();
+Component.prototype.addAnimation = function(a) {
+    if (!this.animationSet) {
+        this.animationSet = new Set();
     }
-    this.timedAnimationSet.add(a);
+    this.animationSet.add(a);
 };
 
-Component.prototype.removeTimedAnimation = function(a) {
-    this.timedAnimationSet.delete(a);
+Component.prototype.removeAnimation = function(a) {
+    this.animationSet.delete(a);
 };
 
 Component.prototype.animation = function(settings) {
@@ -3489,9 +3482,9 @@ Component.prototype.transition = function(property, settings) {
             for (var i = 0, n = props.length; i < n; i++) {
                 this.setPropertyTransition(props[i], settings);
             }
-            return this.getPropertyTransition(props[0]);
+            return settings ? this.getPropertyTransition(props[0]) : null;
         } else {
-            return this.setPropertyTransition(property, settings)
+            return this.setPropertyTransition(property, settings);
         }
     } else {
         return this.getPropertyTransition(property, settings);
@@ -3502,29 +3495,20 @@ Component.prototype.t = function(property, settings) {
     this.transition(property, settings);
 };
 
-Component.prototype.transitions = function(properties, settings) {
-    var all = [];
-    for (var i = 0, n = properties.length; i < n; i++) {
-        var props = Component.propAliases.get(properties[i]);
-        if (props) {
-            all = all.concat(props);
+Component.prototype.fastForward = function(property) {
+    var props = Component.propAliases.get(property);
+    if (!props) props = [property];
+    for (var i = 0, n = props.length; i < n; i++) {
+        var name = props[i];
+        var setting = Component.SETTINGS[name];
+        if (setting && setting.m) {
+            var t = this.getPropertyTransition(name);
+            if (t) {
+                t.updateTargetValue(setting.g(this), setting.g(this));
+            }
         } else {
-            all.push(properties[i]);
+            console.warn("Unknown transition property: " + name);
         }
-    }
-
-    if (settings || settings === null) {
-        var rval = [];
-        for (i = 0, n = all.length; i < n; i++) {
-            rval.push(this.setPropertyTransition(all[i], settings));
-        }
-        return rval;
-    } else {
-        var rval = [];
-        for (i = 0, n = all.length; i < n; i++) {
-            rval.push(this.getPropertyTransition(all[i], settings));
-        }
-        return rval;
     }
 };
 
@@ -3579,9 +3563,12 @@ Component.prototype.setPropertyTransition = function(property, settings) {
     if (!settings) {
         if (this.transitions) {
             if (this.transitions[propertyIndex]) {
+                var setting = Component.SETTINGS[property];
+                setting.sf(this, setting.g(this));
+                this.stage.activeTransitions.delete(this.transitions[propertyIndex]);
                 this.transitionSet.delete(this.transitions[propertyIndex]);
+                this.transitions[propertyIndex] = null;
             }
-            this.transitions[propertyIndex] = null;
         }
     } else {
         // Only reset on change.
@@ -3590,7 +3577,7 @@ Component.prototype.setPropertyTransition = function(property, settings) {
             this.transitionSet = new Set();
         }
         if (!this.transitions[propertyIndex]) {
-            this.transitions[propertyIndex] = new PropertyTransition(this, property);
+            this.transitions[propertyIndex] = new Transition(this, property);
             this.transitionSet.add(this.transitions[propertyIndex]);
         }
         this.transitions[propertyIndex].set(settings);
@@ -3616,39 +3603,10 @@ Component.prototype.getCornerPoints = function() {
     return this.uComponent.getCornerPoints();
 };
 
-/**
- * Fast-forwards the transition(s).
- * @param {string} property
- */
-Component.prototype.fastForward = function(property) {
-    var i, n;
-
-    if (Component.propAliases.has(property)) {
-        var aliasedProperties = Component.propAliases.get(property);
-        n = aliasedProperties.length;
-        for (i = 0; i < n; i++) {
-            this.fastForward(aliasedProperties[i]);
-        }
-    } else {
-        var propertyIndex = Component.getPropertyIndex(property);
-        if (propertyIndex == -1) {
-            throw new Error("Unknown transition property: " + property);
-        }
-
-        if (this.transitions && this.transitions[propertyIndex]) {
-            var t = this.transitions[propertyIndex];
-            if (t && t.isActive()) {
-                t.reset(t.targetValue, t.targetValue, 1);
-            }
-        }
-    }
-
-};
-
 Component.prototype.getLocationString = function() {
     var i;
     if (this.parent) {
-        i = this.parent.children.indexOf(this);
+        i = this.parent._children.indexOf(this);
         if (i >= 0) {
             var localTags = this.getLocalTags();
             return this.parent.getLocationString() + ":" + i + "[" + this.id + "]" + (localTags.length ? "(" + localTags.join(",") + ")" : "");
@@ -3657,32 +3615,32 @@ Component.prototype.getLocationString = function() {
     return "";
 };
 
-Component.prototype.getLocalTags = function() {
-    return this.tags.getLocalTags();
+Component.prototype.getTags = function() {
+    return this._tags.getLocalTags();
 };
 
 Component.prototype.setTags = function(tags) {
-    this.tags.setTags(tags);
+    this._tags.setTags(tags);
 };
 
 Component.prototype.addTag = function(tag) {
-    this.tags.addTag(tag);
+    this._tags.addTag(tag);
 };
 
 Component.prototype.removeTag = function(tag) {
-    this.tags.removeTag(tag);
+    this._tags.removeTag(tag);
 };
 
 Component.prototype.hasTag = function(tag) {
-    return this.tags.hasTag(tag);
+    return this._tags.hasTag(tag);
 };
 
 Component.prototype.tag = function(tag) {
-    return this.tags.tag(tag);
+    return this._tags.tag(tag);
 };
 
 Component.prototype.mtag = function(tag) {
-    return this.tags.mtag(tag);
+    return this._tags.mtag(tag);
 };
 
 Component.prototype.stag = function(tag, settings) {
@@ -3732,25 +3690,6 @@ Component.prototype.setSetting = function(name, value) {
     }
 
     switch(name) {
-        case 'tag':
-        case 'tags':
-            this.setTags(value);
-            break;
-        case 'children':
-            var stage = this.stage;
-            if (!Utils.isArray(value)) {
-                throw new TypeError('Children must be array.');
-            }
-            var c = [];
-            for (var i = 0, n = value.length; i < n; i++) {
-                if (value[i] instanceof Component) {
-                    c[i] = value[i];
-                } else {
-                    c[i] = stage.c(value[i]);
-                }
-            }
-            this.setChildren(c);
-            break;
         case 'transitions':
             if (!Utils.isObject(value)) {
                 throw new TypeError('Transitions must be object.');
@@ -3770,7 +3709,7 @@ Component.prototype.setSetting = function(name, value) {
                 if (setting) {
                     setting.sf(this, value);
                 } else {
-                    console.warn("Unknown component property: " + name);
+                    throw new Error("Unknown component property: " + name);
                 }
             }
     }
@@ -3811,7 +3750,7 @@ Component.getPrettyJsonified = function(obj, indent) {
 Component.prototype.getSettingsObject = function() {
     var obj = this.getNonDefaults();
     if (this.hasChildren) {
-        obj.children = this.children.map(function(c) {
+        obj.children = this._children.map(function(c) {
             return c.getSettingsObject();
         });
     }
@@ -3821,7 +3760,7 @@ Component.prototype.getSettingsObject = function() {
 Component.prototype.getNonDefaults = function() {
     var nonDefaults = {};
 
-    if (this.tags && this.tags.size) {
+    if (this._tags && this._tags.tags.size) {
         nonDefaults['tags'] = this.getLocalTags();
     }
 
@@ -4896,22 +4835,17 @@ Object.defineProperty(Component.prototype, 'src', {
     set: function(v) {
         var prevValue = this._src;
 
-        if (!prevValue || prevValue.src !== v || !this.texture || !this.texture.source.renderInfo || this.texture.source.renderInfo.src !== v) {
+        if (!prevValue || prevValue !== v || !this.texture || !this.texture.source.renderInfo || this.texture.source.renderInfo.src !== v) {
             if (!v) {
                 if (prevValue) {
                     this.texture = null;
                 }
                 this._src = null;
-                return;
+            } else {
+                this.texture = this.stage.textureManager.getTexture(v);
+
+                this._src = v;
             }
-
-            if (Utils.isString(v)) {
-                v = {src:v};
-            }
-
-            this.texture = this.stage.textureManager.getTexture(v.src, v);
-
-            this._src = v;
         }
     }
 });
@@ -4955,10 +4889,40 @@ Object.defineProperty(Component.prototype, 'rect', {
     }
 });
 
-Component.prototype.setTransitionTargetValue = function(transition, targetValue, currentValue) {
-    if (transition.targetValue !== targetValue) {
-        transition.updateTargetValue(targetValue, currentValue);
+Object.defineProperty(Component.prototype, 'tags', {
+    get: function() {
+        // Copy to make sure they aren't changed externally.
+        return this.getTags();
+    },
+    set: function(v) {
+        this.setTags(v);
     }
+});
+
+Object.defineProperty(Component.prototype, 'children', {
+    get: function() {
+        // Copy to make sure they aren't changed externally.
+        return this._children;
+    },
+    set: function(v) {
+        var stage = this.stage;
+        if (!Utils.isArray(v)) {
+            throw new TypeError('Children must be array.');
+        }
+        var c = [];
+        for (var i = 0, n = v.length; i < n; i++) {
+            if (v[i] instanceof Component) {
+                c[i] = v[i];
+            } else {
+                c[i] = stage.c(v[i]);
+            }
+        }
+        this.setChildren(c);
+    }
+});
+
+Component.prototype.setTransitionTargetValue = function(transition, targetValue, currentValue) {
+    transition.updateTargetValue(targetValue, currentValue);
 };
 
 Component.prototype._updateLocalTransform = function() {
@@ -5022,8 +4986,8 @@ Component.prototype._updateTextureCoords = function() {
         if (displayedTexture.clipping) {
             // Apply texture clipping.
             var w = displayedTextureSource.getRenderWidth();
-            var h = displayedTextureSource.getRenderHeight()
-            var ih, rw, rh;
+            var h = displayedTextureSource.getRenderHeight();
+            var iw, ih, rw, rh;
             iw = 1 / w;
             ih = 1 / h;
 
@@ -5070,11 +5034,11 @@ Component.prototype._updateTextureCoords = function() {
 };
 
 Component.getPropertyIndex = function(name) {
-    return Component.SETTINGS[name].i;
+    return Component.SETTINGS[name] ? Component.SETTINGS[name].i : -1;
 };
 
 Component.getPropertyIndexFinal = function(name) {
-    return Component.FINAL_SETTINGS[name].i;
+    return Component.FINAL_SETTINGS[name] ? Component.FINAL_SETTINGS[name].i : -1;
 };
 
 Component.SETTINGS = {
@@ -5109,12 +5073,15 @@ Component.SETTINGS = {
     'rect': {s: function(obj, value) {obj.rect = value}, g: function(obj) {return obj.rect}, m: null},
     'src': {s: function(obj, value) {obj.src = value}, g: function(obj) {return obj.src}, m: null},
     'text': {s: function(obj, value) {obj.text = value}, g: function(obj) {return obj.text}, m: null},
-    'texture': {s: function(obj, value) {obj.texture = value}, g: function(obj) {return obj.src}, m: null}
+    'texture': {s: function(obj, value) {obj.texture = value}, g: function(obj) {return obj.src}, m: null},
+    'tag': {s: function(obj, value) {obj.tags = value}, g: function(obj) {return obj.tags}, m: null},
+    'tags': {s: function(obj, value) {obj.tags = value}, g: function(obj) {return obj.tags}, m: null},
+    'children': {s: function(obj, value) {obj.children = value}, g: function(obj) {return obj.children;}, m: null}
 };
 
 Component.FINAL_SETTINGS = {};
 for (var key in Component.SETTINGS) {
-    if (Component.SETTINGS.hasOwnProperty(key)) {
+    if (Component.SETTINGS.hasOwnProperty(key) && Component.SETTINGS[key]['sf']) {
         Component.FINAL_SETTINGS[key.toUpperCase()] = Component.SETTINGS[key];
     }
 }
@@ -5249,6 +5216,7 @@ ComponentTags.prototype.setParent = function(parent) {
 };
 
 ComponentTags.prototype.getLocalTags = function() {
+    // We clone it to make sure it's not changed externally.
     return this.tags;
 };
 
@@ -5430,7 +5398,7 @@ ComponentText.prototype.updateTexture = function() {
 
     // Create a dummy texture that loads the actual texture.
     var self = this;
-    this.component.texture = this.texture = this.stage.getTexture(function(cb) {
+    this.component.texture = this.texture = this.stage.texture(function(cb) {
         self.updatingTexture = false;
 
         // Create 'real' texture and set it.
@@ -6732,7 +6700,7 @@ TextRendererSettings.SETTINGS = {
  * A transition for some element.
  * @constructor
  */
-function Transition(v) {
+function GenericTransition(v) {
     EventEmitter.call(this);
 
     this._delay = 0;
@@ -6761,9 +6729,9 @@ function Transition(v) {
 
 }
 
-Utils.extendClass(Transition, EventEmitter);
+Utils.extendClass(GenericTransition, EventEmitter);
 
-Transition.prototype.reset = function(startValue, targetValue, p) {
+GenericTransition.prototype.reset = function(startValue, targetValue, p) {
     this.startValue = startValue;
     this.targetValue = targetValue;
     this.p = p;
@@ -6778,7 +6746,7 @@ Transition.prototype.reset = function(startValue, targetValue, p) {
     }
 };
 
-Transition.prototype.isActive = function() {
+GenericTransition.prototype.isActive = function() {
     return this.p < 1.0;
 };
 
@@ -6787,7 +6755,7 @@ Transition.prototype.isActive = function() {
  * @param targetValue
  * @param startValue
  */
-Transition.prototype.updateTargetValue = function(targetValue, startValue) {
+GenericTransition.prototype.updateTargetValue = function(targetValue, startValue) {
     if (targetValue === startValue) {
         this.reset(startValue, targetValue, 1);
     } else {
@@ -6808,13 +6776,13 @@ Transition.prototype.updateTargetValue = function(targetValue, startValue) {
     }
 };
 
-Transition.prototype.activate = function() {
+GenericTransition.prototype.activate = function() {
 };
 
 /**
  * Progress this transition.
  */
-Transition.prototype.progress = function(dt) {
+GenericTransition.prototype.progress = function(dt) {
     if (this.p < 1) {
         if (this.delayLeft > 0) {
             this.delayLeft -= dt;
@@ -6845,7 +6813,7 @@ Transition.prototype.progress = function(dt) {
     this.invokeListeners();
 };
 
-Transition.prototype.invokeListeners = function() {
+GenericTransition.prototype.invokeListeners = function() {
     if (this._eventsCount) this.emit('progress', this.p);
     if (this.p === 1) {
         if (this._eventsCount) this.emit('finish');
@@ -6855,7 +6823,7 @@ Transition.prototype.invokeListeners = function() {
 /**
  * Change current/target values while keeping the current transition ratio.
  */
-Transition.prototype.setValuesDynamic = function(targetValue, currentFinalValue) {
+GenericTransition.prototype.setValuesDynamic = function(targetValue, currentFinalValue) {
     var v = this._timingFunctionImpl(this.p);
 
     if (v == 1) {
@@ -6872,7 +6840,7 @@ Transition.prototype.setValuesDynamic = function(targetValue, currentFinalValue)
     }
 };
 
-Transition.prototype.set = function(settings) {
+GenericTransition.prototype.set = function(settings) {
     var propNames = Object.keys(settings);
     for (var i = 0; i < propNames.length; i++) {
         var name = propNames[i];
@@ -6881,18 +6849,18 @@ Transition.prototype.set = function(settings) {
     }
 };
 
-Transition.prototype.setSetting = function(name, value) {
+GenericTransition.prototype.setSetting = function(name, value) {
     if (this[name] === undefined) {
         throw new TypeError('Unknown property:' + name);
     }
     this[name] = value;
 };
 
-Transition.prototype.getProgress = function() {
+GenericTransition.prototype.getProgress = function() {
     return this.p;
 };
 
-Transition.prototype.getDrawValue = function() {
+GenericTransition.prototype.getDrawValue = function() {
     if (this.p >= 1) {
         return this.targetValue;
     } else {
@@ -6901,15 +6869,15 @@ Transition.prototype.getDrawValue = function() {
     }
 };
 
-Transition.prototype.setValue = function(v) {
+GenericTransition.prototype.setValue = function(v) {
 };
 
-Transition.prototype.getMergedValue = function(v) {
+GenericTransition.prototype.getMergedValue = function(v) {
     // Numeric merge. Inline for performance.
     return this.targetValue * v + this.startValue * (1 - v);
 };
 
-Object.defineProperty(Transition.prototype, 'delay', {
+Object.defineProperty(GenericTransition.prototype, 'delay', {
     get: function() { return this._delay; },
     set: function(v) {
         if (!Utils.isNumber(v)) {
@@ -6919,7 +6887,7 @@ Object.defineProperty(Transition.prototype, 'delay', {
     }
 });
 
-Object.defineProperty(Transition.prototype, 'duration', {
+Object.defineProperty(GenericTransition.prototype, 'duration', {
     get: function() { return this._duration; },
     set: function(v) {
         if (!Utils.isNumber(v)) {
@@ -6929,7 +6897,7 @@ Object.defineProperty(Transition.prototype, 'duration', {
     }
 });
 
-Object.defineProperty(Transition.prototype, 'timingFunction', {
+Object.defineProperty(GenericTransition.prototype, 'timingFunction', {
     get: function() { return this._timingFunction; },
     set: function(v) {
         if (v !== this._timingFunction) {
@@ -6942,17 +6910,17 @@ Object.defineProperty(Transition.prototype, 'timingFunction', {
 
 
 /**
- * A transition for some element.
+ * A transition for some component property.
  * @constructor
  */
-function PropertyTransition(component, property) {
+function Transition(component, property) {
     this.component = component;
 
     this.property = property;
 
     this.setting = Component.SETTINGS[property];
 
-    Transition.call(this, this.setting.g(this.component));
+    GenericTransition.call(this, this.setting.g(this.component));
 
     /**
      * The merge function. If null then use plain numeric interpolation merge.
@@ -6964,17 +6932,17 @@ function PropertyTransition(component, property) {
 
 }
 
-Utils.extendClass(PropertyTransition, Transition);
+Utils.extendClass(Transition, GenericTransition);
 
-PropertyTransition.prototype.setValue = function(v) {
+Transition.prototype.setValue = function(v) {
     this.valueSetterFunction(this.component, v);
 };
 
-PropertyTransition.prototype.getMergedValue = function(v) {
+Transition.prototype.getMergedValue = function(v) {
     return this.mergeFunction(this.targetValue, this.startValue, v);
 };
 
-PropertyTransition.prototype.activate = function() {
+Transition.prototype.activate = function() {
     this.component.stage.addActiveTransition(this);
 };
 
@@ -6983,7 +6951,7 @@ PropertyTransition.prototype.activate = function() {
  * An animation.
  * @constructor
  */
-function Animation(stage) {
+function GenericAnimation(stage) {
 
     this.stage = stage;
 
@@ -7007,7 +6975,7 @@ function Animation(stage) {
 
 }
 
-Animation.prototype.set = function(settings) {
+GenericAnimation.prototype.set = function(settings) {
     var propNames = Object.keys(settings);
     for (var i = 0; i < propNames.length; i++) {
         var name = propNames[i];
@@ -7016,7 +6984,7 @@ Animation.prototype.set = function(settings) {
     }
 };
 
-Animation.prototype.setSetting = function(name, value) {
+GenericAnimation.prototype.setSetting = function(name, value) {
     switch(name) {
         case 'actions':
             this.actions = [];
@@ -7032,47 +7000,47 @@ Animation.prototype.setSetting = function(name, value) {
     }
 };
 
-Animation.prototype.add = function(settings) {
+GenericAnimation.prototype.add = function(settings) {
     var e = new AnimationAction(this);
     e.set(settings);
     this.actions.push(e);
     return e;
 };
 
-Animation.prototype.remove = function(element) {
+GenericAnimation.prototype.remove = function(element) {
     var index = this.actions.indexOf(element);
     if (index >= 0) {
         this.actions.splice(index, 1);
     }
 };
 
-Animation.prototype.get = function(index) {
+GenericAnimation.prototype.get = function(index) {
     return this.actions[index];
 };
 
-Animation.prototype.getProgress = function() {
+GenericAnimation.prototype.getProgress = function() {
     return this.p;
 };
 
-Animation.prototype.getFrameForProgress = function(p) {
+GenericAnimation.prototype.getFrameForProgress = function(p) {
     return Math.round(p * this.duration * 60);
 };
 
-Animation.prototype.applyTransforms = function() {
+GenericAnimation.prototype.applyTransforms = function() {
     var n = this.actions.length;
     for (var i = 0; i < n; i++) {
         this.actions[i].applyTransforms(this.p, 1);
     }
 };
 
-Animation.prototype.resetTransforms = function() {
+GenericAnimation.prototype.resetTransforms = function() {
     var n = this.actions.length;
     for (var i = 0; i < n; i++) {
         this.actions[i].resetTransforms();
     }
 };
 
-Object.defineProperty(Animation.prototype, 'subject', {
+Object.defineProperty(GenericAnimation.prototype, 'subject', {
     get: function() { return this._subject; },
     set: function(v) {
         this._subject = v;
@@ -7126,6 +7094,7 @@ function AnimationAction(animation) {
 
     // Default.
     this.tags = '';
+
 }
 
 /**
@@ -7152,7 +7121,7 @@ AnimationAction.prototype.getAnimatedComponents = function() {
  * Returns the components to be animated.
  */
 AnimationAction.prototype.getAnimatedMultiComponents = function() {
-    var i, n = this.tags.length, j, m, k, l;
+    var i, n = this.tags.length, j, m;
 
     var taggedComponents = [];
     for (i = 0; i < n; i++) {
@@ -7311,7 +7280,7 @@ Object.defineProperty(AnimationAction.prototype, 't', {
 });
 
 Object.defineProperty(AnimationAction.prototype, 'properties', {
-    get: function() { return this._properties; },
+    get: function() { return this._properties.map(function(p) {return p.name;}); },
     set: function(v) {
         var vs = v;
         if (!Utils.isArray(v)) {
@@ -7503,7 +7472,7 @@ AnimationActionItems.prototype.parseDefinition = function(def) {
             }
 
             var p = parseFloat(key);
-            if (!isNaN(p) && p >= 0 && p <= 1) {
+            if (!isNaN(p) && p >= 0 && p <= 2) {
                 obj.p = p;
 
                 obj.f = Utils.isFunction(obj.v);
@@ -7523,7 +7492,7 @@ AnimationActionItems.prototype.parseDefinition = function(def) {
         var last = (i == n - 1);
         if (!items[i].hasOwnProperty('pe')) {
             // Progress.
-            items[i].pe = last ? 1 : items[i + 1].p;
+            items[i].pe = last ? (items[i].p <= 1 ? 1 : 2 /* support onetotwo stop */) : items[i + 1].p;
         } else {
             // Prevent multiple items at the same time.
             var max = i < n - 1 ? items[i + 1].p : 1;
@@ -7549,7 +7518,7 @@ AnimationActionItems.prototype.parseDefinition = function(def) {
             }
             if (!items[i].hasOwnProperty('s')) {
                 // Slope.
-                if (i === 0 || i === n - 1) {
+                if (i === 0 || i === n - 1 || (items[i].p === 1 /* for onetotwo */)) {
                     // Horizontal slope at start and end.
                     items[i].s = rgba ? [0, 0, 0, 0] : 0;
                 } else {
@@ -7654,8 +7623,8 @@ AnimationActionItems.prototype.getCurrentValue = function() {
  * An animation that is automatically progressed by time.
  * @constructor
  */
-var TimedAnimation = function(stage) {
-    Animation.call(this, stage);
+var Animation = function(stage) {
+    GenericAnimation.call(this, stage);
     EventEmitter.call(this);
 
     this._delay = 0;
@@ -7690,7 +7659,7 @@ var TimedAnimation = function(stage) {
      * The way that the animation 'stops'.
      * @type {number}
      */
-    this._stopMethod = TimedAnimation.STOP_METHODS.FADE;
+    this._stopMethod = Animation.STOP_METHODS.FADE;
 
     /**
      * Advanced options regarding the stop method, such as:
@@ -7706,35 +7675,35 @@ var TimedAnimation = function(stage) {
 
     this.stopDelayLeft = 0;
 
-    this.state = TimedAnimation.STATES.IDLE;
+    this.state = Animation.STATES.IDLE;
 
-    this.stoppingProgressTransition = new Transition(0);
+    this.stoppingProgressTransition = new GenericTransition(0);
 
 };
 
-Utils.extendClass(TimedAnimation, Animation);
+Utils.extendClass(Animation, GenericAnimation);
 
-TimedAnimation.prototype = Object.assign(TimedAnimation.prototype, EventEmitter.prototype);
+Animation.prototype = Object.assign(Animation.prototype, EventEmitter.prototype);
 
-TimedAnimation.prototype.isActive = function() {
-    return this.subject && (this.state == TimedAnimation.STATES.PLAYING || this.state == TimedAnimation.STATES.STOPPING);
+Animation.prototype.isActive = function() {
+    return this.subject && (this.state == Animation.STATES.PLAYING || this.state == Animation.STATES.STOPPING);
 };
 
-TimedAnimation.prototype.activate = function() {
+Animation.prototype.activate = function() {
     this.component.stage.addActiveAnimation(this);
 };
 
-TimedAnimation.prototype.progress = function(dt) {
+Animation.prototype.progress = function(dt) {
     if (!this.subject) {
         return;
     }
 
-    if (this.state == TimedAnimation.STATES.STOPPING) {
+    if (this.state == Animation.STATES.STOPPING) {
         this.stopProgress(dt);
         return;
     }
 
-    if (this.state != TimedAnimation.STATES.PLAYING) {
+    if (this.state != Animation.STATES.PLAYING) {
         return;
     }
 
@@ -7771,7 +7740,7 @@ TimedAnimation.prototype.progress = function(dt) {
             if (this._eventsCount) this.emit('repeat', this.repeatsLeft);
         } else {
             this.p = 1;
-            this.state = TimedAnimation.STATES.FINISHED;
+            this.state = Animation.STATES.FINISHED;
             if (this._eventsCount) this.emit('finish');
             if (this.autostop) {
                 this.stop();
@@ -7782,12 +7751,12 @@ TimedAnimation.prototype.progress = function(dt) {
     }
 };
 
-TimedAnimation.prototype.stopProgress = function(dt) {
+Animation.prototype.stopProgress = function(dt) {
     var duration = this.stopMethodOptions.duration === undefined ? this.duration : this.stopMethodOptions.duration;
 
     if (this.delayLeft > 0) {
-        // TimedAnimation wasn't even started yet: directly finish!
-        this.state = TimedAnimation.STATES.STOPPED;
+        // Animation wasn't even started yet: directly finish!
+        this.state = Animation.STATES.STOPPED;
         if (this._eventsCount) this.emit('stopFinish');
     }
 
@@ -7803,11 +7772,11 @@ TimedAnimation.prototype.stopProgress = function(dt) {
             return;
         }
     }
-    if (this.stopMethod == TimedAnimation.STOP_METHODS.IMMEDIATE) {
-        this.state = TimedAnimation.STATES.STOPPED;
+    if (this.stopMethod == Animation.STOP_METHODS.IMMEDIATE) {
+        this.state = Animation.STATES.STOPPED;
         if (this._eventsCount) this.emit('stop');
         if (this._eventsCount) this.emit('stopFinish');
-    } else if (this.stopMethod == TimedAnimation.STOP_METHODS.REVERSE) {
+    } else if (this.stopMethod == Animation.STOP_METHODS.REVERSE) {
         if (duration === 0) {
             this.p = 0;
         } else if (duration > 0) {
@@ -7816,16 +7785,16 @@ TimedAnimation.prototype.stopProgress = function(dt) {
 
         if (this.p <= 0) {
             this.p = 0;
-            this.state = TimedAnimation.STATES.STOPPED;
+            this.state = Animation.STATES.STOPPED;
             if (this._eventsCount) this.emit('stopFinish');
         }
-    } else if (this.stopMethod == TimedAnimation.STOP_METHODS.FADE) {
+    } else if (this.stopMethod == Animation.STOP_METHODS.FADE) {
         this.stoppingProgressTransition.progress(dt);
         if (this.stoppingProgressTransition.p >= 1) {
-            this.state = TimedAnimation.STATES.STOPPED;
+            this.state = Animation.STATES.STOPPED;
             if (this._eventsCount) this.emit('stopFinish');
         }
-    } else if (this.stopMethod == TimedAnimation.STOP_METHODS.ONETOTWO) {
+    } else if (this.stopMethod == Animation.STOP_METHODS.ONETOTWO) {
         if (this.p < 2) {
             if (duration === 0) {
                 this.p = 2;
@@ -7838,7 +7807,7 @@ TimedAnimation.prototype.stopProgress = function(dt) {
             }
             if (this.p >= 2) {
                 this.p = 2;
-                this.state = TimedAnimation.STATES.STOPPED;
+                this.state = Animation.STATES.STOPPED;
                 if (this._eventsCount) this.emit('stopFinish');
             } else {
                 if (this._eventsCount) this.emit('progress', this.p);
@@ -7852,9 +7821,9 @@ TimedAnimation.prototype.stopProgress = function(dt) {
                 this.p += dt / duration;
             }
             if (this.p >= 1) {
-                if (this.stopMethod == TimedAnimation.STOP_METHODS.FORWARD) {
+                if (this.stopMethod == Animation.STOP_METHODS.FORWARD) {
                     this.p = 1;
-                    this.state = TimedAnimation.STATES.STOPPED;
+                    this.state = Animation.STATES.STOPPED;
                     if (this._eventsCount) this.emit('stopFinish');
                 } else {
                     if (this.repeatsLeft > 0) {
@@ -7863,7 +7832,7 @@ TimedAnimation.prototype.stopProgress = function(dt) {
                         if (this._eventsCount) this.emit('repeat', this.repeatsLeft);
                     } else {
                         this.p = 1;
-                        this.state = TimedAnimation.STATES.STOPPED;
+                        this.state = Animation.STATES.STOPPED;
                         if (this._eventsCount) this.emit('stopFinish');
                     }
                 }
@@ -7874,11 +7843,11 @@ TimedAnimation.prototype.stopProgress = function(dt) {
     }
 };
 
-TimedAnimation.prototype.start = function() {
+Animation.prototype.start = function() {
     this.p = 0;
     this.delayLeft = this.delay;
     this.repeatsLeft = this.repeat;
-    this.state = TimedAnimation.STATES.PLAYING;
+    this.state = Animation.STATES.PLAYING;
     if (this._eventsCount) this.emit('start');
 
     if (this.subject) {
@@ -7886,46 +7855,46 @@ TimedAnimation.prototype.start = function() {
     }
 };
 
-TimedAnimation.prototype.fastForward = function() {
-    if (this.state === TimedAnimation.STATES.PLAYING) {
+Animation.prototype.fastForward = function() {
+    if (this.state === Animation.STATES.PLAYING) {
         this.delayLeft = 0;
         this.p = 1;
-    } else if (this.state === TimedAnimation.STATES.STOPPING) {
+    } else if (this.state === Animation.STATES.STOPPING) {
         this.stopDelayLeft = 0;
         this.p = 0;
     }
 };
 
-TimedAnimation.prototype.play = function() {
-    if (this.state == TimedAnimation.STATES.STOPPING && this.stopMethod == TimedAnimation.STOP_METHODS.REVERSE) {
+Animation.prototype.play = function() {
+    if (this.state == Animation.STATES.STOPPING && this.stopMethod == Animation.STOP_METHODS.REVERSE) {
         // Continue.
-        this.state = TimedAnimation.STATES.PLAYING;
+        this.state = Animation.STATES.PLAYING;
         if (this._eventsCount) this.emit('stopContinue');
-    } else if (this.state != TimedAnimation.STATES.PLAYING && this.state != TimedAnimation.STATES.FINISHED) {
+    } else if (this.state != Animation.STATES.PLAYING && this.state != Animation.STATES.FINISHED) {
         // Restart.
         this.start();
     }
 };
 
-TimedAnimation.prototype.replay = function() {
-    if (this.state == TimedAnimation.STATES.FINISHED) {
+Animation.prototype.replay = function() {
+    if (this.state == Animation.STATES.FINISHED) {
         this.start();
     } else {
         this.play();
     }
 };
 
-TimedAnimation.prototype.isPlaying = function() {
-    return this.state === TimedAnimation.STATES.PLAYING;
+Animation.prototype.isPlaying = function() {
+    return this.state === Animation.STATES.PLAYING;
 };
 
-TimedAnimation.prototype.skipDelay = function() {
+Animation.prototype.skipDelay = function() {
     this.delayLeft = 0;
     this.stopDelayLeft = 0;
 };
 
-TimedAnimation.prototype.stop = function() {
-    if (this.state === TimedAnimation.STATES.STOPPED || this.state === TimedAnimation.STATES.IDLE) return;
+Animation.prototype.stop = function() {
+    if (this.state === Animation.STATES.STOPPED || this.state === Animation.STATES.IDLE) return;
 
     if (this.subject) {
         this.stage.addActiveAnimation(this);
@@ -7933,12 +7902,12 @@ TimedAnimation.prototype.stop = function() {
 
     this.stopDelayLeft = this.stopMethodOptions.delay || 0;
 
-    if ((this.stopMethod == TimedAnimation.STOP_METHODS.IMMEDIATE && !this.stopDelayLeft) || this.delayLeft > 0) {
+    if ((this.stopMethod == Animation.STOP_METHODS.IMMEDIATE && !this.stopDelayLeft) || this.delayLeft > 0) {
         // Stop upon next progress.
-        this.state = TimedAnimation.STATES.STOPPING;
+        this.state = Animation.STATES.STOPPING;
         if (this._eventsCount) this.emit('stop');
     } else {
-        if (this.stopMethod == TimedAnimation.STOP_METHODS.FADE) {
+        if (this.stopMethod == Animation.STOP_METHODS.FADE) {
             if (this.stopMethodOptions.duration) {
                 this.stoppingProgressTransition.duration = this.stopMethodOptions.duration;
             }
@@ -7948,26 +7917,26 @@ TimedAnimation.prototype.stop = function() {
             this.stoppingProgressTransition.reset(0, 1, 0);
         }
 
-        this.state = TimedAnimation.STATES.STOPPING;
+        this.state = Animation.STATES.STOPPING;
         if (this._eventsCount) this.emit('stop');
     }
 
 };
 
-TimedAnimation.prototype.stopNow = function() {
-    if (this.state !== TimedAnimation.STATES.STOPPED || this.state !== TimedAnimation.STATES.IDLE) {
-        this.state = TimedAnimation.STATES.STOPPING;
+Animation.prototype.stopNow = function() {
+    if (this.state !== Animation.STATES.STOPPED || this.state !== Animation.STATES.IDLE) {
+        this.state = Animation.STATES.STOPPING;
         this.p = 0;
         if (this._eventsCount) this.emit('stop');
         this.resetTransforms();
-        this.state = TimedAnimation.STATES.STOPPED;
+        this.state = Animation.STATES.STOPPED;
         if (this._eventsCount) this.emit('stopFinish');
     }
 };
 
 
-TimedAnimation.prototype.applyTransforms = function() {
-    if (this.state == TimedAnimation.STATES.STOPPED) {
+Animation.prototype.applyTransforms = function() {
+    if (this.state == Animation.STATES.STOPPED) {
         // After being stopped, reset all values to their start positions.
         var n = this.actions.length;
         for (var i = 0; i < n; i++) {
@@ -7976,7 +7945,7 @@ TimedAnimation.prototype.applyTransforms = function() {
     } else {
         // Apply possible fade out effect.
         var factor = 1;
-        if (this.state == TimedAnimation.STATES.STOPPING && this.stopMethod == TimedAnimation.STOP_METHODS.FADE) {
+        if (this.state == Animation.STATES.STOPPING && this.stopMethod == Animation.STOP_METHODS.FADE) {
             factor = (1 - this.stoppingProgressTransition.getDrawValue());
         }
 
@@ -7987,7 +7956,7 @@ TimedAnimation.prototype.applyTransforms = function() {
     }
 };
 
-Object.defineProperty(TimedAnimation.prototype, 'delay', {
+Object.defineProperty(Animation.prototype, 'delay', {
     get: function() { return this._delay; },
     set: function(v) {
         if (!Utils.isNumber(v)) {
@@ -7997,7 +7966,7 @@ Object.defineProperty(TimedAnimation.prototype, 'delay', {
     }
 });
 
-Object.defineProperty(TimedAnimation.prototype, 'repeatDelay', {
+Object.defineProperty(Animation.prototype, 'repeatDelay', {
     get: function() { return this._repeatDelay; },
     set: function(v) {
         if (!Utils.isNumber(v)) {
@@ -8007,7 +7976,7 @@ Object.defineProperty(TimedAnimation.prototype, 'repeatDelay', {
     }
 });
 
-Object.defineProperty(TimedAnimation.prototype, 'duration', {
+Object.defineProperty(Animation.prototype, 'duration', {
     get: function() { return this._duration; },
     set: function(v) {
         if (!Utils.isNumber(v)) {
@@ -8017,7 +7986,7 @@ Object.defineProperty(TimedAnimation.prototype, 'duration', {
     }
 });
 
-Object.defineProperty(TimedAnimation.prototype, 'repeat', {
+Object.defineProperty(Animation.prototype, 'repeat', {
     get: function() { return this._repeat; },
     set: function(v) {
         if (!Utils.isInteger(v) || v < -1) {
@@ -8027,7 +7996,7 @@ Object.defineProperty(TimedAnimation.prototype, 'repeat', {
     }
 });
 
-Object.defineProperty(TimedAnimation.prototype, 'repeatOffset', {
+Object.defineProperty(Animation.prototype, 'repeatOffset', {
     get: function() { return this._repeatOffset; },
     set: function(v) {
         if (!Utils.isNumber(v) || v < 0) {
@@ -8037,14 +8006,14 @@ Object.defineProperty(TimedAnimation.prototype, 'repeatOffset', {
     }
 });
 
-Object.defineProperty(TimedAnimation.prototype, 'stopMethod', {
+Object.defineProperty(Animation.prototype, 'stopMethod', {
     get: function() { return this._stopMethod; },
     set: function(v) {
         this._stopMethod = v;
     }
 });
 
-Object.defineProperty(TimedAnimation.prototype, 'autostop', {
+Object.defineProperty(Animation.prototype, 'autostop', {
     get: function() { return this._autostop; },
     set: function(v) {
         if (!Utils.isBoolean(v)) {
@@ -8054,7 +8023,7 @@ Object.defineProperty(TimedAnimation.prototype, 'autostop', {
     }
 });
 
-Object.defineProperty(TimedAnimation.prototype, 'stopMethodOptions', {
+Object.defineProperty(Animation.prototype, 'stopMethodOptions', {
     get: function() { return this._stopMethodOptions; },
     set: function(v) {
         if (!Utils.isObject(v)) {
@@ -8064,15 +8033,15 @@ Object.defineProperty(TimedAnimation.prototype, 'stopMethodOptions', {
     }
 });
 
-Object.defineProperty(TimedAnimation.prototype, 'subject', {
+Object.defineProperty(Animation.prototype, 'subject', {
     get: function() { return this._subject; },
     set: function(subject) {
         if (subject !== this._subject) {
             if (this._subject) {
-                this._subject.removeTimedAnimation(this);
+                this._subject.removeAnimation(this);
             }
             if (subject) {
-                subject.addTimedAnimation(this);
+                subject.addAnimation(this);
             }
 
             this._subject = subject;
@@ -8083,7 +8052,7 @@ Object.defineProperty(TimedAnimation.prototype, 'subject', {
     }
 });
 
-TimedAnimation.STATES = {
+Animation.STATES = {
     IDLE: 0,
     PLAYING: 1,
     STOPPING: 2,
@@ -8091,7 +8060,7 @@ TimedAnimation.STATES = {
     FINISHED: 4
 };
 
-TimedAnimation.STOP_METHODS = {
+Animation.STOP_METHODS = {
     FADE: 'fade',
     REVERSE: 'reverse',
     FORWARD: 'forward',
@@ -9614,565 +9583,6 @@ Tools.getRoundRect = function(stage, w, h, radius, strokeWidth, strokeColor, fil
         cb(canvas, {});
     }, {id: id});
 };
-
-
-/**
- * A scrollable list (also known as a carroussel).
- * @constructor
- * @extends {Component}
- * @abstract
- */
-function List(stage, settings, componentSettings) {
-    EventEmitter.call(this);
-
-    this.stage = stage;
-
-    /**
-     * The component that surrounds the wrapper.
-     * @type {Object|Component}
-     */
-    this.component = this.stage.c();
-
-    /**
-     * The index of the currently centered item.
-     * @type {number}
-     */
-    this.index = this._index = 0;
-
-    /**
-     * The wrapper that contains the actual list children.
-     */
-    this.wrapper = this.stage.c();
-
-    // Create structure.
-    this.component.addChild(this.wrapper);
-
-    /**
-     * @private
-     */
-    this.reloadVisibleElements = false;
-
-    /**
-     * The scroll area size in pixels per item.
-     * @type {number}
-     */
-    this.itemSize = this._itemSize = 100;
-
-    /**
-     * The viewport target offset.
-     * @type {number}
-     */
-    this.viewportScrollOffset = this._viewportScrollOffset = 0;
-
-    /**
-     * The selected item target offset.
-     * @type {number}
-     */
-    this.itemScrollOffset = this._itemScrollOffset = 0;
-
-    /**
-     * Indicates if list should stop at boundary or scroll to modulo.
-     * @type {number}
-     */
-    this.rollOver = this._rollOver = true;
-
-    /**
-     * Indicates if list should seemingly scroll forever.
-     * @type {number}
-     */
-    this.wrap = this._wrap = true;
-
-    /**
-     * While wrapping, the minimum scroll position to the side.
-     * @type {number}
-     */
-    this.wrapMin = this._wrapMin = 0;
-
-    /**
-     * While wrapping, the maximum scroll position to the side.
-     * @type {number}
-     */
-    this.wrapMax = this._wrapMax = 0;
-
-    /**
-     * A custom animation. The subject is set to the element, and the progress to the element's current progress.
-     * @type {Animation}
-     */
-    this._progressAnimation = null;
-
-    /**
-     * If set, the axis is inverted.
-     * @type {boolean}
-     */
-    this.invertDirection = this._invertDirection = false;
-
-    /**
-     * Horizontal scrolling?
-     * @type {boolean}
-     * @private
-     */
-    this.horizontal = !!settings.horizontal;
-
-    /**
-     * The list scroll transition.
-     * @type {Transition}
-     */
-    this.scrollTransition = this.wrapper.transition(this.horizontal ? 'x' : 'y', {});
-
-    /**
-     * The currently visible items.
-     * @type {Set<Component>}
-     */
-    this.visibleItems = new Set();
-
-    this.prevValue = null;
-
-    this.prevViewportSize = null;
-
-    if (settings) {
-        this.set(settings);
-    }
-
-    if (componentSettings) {
-        this.component.set(componentSettings);
-    }
-
-    this.setup();
-
-}
-
-Utils.extendClass(List, EventEmitter);
-
-List.prototype.setProgressAnimation = function(settings) {
-    if (settings) {
-        if (!this._progressAnimation) {
-            this._progressAnimation = new Animation(this.stage);
-        }
-        this._progressAnimation.set(settings);
-    } else {
-        this._progressAnimation = null;
-    }
-};
-
-List.prototype.getElementsCount = function() {
-    return this.wrapper.children.length;
-};
-
-List.prototype.getViewportSize = function() {
-    return this.horizontal ? this.component.W : this.component.H;
-};
-
-List.prototype.update = function() {
-    if (!this.wrapper.children.length) return;
-
-    var direction = (this.horizontal ^ this.invertDirection ? -1 : 1);
-
-    // Map position to index value.
-    var v = (this.horizontal ? this.wrapper.X : this.wrapper.Y);
-
-    var viewportSize = this.getViewportSize();
-    var scrollDelta = this.viewportScrollOffset * viewportSize - this.itemScrollOffset * this.itemSize;
-    v += scrollDelta;
-
-    if (v !== this.prevValue || viewportSize !== this.prevViewportSize || this.reloadVisibleElements) {
-        this.prevValue = v;
-        this.prevViewportSize = viewportSize;
-
-        var s, e, ps, pe;
-        if (direction == -1) {
-            s = Math.floor(-v / this.itemSize);
-            ps = 1 - ((-v / this.itemSize) - s);
-            e = Math.floor((viewportSize - v) / this.itemSize);
-            pe = (((viewportSize - v) / this.itemSize) - e);
-        } else {
-            s = Math.ceil(v / this.itemSize);
-            ps = 1 + (v / this.itemSize) - s;
-            e = Math.ceil((v - viewportSize) / this.itemSize);
-            pe = e - ((v - viewportSize) / this.itemSize);
-        }
-        var nElements = this.wrapper.children.length;
-        if (this.wrap || (viewportSize > this.itemSize * nElements)) {
-            // Don't show additional items.
-            if (e >= nElements) {
-                e = nElements - 1;
-            }
-            if (s >= nElements) {
-                s = nElements - 1;
-            }
-            if (e <= -1) {
-                e = 0;
-            }
-            if (s <= -1) {
-                s = 0;
-            }
-        }
-
-        var offset = -direction * s * this.itemSize;
-
-        var item;
-        for (var index = s; (direction == -1 ? index <= e : index >= e); (direction == -1 ? index++ : index--)) {
-            var realIndex = Utils.getArrayIndex(index, this.wrapper.children);
-
-            item = this.wrapper.children[realIndex];
-            this.visibleItems.delete(item);
-            if (this.horizontal) {
-                item.x = offset + scrollDelta;
-            } else {
-                item.y = offset + scrollDelta;
-            }
-
-            if (!item.visible || this.reloadVisibleElements) {
-                // Turned visible.
-                this.emit('elementVisible', item, realIndex);
-            }
-
-            item.visible = true;
-
-
-            if (this._progressAnimation) {
-                var p = 1;
-                if (index == s) {
-                    p = ps;
-                } else if (index == e) {
-                    p = pe;
-                }
-
-                // Use animation to progress.
-                this._progressAnimation.subject = item;
-                this._progressAnimation.p = p;
-                this._progressAnimation.applyTransforms();
-            }
-
-            offset += this.itemSize;
-        }
-
-        // Handle item visibility.
-        var self = this;
-        this.visibleItems.forEach(function(invisibleItem) {
-            invisibleItem.visible = false;
-            self.visibleItems.delete(invisibleItem);
-        });
-
-        for (index = s; (direction == -1 ? index <= e : index >= e); (direction == -1 ? index++ : index--)) {
-            realIndex = Utils.getArrayIndex(index, this.wrapper.children);
-            item = this.wrapper.children[realIndex];
-            this.visibleItems.add(item);
-        }
-
-        this.reloadVisibleElements = false;
-    }
-};
-
-List.prototype.setup = function() {
-    var self = this;
-    var listener = function () {
-        self.update();
-    };
-
-    this.component.notifyActivate = function() {
-        self.stage.on('update', listener);
-    };
-
-    this.component.notifyDeactivate = function() {
-        self.stage.off('update', listener);
-    };
-};
-
-List.prototype.clearElements = function() {
-    this.wrapper.removeChildren();
-    this.reloadVisibleElements = true;
-};
-
-List.prototype.addElement = function(component) {
-    var element = this.stage.c({visible: false});
-    element.addChild(component);
-    this.wrapper.addChild(element);
-    this.reloadVisibleElements = true;
-    return element;
-};
-
-List.prototype.removeElementAt = function(index) {
-    var ri = this.getRealIndex();
-
-    this.wrapper.removeChildAt(index);
-
-    if (ri === index) {
-        if (ri === this.wrapper.children.length) {
-            ri--;
-        }
-        if (ri >= 0) {
-            this.setIndex(ri);
-        }
-    } else if (ri > index) {
-        this.setIndex(ri - 1);
-    }
-
-    this.reloadVisibleElements = true;
-};
-
-List.prototype.setIndex = function(index, immediate, closest) {
-    var nElements = this.wrapper.children.length;
-    if (!nElements) return;
-
-    this.emit('elementDeselected', this.index, this.getRealIndex());
-
-    if (!this.rollOver) {
-        if (this.index < 0) {
-            this.index = 0;
-        }
-        if (this.index >= nElements) {
-            this.index = nElements - 1;
-        }
-        this.index = index;
-    } else {
-        if (closest) {
-            // Scroll to same offset closest to the index.
-            var offset = Utils.getArrayIndex(index, this.wrapper.children);
-            var o = Utils.getArrayIndex(this.index, this.wrapper.children);
-            var diff = offset - o;
-            if (diff > 0.5 * nElements) {
-                diff -= nElements;
-            } else if (diff < -0.5 * nElements) {
-                diff += nElements;
-            }
-            this.index += diff;
-        } else {
-            this.index = index;
-        }
-    }
-    if (this.wrap || (this.getViewportSize() > this.itemSize * nElements)) {
-        this.index = Utils.getArrayIndex(this.index, this.wrapper.children);
-    }
-
-    var direction = (this.horizontal ^ this.invertDirection ? -1 : 1);
-    var value = direction * this.index * this.itemSize;
-
-    if (this.wrap) {
-        var min, max, scrollDelta;
-        if (direction == 1) {
-            max = (nElements - 1) * this.itemSize;
-            scrollDelta = this.viewportScrollOffset * this.getViewportSize() - this.itemScrollOffset * this.itemSize;
-
-            max -= scrollDelta;
-
-            min = this.getViewportSize() - (this.itemSize + scrollDelta);
-
-            if (this.wrapMin) min -= this.wrapMin;
-            if (this.wrapMax) max += this.wrapMax;
-
-            value = Math.max(Math.min(value, max), min);
-        } else {
-            max = (nElements * this.itemSize - this.getViewportSize());
-            scrollDelta = this.viewportScrollOffset * this.getViewportSize() - this.itemScrollOffset * this.itemSize;
-
-            max += scrollDelta;
-
-            var min = scrollDelta;
-
-            if (this.wrapMin) min -= this.wrapMin;
-            if (this.wrapMax) max += this.wrapMax;
-
-            value = Math.min(Math.max(-max, value), -min);
-        }
-    }
-
-    this.wrapper[this.horizontal ? 'x' : 'y'] = value;
-
-    if (immediate) {
-        this.scrollTransition.reset(value, value, 1);
-    }
-
-    this.emit('elementSelected', this.index, this.getRealIndex());
-};
-
-List.prototype.setPrevious = function() {
-    this.setIndex(this.index - 1);
-};
-
-List.prototype.setNext = function() {
-    this.setIndex(this.index + 1);
-};
-
-List.prototype.getRealIndex = function() {
-    return Utils.getArrayIndex(this.index, this.wrapper.children);
-};
-
-List.prototype.getIndexItem = function() {
-    return this.wrapper.children[this.getRealIndex()];
-};
-
-List.prototype.getIndexElement = function() {
-    return this.wrapper.children[this.getRealIndex()].children[0];
-};
-
-List.prototype.getElement = function(index) {
-    var e = this.wrapper.children[index];
-    return e ? e.children[0] : null;
-};
-
-List.prototype.reload = function() {
-    this.reloadVisibleElements = true;
-};
-
-List.prototype.set = function(settings) {
-    var propNames = Object.keys(settings);
-    for (var i = 0; i < propNames.length; i++) {
-        var name = propNames[i];
-        var v = settings[name];
-        this.setSetting(name, v);
-    }
-};
-
-List.prototype.setSetting = function(name, value) {
-    if (this[name] === undefined) {
-        throw new TypeError('Unknown property:' + name);
-    }
-    this[name] = value;
-};
-
-Object.defineProperty(List.prototype, 'itemSize', {
-    get: function () {
-        return this._itemSize;
-    },
-    set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
-        var pv = this._itemSize;
-        if (pv !== v) {
-            this._itemSize = v;
-            this.prevValue = null;
-        }
-    }
-});
-
-Object.defineProperty(List.prototype, 'viewportScrollOffset', {
-    get: function () {
-        return this._viewportScrollOffset;
-    },
-    set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
-        var pv = this._viewportScrollOffset;
-        if (pv !== v) {
-            this._viewportScrollOffset = v;
-            this.prevValue = null;
-        }
-    }
-});
-
-Object.defineProperty(List.prototype, 'itemScrollOffset', {
-    get: function () {
-        return this._itemScrollOffset;
-    },
-    set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
-        var pv = this._itemScrollOffset;
-        if (pv !== v) {
-            this._itemScrollOffset = v;
-            this.prevValue = null;
-        }
-    }
-});
-
-Object.defineProperty(List.prototype, 'rollOver', {
-    get: function () {
-        return this._rollOver;
-    },
-    set: function(v) {
-        if (!Utils.isBoolean(v)) {
-            throw new TypeError("Not a boolean");
-        }
-        var pv = this._rollOver;
-        if (pv !== v) {
-            this._rollOver = v;
-            this.prevValue = null;
-        }
-    }
-});
-
-Object.defineProperty(List.prototype, 'wrap', {
-    get: function () {
-        return this._wrap;
-    },
-    set: function(v) {
-        if (!Utils.isBoolean(v)) {
-            throw new TypeError("Not a boolean");
-        }
-        var pv = this._wrap;
-        if (pv !== v) {
-            this._wrap = v;
-            this.prevValue = null;
-        }
-    }
-});
-
-Object.defineProperty(List.prototype, 'index', {
-    get: function () {
-        return this._index;
-    },
-    set: function(v) {
-        if (!Utils.isInteger(v)) {
-            throw new TypeError("Not a number");
-        }
-        var pv = this._index;
-        if (pv !== v) {
-            this._index = v;
-        }
-    }
-});
-
-Object.defineProperty(List.prototype, 'invertDirection', {
-    get: function () {
-        return this._invertDirection;
-    },
-    set: function(v) {
-        if (!Utils.isBoolean(v)) {
-            throw new TypeError("Not a boolean");
-        }
-        var pv = this._invertDirection;
-        if (pv !== v) {
-            this._invertDirection = v;
-            this.prevValue = null;
-        }
-    }
-});
-
-Object.defineProperty(List.prototype, 'wrapMin', {
-    get: function () {
-        return this._wrapMin;
-    },
-    set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
-        var pv = this._wrapMin;
-        if (pv !== v) {
-            this._wrapMin = v;
-            this.prevValue = null;
-        }
-    }
-});
-
-Object.defineProperty(List.prototype, 'wrapMax', {
-    get: function () {
-        return this._wrapMax;
-    },
-    set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError("Not a number");
-        }
-        var pv = this._wrapMax;
-        if (pv !== v) {
-            this._wrapMax = v;
-            this.prevValue = null;
-        }
-    }
-});
-
 
 var WebAdapter = function() {
     this.animationFunction = function() {};

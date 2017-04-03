@@ -31,7 +31,6 @@ module.exports = function(grunt) {
                     'wpe/UComponent.js',
                     'wpe/UComponentContext.js',
                     'helpers/Tools.js',
-                    'helpers/List.js',
                     'browser/WebAdapter.js'
                 ],
                 dest : 'dist/wpe.js'
