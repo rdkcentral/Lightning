@@ -420,7 +420,7 @@ Action value item sub object properties
 | `v` | | Either a value function (p:Number -> mixed) or an actual value to be set to the property. |
 | `p` | `0`| Start at animation progress (0 = 0%, 1 = 100%). |
 | `pe` | | End at animation progress (0 = 0%, 1 = 100%) (by default, the next point's p value is used). |
-| `sm` | `0.5` | *Auto-smoothness* smoothness around the point. 0 = linear, 0.95 = smooth. |
+| `sm` | `0.5` | *Auto-smoothness* smoothness around the point. 0 = linear, 1 = smooth. *Note:* when using sm=1 artifacts may appear, so use up to 0.9 to stay safe or try it. |
 | `s` | | *Auto-smoothness* slope around the point (0 = horizontal, 1 = diagonal up, -1 = diagonal down). |
 | `sme` | | End of spline *auto-smoothness* smoothness around the point (by default, the next point's smoothness is used). |
 | `se` | | End of spline *auto-smoothness* slope around the point (by default, the next point's slope is used). |
