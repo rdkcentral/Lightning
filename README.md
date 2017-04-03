@@ -395,13 +395,36 @@ Text sub object properties:
 
 | Name |Default value| Description |
 | --------------------------------- |-------------|-------------|
+| `subject` | `null`| The component that is the subject of this animation. |
 | `delay` | `0`| Delay in s before actually starting the animation after starting it. |
 | `duration` | `1`| Defines how long the animation takes from start to finish. |
 | `repeat` | `0`| How many times the animation should be repeated before finishing (-1 = repeat forever). |
 | `autostop` | `false`| Stop automatically after the animation finishes. |
-| `subject` | `null`| The component that is the subject of this animation. |
 | `stopMethod` | `fade`| The way to *stop* the animation. Options: `fade immediate reverse forward onetotwo`. Forward means: continue until repeat finishes and then stop. Onetotwo means: keep progressing until progress reaches 2 (value definition goes up to 2). |
 | `stopMethodOptions` | `{}` | Additional options for the stop method. Properties: duration, delay, timingFunction |
+| `actions` | `[]`| The actions to be applied. See below. |
+
+Action sub object properties
+
+| Name |Default value| Description |
+| --------------------------------- |-------------|-------------|
+| `t` | `[""]`| Tags to apply (see `Component.mtag()`). Either a string or an array of strings. Additionally, the empty string defines the subject component itself. |
+| `p` | `[]`| Properties to set. Either a string or an array of strings. |
+| `v` | `{}`| Result value. Can be set as a value function (p:Number -> mixed), or an object with value items, indexed by progress values (see below). |
+| `rv` | `null`| Result value. If not set, the value at p=0 is used. |
+
+Action value item sub object properties
+
+| Name |Default value| Description |
+| --------------------------------- |-------------|-------------|
+| `v` | | Either a value function (p:Number -> mixed) or an actual value to be set to the property. |
+| `p` | `0`| Start at animation progress (0 = 0%, 1 = 100%). |
+| `pe` | | End at animation progress (0 = 0%, 1 = 100%) (by default, the next point's p value is used). |
+| `sm` | `0.5` | *Auto-smoothness* smoothness around the point. 0 = linear, 0.95 = smooth. |
+| `s` | | *Auto-smoothness* slope around the point (0 = horizontal, 1 = diagonal up, -1 = diagonal down). |
+| `sme` | | End of spline *auto-smoothness* smoothness around the point (by default, the next point's smoothness is used). |
+| `se` | | End of spline *auto-smoothness* slope around the point (by default, the next point's slope is used). |
+| `ve` | | The end of spline *auto-smoothness* value (by default, the next point's start value is used). |
 
 ### Events
 
