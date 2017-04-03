@@ -195,10 +195,55 @@ https://jsfiddle.net/basvanmeurs/2cttjrhw/
 
 WPE UI Framework provides a standardized way of specifying and using animations. Animations are a collection of actions (property settings) that take place at the particular point in time. An animation has a **subject** Component, on which (or one of its descendants) the actions are applied.
 
+The following example shows how to define and start a complex animation:
 
-@todo: example of running an animation.
-@todo: describe action definition (tags, property, value, smoothing options)
-@todo: describe animation stopping.
+```javascript
+var a = stage.root.tag('notification-ctr').animation({duration: 1, actions: [
+  {t: '', p: 'visible', v: true, rv: false},
+  {t: 'notification', p: 'x', v: {0: 600, 0.6: 200}},
+  {t: 'notification', p: 'h', v: {0.6: 50, 1: 190}},
+  {t: 'bg-overlay', p: 'alpha', v: {0: 0, 0.5: 1}}
+]});
+
+a.start();
+```
+
+https://jsfiddle.net/basvanmeurs/56dpqoks/
+
+In the actions property, you can define the things that should happen during the animation. All component properties can be used, as well as all text properties (defined as `"text.fontSize"`, etc) and texture clipping properties (`"texture.x"`).
+
+The values that are numeric are by default 'smoothened' using cubic bezier splines. If you'd prefer to have linear actions, you can do that as follows:
+
+```javascript
+var a = stage.root.tag('notification-ctr').animation({duration: 1, actions: [
+  {t: '', p: 'visible', v: true, rv: false},
+  {t: 'notification', p: 'x', v: {0: {v:600,sm:0}, 0.6: {v:200,sm:0}}},
+  {t: 'notification', p: 'h', v: {0.6: {v:50,sm:0}, 1: {v:190,sm:0}}},
+  {t: 'bg-overlay', p: 'alpha', v: {0: {v:0,sm:0}, 0.5: {v:1,sm:0}}}
+]});
+```
+
+https://jsfiddle.net/basvanmeurs/bhdstyem/
+
+Notice that the values are now encapsulated in objects with the `v` property. The `sm` value defines the smoothness around that point. By setting it to 0 the value transition becomes linear, while 1 it gets smoothened a lot. Check the API for other options on how to tune the *auto smoothness*.
+
+You can also provide your own value function, which takes the (spline) progress from 0 to 1 and returns the value to be set to the property.
+
+### Stopping animations
+
+After an animation has finished, the finally set property values will remain until you manually change them. Alternatively, you can *stop* an animation, which resets the values to some specified state. Usually, it just sets them to the values specified as defined in the action value property at the animation start. Example:
+
+```javascript
+setTimeout(function() {
+  a.stop();
+}, 5000)
+```
+
+https://jsfiddle.net/basvanmeurs/q4om4fje/
+
+As you can see, the default is to 'fade' the animation settings back to the original values gradually within one second. You affect this transition by setting the `stopMethodOptions`. Some other stop methods:
+`"reverse"`: 
+
 
 ## Lists
 
