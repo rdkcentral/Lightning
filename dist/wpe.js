@@ -5336,7 +5336,7 @@ ComponentTags.prototype.mtag = function(tag) {
             while (res.length && level < c) {
                 var resn = [];
                 for (var j = 0, n = res.length; j < n; j++) {
-                    resn = resn.concat(res[j].tags.get(parts[level]));
+                    resn = resn.concat(res[j]._tags.get(parts[level]));
                 }
 
                 res = resn;
