@@ -23,10 +23,8 @@
  SOFTWARE.
  */
 
-'use strict';
-
-var has = Object.prototype.hasOwnProperty
-    , prefix = '~';
+var has = Object.prototype.hasOwnProperty;
+var prefix = '~';
 
 /**
  * Constructor to create a storage for our `EE` objects.
@@ -574,7 +572,7 @@ function Stage(options) {
 
     /**
      * The currently active transitions.
-     * @type {Set<PropertyTransition>}
+     * @type {Set<Transition>}
      */
     this.activeTransitions = new Set();
 
@@ -3024,13 +3022,13 @@ var Component = function(stage) {
 
     /**
      * The transitions (indexed by property index, null if not used).
-     * @type {PropertyTransition[]}
+     * @type {Transition[]}
      */
     this.transitions = null;
 
     /**
      * All transitions, for quick looping.
-     * @type {Set<PropertyTransition>}
+     * @type {Set<Transition>}
      */
     this.transitionSet = null;
 
@@ -7419,7 +7417,6 @@ Object.defineProperty(AnimationAction.prototype, 'rv', {
     }
 });
 
-var isNode = !!(((typeof module !== "undefined") && module.exports));
 
 var AnimationActionItems = function(animationAction) {
     this.animationAction = animationAction;
