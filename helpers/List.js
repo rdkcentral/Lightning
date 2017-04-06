@@ -2,7 +2,7 @@ var isNode = !!(((typeof module !== "undefined") && module.exports));
 
 if (isNode) {
     var EventEmitter = require('events');
-    var Utils = require('./Utils');
+    var Utils = require('../wpe/Utils');
 }
 
 /**
@@ -263,7 +263,7 @@ List.prototype.setup = function() {
     };
 
     this.component.notifyDeactivate = function() {
-        self.stage.off('update', listener);
+        self.stage.removeListener('update', listener);
     };
 };
 
@@ -564,4 +564,5 @@ Object.defineProperty(List.prototype, 'wrapMax', {
 
 if (isNode) {
     module.exports = List;
+    var Animation = require('../wpe/Animation');
 }

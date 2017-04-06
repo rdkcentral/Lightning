@@ -1,7 +1,7 @@
 var isNode = !!(((typeof module !== "undefined") && module.exports));
 
 if (isNode) {
-    var Utils = require('./Utils');
+    var Utils = require('../wpe/Utils');
 }
 
 var Tools = {};

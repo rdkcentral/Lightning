@@ -225,6 +225,9 @@ ComponentTags.prototype.tag = function(tag) {
 };
 
 ComponentTags.prototype.get = function(tag) {
+    if (!this.treeTags) {
+        return [];
+    }
     var t = this.treeTags.get(tag);
     return t ? Utils.setToArray(t) : [];
 };
