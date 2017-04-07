@@ -1,6 +1,6 @@
 {
   "author": "Metrological, Bas van Meurs <b.van.meurs@metrological.com>",
-  "name": "WPEUIFramework",
+  "name": "wpe-uiframework",
   "version": "0.0.1",
   "main": "wpe.js",
   "license": "apache",
