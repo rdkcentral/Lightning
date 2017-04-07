@@ -1,7 +1,7 @@
 {
   "author": "Metrological, Bas van Meurs <b.van.meurs@metrological.com>",
   "name": "wpe-uiframework",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "main": "wpe.js",
   "license": "apache",
   "dependencies": {
@@ -16,9 +16,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:WebPlatformForEmbedded/node-wpe-uiframework.git"
+    "url": "git@github.com:WebPlatformForEmbedded/WPEUIFramework.git"
   },
   "bugs": {
-    "url": "https://github.com/WebPlatformForEmbedded/node-wpe-uiframework/issues"
+    "url": "https://github.com/WebPlatformForEmbedded/WPEUIFramework/issues"
   }
 }
