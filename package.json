@@ -13,5 +13,9 @@
     "grunt-contrib-concat": "*",
     "grunt-contrib-uglify": "*",
     "grunt-strip-code": "*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:WebPlatformForEmbedded/node-wpe-uiframework.git"
   }
 }
