@@ -5309,6 +5309,9 @@ ComponentTags.prototype.tag = function(tag) {
 };
 
 ComponentTags.prototype.get = function(tag) {
+    if (!this.treeTags) {
+        return [];
+    }
     var t = this.treeTags.get(tag);
     return t ? Utils.setToArray(t) : [];
 };
@@ -7883,6 +7886,10 @@ Animation.prototype.replay = function() {
 
 Animation.prototype.isPlaying = function() {
     return this.state === Animation.STATES.PLAYING;
+};
+
+Animation.prototype.isStopping = function() {
+    return this.state === Animation.STATES.STOPPING;
 };
 
 Animation.prototype.skipDelay = function() {

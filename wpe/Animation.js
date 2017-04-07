@@ -275,6 +275,10 @@ Animation.prototype.isPlaying = function() {
     return this.state === Animation.STATES.PLAYING;
 };
 
+Animation.prototype.isStopping = function() {
+    return this.state === Animation.STATES.STOPPING;
+};
+
 Animation.prototype.skipDelay = function() {
     this.delayLeft = 0;
     this.stopDelayLeft = 0;
