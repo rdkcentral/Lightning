@@ -1,4 +1,4 @@
-var gles2 = require('node-wpe-webgl');
+var gles2 = require('wpe-webgl');
 var fs = require('fs');
 
 var UComponentContext = require('../wpe/UComponentContext');
