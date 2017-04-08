@@ -41,7 +41,7 @@ This initializes a new stage. The stage creates a canvas of the specified width 
 For Node.js:
 
 ```javascript
-var Stage = require('../../wpe');
+var Stage = require('wpe-uiframework');
 
 var options = {w: 600, h: 600, glClearColor: 0xFF000000, window: {title: "Example", fullscreen: false}};
 var stage = new Stage(options);
