@@ -110,7 +110,7 @@ NodeAdapter.prototype.parseImage = function(data, cb) {
     var canvas = new Canvas(img.width, img.height);
     var ctx = canvas.getContext('2d');
     ctx.drawImage(img, 0, 0, img.width, img.height);
-    cb(canvas, {w: img.width, h: img.height})
+    cb(null, canvas, {w: img.width, h: img.height})
 };
 
 NodeAdapter.prototype.getHrTime = function() {
