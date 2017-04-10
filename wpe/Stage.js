@@ -438,7 +438,7 @@ Stage.componentId = 0;
 
 Stage.rectangleSource = {src: function(cb) {
     var whitePixel = new Uint8Array([255, 255, 255, 255]);
-    return cb(whitePixel, {w: 1, h: 1});
+    return cb(null, whitePixel, {w: 1, h: 1});
 }, id:"__whitepix"};
 
 Stage.W = 1280;

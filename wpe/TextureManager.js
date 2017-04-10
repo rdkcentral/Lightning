@@ -169,7 +169,12 @@ TextureManager.prototype.loadTexture = function(texture) {
                     return;
                 }
 
-                textureSource.loadSource(function(source, options) {
+                textureSource.loadSource(function(err, source, options) {
+                    if (err) {
+                        console.error('texture load error', err);
+                        return;
+                    }
+
                     if (self.stage.destroyed) {
                         // Ignore
                         return;

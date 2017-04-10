@@ -49,8 +49,11 @@ WebAdapter.prototype.loadTextureSourceString = function(source, cb) {
         // Base64.
         image.crossOrigin = "Anonymous";
     }
+    image.onerror = function(err) {
+        return cb(err);
+    };
     image.onload = function() {
-        cb(image, {renderInfo: {src: source}});
+        cb(null, image, {renderInfo: {src: source}});
     };
     image.src = source;
 };

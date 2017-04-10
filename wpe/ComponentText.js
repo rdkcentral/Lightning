@@ -49,7 +49,7 @@ ComponentText.prototype.updateTexture = function() {
         self.updatingTexture = false;
 
         // Create 'real' texture and set it.
-        return cb(self.createTextureSource());
+        return cb(null, self.createTextureSource());
     });
 };
 
@@ -73,7 +73,7 @@ ComponentText.prototype.createTextureSource = function() {
         var rval = tr.draw();
         var renderInfo = rval.renderInfo;
 
-        cb(rval.canvas, {renderInfo: renderInfo, precision: rval.renderInfo.precision});
+        cb(null, rval.canvas, {renderInfo: renderInfo, precision: rval.renderInfo.precision});
     }, tr.settings.getTextureId());
 };
 
