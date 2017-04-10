@@ -6,7 +6,7 @@
   "license": "apache",
   "dependencies": {
     "canvas": "1.6.4",
-    "wpe-webgl": "^0.0.5"
+    "wpe-webgl": "^0.0.2"
   },
   "devDependencies": {
     "grunt-contrib-concat": "*",

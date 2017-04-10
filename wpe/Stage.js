@@ -238,7 +238,7 @@ Stage.prototype.drawFrame = function() {
     if (this.measure) {
         var s = this.adapter.getHrTime();
         if (this.profileLast) {
-            var f = Math.max(Math.round((s - this.profileLast)/(3*16.6667)) - 1, 0);
+            var f = Math.max(Math.round((s - this.profileLast)/(1*16.6667)) - 1, 0);
             if (f > 19) f = 19;
             this.profile[f]++;
 
@@ -309,7 +309,7 @@ Stage.prototype.drawFrame = function() {
 
     if (this.measure) {
         s = this.adapter.getHrTime() - this.profileLast;
-        var f = Math.max(Math.round(s / (3 * 16.66667)) - 1, 0);
+        var f = Math.max(Math.round(s / (1 * 16.66667)) - 1, 0);
         if (f > 19) f = 19;
         this.innerProfile[f]++;
 
