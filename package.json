@@ -1,13 +1,12 @@
 {
   "author": "Metrological, Bas van Meurs <b.van.meurs@metrological.com>",
   "name": "wpe-uiframework",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "main": "wpe.js",
   "license": "apache",
   "dependencies": {
     "canvas": "1.6.4",
-    "wpe-webgl": "^0.0.2",
-    "request": "^2.79.0"
+    "wpe-webgl": "^0.0.5"
   },
   "devDependencies": {
     "grunt-contrib-concat": "*",

@@ -68,21 +68,29 @@ NodeAdapter.prototype.loadTextureSourceString = function(source, cb) {
     var self = this;
     if (/^https?:\/\//i.test(source)) {
         // URL. Download first.
-        var request = require('request');
+        var mod = null;
+        if (source.toLowerCase().indexOf("https:") === 0) {
+            mod = require('https');
+        } else {
+            mod = require('http');
+        }
 
-        var requestSettings = {
-            method: 'GET',
-            url: source,
-            encoding: null
-        };
-
-        request(requestSettings, function (error, response, data) {
-            if (!error && response.statusCode == 200) {
-                self.parseImage(data, cb)
-            } else {
-                console.error('Error loading image', error);
+        mod.get(source, function(res) {
+            if (res.statusCode !== 200) {
+                return cb(new Error("Status code " + res.statusCode + " for " + source));
             }
-        })
+
+            var total = [];
+            res.on('data', function(d) {
+                total.push(d);
+            });
+            res.on('end', function() {
+                var buf = Buffer.concat(total);
+                self.parseImage(buf, cb);
+            });
+        }).on('error', function(err) {
+            cb(err);
+        });
     } else {
         // File system.
         fs.readFile(source, function(err, res) {
