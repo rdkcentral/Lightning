@@ -389,6 +389,7 @@ Text sub object properties:
 | `getSharedAncestor(other:Component):Component` | Returns the shared ancestor between this and the specified component (`null` if not in the same tree). |
 | `isAttached():Boolean` | Returns true iff this component is attached to the stage rendering tree. |
 | `isActive():Boolean` | Returns true iff this component is attached to the stage rendering tree and is visible. |
+| `textureIsLoaded():Boolean` | Returns true iff `this.texture` has already been loaded. |
 | `animation(settings:Object):TimedAnimation` | Creates and returns an animation that has this component as subject. |
 | `a(settings:Object):TimedAnimation` | See animation(). |
 | `transition(property:String,settings:Object):Transition` | If settings is a plain object,it enables the transition on the specified property. If settings is `null`, it removes the animation on the specified property. The following properties can be transitioned: `x y w h scale(X,Y) pivot(X,Y) mount(X,Y) alpha rotation borderWidth(Top,Bottom,Left,Right) borderColor(Top,Bottom,Left,Right) color(Top,Bottom)(Left,Right)` |
@@ -409,6 +410,13 @@ Text sub object properties:
 | `set(settings:Object)` | Sets the specified properties. |
 | `toString():String` | Returns a JSON-formatted string describing this branch. |
 | `getSettingsObject():Object` | Returns a JSON object describing this component's branch. It can be imported using the `add` method. |
+
+### Events
+
+| Name | Arguments | Description |
+| --------------------------------- |---------|-------------|
+| `txLoad` | textureSource | `this.texture` has been loaded. |
+| `txError` | error, textureSource | Error while trying to load `this.texture`. |
 
 ## <a name="transition"></a>Transition
 
