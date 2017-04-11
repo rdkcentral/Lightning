@@ -1699,6 +1699,7 @@ TextureManager.prototype.loadTexture = function(texture) {
                 textureSource.loadSource(function(err, source, options) {
                     if (err) {
                         console.error('texture load error', err);
+                        textureSource.hasError(err);
                         return;
                     }
 
@@ -2212,6 +2213,12 @@ TextureSource.prototype.isLoaded = function() {
 
     if (this.onload) this.onload();
     this.onload = null;
+};
+
+TextureSource.prototype.hasError = function(e) {
+    this.components.forEach(function(component) {
+        component.textureSourceHasLoadError(e);
+    });
 };
 
 TextureSource.prototype.isAddedToTextureAtlas = function(x, y) {
@@ -2954,6 +2961,7 @@ TextureAtlasTree.prototype.getTextures = function() {
  * @abstract
  */
 var Component = function(stage) {
+    EventEmitter.call(this);
 
     /**
      * The global id. May be used by c++ addons.
@@ -3138,6 +3146,8 @@ var Component = function(stage) {
     this._cr = 1;
 
 };
+
+Utils.extendClass(Component, EventEmitter);
 
 Component.prototype.setAsRoot = function() {
     this.updateActiveFlag();
@@ -3657,6 +3667,16 @@ Component.prototype.stag = function(tag, settings) {
 Component.prototype.textureSourceIsLoaded = function() {
     // Now we can start showing this texture.
     this.displayedTexture = this.texture;
+
+    if (this._eventsCount) {
+        this.emit('txLoaded', this.texture.source);
+    }
+};
+
+Component.prototype.textureSourceHasLoadError = function(e) {
+    if (this._eventsCount) {
+        this.emit('txError', e, this.texture.source);
+    }
 };
 
 Component.prototype.textureSourceIsAddedToTextureAtlas = function() {
@@ -4978,6 +4998,10 @@ Component.prototype._updateLocalAlpha = function() {
 Component.prototype._updateLocalDimensions = function() {
     this.uComponent.setDimensions(this._renderWidth, this._renderHeight);
     this._updateLocalTranslate();
+};
+
+Component.prototype.textureIsLoaded = function() {
+    return this.texture ? !!this.texture.source.glTexture : false;
 };
 
 Component.prototype._updateTextureCoords = function() {
