@@ -172,6 +172,7 @@ TextureManager.prototype.loadTexture = function(texture) {
                 textureSource.loadSource(function(err, source, options) {
                     if (err) {
                         console.error('texture load error', err);
+                        textureSource.hasError(err);
                         return;
                     }
 

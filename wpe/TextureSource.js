@@ -153,6 +153,12 @@ TextureSource.prototype.isLoaded = function() {
     this.onload = null;
 };
 
+TextureSource.prototype.hasError = function(e) {
+    this.components.forEach(function(component) {
+        component.textureSourceHasLoadError(e);
+    });
+};
+
 TextureSource.prototype.isAddedToTextureAtlas = function(x, y) {
     this.inTextureAtlas = true;
     this.textureAtlasX = x;

@@ -21,6 +21,13 @@ stage.root.color = 0xff00ff00;
 stage.root.borderColor = 0xff000000;
 
 var bunny = stage.root.add({src: 'https://www.metrological.com/images/logo2x.png', x: 200, y: 200, rotation: 0.2, tag: 'bunny'});
+bunny.on('txLoaded', function(textureSource) {
+    console.log('loaded');
+});
+
+bunny.on('txError', function(err, textureSource) {
+    console.log('error');
+});
 
 bunny.t('x',{duration: 10, delay: 2});
 // bunny.x = 1050;
