@@ -706,7 +706,7 @@ Stage.prototype.drawFrame = function() {
     if (this.measure) {
         var s = this.adapter.getHrTime();
         if (this.profileLast) {
-            var f = Math.max(Math.round((s - this.profileLast)/(3*16.6667)) - 1, 0);
+            var f = Math.max(Math.round((s - this.profileLast)/(1*16.6667)) - 1, 0);
             if (f > 19) f = 19;
             this.profile[f]++;
 
@@ -777,7 +777,7 @@ Stage.prototype.drawFrame = function() {
 
     if (this.measure) {
         s = this.adapter.getHrTime() - this.profileLast;
-        var f = Math.max(Math.round(s / (3 * 16.66667)) - 1, 0);
+        var f = Math.max(Math.round(s / (1 * 16.66667)) - 1, 0);
         if (f > 19) f = 19;
         this.innerProfile[f]++;
 
@@ -906,7 +906,7 @@ Stage.componentId = 0;
 
 Stage.rectangleSource = {src: function(cb) {
     var whitePixel = new Uint8Array([255, 255, 255, 255]);
-    return cb(whitePixel, {w: 1, h: 1});
+    return cb(null, whitePixel, {w: 1, h: 1});
 }, id:"__whitepix"};
 
 Stage.W = 1280;
@@ -1696,7 +1696,12 @@ TextureManager.prototype.loadTexture = function(texture) {
                     return;
                 }
 
-                textureSource.loadSource(function(source, options) {
+                textureSource.loadSource(function(err, source, options) {
+                    if (err) {
+                        console.error('texture load error', err);
+                        return;
+                    }
+
                     if (self.stage.destroyed) {
                         // Ignore
                         return;
@@ -1718,9 +1723,9 @@ TextureManager.prototype.loadTexture = function(texture) {
                                 return;
                             }
 
-                            textureSource.w = source.width || options.w;
-                            textureSource.h = source.height || options.h;
-                            textureSource.precision = options.precision || 1;
+                            textureSource.w = source.width || (options && options.w) || 0;
+                            textureSource.h = source.height || (options && options.h) || 0;
+                            textureSource.precision = (options && options.precision) || 1;
 
                             if (options && options.renderInfo) {
                                 // Assign to id in cache so that it can be reused.
@@ -5403,7 +5408,7 @@ ComponentText.prototype.updateTexture = function() {
         self.updatingTexture = false;
 
         // Create 'real' texture and set it.
-        return cb(self.createTextureSource());
+        return cb(null, self.createTextureSource());
     });
 };
 
@@ -5427,7 +5432,7 @@ ComponentText.prototype.createTextureSource = function() {
         var rval = tr.draw();
         var renderInfo = rval.renderInfo;
 
-        cb(rval.canvas, {renderInfo: renderInfo, precision: rval.renderInfo.precision});
+        cb(null, rval.canvas, {renderInfo: renderInfo, precision: rval.renderInfo.precision});
     }, tr.settings.getTextureId());
 };
 
@@ -9584,7 +9589,7 @@ Tools.getRoundRect = function(stage, w, h, radius, strokeWidth, strokeColor, fil
             ctx.stroke();
         }
 
-        cb(canvas, {});
+        cb(null, canvas, {});
     }, {id: id});
 };
 
@@ -9639,8 +9644,11 @@ WebAdapter.prototype.loadTextureSourceString = function(source, cb) {
         // Base64.
         image.crossOrigin = "Anonymous";
     }
+    image.onerror = function(err) {
+        return cb(err);
+    };
     image.onload = function() {
-        cb(image, {renderInfo: {src: source}});
+        cb(null, image, {renderInfo: {src: source}});
     };
     image.src = source;
 };
