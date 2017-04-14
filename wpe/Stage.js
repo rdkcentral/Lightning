@@ -116,6 +116,8 @@ function Stage(options) {
 
     this.measure = !!options.measure;
     this.measureDetails = !!options.measureDetails;
+    this.measureFrameDistribution = !!options.measureFrameDistribution;
+    this.measureInnerFrameDistribution = !!options.measureInnerFrameDistribution;
 
     // Measurement stuff.
     this.measureStart = {};
@@ -235,9 +237,9 @@ Stage.prototype.addActiveAnimation = function(a) {
 };
 
 Stage.prototype.drawFrame = function() {
-    if (this.measure) {
+    if (this.measureFrameDistribution || this.measureInnerFrameDistribution) {
         var s = this.adapter.getHrTime();
-        if (this.profileLast) {
+        if (this.profileLast && this.measureFrameDistribution) {
             var f = Math.max(Math.round((s - this.profileLast)/(1*16.6667)) - 1, 0);
             if (f > 19) f = 19;
             this.profile[f]++;
@@ -307,7 +309,7 @@ Stage.prototype.drawFrame = function() {
 
     this.adapter.nextFrame(this.renderNeeded);
 
-    if (this.measure) {
+    if (this.measureInnerFrameDistribution) {
         s = this.adapter.getHrTime() - this.profileLast;
         var f = Math.max(Math.round(s / (1 * 16.66667)) - 1, 0);
         if (f > 19) f = 19;
