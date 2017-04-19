@@ -713,10 +713,6 @@ Component.prototype.stag = function(tag, settings) {
 Component.prototype.onTextureSourceLoaded = function() {
     // Now we can start showing this texture.
     this.displayedTexture = this.texture;
-
-    if (this._eventsCount) {
-        this.emit('txLoaded', this.texture.source);
-    }
 };
 
 Component.prototype.onTextureSourceLoadError = function(e) {
@@ -1832,6 +1828,10 @@ Object.defineProperty(Component.prototype, 'displayedTexture', {
                     this._updateLocalDimensions();
                 }
                 if (v) {
+                    if (this._eventsCount) {
+                        this.emit('txLoaded', v);
+                    }
+
                     // We don't need to reference the displayed texture because it was already referenced (this.texture === this.displayedTexture).
                     this._updateTextureCoords();
                     this.stage.uComponentContext.setDisplayedTextureSource(this.uComponent, v.source);
