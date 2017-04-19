@@ -504,7 +504,7 @@ TextureAtlas.prototype.removeActiveTextureSource = function(textureSource) {
             this.uploads.splice(uploadsIndex, 1);
 
             // It is not uploaded, so it's not on the texture atlas any more.
-            textureSource.isRemovedFromTextureAtlas();
+            textureSource.onRemovedFromTextureAtlas();
 
             this.addedTextureSources.delete(textureSource);
         }
@@ -524,7 +524,7 @@ TextureAtlas.prototype.add = function(textureSource) {
     if (position) {
         this.addedTextureSources.add(textureSource);
 
-        textureSource.isAddedToTextureAtlas(position.x + 1, position.y + 1);
+        textureSource.onAddedToTextureAtlas(position.x + 1, position.y + 1);
 
         this.uploads.push(textureSource);
     } else {
@@ -558,7 +558,7 @@ TextureAtlas.prototype.defragment = function() {
     this.defragNeeded = false;
 
     this.addedTextureSources.forEach(function(textureSource) {
-        textureSource.isRemovedFromTextureAtlas();
+        textureSource.onRemovedFromTextureAtlas();
     });
 
     this.addedTextureSources.clear();

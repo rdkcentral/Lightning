@@ -63,15 +63,14 @@ function Texture(manager, source) {
 
 Texture.prototype.addComponent = function(c) {
     this.components.add(c);
-
-    if (!this.source.glTexture) {
-        // Attempts to load texture (if not already loaded).
-        this.manager.loadTexture(this);
-    }
+    this.source.addComponent(c);
 };
 
-Texture.prototype.removeComponent = function(c) {
+Texture.prototype.removeComponent = function(c, d) {
     this.components.delete(c);
+    if (d) {
+        this.source.removeComponent(c);
+    }
 };
 
 Texture.prototype.enableClipping = function(x, y, w, h) {
@@ -107,7 +106,7 @@ Texture.prototype.updateClipping = function(overrule) {
     this.components.forEach(function(component) {
         // Ignore if not the currently displayed texture.
         if (component.displayedTexture === self) {
-            component.displayedTextureClippingChanged();
+            component.onDisplayedTextureClippingChanged();
         }
     });
 };
@@ -140,14 +139,14 @@ Texture.prototype.replaceTextureSource = function(newSource) {
 };
 
 Texture.prototype.load = function() {
-    this.manager.loadTexture(this);
+    this.source.load();
 };
 
 /**
  * Frees the GL texture, and forces a reload when it is required again.
  */
 Texture.prototype.free = function() {
-    this.manager.freeTextureSource(this.source);
+    this.source.free();
 };
 
 Texture.prototype.set = function(obj) {

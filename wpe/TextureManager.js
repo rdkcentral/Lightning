@@ -57,7 +57,7 @@ TextureManager.prototype.destroy = function() {
 
 /**
  * @param {string|function} source
- * @param {object} options
+ * @param {object} [options]
  *   - id: number
  *     Fixed id. Handy when using base64 strings or when using canvas textures.
  *   - x: number
@@ -130,12 +130,12 @@ TextureManager.prototype.getTexture = function(source, options) {
     }
 };
 
-TextureManager.prototype.getTextureSource = function(func, id) {
+TextureManager.prototype.getTextureSource = function(func, id, cancelCb) {
     // Check if texture source is already known.
     var textureSource = id ? this.textureSourceHashmap.get(id) : null;
     if (!textureSource) {
         // Create new texture source.
-        textureSource = new TextureSource(this, func);
+        textureSource = new TextureSource(this, func, cancelCb);
 
         if (id) {
             textureSource.lookupId = id;
@@ -144,77 +144,6 @@ TextureManager.prototype.getTextureSource = function(func, id) {
     }
 
     return textureSource;
-};
-
-/**
- * Tries to prepare the specified textures for rendering ASAP.
- */
-TextureManager.prototype.loadTexture = function(texture) {
-    var textureSource = texture.source;
-
-    if (textureSource.glTexture) {
-        // Loaded already.
-    } else {
-        var now = (new Date()).getTime();
-        if (textureSource.loadingSince && textureSource.loadingSince > (now - 30000)) {
-            // Being loaded right now.
-        } else {
-            // Not yet loading or timeout on loading: load.
-            textureSource.loadingSince = now;
-            var self = this;
-            (function(textureSource) {
-                if (textureSource.glTexture) {
-                    // Texture has been stored permanently. We'll reuse it.
-                    textureSource.loadingSince = null;
-                    return;
-                }
-
-                textureSource.loadSource(function(err, source, options) {
-                    if (err) {
-                        console.error('texture load error', err);
-                        textureSource.hasError(err);
-                        return;
-                    }
-
-                    if (self.stage.destroyed) {
-                        // Ignore
-                        return;
-                    }
-
-                    // Texture is no longer loading.
-                    textureSource.loadingSince = null;
-
-                    if (source instanceof TextureSource) {
-                        texture.replaceTextureSource(source);
-
-                        // Try to load texture with the new source.
-                        self.loadTexture(texture);
-                    } else {
-                        // Source loaded!
-                        if (!textureSource.glTexture) {
-                            if (source.width > 2048 || source.height > 2048) {
-                                console.error('Texture size too large: ' + source.width + 'x' + source.height + ' (max allowed is 2048x2048)');
-                                return;
-                            }
-
-                            textureSource.w = source.width || (options && options.w) || 0;
-                            textureSource.h = source.height || (options && options.h) || 0;
-                            textureSource.precision = (options && options.precision) || 1;
-
-                            if (options && options.renderInfo) {
-                                // Assign to id in cache so that it can be reused.
-                                textureSource.renderInfo = options.renderInfo;
-                            }
-
-                            self.uploadTextureSource(textureSource, source);
-
-                            textureSource.isLoaded();
-                        }
-                    }
-                });
-            })(textureSource);
-        }
-    }
 };
 
 TextureManager.prototype.uploadTextureSource = function(textureSource, source) {

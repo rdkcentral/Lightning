@@ -46,10 +46,17 @@ ComponentText.prototype.updateTexture = function() {
     // Create a dummy texture that loads the actual texture.
     var self = this;
     this.component.texture = this.texture = this.stage.texture(function(cb) {
+        // Create 'real' texture and set it.
         self.updatingTexture = false;
 
-        // Create 'real' texture and set it.
-        return cb(null, self.createTextureSource());
+        // Ignore this texture source load.
+        cb(null, null);
+
+        // Replace with the newly generated texture source.
+        self.texture.replaceTextureSource(self.createTextureSource());
+
+        // Make sure that the new texture source is loaded, not just if active but also if loaded manually using .load()
+        self.texture.load();
     });
 };
 
@@ -68,13 +75,15 @@ ComponentText.prototype.createTextureSource = function() {
         tr.settings.h = this.component.h;
     }
 
-    return self.stage.textureManager.getTextureSource(function (cb) {
+    var loadCb = function (cb, ts) {
         // Generate the image.
         var rval = tr.draw();
         var renderInfo = rval.renderInfo;
-
+        //@todo: async in separate process.
         cb(null, rval.canvas, {renderInfo: renderInfo, precision: rval.renderInfo.precision});
-    }, tr.settings.getTextureId());
+    };
+
+    return self.stage.textureManager.getTextureSource(loadCb, tr.settings.getTextureId());
 };
 
 ComponentText.prototype.measure = function() {

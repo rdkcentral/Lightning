@@ -421,7 +421,6 @@ Component.prototype.updateActiveFlag = function() {
             var dt = null;
             if (this.texture && this.texture.source.glTexture) {
                 dt = this.texture;
-                this.texture.source.addComponent(this);
                 this.texture.addComponent(this);
             } else if (this.displayedTexture && this.displayedTexture.source.glTexture) {
                 dt = this.displayedTexture;
@@ -435,12 +434,10 @@ Component.prototype.updateActiveFlag = function() {
 
             if (this.texture) {
                 // It is important to add the source listener before the texture listener because that may trigger a load.
-                this.texture.source.addComponent(this);
                 this.texture.addComponent(this);
             }
 
             if (this.displayedTexture && this.displayedTexture !== this.texture) {
-                this.displayedTexture.source.addComponent(this);
                 this.displayedTexture.addComponent(this);
             }
         } else {
@@ -450,13 +447,11 @@ Component.prototype.updateActiveFlag = function() {
             }
 
             if (this.texture) {
-                this.texture.removeComponent(this);
-                this.texture.source.removeComponent(this);
+                this.texture.removeComponent(this, true);
             }
 
             if (this.displayedTexture) {
-                this.displayedTexture.removeComponent(this);
-                this.displayedTexture.source.removeComponent(this);
+                this.displayedTexture.removeComponent(this, true);
             }
 
             this.active = newActive;
@@ -715,7 +710,7 @@ Component.prototype.stag = function(tag, settings) {
     }
 };
 
-Component.prototype.textureSourceIsLoaded = function() {
+Component.prototype.onTextureSourceLoaded = function() {
     // Now we can start showing this texture.
     this.displayedTexture = this.texture;
 
@@ -724,21 +719,21 @@ Component.prototype.textureSourceIsLoaded = function() {
     }
 };
 
-Component.prototype.textureSourceHasLoadError = function(e) {
+Component.prototype.onTextureSourceLoadError = function(e) {
     if (this._eventsCount) {
         this.emit('txError', e, this.texture.source);
     }
 };
 
-Component.prototype.textureSourceIsAddedToTextureAtlas = function() {
+Component.prototype.onTextureSourceAddedToTextureAtlas = function() {
     this._updateTextureCoords();
 };
 
-Component.prototype.textureSourceIsRemovedFromTextureAtlas = function() {
+Component.prototype.onTextureSourceRemovedFromTextureAtlas = function() {
     this._updateTextureCoords();
 };
 
-Component.prototype.displayedTextureClippingChanged = function() {
+Component.prototype.onDisplayedTextureClippingChanged = function() {
     this._renderWidth = this._getRenderWidth();
     this._renderHeight = this._getRenderHeight();
 
@@ -1785,20 +1780,14 @@ Object.defineProperty(Component.prototype, 'texture', {
                 this._texture = v;
 
                 if (this.active && prevValue && this.displayedTexture !== prevValue) {
-                    prevValue.removeComponent(this);
-
-                    if (!v || prevValue.source !== v.source) {
-                        if (!this.displayedTexture || (this.displayedTexture.source !== prevValue.source)) {
-                            prevValue.source.removeComponent(this);
-                        }
-                    }
+                    // Keep reference to component for texture source
+                    prevValue.removeComponent(this, (!v || prevValue.source !== v.source) && (!this.displayedTexture || (this.displayedTexture.source !== prevValue.source)));
                 }
 
                 if (v) {
                     if (this.active) {
                         // When the texture is changed, maintain the texture's sprite registry.
                         // While the displayed texture is different from the texture (not yet loaded), two textures are referenced.
-                        v.source.addComponent(this);
                         v.addComponent(this);
                     }
 
@@ -1829,11 +1818,7 @@ Object.defineProperty(Component.prototype, 'displayedTexture', {
 
                     if (prevValue !== this.texture) {
                         // The old displayed texture is deprecated.
-                        prevValue.removeComponent(this);
-                    }
-
-                    if (!v || (prevValue.source !== v.source)) {
-                        prevValue.source.removeComponent(this);
+                        prevValue.removeComponent(this, (!v || (prevValue.source !== v.source)));
                     }
                 }
 
