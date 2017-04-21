@@ -426,9 +426,11 @@ Component.prototype.updateActiveFlag = function() {
                 dt = this.displayedTexture;
             }
 
-            // Force re-check of texture because dimensions might have changed (cutting).
-            this.displayedTexture = null;
             this.displayedTexture = dt;
+
+            // Force re-check of texture because dimensions might have changed (cutting).
+            this.checkForResize();
+            this._updateTextureCoords();
 
             this.active = newActive;
 
@@ -825,7 +827,7 @@ Component.prototype.getSettingsObject = function() {
 Component.prototype.getNonDefaults = function() {
     var nonDefaults = {};
 
-    if (this._tags && this._tags.tags.size) {
+    if (this._tags && this._tags.tags && this._tags.tags.size) {
         nonDefaults['tags'] = this.getLocalTags();
     }
 
@@ -903,6 +905,17 @@ Component.prototype.getNonDefaults = function() {
 
 Component.prototype.hasEqualColors = function() {
     return (this._colorTopLeft === this._colorTopRight) && (this._colorTopLeft === this._colorBottomRight) && (this._colorTopLeft === this._colorBottomLeft);
+};
+
+Component.prototype.checkForResize = function() {
+    var beforeW = this._renderWidth;
+    var beforeH = this._renderHeight;
+    this._renderWidth = this._getRenderWidth();
+    this._renderHeight = this._getRenderHeight();
+    if (beforeW !== this._renderWidth || beforeH !== this._renderHeight) {
+        // Due to width/height change: update the translation vector and borders.
+        this._updateLocalDimensions();
+    }
 };
 
 /**
@@ -1818,15 +1831,10 @@ Object.defineProperty(Component.prototype, 'displayedTexture', {
                     }
                 }
 
-                var beforeW = this._renderWidth;
-                var beforeH = this._renderHeight;
                 this._displayedTexture = v;
-                this._renderWidth = this._getRenderWidth();
-                this._renderHeight = this._getRenderHeight();
-                if (!prevValue || beforeW != this._renderWidth || beforeH != this._renderHeight) {
-                    // Due to width/height change: update the translation vector and borders.
-                    this._updateLocalDimensions();
-                }
+
+                this.checkForResize();
+
                 if (v) {
                     if (this._eventsCount) {
                         this.emit('txLoaded', v);

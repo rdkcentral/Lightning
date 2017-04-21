@@ -56,6 +56,18 @@ TextureManager.prototype.destroy = function() {
 };
 
 /**
+ * Loads a texture source from a source reference (.src property).
+ */
+TextureManager.prototype.loadTextureSourceString = function(src, ts, cb) {
+    if (this.stage.useTextureProcess && this.stage.textureProcess.isConnected()) {
+        this.stage.textureProcess.add(src, ts, cb);
+        ts.cancelCb = this.stage.textureProcess.cancel.bind(this.stage.textureProcess);
+    } else {
+        this.stage.adapter.loadTextureSourceString(src, cb);
+    }
+};
+
+/**
  * @param {string|function} source
  * @param {object} [options]
  *   - id: number
@@ -88,8 +100,8 @@ TextureManager.prototype.getTexture = function(source, options) {
         if (!textureSource) {
             // Create new texture source.
             var self = this;
-            var func = function(cb) {
-                self.stage.adapter.loadTextureSourceString(source, cb);
+            var func = function(cb, ts) {
+                self.loadTextureSourceString(source, ts, cb);
             };
             textureSource = this.getTextureSource(func, id);
         }
@@ -130,12 +142,12 @@ TextureManager.prototype.getTexture = function(source, options) {
     }
 };
 
-TextureManager.prototype.getTextureSource = function(func, id, cancelCb) {
+TextureManager.prototype.getTextureSource = function(func, id) {
     // Check if texture source is already known.
     var textureSource = id ? this.textureSourceHashmap.get(id) : null;
     if (!textureSource) {
         // Create new texture source.
-        textureSource = new TextureSource(this, func, cancelCb);
+        textureSource = new TextureSource(this, func);
 
         if (id) {
             textureSource.lookupId = id;

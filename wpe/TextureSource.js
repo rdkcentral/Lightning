@@ -8,7 +8,7 @@ if (isNode) {
  * A texture source.
  * @constructor
  */
-var TextureSource = function(manager, loadCb, cancelCb) {
+var TextureSource = function(manager, loadCb) {
 
     /**
      * @type {TextureManager}
@@ -35,7 +35,7 @@ var TextureSource = function(manager, loadCb, cancelCb) {
      * If set, this is called when the texture source is no longer displayed (this.components.size becomes 0).
      * @type {Function}
      */
-    this.cancelCb = cancelCb;
+    this.cancelCb = null;
 
     /**
      * Loading since timestamp in millis.
@@ -187,13 +187,17 @@ TextureSource.prototype.isLoading = function() {
 };
 
 TextureSource.prototype.setSource = function(source, options) {
-    if (source.width > 2048 || source.height > 2048) {
+    this.w = source.width || (options && options.w) || 0;
+    this.h = source.height || (options && options.h) || 0;
+
+    //@todo: improve by separating apremultiply/bluered settings.
+    this.nodeCanvas = (options && options.nodeCanvas);
+
+    if (this.w > 2048 || this.h > 2048) {
         console.error('Texture size too large: ' + source.width + 'x' + source.height + ' (max allowed is 2048x2048)');
         return;
     }
 
-    this.w = source.width || (options && options.w) || 0;
-    this.h = source.height || (options && options.h) || 0;
     this.precision = (options && options.precision) || 1;
 
     if (options && options.renderInfo) {

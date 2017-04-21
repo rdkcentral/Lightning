@@ -58,8 +58,13 @@ NodeAdapter.prototype.uploadGlTexture = function(gl, textureSource, source) {
         gl.pixelStorei(gl.UNPACK_FLIP_BLUE_RED, true);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, textureSource.w, textureSource.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, source.toBuffer('raw'));
     } else {
-        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
-        gl.pixelStorei(gl.UNPACK_FLIP_BLUE_RED, false);
+        if (textureSource.nodeCanvas) {
+            gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+            gl.pixelStorei(gl.UNPACK_FLIP_BLUE_RED, true);
+        } else {
+            gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+            gl.pixelStorei(gl.UNPACK_FLIP_BLUE_RED, false);
+        }
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, textureSource.w, textureSource.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, source);
     }
 };

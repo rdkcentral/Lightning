@@ -3,7 +3,7 @@ if (isNode) {
     var Stage = require('../../wpe');
 }
 
-var options = {w: 1280, h: 720, rw: 1280, rh: 720, precision: 1, measureDetails: false, useTextureAtlas:true, glClearColor: [0, 0, 0, 1], window: {title: "Clipping demo", fullscreen: false}};
+var options = {w: 1280, h: 720, rw: 1280, rh: 720, precision: 1, measureDetails: false, useTextureProcess: true, useTextureAtlas:true, glClearColor: [0, 0, 0, 1], window: {title: "Clipping demo", fullscreen: false}};
 var stage = new Stage(options);
 
 if (!isNode) {
@@ -20,7 +20,7 @@ stage.root.rect = true;
 stage.root.color = 0xff00ff00;
 stage.root.borderColor = 0xff000000;
 
-var bunny = stage.root.add({src: 'https://www.metrological.com/images/logo2x.png', x: 200, y: 200, rotation: 0.2, tag: 'bunny'});
+var bunny = stage.root.add({x: 200, y: 200, rotation: 0.2, tag: 'bunny'});
 bunny.on('txLoaded', function(textureSource) {
     console.log('loaded');
 });
@@ -47,9 +47,21 @@ var a = stage.root.tag('bunny').animation({duration: 3, autostop: true, stopMeth
 
 a.start();
 
+setTimeout(function() {
+    bunny.src = "https://www.google.nl/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png";
+
+    setTimeout(function() {
+        //bunny.visible = false;
+        setTimeout(function() {
+            //bunny.visible = true;
+        }, 3000);
+    }, 3000);
+}, 4000);
+
+
 if (isNode) {
     setTimeout(function() {
         stage.stop();
-    }, 6000);
+    }, 60000);
 }
 

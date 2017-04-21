@@ -119,6 +119,12 @@ function Stage(options) {
     this.measureFrameDistribution = !!options.measureFrameDistribution;
     this.measureInnerFrameDistribution = !!options.measureInnerFrameDistribution;
 
+    this.useTextureProcess = !!options.useTextureProcess;
+    if (this.useTextureProcess) {
+        var TextureProcess = require('./TextureProcess');
+        this.textureProcess = new TextureProcess();
+    }
+
     // Measurement stuff.
     this.measureStart = {};
     this.measureTotalMs = {};
@@ -208,6 +214,22 @@ Stage.prototype.resume = function() {
 Stage.prototype.init = function() {
     if (this.adapter.init) {
         this.adapter.init();
+    }
+
+    if (this.useTextureProcess) {
+        if (isNode) {
+            // Fork new nodejs process.
+            this.textureProcess.fork();
+
+            // Give the child process some time to open the socket to prevent a failure message.
+            var self = this;
+            setTimeout(function() {
+                self.textureProcess.connect();
+            }, 100);
+        } else {
+            // Try connecting to the texture process. In the meantime, load everything on thread.
+            this.textureProcess.connect();
+        }
     }
 
     // Preload rectangle texture, so that we can skip some border checks for loading textures.

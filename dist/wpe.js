@@ -587,6 +587,12 @@ function Stage(options) {
     this.measureFrameDistribution = !!options.measureFrameDistribution;
     this.measureInnerFrameDistribution = !!options.measureInnerFrameDistribution;
 
+    this.useTextureProcess = !!options.useTextureProcess;
+    if (this.useTextureProcess) {
+        var TextureProcess = require('./TextureProcess');
+        this.textureProcess = new TextureProcess();
+    }
+
     // Measurement stuff.
     this.measureStart = {};
     this.measureTotalMs = {};
@@ -676,6 +682,22 @@ Stage.prototype.resume = function() {
 Stage.prototype.init = function() {
     if (this.adapter.init) {
         this.adapter.init();
+    }
+
+    if (this.useTextureProcess) {
+        if (isNode) {
+            // Fork new nodejs process.
+            //this.textureProcess.fork();
+
+            // Give the child process some time to open the socket to prevent a failure message.
+            var self = this;
+            setImmediate(function() {
+                self.textureProcess.connect();
+            });
+        } else {
+            // Try connecting to the texture process. In the meantime, load everything on thread.
+            this.textureProcess.connect();
+        }
     }
 
     // Preload rectangle texture, so that we can skip some border checks for loading textures.
@@ -1586,7 +1608,7 @@ TextureManager.prototype.destroy = function() {
 
 /**
  * @param {string|function} source
- * @param {object} options
+ * @param {object} [options]
  *   - id: number
  *     Fixed id. Handy when using base64 strings or when using canvas textures.
  *   - x: number
@@ -1673,77 +1695,6 @@ TextureManager.prototype.getTextureSource = function(func, id) {
     }
 
     return textureSource;
-};
-
-/**
- * Tries to prepare the specified textures for rendering ASAP.
- */
-TextureManager.prototype.loadTexture = function(texture) {
-    var textureSource = texture.source;
-
-    if (textureSource.glTexture) {
-        // Loaded already.
-    } else {
-        var now = (new Date()).getTime();
-        if (textureSource.loadingSince && textureSource.loadingSince > (now - 30000)) {
-            // Being loaded right now.
-        } else {
-            // Not yet loading or timeout on loading: load.
-            textureSource.loadingSince = now;
-            var self = this;
-            (function(textureSource) {
-                if (textureSource.glTexture) {
-                    // Texture has been stored permanently. We'll reuse it.
-                    textureSource.loadingSince = null;
-                    return;
-                }
-
-                textureSource.loadSource(function(err, source, options) {
-                    if (err) {
-                        console.error('texture load error', err);
-                        textureSource.hasError(err);
-                        return;
-                    }
-
-                    if (self.stage.destroyed) {
-                        // Ignore
-                        return;
-                    }
-
-                    // Texture is no longer loading.
-                    textureSource.loadingSince = null;
-
-                    if (source instanceof TextureSource) {
-                        texture.replaceTextureSource(source);
-
-                        // Try to load texture with the new source.
-                        self.loadTexture(texture);
-                    } else {
-                        // Source loaded!
-                        if (!textureSource.glTexture) {
-                            if (source.width > 2048 || source.height > 2048) {
-                                console.error('Texture size too large: ' + source.width + 'x' + source.height + ' (max allowed is 2048x2048)');
-                                return;
-                            }
-
-                            textureSource.w = source.width || (options && options.w) || 0;
-                            textureSource.h = source.height || (options && options.h) || 0;
-                            textureSource.precision = (options && options.precision) || 1;
-
-                            if (options && options.renderInfo) {
-                                // Assign to id in cache so that it can be reused.
-                                textureSource.renderInfo = options.renderInfo;
-                            }
-
-                            self.uploadTextureSource(textureSource, source);
-
-                            textureSource.isLoaded();
-                        }
-                    }
-                });
-            })(textureSource);
-        }
-    }
 };
 
 TextureManager.prototype.uploadTextureSource = function(textureSource, source) {
@@ -1893,15 +1844,14 @@ function Texture(manager, source) {
 
 Texture.prototype.addComponent = function(c) {
     this.components.add(c);
-
-    if (!this.source.glTexture) {
-        // Attempts to load texture (if not already loaded).
-        this.manager.loadTexture(this);
-    }
+    this.source.addComponent(c);
 };
 
-Texture.prototype.removeComponent = function(c) {
+Texture.prototype.removeComponent = function(c, d) {
     this.components.delete(c);
+    if (d) {
+        this.source.removeComponent(c);
+    }
 };
 
 Texture.prototype.enableClipping = function(x, y, w, h) {
@@ -1937,7 +1887,7 @@ Texture.prototype.updateClipping = function(overrule) {
     this.components.forEach(function(component) {
         // Ignore if not the currently displayed texture.
         if (component.displayedTexture === self) {
-            component.displayedTextureClippingChanged();
+            component.onDisplayedTextureClippingChanged();
         }
     });
 };
@@ -1970,14 +1920,14 @@ Texture.prototype.replaceTextureSource = function(newSource) {
 };
 
 Texture.prototype.load = function() {
-    this.manager.loadTexture(this);
+    this.source.load();
 };
 
 /**
  * Frees the GL texture, and forces a reload when it is required again.
  */
 Texture.prototype.free = function() {
-    this.manager.freeTextureSource(this.source);
+    this.source.free();
 };
 
 Texture.prototype.set = function(obj) {
@@ -2072,7 +2022,7 @@ Texture.id = 0;
  * A texture source.
  * @constructor
  */
-var TextureSource = function(manager, loadSource) {
+var TextureSource = function(manager, loadCb) {
 
     /**
      * @type {TextureManager}
@@ -2093,13 +2043,19 @@ var TextureSource = function(manager, loadSource) {
      * The factory for the source of this texture.
      * @type {Function}
      */
-    this.loadSource = loadSource;
+    this.loadCb = loadCb;
+
+    /**
+     * If set, this is called when the texture source is no longer displayed (this.components.size becomes 0).
+     * @type {Function}
+     */
+    this.cancelCb = null;
 
     /**
      * Loading since timestamp in millis.
      * @type {number}
      */
-    this.loadingSince = null;
+    this.loadingSince = 0;
 
     /**
      * Flag that indicates if this texture source was stored in the texture atlas.
@@ -2170,74 +2126,143 @@ TextureSource.prototype.getRenderHeight = function() {
 };
 
 TextureSource.prototype.addComponent = function(c) {
-    this.components.add(c);
+    if (!this.components.has(c)) {
+        this.components.add(c);
 
-    if (this.glTexture) {
-        // If not yet loaded, wait until it is loaded until adding it to the texture atlas.
-        if (this.stage.useTextureAtlas) {
-            this.stage.textureAtlas.addActiveTextureSource(this);
-        }
-    }
-
-    if (this.components.size === 1) {
-        this.manager.textureSourceIdHashmap.set(this.id, this);
-        if (this.lookupId) {
-            if (!this.manager.textureSourceHashmap.has(this.lookupId)) {
-                this.manager.textureSourceHashmap.set(this.lookupId, this);
+        if (this.glTexture) {
+            // If not yet loaded, wait until it is loaded until adding it to the texture atlas.
+            if (this.stage.useTextureAtlas) {
+                this.stage.textureAtlas.addActiveTextureSource(this);
             }
+        }
+
+        if (this.components.size === 1) {
+            this.manager.textureSourceIdHashmap.set(this.id, this);
+            if (this.lookupId) {
+                if (!this.manager.textureSourceHashmap.has(this.lookupId)) {
+                    this.manager.textureSourceHashmap.set(this.lookupId, this);
+                }
+            }
+
+            this.becomesVisible();
         }
     }
 };
 
 TextureSource.prototype.removeComponent = function(c) {
-    if (this.components.size) {
-        this.components.delete(c);
-
+    if (this.components.delete(c)) {
         if (!this.components.size) {
             if (this.stage.useTextureAtlas) {
                 this.stage.textureAtlas.removeActiveTextureSource(this);
             }
             this.manager.textureSourceIdHashmap.delete(this.id);
+
+            this.becomesInvisible();
         }
     }
 };
 
-TextureSource.prototype.isLoaded = function() {
-    if (this.components.size) {
-        if (this.stage.useTextureAtlas) {
-            this.stage.textureAtlas.addActiveTextureSource(this);
+TextureSource.prototype.becomesVisible = function() {
+    this.load();
+};
+
+TextureSource.prototype.becomesInvisible = function() {
+    if (this.isLoading()) {
+        if (this.cancelCb) {
+            // Cancel loading.
+            this.cancelCb(this);
         }
+    }
+};
+
+TextureSource.prototype.load = function() {
+    if (!this.glTexture && !this.isLoading()) {
+        var self = this;
+        this.loadingSince = (new Date()).getTime();
+        this.loadCb(function(err, source, options) {
+            if (self.manager.stage.destroyed) {
+                // Ignore async load when stage is destroyed.
+                return;
+            }
+
+            self.loadingSince = 0;
+            if (err) {
+                // Emit txError.
+                self.onError(err);
+            } else if (source) {
+                self.setSource(source, options);
+            }
+        }, this);
+    }
+};
+
+TextureSource.prototype.isLoading = function() {
+    return this.loadingSince > 0;
+};
+
+TextureSource.prototype.setSource = function(source, options) {
+    if (source.width > 2048 || source.height > 2048) {
+        console.error('Texture size too large: ' + source.width + 'x' + source.height + ' (max allowed is 2048x2048)');
+        return;
+    }
+
+    this.w = source.width || (options && options.w) || 0;
+    this.h = source.height || (options && options.h) || 0;
+    this.precision = (options && options.precision) || 1;
+
+    if (options && options.renderInfo) {
+        // Assign to id in cache so that it can be reused.
+        this.renderInfo = options.renderInfo;
+    }
+
+    this.manager.uploadTextureSource(this, source);
+
+    this.onLoad();
+}
+
+TextureSource.prototype.isVisible = function() {
+    return (this.components.size > 0);
+};
+
+TextureSource.prototype.onLoad = function() {
+    if (this.isVisible() && this.stage.useTextureAtlas) {
+        this.stage.textureAtlas.addActiveTextureSource(this);
     }
 
     this.components.forEach(function(component) {
-        component.textureSourceIsLoaded();
+        component.onTextureSourceLoaded();
     });
 
     if (this.onload) this.onload();
     this.onload = null;
 };
 
-TextureSource.prototype.hasError = function(e) {
+TextureSource.prototype.onError = function(e) {
+    console.error('texture load error', e, this);
     this.components.forEach(function(component) {
-        component.textureSourceHasLoadError(e);
+        component.onTextureSourceLoadError(e);
     });
 };
 
-TextureSource.prototype.isAddedToTextureAtlas = function(x, y) {
+TextureSource.prototype.onAddedToTextureAtlas = function(x, y) {
     this.inTextureAtlas = true;
     this.textureAtlasX = x;
     this.textureAtlasY = y;
 
     this.components.forEach(function(component) {
-        component.textureSourceIsAddedToTextureAtlas();
+        component.onTextureSourceAddedToTextureAtlas();
     });
 };
 
-TextureSource.prototype.isRemovedFromTextureAtlas = function() {
+TextureSource.prototype.onRemovedFromTextureAtlas = function() {
     this.inTextureAtlas = false;
     this.components.forEach(function(component) {
-        component.textureSourceIsRemovedFromTextureAtlas();
+        component.onTextureSourceRemovedFromTextureAtlas();
     });
+};
+
+TextureSource.prototype.free = function() {
+    this.manager.freeTextureSource(this);
 };
 
 Object.defineProperty(TextureSource.prototype, 'precision', {
@@ -2753,7 +2778,7 @@ TextureAtlas.prototype.removeActiveTextureSource = function(textureSource) {
             this.uploads.splice(uploadsIndex, 1);
 
             // It is not uploaded, so it's not on the texture atlas any more.
-            textureSource.isRemovedFromTextureAtlas();
+            textureSource.onRemovedFromTextureAtlas();
 
             this.addedTextureSources.delete(textureSource);
         }
@@ -2773,7 +2798,7 @@ TextureAtlas.prototype.add = function(textureSource) {
     if (position) {
         this.addedTextureSources.add(textureSource);
 
-        textureSource.isAddedToTextureAtlas(position.x + 1, position.y + 1);
+        textureSource.onAddedToTextureAtlas(position.x + 1, position.y + 1);
 
         this.uploads.push(textureSource);
     } else {
@@ -2807,7 +2832,7 @@ TextureAtlas.prototype.defragment = function() {
     this.defragNeeded = false;
 
     this.addedTextureSources.forEach(function(textureSource) {
-        textureSource.isRemovedFromTextureAtlas();
+        textureSource.onRemovedFromTextureAtlas();
     });
 
     this.addedTextureSources.clear();
@@ -3372,7 +3397,6 @@ Component.prototype.updateActiveFlag = function() {
             var dt = null;
             if (this.texture && this.texture.source.glTexture) {
                 dt = this.texture;
-                this.texture.source.addComponent(this);
                 this.texture.addComponent(this);
             } else if (this.displayedTexture && this.displayedTexture.source.glTexture) {
                 dt = this.displayedTexture;
@@ -3386,12 +3410,10 @@ Component.prototype.updateActiveFlag = function() {
 
             if (this.texture) {
                 // It is important to add the source listener before the texture listener because that may trigger a load.
-                this.texture.source.addComponent(this);
                 this.texture.addComponent(this);
             }
 
             if (this.displayedTexture && this.displayedTexture !== this.texture) {
-                this.displayedTexture.source.addComponent(this);
                 this.displayedTexture.addComponent(this);
             }
         } else {
@@ -3401,13 +3423,11 @@ Component.prototype.updateActiveFlag = function() {
             }
 
             if (this.texture) {
-                this.texture.removeComponent(this);
-                this.texture.source.removeComponent(this);
+                this.texture.removeComponent(this, true);
             }
 
             if (this.displayedTexture) {
-                this.displayedTexture.removeComponent(this);
-                this.displayedTexture.source.removeComponent(this);
+                this.displayedTexture.removeComponent(this, true);
             }
 
             this.active = newActive;
@@ -3666,30 +3686,26 @@ Component.prototype.stag = function(tag, settings) {
     }
 };
 
-Component.prototype.textureSourceIsLoaded = function() {
+Component.prototype.onTextureSourceLoaded = function() {
     // Now we can start showing this texture.
     this.displayedTexture = this.texture;
-
-    if (this._eventsCount) {
-        this.emit('txLoaded', this.texture.source);
-    }
 };
 
-Component.prototype.textureSourceHasLoadError = function(e) {
+Component.prototype.onTextureSourceLoadError = function(e) {
     if (this._eventsCount) {
         this.emit('txError', e, this.texture.source);
     }
 };
 
-Component.prototype.textureSourceIsAddedToTextureAtlas = function() {
+Component.prototype.onTextureSourceAddedToTextureAtlas = function() {
     this._updateTextureCoords();
 };
 
-Component.prototype.textureSourceIsRemovedFromTextureAtlas = function() {
+Component.prototype.onTextureSourceRemovedFromTextureAtlas = function() {
     this._updateTextureCoords();
 };
 
-Component.prototype.displayedTextureClippingChanged = function() {
+Component.prototype.onDisplayedTextureClippingChanged = function() {
     this._renderWidth = this._getRenderWidth();
     this._renderHeight = this._getRenderHeight();
 
@@ -3785,7 +3801,7 @@ Component.prototype.getSettingsObject = function() {
 Component.prototype.getNonDefaults = function() {
     var nonDefaults = {};
 
-    if (this._tags && this._tags.tags.size) {
+    if (this._tags && this._tags.tags && this._tags.tags.size) {
         nonDefaults['tags'] = this.getLocalTags();
     }
 
@@ -4736,20 +4752,14 @@ Object.defineProperty(Component.prototype, 'texture', {
                 this._texture = v;
 
                 if (this.active && prevValue && this.displayedTexture !== prevValue) {
-                    prevValue.removeComponent(this);
-
-                    if (!v || prevValue.source !== v.source) {
-                        if (!this.displayedTexture || (this.displayedTexture.source !== prevValue.source)) {
-                            prevValue.source.removeComponent(this);
-                        }
-                    }
+                    // Keep reference to component for texture source
+                    prevValue.removeComponent(this, (!v || prevValue.source !== v.source) && (!this.displayedTexture || (this.displayedTexture.source !== prevValue.source)));
                 }
 
                 if (v) {
                     if (this.active) {
                         // When the texture is changed, maintain the texture's sprite registry.
                         // While the displayed texture is different from the texture (not yet loaded), two textures are referenced.
-                        v.source.addComponent(this);
                         v.addComponent(this);
                     }
 
@@ -4780,11 +4790,7 @@ Object.defineProperty(Component.prototype, 'displayedTexture', {
 
                     if (prevValue !== this.texture) {
                         // The old displayed texture is deprecated.
-                        prevValue.removeComponent(this);
-                    }
-
-                    if (!v || (prevValue.source !== v.source)) {
-                        prevValue.source.removeComponent(this);
+                        prevValue.removeComponent(this, (!v || (prevValue.source !== v.source)));
                     }
                 }
 
@@ -4798,6 +4804,10 @@ Object.defineProperty(Component.prototype, 'displayedTexture', {
                     this._updateLocalDimensions();
                 }
                 if (v) {
+                    if (this._eventsCount) {
+                        this.emit('txLoaded', v);
+                    }
+
                     // We don't need to reference the displayed texture because it was already referenced (this.texture === this.displayedTexture).
                     this._updateTextureCoords();
                     this.stage.uComponentContext.setDisplayedTextureSource(this.uComponent, v.source);
@@ -5431,10 +5441,17 @@ ComponentText.prototype.updateTexture = function() {
     // Create a dummy texture that loads the actual texture.
     var self = this;
     this.component.texture = this.texture = this.stage.texture(function(cb) {
+        // Create 'real' texture and set it.
         self.updatingTexture = false;
 
-        // Create 'real' texture and set it.
-        return cb(null, self.createTextureSource());
+        // Ignore this texture source load.
+        cb(null, null);
+
+        // Replace with the newly generated texture source.
+        self.texture.replaceTextureSource(self.createTextureSource());
+
+        // Make sure that the new texture source is loaded, not just if active but also if loaded manually using .load()
+        self.texture.load();
     });
 };
 
@@ -5453,13 +5470,15 @@ ComponentText.prototype.createTextureSource = function() {
         tr.settings.h = this.component.h;
     }
 
-    return self.stage.textureManager.getTextureSource(function (cb) {
+    var loadCb = function (cb, ts) {
         // Generate the image.
         var rval = tr.draw();
         var renderInfo = rval.renderInfo;
-
+        //@todo: async in separate process.
         cb(null, rval.canvas, {renderInfo: renderInfo, precision: rval.renderInfo.precision});
-    }, tr.settings.getTextureId());
+    };
+
+    return self.stage.textureManager.getTextureSource(loadCb, tr.settings.getTextureId());
 };
 
 ComponentText.prototype.measure = function() {
