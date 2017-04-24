@@ -106,7 +106,7 @@ TextureProcessClient.prototype.handleResult = function(err, tsId, src, buf, w, h
             console.warn(src + ': ' + err + ' (' + tsId + ')');
             this.send(tsId, 1, new Buffer("" + err, 'utf8'));
         } else {
-            console.log(src + ': ' + buf.byteLength + ' (' + tsId + ')');
+            // console.log(src + ': ' + buf.byteLength + ' (' + tsId + ')');
 
             // Flip blue/red.
             this.flipBlueRed(buf);

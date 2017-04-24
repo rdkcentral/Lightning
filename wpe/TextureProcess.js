@@ -196,6 +196,9 @@ TextureProcess.prototype.receiveMessage = function(data) {
             if (renderInfo) {
                 options.renderInfo = renderInfo;
             }
+            if (tsId == 35) {
+                console.log('=============TEST');
+            }
 
             cb(null, imageData, options);
         } else {

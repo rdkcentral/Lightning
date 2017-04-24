@@ -155,13 +155,22 @@ TextureSource.prototype.becomesVisible = function() {
 TextureSource.prototype.becomesInvisible = function() {
     if (this.isLoading()) {
         if (this.cancelCb) {
-            // Cancel loading.
+            // Allow the callback to cancel loading.
             this.cancelCb(this);
         }
     }
 };
 
 TextureSource.prototype.load = function(sync) {
+    if (this.isLoading() && sync) {
+        // We cancel the previous one.
+        if (this.cancelCb) {
+            // Allow the callback to cancel loading.
+            this.cancelCb(this);
+        }
+        this.loadingSince = 0;
+    }
+
     if (!this.glTexture && !this.isLoading()) {
         var self = this;
         this.loadingSince = (new Date()).getTime();
@@ -170,7 +179,6 @@ TextureSource.prototype.load = function(sync) {
                 // Ignore async load when stage is destroyed.
                 return;
             }
-
             self.loadingSince = 0;
             if (err) {
                 // Emit txError.
