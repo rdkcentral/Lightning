@@ -9,7 +9,7 @@ if (isNode) {
  * Container for a tree structure of components.
  * @constructor
  */
-function Stage(options) {
+function Stage(options, cb) {
     EventEmitter.call(this);
 
     this.adapter = options.adapter;
@@ -119,7 +119,8 @@ function Stage(options) {
     this.measureFrameDistribution = !!options.measureFrameDistribution;
     this.measureInnerFrameDistribution = !!options.measureInnerFrameDistribution;
 
-    this.useTextureProcess = !!options.useTextureProcess;
+    // Currently node-only.
+    this.useTextureProcess = isNode && !!options.useTextureProcess;
     if (this.useTextureProcess) {
         var TextureProcess = require('./TextureProcess');
         this.textureProcess = new TextureProcess();
@@ -151,10 +152,25 @@ function Stage(options) {
     this.innerProfile = new Array(10);
     this.profileLast = 0;
 
-    // Start.
-    this.init();
+    var self = this;
+
+    // Adapter for text rendering for this stage.
+    this.textRendererAdapter = {
+        getDefaultPrecision: function() {
+            return self.defaultPrecision;
+        },
+        getDefaultFontFace: function() {
+            return self.defaultFontFace;
+        },
+        getDrawingCanvas: function() {
+            return self.adapter.getDrawingCanvas();
+        }
+    };
 
     this.destroyed = false;
+
+    // Start.
+    this.init(cb);
 
 }
 
@@ -181,6 +197,10 @@ Stage.prototype.setGlClearColor = function(clearColor) {
 
 Stage.prototype.getCanvas = function() {
     return this.adapter.canvas;
+};
+
+Stage.prototype.getTextRendererAdapter = function() {
+    return this.textRendererAdapter;
 };
 
 Stage.prototype.timeStart = function(name) {
@@ -211,29 +231,14 @@ Stage.prototype.resume = function() {
     this.adapter.startAnimationLoop();
 };
 
-Stage.prototype.init = function() {
+Stage.prototype.init = function(cb) {
     if (this.adapter.init) {
         this.adapter.init();
     }
 
-    if (this.useTextureProcess) {
-        if (isNode) {
-            // Fork new nodejs process.
-            this.textureProcess.fork();
-
-            // Give the child process some time to open the socket to prevent a failure message.
-            var self = this;
-            setTimeout(function() {
-                self.textureProcess.connect();
-            }, 100);
-        } else {
-            // Try connecting to the texture process. In the meantime, load everything on thread.
-            this.textureProcess.connect();
-        }
-    }
+    var self = this;
 
     // Preload rectangle texture, so that we can skip some border checks for loading textures.
-    var self = this;
     var rect = this.getRectangleTexture();
     var src = rect.source;
     src.onload = function() {
@@ -241,6 +246,20 @@ Stage.prototype.init = function() {
         src.permanent = true;
         if (self.useTextureAtlas) {
             self.textureAtlas.add(src);
+        }
+
+        if (self.useTextureProcess) {
+            // Fork new nodejs process.
+            self.textureProcess.fork();
+
+            // Give the child process some time to open the socket to prevent a failure message.
+            setTimeout(function() {
+                self.textureProcess.connect(function() {
+                    if (cb) cb(self);
+                });
+            }, 100);
+        } else {
+            if (cb) cb(self);
         }
     };
     rect.load();

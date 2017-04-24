@@ -64,12 +64,24 @@ TextRendererSettings.prototype.setSetting = function(name, value) {
     }
 };
 
+/**
+ * Returns a stage-independent settings object.
+ * This is used for the texture process.
+ * @param {object} textRendererAdapter
+ */
+TextRendererSettings.prototype.getSettingsObject = function(textRendererAdapter) {
+    var settings = this.getNonDefaults();
+    if (!settings.hasOwnProperty('fontFace')) settings.fontFace = textRendererAdapter.getDefaultFontFace();
+    if (!settings.hasOwnProperty('precision')) settings.precision = textRendererAdapter.getDefaultPrecision();
+    return settings;
+};
+
 TextRendererSettings.prototype.getNonDefaults = function() {
     var nonDefaults = {};
 
     if (this.text !== "") nonDefaults['text'] = this.text;
-    if (this.w !== 0) nonDefaults['w'] = 0;
-    if (this.h !== 0) nonDefaults['h'] = 0;
+    if (this.w !== 0) nonDefaults['w'] = this.w;
+    if (this.h !== 0) nonDefaults['h'] = this.h;
     if (this.fontStyle !== "normal") nonDefaults['fontStyle'] = this.fontStyle;
     if (this.fontSize !== 40) nonDefaults["fontSize"] = this.fontSize;
     if (this.fontFace !== null) nonDefaults["fontFace"] = this.fontFace;

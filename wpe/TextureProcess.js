@@ -36,7 +36,7 @@ TextureProcess.prototype.fork = function() {
     });
 };
 
-TextureProcess.prototype.connect = function() {
+TextureProcess.prototype.connect = function(cb) {
     var net = require('net');
 
     var self = this;
@@ -46,14 +46,23 @@ TextureProcess.prototype.connect = function() {
     this.conn.connect(34264, '127.0.0.1', function() {
         self.connected = true;
         console.log('Connected to texture process!');
+        if (cb) {
+            cb();
+
+            // Errors that happen later on should not trigger the load callback.
+            cb = null;
+        }
     });
 
     this.conn.on('data', function(data) {
         self.receive(data);
     });
 
-    this.conn.on('error', function(data) {
+    this.conn.on('error', function(err) {
         // We need this to prevent the 'unhandled error event' process crash.
+        if (cb) {
+            cb(err);
+        }
     });
 
     this.conn.on('close', function() {
@@ -175,33 +184,59 @@ TextureProcess.prototype.receiveMessage = function(data) {
             // Get RGBA data.
             var w = data.readUInt32LE(12);
             var h = data.readUInt32LE(16);
-            data = data.slice(20);
+            var dl = data.readUInt32LE(20);
+            var imageData = data.slice(24, 24 + dl);
+
+            var renderInfo = null;
+            if (data.length > 24 + dl) {
+                renderInfo = this.parseRenderInfo(data.slice(24 + dl));
+            }
 
             var options = {w: w, h: h, premultiplyAlpha: false, flipBlueRed: false};
-            cb(null, data, options);
+            if (renderInfo) {
+                options.renderInfo = renderInfo;
+            }
+
+            cb(null, imageData, options);
         } else {
-            data = data.slice(12);
+            imageData = data.slice(12);
 
             // Get error message.
-            cb(data.toString('utf8'));
+            cb(imageData.toString('utf8'));
         }
     }
 };
 
-TextureProcess.prototype.send = function(tsId, src) {
+TextureProcess.prototype.parseRenderInfo = function(buf) {
+    var str = null;
+    try {
+        str = buf.toString('utf8');
+        return JSON.parse(str);
+    } catch(e) {
+        console.error('Parse render info: ' + str)
+    }
+    return null;
+};
+
+TextureProcess.prototype.send = function(tsId, type, src) {
     var len = 8;
     var srcBuffer;
     if (src) {
         srcBuffer = Buffer.from(src, 'utf8');
-        len += srcBuffer.length;
+        len += srcBuffer.length + 4;
     }
 
-    var data = new Buffer(8);
-    data.writeUInt32LE(len, 0);
-    data.writeUInt32LE(tsId, 4);
-
+    var data;
     if (src) {
+        data = new Buffer(12);
+        data.writeUInt32LE(len, 0);
+        data.writeUInt32LE(tsId, 4);
+        data.writeUInt32LE(type, 8);
         data = Buffer.concat([data, srcBuffer]);
+    } else {
+        data = new Buffer(8);
+        data.writeUInt32LE(len, 0);
+        data.writeUInt32LE(tsId, 4);
     }
 
     this.conn.write(data);
@@ -217,14 +252,15 @@ TextureProcess.prototype.fail = function(data) {
 
 /**
  * Adds a load request to the queue.
+ * @param {Number} type
  * @param {String} src
  * @param {TextureSource} ts
  * @param {Function} cb
  *   Will be called along with the buffer which contains the actual alpha-premultiplied RGBA data.
  */
-TextureProcess.prototype.add = function(src, ts, cb) {
-    //@todo: send message to process to load it.
-    this.send(ts.id, src);
+TextureProcess.prototype.add = function(type, src, ts, cb) {
+    //@todo: send message to load it.
+    this.send(ts.id, type, src);
     this.queue.set(ts.id, cb);
 };
 

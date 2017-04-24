@@ -58,6 +58,17 @@ WebAdapter.prototype.loadTextureSourceString = function(source, cb) {
     image.src = source;
 };
 
+WebAdapter.prototype.loadText = function(settings, cb) {
+    // Generate the image.
+    var tr = new TextRenderer(this.stage.getTextRendererAdapter(), settings);
+    var rval = tr.draw();
+    var renderInfo = rval.renderInfo;
+
+    var options = {renderInfo: renderInfo, precision: rval.renderInfo.precision};
+    var data = rval.canvas;
+    cb(null, data, options);
+};
+
 WebAdapter.prototype.getHrTime = function() {
     return window.performance ? window.performance.now() : (new Date()).getTime();
 };

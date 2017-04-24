@@ -138,8 +138,8 @@ Texture.prototype.replaceTextureSource = function(newSource) {
     });
 };
 
-Texture.prototype.load = function() {
-    this.source.load();
+Texture.prototype.load = function(sync) {
+    this.source.load((sync !== false));
 };
 
 /**

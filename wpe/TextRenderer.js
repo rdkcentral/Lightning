@@ -4,8 +4,8 @@ if (isNode) {
     var Utils = require('./Utils');
 }
 
-function TextRenderer(stage, settings) {
-    this.stage = stage;
+function TextRenderer(adapter, settings) {
+    this.adapter = adapter;
 
     this.texture = null;
 
@@ -17,11 +17,11 @@ function TextRenderer(stage, settings) {
 }
 
 TextRenderer.prototype.getPrecision = function() {
-    return (this.settings.precision || this.stage.defaultPrecision || 1);
+    return (this.settings.precision || this.adapter.getDefaultPrecision() || 1);
 };
 
 TextRenderer.prototype.setFontProperties = function(withPrecision) {
-    var ff = this.settings.fontFace || this.stage.defaultFontFace;
+    var ff = this.settings.fontFace || this.adapter.getDefaultFontFace();
     var fonts = '"' + (Utils.isArray(ff) ? this.settings.fontFace.join('","') : ff) + '"';
     var precision = (withPrecision ? this.getPrecision() : 1);
     this.context.font = this.settings.fontStyle + " " + (this.settings.fontSize * precision) + "px " + fonts;
@@ -29,7 +29,7 @@ TextRenderer.prototype.setFontProperties = function(withPrecision) {
 };
 
 TextRenderer.prototype.createCanvas = function() {
-    this.canvas = this.stage.adapter.getDrawingCanvas();
+    this.canvas = this.adapter.getDrawingCanvas();
     this.context = this.canvas.getContext('2d');
 };
 

@@ -45,7 +45,8 @@ ComponentText.prototype.updateTexture = function() {
 
     // Create a dummy texture that loads the actual texture.
     var self = this;
-    this.component.texture = this.texture = this.stage.texture(function(cb) {
+
+    this.component.texture = this.texture = this.stage.texture(function(cb, ts, sync) {
         // Create 'real' texture and set it.
         self.updatingTexture = false;
 
@@ -56,44 +57,31 @@ ComponentText.prototype.updateTexture = function() {
         self.texture.replaceTextureSource(self.createTextureSource());
 
         // Make sure that the new texture source is loaded, not just if active but also if loaded manually using .load()
-        self.texture.load();
+        self.texture.load(sync);
     });
 };
 
 ComponentText.prototype.createTextureSource = function() {
-    var tr = new TextRenderer(this.stage, this.settings.clone());
+    var settings = this.settings.clone();
 
     // Inherit width and height from component.
-
     var self = this;
 
-    if (!tr.settings.w && this.component.w) {
-        tr.settings.w = this.component.w;
+    if (!settings.w && this.component.w) {
+        settings.w = this.component.w;
     }
 
-    if (!tr.settings.h && this.component.h) {
-        tr.settings.h = this.component.h;
+    if (!settings.h && this.component.h) {
+        settings.h = this.component.h;
     }
 
-    var loadCb = function (cb, ts) {
-        // Generate the image.
-        var rval = tr.draw();
-        var renderInfo = rval.renderInfo;
-        //@todo: async in separate process.
+    var m = this.stage.textureManager;
 
-        var options = {renderInfo: renderInfo, precision: rval.renderInfo.precision};
-        var data = rval.canvas;
-        if (isNode) {
-            data = rval.canvas.toBuffer('raw');
-            options.w = rval.canvas.width;
-            options.h = rval.canvas.height;
-            options.premultiplyAlpha = false;
-            options.flipBlueRed = true;
-        }
-        cb(null, data, options);
+    var loadCb = function (cb, ts, sync) {
+        m.loadText(settings, ts, sync, cb);
     };
 
-    return self.stage.textureManager.getTextureSource(loadCb, tr.settings.getTextureId());
+    return self.stage.textureManager.getTextureSource(loadCb, settings.getTextureId());
 };
 
 ComponentText.prototype.measure = function() {

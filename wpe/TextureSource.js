@@ -149,7 +149,7 @@ TextureSource.prototype.removeComponent = function(c) {
 };
 
 TextureSource.prototype.becomesVisible = function() {
-    this.load();
+    this.load(false);
 };
 
 TextureSource.prototype.becomesInvisible = function() {
@@ -161,7 +161,7 @@ TextureSource.prototype.becomesInvisible = function() {
     }
 };
 
-TextureSource.prototype.load = function() {
+TextureSource.prototype.load = function(sync) {
     if (!this.glTexture && !this.isLoading()) {
         var self = this;
         this.loadingSince = (new Date()).getTime();
@@ -178,7 +178,7 @@ TextureSource.prototype.load = function() {
             } else if (source) {
                 self.setSource(source, options);
             }
-        }, this);
+        }, this, !!sync);
     }
 };
 

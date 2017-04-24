@@ -2,6 +2,7 @@ var gles2 = require('wpe-webgl');
 var fs = require('fs');
 
 var UComponentContext = require('../wpe/UComponentContext');
+var TextRenderer = require('../wpe/TextRenderer');
 
 var NodeAdapter = function(options) {
     this.animationFunction = function() {};
@@ -103,6 +104,21 @@ NodeAdapter.prototype.parseImage = function(data, cb) {
     cb(null, buf, {w: img.width, h: img.height, premultiplyAlpha: false, flipBlueRed: true});
 };
 
+NodeAdapter.prototype.loadText = function(settings, cb) {
+    // Generate the image.
+    var tr = new TextRenderer(this.stage.getTextRendererAdapter(), settings);
+    var rval = tr.draw();
+    var renderInfo = rval.renderInfo;
+
+    var options = {renderInfo: renderInfo, precision: rval.renderInfo.precision};
+    var data = rval.canvas.toBuffer('raw');
+    options.w = rval.canvas.width;
+    options.h = rval.canvas.height;
+    options.premultiplyAlpha = false;
+    options.flipBlueRed = true;
+    cb(null, data, options);
+};
+
 NodeAdapter.prototype.getHrTime = function() {
     var hrTime = process.hrtime();
     return 1e3 * hrTime[0] + (hrTime[1] / 1e6);
@@ -135,3 +151,4 @@ NodeAdapter.prototype.nextFrame = function(swapBuffers) {
 };
 
 module.exports = NodeAdapter;
+

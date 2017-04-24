@@ -58,12 +58,24 @@ TextureManager.prototype.destroy = function() {
 /**
  * Loads a texture source from a source reference (.src property).
  */
-TextureManager.prototype.loadTextureSourceString = function(src, ts, cb) {
-    if (this.stage.useTextureProcess && this.stage.textureProcess.isConnected()) {
-        this.stage.textureProcess.add(src, ts, cb);
+TextureManager.prototype.loadTextureSourceString = function(src, ts, sync, cb) {
+    if (!sync && this.stage.useTextureProcess && this.stage.textureProcess.isConnected()) {
+        this.stage.textureProcess.add(0, src, ts, cb);
         ts.cancelCb = this.stage.textureProcess.cancel.bind(this.stage.textureProcess);
     } else {
         this.stage.adapter.loadTextureSourceString(src, cb);
+    }
+};
+
+/**
+ * Loads a text from the specified settings.
+ */
+TextureManager.prototype.loadText = function(settings, ts, sync, cb) {
+    if (!sync && this.stage.useTextureProcess && this.stage.textureProcess.isConnected()) {
+        this.stage.textureProcess.add(1, JSON.stringify(settings.getSettingsObject(this.stage.getTextRendererAdapter())), ts, cb);
+        ts.cancelCb = this.stage.textureProcess.cancel.bind(this.stage.textureProcess);
+    } else {
+        this.stage.adapter.loadText(settings, cb);
     }
 };
 
@@ -100,8 +112,8 @@ TextureManager.prototype.getTexture = function(source, options) {
         if (!textureSource) {
             // Create new texture source.
             var self = this;
-            var func = function(cb, ts) {
-                self.loadTextureSourceString(source, ts, cb);
+            var func = function(cb, ts, sync) {
+                self.loadTextureSourceString(source, ts, sync, cb);
             };
             textureSource = this.getTextureSource(func, id);
         }
