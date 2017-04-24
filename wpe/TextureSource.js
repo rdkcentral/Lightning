@@ -190,9 +190,6 @@ TextureSource.prototype.setSource = function(source, options) {
     this.w = source.width || (options && options.w) || 0;
     this.h = source.height || (options && options.h) || 0;
 
-    //@todo: improve by separating apremultiply/bluered settings.
-    this.nodeCanvas = (options && options.nodeCanvas);
-
     if (this.w > 2048 || this.h > 2048) {
         console.error('Texture size too large: ' + source.width + 'x' + source.height + ' (max allowed is 2048x2048)');
         return;
@@ -205,10 +202,23 @@ TextureSource.prototype.setSource = function(source, options) {
         this.renderInfo = options.renderInfo;
     }
 
-    this.manager.uploadTextureSource(this, source);
+    var format = {
+        premultiplyAlpha: true,
+        flipBlueRed: false
+    };
+
+    if (options && options.hasOwnProperty('premultiplyAlpha')) {
+        format.premultiplyAlpha = options.premultiplyAlpha;
+    }
+
+    if (options && options.hasOwnProperty('flipBlueRed')) {
+        format.flipBlueRed = options.flipBlueRed;
+    }
+
+    this.manager.uploadTextureSource(this, source, format);
 
     this.onLoad();
-}
+};
 
 TextureSource.prototype.isVisible = function() {
     return (this.components.size > 0);

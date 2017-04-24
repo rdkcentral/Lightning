@@ -48,7 +48,16 @@ Tools.getRoundRect = function(stage, w, h, radius, strokeWidth, strokeColor, fil
             ctx.stroke();
         }
 
-        cb(null, canvas, {});
+        var options = {};
+        var data = canvas;
+        if (isNode) {
+            data = canvas.toBuffer('raw');
+            options.w = canvas.width;
+            options.h = canvas.height;
+            options.premultiplyAlpha = false;
+            options.flipBlueRed = true;
+        }
+        cb(null, data, options);
     }, {id: id});
 };
 

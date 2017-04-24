@@ -53,20 +53,7 @@ NodeAdapter.prototype.loop = function() {
 };
 
 NodeAdapter.prototype.uploadGlTexture = function(gl, textureSource, source) {
-    if (source.toBuffer /* node-canvas */) {
-        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
-        gl.pixelStorei(gl.UNPACK_FLIP_BLUE_RED, true);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, textureSource.w, textureSource.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, source.toBuffer('raw'));
-    } else {
-        if (textureSource.nodeCanvas) {
-            gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
-            gl.pixelStorei(gl.UNPACK_FLIP_BLUE_RED, true);
-        } else {
-            gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
-            gl.pixelStorei(gl.UNPACK_FLIP_BLUE_RED, false);
-        }
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, textureSource.w, textureSource.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, source);
-    }
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, textureSource.w, textureSource.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, source);
 };
 
 NodeAdapter.prototype.loadTextureSourceString = function(source, cb) {
@@ -112,10 +99,8 @@ NodeAdapter.prototype.parseImage = function(data, cb) {
     var Canvas = require('canvas');
     var img = new Canvas.Image();
     img.src = data;
-    var canvas = new Canvas(img.width, img.height);
-    var ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0, img.width, img.height);
-    cb(null, canvas, {w: img.width, h: img.height})
+    var buf = img.getRawData();
+    cb(null, buf, {w: img.width, h: img.height, premultiplyAlpha: false, flipBlueRed: true});
 };
 
 NodeAdapter.prototype.getHrTime = function() {

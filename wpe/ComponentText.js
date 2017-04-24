@@ -80,7 +80,17 @@ ComponentText.prototype.createTextureSource = function() {
         var rval = tr.draw();
         var renderInfo = rval.renderInfo;
         //@todo: async in separate process.
-        cb(null, rval.canvas, {renderInfo: renderInfo, precision: rval.renderInfo.precision});
+
+        var options = {renderInfo: renderInfo, precision: rval.renderInfo.precision};
+        var data = rval.canvas;
+        if (isNode) {
+            data = rval.canvas.toBuffer('raw');
+            options.w = rval.canvas.width;
+            options.h = rval.canvas.height;
+            options.premultiplyAlpha = false;
+            options.flipBlueRed = true;
+        }
+        cb(null, data, options);
     };
 
     return self.stage.textureManager.getTextureSource(loadCb, tr.settings.getTextureId());

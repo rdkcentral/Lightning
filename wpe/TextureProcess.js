@@ -177,7 +177,7 @@ TextureProcess.prototype.receiveMessage = function(data) {
             var h = data.readUInt32LE(16);
             data = data.slice(20);
 
-            var options = {w: w, h: h, nodeCanvas: true};
+            var options = {w: w, h: h, premultiplyAlpha: false, flipBlueRed: false};
             cb(null, data, options);
         } else {
             data = data.slice(12);

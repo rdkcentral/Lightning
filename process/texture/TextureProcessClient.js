@@ -52,6 +52,15 @@ TextureProcessClient.prototype.handleQueueItem = function(item) {
             self.send(tsId, 1, new Buffer("" + err, 'utf8'));
         } else {
             console.log(src + ': ' + buf.byteLength + ' (' + tsId + ')');
+
+            // Flip blue/red.
+            var r;
+            for (var i = 0, n = buf.byteLength; i < n; i += 4) {
+                r = buf[i];
+                buf[i] = buf[i + 2];
+                buf[i + 2] = r;
+            }
+
             self.send(tsId, 0, buf, w, h);
         }
     });
@@ -132,13 +141,8 @@ TextureProcessClient.prototype.parseImage = function(data, cb) {
     try {
         var img = new Canvas.Image();
         img.src = data;
-        var canvas = new Canvas(img.width, img.height);
-        var ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, img.width, img.height);
-
-        //@todo: premultiply alpha?
-
-        cb(null, canvas.toBuffer('raw'), img.width, img.height);
+        var buf = img.getRawData();
+        cb(null, buf, img.width, img.height);
     } catch(e) {
         cb('image parse error');
     }
