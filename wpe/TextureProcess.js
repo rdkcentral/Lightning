@@ -77,10 +77,10 @@ TextureProcess.prototype.connect = function(cb) {
 };
 
 TextureProcess.prototype.receive = function(data) {
-    console.log('received ' + data.byteLength);
+    console.log('received ' + data.length);
     if (this.partialMessageSizeRemaining > 0) {
         this.partialMessage.chunks.push(data);
-        this.partialMessageSizeRemaining -= data.byteLength;
+        this.partialMessageSizeRemaining -= data.length;
         var cb = this.queue.get(this.partialMessage.tsId);
         if (cb) {
             if (this.partialMessageSizeRemaining < 0) {
@@ -108,22 +108,22 @@ TextureProcess.prototype.receive = function(data) {
                 data = data.slice(20);
 
                 var options = {w: w, h: h, nodeCanvas: true};
-                if (data.byteLength === s) {
+                if (data.length === s) {
                     cb(null, data, options);
                 } else {
                     this.partialMessage = {tsId: tsId, code: code, chunks: [data], options: options};
-                    this.partialMessageSizeRemaining = s - data.byteLength;
+                    this.partialMessageSizeRemaining = s - data.length;
                 }
             } else {
                 s = data.readUInt32LE(8);
                 data = data.slice(12);
 
-                if (data.byteLength === s) {
+                if (data.length === s) {
                     // Get error message.
                     cb(data.toString('utf8'));
                 } else {
                     this.partialMessage = {tsId: tsId, code: code, chunks: [data]};
-                    this.partialMessageSizeRemaining = s - data.byteLength;
+                    this.partialMessageSizeRemaining = s - data.length;
                 }
             }
         }
@@ -134,41 +134,41 @@ TextureProcess.prototype.receive = function(data) {
     var offset, len;
     if (this.dataBufferLength === 0) {
         offset = 0;
-        while(offset < data.byteLength) {
+        while(offset < data.length) {
             len = data.readUInt32LE(offset);
-            if (len + offset <= data.byteLength) {
+            if (len + offset <= data.length) {
                 this.receiveMessage(data.slice(offset, offset + len));
             } else {
                 // Part is remaining.
                 this.dataBuffers.push(data.slice(offset));
-                this.dataBufferLength = (len + offset) - data.byteLength;
+                this.dataBufferLength = (len + offset) - data.length;
             }
             offset += len;
         }
     } else {
         offset = 0;
         len = this.dataBufferLength;
-        if (len + offset <= data.byteLength) {
+        if (len + offset <= data.length) {
             this.dataBuffers.push(data.slice(offset, offset + len));
             this.receiveMessage(Buffer.concat(this.dataBuffers));
             offset += len;
             this.dataBufferLength = 0;
             this.dataBuffers = [];
 
-            while(offset < data.byteLength) {
+            while(offset < data.length) {
                 len = data.readUInt32LE(offset);
-                if (len + offset <= data.byteLength) {
+                if (len + offset <= data.length) {
                     this.receiveMessage(data.slice(offset, offset + len));
                 } else {
                     // Part is remaining.
                     this.dataBuffers.push(data.slice(offset));
-                    this.dataBufferLength = (len + offset) - data.byteLength;
+                    this.dataBufferLength = (len + offset) - data.length;
                 }
                 offset += len;
             }
         } else {
             this.dataBuffers.push(data);
-            this.dataBufferLength -= data.byteLength;
+            this.dataBufferLength -= data.length;
         }
     }
 };
@@ -195,9 +195,6 @@ TextureProcess.prototype.receiveMessage = function(data) {
             var options = {w: w, h: h, premultiplyAlpha: false, flipBlueRed: false};
             if (renderInfo) {
                 options.renderInfo = renderInfo;
-            }
-            if (tsId == 35) {
-                console.log('=============TEST');
             }
 
             cb(null, imageData, options);
