@@ -1,6 +1,4 @@
-var isNode = !!(((typeof module !== "undefined") && module.exports));
-
-//@todo: use websocket for HTML context?
+var MessageReader = require('./MessageReader');
 
 var TextureProcess = function() {
 
@@ -12,8 +10,11 @@ var TextureProcess = function() {
      */
     this.queue = new Map();
 
-    this.dataBuffers = [];
-    this.dataBufferLength = 0;
+    var self = this;
+    this.messageReader = new MessageReader();
+    this.messageReader.on('message', function(message) {
+        self.receiveMessage(message);
+    });
 
 };
 
@@ -55,7 +56,7 @@ TextureProcess.prototype.connect = function(cb) {
     });
 
     this.conn.on('data', function(data) {
-        self.receive(data);
+        self.messageReader.receive(data);
     });
 
     this.conn.on('error', function(err) {
@@ -74,103 +75,6 @@ TextureProcess.prototype.connect = function(cb) {
             self.connect();
         }, 1000);
     });
-};
-
-TextureProcess.prototype.receive = function(data) {
-    console.log('received ' + data.length);
-    if (this.partialMessageSizeRemaining > 0) {
-        this.partialMessage.chunks.push(data);
-        this.partialMessageSizeRemaining -= data.length;
-        var cb = this.queue.get(this.partialMessage.tsId);
-        if (cb) {
-            if (this.partialMessageSizeRemaining < 0) {
-                cb('Bad message size!');
-            } else if (this.partialMessageSizeRemaining === 0) {
-                var data = Buffer.concat(this.partialMessage.chunks);
-                console.log('received');
-                if (this.partialMessage.code === 0) {
-                    cb(null, data, this.partialMessage.options);
-                } else {
-                    cb(data.toString('utf8'));
-                }
-            }
-        }
-    } else {
-        var tsId = data.readUInt32LE(0);
-        var cb = this.queue.get(tsId);
-        if (cb) {
-            var code = data.readUInt32LE(4);
-            if (code === 0) {
-                // Get RGBA data.
-                var w = data.readUInt32LE(8);
-                var h = data.readUInt32LE(12);
-                var s = data.readUInt32LE(16);
-                data = data.slice(20);
-
-                var options = {w: w, h: h, nodeCanvas: true};
-                if (data.length === s) {
-                    cb(null, data, options);
-                } else {
-                    this.partialMessage = {tsId: tsId, code: code, chunks: [data], options: options};
-                    this.partialMessageSizeRemaining = s - data.length;
-                }
-            } else {
-                s = data.readUInt32LE(8);
-                data = data.slice(12);
-
-                if (data.length === s) {
-                    // Get error message.
-                    cb(data.toString('utf8'));
-                } else {
-                    this.partialMessage = {tsId: tsId, code: code, chunks: [data]};
-                    this.partialMessageSizeRemaining = s - data.length;
-                }
-            }
-        }
-    }
-};
-
-TextureProcess.prototype.receive = function(data) {
-    var offset, len;
-    if (this.dataBufferLength === 0) {
-        offset = 0;
-        while(offset < data.length) {
-            len = data.readUInt32LE(offset);
-            if (len + offset <= data.length) {
-                this.receiveMessage(data.slice(offset, offset + len));
-            } else {
-                // Part is remaining.
-                this.dataBuffers.push(data.slice(offset));
-                this.dataBufferLength = (len + offset) - data.length;
-            }
-            offset += len;
-        }
-    } else {
-        offset = 0;
-        len = this.dataBufferLength;
-        if (len + offset <= data.length) {
-            this.dataBuffers.push(data.slice(offset, offset + len));
-            this.receiveMessage(Buffer.concat(this.dataBuffers));
-            offset += len;
-            this.dataBufferLength = 0;
-            this.dataBuffers = [];
-
-            while(offset < data.length) {
-                len = data.readUInt32LE(offset);
-                if (len + offset <= data.length) {
-                    this.receiveMessage(data.slice(offset, offset + len));
-                } else {
-                    // Part is remaining.
-                    this.dataBuffers.push(data.slice(offset));
-                    this.dataBufferLength = (len + offset) - data.length;
-                }
-                offset += len;
-            }
-        } else {
-            this.dataBuffers.push(data);
-            this.dataBufferLength -= data.length;
-        }
-    }
 };
 
 
@@ -196,7 +100,6 @@ TextureProcess.prototype.receiveMessage = function(data) {
             if (renderInfo) {
                 options.renderInfo = renderInfo;
             }
-
             cb(null, imageData, options);
         } else {
             imageData = data.slice(12);

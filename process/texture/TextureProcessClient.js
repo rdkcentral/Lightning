@@ -2,6 +2,8 @@ var fs = require('fs');
 var TextRendererSettings = require('../../wpe/TextRendererSettings');
 var TextRenderer = require('../../wpe/TextRenderer');
 
+var MessageReader = require('../../wpe/MessageReader');
+
 var TextureProcessClient = function(textureProcess, conn) {
     this.textureProcess = textureProcess;
 
@@ -30,12 +32,14 @@ var TextureProcessClient = function(textureProcess, conn) {
     // Callbacks that are called, per texture source id, when that texture source load is canceled.
     this.cancelCbs = new Map();
 
-    this.dataBuffers = [];
-    this.dataBufferLength = 0;
-
     var self = this;
+    this.messageReader = new MessageReader();
+    this.messageReader.on('message', function(message) {
+        self.receiveMessage(message);
+    });
+
     this.conn.on('data', function(data) {
-        self.receive(data);
+        self.messageReader.receive(data);
     });
 
     this.conn.on('close', function() {
@@ -106,7 +110,7 @@ TextureProcessClient.prototype.handleResult = function(err, tsId, src, buf, w, h
             console.warn(src + ': ' + err + ' (' + tsId + ')');
             this.send(tsId, 1, new Buffer("" + err, 'utf8'));
         } else {
-            // console.log(src + ': ' + buf.byteLength + ' (' + tsId + ')');
+            console.log(src + ': ' + buf.length + ' (' + tsId + ')');
 
             // Flip blue/red.
             this.flipBlueRed(buf);
@@ -228,49 +232,6 @@ TextureProcessClient.prototype.parseImage = function(data, cb) {
         cb(null, buf, img.width, img.height);
     } catch(e) {
         cb('image parse error');
-    }
-};
-
-TextureProcessClient.prototype.receive = function(data) {
-    var offset, len;
-    if (this.dataBufferLength === 0) {
-        offset = 0;
-        while(offset < data.byteLength) {
-            len = data.readUInt32LE(offset);
-            if (len + offset <= data.byteLength) {
-                this.receiveMessage(data.slice(offset, offset + len));
-            } else {
-                // Part is remaining.
-                this.dataBuffers.push(data.slice(offset));
-                this.dataBufferLength = (len + offset) - data.byteLength;
-            }
-            offset += len;
-        }
-    } else {
-        offset = 0;
-        len = this.dataBufferLength;
-        if (len + offset <= data.byteLength) {
-            this.dataBuffers.push(data.slice(offset, offset + len));
-            this.receiveMessage(Buffer.concat(this.dataBuffers));
-            offset += len;
-            this.dataBufferLength = 0;
-            this.dataBuffers = [];
-
-            while(offset < data.byteLength) {
-                len = data.readUInt32LE(offset);
-                if (len + offset <= data.byteLength) {
-                    this.receiveMessage(data.slice(offset, offset + len));
-                } else {
-                    // Part is remaining.
-                    this.dataBuffers.push(data.slice(offset));
-                    this.dataBufferLength = (len + offset) - data.byteLength;
-                }
-                offset += len;
-            }
-        } else {
-            this.dataBuffers.push(data);
-            this.dataBufferLength -= data.byteLength;
-        }
     }
 };
 
