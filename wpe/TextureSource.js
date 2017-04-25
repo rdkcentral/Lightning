@@ -246,7 +246,7 @@ TextureSource.prototype.onLoad = function() {
 };
 
 TextureSource.prototype.onError = function(e) {
-    console.error('texture load error', e, this);
+    console.error('texture load error', e, this.id);
     this.components.forEach(function(component) {
         component.onTextureSourceLoadError(e);
     });

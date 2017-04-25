@@ -110,7 +110,7 @@ TextureProcessClient.prototype.handleResult = function(err, tsId, src, buf, w, h
             console.warn(src + ': ' + err + ' (' + tsId + ')');
             this.send(tsId, 1, new Buffer("" + err, 'utf8'));
         } else {
-            console.log(src + ': ' + buf.length + ' (' + tsId + ')');
+            // console.log(src + ': ' + buf.length + ' (' + tsId + ')');
 
             // Flip blue/red.
             this.flipBlueRed(buf);
@@ -139,7 +139,7 @@ TextureProcessClient.prototype.send = function(tsId, code, data, w, h, renderInf
             infoBuf = new Buffer(infoStr, 'utf8');
         }
         out = new Buffer(24 + data.length + (infoBuf ? infoBuf.length : 0));
-        out.writeUInt32LE(out.byteLength, 0);
+        out.writeUInt32LE(out.length, 0);
         out.writeUInt32LE(tsId, 4);
         out.writeUInt32LE(code, 8);
         out.writeUInt32LE(w, 12);
@@ -150,8 +150,8 @@ TextureProcessClient.prototype.send = function(tsId, code, data, w, h, renderInf
             infoBuf.copy(out, 24 + data.length, 0);
         }
     } else {
-        out = new Buffer(20 + data.byteLength);
-        out.writeUInt32LE(out.byteLength, 0);
+        out = new Buffer(12 + data.length);
+        out.writeUInt32LE(out.length, 0);
         out.writeUInt32LE(tsId, 4);
         out.writeUInt32LE(code, 8);
         data.copy(out, 12, 0);
