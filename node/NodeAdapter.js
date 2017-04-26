@@ -150,5 +150,10 @@ NodeAdapter.prototype.nextFrame = function(swapBuffers) {
     gles2.nextFrame(swapBuffers);
 };
 
+NodeAdapter.prototype.getTextureProcess = function() {
+    var TextureProcess = require('./TextureProcess');
+    return new TextureProcess();
+};
+
 module.exports = NodeAdapter;
 

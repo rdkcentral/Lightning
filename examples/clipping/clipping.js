@@ -48,8 +48,7 @@ var a = stage.root.tag('bunny').animation({duration: 3, autostop: true, stopMeth
 a.start();
 
 setTimeout(function() {
-    bunny.src = "/noexist.png";
-    //bunny.src = "https://www.google.nl/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png";
+    bunny.src = "https://www.google.nl/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png";
 
     setTimeout(function() {
         //bunny.visible = false;

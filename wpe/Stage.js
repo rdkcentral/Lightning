@@ -120,10 +120,9 @@ function Stage(options, cb) {
     this.measureInnerFrameDistribution = !!options.measureInnerFrameDistribution;
 
     // Currently node-only.
-    this.useTextureProcess = isNode && !!options.useTextureProcess;
+    this.useTextureProcess = !!options.useTextureProcess && !!this.adapter.getTextureProcess;
     if (this.useTextureProcess) {
-        var TextureProcess = require('./TextureProcess');
-        this.textureProcess = new TextureProcess();
+        this.textureProcess = this.adapter.getTextureProcess();
     }
 
     // Measurement stuff.
@@ -249,15 +248,9 @@ Stage.prototype.init = function(cb) {
         }
 
         if (self.useTextureProcess) {
-            // Fork new nodejs process.
-            self.textureProcess.fork();
-
-            // Give the child process some time to open the socket to prevent a failure message.
-            setTimeout(function() {
-                self.textureProcess.connect(function() {
-                    if (cb) cb(self);
-                });
-            }, 100);
+            self.textureProcess.init(function() {
+                if (cb) cb(self);
+            });
         } else {
             if (cb) cb(self);
         }

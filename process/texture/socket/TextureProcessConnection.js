@@ -1,10 +1,10 @@
 var fs = require('fs');
-var TextRendererSettings = require('../../wpe/TextRendererSettings');
-var TextRenderer = require('../../wpe/TextRenderer');
+var TextRendererSettings = require('../../../wpe/TextRendererSettings');
+var TextRenderer = require('../../../wpe/TextRenderer');
 
-var MessageReader = require('../../wpe/MessageReader');
+var MessageReader = require('./MessageReader');
 
-var TextureProcessClient = function(textureProcess, conn) {
+var TextureProcessConnection = function(textureProcess, conn) {
     this.textureProcess = textureProcess;
 
     console.log('Connection created with ' + conn.remoteAddress);
@@ -33,6 +33,8 @@ var TextureProcessClient = function(textureProcess, conn) {
     this.cancelCbs = new Map();
 
     var self = this;
+
+    // Normal socket.
     this.messageReader = new MessageReader();
     this.messageReader.on('message', function(message) {
         self.receiveMessage(message);
@@ -54,7 +56,7 @@ var TextureProcessClient = function(textureProcess, conn) {
 /**
  * Flushes the queue.
  */
-TextureProcessClient.prototype.flush = function() {
+TextureProcessConnection.prototype.flush = function() {
     if (this.queue.length) {
         // Handle next.
         while(this.queue.length) {
@@ -63,7 +65,7 @@ TextureProcessClient.prototype.flush = function() {
     }
 };
 
-TextureProcessClient.prototype.handleQueueItem = function(item) {
+TextureProcessConnection.prototype.handleQueueItem = function(item) {
     var tsId = item.id;
     var type = item.type;
     var src = item.src;
@@ -88,7 +90,7 @@ TextureProcessClient.prototype.handleQueueItem = function(item) {
     }
 };
 
-TextureProcessClient.prototype.parseSettings = function(src) {
+TextureProcessConnection.prototype.parseSettings = function(src) {
     var trs = null;
     try {
         var settings = JSON.parse(src);
@@ -101,7 +103,7 @@ TextureProcessClient.prototype.parseSettings = function(src) {
 };
 
 
-TextureProcessClient.prototype.handleResult = function(err, tsId, src, buf, w, h, renderInfo) {
+TextureProcessConnection.prototype.handleResult = function(err, tsId, src, buf, w, h, renderInfo) {
     if (this.running.has(tsId)) {
         this.running.delete(tsId);
         this.cancelCbs.delete(tsId);
@@ -120,7 +122,7 @@ TextureProcessClient.prototype.handleResult = function(err, tsId, src, buf, w, h
     }
 };
 
-TextureProcessClient.prototype.flipBlueRed = function(buf) {
+TextureProcessConnection.prototype.flipBlueRed = function(buf) {
     var r;
     for (var i = 0, n = buf.length; i < n; i += 4) {
         r = buf[i];
@@ -129,7 +131,7 @@ TextureProcessClient.prototype.flipBlueRed = function(buf) {
     }
 };
 
-TextureProcessClient.prototype.send = function(tsId, code, data, w, h, renderInfo) {
+TextureProcessConnection.prototype.send = function(tsId, code, data, w, h, renderInfo) {
     var out;
 
     if (code === 0) {
@@ -160,7 +162,7 @@ TextureProcessClient.prototype.send = function(tsId, code, data, w, h, renderInf
     this.conn.write(out);
 };
 
-TextureProcessClient.prototype.loadTextureSourceString = function(tsId, source, cb) {
+TextureProcessConnection.prototype.loadTextureSourceString = function(tsId, source, cb) {
     var self = this;
     if (/^https?:\/\//i.test(source)) {
         // URL. Download first.
@@ -213,7 +215,7 @@ TextureProcessClient.prototype.loadTextureSourceString = function(tsId, source, 
     }
 };
 
-TextureProcessClient.prototype.loadText = function(tsId, settings, cb) {
+TextureProcessConnection.prototype.loadText = function(tsId, settings, cb) {
     // Generate the image.
     var tr = new TextRenderer(this.textRendererAdapter, settings);
     var rval = tr.draw();
@@ -223,7 +225,7 @@ TextureProcessClient.prototype.loadText = function(tsId, settings, cb) {
     cb(null, data, rval.canvas.width, rval.canvas.height, renderInfo);
 };
 
-TextureProcessClient.prototype.parseImage = function(data, cb) {
+TextureProcessConnection.prototype.parseImage = function(data, cb) {
     var Canvas = require('canvas');
     try {
         var img = new Canvas.Image();
@@ -235,7 +237,7 @@ TextureProcessClient.prototype.parseImage = function(data, cb) {
     }
 };
 
-TextureProcessClient.prototype.receiveMessage = function(data) {
+TextureProcessConnection.prototype.receiveMessage = function(data) {
     var len = data.readUInt32LE(0);
     var tsId = data.readUInt32LE(4);
     if (len === 8) {
@@ -249,7 +251,7 @@ TextureProcessClient.prototype.receiveMessage = function(data) {
     }
 };
 
-TextureProcessClient.prototype.cancel = function(tsId) {
+TextureProcessConnection.prototype.cancel = function(tsId) {
     // Cancel.
     this.queue = this.queue.filter(function(e) {
         if (e.id === tsId) {
@@ -271,4 +273,4 @@ TextureProcessClient.prototype.cancel = function(tsId) {
     }
 };
 
-module.exports = TextureProcessClient;
+module.exports = TextureProcessConnection;

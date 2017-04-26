@@ -1,4 +1,4 @@
-var MessageReader = require('./MessageReader');
+var MessageReader = require('../process/texture/socket/MessageReader');
 
 var TextureProcess = function() {
 
@@ -15,6 +15,20 @@ var TextureProcess = function() {
     this.messageReader.on('message', function(message) {
         self.receiveMessage(message);
     });
+
+};
+
+TextureProcess.prototype.init = function(cb) {
+    // Fork new nodejs process.
+    this.fork();
+
+    // Give the child process some time to open the socket to prevent a failure message.
+    var self = this;
+    setTimeout(function() {
+        self.connect(function() {
+            if (cb) cb(self);
+        });
+    }, 100);
 
 };
 

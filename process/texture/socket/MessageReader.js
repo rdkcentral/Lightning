@@ -1,4 +1,4 @@
-var Utils = require('./Utils');
+var Utils = require('../../../wpe/Utils');
 var EventEmitter = require('events');
 
 var MessageReader = function() {
@@ -16,6 +16,7 @@ MessageReader.prototype.receive = function(data) {
     if (this.dataBufferLength === 0) {
         offset = 0;
         while(offset < data.length) {
+            //@todo: deal with less than 4 bytes available (can't yet read uint32).
             len = data.readUInt32LE(offset);
             if (len + offset <= data.length) {
                 this.receiveMessage(data.slice(offset, offset + len));
@@ -37,6 +38,7 @@ MessageReader.prototype.receive = function(data) {
             this.dataBuffers = [];
 
             while(offset < data.length) {
+                //@todo: deal with less than 4 bytes available (can't yet read uint32).
                 len = data.readUInt32LE(offset);
                 if (len + offset <= data.length) {
                     this.receiveMessage(data.slice(offset, offset + len));

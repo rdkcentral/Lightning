@@ -1,5 +1,6 @@
 var net = require('net');
-var TextureProcessClient = require('./TextureProcessClient');
+var TextureProcessConnection = require('./TextureProcessConnection');
+var WebSocketServer = require('websocket').server;
 
 var TextureProcess = function(config) {
     this.config = config;
@@ -7,8 +8,10 @@ var TextureProcess = function(config) {
 
 TextureProcess.prototype.start = function() {
     var self = this;
-    var server = net.createServer(function(socket) {
-        var client = new TextureProcessClient(self, socket);
+    var server;
+
+    server = net.createServer(function(socket) {
+        new TextureProcessConnection(self, socket);
     });
 
     if (this.config.listen.path) {
@@ -17,6 +20,10 @@ TextureProcess.prototype.start = function() {
         console.log('listening on TCP socket: ' + this.config.listen.host + ':' + this.config.listen.port);
     }
     server.listen(this.config.listen);
+};
+
+TextureProcess.prototype.isWebsocketServer = function() {
+    return this.config.websocket;
 };
 
 module.exports = TextureProcess;
