@@ -1,3 +1,4 @@
+
 var args = process.argv.slice(2);
 var realArgs = [], argOptions = {};
 args.forEach(function(arg) {
@@ -29,15 +30,9 @@ if (argOptions['path']) {
     config.listen.port = '34264';
 }
 
-config.websocket = !!argOptions['websocket'];
-
 config.allowLocal = !!argOptions['allow-local'];
 
-if (argOptions['websocket']) {
-    var TextureProcess = require('./websocket/TextureProcess');
-} else {
-    var TextureProcess = require('./socket/TextureProcess');
-}
+var TextureProcess = require('./socket/TextureProcess');
 
 var ts = new TextureProcess(config);
 ts.start();

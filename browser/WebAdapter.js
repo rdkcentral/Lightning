@@ -117,3 +117,7 @@ WebAdapter.prototype.nextFrame = function(swapBuffers) {
     /* WebGL blits automatically */
 };
 
+// WebAdapter.prototype.getTextureProcess = function() {
+//     var TextureProcess = require('./TextureProcess');
+//     return new TextureProcess();
+// };

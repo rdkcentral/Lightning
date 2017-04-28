@@ -241,17 +241,22 @@ Stage.prototype.init = function(cb) {
     var rect = this.getRectangleTexture();
     var src = rect.source;
     src.onload = function() {
-        self.adapter.startAnimationLoop(function() {self.drawFrame();});
         src.permanent = true;
         if (self.useTextureAtlas) {
             self.textureAtlas.add(src);
         }
 
         if (self.useTextureProcess) {
-            self.textureProcess.init(function() {
+            self.textureProcess.init(function(err) {
+                if (err) {
+                    console.warn('Error connecting to texture process. Textures will be loaded on the main thread.');
+                }
+
+                self.adapter.startAnimationLoop(function() {self.drawFrame();});
                 if (cb) cb(self);
             });
         } else {
+            self.adapter.startAnimationLoop(function() {self.drawFrame();});
             if (cb) cb(self);
         }
     };

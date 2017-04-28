@@ -1,6 +1,6 @@
 var fs = require('fs');
-var TextRendererSettings = require('../../../wpe/TextRendererSettings');
-var TextRenderer = require('../../../wpe/TextRenderer');
+var TextRendererSettings = require('../../../../wpe/TextRendererSettings');
+var TextRenderer = require('../../../../wpe/TextRenderer');
 
 var MessageReader = require('./MessageReader');
 
@@ -245,7 +245,7 @@ TextureProcessConnection.prototype.receiveMessage = function(data) {
     } else {
         var type = data.readUInt32LE(8);
         var src = data.slice(12).toString('utf8');
-//        console.log('+ ' + src + " (" + tsId + ")");
+        // console.log('+ ' + src + " (" + tsId + ")");
         this.queue.push({id: tsId, type: type, src: src});
         this.flush();
     }

@@ -1,4 +1,4 @@
-var MessageReader = require('../process/texture/socket/MessageReader');
+var MessageReader = require('./process/texture/socket/MessageReader');
 
 var TextureProcess = function() {
 
@@ -6,7 +6,7 @@ var TextureProcess = function() {
 
     /**
      * Queued texture source loads, along with their load callbacks.
-     * @type {Map<String, Function>}
+     * @type {Map<String, {cb: Function, ts: TextureSource}>}
      */
     this.queue = new Map();
 
@@ -19,16 +19,37 @@ var TextureProcess = function() {
 };
 
 TextureProcess.prototype.init = function(cb) {
-    // Fork new nodejs process.
-    this.fork();
-
-    // Give the child process some time to open the socket to prevent a failure message.
+    var forked = false;
     var self = this;
-    setTimeout(function() {
-        self.connect(function() {
-            if (cb) cb(self);
-        });
-    }, 100);
+
+    // First, try reusing an existing process.
+    this.connect(function(err) {
+        if (err && !forked) {
+            // If it does not exist, try to fork a new process.
+            self.fork();
+            forked = true;
+
+            var attempts = 0;
+            var check = function() {
+                var done = false;
+                attempts++;
+                if (self.connected) {
+                    done = true;
+                    cb();
+                } else if (attempts > 40) {
+                    done = true;
+                    return cb(new Error("Can't connect to texture process."));
+                }
+
+                if (!done) {
+                    setTimeout(check, 50);
+                }
+            };
+            check();
+        } else {
+            cb();
+        }
+    });
 
 };
 
@@ -36,18 +57,16 @@ TextureProcess.prototype.fork = function() {
     console.log('Starting texture process (for image/text generation).');
 
     var self = this;
-    this.textureProcess = require('child_process').fork(__dirname + "/../process/texture/texture", ['--allow-local=1'], {execArgv: []});
+    this.textureProcess = require('child_process').fork(__dirname + "/process/texture/texture", ['--allow-local=1'], {execArgv: []});
     this.textureProcess.on('error', function(err) {
         console.error('Error while spawning texture process', err);
     });
     this.textureProcess.on('exit', function() {
-        self.fail();
-
-        console.error('Texture process exited unexpectedly');
+        console.error('Texture process exited unexpectedly! Try re-forking it in 5s.');
         setTimeout(function() {
             // Re-start the process.
             self.fork();
-        }, 2000);
+        }, 5000);
     });
 };
 
@@ -81,10 +100,15 @@ TextureProcess.prototype.connect = function(cb) {
     });
 
     this.conn.on('close', function() {
-        self.fail();
+        if (self.connected) {
+            console.error('Connection to texture process lost');
 
-        self.connected = false;
-        console.error('Connection to texture process lost');
+            // Clear connected flag, so that texture loads are (temporarily) done on the main thread.
+            self.connected = false;
+        }
+
+        self.flushQueueOnMain();
+
         setTimeout(function() {
             self.connect();
         }, 1000);
@@ -95,8 +119,9 @@ TextureProcess.prototype.connect = function(cb) {
 TextureProcess.prototype.receiveMessage = function(data) {
     var s = data.readUInt32LE(0);
     var tsId = data.readUInt32LE(4);
-    var cb = this.queue.get(tsId);
-    if (cb) {
+    var info = this.queue.get(tsId);
+    if (info) {
+        this.queue.delete(tsId);
         var code = data.readUInt32LE(8);
         if (code === 0) {
             // Get RGBA data.
@@ -114,12 +139,12 @@ TextureProcess.prototype.receiveMessage = function(data) {
             if (renderInfo) {
                 options.renderInfo = renderInfo;
             }
-            cb(null, imageData, options);
+            info.cb(null, imageData, options);
         } else {
             imageData = data.slice(12);
 
             // Get error message.
-            cb(imageData.toString('utf8'));
+            info.cb(imageData.toString('utf8'));
         }
     }
 };
@@ -163,8 +188,15 @@ TextureProcess.prototype.isConnected = function() {
     return this.connected;
 };
 
-TextureProcess.prototype.fail = function(data) {
-    //@todo: load all queued sources in the main thread (fallback).
+TextureProcess.prototype.flushQueueOnMain = function() {
+    if (this.queue.size) {
+        console.log('Texture process failure: load all ' + this.queue.size + ' pending requests on the main thread');
+
+        this.queue.forEach(function(info) {
+            // Load sync. This leads to an automatic cancel/deletion from the main queue.
+            info.ts.load(true);
+        });
+    }
 };
 
 /**
@@ -176,9 +208,8 @@ TextureProcess.prototype.fail = function(data) {
  *   Will be called along with the buffer which contains the actual alpha-premultiplied RGBA data.
  */
 TextureProcess.prototype.add = function(type, src, ts, cb) {
-    //@todo: send message to load it.
     this.send(ts.id, type, src);
-    this.queue.set(ts.id, cb);
+    this.queue.set(ts.id, {type: type, ts: ts, cb: cb});
 };
 
 /**
@@ -187,12 +218,12 @@ TextureProcess.prototype.add = function(type, src, ts, cb) {
  */
 TextureProcess.prototype.cancel = function(ts) {
     this.send(ts.id);
-    var cb = this.queue.get(ts.id);
-    if (cb) {
+    var info = this.queue.get(ts.id);
+    if (info && info.cb) {
         // Cancel loading.
-        cb(null, null);
+        info.cb(null, null);
+        this.queue.delete(ts.id);
     }
-    this.queue.delete(ts.id);
 };
 
 module.exports = TextureProcess;
