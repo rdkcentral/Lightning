@@ -116,26 +116,26 @@ Texture.prototype.replaceTextureSource = function(newSource) {
 
     var self = this;
 
-    // Make sure that all components and component links are updated properly.
-    components.forEach(function(component) {
-        if (component.texture === self) {
-            component.texture = null;
-        } else if (component.displayedTexture === self) {
-            component.displayedTexture = null;
-        }
-    });
-
     this.source = newSource;
 
+    // Make sure that all components and component links are updated properly.
+    var oldSource = this.source;
     components.forEach(function(component) {
-        if (component.texture === null) {
-            component.texture = self;
-        } else {
-            if (newSource.glTexture) {
-                component.displayedTexture = self;
-            }
+        // Remove links from previous source, but only if there is no reason for it any more.
+        var keep = (components.displayedTexture && components.displayedTexture !== self && components.displayedTexture.source === oldSource);
+        keep = keep || (components.texture && components.texture !== self && components.texture.source === oldSource);
+
+        if (!keep) {
+            oldSource.removeComponent(component);
+        }
+
+        newSource.addComponent(component);
+
+        if (newSource.glTexture) {
+            component.displayedTexture = self;
         }
     });
+
 };
 
 Texture.prototype.load = function(sync) {
