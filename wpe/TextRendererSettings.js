@@ -43,6 +43,9 @@ var TextRendererSettings = function() {
     this.cutSy = this._cutSy = 0;
     this.cutEy = this._cutEy = 0;
 
+    // If true, then texture loads are performed on the main thread (blocking the next frame until fully loaded).
+    this.sync = this._sync = false;
+
     // Flag that indicates if any property has changed.
     this.hasUpdates = false;
 };
@@ -124,6 +127,17 @@ TextRendererSettings.prototype.getNonDefaults = function() {
     if (this.cutSy) nonDefaults["cutSy"] = this.cutSy;
     if (this.cutEy) nonDefaults["cutEy"] = this.cutEy;
 
+    if (this.sync) nonDefaults["sync"] = this.sync;
+
+    return nonDefaults;
+};
+
+TextRendererSettings.prototype.getRenderNonDefaults = function() {
+    var nonDefaults = this.getNonDefaults();
+
+    // Remove properties that are not important for rendering.
+    delete nonDefaults['sync'];
+
     return nonDefaults;
 };
 
@@ -163,6 +177,8 @@ TextRendererSettings.prototype.getTextureId = function() {
     if (this.cutEx) parts.push("cex" + this.cutEx);
     if (this.cutSy) parts.push("csy" + this.cutSy);
     if (this.cutEy) parts.push("cey" + this.cutEy);
+
+    if (this.sync) parts.push("sync");
 
     var id = "TX$" + parts.join("|") + ":" + this.text;
     return id;
@@ -607,6 +623,18 @@ Object.defineProperty(TextRendererSettings.prototype, 'cutEy', {
     }
 });
 
+Object.defineProperty(TextRendererSettings.prototype, 'sync', {
+    get: function () {
+        return this._sync;
+    },
+    set: function(v) {
+        var pv = this._sync;
+        if (pv !== v) {
+            this._sync = v;
+        }
+    }
+});
+
 TextRendererSettings.SETTINGS = {
     'text': {s: function(obj, v) {obj.text = v;}, m: null},
     'w': {s: function(obj, v) {obj.w = v;}, m: null},
@@ -642,7 +670,8 @@ TextRendererSettings.SETTINGS = {
     'cutSx': {s: function(obj, v) {obj.cutSx = v;}, m: null},
     'cutEx': {s: function(obj, v) {obj.cutEx = v;}, m: null},
     'cutSy': {s: function(obj, v) {obj.cutSy = v;}, m: null},
-    'cutEy': {s: function(obj, v) {obj.cutEy = v;}, m: null}
+    'cutEy': {s: function(obj, v) {obj.cutEy = v;}, m: null},
+    'sync': {s: function(obj, v) {obj.sync = v;}, m: null}
 };
 
 if (isNode) {

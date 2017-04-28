@@ -60,10 +60,10 @@ ComponentText.prototype.updateTexture = function() {
         // Inherit texture precision from text settings.
         self.texture.precision = settings.precision;
 
-        self.texture.replaceTextureSource(source);
+        // Make sure that the new texture source is loaded.
+        source.load(sync || settings.sync);
 
-        // Make sure that the new texture source is loaded, not just if active but also if loaded manually using .load()
-        self.texture.load(sync);
+        self.texture.replaceTextureSource(source);
     });
 };
 

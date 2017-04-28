@@ -3,7 +3,7 @@ if (isNode) {
     var Stage = require('../../wpe');
 }
 
-var options = {w: 600, h: 600, glClearColor: 0xFF000000, useTextureProcess: true, defaultPrecision: 2};
+var options = {w: 600, h: 600, glClearColor: 0xFF000000, useTextureProcess: true, defaultPrecision: 1};
 if (isNode) {
     options.window = {title: "Usage example", fullscreen: false};
 }
@@ -18,7 +18,7 @@ var start = function(stage) {
     stage.root.add([
         {tag: 'bg', rect: true, x: 20, y: 20, w: 560, h: 560, colorTop: 0xFFFF0000, colorBottom: 0xFFFF6666, children: [
             {tag: 'box', rect: true, w: 400, x: 150, y: 50, h: 100, color: 0xAAFF00FF, borderWidth: 1, borderColor: 0xFF000000, children: [
-                {tag: 'hello', text: {text: "hello world", fontSize: 50}, x: 10, y: 20}
+                {tag: 'hello', text: {text: "hello world", fontSize: 50, sync: true}, x: 10, y: 20}
             ]}
         ]}
     ]);
@@ -36,6 +36,7 @@ var start = function(stage) {
 
     t.on('finish', function() {
         stage.root.tag('box').x = Math.random() * 1000 - 500;
+        stage.root.tag('hello').text += "."
     });
 };
 

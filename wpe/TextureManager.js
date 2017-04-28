@@ -72,7 +72,7 @@ TextureManager.prototype.loadTextureSourceString = function(src, ts, sync, cb) {
  */
 TextureManager.prototype.loadText = function(settings, ts, sync, cb) {
     if (!sync && this.stage.useTextureProcess && this.stage.textureProcess.isConnected()) {
-        this.stage.textureProcess.add(1, JSON.stringify(settings.getNonDefaults()), ts, cb);
+        this.stage.textureProcess.add(1, JSON.stringify(settings.getRenderNonDefaults()), ts, cb);
         ts.cancelCb = this.stage.textureProcess.cancel.bind(this.stage.textureProcess);
     } else {
         this.stage.adapter.loadText(settings, cb);
