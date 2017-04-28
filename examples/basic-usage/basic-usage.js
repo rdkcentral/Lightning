@@ -3,7 +3,7 @@ if (isNode) {
     var Stage = require('../../wpe');
 }
 
-var options = {w: 600, h: 600, glClearColor: 0xFF000000, useTextureProcess: true};
+var options = {w: 600, h: 600, glClearColor: 0xFF000000, useTextureProcess: true, defaultPrecision: 2};
 if (isNode) {
     options.window = {title: "Usage example", fullscreen: false};
 }

@@ -65,15 +65,25 @@ TextRendererSettings.prototype.setSetting = function(name, value) {
 };
 
 /**
- * Returns a stage-independent settings object.
- * This is used for the texture process.
- * @param {object} textRendererAdapter
+ * Finalize this settings object so that it is no longer dependent on possibly changing defaults.
  */
-TextRendererSettings.prototype.getSettingsObject = function(textRendererAdapter) {
-    var settings = this.getNonDefaults();
-    if (!settings.hasOwnProperty('fontFace')) settings.fontFace = textRendererAdapter.getDefaultFontFace();
-    if (!settings.hasOwnProperty('precision')) settings.precision = textRendererAdapter.getDefaultPrecision();
-    return settings;
+TextRendererSettings.prototype.finalize = function(component) {
+    // Inherit width and height from component.
+    if (!this.w && component.w) {
+        this.w = component.w;
+    }
+
+    if (!this.h && component.h) {
+        this.h = component.h;
+    }
+
+    if (this.fontFace === null) {
+        this.fontFace = component.stage.defaultFontFace;
+    }
+
+    if (this.precision === null) {
+        this.precision = component.stage.defaultPrecision;
+    }
 };
 
 TextRendererSettings.prototype.getNonDefaults = function() {

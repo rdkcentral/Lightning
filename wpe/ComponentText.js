@@ -54,27 +54,27 @@ ComponentText.prototype.updateTexture = function() {
         cb(null, null);
 
         // Replace with the newly generated texture source.
-        self.texture.replaceTextureSource(self.createTextureSource());
+        var settings = self.getFinalizedSettings();
+        var source = self.createTextureSource(settings);
+
+        // Inherit texture precision from text settings.
+        self.texture.precision = settings.precision;
+
+        self.texture.replaceTextureSource(source);
 
         // Make sure that the new texture source is loaded, not just if active but also if loaded manually using .load()
         self.texture.load(sync);
     });
 };
 
-ComponentText.prototype.createTextureSource = function() {
+ComponentText.prototype.getFinalizedSettings = function() {
     var settings = this.settings.clone();
+    settings.finalize(this.component);
+    return settings;
+};
 
-    // Inherit width and height from component.
+ComponentText.prototype.createTextureSource = function(settings) {
     var self = this;
-
-    if (!settings.w && this.component.w) {
-        settings.w = this.component.w;
-    }
-
-    if (!settings.h && this.component.h) {
-        settings.h = this.component.h;
-    }
-
     var m = this.stage.textureManager;
 
     var loadCb = function (cb, ts, sync) {
@@ -85,7 +85,7 @@ ComponentText.prototype.createTextureSource = function() {
 };
 
 ComponentText.prototype.measure = function() {
-    var tr = new TextRenderer(this.stage, this.settings.clone());
+    var tr = new TextRenderer(this.stage.drawingCanvasFactory, this.settings.clone());
 
     if (!tr.settings.w && this.component.w) {
         tr.settings.w = this.component.w;

@@ -68,11 +68,11 @@ TextureManager.prototype.loadTextureSourceString = function(src, ts, sync, cb) {
 };
 
 /**
- * Loads a text from the specified settings.
+ * Loads a text from the finalized text settings.
  */
 TextureManager.prototype.loadText = function(settings, ts, sync, cb) {
     if (!sync && this.stage.useTextureProcess && this.stage.textureProcess.isConnected()) {
-        this.stage.textureProcess.add(1, JSON.stringify(settings.getSettingsObject(this.stage.getTextRendererAdapter())), ts, cb);
+        this.stage.textureProcess.add(1, JSON.stringify(settings.getNonDefaults()), ts, cb);
         ts.cancelCb = this.stage.textureProcess.cancel.bind(this.stage.textureProcess);
     } else {
         this.stage.adapter.loadText(settings, cb);
@@ -92,16 +92,13 @@ TextureManager.prototype.loadText = function(settings, ts, sync, cb) {
  *     Clipping offset w.
  *   - h: number
  *     Clipping offset h.
+ *   - precision: number
+ *     Render precision (0.5 = fuzzy, 1 = normal, 2 = sharp even when scaled twice, etc.).
  *
  * @returns {Texture}
  */
 TextureManager.prototype.getTexture = function(source, options) {
     var id = options && options.id || null;
-
-    var x = options && options.x || 0;
-    var y = options && options.y || 0;
-    var w = options && options.w || 0;
-    var h = options && options.h || 0;
 
     var texture, textureSource;
     if (Utils.isString(source)) {
@@ -117,15 +114,6 @@ TextureManager.prototype.getTexture = function(source, options) {
             };
             textureSource = this.getTextureSource(func, id);
         }
-
-        // Create new texture object.
-        texture = new Texture(this, textureSource);
-        texture.x = x;
-        texture.y = y;
-        texture.w = w;
-        texture.h = h;
-        texture.clipping = !!(x || y || w || h);
-        return texture;
     } else {
         // Check if texture source is already known.
         textureSource = id ? this.textureSourceHashmap.get(id) : null;
@@ -141,17 +129,17 @@ TextureManager.prototype.getTexture = function(source, options) {
                 }
             }
         }
-
-        // Create new texture object.
-        texture = new Texture(this, textureSource);
-        texture.x = x;
-        texture.y = y;
-        texture.w = w;
-        texture.h = h;
-        texture.clipping = !!(x || y || w || h);
-
-        return texture;
     }
+
+    // Create new texture object.
+    texture = new Texture(this, textureSource);
+    texture.x = options && options.x || 0;
+    texture.y = options && options.y || 0;
+    texture.w = options && options.w || 0;
+    texture.h = options && options.h || 0;
+    texture.clipping = !!(texture.x || texture.y || texture.w || texture.h);
+    texture.precision = options && options.precision || 1;
+    return texture;
 };
 
 TextureManager.prototype.getTextureSource = function(func, id) {

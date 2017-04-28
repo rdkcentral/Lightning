@@ -14,9 +14,9 @@ TextureProcess.prototype.start = function() {
     });
 
     if (this.config.listen.path) {
-        console.log('listening on Unix socket: ' + this.config.path);
+        console.log('Texture process listening on Unix socket: ' + this.config.path);
     } else {
-        console.log('listening on TCP socket: ' + this.config.listen.host + ':' + this.config.listen.port);
+        console.log('Texture process listening on TCP socket: ' + this.config.listen.host + ':' + this.config.listen.port);
     }
     server.listen(this.config.listen);
 };

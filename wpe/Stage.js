@@ -49,7 +49,7 @@ function Stage(options, cb) {
     }
 
     this.defaultFontFace = (options && options.defaultFontFace) || "Arial";
-    
+
     this.defaultPrecision = (options && options.defaultPrecision) || (this.h / this.renderHeight);
 
     this.fixedDt = (options && options.fixedDt) || 0;
@@ -154,16 +154,8 @@ function Stage(options, cb) {
     var self = this;
 
     // Adapter for text rendering for this stage.
-    this.textRendererAdapter = {
-        getDefaultPrecision: function() {
-            return self.defaultPrecision;
-        },
-        getDefaultFontFace: function() {
-            return self.defaultFontFace;
-        },
-        getDrawingCanvas: function() {
-            return self.adapter.getDrawingCanvas();
-        }
+    this.drawingCanvasFactory = function() {
+        return self.adapter.getDrawingCanvas();
     };
 
     this.destroyed = false;
@@ -420,6 +412,8 @@ Stage.prototype.performUpdates = function() {
  *     Clipping offset w.
  *   - h: number
  *     Clipping offset h.
+ *   - precision: number
+ *     Render precision (0.5 = fuzzy, 1 = normal, 2 = sharp even when scaled twice, etc.).
  * @returns {Texture}
  */
 Stage.prototype.texture = function(source, options) {

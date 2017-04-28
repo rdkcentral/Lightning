@@ -48,6 +48,13 @@ function Texture(manager, source) {
     this._h = 0;
 
     /**
+     * Render precision (0.5 = fuzzy, 1 = normal, 2 = sharp even when scaled twice, etc.).
+     * @type {number}
+     * @private
+     */
+    this._precision = 1;
+
+    /**
      * Indicates if this texture uses clipping.
      * @type {boolean}
      */
@@ -111,6 +118,16 @@ Texture.prototype.updateClipping = function(overrule) {
     });
 };
 
+Texture.prototype.updatePrecision = function() {
+    var self = this;
+    this.components.forEach(function(component) {
+        // Ignore if not the currently displayed texture.
+        if (component.displayedTexture === self) {
+            component.onPrecisionChanged();
+        }
+    });
+};
+
 Texture.prototype.replaceTextureSource = function(newSource) {
     var components = new Set(this.components);
 
@@ -169,9 +186,10 @@ Texture.prototype.setSetting = function(name, value) {
 Texture.prototype.getNonDefaults = function() {
     var nonDefaults = {};
     if (this.x !== 0) nonDefaults['x'] = this.x;
-    if (this.y !== 0) nonDefaults['y'] = this.x;
-    if (this.w !== 0) nonDefaults['w'] = this.x;
-    if (this.h !== 0) nonDefaults['h'] = this.x;
+    if (this.y !== 0) nonDefaults['y'] = this.y;
+    if (this.w !== 0) nonDefaults['w'] = this.w;
+    if (this.h !== 0) nonDefaults['h'] = this.h;
+    if (this.precision !== 1) nonDefaults['precision'] = this.precision;
     return nonDefaults;
 };
 
@@ -227,11 +245,25 @@ Object.defineProperty(Texture.prototype, 'h', {
     }
 });
 
+Object.defineProperty(Texture.prototype, 'precision', {
+    get: function() {
+        return this._precision;
+    },
+    set: function(v) {
+        if (this._precision !== v) {
+            this._precision = v;
+
+            this.updatePrecision();
+        }
+    }
+});
+
 Texture.SETTINGS = {
     'x': {s: function(obj, value) {obj.x = value}, m: StageUtils.mergeNumbers},
     'y': {s: function(obj, value) {obj.y = value}, m: StageUtils.mergeNumbers},
     'w': {s: function(obj, value) {obj.w = value}, m: StageUtils.mergeNumbers},
-    'h': {s: function(obj, value) {obj.h = value}, m: StageUtils.mergeNumbers}
+    'h': {s: function(obj, value) {obj.h = value}, m: StageUtils.mergeNumbers},
+    'precision': {s: function(obj, value) {obj.precision = value}, m: StageUtils.mergeNumbers}
 };
 
 Texture.id = 0;

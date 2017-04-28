@@ -586,9 +586,9 @@ Component.prototype._getRenderWidth = function() {
         return this._w;
     } else if (this.texture && this.texture.source.glTexture) {
         // Texture already loaded, but not yet updated (probably because it's not active).
-        return (this.texture.w || (this.texture.source.w * this.texture.source.iprecision));
+        return (this.texture.w || (this.texture.source.w / this.texture.precision));
     } else if (this.displayedTexture) {
-        return (this.displayedTexture.w || (this.displayedTexture.source.w * this.displayedTexture.source.iprecision));
+        return (this.displayedTexture.w || (this.displayedTexture.source.w / this.displayedTexture.precision));
     } else {
         return 0;
     }
@@ -607,9 +607,9 @@ Component.prototype._getRenderHeight = function() {
         return this._h;
     } else if (this.texture && this.texture.source.glTexture) {
         // Texture already loaded, but not yet updated (probably because it's not active).
-        return (this.texture.h || this.texture.source.h) * this.texture.source.iprecision;
+        return (this.texture.h || this.texture.source.h) / this.texture.precision;
     } else if (this.displayedTexture) {
-        return (this.displayedTexture.h || this.displayedTexture.source.h) * this.displayedTexture.source.iprecision;
+        return (this.displayedTexture.h || this.displayedTexture.source.h) / this.displayedTexture.precision;
     } else {
         return 0;
     }
@@ -737,6 +737,13 @@ Component.prototype.onDisplayedTextureClippingChanged = function() {
 
     this._updateLocalDimensions();
     this._updateTextureCoords();
+};
+
+Component.prototype.onPrecisionChanged = function() {
+    this._renderWidth = this._getRenderWidth();
+    this._renderHeight = this._getRenderHeight();
+
+    this._updateLocalDimensions();
 };
 
 Component.prototype.set = function(obj) {

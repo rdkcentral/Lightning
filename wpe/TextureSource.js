@@ -65,18 +65,6 @@ var TextureSource = function(manager, loadCb) {
     this.w = 0;
     this.h = 0;
 
-    /**
-     * Precision (resolution, 1 = normal, 2 = twice as big as should be shown).
-     * @type {number}
-     */
-    this._precision = 1;
-
-    /**
-     * 1 / precision.
-     * @type {number}
-     */
-    this.iprecision = 1;
-
     // The WebGL loaded texture.
     this.glTexture = null;
 
@@ -104,11 +92,11 @@ var TextureSource = function(manager, loadCb) {
 };
 
 TextureSource.prototype.getRenderWidth = function() {
-    return this.w / this.precision;
+    return this.w
 };
 
 TextureSource.prototype.getRenderHeight = function() {
-    return this.h / this.precision;
+    return this.h;
 };
 
 TextureSource.prototype.addComponent = function(c) {
@@ -203,8 +191,6 @@ TextureSource.prototype.setSource = function(source, options) {
         return;
     }
 
-    this.precision = (options && options.precision) || 1;
-
     if (options && options.renderInfo) {
         // Assign to id in cache so that it can be reused.
         this.renderInfo = options.renderInfo;
@@ -272,16 +258,6 @@ TextureSource.prototype.onRemovedFromTextureAtlas = function() {
 TextureSource.prototype.free = function() {
     this.manager.freeTextureSource(this);
 };
-
-Object.defineProperty(TextureSource.prototype, 'precision', {
-    get: function() {
-        return this._precision;
-    },
-    set: function(v) {
-        this._precision = v;
-        this.iprecision = 1 / v;
-    }
-});
 
 TextureSource.id = 0;
 

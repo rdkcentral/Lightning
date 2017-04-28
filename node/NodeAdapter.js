@@ -106,11 +106,11 @@ NodeAdapter.prototype.parseImage = function(data, cb) {
 
 NodeAdapter.prototype.loadText = function(settings, cb) {
     // Generate the image.
-    var tr = new TextRenderer(this.stage.getTextRendererAdapter(), settings);
+    var tr = new TextRenderer(this.stage.drawingCanvasFactory, settings);
     var rval = tr.draw();
     var renderInfo = rval.renderInfo;
 
-    var options = {renderInfo: renderInfo, precision: rval.renderInfo.precision};
+    var options = {renderInfo: renderInfo};
     var data = rval.canvas.toBuffer('raw');
     options.w = rval.canvas.width;
     options.h = rval.canvas.height;

@@ -13,17 +13,9 @@ var TextureProcessConnection = function(textureProcess, conn) {
     this.queue = [];
 
     // Adapter for text rendering for this stage.
-    this.textRendererAdapter = {
-        getDefaultPrecision: function() {
-            return 1;
-        },
-        getDefaultFontFace: function() {
-            return 'Arial';
-        },
-        getDrawingCanvas: function() {
-            var Canvas = require('canvas');
-            return new Canvas(0, 0);
-        }
+    this.drawingCanvasFactory = function() {
+        var Canvas = require('canvas');
+        return new Canvas(0, 0);
     };
 
     // The running texture source loads (texture source ids).
@@ -217,7 +209,7 @@ TextureProcessConnection.prototype.loadTextureSourceString = function(tsId, sour
 
 TextureProcessConnection.prototype.loadText = function(tsId, settings, cb) {
     // Generate the image.
-    var tr = new TextRenderer(this.textRendererAdapter, settings);
+    var tr = new TextRenderer(this.drawingCanvasFactory, settings);
     var rval = tr.draw();
     var renderInfo = rval.renderInfo;
 

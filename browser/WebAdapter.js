@@ -60,7 +60,7 @@ WebAdapter.prototype.loadTextureSourceString = function(source, cb) {
 
 WebAdapter.prototype.loadText = function(settings, cb) {
     // Generate the image.
-    var tr = new TextRenderer(this.stage.getTextRendererAdapter(), settings);
+    var tr = new TextRenderer(this.stage.drawingCanvasFactory, settings);
     var rval = tr.draw();
     var renderInfo = rval.renderInfo;
 

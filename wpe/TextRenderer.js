@@ -4,8 +4,8 @@ if (isNode) {
     var Utils = require('./Utils');
 }
 
-function TextRenderer(adapter, settings) {
-    this.adapter = adapter;
+function TextRenderer(drawingCanvasFactory, settings) {
+    this.drawingCanvasFactory = drawingCanvasFactory;
 
     this.texture = null;
 
@@ -17,11 +17,11 @@ function TextRenderer(adapter, settings) {
 }
 
 TextRenderer.prototype.getPrecision = function() {
-    return (this.settings.precision || this.adapter.getDefaultPrecision() || 1);
+    return this.settings.precision;
 };
 
 TextRenderer.prototype.setFontProperties = function(withPrecision) {
-    var ff = this.settings.fontFace || this.adapter.getDefaultFontFace();
+    var ff = this.settings.fontFace;
     var fonts = '"' + (Utils.isArray(ff) ? this.settings.fontFace.join('","') : ff) + '"';
     var precision = (withPrecision ? this.getPrecision() : 1);
     this.context.font = this.settings.fontStyle + " " + (this.settings.fontSize * precision) + "px " + fonts;
@@ -29,7 +29,7 @@ TextRenderer.prototype.setFontProperties = function(withPrecision) {
 };
 
 TextRenderer.prototype.createCanvas = function() {
-    this.canvas = this.adapter.getDrawingCanvas();
+    this.canvas = this.drawingCanvasFactory();
     this.context = this.canvas.getContext('2d');
 };
 
