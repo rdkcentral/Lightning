@@ -669,7 +669,7 @@ Component.prototype.getLocationString = function() {
     if (this.parent) {
         i = this.parent._children.indexOf(this);
         if (i >= 0) {
-            var localTags = this.getLocalTags();
+            var localTags = this.getTags();
             return this.parent.getLocationString() + ":" + i + "[" + this.id + "]" + (localTags.length ? "(" + localTags.join(",") + ")" : "");
         }
     }
@@ -834,8 +834,8 @@ Component.prototype.getSettingsObject = function() {
 Component.prototype.getNonDefaults = function() {
     var nonDefaults = {};
 
-    if (this._tags && this._tags.tags && this._tags.tags.size) {
-        nonDefaults['tags'] = this.getLocalTags();
+    if (this._tags && this._tags.tags) {
+        nonDefaults['tags'] = this.getTags();
     }
 
     if (this.x !== 0) nonDefaults['x'] = this.x;
@@ -1280,6 +1280,12 @@ Object.defineProperty(Component.prototype, 'ALPHA', {
         } else if (v < 0) {
             v = 0;
         }
+
+        if (v < 1e-14 && v > -1e-14) {
+            // Tiny rounding errors may cause failing visibility tests.
+            v = 0;
+        }
+
         var pv = this._alpha;
         if (pv !== v) {
             this._alpha = v;

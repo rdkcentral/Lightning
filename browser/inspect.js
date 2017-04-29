@@ -661,7 +661,7 @@ Object.defineProperty(Component.prototype, '_src', {
     },
     set: function(v) {
         if (v !== this.__src) {
-            var nv = v ? v.src : null;
+            var nv = v ? v : null;
             this.__src = v;
 
             val(this, 'src', nv, null);

@@ -224,6 +224,12 @@ UComponent.prototype.addLocalTranslate = function(x, y) {
 
 UComponent.prototype.setLocalAlpha = function(a) {
     this.setRecalcForced(1, (this.parent && this.parent.worldAlpha) && a);
+
+    if (a < 1e-14 && a > -1e-14) {
+        // Tiny rounding errors may cause failing visibility tests.
+        a = 0;
+    }
+
     this.localAlpha = a;
 };
 
@@ -334,13 +340,20 @@ UComponent.prototype.setZParent = function(newZParent) {
         }
 
         if (newZParent !== null) {
+            var hadZContextUsage = (newZParent.zContextUsage > 0);
+
             // @pre: new parent's children array has already been modified.
             if (this.zIndex !== 0) {
                 newZParent.incZContextUsage();
             }
 
             if (newZParent.zContextUsage > 0) {
-                newZParent.zIndexedChildren.push(this);
+                if (!hadZContextUsage && (this.parent === newZParent)) {
+                    // This child was already in the children list.
+                    // Do not add double.
+                } else {
+                    newZParent.zIndexedChildren.push(this);
+                }
                 newZParent.zSort = true;
             }
         }
@@ -602,15 +615,20 @@ UComponent.prototype.updateHasBorders = function() {
 UComponent.prototype.update = function() {
     this.recalc |= this.parent.recalc;
 
-    var forceUpdate = false;
+    if (this.zSort) {
+        // Make sure that all descendants are updated so that the updateTreeOrder flags are correctly set.
+        this.ctx.updateTreeOrderForceUpdate++;
+    }
+
+    var forceUpdate = (this.ctx.updateTreeOrderForceUpdate > 0);
     if (this.recalc & 1) {
         // If case of becoming invisible, we must update the children because they may be z-indexed.
         forceUpdate = this.worldAlpha && !(this.parent.worldAlpha && this.localAlpha);
+
         this.worldAlpha = this.parent.worldAlpha * this.localAlpha;
 
         if (this.worldAlpha < 1e-14 && this.worldAlpha > -1e-14) {
-            // Due to rounding errors, the worldAlpha sometimes does not go to exactly 0. Correct this case
-            // because a lot of things are dependent on the worldAlpha being 0 or not.
+            // Tiny rounding errors may cause failing visibility tests.
             this.worldAlpha = 0;
         }
     }
@@ -776,7 +794,7 @@ UComponent.prototype.update = function() {
 
         if (this.hasChildren) {
             for (var i = 0, n = this.children.length; i < n; i++) {
-                if (this.recalc || this.children[i].hasUpdates) {
+                if ((this.ctx.updateTreeOrderForceUpdate > 0) || this.recalc || this.children[i].hasUpdates) {
                     this.children[i].update();
                 } else if (!this.ctx.useZIndexing) {
                     this.children[i].fillVbo();
@@ -786,6 +804,11 @@ UComponent.prototype.update = function() {
 
         this.recalc = 0;
     }
+
+    if (this.zSort) {
+        this.ctx.updateTreeOrderForceUpdate--;
+    }
+
 };
 
 UComponent.prototype.sortZIndexedChildren = function() {
@@ -1044,7 +1067,10 @@ UComponent.prototype.fillVbo = function() {
                 }
             } else {
                 for (var i = 0, n = this.children.length; i < n; i++) {
-                    this.children[i].fillVbo();
+                    if (this.children[i].zIndex === 0) {
+                        // If zIndex is set, this item already belongs to a zIndexedChildren array in one of the ancestors.
+                        this.children[i].fillVbo();
+                    }
                 }
             }
         }

@@ -517,7 +517,7 @@ function Stage(options, cb) {
     }
 
     this.defaultFontFace = (options && options.defaultFontFace) || "Arial";
-    
+
     this.defaultPrecision = (options && options.defaultPrecision) || (this.h / this.renderHeight);
 
     this.fixedDt = (options && options.fixedDt) || 0;
@@ -588,10 +588,9 @@ function Stage(options, cb) {
     this.measureInnerFrameDistribution = !!options.measureInnerFrameDistribution;
 
     // Currently node-only.
-    this.useTextureProcess = isNode && !!options.useTextureProcess;
+    this.useTextureProcess = !!options.useTextureProcess && !!this.adapter.getTextureProcess;
     if (this.useTextureProcess) {
-        var TextureProcess = require('./TextureProcess');
-        this.textureProcess = new TextureProcess();
+        this.textureProcess = this.adapter.getTextureProcess();
     }
 
     // Measurement stuff.
@@ -623,16 +622,8 @@ function Stage(options, cb) {
     var self = this;
 
     // Adapter for text rendering for this stage.
-    this.textRendererAdapter = {
-        getDefaultPrecision: function() {
-            return self.defaultPrecision;
-        },
-        getDefaultFontFace: function() {
-            return self.defaultFontFace;
-        },
-        getDrawingCanvas: function() {
-            return self.adapter.getDrawingCanvas();
-        }
+    this.drawingCanvasFactory = function() {
+        return self.adapter.getDrawingCanvas();
     };
 
     this.destroyed = false;
@@ -710,23 +701,22 @@ Stage.prototype.init = function(cb) {
     var rect = this.getRectangleTexture();
     var src = rect.source;
     src.onload = function() {
-        self.adapter.startAnimationLoop(function() {self.drawFrame();});
         src.permanent = true;
         if (self.useTextureAtlas) {
             self.textureAtlas.add(src);
         }
 
         if (self.useTextureProcess) {
-            // Fork new nodejs process.
-            self.textureProcess.fork();
+            self.textureProcess.init(function(err) {
+                if (err) {
+                    console.warn('Error connecting to texture process. Textures will be loaded on the main thread.');
+                }
 
-            // Give the child process some time to open the socket to prevent a failure message.
-            setTimeout(function() {
-                self.textureProcess.connect(function() {
-                    if (cb) cb(self);
-                });
-            }, 100);
+                self.adapter.startAnimationLoop(function() {self.drawFrame();});
+                if (cb) cb(self);
+            });
         } else {
+            self.adapter.startAnimationLoop(function() {self.drawFrame();});
             if (cb) cb(self);
         }
     };
@@ -890,6 +880,8 @@ Stage.prototype.performUpdates = function() {
  *     Clipping offset w.
  *   - h: number
  *     Clipping offset h.
+ *   - precision: number
+ *     Render precision (0.5 = fuzzy, 1 = normal, 2 = sharp even when scaled twice, etc.).
  * @returns {Texture}
  */
 Stage.prototype.texture = function(source, options) {
@@ -1638,11 +1630,11 @@ TextureManager.prototype.loadTextureSourceString = function(src, ts, sync, cb) {
 };
 
 /**
- * Loads a text from the specified settings.
+ * Loads a text from the finalized text settings.
  */
 TextureManager.prototype.loadText = function(settings, ts, sync, cb) {
     if (!sync && this.stage.useTextureProcess && this.stage.textureProcess.isConnected()) {
-        this.stage.textureProcess.add(1, JSON.stringify(settings.getSettingsObject(this.stage.getTextRendererAdapter())), ts, cb);
+        this.stage.textureProcess.add(1, JSON.stringify(settings.getRenderNonDefaults()), ts, cb);
         ts.cancelCb = this.stage.textureProcess.cancel.bind(this.stage.textureProcess);
     } else {
         this.stage.adapter.loadText(settings, cb);
@@ -1662,16 +1654,13 @@ TextureManager.prototype.loadText = function(settings, ts, sync, cb) {
  *     Clipping offset w.
  *   - h: number
  *     Clipping offset h.
+ *   - precision: number
+ *     Render precision (0.5 = fuzzy, 1 = normal, 2 = sharp even when scaled twice, etc.).
  *
  * @returns {Texture}
  */
 TextureManager.prototype.getTexture = function(source, options) {
     var id = options && options.id || null;
-
-    var x = options && options.x || 0;
-    var y = options && options.y || 0;
-    var w = options && options.w || 0;
-    var h = options && options.h || 0;
 
     var texture, textureSource;
     if (Utils.isString(source)) {
@@ -1687,15 +1676,6 @@ TextureManager.prototype.getTexture = function(source, options) {
             };
             textureSource = this.getTextureSource(func, id);
         }
-
-        // Create new texture object.
-        texture = new Texture(this, textureSource);
-        texture.x = x;
-        texture.y = y;
-        texture.w = w;
-        texture.h = h;
-        texture.clipping = !!(x || y || w || h);
-        return texture;
     } else {
         // Check if texture source is already known.
         textureSource = id ? this.textureSourceHashmap.get(id) : null;
@@ -1711,17 +1691,17 @@ TextureManager.prototype.getTexture = function(source, options) {
                 }
             }
         }
-
-        // Create new texture object.
-        texture = new Texture(this, textureSource);
-        texture.x = x;
-        texture.y = y;
-        texture.w = w;
-        texture.h = h;
-        texture.clipping = !!(x || y || w || h);
-
-        return texture;
     }
+
+    // Create new texture object.
+    texture = new Texture(this, textureSource);
+    texture.x = options && options.x || 0;
+    texture.y = options && options.y || 0;
+    texture.w = options && options.w || 0;
+    texture.h = options && options.h || 0;
+    texture.clipping = !!(texture.x || texture.y || texture.w || texture.h);
+    texture.precision = options && options.precision || 1;
+    return texture;
 };
 
 TextureManager.prototype.getTextureSource = function(func, id) {
@@ -1876,6 +1856,13 @@ function Texture(manager, source) {
     this._h = 0;
 
     /**
+     * Render precision (0.5 = fuzzy, 1 = normal, 2 = sharp even when scaled twice, etc.).
+     * @type {number}
+     * @private
+     */
+    this._precision = 1;
+
+    /**
      * Indicates if this texture uses clipping.
      * @type {boolean}
      */
@@ -1939,31 +1926,41 @@ Texture.prototype.updateClipping = function(overrule) {
     });
 };
 
+Texture.prototype.updatePrecision = function() {
+    var self = this;
+    this.components.forEach(function(component) {
+        // Ignore if not the currently displayed texture.
+        if (component.displayedTexture === self) {
+            component.onPrecisionChanged();
+        }
+    });
+};
+
 Texture.prototype.replaceTextureSource = function(newSource) {
     var components = new Set(this.components);
 
     var self = this;
 
-    // Make sure that all components and component links are updated properly.
-    components.forEach(function(component) {
-        if (component.texture === self) {
-            component.texture = null;
-        } else if (component.displayedTexture === self) {
-            component.displayedTexture = null;
-        }
-    });
-
     this.source = newSource;
 
+    // Make sure that all components and component links are updated properly.
+    var oldSource = this.source;
     components.forEach(function(component) {
-        if (component.texture === null) {
-            component.texture = self;
-        } else {
-            if (newSource.glTexture) {
-                component.displayedTexture = self;
-            }
+        // Remove links from previous source, but only if there is no reason for it any more.
+        var keep = (components.displayedTexture && components.displayedTexture !== self && components.displayedTexture.source === oldSource);
+        keep = keep || (components.texture && components.texture !== self && components.texture.source === oldSource);
+
+        if (!keep) {
+            oldSource.removeComponent(component);
+        }
+
+        newSource.addComponent(component);
+
+        if (newSource.glTexture) {
+            component.displayedTexture = self;
         }
     });
+
 };
 
 Texture.prototype.load = function(sync) {
@@ -1997,9 +1994,10 @@ Texture.prototype.setSetting = function(name, value) {
 Texture.prototype.getNonDefaults = function() {
     var nonDefaults = {};
     if (this.x !== 0) nonDefaults['x'] = this.x;
-    if (this.y !== 0) nonDefaults['y'] = this.x;
-    if (this.w !== 0) nonDefaults['w'] = this.x;
-    if (this.h !== 0) nonDefaults['h'] = this.x;
+    if (this.y !== 0) nonDefaults['y'] = this.y;
+    if (this.w !== 0) nonDefaults['w'] = this.w;
+    if (this.h !== 0) nonDefaults['h'] = this.h;
+    if (this.precision !== 1) nonDefaults['precision'] = this.precision;
     return nonDefaults;
 };
 
@@ -2055,11 +2053,25 @@ Object.defineProperty(Texture.prototype, 'h', {
     }
 });
 
+Object.defineProperty(Texture.prototype, 'precision', {
+    get: function() {
+        return this._precision;
+    },
+    set: function(v) {
+        if (this._precision !== v) {
+            this._precision = v;
+
+            this.updatePrecision();
+        }
+    }
+});
+
 Texture.SETTINGS = {
     'x': {s: function(obj, value) {obj.x = value}, m: StageUtils.mergeNumbers},
     'y': {s: function(obj, value) {obj.y = value}, m: StageUtils.mergeNumbers},
     'w': {s: function(obj, value) {obj.w = value}, m: StageUtils.mergeNumbers},
-    'h': {s: function(obj, value) {obj.h = value}, m: StageUtils.mergeNumbers}
+    'h': {s: function(obj, value) {obj.h = value}, m: StageUtils.mergeNumbers},
+    'precision': {s: function(obj, value) {obj.precision = value}, m: StageUtils.mergeNumbers}
 };
 
 Texture.id = 0;
@@ -2126,18 +2138,6 @@ var TextureSource = function(manager, loadCb) {
     this.w = 0;
     this.h = 0;
 
-    /**
-     * Precision (resolution, 1 = normal, 2 = twice as big as should be shown).
-     * @type {number}
-     */
-    this._precision = 1;
-
-    /**
-     * 1 / precision.
-     * @type {number}
-     */
-    this.iprecision = 1;
-
     // The WebGL loaded texture.
     this.glTexture = null;
 
@@ -2165,11 +2165,11 @@ var TextureSource = function(manager, loadCb) {
 };
 
 TextureSource.prototype.getRenderWidth = function() {
-    return this.w / this.precision;
+    return this.w
 };
 
 TextureSource.prototype.getRenderHeight = function() {
-    return this.h / this.precision;
+    return this.h;
 };
 
 TextureSource.prototype.addComponent = function(c) {
@@ -2264,8 +2264,6 @@ TextureSource.prototype.setSource = function(source, options) {
         return;
     }
 
-    this.precision = (options && options.precision) || 1;
-
     if (options && options.renderInfo) {
         // Assign to id in cache so that it can be reused.
         this.renderInfo = options.renderInfo;
@@ -2333,16 +2331,6 @@ TextureSource.prototype.onRemovedFromTextureAtlas = function() {
 TextureSource.prototype.free = function() {
     this.manager.freeTextureSource(this);
 };
-
-Object.defineProperty(TextureSource.prototype, 'precision', {
-    get: function() {
-        return this._precision;
-    },
-    set: function(v) {
-        this._precision = v;
-        this.iprecision = 1 / v;
-    }
-});
 
 TextureSource.id = 0;
 
@@ -3631,9 +3619,9 @@ Component.prototype._getRenderWidth = function() {
         return this._w;
     } else if (this.texture && this.texture.source.glTexture) {
         // Texture already loaded, but not yet updated (probably because it's not active).
-        return (this.texture.w || (this.texture.source.w * this.texture.source.iprecision));
+        return (this.texture.w || (this.texture.source.w / this.texture.precision));
     } else if (this.displayedTexture) {
-        return (this.displayedTexture.w || (this.displayedTexture.source.w * this.displayedTexture.source.iprecision));
+        return (this.displayedTexture.w || (this.displayedTexture.source.w / this.displayedTexture.precision));
     } else {
         return 0;
     }
@@ -3652,9 +3640,9 @@ Component.prototype._getRenderHeight = function() {
         return this._h;
     } else if (this.texture && this.texture.source.glTexture) {
         // Texture already loaded, but not yet updated (probably because it's not active).
-        return (this.texture.h || this.texture.source.h) * this.texture.source.iprecision;
+        return (this.texture.h || this.texture.source.h) / this.texture.precision;
     } else if (this.displayedTexture) {
-        return (this.displayedTexture.h || this.displayedTexture.source.h) * this.displayedTexture.source.iprecision;
+        return (this.displayedTexture.h || this.displayedTexture.source.h) / this.displayedTexture.precision;
     } else {
         return 0;
     }
@@ -3714,7 +3702,7 @@ Component.prototype.getLocationString = function() {
     if (this.parent) {
         i = this.parent._children.indexOf(this);
         if (i >= 0) {
-            var localTags = this.getLocalTags();
+            var localTags = this.getTags();
             return this.parent.getLocationString() + ":" + i + "[" + this.id + "]" + (localTags.length ? "(" + localTags.join(",") + ")" : "");
         }
     }
@@ -3782,6 +3770,13 @@ Component.prototype.onDisplayedTextureClippingChanged = function() {
 
     this._updateLocalDimensions();
     this._updateTextureCoords();
+};
+
+Component.prototype.onPrecisionChanged = function() {
+    this._renderWidth = this._getRenderWidth();
+    this._renderHeight = this._getRenderHeight();
+
+    this._updateLocalDimensions();
 };
 
 Component.prototype.set = function(obj) {
@@ -3872,8 +3867,8 @@ Component.prototype.getSettingsObject = function() {
 Component.prototype.getNonDefaults = function() {
     var nonDefaults = {};
 
-    if (this._tags && this._tags.tags && this._tags.tags.size) {
-        nonDefaults['tags'] = this.getLocalTags();
+    if (this._tags && this._tags.tags) {
+        nonDefaults['tags'] = this.getTags();
     }
 
     if (this.x !== 0) nonDefaults['x'] = this.x;
@@ -4318,6 +4313,12 @@ Object.defineProperty(Component.prototype, 'ALPHA', {
         } else if (v < 0) {
             v = 0;
         }
+
+        if (v < 1e-14 && v > -1e-14) {
+            // Tiny rounding errors may cause failing visibility tests.
+            v = 0;
+        }
+
         var pv = this._alpha;
         if (pv !== v) {
             this._alpha = v;
@@ -5333,7 +5334,7 @@ ComponentTags.prototype.setParent = function(parent) {
 
 ComponentTags.prototype.getLocalTags = function() {
     // We clone it to make sure it's not changed externally.
-    return this.tags;
+    return this.tags ? this.tags : [];
 };
 
 ComponentTags.prototype.setTags = function(tags) {
@@ -5526,27 +5527,27 @@ ComponentText.prototype.updateTexture = function() {
         cb(null, null);
 
         // Replace with the newly generated texture source.
-        self.texture.replaceTextureSource(self.createTextureSource());
+        var settings = self.getFinalizedSettings();
+        var source = self.createTextureSource(settings);
 
-        // Make sure that the new texture source is loaded, not just if active but also if loaded manually using .load()
-        self.texture.load(sync);
+        // Inherit texture precision from text settings.
+        self.texture.precision = settings.precision;
+
+        // Make sure that the new texture source is loaded.
+        source.load(sync || settings.sync);
+
+        self.texture.replaceTextureSource(source);
     });
 };
 
-ComponentText.prototype.createTextureSource = function() {
+ComponentText.prototype.getFinalizedSettings = function() {
     var settings = this.settings.clone();
+    settings.finalize(this.component);
+    return settings;
+};
 
-    // Inherit width and height from component.
+ComponentText.prototype.createTextureSource = function(settings) {
     var self = this;
-
-    if (!settings.w && this.component.w) {
-        settings.w = this.component.w;
-    }
-
-    if (!settings.h && this.component.h) {
-        settings.h = this.component.h;
-    }
-
     var m = this.stage.textureManager;
 
     var loadCb = function (cb, ts, sync) {
@@ -5557,7 +5558,7 @@ ComponentText.prototype.createTextureSource = function() {
 };
 
 ComponentText.prototype.measure = function() {
-    var tr = new TextRenderer(this.stage, this.settings.clone());
+    var tr = new TextRenderer(this.stage.drawingCanvasFactory, this.settings.clone());
 
     if (!tr.settings.w && this.component.w) {
         tr.settings.w = this.component.w;
@@ -5914,8 +5915,8 @@ Object.defineProperty(ComponentText.prototype, 'cutEy', {
 
 
 
-function TextRenderer(adapter, settings) {
-    this.adapter = adapter;
+function TextRenderer(drawingCanvasFactory, settings) {
+    this.drawingCanvasFactory = drawingCanvasFactory;
 
     this.texture = null;
 
@@ -5927,11 +5928,11 @@ function TextRenderer(adapter, settings) {
 }
 
 TextRenderer.prototype.getPrecision = function() {
-    return (this.settings.precision || this.adapter.getDefaultPrecision() || 1);
+    return this.settings.precision;
 };
 
 TextRenderer.prototype.setFontProperties = function(withPrecision) {
-    var ff = this.settings.fontFace || this.adapter.getDefaultFontFace();
+    var ff = this.settings.fontFace;
     var fonts = '"' + (Utils.isArray(ff) ? this.settings.fontFace.join('","') : ff) + '"';
     var precision = (withPrecision ? this.getPrecision() : 1);
     this.context.font = this.settings.fontStyle + " " + (this.settings.fontSize * precision) + "px " + fonts;
@@ -5939,7 +5940,7 @@ TextRenderer.prototype.setFontProperties = function(withPrecision) {
 };
 
 TextRenderer.prototype.createCanvas = function() {
-    this.canvas = this.adapter.getDrawingCanvas();
+    this.canvas = this.drawingCanvasFactory();
     this.context = this.canvas.getContext('2d');
 };
 
@@ -6241,6 +6242,9 @@ var TextRendererSettings = function() {
     this.cutSy = this._cutSy = 0;
     this.cutEy = this._cutEy = 0;
 
+    // If true, then texture loads are performed on the main thread (blocking the next frame until fully loaded).
+    this.sync = this._sync = false;
+
     // Flag that indicates if any property has changed.
     this.hasUpdates = false;
 };
@@ -6263,15 +6267,25 @@ TextRendererSettings.prototype.setSetting = function(name, value) {
 };
 
 /**
- * Returns a stage-independent settings object.
- * This is used for the texture process.
- * @param {object} textRendererAdapter
+ * Finalize this settings object so that it is no longer dependent on possibly changing defaults.
  */
-TextRendererSettings.prototype.getSettingsObject = function(textRendererAdapter) {
-    var settings = this.getNonDefaults();
-    if (!settings.hasOwnProperty('fontFace')) settings.fontFace = textRendererAdapter.getDefaultFontFace();
-    if (!settings.hasOwnProperty('precision')) settings.precision = textRendererAdapter.getDefaultPrecision();
-    return settings;
+TextRendererSettings.prototype.finalize = function(component) {
+    // Inherit width and height from component.
+    if (!this.w && component.w) {
+        this.w = component.w;
+    }
+
+    if (!this.h && component.h) {
+        this.h = component.h;
+    }
+
+    if (this.fontFace === null) {
+        this.fontFace = component.stage.defaultFontFace;
+    }
+
+    if (this.precision === null) {
+        this.precision = component.stage.defaultPrecision;
+    }
 };
 
 TextRendererSettings.prototype.getNonDefaults = function() {
@@ -6312,6 +6326,17 @@ TextRendererSettings.prototype.getNonDefaults = function() {
     if (this.cutSy) nonDefaults["cutSy"] = this.cutSy;
     if (this.cutEy) nonDefaults["cutEy"] = this.cutEy;
 
+    if (this.sync) nonDefaults["sync"] = this.sync;
+
+    return nonDefaults;
+};
+
+TextRendererSettings.prototype.getRenderNonDefaults = function() {
+    var nonDefaults = this.getNonDefaults();
+
+    // Remove properties that are not important for rendering.
+    delete nonDefaults['sync'];
+
     return nonDefaults;
 };
 
@@ -6351,6 +6376,8 @@ TextRendererSettings.prototype.getTextureId = function() {
     if (this.cutEx) parts.push("cex" + this.cutEx);
     if (this.cutSy) parts.push("csy" + this.cutSy);
     if (this.cutEy) parts.push("cey" + this.cutEy);
+
+    if (this.sync) parts.push("sync");
 
     var id = "TX$" + parts.join("|") + ":" + this.text;
     return id;
@@ -6795,6 +6822,18 @@ Object.defineProperty(TextRendererSettings.prototype, 'cutEy', {
     }
 });
 
+Object.defineProperty(TextRendererSettings.prototype, 'sync', {
+    get: function () {
+        return this._sync;
+    },
+    set: function(v) {
+        var pv = this._sync;
+        if (pv !== v) {
+            this._sync = v;
+        }
+    }
+});
+
 TextRendererSettings.SETTINGS = {
     'text': {s: function(obj, v) {obj.text = v;}, m: null},
     'w': {s: function(obj, v) {obj.w = v;}, m: null},
@@ -6830,7 +6869,8 @@ TextRendererSettings.SETTINGS = {
     'cutSx': {s: function(obj, v) {obj.cutSx = v;}, m: null},
     'cutEx': {s: function(obj, v) {obj.cutEx = v;}, m: null},
     'cutSy': {s: function(obj, v) {obj.cutSy = v;}, m: null},
-    'cutEy': {s: function(obj, v) {obj.cutEy = v;}, m: null}
+    'cutEy': {s: function(obj, v) {obj.cutEy = v;}, m: null},
+    'sync': {s: function(obj, v) {obj.sync = v;}, m: null}
 };
 
 
@@ -8673,6 +8713,12 @@ UComponent.prototype.addLocalTranslate = function(x, y) {
 
 UComponent.prototype.setLocalAlpha = function(a) {
     this.setRecalcForced(1, (this.parent && this.parent.worldAlpha) && a);
+
+    if (a < 1e-14 && a > -1e-14) {
+        // Tiny rounding errors may cause failing visibility tests.
+        a = 0;
+    }
+
     this.localAlpha = a;
 };
 
@@ -8783,13 +8829,20 @@ UComponent.prototype.setZParent = function(newZParent) {
         }
 
         if (newZParent !== null) {
+            var hadZContextUsage = (newZParent.zContextUsage > 0);
+
             // @pre: new parent's children array has already been modified.
             if (this.zIndex !== 0) {
                 newZParent.incZContextUsage();
             }
 
             if (newZParent.zContextUsage > 0) {
-                newZParent.zIndexedChildren.push(this);
+                if (!hadZContextUsage && (this.parent === newZParent)) {
+                    // This child was already in the children list.
+                    // Do not add double.
+                } else {
+                    newZParent.zIndexedChildren.push(this);
+                }
                 newZParent.zSort = true;
             }
         }
@@ -9051,15 +9104,20 @@ UComponent.prototype.updateHasBorders = function() {
 UComponent.prototype.update = function() {
     this.recalc |= this.parent.recalc;
 
-    var forceUpdate = false;
+    if (this.zSort) {
+        // Make sure that all descendants are updated so that the updateTreeOrder flags are correctly set.
+        this.ctx.updateTreeOrderForceUpdate++;
+    }
+
+    var forceUpdate = (this.ctx.updateTreeOrderForceUpdate > 0);
     if (this.recalc & 1) {
         // If case of becoming invisible, we must update the children because they may be z-indexed.
         forceUpdate = this.worldAlpha && !(this.parent.worldAlpha && this.localAlpha);
+
         this.worldAlpha = this.parent.worldAlpha * this.localAlpha;
 
         if (this.worldAlpha < 1e-14 && this.worldAlpha > -1e-14) {
-            // Due to rounding errors, the worldAlpha sometimes does not go to exactly 0. Correct this case
-            // because a lot of things are dependent on the worldAlpha being 0 or not.
+            // Tiny rounding errors may cause failing visibility tests.
             this.worldAlpha = 0;
         }
     }
@@ -9225,7 +9283,7 @@ UComponent.prototype.update = function() {
 
         if (this.hasChildren) {
             for (var i = 0, n = this.children.length; i < n; i++) {
-                if (this.recalc || this.children[i].hasUpdates) {
+                if ((this.ctx.updateTreeOrderForceUpdate > 0) || this.recalc || this.children[i].hasUpdates) {
                     this.children[i].update();
                 } else if (!this.ctx.useZIndexing) {
                     this.children[i].fillVbo();
@@ -9235,6 +9293,11 @@ UComponent.prototype.update = function() {
 
         this.recalc = 0;
     }
+
+    if (this.zSort) {
+        this.ctx.updateTreeOrderForceUpdate--;
+    }
+
 };
 
 UComponent.prototype.sortZIndexedChildren = function() {
@@ -9493,7 +9556,10 @@ UComponent.prototype.fillVbo = function() {
                 }
             } else {
                 for (var i = 0, n = this.children.length; i < n; i++) {
-                    this.children[i].fillVbo();
+                    if (this.children[i].zIndex === 0) {
+                        // If zIndex is set, this item already belongs to a zIndexedChildren array in one of the ancestors.
+                        this.children[i].fillVbo();
+                    }
                 }
             }
         }
@@ -9563,6 +9629,7 @@ var UComponentContext = function() {
     this.root = null;
 
     this.updateTreeOrder = 0;
+    this.updateTreeOrderForceUpdate = 0;
 
     this.staticStage = false;
 
@@ -9789,7 +9856,7 @@ WebAdapter.prototype.loadTextureSourceString = function(source, cb) {
 
 WebAdapter.prototype.loadText = function(settings, cb) {
     // Generate the image.
-    var tr = new TextRenderer(this.stage.getTextRendererAdapter(), settings);
+    var tr = new TextRenderer(this.stage.drawingCanvasFactory, settings);
     var rval = tr.draw();
     var renderInfo = rval.renderInfo;
 
@@ -9846,3 +9913,7 @@ WebAdapter.prototype.nextFrame = function(swapBuffers) {
     /* WebGL blits automatically */
 };
 
+// WebAdapter.prototype.getTextureProcess = function() {
+//     var TextureProcess = require('./TextureProcess');
+//     return new TextureProcess();
+// };

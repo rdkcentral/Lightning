@@ -23,6 +23,7 @@ var UComponentContext = function() {
     this.root = null;
 
     this.updateTreeOrder = 0;
+    this.updateTreeOrderForceUpdate = 0;
 
     this.staticStage = false;
 
