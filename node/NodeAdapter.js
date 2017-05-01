@@ -53,14 +53,8 @@ NodeAdapter.prototype.loop = function() {
     }
 };
 
-NodeAdapter.prototype.uploadGlTexture = function(gl, textureSource, source, format) {
-    var m = gl.RGBA;
-    if (format === 'RGB') {
-        m = gl.RGB;
-    } else if (format !== 'RGBA') {
-        throw new Error("Unknown format: " + format);
-    }
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, textureSource.w, textureSource.h, 0, m, gl.UNSIGNED_BYTE, source);
+NodeAdapter.prototype.uploadGlTexture = function(gl, textureSource, source) {
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, textureSource.w, textureSource.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, source);
 };
 
 NodeAdapter.prototype.loadTextureSourceString = function(source, cb) {

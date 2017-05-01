@@ -78,12 +78,14 @@ TextureProcess.prototype.receiveMessage = function(e) {
             options.format = this.textureMetaInfo.format;
         }
 
-        if (this.textureMetaInfo.format.renderInfo) {
-            options.renderInfo = this.textureMetaInfo.format.renderInfo;
+        if (this.textureMetaInfo.renderInfo) {
+            options.renderInfo = this.textureMetaInfo.renderInfo;
         }
-        info = this.queue.get(this.textureMetaInfo.id);
+        var id = this.textureMetaInfo.id;
+        this.textureMetaInfo = null;
+        info = this.queue.get(id);
         if (info) {
-            this.queue.delete(this.textureMetaInfo.id);
+            this.queue.delete(id);
             info.cb(null, imageData, options);
         }
     } else if (m.m) {
@@ -116,7 +118,7 @@ TextureProcess.prototype.loadTextureSourceString = function(src, ts, cb) {
         ts.cancelCb = this.cancel.bind(this);
         return true;
     } else {
-        if (src.substr(-4).toLowerCase() === ".jpg") {
+        if (src.toLowerCase().indexOf(".jpg") !== -1) {
             this.add(0, src, ts, cb);
             ts.cancelCb = this.cancel.bind(this);
             return true;

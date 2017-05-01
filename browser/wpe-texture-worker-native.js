@@ -52,8 +52,8 @@ TextureWorker.prototype.load = function(item) {
 
     var self = this;
 
-    var handleResult = function(err, buf, w, h, format, renderInfo) {
-        self.handleResult(err, tsId, src, buf, w, h, format, renderInfo);
+    var handleResult = function(err, buf, w, h, renderInfo) {
+        self.handleResult(err, tsId, src, buf, w, h, renderInfo);
     };
 
     this.running.add(tsId);
@@ -99,7 +99,7 @@ TextureWorker.prototype.loadAsBlob = function(url, cb) {
     xhr.send();
 };
 
-TextureWorker.prototype.handleResult = function(err, tsId, src, buf, w, h, format, renderInfo) {
+TextureWorker.prototype.handleResult = function(err, tsId, src, buf, w, h, renderInfo) {
     if (this.running.has(tsId)) {
         this.running.delete(tsId);
         this.cancelCbs.delete(tsId);
@@ -107,7 +107,7 @@ TextureWorker.prototype.handleResult = function(err, tsId, src, buf, w, h, forma
         if (err) {
             this.send({id: tsId, err: "" + err});
         } else {
-            this.send({id: tsId, m: true, w: w, h: h, renderInfo: renderInfo, format: format});
+            this.send({id: tsId, m: true, w: w, h: h, renderInfo: renderInfo});
             this.sendBuffer(buf);
         }
     }

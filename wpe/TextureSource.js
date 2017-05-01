@@ -197,15 +197,9 @@ TextureSource.prototype.setSource = function(source, options) {
     }
 
     var format = {
-        mode: 'RGBA',
         premultiplyAlpha: true,
         flipBlueRed: false
     };
-
-    if (options && options.hasOwnProperty('format')) {
-        // Supported are: RGB and RGBA.
-        format.mode = options.format;
-    }
 
     if (options && options.hasOwnProperty('premultiplyAlpha')) {
         format.premultiplyAlpha = options.premultiplyAlpha;

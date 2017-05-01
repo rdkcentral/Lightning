@@ -167,13 +167,13 @@ TextureManager.prototype.uploadTextureSource = function(textureSource, source, f
     var sourceTexture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
 
-    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, (format.mode !== 'RGB' && format.premultiplyAlpha));
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, format.premultiplyAlpha);
 
     if (isNode) {
         gl.pixelStorei(gl.UNPACK_FLIP_BLUE_RED, format.flipBlueRed);
     }
 
-    this.stage.adapter.uploadGlTexture(gl, textureSource, source, format.mode);
+    this.stage.adapter.uploadGlTexture(gl, textureSource, source);
 
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);

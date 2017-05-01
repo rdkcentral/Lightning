@@ -34,19 +34,12 @@ WebAdapter.prototype.loop = function() {
     lp();
 };
 
-WebAdapter.prototype.uploadGlTexture = function(gl, textureSource, source, format) {
-    var m = gl.RGBA;
-    if (format === 'RGB') {
-        m = gl.RGB;
-    } else if (format !== 'RGBA') {
-        throw new Error("Unknown format: " + format);
-    }
-
+WebAdapter.prototype.uploadGlTexture = function(gl, textureSource, source) {
     if (source instanceof ImageData || source instanceof HTMLImageElement || source instanceof HTMLCanvasElement || source instanceof HTMLVideoElement || (window.ImageBitmap && source instanceof ImageBitmap)) {
         // Web-specific data types.
-        gl.texImage2D(gl.TEXTURE_2D, 0, m, m, gl.UNSIGNED_BYTE, source);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
     } else {
-        gl.texImage2D(gl.TEXTURE_2D, 0, m, textureSource.w, textureSource.h, 0, m, gl.UNSIGNED_BYTE, source);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, textureSource.w, textureSource.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, source);
     }
 };
 

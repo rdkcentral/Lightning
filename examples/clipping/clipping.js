@@ -48,10 +48,10 @@ var a = stage.root.tag('bunny').animation({duration: 3, autostop: true, stopMeth
 a.start();
 
 setTimeout(function() {
-    bunny.src = "remote.jpg";
+    bunny.src = "poster2.jpg";
 
     setTimeout(function() {
-        // bunny.src = "remote.jpg";
+        //bunny.src = "remote.jpg";
         //bunny.visible = false;
         setTimeout(function() {
             //bunny.visible = true;

@@ -52,8 +52,8 @@ TextureWorker.prototype.load = function(item) {
 
     var self = this;
 
-    var handleResult = function(err, buf, w, h, format, renderInfo) {
-        self.handleResult(err, tsId, src, buf, w, h, format, renderInfo);
+    var handleResult = function(err, buf, w, h, renderInfo) {
+        self.handleResult(err, tsId, src, buf, w, h, renderInfo);
     };
 
     this.running.add(tsId);
@@ -73,7 +73,7 @@ TextureWorker.prototype.loadTextureSourceString = function(tsId, source, cb) {
     }
 
     if (this.getEncoding(source) === "jpg") {
-
+        var self = this;
         this.loadAsUint8Array(source, function(err, encoded) {
             if (err) return cb(err);
 
@@ -86,8 +86,22 @@ TextureWorker.prototype.loadTextureSourceString = function(tsId, source, cb) {
                 return cb(new Error("Not an RGB jpg image"));
             }
             var decoded = parser.getData(width, height);
-            cb(null, decoded, width, height, 'RGB');
+
+            // Convert RGB to RGBA so that it's not necessary to do so later.
+            var converted = new Uint8Array(width * height * 4);
+            self.copyRgbToRgba(decoded, converted);
+
+            cb(null, converted, width, height);
         });
+    }
+};
+
+TextureWorker.prototype.copyRgbToRgba = function(source, target) {
+    for (var i = 0, j = 0, n = source.length; i < n; i += 3, j += 4) {
+        target[j] = source[i];
+        target[j+1] = source[i+1];
+        target[j+2] = source[i+2];
+        target[j+3] = 255;
     }
 };
 
@@ -111,7 +125,7 @@ TextureWorker.prototype.loadAsUint8Array = function(url, cb) {
     xhr.send();
 };
 
-TextureWorker.prototype.handleResult = function(err, tsId, src, buf, w, h, format, renderInfo) {
+TextureWorker.prototype.handleResult = function(err, tsId, src, buf, w, h, renderInfo) {
     if (this.running.has(tsId)) {
         this.running.delete(tsId);
         this.cancelCbs.delete(tsId);
@@ -121,24 +135,9 @@ TextureWorker.prototype.handleResult = function(err, tsId, src, buf, w, h, forma
         } else {
             // console.log(src + ': ' + buf.length + ' (' + tsId + ')');
 
-            //@todo: only premultiply alpha if image is png (jpg does not have alpha channel).
-
-            if (format === 'RGBA') {
-                // Premultiply alpha.
-                this.premultiplyAlpha(buf);
-            }
-
-            this.send({id: tsId, m: true, w: w, h: h, renderInfo: renderInfo, format: format});
+            this.send({id: tsId, m: true, w: w, h: h, renderInfo: renderInfo});
             this.sendBuffer(buf);
         }
-    }
-};
-
-TextureWorker.prototype.premultiplyAlpha = function(buf) {
-    for (var i = 0, n = buf.length; i < n; i += 4) {
-        buf[i] = (buf[i] * buf[i + 2]) >>> 8;
-        buf[i+1] = (buf[i+1] * buf[i + 2]) >>> 8;
-        buf[i+2] = (buf[i+2] * buf[i + 2]) >>> 8;
     }
 };
 
