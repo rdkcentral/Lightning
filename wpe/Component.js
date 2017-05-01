@@ -2061,6 +2061,12 @@ Component.prototype.textureIsLoaded = function() {
     return this.texture ? !!this.texture.source.glTexture : false;
 };
 
+Component.prototype.loadTexture = function(sync) {
+    if (this.texture) {
+        this.texture.load(sync);
+    }
+};
+
 Component.prototype._updateTextureCoords = function() {
     if (this.displayedTexture && this.displayedTexture.source) {
         var displayedTexture = this.displayedTexture;

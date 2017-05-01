@@ -59,9 +59,8 @@ TextureManager.prototype.destroy = function() {
  * Loads a texture source from a source reference (.src property).
  */
 TextureManager.prototype.loadTextureSourceString = function(src, ts, sync, cb) {
-    if (!sync && this.stage.useTextureProcess && this.stage.textureProcess.isConnected()) {
-        this.stage.textureProcess.add(0, src, ts, cb);
-        ts.cancelCb = this.stage.textureProcess.cancel.bind(this.stage.textureProcess);
+    if (!sync && this.stage.useTextureProcess && this.stage.textureProcess.isConnected() && this.stage.textureProcess.loadTextureSourceString) {
+        this.stage.textureProcess.loadTextureSourceString(src, ts, cb);
     } else {
         this.stage.adapter.loadTextureSourceString(src, cb);
     }
@@ -71,9 +70,8 @@ TextureManager.prototype.loadTextureSourceString = function(src, ts, sync, cb) {
  * Loads a text from the finalized text settings.
  */
 TextureManager.prototype.loadText = function(settings, ts, sync, cb) {
-    if (!sync && this.stage.useTextureProcess && this.stage.textureProcess.isConnected()) {
-        this.stage.textureProcess.add(1, JSON.stringify(settings.getRenderNonDefaults()), ts, cb);
-        ts.cancelCb = this.stage.textureProcess.cancel.bind(this.stage.textureProcess);
+    if (!sync && this.stage.useTextureProcess && this.stage.textureProcess.isConnected() && this.stage.textureProcess.loadText) {
+        this.stage.textureProcess.loadText(settings, ts, cb);
     } else {
         this.stage.adapter.loadText(settings, cb);
     }

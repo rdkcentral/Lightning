@@ -53,6 +53,16 @@ TextureProcess.prototype.send = function(tsId, type, src) {
     //@todo: implement.
 };
 
+TextureProcess.prototype.loadTextureSourceString = function(src, ts, cb) {
+    this.add(0, src, ts, cb);
+    ts.cancelCb = this.cancel.bind(this);
+};
+
+TextureProcess.prototype.loadText = function(settings, ts, cb) {
+    this.add(1, JSON.stringify(settings.getRenderNonDefaults()), ts, cb);
+    ts.cancelCb = this.cancel.bind(this);
+};
+
 /**
  * Adds a load request to the queue.
  * @param {Number} type
@@ -63,7 +73,7 @@ TextureProcess.prototype.send = function(tsId, type, src) {
  */
 TextureProcess.prototype.add = function(type, src, ts, cb) {
     this.send(ts.id, type, src);
-    this.queue.set(ts.id, {type: type, ts: ts, cb: cb});
+    this.queue.set(ts.id, {type: type, src: src, ts: ts, cb: cb});
 };
 
 /**

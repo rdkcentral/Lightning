@@ -291,7 +291,8 @@ Usage: `new Stage({w: 600, h: 600, ...})`.
 | <a name="initialisation-options-default-font-face"></a>`defaultFontFace` | Arial| The font face to use for rendering if none is explicitly specified. |
 | `fixedDt` | `0`| If specified, the ms to progress in each is fixed instead of dynamic. |
 | `window` | | Specific node-wpe-webgl options, see https://github.com/WebPlatformForEmbedded/node-wpe-webgl#options. |
-| `useTextureAtlas` | true | This allocates a 2048x2048px texture to which small textures that are currently visible are being cached. This makes rendering a lot faster but takes memory.
+| `useTextureAtlas` | false | This allocates a 2048x2048px texture to which small textures that are currently visible are being cached. This improves CPU performance up to 50% but does not improve GPU performance (and takes GPU memory). |
+| `useTextureProcess` | false | Creates a secondary process or worker, dedicated for fetching image data and parsing it, and rendering texts. Currently only supported for Nodejs. |
 
 ### Methods
 
@@ -339,7 +340,7 @@ Usage: `new Stage({w: 600, h: 600, ...})`.
 | `rect` | `false`| When set to true, this component becomes a colored rectangle. |
 | `src` | `null`| The image source URL (string). When set, this component will render the image; URL (Node.js / web) or file (Node.js). |
 | `text` | `null`| The text settings. When set, this component will render the text as specified (an object with the options specified below). |
-| `texture` | `null`| The texture that's being shown, or null if this component is only a container. When set (`Texture` object or `null`), this component will render the custom texture (see `Stage.getTexture(..)`). By setting it with a plain object with x,y,w,h properties, the current texture is kept but a specific area of the texture is selected for display. |
+| `texture` | `null`| The texture that's being shown, or null if this component is only a container. When set (`Texture` object or `null`), this component will render the custom texture (see `Stage.getTexture(..)`). By setting it with a plain object with x,y,w,h properties, the current texture is kept but a specific area of the texture is selected for display. By setting the precision property, you can set the default render scaling (0.5 = fuzzy, 1 = normal, 2 = sharp even when scaled 2x, etc.) |
 | `tags` | `[]`| The tags of this component. When get, you should *never* modify this array manually! When set, replaces the tags of this component. Can be both a string or an array of strings. |
 | `children` | `[]`| The children of this component. When get, you should *never* modify this array manually! When set, replaces the children of this component. |
 
@@ -368,6 +369,7 @@ Text sub object properties:
 | `shadowColor` | `0xFF000000`| https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/shadowColor |
 | `shadowOffset`(`X`,`Y`) | `0`| https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/shadowOffsetX |
 | `shadowBlur` | `5`| https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/shadowBlur |
+| `sync` | `false`| When using textureProcess, set this to force rendering this text on the main thread. This may be handy in situations where a delay between setting/showing the text is undesirable. |
 
 ### Methods
 
@@ -390,6 +392,7 @@ Text sub object properties:
 | `isAttached():Boolean` | Returns true iff this component is attached to the stage rendering tree. |
 | `isActive():Boolean` | Returns true iff this component is attached to the stage rendering tree and is visible. |
 | `textureIsLoaded():Boolean` | Returns true iff `this.texture` has already been loaded. |
+| `loadTexture(sync:Boolean)` | Pre-loads the currently set texture. When using textureProcess, you can set the sync argument to force loading on the main thread. When you are rendering text, this will cause the text to be shown immediately (on the next drawn frame). |
 | `animation(settings:Object):TimedAnimation` | Creates and returns an animation that has this component as subject. |
 | `a(settings:Object):TimedAnimation` | See animation(). |
 | `transition(property:String,settings:Object):Transition` | If settings is a plain object,it enables the transition on the specified property. If settings is `null`, it removes the animation on the specified property. The following properties can be transitioned: `x y w h scale(X,Y) pivot(X,Y) mount(X,Y) alpha rotation borderWidth(Top,Bottom,Left,Right) borderColor(Top,Bottom,Left,Right) color(Top,Bottom)(Left,Right)` |
