@@ -16,6 +16,8 @@ var TextureProcess = function() {
         self.receiveMessage(message);
     });
 
+    this.destroyed = false;
+
 };
 
 TextureProcess.prototype.init = function(cb) {
@@ -36,7 +38,7 @@ TextureProcess.prototype.init = function(cb) {
                 if (self.connected) {
                     done = true;
                     cb();
-                } else if (attempts > 40) {
+                } else if (attempts > 40 || self.destroyed) {
                     done = true;
                     return cb(new Error("Can't connect to texture process."));
                 }
@@ -62,11 +64,13 @@ TextureProcess.prototype.fork = function() {
         console.error('Error while spawning texture process', err);
     });
     this.textureProcess.on('exit', function() {
-        console.error('Texture process exited unexpectedly! Try re-forking it in 5s.');
-        setTimeout(function() {
-            // Re-start the process.
-            self.fork();
-        }, 5000);
+        if (!self.destroyed) {
+            console.error('Texture process exited unexpectedly! Try re-forking it in 5s.');
+            setTimeout(function() {
+                // Re-start the process.
+                self.fork();
+            }, 5000);
+        }
     });
 };
 
@@ -100,21 +104,30 @@ TextureProcess.prototype.connect = function(cb) {
     });
 
     this.conn.on('close', function() {
-        if (self.connected) {
-            console.error('Connection to texture process lost');
+        if (!self.destroyed) {
+            if (self.connected) {
+                console.error('Connection to texture process lost');
 
-            // Clear connected flag, so that texture loads are (temporarily) done on the main thread.
-            self.connected = false;
+                // Clear connected flag, so that texture loads are (temporarily) done on the main thread.
+                self.connected = false;
+            }
+
+            self.flushQueueOnMain();
+
+            setTimeout(function() {
+                self.connect();
+            }, 1000);
         }
-
-        self.flushQueueOnMain();
-
-        setTimeout(function() {
-            self.connect();
-        }, 1000);
     });
 };
 
+TextureProcess.prototype.destroy = function() {
+    if (this.textureProcess) {
+        console.log('Destroying texture process');
+        this.destroyed = true;
+        this.textureProcess.kill('SIGINT');
+    }
+};
 
 TextureProcess.prototype.receiveMessage = function(data) {
     var s = data.readUInt32LE(0);
@@ -160,28 +173,28 @@ TextureProcess.prototype.parseRenderInfo = function(buf) {
     return null;
 };
 
-TextureProcess.prototype.send = function(tsId, type, src) {
+TextureProcess.prototype.send = function(tsId, type, data) {
     var len = 8;
-    var srcBuffer;
-    if (src) {
-        srcBuffer = Buffer.from(src, 'utf8');
-        len += srcBuffer.length + 4;
+    var dataBuffer;
+    if (data) {
+        dataBuffer = Buffer.from(data, 'utf8');
+        len += dataBuffer.length + 4;
     }
 
-    var data;
-    if (src) {
-        data = new Buffer(12);
-        data.writeUInt32LE(len, 0);
-        data.writeUInt32LE(tsId, 4);
-        data.writeUInt32LE(type, 8);
-        data = Buffer.concat([data, srcBuffer]);
+    var out;
+    if (data) {
+        out = new Buffer(12);
+        out.writeUInt32LE(len, 0);
+        out.writeUInt32LE(tsId, 4);
+        out.writeUInt32LE(type, 8);
+        out = Buffer.concat([out, dataBuffer]);
     } else {
-        data = new Buffer(8);
-        data.writeUInt32LE(len, 0);
-        data.writeUInt32LE(tsId, 4);
+        out = new Buffer(8);
+        out.writeUInt32LE(len, 0);
+        out.writeUInt32LE(tsId, 4);
     }
 
-    this.conn.write(data);
+    this.conn.write(out);
 };
 
 TextureProcess.prototype.isConnected = function() {
@@ -202,6 +215,7 @@ TextureProcess.prototype.flushQueueOnMain = function() {
 TextureProcess.prototype.loadTextureSourceString = function(src, ts, cb) {
     this.add(0, src, ts, cb);
     ts.cancelCb = this.cancel.bind(this);
+    return true;
 };
 
 TextureProcess.prototype.loadText = function(settings, ts, cb) {

@@ -60,7 +60,10 @@ TextureManager.prototype.destroy = function() {
  */
 TextureManager.prototype.loadTextureSourceString = function(src, ts, sync, cb) {
     if (!sync && this.stage.useTextureProcess && this.stage.textureProcess.isConnected() && this.stage.textureProcess.loadTextureSourceString) {
-        this.stage.textureProcess.loadTextureSourceString(src, ts, cb);
+        if (!this.stage.textureProcess.loadTextureSourceString(src, ts, cb)) {
+            // Cannot be loaded remotely. Fallback: load sync.
+            this.stage.adapter.loadTextureSourceString(src, cb);
+        }
     } else {
         this.stage.adapter.loadTextureSourceString(src, cb);
     }
@@ -164,13 +167,13 @@ TextureManager.prototype.uploadTextureSource = function(textureSource, source, f
     var sourceTexture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
 
-    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, format.premultiplyAlpha);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, (format.mode !== 'RGB' && format.premultiplyAlpha));
 
     if (isNode) {
         gl.pixelStorei(gl.UNPACK_FLIP_BLUE_RED, format.flipBlueRed);
     }
 
-    this.stage.adapter.uploadGlTexture(gl, textureSource, source);
+    this.stage.adapter.uploadGlTexture(gl, textureSource, source, format.mode);
 
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);

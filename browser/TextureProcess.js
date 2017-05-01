@@ -1,4 +1,10 @@
-var TextureProcess = function() {
+var TextureProcess = function(workerPath) {
+
+    // Base URL where the web worker source files should reside.
+    this.workerPath = workerPath;
+
+    // Browser supports CreateImageBitmap. This means that we can load all image types!
+    this.hasNativeSupport = !!createImageBitmap;
 
     /**
      * Queued texture source loads, along with their load callbacks.
@@ -6,61 +12,119 @@ var TextureProcess = function() {
      */
     this.queue = new Map();
 
+    this.worker = null;
+
 };
 
 TextureProcess.prototype.init = function(cb) {
+    if (!window.Worker) {
+        return cb(new Error("Browser does not have Worker support."));
+    }
 
-    //@todo: start worker and call cb when it is available (err out when exception).
+    try {
+        var workerUrl = this.workerPath + (this.hasNativeSupport ? "wpe-texture-worker-native.js" : "wpe-texture-worker-fallback.js");
+        this.worker = new Worker(workerUrl);
+    } catch(e) {
+        return cb(e);
+    }
 
-    //@todo: start listening for messages.
+    // Install communication channel.
+    var self = this;
+    this.worker.onmessage = function (e) {
+        self.receiveMessage(e);
+    };
 
+    // Send base url for relative paths.
+    var baseUrl = window.location.href;
+    var index = baseUrl.lastIndexOf("/");
+    if (index !== -1) {
+        baseUrl = baseUrl.substr(0, index + 1);
+    }
+    this.worker.postMessage({baseUrl: baseUrl});
+
+    if (this.hasNativeSupport) {
+        console.log("Connected to texture Worker.");
+    } else {
+        console.log("Connected to fallback texture Worker. You browser does not support createImageBitmap. Only JPG will be supported.");
+    }
+
+    cb();
 };
 
-TextureProcess.prototype.receiveMessage = function(data) {
-    var tsId = 0; //@todo: get tsId.
-    var info = this.queue.get(tsId);
-    if (info) {
-        this.queue.delete(tsId);
+TextureProcess.prototype.isConnected = function() {
+    return (this.worker !== null);
+};
 
-        var code = 0; //@todo: get error or ok response.
-        if (code === 0) {
-            // Get RGBA data.
+TextureProcess.prototype.destroy = function() {
+    if (this.worker) {
+        this.worker.terminate();
+    }
+};
 
-            //@todo: load w,h,imagedata and renderinfo (utf8 ?).
-            var w = 0;
-            var h = 0;
-            var imageData = 0;
+TextureProcess.prototype.receiveMessage = function(e) {
+    var info;
+    var m = e.data;
+    if (this.textureMetaInfo) {
+        var imageData = e.data;
 
-            var renderInfo = null;
+        var options = {
+            w: this.textureMetaInfo.w,
+            h: this.textureMetaInfo.h,
+            premultiplyAlpha: false,
+            flipBlueRed: false
+        };
 
-            var options = {w: w, h: h, premultiplyAlpha: false, flipBlueRed: false};
-            if (renderInfo) {
-                options.renderInfo = renderInfo;
-            }
+        if (this.textureMetaInfo.format) {
+            options.format = this.textureMetaInfo.format;
+        }
+
+        if (this.textureMetaInfo.format.renderInfo) {
+            options.renderInfo = this.textureMetaInfo.format.renderInfo;
+        }
+        info = this.queue.get(this.textureMetaInfo.id);
+        if (info) {
+            this.queue.delete(this.textureMetaInfo.id);
             info.cb(null, imageData, options);
-        } else {
-
-            //@todo: load error message.
-            var error = 'todo';
-
-            // Get error message.
-            info.cb(error);
+        }
+    } else if (m.m) {
+        this.textureMetaInfo = m;
+    } else if (m.err) {
+        info = this.queue.get(m.id);
+        if (info) {
+            this.queue.delete(m.id);
+            info.cb(m.err);
         }
     }
 };
 
-TextureProcess.prototype.send = function(tsId, type, src) {
-    //@todo: implement.
+TextureProcess.prototype.send = function(tsId, type, data) {
+    this.worker.postMessage({id: tsId, type: type, data: data});
+};
+
+TextureProcess.prototype.sendCancel = function(tsId) {
+    this.worker.postMessage({id: tsId, cancel: true});
 };
 
 TextureProcess.prototype.loadTextureSourceString = function(src, ts, cb) {
-    this.add(0, src, ts, cb);
-    ts.cancelCb = this.cancel.bind(this);
-};
+    // Never load data urls remotely because they're usually small and it's not worth the overhead / additional code.
+    if (src.indexOf("data:") === 0) {
+        return false;
+    }
 
-TextureProcess.prototype.loadText = function(settings, ts, cb) {
-    this.add(1, JSON.stringify(settings.getRenderNonDefaults()), ts, cb);
-    ts.cancelCb = this.cancel.bind(this);
+    if (this.hasNativeSupport) {
+        this.add(0, src, ts, cb);
+        ts.cancelCb = this.cancel.bind(this);
+        return true;
+    } else {
+        if (src.substr(-4).toLowerCase() === ".jpg") {
+            this.add(0, src, ts, cb);
+            ts.cancelCb = this.cancel.bind(this);
+            return true;
+        } else {
+            // @todo: png support?
+            return false;
+        }
+    }
 };
 
 /**
@@ -81,7 +145,7 @@ TextureProcess.prototype.add = function(type, src, ts, cb) {
  * @param {TextureSource} ts
  */
 TextureProcess.prototype.cancel = function(ts) {
-    this.send(ts.id);
+    this.sendCancel(ts.id);
     var info = this.queue.get(ts.id);
     if (info && info.cb) {
         // Cancel loading.
@@ -90,4 +154,3 @@ TextureProcess.prototype.cancel = function(ts) {
     }
 };
 
-module.exports = TextureProcess;

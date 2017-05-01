@@ -34,12 +34,19 @@ WebAdapter.prototype.loop = function() {
     lp();
 };
 
-WebAdapter.prototype.uploadGlTexture = function(gl, textureSource, source) {
-    if (source instanceof ImageData || source instanceof HTMLImageElement || source instanceof HTMLCanvasElement || source instanceof HTMLVideoElement) {
+WebAdapter.prototype.uploadGlTexture = function(gl, textureSource, source, format) {
+    var m = gl.RGBA;
+    if (format === 'RGB') {
+        m = gl.RGB;
+    } else if (format !== 'RGBA') {
+        throw new Error("Unknown format: " + format);
+    }
+
+    if (source instanceof ImageData || source instanceof HTMLImageElement || source instanceof HTMLCanvasElement || source instanceof HTMLVideoElement || (window.ImageBitmap && source instanceof ImageBitmap)) {
         // Web-specific data types.
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+        gl.texImage2D(gl.TEXTURE_2D, 0, m, m, gl.UNSIGNED_BYTE, source);
     } else {
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, textureSource.w, textureSource.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, source);
+        gl.texImage2D(gl.TEXTURE_2D, 0, m, textureSource.w, textureSource.h, 0, m, gl.UNSIGNED_BYTE, source);
     }
 };
 
@@ -50,7 +57,7 @@ WebAdapter.prototype.loadTextureSourceString = function(source, cb) {
         image.crossOrigin = "Anonymous";
     }
     image.onerror = function(err) {
-        return cb(err);
+        return cb("Image load error");
     };
     image.onload = function() {
         cb(null, image, {renderInfo: {src: source}});
@@ -117,7 +124,21 @@ WebAdapter.prototype.nextFrame = function(swapBuffers) {
     /* WebGL blits automatically */
 };
 
-// WebAdapter.prototype.getTextureProcess = function() {
-//     var TextureProcess = require('./TextureProcess');
-//     return new TextureProcess();
-// };
+WebAdapter.prototype.getTextureProcess = function() {
+    // Auto-detect worker url.
+    var sc = document.getElementsByTagName("script");
+
+    var workerPath = "";
+    for (var idx = 0; idx < sc.length; idx++) {
+        var s = sc.item(idx);
+
+        if (s.src) {
+            var match = /^(.+\/)(wpe(\.min)?|WebAdapter)\.js$/.exec(s.src);
+            if (match) {
+                workerPath = match[1];
+            }
+        }
+    }
+
+    return new TextureProcess(workerPath);
+};

@@ -4,6 +4,7 @@ module.exports = function(grunt) {
             'wpe-browser' : {
                 src : [
                     'browser/EventEmitter.js',
+                    'browser/TextureProcess.js',
                     'wpe/Utils.js',
                     'wpe/Stage.js',
                     'wpe/StageUtils.js',

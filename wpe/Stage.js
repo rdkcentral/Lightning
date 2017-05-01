@@ -172,6 +172,9 @@ Stage.prototype.destroy = function() {
     if (this.useTextureAtlas) {
         this.textureAtlas.destroy();
     }
+    if (this.textureProcess) {
+        this.textureProcess.destroy();
+    }
     this.renderer.destroy();
     this.textureManager.destroy();
     this.destroyed = true;

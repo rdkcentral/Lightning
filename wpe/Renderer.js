@@ -80,7 +80,6 @@ function Renderer(stage, w, h) {
 }
 
 Renderer.prototype.destroy = function() {
-    this.gl.deleteFramebuffer(this.framebuffer);
     this.gl.deleteBuffer(this.paramsGlBuffer);
     this.gl.deleteBuffer(this.indicesGlBuffer);
     this.gl.deleteProgram(this.program);
