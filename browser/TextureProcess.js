@@ -4,7 +4,7 @@ var TextureProcess = function(workerPath) {
     this.workerPath = workerPath;
 
     // Browser supports CreateImageBitmap. This means that we can load all image types!
-    this.hasNativeSupport = !!createImageBitmap;
+    this.hasNativeSupport = !!window.createImageBitmap;
 
     /**
      * Queued texture source loads, along with their load callbacks.
