@@ -303,7 +303,7 @@ Usage: `new Stage({w: 600, h: 600, ...})`.
 | `getCanvas() : HTMLCanvasElement` | Returns the canvas. |
 | `stop()` | Temporarily stops the stage rendering loop. |
 | `resume()` | Resumes the stage rendering loop. |
-| `texture(source:String|TextureSource|Function,options:object)` | Creates a new texture. Source can be either a string (URL/file path), a TextureSource object, or a function which has a callback as only argument, which should be called with as first argument the pixel data (Canvas, Image or Uint8Array with RGBA data) and as second argument an object with properties w, h which should be specified in case of Uint8Array. Options are id (texture sources with the same id are reused), and x, y, w, h for clipping. |
+| `texture(source:String/TextureSource/Function,options:object)` | Creates a new texture. Source can be either a string (URL/file path), a TextureSource object, or a function which has a callback as only argument, which should be called with as first argument the pixel data (Canvas, Image or Uint8Array with RGBA data) and as second argument an object with properties w, h which should be specified in case of Uint8Array. Options are id (texture sources with the same id are reused), and x, y, w, h for clipping. |
 | `component(settings:Object):Component` | Creates an returns a new component object. |
 | `c(settings:Object):Component` | See component(). |
 | `animation(settings:Object):Animation` | Creates and returns a new animation (without a subject). |
