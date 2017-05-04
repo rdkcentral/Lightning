@@ -391,7 +391,8 @@ List.prototype.getIndexItem = function() {
 };
 
 List.prototype.getIndexElement = function() {
-    return this.wrapper.children[this.getRealIndex()].children[0];
+    var item = this.getIndexItem();
+    return item ? item.children[0] : null;
 };
 
 List.prototype.getElement = function(index) {
