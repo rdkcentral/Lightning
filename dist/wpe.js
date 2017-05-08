@@ -332,6 +332,165 @@ EventEmitter.EventEmitter = EventEmitter;
 if ('undefined' !== typeof module) {
     module.exports = EventEmitter;
 }
+var TextureProcess = function(workerPath) {
+
+    // Base URL where the web worker source files should reside.
+    this.workerPath = workerPath;
+
+    // Browser supports CreateImageBitmap. This means that we can load all image types!
+    this.hasNativeSupport = !!window.createImageBitmap;
+
+    /**
+     * Queued texture source loads, along with their load callbacks.
+     * @type {Map<String, {cb: Function, ts: TextureSource}>}
+     */
+    this.queue = new Map();
+
+    this.worker = null;
+
+};
+
+TextureProcess.prototype.init = function(cb) {
+    if (!window.Worker) {
+        return cb(new Error("Browser does not have Worker support."));
+    }
+
+    try {
+        var workerUrl = this.workerPath + (this.hasNativeSupport ? "wpe-texture-worker-native.js" : "wpe-texture-worker-fallback.js");
+        this.worker = new Worker(workerUrl);
+    } catch(e) {
+        return cb(e);
+    }
+
+    // Install communication channel.
+    var self = this;
+    this.worker.onmessage = function (e) {
+        self.receiveMessage(e);
+    };
+
+    // Send base url for relative paths.
+    var baseUrl = window.location.href;
+    var index = baseUrl.lastIndexOf("/");
+    if (index !== -1) {
+        baseUrl = baseUrl.substr(0, index + 1);
+    }
+    this.worker.postMessage({baseUrl: baseUrl});
+
+    if (this.hasNativeSupport) {
+        console.log("Connected to texture Worker.");
+    } else {
+        console.log("Connected to fallback texture Worker. You browser does not support createImageBitmap. Only JPG will be supported.");
+    }
+
+    cb();
+};
+
+TextureProcess.prototype.isConnected = function() {
+    return (this.worker !== null);
+};
+
+TextureProcess.prototype.destroy = function() {
+    if (this.worker) {
+        this.worker.terminate();
+    }
+};
+
+TextureProcess.prototype.receiveMessage = function(e) {
+    var info;
+    var m = e.data;
+    if (this.textureMetaInfo) {
+        var imageData = e.data;
+
+        var options = {
+            w: this.textureMetaInfo.w,
+            h: this.textureMetaInfo.h,
+            premultiplyAlpha: false,
+            flipBlueRed: false
+        };
+
+        if (this.textureMetaInfo.format) {
+            options.format = this.textureMetaInfo.format;
+        }
+
+        if (this.textureMetaInfo.renderInfo) {
+            options.renderInfo = this.textureMetaInfo.renderInfo;
+        }
+        var id = this.textureMetaInfo.id;
+        this.textureMetaInfo = null;
+        info = this.queue.get(id);
+        if (info) {
+            this.queue.delete(id);
+            info.cb(null, imageData, options);
+        }
+    } else if (m.m) {
+        this.textureMetaInfo = m;
+    } else if (m.err) {
+        info = this.queue.get(m.id);
+        if (info) {
+            this.queue.delete(m.id);
+            info.cb(m.err);
+        }
+    }
+};
+
+TextureProcess.prototype.send = function(tsId, type, data) {
+    this.worker.postMessage({id: tsId, type: type, data: data});
+};
+
+TextureProcess.prototype.sendCancel = function(tsId) {
+    this.worker.postMessage({id: tsId, cancel: true});
+};
+
+TextureProcess.prototype.loadTextureSourceString = function(src, ts, cb) {
+    // Never load data urls remotely because they're usually small and it's not worth the overhead / additional code.
+    if (src.indexOf("data:") === 0) {
+        return false;
+    }
+
+    if (this.hasNativeSupport) {
+        this.add(0, src, ts, cb);
+        ts.cancelCb = this.cancel.bind(this);
+        return true;
+    } else {
+        if (src.toLowerCase().indexOf(".jpg") !== -1) {
+            this.add(0, src, ts, cb);
+            ts.cancelCb = this.cancel.bind(this);
+            return true;
+        } else {
+            // @todo: png support?
+            return false;
+        }
+    }
+};
+
+/**
+ * Adds a load request to the queue.
+ * @param {Number} type
+ * @param {String} src
+ * @param {TextureSource} ts
+ * @param {Function} cb
+ *   Will be called along with the buffer which contains the actual alpha-premultiplied RGBA data.
+ */
+TextureProcess.prototype.add = function(type, src, ts, cb) {
+    this.send(ts.id, type, src);
+    this.queue.set(ts.id, {type: type, src: src, ts: ts, cb: cb});
+};
+
+/**
+ * Cancels a load request from the queue.
+ * @param {TextureSource} ts
+ */
+TextureProcess.prototype.cancel = function(ts) {
+    this.sendCancel(ts.id);
+    var info = this.queue.get(ts.id);
+    if (info && info.cb) {
+        // Cancel loading.
+        info.cb(null, null);
+        this.queue.delete(ts.id);
+    }
+};
+
+
 var isNode = !!(((typeof module !== "undefined") && module.exports));
 
 var Utils = {};
@@ -639,6 +798,9 @@ Stage.prototype.destroy = function() {
     this.adapter.stopAnimationLoop();
     if (this.useTextureAtlas) {
         this.textureAtlas.destroy();
+    }
+    if (this.textureProcess) {
+        this.textureProcess.destroy();
     }
     this.renderer.destroy();
     this.textureManager.destroy();
@@ -1621,9 +1783,11 @@ TextureManager.prototype.destroy = function() {
  * Loads a texture source from a source reference (.src property).
  */
 TextureManager.prototype.loadTextureSourceString = function(src, ts, sync, cb) {
-    if (!sync && this.stage.useTextureProcess && this.stage.textureProcess.isConnected()) {
-        this.stage.textureProcess.add(0, src, ts, cb);
-        ts.cancelCb = this.stage.textureProcess.cancel.bind(this.stage.textureProcess);
+    if (!sync && this.stage.useTextureProcess && this.stage.textureProcess.isConnected() && this.stage.textureProcess.loadTextureSourceString) {
+        if (!this.stage.textureProcess.loadTextureSourceString(src, ts, cb)) {
+            // Cannot be loaded remotely. Fallback: load sync.
+            this.stage.adapter.loadTextureSourceString(src, cb);
+        }
     } else {
         this.stage.adapter.loadTextureSourceString(src, cb);
     }
@@ -1633,9 +1797,8 @@ TextureManager.prototype.loadTextureSourceString = function(src, ts, sync, cb) {
  * Loads a text from the finalized text settings.
  */
 TextureManager.prototype.loadText = function(settings, ts, sync, cb) {
-    if (!sync && this.stage.useTextureProcess && this.stage.textureProcess.isConnected()) {
-        this.stage.textureProcess.add(1, JSON.stringify(settings.getRenderNonDefaults()), ts, cb);
-        ts.cancelCb = this.stage.textureProcess.cancel.bind(this.stage.textureProcess);
+    if (!sync && this.stage.useTextureProcess && this.stage.textureProcess.isConnected() && this.stage.textureProcess.loadText) {
+        this.stage.textureProcess.loadText(settings, ts, cb);
     } else {
         this.stage.adapter.loadText(settings, cb);
     }
@@ -5094,6 +5257,12 @@ Component.prototype.textureIsLoaded = function() {
     return this.texture ? !!this.texture.source.glTexture : false;
 };
 
+Component.prototype.loadTexture = function(sync) {
+    if (this.texture) {
+        this.texture.load(sync);
+    }
+};
+
 Component.prototype._updateTextureCoords = function() {
     if (this.displayedTexture && this.displayedTexture.source) {
         var displayedTexture = this.displayedTexture;
@@ -8326,7 +8495,6 @@ function Renderer(stage, w, h) {
 }
 
 Renderer.prototype.destroy = function() {
-    this.gl.deleteFramebuffer(this.framebuffer);
     this.gl.deleteBuffer(this.paramsGlBuffer);
     this.gl.deleteBuffer(this.indicesGlBuffer);
     this.gl.deleteProgram(this.program);
@@ -9831,7 +9999,7 @@ WebAdapter.prototype.loop = function() {
 };
 
 WebAdapter.prototype.uploadGlTexture = function(gl, textureSource, source) {
-    if (source instanceof ImageData || source instanceof HTMLImageElement || source instanceof HTMLCanvasElement || source instanceof HTMLVideoElement) {
+    if (source instanceof ImageData || source instanceof HTMLImageElement || source instanceof HTMLCanvasElement || source instanceof HTMLVideoElement || (window.ImageBitmap && source instanceof ImageBitmap)) {
         // Web-specific data types.
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
     } else {
@@ -9846,7 +10014,7 @@ WebAdapter.prototype.loadTextureSourceString = function(source, cb) {
         image.crossOrigin = "Anonymous";
     }
     image.onerror = function(err) {
-        return cb(err);
+        return cb("Image load error");
     };
     image.onload = function() {
         cb(null, image, {renderInfo: {src: source}});
@@ -9913,7 +10081,21 @@ WebAdapter.prototype.nextFrame = function(swapBuffers) {
     /* WebGL blits automatically */
 };
 
-// WebAdapter.prototype.getTextureProcess = function() {
-//     var TextureProcess = require('./TextureProcess');
-//     return new TextureProcess();
-// };
+WebAdapter.prototype.getTextureProcess = function() {
+    // Auto-detect worker url.
+    var sc = document.getElementsByTagName("script");
+
+    var workerPath = "";
+    for (var idx = 0; idx < sc.length; idx++) {
+        var s = sc.item(idx);
+
+        if (s.src) {
+            var match = /^(.+\/)(wpe(\.min)?|WebAdapter)\.js$/.exec(s.src);
+            if (match) {
+                workerPath = match[1];
+            }
+        }
+    }
+
+    return new TextureProcess(workerPath);
+};

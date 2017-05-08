@@ -6,6 +6,10 @@ var TextureProcess = function(workerPath) {
     // Browser supports CreateImageBitmap. This means that we can load all image types!
     this.hasNativeSupport = !!window.createImageBitmap;
 
+    // At this moment, it seems that it is faster to preload RGBA data because no per-pixel conversions are needed.
+    // For the time being, we always use the fallback.
+    this.hasNativeSupport = false;
+
     /**
      * Queued texture source loads, along with their load callbacks.
      * @type {Map<String, {cb: Function, ts: TextureSource}>}

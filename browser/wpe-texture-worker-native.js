@@ -74,7 +74,6 @@ TextureWorker.prototype.loadTextureSourceString = function(tsId, source, cb) {
 
     this.loadAsBlob(source, function(err, encoded) {
         if (err) return cb(err);
-
         createImageBitmap(encoded, {premultiplyAlpha: 'premultiply'}).then(function(imageBitmap) {
             return cb(null, imageBitmap, imageBitmap.width, imageBitmap.height, 'RGBA');
         }, function(err) {
