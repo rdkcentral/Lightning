@@ -212,7 +212,7 @@ List.prototype.update = function() {
 
             if (!item.visible || this.reloadVisibleElements) {
                 // Turned visible.
-                this.emit('elementVisible', item, realIndex);
+                this.emit('elementVisible', index, realIndex);
             }
 
             item.visible = true;
@@ -270,6 +270,7 @@ List.prototype.setup = function() {
 List.prototype.clearElements = function() {
     this.wrapper.removeChildren();
     this.reloadVisibleElements = true;
+    this.index = 0;
 };
 
 List.prototype.addElement = function(component) {
