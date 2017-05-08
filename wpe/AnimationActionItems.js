@@ -30,7 +30,7 @@ AnimationActionItems.prototype.push = function(item) {
     this.pe.push(item.pe || 0);
     this.idp.push(item.idp || 0);
     this.f.push(item.f || false);
-    this.v.push(item.v || 0);
+    this.v.push(item.hasOwnProperty('v') ? item.v : 0 /* v might be false or null */ );
     this.lv.push(item.lv || 0);
     this.sm.push(item.sm || 0);
     this.s.push(item.s || 0);

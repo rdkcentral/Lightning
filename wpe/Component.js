@@ -1708,7 +1708,7 @@ Object.defineProperty(Component.prototype, 'visible', {
     set: function(v) {
         var pv = this._visible;
         if (pv !== v) {
-            this._visible = v;
+            this._visible = !!v;
             this._updateLocalAlpha();
             this.updateActiveFlag();
         }

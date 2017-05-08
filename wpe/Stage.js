@@ -54,6 +54,11 @@ function Stage(options, cb) {
 
     this.fixedDt = (options && options.fixedDt) || 0;
 
+    if (!isNode && window.ZIndexTester) {
+        // For testing z-index ordering simply include the ZIndexTester.js file.
+        this.zIndexTester = new ZIndexTester(this);
+    }
+
     /**
      * Counts the number of drawn frames.
      * @type {number}
@@ -327,6 +332,10 @@ Stage.prototype.drawFrame = function() {
     this.measureDetails && this.timeStart('perform updates');
     this.performUpdates();
     this.measureDetails && this.timeEnd('perform updates');
+
+    if (this.zIndexTester) {
+        this.zIndexTester.test();
+    }
 
     if (this.renderNeeded) {
         // We will render the stage even if it's stable shortly after importing a texture in the texture atlas, to prevent out-of-syncs.
