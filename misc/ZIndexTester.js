@@ -126,3 +126,13 @@ UComponentContext.prototype.createUComponentForComponent = function(component) {
     uc.c = component;
     return uc;
 };
+
+var i = Stage.prototype.init;
+Stage.prototype.init = function(cb) {
+    this.zIndexTester = new ZIndexTester(this);
+    var self = this;
+    this.on('frameStart', function() {
+        self.zIndexTester.test();
+    });
+    i.apply(this, cb);
+};
