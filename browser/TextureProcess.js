@@ -3,13 +3,6 @@ var TextureProcess = function(workerPath) {
     // Base URL where the web worker source files should reside.
     this.workerPath = workerPath;
 
-    // Browser supports CreateImageBitmap. This means that we can load all image types!
-    this.hasNativeSupport = !!window.createImageBitmap;
-
-    // At this moment, it seems that it is faster to preload RGBA data because no per-pixel conversions are needed.
-    // For the time being, we always use the fallback.
-    this.hasNativeSupport = false;
-
     /**
      * Queued texture source loads, along with their load callbacks.
      * @type {Map<String, {cb: Function, ts: TextureSource}>}
@@ -26,7 +19,7 @@ TextureProcess.prototype.init = function(cb) {
     }
 
     try {
-        var workerUrl = this.workerPath + (this.hasNativeSupport ? "wpe-texture-worker-native.js" : "wpe-texture-worker-fallback.js");
+        var workerUrl = this.workerPath + "wpe-texture-worker.js";
         this.worker = new Worker(workerUrl);
     } catch(e) {
         console.error('Error starting web worker', e);
@@ -48,9 +41,7 @@ TextureProcess.prototype.init = function(cb) {
     this.worker.postMessage({baseUrl: baseUrl});
 
     if (this.hasNativeSupport) {
-        console.log("Connected to texture Worker.");
-    } else {
-        console.log("Connected to fallback texture Worker. You browser does not support createImageBitmap. Only JPG will be supported.");
+        console.log("Connected to texture Worker. Support: JPG and PNG.");
     }
 
     cb();
@@ -123,12 +114,12 @@ TextureProcess.prototype.loadTextureSourceString = function(src, ts, cb) {
         ts.cancelCb = this.cancel.bind(this);
         return true;
     } else {
-        if (src.toLowerCase().indexOf(".jpg") !== -1) {
+        if (src.toLowerCase().indexOf(".jpg") !== -1 || src.toLowerCase().indexOf(".png") !== -1) {
             this.add(0, src, ts, cb);
             ts.cancelCb = this.cancel.bind(this);
             return true;
         } else {
-            // @todo: png support?
+            // Other file formats are currently not supported and are downloaded syncronously.
             return false;
         }
     }
