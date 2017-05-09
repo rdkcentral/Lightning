@@ -122,6 +122,8 @@ function Stage(options, cb) {
 
     this.textureProcessWorkerPath = options.textureProcessWorkerPath || "";
 
+    this.textureProcessTextServer = options.textureProcessTextServer || "";
+
     this.useTextureProcess = !!options.useTextureProcess && !!this.adapter.getTextureProcess;
     if (this.useTextureProcess) {
         this.textureProcess = this.adapter.getTextureProcess();

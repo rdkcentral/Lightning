@@ -1,7 +1,6 @@
-var TextureProcess = function(workerPath) {
+var TextureProcess = function(options) {
 
-    // Base URL where the web worker source files should reside.
-    this.workerPath = workerPath;
+    this.options = options;
 
     /**
      * Queued texture source loads, along with their load callbacks.
@@ -19,7 +18,7 @@ TextureProcess.prototype.init = function(cb) {
     }
 
     try {
-        var workerUrl = this.workerPath + "wpe-texture-worker.js";
+        var workerUrl = this.options.workerPath + "wpe-texture-worker.js";
         this.worker = new Worker(workerUrl);
     } catch(e) {
         console.error('Error starting web worker', e);
@@ -38,11 +37,10 @@ TextureProcess.prototype.init = function(cb) {
     if (index !== -1) {
         baseUrl = baseUrl.substr(0, index + 1);
     }
-    this.worker.postMessage({baseUrl: baseUrl});
 
-    if (this.hasNativeSupport) {
-        console.log("Connected to texture Worker. Support: JPG and PNG.");
-    }
+    this.worker.postMessage({baseUrl: baseUrl, textServer: this.options.textServer});
+
+    console.log("Connected to texture Worker. Support: JPG and PNG.");
 
     cb();
 };
@@ -69,10 +67,6 @@ TextureProcess.prototype.receiveMessage = function(e) {
             premultiplyAlpha: false,
             flipBlueRed: false
         };
-
-        if (this.textureMetaInfo.format) {
-            options.format = this.textureMetaInfo.format;
-        }
 
         if (this.textureMetaInfo.renderInfo) {
             options.renderInfo = this.textureMetaInfo.renderInfo;
@@ -123,6 +117,13 @@ TextureProcess.prototype.loadTextureSourceString = function(src, ts, cb) {
             return false;
         }
     }
+};
+
+TextureProcess.prototype.loadText = function(settings, ts, cb) {
+    if (!this.options.textServer) return false;
+    this.add(1, JSON.stringify(settings.getRenderNonDefaults()), ts, cb);
+    ts.cancelCb = this.cancel.bind(this);
+    return true;
 };
 
 /**

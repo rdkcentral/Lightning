@@ -23,6 +23,7 @@ TextureWorker.prototype.handleMessage = function(e) {
     if (m.baseUrl) {
         // Set base url.
         this.baseUrl = m.baseUrl;
+        this.textServer = m.textServer;
     } else {
         // Handle message;
         if (m.cancel) {
@@ -57,9 +58,6 @@ TextureWorker.prototype.load = function(item) {
     var self = this;
 
     var handleResult = function(err, buf, w, h, renderInfo) {
-        if (!err) {
-            console.log('Loaded in texture worker: ' + src);
-        }
         self.handleResult(err, tsId, src, buf, w, h, renderInfo);
     };
 
@@ -68,8 +66,8 @@ TextureWorker.prototype.load = function(item) {
     if (type === 0) {
         this.loadTextureSourceString(tsId, src, handleResult);
     } else if (type === 1) {
-        // No support for text rendering (yet).
-        handleResult('Not supported');
+        var src = this.textServer + "?q=" + encodeURIComponent(src);
+        this.loadTextureSourceString(tsId, src, handleResult);
     }
 };
 
@@ -80,7 +78,7 @@ TextureWorker.prototype.loadTextureSourceString = function(tsId, source, cb) {
     }
 
     var self = this;
-    this.loadAsUint8Array(source, function(err, encoded) {
+    this.loadAsUint8Array(source, function(err, encoded, renderInfo) {
         if (err) return cb(err);
 
         var encoding = self.getEncoding(encoded);
@@ -99,12 +97,12 @@ TextureWorker.prototype.loadTextureSourceString = function(tsId, source, cb) {
             var converted = new Uint8Array(width * height * 4);
             self.copyRgbToRgba(decoded, converted);
 
-            cb(null, converted, width, height);
+            cb(null, converted, width, height, renderInfo);
         } else if (encoding === 2) {
             var png = new PNG(encoded);
             var pixels = png.decode();
 
-            cb(null, pixels, png.width, png.height);
+            cb(null, pixels, png.width, png.height, renderInfo);
         } else {
             return cb(new Error("Unexpected file format: " + source));
         }
@@ -139,7 +137,17 @@ TextureWorker.prototype.loadAsUint8Array = function(url, cb) {
         if (xhr.status !== 200) {
             return cb(new Error('Unexpected status code: ' + xhr.status));
         }
-        cb(null, new Uint8Array(xhr.response));
+
+        var renderInfo = xhr.getResponseHeader("X-Render-Info");
+        if (renderInfo) {
+            renderInfo = decodeURIComponent(renderInfo);
+            try {
+                renderInfo = JSON.parse(renderInfo);
+            } catch(e) {
+                renderInfo = null;
+            }
+        }
+        cb(null, new Uint8Array(xhr.response), renderInfo || null);
     };
     xhr.onerror = function(e) {
         cb(e);

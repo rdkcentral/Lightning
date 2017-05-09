@@ -7,8 +7,6 @@ if (isNode) {
 function TextRenderer(drawingCanvasFactory, settings) {
     this.drawingCanvasFactory = drawingCanvasFactory;
 
-    this.texture = null;
-
     this.settings = settings;
 
     this.canvas = null;

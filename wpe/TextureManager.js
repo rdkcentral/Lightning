@@ -74,7 +74,10 @@ TextureManager.prototype.loadTextureSourceString = function(src, ts, sync, cb) {
  */
 TextureManager.prototype.loadText = function(settings, ts, sync, cb) {
     if (!sync && this.stage.useTextureProcess && this.stage.textureProcess.isConnected() && this.stage.textureProcess.loadText) {
-        this.stage.textureProcess.loadText(settings, ts, cb);
+        if (!this.stage.textureProcess.loadText(settings, ts, cb)) {
+            // Cannot be loaded remotely. Fallback: load sync.
+            this.stage.adapter.loadText(settings, cb);
+        }
     } else {
         this.stage.adapter.loadText(settings, cb);
     }

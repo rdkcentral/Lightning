@@ -136,5 +136,5 @@ WebAdapter.prototype.getTextureProcess = function() {
         }
     }
 
-    return new TextureProcess(workerPath);
+    return new TextureProcess({workerPath: workerPath, textServer: this.stage.textureProcessTextServer});
 };
