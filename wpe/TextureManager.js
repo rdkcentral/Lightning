@@ -173,7 +173,19 @@ TextureManager.prototype.uploadTextureSource = function(textureSource, source, f
         gl.pixelStorei(gl.UNPACK_FLIP_BLUE_RED, format.flipBlueRed);
     }
 
+    if (this.stage.measureLongFrames) {
+        var s = this.stage.getHrTime();
+    }
     this.stage.adapter.uploadGlTexture(gl, textureSource, source);
+    if (this.stage.measureLongFrames) {
+        if (!isNode && (source instanceof ImageData || source instanceof HTMLImageElement || source instanceof HTMLCanvasElement || source instanceof HTMLVideoElement || (window.ImageBitmap && source instanceof ImageBitmap))) {
+            this.stage.longFrameComponents.uploadImage += (this.stage.getHrTime() - s);
+            this.stage.longFrameComponents.nUploadImage++;
+        } else {
+            this.stage.longFrameComponents.uploadRaw += (this.stage.getHrTime() - s);
+            this.stage.longFrameComponents.nUploadRaw++;
+        }
+    }
 
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);

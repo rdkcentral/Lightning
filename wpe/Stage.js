@@ -118,8 +118,10 @@ function Stage(options, cb) {
     this.measureDetails = !!options.measureDetails;
     this.measureFrameDistribution = !!options.measureFrameDistribution;
     this.measureInnerFrameDistribution = !!options.measureInnerFrameDistribution;
+    this.measureLongFrames = !!options.measureLongFrames;
 
-    // Currently node-only.
+    this.textureProcessWorkerPath = options.textureProcessWorkerPath || "";
+
     this.useTextureProcess = !!options.useTextureProcess && !!this.adapter.getTextureProcess;
     if (this.useTextureProcess) {
         this.textureProcess = this.adapter.getTextureProcess();
@@ -150,6 +152,8 @@ function Stage(options, cb) {
     this.profile = new Array(60);
     this.innerProfile = new Array(10);
     this.profileLast = 0;
+
+    this.longFrameComponents = {lastFrameStart: 0, lastFrameEnd: 0, text: 0, uploadRaw: 0, uploadImage: 0};
 
     var self = this;
 
@@ -271,6 +275,10 @@ Stage.prototype.addActiveAnimation = function(a) {
 };
 
 Stage.prototype.drawFrame = function() {
+    if (this.measureLongFrames) {
+        this.logMeasureLongFrames();
+    }
+
     if (this.measureFrameDistribution || this.measureInnerFrameDistribution) {
         var s = this.adapter.getHrTime();
         if (this.profileLast && this.measureFrameDistribution) {
@@ -357,7 +365,58 @@ Stage.prototype.drawFrame = function() {
         }
     }
 
+    if (this.measureLongFrames) {
+        this.longFrameComponents.lastFrameEnd = this.getHrTime();
+    }
+
     this.frameCounter++;
+
+};
+
+Stage.prototype.logMeasureLongFrames = function() {
+    // Wait between frames.
+
+    var wait = 0;
+    var total = 0;
+    if (this.longFrameComponents.lastFrameEnd) {
+        total = this.longFrameComponents.lastFrameEnd - this.longFrameComponents.lastFrameStart;
+
+        this.longFrameComponents.lastFrameStart = this.getHrTime();
+        wait = this.longFrameComponents.lastFrameStart - this.longFrameComponents.lastFrameEnd;
+    } else {
+        this.longFrameComponents.lastFrameStart = this.getHrTime();
+    }
+
+    var other = total - (this.longFrameComponents.text + this.longFrameComponents.uploadRaw + this.longFrameComponents.uploadImage);
+
+    var amounts = ' [' + this.longFrameComponents.nText + ',' + this.longFrameComponents.nUploadRaw + ',' + this.longFrameComponents.nUploadImage + ']';
+    console.log(
+        amounts + this.repeatChar(' ', (12 - amounts.length)) +
+        this.repeatChar("T", Math.round(this.longFrameComponents.text)) +
+        this.repeatChar("R", Math.round(this.longFrameComponents.uploadRaw)) +
+        this.repeatChar("I", Math.round(this.longFrameComponents.uploadImage)) +
+        this.repeatChar("O", Math.round(other)) +
+        this.repeatChar(".", Math.round(wait))
+    );
+
+    this.longFrameComponents.text = 0;
+    this.longFrameComponents.uploadRaw = 0;
+    this.longFrameComponents.uploadImage = 0;
+    this.longFrameComponents.nText = 0;
+    this.longFrameComponents.nUploadRaw = 0;
+    this.longFrameComponents.nUploadImage = 0;
+};
+
+Stage.prototype.repeatChar = function(c, n) {
+    str = "";
+    for (var i = 0; i < n; i++) {
+        str += c;
+    }
+    return str;
+};
+
+Stage.prototype.getHrTime = function() {
+    return this.adapter.getHrTime();
 };
 
 Stage.prototype.progressTransitions = function() {

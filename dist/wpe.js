@@ -340,6 +340,10 @@ var TextureProcess = function(workerPath) {
     // Browser supports CreateImageBitmap. This means that we can load all image types!
     this.hasNativeSupport = !!window.createImageBitmap;
 
+    // At this moment, it seems that it is faster to preload RGBA data because no per-pixel conversions are needed.
+    // For the time being, we always use the fallback.
+    this.hasNativeSupport = false;
+
     /**
      * Queued texture source loads, along with their load callbacks.
      * @type {Map<String, {cb: Function, ts: TextureSource}>}
@@ -745,8 +749,10 @@ function Stage(options, cb) {
     this.measureDetails = !!options.measureDetails;
     this.measureFrameDistribution = !!options.measureFrameDistribution;
     this.measureInnerFrameDistribution = !!options.measureInnerFrameDistribution;
+    this.measureLongFrames = !!options.measureLongFrames;
 
-    // Currently node-only.
+    this.textureProcessWorkerPath = options.textureProcessWorkerPath || "";
+
     this.useTextureProcess = !!options.useTextureProcess && !!this.adapter.getTextureProcess;
     if (this.useTextureProcess) {
         this.textureProcess = this.adapter.getTextureProcess();
@@ -777,6 +783,8 @@ function Stage(options, cb) {
     this.profile = new Array(60);
     this.innerProfile = new Array(10);
     this.profileLast = 0;
+
+    this.longFrameComponents = {lastFrameStart: 0, lastFrameEnd: 0, text: 0, uploadRaw: 0, uploadImage: 0};
 
     var self = this;
 
@@ -898,6 +906,10 @@ Stage.prototype.addActiveAnimation = function(a) {
 };
 
 Stage.prototype.drawFrame = function() {
+    if (this.measureLongFrames) {
+        this.logMeasureLongFrames();
+    }
+
     if (this.measureFrameDistribution || this.measureInnerFrameDistribution) {
         var s = this.adapter.getHrTime();
         if (this.profileLast && this.measureFrameDistribution) {
@@ -984,7 +996,58 @@ Stage.prototype.drawFrame = function() {
         }
     }
 
+    if (this.measureLongFrames) {
+        this.longFrameComponents.lastFrameEnd = this.getHrTime();
+    }
+
     this.frameCounter++;
+
+};
+
+Stage.prototype.logMeasureLongFrames = function() {
+    // Wait between frames.
+
+    var wait = 0;
+    var total = 0;
+    if (this.longFrameComponents.lastFrameEnd) {
+        total = this.longFrameComponents.lastFrameEnd - this.longFrameComponents.lastFrameStart;
+
+        this.longFrameComponents.lastFrameStart = this.getHrTime();
+        wait = this.longFrameComponents.lastFrameStart - this.longFrameComponents.lastFrameEnd;
+    } else {
+        this.longFrameComponents.lastFrameStart = this.getHrTime();
+    }
+
+    var other = total - (this.longFrameComponents.text + this.longFrameComponents.uploadRaw + this.longFrameComponents.uploadImage);
+
+    var amounts = ' [' + this.longFrameComponents.nText + ',' + this.longFrameComponents.nUploadRaw + ',' + this.longFrameComponents.nUploadImage + ']';
+    console.log(
+        amounts + this.repeatChar(' ', (12 - amounts.length)) +
+        this.repeatChar("T", Math.round(this.longFrameComponents.text)) +
+        this.repeatChar("R", Math.round(this.longFrameComponents.uploadRaw)) +
+        this.repeatChar("I", Math.round(this.longFrameComponents.uploadImage)) +
+        this.repeatChar("O", Math.round(other)) +
+        this.repeatChar(".", Math.round(wait))
+    );
+
+    this.longFrameComponents.text = 0;
+    this.longFrameComponents.uploadRaw = 0;
+    this.longFrameComponents.uploadImage = 0;
+    this.longFrameComponents.nText = 0;
+    this.longFrameComponents.nUploadRaw = 0;
+    this.longFrameComponents.nUploadImage = 0;
+};
+
+Stage.prototype.repeatChar = function(c, n) {
+    str = "";
+    for (var i = 0; i < n; i++) {
+        str += c;
+    }
+    return str;
+};
+
+Stage.prototype.getHrTime = function() {
+    return this.adapter.getHrTime();
 };
 
 Stage.prototype.progressTransitions = function() {
@@ -1894,7 +1957,19 @@ TextureManager.prototype.uploadTextureSource = function(textureSource, source, f
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, format.premultiplyAlpha);
 
     
+    if (this.stage.measureLongFrames) {
+        var s = this.stage.getHrTime();
+    }
     this.stage.adapter.uploadGlTexture(gl, textureSource, source);
+    if (this.stage.measureLongFrames) {
+        if (!isNode && (source instanceof ImageData || source instanceof HTMLImageElement || source instanceof HTMLCanvasElement || source instanceof HTMLVideoElement || (window.ImageBitmap && source instanceof ImageBitmap))) {
+            this.stage.longFrameComponents.uploadImage += (this.stage.getHrTime() - s);
+            this.stage.longFrameComponents.nUploadImage++;
+        } else {
+            this.stage.longFrameComponents.uploadRaw += (this.stage.getHrTime() - s);
+            this.stage.longFrameComponents.nUploadRaw++;
+        }
+    }
 
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -4904,7 +4979,7 @@ Object.defineProperty(Component.prototype, 'visible', {
     set: function(v) {
         var pv = this._visible;
         if (pv !== v) {
-            this._visible = v;
+            this._visible = !!v;
             this._updateLocalAlpha();
             this.updateActiveFlag();
         }
@@ -5720,7 +5795,14 @@ ComponentText.prototype.createTextureSource = function(settings) {
     var m = this.stage.textureManager;
 
     var loadCb = function (cb, ts, sync) {
+        if (self.stage.measureLongFrames) {
+            var s = self.stage.getHrTime();
+        }
         m.loadText(settings, ts, sync, cb);
+        if (self.stage.measureLongFrames) {
+            self.stage.longFrameComponents.text += (self.stage.getHrTime() - s);
+            self.stage.longFrameComponents.nText++;
+        }
     };
 
     return self.stage.textureManager.getTextureSource(loadCb, settings.getTextureId());
@@ -5738,6 +5820,7 @@ ComponentText.prototype.measure = function() {
     }
 
     var rval = tr.draw(true);
+
     return rval.renderInfo;
 };
 
@@ -7793,7 +7876,7 @@ AnimationActionItems.prototype.push = function(item) {
     this.pe.push(item.pe || 0);
     this.idp.push(item.idp || 0);
     this.f.push(item.f || false);
-    this.v.push(item.v || 0);
+    this.v.push(item.hasOwnProperty('v') ? item.v : 0 /* v might be false or null */ );
     this.lv.push(item.lv || 0);
     this.sm.push(item.sm || 0);
     this.s.push(item.s || 0);
@@ -10085,14 +10168,17 @@ WebAdapter.prototype.getTextureProcess = function() {
     // Auto-detect worker url.
     var sc = document.getElementsByTagName("script");
 
-    var workerPath = "";
-    for (var idx = 0; idx < sc.length; idx++) {
-        var s = sc.item(idx);
+    var workerPath = this.stage.textureProcessWorkerPath;
 
-        if (s.src) {
-            var match = /^(.+\/)(wpe(\.min)?|WebAdapter)\.js$/.exec(s.src);
-            if (match) {
-                workerPath = match[1];
+    if (!workerPath) {
+        for (var idx = 0; idx < sc.length; idx++) {
+            var s = sc.item(idx);
+
+            if (s.src) {
+                var match = /^(.+\/)(wpe(\.min)?|WebAdapter)\.js$/.exec(s.src);
+                if (match) {
+                    workerPath = match[1];
+                }
             }
         }
     }

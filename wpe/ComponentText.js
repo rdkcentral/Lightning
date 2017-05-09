@@ -78,7 +78,14 @@ ComponentText.prototype.createTextureSource = function(settings) {
     var m = this.stage.textureManager;
 
     var loadCb = function (cb, ts, sync) {
+        if (self.stage.measureLongFrames) {
+            var s = self.stage.getHrTime();
+        }
         m.loadText(settings, ts, sync, cb);
+        if (self.stage.measureLongFrames) {
+            self.stage.longFrameComponents.text += (self.stage.getHrTime() - s);
+            self.stage.longFrameComponents.nText++;
+        }
     };
 
     return self.stage.textureManager.getTextureSource(loadCb, settings.getTextureId());
@@ -96,6 +103,7 @@ ComponentText.prototype.measure = function() {
     }
 
     var rval = tr.draw(true);
+
     return rval.renderInfo;
 };
 

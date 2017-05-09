@@ -121,14 +121,17 @@ WebAdapter.prototype.getTextureProcess = function() {
     // Auto-detect worker url.
     var sc = document.getElementsByTagName("script");
 
-    var workerPath = "";
-    for (var idx = 0; idx < sc.length; idx++) {
-        var s = sc.item(idx);
+    var workerPath = this.stage.textureProcessWorkerPath;
 
-        if (s.src) {
-            var match = /^(.+\/)(wpe(\.min)?|WebAdapter)\.js$/.exec(s.src);
-            if (match) {
-                workerPath = match[1];
+    if (!workerPath) {
+        for (var idx = 0; idx < sc.length; idx++) {
+            var s = sc.item(idx);
+
+            if (s.src) {
+                var match = /^(.+\/)(wpe(\.min)?|WebAdapter)\.js$/.exec(s.src);
+                if (match) {
+                    workerPath = match[1];
+                }
             }
         }
     }

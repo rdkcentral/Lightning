@@ -29,6 +29,7 @@ TextureProcess.prototype.init = function(cb) {
         var workerUrl = this.workerPath + (this.hasNativeSupport ? "wpe-texture-worker-native.js" : "wpe-texture-worker-fallback.js");
         this.worker = new Worker(workerUrl);
     } catch(e) {
+        console.error('Error starting web worker', e);
         return cb(e);
     }
 
