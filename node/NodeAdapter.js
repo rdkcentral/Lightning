@@ -1,5 +1,6 @@
 var gles2 = require('wpe-webgl');
 var fs = require('fs');
+var Canvas = require('canvas');
 
 var UComponentContext = require('../wpe/UComponentContext');
 var TextRenderer = require('../wpe/TextRenderer');
@@ -109,7 +110,6 @@ NodeAdapter.prototype.loadText = function(settings, cb) {
     var tr = new TextRenderer(this.stage.drawingCanvasFactory, settings);
     var rval = tr.draw();
     var renderInfo = rval.renderInfo;
-
     var options = {renderInfo: renderInfo};
     var data = rval.canvas.toBuffer('raw');
     options.w = rval.canvas.width;
@@ -138,7 +138,6 @@ NodeAdapter.prototype.getWebGLRenderingContext = function(w, h) {
 };
 
 NodeAdapter.prototype.getDrawingCanvas = function() {
-    var Canvas = require('canvas');
     return new Canvas(0, 0);
 };
 

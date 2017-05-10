@@ -221,6 +221,7 @@ TextureProcess.prototype.loadTextureSourceString = function(src, ts, cb) {
 TextureProcess.prototype.loadText = function(settings, ts, cb) {
     this.add(1, JSON.stringify(settings.getRenderNonDefaults()), ts, cb);
     ts.cancelCb = this.cancel.bind(this);
+    return true;
 };
 
 /**

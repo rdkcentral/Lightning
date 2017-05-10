@@ -78,7 +78,15 @@ TextureWorker.prototype.loadTextureSourceString = function(tsId, source, cb) {
     }
 
     var self = this;
-    this.loadAsUint8Array(source, function(err, encoded, renderInfo) {
+    var xhr = null;
+
+    this.cancelCbs.set(tsId, function() {
+        if (xhr) {
+            xhr.abort();
+        }
+    });
+
+    xhr = this.loadAsUint8Array(source, function(err, encoded, renderInfo) {
         if (err) return cb(err);
 
         var encoding = self.getEncoding(encoded);
@@ -107,6 +115,8 @@ TextureWorker.prototype.loadTextureSourceString = function(tsId, source, cb) {
             return cb(new Error("Unexpected file format: " + source));
         }
     });
+
+
 };
 
 TextureWorker.prototype.copyRgbToRgba = function(source, target) {
@@ -138,14 +148,14 @@ TextureWorker.prototype.loadAsUint8Array = function(url, cb) {
             return cb(new Error('Unexpected status code: ' + xhr.status));
         }
 
-        var renderInfo = xhr.getResponseHeader("X-Render-Info");
-        if (renderInfo) {
-            renderInfo = decodeURIComponent(renderInfo);
-            try {
+        try {
+            var renderInfo = xhr.getResponseHeader("X-Render-Info");
+            if (renderInfo) {
+                renderInfo = decodeURIComponent(renderInfo);
                 renderInfo = JSON.parse(renderInfo);
-            } catch(e) {
-                renderInfo = null;
             }
+        } catch(e) {
+            renderInfo = null;
         }
         cb(null, new Uint8Array(xhr.response), renderInfo || null);
     };
@@ -153,6 +163,7 @@ TextureWorker.prototype.loadAsUint8Array = function(url, cb) {
         cb(e);
     };
     xhr.send();
+    return xhr;
 };
 
 TextureWorker.prototype.handleResult = function(err, tsId, src, buf, w, h, renderInfo) {

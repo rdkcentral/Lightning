@@ -338,6 +338,10 @@ Stage.prototype.drawFrame = function() {
     this.performUpdates();
     this.measureDetails && this.timeEnd('perform updates');
 
+    if (this.measureLongFrames) {
+        this.longFrameComponents.lastFrameEnd = this.getHrTime();
+    }
+
     if (this.renderNeeded) {
         // We will render the stage even if it's stable shortly after importing a texture in the texture atlas, to prevent out-of-syncs.
         this.measureDetails && this.timeStart('render');
@@ -365,10 +369,6 @@ Stage.prototype.drawFrame = function() {
                 this.innerProfile[i] = 0;
             }
         }
-    }
-
-    if (this.measureLongFrames) {
-        this.longFrameComponents.lastFrameEnd = this.getHrTime();
     }
 
     this.frameCounter++;
