@@ -332,17 +332,9 @@ EventEmitter.EventEmitter = EventEmitter;
 if ('undefined' !== typeof module) {
     module.exports = EventEmitter;
 }
-var TextureProcess = function(workerPath) {
+var TextureProcess = function(options) {
 
-    // Base URL where the web worker source files should reside.
-    this.workerPath = workerPath;
-
-    // Browser supports CreateImageBitmap. This means that we can load all image types!
-    this.hasNativeSupport = !!window.createImageBitmap;
-
-    // At this moment, it seems that it is faster to preload RGBA data because no per-pixel conversions are needed.
-    // For the time being, we always use the fallback.
-    this.hasNativeSupport = false;
+    this.options = options;
 
     /**
      * Queued texture source loads, along with their load callbacks.
@@ -360,9 +352,10 @@ TextureProcess.prototype.init = function(cb) {
     }
 
     try {
-        var workerUrl = this.workerPath + (this.hasNativeSupport ? "wpe-texture-worker-native.js" : "wpe-texture-worker-fallback.js");
+        var workerUrl = this.options.workerPath + "wpe-texture-worker.js";
         this.worker = new Worker(workerUrl);
     } catch(e) {
+        console.error('Error starting web worker', e);
         return cb(e);
     }
 
@@ -378,13 +371,10 @@ TextureProcess.prototype.init = function(cb) {
     if (index !== -1) {
         baseUrl = baseUrl.substr(0, index + 1);
     }
-    this.worker.postMessage({baseUrl: baseUrl});
 
-    if (this.hasNativeSupport) {
-        console.log("Connected to texture Worker.");
-    } else {
-        console.log("Connected to fallback texture Worker. You browser does not support createImageBitmap. Only JPG will be supported.");
-    }
+    this.worker.postMessage({baseUrl: baseUrl, textServer: this.options.textServer});
+
+    console.log("Connected to texture Worker. Support: JPG and PNG.");
 
     cb();
 };
@@ -411,10 +401,6 @@ TextureProcess.prototype.receiveMessage = function(e) {
             premultiplyAlpha: false,
             flipBlueRed: false
         };
-
-        if (this.textureMetaInfo.format) {
-            options.format = this.textureMetaInfo.format;
-        }
 
         if (this.textureMetaInfo.renderInfo) {
             options.renderInfo = this.textureMetaInfo.renderInfo;
@@ -456,15 +442,22 @@ TextureProcess.prototype.loadTextureSourceString = function(src, ts, cb) {
         ts.cancelCb = this.cancel.bind(this);
         return true;
     } else {
-        if (src.toLowerCase().indexOf(".jpg") !== -1) {
+        if (src.toLowerCase().indexOf(".jpg") !== -1 || src.toLowerCase().indexOf(".png") !== -1) {
             this.add(0, src, ts, cb);
             ts.cancelCb = this.cancel.bind(this);
             return true;
         } else {
-            // @todo: png support?
+            // Other file formats are currently not supported and are downloaded syncronously.
             return false;
         }
     }
+};
+
+TextureProcess.prototype.loadText = function(settings, ts, cb) {
+    if (!this.options.textServer) return false;
+    this.add(1, JSON.stringify(settings.getRenderNonDefaults()), ts, cb);
+    ts.cancelCb = this.cancel.bind(this);
+    return true;
 };
 
 /**
@@ -753,6 +746,8 @@ function Stage(options, cb) {
 
     this.textureProcessWorkerPath = options.textureProcessWorkerPath || "";
 
+    this.textureProcessTextServer = options.textureProcessTextServer || "";
+
     this.useTextureProcess = !!options.useTextureProcess && !!this.adapter.getTextureProcess;
     if (this.useTextureProcess) {
         this.textureProcess = this.adapter.getTextureProcess();
@@ -967,6 +962,10 @@ Stage.prototype.drawFrame = function() {
     this.performUpdates();
     this.measureDetails && this.timeEnd('perform updates');
 
+    if (this.measureLongFrames) {
+        this.longFrameComponents.lastFrameEnd = this.getHrTime();
+    }
+
     if (this.renderNeeded) {
         // We will render the stage even if it's stable shortly after importing a texture in the texture atlas, to prevent out-of-syncs.
         this.measureDetails && this.timeStart('render');
@@ -994,10 +993,6 @@ Stage.prototype.drawFrame = function() {
                 this.innerProfile[i] = 0;
             }
         }
-    }
-
-    if (this.measureLongFrames) {
-        this.longFrameComponents.lastFrameEnd = this.getHrTime();
     }
 
     this.frameCounter++;
@@ -1861,7 +1856,10 @@ TextureManager.prototype.loadTextureSourceString = function(src, ts, sync, cb) {
  */
 TextureManager.prototype.loadText = function(settings, ts, sync, cb) {
     if (!sync && this.stage.useTextureProcess && this.stage.textureProcess.isConnected() && this.stage.textureProcess.loadText) {
-        this.stage.textureProcess.loadText(settings, ts, cb);
+        if (!this.stage.textureProcess.loadText(settings, ts, cb)) {
+            // Cannot be loaded remotely. Fallback: load sync.
+            this.stage.adapter.loadText(settings, cb);
+        }
     } else {
         this.stage.adapter.loadText(settings, cb);
     }
@@ -5128,6 +5126,10 @@ Object.defineProperty(Component.prototype, 'displayedTexture', {
                     this._updateTextureCoords();
                     this.stage.uComponentContext.setDisplayedTextureSource(this.uComponent, v.source);
                 } else {
+                    if (this._eventsCount) {
+                        this.emit('txUnloaded', v);
+                    }
+
                     this.stage.uComponentContext.setDisplayedTextureSource(this.uComponent, null);
                 }
             }
@@ -6169,8 +6171,6 @@ Object.defineProperty(ComponentText.prototype, 'cutEy', {
 
 function TextRenderer(drawingCanvasFactory, settings) {
     this.drawingCanvasFactory = drawingCanvasFactory;
-
-    this.texture = null;
 
     this.settings = settings;
 
@@ -10183,5 +10183,5 @@ WebAdapter.prototype.getTextureProcess = function() {
         }
     }
 
-    return new TextureProcess(workerPath);
+    return new TextureProcess({workerPath: workerPath, textServer: this.stage.textureProcessTextServer});
 };

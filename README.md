@@ -418,7 +418,8 @@ Text sub object properties:
 
 | Name | Arguments | Description |
 | --------------------------------- |---------|-------------|
-| `txLoad` | textureSource | `this.texture` has been loaded. |
+| `txLoaded` | textureSource | `this.texture` has been loaded. |
+| `txUnloaded` | textureSource | The texture is no longer visible, because it is garbage collected or explicitly set to null. |
 | `txError` | error, textureSource | Error while trying to load `this.texture`. |
 
 ## <a name="transition"></a>Transition

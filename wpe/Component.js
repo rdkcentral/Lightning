@@ -1857,6 +1857,10 @@ Object.defineProperty(Component.prototype, 'displayedTexture', {
                     this._updateTextureCoords();
                     this.stage.uComponentContext.setDisplayedTextureSource(this.uComponent, v.source);
                 } else {
+                    if (this._eventsCount) {
+                        this.emit('txUnloaded', v);
+                    }
+
                     this.stage.uComponentContext.setDisplayedTextureSource(this.uComponent, null);
                 }
             }
