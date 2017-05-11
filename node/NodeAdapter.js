@@ -58,15 +58,18 @@ NodeAdapter.prototype.uploadGlTexture = function(gl, textureSource, source) {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, textureSource.w, textureSource.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, source);
 };
 
+var http = require('http');
+var https = require('https');
+
 NodeAdapter.prototype.loadTextureSourceString = function(source, ts, cb) {
     var self = this;
     if (/^https?:\/\//i.test(source)) {
         // URL. Download first.
         var mod = null;
         if (source.toLowerCase().indexOf("https:") === 0) {
-            mod = require('https');
+            mod = https;
         } else {
-            mod = require('http');
+            mod = http;
         }
 
         mod.get(source, function(res) {
