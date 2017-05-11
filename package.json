@@ -5,7 +5,7 @@
   "main": "wpe.js",
   "license": "apache",
   "dependencies": {
-    "canvas": "git@github.com:basvanmeurs/node-canvas.git",
+    "canvas": "https://github.com/basvanmeurs/node-canvas.git",
     "wpe-webgl": "^0.0.3"
   },
   "devDependencies": {
