@@ -56,7 +56,7 @@ TextureProcess.prototype.init = function(cb) {
 };
 
 TextureProcess.prototype.fork = function() {
-    console.log('Starting texture process (for image/text generation).');
+    console.log('Starting texture process.');
 
     var self = this;
     this.textureProcess = require('child_process').fork(__dirname + "/process/texture/texture", ['--allow-local=1'], {execArgv: []});

@@ -124,6 +124,8 @@ function Stage(options, cb) {
 
     this.textureProcessTextServer = options.textureProcessTextServer || "";
 
+    this.useTextureProcessImageFetching = (options.useTextureProcessImageFetching !== false);
+
     this.useTextureProcessTextGeneration = (options.useTextureProcessTextGeneration !== false);
 
     this.useTextureProcess = !!options.useTextureProcess && !!this.adapter.getTextureProcess;
@@ -250,6 +252,8 @@ Stage.prototype.init = function(cb) {
         }
 
         if (self.useTextureProcess) {
+            console.log('Texture process config (text:' + (self.useTextureProcessTextGeneration ? 'yes' : 'no') + ', image:'  + (self.useTextureProcessImageFetching ? 'yes' : 'no') + ').');
+
             self.textureProcess.init(function(err) {
                 if (err) {
                     console.warn('Error connecting to texture process. Textures will be loaded on the main thread.');

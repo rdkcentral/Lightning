@@ -58,7 +58,7 @@ NodeAdapter.prototype.uploadGlTexture = function(gl, textureSource, source) {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, textureSource.w, textureSource.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, source);
 };
 
-NodeAdapter.prototype.loadTextureSourceString = function(source, cb) {
+NodeAdapter.prototype.loadTextureSourceString = function(source, ts, cb) {
     var self = this;
     if (/^https?:\/\//i.test(source)) {
         // URL. Download first.
@@ -105,7 +105,7 @@ NodeAdapter.prototype.parseImage = function(data, cb) {
     cb(null, buf, {w: img.width, h: img.height, premultiplyAlpha: false, flipBlueRed: true});
 };
 
-NodeAdapter.prototype.loadText = function(settings, cb) {
+NodeAdapter.prototype.loadText = function(settings, ts, cb) {
     // Generate the image.
     var tr = new TextRenderer(this.stage.drawingCanvasFactory, settings);
     var rval = tr.draw();
