@@ -59,7 +59,7 @@ TextureManager.prototype.destroy = function() {
  * Loads a texture source from a source reference (.src property).
  */
 TextureManager.prototype.loadTextureSourceString = function(src, ts, sync, cb) {
-    if (!sync && this.stage.useTextureProcess && this.stage.textureProcess.isConnected() && this.stage.textureProcess.loadTextureSourceString) {
+    if (!sync && this.stage.useTextureProcess && this.stage.textureProcess.isConnected()) {
         if (!this.stage.textureProcess.loadTextureSourceString(src, ts, cb)) {
             // Cannot be loaded remotely. Fallback: load sync.
             this.stage.adapter.loadTextureSourceString(src, cb);
@@ -73,7 +73,7 @@ TextureManager.prototype.loadTextureSourceString = function(src, ts, sync, cb) {
  * Loads a text from the finalized text settings.
  */
 TextureManager.prototype.loadText = function(settings, ts, sync, cb) {
-    if (!sync && this.stage.useTextureProcess && this.stage.textureProcess.isConnected() && this.stage.textureProcess.loadText) {
+    if (!sync && this.stage.useTextureProcess && this.stage.textureProcess.isConnected() && this.stage.useTextureProcessTextGeneration) {
         if (!this.stage.textureProcess.loadText(settings, ts, cb)) {
             // Cannot be loaded remotely. Fallback: load sync.
             this.stage.adapter.loadText(settings, cb);

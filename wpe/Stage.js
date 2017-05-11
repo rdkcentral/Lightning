@@ -124,6 +124,8 @@ function Stage(options, cb) {
 
     this.textureProcessTextServer = options.textureProcessTextServer || "";
 
+    this.useTextureProcessTextGeneration = (options.useTextureProcessTextGeneration !== false);
+
     this.useTextureProcess = !!options.useTextureProcess && !!this.adapter.getTextureProcess;
     if (this.useTextureProcess) {
         this.textureProcess = this.adapter.getTextureProcess();
