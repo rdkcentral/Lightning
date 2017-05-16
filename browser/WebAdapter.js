@@ -43,7 +43,7 @@ WebAdapter.prototype.uploadGlTexture = function(gl, textureSource, source) {
     }
 };
 
-WebAdapter.prototype.loadTextureSourceString = function(source, cb) {
+WebAdapter.prototype.loadTextureSourceString = function(source, ts, cb) {
     var image = new Image();
     if (!(source.substr(0,5) == "data:")) {
         // Base64.
@@ -58,7 +58,7 @@ WebAdapter.prototype.loadTextureSourceString = function(source, cb) {
     image.src = source;
 };
 
-WebAdapter.prototype.loadText = function(settings, cb) {
+WebAdapter.prototype.loadText = function(settings, ts, cb) {
     // Generate the image.
     var tr = new TextRenderer(this.stage.drawingCanvasFactory, settings);
     var rval = tr.draw();
