@@ -33,74 +33,10 @@ var Component = function(stage) {
     this.stage = stage;
 
     /**
-     * A component is active if it is a descendant of the stage root, and if it is visible.
-     * @type {boolean}
-     */
-    this.active = false;
-
-    /**
-     * A component is active if it is a descendant of the stage root.
-     * @type {boolean}
-     */
-    this.attached = false;
-
-    /**
-     * @type {Component}
-     */
-    this.parent = null;
-
-    /**
-     * Flag to quickly check if this component has children.
-     * @type {boolean}
-     */
-    this.hasChildren = false;
-
-    this._clipping = false;
-
-    this._displayedTexture = null;
-
-    // Cache width & height, only maintained when component is active.
-    this._renderWidth = 0;
-    this._renderHeight = 0;
-
-    /**
-     * Flag that indicates if this component has borders at all.
-     * @type {boolean}
-     */
-    this.hasBorders = false;
-
-    /**
      * 'Normal' children.
      * @type {Component[]}
      */
     this._children = [];
-
-    /**
-     * Color tint of this sprite.
-     * @type {number}
-     */
-    this._colorTopLeft = 0xffffffff;
-    this._colorTopRight = 0xffffffff;
-    this._colorBottomLeft = 0xffffffff;
-    this._colorBottomRight = 0xffffffff;
-
-    /**
-     * The transitions (indexed by property index, null if not used).
-     * @type {Transition[]}
-     */
-    this.transitions = null;
-
-    /**
-     * All transitions, for quick looping.
-     * @type {Set<Transition>}
-     */
-    this.transitionSet = null;
-
-    /**
-     * All animations that have this component has subject.
-     * @type {Set<Animation>}
-     */
-    this.animationSet = null;
 
     /**
      * Manages the tags for this component.
@@ -108,97 +44,162 @@ var Component = function(stage) {
      */
     this._tags = new ComponentTags(this);
     
-    this._x = 0;
-    this._y = 0;
-    this._w = 0;
-    this._h = 0;
-    this._scaleX = 1;
-    this._scaleY = 1;
-    this._pivotX = 0.5;
-    this._pivotY = 0.5;
-    this._mountX = 0;
-    this._mountY = 0;
-    this._alpha = 1;
-    this._rotation = 0;
-    this._borderWidthTop = 0;
-    this._borderWidthBottom = 0;
-    this._borderWidthLeft = 0;
-    this._borderWidthRight = 0;
-    this._borderColorTop = 0xffffffff;
-    this._borderColorBottom = 0xffffffff;
-    this._borderColorLeft = 0xffffffff;
-    this._borderColorRight = 0xffffffff;
-    this._visible = true;
-
-    /**
-     * Manages text rendering for this component. Lazy loaded.
-     * @type {ComponentText}
-     */
-    this.textRenderer = null;
-
-    /**
-     * The texture that is currently set.
-     * This is changed when changing the src and should never be changed manually.
-     * @type {Texture}
-     */
-    this._texture = null;
-
-    /**
-     * The currently displayed texture. While this.texture is loading, this one may be different.
-     * @type {Texture}
-     */
-    this.displayedTexture = this._displayedTexture = null;
-
-    /**
-     * Image source, if set.
-     * @type {String}
-     * @private
-     */
-    this._src = null;
-
-    /**
-     * If true, this component is being 'clipped' around the edges. For non-sprite components, the width and height
-     * must be explicitly set.
-     * @type {boolean}
-     */
-    this.clipping = false;
-
-    /**
-     * The z-index, which determines the rendering order (in the same way as in HTML). 0 = no z-index.
-     * @type {number}
-     */
-    this._zIndex = 0;
-
-    /**
-     * If true, this component always behaves as a z-index context. Z-indexed descendants will never be rendered
-     * outside of this context.
-     * @type {boolean}
-     */
-    this._forceZIndexContext = false;
-
-    /**
-     * This function is called when this component becomes active.
-     * @type {Function}
-     */
-    this.notifyActivate = null;
-
-    /**
-     * This function is called when this component becomes inactive.
-     * @type {Function}
-     */
-    this.notifyDeactivate = null;
-
-    /**
-     * The cached rotation value (because cos and sin are slow).
-     * @type {number}
-     */
-    this.rotationCache = 0;
-    this._sr = 0;
-    this._cr = 1;
-
 };
 
 Utils.extendClass(Component, EventEmitter);
+
+/**
+ * A component is active if it is a descendant of the stage root, and if it is visible.
+ * @type {boolean}
+ */
+Component.prototype.active = false;
+
+/**
+ * A component is active if it is a descendant of the stage root.
+ * @type {boolean}
+ */
+Component.prototype.attached = false;
+
+/**
+ * @type {Component}
+ */
+Component.prototype.parent = null;
+
+/**
+ * Flag to quickly check if this component has children.
+ * @type {boolean}
+ */
+Component.prototype.hasChildren = false;
+
+Component.prototype._clipping = false;
+
+Component.prototype._displayedTexture = null;
+
+// Cache width & height, only maintained when component is active.
+Component.prototype._renderWidth = 0;
+Component.prototype._renderHeight = 0;
+
+/**
+ * Flag that indicates if this component has borders at all.
+ * @type {boolean}
+ */
+Component.prototype.hasBorders = false;
+
+/**
+ * Color tint of this sprite.
+ * @type {number}
+ */
+Component.prototype._colorTopLeft = 0xffffffff;
+Component.prototype._colorTopRight = 0xffffffff;
+Component.prototype._colorBottomLeft = 0xffffffff;
+Component.prototype._colorBottomRight = 0xffffffff;
+
+/**
+ * The transitions (indexed by property index, null if not used).
+ * @type {Transition[]}
+ */
+Component.prototype.transitions = null;
+
+/**
+ * All transitions, for quick looping.
+ * @type {Set<Transition>}
+ */
+Component.prototype.transitionSet = null;
+
+/**
+ * All animations that have this component has subject.
+ * @type {Set<Animation>}
+ */
+Component.prototype.animationSet = null;
+
+Component.prototype._x = 0;
+Component.prototype._y = 0;
+Component.prototype._w = 0;
+Component.prototype._h = 0;
+Component.prototype._scaleX = 1;
+Component.prototype._scaleY = 1;
+Component.prototype._pivotX = 0.5;
+Component.prototype._pivotY = 0.5;
+Component.prototype._mountX = 0;
+Component.prototype._mountY = 0;
+Component.prototype._alpha = 1;
+Component.prototype._rotation = 0;
+Component.prototype._borderWidthTop = 0;
+Component.prototype._borderWidthBottom = 0;
+Component.prototype._borderWidthLeft = 0;
+Component.prototype._borderWidthRight = 0;
+Component.prototype._borderColorTop = 0xffffffff;
+Component.prototype._borderColorBottom = 0xffffffff;
+Component.prototype._borderColorLeft = 0xffffffff;
+Component.prototype._borderColorRight = 0xffffffff;
+Component.prototype._visible = true;
+
+/**
+ * Manages text rendering for this component. Lazy loaded.
+ * @type {ComponentText}
+ */
+Component.prototype.textRenderer = null;
+
+/**
+ * The texture that is currently set.
+ * This is changed when changing the src and should never be changed manually.
+ * @type {Texture}
+ */
+Component.prototype._texture = null;
+
+/**
+ * The currently displayed texture. While Component.prototype.texture is loading, this one may be different.
+ * @type {Texture}
+ */
+Component.prototype._displayedTexture = null;
+
+/**
+ * Image source, if set.
+ * @type {String}
+ * @private
+ */
+Component.prototype._src = null;
+
+/**
+ * If true, this component is being 'clipped' around the edges. For non-sprite components, the width and height
+ * must be explicitly set.
+ * @type {boolean}
+ */
+Component.prototype.clipping = false;
+
+/**
+ * The z-index, which determines the rendering order (in the same way as in HTML). 0 = no z-index.
+ * @type {number}
+ */
+Component.prototype._zIndex = 0;
+
+/**
+ * If true, this component always behaves as a z-index context. Z-indexed descendants will never be rendered
+ * outside of this context.
+ * @type {boolean}
+ */
+Component.prototype._forceZIndexContext = false;
+
+/**
+ * This function is called when this component becomes active.
+ * @type {Function}
+ */
+Component.prototype.notifyActivate = null;
+
+/**
+ * This function is called when this component becomes inactive.
+ * @type {Function}
+ */
+Component.prototype.notifyDeactivate = null;
+
+/**
+ * The cached rotation value (because cos and sin are slow).
+ * @type {number}
+ */
+Component.prototype.rotationCache = 0;
+Component.prototype._sr = 0;
+Component.prototype._cr = 1;
+
 
 Component.prototype.setAsRoot = function() {
     this.updateActiveFlag();

@@ -15,14 +15,14 @@ function ComponentText(component) {
 
     this.component = component;
 
-    this.updatingTexture = false;
-
     this.settings = new TextRendererSettings();
-
-    this.texture = null;
 
     this.updateTexture();
 }
+
+ComponentText.prototype.updatingTexture = false;
+
+ComponentText.prototype.texture = null;
 
 ComponentText.prototype.set = function(settings) {
     this.settings.set(settings);

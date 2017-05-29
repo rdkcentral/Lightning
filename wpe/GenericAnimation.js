@@ -12,25 +12,25 @@ function GenericAnimation(stage) {
 
     this.stage = stage;
 
-    /**
-     * @type {Component}
-     */
-    this._subject = null;
-
     this.actions = [];
 
-    /**
-     * @access private
-     */
-    this.p = 0;
-
-    /**
-     * Dummy for getFrameForProgress. Causes frame to be 0 when this is not a timed animation.
-     * @type {number}
-     */
-    this.duration = 0;
-
 }
+
+/**
+ * @type {Component}
+ */
+GenericAnimation.prototype._subject = null;
+
+/**
+ * @access private
+ */
+GenericAnimation.prototype.p = 0;
+
+/**
+ * Dummy for getFrameForProgress. Causes frame to be 0 when this is not a timed animation.
+ * @type {number}
+ */
+GenericAnimation.prototype.duration = 0;
 
 GenericAnimation.prototype.set = function(settings) {
     var propNames = Object.keys(settings);

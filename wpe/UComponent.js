@@ -7,107 +7,108 @@ if (isNode) {
 var UComponent = function(ctx) {
     this.ctx = ctx;
 
-    this.parent = null;
-
-    this.hasUpdates = false;
-
-    this.recalc = 0;
-
-    this.worldAlpha = 1;
-
-    this.updateTreeOrder = 0;
-
-    this.hasBorders = false;
-
-    this.hasChildren = false;
-
-    // All local translation/transform updates: directly propagated from x/y/w/h/scale/whatever.
-    this.worldPx = this.localPx = 0;
-    this.worldPy = this.localPy = 0;
-
-    this.worldTa = this.localTa = 1;
-    this.worldTb = this.localTb = 0;
-    this.worldTc = this.localTc = 0;
-    this.worldTd = this.localTd = 1;
-
-    this.isComplex = false;
-
-    this.localAlpha = 1;
-
     this.children = [];
 
-    this.w = 0;
-    this.h = 0;
-
-    this.clipping = false;
-    this.clippingParent = null;
-
-    /**
-     * In case of clipping, this flag indicates if we're dealing with a square-shaped clipping area.
-     * @type {boolean}
-     */
-    this.clippingSquare = false;
-
-    this.clippingSquareMinX = 0;
-    this.clippingSquareMaxX = 0;
-    this.clippingSquareMinY = 0;
-    this.clippingSquareMaxY = 0;
-
-    /**
-     * Flag that indicates that clipping area is empty.
-     * @type {boolean}
-     */
-    this.clippingEmpty = false;
-
-    /**
-     * Flag that indicates that the clipping area are the corner points.
-     * @type {boolean}
-     */
-    this.clippingNoEffect = false;
-
-    /**
-     * In case of complex clipping, the corner points of the clipping area.
-     * @type {number[]}
-     */
-    this.clippingArea = null;
-
-    /**
-     * The texture source to be displayed.
-     * @type {TextureSource}
-     */
-    this.displayedTextureSource = null;
-
-    this.colorUl = this.colorUr = this.colorBl = this.colorBr = 0xFFFFFFFF;
-
-    this.txCoordsUl = 0x00000000;
-    this.txCoordsUr = 0x0000FFFF;
-    this.txCoordsBr = 0xFFFFFFFF;
-    this.txCoordsBl = 0xFFFF0000;
-
-    this.ulx = 0;
-    this.uly = 0;
-    this.brx = 1;
-    this.bry = 1;
-
-    this.inTextureAtlas = false;
-
-    this.zIndex = 0;
-    this.forceZIndexContext = false;
-    this.zContextUsage = 0;
-    this.zParent = null;
-    this.zIndexedChildren = [];
-    this.zSort = false;
-
-    this.borderTop = null;
-    this.borderBottom = null;
-    this.borderLeft = null;
-    this.borderRight = null;
-
-    this.isBorder = false;
-
-    this.isRoot = false;
-
 };
+
+UComponent.prototype.parent = null;
+
+UComponent.prototype.hasUpdates = false;
+
+UComponent.prototype.recalc = 0;
+
+UComponent.prototype.worldAlpha = 1;
+
+UComponent.prototype.updateTreeOrder = 0;
+
+UComponent.prototype.hasBorders = false;
+
+UComponent.prototype.hasChildren = false;
+
+// All local translation/transform updates: directly propagated from x/y/w/h/scale/whatever.
+UComponent.prototype.worldPx = UComponent.prototype.localPx = 0;
+UComponent.prototype.worldPy = UComponent.prototype.localPy = 0;
+
+UComponent.prototype.worldTa = UComponent.prototype.localTa = 1;
+UComponent.prototype.worldTb = UComponent.prototype.localTb = 0;
+UComponent.prototype.worldTc = UComponent.prototype.localTc = 0;
+UComponent.prototype.worldTd = UComponent.prototype.localTd = 1;
+
+UComponent.prototype.isComplex = false;
+
+UComponent.prototype.localAlpha = 1;
+
+UComponent.prototype.w = 0;
+UComponent.prototype.h = 0;
+
+UComponent.prototype.clipping = false;
+UComponent.prototype.clippingParent = null;
+
+/**
+ * In case of clipping, this flag indicates if we're dealing with a square-shaped clipping area.
+ * @type {boolean}
+ */
+UComponent.prototype.clippingSquare = false;
+
+UComponent.prototype.clippingSquareMinX = 0;
+UComponent.prototype.clippingSquareMaxX = 0;
+UComponent.prototype.clippingSquareMinY = 0;
+UComponent.prototype.clippingSquareMaxY = 0;
+
+/**
+ * Flag that indicates that clipping area is empty.
+ * @type {boolean}
+ */
+UComponent.prototype.clippingEmpty = false;
+
+/**
+ * Flag that indicates that the clipping area are the corner points.
+ * @type {boolean}
+ */
+UComponent.prototype.clippingNoEffect = false;
+
+/**
+ * In case of complex clipping, the corner points of the clipping area.
+ * @type {number[]}
+ */
+UComponent.prototype.clippingArea = null;
+
+/**
+ * The texture source to be displayed.
+ * @type {TextureSource}
+ */
+UComponent.prototype.displayedTextureSource = null;
+
+UComponent.prototype.colorUl = UComponent.prototype.colorUr = UComponent.prototype.colorBl = UComponent.prototype.colorBr = 0xFFFFFFFF;
+
+UComponent.prototype.txCoordsUl = 0x00000000;
+UComponent.prototype.txCoordsUr = 0x0000FFFF;
+UComponent.prototype.txCoordsBr = 0xFFFFFFFF;
+UComponent.prototype.txCoordsBl = 0xFFFF0000;
+
+UComponent.prototype.ulx = 0;
+UComponent.prototype.uly = 0;
+UComponent.prototype.brx = 1;
+UComponent.prototype.bry = 1;
+
+UComponent.prototype.inTextureAtlas = false;
+
+UComponent.prototype.zIndex = 0;
+UComponent.prototype.forceZIndexContext = false;
+UComponent.prototype.zContextUsage = 0;
+UComponent.prototype.zParent = null;
+UComponent.prototype.zIndexedChildren = [];
+UComponent.prototype.zSort = false;
+
+UComponent.prototype.borderTop = null;
+UComponent.prototype.borderBottom = null;
+UComponent.prototype.borderLeft = null;
+UComponent.prototype.borderRight = null;
+
+UComponent.prototype.isBorder = false;
+
+UComponent.prototype.isRoot = false;
+
 
 /**
  * @param {Number} type

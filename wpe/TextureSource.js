@@ -20,59 +20,10 @@ var TextureSource = function(manager, loadCb) {
     this.id = ++TextureSource.id;
 
     /**
-     * Identifier for reusing this texture.
-     * @type {String}
-     */
-    this.lookupId = null;
-
-    /**
      * The factory for the source of this texture.
      * @type {Function}
      */
     this.loadCb = loadCb;
-
-    /**
-     * If set, this is called when the texture source is no longer displayed (this.components.size becomes 0).
-     * @type {Function}
-     */
-    this.cancelCb = null;
-
-    /**
-     * Loading since timestamp in millis.
-     * @type {number}
-     */
-    this.loadingSince = 0;
-
-    /**
-     * Flag that indicates if this texture source was stored in the texture atlas.
-     * @type {boolean}
-     */
-    this.inTextureAtlas = false;
-
-    /**
-     * The x coordinate in the texture atlas.
-     * @type {number}
-     */
-    this.textureAtlasX = 0;
-
-    /**
-     * The y coordinate in the texture atlas.
-     * @type {number}
-     */
-    this.textureAtlasY = 0;
-
-    // Source dimensions, after loading.
-    this.w = 0;
-    this.h = 0;
-
-    // The WebGL loaded texture.
-    this.glTexture = null;
-
-    /**
-     * If true, then this texture source is never freed from memory during garbage collection.
-     * @type {boolean}
-     */
-    this.permanent = false;
 
     /**
      * All active Components that are using this texture source via a texture (either as texture or displayedTexture, or both).
@@ -80,16 +31,65 @@ var TextureSource = function(manager, loadCb) {
      */
     this.components = new Set();
 
-    this.onload = null;
-
-    /**
-     * Sub-object with texture-specific rendering information.
-     * For images, this contains the src property, for texts, this contains handy rendering information.
-     * @type {Object}
-     */
-    this.renderInfo = null;
-
 };
+
+/**
+ * Identifier for reusing TextureSource.prototype.texture.
+ * @type {String}
+ */
+TextureSource.prototype.lookupId = null;
+
+/**
+ * If set, TextureSource.prototype.is called when the texture source is no longer displayed (TextureSource.prototype.components.size becomes 0).
+ * @type {Function}
+ */
+TextureSource.prototype.cancelCb = null;
+
+/**
+ * Loading since timestamp in millis.
+ * @type {number}
+ */
+TextureSource.prototype.loadingSince = 0;
+
+/**
+ * Flag that indicates if TextureSource.prototype.texture source was stored in the texture atlas.
+ * @type {boolean}
+ */
+TextureSource.prototype.inTextureAtlas = false;
+
+/**
+ * The x coordinate in the texture atlas.
+ * @type {number}
+ */
+TextureSource.prototype.textureAtlasX = 0;
+
+/**
+ * The y coordinate in the texture atlas.
+ * @type {number}
+ */
+TextureSource.prototype.textureAtlasY = 0;
+
+// Source dimensions, after loading.
+TextureSource.prototype.w = 0;
+TextureSource.prototype.h = 0;
+
+// The WebGL loaded texture.
+TextureSource.prototype.glTexture = null;
+
+/**
+ * If true, then TextureSource.prototype.texture source is never freed from memory during garbage collection.
+ * @type {boolean}
+ */
+TextureSource.prototype.permanent = false;
+
+TextureSource.prototype.onload = null;
+
+/**
+ * Sub-object with texture-specific rendering information.
+ * For images, TextureSource.prototype.contains the src property, for texts, TextureSource.prototype.contains handy rendering information.
+ * @type {Object}
+ */
+TextureSource.prototype.renderInfo = null;
 
 TextureSource.prototype.getRenderWidth = function() {
     return this.w

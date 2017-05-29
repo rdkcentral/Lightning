@@ -24,49 +24,49 @@ function Texture(manager, source) {
     this.source = source;
 
     /**
-     * The texture clipping x-offset.
-     * @type {number}
-     */
-    this._x = 0;
-
-    /**
-     * The texture clipping y-offset.
-     * @type {number}
-     */
-    this._y = 0;
-
-    /**
-     * The texture clipping width. If 0 then full width.
-     * @type {number}
-     */
-    this._w = 0;
-
-    /**
-     * The texture clipping height. If 0 then full height.
-     * @type {number}
-     */
-    this._h = 0;
-
-    /**
-     * Render precision (0.5 = fuzzy, 1 = normal, 2 = sharp even when scaled twice, etc.).
-     * @type {number}
-     * @private
-     */
-    this._precision = 1;
-
-    /**
-     * Indicates if this texture uses clipping.
-     * @type {boolean}
-     */
-    this.clipping = false;
-
-    /**
      * All active Components that are using this texture (either as texture or displayedTexture, or both).
      * @type {Set<Component>}
      */
     this.components = new Set();
 
 }
+
+/**
+ * The texture clipping x-offset.
+ * @type {number}
+ */
+Texture.prototype._x = 0;
+
+/**
+ * The texture clipping y-offset.
+ * @type {number}
+ */
+Texture.prototype._y = 0;
+
+/**
+ * The texture clipping width. If 0 then full width.
+ * @type {number}
+ */
+Texture.prototype._w = 0;
+
+/**
+ * The texture clipping height. If 0 then full height.
+ * @type {number}
+ */
+Texture.prototype._h = 0;
+
+/**
+ * Render precision (0.5 = fuzzy, 1 = normal, 2 = sharp even when scaled twice, etc.).
+ * @type {number}
+ * @private
+ */
+Texture.prototype._precision = 1;
+
+/**
+ * Indicates if Texture.prototype.texture uses clipping.
+ * @type {boolean}
+ */
+Texture.prototype.clipping = false;
 
 Texture.prototype.addComponent = function(c) {
     this.components.add(c);

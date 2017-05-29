@@ -120,9 +120,7 @@ function Stage(options, cb) {
     this.measureInnerFrameDistribution = !!options.measureInnerFrameDistribution;
     this.measureLongFrames = !!options.measureLongFrames;
 
-    this.textureProcessWorkerPath = options.textureProcessWorkerPath || "";
-
-    this.textureProcessTextServer = options.textureProcessTextServer || "";
+    this.textureProcessOptions = options.textureProcessOptions || {};
 
     this.useTextureProcessImageFetching = (options.useTextureProcessImageFetching !== false);
 
@@ -254,7 +252,7 @@ Stage.prototype.init = function(cb) {
         if (self.useTextureProcess) {
             console.log('Texture process config (text:' + (self.useTextureProcessTextGeneration ? 'yes' : 'no') + ', image:'  + (self.useTextureProcessImageFetching ? 'yes' : 'no') + ').');
 
-            self.textureProcess.init(function(err) {
+            self.textureProcess.init(self.textureProcessOptions, function(err) {
                 if (err) {
                     console.warn('Error connecting to texture process. Textures will be loaded on the main thread.');
                 }
@@ -338,6 +336,10 @@ Stage.prototype.drawFrame = function() {
         console.log('clean up');
         // Clean up all textures instead of those in the last frame.
         this.textureManager.freeUnusedTextureSources();
+    }
+
+    if (this.textureProcess && this.textureProcess.process) {
+        this.textureProcess.process();
     }
 
     this.measureDetails && this.timeStart('perform updates');

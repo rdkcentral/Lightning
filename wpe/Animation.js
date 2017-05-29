@@ -14,40 +14,6 @@ var Animation = function(stage) {
     GenericAnimation.call(this, stage);
     EventEmitter.call(this);
 
-    this._delay = 0;
-
-    /**
-     * The duration of the animation, in seconds. If -1, the progress value should be set manually.
-     * @type {number}
-     */
-    this._duration = 1;
-
-    this._repeat = 0;
-    this._repeatOffset = 0;
-    this._repeatDelay = 0;
-
-    /**
-     * @access private
-     */
-    this.delayLeft = 0;
-
-    /**
-     * @access private
-     */
-    this.repeatsLeft = 0;
-
-    /**
-     * Automatically calls stop after finish.
-     * @type {boolean}
-     */
-    this._autostop = false;
-
-    /**
-     * The way that the animation 'stops'.
-     * @type {number}
-     */
-    this._stopMethod = Animation.STOP_METHODS.FADE;
-
     /**
      * Advanced options regarding the stop method, such as:
      * - {number} duration
@@ -60,17 +26,67 @@ var Animation = function(stage) {
      */
     this._stopMethodOptions = {};
 
-    this.stopDelayLeft = 0;
-
-    this.state = Animation.STATES.IDLE;
-
     this.stoppingProgressTransition = new GenericTransition(0);
 
 };
 
 Utils.extendClass(Animation, GenericAnimation);
-
 Animation.prototype = Object.assign(Animation.prototype, EventEmitter.prototype);
+
+
+Animation.STATES = {
+    IDLE: 0,
+    PLAYING: 1,
+    STOPPING: 2,
+    STOPPED: 3,
+    FINISHED: 4
+};
+
+Animation.STOP_METHODS = {
+    FADE: 'fade',
+    REVERSE: 'reverse',
+    FORWARD: 'forward',
+    IMMEDIATE: 'immediate',
+    ONETOTWO: 'onetotwo'
+};
+
+Animation.prototype._delay = 0;
+
+/**
+ * The duration of the animation, in seconds. If -1, the progress value should be set manually.
+ * @type {number}
+ */
+Animation.prototype._duration = 1;
+
+Animation.prototype._repeat = 0;
+Animation.prototype._repeatOffset = 0;
+Animation.prototype._repeatDelay = 0;
+
+/**
+ * @access private
+ */
+Animation.prototype.delayLeft = 0;
+
+/**
+ * @access private
+ */
+Animation.prototype.repeatsLeft = 0;
+
+/**
+ * Automatically calls stop after finish.
+ * @type {boolean}
+ */
+Animation.prototype._autostop = false;
+
+/**
+ * The way that the animation 'stops'.
+ * @type {number}
+ */
+Animation.prototype._stopMethod = Animation.STOP_METHODS.FADE;
+
+Animation.prototype.stopDelayLeft = 0;
+
+Animation.prototype.state = Animation.STATES.IDLE;
 
 Animation.prototype.isActive = function() {
     return this.subject && (this.state == Animation.STATES.PLAYING || this.state == Animation.STATES.STOPPING);
@@ -443,21 +459,6 @@ Object.defineProperty(Animation.prototype, 'subject', {
     }
 });
 
-Animation.STATES = {
-    IDLE: 0,
-    PLAYING: 1,
-    STOPPING: 2,
-    STOPPED: 3,
-    FINISHED: 4
-};
-
-Animation.STOP_METHODS = {
-    FADE: 'fade',
-    REVERSE: 'reverse',
-    FORWARD: 'forward',
-    IMMEDIATE: 'immediate',
-    ONETOTWO: 'onetotwo'
-};
 
 if (isNode) {
     module.exports = Animation;

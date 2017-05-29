@@ -6,49 +6,51 @@ if (isNode) {
 
 var TextRendererSettings = function() {
 
-    // The default text options.
-    this.text = this._text = "";
-    this.w = this._w = 0;
-    this.h = this._h = 0;
-    this.fontStyle = this._fontStyle = "normal";
-    this.fontSize = this._fontSize = 40;
-    this.fontFace = this._fontFace = null;
-    this.wordWrap = this._wordWrap = true;
-    this.wordWrapWidth = this._wordWrapWidth = 0;
-    this.lineHeight = this._lineHeight = null;
-    this.textBaseline = this._textBaseline = "alphabetic";
-    this.textAlign = this._textAlign = "left";
-    this.offsetY = this._offsetY = null;
-    this.maxLines = this._maxLines = 0;
-    this.maxLinesSuffix = this._maxLinesSuffix = "..";
-    this.precision = this._precision = null;
-    this.textColor = this._textColor = 0xffffffff;
-    this.paddingLeft = this._paddingLeft = 0;
-    this.paddingRight = this._paddingRight = 0;
-    this.shadow = this._shadow = false;
-    this.shadowColor = this._shadowColor = 0xff000000;
-    this.shadowOffsetX = this._shadowOffsetX = 0;
-    this.shadowOffsetY = this._shadowOffsetY = 0;
-    this.shadowBlur = this._shadowBlur = 5;
-    this.highlight = this._highlight = false;
-    this.highlightHeight = this._highlightHeight = 0;
-    this.highlightColor = this._highlightColor = 0xff000000;
-    this.highlightOffset = this._highlightOffset = null;
-    this.highlightPaddingLeft = this._highlightPaddingLeft = null;
-    this.highlightPaddingRight = this._highlightPaddingRight = null;
-
-    // Cut the canvas.
-    this.cutSx = this._cutSx = 0;
-    this.cutEx = this._cutEx = 0;
-    this.cutSy = this._cutSy = 0;
-    this.cutEy = this._cutEy = 0;
-
-    // If true, then texture loads are performed on the main thread (blocking the next frame until fully loaded).
-    this.sync = this._sync = false;
-
-    // Flag that indicates if any property has changed.
-    this.hasUpdates = false;
 };
+
+
+// The default text options.
+TextRendererSettings.prototype._text = "";
+TextRendererSettings.prototype._w = 0;
+TextRendererSettings.prototype._h = 0;
+TextRendererSettings.prototype._fontStyle = "normal";
+TextRendererSettings.prototype._fontSize = 40;
+TextRendererSettings.prototype._fontFace = null;
+TextRendererSettings.prototype._wordWrap = true;
+TextRendererSettings.prototype._wordWrapWidth = 0;
+TextRendererSettings.prototype._lineHeight = null;
+TextRendererSettings.prototype._textBaseline = "alphabetic";
+TextRendererSettings.prototype._textAlign = "left";
+TextRendererSettings.prototype._offsetY = null;
+TextRendererSettings.prototype._maxLines = 0;
+TextRendererSettings.prototype._maxLinesSuffix = "..";
+TextRendererSettings.prototype._precision = null;
+TextRendererSettings.prototype._textColor = 0xffffffff;
+TextRendererSettings.prototype._paddingLeft = 0;
+TextRendererSettings.prototype._paddingRight = 0;
+TextRendererSettings.prototype._shadow = false;
+TextRendererSettings.prototype._shadowColor = 0xff000000;
+TextRendererSettings.prototype._shadowOffsetX = 0;
+TextRendererSettings.prototype._shadowOffsetY = 0;
+TextRendererSettings.prototype._shadowBlur = 5;
+TextRendererSettings.prototype._highlight = false;
+TextRendererSettings.prototype._highlightHeight = 0;
+TextRendererSettings.prototype._highlightColor = 0xff000000;
+TextRendererSettings.prototype._highlightOffset = null;
+TextRendererSettings.prototype._highlightPaddingLeft = null;
+TextRendererSettings.prototype._highlightPaddingRight = null;
+
+// Cut the canvas.
+TextRendererSettings.prototype._cutSx = 0;
+TextRendererSettings.prototype._cutEx = 0;
+TextRendererSettings.prototype._cutSy = 0;
+TextRendererSettings.prototype._cutEy = 0;
+
+// If true, then texture loads are performed on the main thread (blocking the next frame until fully loaded).
+TextRendererSettings.prototype._sync = false;
+
+// Flag that indicates if any property has changed.
+TextRendererSettings.prototype.hasUpdates = false;
 
 TextRendererSettings.prototype.set = function(obj) {
     var keys = Object.keys(obj);

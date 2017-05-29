@@ -12,20 +12,6 @@ if (isNode) {
 function GenericTransition(v) {
     EventEmitter.call(this);
 
-    this._delay = 0;
-    this._duration = 1;
-    this.timingFunction = 'ease';
-
-    /**
-     * @access private
-     */
-    this.delayLeft = 0;
-
-    /**
-     * @access private
-     */
-    this.p = 1;
-
     /**
      * @access private
      */
@@ -36,9 +22,24 @@ function GenericTransition(v) {
      */
     this.targetValue = this.startValue;
 
+    this.timingFunction = 'ease';
+
 }
 
 Utils.extendClass(GenericTransition, EventEmitter);
+
+GenericTransition.prototype._delay = 0;
+GenericTransition.prototype._duration = 1;
+
+/**
+ * @access private
+ */
+GenericTransition.prototype.delayLeft = 0;
+
+/**
+ * @access private
+ */
+GenericTransition.prototype.p = 1;
 
 GenericTransition.prototype.reset = function(startValue, targetValue, p) {
     this.startValue = startValue;

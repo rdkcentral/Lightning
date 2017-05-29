@@ -1,9 +1,13 @@
+var SegfaultHandler = require('segfault-handler');
+
+SegfaultHandler.registerHandler("crash.log");
+
 var isNode = !!(((typeof module !== "undefined") && module.exports));
 if (isNode) {
     var Stage = require('../../wpe');
 }
 
-var options = {w: 1280, h: 720, rw: 1280, rh: 720, precision: 1, measureDetails: false, useTextureProcess: true, useTextureAtlas:false, glClearColor: [0, 0, 0, 1], window: {title: "Clipping demo", fullscreen: false}};
+var options = {w: 1280, h: 720, rw: 1280, rh: 720, precision: 1, measureDetails: false, useTextureProcess: true, textureProcessOptions: {allowFiles: true}, useTextureAtlas:false, glClearColor: [0, 0, 0, 1], window: {title: "Clipping demo", fullscreen: false}};
 var stage = new Stage(options);
 
 if (!isNode) {
@@ -45,24 +49,25 @@ var a = stage.root.tag('bunny').animation({duration: 3, autostop: true, stopMeth
     // {property: ['texture.w'], value: {0.5:26, 1: 0.001}}
 ]});
 
-a.start();
+// a.start();
 
 setTimeout(function() {
-    bunny.src = "remote.jpg";
+    bunny.text = "hello";
+    //bunny.src = "remote.jpg";
 
-    setTimeout(function() {
-        bunny.src = "remote.png";
-        //bunny.visible = false;
-        setTimeout(function() {
-            //bunny.visible = true;
-        }, 3000);
-    }, 3000);
-}, 4000);
+    // setTimeout(function() {
+    //     bunny.src = "remote.png";
+    //     //bunny.visible = false;
+    //     setTimeout(function() {
+    //         //bunny.visible = true;
+    //     }, 3000);
+    // }, 3000);
+}, 1000);
 
 
 if (isNode) {
     setTimeout(function() {
         stage.destroy();
-    }, 10000);
+    }, 3000);
 }
 

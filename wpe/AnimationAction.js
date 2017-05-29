@@ -32,26 +32,26 @@ function AnimationAction(animation) {
      */
     this._properties = [];
 
-    /**
-     * The value to reset to when stopping the timed animation.
-     * @type {*}
-     * @private
-     */
-    this._resetValue = null;
-
-    this.hasResetValue = false;
-
-    /**
-     * Mergable function for values.
-     * @type {Function}
-     * @private
-     */
-    this.mergeFunction = null;
-
-    // Default.
-    this.tags = '';
-
 }
+
+/**
+ * The value to reset to when stopping the timed animation.
+ * @type {*}
+ * @private
+ */
+AnimationAction.prototype._resetValue = null;
+
+AnimationAction.prototype.hasResetValue = false;
+
+/**
+ * Mergable function for values.
+ * @type {Function}
+ * @private
+ */
+AnimationAction.prototype.mergeFunction = null;
+
+// Default.
+AnimationAction.prototype.tags = '';
 
 /**
  * Returns the components to be animated.

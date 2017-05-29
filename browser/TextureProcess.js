@@ -1,6 +1,6 @@
-var TextureProcess = function(options) {
+var TextureProcess = function(workerPath) {
 
-    this.options = options;
+    this.workerPath = workerPath;
 
     /**
      * Queued texture source loads, along with their load callbacks.
@@ -12,13 +12,15 @@ var TextureProcess = function(options) {
 
 };
 
-TextureProcess.prototype.init = function(cb) {
+TextureProcess.prototype.init = function(options, cb) {
+    this.options = options;
+
     if (!window.Worker) {
         return cb(new Error("Browser does not have Worker support."));
     }
 
     try {
-        var workerUrl = this.options.workerPath + "wpe-texture-worker.js";
+        var workerUrl = this.workerPath + "wpe-texture-worker.js";
         this.worker = new Worker(workerUrl);
     } catch(e) {
         console.error('Error starting web worker', e);

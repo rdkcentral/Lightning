@@ -20,7 +20,7 @@ var TextureProcess = function() {
 
 };
 
-TextureProcess.prototype.init = function(cb) {
+TextureProcess.prototype.init = function(options, cb) {
     var forked = false;
     var self = this;
 

@@ -41,14 +41,18 @@ NodeAdapter.prototype.loop = function() {
         if (this.stage.renderNeeded) {
             // We depend on blit to limit to 60fps.
             setImmediate(function() {
-                self.animationFunction();
-                self.loop();
+                if (!self.animationLoopStopped) {
+                    self.animationFunction();
+                    self.loop();
+                }
             });
         } else {
             // We depend on blit to limit to 60fps.
             setTimeout(function() {
-                self.animationFunction();
-                self.loop();
+                if (!self.animationLoopStopped) {
+                    self.animationFunction();
+                    self.loop();
+                }
             }, 16);
         }
     }
@@ -62,6 +66,7 @@ var http = require('http');
 var https = require('https');
 
 NodeAdapter.prototype.loadTextureSourceString = function(source, ts, cb) {
+    debugger;
     var self = this;
     if (/^https?:\/\//i.test(source)) {
         // URL. Download first.
@@ -153,6 +158,7 @@ NodeAdapter.prototype.nextFrame = function(swapBuffers) {
 };
 
 NodeAdapter.prototype.getTextureProcess = function() {
+    // return require('wpe-uiframework-supercharger');
     var TextureProcess = require('./TextureProcess');
     return new TextureProcess();
 };

@@ -8,40 +8,40 @@ var ComponentTags = function(component) {
 
     this.component = component;
 
-    /**
-     * Parent component's tag manager.
-     * @type {ComponentTags}
-     */
-    this.parent = null;
-
-    /**
-     * Tags that can be used to identify/search for a specific component.
-     * @type {String[]}
-     */
-    this.tags = null;
-
-    /**
-     * The tree's tags mapping.
-     * This contains all components for all known tags, at all times.
-     * @type {Map}
-     * @private
-     */
-    this.treeTags = null;
-
-    /**
-     * Cache for the tag/mtag methods.
-     * @type {Map<String,Component[]>}
-     */
-    this.cache = null;
-
-    /**
-     * Tag-to-complex cache (all tags that are part of the complex caches).
-     * This maps tags to cached complex tags in the cache.
-     * @type {Map<String,String[]>}
-     */
-    this.tagToComplex = null;
-
 };
+
+/**
+ * Parent component's tag manager.
+ * @type {ComponentTags}
+ */
+ComponentTags.prototype.parent = null;
+
+/**
+ * Tags that can be used to identify/search for a specific component.
+ * @type {String[]}
+ */
+ComponentTags.prototype.tags = null;
+
+/**
+ * The tree's tags mapping.
+ * This contains all components for all known tags, at all times.
+ * @type {Map}
+ * @private
+ */
+ComponentTags.prototype.treeTags = null;
+
+/**
+ * Cache for the tag/mtag methods.
+ * @type {Map<String,Component[]>}
+ */
+ComponentTags.prototype.cache = null;
+
+/**
+ * Tag-to-complex cache (all tags that are part of the complex caches).
+ * This maps tags to cached complex tags in the cache.
+ * @type {Map<String,String[]>}
+ */
+ComponentTags.prototype.tagToComplex = null;
 
 /**
  * Clears the cache(s) for the specified tag.
