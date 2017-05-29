@@ -9,6 +9,8 @@ var UComponent = function(ctx) {
 
     this.children = [];
 
+    this.zIndexedChildren = [];
+
 };
 
 UComponent.prototype.parent = null;
