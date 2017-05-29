@@ -99,7 +99,6 @@ UComponent.prototype.zIndex = 0;
 UComponent.prototype.forceZIndexContext = false;
 UComponent.prototype.zContextUsage = 0;
 UComponent.prototype.zParent = null;
-UComponent.prototype.zIndexedChildren = [];
 UComponent.prototype.zSort = false;
 
 UComponent.prototype.borderTop = null;
