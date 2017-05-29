@@ -220,8 +220,6 @@ Component.prototype.setParent = function(parent) {
 
     if (parent) {
         // Alpha, transform, translate.
-        this.uComponent.recalc = true;
-
         parent.hasChildren = true;
 
         this._tags.setParent(parent._tags);
