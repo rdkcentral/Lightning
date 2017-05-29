@@ -95,37 +95,29 @@ ComponentTags.prototype.unsetParent = function() {
 ComponentTags.prototype.setParent = function(parent) {
     this.parent = parent;
 
-    var tags = null;
-    var n = 0;
-    if (this.treeTags) {
-        tags = Utils.iteratorToArray(this.treeTags.keys());
-        n = tags.length;
-
-        if (n > 0) {
-            for (var i = 0; i < n; i++) {
-                var tagSet = this.treeTags.get(tags[i]);
-
-                // Add to treeTags.
-                var p = this;
-                while (p = p.parent) {
-                    if (!p.treeTags) {
-                        p.treeTags = new Map();
-                    }
-
-                    var s = p.treeTags.get(tags[i]);
-                    if (!s) {
-                        s = new Set();
-                        p.treeTags.set(tags[i], s);
-                    }
-
-                    tagSet.forEach(function(comp) {
-                        s.add(comp);
-                    });
-
-                    p.clearCache(tags[i]);
+    if (this.treeTags && this.treeTags.size) {
+        var self = this;
+        this.treeTags.forEach(function(tagSet, tag) {
+            // Add to treeTags.
+            var p = self;
+            while (p = p.parent) {
+                if (!p.treeTags) {
+                    p.treeTags = new Map();
                 }
+
+                var s = p.treeTags.get(tag);
+                if (!s) {
+                    s = new Set();
+                    p.treeTags.set(tag, s);
+                }
+
+                tagSet.forEach(function(comp) {
+                    s.add(comp);
+                });
+
+                p.clearCache(tag);
             }
-        }
+        });
     }
 };
 
