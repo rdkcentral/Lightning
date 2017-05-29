@@ -397,6 +397,7 @@ Component.prototype.dhtmlSetAttribute = function() {
     this.dhtml().setAttribute.apply(this.dhtml(), arguments);
 };
 
+Component.prototype.__x = Component.prototype._x;
 Object.defineProperty(Component.prototype, '_x', {
     get: function() {
         return this.__x;
@@ -410,6 +411,7 @@ Object.defineProperty(Component.prototype, '_x', {
     }
 });
 
+Component.prototype.__y = Component.prototype._y;
 Object.defineProperty(Component.prototype, '_y', {
     get: function() {
         return this.__y;
@@ -423,6 +425,7 @@ Object.defineProperty(Component.prototype, '_y', {
     }
 });
 
+Component.prototype.__w = Component.prototype._w;
 Object.defineProperty(Component.prototype, '_w', {
     get: function() {
         return this.__w;
@@ -435,6 +438,7 @@ Object.defineProperty(Component.prototype, '_w', {
     }
 });
 
+Component.prototype.__h = Component.prototype._h;
 Object.defineProperty(Component.prototype, '_h', {
     get: function() {
         return this.__h;
@@ -459,6 +463,7 @@ Component.prototype.updateTop = function() {
     this.dhtml().style.top = y + 'px';
 };
 
+Component.prototype.__renderWidth = Component.prototype._renderWidth;
 Object.defineProperty(Component.prototype, '_renderWidth', {
     get: function() {
         return this.__renderWidth;
@@ -470,6 +475,7 @@ Object.defineProperty(Component.prototype, '_renderWidth', {
     }
 });
 
+Component.prototype.__renderHeight = Component.prototype._renderHeight;
 Object.defineProperty(Component.prototype, '_renderHeight', {
     get: function() {
         return this.__renderHeight;
@@ -481,6 +487,7 @@ Object.defineProperty(Component.prototype, '_renderHeight', {
     }
 });
 
+Component.prototype.__alpha = Component.prototype._alpha;
 Object.defineProperty(Component.prototype, '_alpha', {
     get: function() {
         return this.__alpha;
@@ -495,6 +502,7 @@ Object.defineProperty(Component.prototype, '_alpha', {
     }
 });
 
+Component.prototype.__visible = Component.prototype._visible;
 Object.defineProperty(Component.prototype, '_visible', {
     get: function() {
         return this.__visible;
@@ -509,6 +517,7 @@ Object.defineProperty(Component.prototype, '_visible', {
     }
 });
 
+Component.prototype.__texture = Component.prototype._texture;
 Object.defineProperty(Component.prototype, '_texture', {
     get: function() {
         return this.__texture;
@@ -520,6 +529,7 @@ Object.defineProperty(Component.prototype, '_texture', {
     }
 });
 
+Component.prototype.__rotation = Component.prototype._rotation;
 Object.defineProperty(Component.prototype, '_rotation', {
     get: function() {
         return this.__rotation;
@@ -534,6 +544,7 @@ Object.defineProperty(Component.prototype, '_rotation', {
 });
 
 
+Component.prototype.__scaleX = Component.prototype._scaleX;
 Object.defineProperty(Component.prototype, '_scaleX', {
     get: function() {
         return this.__scaleX;
@@ -547,6 +558,7 @@ Object.defineProperty(Component.prototype, '_scaleX', {
     }
 });
 
+Component.prototype.__scaleY = Component.prototype._scaleY;
 Object.defineProperty(Component.prototype, '_scaleY', {
     get: function() {
         return this.__scaleY;
@@ -560,6 +572,7 @@ Object.defineProperty(Component.prototype, '_scaleY', {
     }
 });
 
+Component.prototype.__pivotX = Component.prototype._pivotX;
 Object.defineProperty(Component.prototype, '_pivotX', {
     get: function() {
         return this.__pivotX;
@@ -573,6 +586,7 @@ Object.defineProperty(Component.prototype, '_pivotX', {
     }
 });
 
+Component.prototype.__pivotY = Component.prototype._pivotY;
 Object.defineProperty(Component.prototype, '_pivotY', {
     get: function() {
         return this.__pivotY;
@@ -586,6 +600,7 @@ Object.defineProperty(Component.prototype, '_pivotY', {
     }
 });
 
+Component.prototype.__mountX = Component.prototype._mountX;
 Object.defineProperty(Component.prototype, '_mountX', {
     get: function() {
         return this.__mountX;
@@ -599,6 +614,7 @@ Object.defineProperty(Component.prototype, '_mountX', {
     }
 });
 
+Component.prototype.__mountY = Component.prototype._mountY;
 Object.defineProperty(Component.prototype, '_mountY', {
     get: function() {
         return this.__mountY;
@@ -612,6 +628,7 @@ Object.defineProperty(Component.prototype, '_mountY', {
     }
 });
 
+Component.prototype.__zIndex = Component.prototype._zIndex;
 Object.defineProperty(Component.prototype, '_zIndex', {
     get: function() {
         return this.__zIndex;
@@ -627,6 +644,7 @@ Object.defineProperty(Component.prototype, '_zIndex', {
     }
 });
 
+Component.prototype.__forceZIndexContext = Component.prototype._forceZIndexContext;
 Object.defineProperty(Component.prototype, '_forceZIndexContext', {
     get: function() {
         return this.__forceZIndexContext;
@@ -639,6 +657,7 @@ Object.defineProperty(Component.prototype, '_forceZIndexContext', {
     }
 });
 
+Component.prototype.__clipping = Component.prototype._clipping;
 Object.defineProperty(Component.prototype, '_clipping', {
     get: function() {
         return this.__clipping;
@@ -655,6 +674,7 @@ Object.defineProperty(Component.prototype, '_clipping', {
     }
 });
 
+Component.prototype.__src = Component.prototype._src;
 Object.defineProperty(Component.prototype, '_src', {
     get: function() {
         return this.__src;
@@ -669,6 +689,7 @@ Object.defineProperty(Component.prototype, '_src', {
     }
 });
 
+Component.prototype.__colorTopLeft = Component.prototype._colorTopLeft;
 Object.defineProperty(Component.prototype, '_colorTopLeft', {
     get: function() {
         return this.__colorTopLeft;
@@ -682,6 +703,7 @@ Object.defineProperty(Component.prototype, '_colorTopLeft', {
     }
 });
 
+Component.prototype.__colorTopRight = Component.prototype._colorTopRight;
 Object.defineProperty(Component.prototype, '_colorTopRight', {
     get: function() {
         return this.__colorTopRight;
@@ -695,6 +717,7 @@ Object.defineProperty(Component.prototype, '_colorTopRight', {
     }
 });
 
+Component.prototype.__colorBottomLeft = Component.prototype._colorBottomLeft;
 Object.defineProperty(Component.prototype, '_colorBottomLeft', {
     get: function() {
         return this.__colorBottomLeft;
@@ -708,6 +731,7 @@ Object.defineProperty(Component.prototype, '_colorBottomLeft', {
     }
 });
 
+Component.prototype.__colorBottomRight = Component.prototype._colorBottomRight;
 Object.defineProperty(Component.prototype, '_colorBottomRight', {
     get: function() {
         return this.__colorBottomRight;
@@ -746,6 +770,7 @@ var checkColors = function(component) {
     }
 };
 
+Component.prototype.__borderWidthTop = Component.prototype._borderWidthTop;
 Object.defineProperty(Component.prototype, '_borderWidthTop', {
     get: function() {
         return this.__borderWidthTop;
@@ -759,6 +784,7 @@ Object.defineProperty(Component.prototype, '_borderWidthTop', {
     }
 });
 
+Component.prototype.__borderWidthBottom = Component.prototype._borderWidthBottom;
 Object.defineProperty(Component.prototype, '_borderWidthBottom', {
     get: function() {
         return this.__borderWidthBottom;
@@ -772,6 +798,7 @@ Object.defineProperty(Component.prototype, '_borderWidthBottom', {
     }
 });
 
+Component.prototype.__borderWidthLeft = Component.prototype._borderWidthLeft;
 Object.defineProperty(Component.prototype, '_borderWidthLeft', {
     get: function() {
         return this.__borderWidthLeft;
@@ -785,6 +812,7 @@ Object.defineProperty(Component.prototype, '_borderWidthLeft', {
     }
 });
 
+Component.prototype.__borderWidthRight = Component.prototype._borderWidthRight;
 Object.defineProperty(Component.prototype, '_borderWidthRight', {
     get: function() {
         return this.__borderWidthRight;
@@ -824,6 +852,7 @@ var checkBorderWidths = function(component) {
     
 };
 
+Component.prototype.__borderColorTop = Component.prototype._borderColorTop;
 Object.defineProperty(Component.prototype, '_borderColorTop', {
     get: function() {
         return this.__borderColorTop;
@@ -837,6 +866,7 @@ Object.defineProperty(Component.prototype, '_borderColorTop', {
     }
 });
 
+Component.prototype.__borderColorBottom = Component.prototype._borderColorBottom;
 Object.defineProperty(Component.prototype, '_borderColorBottom', {
     get: function() {
         return this.__borderColorBottom;
@@ -850,6 +880,7 @@ Object.defineProperty(Component.prototype, '_borderColorBottom', {
     }
 });
 
+Component.prototype.__borderColorLeft = Component.prototype._borderColorLeft;
 Object.defineProperty(Component.prototype, '_borderColorLeft', {
     get: function() {
         return this.__borderColorLeft;
@@ -863,6 +894,7 @@ Object.defineProperty(Component.prototype, '_borderColorLeft', {
     }
 });
 
+Component.prototype.__borderColorRight = Component.prototype._borderColorRight;
 Object.defineProperty(Component.prototype, '_borderColorRight', {
     get: function() {
         return this.__borderColorRight;
