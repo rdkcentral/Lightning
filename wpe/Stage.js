@@ -129,6 +129,9 @@ function Stage(options, cb) {
     this.useTextureProcess = !!options.useTextureProcess && !!this.adapter.getTextureProcess;
     if (this.useTextureProcess) {
         this.textureProcess = this.adapter.getTextureProcess();
+        if (!this.textureProcess) {
+            console.warn('Texture process not supported');
+        }
     }
 
     // Measurement stuff.

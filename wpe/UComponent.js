@@ -5,6 +5,7 @@ if (isNode) {
 }
 
 var UComponent = function(ctx) {
+
     this.ctx = ctx;
 
     this.children = [];
@@ -12,6 +13,12 @@ var UComponent = function(ctx) {
     this.zIndexedChildren = [];
 
 };
+
+UComponent.prototype.component = null;
+
+UComponent.prototype.hasTurtler = false;
+
+UComponent.prototype.branchHasTurtlers = false;
 
 UComponent.prototype.parent = null;
 
@@ -151,6 +158,7 @@ UComponent.prototype.setParent = function(parent) {
         var prevIsZContext = this.isZContext();
         var prevParent = this.parent;
         this.parent = parent;
+        
         this.setRecalc(1 + 2 + 4);
 
         if (this.zIndex === 0) {
@@ -175,6 +183,15 @@ UComponent.prototype.setParent = function(parent) {
 
         if (newClippingParent !== this.clippingParent) {
             this.setClippingParent(newClippingParent);
+        }
+
+        if (this.branchHasTurtlers) {
+            if (parent) {
+                parent.setBranchHasTurtlers();
+            }
+            if (prevParent) {
+                prevParent.checkBranchHasTurtlers();
+            }
         }
     }
 };
@@ -214,20 +231,27 @@ UComponent.prototype.setLocalTransform = function(a, b, c, d) {
 
 UComponent.prototype.setLocalTranslate = function(x, y) {
     this.setRecalc(2);
+    if (this.turtle) {
+        if (this.localPx !== x) {
+            this.turtle.x = x;
+        }
+        if (this.localPy !== y) {
+            this.turtle.y = y;
+        }
+    }
+
     this.localPx = x;
     this.localPy = y;
 };
 
 UComponent.prototype.addLocalTranslate = function(x, y) {
-    this.setRecalc(2);
-    this.localPx += x;
-    this.localPy += y;
+    this.setLocalTranslate(this.localPx + x, this.localPy + y);
 };
 
 UComponent.prototype.setLocalAlpha = function(a) {
     this.setRecalcForced(1, (this.parent && this.parent.worldAlpha) && a);
 
-    if (a < 1e-14 && a > -1e-14) {
+    if (a < 1e-14) {
         // Tiny rounding errors may cause failing visibility tests.
         a = 0;
     }
@@ -235,7 +259,32 @@ UComponent.prototype.setLocalAlpha = function(a) {
     this.localAlpha = a;
 };
 
+UComponent.prototype.setTurtleInvisible = function(v) {
+    // Specifies whether to run turtle on this component + branch, even when this component is invisible.
+    if (!this.parent || this.parent.shouldRunTurtle()) {
+        var prev = this.shouldRunTurtle();
+        this.turtleInvisible = v;
+        if (this.shouldRunTurtle() !== prev) {
+            // Force re-rendering because the turtles may cause a different positioning.
+            // We need to force a re-render so that the turtle will be checked.
+            this.ctx.staticStage = false;
+        }
+    } else {
+        this.turtleInvisible = v;
+    }
+
+};
+
 UComponent.prototype.setDimensions = function(w, h) {
+    if (this.turtle) {
+        if (this.w !== w) {
+            this.turtle.w = w;
+        }
+        if (this.h !== h) {
+            this.turtle.h = h;
+        }
+    }
+
     this.w = w;
     this.h = h;
     this.setRecalc(2);
@@ -246,27 +295,30 @@ UComponent.prototype.setDimensions = function(w, h) {
 };
 
 UComponent.prototype.updateBorderDimensions = function() {
+    var w = this.w;
+    var h = this.h;
+
     var blw = 0, brw = 0;
     if (this.borderLeft !== null) {
-        this.borderLeft.setDimensions(this.borderLeft.w, this.h);
+        this.borderLeft.setDimensions(this.borderLeft.w, h);
         this.borderLeft.setLocalTranslate(-this.borderLeft.w, 0);
         blw = this.borderLeft.w;
     }
 
     if (this.borderRight !== null) {
-        this.borderRight.setDimensions(this.borderRight.w, this.h);
-        this.borderRight.setLocalTranslate(this.w, 0);
+        this.borderRight.setDimensions(this.borderRight.w, h);
+        this.borderRight.setLocalTranslate(w, 0);
         brw = this.borderRight.w;
     }
 
     if (this.borderTop !== null) {
-        this.borderTop.setDimensions(this.w + blw + brw, this.borderTop.h);
+        this.borderTop.setDimensions(w + blw + brw, this.borderTop.h);
         this.borderTop.setLocalTranslate(0 - blw, -this.borderTop.h);
     }
 
     if (this.borderBottom !== null) {
-        this.borderBottom.setDimensions(this.w + blw + brw, this.borderBottom.h);
-        this.borderBottom.setLocalTranslate(0 - blw, this.h);
+        this.borderBottom.setDimensions(w + blw + brw, this.borderBottom.h);
+        this.borderBottom.setLocalTranslate(0 - blw, h);
     }
 };
 
@@ -614,6 +666,58 @@ UComponent.prototype.updateHasBorders = function() {
         || (this.borderRight !== null && this.borderRight.w)
 };
 
+/**
+ * Returns an object that can be used to customize the positioning.
+ */
+UComponent.prototype.getTurtle = function() {
+    if (!this.turtle) {
+        this.turtle = new Turtle(this);
+    }
+    return this.turtle;
+};
+
+UComponent.prototype.isVisible = function() {
+    return (this.localAlpha > 1e-14);
+};
+
+UComponent.prototype.shouldRunTurtle = function() {
+    return this.isVisible() || this.turtleInvisible;
+};
+
+
+UComponent.prototype.runTurtles = function() {
+    if (this.shouldRunTurtle()) {
+        if (this.turtle) {
+            this.turtle.fresh = false;
+        }
+
+        if (this.hasTurtler) {
+            // Custom positioning function.
+            // Warning: do not add/remove children on already visited components because of the recursiveness.
+            var turtle = this.getTurtle();
+            if (turtle.altered) {
+                // This can happen if the component with an altered turtle became invisible during a previous runTurtles.
+                turtle.update();
+                turtle.altered = false;
+            }
+            this.component.turtler(turtle);
+            if (turtle.altered) {
+                // Dimensions and/or position have been changed.
+                // Make sure that the component is re-calculated.
+                this.setRecalc(2);
+            }
+        }
+
+        if (this.hasChildren) {
+            for (var i = 0, n = this.children.length; i < n; i++) {
+                if (this.children[i].branchHasTurtlers) {
+                    this.children[i].runTurtles();
+                }
+            }
+        }
+    }
+};
+
 UComponent.prototype.update = function() {
     this.recalc |= this.parent.recalc;
 
@@ -629,13 +733,17 @@ UComponent.prototype.update = function() {
 
         this.worldAlpha = this.parent.worldAlpha * this.localAlpha;
 
-        if (this.worldAlpha < 1e-14 && this.worldAlpha > -1e-14) {
+        if (this.worldAlpha < 1e-14) {
             // Tiny rounding errors may cause failing visibility tests.
             this.worldAlpha = 0;
         }
     }
 
     if (this.worldAlpha || forceUpdate) {
+        if (this.turtle && this.turtle.altered) {
+            this.turtle.swapRealValues();
+        }
+
         if (this.recalc & 6) {
             this.worldPx = this.parent.worldPx + this.localPx * this.parent.worldTa;
             this.worldPy = this.parent.worldPy + this.localPy * this.parent.worldTd;
@@ -771,12 +879,14 @@ UComponent.prototype.update = function() {
             this.updateTreeOrder = this.ctx.updateTreeOrder++;
         }
 
-        // Clear before calling children, to allow them to reset the hasUpdates flags in case of texture atlas failure.
-        this.hasUpdates = false;
-
         this.recalc = (this.recalc & 7); /* 1+2+4 */
 
         if (this.hasBorders) {
+            if (this.turtle && this.turtle.altered) {
+                // Turtle has modified dimensions: we should update border dimensions.
+                this.updateBorderDimensions();
+            }
+
             if (this.borderTop !== null && this.borderTop.h) {
                 this.borderTop.update();
             }
@@ -794,6 +904,13 @@ UComponent.prototype.update = function() {
             }
         }
 
+        if (!this.ctx.useZIndexing) {
+            // When using z-indexing, restore is done in fillVbo().
+            if (this.turtle && this.turtle.altered) {
+                this.turtle.restoreRealValues();
+            }
+        }
+
         if (this.hasChildren) {
             for (var i = 0, n = this.children.length; i < n; i++) {
                 if ((this.ctx.updateTreeOrderForceUpdate > 0) || this.recalc || this.children[i].hasUpdates) {
@@ -805,6 +922,9 @@ UComponent.prototype.update = function() {
         }
 
         this.recalc = 0;
+
+        this.hasUpdates = false;
+
     }
 
     if (this.zSort) {
@@ -1062,6 +1182,10 @@ UComponent.prototype.fillVbo = function() {
             }
         }
 
+        if (this.turtle && this.turtle.altered) {
+            this.turtle.restoreRealValues();
+        }
+
         if (this.hasChildren) {
             if (this.zContextUsage) {
                 for (var i = 0, n = this.zIndexedChildren.length; i < n; i++) {
@@ -1108,6 +1232,38 @@ UComponent.prototype.getCornerPoints = function() {
     ];
 };
 
+UComponent.prototype.setHasTurtler = function(v) {
+    this.hasTurtler = v;
+
+    // Turtler has changed, so we need to recalc the translation vector.
+    this.setRecalc(2);
+    
+    if (this.hasTurtler) {
+        this.setBranchHasTurtlers();
+    } else {
+        // Check if any child has turtlers.
+        this.checkBranchHasTurtlers();
+    }
+};
+
+UComponent.prototype.setBranchHasTurtlers = function() {
+    var p = this;
+    do {
+        p.branchHasTurtlers = true;
+    } while((p = p.parent) && !p.branchHasTurtlers);
+};
+
+UComponent.prototype.checkBranchHasTurtlers = function() {
+    var branchHasTurtlers = false;
+    for (var i = 0, n = this.children.length; i < n; i++) {
+        branchHasTurtlers = branchHasTurtlers || this.children[i].branchHasTurtlers;
+    }
+    if (branchHasTurtlers) {
+        this.setBranchHasTurtlers();
+    } else {
+        this.branchHasTurtlers = false;
+    }
+};
 
 var getColorInt = function(c, alpha) {
     var a = ((c / 16777216 | 0) * alpha) | 0;
@@ -1125,4 +1281,5 @@ var getVboTextureCoords = function(x, y) {
 if (isNode) {
     module.exports = UComponent;
     var GeometryUtils = require('./GeometryUtils');
+    var Turtle = require('./Turtle');
 }

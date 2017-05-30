@@ -31,6 +31,7 @@ module.exports = function(grunt) {
                     'wpe/RenderItem.js',
                     'wpe/UComponent.js',
                     'wpe/UComponentContext.js',
+                    'wpe/Turtle.js',
                     'helpers/Tools.js',
                     'browser/WebAdapter.js'
                 ],

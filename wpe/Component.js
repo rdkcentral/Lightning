@@ -181,6 +181,21 @@ Component.prototype._zIndex = 0;
 Component.prototype._forceZIndexContext = false;
 
 /**
+ * A custom function which is called with a turtle to allow custom positioning.
+ * @type {Function}
+ */
+Component.prototype._turtler = null;
+
+/**
+ * In case that this component is no longer visible, should it still be turtled?
+ * This is roughly equivalent to setting hidden:false instead of display:none in CSS.
+ * It can be used to still take space while not actually showing anything.
+ * @type {boolean}
+ * @private
+ */
+Component.prototype._turtleInvisible = false;
+
+/**
  * This function is called when this component becomes active.
  * @type {Function}
  */
@@ -1280,7 +1295,7 @@ Object.defineProperty(Component.prototype, 'ALPHA', {
             v = 0;
         }
 
-        if (v < 1e-14 && v > -1e-14) {
+        if (v < 1e-14) {
             // Tiny rounding errors may cause failing visibility tests.
             v = 0;
         }
@@ -2004,6 +2019,32 @@ Object.defineProperty(Component.prototype, 'children', {
     }
 });
 
+Object.defineProperty(Component.prototype, 'turtler', {
+    get: function () {
+        return this._turtler;
+    },
+    set: function(v) {
+        var pv = this._turtler;
+        if (pv !== v) {
+            this._turtler = v;
+            this.uComponent.setHasTurtler(!!v);
+        }
+    }
+});
+
+Object.defineProperty(Component.prototype, 'turtleInvisible', {
+    get: function () {
+        return this._turtleInvisible;
+    },
+    set: function(v) {
+        var pv = this._turtleInvisible;
+        if (pv !== v) {
+            this._turtleInvisible = v;
+            this.uComponent.setTurtleInvisible(!!v);
+        }
+    }
+});
+
 Component.prototype.setTransitionTargetValue = function(transition, targetValue, currentValue) {
     transition.updateTargetValue(targetValue, currentValue);
 };
@@ -2169,7 +2210,9 @@ Component.SETTINGS = {
     'texture': {s: function(obj, value) {obj.texture = value}, g: function(obj) {return obj.src}, m: null},
     'tag': {s: function(obj, value) {obj.tags = value}, g: function(obj) {return obj.tags}, m: null},
     'tags': {s: function(obj, value) {obj.tags = value}, g: function(obj) {return obj.tags}, m: null},
-    'children': {s: function(obj, value) {obj.children = value}, g: function(obj) {return obj.children;}, m: null}
+    'children': {s: function(obj, value) {obj.children = value}, g: function(obj) {return obj.children;}, m: null},
+    'turtler': {s: function(obj, value) {obj.turtler = value}, g: function(obj) {return obj.turtler;}, m: null},
+    'turtleInvisible': {s: function(obj, value) {obj.turtleInvisible = value}, g: function(obj) {return obj.turtleInvisible}, m: null}
 };
 
 Component.FINAL_SETTINGS = {};

@@ -45,7 +45,9 @@ UComponentContext.prototype.setStage = function(stage) {
 };
 
 UComponentContext.prototype.createUComponentForComponent = function(component) {
-    return new UComponent(this);
+    var uc = new UComponent(this);
+    uc.component = component;
+    return uc;
 };
 
 UComponentContext.prototype.createUComponent = function() {
@@ -111,6 +113,11 @@ UComponentContext.prototype.updateAndFillVbo = function(useZIndexing) {
         this.useZIndexing = useZIndexing;
 
         this.reset();
+
+        if (this.root.branchHasTurtlers) {
+            this.root.runTurtles();
+        }
+
         this.root.update();
 
         if (this.useZIndexing) {

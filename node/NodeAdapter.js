@@ -158,9 +158,7 @@ NodeAdapter.prototype.nextFrame = function(swapBuffers) {
 };
 
 NodeAdapter.prototype.getTextureProcess = function() {
-    // return require('wpe-uiframework-supercharger');
-    var TextureProcess = require('./TextureProcess');
-    return new TextureProcess();
+    return null;
 };
 
 module.exports = NodeAdapter;
