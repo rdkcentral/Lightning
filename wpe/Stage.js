@@ -93,7 +93,6 @@ function Stage(options, cb) {
      * @type {Component}
      */
     this.root = this.c();
-    this.root.active = true;
     this.root.setAsRoot();
 
     /**

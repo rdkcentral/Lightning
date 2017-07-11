@@ -66,7 +66,6 @@ var http = require('http');
 var https = require('https');
 
 NodeAdapter.prototype.loadTextureSourceString = function(source, ts, cb) {
-    debugger;
     var self = this;
     if (/^https?:\/\//i.test(source)) {
         // URL. Download first.
@@ -158,7 +157,7 @@ NodeAdapter.prototype.nextFrame = function(swapBuffers) {
 };
 
 NodeAdapter.prototype.getTextureProcess = function() {
-    return null;
+    return require('wpe-uiframework-supercharger');;
 };
 
 module.exports = NodeAdapter;

@@ -89,10 +89,10 @@ Component.prototype.hasBorders = false;
  * Color tint of this sprite.
  * @type {number}
  */
-Component.prototype._colorTopLeft = 0xffffffff;
-Component.prototype._colorTopRight = 0xffffffff;
-Component.prototype._colorBottomLeft = 0xffffffff;
-Component.prototype._colorBottomRight = 0xffffffff;
+Component.prototype._colorUl = 0xffffffff;
+Component.prototype._colorUr = 0xffffffff;
+Component.prototype._colorBl = 0xffffffff;
+Component.prototype._colorBr = 0xffffffff;
 
 /**
  * The transitions (indexed by property index, null if not used).
@@ -217,6 +217,7 @@ Component.prototype._cr = 1;
 
 
 Component.prototype.setAsRoot = function() {
+    this.active = true;
     this.updateActiveFlag();
     this.updateAttachedFlag();
     this.uComponent.setAsRoot();
@@ -813,7 +814,7 @@ Component.getPrettyJsonified = function(obj, indent) {
     delete obj.children;
 
     // Convert singular json settings object.
-    var colorKeys = ["color", "colorTopLeft", "colorTopRight", "colorBottomLeft", "colorBottomRight", "borderColor", "borderColorTop", "borderColorBottom", "borderColorLeft", "borderColorRight"]
+    var colorKeys = ["color", "colorUl", "colorUr", "colorBl", "colorBr", "borderColor", "borderColorTop", "borderColorBottom", "borderColorLeft", "borderColorRight"]
     var str = JSON.stringify(obj, function(k, v) {
         if (colorKeys.indexOf(k) !== -1) {
             return "COLOR[" + v.toString(16) + "]";
@@ -904,13 +905,13 @@ Component.prototype.getNonDefaults = function() {
         if (this.borderColorRight !== 0xffffffff) nonDefaults['borderColorRight'] = this.borderColorRight;
     }
 
-    if (this.colorTopLeft !== 0xffffffff && this.colorTopLeft === this.colorTopRight && this.colorTopLeft === this.colorBottomLeft && this.colorTopLeft === this.colorBottomRight) {
-        nonDefaults['color'] = this.colorTopLeft;
+    if (this.colorUl !== 0xffffffff && this.colorUl === this.colorUr && this.colorUl === this.colorBl && this.colorUl === this.colorBr) {
+        nonDefaults['color'] = this.colorUl;
     } else {
-        if (this.colorTopLeft !== 0xffffffff) nonDefaults['colorTopLeft'] = this.colorTopLeft;
-        if (this.colorTopRight !== 0xffffffff) nonDefaults['colorTopRight'] = this.colorTopRight;
-        if (this.colorBottomLeft !== 0xffffffff) nonDefaults['colorBottomLeft'] = this.colorBottomLeft;
-        if (this.colorBottomRight !== 0xffffffff) nonDefaults['colorBottomRight'] = this.colorBottomRight;
+        if (this.colorUl !== 0xffffffff) nonDefaults['colorUl'] = this.colorUl;
+        if (this.colorUr !== 0xffffffff) nonDefaults['colorUr'] = this.colorUr;
+        if (this.colorBl !== 0xffffffff) nonDefaults['colorBl'] = this.colorBl;
+        if (this.colorBr !== 0xffffffff) nonDefaults['colorBr'] = this.colorBr;
     }
 
     if (this.texture) {
@@ -925,7 +926,7 @@ Component.prototype.getNonDefaults = function() {
 
 
 Component.prototype.hasEqualColors = function() {
-    return (this._colorTopLeft === this._colorTopRight) && (this._colorTopLeft === this._colorBottomRight) && (this._colorTopLeft === this._colorBottomLeft);
+    return (this._colorUl === this._colorUr) && (this._colorUl === this._colorBr) && (this._colorUl === this._colorBl);
 };
 
 Component.prototype.checkForResize = function() {
@@ -947,11 +948,11 @@ Component.propAliases = new Map();
 Component.propAliases.set("scale", ["scaleX", "scaleY"]);
 Component.propAliases.set("borderWidth", ["borderWidthTop", "borderWidthBottom", "borderWidthLeft", "borderWidthRight"]);
 Component.propAliases.set("borderColor", ["borderColorTop", "borderColorBottom", "borderColorLeft", "borderColorRight"]);
-Component.propAliases.set("color", ["colorTopLeft", "colorTopRight", "colorBottomLeft", "colorBottomRight"]);
-Component.propAliases.set("colorTop", ["colorTopLeft", "colorTopRight"]);
-Component.propAliases.set("colorBottom", ["colorBottomLeft", "colorBottomRight"]);
-Component.propAliases.set("colorLeft", ["colorTopLeft", "colorBottomLeft"]);
-Component.propAliases.set("colorRight", ["colorTopRight", "colorBottomRight"]);
+Component.propAliases.set("color", ["colorUl", "colorUr", "colorBl", "colorBr"]);
+Component.propAliases.set("colorTop", ["colorUl", "colorUr"]);
+Component.propAliases.set("colorBottom", ["colorBl", "colorBr"]);
+Component.propAliases.set("colorLeft", ["colorUl", "colorBl"]);
+Component.propAliases.set("colorRight", ["colorUr", "colorBr"]);
 
 Object.defineProperty(Component.prototype, 'renderWidth', {
     get: function () {
@@ -1595,7 +1596,7 @@ Object.defineProperty(Component.prototype, 'BORDERCOLORRIGHT', {
     }
 });
 
-Object.defineProperty(Component.prototype, 'colorTopLeft', {
+Object.defineProperty(Component.prototype, 'colorUl', {
     get: function () {
         if (this.transitions && this.transitions[20]) {
             return this.transitions[20].targetValue;
@@ -1614,18 +1615,18 @@ Object.defineProperty(Component.prototype, 'colorTopLeft', {
 
 Object.defineProperty(Component.prototype, 'COLORTOPLEFT', {
     get: function () {
-        return this._colorTopLeft;
+        return this._colorUl;
     },
     set: function(v) {
-        var pv = this._colorTopLeft;
+        var pv = this._colorUl;
         if (pv !== v) {
-            this._colorTopLeft = v;
+            this._colorUl = v;
             this.uComponent.setColorUl(v);
         }
     }
 });
 
-Object.defineProperty(Component.prototype, 'colorTopRight', {
+Object.defineProperty(Component.prototype, 'colorUr', {
     get: function () {
         if (this.transitions && this.transitions[21]) {
             return this.transitions[21].targetValue;
@@ -1644,18 +1645,18 @@ Object.defineProperty(Component.prototype, 'colorTopRight', {
 
 Object.defineProperty(Component.prototype, 'COLORTOPRIGHT', {
     get: function () {
-        return this._colorTopRight;
+        return this._colorUr;
     },
     set: function(v) {
-        var pv = this._colorTopRight;
+        var pv = this._colorUr;
         if (pv !== v) {
-            this._colorTopRight = v;
+            this._colorUr = v;
             this.uComponent.setColorUr(v);
         }
     }
 });
 
-Object.defineProperty(Component.prototype, 'colorBottomLeft', {
+Object.defineProperty(Component.prototype, 'colorBl', {
     get: function () {
         if (this.transitions && this.transitions[22]) {
             return this.transitions[22].targetValue;
@@ -1674,18 +1675,18 @@ Object.defineProperty(Component.prototype, 'colorBottomLeft', {
 
 Object.defineProperty(Component.prototype, 'COLORBOTTOMLEFT', {
     get: function () {
-        return this._colorBottomLeft;
+        return this._colorBl;
     },
     set: function(v) {
-        var pv = this._colorBottomLeft;
+        var pv = this._colorBl;
         if (pv !== v) {
-            this._colorBottomLeft = v;
+            this._colorBl = v;
             this.uComponent.setColorBl(v);
         }
     }
 });
 
-Object.defineProperty(Component.prototype, 'colorBottomRight', {
+Object.defineProperty(Component.prototype, 'colorBr', {
     get: function () {
         if (this.transitions && this.transitions[23]) {
             return this.transitions[23].targetValue;
@@ -1704,12 +1705,12 @@ Object.defineProperty(Component.prototype, 'colorBottomRight', {
 
 Object.defineProperty(Component.prototype, 'COLORBOTTOMRIGHT', {
     get: function () {
-        return this._colorBottomRight;
+        return this._colorBr;
     },
     set: function(v) {
-        var pv = this._colorBottomRight;
+        var pv = this._colorBr;
         if (pv !== v) {
-            this._colorBottomRight = v;
+            this._colorBr = v;
             this.uComponent.setColorBr(v);
         }
     }
@@ -1887,44 +1888,44 @@ Object.defineProperty(Component.prototype, 'displayedTexture', {
 });
 
 Object.defineProperty(Component.prototype, 'color', {
-    get: function() { return this.colorTopLeft; },
+    get: function() { return this.colorUl; },
     set: function(v) {
-        this.colorTopLeft = v;
-        this.colorTopRight = v;
-        this.colorBottomLeft = v;
-        this.colorBottomRight = v;
+        this.colorUl = v;
+        this.colorUr = v;
+        this.colorBl = v;
+        this.colorBr = v;
     }
 });
 
 Object.defineProperty(Component.prototype, 'colorTop', {
-    get: function() { return this.colorTopLeft; },
+    get: function() { return this.colorUl; },
     set: function(v) {
-        this.colorTopLeft = v;
-        this.colorTopRight = v;
+        this.colorUl = v;
+        this.colorUr = v;
     }
 });
 
 Object.defineProperty(Component.prototype, 'colorBottom', {
-    get: function() { return this.colorBottomLeft; },
+    get: function() { return this.colorBl; },
     set: function(v) {
-        this.colorBottomLeft = v;
-        this.colorBottomRight = v;
+        this.colorBl = v;
+        this.colorBr = v;
     }
 });
 
 Object.defineProperty(Component.prototype, 'colorLeft', {
-    get: function() { return this.colorTopLeft; },
+    get: function() { return this.colorUl; },
     set: function(v) {
-        this.colorTopLeft = v;
-        this.colorBottomLeft = v;
+        this.colorUl = v;
+        this.colorBl = v;
     }
 });
 
 Object.defineProperty(Component.prototype, 'colorRight', {
-    get: function() { return this.colorTopRight; },
+    get: function() { return this.colorUr; },
     set: function(v) {
-        this.colorTopRight = v;
-        this.colorBottomRight = v;
+        this.colorUr = v;
+        this.colorBr = v;
     }
 });
 
@@ -2196,10 +2197,10 @@ Component.SETTINGS = {
     'borderColorBottom': {i:17, s: function(obj, value) {obj.borderColorBottom = value}, g: function(obj) {return obj.borderColorBottom}, sf: function(obj, value) {obj.BORDERCOLORBOTTOM = value}, gf: function(obj) {return obj.BORDERCOLORBOTTOM}, m: StageUtils.mergeColors},
     'borderColorLeft': {i:18, s: function(obj, value) {obj.borderColorLeft = value}, g: function(obj) {return obj.borderColorLeft}, sf: function(obj, value) {obj.BORDERCOLORLEFT = value}, gf: function(obj) {return obj.BORDERCOLORLEFT}, m: StageUtils.mergeColors},
     'borderColorRight': {i:19, s: function(obj, value) {obj.borderColorRight = value}, g: function(obj) {return obj.borderColorRight}, sf: function(obj, value) {obj.BORDERCOLORRIGHT = value}, gf: function(obj) {return obj.BORDERCOLORRIGHT}, m: StageUtils.mergeColors},
-    'colorTopLeft': {i:20, s: function(obj, value) {obj.colorTopLeft = value}, g: function(obj) {return obj.colorTopLeft}, sf: function(obj, value) {obj.COLORTOPLEFT = value}, gf: function(obj) {return obj.COLORTOPLEFT}, m: StageUtils.mergeColors},
-    'colorTopRight': {i:21, s: function(obj, value) {obj.colorTopRight = value}, g: function(obj) {return obj.colorTopRight}, sf: function(obj, value) {obj.COLORTOPRIGHT = value}, gf: function(obj) {return obj.COLORTOPRIGHT}, m: StageUtils.mergeColors},
-    'colorBottomLeft': {i:22, s: function(obj, value) {obj.colorBottomLeft = value}, g: function(obj) {return obj.colorBottomLeft}, sf: function(obj, value) {obj.COLORBOTTOMLEFT = value}, gf: function(obj) {return obj.COLORBOTTOMLEFT}, m: StageUtils.mergeColors},
-    'colorBottomRight': {i:23, s: function(obj, value) {obj.colorBottomRight = value}, g: function(obj) {return obj.colorBottomRight}, sf: function(obj, value) {obj.COLORBOTTOMRIGHT = value}, gf: function(obj) {return obj.COLORBOTTOMRIGHT}, m: StageUtils.mergeColors},
+    'colorUl': {i:20, s: function(obj, value) {obj.colorUl = value}, g: function(obj) {return obj.colorUl}, sf: function(obj, value) {obj.COLORTOPLEFT = value}, gf: function(obj) {return obj.COLORTOPLEFT}, m: StageUtils.mergeColors},
+    'colorUr': {i:21, s: function(obj, value) {obj.colorUr = value}, g: function(obj) {return obj.colorUr}, sf: function(obj, value) {obj.COLORTOPRIGHT = value}, gf: function(obj) {return obj.COLORTOPRIGHT}, m: StageUtils.mergeColors},
+    'colorBl': {i:22, s: function(obj, value) {obj.colorBl = value}, g: function(obj) {return obj.colorBl}, sf: function(obj, value) {obj.COLORBOTTOMLEFT = value}, gf: function(obj) {return obj.COLORBOTTOMLEFT}, m: StageUtils.mergeColors},
+    'colorBr': {i:23, s: function(obj, value) {obj.colorBr = value}, g: function(obj) {return obj.colorBr}, sf: function(obj, value) {obj.COLORBOTTOMRIGHT = value}, gf: function(obj) {return obj.COLORBOTTOMRIGHT}, m: StageUtils.mergeColors},
     'visible': {s: function(obj, value) {obj.visible = value}, g: function(obj) {return obj.visible}, sf: function(obj, value) {obj.VISIBLE = value}, gf: function(obj) {return obj.VISIBLE}, m: null},
     'zIndex': {s: function(obj, value) {obj.zIndex = value}, g: function(obj) {return obj.zIndex}, sf: function(obj, value) {obj.VISIBLE = value}, gf: function(obj) {return obj.VISIBLE}, m: null},
     'forceZIndexContext': {s: function(obj, value) {obj.forceZIndexContext = value}, g: function(obj) {return obj.forceZIndexContext}, sf: function(obj, value) {obj.FORCEZINDEXCONTEXT = value}, gf: function(obj) {return obj.FORCEZINDEXCONTEXT}, m: null},
