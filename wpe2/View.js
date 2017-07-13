@@ -198,6 +198,8 @@ class View extends Base {
     };
 
     addChild(child) {
+        if (!this._children) this._children = [];
+
         if (child.parent === this && this._children.indexOf(child) >= 0) {
             return child;
         }
@@ -281,13 +283,23 @@ class View extends Base {
     setChildren(children) {
         this.removeChildren();
         for (let i = 0, n = children.length; i < n; i++) {
-            this.addChild(children[i]);
+            let o = children[i];
+            if (Utils.isObjectLiteral(o)) {
+                let c = this.stage.createView(o);
+                c.setSettings(o);
+                this.addChild(c);
+                return c;
+            } else if (o instanceof View) {
+                this.addChild(o);
+                return o;
+            }
         }
     };
 
     add(o) {
-        if (Utils.isPlainObject(o)) {
-            let c = this.stage.c(o);
+        if (Utils.isObjectLiteral(o)) {
+            let c = this.stage.createView(o);
+            c.setSettings(o);
             this.addChild(c);
             return c;
         } else if (o instanceof View) {
@@ -295,12 +307,7 @@ class View extends Base {
             return o;
         } else if (Array.isArray(o)) {
             for (let i = 0, n = o.length; i < n; i++) {
-                if (Utils.isPlainObject(o)) {
-                    let c = this.stage.c(o[i]);
-                    this.addChild(c);
-                } else if (o instanceof View) {
-                    this.addChild(o);
-                }
+                this.add(o[i]);
             }
             return null;
         }
@@ -543,7 +550,7 @@ class View extends Base {
 
             this._displayedTexture = v;
 
-            this.checkForResize();
+            this._updateDimensions();
 
             if (v) {
                 if (this._eventsCount) {
@@ -649,6 +656,62 @@ class View extends Base {
     _updateLocalAlpha() {
         this.renderer.setLocalAlpha(this._visible ? this._alpha : 0);
     };
+    
+    _updateTextureCoords() {
+        if (this.displayedTexture && this.displayedTexture.source) {
+            let displayedTexture = this.displayedTexture;
+            let displayedTextureSource = this.displayedTexture.source;
+
+            let tx1 = 0, ty1 = 0, tx2 = 1.0, ty2 = 1.0;
+            if (displayedTexture.clipping) {
+                // Apply texture clipping.
+                let w = displayedTextureSource.getRenderWidth();
+                let h = displayedTextureSource.getRenderHeight();
+                let iw, ih, rw, rh;
+                iw = 1 / w;
+                ih = 1 / h;
+
+                if (displayedTexture.w) {
+                    rw = displayedTexture.w * iw;
+                } else {
+                    rw = (w - displayedTexture.x) * iw;
+                }
+
+                if (displayedTexture.h) {
+                    rh = displayedTexture.h * ih;
+                } else {
+                    rh = (h - displayedTexture.y) * ih;
+                }
+
+                iw *= displayedTexture.x;
+                ih *= displayedTexture.y;
+
+                tx1 = Math.min(1.0, Math.max(0, iw));
+                ty1 = Math.min(1.0, Math.max(ih));
+                tx2 = Math.min(1.0, Math.max(tx2 * rw + iw));
+                ty2 = Math.min(1.0, Math.max(ty2 * rh + ih));
+            }
+
+            if (displayedTextureSource.inTextureAtlas) {
+                // Calculate texture atlas texture coordinates.
+                let textureAtlasI = 0.000488281;    // 1/2048.
+
+                let tax = (displayedTextureSource.textureAtlasX * textureAtlasI);
+                let tay = (displayedTextureSource.textureAtlasY * textureAtlasI);
+                let dax = (displayedTextureSource.w * textureAtlasI);
+                let day = (displayedTextureSource.h * textureAtlasI);
+
+                tx1 = tax;
+                ty1 = tay;
+
+                tx2 = tx2 * dax + tax;
+                ty2 = ty2 * day + tay;
+            }
+
+            this.renderer.setTextureCoords(tx1, ty1, tx2, ty2);
+            this.renderer.setInTextureAtlas(displayedTextureSource.inTextureAtlas);
+        }
+    }
 
     getCornerPoints() {
         return this.renderer.getCornerPoints();
@@ -1026,8 +1089,7 @@ class View extends Base {
         for (let name in settings) {
             let v = settings[name];
             if (settings.hasOwnProperty(name)) {
-                let p = this[name];
-                if (Utils.isObject(p) && Utils.isPlainObject(v)) {
+                if (Utils.isObjectLiteral(v) && Utils.isObject(obj[name])) {
                     // Sub object.
                     View.setSettings(p, v);
                 } else {
@@ -1047,7 +1109,7 @@ class View extends Base {
     }
 
     static getMerger(propertyPath) {
-        return View.PROP_MERGERS.get(propertyPath);
+        return View.PROP_MERGERS[propertyPath];
     }
 
     get x() {return this._x}
@@ -1209,6 +1271,10 @@ class View extends Base {
         this.setTags(v);
     }
 
+    set tag(v) {
+        this.setTags([v]);
+    }
+
     get children() {
         return this._children || [];
     }
@@ -1233,12 +1299,12 @@ class View extends Base {
     }
 
     get rect() {
-        return (this.texture === this.stage.getRectangleTexture());
+        return (this.texture === this.stage.rectangleTexture);
     }
 
     set rect(v) {
         if (v) {
-            this.texture = this.stage.getRectangleTexture();
+            this.texture = this.stage.rectangleTexture;
         } else {
             this.texture = null;
         }
@@ -1253,7 +1319,7 @@ class View extends Base {
     //
     // set text(v) {
     //     if (v) {
-    //         this.texture = this.stage.getRectangleTexture();
+    //         this.texture = this.stage.rectangleTexture;
     //     } else {
     //         if (!this.viewText) {
     //             this.viewText = new ViewText(this);
@@ -1268,14 +1334,14 @@ class View extends Base {
 
 }
 
-View.id = 0;
+View.id = 1;
 
 // Setters reused when referencing view (subobject) properties by a property path, as used in a transition or animation ('x', 'texture.x', etc).
 // Reusing these saves memory and allows better optimization.
 View.PROP_SETTERS = new Map();
 
 let mn = StageUtils.mergeNumbers, mc = StageUtils.mergeColors;
-View.PROP_MERGERS = new Map({
+View.PROP_MERGERS = {
     'x': mn,
     'y': mn,
     'color': mc,
@@ -1286,6 +1352,6 @@ View.PROP_MERGERS = new Map({
     'texture.x': mn,
     'texture.y': mn
     //@todo: other mergables.
-});
+};
 
 Base.mixinEs5(View, EventEmitter);

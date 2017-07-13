@@ -46,6 +46,10 @@ class Utils {
         return !!value && (type == 'object');
     }
 
+    static isObjectLiteral(value){
+        return typeof value === 'object' && value && value.constructor === Object
+    }
+
     static getArrayIndex(index, arr) {
         return Utils.getModuloIndex(index, arr.length);
     }

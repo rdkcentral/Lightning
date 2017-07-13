@@ -1,8 +1,6 @@
 class TextureManager {
 
     constructor(stage) {
-        super();
-
         this.stage = stage;
 
         this.gl = this.stage.gl;
@@ -110,8 +108,6 @@ class TextureManager {
         gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
 
         gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, format.premultiplyAlpha);
-
-        gl.pixelStorei(gl.UNPACK_FLIP_BLUE_RED, format.flipBlueRed);
 
         this.stage.adapter.uploadGlTexture(gl, textureSource, source, format.hasAlpha);
 

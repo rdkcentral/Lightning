@@ -1,8 +1,6 @@
 class Renderer {
 
     constructor(stage) {
-        super();
-
         this.stage = stage;
 
         this.gl = stage.gl;

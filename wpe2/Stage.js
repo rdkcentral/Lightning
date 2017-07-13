@@ -4,6 +4,8 @@
  * - transition (definition)
  * - animation (definition)
  * - mergers
+ * - hasAlpha in format, and try to prepare images for upload (so that we get buffer performance).
+ * - inspect.js
  * - nodejs
  * - nodejs texture loading
  */
@@ -21,7 +23,7 @@ class Stage extends Base {
     setOptions(o) {
         this.options = {};
 
-        let opt = function(name, def) {
+        let opt = (name, def) => {
             let value = o[name];
 
             if (value === undefined) {
@@ -107,17 +109,14 @@ class Stage extends Base {
         }, {id: '__whitepix'});
 
         let source = this.rectangleTexture.source;
-        source.onload = function() {
-            source.permanent = true;
-            if (self.textureAtlas) {
-                self.textureAtlas.add(src);
-            }
+        this.rectangleTexture.source.load(true);
 
-            self.adapter.startLoop();
+        source.permanent = true;
+        if (self.textureAtlas) {
+            self.textureAtlas.add(source);
+        }
 
-            self.emit('ready');
-        };
-        this.rectangleTexture.load();
+        self.adapter.startLoop();
     }
 
     destroy() {
@@ -246,4 +245,4 @@ class Stage extends Base {
     }
 }
 
-Base.mixinEs5(View, EventEmitter);
+Base.mixinEs5(Stage, EventEmitter);

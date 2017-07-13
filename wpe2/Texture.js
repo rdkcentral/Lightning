@@ -5,8 +5,6 @@ class Texture {
      * @param {TextureSource} source
      */
     constructor(manager, source) {
-        super();
-
         this.manager = manager;
 
         this.id = Texture.id++;
@@ -91,7 +89,7 @@ class Texture {
         }
 
         let self = this;
-        this.getViews().forEach(function(view) {
+        this.source.views.forEach(function(view) {
             // Ignore if not the currently displayed texture.
             if (view.displayedTexture === self) {
                 view.onDisplayedTextureClippingChanged();
@@ -101,7 +99,7 @@ class Texture {
 
     updatePrecision() {
         let self = this;
-        this.getViews().forEach(function(view) {
+        this.source.views.forEach(function(view) {
             // Ignore if not the currently displayed texture.
             if (view.displayedTexture === self) {
                 view.onPrecisionChanged();
@@ -109,33 +107,27 @@ class Texture {
         });
     }
 
-    getViews() {
-        this.source.views.filter(view => (view.texture === this || view.displayedTexture === this));
-    }
-
     replaceTextureSource(newSource) {
-        let views = this.getViews();
-
-        let self = this;
-
         let oldSource = this.source;
 
         this.source = newSource;
 
         // Make sure that all components and component links are updated properly.
-        views.forEach(function(view) {
-            // Remove links from previous source, but only if there is no reason for it any more.
-            let keep = (view.displayedTexture && view.displayedTexture !== self && view.displayedTexture.source === oldSource);
-            keep = keep || (view.texture && view.texture !== self && view.texture.source === oldSource);
+        this.views.forEach(view => {
+            if (view.texture !== this && view.displayedTexture !== this) {
+                // Remove links from previous source, but only if there is no reason for it any more.
+                let keep = (view.displayedTexture && view.displayedTexture !== this && view.displayedTexture.source === oldSource);
+                keep = keep || (view.texture && view.texture !== this && view.texture.source === oldSource);
 
-            if (!keep) {
-                oldSource.removeView(view);
-            }
+                if (!keep) {
+                    oldSource.removeView(view);
+                }
 
-            newSource.addView(view);
+                newSource.addView(view);
 
-            if (newSource.glTexture) {
-                view.displayedTexture = self;
+                if (newSource.glTexture) {
+                    view.displayedTexture = this;
+                }
             }
         });
     }

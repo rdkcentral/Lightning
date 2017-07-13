@@ -54,7 +54,7 @@ class Base {
                     // Mixin may not overwrite prototype methods.
                     console.warn('Mixin overwrites ' + key);
                 } else {
-                    Object.defineProperty(this, key, desc);
+                    Object.defineProperty(superclass.prototype, key, desc);
                 }
             }
         }
@@ -63,3 +63,5 @@ class Base {
     };
 
 }
+
+Base.protoReady = new WeakSet();

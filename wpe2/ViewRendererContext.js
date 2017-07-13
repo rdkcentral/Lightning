@@ -1,8 +1,6 @@
 class ViewRendererContext {
 
     constructor(stage) {
-        super();
-
         this.stage = stage;
 
         this.vboGlTextures = [];

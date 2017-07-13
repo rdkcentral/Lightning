@@ -1,6 +1,6 @@
 class TextureAtlasTree {
+
     constructor(w, h) {
-        super();
         this.w = w;
         this.h = h;
 

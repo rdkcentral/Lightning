@@ -10,7 +10,7 @@ class ViewRenderer extends Base {
         this.ctx = view.stage.ctx;
     }
 
-    properties() {
+    _properties() {
         this.parent = null;
 
         this.hasUpdates = false;
@@ -267,7 +267,7 @@ class ViewRenderer extends Base {
 
     setAsRoot() {
         // Use parent dummy.
-        this.parent = new ViewGfx();
+        this.parent = new ViewRenderer(this.view);
 
         // Root is, and will always be, the primary zContext.
         this.isRoot = true;

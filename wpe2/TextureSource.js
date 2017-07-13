@@ -1,8 +1,6 @@
 class TextureSource {
 
     constructor(manager, loadCb) {
-        super();
-
         this.id = TextureSource.id++;
 
         this.manager = manager;
@@ -188,15 +186,15 @@ class TextureSource {
 
         var format = {
             premultiplyAlpha: true,
-            flipBlueRed: false
+            hasAlpha: true
         };
 
         if (options && options.hasOwnProperty('premultiplyAlpha')) {
             format.premultiplyAlpha = options.premultiplyAlpha;
         }
 
-        if (options && options.hasOwnProperty('flipBlueRed')) {
-            format.flipBlueRed = options.flipBlueRed;
+        if (options && options.hasOwnProperty('hasAlpha')) {
+            format.hasAlpha = options.hasAlpha;
         }
 
         this.manager.uploadTextureSource(this, source, format);

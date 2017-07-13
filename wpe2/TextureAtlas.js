@@ -1,7 +1,6 @@
 class TextureAtlas {
-    constructor(stage) {
-        super();
 
+    constructor(stage) {
         this.stage = stage;
 
         this.w = 2048;
