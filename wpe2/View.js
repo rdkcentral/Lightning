@@ -1342,14 +1342,28 @@ let mn = StageUtils.mergeNumbers, mc = StageUtils.mergeColors;
 View.PROP_MERGERS = {
     'x': mn,
     'y': mn,
+    'w': mn,
+    'h': mn,
+    'scale': mn,
+    'scaleX': mn,
+    'scaleY': mn,
+    'pivot': mn,
+    'pivotX': mn,
+    'pivotY': mn,
+    'mount': mn,
+    'mountX': mn,
+    'mountY': mn,
+    'alpha': mn,
+    'rotation': mn,
     'color': mc,
     'colorUl': mc,
     'colorUr': mc,
     'colorBl': mc,
     'colorBr': mc,
     'texture.x': mn,
-    'texture.y': mn
-    //@todo: other mergables.
+    'texture.y': mn,
+    'texture.w': mn,
+    'texture.h': mn
 };
 
 Base.mixinEs5(View, EventEmitter);

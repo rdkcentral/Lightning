@@ -2,7 +2,6 @@
  * @todo:
  * - transition (definition)
  * - animation (definition)
- * - mergers (View.PROP_MERGERS)
  * - hasAlpha in format, and try to prepare images for upload (so that we get buffer performance).
  * - inspect.js
  * - nodejs
