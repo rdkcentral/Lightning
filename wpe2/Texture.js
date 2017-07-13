@@ -112,9 +112,8 @@ class Texture {
 
         this.source = newSource;
 
-        // Make sure that all components and component links are updated properly.
-        this.views.forEach(view => {
-            if (view.texture !== this && view.displayedTexture !== this) {
+        oldSource.views.forEach(view => {
+            if (view.texture === this || view.displayedTexture === this) {
                 // Remove links from previous source, but only if there is no reason for it any more.
                 let keep = (view.displayedTexture && view.displayedTexture !== this && view.displayedTexture.source === oldSource);
                 keep = keep || (view.texture && view.texture !== this && view.texture.source === oldSource);

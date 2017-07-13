@@ -38,8 +38,8 @@ class Renderer {
 
         // The matrix that causes the [0,0 - W,H] box to map to [-1,-1 - 1,1] in the end results.
         this.projectionMatrix = new Float32Array([
-            2/this.stage.renderWidth, 0, 0, 0,
-            0, -2/this.stage.renderHeight, 0, 0,
+            2/this.stage.options.renderWidth, 0, 0, 0,
+            0, -2/this.stage.options.renderHeight, 0, 0,
             0, 0, 1, 0,
             -1, 1, 0, 1
         ]);
@@ -165,7 +165,7 @@ class Renderer {
         // Set up WebGL program.
         gl.useProgram(this.program);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.viewport(0,0,this.w,this.h);
+        gl.viewport(0,0,this.stage.options.w,this.stage.options.h);
         gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
         gl.enable(gl.BLEND);
         gl.disable(gl.DEPTH_TEST);
@@ -175,15 +175,14 @@ class Renderer {
         gl.clearColor(glClearColor[0], glClearColor[1], glClearColor[2], glClearColor[3]);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
-        let view = new DataView(ctx.getVboParamsBuffer(), 0, ctx.getVboIndex() * 4);
+        let view = new DataView(ctx.vboParamsBuffer, 0, ctx.vboIndex * 4);
         gl.bindBuffer(gl.ARRAY_BUFFER, this.paramsGlBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, view, gl.DYNAMIC_DRAW);
-        let vboGlTextures = ctx.getVboGlTextures();
-        let vboGlTextureRepeats = ctx.getVboGlTextureRepeats();
-        let count = ctx.getVboGlTexturesCount();
+        let vboGlTextures = ctx.vboGlTextures;
+        let vboGlTextureRepeats = ctx.vboGlTextureRepeats;
+        let count = ctx.vboGlTextures.length;
 
         if (count) {
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.paramsGlBuffer);
             gl.vertexAttribPointer(this.vertexPositionAttribute, 2, gl.FLOAT, false, 16, 0);
             gl.vertexAttribPointer(this.textureCoordAttribute, 2, gl.UNSIGNED_SHORT, true, 16, 2 * 4);
             gl.vertexAttribPointer(this.colorAttribute, 4, gl.UNSIGNED_BYTE, true, 16, 3 * 4);
@@ -200,11 +199,11 @@ class Renderer {
                 gl.drawElements(gl.TRIANGLES, 6 * vboGlTextureRepeats[i], gl.UNSIGNED_SHORT, pos * 6 * 2);
                 pos += vboGlTextureRepeats[i];
             }
-
             gl.disableVertexAttribArray(this.vertexPositionAttribute);
             gl.disableVertexAttribArray(this.textureCoordAttribute);
             gl.disableVertexAttribArray(this.colorAttribute);
         }
+
     }
     
 }

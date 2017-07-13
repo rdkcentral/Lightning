@@ -4,14 +4,11 @@ class View extends Base {
 
         super();
 
-        this.stage = stage;
-
-        this.renderer = new ViewRenderer(this);
-
-        this.id = View.id++;
-
         EventEmitter.call(this);
 
+        this.stage = stage;
+        this.renderer = new ViewRenderer(this);
+        this.id = View.id++;
     }
 
     _properties() {
@@ -639,8 +636,8 @@ class View extends Base {
     _updateLocalTranslate() {
         let pivotXMul = this._pivotX * this.renderer.rw;
         let pivotYMul = this._pivotY * this.renderer.rh;
-        let px = this._x - (pivotXMul * this.localTa + pivotYMul * this.localTb) + pivotXMul;
-        let py = this._y - (pivotXMul * this.localTc + pivotYMul * this.localTd) + pivotYMul;
+        let px = this._x - (pivotXMul * this.renderer.localTa + pivotYMul * this.renderer.localTb) + pivotXMul;
+        let py = this._y - (pivotXMul * this.renderer.localTc + pivotYMul * this.renderer.localTd) + pivotYMul;
         px -= this._mountX * this.renderWidth;
         py -= this._mountY * this.renderHeight;
         this.renderer.setLocalTranslate(
@@ -816,10 +813,6 @@ class View extends Base {
     };
 
     setTags(tags) {
-        if (!Array.isArray(tags)) {
-            tags = [tags];
-        }
-
         let i, n = tags.length;
         let removes = [];
         let adds = [];
@@ -866,7 +859,7 @@ class View extends Base {
                     p.treeTags.set(tag, s);
                 }
 
-                s.add(this.component);
+                s.add(this);
 
                 p._clearTagsCache(tag);
             } while (p = p.parent);
@@ -883,7 +876,7 @@ class View extends Base {
             do {
                 let list = p.treeTags.get(tag);
                 if (list) {
-                    list.delete(this.component);
+                    list.delete(this);
 
                     p._clearTagsCache(tag);
                 }
@@ -975,7 +968,7 @@ class View extends Base {
         delete obj.children;
 
         // Convert singular json settings object.
-        var colorKeys = ["color", "colorUl", "colorUr", "colorBl", "colorBr", "borderColor", "borderColorTop", "borderColorBottom", "borderColorLeft", "borderColorRight"]
+        var colorKeys = ["color", "colorUl", "colorUr", "colorBl", "colorBr"]
         var str = JSON.stringify(obj, function(k, v) {
             if (colorKeys.indexOf(k) !== -1) {
                 return "COLOR[" + v.toString(16) + "]";
@@ -1091,7 +1084,13 @@ class View extends Base {
             if (settings.hasOwnProperty(name)) {
                 if (Utils.isObjectLiteral(v) && Utils.isObject(obj[name])) {
                     // Sub object.
-                    View.setSettings(p, v);
+                    var p = obj[name];
+                    if (p.setSettings) {
+                        // Custom setSettings method.
+                        p.setSettings(p, v);
+                    } else {
+                        View.setObjectSettings(p, v);
+                    }
                 } else {
                     obj[name] = v;
                 }
@@ -1268,11 +1267,8 @@ class View extends Base {
     }
 
     set tags(v) {
+        if (!Array.isArray(v)) v = [v];
         this.setTags(v);
-    }
-
-    set tag(v) {
-        this.setTags([v]);
     }
 
     get children() {
@@ -1310,27 +1306,29 @@ class View extends Base {
         }
     }
 
-    // get text() {
-    //     if (!this.viewText) {
-    //         this.viewText = new ViewText(this);
-    //     }
-    //     return this.viewText;
-    // }
-    //
-    // set text(v) {
-    //     if (v) {
-    //         this.texture = this.stage.rectangleTexture;
-    //     } else {
-    //         if (!this.viewText) {
-    //             this.viewText = new ViewText(this);
-    //         }
-    //         if (Utils.isString(v)) {
-    //             this.viewText.text = v;
-    //         } else {
-    //             this.viewText.setSettings(v);
-    //         }
-    //     }
-    // }
+    get text() {
+        if (!this.viewText) {
+            this.viewText = new ViewText(this);
+        }
+
+        // Give direct access to the settings.
+        return this.viewText.settings;
+    }
+
+    set text(v) {
+        if (v) {
+            this.texture = this.stage.rectangleTexture;
+        } else {
+            if (!this.viewText) {
+                this.viewText = new ViewText(this);
+            }
+            if (Utils.isString(v)) {
+                this.viewText.settings.text = v;
+            } else {
+                this.viewText.settings.setSettings(v);
+            }
+        }
+    }
 
 }
 

@@ -43,9 +43,9 @@ class TextureManager {
         this.stage.adapter.loadSrcTexture(src, cb);
     }
 
-    loadTextTexture(src, cb) {
+    loadTextTexture(settings, cb) {
         //@todo: parallel loading.
-        this.stage.adapter.loadTextTexture(src, cb);
+        this.stage.adapter.loadTextTexture(settings, cb);
     }
 
     getTexture(source, options) {

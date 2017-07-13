@@ -25,7 +25,7 @@ class StageUtils {
         let g = ((argb / 256) | 0) % 256;
         let b = argb % 256;
         let a = ((argb / 16777216) | 0);
-        return [r * 0.003921569, g * 0.003921569, b * 0.003921569, a * 0.003921569];
+        return [r / 255, g / 255, b / 255, a / 255];
     };
 
     static getRgbaComponents(argb) {

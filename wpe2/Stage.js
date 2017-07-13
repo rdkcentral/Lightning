@@ -1,9 +1,8 @@
 /**
  * @todo:
- * - text
  * - transition (definition)
  * - animation (definition)
- * - mergers
+ * - mergers (View.PROP_MERGERS)
  * - hasAlpha in format, and try to prepare images for upload (so that we get buffer performance).
  * - inspect.js
  * - nodejs
@@ -167,7 +166,7 @@ class Stage extends Base {
             this.textureAtlas.flush();
         }
 
-        if (this.ctx.staticStage) {
+        if (!this.ctx.staticStage) {
             this.ctx.updateAndFillVbo(this.zIndexUsage > 0);
 
             // We will render the stage even if it's stable shortly after importing a texture in the texture atlas, to prevent out-of-syncs.

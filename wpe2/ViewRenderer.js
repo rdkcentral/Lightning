@@ -696,7 +696,7 @@ class ViewRenderer extends Base {
 
             if (this.hasChildren) {
                 for (let i = 0, n = this._children.length; i < n; i++) {
-                    if ((this.ctx.updateTreeOrderForceUpdate > 0) || this.recalc || this.children[i].hasUpdates) {
+                    if ((this.ctx.updateTreeOrderForceUpdate > 0) || this.recalc || this._children[i].hasUpdates) {
                         this._children[i].update();
                     } else if (!this.ctx.useZIndexing) {
                         this._children[i].fillVbo();
@@ -763,7 +763,7 @@ class ViewRenderer extends Base {
                     vboBufferFloat[vboIndex++] = this.worldPy + this.rh * this.worldTd;
                     vboBufferUint[vboIndex++] = this.txCoordsBl;
                     vboBufferUint[vboIndex++] = getColorInt(this.colorBl, this.worldAlpha);
-                    this.ctx.addVboTextureSource(this, 1);
+                    this.ctx.addVboTextureSource(this.displayedTextureSource, 1);
                 }
             } else {
                 // Simple.
@@ -787,7 +787,7 @@ class ViewRenderer extends Base {
                     vboBufferFloat[vboIndex++] = cy;
                     vboBufferUint[vboIndex++] = this.txCoordsBl;
                     vboBufferUint[vboIndex++] = getColorInt(this.colorBl, this.worldAlpha);
-                    this.ctx.addVboTextureSource(this, 1);
+                    this.ctx.addVboTextureSource(this.displayedTextureSource, 1);
                 }
             }
         }
@@ -839,7 +839,7 @@ class ViewRenderer extends Base {
                 vboBufferFloat[vboIndex++] = this.clippingSquareMaxY;
                 vboBufferUint[vboIndex++] = getVboTextureCoords(tcx1, tcy3);
                 vboBufferUint[vboIndex++] = c;
-                this.ctx.addVboTextureSource(this, 1);
+                this.ctx.addVboTextureSource(this.displayedTextureSource, 1);
             }
         } else {
             // Complex clipping.
@@ -889,7 +889,7 @@ class ViewRenderer extends Base {
                     vboBufferFloat[vboIndex++] = this.clippingArea[g + 1];
                     vboBufferUint[vboIndex++] = getVboTextureCoords(this.ulx * (1 - tx4) + this.brx * tx4, this.uly * (1 - ty4) + this.bry * ty4);
                     vboBufferUint[vboIndex] = c;
-                    this.ctx.addVboTextureSource(this, 1);
+                    this.ctx.addVboTextureSource(this.displayedTextureSource, 1);
                 }
             } else {
                 // Multiple quads.
@@ -929,7 +929,7 @@ class ViewRenderer extends Base {
                         vboBufferFloat[vboIndex++] = this.clippingArea[g + 1];
                         vboBufferUint[vboIndex++] = getVboTextureCoords(this.ulx * (1 - tx4) + this.brx * tx4, this.uly * (1 - ty4) + this.bry * ty4);
                         vboBufferUint[vboIndex++] = c;
-                        this.ctx.addVboTextureSource(this, 1);
+                        this.ctx.addVboTextureSource(this.displayedTextureSource, 1);
                     }
                 }
             }
