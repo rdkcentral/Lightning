@@ -495,6 +495,15 @@ class View extends Base {
     }
 
     set texture(v) {
+        if (v && Utils.isObjectLiteral(v)) {
+            if (this.texture) {
+                View.setObjectSettings(this.texture, v);
+            } else {
+                console.warn('Trying to set texture properties, but there is no texture.');
+            }
+            return;
+        }
+
         let prevValue = this._texture;
         if (v !== prevValue) {
             if (v !== null && !(v instanceof Texture)) {
