@@ -144,31 +144,31 @@ class Texture {
     get x() {return this._x}
     set x(v) {if (this._x !== v) {
         this._x = v;
-        this.updateClipping(false);
+        this.updateClipping();
     }}
 
     get y() {return this._y}
     set y(v) {if (this._y !== v) {
         this._y = v;
-        this.updateClipping(false);
+        this.updateClipping();
     }}
 
     get w() {return this._w}
     set w(v) {if (this._w !== v) {
         this._w = v;
-        this.updateClipping(false);
+        this.updateClipping();
     }}
 
     get h() {return this._h}
     set h(v) {if (this._h !== v) {
         this._h = v;
-        this.updateClipping(false);
+        this.updateClipping();
     }}
 
     get precision() {return this._precision}
     set precision(v) {if (this._precision !== v) {
         this._precision = v;
-        this.updatePrecision(false);
+        this.updatePrecision();
     }}
     
 }

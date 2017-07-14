@@ -50,7 +50,7 @@ class ViewText extends Base {
 
     setSettings(settings) {
         // Proxy to the settings object.
-        View.setObjectSettings(this.settings, settings);
+        Base.setObjectSettings(this.settings, settings);
     }
 
     getFinalizedSettings() {

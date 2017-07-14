@@ -1,10 +1,10 @@
 /**
  * @todo:
  * - transition (definition)
- * - private values: underscored.
  * - animation (definition)
- * - hasAlpha in format, and try to prepare images for upload (so that we get buffer performance).
+ * - private values: underscored.
  * - inspect.js
+ * - hasAlpha in format, and try to prepare images for upload (so that we get buffer performance).
  * - nodejs
  * - nodejs texture loading
  */
@@ -59,6 +59,11 @@ class Stage extends Base {
         this.setGlClearColor(this.options.glClearColor);
 
         this.frameCounter = 0;
+
+        try {
+            // Animations are optional.
+            this.transitions = new TransitionManager(this);
+        } catch(e) {}
 
         this.renderer = new Renderer(this);
 

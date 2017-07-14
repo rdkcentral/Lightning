@@ -277,22 +277,6 @@ class View extends Base {
         }
     };
 
-    setChildren(children) {
-        this.removeChildren();
-        for (let i = 0, n = children.length; i < n; i++) {
-            let o = children[i];
-            if (Utils.isObjectLiteral(o)) {
-                let c = this.stage.createView(o);
-                c.setSettings(o);
-                this.addChild(c);
-                return c;
-            } else if (o instanceof View) {
-                this.addChild(o);
-                return o;
-            }
-        }
-    };
-
     add(o) {
         if (Utils.isObjectLiteral(o)) {
             let c = this.stage.createView(o);
@@ -497,7 +481,7 @@ class View extends Base {
     set texture(v) {
         if (v && Utils.isObjectLiteral(v)) {
             if (this.texture) {
-                View.setObjectSettings(this.texture, v);
+                Base.setObjectSettings(this.texture, v);
             } else {
                 console.warn('Trying to set texture properties, but there is no texture.');
             }
@@ -1075,7 +1059,7 @@ class View extends Base {
             settings.text = this.viewText.settings.getNonDefaults();
         }
 
-        var tnd = this._texture.getNonDefaults();
+        let tnd = this._texture.getNonDefaults();
         if (Object.keys(tnd).length) {
             settings.texture = tnd;
         }
@@ -1084,27 +1068,16 @@ class View extends Base {
     };
 
     setSettings(settings) {
-        View.setObjectSettings(this, settings);
+        Base.setObjectSettings(this, settings);
     }
 
-    static setObjectSettings(obj, settings) {
-        for (let name in settings) {
-            let v = settings[name];
-            if (settings.hasOwnProperty(name)) {
-                if (Utils.isObjectLiteral(v) && Utils.isObject(obj[name])) {
-                    // Sub object.
-                    var p = obj[name];
-                    if (p.setSettings) {
-                        // Custom setSettings method.
-                        p.setSettings(p, v);
-                    } else {
-                        View.setObjectSettings(p, v);
-                    }
-                } else {
-                    obj[name] = v;
-                }
-            }
+    static getGetter(propertyPath) {
+        let setter = View.PROP_GETTERS.has(propertyPath);
+        if (!setter) {
+            setter = new Function('obj', 'return obj.' + propertyPath);
+            View.PROP_GETTERS.set(propertyPath, setter);
         }
+        return setter;
     }
 
     static getSetter(propertyPath) {
@@ -1284,8 +1257,18 @@ class View extends Base {
         return this._children || [];
     }
 
-    set children(c) {
-        this.setChildren(c);
+    set children(children) {
+        this.removeChildren();
+        for (let i = 0, n = children.length; i < n; i++) {
+            let o = children[i];
+            if (Utils.isObjectLiteral(o)) {
+                let c = this.stage.createView(o);
+                c.setSettings(o);
+                this.addChild(c);
+            } else if (o instanceof View) {
+                this.addChild(o);
+            }
+        }
     }
 
     get src() {
@@ -1343,8 +1326,10 @@ class View extends Base {
 
 View.id = 1;
 
+// Getters reused when referencing view (subobject) properties by a property path, as used in a transition or animation ('x', 'texture.x', etc).
+View.PROP_GETTERS = new Map();
+
 // Setters reused when referencing view (subobject) properties by a property path, as used in a transition or animation ('x', 'texture.x', etc).
-// Reusing these saves memory and allows better optimization.
 View.PROP_SETTERS = new Map();
 
 let mn = StageUtils.mergeNumbers, mc = StageUtils.mergeColors;

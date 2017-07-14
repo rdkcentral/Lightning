@@ -19,14 +19,30 @@ var start = function() {
         {tags: 'bg', rect: true, x: 20, y: 20, w: 560, h: 560, colorUl: 0xFFFF0000, colorBr: 0xFFFF6666, children: [
             {tags: 'hello', text: {text: "hello world", fontSize: 50}, x: 10, y: 20},
             {tags: 'box', rect: true, w: 400, x: 150, y: 50, h: 100, color: 0xAAFF00FF, borderWidth: 1, borderColor: 0xFF000000, children: [
-                {tags: 'hello', text: {text: "hello world", fontSize: 50}, x: 10, y: 20}
+                {tags: 'hello2', text: {text: "hello world", fontSize: 50}, x: 10, y: 20}
             ]}
         ]}
     ]);
 
-    setInterval(function() {
-        stage.root.x += 0.1;
-    }, 100);
+    var hello2 = stage.root.tag('hello2');
+
+    stage.transitions.set(hello2, 'texture.x', {duration: 2});
+    stage.transitions.start(hello2, 'texture.x', 100);
+
+    // let def = stage.transitions.getDefinition({duration: 2});
+    // stage.transitions.set(hello2, 'texture.x', def);
+    // stage.transitions.set(hello2, 'texture.y', def);
+    //
+    // var xt = stage.transitions.get(hello2, 'texture.x');
+    // xt.start(100);
+    //
+    // var tm = stage.transitions;
+    // tm.start(hello2, 'texture.y', 50);
+    //
+    // setTimeout(function() {
+    //     tm.get(hello2, 'texture.x').finish();
+    // }, 2000);
+
 };
 
 

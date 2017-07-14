@@ -1,0 +1,116 @@
+class TransitionManager {
+
+    constructor(stage) {
+        this.stage = stage;
+
+        this.stage.on('frameStart', () => this.progress());
+
+        this.viewMap = new WeakMap();
+
+        /**
+         * All transitions that are running and have
+         * @type {Set<Transition>}
+         */
+        this.active = new Set();
+    }
+
+    progress() {
+        if (this.active.size) {
+            let dt = this.stage.dt;
+
+            let filter = false;
+            this.active.forEach(function(a) {
+                if (a.isActive()) {
+                    a.progress(dt);
+                } else {
+                    filter = true;
+                }
+            });
+
+            if (filter) {
+                this.active = new Set([...this.active].filter(t => t.isActive()));
+            }
+        }
+    }
+
+    _get(view, property) {
+        let viewTransitions = this.viewMap.get(view);
+        if (!viewTransitions) {
+            return;
+        } else {
+            return viewTransitions.get(property);
+        }
+    }
+
+    _set(view, property, value) {
+        let viewTransitions = this.viewMap.get(view);
+        if (!viewTransitions) {
+            viewTransitions = new Map();
+            this.viewMap.set(view, viewTransitions);
+        }
+        viewTransitions.set(property, value);
+    }
+
+    set(view, property, definition) {
+        if (Utils.isObjectLiteral(definition)) {
+            // Convert plain object to proper definition object.
+            definition = this.getDefinition(definition);
+        }
+
+        let current = this._get(view, property);
+        if (current && current.isTransition) {
+            // Runtime definition change.
+            current.definition = definition;
+            return current;
+        } else {
+            // Transition not yet created; simply replace previous definition declaration.
+            this._set(view, property, definition);
+        }
+    }
+
+    getDefinition(settings) {
+        let definition = new TransitionDefinition();
+        Base.setObjectSettings(definition, settings);
+        return definition;
+    }
+
+    get(view, property) {
+        let transition = this._get(view, property);
+        if (!transition) {
+            return;
+        }
+
+        if (transition.isTransitionDefinition) {
+            // Upgrade to 'real' transition.
+            transition = new Transition(
+                this,
+                transition,
+                view,
+                property
+            );
+            this._set(view, property, transition)
+        }
+
+        return transition;
+    }
+
+    remove(view, property) {
+        let viewTransitions = this.viewMap.get(view);
+        if (viewTransitions) {
+            viewTransitions.delete(property);
+        }
+    }
+
+    start(view, property, targetValue) {
+        let transition = this.get(view, property);
+        if (transition) {
+            transition.start(targetValue);
+        } else {
+            console.error('Property does not have a transition: ' + property);
+        }
+    }
+
+    addActive(transition) {
+        this.active.add(transition);
+    }
+}

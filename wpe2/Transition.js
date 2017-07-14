@@ -1,31 +1,41 @@
 class Transition extends Base {
 
-    constructor(definition, context, getter, setter, merger) {
+    constructor(manager, definition, view, property) {
         super();
 
         EventEmitter.call(this);
+        
+        this.manager = manager;
 
         this.definition = definition;
 
-        this._context = context;
-        this._getter = getter;
-        this._setter = setter;
-        this._merger = merger;
+        this._view = view;
+        this._getter = View.getGetter(property);
+        this._setter = View.getSetter(property);
+        this._merger = View.getMerger(property) || StageUtils.mergeNumbers;
 
-        this._startValue = this._getter(this._context);
+        if (!this._merger) {
+            throw new Error("Property does not have a merger: " + property);
+        }
+
+        this._startValue = this._getter(this._view);
         this._targetValue = this._startValue;
 
         this._p = 1;
         this._delayLeft = 0;
     }
 
+    _properties() {
+        this.isTransition = true;
+    }
+
     reset(targetValue, p) {
-        this._startValue = this._getter(this._context);
+        this._startValue = this._getter(this._view);
         this._targetValue = targetValue;
         this._p = p;
 
-        if (this.isActive()) {
-            this.activate();
+        if (p < 1) {
+            this.checkActive();
         } else if (p === 1) {
             this.setValue(this.getDrawValue());
 
@@ -34,8 +44,8 @@ class Transition extends Base {
         }
     }
 
-    start(targetValue, currentValue) {
-        this._startValue = currentValue;
+    start(targetValue) {
+        this._startValue = this._getter(this._view);
 
         if (targetValue === this._startValue) {
             this.reset(this._startValue, targetValue, 1);
@@ -44,15 +54,30 @@ class Transition extends Base {
             this._p = 0;
             this._delayLeft = this.definition.delay;
             if (this._eventsCount) this.emit('start');
-            this.activate();
+            this.checkActive();
         }
     }
 
-    activate() {
+    finish() {
+        if (this._p < 1) {
+            this._p = 1;
+
+            this._setter(this._view, this.targetValue);
+
+            if (this._eventsCount) {
+                this.invokeListeners();
+            }
+        }
+    }
+
+    checkActive() {
+        if (this.isActive()) {
+            this.manager.addActive(this);
+        }
     }
 
     isActive() {
-        return this.p < 1.0;
+        return (this.p < 1.0) && this.view.isAttached();
     }
 
     progress(dt) {
@@ -81,7 +106,7 @@ class Transition extends Base {
             }
         }
 
-        this._setter(this._context, this.getDrawValue());
+        this._setter(this._view, this.getDrawValue());
 
         if (this._eventsCount) {
             this.invokeListeners();
@@ -113,7 +138,7 @@ class Transition extends Base {
             return this.targetValue;
         } else {
             let v = this.definition._timingFunctionImpl(this.p);
-            return this._merger(this._context, v);
+            return this._merger(this.targetValue, this.startValue, v);
         }
     }
 
@@ -132,6 +157,22 @@ class Transition extends Base {
     get delayLeft() {
         return this._delayLeft;
     }
+
+    get view() {
+        return this._view;
+    }
+
+    get duration() {
+        return this.definition.duration;
+    }
+
+    get delay() {
+        return this.definition.delay;
+    }
+
+    get timingFunction() {
+        return this.definition.timingFunction;
+    }
 }
 
-Base.mixinEs5(View, EventEmitter);
+Base.mixinEs5(Transition, EventEmitter);

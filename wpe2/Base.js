@@ -62,6 +62,26 @@ class Base {
         return superclass;
     };
 
+    static setObjectSettings(obj, settings) {
+        for (let name in settings) {
+            let v = settings[name];
+            if (settings.hasOwnProperty(name)) {
+                if (Utils.isObjectLiteral(v) && Utils.isObject(obj[name])) {
+                    // Sub object.
+                    var p = obj[name];
+                    if (p.setSettings) {
+                        // Custom setSettings method.
+                        p.setSettings(p, v);
+                    } else {
+                        Base.setObjectSettings(p, v);
+                    }
+                } else {
+                    obj[name] = v;
+                }
+            }
+        }
+    }
+
 }
 
 Base.protoReady = new WeakSet();

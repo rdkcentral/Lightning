@@ -9,6 +9,7 @@ class TransitionDefinition extends Base {
         this._delay = 0;
         this._duration = 1;
         this._delay = 0;
+        this.isTransitionDefinition = true;
     }
 
     get delay() {
