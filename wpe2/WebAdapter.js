@@ -3,29 +3,29 @@ class WebAdapter {
     init(stage) {
         this.stage = stage;
         this.canvas = null;
-        this.looping = false;
-        this.awaitingLoop = false;
+        this._looping = false;
+        this._awaitingLoop = false;
     }
 
     startLoop() {
-        this.looping = true;
-        if (!this.awaitingLoop) {
+        this._looping = true;
+        if (!this._awaitingLoop) {
             this.loop();
         }
     }
 
     stopLoop() {
-        this.looping = false;
+        this._looping = false;
     }
 
     loop() {
         let self = this;
         let lp = function() {
-            self.awaitingLoop = false;
-            if (self.looping) {
+            self._awaitingLoop = false;
+            if (self._looping) {
                 self.stage.drawFrame();
                 requestAnimationFrame(lp);
-                self.awaitingLoop = true;
+                self._awaitingLoop = true;
             }
         }
         lp();

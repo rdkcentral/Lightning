@@ -6,32 +6,32 @@ class TextureAtlas {
         this.w = 2048;
         this.h = 2048;
 
-        this.activeTree = new TextureAtlasTree(this.w, this.h);
+        this._activeTree = new TextureAtlasTree(this.w, this.h);
 
         /**
          * The texture sources that should be on to the texture atlas (active in stage, loaded and with valid dimensions).
          * @type {Set<TextureSource>}
          */
-        this.activeTextureSources = new Set();
+        this._activeTextureSources = new Set();
 
         /**
          * The texture sources that were added to the texture atlas (since the last defragment).
          * @type {Set<TextureSource>}
          */
-        this.addedTextureSources = new Set();
+        this._addedTextureSources = new Set();
 
         /**
          * The total surface of the current texture atlas that's being used by unused texture sources.
          * @type {number}
          */
-        this.wastedPixels = 0;
+        this._wastedPixels = 0;
 
         /**
          * @type {WebGLRenderingContext}
          */
         this.gl = this.stage.gl;
 
-        this.vertexShaderSrc = [
+        this._vertexShaderSrc = [
             "#ifdef GL_ES",
             "precision lowp float;",
             "#endif",
@@ -45,7 +45,7 @@ class TextureAtlas {
             "}"
         ].join("\n");
 
-        this.fragmentShaderSrc = [
+        this._fragmentShaderSrc = [
             "#ifdef GL_ES",
             "precision lowp float;",
             "#endif",
@@ -56,107 +56,107 @@ class TextureAtlas {
             "}"
         ].join("\n");
 
-        this.program = null;
+        this._program = null;
 
         /**
          * The last render frame number that the texture atlas was defragmented on.
          * @type {number}
          */
-        this.lastDefragFrame = 0;
+        this._lastDefragFrame = 0;
 
         /**
          * Texture atlas size limit.
          * @type {number}
          */
-        this.pixelsLimit = this.w * this.h / 32;
+        this._pixelsLimit = this.w * this.h / 32;
 
         /**
          * The minimal amount of pixels that should be able to be reclaimed when performing a defragment.
          * @type {number}
          */
-        this.minWastedPixels = this.w * this.h / 8;
+        this._minWastedPixels = this.w * this.h / 8;
 
-        this.defragNeeded = false;
+        this._defragNeeded = false;
 
         /**
          * Pending texture sources to be uploaded.
          * @type {TextureSource[]}
          */
-        this.uploads = [];
+        this._uploads = [];
 
         // The matrix that causes the [0,0 - w,h] box to map to [-1,-1 - 1,1] in the end results.
-        this.projectionMatrix = new Float32Array([
+        this._projectionMatrix = new Float32Array([
             2/this.w, 0, 0, 0,
             0, 2/this.h, 0, 0,
             0, 0, 1, 0,
             -1, -1, 0, 1
         ]);
 
-        this.initShaderProgram();
+        this._initShaderProgram();
         
     }
     
-    initShaderProgram() {
+    _initShaderProgram() {
         let gl = this.gl;
 
-        let glVertShader = this.glCompile(gl.VERTEX_SHADER, this.vertexShaderSrc);
-        let glFragShader = this.glCompile(gl.FRAGMENT_SHADER, this.fragmentShaderSrc);
+        let glVertShader = this._glCompile(gl.VERTEX_SHADER, this._vertexShaderSrc);
+        let glFragShader = this._glCompile(gl.FRAGMENT_SHADER, this._fragmentShaderSrc);
 
-        this.program = gl.createProgram();
+        this._program = gl.createProgram();
 
-        gl.attachShader(this.program, glVertShader);
-        gl.attachShader(this.program, glFragShader);
-        gl.linkProgram(this.program);
+        gl.attachShader(this._program, glVertShader);
+        gl.attachShader(this._program, glFragShader);
+        gl.linkProgram(this._program);
 
         // if linking fails, then log and cleanup
-        if (!gl.getProgramParameter(this.program, gl.LINK_STATUS)) {
+        if (!gl.getProgramParameter(this._program, gl.LINK_STATUS)) {
             console.error('Error: Could not initialize shader.');
-            console.error('gl.VALIDATE_STATUS', gl.getProgramParameter(this.program, gl.VALIDATE_STATUS));
+            console.error('gl.VALIDATE_STATUS', gl.getProgramParameter(this._program, gl.VALIDATE_STATUS));
             console.error('gl.getError()', gl.getError());
 
             // if there is a program info log, log it
-            if (gl.getProgramInfoLog(this.program) !== '') {
-                console.warn('Warning: gl.getProgramInfoLog()', gl.getProgramInfoLog(this.program));
+            if (gl.getProgramInfoLog(this._program) !== '') {
+                console.warn('Warning: gl.getProgramInfoLog()', gl.getProgramInfoLog(this._program));
             }
 
-            gl.deleteProgram(this.program);
-            this.program = null;
+            gl.deleteProgram(this._program);
+            this._program = null;
         }
-        gl.useProgram(this.program);
+        gl.useProgram(this._program);
 
         // clean up some shaders
         gl.deleteShader(glVertShader);
         gl.deleteShader(glFragShader);
 
         // Bind attributes.
-        this.vertexPositionAttribute = gl.getAttribLocation(this.program, "aVertexPosition");
-        this.textureCoordAttribute = gl.getAttribLocation(this.program, "aTextureCoord");
+        this._vertexPositionAttribute = gl.getAttribLocation(this._program, "aVertexPosition");
+        this._textureCoordAttribute = gl.getAttribLocation(this._program, "aTextureCoord");
 
         // Init webgl arrays.
         // We support up to 1000 textures per call, all consisting out of 9 elements.
-        this.paramsBuffer = new ArrayBuffer(16 * 4 * 9 * 1000);
-        this.allCoords = new Float32Array(this.paramsBuffer);
-        this.allTexCoords = new Float32Array(this.paramsBuffer);
+        this._paramsBuffer = new ArrayBuffer(16 * 4 * 9 * 1000);
+        this._allCoords = new Float32Array(this._paramsBuffer);
+        this._allTexCoords = new Float32Array(this._paramsBuffer);
 
-        this.allIndices = new Uint16Array(6 * 9 * 1000);
+        this._allIndices = new Uint16Array(6 * 9 * 1000);
 
         // fill the indices with the quads to draw.
         for (let i = 0, j = 0; i < 1000 * 6 * 9; i += 6, j += 4) {
-            this.allIndices[i] = j;
-            this.allIndices[i + 1] = j + 1;
-            this.allIndices[i + 2] = j + 2;
-            this.allIndices[i + 3] = j;
-            this.allIndices[i + 4] = j + 2;
-            this.allIndices[i + 5] = j + 3;
+            this._allIndices[i] = j;
+            this._allIndices[i + 1] = j + 1;
+            this._allIndices[i + 2] = j + 2;
+            this._allIndices[i + 3] = j;
+            this._allIndices[i + 4] = j + 2;
+            this._allIndices[i + 5] = j + 3;
         }
 
-        this.indicesGlBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indicesGlBuffer);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this.allIndices, gl.STATIC_DRAW);
+        this._indicesGlBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._indicesGlBuffer);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this._allIndices, gl.STATIC_DRAW);
 
         // Set transformation matrix.
-        let projectionMatrixAttribute = gl.getUniformLocation(this.program, "projectionMatrix");
-        gl.uniformMatrix4fv(projectionMatrixAttribute, false, this.projectionMatrix);
+        let projectionMatrixAttribute = gl.getUniformLocation(this._program, "projectionMatrix");
+        gl.uniformMatrix4fv(projectionMatrixAttribute, false, this._projectionMatrix);
 
         this.texture = this.gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
@@ -179,7 +179,7 @@ class TextureAtlas {
 
     }
     
-    glCompile(type, src) {
+    _glCompile(type, src) {
         let shader = this.gl.createShader(type);
 
         this.gl.shaderSource(shader, src);
@@ -197,8 +197,8 @@ class TextureAtlas {
         this.gl.deleteTexture(this.texture);
         this.gl.deleteFramebuffer(this.framebuffer);
         this.gl.deleteBuffer(this.paramsGlBuffer);
-        this.gl.deleteBuffer(this.indicesGlBuffer);
-        this.gl.deleteProgram(this.program);        
+        this.gl.deleteBuffer(this._indicesGlBuffer);
+        this.gl.deleteProgram(this._program);        
     }
     
     uploadTextureSources(textureSources) {
@@ -224,181 +224,181 @@ class TextureAtlas {
             // Add 2px margin to avoid edge artifacts.
 
             // Full area.
-            this.allCoords[offset + 0] = x;
-            this.allCoords[offset + 1] = y;
-            this.allCoords[offset + 4] = x + w;
-            this.allCoords[offset + 5] = y;
-            this.allCoords[offset + 8] = x + w;
-            this.allCoords[offset + 9] = y + h;
-            this.allCoords[offset + 12] = x;
-            this.allCoords[offset + 13] = y + h;
+            this._allCoords[offset + 0] = x;
+            this._allCoords[offset + 1] = y;
+            this._allCoords[offset + 4] = x + w;
+            this._allCoords[offset + 5] = y;
+            this._allCoords[offset + 8] = x + w;
+            this._allCoords[offset + 9] = y + h;
+            this._allCoords[offset + 12] = x;
+            this._allCoords[offset + 13] = y + h;
 
             // Top row.
-            this.allCoords[offset + 16] = x;
-            this.allCoords[offset + 17] = y - 1;
-            this.allCoords[offset + 20] = x + w;
-            this.allCoords[offset + 21] = y - 1;
-            this.allCoords[offset + 24] = x + w;
-            this.allCoords[offset + 25] = y;
-            this.allCoords[offset + 28] = x;
-            this.allCoords[offset + 29] = y;
+            this._allCoords[offset + 16] = x;
+            this._allCoords[offset + 17] = y - 1;
+            this._allCoords[offset + 20] = x + w;
+            this._allCoords[offset + 21] = y - 1;
+            this._allCoords[offset + 24] = x + w;
+            this._allCoords[offset + 25] = y;
+            this._allCoords[offset + 28] = x;
+            this._allCoords[offset + 29] = y;
 
             // Bottom row.
-            this.allCoords[offset + 32] = x;
-            this.allCoords[offset + 33] = y + h;
-            this.allCoords[offset + 36] = x + w;
-            this.allCoords[offset + 37] = y + h;
-            this.allCoords[offset + 40] = x + w;
-            this.allCoords[offset + 41] = y + h + 1;
-            this.allCoords[offset + 44] = x;
-            this.allCoords[offset + 45] = y + h + 1;
+            this._allCoords[offset + 32] = x;
+            this._allCoords[offset + 33] = y + h;
+            this._allCoords[offset + 36] = x + w;
+            this._allCoords[offset + 37] = y + h;
+            this._allCoords[offset + 40] = x + w;
+            this._allCoords[offset + 41] = y + h + 1;
+            this._allCoords[offset + 44] = x;
+            this._allCoords[offset + 45] = y + h + 1;
 
             // Left row.
-            this.allCoords[offset + 48] = x - 1;
-            this.allCoords[offset + 49] = y;
-            this.allCoords[offset + 52] = x;
-            this.allCoords[offset + 53] = y;
-            this.allCoords[offset + 56] = x;
-            this.allCoords[offset + 57] = y + h;
-            this.allCoords[offset + 60] = x - 1;
-            this.allCoords[offset + 61] = y + h;
+            this._allCoords[offset + 48] = x - 1;
+            this._allCoords[offset + 49] = y;
+            this._allCoords[offset + 52] = x;
+            this._allCoords[offset + 53] = y;
+            this._allCoords[offset + 56] = x;
+            this._allCoords[offset + 57] = y + h;
+            this._allCoords[offset + 60] = x - 1;
+            this._allCoords[offset + 61] = y + h;
 
             // Right row.
-            this.allCoords[offset + 64] = x + w;
-            this.allCoords[offset + 65] = y;
-            this.allCoords[offset + 68] = x + w + 1;
-            this.allCoords[offset + 69] = y;
-            this.allCoords[offset + 72] = x + w + 1;
-            this.allCoords[offset + 73] = y + h;
-            this.allCoords[offset + 76] = x + w;
-            this.allCoords[offset + 77] = y + h;
+            this._allCoords[offset + 64] = x + w;
+            this._allCoords[offset + 65] = y;
+            this._allCoords[offset + 68] = x + w + 1;
+            this._allCoords[offset + 69] = y;
+            this._allCoords[offset + 72] = x + w + 1;
+            this._allCoords[offset + 73] = y + h;
+            this._allCoords[offset + 76] = x + w;
+            this._allCoords[offset + 77] = y + h;
 
             // Upper-left.
-            this.allCoords[offset + 80] = x - 1;
-            this.allCoords[offset + 81] = y - 1;
-            this.allCoords[offset + 84] = x;
-            this.allCoords[offset + 85] = y - 1;
-            this.allCoords[offset + 88] = x;
-            this.allCoords[offset + 89] = y;
-            this.allCoords[offset + 92] = x - 1;
-            this.allCoords[offset + 93] = y;
+            this._allCoords[offset + 80] = x - 1;
+            this._allCoords[offset + 81] = y - 1;
+            this._allCoords[offset + 84] = x;
+            this._allCoords[offset + 85] = y - 1;
+            this._allCoords[offset + 88] = x;
+            this._allCoords[offset + 89] = y;
+            this._allCoords[offset + 92] = x - 1;
+            this._allCoords[offset + 93] = y;
 
             // Upper-right.
-            this.allCoords[offset + 96] = x + w;
-            this.allCoords[offset + 97] = y - 1;
-            this.allCoords[offset + 100] = x + w + 1;
-            this.allCoords[offset + 101] = y - 1;
-            this.allCoords[offset + 104] = x + w + 1;
-            this.allCoords[offset + 105] = y;
-            this.allCoords[offset + 108] = x + w;
-            this.allCoords[offset + 109] = y;
+            this._allCoords[offset + 96] = x + w;
+            this._allCoords[offset + 97] = y - 1;
+            this._allCoords[offset + 100] = x + w + 1;
+            this._allCoords[offset + 101] = y - 1;
+            this._allCoords[offset + 104] = x + w + 1;
+            this._allCoords[offset + 105] = y;
+            this._allCoords[offset + 108] = x + w;
+            this._allCoords[offset + 109] = y;
 
             // Lower-right.
-            this.allCoords[offset + 112] = x + w;
-            this.allCoords[offset + 113] = y + h;
-            this.allCoords[offset + 116] = x + w + 1;
-            this.allCoords[offset + 117] = y + h;
-            this.allCoords[offset + 120] = x + w + 1;
-            this.allCoords[offset + 121] = y + h + 1;
-            this.allCoords[offset + 124] = x + w;
-            this.allCoords[offset + 125] = y + h + 1;
+            this._allCoords[offset + 112] = x + w;
+            this._allCoords[offset + 113] = y + h;
+            this._allCoords[offset + 116] = x + w + 1;
+            this._allCoords[offset + 117] = y + h;
+            this._allCoords[offset + 120] = x + w + 1;
+            this._allCoords[offset + 121] = y + h + 1;
+            this._allCoords[offset + 124] = x + w;
+            this._allCoords[offset + 125] = y + h + 1;
 
             // Lower-left.
-            this.allCoords[offset + 128] = x - 1;
-            this.allCoords[offset + 129] = y + h;
-            this.allCoords[offset + 132] = x;
-            this.allCoords[offset + 133] = y + h;
-            this.allCoords[offset + 136] = x;
-            this.allCoords[offset + 137] = y + h + 1;
-            this.allCoords[offset + 140] = x - 1;
-            this.allCoords[offset + 141] = y + h + 1;
+            this._allCoords[offset + 128] = x - 1;
+            this._allCoords[offset + 129] = y + h;
+            this._allCoords[offset + 132] = x;
+            this._allCoords[offset + 133] = y + h;
+            this._allCoords[offset + 136] = x;
+            this._allCoords[offset + 137] = y + h + 1;
+            this._allCoords[offset + 140] = x - 1;
+            this._allCoords[offset + 141] = y + h + 1;
 
             // Texture coords.
-            this.allTexCoords[offset + 2] = 0;
-            this.allTexCoords[offset + 3] = 0;
-            this.allTexCoords[offset + 6] = 1;
-            this.allTexCoords[offset + 7] = 0;
-            this.allTexCoords[offset + 10] = 1;
-            this.allTexCoords[offset + 11] = 1;
-            this.allTexCoords[offset + 14] = 0;
-            this.allTexCoords[offset + 15] = 1;
+            this._allTexCoords[offset + 2] = 0;
+            this._allTexCoords[offset + 3] = 0;
+            this._allTexCoords[offset + 6] = 1;
+            this._allTexCoords[offset + 7] = 0;
+            this._allTexCoords[offset + 10] = 1;
+            this._allTexCoords[offset + 11] = 1;
+            this._allTexCoords[offset + 14] = 0;
+            this._allTexCoords[offset + 15] = 1;
 
-            this.allTexCoords[offset + 18] = 0;
-            this.allTexCoords[offset + 19] = 0;
-            this.allTexCoords[offset + 22] = 1;
-            this.allTexCoords[offset + 23] = 0;
-            this.allTexCoords[offset + 26] = 1;
-            this.allTexCoords[offset + 27] = divH;
-            this.allTexCoords[offset + 30] = 0;
-            this.allTexCoords[offset + 31] = divH;
+            this._allTexCoords[offset + 18] = 0;
+            this._allTexCoords[offset + 19] = 0;
+            this._allTexCoords[offset + 22] = 1;
+            this._allTexCoords[offset + 23] = 0;
+            this._allTexCoords[offset + 26] = 1;
+            this._allTexCoords[offset + 27] = divH;
+            this._allTexCoords[offset + 30] = 0;
+            this._allTexCoords[offset + 31] = divH;
 
-            this.allTexCoords[offset + 34] = 0;
-            this.allTexCoords[offset + 35] = 1 - divH;
-            this.allTexCoords[offset + 38] = 1;
-            this.allTexCoords[offset + 39] = 1 - divH;
-            this.allTexCoords[offset + 42] = 1;
-            this.allTexCoords[offset + 43] = 1;
-            this.allTexCoords[offset + 46] = 0;
-            this.allTexCoords[offset + 47] = 1;
+            this._allTexCoords[offset + 34] = 0;
+            this._allTexCoords[offset + 35] = 1 - divH;
+            this._allTexCoords[offset + 38] = 1;
+            this._allTexCoords[offset + 39] = 1 - divH;
+            this._allTexCoords[offset + 42] = 1;
+            this._allTexCoords[offset + 43] = 1;
+            this._allTexCoords[offset + 46] = 0;
+            this._allTexCoords[offset + 47] = 1;
 
-            this.allTexCoords[offset + 50] = 0;
-            this.allTexCoords[offset + 51] = 0;
-            this.allTexCoords[offset + 54] = divW;
-            this.allTexCoords[offset + 55] = 0;
-            this.allTexCoords[offset + 58] = divW;
-            this.allTexCoords[offset + 59] = 1;
-            this.allTexCoords[offset + 62] = 0;
-            this.allTexCoords[offset + 63] = 1;
+            this._allTexCoords[offset + 50] = 0;
+            this._allTexCoords[offset + 51] = 0;
+            this._allTexCoords[offset + 54] = divW;
+            this._allTexCoords[offset + 55] = 0;
+            this._allTexCoords[offset + 58] = divW;
+            this._allTexCoords[offset + 59] = 1;
+            this._allTexCoords[offset + 62] = 0;
+            this._allTexCoords[offset + 63] = 1;
 
-            this.allTexCoords[offset + 66] = 1 - divW;
-            this.allTexCoords[offset + 67] = 0;
-            this.allTexCoords[offset + 70] = 1;
-            this.allTexCoords[offset + 71] = 0;
-            this.allTexCoords[offset + 74] = 1;
-            this.allTexCoords[offset + 75] = 1;
-            this.allTexCoords[offset + 78] = 1 - divW;
-            this.allTexCoords[offset + 79] = 1;
+            this._allTexCoords[offset + 66] = 1 - divW;
+            this._allTexCoords[offset + 67] = 0;
+            this._allTexCoords[offset + 70] = 1;
+            this._allTexCoords[offset + 71] = 0;
+            this._allTexCoords[offset + 74] = 1;
+            this._allTexCoords[offset + 75] = 1;
+            this._allTexCoords[offset + 78] = 1 - divW;
+            this._allTexCoords[offset + 79] = 1;
 
-            this.allTexCoords[offset + 82] = 0;
-            this.allTexCoords[offset + 83] = 0;
-            this.allTexCoords[offset + 86] = divW;
-            this.allTexCoords[offset + 87] = 0;
-            this.allTexCoords[offset + 90] = divW;
-            this.allTexCoords[offset + 91] = divH;
-            this.allTexCoords[offset + 94] = 0;
-            this.allTexCoords[offset + 95] = divH;
+            this._allTexCoords[offset + 82] = 0;
+            this._allTexCoords[offset + 83] = 0;
+            this._allTexCoords[offset + 86] = divW;
+            this._allTexCoords[offset + 87] = 0;
+            this._allTexCoords[offset + 90] = divW;
+            this._allTexCoords[offset + 91] = divH;
+            this._allTexCoords[offset + 94] = 0;
+            this._allTexCoords[offset + 95] = divH;
 
-            this.allTexCoords[offset + 98] = 1 - divW;
-            this.allTexCoords[offset + 99] = 0;
-            this.allTexCoords[offset + 102] = 1;
-            this.allTexCoords[offset + 103] = 0;
-            this.allTexCoords[offset + 106] = 1;
-            this.allTexCoords[offset + 107] = divH;
-            this.allTexCoords[offset + 110] = 1 - divW;
-            this.allTexCoords[offset + 111] = divH;
+            this._allTexCoords[offset + 98] = 1 - divW;
+            this._allTexCoords[offset + 99] = 0;
+            this._allTexCoords[offset + 102] = 1;
+            this._allTexCoords[offset + 103] = 0;
+            this._allTexCoords[offset + 106] = 1;
+            this._allTexCoords[offset + 107] = divH;
+            this._allTexCoords[offset + 110] = 1 - divW;
+            this._allTexCoords[offset + 111] = divH;
 
-            this.allTexCoords[offset + 114] = 1 - divW;
-            this.allTexCoords[offset + 115] = 1 - divH;
-            this.allTexCoords[offset + 118] = 1;
-            this.allTexCoords[offset + 119] = 1 - divH;
-            this.allTexCoords[offset + 122] = 1;
-            this.allTexCoords[offset + 123] = 1;
-            this.allTexCoords[offset + 126] = 1 - divW;
-            this.allTexCoords[offset + 127] = 1;
+            this._allTexCoords[offset + 114] = 1 - divW;
+            this._allTexCoords[offset + 115] = 1 - divH;
+            this._allTexCoords[offset + 118] = 1;
+            this._allTexCoords[offset + 119] = 1 - divH;
+            this._allTexCoords[offset + 122] = 1;
+            this._allTexCoords[offset + 123] = 1;
+            this._allTexCoords[offset + 126] = 1 - divW;
+            this._allTexCoords[offset + 127] = 1;
 
-            this.allTexCoords[offset + 130] = 0;
-            this.allTexCoords[offset + 131] = 1 - divH;
-            this.allTexCoords[offset + 134] = divW;
-            this.allTexCoords[offset + 135] = 1 - divH;
-            this.allTexCoords[offset + 138] = divW;
-            this.allTexCoords[offset + 139] = 1;
-            this.allTexCoords[offset + 142] = 0;
-            this.allTexCoords[offset + 143] = 1;
+            this._allTexCoords[offset + 130] = 0;
+            this._allTexCoords[offset + 131] = 1 - divH;
+            this._allTexCoords[offset + 134] = divW;
+            this._allTexCoords[offset + 135] = 1 - divH;
+            this._allTexCoords[offset + 138] = divW;
+            this._allTexCoords[offset + 139] = 1;
+            this._allTexCoords[offset + 142] = 0;
+            this._allTexCoords[offset + 143] = 1;
         }
 
         let gl = this.gl;
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
-        gl.useProgram(this.program);
+        gl.useProgram(this._program);
         gl.viewport(0,0,this.w,this.h);
         gl.blendFunc(gl.ONE, gl.ZERO);
         gl.enable(gl.BLEND);
@@ -409,24 +409,24 @@ class TextureAtlas {
         gl.bindBuffer(gl.ARRAY_BUFFER, this.paramsGlBuffer);
 
         // We want to send the first elements from the params buffer, so we allCoords in order to slice some off.
-        let view = new DataView(this.paramsBuffer, 0, 16 * 9 * 4 * n);
+        let view = new DataView(this._paramsBuffer, 0, 16 * 9 * 4 * n);
         gl.bufferData(gl.ARRAY_BUFFER, view, gl.DYNAMIC_DRAW);
 
-        gl.vertexAttribPointer(this.vertexPositionAttribute, 2, gl.FLOAT, false, 16, 0);
-        gl.vertexAttribPointer(this.textureCoordAttribute, 2, gl.FLOAT, false, 16, 2 * 4);
+        gl.vertexAttribPointer(this._vertexPositionAttribute, 2, gl.FLOAT, false, 16, 0);
+        gl.vertexAttribPointer(this._textureCoordAttribute, 2, gl.FLOAT, false, 16, 2 * 4);
 
-        gl.enableVertexAttribArray(this.vertexPositionAttribute);
-        gl.enableVertexAttribArray(this.textureCoordAttribute);
+        gl.enableVertexAttribArray(this._vertexPositionAttribute);
+        gl.enableVertexAttribArray(this._textureCoordAttribute);
 
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indicesGlBuffer);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._indicesGlBuffer);
 
         for (i = 0; i < n; i++) {
             gl.bindTexture(gl.TEXTURE_2D, textureSources[i].glTexture);
             gl.drawElements(gl.TRIANGLES, 6 * 9, gl.UNSIGNED_SHORT, i * 6 * 9 * 2);
         }
 
-        gl.disableVertexAttribArray(this.vertexPositionAttribute);
-        gl.disableVertexAttribArray(this.textureCoordAttribute);
+        gl.disableVertexAttribArray(this._vertexPositionAttribute);
+        gl.disableVertexAttribArray(this._textureCoordAttribute);
     }
 
     /**
@@ -436,7 +436,7 @@ class TextureAtlas {
      *   The allocated position.
      */
     allocate(texture) {
-        return this.activeTree.add(texture);
+        return this._activeTree.add(texture);
     }
 
     /**
@@ -448,13 +448,13 @@ class TextureAtlas {
         if (textureSource.id === 1) {
             // Rectangle texture is automatically added.
         } else {
-            if ((textureSource.w * textureSource.h < this.pixelsLimit)) {
+            if ((textureSource.w * textureSource.h < this._pixelsLimit)) {
                 // Only add if dimensions are valid.
-                if (!this.activeTextureSources.has(textureSource)) {
-                    this.activeTextureSources.add(textureSource);
+                if (!this._activeTextureSources.has(textureSource)) {
+                    this._activeTextureSources.add(textureSource);
 
                     // Add it directly (if possible).
-                    if (!this.addedTextureSources.has(textureSource)) {
+                    if (!this._addedTextureSources.has(textureSource)) {
                         this.add(textureSource);
                     }
                 }
@@ -463,22 +463,22 @@ class TextureAtlas {
     }
 
     removeActiveTextureSource(textureSource) {
-        if (this.activeTextureSources.has(textureSource)) {
-            this.activeTextureSources.delete(textureSource);
+        if (this._activeTextureSources.has(textureSource)) {
+            this._activeTextureSources.delete(textureSource);
 
-            let uploadsIndex = this.uploads.indexOf(textureSource);
+            let uploadsIndex = this._uploads.indexOf(textureSource);
             if (uploadsIndex >= 0) {
                 // Still waiting to be uploaded.
-                this.uploads.splice(uploadsIndex, 1);
+                this._uploads.splice(uploadsIndex, 1);
 
                 // It is not uploaded, so it's not on the texture atlas any more.
                 textureSource.onRemovedFromTextureAtlas();
 
-                this.addedTextureSources.delete(textureSource);
+                this._addedTextureSources.delete(textureSource);
             }
 
-            if (this.addedTextureSources.has(textureSource)) {
-                this.wastedPixels += textureSource.w * textureSource.h;
+            if (this._addedTextureSources.has(textureSource)) {
+                this._wastedPixels += textureSource.w * textureSource.h;
             }
         }        
     }
@@ -486,13 +486,13 @@ class TextureAtlas {
     add(textureSource) {
         let position = this.allocate(textureSource);
         if (position) {
-            this.addedTextureSources.add(textureSource);
+            this._addedTextureSources.add(textureSource);
 
             textureSource.onAddedToTextureAtlas(position.x + 1, position.y + 1);
 
-            this.uploads.push(textureSource);
+            this._uploads.push(textureSource);
         } else {
-            this.defragNeeded = true;
+            this._defragNeeded = true;
 
             // Error.
             return false;
@@ -511,17 +511,17 @@ class TextureAtlas {
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
-        this.activeTree.reset();
-        this.uploads = [];
-        this.wastedPixels = 0;
-        this.lastDefragFrame = this.stage.frameCounter;
-        this.defragNeeded = false;
+        this._activeTree.reset();
+        this._uploads = [];
+        this._wastedPixels = 0;
+        this._lastDefragFrame = this.stage.frameCounter;
+        this._defragNeeded = false;
 
-        this.addedTextureSources.forEach(function(textureSource) {
+        this._addedTextureSources.forEach(function(textureSource) {
             textureSource.onRemovedFromTextureAtlas();
         });
 
-        this.addedTextureSources.clear();
+        this._addedTextureSources.clear();
 
         // Automatically re-add the rectangle texture, to make sure that it is at coordinate 0,0.
         this.add(this.stage.rectangleTexture.source);
@@ -529,7 +529,7 @@ class TextureAtlas {
         // Then (try to) re-add all active texture sources.
         // @todo: sort by dimensions (smallest first)?
         let self = this;
-        this.activeTextureSources.forEach(function(textureSource) {
+        this._activeTextureSources.forEach(function(textureSource) {
             self.add(textureSource);
         });
     }
@@ -538,20 +538,19 @@ class TextureAtlas {
      * Actually uploads the previously added sources to the texture atlas.
      */
     flush() {
-        if (this.defragNeeded) {
+        if (this._defragNeeded) {
             // Only defragment when there is something serious to gain.
-            if (this.wastedPixels >= this.minWastedPixels) {
+            if (this._wastedPixels >= this._minWastedPixels) {
                 // Limit defragmentations from happening all the time when it can't keep up.
-                if (this.lastDefragFrame < this.stage.frameCounter - 300) {
+                if (this._lastDefragFrame < this.stage.frameCounter - 300) {
                     this.defragment();
                 }
             }
         }
 
-        if (this.uploads.length) {
-            this.lastImportFrame = this.stage.frameCounter;
-            this.uploadTextureSources(this.uploads);
-            this.uploads = [];
+        if (this._uploads.length) {
+            this.uploadTextureSources(this._uploads);
+            this._uploads = [];
         }
     }
 }

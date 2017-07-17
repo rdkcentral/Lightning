@@ -5,9 +5,9 @@ class Renderer {
 
         this.gl = stage.gl;
 
-        this.program = null;
+        this._program = null;
 
-        this.vertexShaderSrc = [
+        this._vertexShaderSrc = [
             "#ifdef GL_ES",
             "precision lowp float;",
             "#endif",
@@ -24,7 +24,7 @@ class Renderer {
             "}"
         ].join("\n");
 
-        this.fragmentShaderSrc = [
+        this._fragmentShaderSrc = [
             "#ifdef GL_ES",
             "precision lowp float;",
             "#endif",
@@ -37,69 +37,63 @@ class Renderer {
         ].join("\n");
 
         // The matrix that causes the [0,0 - W,H] box to map to [-1,-1 - 1,1] in the end results.
-        this.projectionMatrix = new Float32Array([
+        this._projectionMatrix = new Float32Array([
             2/this.stage.options.renderWidth, 0, 0, 0,
             0, -2/this.stage.options.renderHeight, 0, 0,
             0, 0, 1, 0,
             -1, 1, 0, 1
         ]);
 
-        this.paramsGlBuffer = null;
+        this._paramsGlBuffer = null;
 
-        this.program = null;
+        this._program = null;
 
-        this.vertexPositionAttribute = null;
-        this.textureCoordAttribute = null;
-        this.colorAttribute = null;
+        this._vertexPositionAttribute = null;
+        this._textureCoordAttribute = null;
+        this._colorAttribute = null;
 
-        this.indicesGlBuffer = null;
+        this._indicesGlBuffer = null;
 
-        /**
-         * Drawn frames get assigned a number, so that we can check if we can memcopy the previous result.
-         * @type {number}
-         */
-        this.frameCounter = 0;
-
-        this.initShaderProgram();
+        this._initShaderProgram();
 
     }
 
-    initShaderProgram() {
+    _initShaderProgram() {
         let gl = this.gl;
 
-        let glVertShader = this.glCompile(gl.VERTEX_SHADER, this.vertexShaderSrc);
-        let glFragShader = this.glCompile(gl.FRAGMENT_SHADER, this.fragmentShaderSrc);
+        let glVertShader = this._glCompile(gl.VERTEX_SHADER, this._vertexShaderSrc);
+        let glFragShader = this._glCompile(gl.FRAGMENT_SHADER, this._fragmentShaderSrc);
 
-        this.program = gl.createProgram();
+        this._program = gl.createProgram();
 
-        gl.attachShader(this.program, glVertShader);
-        gl.attachShader(this.program, glFragShader);
-        gl.linkProgram(this.program);
+        gl.attachShader(this._program, glVertShader);
+        gl.attachShader(this._program, glFragShader);
+        gl.linkProgram(this._program);
 
         // if linking fails, then log and cleanup
-        if (!gl.getProgramParameter(this.program, gl.LINK_STATUS)) {
+        if (!gl.getProgramParameter(this._program, gl.LINK_STATUS)) {
             console.error('Error: Could not initialize shader.');
-            console.error('gl.VALIDATE_STATUS', gl.getProgramParameter(this.program, gl.VALIDATE_STATUS));
+            console.error('gl.VALIDATE_STATUS', gl.getProgramParameter(this._program, gl.VALIDATE_STATUS));
             console.error('gl.getError()', gl.getError());
 
             // if there is a program info log, log it
-            if (gl.getProgramInfoLog(this.program) !== '') {
-                console.warn('Warning: gl.getProgramInfoLog()', gl.getProgramInfoLog(this.program));
+            if (gl.getProgramInfoLog(this._program) !== '') {
+                console.warn('Warning: gl.getProgramInfoLog()', gl.getProgramInfoLog(this._program));
             }
 
-            gl.deleteProgram(this.program);
-            this.program = null;
+            gl.deleteProgram(this._program);
+            this._program = null;
         }
-        gl.useProgram(this.program);
+        gl.useProgram(this._program);
 
         // clean up some shaders
         gl.deleteShader(glVertShader);
         gl.deleteShader(glFragShader);
 
         // Bind attributes.
-        this.vertexPositionAttribute = gl.getAttribLocation(this.program, "aVertexPosition");
-        this.textureCoordAttribute = gl.getAttribLocation(this.program, "aTextureCoord");
-        this.colorAttribute = gl.getAttribLocation(this.program, "aColor");
+        this._vertexPositionAttribute = gl.getAttribLocation(this._program, "aVertexPosition");
+        this._textureCoordAttribute = gl.getAttribLocation(this._program, "aTextureCoord");
+        this._colorAttribute = gl.getAttribLocation(this._program, "aColor");
 
         // Init webgl arrays.
 
@@ -115,18 +109,18 @@ class Renderer {
             this.allIndices[i + 5] = j + 3;
         }
 
-        this.paramsGlBuffer = gl.createBuffer();
+        this._paramsGlBuffer = gl.createBuffer();
 
-        this.indicesGlBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indicesGlBuffer);
+        this._indicesGlBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._indicesGlBuffer);
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this.allIndices, gl.STATIC_DRAW);
 
         // Set transformation matrix.
-        let projectionMatrixAttribute = gl.getUniformLocation(this.program, "projectionMatrix");
-        gl.uniformMatrix4fv(projectionMatrixAttribute, false, this.projectionMatrix);
+        let projectionMatrixAttribute = gl.getUniformLocation(this._program, "projectionMatrix");
+        gl.uniformMatrix4fv(projectionMatrixAttribute, false, this._projectionMatrix);
     }
     
-    glCompile(type, src) {
+    _glCompile(type, src) {
         let shader = this.gl.createShader(type);
 
         this.gl.shaderSource(shader, src);
@@ -141,9 +135,9 @@ class Renderer {
     }
 
     destroy() {
-        this.gl.deleteBuffer(this.paramsGlBuffer);
-        this.gl.deleteBuffer(this.indicesGlBuffer);
-        this.gl.deleteProgram(this.program);
+        this.gl.deleteBuffer(this._paramsGlBuffer);
+        this.gl.deleteBuffer(this._indicesGlBuffer);
+        this.gl.deleteProgram(this._program);
     }
     
     render() {
@@ -157,13 +151,13 @@ class Renderer {
     }
     
     renderItems() {
-        let i, n;
+        let i;
         let gl = this.gl;
 
         let ctx = this.stage.ctx;
 
         // Set up WebGL program.
-        gl.useProgram(this.program);
+        gl.useProgram(this._program);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.viewport(0,0,this.stage.options.w,this.stage.options.h);
         gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
@@ -176,22 +170,22 @@ class Renderer {
         gl.clear(gl.COLOR_BUFFER_BIT);
 
         let view = new DataView(ctx.vboParamsBuffer, 0, ctx.vboIndex * 4);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.paramsGlBuffer);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this._paramsGlBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, view, gl.DYNAMIC_DRAW);
         let vboGlTextures = ctx.vboGlTextures;
         let vboGlTextureRepeats = ctx.vboGlTextureRepeats;
         let count = ctx.vboGlTextures.length;
 
         if (count) {
-            gl.vertexAttribPointer(this.vertexPositionAttribute, 2, gl.FLOAT, false, 16, 0);
-            gl.vertexAttribPointer(this.textureCoordAttribute, 2, gl.UNSIGNED_SHORT, true, 16, 2 * 4);
-            gl.vertexAttribPointer(this.colorAttribute, 4, gl.UNSIGNED_BYTE, true, 16, 3 * 4);
+            gl.vertexAttribPointer(this._vertexPositionAttribute, 2, gl.FLOAT, false, 16, 0);
+            gl.vertexAttribPointer(this._textureCoordAttribute, 2, gl.UNSIGNED_SHORT, true, 16, 2 * 4);
+            gl.vertexAttribPointer(this._colorAttribute, 4, gl.UNSIGNED_BYTE, true, 16, 3 * 4);
 
-            gl.enableVertexAttribArray(this.vertexPositionAttribute);
-            gl.enableVertexAttribArray(this.textureCoordAttribute);
-            gl.enableVertexAttribArray(this.colorAttribute);
+            gl.enableVertexAttribArray(this._vertexPositionAttribute);
+            gl.enableVertexAttribArray(this._textureCoordAttribute);
+            gl.enableVertexAttribArray(this._colorAttribute);
 
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indicesGlBuffer);
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._indicesGlBuffer);
 
             let pos = 0;
             for (i = 0; i < count; i++) {
@@ -199,9 +193,9 @@ class Renderer {
                 gl.drawElements(gl.TRIANGLES, 6 * vboGlTextureRepeats[i], gl.UNSIGNED_SHORT, pos * 6 * 2);
                 pos += vboGlTextureRepeats[i];
             }
-            gl.disableVertexAttribArray(this.vertexPositionAttribute);
-            gl.disableVertexAttribArray(this.textureCoordAttribute);
-            gl.disableVertexAttribArray(this.colorAttribute);
+            gl.disableVertexAttribArray(this._vertexPositionAttribute);
+            gl.disableVertexAttribArray(this._textureCoordAttribute);
+            gl.disableVertexAttribArray(this._colorAttribute);
         }
 
     }

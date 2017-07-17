@@ -9,13 +9,13 @@ class TextureManager {
          * The currently used amount of texture memory.
          * @type {number}
          */
-        this.usedTextureMemory = 0;
+        this._usedTextureMemory = 0;
 
         /**
          * All uploaded texture sources.
          * @type {TextureSource[]}
          */
-        this.uploadedTextureSources = [];
+        this._uploadedTextureSources = [];
 
         /**
          * The texture source lookup id to texture source hashmap.
@@ -32,8 +32,8 @@ class TextureManager {
     }
 
     destroy() {
-        for (let i = 0, n = this.uploadedTextureSources.length; i < n; i++) {
-            let ts = this.uploadedTextureSources[i];
+        for (let i = 0, n = this._uploadedTextureSources.length; i < n; i++) {
+            let ts = this._uploadedTextureSources[i];
             this.gl.deleteTexture(ts.glTexture);
         }
     }
@@ -61,7 +61,7 @@ class TextureManager {
                 // Create new texture source.
                 let self = this;
                 let func = function (cb, ts, sync) {
-                    self.loadTextureSourceString(source, ts, sync, cb);
+                    self.loadSrcTexture(source, cb);
                 };
                 textureSource = this.getTextureSource(func, id);
             }
@@ -119,20 +119,20 @@ class TextureManager {
         // Store texture.
         textureSource.glTexture = sourceTexture;
 
-        this.usedTextureMemory += textureSource.w * textureSource.h;
+        this._usedTextureMemory += textureSource.w * textureSource.h;
 
-        this.uploadedTextureSources.push(textureSource);
+        this._uploadedTextureSources.push(textureSource);
     }
 
     isFull() {
-        return this.usedTextureMemory >= this.stage.options.textureMemory;
+        return this._usedTextureMemory >= this.stage.options.textureMemory;
     }
 
     freeUnusedTextureSources() {
         let remainingTextureSources = [];
-        let usedTextureMemoryBefore = this.usedTextureMemory;
-        for (let i = 0, n = this.uploadedTextureSources.length; i < n; i++) {
-            let ts = this.uploadedTextureSources[i];
+        let usedTextureMemoryBefore = this._usedTextureMemory;
+        for (let i = 0, n = this._uploadedTextureSources.length; i < n; i++) {
+            let ts = this._uploadedTextureSources[i];
             if (!ts.permanent && (ts.views.size === 0)) {
                 this.freeTextureSource(ts);
             } else {
@@ -147,13 +147,13 @@ class TextureManager {
             }
         });
 
-        this.uploadedTextureSources = remainingTextureSources;
-        console.log('freed ' + ((usedTextureMemoryBefore - this.usedTextureMemory) / 1e6).toFixed(2) + 'M texture pixels from GPU memory. Remaining: ' + this.usedTextureMemory);
+        this._uploadedTextureSources = remainingTextureSources;
+        console.log('freed ' + ((usedTextureMemoryBefore - this._usedTextureMemory) / 1e6).toFixed(2) + 'M texture pixels from GPU memory. Remaining: ' + this._usedTextureMemory);
     }
     
     freeTextureSource(textureSource) {
         if (textureSource.glTexture) {
-            this.usedTextureMemory -= textureSource.w * textureSource.h;
+            this._usedTextureMemory -= textureSource.w * textureSource.h;
             this.gl.deleteTexture(textureSource.glTexture);
             textureSource.glTexture = null;
         }

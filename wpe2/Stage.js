@@ -1,8 +1,7 @@
 /**
  * @todo:
- * - transition (definition)
- * - animation (definition)
  * - private values: underscored.
+ * - combine renderer & view
  * - inspect.js
  * - hasAlpha in format, and try to prepare images for upload (so that we get buffer performance).
  * - nodejs
@@ -88,25 +87,13 @@ class Stage extends Base {
         this.dt = 0;
 
         /**
-         * Transitions that are in progress.
-         * @type {Set<Transition>}
-         */
-        this.runningTransitions = new Set();
-
-        /**
-         * Animations that are in progress.
-         * @type {Set<Animation>}
-         */
-        this.runningAnimations = new Set();
-
-        /**
          * Counts the number of attached components that are using z-indices.
          * This is used to determine if we can use a single-pass or dual-pass update/render loop.
          * @type {number}
          */
         this.zIndexUsage = 0;
 
-        this.destroyed = false;
+        this._destroyed = false;
 
         let self = this;
 
@@ -134,7 +121,7 @@ class Stage extends Base {
         }
         this.renderer.destroy();
         this.textureManager.destroy();
-        this.destroyed = true;
+        this._destroyed = true;
     }
 
     stop() {
@@ -142,6 +129,9 @@ class Stage extends Base {
     }
 
     resume() {
+        if (this._destroyed) {
+            throw new Error("Already destroyed");
+        }
         this.adapter.startLoop();
     }
 

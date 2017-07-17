@@ -17,18 +17,18 @@ class View extends Base {
          * A view is active if it is a descendant of the stage root and it is visible (worldAlpha > 0).
          * @type {boolean}
          */
-        this.active = false;
+        this._active = false;
 
         /**
          * A view is active if it is a descendant of the stage root.
          * @type {boolean}
          */
-        this.attached = false;
+        this._attached = false;
 
         /**
          * @type {View}
          */
-        this.parent = null;
+        this._parent = null;
 
         /**
          * The texture that is currently set.
@@ -45,14 +45,6 @@ class View extends Base {
         this._displayedTexture = null;
 
         /**
-         * The cached rotation value (because cos and sin are slow).
-         * @type {number}
-         */
-        this.rotationCache = 0;
-        this._sr = 0;
-        this._cr = 1;
-
-        /**
          * Tags that can be used to identify/search for a specific component.
          * @type {String[]}
          */
@@ -62,22 +54,21 @@ class View extends Base {
          * The tree's tags mapping.
          * This contains all components for all known tags, at all times.
          * @type {Map}
-         * @private
          */
-        this.treeTags = null;
+        this._treeTags = null;
 
         /**
          * Cache for the tag/mtag methods.
          * @type {Map<String,Component[]>}
          */
-        this.tagsCache = null;
+        this._tagsCache = null;
 
         /**
          * Tag-to-complex cache (all tags that are part of the complex caches).
          * This maps tags to cached complex tags in the cache.
          * @type {Map<String,String[]>}
          */
-        this.tagToComplex = null;
+        this._tagToComplex = null;
 
         this._x = 0;
         this._y = 0;
@@ -97,7 +88,7 @@ class View extends Base {
          * The text functionality in case this view is a text view.
          * @type {ViewText}
          */
-        this.viewText = null;
+        this._viewText = null;
 
         /**
          * @type {View[]}
@@ -108,27 +99,27 @@ class View extends Base {
     }
 
     setAsRoot() {
-        this.updateActiveFlag();
-        this.updateAttachedFlag();
+        this._updateActiveFlag();
+        this._updateAttachedFlag();
         this.renderer.setAsRoot();
     }
 
-    setParent(parent) {
-        if (this.parent === parent) return;
+    _setParent(parent) {
+        if (this._parent === parent) return;
 
-        if (this.parent) {
+        if (this._parent) {
             this._unsetTagsParent();
         }
 
-        this.parent = parent;
+        this._parent = parent;
         
         if (parent) {
             this._setTagsParent();
         }
 
-        this.updateActiveFlag();
+        this._updateActiveFlag();
 
-        this.updateAttachedFlag();
+        this._updateAttachedFlag();
     };
 
     getDepth() {
@@ -137,7 +128,7 @@ class View extends Base {
         let p = this;
         do {
             depth++;
-            p = p.parent;
+            p = p._parent;
         } while(p);
 
         return depth;
@@ -145,8 +136,8 @@ class View extends Base {
 
     getAncestor(l) {
         let p = this;
-        while(l > 0 && p.parent) {
-            p = p.parent;
+        while(l > 0 && p._parent) {
+            p = p._parent;
             l--;
         }
         return p;
@@ -162,11 +153,11 @@ class View extends Base {
 
     isAncestorOf(c) {
         let p = c;
-        while(p.parent) {
+        while(p._parent) {
             if (this === p) {
                 return true;
             }
-            p = p.parent;
+            p = p._parent;
         }
         return false;
     };
@@ -187,8 +178,8 @@ class View extends Base {
                 return o1;
             }
 
-            o1 = o1.parent;
-            o2 = o2.parent;
+            o1 = o1._parent;
+            o2 = o2._parent;
         } while(o1 && o2);
 
         return null;
@@ -197,7 +188,7 @@ class View extends Base {
     addChild(child) {
         if (!this._children) this._children = [];
 
-        if (child.parent === this && this._children.indexOf(child) >= 0) {
+        if (child._parent === this && this._children.indexOf(child) >= 0) {
             return child;
         }
         this.addChildAt(child, this._children.length);
@@ -214,15 +205,15 @@ class View extends Base {
         }
 
         if (index >= 0 && index <= this._children.length) {
-            if (child.parent === this && this._children.indexOf(child) === index) {
+            if (child._parent === this && this._children.indexOf(child) === index) {
                 // Ignore.
             } else {
-                if (child.parent) {
-                    let p = child.parent;
+                if (child._parent) {
+                    let p = child._parent;
                     p.removeChild(child);
                 }
 
-                child.setParent(this);
+                child._setParent(this);
                 this._children.splice(index, 0, child);
 
                 // Sync.
@@ -252,7 +243,7 @@ class View extends Base {
 
         let child = this._children[index];
 
-        child.setParent(null);
+        child._setParent(null);
         this._children.splice(index, 1);
 
         // Sync.
@@ -267,7 +258,7 @@ class View extends Base {
             if (n) {
                 for (let i = 0; i < n; i++) {
                     let child = this._children[i];
-                    child.setParent(null);
+                    child._setParent(null);
                 }
                 this._children.splice(0, n);
 
@@ -295,32 +286,31 @@ class View extends Base {
     };
 
     isActive() {
-        return this._visible && (this._alpha > 0) && (this.parent ? this.parent.active : (this.stage.root === this));
+        return this._visible && (this._alpha > 0) && (this._parent ? this._parent._active : (this.stage.root === this));
     };
 
     isAttached() {
-        return (this.parent ? this.parent.attached : (this.stage.root === this));
+        return (this._parent ? this._parent._attached : (this.stage.root === this));
     };
 
     /**
      * Updates the 'active' flag for this branch.
-     * @private
      */
-    updateActiveFlag() {
+    _updateActiveFlag() {
         // Calculate active flag.
         let newActive = this.isActive();
-        if (this.active !== newActive) {
+        if (this._active !== newActive) {
             if (newActive) {
-                this.setActiveFlag();
+                this._setActiveFlag();
             } else {
-                this.unsetActiveFlag();
+                this._unsetActiveFlag();
             }
 
             if (this._children) {
                 let m = this._children.length;
                 if (m > 0) {
                     for (let i = 0; i < m; i++) {
-                        this._children[i].updateActiveFlag();
+                        this._children[i]._updateActiveFlag();
                     }
                 }
             }
@@ -334,7 +324,7 @@ class View extends Base {
         }
     };
 
-    setActiveFlag() {
+    _setActiveFlag() {
         // Detect texture changes.
         let dt = null;
         if (this._texture && this._texture.source.glTexture) {
@@ -350,7 +340,7 @@ class View extends Base {
         this._updateDimensions();
         this._updateTextureCoords();
 
-        this.active = true;
+        this._active = true;
 
         if (this._texture) {
             // It is important to add the source listener before the texture listener because that may trigger a load.
@@ -367,7 +357,7 @@ class View extends Base {
         }
     }
 
-    unsetActiveFlag() {
+    _unsetActiveFlag() {
         if (this.zIndex != 0) {
             // View uses z-index.
             this.stage.zIndexUsage--;
@@ -381,40 +371,31 @@ class View extends Base {
             this._displayedTexture.source.removeView(this);
         }
 
-        this.active = false;
+        this._active = false;
     }
 
     /**
      * Updates the 'attached' flag for this branch.
-     * @private
      */
-    updateAttachedFlag() {
+    _updateAttachedFlag() {
         // Calculate active flag.
         let newAttached = this.isAttached();
-        if (this.attached !== newAttached) {
-            this.attached = newAttached;
-
-            if (newAttached) {
-                this.setAttached();
-            }
+        if (this._attached !== newAttached) {
+            this._attached = newAttached;
 
             if (this._children) {
                 let m = this._children.length;
                 if (m > 0) {
                     for (let i = 0; i < m; i++) {
-                        this._children[i].updateAttachedFlag();
+                        this._children[i]._updateAttachedFlag();
                     }
                 }
             }
         }
     };
 
-    setAttached() {
-        //@todo: trigger event for transitions/animations?
-    }
-
     getRenderWidth() {
-        if (this.active) {
+        if (this._active) {
             // Render width is only maintained if this view is active.
             return this.renderer.rw;
         } else {
@@ -423,7 +404,7 @@ class View extends Base {
     };
 
     getRenderHeight() {
-        if (this.active) {
+        if (this._active) {
             return this.renderer.rh;
         } else {
             return this._getRenderHeight();
@@ -496,7 +477,7 @@ class View extends Base {
 
             this._texture = v;
 
-            if (this.active && prevValue && this.displayedTexture !== prevValue) {
+            if (this._active && prevValue && this.displayedTexture !== prevValue) {
                 // Keep reference to component for texture source
                 if ((!v || prevValue.source !== v.source) && (!this.displayedTexture || (this.displayedTexture.source !== prevValue.source))) {
                     prevValue.source.removeView(this);
@@ -504,7 +485,7 @@ class View extends Base {
             }
 
             if (v) {
-                if (this.active) {
+                if (this._active) {
                     // When the texture is changed, maintain the texture's sprite registry.
                     // While the displayed texture is different from the texture (not yet loaded), two textures are referenced.
                     v.source.addView(this);
@@ -527,7 +508,7 @@ class View extends Base {
     set displayedTexture(v) {
         let prevValue = this._displayedTexture;
         if (v !== prevValue) {
-            if (this.active && prevValue) {
+            if (this._active && prevValue) {
                 // We can assume that this._texture === this._displayedTexture.
 
                 if (prevValue !== this._texture) {
@@ -603,17 +584,14 @@ class View extends Base {
     _updateLocalTransform() {
         if (this._rotation !== 0 && this._rotation % (2 * Math.PI)) {
             // check to see if the rotation is the same as the previous render. This means we only need to use sin and cos when rotation actually changes
-            if (this._rotation !== this.rotationCache) {
-                this.rotationCache = this._rotation;
-                this._sr = Math.sin(this._rotation);
-                this._cr = Math.cos(this._rotation);
-            }
+            let _sr = Math.sin(this._rotation);
+            let _cr = Math.cos(this._rotation);
 
             this.renderer.setLocalTransform(
-                this._cr * this._scaleX,
-                -this._sr * this._scaleY,
-                this._sr * this._scaleX,
-                this._cr * this._scaleY
+                _cr * this._scaleX,
+                -_sr * this._scaleY,
+                _sr * this._scaleX,
+                _cr * this._scaleY
             );
         } else {
             this.renderer.setLocalTransform(
@@ -710,42 +688,38 @@ class View extends Base {
     /**
      * Clears the cache(s) for the specified tag.
      * @param {String} tag
-     * @private
      */
     _clearTagsCache(tag) {
-        if (this.tagsCache) {
-            this.tagsCache.delete(tag);
+        if (this._tagsCache) {
+            this._tagsCache.delete(tag);
 
-            if (this.tagToComplex) {
-                let s = this.tagToComplex.get(tag);
+            if (this._tagToComplex) {
+                let s = this._tagToComplex.get(tag);
                 if (s) {
                     for (let i = 0, n = s.length; i < n; i++) {
-                        this.tagsCache.delete(s[i]);
+                        this._tagsCache.delete(s[i]);
                     }
-                    this.tagToComplex.delete(tag);
+                    this._tagToComplex.delete(tag);
                 }
             }
         }
     };
 
-    /**
-     * @private
-     */
     _unsetTagsParent() {
         let tags = null;
         let n = 0;
-        if (this.treeTags) {
-            tags = Utils.iteratorToArray(this.treeTags.keys());
+        if (this._treeTags) {
+            tags = Utils.iteratorToArray(this._treeTags.keys());
             n = tags.length;
 
             if (n > 0) {
                 for (let i = 0; i < n; i++) {
-                    let tagSet = this.treeTags.get(tags[i]);
+                    let tagSet = this._treeTags.get(tags[i]);
 
                     // Remove from treeTags.
                     let p = this;
-                    while (p = p.parent) {
-                        let parentTreeTags = p.treeTags.get(tags[i]);
+                    while (p = p._parent) {
+                        let parentTreeTags = p._treeTags.get(tags[i]);
 
                         tagSet.forEach(function(comp) {
                             parentTreeTags.delete(comp);
@@ -760,24 +734,21 @@ class View extends Base {
 
     };
 
-    /**
-     * @private
-     */
     _setTagsParent() {
-        if (this.treeTags && this.treeTags.size) {
+        if (this._treeTags && this._treeTags.size) {
             let self = this;
-            this.treeTags.forEach(function(tagSet, tag) {
+            this._treeTags.forEach(function(tagSet, tag) {
                 // Add to treeTags.
                 let p = self;
-                while (p = p.parent) {
-                    if (!p.treeTags) {
-                        p.treeTags = new Map();
+                while (p = p._parent) {
+                    if (!p._treeTags) {
+                        p._treeTags = new Map();
                     }
 
-                    let s = p.treeTags.get(tag);
+                    let s = p._treeTags.get(tag);
                     if (!s) {
                         s = new Set();
-                        p.treeTags.set(tag, s);
+                        p._treeTags.set(tag, s);
                     }
 
                     tagSet.forEach(function(comp) {
@@ -790,14 +761,11 @@ class View extends Base {
         }
     };
 
-    /**
-     * @private
-     */
     _getByTag(tag) {
-        if (!this.treeTags) {
+        if (!this._treeTags) {
             return [];
         }
-        let t = this.treeTags.get(tag);
+        let t = this._treeTags.get(tag);
         return t ? Utils.setToArray(t) : [];
     };
 
@@ -842,20 +810,20 @@ class View extends Base {
             // Add to treeTags hierarchy.
             let p = this;
             do {
-                if (!p.treeTags) {
-                    p.treeTags = new Map();
+                if (!p._treeTags) {
+                    p._treeTags = new Map();
                 }
 
-                let s = p.treeTags.get(tag);
+                let s = p._treeTags.get(tag);
                 if (!s) {
                     s = new Set();
-                    p.treeTags.set(tag, s);
+                    p._treeTags.set(tag, s);
                 }
 
                 s.add(this);
 
                 p._clearTagsCache(tag);
-            } while (p = p.parent);
+            } while (p = p._parent);
         }
     };
 
@@ -867,13 +835,13 @@ class View extends Base {
             // Remove from treeTags hierarchy.
             let p = this;
             do {
-                let list = p.treeTags.get(tag);
+                let list = p._treeTags.get(tag);
                 if (list) {
                     list.delete(this);
 
                     p._clearTagsCache(tag);
                 }
-            } while (p = p.parent);
+            } while (p = p._parent);
         }
     };
 
@@ -898,8 +866,8 @@ class View extends Base {
      */
     mtag(tag) {
         let res = null;
-        if (this.tagsCache) {
-            res = this.tagsCache.get(tag);
+        if (this._tagsCache) {
+            res = this._tagsCache.get(tag);
         }
 
         if (!res) {
@@ -922,11 +890,11 @@ class View extends Base {
                 res = this._getByTag(tag);
             }
 
-            if (!this.tagsCache) {
-                this.tagsCache = new Map();
+            if (!this._tagsCache) {
+                this._tagsCache = new Map();
             }
 
-            this.tagsCache.set(tag, res);
+            this._tagsCache.set(tag, res);
         }
         return res;
     };
@@ -941,11 +909,11 @@ class View extends Base {
 
     getLocationString() {
         let i;
-        if (this.parent) {
-            i = this.parent._children.indexOf(this);
+        if (this._parent) {
+            i = this._parent._children.indexOf(this);
             if (i >= 0) {
                 let localTags = this.getTags();
-                return this.parent.getLocationString() + ":" + i + "[" + this.id + "]" + (localTags.length ? "(" + localTags.join(",") + ")" : "");
+                return this._parent.getLocationString() + ":" + i + "[" + this.id + "]" + (localTags.length ? "(" + localTags.join(",") + ")" : "");
             }
         }
         return "";
@@ -1055,8 +1023,8 @@ class View extends Base {
             settings.rect = true;
         } else if (this.src) {
             settings.src = this.src;
-        } else if (this.texture && this.viewText) {
-            settings.text = this.viewText.settings.getNonDefaults();
+        } else if (this.texture && this._viewText) {
+            settings.text = this._viewText.settings.getNonDefaults();
         }
 
         let tnd = this._texture.getNonDefaults();
@@ -1184,7 +1152,7 @@ class View extends Base {
             let prev = this._alpha
             this._alpha = v
             this._updateLocalAlpha();
-            if ((prev === 0) !== (v === 0)) this.updateActiveFlag()
+            if ((prev === 0) !== (v === 0)) this._updateActiveFlag()
         }
     }
 
@@ -1218,14 +1186,14 @@ class View extends Base {
     set visible(v) {if (this._visible !== v) {
         this._visible = v
         this._updateLocalAlpha()
-        this.updateActiveFlag()
+        this._updateActiveFlag()
     }}
 
     get zIndex() {return this.renderer.zIndex}
     set zIndex(v) {
         let prev = this.renderer.zIndex;
         this.renderer.zIndex = v;
-        if (this.active) {
+        if (this._active) {
             if (prev !== 0 && v === 0) {
                 this.stage.zIndexUsage--
             } else if (prev === 0 && v !== 0) {
@@ -1299,25 +1267,25 @@ class View extends Base {
     }
 
     get text() {
-        if (!this.viewText) {
-            this.viewText = new ViewText(this);
+        if (!this._viewText) {
+            this._viewText = new ViewText(this);
         }
 
         // Give direct access to the settings.
-        return this.viewText.settings;
+        return this._viewText.settings;
     }
 
     set text(v) {
         if (v) {
             this.texture = this.stage.rectangleTexture;
         } else {
-            if (!this.viewText) {
-                this.viewText = new ViewText(this);
+            if (!this._viewText) {
+                this._viewText = new ViewText(this);
             }
             if (Utils.isString(v)) {
-                this.viewText.settings.text = v;
+                this._viewText.settings.text = v;
             } else {
-                this.viewText.settings.setSettings(v);
+                this._viewText.settings.setSettings(v);
             }
         }
     }

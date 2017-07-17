@@ -94,7 +94,7 @@ class TextureSource {
 
             if (this.glTexture) {
                 // If not yet loaded, wait until it is loaded until adding it to the texture atlas.
-                if (this.stage.useTextureAtlas) {
+                if (this.stage.textureAtlas) {
                     this.stage.textureAtlas.addActiveTextureSource(this);
                 }
             }
@@ -115,7 +115,7 @@ class TextureSource {
     removeView(v) {
         if (this.views.delete(v)) {
             if (!this.views.size) {
-                if (this.stage.useTextureAtlas) {
+                if (this.stage.textureAtlas) {
                     this.stage.textureAtlas.removeActiveTextureSource(this);
                 }
                 this.manager.textureSourceIdHashmap.delete(this.id);

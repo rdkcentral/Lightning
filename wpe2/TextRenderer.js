@@ -1,21 +1,21 @@
 class TextRenderer {
 
     constructor(canvas, settings) {
-        this.canvas = canvas;
-        this.context = this.canvas.getContext('2d');
-        this.settings = settings;
+        this._canvas = canvas;
+        this._context = this._canvas.getContext('2d');
+        this._settings = settings;
     }
 
     getPrecision() {
-        return this.settings.precision;
+        return this._settings.precision;
     };
 
     setFontProperties(withPrecision) {
-        let ff = this.settings.fontFace;
-        let fonts = '"' + (Array.isArray(ff) ? this.settings.fontFace.join('","') : ff) + '"';
+        let ff = this._settings.fontFace;
+        let fonts = '"' + (Array.isArray(ff) ? this._settings.fontFace.join('","') : ff) + '"';
         let precision = (withPrecision ? this.getPrecision() : 1);
-        this.context.font = this.settings.fontStyle + " " + (this.settings.fontSize * precision) + "px " + fonts;
-        this.context.textBaseline = this.settings.textBaseline;
+        this._context.font = this._settings.fontStyle + " " + (this._settings.fontSize * precision) + "px " + fonts;
+        this._context.textBaseline = this._settings.textBaseline;
     };
 
     draw(noDraw = false) {
@@ -25,24 +25,24 @@ class TextRenderer {
         this.setFontProperties(false);
 
         // Total width.
-        let width = this.settings.w || (2048 / this.getPrecision());
+        let width = this._settings.w || (2048 / this.getPrecision());
 
         // Inner width.
-        let innerWidth = width - (this.settings.paddingLeft + this.settings.paddingRight);
+        let innerWidth = width - (this._settings.paddingLeft + this._settings.paddingRight);
         if (innerWidth < 10) {
             width += (10 - innerWidth);
             innerWidth += (10 - innerWidth);
         }
 
-        let wordWrapWidth = this.settings.wordWrapWidth || innerWidth;
+        let wordWrapWidth = this._settings.wordWrapWidth || innerWidth;
 
         // word wrap
         // preserve original text
         let linesInfo;
-        if (this.settings.wordWrap) {
-            linesInfo = this.wrapText(this.settings.text, wordWrapWidth);
+        if (this._settings.wordWrap) {
+            linesInfo = this.wrapText(this._settings.text, wordWrapWidth);
         } else {
-            linesInfo = {l: this.settings.text.split(/(?:\r\n|\r|\n)/), n: []};
+            linesInfo = {l: this._settings.text.split(/(?:\r\n|\r|\n)/), n: []};
             let i, n = linesInfo.l.length;
             for (let i = 0; i < n - 1; i++) {
                 linesInfo.n.push(i);
@@ -50,13 +50,13 @@ class TextRenderer {
         }
         let lines = linesInfo.l;
 
-        if (this.settings.maxLines && lines.length > this.settings.maxLines) {
-            let usedLines = lines.slice(0, this.settings.maxLines);
+        if (this._settings.maxLines && lines.length > this._settings.maxLines) {
+            let usedLines = lines.slice(0, this._settings.maxLines);
 
             let otherLines = null;
-            if (this.settings.maxLinesSuffix) {
+            if (this._settings.maxLinesSuffix) {
                 // Wrap again with max lines suffix enabled.
-                let al = this.wrapText(usedLines[usedLines.length - 1] + this.settings.maxLinesSuffix, wordWrapWidth);
+                let al = this.wrapText(usedLines[usedLines.length - 1] + this._settings.maxLinesSuffix, wordWrapWidth);
                 usedLines[usedLines.length - 1] = al.l[0];
                 otherLines = [al.l.length > 1 ? al.l[1] : ''];
             } else {
@@ -67,7 +67,7 @@ class TextRenderer {
             let i, n = lines.length;
             let j = 0;
             let m = linesInfo.n.length;
-            for (i = this.settings.maxLines; i < n; i++) {
+            for (i = this._settings.maxLines; i < n; i++) {
                 otherLines[j] += (otherLines[j] ? " " : "") + lines[i];
                 if (i + 1 < m && linesInfo.n[i + 1]) {
                     j++;
@@ -88,30 +88,30 @@ class TextRenderer {
         let maxLineWidth = 0;
         let lineWidths = [];
         for (let i = 0; i < lines.length; i++) {
-            let lineWidth = this.context.measureText(lines[i]).width;
+            let lineWidth = this._context.measureText(lines[i]).width;
             lineWidths.push(lineWidth);
             maxLineWidth = Math.max(maxLineWidth, lineWidth);
         }
 
         renderInfo.lineWidths = lineWidths;
 
-        if (!this.settings.w) {
+        if (!this._settings.w) {
             // Auto-set width to max text length.
-            width = maxLineWidth + this.settings.paddingLeft + this.settings.paddingRight;
+            width = maxLineWidth + this._settings.paddingLeft + this._settings.paddingRight;
             innerWidth = maxLineWidth;
         }
 
         // calculate text height
-        let lineHeight = this.settings.lineHeight || (this.settings.fontSize);
+        let lineHeight = this._settings.lineHeight || (this._settings.fontSize);
 
         let height;
-        if (this.settings.h) {
-            height = this.settings.h;
+        if (this._settings.h) {
+            height = this._settings.h;
         } else {
-            height = lineHeight * (lines.length - 1) + 0.5 * this.settings.fontSize + Math.max(lineHeight, this.settings.fontSize) + this.settings.offsetY;
+            height = lineHeight * (lines.length - 1) + 0.5 * this._settings.fontSize + Math.max(lineHeight, this._settings.fontSize) + this._settings.offsetY;
         }
 
-        let offsetY = this.settings.offsetY === null ? this.settings.fontSize : this.settings.offsetY;
+        let offsetY = this._settings.offsetY === null ? this._settings.fontSize : this._settings.offsetY;
 
         let precision = this.getPrecision();
 
@@ -131,23 +131,23 @@ class TextRenderer {
                 height = 1;
             }
 
-            if (this.settings.cutSx || this.settings.cutEx) {
-                width = Math.min(width, this.settings.cutEx - this.settings.cutSx);
+            if (this._settings.cutSx || this._settings.cutEx) {
+                width = Math.min(width, this._settings.cutEx - this._settings.cutSx);
             }
 
-            if (this.settings.cutSy || this.settings.cutEy) {
-                height = Math.min(height, this.settings.cutEy - this.settings.cutSy);
+            if (this._settings.cutSy || this._settings.cutEy) {
+                height = Math.min(height, this._settings.cutEy - this._settings.cutSy);
             }
 
             // Get corrected precision so that text
-            this.canvas.width = Math.ceil(width * precision);
-            this.canvas.height = Math.ceil(height * precision);
+            this._canvas.width = Math.ceil(width * precision);
+            this._canvas.height = Math.ceil(height * precision);
 
             // After changing the canvas, we need to reset the properties.
             this.setFontProperties(true);
 
-            if (this.settings.cutSx || this.settings.cutSy) {
-                this.context.translate(-(this.settings.cutSx * precision), -(this.settings.cutSy * precision));
+            if (this._settings.cutSx || this._settings.cutSy) {
+                this._context.translate(-(this._settings.cutSx * precision), -(this._settings.cutSy * precision));
             }
 
             let linePositionX;
@@ -160,61 +160,61 @@ class TextRenderer {
                 linePositionX = 0;
                 linePositionY = (i * lineHeight) + offsetY;
 
-                if (this.settings.textAlign === 'right') {
+                if (this._settings.textAlign === 'right') {
                     linePositionX += (innerWidth - lineWidths[i]);
-                } else if (this.settings.textAlign === 'center') {
+                } else if (this._settings.textAlign === 'center') {
                     linePositionX += ((innerWidth - lineWidths[i]) / 2);
                 }
-                linePositionX += this.settings.paddingLeft;
+                linePositionX += this._settings.paddingLeft;
 
                 drawLines.push({text: lines[i], x: linePositionX * precision, y: linePositionY * precision, w: lineWidths[i] * precision});
             }
 
             // Highlight.
-            if (this.settings.highlight) {
-                let color = this.settings.highlightColor || 0x00000000;
-                let hlHeight = (this.settings.highlightHeight || this.settings.fontSize * 1.5);
-                let offset = (this.settings.highlightOffset !== null ? this.settings.highlightOffset : -0.5 * this.settings.fontSize);
-                let paddingLeft = (this.settings.highlightPaddingLeft !== null ? this.settings.highlightPaddingLeft : this.settings.paddingLeft);
-                let paddingRight = (this.settings.highlightPaddingRight !== null ? this.settings.highlightPaddingRight : this.settings.paddingRight);
+            if (this._settings.highlight) {
+                let color = this._settings.highlightColor || 0x00000000;
+                let hlHeight = (this._settings.highlightHeight || this._settings.fontSize * 1.5);
+                let offset = (this._settings.highlightOffset !== null ? this._settings.highlightOffset : -0.5 * this._settings.fontSize);
+                let paddingLeft = (this._settings.highlightPaddingLeft !== null ? this._settings.highlightPaddingLeft : this._settings.paddingLeft);
+                let paddingRight = (this._settings.highlightPaddingRight !== null ? this._settings.highlightPaddingRight : this._settings.paddingRight);
 
-                this.context.fillStyle = StageUtils.getRgbaString(color);
+                this._context.fillStyle = StageUtils.getRgbaString(color);
                 for (i = 0; i < drawLines.length; i++) {
                     let drawLine = drawLines[i];
-                    this.context.fillRect((drawLine.x - paddingLeft) * precision, (drawLine.y + offset) * precision, (drawLine.w + paddingRight + paddingLeft) * precision, hlHeight * precision);
+                    this._context.fillRect((drawLine.x - paddingLeft) * precision, (drawLine.y + offset) * precision, (drawLine.w + paddingRight + paddingLeft) * precision, hlHeight * precision);
                 }
             }
 
             // Text shadow.
             let prevShadowSettings = null;
-            if (this.settings.shadow) {
-                prevShadowSettings = [this.context.shadowColor, this.context.shadowOffsetX, this.context.shadowOffsetY, this.context.shadowBlur];
+            if (this._settings.shadow) {
+                prevShadowSettings = [this._context.shadowColor, this._context.shadowOffsetX, this._context.shadowOffsetY, this._context.shadowBlur];
 
-                this.context.shadowColor = StageUtils.getRgbaString(this.settings.shadowColor);
-                this.context.shadowOffsetX = this.settings.shadowOffsetX * precision;
-                this.context.shadowOffsetY = this.settings.shadowOffsetY * precision;
-                this.context.shadowBlur = this.settings.shadowBlur * precision;
+                this._context.shadowColor = StageUtils.getRgbaString(this._settings.shadowColor);
+                this._context.shadowOffsetX = this._settings.shadowOffsetX * precision;
+                this._context.shadowOffsetY = this._settings.shadowOffsetY * precision;
+                this._context.shadowBlur = this._settings.shadowBlur * precision;
             }
 
-            this.context.fillStyle = StageUtils.getRgbaString(this.settings.textColor);
+            this._context.fillStyle = StageUtils.getRgbaString(this._settings.textColor);
             for (let i = 0, n = drawLines.length; i < n; i++) {
                 let drawLine = drawLines[i];
-                this.context.fillText(drawLine.text, drawLine.x, drawLine.y);
+                this._context.fillText(drawLine.text, drawLine.x, drawLine.y);
             }
 
             if (prevShadowSettings) {
-                this.context.shadowColor = prevShadowSettings[0];
-                this.context.shadowOffsetX = prevShadowSettings[1];
-                this.context.shadowOffsetY = prevShadowSettings[2];
-                this.context.shadowBlur = prevShadowSettings[3];
+                this._context.shadowColor = prevShadowSettings[0];
+                this._context.shadowOffsetX = prevShadowSettings[1];
+                this._context.shadowOffsetY = prevShadowSettings[2];
+                this._context.shadowBlur = prevShadowSettings[3];
             }
 
-            if (this.settings.cutSx || this.settings.cutSy) {
-                this.context.translate(this.settings.cutSx, this.settings.cutSy);
+            if (this._settings.cutSx || this._settings.cutSy) {
+                this._context.translate(this._settings.cutSx, this._settings.cutSy);
             }
         }
 
-        let canvas = this.canvas;
+        let canvas = this._canvas;
         return {renderInfo: renderInfo, canvas: canvas};
     };
 
@@ -234,8 +234,8 @@ class TextRenderer {
             let spaceLeft = wordWrapWidth;
             let words = lines[i].split(' ');
             for (let j = 0; j < words.length; j++) {
-                let wordWidth = this.context.measureText(words[j]).width;
-                let wordWidthWithSpace = wordWidth + this.context.measureText(' ').width;
+                let wordWidth = this._context.measureText(words[j]).width;
+                let wordWidthWithSpace = wordWidth + this._context.measureText(' ').width;
                 if (j === 0 || wordWidthWithSpace > spaceLeft) {
                     // Skip printing the newline if it's the first word of the line that is
                     // greater than the word wrap width.
