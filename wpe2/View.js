@@ -220,14 +220,14 @@ class View extends Base {
         if (this._zIndex === 0) {
             this._setZParent(parent);
         } else {
-            this._setZParent(parent ? parent.findZContext() : null);
+            this._setZParent(parent ? parent._findZContext() : null);
         }
 
         if (prevIsZContext !== this._isZContext()) {
             if (!this._isZContext()) {
                 this._disableZContext();
             } else {
-                this._enableZContext(prevParent.findZContext());
+                this._enableZContext(prevParent._findZContext());
             }
         }
 
@@ -1213,7 +1213,6 @@ class View extends Base {
     set w(v) {
         if (this._w !== v) {
             this._w = v
-            this._renderWidth = this._getRenderWidth()
             this._updateDimensions()
         }
     }
@@ -1225,7 +1224,6 @@ class View extends Base {
     set h(v) {
         if (this._h !== v) {
             this._h = v
-            this._renderHeight = this._getRenderHeight()
             this._updateDimensions()
         }
     }

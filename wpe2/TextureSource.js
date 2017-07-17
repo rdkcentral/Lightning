@@ -74,7 +74,7 @@ class TextureSource {
 
         /**
          * Sub-object with texture-specific rendering information.
-         * For images, this.contains the src property, for texts, this.contains handy rendering information.
+         * For images, contains the src property, for texts, contains handy rendering information.
          * @type {Object}
          */
         this.renderInfo = null;        

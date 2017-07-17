@@ -1,15 +1,12 @@
 /**
  * @todo:
- * - combine renderer & view
- * - use dummy parent? check performance.
- * - inspect.js
- * - hasAlpha in format, and try to prepare images for upload (so that we get buffer performance).
+ * - debug texture atlas
+ * - encapsulate tags branches (for isolating widgets)
  * - nodejs
  * - nodejs texture loading
- * - encapsulate tags branches (for isolating widgets)
  * - merger: isRgba? isNumeric?
- * - debug texture atlas
  * - quick clone
+ * - hasAlpha in format, and try to prepare images for upload (so that we get buffer performance).
  */
 class Stage extends Base {
     constructor(options) {

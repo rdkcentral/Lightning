@@ -3,7 +3,7 @@
 //     var Stage = require('../../wpe');
 // }
 //
-var options = {w: 600, h: 600, glClearColor: 0xFF00FFFF, defaultPrecision: 1, useTextureAtlas: true};
+var options = {w: 600, h: 600, glClearColor: 0xFF000000, useTextureAtlas: true};
 // if (isNode) {
 //     options.window = {title: "Usage example", fullscreen: false};
 // }

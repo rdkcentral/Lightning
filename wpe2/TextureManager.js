@@ -64,6 +64,9 @@ class TextureManager {
                     self.loadSrcTexture(source, cb);
                 };
                 textureSource = this.getTextureSource(func, id);
+                if (!textureSource.renderInfo) {
+                    textureSource.renderInfo = {src: source};
+                }
             }
         } else if (source instanceof TextureSource) {
             textureSource = source;

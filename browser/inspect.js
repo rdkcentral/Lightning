@@ -25,19 +25,23 @@ var defaultTextAttributes = {
     highlight: false,
     highlightHeight: 0,
     highlightColor: 0xff000000,
-    highlightOffset: null,
-    highlightPaddingLeft: null,
-    highlightPaddingRight: null,
+    highlightOffset: 0,
+    highlightPaddingLeft: 0,
+    highlightPaddingRight: 0,
     cutSx: 0,
     cutEx: 0,
     cutSy: 0,
     cutEy: 0
 };
 
+// _properties must have been called already to prevent init mayhem.
+Base.initPrototype(View.prototype);
+Base.initPrototype(ViewText.prototype);
+
 window.mutationCounter = 0;
 window.mutatingChildren = false;
 var observer = new MutationObserver(function(mutations) {
-    var fa = ["x", "y", "w", "h", "alpha", "mountX", "mountY", "pivotX", "pivotY", "scaleX", "scaleY", "rotation", "visible", "clipping", "rect", "colorTopLeft", "colorTopRight", "colorBottomLeft", "colorBottomRight", "color", "borderWidthLeft", "borderWidthRight", "borderWidthTop", "borderWidthBottom", "borderWidth", "borderColorLeft", "borderColorRight", "borderColorTop", "borderColorBottom", "borderColor", "zIndex", "forceZIndexContext"];
+    var fa = ["x", "y", "w", "h", "alpha", "mountX", "mountY", "pivotX", "pivotY", "scaleX", "scaleY", "rotation", "visible", "clipping", "rect", "colorUl", "colorUr", "colorBl", "colorBr", "color", "borderWidthLeft", "borderWidthRight", "borderWidthTop", "borderWidthBottom", "borderWidth", "borderColorLeft", "borderColorRight", "borderColorTop", "borderColorBottom", "borderColor", "zIndex", "forceZIndexContext"];
     var fac = fa.map(function(v) {return v.toLowerCase()});
 
     var ta = ["text", "fontStyle", "fontSize", "fontFace", "wordWrap", "wordWrapWidth", "lineHeight", "textBaseline", "textAlign", "offsetY", "maxLines", "maxLinesSuffix", "precision", "paddingLeft", "paddingRight", "shadow", "shadowOffsetX", "shadowOffsetY", "shadowBlur", "highlight", "highlightHeight", "highlightOffset", "highlightPaddingLeft", "highlightPaddingRight", "cutSx", "cutEx", "cutSy", "cutEy", "textColor", "shadowColor", "highlightColor"];
@@ -47,7 +51,7 @@ var observer = new MutationObserver(function(mutations) {
         if (mutation.type == 'childList') {
 
             var node = mutation.target;
-            var c = mutation.target.component;
+            var c = mutation.target.view;
 
             if (c.__ignore_child_list_changes === window.mutationCounter) {
                 // Ignore child node changes that were caused by actual value modifications by js.
@@ -58,8 +62,8 @@ var observer = new MutationObserver(function(mutations) {
 
             var removedNodes = mutation.removedNodes;
             for (var i = 0, n = removedNodes.length; i < n; i++) {
-                if (removedNodes[i].component) {
-                    c.removeChild(removedNodes[i].component);
+                if (removedNodes[i].view) {
+                    c.removeChild(removedNodes[i].view);
                 }
             }
 
@@ -68,7 +72,7 @@ var observer = new MutationObserver(function(mutations) {
 
         if (mutation.type == 'attributes' && mutation.attributeName !== 'style' && mutation.attributeName !== 'class') {
             var n = mutation.attributeName.toLowerCase();
-            var c = mutation.target.component;
+            var c = mutation.target.view;
 
             if (c.__ignore_attrib_changes === window.mutationCounter) {
                 // Ignore attribute changes that were caused by actual value modifications by js.
@@ -107,39 +111,13 @@ var observer = new MutationObserver(function(mutations) {
                             case "forceZIndexContext":
                                 pv = false;
                                 break;
-                            case "borderWidth":
-                                pv = 0;
-                                break;
-                            case "borderWidthLeft":
-                            case "borderWidthRight":
-                            case "borderWidthTop":
-                            case "borderWidthBottom":
-                                if (mutation.target.hasAttribute("borderWidth")) {
-                                    // This may happen when the separate values are combined.
-                                    return;
-                                }
-                                pv = 0;
-                                break;
-                            case "borderColor":
-                                pv = 0xffffffff;
-                                break;
-                            case "borderColorLeft":
-                            case "borderColorRight":
-                            case "borderColorTop":
-                            case "borderColorBottom":
-                                if (mutation.target.hasAttribute("borderColor")) {
-                                    // This may happen when the separate values are combined.
-                                    return;
-                                }
-                                pv = 0xffffffff;
-                                break;
                             case "color":
                                 pv = 0xffffffff;
                                 break;
-                            case "colorTopLeft":
-                            case "colorTopRight":
-                            case "colorBottomLeft":
-                            case "colorBottomRight":
+                            case "colorUl":
+                            case "colorUr":
+                            case "colorBl":
+                            case "colorBr":
                                 if (mutation.target.hasAttribute("color")) {
                                     // This may happen when the separate values are combined.
                                     return;
@@ -152,15 +130,10 @@ var observer = new MutationObserver(function(mutations) {
                     } else {
                         switch(rn) {
                             case "color":
-                            case "colorTopLeft":
-                            case "colorTopRight":
-                            case "colorBottomLeft":
-                            case "colorBottomRight":
-                            case "borderColor":
-                            case "borderColorLeft":
-                            case "borderColorRight":
-                            case "borderColorTop":
-                            case "borderColorBottom":
+                            case "colorUl":
+                            case "colorUr":
+                            case "colorBl":
+                            case "colorBr":
                                 pv = parseInt(v, 16);
                                 break;
                             case "visible":
@@ -199,43 +172,22 @@ var observer = new MutationObserver(function(mutations) {
                             c.forceZIndexContext = pv;
                             break;
                         case "color":
-                            var f = ['colorTopLeft','colorTopRight','colorBottomLeft','colorBottomRight'].map(function(q) {
+                            var f = ['colorUl','colorUr','colorBl','colorBr'].map(function(q) {
                                 return mutation.target.hasAttribute(q);
                             });
                             
-                            if (!f[0]) c["COLORTOPLEFT"] = pv;
-                            if (!f[1]) c["COLORTOPRIGHT"] = pv;
-                            if (!f[2]) c["COLORBOTTOMLEFT"] = pv;
-                            if (!f[3]) c["COLORBOTTOMRIGHT"] = pv;
-                            break;
-                        case "borderWidth":
-                            var f = ['borderWidthLeft','borderWidthRight','borderWidthTop','borderWidthBottom'].map(function(q) {
-                                return mutation.target.hasAttribute(q);
-                            });
-
-                            if (!f[0]) c["BORDERWIDTHLEFT"] = pv;
-                            if (!f[1]) c["BORDERWIDTHRIGHT"] = pv;
-                            if (!f[2]) c["BORDERWIDTHTOP"] = pv;
-                            if (!f[3]) c["BORDERWIDTHBOTTOM"] = pv;
-                            break;
-                        case "borderColor":
-                            var f = ['borderColorLeft','borderColorRight','borderColorTop','borderColorBottom'].map(function(q) {
-                                return mutation.target.hasAttribute(q);
-                            });
-
-                            if (!f[0]) c["BORDERCOLORLEFT"] = pv;
-                            if (!f[1]) c["BORDERCOLORRIGHT"] = pv;
-                            if (!f[2]) c["BORDERCOLORTOP"] = pv;
-                            if (!f[3]) c["BORDERCOLORBOTTOM"] = pv;
+                            if (!f[0]) c["colorUl"] = pv;
+                            if (!f[1]) c["colorUr"] = pv;
+                            if (!f[2]) c["colorBl"] = pv;
+                            if (!f[3]) c["colorBr"] = pv;
                             break;
                         default:
-                            fv = rn.toUpperCase();
-                            c[fv] = pv;
+                            c[rn] = pv;
                     }
 
                     // Set final value, not the transitioned value.
                 } catch(e) {
-                    console.error('Bad (ignored) attribute value', rn, pv);
+                    console.error('Bad (ignored) attribute value', rn);
                 }
             } else {
                 if (mutation.attributeName.indexOf("text-") !== -1) {
@@ -292,16 +244,16 @@ var observer = new MutationObserver(function(mutations) {
     window.mutationCounter++;
 });
 
-Component.prototype.dhtml = function() {
+View.prototype.dhtml = function() {
     if (!this.debugElement) {
         this.debugElement = document.createElement('DIV');
-        this.debugElement.component = this;
+        this.debugElement.view = this;
         this.debugElement.style.position = 'absolute';
 
         this.debugElement.id = "" + this.id;
         observer.observe(this.debugElement, {attributes: true, childList: true});
     }
-    if (!this.id && !this.dhtml_root) {
+    if (this.stage.root === this && !this.dhtml_root) {
         // Root element.
         var root = document.createElement('DIV');
         document.body.appendChild(root);
@@ -324,10 +276,10 @@ Component.prototype.dhtml = function() {
     return this.debugElement;
 };
 
-var oComponent = Component;
+var oView = View;
 
-var oSetParent = oComponent.prototype.setParent;
-Component.prototype.setParent = function(parent) {
+var oSetParent = oView.prototype._setParent;
+View.prototype._setParent = function(parent) {
     var prevParent = this.parent;
 
     oSetParent.apply(this, arguments);
@@ -352,28 +304,27 @@ Component.prototype.setParent = function(parent) {
 
 var oInit = Stage.prototype.init;
 Stage.prototype.init = function() {
+    oInit.apply(this, arguments);
+
     // Apply stage scaling.
     this.root.updateDebugTransforms();
-
-    oInit.apply(this, arguments);
 };
 
-var oComponentTags = ComponentTags;
-var oAddTag = oComponentTags.prototype.addTag;
-ComponentTags.prototype.addTag = function(tag) {
+var oAddTag = oView.prototype.addTag;
+View.prototype.addTag = function(tag) {
     oAddTag.apply(this, arguments);
 
     if (tag) {
-        this.component.dhtml().classList.add(tag);
+        this.dhtml().classList.add(tag);
     }
 };
 
-var oRemoveTag = oComponentTags.prototype.removeTag;
-ComponentTags.prototype.removeTag = function(tag) {
-    oRemoveTag.apply(this, arguments);
+var oRemoveTag = oView.prototype.removeTag;
+View.prototype.removeTag = function(tag) {
+    oRemoveTag(this, arguments);
 
     if (tag) {
-        this.component.dhtml().classList.remove(tag);
+        this.view.dhtml().classList.remove(tag);
     }
 };
 
@@ -386,19 +337,19 @@ var val = function(c, n, v, dv) {
     }
 };
 
-Component.prototype.dhtmlRemoveAttribute = function() {
+View.prototype.dhtmlRemoveAttribute = function() {
     // We don't want the attribute listeners to be called during the next observer cycle.
     this.__ignore_attrib_changes = window.mutationCounter;
     this.dhtml().removeAttribute.apply(this.dhtml(), arguments);
 };
 
-Component.prototype.dhtmlSetAttribute = function() {
+View.prototype.dhtmlSetAttribute = function() {
     this.__ignore_attrib_changes = window.mutationCounter;
     this.dhtml().setAttribute.apply(this.dhtml(), arguments);
 };
 
-Component.prototype.__x = Component.prototype._x;
-Object.defineProperty(Component.prototype, '_x', {
+View.prototype.__x = View.prototype._x;
+Object.defineProperty(View.prototype, '_x', {
     get: function() {
         return this.__x;
     },
@@ -411,8 +362,8 @@ Object.defineProperty(Component.prototype, '_x', {
     }
 });
 
-Component.prototype.__y = Component.prototype._y;
-Object.defineProperty(Component.prototype, '_y', {
+View.prototype.__y = View.prototype._y;
+Object.defineProperty(View.prototype, '_y', {
     get: function() {
         return this.__y;
     },
@@ -425,8 +376,8 @@ Object.defineProperty(Component.prototype, '_y', {
     }
 });
 
-Component.prototype.__w = Component.prototype._w;
-Object.defineProperty(Component.prototype, '_w', {
+View.prototype.__w = View.prototype._w;
+Object.defineProperty(View.prototype, '_w', {
     get: function() {
         return this.__w;
     },
@@ -438,8 +389,8 @@ Object.defineProperty(Component.prototype, '_w', {
     }
 });
 
-Component.prototype.__h = Component.prototype._h;
-Object.defineProperty(Component.prototype, '_h', {
+View.prototype.__h = View.prototype._h;
+Object.defineProperty(View.prototype, '_h', {
     get: function() {
         return this.__h;
     },
@@ -451,44 +402,44 @@ Object.defineProperty(Component.prototype, '_h', {
     }
 });
 
-Component.prototype.updateLeft = function() {
-    var mx = this.mountX * this._renderWidth;
+View.prototype.updateLeft = function() {
+    var mx = this.mountX * this.getRenderWidth();
     var x = this._x - mx;
     this.dhtml().style.left = x + 'px';
 };
 
-Component.prototype.updateTop = function() {
-    var my = this.mountY * this._renderHeight;
+View.prototype.updateTop = function() {
+    var my = this.mountY * this.getRenderHeight();
     var y = this._y - my;
     this.dhtml().style.top = y + 'px';
 };
 
-Component.prototype.__renderWidth = Component.prototype._renderWidth;
-Object.defineProperty(Component.prototype, '_renderWidth', {
+View.prototype.__rw = View.prototype._rw;
+Object.defineProperty(View.prototype, '_rw', {
     get: function() {
-        return this.__renderWidth;
+        return this.__rw;
     },
     set: function(v) {
-        this.__renderWidth = v;
+        this.__rw = v;
         this.dhtml().style.width = v + 'px';
         this.updateLeft();
     }
 });
 
-Component.prototype.__renderHeight = Component.prototype._renderHeight;
-Object.defineProperty(Component.prototype, '_renderHeight', {
+View.prototype.__rh = View.prototype._rh;
+Object.defineProperty(View.prototype, '_rh', {
     get: function() {
-        return this.__renderHeight;
+        return this.__rh;
     },
     set: function(v) {
-        this.__renderHeight = v;
+        this.__rh = v;
         this.dhtml().style.height = v + 'px';
         this.updateTop();
     }
 });
 
-Component.prototype.__alpha = Component.prototype._alpha;
-Object.defineProperty(Component.prototype, '_alpha', {
+View.prototype.__alpha = View.prototype._alpha;
+Object.defineProperty(View.prototype, '_alpha', {
     get: function() {
         return this.__alpha;
     },
@@ -502,8 +453,8 @@ Object.defineProperty(Component.prototype, '_alpha', {
     }
 });
 
-Component.prototype.__visible = Component.prototype._visible;
-Object.defineProperty(Component.prototype, '_visible', {
+View.prototype.__visible = View.prototype._visible;
+Object.defineProperty(View.prototype, '_visible', {
     get: function() {
         return this.__visible;
     },
@@ -517,8 +468,8 @@ Object.defineProperty(Component.prototype, '_visible', {
     }
 });
 
-Component.prototype.__texture = Component.prototype._texture;
-Object.defineProperty(Component.prototype, '_texture', {
+View.prototype.__texture = View.prototype._texture;
+Object.defineProperty(View.prototype, '_texture', {
     get: function() {
         return this.__texture;
     },
@@ -526,11 +477,12 @@ Object.defineProperty(Component.prototype, '_texture', {
         this.__texture = v;
 
         val(this, 'rect', this.rect, false);
+        val(this, 'src', this.src, null);
     }
 });
 
-Component.prototype.__rotation = Component.prototype._rotation;
-Object.defineProperty(Component.prototype, '_rotation', {
+View.prototype.__rotation = View.prototype._rotation;
+Object.defineProperty(View.prototype, '_rotation', {
     get: function() {
         return this.__rotation;
     },
@@ -544,8 +496,8 @@ Object.defineProperty(Component.prototype, '_rotation', {
 });
 
 
-Component.prototype.__scaleX = Component.prototype._scaleX;
-Object.defineProperty(Component.prototype, '_scaleX', {
+View.prototype.__scaleX = View.prototype._scaleX;
+Object.defineProperty(View.prototype, '_scaleX', {
     get: function() {
         return this.__scaleX;
     },
@@ -558,8 +510,8 @@ Object.defineProperty(Component.prototype, '_scaleX', {
     }
 });
 
-Component.prototype.__scaleY = Component.prototype._scaleY;
-Object.defineProperty(Component.prototype, '_scaleY', {
+View.prototype.__scaleY = View.prototype._scaleY;
+Object.defineProperty(View.prototype, '_scaleY', {
     get: function() {
         return this.__scaleY;
     },
@@ -572,8 +524,8 @@ Object.defineProperty(Component.prototype, '_scaleY', {
     }
 });
 
-Component.prototype.__pivotX = Component.prototype._pivotX;
-Object.defineProperty(Component.prototype, '_pivotX', {
+View.prototype.__pivotX = View.prototype._pivotX;
+Object.defineProperty(View.prototype, '_pivotX', {
     get: function() {
         return this.__pivotX;
     },
@@ -586,8 +538,8 @@ Object.defineProperty(Component.prototype, '_pivotX', {
     }
 });
 
-Component.prototype.__pivotY = Component.prototype._pivotY;
-Object.defineProperty(Component.prototype, '_pivotY', {
+View.prototype.__pivotY = View.prototype._pivotY;
+Object.defineProperty(View.prototype, '_pivotY', {
     get: function() {
         return this.__pivotY;
     },
@@ -600,8 +552,8 @@ Object.defineProperty(Component.prototype, '_pivotY', {
     }
 });
 
-Component.prototype.__mountX = Component.prototype._mountX;
-Object.defineProperty(Component.prototype, '_mountX', {
+View.prototype.__mountX = View.prototype._mountX;
+Object.defineProperty(View.prototype, '_mountX', {
     get: function() {
         return this.__mountX;
     },
@@ -614,8 +566,8 @@ Object.defineProperty(Component.prototype, '_mountX', {
     }
 });
 
-Component.prototype.__mountY = Component.prototype._mountY;
-Object.defineProperty(Component.prototype, '_mountY', {
+View.prototype.__mountY = View.prototype._mountY;
+Object.defineProperty(View.prototype, '_mountY', {
     get: function() {
         return this.__mountY;
     },
@@ -628,8 +580,8 @@ Object.defineProperty(Component.prototype, '_mountY', {
     }
 });
 
-Component.prototype.__zIndex = Component.prototype._zIndex;
-Object.defineProperty(Component.prototype, '_zIndex', {
+View.prototype.__zIndex = View.prototype._zIndex;
+Object.defineProperty(View.prototype, '_zIndex', {
     get: function() {
         return this.__zIndex;
     },
@@ -644,8 +596,8 @@ Object.defineProperty(Component.prototype, '_zIndex', {
     }
 });
 
-Component.prototype.__forceZIndexContext = Component.prototype._forceZIndexContext;
-Object.defineProperty(Component.prototype, '_forceZIndexContext', {
+View.prototype.__forceZIndexContext = View.prototype._forceZIndexContext;
+Object.defineProperty(View.prototype, '_forceZIndexContext', {
     get: function() {
         return this.__forceZIndexContext;
     },
@@ -657,8 +609,8 @@ Object.defineProperty(Component.prototype, '_forceZIndexContext', {
     }
 });
 
-Component.prototype.__clipping = Component.prototype._clipping;
-Object.defineProperty(Component.prototype, '_clipping', {
+View.prototype.__clipping = View.prototype._clipping;
+Object.defineProperty(View.prototype, '_clipping', {
     get: function() {
         return this.__clipping;
     },
@@ -674,274 +626,96 @@ Object.defineProperty(Component.prototype, '_clipping', {
     }
 });
 
-Component.prototype.__src = Component.prototype._src;
-Object.defineProperty(Component.prototype, '_src', {
+View.prototype.__colorUl = View.prototype._colorUl;
+Object.defineProperty(View.prototype, '_colorUl', {
     get: function() {
-        return this.__src;
+        return this.__colorUl;
     },
     set: function(v) {
-        if (v !== this.__src) {
-            var nv = v ? v : null;
-            this.__src = v;
-
-            val(this, 'src', nv, null);
-        }
-    }
-});
-
-Component.prototype.__colorTopLeft = Component.prototype._colorTopLeft;
-Object.defineProperty(Component.prototype, '_colorTopLeft', {
-    get: function() {
-        return this.__colorTopLeft;
-    },
-    set: function(v) {
-        if (this.__colorTopLeft !== v) {
-            val(this, 'colorTopLeft', v.toString(16), "ffffffff");
-            this.__colorTopLeft = v;
+        if (this.__colorUl !== v) {
+            val(this, 'colorUl', v.toString(16), "ffffffff");
+            this.__colorUl = v;
             checkColors(this);
         }
     }
 });
 
-Component.prototype.__colorTopRight = Component.prototype._colorTopRight;
-Object.defineProperty(Component.prototype, '_colorTopRight', {
+View.prototype.__colorUr = View.prototype._colorUr;
+Object.defineProperty(View.prototype, '_colorUr', {
     get: function() {
-        return this.__colorTopRight;
+        return this.__colorUr;
     },
     set: function(v) {
-        if (this.__colorTopRight !== v) {
-            val(this, 'colorTopRight', v.toString(16), "ffffffff");
-            this.__colorTopRight = v;
+        if (this.__colorUr !== v) {
+            val(this, 'colorUr', v.toString(16), "ffffffff");
+            this.__colorUr = v;
             checkColors(this);
         }
     }
 });
 
-Component.prototype.__colorBottomLeft = Component.prototype._colorBottomLeft;
-Object.defineProperty(Component.prototype, '_colorBottomLeft', {
+View.prototype.__colorBl = View.prototype._colorBl;
+Object.defineProperty(View.prototype, '_colorBl', {
     get: function() {
-        return this.__colorBottomLeft;
+        return this.__colorBl;
     },
     set: function(v) {
-        if (this.__colorBottomLeft !== v) {
-            val(this, 'colorBottomLeft', v.toString(16), "ffffffff");
-            this.__colorBottomLeft = v;
+        if (this.__colorBl !== v) {
+            val(this, 'colorBl', v.toString(16), "ffffffff");
+            this.__colorBl = v;
             checkColors(this);
         }
     }
 });
 
-Component.prototype.__colorBottomRight = Component.prototype._colorBottomRight;
-Object.defineProperty(Component.prototype, '_colorBottomRight', {
+View.prototype.__colorBr = View.prototype._colorBr;
+Object.defineProperty(View.prototype, '_colorBr', {
     get: function() {
-        return this.__colorBottomRight;
+        return this.__colorBr;
     },
     set: function(v) {
-        if (this.__colorBottomRight !== v) {
-            val(this, 'colorBottomRight', v.toString(16), "ffffffff");
-            this.__colorBottomRight = v;
+        if (this.__colorBr !== v) {
+            val(this, 'colorBr', v.toString(16), "ffffffff");
+            this.__colorBr = v;
             checkColors(this);
         }
     }
 });
 
-var checkColors = function(component) {
-    if (component.COLORBOTTOMRIGHT === undefined) {
-        // Component initialization.
+var checkColors = function(view) {
+    if (view._colorBr === undefined) {
+        // View initialization.
         return;
     }
 
-    if (component.COLORTOPLEFT === component.COLORTOPRIGHT && component.COLORTOPLEFT === component.COLORBOTTOMLEFT && component.COLORTOPLEFT === component.COLORBOTTOMRIGHT) {
-        if (component.COLORTOPLEFT !== 0xffffffff) {
-            component.dhtmlSetAttribute('color', component.COLORTOPLEFT.toString(16));
+    if (view._colorUl === view._colorUr && view._colorUl === view._colorBl && view._colorUl === view._colorBr) {
+        if (view._colorUl !== 0xffffffff) {
+            view.dhtmlSetAttribute('color', view._colorUl.toString(16));
         } else {
-            component.dhtmlRemoveAttribute('color');
+            view.dhtmlRemoveAttribute('color');
         }
-        component.dhtmlRemoveAttribute('colortopleft');
-        component.dhtmlRemoveAttribute('colortopright');
-        component.dhtmlRemoveAttribute('colorbottomleft');
-        component.dhtmlRemoveAttribute('colorbottomright');
+        view.dhtmlRemoveAttribute('colorul');
+        view.dhtmlRemoveAttribute('colorur');
+        view.dhtmlRemoveAttribute('colorbl');
+        view.dhtmlRemoveAttribute('colorbr');
     } else {
-        val(component, 'colorTopRight', component.COLORTOPRIGHT.toString(16), "ffffffff");
-        val(component, 'colorTopLeft', component.COLORTOPLEFT.toString(16), "ffffffff");
-        val(component, 'colorBottomRight', component.COLORBOTTOMRIGHT.toString(16), "ffffffff");
-        val(component, 'colorBottomLeft', component.COLORBOTTOMLEFT.toString(16), "ffffffff");
-        component.dhtmlRemoveAttribute('color');
-    }
-};
-
-Component.prototype.__borderWidthTop = Component.prototype._borderWidthTop;
-Object.defineProperty(Component.prototype, '_borderWidthTop', {
-    get: function() {
-        return this.__borderWidthTop;
-    },
-    set: function(v) {
-        if (this.__borderWidthTop !== v) {
-            val(this, 'borderWidthTop', v, 0);
-            this.__borderWidthTop = v;
-            checkBorderWidths(this);
-        }
-    }
-});
-
-Component.prototype.__borderWidthBottom = Component.prototype._borderWidthBottom;
-Object.defineProperty(Component.prototype, '_borderWidthBottom', {
-    get: function() {
-        return this.__borderWidthBottom;
-    },
-    set: function(v) {
-        if (this.__borderWidthBottom !== v) {
-            val(this, 'borderWidthBottom', v, 0);
-            this.__borderWidthBottom = v;
-            checkBorderWidths(this);
-        }
-    }
-});
-
-Component.prototype.__borderWidthLeft = Component.prototype._borderWidthLeft;
-Object.defineProperty(Component.prototype, '_borderWidthLeft', {
-    get: function() {
-        return this.__borderWidthLeft;
-    },
-    set: function(v) {
-        if (this.__borderWidthLeft !== v) {
-            val(this, 'borderWidthLeft', v, 0);
-            this.__borderWidthLeft = v;
-            checkBorderWidths(this);
-        }
-    }
-});
-
-Component.prototype.__borderWidthRight = Component.prototype._borderWidthRight;
-Object.defineProperty(Component.prototype, '_borderWidthRight', {
-    get: function() {
-        return this.__borderWidthRight;
-    },
-    set: function(v) {
-        if (this.__borderWidthRight !== v) {
-            val(this, 'borderWidthRight', v, 0);
-            this.__borderWidthRight = v;
-            checkBorderWidths(this);
-        }
-    }
-});
-
-var checkBorderWidths = function(component) {
-    if (component.BORDERWIDTHRIGHT === undefined) {
-        // Component initialization.
-        return;
-    }
-
-    if (component.BORDERWIDTHLEFT === component.BORDERWIDTHRIGHT && component.BORDERWIDTHLEFT === component.BORDERWIDTHTOP && component.BORDERWIDTHLEFT === component.BORDERWIDTHBOTTOM) {
-        if (component.BORDERWIDTHLEFT !== 0) {
-            component.dhtmlSetAttribute('borderwidth', component.BORDERWIDTHLEFT);
-        } else {
-            component.dhtmlRemoveAttribute('borderwidth');
-        }
-        component.dhtmlRemoveAttribute('borderwidthleft');
-        component.dhtmlRemoveAttribute('borderwidthright');
-        component.dhtmlRemoveAttribute('borderwidthtop');
-        component.dhtmlRemoveAttribute('borderwidthbottom');
-    } else {
-        val(component, 'borderWidthLeft', component.BORDERWIDTHLEFT, 0);
-        val(component, 'borderWidthRight', component.BORDERWIDTHRIGHT, 0);
-        val(component, 'borderWidthTop', component.BORDERWIDTHTOP, 0);
-        val(component, 'borderWidthBottom', component.BORDERWIDTHBOTTOM, 0);
-        component.dhtmlRemoveAttribute('borderwidth');
-    }
-    
-};
-
-Component.prototype.__borderColorTop = Component.prototype._borderColorTop;
-Object.defineProperty(Component.prototype, '_borderColorTop', {
-    get: function() {
-        return this.__borderColorTop;
-    },
-    set: function(v) {
-        if (this.__borderColorTop !== v) {
-            val(this, 'borderColorTop', v.toString(16), "ffffffff");
-            this.__borderColorTop = v;
-            checkBorderColors(this);
-        }
-    }
-});
-
-Component.prototype.__borderColorBottom = Component.prototype._borderColorBottom;
-Object.defineProperty(Component.prototype, '_borderColorBottom', {
-    get: function() {
-        return this.__borderColorBottom;
-    },
-    set: function(v) {
-        if (this.__borderColorBottom !== v) {
-            val(this, 'borderColorBottom', v.toString(16), "ffffffff");
-            this.__borderColorBottom = v;
-            checkBorderColors(this);
-        }
-    }
-});
-
-Component.prototype.__borderColorLeft = Component.prototype._borderColorLeft;
-Object.defineProperty(Component.prototype, '_borderColorLeft', {
-    get: function() {
-        return this.__borderColorLeft;
-    },
-    set: function(v) {
-        if (this.__borderColorLeft !== v) {
-            val(this, 'borderColorLeft', v.toString(16), "ffffffff");
-            this.__borderColorLeft = v;
-            checkBorderColors(this);
-        }
-    }
-});
-
-Component.prototype.__borderColorRight = Component.prototype._borderColorRight;
-Object.defineProperty(Component.prototype, '_borderColorRight', {
-    get: function() {
-        return this.__borderColorRight;
-    },
-    set: function(v) {
-        if (this.__borderColorRight !== v) {
-            val(this, 'borderColorRight', v.toString(16), "ffffffff");
-            this.__borderColorRight = v;
-            checkBorderColors(this);
-        }
-    }
-});
-
-var checkBorderColors = function(component) {
-    if (component.BORDERCOLORRIGHT === undefined) {
-        // Component initialization.
-        return;
-    }
-
-    if (component.BORDERCOLORLEFT === component.BORDERCOLORRIGHT && component.BORDERCOLORLEFT === component.BORDERCOLORTOP && component.BORDERCOLORLEFT === component.BORDERCOLORBOTTOM) {
-        if (component.BORDERCOLORLEFT !== 0xffffffff) {
-            component.dhtmlSetAttribute('bordercolor', component.BORDERCOLORLEFT.toString(16));
-        } else {
-            component.dhtmlRemoveAttribute('bordercolor');
-        }
-        component.dhtmlRemoveAttribute('bordercolorleft');
-        component.dhtmlRemoveAttribute('bordercolorright');
-        component.dhtmlRemoveAttribute('bordercolortop');
-        component.dhtmlRemoveAttribute('bordercolorbottom');
-    } else {
-        val(component, 'borderColorLeft', component.BORDERCOLORLEFT.toString(16), "ffffffff");
-        val(component, 'borderColorRight', component.BORDERCOLORRIGHT.toString(16), "ffffffff");
-        val(component, 'borderColorTop', component.BORDERCOLORTOP.toString(16), "ffffffff");
-        val(component, 'borderColorBottom', component.BORDERCOLORBOTTOM.toString(16), "ffffffff");
-        component.dhtmlRemoveAttribute('bordercolor');
+        val(view, 'colorUr', view._colorUr.toString(16), "ffffffff");
+        val(view, 'colorUl', view._colorUl.toString(16), "ffffffff");
+        val(view, 'colorBr', view._colorBr.toString(16), "ffffffff");
+        val(view, 'colorBl', view._colorBl.toString(16), "ffffffff");
+        view.dhtmlRemoveAttribute('color');
     }
 };
 
 var dtaKeys = Object.keys(defaultTextAttributes);
 var dtaValues = dtaKeys.map(function(k) {return defaultTextAttributes[k];});
 
-var oOpdateTexture = ComponentText.prototype.updateTexture;
-ComponentText.prototype.updateTexture = function(v) {
+var oOpdateTexture = ViewText.prototype.updateTexture;
+ViewText.prototype.updateTexture = function(v) {
     oOpdateTexture.apply(this, arguments);
 
-    var tr = this;
-    var c = this.component;
+    var tr = this.settings;
+    var c = this.view;
     var i, n = dtaKeys.length;
     for (i = 0; i < n; i++) {
         var key = dtaKeys[i];
@@ -971,7 +745,7 @@ ComponentText.prototype.updateTexture = function(v) {
                     pv = "0x" + value.toString(16);
                     break;
                 case "fontFace":
-                    pv = Utils.isArray(value) ? value.join(",") : value;
+                    pv = Array.isArray(value) ? value.join(",") : value;
                     break;
                 default:
                     pv = "" + value;
@@ -982,7 +756,7 @@ ComponentText.prototype.updateTexture = function(v) {
     }
 };
 
-Component.prototype.updateDebugTransforms = function() {
+View.prototype.updateDebugTransforms = function() {
     if (this._pivotX !== 0.5 || this._pivotY !== 0.5) {
         this.dhtml().style.transformOrigin = (this._pivotX * 100) + '% '  + (this._pivotY * 100) + '%';
     } else if (this.dhtml().style.transformOrigin) {
@@ -995,9 +769,9 @@ Component.prototype.updateDebugTransforms = function() {
 
     if ((sx !== undefined && sy !== undefined) && (this.id === 0)) {
         // Root element: must be scaled.
-        if (this.stage.w !== this.stage.renderWidth || this.stage.h !== this.stage.renderHeight) {
-            sx *= (this.stage.w / this.stage.renderWidth);
-            sy *= (this.stage.h / this.stage.renderHeight);
+        if (this.stage.options.w !== this.stage.options.renderWidth || this.stage.options.h !== this.stage.options.renderHeight) {
+            sx *= (this.stage.options.w / this.stage.options.renderWidth);
+            sy *= (this.stage.options.h / this.stage.options.renderHeight);
         }
     }
     var parts = [];
