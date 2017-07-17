@@ -1,9 +1,8 @@
 /**
  * @todo:
- * - debug texture atlas
- * - encapsulate tags branches (for isolating widgets)
  * - nodejs
  * - nodejs texture loading
+ * - encapsulate tags branches (for isolating widgets)
  * - merger: isRgba? isNumeric?
  * - quick clone
  * - hasAlpha in format, and try to prepare images for upload (so that we get buffer performance).
@@ -43,6 +42,7 @@ class Stage extends Base {
         opt('defaultPrecision', (this.options.h / this.options.renderHeight));
         opt('fixedDt', 0);
         opt('useTextureAtlas', true);
+        opt('debugTextureAtlas', false);
     }
 
     init() {

@@ -68,7 +68,7 @@ class TextureAtlas {
          * Texture atlas size limit.
          * @type {number}
          */
-        this._pixelsLimit = this.w * this.h / 32;
+        this._pixelsLimit = this.w * this.h / 16;
 
         /**
          * The minimal amount of pixels that should be able to be reclaimed when performing a defragment.

@@ -53,7 +53,28 @@ class VboContext {
         }
 
         if (this.stage.textureAtlas && this.stage.options.debugTextureAtlas) {
-            //@todo: add item for gl texture and add to vbo.
+            let size = Math.min(this.stage.options.w, this.stage.options.h);
+            let vboIndex = this.vboIndex;
+            this.vboBufferFloat[vboIndex++] = 0;
+            this.vboBufferFloat[vboIndex++] = 0;
+            this.vboBufferUint[vboIndex++] = getVboTextureCoords(0, 0);
+            this.vboBufferUint[vboIndex++] = 0xFFFFFFFF;
+            this.vboBufferFloat[vboIndex++] = size;
+            this.vboBufferFloat[vboIndex++] = 0;
+            this.vboBufferUint[vboIndex++] = getVboTextureCoords(1, 0);
+            this.vboBufferUint[vboIndex++] = 0xFFFFFFFF;
+            this.vboBufferFloat[vboIndex++] = size;
+            this.vboBufferFloat[vboIndex++] = size;
+            this.vboBufferUint[vboIndex++] = getVboTextureCoords(1, 1);
+            this.vboBufferUint[vboIndex++] = 0xFFFFFFFF;
+            this.vboBufferFloat[vboIndex++] = 0;
+            this.vboBufferFloat[vboIndex++] = size;
+            this.vboBufferUint[vboIndex++] = getVboTextureCoords(0, 1);
+            this.vboBufferUint[vboIndex] = 0xFFFFFFFF;
+            this.vboGlTextures.push(this.textureAtlasGlTexture);
+            this.vboGlTextureRepeats.push(1);
+            this.vboIndex += 16;
+
         }
 
         this.staticStage = true;
@@ -74,3 +95,15 @@ class VboContext {
     }
 
 }
+
+let getColorInt = function (c, alpha) {
+    let a = ((c / 16777216 | 0) * alpha) | 0;
+    return (((((c >> 16) & 0xff) * a) >> 8) & 0xff) +
+        ((((c & 0xff00) * a) >> 8) & 0xff00) +
+        (((((c & 0xff) << 16) * a) >> 8) & 0xff0000) +
+        (a << 24);
+};
+
+let getVboTextureCoords = function (x, y) {
+    return ((x * 65535 + 0.5) | 0) + ((y * 65535 + 0.5) | 0) * 65536;
+};

@@ -269,12 +269,11 @@ class View extends Base {
     };
 
     isAncestorOf(c) {
-        let p = c;
-        while (p._parent) {
+        var p = c;
+        while(p = p.parent) {
             if (this === p) {
                 return true;
             }
-            p = p._parent;
         }
         return false;
     };
@@ -1026,7 +1025,7 @@ class View extends Base {
         let t = this.mtag(tag);
         let n = t.length;
         for (let i = 0; i < n; i++) {
-            t[i].set(settings);
+            t[i].setSettings(settings);
         }
     }
 
@@ -1433,12 +1432,12 @@ class View extends Base {
         if (this._zIndex !== zIndex) {
             if (this._worldAlpha) this.ctx.staticStage = false;
 
-            let newZParent = this._zParent;
+            let newZParent;
 
             let prevIsZContext = this._isZContext();
             if (zIndex === 0 && this._zIndex !== 0) {
                 if (this._active) {
-                    this.stage.zIndexUsage++;
+                    this.stage.zIndexUsage--;
                 }
 
                 if (this._parent === this._zParent) {
@@ -1449,7 +1448,7 @@ class View extends Base {
 
             } else if (zIndex !== 0 && this._zIndex === 0) {
                 if (this._active) {
-                    this.stage.zIndexUsage--;
+                    this.stage.zIndexUsage++;
                 }
 
                 newZParent = this._parent ? this._parent._findZContext() : null;
@@ -1712,7 +1711,6 @@ class View extends Base {
     _setZParent(newZParent) {
         if (this._zParent !== newZParent) {
             if (this._zParent !== null) {
-                // @pre: old parent's children array has already been modified.
                 if (this._zIndex !== 0) {
                     this._zParent._decZContextUsage();
                 }
@@ -1724,20 +1722,12 @@ class View extends Base {
             }
 
             if (newZParent !== null) {
-                let hadZContextUsage = (newZParent._zContextUsage > 0);
-
-                // @pre: new parent's children array has already been modified.
                 if (this._zIndex !== 0) {
                     newZParent._incZContextUsage();
                 }
 
                 if (newZParent._zContextUsage > 0) {
-                    if (!hadZContextUsage && (this._parent === newZParent)) {
-                        // This child was already in the children list.
-                        // Do not add double.
-                    } else {
-                        newZParent._zIndexedChildren.push(this);
-                    }
+                    newZParent._zIndexedChildren.push(this);
                     newZParent._zSort = true;
                 }
             }
@@ -1752,7 +1742,7 @@ class View extends Base {
             if (!this._zIndexedChildren) {
                 this._zIndexedChildren = [];
             }
-            if (this._children) {
+            if (this._hasChildren) {
                 // Copy.
                 for (let i = 0, n = this._children.length; i < n; i++) {
                     this._zIndexedChildren.push(this._children[i]);
@@ -2288,14 +2278,3 @@ View.PROP_MERGERS = {
 
 Base.mixinEs5(View, EventEmitter);
 
-let getColorInt = function (c, alpha) {
-    let a = ((c / 16777216 | 0) * alpha) | 0;
-    return (((((c >> 16) & 0xff) * a) >> 8) & 0xff) +
-        ((((c & 0xff00) * a) >> 8) & 0xff00) +
-        (((((c & 0xff) << 16) * a) >> 8) & 0xff0000) +
-        (a << 24);
-};
-
-let getVboTextureCoords = function (x, y) {
-    return ((x * 65535 + 0.5) | 0) + ((y * 65535 + 0.5) | 0) * 65536;
-};
