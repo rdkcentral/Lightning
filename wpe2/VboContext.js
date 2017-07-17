@@ -1,4 +1,4 @@
-class ViewRendererContext {
+class VboContext {
 
     constructor(stage) {
         this.stage = stage;
@@ -31,7 +31,6 @@ class ViewRendererContext {
         this.lastVboGlTexture = null;
         this.n = 0;
         this.updateTreeOrder = 0;
-        this.root = this.stage.root.renderer;
     }
 
     updateAndFillVbo() {
@@ -39,7 +38,14 @@ class ViewRendererContext {
 
         this.reset();
 
+        // The root parent is used when updating the transform matrix, because it saves us from having several branches.
+        if (!this.rootParent) {
+            this.rootParent = new View(this.stage);
+        }
+
+        this.root._parent = this.rootParent;
         this.root.update();
+        this.root._parent = null;
 
         if (this.useZIndexing) {
             // A secondary fill pass is required.

@@ -1,13 +1,15 @@
 /**
  * @todo:
- * - private values: underscored.
  * - combine renderer & view
+ * - use dummy parent? check performance.
  * - inspect.js
  * - hasAlpha in format, and try to prepare images for upload (so that we get buffer performance).
  * - nodejs
  * - nodejs texture loading
  * - encapsulate tags branches (for isolating widgets)
  * - merger: isRgba? isNumeric?
+ * - debug texture atlas
+ * - quick clone
  */
 class Stage extends Base {
     constructor(options) {
@@ -76,7 +78,7 @@ class Stage extends Base {
             this.textureAtlas = new TextureAtlas(this);
         }
 
-        this.ctx = new ViewRendererContext(this);
+        this.ctx = new VboContext(this);
 
         this.root = this.createView();
 
