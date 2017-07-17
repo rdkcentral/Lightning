@@ -1,4 +1,4 @@
-class TransitionDefinition extends Base {
+class TransitionSettings extends Base {
     constructor() {
         super();
     }
@@ -6,26 +6,9 @@ class TransitionDefinition extends Base {
     _properties() {
         this._timingFunction = 'ease';
         this._timingFunctionImpl = StageUtils.getTimingFunction(this._timingFunction);
-        this._delay = 0;
-        this._duration = 1;
-        this._delay = 0;
-        this.isTransitionDefinition = true;
-    }
-
-    get delay() {
-        return this._delay;
-    }
-    
-    set delay(v) {
-        this._delay = v;
-    }
-
-    get duration() {
-        return this._duration;
-    }
-
-    set duration(v) {
-        this._duration = v;
+        this.delay = 0;
+        this.duration = 1;
+        this.isTransitionSettings = true;
     }
 
     get timingFunction() {

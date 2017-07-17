@@ -7,6 +7,8 @@
  * - hasAlpha in format, and try to prepare images for upload (so that we get buffer performance).
  * - nodejs
  * - nodejs texture loading
+ * - encapsulate tags branches (for isolating widgets)
+ * - merger: isRgba? isNumeric?
  */
 class Stage extends Base {
     constructor(options) {
@@ -63,7 +65,9 @@ class Stage extends Base {
         try {
             // Animations are optional.
             this.transitions = new TransitionManager(this);
-        } catch(e) {}
+            this.animations = new AnimationManager(this);
+            console.log('Animation subsystem enabled');
+        } catch(e) { }
 
         this.renderer = new Renderer(this);
 
@@ -212,18 +216,6 @@ class Stage extends Base {
 
     createView() {
         return new View(this);
-    }
-
-    createAnimation(settings) {
-        let a = new AnimationDefinition(this);
-        a.setSettings(settings);
-        return a;
-    }
-
-    createTransition(settings) {
-        let t = new TransitionDefinition(this);
-        t.setSettings(settings);
-        return t;
     }
 
     /**

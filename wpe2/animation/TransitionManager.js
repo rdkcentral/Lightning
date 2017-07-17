@@ -51,27 +51,27 @@ class TransitionManager {
         viewTransitions.set(property, value);
     }
 
-    set(view, property, definition) {
-        if (Utils.isObjectLiteral(definition)) {
-            // Convert plain object to proper definition object.
-            definition = this.getDefinition(definition);
+    set(view, property, settings) {
+        if (Utils.isObjectLiteral(settings)) {
+            // Convert plain object to proper settings object.
+            settings = this.createSettings(settings);
         }
 
         let current = this._get(view, property);
         if (current && current.isTransition) {
-            // Runtime definition change.
-            current.definition = definition;
+            // Runtime settings change.
+            current.settings = settings;
             return current;
         } else {
-            // Transition not yet created; simply replace previous definition declaration.
-            this._set(view, property, definition);
+            // Transition not yet created; simply replace previous settings declaration.
+            this._set(view, property, settings);
         }
     }
 
-    getDefinition(settings) {
-        let definition = new TransitionDefinition();
-        Base.setObjectSettings(definition, settings);
-        return definition;
+    createSettings(settings) {
+        let transitionSettings = new TransitionSettings();
+        Base.setObjectSettings(transitionSettings, settings);
+        return transitionSettings;
     }
 
     get(view, property) {
@@ -80,7 +80,7 @@ class TransitionManager {
             return;
         }
 
-        if (transition.isTransitionDefinition) {
+        if (transition.isTransitionSettings) {
             // Upgrade to 'real' transition.
             transition = new Transition(
                 this,

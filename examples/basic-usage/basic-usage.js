@@ -29,7 +29,15 @@ var start = function() {
     stage.transitions.set(hello2, 'texture.x', {duration: 2});
     stage.transitions.start(hello2, 'texture.x', 100);
 
-    // let def = stage.transitions.getDefinition({duration: 2});
+    let animdef = stage.animations.createSettings({duration: 3, autostop: true, stopTimingFunction: 'linear', stopDuration: 3, actions: [
+        {property: ['y'], value: {0:0,1:400}},
+        {property: ['color'], value: {0:0xFFFFFFFF,1:0xFFFF0000}},
+    ]});
+    let anim = stage.animations.createAnimation(stage.root.tag('bg'), animdef);
+    anim.start();
+
+    let i = 1;
+    // let def = stage.transitions.createSettings({duration: 2});
     // stage.transitions.set(hello2, 'texture.x', def);
     // stage.transitions.set(hello2, 'texture.y', def);
     //

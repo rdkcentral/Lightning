@@ -1,13 +1,13 @@
 class Transition extends Base {
 
-    constructor(manager, definition, view, property) {
+    constructor(manager, settings, view, property) {
         super();
 
         EventEmitter.call(this);
         
         this.manager = manager;
 
-        this.definition = definition;
+        this._settings = settings;
 
         this._view = view;
         this._getter = View.getGetter(property);
@@ -52,7 +52,7 @@ class Transition extends Base {
         } else {
             this._targetValue = targetValue;
             this._p = 0;
-            this._delayLeft = this.definition.delay;
+            this._delayLeft = this._settings.delay;
             if (this._eventsCount) this.emit('start');
             this.checkActive();
         }
@@ -77,7 +77,7 @@ class Transition extends Base {
     }
 
     isActive() {
-        return (this.p < 1.0) && this.view.isAttached();
+        return (this._p < 1.0) && this._view.isAttached();
     }
 
     progress(dt) {
@@ -95,10 +95,10 @@ class Transition extends Base {
                 }
             }
 
-            if (this.duration == 0) {
+            if (this._settings.duration == 0) {
                 this._p = 1;
             } else {
-                this._p += dt / this.duration;
+                this._p += dt / this._settings.duration;
             }
             if (this._p >= 1) {
                 // Finished!
@@ -121,7 +121,7 @@ class Transition extends Base {
     }
 
     setValuesDynamic(targetValue) {
-        let t = this.definition.timingFunctionImpl(this.p);
+        let t = this._settings.timingFunctionImpl(this.p);
         if (t === 1) {
             this._targetValue = targetValue;
         } else if (t === 0) {
@@ -137,7 +137,7 @@ class Transition extends Base {
         if (this.p >= 1) {
             return this.targetValue;
         } else {
-            let v = this.definition._timingFunctionImpl(this.p);
+            let v = this._settings._timingFunctionImpl(this.p);
             return this._merger(this.targetValue, this.startValue, v);
         }
     }
@@ -162,17 +162,14 @@ class Transition extends Base {
         return this._view;
     }
 
-    get duration() {
-        return this.definition.duration;
+    get settings() {
+        return this._settings;
     }
 
-    get delay() {
-        return this.definition.delay;
+    set settings(v) {
+        this._settings = v;
     }
 
-    get timingFunction() {
-        return this.definition.timingFunction;
-    }
 }
 
 Base.mixinEs5(Transition, EventEmitter);
