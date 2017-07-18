@@ -1,3 +1,6 @@
+/**
+ * Copyright Metrological, 2017
+ */
 class GeometryUtils {
 
     static dotprod(ux, uy, vx, vy) {
@@ -211,3 +214,5 @@ class GeometryUtils {
         }
     }
 }
+
+module.exports = GeometryUtils;

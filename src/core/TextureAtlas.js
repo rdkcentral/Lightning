@@ -1,3 +1,6 @@
+/**
+ * Copyright Metrological, 2017
+ */
 class TextureAtlas {
 
     constructor(stage) {
@@ -554,3 +557,7 @@ class TextureAtlas {
         }
     }
 }
+
+module.exports = TextureAtlas;
+
+let TextureAtlasTree = require('./TextureAtlasTree');

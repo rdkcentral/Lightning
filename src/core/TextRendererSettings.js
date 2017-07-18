@@ -1,3 +1,8 @@
+let Base = require('./Base');
+
+/**
+ * Copyright Metrological, 2017
+ */
 class TextRendererSettings extends Base {
     constructor() {
         super();
@@ -554,4 +559,8 @@ class TextRendererSettings extends Base {
     }
 }
 
+let EventEmitter = require('../browser/EventEmitter');
+
 Base.mixinEs5(TextRendererSettings, EventEmitter);
+
+module.exports = TextRendererSettings;

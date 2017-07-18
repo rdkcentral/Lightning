@@ -1,3 +1,6 @@
+/**
+ * Copyright Metrological, 2017
+ */
 class TextureManager {
 
     constructor(stage) {
@@ -172,3 +175,9 @@ class TextureManager {
     }
 
 }
+
+module.exports = TextureManager;
+
+let Utils = require('./Utils');
+let Texture = require('./Texture');
+let TextureSource = require('./TextureSource');

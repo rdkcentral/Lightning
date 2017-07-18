@@ -1,3 +1,9 @@
+let Base = require('./Base');
+
+/**
+ * Copyright Metrological, 2017
+ */
+
 class ViewText extends Base {
 
     constructor(view) {
@@ -70,3 +76,7 @@ class ViewText extends Base {
     };
 
 }
+
+module.exports = ViewText;
+
+let TextRendererSettings = require('./TextRendererSettings');

@@ -1,13 +1,29 @@
 /**
+ * Maintains and renders a tree structure of views.
+ * Copyright Metrological, 2017
+ */
+
+let Base = require('./Base');
+
+/**
  * @todo:
+ * - class loader (require)
+ *   - should allow easy debug in nodejs & web
+ *   - should be stripped when building for web
+ *   - delete nodejs dist builders
+ * - dist version (grunt file)
  * - nodejs
- * - nodejs texture loading
+ * - nodejs texture process
+ * - tools
+ * - list
  * - encapsulate tags branches (for isolating widgets)
  * - merger: isRgba? isNumeric?
  * - quick clone
  * - hasAlpha in format, and try to prepare images for upload (so that we get buffer performance).
  * - test for existing apps, convert existing apps
  * - chagne documentation
+ * - zIndexTester
+ * - clean up old stuff
  */
 class Stage extends Base {
     constructor(options) {
@@ -21,7 +37,7 @@ class Stage extends Base {
     }
 
     setOptions(o) {
-        this.options = {};
+        this.options = o;
 
         let opt = (name, def) => {
             let value = o[name];
@@ -48,26 +64,23 @@ class Stage extends Base {
     }
 
     init() {
-        this.adapter = new WebAdapter();
+        /*W¬*//*N¬*/if (!Utils.isNode) {/*¬N*/this.adapter = new WebAdapter();/*N¬*/}/*¬N*//*¬W*/
+        /*N¬*//*W¬*/if (Utils.isNode) {/*¬W*/this.adapter = new NodeAdapter();/*W¬*/}/*¬W*//*¬N*/
 
         if (this.adapter.init) {
             this.adapter.init(this);
         }
 
-        this.canvas = this.options.canvas || this.adapter.createWebGLCanvas(this.options.w, this.options.h);
-
-        this.gl = this.adapter.getWebGLRenderingContext(this.canvas);
+        this.gl = this.adapter.createWebGLContext(this.options.w, this.options.h);
 
         this.setGlClearColor(this.options.glClearColor);
 
         this.frameCounter = 0;
 
-        try {
-            // Animations are optional.
-            this.transitions = new TransitionManager(this);
-            this.animations = new AnimationManager(this);
-            console.log('Animation subsystem enabled');
-        } catch(e) { }
+        /*A¬*/
+        this.transitions = new TransitionManager(this);
+        this.animations = new AnimationManager(this);
+        /*¬A*/
 
         this.renderer = new Renderer(this);
 
@@ -137,7 +150,7 @@ class Stage extends Base {
     }
 
     getCanvas() {
-        return this.adapter.canvas;
+        return this.adapter.getWebGLCanvas();
     }
 
     drawFrame() {
@@ -151,9 +164,6 @@ class Stage extends Base {
 
         this.emit('frameStart');
 
-        this.progressTransitions();
-        this.progressAnimations();
-
         if (this.textureManager.isFull()) {
             console.log('clean up');
             this.textureManager.freeUnusedTextureSources();
@@ -166,35 +176,17 @@ class Stage extends Base {
             this.textureAtlas.flush();
         }
 
-        if (!this.ctx.staticStage) {
+        let changes = !this.ctx.staticStage;
+        if (changes) {
             this.ctx.updateAndFillVbo(this.zIndexUsage > 0);
 
             // We will render the stage even if it's stable shortly after importing a texture in the texture atlas, to prevent out-of-syncs.
-            this.measureDetails && this.timeStart('render');
             this.renderer.render();
-            this.measureDetails && this.timeEnd('render');
         }
 
+        this.adapter.nextFrame(changes);
+
         this.frameCounter++;
-    }
-
-    progressTransitions() {
-        //@todo: remove transitions that belong to unattached components.
-        //@todo: progress and apply them.
-        //@todo: transition/animation merge functions
-    }
-
-    addRunningTransition(transition) {
-        this.runningTransitions.add(transition);
-    }
-
-    progressAnimations() {
-        //@todo: remove animations that belong to unattached components.
-        //@todo: progress and apply them.
-    }
-
-    addRunningAnimation(animation) {
-        this.runningAnimations.add(animation);
     }
 
     setGlClearColor(clearColor) {
@@ -232,4 +224,21 @@ class Stage extends Base {
     }
 }
 
+var EventEmitter = require('../browser/EventEmitter');
 Base.mixinEs5(Stage, EventEmitter);
+
+let Utils = require('./Utils');
+let View = require('./View');
+let StageUtils = require('./StageUtils');
+let TextureManager = require('./TextureManager');
+let Renderer = require('./Renderer');
+let TextureAtlas = require('./TextureAtlas');
+let VboContext = require('./VboContext');
+/*A¬*/
+let TransitionManager = require('../animation/TransitionManager');
+let AnimationManager = require('../animation/AnimationManager');
+/*¬A*//*R¬*/
+/*W¬*/let WebAdapter = Utils.isNode ? undefined : require('../browser/WebAdapter');/*¬W*/
+/*N¬*/let NodeAdapter = Utils.isNode ? require('../node/NodeAdapter') : null;/*¬N*/
+/*¬R*/
+module.exports = Stage;

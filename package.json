@@ -9,8 +9,9 @@
     "wpe-webgl": "^0.0.3"
   },
   "devDependencies": {
+    "babel-preset-babili": "^0.1.4",
+    "grunt": "^1.0.1",
     "grunt-contrib-concat": "*",
-    "grunt-contrib-uglify": "*",
     "grunt-strip-code": "*"
   },
   "repository": {

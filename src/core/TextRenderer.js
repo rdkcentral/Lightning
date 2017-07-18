@@ -1,3 +1,6 @@
+/**
+ * Copyright Metrological, 2017
+ */
 class TextRenderer {
 
     constructor(canvas, settings) {
@@ -268,3 +271,7 @@ class TextRenderer {
     };
     
 }
+
+module.exports = TextRenderer;
+
+let StageUtils = require('./StageUtils');

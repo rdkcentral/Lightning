@@ -1,3 +1,6 @@
+/**
+ * Copyright Metrological, 2017
+ */
 class Base {
     constructor() {
         let proto = Object.getPrototypeOf(this);
@@ -85,3 +88,7 @@ class Base {
 }
 
 Base.protoReady = new WeakSet();
+
+let Utils = require('./Utils');
+
+module.exports = Base;

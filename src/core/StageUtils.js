@@ -1,3 +1,6 @@
+/**
+ * Copyright Metrological, 2017
+ */
 class StageUtils {
 
     static mergeNumbers(v1, v2, p) {
@@ -409,3 +412,5 @@ class StageUtils {
         return t;
     };
 }
+
+module.exports = StageUtils;

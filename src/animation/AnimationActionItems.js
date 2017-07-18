@@ -1,3 +1,5 @@
+let Base = require('../core/Base');
+
 class AnimationActionItems extends Base {
     
     constructor(action) {
@@ -197,3 +199,8 @@ class AnimationActionItems extends Base {
     }
 
 }
+
+module.exports = AnimationActionItems;
+
+let Utils = require('../core/Utils');
+let StageUtils = require('../core/StageUtils');

@@ -1,3 +1,6 @@
+/**
+ * Copyright Metrological, 2017
+ */
 class Utils {
     static isFunction(value) {
         return typeof value === 'function';
@@ -106,3 +109,7 @@ class Utils {
         return result;
     }
 }
+
+Utils.isNode = (typeof window === "undefined");
+
+module.exports = Utils;

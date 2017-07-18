@@ -1,3 +1,6 @@
+/**
+ * Copyright Metrological, 2017
+ */
 class Renderer {
 
     constructor(stage) {
@@ -210,3 +213,6 @@ class Renderer {
  * @type {number}
  */
 Renderer.MAX_QUADS = (65536 / 4)|0;
+
+module.exports = Renderer;
+

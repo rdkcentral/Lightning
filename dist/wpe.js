@@ -330,984 +330,713 @@ EventEmitter.EventEmitter = EventEmitter;
 // Expose the module.
 //
 if ('undefined' !== typeof module) {
-    module.exports = EventEmitter;
 }
-var TextureProcess = function(options) {
+/**
+ * Platform-specific functionality.
+ * Copyright Metrological, 2017
+ */
+class WebAdapter {
 
-    this.options = options;
-
-    /**
-     * Queued texture source loads, along with their load callbacks.
-     * @type {Map<String, {cb: Function, ts: TextureSource}>}
-     */
-    this.queue = new Map();
-
-    this.worker = null;
-
-};
-
-TextureProcess.prototype.init = function(cb) {
-    if (!window.Worker) {
-        return cb(new Error("Browser does not have Worker support."));
+    init(stage) {
+        this.stage = stage;
+        this.canvas = null;
+        this._looping = false;
+        this._awaitingLoop = false;
     }
 
-    try {
-        var workerUrl = this.options.workerPath + "wpe-texture-worker.js";
-        this.worker = new Worker(workerUrl);
-    } catch(e) {
-        console.error('Error starting web worker', e);
-        return cb(e);
+    startLoop() {
+        this._looping = true;
+        if (!this._awaitingLoop) {
+            this.loop();
+        }
     }
 
-    // Install communication channel.
-    var self = this;
-    this.worker.onmessage = function (e) {
-        self.receiveMessage(e);
-    };
-
-    // Send base url for relative paths.
-    var baseUrl = window.location.href;
-    var index = baseUrl.lastIndexOf("/");
-    if (index !== -1) {
-        baseUrl = baseUrl.substr(0, index + 1);
+    stopLoop() {
+        this._looping = false;
     }
 
-    this.worker.postMessage({baseUrl: baseUrl, textServer: this.options.textServer});
-
-    console.log("Connected to texture Worker. Support: JPG and PNG.");
-
-    cb();
-};
-
-TextureProcess.prototype.isConnected = function() {
-    return (this.worker !== null);
-};
-
-TextureProcess.prototype.destroy = function() {
-    if (this.worker) {
-        this.worker.terminate();
+    loop() {
+        let self = this;
+        let lp = function() {
+            self._awaitingLoop = false;
+            if (self._looping) {
+                self.stage.drawFrame();
+                requestAnimationFrame(lp);
+                self._awaitingLoop = true;
+            }
+        }
+        lp();
     }
-};
 
-TextureProcess.prototype.receiveMessage = function(e) {
-    var info;
-    var m = e.data;
-    if (this.textureMetaInfo) {
-        var imageData = e.data;
+    uploadGlTexture(gl, textureSource, source, hasAlpha) {
+        let format = hasAlpha ? gl.RGBA : gl.RGB;
 
-        var options = {
-            w: this.textureMetaInfo.w,
-            h: this.textureMetaInfo.h,
-            premultiplyAlpha: false,
-            flipBlueRed: false
+        if (source instanceof ImageData || source instanceof HTMLImageElement || source instanceof HTMLCanvasElement || source instanceof HTMLVideoElement || (window.ImageBitmap && source instanceof ImageBitmap)) {
+            // Web-specific data types.
+            gl.texImage2D(gl.TEXTURE_2D, 0, format, format, gl.UNSIGNED_BYTE, source);
+        } else {
+            gl.texImage2D(gl.TEXTURE_2D, 0, format, textureSource.w, textureSource.h, 0, format, gl.UNSIGNED_BYTE, source);
+        }
+    }
+
+    loadSrcTexture(src, cb) {
+        let image = new Image();
+        if (!(src.substr(0,5) == "data:")) {
+            // Base64.
+            image.crossOrigin = "Anonymous";
+        }
+        image.onerror = function(err) {
+            return cb("Image load error");
+        };
+        image.onload = function() {
+            cb(null, image, {renderInfo: {src: src}});
+        };
+        image.src = src;
+    }
+
+    loadTextTexture(settings, cb) {
+        // Generate the image.
+        let tr = new TextRenderer(this.getDrawingCanvas(), settings);
+        let rval = tr.draw();
+        let renderInfo = rval.renderInfo;
+
+        let options = {renderInfo: renderInfo, precision: rval.renderInfo.precision};
+        let data = rval.canvas;
+        cb(null, data, options);
+    }
+
+    createWebGLContext(w, h) {
+        let canvas = this.stage.options.canvas || document.createElement('canvas');
+
+        canvas.width = w;
+        canvas.height = h;
+
+        let opts = {
+            alpha: true,
+            antialias: false,
+            premultipliedAlpha: true,
+            stencil: true,
+            preserveDrawingBuffer: false
         };
 
-        if (this.textureMetaInfo.renderInfo) {
-            options.renderInfo = this.textureMetaInfo.renderInfo;
+        let gl = canvas.getContext('webgl', opts) || canvas.getContext('experimental-webgl', opts);
+        if (!gl) {
+            throw new Error('This browser does not support webGL.');
         }
-        var id = this.textureMetaInfo.id;
-        this.textureMetaInfo = null;
-        info = this.queue.get(id);
-        if (info) {
-            this.queue.delete(id);
-            info.cb(null, imageData, options);
+
+        this.canvas = canvas;
+
+        return gl;
+    }
+
+    getWebGLCanvas() {
+        return this.canvas;
+    }
+
+    getHrTime() {
+        return window.performance ? window.performance.now() : (new Date()).getTime();
+    }
+
+    getDrawingCanvas() {
+        if (!this.drawingCanvas) {
+            this.drawingCanvas = document.createElement('canvas');
         }
-    } else if (m.m) {
-        this.textureMetaInfo = m;
-    } else if (m.err) {
-        info = this.queue.get(m.id);
-        if (info) {
-            this.queue.delete(m.id);
-            info.cb(m.err);
-        }
-    }
-};
-
-TextureProcess.prototype.send = function(tsId, type, data) {
-    this.worker.postMessage({id: tsId, type: type, data: data});
-};
-
-TextureProcess.prototype.sendCancel = function(tsId) {
-    this.worker.postMessage({id: tsId, cancel: true});
-};
-
-TextureProcess.prototype.loadTextureSourceString = function(src, ts, cb) {
-    // Never load data urls remotely because they're usually small and it's not worth the overhead / additional code.
-    if (src.indexOf("data:") === 0) {
-        return false;
+        return this.drawingCanvas;
     }
 
-    if (this.hasNativeSupport) {
-        this.add(0, src, ts, cb);
-        ts.cancelCb = this.cancel.bind(this);
-        return true;
-    } else {
-        if (src.toLowerCase().indexOf(".jpg") !== -1 || src.toLowerCase().indexOf(".png") !== -1) {
-            this.add(0, src, ts, cb);
-            ts.cancelCb = this.cancel.bind(this);
-            return true;
-        } else {
-            // Other file formats are currently not supported and are downloaded syncronously.
-            return false;
-        }
+    nextFrame(changes) {
+        /* WebGL blits automatically */
     }
-};
-
-TextureProcess.prototype.loadText = function(settings, ts, cb) {
-    if (!this.options.textServer) return false;
-    this.add(1, JSON.stringify(settings.getRenderNonDefaults()), ts, cb);
-    ts.cancelCb = this.cancel.bind(this);
-    return true;
-};
-
-/**
- * Adds a load request to the queue.
- * @param {Number} type
- * @param {String} src
- * @param {TextureSource} ts
- * @param {Function} cb
- *   Will be called along with the buffer which contains the actual alpha-premultiplied RGBA data.
- */
-TextureProcess.prototype.add = function(type, src, ts, cb) {
-    this.send(ts.id, type, src);
-    this.queue.set(ts.id, {type: type, src: src, ts: ts, cb: cb});
-};
-
-/**
- * Cancels a load request from the queue.
- * @param {TextureSource} ts
- */
-TextureProcess.prototype.cancel = function(ts) {
-    this.sendCancel(ts.id);
-    var info = this.queue.get(ts.id);
-    if (info && info.cb) {
-        // Cancel loading.
-        info.cb(null, null);
-        this.queue.delete(ts.id);
-    }
-};
-
-
-var isNode = !!(((typeof module !== "undefined") && module.exports));
-
-var Utils = {};
-
-Utils.extendClass = function(subclass, parentclass) {
-    subclass.prototype = Object.create(parentclass.prototype);
-    subclass.prototype.constructor = subclass;
-    subclass.prototype.parentConstructor = parentclass;
-};
-
-Utils.isFunction = function(value) {
-    return typeof value === 'function';
-};
-
-Utils.isNumber = function(value) {
-    return typeof value === 'number';
-};
-
-Utils.isInteger = function(value) {
-    return (typeof value === 'number' && (value % 1) === 0);
-};
-
-Utils.isBoolean = function(value) {
-    return value === true || value === false;
-};
-
-Utils.isString = function(value) {
-    return typeof value == 'string';
-};
-
-Utils.isArray = Array.isArray;
-
-Utils.cloneObj = function(obj) {
-    var keys = Object.keys(obj);
-    var clone = {};
-    for (var i = 0; i < keys.length; i++) {
-        clone[keys[i]] = obj[keys[i]];
-    }
-    return clone;
-};
-
-Utils.merge = function(obj1, obj2) {
-    var keys = Object.keys(obj2);
-    for (var i = 0; i < keys.length; i++) {
-        obj1[keys[i]] = obj2[keys[i]];
-    }
-    return obj1;
-};
-
-Utils.isObject = function(value) {
-    var type = typeof value;
-    return !!value && (type == 'object' || type == 'function');
-};
-
-Utils.isPlainObject = function(value) {
-    var type = typeof value;
-    return !!value && (type == 'object');
-};
-
-Utils.getArrayIndex = function(index, arr) {
-    return Utils.getModuloIndex(index, arr.length);
-};
-
-Utils.getModuloIndex = function(index, len) {
-    if (len == 0) return index;
-    while (index < 0) {
-        index += Math.ceil(-index / len) * len;
-    }
-    index = index % len;
-    return index;
-};
-
-Utils.getDeepClone = function(obj) {
-    var i, c;
-    if (Utils.isFunction(obj)) {
-        // Copy functions by reference.
-        return obj;
-    }
-    if (Utils.isArray(obj)) {
-        c = [];
-        var keys = Object.keys(obj);
-        for (i = 0; i < keys.length; i++) {
-            c[keys[i]] = Utils.getDeepClone(obj[keys[i]]);
-        }
-        return c;
-    } else if (Utils.isObject(obj)) {
-        c = {};
-        var keys = Object.keys(obj);
-        for (i = 0; i < keys.length; i++) {
-            c[keys[i]] = Utils.getDeepClone(obj[keys[i]]);
-        }
-        return c;
-    } else {
-        return obj;
-    }
-};
-
-Utils.setToArray = function(s) {
-    var result = [];
-    s.forEach(function(value) {
-        result.push(value);
-    });
-    return result;
-};
-
-Utils.iteratorToArray = function(iterator) {
-    var result = [];
-    var iteratorResult = iterator.next();
-    while (!iteratorResult.done) {
-        result.push(iteratorResult.value);
-        iteratorResult = iterator.next();
-    }
-    return result;
-};
-
-Utils.async = {
-    parallel: function(tasks, cb) {
-        var i, n  = tasks.length;
-        var done = false;
-        var c = n;
-        var results = [];
-        for (i = 0; i < n; i++) {
-            (function(i) {
-                tasks[i](function(err, res) {
-                    results[i] = res;
-                    if (err) {
-                        if (!done) {
-                            cb(err);
-                            done = true;
-                        }
-                    } else {
-                        c--;
-                        if (c == 0 && !done) {
-                            cb(null, results);
-                            done = true;
-                        }
-                    }
-                });
-            })(i);
-        }
-    }
-};
-
-
-/**
- * Container for a tree structure of components.
- * @constructor
- */
-function Stage(options, cb) {
-    EventEmitter.call(this);
-
-    this.adapter = options.adapter;
-    if (!this.adapter) {
-                if (!isNode) {
-            this.adapter = new WebAdapter();
-        }
-    }
-
-    this.adapter.stage = this;
-
-    var w = options && options.w;
-    var h = options && options.h;
-
-    if (!w || !h) {
-        w = 1280;
-        h = 720;
-    }
-
-    this.w = w;
-    this.h = h;
-
-    this.reuseCanvas = (options && options.reuseCanvas) || null;
-
-    this.renderWidth = (options && options.rw) || this.w;
-    this.renderHeight = (options && options.rh) || this.h;
-
-    this.textureMemory = (options && options.textureMemory) || 12e6;
-
-    if (options && options.hasOwnProperty('glClearColor')) {
-        this.setGlClearColor(options.glClearColor);
-    } else {
-        this.setGlClearColor(this.adapter.glClearColor || [0, 0, 0, 0]);
-    }
-
-    this.defaultFontFace = (options && options.defaultFontFace) || "Arial";
-
-    this.defaultPrecision = (options && options.defaultPrecision) || (this.h / this.renderHeight);
-
-    this.fixedDt = (options && options.fixedDt) || 0;
-
-    /**
-     * Counts the number of drawn frames.
-     * @type {number}
-     */
-    this.frameCounter = 0;
-
-    /**
-     * Whether or not to use a texture atlas to prevent bindTexture switching.
-     */
-    this.useTextureAtlas = (options && options.hasOwnProperty('useTextureAtlas')) ? options.useTextureAtlas : false;
-    if (this.useTextureAtlas) {
-        console.log('Using texture atlas.');
-    }
-
-    this.debugTextureAtlas = this.useTextureAtlas && (options && options.hasOwnProperty('debugTextureAtlas')) ? options.debugTextureAtlas : false;
-    if (this.debugTextureAtlas) {
-        console.log('Showing texture atlas for debug.');
-    }
-
-    this.renderer = new Renderer(this, w, h);
-
-    this.textureManager = new TextureManager(this, this.renderer.gl);
-
-    /**
-     * Create a texture atlas which helps us to prevent texture switches.
-     * @type {TextureAtlas}
-     */
-    this.textureAtlas = this.useTextureAtlas ? new TextureAtlas(this, this.renderer.gl) : null;
-
-    /**
-     * The rendering state of this stage.
-     * @type {number}
-     */
-    this.state = Stage.STATES.IDLE;
-
-    /**
-     * @type {Component}
-     */
-    this.root = this.c();
-    this.root.active = true;
-    this.root.setAsRoot();
-
-    /**
-     * The current frame time delta.
-     * @type {number}
-     */
-    this.dt = 0;
-
-    /**
-     * The currently active transitions.
-     * @type {Set<Transition>}
-     */
-    this.activeTransitions = new Set();
-
-    /**
-     * The currently active animations.
-     * @type {Set<Animation>}
-     */
-    this.activeAnimations = new Set();
-
-    this.measure = !!options.measure;
-    this.measureDetails = !!options.measureDetails;
-    this.measureFrameDistribution = !!options.measureFrameDistribution;
-    this.measureInnerFrameDistribution = !!options.measureInnerFrameDistribution;
-    this.measureLongFrames = !!options.measureLongFrames;
-
-    this.textureProcessWorkerPath = options.textureProcessWorkerPath || "";
-
-    this.textureProcessTextServer = options.textureProcessTextServer || "";
-
-    this.useTextureProcess = !!options.useTextureProcess && !!this.adapter.getTextureProcess;
-    if (this.useTextureProcess) {
-        this.textureProcess = this.adapter.getTextureProcess();
-    }
-
-    // Measurement stuff.
-    this.measureStart = {};
-    this.measureTotalMs = {};
-    this.measureMs = {};
-    this.measureLastFrameCounter = {};
-    this.measureCount = {};
-
-    this.rectangleTexture = this.texture(Stage.rectangleSource.src, Stage.rectangleSource);
-
-    if (this.adapter.setStage) {
-        this.adapter.setStage(this);
-    }
-
-    this.uComponentContext = this.adapter.getUComponentContext();
-
-    /**
-     * Counts the number of attached components that are using z-indices.
-     * This is used to determine if we can use a single-pass or dual-pass update/render loop.
-     * @type {number}
-     */
-    this.zIndexUsage = 0;
-
-    this.profile = new Array(60);
-    this.innerProfile = new Array(10);
-    this.profileLast = 0;
-
-    this.longFrameComponents = {lastFrameStart: 0, lastFrameEnd: 0, text: 0, uploadRaw: 0, uploadImage: 0};
-
-    var self = this;
-
-    // Adapter for text rendering for this stage.
-    this.drawingCanvasFactory = function() {
-        return self.adapter.getDrawingCanvas();
-    };
-
-    this.destroyed = false;
-
-    // Start.
-    this.init(cb);
 
 }
 
-Utils.extendClass(Stage, EventEmitter);
 
-Stage.prototype.destroy = function() {
-    this.adapter.stopAnimationLoop();
-    if (this.useTextureAtlas) {
-        this.textureAtlas.destroy();
-    }
-    if (this.textureProcess) {
-        this.textureProcess.destroy();
-    }
-    this.renderer.destroy();
-    this.textureManager.destroy();
-    this.destroyed = true;
-};
-
-
-Stage.prototype.setGlClearColor = function(clearColor) {
-    if (Array.isArray(clearColor)) {
-        this.glClearColor = clearColor;
-    } else {
-        this.glClearColor = StageUtils.getRgbaComponentsNormalized(clearColor);
-    }
-};
-
-Stage.prototype.getCanvas = function() {
-    return this.adapter.canvas;
-};
-
-Stage.prototype.getTextRendererAdapter = function() {
-    return this.textRendererAdapter;
-};
-
-Stage.prototype.timeStart = function(name) {
-    this.measureCount[name]++;
-    if (this.frameCounter != this.measureLastFrameCounter[name]) {
-        this.measureLastFrameCounter[name] = this.frameCounter;
-        this.measureTotalMs[name] += this.measureMs[name];
-        if (this.frameCounter % 100 == 0) {
-            console.log(name + ': ' + ((this.measureTotalMs[name] / 100) - (name == 'global' ? 4.5 : 0)).toFixed(3) + ' (' + (this.measureCount[name] / 100) + ')');
-            this.measureTotalMs[name] = 0;
-            this.measureCount[name] = 0;
+/**
+ * Copyright Metrological, 2017
+ */
+class Base {
+    constructor() {
+        let proto = Object.getPrototypeOf(this);
+        if (!Base.protoReady.has(proto)) {
+            Base.initPrototype(proto);
         }
-        this.measureMs[name] = 0;
-    }
-    this.measureStart[name] = this.adapter.getHrTime();
-};
-
-Stage.prototype.timeEnd = function(name) {
-    var e = this.adapter.getHrTime();
-    this.measureMs[name] += (e - this.measureStart[name]);
-};
-
-Stage.prototype.stop = function() {
-    this.adapter.stopAnimationLoop();
-};
-
-Stage.prototype.resume = function() {
-    this.adapter.startAnimationLoop();
-};
-
-Stage.prototype.init = function(cb) {
-    if (this.adapter.init) {
-        this.adapter.init();
     }
 
-    var self = this;
+    /**
+     * @protected
+     */
+    _properties() {
+    }
 
-    // Preload rectangle texture, so that we can skip some border checks for loading textures.
-    var rect = this.getRectangleTexture();
-    var src = rect.source;
-    src.onload = function() {
-        src.permanent = true;
-        if (self.useTextureAtlas) {
-            self.textureAtlas.add(src);
+    static initPrototype(proto) {
+        if (!Base.protoReady.has(proto)) {
+            const stack = [];
+
+            // run prototype functions
+            while(proto){
+                if(!Base.protoReady.has(proto)) {
+                    stack.push(proto);
+                }
+                Base.protoReady.add(proto);
+                proto = Object.getPrototypeOf(proto);
+            }
+
+            for(let i = stack.length - 1; i >= 0; i--) {
+                proto = stack[i];
+
+                 // Initialize properties.
+                if (proto.hasOwnProperty('_properties')) {
+                    proto._properties();
+                }
+            }
+        }
+    }
+
+    /**
+     * Mixes an ES5 class and the specified superclass.
+     * @param superclass
+     * @param extra
+     *   An ES5 class constructor.
+     */
+    static mixinEs5(superclass, extra) {
+        let proto = extra.prototype;
+
+        let props = Object.getOwnPropertyNames(proto);
+        for(let i = 0; i < props.length; i++) {
+            let key = props[i];
+            let desc = Object.getOwnPropertyDescriptor(proto, key);
+            if (key !== 'constructor' && desc.configurable) {
+                if (superclass.prototype[key]) {
+                    // Mixin may not overwrite prototype methods.
+                    console.warn('Mixin overwrites ' + key);
+                } else {
+                    Object.defineProperty(superclass.prototype, key, desc);
+                }
+            }
         }
 
-        if (self.useTextureProcess) {
-            self.textureProcess.init(function(err) {
-                if (err) {
-                    console.warn('Error connecting to texture process. Textures will be loaded on the main thread.');
+        return superclass;
+    };
+
+    static setObjectSettings(obj, settings) {
+        for (let name in settings) {
+            let v = settings[name];
+            if (settings.hasOwnProperty(name)) {
+                if (Utils.isObjectLiteral(v) && Utils.isObject(obj[name])) {
+                    // Sub object.
+                    var p = obj[name];
+                    if (p.setSettings) {
+                        // Custom setSettings method.
+                        p.setSettings(p, v);
+                    } else {
+                        Base.setObjectSettings(p, v);
+                    }
+                } else {
+                    obj[name] = v;
+                }
+            }
+        }
+    }
+
+}
+
+Base.protoReady = new WeakSet();
+
+
+/**
+ * Copyright Metrological, 2017
+ */
+class Utils {
+    static isFunction(value) {
+        return typeof value === 'function';
+    }
+
+    static isNumber(value) {
+        return typeof value === 'number';
+    }
+
+    static isInteger(value) {
+        return (typeof value === 'number' && (value % 1) === 0);
+    }
+
+    static isBoolean(value) {
+        return value === true || value === false;
+    }
+
+    static isString(value) {
+        return typeof value == 'string';
+    }
+
+    static cloneObj(obj) {
+        let keys = Object.keys(obj);
+        let clone = {}
+        for (let i = 0; i < keys.length; i++) {
+            clone[keys[i]] = obj[keys[i]];
+        }
+        return clone;
+    }
+
+    static merge(obj1, obj2) {
+        let keys = Object.keys(obj2);
+        for (let i = 0; i < keys.length; i++) {
+            obj1[keys[i]] = obj2[keys[i]];
+        }
+        return obj1;
+    }
+
+    static isObject(value) {
+        let type = typeof value;
+        return !!value && (type == 'object' || type == 'function');
+    }
+
+    static isPlainObject(value) {
+        let type = typeof value;
+        return !!value && (type == 'object');
+    }
+
+    static isObjectLiteral(value){
+        return typeof value === 'object' && value && value.constructor === Object
+    }
+
+    static getArrayIndex(index, arr) {
+        return Utils.getModuloIndex(index, arr.length);
+    }
+
+    static getModuloIndex(index, len) {
+        if (len == 0) return index;
+        while (index < 0) {
+            index += Math.ceil(-index / len) * len;
+        }
+        index = index % len;
+        return index;
+    }
+
+    static getDeepClone(obj) {
+        let i, c;
+        if (Utils.isFunction(obj)) {
+            // Copy functions by reference.
+            return obj;
+        }
+        if (Utils.isArray(obj)) {
+            c = [];
+            let keys = Object.keys(obj);
+            for (i = 0; i < keys.length; i++) {
+                c[keys[i]] = Utils.getDeepClone(obj[keys[i]]);
+            }
+            return c;
+        } else if (Utils.isObject(obj)) {
+            c = {}
+            let keys = Object.keys(obj);
+            for (i = 0; i < keys.length; i++) {
+                c[keys[i]] = Utils.getDeepClone(obj[keys[i]]);
+            }
+            return c;
+        } else {
+            return obj;
+        }
+    }
+
+    static setToArray(s) {
+        let result = [];
+        s.forEach(function (value) {
+            result.push(value);
+        });
+        return result;
+    }
+
+    static iteratorToArray(iterator) {
+        let result = [];
+        let iteratorResult = iterator.next();
+        while (!iteratorResult.done) {
+            result.push(iteratorResult.value);
+            iteratorResult = iterator.next();
+        }
+        return result;
+    }
+}
+
+Utils.isNode = (typeof window === "undefined");
+
+/**
+ * Copyright Metrological, 2017
+ */
+class StageUtils {
+
+    static mergeNumbers(v1, v2, p) {
+        return v1 * p + v2 * (1 - p);
+    };
+
+    static rgb(r, g, b) {
+        return (r << 16) + (g << 8) + b + (255 * 16777216);
+    };
+
+    static rgba(r, g, b, a) {
+        return (r << 16) + (g << 8) + b + (((a * 255) | 0) * 16777216);
+    };
+
+    static getRgbaString(color) {
+        let r = ((color / 65536) | 0) % 256;
+        let g = ((color / 256) | 0) % 256;
+        let b = color % 256;
+        let a = ((color / 16777216) | 0) / 255;
+        return 'rgba(' + r + ',' + g + ',' + b + ',' + a.toFixed(4) + ')';
+    };
+
+    static getRgbaComponentsNormalized(argb) {
+        let r = ((argb / 65536) | 0) % 256;
+        let g = ((argb / 256) | 0) % 256;
+        let b = argb % 256;
+        let a = ((argb / 16777216) | 0);
+        return [r / 255, g / 255, b / 255, a / 255];
+    };
+
+    static getRgbaComponents(argb) {
+        let r = ((argb / 65536) | 0) % 256;
+        let g = ((argb / 256) | 0) % 256;
+        let b = argb % 256;
+        let a = ((argb / 16777216) | 0);
+        return [r, g, b, a];
+    };
+
+    static getArgbNumber(rgba) {
+        rgba[0] = Math.max(0, Math.min(255, rgba[0]));
+        rgba[1] = Math.max(0, Math.min(255, rgba[1]));
+        rgba[2] = Math.max(0, Math.min(255, rgba[2]));
+        rgba[3] = Math.max(0, Math.min(255, rgba[3]));
+        let v = ((rgba[3] | 0) << 24) + ((rgba[0] | 0) << 16) + ((rgba[1] | 0) << 8) + (rgba[2] | 0);
+        if (v < 0) {
+            v = 0xFFFFFFFF + v + 1;
+        }
+        return v;
+    };
+
+    static mergeColors(c1, c2, p) {
+        let r1 = ((c1 / 65536) | 0) % 256;
+        let g1 = ((c1 / 256) | 0) % 256;
+        let b1 = c1 % 256;
+        let a1 = ((c1 / 16777216) | 0);
+
+        let r2 = ((c2 / 65536) | 0) % 256;
+        let g2 = ((c2 / 256) | 0) % 256;
+        let b2 = c2 % 256;
+        let a2 = ((c2 / 16777216) | 0);
+
+        let r = r1 * p + r2 * (1 - p) | 0;
+        let g = g1 * p + g2 * (1 - p) | 0;
+        let b = b1 * p + b2 * (1 - p) | 0;
+        let a = a1 * p + a2 * (1 - p) | 0;
+
+        return a * 16777216 + r * 65536 + g * 256 + b;
+    };
+
+    static mergeMultiColors(c, p) {
+        let r = 0, g = 0, b = 0, a = 0, t = 0;
+        let n = c.length;
+        for (let i = 0; i < n; i++) {
+            let r1 = ((c[i] / 65536) | 0) % 256;
+            let g1 = ((c[i] / 256) | 0) % 256;
+            let b1 = c[i] % 256;
+            let a1 = ((c[i] / 16777216) | 0);
+            r += r1 * p[i];
+            g += g1 * p[i];
+            b += b1 * p[i];
+            a += a1 * p[i];
+            t += p[i];
+        }
+
+        t = 1 / t;
+        return ((a * t) | 0) * 16777216 + ((r * t) | 0) * 65536 + ((g * t) | 0) * 256 + ((b * t) | 0);
+    };
+
+    static mergeMultiColorsEqual(c) {
+        let r = 0, g = 0, b = 0, a = 0, t = 0;
+        let n = c.length;
+        for (let i = 0; i < n; i++) {
+            let r1 = ((c[i] / 65536) | 0) % 256;
+            let g1 = ((c[i] / 256) | 0) % 256;
+            let b1 = c[i] % 256;
+            let a1 = ((c[i] / 16777216) | 0);
+            r += r1;
+            g += g1;
+            b += b1;
+            a += a1;
+            t += 1.0;
+        }
+
+        t = 1 / t;
+        return ((a * t) | 0) * 16777216 + ((r * t) | 0) * 65536 + ((g * t) | 0) * 256 + ((b * t) | 0);
+    };
+
+    static rad(deg) {
+        return deg * (Math.PI / 180);
+    };
+
+    static getTimingBezier(a, b, c, d) {
+        let xc = 3.0 * a;
+        let xb = 3.0 * (c - a) - xc;
+        let xa = 1.0 - xc - xb;
+        let yc = 3.0 * b;
+        let yb = 3.0 * (d - b) - yc;
+        let ya = 1.0 - yc - yb;
+
+        return function (time) {
+            if (time >= 1.0) {
+                return 1;
+            }
+            if (time <= 0) {
+                return 0;
+            }
+
+            let t = 0.5, cbx, cbxd, dx;
+
+            for (let it = 0; it < 20; it++) {
+                cbx = t * (t * (t * xa + xb) + xc);
+                dx = time - cbx;
+                if (dx > -1e-8 && dx < 1e-8) {
+                    return t * (t * (t * ya + yb) + yc);
                 }
 
-                self.adapter.startAnimationLoop(function() {self.drawFrame();});
-                if (cb) cb(self);
-            });
-        } else {
-            self.adapter.startAnimationLoop(function() {self.drawFrame();});
-            if (cb) cb(self);
+                // Cubic bezier derivative.
+                cbxd = t * (t * (3 * xa) + 2 * xb) + xc;
+
+                if (cbxd > 1e-10 && cbxd < 1e-10) {
+                    // Problematic. Fall back to binary search method.
+                    break;
+                }
+
+                t += dx / cbxd;
+            }
+
+            // Fallback: binary search method. This is more reliable when there are near-0 slopes.
+            let minT = 0;
+            let maxT = 1;
+            for (it = 0; it < 20; it++) {
+                t = 0.5 * (minT + maxT);
+
+                cbx = t * (t * (t * xa + xb) + xc);
+
+                dx = time - cbx;
+                if (dx > -1e-8 && dx < 1e-8) {
+                    // Solution found!
+                    return t * (t * (t * ya + yb) + yc);
+                }
+
+                if (dx < 0) {
+                    maxT = t;
+                } else {
+                    minT = t;
+                }
+            }
+
+        };
+    };
+
+    static getTimingFunction(str) {
+        switch (str) {
+            case "linear":
+                return function (time) {
+                    return time
+                };
+            case "ease":
+                return StageUtils.getTimingBezier(0.25, 0.1, 0.25, 1.0);
+            case "ease-in":
+                return StageUtils.getTimingBezier(0.42, 0, 1.0, 1.0);
+            case "ease-out":
+                return StageUtils.getTimingBezier(0, 0, 0.58, 1.0);
+            case "ease-in-out":
+                return StageUtils.getTimingBezier(0.42, 0, 0.58, 1.0);
+            case "step-start":
+                return function () {
+                    return 1
+                };
+            case "step-end":
+                return function (time) {
+                    return time === 1 ? 1 : 0;
+                };
+            default:
+                let s = "cubic-bezier(";
+                if (str && str.indexOf(s) === 0) {
+                    let parts = str.substr(s.length, str.length - s.length - 1).split(",");
+                    if (parts.length !== 4) {
+                        console.warn("Unknown timing function: " + str);
+
+                        // Fallback: use linear.
+                        return function (time) {
+                            return time
+                        };
+                    }
+                    let a = parseFloat(parts[0]);
+                    let b = parseFloat(parts[1]);
+                    let c = parseFloat(parts[2]);
+                    let d = parseFloat(parts[3]);
+                    if (isNaN(a) || isNaN(b) || isNaN(c) || isNaN(d)) {
+                        console.warn("Unknown timing function: " + str);
+                        // Fallback: use linear.
+                        return function (time) {
+                            return time
+                        };
+                    }
+
+                    return StageUtils.getTimingBezier(a, b, c, d);
+                } else {
+                    console.warn("Unknown timing function: " + str);
+                    // Fallback: use linear.
+                    return function (time) {
+                        return time
+                    };
+                }
         }
     };
-    rect.load();
-};
 
-Stage.prototype.getRectangleTexture = function() {
-    return this.rectangleTexture;
-};
+    static getSplineValueFunction(v1, v2, p1, p2, o1, i2, s1, s2) {
+        // Normalize slopes because we use a spline that goes from 0 to 1.
+        let dp = p2 - p1;
+        s1 *= dp;
+        s2 *= dp;
 
-Stage.prototype.addActiveTransition = function(transition) {
-    this.activeTransitions.add(transition);
-};
+        let helpers = StageUtils.getSplineHelpers(v1, v2, o1, i2, s1, s2);
+        if (!helpers) {
+            return function (p) {
+                if (p == 0) return v1;
+                if (p == 1) return v2;
 
-Stage.prototype.addActiveAnimation = function(a) {
-    this.activeAnimations.add(a);
-};
-
-Stage.prototype.drawFrame = function() {
-    if (this.measureLongFrames) {
-        this.logMeasureLongFrames();
-    }
-
-    if (this.measureFrameDistribution || this.measureInnerFrameDistribution) {
-        var s = this.adapter.getHrTime();
-        if (this.profileLast && this.measureFrameDistribution) {
-            var f = Math.max(Math.round((s - this.profileLast)/(1*16.6667)) - 1, 0);
-            if (f > 19) f = 19;
-            this.profile[f]++;
-
-            if (this.frameCounter % 100 == 0) {
-                console.log('F ' + this.profile.join(" "));
-                for (var i = 0; i < 20; i++) {
-                    this.profile[i] = 0;
-                }
-            }
+                return v2 * p + v1 * (1 - p);
+            };
+        } else {
+            return function (p) {
+                if (p == 0) return v1;
+                if (p == 1) return v2;
+                return StageUtils.calculateSpline(helpers, p);
+            };
         }
-        this.profileLast = s;
-    }
+    };
 
-    this.measure && this.timeStart('total');
-    if (this.fixedDt) {
-        this.dt = this.fixedDt;
-    } else {
-        this.dt = (!this.startTime) ? .02 : .001 * (this.currentTime - this.startTime);
-    }
-    this.startTime = this.currentTime;
-    this.currentTime = (new Date()).getTime();
+    static getSplineRgbaValueFunction(v1, v2, p1, p2, o1, i2, s1, s2) {
+        // Normalize slopes because we use a spline that goes from 0 to 1.
+        let dp = p2 - p1;
+        s1[0] *= dp;
+        s1[1] *= dp;
+        s1[2] *= dp;
+        s1[3] *= dp;
+        s2[0] *= dp;
+        s2[1] *= dp;
+        s2[2] *= dp;
+        s2[3] *= dp;
 
-    this.measureDetails && this.timeStart('frame start');
-    if (this._eventsCount) this.emit('frameStart');
-    this.measureDetails && this.timeEnd('frame start');
-    this.state = Stage.STATES.TRANSITIONS;
+        let cv1 = StageUtils.getRgbaComponents(v1);
+        let cv2 = StageUtils.getRgbaComponents(v2);
 
-    s = this.adapter.getHrTime();
-    this.measureDetails && this.timeStart('transitions');
-    this.progressTransitions();
-    this.measureDetails && this.timeEnd('transitions');
+        let helpers = [
+            StageUtils.getSplineHelpers(cv1[0], cv2[0], o1, i2, s1[0], s2[0]),
+            StageUtils.getSplineHelpers(cv1[1], cv2[1], o1, i2, s1[1], s2[1]),
+            StageUtils.getSplineHelpers(cv1[2], cv2[2], o1, i2, s1[2], s2[2]),
+            StageUtils.getSplineHelpers(cv1[3], cv2[3], o1, i2, s1[3], s2[3])
+        ];
 
-    // Apply animations.
-    this.state = Stage.STATES.ANIMATIONS;
-    this.measureDetails && this.timeStart('animations');
-    this.progressAnimations();
-    this.measureDetails && this.timeEnd('animations');
+        if (!helpers[0]) {
+            return function (p) {
+                // Linear.
+                if (p == 0) return v1;
+                if (p == 1) return v2;
 
-    this.measureDetails && this.timeStart('update');
-    this.state = Stage.STATES.UPDATE;
-    if (this._eventsCount) this.emit('update');
-    this.measureDetails && this.timeEnd('update');
+                return StageUtils.mergeColors(v2, v1, p);
+            };
+        } else {
+            return function (p) {
+                if (p == 0) return v1;
+                if (p == 1) return v2;
 
-    if (this.textureManager.isFull()) {
-        console.log('clean up');
-        // Clean up all textures instead of those in the last frame.
-        this.textureManager.freeUnusedTextureSources();
-    }
-
-    this.measureDetails && this.timeStart('perform updates');
-    this.performUpdates();
-    this.measureDetails && this.timeEnd('perform updates');
-
-    if (this.measureLongFrames) {
-        this.longFrameComponents.lastFrameEnd = this.getHrTime();
-    }
-
-    if (this.renderNeeded) {
-        // We will render the stage even if it's stable shortly after importing a texture in the texture atlas, to prevent out-of-syncs.
-        this.measureDetails && this.timeStart('render');
-        this.renderer.render();
-        this.measureDetails && this.timeEnd('render');
-    }
-
-    this.state = Stage.STATES.IDLE;
-    this.measureDetails && this.timeStart('frame end');
-    if (this._eventsCount) this.emit('frameEnd');
-    this.measureDetails && this.timeEnd('frame end');
-    this.measure && this.timeEnd('total');
-
-    this.adapter.nextFrame(this.renderNeeded);
-
-    if (this.measureInnerFrameDistribution) {
-        s = this.adapter.getHrTime() - this.profileLast;
-        var f = Math.max(Math.round(s / (1 * 16.66667)) - 1, 0);
-        if (f > 19) f = 19;
-        this.innerProfile[f]++;
-
-        if (this.frameCounter % 100 == 0) {
-            console.log('I ' + this.innerProfile.join(" "));
-            for (var i = 0; i < 20; i++) {
-                this.innerProfile[i] = 0;
-            }
-        }
-    }
-
-    this.frameCounter++;
-
-};
-
-Stage.prototype.logMeasureLongFrames = function() {
-    // Wait between frames.
-
-    var wait = 0;
-    var total = 0;
-    if (this.longFrameComponents.lastFrameEnd) {
-        total = this.longFrameComponents.lastFrameEnd - this.longFrameComponents.lastFrameStart;
-
-        this.longFrameComponents.lastFrameStart = this.getHrTime();
-        wait = this.longFrameComponents.lastFrameStart - this.longFrameComponents.lastFrameEnd;
-    } else {
-        this.longFrameComponents.lastFrameStart = this.getHrTime();
-    }
-
-    var other = total - (this.longFrameComponents.text + this.longFrameComponents.uploadRaw + this.longFrameComponents.uploadImage);
-
-    var amounts = ' [' + this.longFrameComponents.nText + ',' + this.longFrameComponents.nUploadRaw + ',' + this.longFrameComponents.nUploadImage + ']';
-    console.log(
-        amounts + this.repeatChar(' ', (12 - amounts.length)) +
-        this.repeatChar("T", Math.round(this.longFrameComponents.text)) +
-        this.repeatChar("R", Math.round(this.longFrameComponents.uploadRaw)) +
-        this.repeatChar("I", Math.round(this.longFrameComponents.uploadImage)) +
-        this.repeatChar("O", Math.round(other)) +
-        this.repeatChar(".", Math.round(wait))
-    );
-
-    this.longFrameComponents.text = 0;
-    this.longFrameComponents.uploadRaw = 0;
-    this.longFrameComponents.uploadImage = 0;
-    this.longFrameComponents.nText = 0;
-    this.longFrameComponents.nUploadRaw = 0;
-    this.longFrameComponents.nUploadImage = 0;
-};
-
-Stage.prototype.repeatChar = function(c, n) {
-    str = "";
-    for (var i = 0; i < n; i++) {
-        str += c;
-    }
-    return str;
-};
-
-Stage.prototype.getHrTime = function() {
-    return this.adapter.getHrTime();
-};
-
-Stage.prototype.progressTransitions = function() {
-    var self = this;
-
-    if (this.activeTransitions.size) {
-        this.activeTransitions.forEach(function(transition) {
-            if (transition.component.attached && transition.isActive()) {
-                transition.progress(self.dt);
-            } else {
-                self.activeTransitions.delete(transition);
-            }
-        });
-    }
-};
-
-Stage.prototype.progressAnimations = function() {
-    var self = this;
-    if (this.activeAnimations.size) {
-        this.activeAnimations.forEach(function (animation) {
-            if (animation.subject && animation.subject.attached && animation.isActive()) {
-                animation.progress(self.dt);
-                animation.applyTransforms();
-            } else {
-                self.activeAnimations.delete(animation);
-            }
-        });
-    }
-};
-
-/**
- * Actually perform the updates.
- */
-Stage.prototype.performUpdates = function() {
-    if (this.useTextureAtlas) {
-        // Add new texture sources to the texture atlas.
-        this.textureAtlas.flush();
-    }
-
-    var ctx = this.adapter.getUComponentContext();
-    this.renderNeeded = ctx.updateAndFillVbo(this.zIndexUsage > 0);
-};
-
-/**
- * Returns the specified texture.
- * @param {string|function} source
- * @param {object} options
- *   - id: number
- *     Fixed id. Handy when using base64 strings or when using canvas textures.
- *   - x: number
- *     Clipping offset x.
- *   - y: number
- *     Clipping offset y.
- *   - w: number
- *     Clipping offset w.
- *   - h: number
- *     Clipping offset h.
- *   - precision: number
- *     Render precision (0.5 = fuzzy, 1 = normal, 2 = sharp even when scaled twice, etc.).
- * @returns {Texture}
- */
-Stage.prototype.texture = function(source, options) {
-    return this.textureManager.getTexture(source, options);
-};
-
-/**
- * Creates a new component.
- * @returns {Component}
- */
-Stage.prototype.component = function(settings) {
-    var component = new Component(this);
-
-    if (settings) {
-        component.set(settings);
-    }
-    return component;
-};
-
-/**
- * Creates a new component.
- * @returns {Component}
- */
-Stage.prototype.c = function(settings) {
-    var component = new Component(this);
-    if (settings) {
-        component.set(settings);
-    }
-    return component;
-};
-
-Stage.prototype.animation = function(settings) {
-    var a = new Animation(this);
-    if (settings) {
-        a.set(settings);
-    }
-    return a;
-};
-
-/**
- * The rendering loop states.
- * @type {object}
- */
-Stage.STATES = {
-    IDLE: 0,
-    TRANSITIONS: 1,
-    ANIMATIONS: 2,
-    UPDATE: 3,
-    RENDER: 4
-};
-
-/**
- * Auto-increment component id.
- * @type {number}
- */
-Stage.componentId = 0;
-
-Stage.rectangleSource = {src: function(cb) {
-    var whitePixel = new Uint8Array([255, 255, 255, 255]);
-    return cb(null, whitePixel, {w: 1, h: 1});
-}, id:"__whitepix"};
-
-Stage.W = 1280;
-Stage.H = 720;
-
-
-
-
-var StageUtils = {};
-
-StageUtils.mergeNumbers = function(v1, v2, p) {
-    return v1 * p + v2 * (1 - p);
-};
-
-StageUtils.rgb = function(r, g, b) {
-    return (r << 16) + (g << 8) + b + (255 * 16777216);
-};
-
-StageUtils.rgba = function(r, g, b, a) {
-    return (r << 16) + (g << 8) + b + (((a * 255)|0) * 16777216);
-};
-
-StageUtils.getRgbaString = function(color) {
-    var r = ((color / 65536)|0) % 256;
-    var g = ((color / 256)|0) % 256;
-    var b = color % 256;
-    var a = ((color / 16777216)|0) / 255;
-    return 'rgba(' + r + ',' + g + ',' + b + ',' + a.toFixed(4) + ')';
-};
-
-StageUtils.getRgbaComponentsNormalized = function(argb) {
-    var r = ((argb / 65536)|0) % 256;
-    var g = ((argb / 256)|0) % 256;
-    var b = argb % 256;
-    var a = ((argb / 16777216)|0);
-    return [r*0.003921569, g*0.003921569, b*0.003921569, a*0.003921569];
-};
-
-StageUtils.getRgbaComponents = function(argb) {
-    var r = ((argb / 65536)|0) % 256;
-    var g = ((argb / 256)|0) % 256;
-    var b = argb % 256;
-    var a = ((argb / 16777216)|0);
-    return [r, g, b, a];
-};
-
-StageUtils.getArgbNumber = function(rgba) {
-    rgba[0] = Math.max(0, Math.min(255, rgba[0]));
-    rgba[1] = Math.max(0, Math.min(255, rgba[1]));
-    rgba[2] = Math.max(0, Math.min(255, rgba[2]));
-    rgba[3] = Math.max(0, Math.min(255, rgba[3]));
-    var v = ((rgba[3]|0) << 24) + ((rgba[0]|0) << 16) + ((rgba[1]|0) << 8) + (rgba[2]|0);
-    if (v < 0) {
-        v = 0xFFFFFFFF + v + 1;
-    }
-    return v;
-};
-
-StageUtils.mergeColors = function(c1, c2, p) {
-    var r1 = ((c1 / 65536)|0) % 256;
-    var g1 = ((c1 / 256)|0) % 256;
-    var b1 = c1 % 256;
-    var a1 = ((c1 / 16777216)|0);
-
-    var r2 = ((c2 / 65536)|0) % 256;
-    var g2 = ((c2 / 256)|0) % 256;
-    var b2 = c2 % 256;
-    var a2 = ((c2 / 16777216)|0);
-
-    var r = r1 * p + r2 * (1-p) | 0;
-    var g = g1 * p + g2 * (1-p) | 0;
-    var b = b1 * p + b2 * (1-p) | 0;
-    var a = a1 * p + a2 * (1-p) | 0;
-
-    return a * 16777216 + r * 65536 + g * 256 + b;
-};
-
-StageUtils.mergeMultiColors = function(c, p) {
-    var r = 0, g = 0, b = 0, a = 0, t = 0;
-    var n = c.length;
-    for (var i = 0; i < n; i++) {
-        var r1 = ((c[i] / 65536)|0) % 256;
-        var g1 = ((c[i] / 256)|0) % 256;
-        var b1 = c[i] % 256;
-        var a1 = ((c[i] / 16777216)|0);
-        r += r1 * p[i];
-        g += g1 * p[i];
-        b += b1 * p[i];
-        a += a1 * p[i];
-        t += p[i];
-    }
-
-    t = 1/t;
-    return ((a*t)|0) * 16777216 + ((r*t)|0) * 65536 + ((g*t)|0) * 256 + ((b*t)|0);
-};
-
-StageUtils.mergeMultiColorsEqual = function(c) {
-    var r = 0, g = 0, b = 0, a = 0, t = 0;
-    var n = c.length;
-    for (var i = 0; i < n; i++) {
-        var r1 = ((c[i] / 65536)|0) % 256;
-        var g1 = ((c[i] / 256)|0) % 256;
-        var b1 = c[i] % 256;
-        var a1 = ((c[i] / 16777216)|0);
-        r += r1;
-        g += g1;
-        b += b1;
-        a += a1;
-        t += 1.0;
-    }
-
-    t = 1/t;
-    return ((a*t)|0) * 16777216 + ((r*t)|0) * 65536 + ((g*t)|0) * 256 + ((b*t)|0);
-};
-
-StageUtils.rad = function(deg) {
-    return deg * (Math.PI / 180);
-};
-
-StageUtils.getTimingBezier = function(a, b, c, d) {
-    var xc = 3.0 * a;
-    var xb = 3.0 * (c - a) - xc;
-    var xa = 1.0 - xc - xb;
-    var yc = 3.0 * b;
-    var yb = 3.0 * (d - b) - yc;
-    var ya = 1.0 - yc - yb;
-
-    return function(time) {
-        if (time >= 1.0) {
-            return 1;
-        }
-        if (time <= 0) {
-            return 0;
+                return StageUtils.getArgbNumber([
+                    Math.min(255, StageUtils.calculateSpline(helpers[0], p)),
+                    Math.min(255, StageUtils.calculateSpline(helpers[1], p)),
+                    Math.min(255, StageUtils.calculateSpline(helpers[2], p)),
+                    Math.min(255, StageUtils.calculateSpline(helpers[3], p))
+                ]);
+            };
         }
 
-        var t = 0.5, cbx, cbxd, dx;
+    };
 
-        for (var it = 0; it < 20; it++) {
-            cbx = t*(t*(t*xa+xb)+xc);
-            dx = time - cbx;
+    /**
+     * Creates helpers to be used in the spline function.
+     * @param {number} v1
+     *   From value.
+     * @param {number} v2
+     *   To value.
+     * @param {number} o1
+     *   From smoothness (0 = linear, 1 = smooth).
+     * @param {number} s1
+     *   From slope (0 = horizontal, infinite = vertical).
+     * @param {number} i2
+     *   To smoothness.
+     * @param {number} s2
+     *   To slope.
+     * @returns {Number[]}
+     *   The helper values to be supplied to the spline function.
+     *   If the configuration is actually linear, null is returned.
+     */
+    static getSplineHelpers(v1, v2, o1, i2, s1, s2) {
+        if (!o1 && !i2) {
+            // Linear.
+            return null;
+        }
+
+        // Cubic bezier points.
+        // http://cubic-bezier.com/
+        let csx = o1;
+        let csy = v1 + s1 * o1;
+        let cex = 1 - i2;
+        let cey = v2 - s2 * i2;
+
+        // Helper letiables.
+        let xa = 3 * csx - 3 * cex + 1;
+        let xb = -6 * csx + 3 * cex;
+        let xc = 3 * csx;
+
+        let ya = 3 * csy - 3 * cey + v2 - v1;
+        let yb = 3 * (cey + v1) - 6 * csy;
+        let yc = 3 * (csy - v1);
+        let yd = v1;
+
+        return [xa, xb, xc, ya, yb, yc, yd];
+    };
+
+    /**
+     * Calculates the intermediate spline value based on the specified helpers.
+     * @param {number[]} helpers
+     *   Obtained from getSplineHelpers.
+     * @param {number} p
+     * @return {number}
+     */
+    static calculateSpline(helpers, p) {
+        let xa = helpers[0];
+        let xb = helpers[1];
+        let xc = helpers[2];
+        let ya = helpers[3];
+        let yb = helpers[4];
+        let yc = helpers[5];
+        let yd = helpers[6];
+
+        if (xa == -2 && ya == -2 && xc == 0 && yc == 0) {
+            // Linear.
+            return p;
+        }
+
+        // Find t for p.
+        let t = 0.5, cbx, dx;
+
+        for (let it = 0; it < 20; it++) {
+            // Cubic bezier function: f(t)=t*(t*(t*a+b)+c).
+            cbx = t * (t * (t * xa + xb) + xc);
+
+            dx = p - cbx;
             if (dx > -1e-8 && dx < 1e-8) {
-                return t*(t*(t*ya+yb)+yc);
+                // Solution found!
+                return t * (t * (t * ya + yb) + yc) + yd;
             }
 
-            // Cubic bezier derivative.
-            cbxd = t*(t*(3*xa)+2*xb)+xc;
+            // Cubic bezier derivative function: f'(t)=t*(t*(3*a)+2*b)+c
+            let cbxd = t * (t * (3 * xa) + 2 * xb) + xc;
 
             if (cbxd > 1e-10 && cbxd < 1e-10) {
                 // Problematic. Fall back to binary search method.
@@ -1318,17 +1047,18 @@ StageUtils.getTimingBezier = function(a, b, c, d) {
         }
 
         // Fallback: binary search method. This is more reliable when there are near-0 slopes.
-        var minT = 0;
-        var maxT = 1;
+        let minT = 0;
+        let maxT = 1;
         for (it = 0; it < 20; it++) {
             t = 0.5 * (minT + maxT);
 
-            cbx = t*(t*(t*xa+xb)+xc);
+            // Cubic bezier function: f(t)=t*(t*(t*a+b)+c)+d.
+            cbx = t * (t * (t * xa + xb) + xc);
 
-            dx = time - cbx;
+            dx = p - cbx;
             if (dx > -1e-8 && dx < 1e-8) {
                 // Solution found!
-                return t*(t*(t*ya+yb)+yc);
+                return t * (t * (t * ya + yb) + yc) + yd;
             }
 
             if (dx < 0) {
@@ -1338,7401 +1068,665 @@ StageUtils.getTimingBezier = function(a, b, c, d) {
             }
         }
 
+        return t;
     };
-};
+}
 
-StageUtils.getTimingFunction = function(str) {
-    switch(str) {
-        case "linear":
-            return function(time) {return time};
-        case "ease":
-            return StageUtils.getTimingBezier(0.25,0.1,0.25,1.0);
-        case "ease-in":
-            return StageUtils.getTimingBezier(0.42,0,1.0,1.0);
-        case "ease-out":
-            return StageUtils.getTimingBezier(0,0,0.58,1.0);
-        case "ease-in-out":
-            return StageUtils.getTimingBezier(0.42,0,0.58,1.0);
-        case "step-start":
-            return function() {return 1};
-        case "step-end":
-            return function(time) {return time === 1 ? 1 : 0;};
-        default:
-            var s = "cubic-bezier(";
-            if (str && str.indexOf(s) === 0) {
-                var parts = str.substr(s.length, str.length - s.length - 1).split(",");
-                if (parts.length !== 4) {
-                    console.warn("Unknown timing function: " + str);
-
-                    // Fallback: use linear.
-                    return function(time) {return time};
-                }
-                var a = parseFloat(parts[0]);
-                var b = parseFloat(parts[1]);
-                var c = parseFloat(parts[2]);
-                var d = parseFloat(parts[3]);
-                if (isNaN(a) || isNaN(b) || isNaN(c) || isNaN(d)) {
-                    console.warn("Unknown timing function: " + str);
-                    // Fallback: use linear.
-                    return function(time) {return time};
-                }
-
-                return StageUtils.getTimingBezier(a,b,c,d);
-            } else {
-                console.warn("Unknown timing function: " + str);
-                // Fallback: use linear.
-                return function(time) {return time};
-            }
-    }
-};
-
-StageUtils.getSplineValueFunction = function(v1, v2, p1, p2, o1, i2, s1, s2) {
-    // Normalize slopes because we use a spline that goes from 0 to 1.
-    var dp = p2 - p1;
-    s1 *= dp;
-    s2 *= dp;
-
-    var helpers = StageUtils.getSplineHelpers(v1, v2, o1, i2, s1, s2);
-    if (!helpers) {
-        return function(p) {
-            if (p == 0) return v1;
-            if (p == 1) return v2;
-
-            return v2 * p + v1 * (1 - p);
-        };
-    } else {
-        return function(p) {
-            if (p == 0) return v1;
-            if (p == 1) return v2;
-            return StageUtils.calculateSpline(helpers, p);
-        };
-    }
-};
-
-StageUtils.getSplineRgbaValueFunction = function(v1, v2, p1, p2, o1, i2, s1, s2) {
-    // Normalize slopes because we use a spline that goes from 0 to 1.
-    var dp = p2 - p1;
-    s1[0] *= dp;
-    s1[1] *= dp;
-    s1[2] *= dp;
-    s1[3] *= dp;
-    s2[0] *= dp;
-    s2[1] *= dp;
-    s2[2] *= dp;
-    s2[3] *= dp;
-
-    var cv1 = StageUtils.getRgbaComponents(v1);
-    var cv2 = StageUtils.getRgbaComponents(v2);
-
-    var helpers = [
-        StageUtils.getSplineHelpers(cv1[0], cv2[0], o1, i2, s1[0], s2[0]),
-        StageUtils.getSplineHelpers(cv1[1], cv2[1], o1, i2, s1[1], s2[1]),
-        StageUtils.getSplineHelpers(cv1[2], cv2[2], o1, i2, s1[2], s2[2]),
-        StageUtils.getSplineHelpers(cv1[3], cv2[3], o1, i2, s1[3], s2[3])
-    ];
-
-    if (!helpers[0]) {
-        return function(p) {
-            // Linear.
-            if (p == 0) return v1;
-            if (p == 1) return v2;
-
-            return StageUtils.mergeColors(v2, v1, p);
-        };
-    } else {
-        return function(p) {
-            if (p == 0) return v1;
-            if (p == 1) return v2;
-
-            return StageUtils.getArgbNumber([
-                Math.min(255, StageUtils.calculateSpline(helpers[0], p)),
-                Math.min(255, StageUtils.calculateSpline(helpers[1], p)),
-                Math.min(255, StageUtils.calculateSpline(helpers[2], p)),
-                Math.min(255, StageUtils.calculateSpline(helpers[3], p))
-            ]);
-        };
-    }
-
-};
 
 /**
- * Creates helpers to be used in the spline function.
- * @param {number} v1
- *   From value.
- * @param {number} v2
- *   To value.
- * @param {number} o1
- *   From smoothness (0 = linear, 1 = smooth).
- * @param {number} s1
- *   From slope (0 = horizontal, infinite = vertical).
- * @param {number} i2
- *   To smoothness.
- * @param {number} s2
- *   To slope.
- * @returns {Number[]}
- *   The helper values to be supplied to the spline function.
- *   If the configuration is actually linear, null is returned.
+ * Copyright Metrological, 2017
  */
-StageUtils.getSplineHelpers = function(v1, v2, o1, i2, s1, s2) {
-    if (!o1 && !i2) {
-        // Linear.
-        return null;
-    }
+class GeometryUtils {
 
-    // Cubic bezier points.
-    // http://cubic-bezier.com/
-    var csx = o1;
-    var csy = v1 + s1 * o1;
-    var cex = 1 - i2;
-    var cey = v2 - s2 * i2;
+    static dotprod(ux, uy, vx, vy) {
+        return ux * vx + uy * vy;
+    };
 
-    // Helper variables.
-    var xa = 3 * csx - 3 * cex + 1;
-    var xb = -6 * csx + 3 * cex;
-    var xc = 3 * csx;
+    /**
+     * Returns true if the specified point lies within the convex polygon.
+     * @param {number[]} a
+     * @param {number} x
+     * @param {number} y
+     * @return {boolean}
+     */
+    static pointInConvex(a, x, y) {
+        let i, n, ax, ay;
+        n = a.length;
+        for (i = 0; i <= a.length - 2; i += 2) {
+            ax = a[(i + 2) % n] - a[i];
+            ay = a[(i + 3) % n] - a[i + 1];
 
-    var ya = 3 * csy - 3 * cey + v2 - v1;
-    var yb = 3 * (cey + v1) -6 * csy;
-    var yc = 3 * (csy - v1);
-    var yd = v1;
-
-    return [xa, xb, xc, ya, yb, yc, yd];
-};
-
-/**
- * Calculates the intermediate spline value based on the specified helpers.
- * @param {number[]} helpers
- *   Obtained from getSplineHelpers.
- * @param {number} p
- * @return {number}
- */
-StageUtils.calculateSpline = function(helpers, p) {
-    var xa = helpers[0];
-    var xb = helpers[1];
-    var xc = helpers[2];
-    var ya = helpers[3];
-    var yb = helpers[4];
-    var yc = helpers[5];
-    var yd = helpers[6];
-
-    if (xa == -2 && ya == -2 && xc == 0 && yc == 0) {
-        // Linear.
-        return p;
-    }
-
-    // Find t for p.
-    var t = 0.5, cbx, dx;
-
-    for (var it = 0; it < 20; it++) {
-        // Cubic bezier function: f(t)=t*(t*(t*a+b)+c).
-        cbx = t*(t*(t*xa+xb)+xc);
-
-        dx = p - cbx;
-        if (dx > -1e-8 && dx < 1e-8) {
-            // Solution found!
-            return t*(t*(t*ya+yb)+yc)+yd;
-        }
-
-        // Cubic bezier derivative function: f'(t)=t*(t*(3*a)+2*b)+c
-        var cbxd = t*(t*(3*xa)+2*xb)+xc;
-
-        if (cbxd > 1e-10 && cbxd < 1e-10) {
-            // Problematic. Fall back to binary search method.
-            break;
-        }
-
-        t += dx / cbxd;
-    }
-
-    // Fallback: binary search method. This is more reliable when there are near-0 slopes.
-    var minT = 0;
-    var maxT = 1;
-    for (it = 0; it < 20; it++) {
-        t = 0.5 * (minT + maxT);
-
-        // Cubic bezier function: f(t)=t*(t*(t*a+b)+c)+d.
-        cbx = t*(t*(t*xa+xb)+xc);
-
-        dx = p - cbx;
-        if (dx > -1e-8 && dx < 1e-8) {
-            // Solution found!
-            return t*(t*(t*ya+yb)+yc)+yd;
-        }
-
-        if (dx < 0) {
-            maxT = t;
-        } else {
-            minT = t;
-        }
-    }
-
-    return t;
-};
-
-
-
-var GeometryUtils = {};
-
-GeometryUtils.dotprod = function(ux, uy, vx, vy) {
-    return ux * vx + uy * vy;
-};
-
-/**
- * Returns true if the specified point lies within the convex polygon.
- * @param {number[]} a
- * @param {number} x
- * @param {number} y
- * @return {boolean}
- */
-GeometryUtils.pointInConvex = function(a, x, y) {
-    var i, n, ax, ay;
-    n = a.length;
-    for (i = 0; i <= a.length - 2; i += 2) {
-        ax = a[(i + 2) % n] - a[i];
-        ay = a[(i + 3) % n] - a[i + 1];
-
-        if (GeometryUtils.dotprod(x - a[i], y - a[i+1], -ay, ax) <= 0) {
-            return false;
-        }
-    }
-    return true;
-};
-
-/**
- * Returns the (convex) intersection of 2 convex polygons.
- * @see Suther-Hodgman algorithm
- * @param {number[]} a
- * @param {number[]} b
- * @return {number[]}
- *   The intersection polygon. Empty if there is no intersection polygon.
- */
-GeometryUtils.intersectConvex = function(a, b) {
-    var i, j, n, m;
-
-    n = a.length;
-
-    // Intersection result. We'll slice off the invisible vertices.
-    var c = b;
-    var nc;
-
-    var anyIntersections = false;
-
-    // Traverse all edges of a.
-    for (i = 0; i <= n - 2; i += 2) {
-        // Get unit vector for edge of a.
-        var ax = a[(i+2)%n] - a[i];
-        var ay = a[(i+3)%n] - a[i + 1];
-        var l = Math.sqrt(ax * ax + ay * ay);
-        ax /= l;
-        ay /= l;
-
-        m = c.length;
-        nc = [];
-
-        var firstOffsetY, prevOffsetY, firstWasInside, prevWasInside, inside;
-        for (j = 0; j <= m - 2; j += 2) {
-            var dx = c[j] - a[i];
-            var dy = c[j+1] - a[i+1];
-
-            // Calculate offset of vertex perpendicular to a-edge.
-            var offsetY = GeometryUtils.dotprod(dx, dy, -ay, ax);
-
-            // Count as 'inside' if the point lies within the polygon or on one of the edges.
-            // We need to include a small margin for rounding errors which may cause 'double' points when
-            // traversing parallel edges.
-            inside = (offsetY >= -1e-9);
-
-            if (j >= 2) {
-                if (prevWasInside != inside) {
-                    // Add additional intersection point.
-
-                    // Calculate intersection offset.
-                    var prevOffsetX = GeometryUtils.dotprod(c[j-2] - a[i], c[j-1] - a[i+1], ax, ay);
-                    var offsetX = GeometryUtils.dotprod(dx, dy, ax, ay);
-
-                    var dxdy = (offsetX - prevOffsetX) / (offsetY - prevOffsetY);
-                    var isect = (prevOffsetX - dxdy * prevOffsetY);
-
-                    var isectX = a[i] + isect * ax;
-                    var isectY = a[i+1] + isect * ay;
-
-                    nc.push(isectX, isectY);
-
-                    anyIntersections = true;
-                }
-            } else {
-                // Remember for last vertex.
-                firstWasInside = inside;
-                firstOffsetY = offsetY;
+            if (GeometryUtils.dotprod(x - a[i], y - a[i + 1], -ay, ax) <= 0) {
+                return false;
             }
-
-            if (inside) {
-                // Add vertex.
-                nc.push(c[j], c[j+1]);
-            }
-
-            if (j == m - 2) {
-                // Complete the polygon with the edge from last to first.
-                if (inside != firstWasInside) {
-                    // Add additional intersection point.
-                    var firstOffsetX = GeometryUtils.dotprod(c[0] - a[i], c[1] - a[i+1], ax, ay);
-
-                    var offsetX = GeometryUtils.dotprod(dx, dy, ax, ay);
-
-                    var dxdy = (offsetX - firstOffsetX) / (offsetY - firstOffsetY);
-                    var isect = (firstOffsetX - dxdy * firstOffsetY);
-
-                    var isectX = a[i] + isect * ax;
-                    var isectY = a[i+1] + isect * ay;
-
-                    nc.push(isectX, isectY);
-
-                    anyIntersections = true;
-                }
-            }
-
-            prevWasInside = inside;
-            prevOffsetY = offsetY;
         }
+        return true;
+    };
 
-        c = nc;
-    }
+    /**
+     * Returns the (convex) intersection of 2 convex polygons.
+     * @see Suther-Hodgman algorithm
+     * @param {number[]} a
+     * @param {number[]} b
+     * @return {number[]}
+     *   The intersection polygon. Empty if there is no intersection polygon.
+     */
+    static intersectConvex(a, b) {
+        let i, j, n, m;
 
-    if (c.length) {
-        if (!anyIntersections) {
-            // The output polygon matches b. Return it by reference so that we can check for clipping activity.
-            return b;
-        } else {
-            return c;
-        }
-    } else {
-        // This is a special case which occurs if there are no intersections of any of the edges.
+        n = a.length;
 
-        // Check which polygon lies inside the other.
+        // Intersection result. We'll slice off the invisible vertices.
+        let c = b;
+        let nc;
 
-        // Get bounding box of a.
-        var minAx = a[0];
-        var maxAx = a[0];
-        var minAy = a[1];
-        var maxAy = a[1];
+        let anyIntersections = false;
 
-        // Get average point of a.
-        var avgAx = a[0], avgAy = a[1];
-        for (i = 2; i <= n - 2; i += 2) {
-            avgAx += a[i];
-            avgAy += a[i+1];
+        // Traverse all edges of a.
+        for (i = 0; i <= n - 2; i += 2) {
+            // Get unit vector for edge of a.
+            let ax = a[(i + 2) % n] - a[i];
+            let ay = a[(i + 3) % n] - a[i + 1];
+            let l = Math.sqrt(ax * ax + ay * ay);
+            ax /= l;
+            ay /= l;
 
-            if (a[i] < minAx) minAx = a[i];
-            if (a[i] > maxAx) maxAx = a[i];
-            if (a[i+1] < minAy) minAy = a[i+1];
-            if (a[i+1] > maxAy) maxAy = a[i+1];
-        }
-        avgAx /= 0.5 * n;
-        avgAy /= 0.5 * n;
+            m = c.length;
+            nc = [];
 
+            let firstOffsetY, prevOffsetY, firstWasInside, prevWasInside, inside;
+            for (j = 0; j <= m - 2; j += 2) {
+                let dx = c[j] - a[i];
+                let dy = c[j + 1] - a[i + 1];
 
-        // Get bounding box of b.
-        var minBx = b[0];
-        var maxBx = b[0];
-        var minBy = b[1];
-        var maxBy = b[1];
+                // Calculate offset of vertex perpendicular to a-edge.
+                let offsetY = GeometryUtils.dotprod(dx, dy, -ay, ax);
 
-        // Get average point of a.
-        m = b.length;
-        var avgBx = b[0], avgBy = b[1];
-        for (i = 2; i <= m - 2; i += 2) {
-            avgBx += b[i];
-            avgBy += b[i+1];
+                // Count as 'inside' if the point lies within the polygon or on one of the edges.
+                // We need to include a small margin for rounding errors which may cause 'double' points when
+                // traversing parallel edges.
+                inside = (offsetY >= -1e-9);
 
-            if (b[i] < minBx) minBx = b[i];
-            if (b[i] > maxBx) maxBx = b[i];
-            if (b[i+1] < minBy) minBy = b[i+1];
-            if (b[i+1] > maxBy) maxBy = b[i+1];
-        }
-        avgBx /= 0.5 * m;
-        avgBy /= 0.5 * m;
+                if (j >= 2) {
+                    if (prevWasInside != inside) {
+                        // Add additional intersection point.
 
-        if (GeometryUtils.pointInConvex(b, avgAx, avgAy)) {
-            if (GeometryUtils.pointInConvex(a, avgBx, avgBy)) {
-                // Average points both within other polygon: we must check the bbox.
-                if (minBx < minAx || minBy < minAy || maxBx > maxAx || maxBy > maxAy) {
-                    // Polygon b encapsulates polygon a.
-                    return a;
-                } else if (minBx > minAx || minBy > minAy || maxBx < maxAx || maxBy < maxAy) {
-                    // Polygon a encapsulates polygon b.
-                    return b;
-                } else {
-                    // Identical bounds. We must test all corner points individually.
-                    for (i = 0; i <= n - 2; i += 2) {
-                        if (!GeometryUtils.pointInConvex(b, a[i], a[i+1])) {
-                            return b;
-                        }
+                        // Calculate intersection offset.
+                        let prevOffsetX = GeometryUtils.dotprod(c[j - 2] - a[i], c[j - 1] - a[i + 1], ax, ay);
+                        let offsetX = GeometryUtils.dotprod(dx, dy, ax, ay);
+
+                        let dxdy = (offsetX - prevOffsetX) / (offsetY - prevOffsetY);
+                        let isect = (prevOffsetX - dxdy * prevOffsetY);
+
+                        let isectX = a[i] + isect * ax;
+                        let isectY = a[i + 1] + isect * ay;
+
+                        nc.push(isectX, isectY);
+
+                        anyIntersections = true;
                     }
-                    return a;
+                } else {
+                    // Remember for last vertex.
+                    firstWasInside = inside;
+                    firstOffsetY = offsetY;
                 }
-            } else {
-                return a;
+
+                if (inside) {
+                    // Add vertex.
+                    nc.push(c[j], c[j + 1]);
+                }
+
+                if (j == m - 2) {
+                    // Complete the polygon with the edge from last to first.
+                    if (inside != firstWasInside) {
+                        // Add additional intersection point.
+                        let firstOffsetX = GeometryUtils.dotprod(c[0] - a[i], c[1] - a[i + 1], ax, ay);
+
+                        let offsetX = GeometryUtils.dotprod(dx, dy, ax, ay);
+
+                        let dxdy = (offsetX - firstOffsetX) / (offsetY - firstOffsetY);
+                        let isect = (firstOffsetX - dxdy * firstOffsetY);
+
+                        let isectX = a[i] + isect * ax;
+                        let isectY = a[i + 1] + isect * ay;
+
+                        nc.push(isectX, isectY);
+
+                        anyIntersections = true;
+                    }
+                }
+
+                prevWasInside = inside;
+                prevOffsetY = offsetY;
             }
-        } else {
-            if (GeometryUtils.pointInConvex(a, avgBx, avgBy)) {
+
+            c = nc;
+        }
+
+        if (c.length) {
+            if (!anyIntersections) {
+                // The output polygon matches b. Return it by reference so that we can check for clipping activity.
                 return b;
             } else {
-                // No intersection: empty result.
-                return [];
+                return c;
             }
-        }
-    }
-};
+        } else {
+            // This is a special case which occurs if there are no intersections of any of the edges.
+
+            // Check which polygon lies inside the other.
+
+            // Get bounding box of a.
+            let minAx = a[0];
+            let maxAx = a[0];
+            let minAy = a[1];
+            let maxAy = a[1];
+
+            // Get average point of a.
+            let avgAx = a[0], avgAy = a[1];
+            for (i = 2; i <= n - 2; i += 2) {
+                avgAx += a[i];
+                avgAy += a[i + 1];
+
+                if (a[i] < minAx) minAx = a[i];
+                if (a[i] > maxAx) maxAx = a[i];
+                if (a[i + 1] < minAy) minAy = a[i + 1];
+                if (a[i + 1] > maxAy) maxAy = a[i + 1];
+            }
+            avgAx /= 0.5 * n;
+            avgAy /= 0.5 * n;
 
 
+            // Get bounding box of b.
+            let minBx = b[0];
+            let maxBx = b[0];
+            let minBy = b[1];
+            let maxBy = b[1];
 
-/**
- * The texture manager.
- * @constructor
- */
-function TextureManager(stage, gl) {
+            // Get average point of a.
+            m = b.length;
+            let avgBx = b[0], avgBy = b[1];
+            for (i = 2; i <= m - 2; i += 2) {
+                avgBx += b[i];
+                avgBy += b[i + 1];
 
-    this.stage = stage;
+                if (b[i] < minBx) minBx = b[i];
+                if (b[i] > maxBx) maxBx = b[i];
+                if (b[i + 1] < minBy) minBy = b[i + 1];
+                if (b[i + 1] > maxBy) maxBy = b[i + 1];
+            }
+            avgBx /= 0.5 * m;
+            avgBy /= 0.5 * m;
 
-    this.gl = gl;
-
-    /**
-     * The texture memory in pixels. After reaching this number, old unused textures will be garbage collected.
-     * The actual memory usage is observed to be about 10B per pixel.
-     * @type {number}
-     */
-    this.textureMemory = stage.textureMemory;
-
-    /**
-     * The currently used amount of texture memory.
-     * @type {number}
-     */
-    this.usedTextureMemory = 0;
-
-    /**
-     * All uploaded texture sources.
-     * @type {TextureSource[]}
-     */
-    this.uploadedTextureSources = [];
-
-    /**
-     * The texture source lookup id to texture source hashmap.
-     * @type {Map<String, TextureSource>}
-     */
-    this.textureSourceHashmap = new Map();
-
-    /**
-     * The texture source id to texture source hashmap.
-     * (only the texture sources that are referenced by one or more active components).
-     * @type {Map<Number, TextureSource>}
-     */
-    this.textureSourceIdHashmap = new Map();
-
-}
-
-TextureManager.prototype.destroy = function() {
-    for (var i = 0, n = this.uploadedTextureSources.length; i < n; i++) {
-        var ts = this.uploadedTextureSources[i];
-        this.gl.deleteTexture(ts.glTexture);
-    }
-};
-
-/**
- * Loads a texture source from a source reference (.src property).
- */
-TextureManager.prototype.loadTextureSourceString = function(src, ts, sync, cb) {
-    if (!sync && this.stage.useTextureProcess && this.stage.textureProcess.isConnected() && this.stage.textureProcess.loadTextureSourceString) {
-        if (!this.stage.textureProcess.loadTextureSourceString(src, ts, cb)) {
-            // Cannot be loaded remotely. Fallback: load sync.
-            this.stage.adapter.loadTextureSourceString(src, cb);
-        }
-    } else {
-        this.stage.adapter.loadTextureSourceString(src, cb);
-    }
-};
-
-/**
- * Loads a text from the finalized text settings.
- */
-TextureManager.prototype.loadText = function(settings, ts, sync, cb) {
-    if (!sync && this.stage.useTextureProcess && this.stage.textureProcess.isConnected() && this.stage.textureProcess.loadText) {
-        if (!this.stage.textureProcess.loadText(settings, ts, cb)) {
-            // Cannot be loaded remotely. Fallback: load sync.
-            this.stage.adapter.loadText(settings, cb);
-        }
-    } else {
-        this.stage.adapter.loadText(settings, cb);
-    }
-};
-
-/**
- * @param {string|function} source
- * @param {object} [options]
- *   - id: number
- *     Fixed id. Handy when using base64 strings or when using canvas textures.
- *   - x: number
- *     Clipping offset x.
- *   - y: number
- *     Clipping offset y.
- *   - w: number
- *     Clipping offset w.
- *   - h: number
- *     Clipping offset h.
- *   - precision: number
- *     Render precision (0.5 = fuzzy, 1 = normal, 2 = sharp even when scaled twice, etc.).
- *
- * @returns {Texture}
- */
-TextureManager.prototype.getTexture = function(source, options) {
-    var id = options && options.id || null;
-
-    var texture, textureSource;
-    if (Utils.isString(source)) {
-        id = id || source;
-
-        // Check if texture source is already known.
-        textureSource = this.textureSourceHashmap.get(id);
-        if (!textureSource) {
-            // Create new texture source.
-            var self = this;
-            var func = function(cb, ts, sync) {
-                self.loadTextureSourceString(source, ts, sync, cb);
-            };
-            textureSource = this.getTextureSource(func, id);
-        }
-    } else {
-        // Check if texture source is already known.
-        textureSource = id ? this.textureSourceHashmap.get(id) : null;
-        if (!textureSource) {
-            if (source instanceof TextureSource) {
-                textureSource = source;
+            if (GeometryUtils.pointInConvex(b, avgAx, avgAy)) {
+                if (GeometryUtils.pointInConvex(a, avgBx, avgBy)) {
+                    // Average points both within other polygon: we must check the bbox.
+                    if (minBx < minAx || minBy < minAy || maxBx > maxAx || maxBy > maxAy) {
+                        // Polygon b encapsulates polygon a.
+                        return a;
+                    } else if (minBx > minAx || minBy > minAy || maxBx < maxAx || maxBy < maxAy) {
+                        // Polygon a encapsulates polygon b.
+                        return b;
+                    } else {
+                        // Identical bounds. We must test all corner points individually.
+                        for (i = 0; i <= n - 2; i += 2) {
+                            if (!GeometryUtils.pointInConvex(b, a[i], a[i + 1])) {
+                                return b;
+                            }
+                        }
+                        return a;
+                    }
+                } else {
+                    return a;
+                }
             } else {
-                // Create new texture source.
-                textureSource = this.getTextureSource(source, id);
-
-                if (id) {
-                    this.textureSourceHashmap.set(id, textureSource);
+                if (GeometryUtils.pointInConvex(a, avgBx, avgBy)) {
+                    return b;
+                } else {
+                    // No intersection: empty result.
+                    return [];
                 }
             }
         }
     }
+}
 
-    // Create new texture object.
-    texture = new Texture(this, textureSource);
-    texture.x = options && options.x || 0;
-    texture.y = options && options.y || 0;
-    texture.w = options && options.w || 0;
-    texture.h = options && options.h || 0;
-    texture.clipping = !!(texture.x || texture.y || texture.w || texture.h);
-    texture.precision = options && options.precision || 1;
-    return texture;
-};
 
-TextureManager.prototype.getTextureSource = function(func, id) {
-    // Check if texture source is already known.
-    var textureSource = id ? this.textureSourceHashmap.get(id) : null;
-    if (!textureSource) {
-        // Create new texture source.
-        textureSource = new TextureSource(this, func);
+/**
+ * Maintains and renders a tree structure of views.
+ * Copyright Metrological, 2017
+ */
 
-        if (id) {
-            textureSource.lookupId = id;
-            this.textureSourceHashmap.set(id, textureSource);
+
+/**
+ * @todo:
+ * - class loader (require)
+ *   - should allow easy debug in nodejs & web
+ *   - should be stripped when building for web
+ *   - delete nodejs dist builders
+ * - dist version (grunt file)
+ * - nodejs
+ * - nodejs texture process
+ * - tools
+ * - list
+ * - encapsulate tags branches (for isolating widgets)
+ * - merger: isRgba? isNumeric?
+ * - quick clone
+ * - hasAlpha in format, and try to prepare images for upload (so that we get buffer performance).
+ * - test for existing apps, convert existing apps
+ * - chagne documentation
+ * - zIndexTester
+ * - clean up old stuff
+ */
+class Stage extends Base {
+    constructor(options) {
+        super();
+
+        EventEmitter.call(this);
+
+        this.setOptions(options);
+
+        this.init();
+    }
+
+    setOptions(o) {
+        this.options = o;
+
+        let opt = (name, def) => {
+            let value = o[name];
+
+            if (value === undefined) {
+                this.options[name] = def;
+            } else {
+                this.options[name] = value;
+            }
+        }
+
+        opt('w', 1280);
+        opt('h', 720);
+        opt('canvas', this.options.canvas);
+        opt('renderWidth', this.options.w);
+        opt('renderHeight', this.options.h);
+        opt('textureMemory', 12e6);
+        opt('glClearColor', [0, 0, 0, 0]);
+        opt('defaultFontFace', 'Sans-Serif');
+        opt('defaultPrecision', (this.options.h / this.options.renderHeight));
+        opt('fixedDt', 0);
+        opt('useTextureAtlas', true);
+        opt('debugTextureAtlas', false);
+    }
+
+    init() {
+        this.adapter = new WebAdapter();
+        
+
+        if (this.adapter.init) {
+            this.adapter.init(this);
+        }
+
+        this.gl = this.adapter.createWebGLContext(this.options.w, this.options.h);
+
+        this.setGlClearColor(this.options.glClearColor);
+
+        this.frameCounter = 0;
+
+        
+        this.transitions = new TransitionManager(this);
+        this.animations = new AnimationManager(this);
+        
+
+        this.renderer = new Renderer(this);
+
+        this.textureManager = new TextureManager(this);
+
+        if (this.options.useTextureAtlas) {
+            this.textureAtlas = new TextureAtlas(this);
+        }
+
+        this.ctx = new VboContext(this);
+
+        this.root = this.createView();
+
+        this.root.setAsRoot();
+
+        this.startTime = 0;
+        this.currentTime = 0;
+        this.dt = 0;
+
+        /**
+         * Counts the number of attached components that are using z-indices.
+         * This is used to determine if we can use a single-pass or dual-pass update/render loop.
+         * @type {number}
+         */
+        this.zIndexUsage = 0;
+
+        this._destroyed = false;
+
+        let self = this;
+
+        // Preload rectangle texture, so that we can skip some border checks for loading textures.
+        this.rectangleTexture = this.texture(function(cb) {
+            var whitePixel = new Uint8Array([255, 255, 255, 255]);
+            return cb(null, whitePixel, {w: 1, h: 1});
+        }, {id: '__whitepix'});
+
+        let source = this.rectangleTexture.source;
+        this.rectangleTexture.source.load(true);
+
+        source.permanent = true;
+        if (self.textureAtlas) {
+            self.textureAtlas.add(source);
+        }
+
+        self.adapter.startLoop();
+    }
+
+    destroy() {
+        this.adapter.stopLoop();
+        if (this.textureAtlas) {
+            this.textureAtlas.destroy();
+        }
+        this.renderer.destroy();
+        this.textureManager.destroy();
+        this._destroyed = true;
+    }
+
+    stop() {
+        this.adapter.stopLoop();
+    }
+
+    resume() {
+        if (this._destroyed) {
+            throw new Error("Already destroyed");
+        }
+        this.adapter.startLoop();
+    }
+
+    getCanvas() {
+        return this.adapter.getWebGLCanvas();
+    }
+
+    drawFrame() {
+        if (this.options.fixedDt) {
+            this.dt = this.options.fixedDt;
+        } else {
+            this.dt = (!this.startTime) ? .02 : .001 * (this.currentTime - this.startTime);
+        }
+        this.startTime = this.currentTime;
+        this.currentTime = (new Date()).getTime();
+
+        this.emit('frameStart');
+
+        if (this.textureManager.isFull()) {
+            console.log('clean up');
+            this.textureManager.freeUnusedTextureSources();
+        }
+
+        this.emit('update');
+
+        if (this.textureAtlas) {
+            // Add new texture sources to the texture atlas.
+            this.textureAtlas.flush();
+        }
+
+        let changes = !this.ctx.staticStage;
+        if (changes) {
+            this.ctx.updateAndFillVbo(this.zIndexUsage > 0);
+
+            // We will render the stage even if it's stable shortly after importing a texture in the texture atlas, to prevent out-of-syncs.
+            this.renderer.render();
+        }
+
+        this.adapter.nextFrame(changes);
+
+        this.frameCounter++;
+    }
+
+    setGlClearColor(clearColor) {
+        if (Array.isArray(clearColor)) {
+            this.options.glClearColor = clearColor;
+        } else {
+            this.options.glClearColor = StageUtils.getRgbaComponentsNormalized(clearColor);
         }
     }
 
-    return textureSource;
-};
+    createView() {
+        return new View(this);
+    }
 
-TextureManager.prototype.uploadTextureSource = function(textureSource, source, format) {
-    if (textureSource.glTexture) return;
+    /**
+     * Returns the specified texture.
+     * @param {string|function} source
+     * @param {object} options
+     *   - id: number
+     *     Fixed id. Handy when using base64 strings or when using canvas textures.
+     *   - x: number
+     *     Clipping offset x.
+     *   - y: number
+     *     Clipping offset y.
+     *   - w: number
+     *     Clipping offset w.
+     *   - h: number
+     *     Clipping offset h.
+     *   - precision: number
+     *     Render precision (0.5 = fuzzy, 1 = normal, 2 = sharp even when scaled twice, etc.).
+     * @returns {Texture}
+     */
+    texture(source, options) {
+        return this.textureManager.getTexture(source, options);
+    }
+}
 
-    // Load texture.
-    var gl = this.gl;
-    var sourceTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
+Base.mixinEs5(Stage, EventEmitter);
 
-    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, format.premultiplyAlpha);
 
+
+
+/**
+ * Copyright Metrological, 2017
+ */
+class Renderer {
+
+    constructor(stage) {
+        this.stage = stage;
+
+        this.gl = stage.gl;
+
+        this._program = null;
+
+        this._vertexShaderSrc = [
+            "#ifdef GL_ES",
+            "precision lowp float;",
+            "#endif",
+            "attribute vec2 aVertexPosition;",
+            "attribute vec2 aTextureCoord;",
+            "attribute vec4 aColor;",
+            "uniform mat4 projectionMatrix;",
+            "varying vec2 vTextureCoord;",
+            "varying vec4 vColor;",
+            "void main(void){",
+            "    gl_Position = projectionMatrix * vec4(aVertexPosition, 0.0, 1.0);",
+            "    vTextureCoord = aTextureCoord;",
+            "    vColor = aColor;",
+            "}"
+        ].join("\n");
+
+        this._fragmentShaderSrc = [
+            "#ifdef GL_ES",
+            "precision lowp float;",
+            "#endif",
+            "varying vec2 vTextureCoord;",
+            "varying vec4 vColor;",
+            "uniform sampler2D uSampler;",
+            "void main(void){",
+            "    gl_FragColor = texture2D(uSampler, vTextureCoord) * vColor;",
+            "}"
+        ].join("\n");
+
+        // The matrix that causes the [0,0 - W,H] box to map to [-1,-1 - 1,1] in the end results.
+        this._projectionMatrix = new Float32Array([
+            2/this.stage.options.renderWidth, 0, 0, 0,
+            0, -2/this.stage.options.renderHeight, 0, 0,
+            0, 0, 1, 0,
+            -1, 1, 0, 1
+        ]);
+
+        this._paramsGlBuffer = null;
+
+        this._program = null;
+
+        this._vertexPositionAttribute = null;
+        this._textureCoordAttribute = null;
+        this._colorAttribute = null;
+
+        this._indicesGlBuffer = null;
+
+        this._initShaderProgram();
+
+    }
+
+    _initShaderProgram() {
+        let gl = this.gl;
+
+        let glVertShader = this._glCompile(gl.VERTEX_SHADER, this._vertexShaderSrc);
+        let glFragShader = this._glCompile(gl.FRAGMENT_SHADER, this._fragmentShaderSrc);
+
+        this._program = gl.createProgram();
+
+        gl.attachShader(this._program, glVertShader);
+        gl.attachShader(this._program, glFragShader);
+        gl.linkProgram(this._program);
+
+        // if linking fails, then log and cleanup
+        if (!gl.getProgramParameter(this._program, gl.LINK_STATUS)) {
+            console.error('Error: Could not initialize shader.');
+            console.error('gl.VALIDATE_STATUS', gl.getProgramParameter(this._program, gl.VALIDATE_STATUS));
+            console.error('gl.getError()', gl.getError());
+
+            // if there is a program info log, log it
+            if (gl.getProgramInfoLog(this._program) !== '') {
+                console.warn('Warning: gl.getProgramInfoLog()', gl.getProgramInfoLog(this._program));
+            }
+
+            gl.deleteProgram(this._program);
+            this._program = null;
+        }
+        gl.useProgram(this._program);
+
+        // clean up some shaders
+        gl.deleteShader(glVertShader);
+        gl.deleteShader(glFragShader);
+
+        // Bind attributes.
+        this._vertexPositionAttribute = gl.getAttribLocation(this._program, "aVertexPosition");
+        this._textureCoordAttribute = gl.getAttribLocation(this._program, "aTextureCoord");
+        this._colorAttribute = gl.getAttribLocation(this._program, "aColor");
+
+        // Init webgl arrays.
+
+        this.allIndices = new Uint16Array(100000);
+
+        // fill the indices with the quads to draw.
+        for (let i = 0, j = 0; i < Renderer.MAX_QUADS * 6; i += 6, j += 4) {
+            this.allIndices[i] = j;
+            this.allIndices[i + 1] = j + 1;
+            this.allIndices[i + 2] = j + 2;
+            this.allIndices[i + 3] = j;
+            this.allIndices[i + 4] = j + 2;
+            this.allIndices[i + 5] = j + 3;
+        }
+
+        this._paramsGlBuffer = gl.createBuffer();
+
+        this._indicesGlBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._indicesGlBuffer);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this.allIndices, gl.STATIC_DRAW);
+
+        // Set transformation matrix.
+        let projectionMatrixAttribute = gl.getUniformLocation(this._program, "projectionMatrix");
+        gl.uniformMatrix4fv(projectionMatrixAttribute, false, this._projectionMatrix);
+    }
     
-    if (this.stage.measureLongFrames) {
-        var s = this.stage.getHrTime();
-    }
-    this.stage.adapter.uploadGlTexture(gl, textureSource, source);
-    if (this.stage.measureLongFrames) {
-        if (!isNode && (source instanceof ImageData || source instanceof HTMLImageElement || source instanceof HTMLCanvasElement || source instanceof HTMLVideoElement || (window.ImageBitmap && source instanceof ImageBitmap))) {
-            this.stage.longFrameComponents.uploadImage += (this.stage.getHrTime() - s);
-            this.stage.longFrameComponents.nUploadImage++;
-        } else {
-            this.stage.longFrameComponents.uploadRaw += (this.stage.getHrTime() - s);
-            this.stage.longFrameComponents.nUploadRaw++;
-        }
-    }
+    _glCompile(type, src) {
+        let shader = this.gl.createShader(type);
 
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        this.gl.shaderSource(shader, src);
+        this.gl.compileShader(shader);
 
-    // Store texture.
-    textureSource.glTexture = sourceTexture;
-
-    this.usedTextureMemory += textureSource.w * textureSource.h;
-
-    this.uploadedTextureSources.push(textureSource);
-};
-
-TextureManager.prototype.isFull = function() {
-    return (this.usedTextureMemory >= this.textureMemory);
-};
-
-/**
- * Garbage collects all unused textures.
- */
-TextureManager.prototype.freeUnusedTextureSources = function() {
-    var remainingTextureSources = [];
-    var usedTextureMemoryBefore = this.usedTextureMemory;
-    for (var i = 0, n = this.uploadedTextureSources.length; i < n; i++) {
-        var ts = this.uploadedTextureSources[i];
-        if (!ts.permanent && (ts.components.size === 0)) {
-            this.freeTextureSource(ts);
-        } else {
-            remainingTextureSources.push(ts);
-        }
-    }
-
-    var self = this;
-    this.textureSourceHashmap.forEach(function(textureSource) {
-        if (!textureSource.permanent && (textureSource.components.size === 0)) {
-            self.freeTextureSource(textureSource);
-        }
-    });
-
-    this.uploadedTextureSources = remainingTextureSources;
-    console.log('freed ' + ((usedTextureMemoryBefore - this.usedTextureMemory) / 1e6).toFixed(2) + 'M texture pixels from GPU memory. Remaining: ' + this.usedTextureMemory);
-};
-
-/**
- * Frees the WebGL texture from memory.
- * @param {TextureSource} textureSource
- * @pre textureSource.components.size === 0
- */
-TextureManager.prototype.freeTextureSource = function(textureSource) {
-    if (textureSource.glTexture) {
-        this.usedTextureMemory -= textureSource.w * textureSource.h;
-        this.gl.deleteTexture(textureSource.glTexture);
-        textureSource.glTexture = null;
-    }
-
-    // Should be reloaded.
-    textureSource.loadingSince = null;
-
-    if (textureSource.lookupId) {
-        // Delete it from the texture source hashmap to allow GC to collect it.
-        // If it is still referenced somewhere, we'll re-add it later.
-        this.textureSourceHashmap.delete(textureSource.lookupId);
-    }
-};
-
-/**
- * Completely delete the texture source and all references to it.
- * @param {TextureSource} textureSource
- */
-TextureManager.prototype.removeTextureSource = function(textureSource) {
-    this.freeTextureSource(textureSource);
-
-    textureSource.loadingSince = null;
-
-    if (textureSource.lookupId) {
-        this.textureSourceHashmap.delete(textureSource.lookupId);
-    }
-};
-
-
-/**
- * A texture.
- * @param {TextureSource} source
- * @param {TextureManager} manager
- * @constructor
- */
-function Texture(manager, source) {
-    this.manager = manager;
-
-    this.id = ++Texture.id;
-
-    /**
-     * The associated texture source.
-     * Should not be changed.
-     * @type {TextureSource}
-     */
-    this.source = source;
-
-    /**
-     * The texture clipping x-offset.
-     * @type {number}
-     */
-    this._x = 0;
-
-    /**
-     * The texture clipping y-offset.
-     * @type {number}
-     */
-    this._y = 0;
-
-    /**
-     * The texture clipping width. If 0 then full width.
-     * @type {number}
-     */
-    this._w = 0;
-
-    /**
-     * The texture clipping height. If 0 then full height.
-     * @type {number}
-     */
-    this._h = 0;
-
-    /**
-     * Render precision (0.5 = fuzzy, 1 = normal, 2 = sharp even when scaled twice, etc.).
-     * @type {number}
-     * @private
-     */
-    this._precision = 1;
-
-    /**
-     * Indicates if this texture uses clipping.
-     * @type {boolean}
-     */
-    this.clipping = false;
-
-    /**
-     * All active Components that are using this texture (either as texture or displayedTexture, or both).
-     * @type {Set<Component>}
-     */
-    this.components = new Set();
-
-}
-
-Texture.prototype.addComponent = function(c) {
-    this.components.add(c);
-    this.source.addComponent(c);
-};
-
-Texture.prototype.removeComponent = function(c, d) {
-    this.components.delete(c);
-    if (d) {
-        this.source.removeComponent(c);
-    }
-};
-
-Texture.prototype.enableClipping = function(x, y, w, h) {
-    if (this._x !== x || this._y !== y || this._w !== w || this._h !== h) {
-        this._x = x;
-        this._y = y;
-        this._w = w;
-        this._h = h;
-
-        this.updateClipping(true);
-    }
-};
-
-Texture.prototype.disableClipping = function() {
-    if (this._x || this._y || this._w || this._h) {
-        this._x = 0;
-        this._y = 0;
-        this._w = 0;
-        this._h = 0;
-
-        this.updateClipping(false);
-    }
-};
-
-Texture.prototype.updateClipping = function(overrule) {
-    if (overrule === true || overrule === false) {
-        this.clipping = overrule;
-    } else {
-        this.clipping = !!(this._x || this._y || this._w || this._h);
-    }
-
-    var self = this;
-    this.components.forEach(function(component) {
-        // Ignore if not the currently displayed texture.
-        if (component.displayedTexture === self) {
-            component.onDisplayedTextureClippingChanged();
-        }
-    });
-};
-
-Texture.prototype.updatePrecision = function() {
-    var self = this;
-    this.components.forEach(function(component) {
-        // Ignore if not the currently displayed texture.
-        if (component.displayedTexture === self) {
-            component.onPrecisionChanged();
-        }
-    });
-};
-
-Texture.prototype.replaceTextureSource = function(newSource) {
-    var components = new Set(this.components);
-
-    var self = this;
-
-    this.source = newSource;
-
-    // Make sure that all components and component links are updated properly.
-    var oldSource = this.source;
-    components.forEach(function(component) {
-        // Remove links from previous source, but only if there is no reason for it any more.
-        var keep = (components.displayedTexture && components.displayedTexture !== self && components.displayedTexture.source === oldSource);
-        keep = keep || (components.texture && components.texture !== self && components.texture.source === oldSource);
-
-        if (!keep) {
-            oldSource.removeComponent(component);
-        }
-
-        newSource.addComponent(component);
-
-        if (newSource.glTexture) {
-            component.displayedTexture = self;
-        }
-    });
-
-};
-
-Texture.prototype.load = function(sync) {
-    this.source.load((sync !== false));
-};
-
-/**
- * Frees the GL texture, and forces a reload when it is required again.
- */
-Texture.prototype.free = function() {
-    this.source.free();
-};
-
-Texture.prototype.set = function(obj) {
-    var keys = Object.keys(obj);
-    for (var i = 0; i < keys.length; i++) {
-        var value = obj[keys[i]];
-        this.setSetting(keys[i], value);
-    }
-};
-
-Texture.prototype.setSetting = function(name, value) {
-    var setting = Texture.SETTINGS[name];
-    if (setting) {
-        setting.s(this, value);
-    } else {
-        console.warn("Unknown texture property: " + name);
-    }
-};
-
-Texture.prototype.getNonDefaults = function() {
-    var nonDefaults = {};
-    if (this.x !== 0) nonDefaults['x'] = this.x;
-    if (this.y !== 0) nonDefaults['y'] = this.y;
-    if (this.w !== 0) nonDefaults['w'] = this.w;
-    if (this.h !== 0) nonDefaults['h'] = this.h;
-    if (this.precision !== 1) nonDefaults['precision'] = this.precision;
-    return nonDefaults;
-};
-
-Object.defineProperty(Texture.prototype, 'x', {
-    get: function() {
-        return this._x;
-    },
-    set: function(v) {
-        if (this._x !== v) {
-            this._x = v;
-
-            this.updateClipping();
-        }
-    }
-});
-
-Object.defineProperty(Texture.prototype, 'y', {
-    get: function() {
-        return this._y;
-    },
-    set: function(v) {
-        if (this._y !== v) {
-            this._y = v;
-
-            this.updateClipping();
-        }
-    }
-});
-
-Object.defineProperty(Texture.prototype, 'w', {
-    get: function() {
-        return this._w;
-    },
-    set: function(v) {
-        if (this._w !== v) {
-            this._w = v;
-
-            this.updateClipping();
-        }
-    }
-});
-
-Object.defineProperty(Texture.prototype, 'h', {
-    get: function() {
-        return this._h;
-    },
-    set: function(v) {
-        if (this._h !== v) {
-            this._h = v;
-
-            this.updateClipping();
-        }
-    }
-});
-
-Object.defineProperty(Texture.prototype, 'precision', {
-    get: function() {
-        return this._precision;
-    },
-    set: function(v) {
-        if (this._precision !== v) {
-            this._precision = v;
-
-            this.updatePrecision();
-        }
-    }
-});
-
-Texture.SETTINGS = {
-    'x': {s: function(obj, value) {obj.x = value}, m: StageUtils.mergeNumbers},
-    'y': {s: function(obj, value) {obj.y = value}, m: StageUtils.mergeNumbers},
-    'w': {s: function(obj, value) {obj.w = value}, m: StageUtils.mergeNumbers},
-    'h': {s: function(obj, value) {obj.h = value}, m: StageUtils.mergeNumbers},
-    'precision': {s: function(obj, value) {obj.precision = value}, m: StageUtils.mergeNumbers}
-};
-
-Texture.id = 0;
-
-
-/**
- * A texture source.
- * @constructor
- */
-var TextureSource = function(manager, loadCb) {
-
-    /**
-     * @type {TextureManager}
-     */
-    this.manager = manager;
-
-    this.stage = manager.stage;
-
-    this.id = ++TextureSource.id;
-
-    /**
-     * Identifier for reusing this texture.
-     * @type {String}
-     */
-    this.lookupId = null;
-
-    /**
-     * The factory for the source of this texture.
-     * @type {Function}
-     */
-    this.loadCb = loadCb;
-
-    /**
-     * If set, this is called when the texture source is no longer displayed (this.components.size becomes 0).
-     * @type {Function}
-     */
-    this.cancelCb = null;
-
-    /**
-     * Loading since timestamp in millis.
-     * @type {number}
-     */
-    this.loadingSince = 0;
-
-    /**
-     * Flag that indicates if this texture source was stored in the texture atlas.
-     * @type {boolean}
-     */
-    this.inTextureAtlas = false;
-
-    /**
-     * The x coordinate in the texture atlas.
-     * @type {number}
-     */
-    this.textureAtlasX = 0;
-
-    /**
-     * The y coordinate in the texture atlas.
-     * @type {number}
-     */
-    this.textureAtlasY = 0;
-
-    // Source dimensions, after loading.
-    this.w = 0;
-    this.h = 0;
-
-    // The WebGL loaded texture.
-    this.glTexture = null;
-
-    /**
-     * If true, then this texture source is never freed from memory during garbage collection.
-     * @type {boolean}
-     */
-    this.permanent = false;
-
-    /**
-     * All active Components that are using this texture source via a texture (either as texture or displayedTexture, or both).
-     * @type {Set<Component>}
-     */
-    this.components = new Set();
-
-    this.onload = null;
-
-    /**
-     * Sub-object with texture-specific rendering information.
-     * For images, this contains the src property, for texts, this contains handy rendering information.
-     * @type {Object}
-     */
-    this.renderInfo = null;
-
-};
-
-TextureSource.prototype.getRenderWidth = function() {
-    return this.w
-};
-
-TextureSource.prototype.getRenderHeight = function() {
-    return this.h;
-};
-
-TextureSource.prototype.addComponent = function(c) {
-    if (!this.components.has(c)) {
-        this.components.add(c);
-
-        if (this.glTexture) {
-            // If not yet loaded, wait until it is loaded until adding it to the texture atlas.
-            if (this.stage.useTextureAtlas) {
-                this.stage.textureAtlas.addActiveTextureSource(this);
-            }
-        }
-
-        if (this.components.size === 1) {
-            this.manager.textureSourceIdHashmap.set(this.id, this);
-            if (this.lookupId) {
-                if (!this.manager.textureSourceHashmap.has(this.lookupId)) {
-                    this.manager.textureSourceHashmap.set(this.lookupId, this);
-                }
-            }
-
-            this.becomesVisible();
-        }
-    }
-};
-
-TextureSource.prototype.removeComponent = function(c) {
-    if (this.components.delete(c)) {
-        if (!this.components.size) {
-            if (this.stage.useTextureAtlas) {
-                this.stage.textureAtlas.removeActiveTextureSource(this);
-            }
-            this.manager.textureSourceIdHashmap.delete(this.id);
-
-            this.becomesInvisible();
-        }
-    }
-};
-
-TextureSource.prototype.becomesVisible = function() {
-    this.load(false);
-};
-
-TextureSource.prototype.becomesInvisible = function() {
-    if (this.isLoading()) {
-        if (this.cancelCb) {
-            // Allow the callback to cancel loading.
-            this.cancelCb(this);
-        }
-    }
-};
-
-TextureSource.prototype.load = function(sync) {
-    if (this.isLoading() && sync) {
-        // We cancel the previous one.
-        if (this.cancelCb) {
-            // Allow the callback to cancel loading.
-            this.cancelCb(this);
-        }
-        this.loadingSince = 0;
-    }
-
-    if (!this.glTexture && !this.isLoading()) {
-        var self = this;
-        this.loadingSince = (new Date()).getTime();
-        this.loadCb(function(err, source, options) {
-            if (self.manager.stage.destroyed) {
-                // Ignore async load when stage is destroyed.
-                return;
-            }
-            self.loadingSince = 0;
-            if (err) {
-                // Emit txError.
-                self.onError(err);
-            } else if (source) {
-                self.setSource(source, options);
-            }
-        }, this, !!sync);
-    }
-};
-
-TextureSource.prototype.isLoading = function() {
-    return this.loadingSince > 0;
-};
-
-TextureSource.prototype.setSource = function(source, options) {
-    this.w = source.width || (options && options.w) || 0;
-    this.h = source.height || (options && options.h) || 0;
-
-    if (this.w > 2048 || this.h > 2048) {
-        console.error('Texture size too large: ' + source.width + 'x' + source.height + ' (max allowed is 2048x2048)');
-        return;
-    }
-
-    if (options && options.renderInfo) {
-        // Assign to id in cache so that it can be reused.
-        this.renderInfo = options.renderInfo;
-    }
-
-    var format = {
-        premultiplyAlpha: true,
-        flipBlueRed: false
-    };
-
-    if (options && options.hasOwnProperty('premultiplyAlpha')) {
-        format.premultiplyAlpha = options.premultiplyAlpha;
-    }
-
-    if (options && options.hasOwnProperty('flipBlueRed')) {
-        format.flipBlueRed = options.flipBlueRed;
-    }
-
-    this.manager.uploadTextureSource(this, source, format);
-
-    this.onLoad();
-};
-
-TextureSource.prototype.isVisible = function() {
-    return (this.components.size > 0);
-};
-
-TextureSource.prototype.onLoad = function() {
-    if (this.isVisible() && this.stage.useTextureAtlas) {
-        this.stage.textureAtlas.addActiveTextureSource(this);
-    }
-
-    this.components.forEach(function(component) {
-        component.onTextureSourceLoaded();
-    });
-
-    if (this.onload) this.onload();
-    this.onload = null;
-};
-
-TextureSource.prototype.onError = function(e) {
-    console.error('texture load error', e, this.id);
-    this.components.forEach(function(component) {
-        component.onTextureSourceLoadError(e);
-    });
-};
-
-TextureSource.prototype.onAddedToTextureAtlas = function(x, y) {
-    this.inTextureAtlas = true;
-    this.textureAtlasX = x;
-    this.textureAtlasY = y;
-
-    this.components.forEach(function(component) {
-        component.onTextureSourceAddedToTextureAtlas();
-    });
-};
-
-TextureSource.prototype.onRemovedFromTextureAtlas = function() {
-    this.inTextureAtlas = false;
-    this.components.forEach(function(component) {
-        component.onTextureSourceRemovedFromTextureAtlas();
-    });
-};
-
-TextureSource.prototype.free = function() {
-    this.manager.freeTextureSource(this);
-};
-
-TextureSource.id = 0;
-
-
-/**
- * The texture atlas which contains a single spritemap with all active textures.
- * @constructor
- */
-function TextureAtlas(stage, gl) {
-
-    this.stage = stage;
-
-    this.w = 2048;
-    this.h = 2048;
-
-    // The structure of the active partition.
-    this.activeTree = new TextureAtlasTree(this.w, this.h);
-
-    /**
-     * The texture sources that should be on to the texture atlas (active in stage, loaded and with valid dimensions).
-     * @type {Set<TextureSource>}
-     */
-    this.activeTextureSources = new Set();
-
-    /**
-     * The texture sources that were added to the texture atlas (since the last defragment).
-     * @type {Set<TextureSource>}
-     */
-    this.addedTextureSources = new Set();
-
-    /**
-     * The total surface of the current texture atlas that's being used by unused texture sources.
-     * @type {number}
-     */
-    this.wastedPixels = 0;
-    
-    /**
-     * The frame number that an import last took place.
-     * This is used in order to prevent
-     * @type {number}
-     */
-    this.lastImportFrame = 0;
-
-    /**
-     * @type {WebGLRenderingContext}
-     */
-    this.gl = gl;
-
-    this.vertexShaderSrc = [
-        "#ifdef GL_ES",
-        "precision lowp float;",
-        "#endif",
-        "attribute vec2 aVertexPosition;",
-        "attribute vec2 aTextureCoord;",
-        "uniform mat4 projectionMatrix;",
-        "varying vec2 vTextureCoord;",
-        "void main(void){",
-        "    gl_Position = projectionMatrix * vec4(aVertexPosition, 0.0, 1.0);",
-        "    vTextureCoord = aTextureCoord;",
-        "}"
-    ].join("\n");
-
-    this.fragmentShaderSrc = [
-        "#ifdef GL_ES",
-        "precision lowp float;",
-        "#endif",
-        "varying vec2 vTextureCoord;",
-        "uniform sampler2D uSampler;",
-        "void main(void){",
-        "    gl_FragColor = texture2D(uSampler, vTextureCoord);",
-        "}"
-    ].join("\n");
-
-    this.program = null;
-
-    /**
-     * The last render frame number that the texture atlas was defragmented on.
-     * @type {number}
-     */
-    this.lastDefragFrame = 0;
-
-    /**
-     * Texture atlas size limit.
-     * @type {number}
-     */
-    this.pixelsLimit = this.w * this.h / 32;
-
-    /**
-     * The minimal amount of pixels that should be able to be reclaimed when performing a defragment.
-     * @type {number}
-     */
-    this.minWastedPixels = this.w * this.h / 8;
-
-    this.defragNeeded = false;
-
-    /**
-     * Pending texture sources to be uploaded.
-     * @type {TextureSource[]}
-     */
-    this.uploads = [];
-
-    // The matrix that causes the [0,0 - w,h] box to map to [-1,-1 - 1,1] in the end results.
-    this.projectionMatrix = new Float32Array([
-        2/this.w, 0, 0, 0,
-        0, 2/this.h, 0, 0,
-        0, 0, 1, 0,
-        -1, -1, 0, 1
-    ]);
-
-    this.initShaderProgram();
-
-    var gl = this.gl;
-
-    this.texture = this.gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, this.texture);
-
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.w, this.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(this.w * this.h * 4));
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.bindTexture(gl.TEXTURE_2D, null);
-
-    // Create framebuffer which can be used to modify the texture.
-    this.framebuffer = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.texture, 0);
-    if (gl.getError() != gl.NO_ERROR) {
-        throw "Some WebGL error occurred while trying to create framebuffer.";
-    }
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-    // Set transformation matrix.
-    var projectionMatrixAttribute = gl.getUniformLocation(this.program, "projectionMatrix");
-    gl.uniformMatrix4fv(projectionMatrixAttribute, false, this.projectionMatrix);
-
-}
-
-TextureAtlas.prototype.destroy = function() {
-    this.gl.deleteTexture(this.texture);
-    this.gl.deleteFramebuffer(this.framebuffer);
-    this.gl.deleteBuffer(this.paramsGlBuffer);
-    this.gl.deleteBuffer(this.indicesGlBuffer);
-    this.gl.deleteProgram(this.program);
-};
-
-/**
- * @access private
- */
-TextureAtlas.prototype.initShaderProgram = function() {
-    var gl = this.gl;
-
-    var glVertShader = this.glCompile(gl.VERTEX_SHADER, this.vertexShaderSrc);
-    var glFragShader = this.glCompile(gl.FRAGMENT_SHADER, this.fragmentShaderSrc);
-
-    this.program = gl.createProgram();
-
-    gl.attachShader(this.program, glVertShader);
-    gl.attachShader(this.program, glFragShader);
-    gl.linkProgram(this.program);
-
-    // if linking fails, then log and cleanup
-    if (!gl.getProgramParameter(this.program, gl.LINK_STATUS)) {
-        console.error('Error: Could not initialize shader.');
-        console.error('gl.VALIDATE_STATUS', gl.getProgramParameter(this.program, gl.VALIDATE_STATUS));
-        console.error('gl.getError()', gl.getError());
-
-        // if there is a program info log, log it
-        if (gl.getProgramInfoLog(this.program) !== '') {
-            console.warn('Warning: gl.getProgramInfoLog()', gl.getProgramInfoLog(this.program));
-        }
-
-        gl.deleteProgram(this.program);
-        this.program = null;
-    }
-    gl.useProgram(this.program);
-
-    // clean up some shaders
-    gl.deleteShader(glVertShader);
-    gl.deleteShader(glFragShader);
-
-    // Bind attributes.
-    this.vertexPositionAttribute = gl.getAttribLocation(this.program, "aVertexPosition");
-    this.textureCoordAttribute = gl.getAttribLocation(this.program, "aTextureCoord");
-
-    // Init webgl arrays.
-    // We support up to 1000 textures per call, all consisting out of 9 elements.
-    this.paramsBuffer = new ArrayBuffer(16 * 4 * 9 * 1000);
-    this.allCoords = new Float32Array(this.paramsBuffer);
-    this.allTexCoords = new Float32Array(this.paramsBuffer);
-
-    this.allIndices = new Uint16Array(6 * 9 * 1000);
-
-    // fill the indices with the quads to draw.
-    for (var i = 0, j = 0; i < 1000 * 6 * 9; i += 6, j += 4) {
-        this.allIndices[i] = j;
-        this.allIndices[i + 1] = j + 1;
-        this.allIndices[i + 2] = j + 2;
-        this.allIndices[i + 3] = j;
-        this.allIndices[i + 4] = j + 2;
-        this.allIndices[i + 5] = j + 3;
-    }
-
-    this.indicesGlBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indicesGlBuffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this.allIndices, gl.STATIC_DRAW);
-
-    // Set transformation matrix.
-    var projectionMatrixAttribute = gl.getUniformLocation(this.program, "projectionMatrix");
-    gl.uniformMatrix4fv(projectionMatrixAttribute, false, this.projectionMatrix);
-
-};
-
-/**
- * @access private
- */
-TextureAtlas.prototype.glCompile = function (type, src) {
-    var shader = this.gl.createShader(type);
-
-    this.gl.shaderSource(shader, src);
-    this.gl.compileShader(shader);
-
-    if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-        console.log(this.gl.getShaderInfoLog(shader));
-        return null;
-    }
-
-    return shader;
-};
-
-/**
- * @access private
- */
-TextureAtlas.prototype.uploadTextureSources = function(textureSources) {
-    var i;
-
-    var n = textureSources.length;
-    if (n > 1000) {
-        n = 1000;
-    }
-    for (i = 0; i < n; i++) {
-
-        var w = textureSources[i].w;
-        var h = textureSources[i].h;
-
-        var x = textureSources[i].textureAtlasX;
-        var y = textureSources[i].textureAtlasY;
-
-        var divW = 1 / w;
-        var divH = 1 / h;
-
-        var offset = i * 16 * 9;
-
-        // Add 2px margin to avoid edge artifacts.
-
-        // Full area.
-        this.allCoords[offset + 0] = x;
-        this.allCoords[offset + 1] = y;
-        this.allCoords[offset + 4] = x + w;
-        this.allCoords[offset + 5] = y;
-        this.allCoords[offset + 8] = x + w;
-        this.allCoords[offset + 9] = y + h;
-        this.allCoords[offset + 12] = x;
-        this.allCoords[offset + 13] = y + h;
-
-        // Top row.
-        this.allCoords[offset + 16] = x;
-        this.allCoords[offset + 17] = y - 1;
-        this.allCoords[offset + 20] = x + w;
-        this.allCoords[offset + 21] = y - 1;
-        this.allCoords[offset + 24] = x + w;
-        this.allCoords[offset + 25] = y;
-        this.allCoords[offset + 28] = x;
-        this.allCoords[offset + 29] = y;
-
-        // Bottom row.
-        this.allCoords[offset + 32] = x;
-        this.allCoords[offset + 33] = y + h;
-        this.allCoords[offset + 36] = x + w;
-        this.allCoords[offset + 37] = y + h;
-        this.allCoords[offset + 40] = x + w;
-        this.allCoords[offset + 41] = y + h + 1;
-        this.allCoords[offset + 44] = x;
-        this.allCoords[offset + 45] = y + h + 1;
-
-        // Left row.
-        this.allCoords[offset + 48] = x - 1;
-        this.allCoords[offset + 49] = y;
-        this.allCoords[offset + 52] = x;
-        this.allCoords[offset + 53] = y;
-        this.allCoords[offset + 56] = x;
-        this.allCoords[offset + 57] = y + h;
-        this.allCoords[offset + 60] = x - 1;
-        this.allCoords[offset + 61] = y + h;
-
-        // Right row.
-        this.allCoords[offset + 64] = x + w;
-        this.allCoords[offset + 65] = y;
-        this.allCoords[offset + 68] = x + w + 1;
-        this.allCoords[offset + 69] = y;
-        this.allCoords[offset + 72] = x + w + 1;
-        this.allCoords[offset + 73] = y + h;
-        this.allCoords[offset + 76] = x + w;
-        this.allCoords[offset + 77] = y + h;
-
-        // Upper-left.
-        this.allCoords[offset + 80] = x - 1;
-        this.allCoords[offset + 81] = y - 1;
-        this.allCoords[offset + 84] = x;
-        this.allCoords[offset + 85] = y - 1;
-        this.allCoords[offset + 88] = x;
-        this.allCoords[offset + 89] = y;
-        this.allCoords[offset + 92] = x - 1;
-        this.allCoords[offset + 93] = y;
-
-        // Upper-right.
-        this.allCoords[offset + 96] = x + w;
-        this.allCoords[offset + 97] = y - 1;
-        this.allCoords[offset + 100] = x + w + 1;
-        this.allCoords[offset + 101] = y - 1;
-        this.allCoords[offset + 104] = x + w + 1;
-        this.allCoords[offset + 105] = y;
-        this.allCoords[offset + 108] = x + w;
-        this.allCoords[offset + 109] = y;
-
-        // Lower-right.
-        this.allCoords[offset + 112] = x + w;
-        this.allCoords[offset + 113] = y + h;
-        this.allCoords[offset + 116] = x + w + 1;
-        this.allCoords[offset + 117] = y + h;
-        this.allCoords[offset + 120] = x + w + 1;
-        this.allCoords[offset + 121] = y + h + 1;
-        this.allCoords[offset + 124] = x + w;
-        this.allCoords[offset + 125] = y + h + 1;
-
-        // Lower-left.
-        this.allCoords[offset + 128] = x - 1;
-        this.allCoords[offset + 129] = y + h;
-        this.allCoords[offset + 132] = x;
-        this.allCoords[offset + 133] = y + h;
-        this.allCoords[offset + 136] = x;
-        this.allCoords[offset + 137] = y + h + 1;
-        this.allCoords[offset + 140] = x - 1;
-        this.allCoords[offset + 141] = y + h + 1;
-
-        // Texture coords.
-        this.allTexCoords[offset + 2] = 0;
-        this.allTexCoords[offset + 3] = 0;
-        this.allTexCoords[offset + 6] = 1;
-        this.allTexCoords[offset + 7] = 0;
-        this.allTexCoords[offset + 10] = 1;
-        this.allTexCoords[offset + 11] = 1;
-        this.allTexCoords[offset + 14] = 0;
-        this.allTexCoords[offset + 15] = 1;
-
-        this.allTexCoords[offset + 18] = 0;
-        this.allTexCoords[offset + 19] = 0;
-        this.allTexCoords[offset + 22] = 1;
-        this.allTexCoords[offset + 23] = 0;
-        this.allTexCoords[offset + 26] = 1;
-        this.allTexCoords[offset + 27] = divH;
-        this.allTexCoords[offset + 30] = 0;
-        this.allTexCoords[offset + 31] = divH;
-
-        this.allTexCoords[offset + 34] = 0;
-        this.allTexCoords[offset + 35] = 1 - divH;
-        this.allTexCoords[offset + 38] = 1;
-        this.allTexCoords[offset + 39] = 1 - divH;
-        this.allTexCoords[offset + 42] = 1;
-        this.allTexCoords[offset + 43] = 1;
-        this.allTexCoords[offset + 46] = 0;
-        this.allTexCoords[offset + 47] = 1;
-
-        this.allTexCoords[offset + 50] = 0;
-        this.allTexCoords[offset + 51] = 0;
-        this.allTexCoords[offset + 54] = divW;
-        this.allTexCoords[offset + 55] = 0;
-        this.allTexCoords[offset + 58] = divW;
-        this.allTexCoords[offset + 59] = 1;
-        this.allTexCoords[offset + 62] = 0;
-        this.allTexCoords[offset + 63] = 1;
-
-        this.allTexCoords[offset + 66] = 1 - divW;
-        this.allTexCoords[offset + 67] = 0;
-        this.allTexCoords[offset + 70] = 1;
-        this.allTexCoords[offset + 71] = 0;
-        this.allTexCoords[offset + 74] = 1;
-        this.allTexCoords[offset + 75] = 1;
-        this.allTexCoords[offset + 78] = 1 - divW;
-        this.allTexCoords[offset + 79] = 1;
-
-        this.allTexCoords[offset + 82] = 0;
-        this.allTexCoords[offset + 83] = 0;
-        this.allTexCoords[offset + 86] = divW;
-        this.allTexCoords[offset + 87] = 0;
-        this.allTexCoords[offset + 90] = divW;
-        this.allTexCoords[offset + 91] = divH;
-        this.allTexCoords[offset + 94] = 0;
-        this.allTexCoords[offset + 95] = divH;
-
-        this.allTexCoords[offset + 98] = 1 - divW;
-        this.allTexCoords[offset + 99] = 0;
-        this.allTexCoords[offset + 102] = 1;
-        this.allTexCoords[offset + 103] = 0;
-        this.allTexCoords[offset + 106] = 1;
-        this.allTexCoords[offset + 107] = divH;
-        this.allTexCoords[offset + 110] = 1 - divW;
-        this.allTexCoords[offset + 111] = divH;
-
-        this.allTexCoords[offset + 114] = 1 - divW;
-        this.allTexCoords[offset + 115] = 1 - divH;
-        this.allTexCoords[offset + 118] = 1;
-        this.allTexCoords[offset + 119] = 1 - divH;
-        this.allTexCoords[offset + 122] = 1;
-        this.allTexCoords[offset + 123] = 1;
-        this.allTexCoords[offset + 126] = 1 - divW;
-        this.allTexCoords[offset + 127] = 1;
-
-        this.allTexCoords[offset + 130] = 0;
-        this.allTexCoords[offset + 131] = 1 - divH;
-        this.allTexCoords[offset + 134] = divW;
-        this.allTexCoords[offset + 135] = 1 - divH;
-        this.allTexCoords[offset + 138] = divW;
-        this.allTexCoords[offset + 139] = 1;
-        this.allTexCoords[offset + 142] = 0;
-        this.allTexCoords[offset + 143] = 1;
-    }
-
-    var gl = this.gl;
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
-    gl.useProgram(this.program);
-    gl.viewport(0,0,this.w,this.h);
-    gl.blendFunc(gl.ONE, gl.ZERO);
-    gl.enable(gl.BLEND);
-    gl.disable(gl.DEPTH_TEST);
-
-    // Upload data.
-    this.paramsGlBuffer = this.paramsGlBuffer || gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.paramsGlBuffer);
-
-    // We want to send the first elements from the params buffer, so we allCoords in order to slice some off.
-    var view = new DataView(this.paramsBuffer, 0, 16 * 9 * 4 * n);
-    gl.bufferData(gl.ARRAY_BUFFER, view, gl.DYNAMIC_DRAW);
-
-    gl.vertexAttribPointer(this.vertexPositionAttribute, 2, gl.FLOAT, false, 16, 0);
-    gl.vertexAttribPointer(this.textureCoordAttribute, 2, gl.FLOAT, false, 16, 2 * 4);
-
-    gl.enableVertexAttribArray(this.vertexPositionAttribute);
-    gl.enableVertexAttribArray(this.textureCoordAttribute);
-
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indicesGlBuffer);
-
-    for (i = 0; i < n; i++) {
-        gl.bindTexture(gl.TEXTURE_2D, textureSources[i].glTexture);
-        gl.drawElements(gl.TRIANGLES, 6 * 9, gl.UNSIGNED_SHORT, i * 6 * 9 * 2);
-    }
-
-    gl.disableVertexAttribArray(this.vertexPositionAttribute);
-    gl.disableVertexAttribArray(this.textureCoordAttribute);
-};
-
-/**
- * Allocates space for a loaded texture.
- * @param texture
- * @return {{x: number, y: number}|null}
- *   The allocated position.
- */
-TextureAtlas.prototype.allocate = function(texture) {
-    return this.activeTree.add(texture);
-};
-
-/**
- * Registers the texture source to the texture atlas.
- * @param {TextureSource} textureSource
- * @pre TextureSource.glTexture !== null
- */
-TextureAtlas.prototype.addActiveTextureSource = function(textureSource) {
-    if (textureSource.id === 1) {
-        // Rectangle texture is automatically added.
-    } else {
-        if ((textureSource.w * textureSource.h < this.pixelsLimit)) {
-            // Only add if dimensions are valid.
-            if (!this.activeTextureSources.has(textureSource)) {
-                this.activeTextureSources.add(textureSource);
-
-                // Add it directly (if possible).
-                if (!this.addedTextureSources.has(textureSource)) {
-                    this.add(textureSource);
-                }
-            }
-        }
-    }
-};
-
-TextureAtlas.prototype.removeActiveTextureSource = function(textureSource) {
-    if (this.activeTextureSources.has(textureSource)) {
-        this.activeTextureSources.delete(textureSource);
-
-        var uploadsIndex = this.uploads.indexOf(textureSource);
-        if (uploadsIndex >= 0) {
-            // Still waiting to be uploaded.
-            this.uploads.splice(uploadsIndex, 1);
-
-            // It is not uploaded, so it's not on the texture atlas any more.
-            textureSource.onRemovedFromTextureAtlas();
-
-            this.addedTextureSources.delete(textureSource);
-        }
-
-        if (this.addedTextureSources.has(textureSource)) {
-            this.wastedPixels += textureSource.w * textureSource.h;
-        }
-    }
-};
-
-/**
- * Adds the texture source to the texture atlas.
- * @access private
- */
-TextureAtlas.prototype.add = function(textureSource) {
-    var position = this.allocate(textureSource);
-    if (position) {
-        this.addedTextureSources.add(textureSource);
-
-        textureSource.onAddedToTextureAtlas(position.x + 1, position.y + 1);
-
-        this.uploads.push(textureSource);
-    } else {
-        this.defragNeeded = true;
-
-        // Error.
-        return false;
-    }
-
-    return true;
-};
-
-
-/**
- * Defragments the atlas memory.
- */
-TextureAtlas.prototype.defragment = function() {
-    console.log('defragment texture atlas');
-
-    // Clear new area (necessary for semi-transparent textures).
-    var gl = this.gl;
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
-    gl.viewport(0,0,this.w,this.h);
-    gl.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    this.activeTree.reset();
-    this.uploads = [];
-    this.wastedPixels = 0;
-    this.lastDefragFrame = this.stage.frameCounter;
-    this.defragNeeded = false;
-
-    this.addedTextureSources.forEach(function(textureSource) {
-        textureSource.onRemovedFromTextureAtlas();
-    });
-
-    this.addedTextureSources.clear();
-
-    // Automatically re-add the rectangle texture, to make sure that it is at coordinate 0,0.
-    this.add(this.stage.rectangleTexture.source);
-
-    // Then (try to) re-add all active texture sources.
-    // @todo: sort by dimensions (smallest first)?
-    var self = this;
-    this.activeTextureSources.forEach(function(textureSource) {
-        self.add(textureSource);
-    });
-
-};
-
-/**
- * Actually uploads the previously added sources to the texture atlas.
- */
-TextureAtlas.prototype.flush = function() {
-    if (this.defragNeeded) {
-        // Only defragment when there is something serious to gain.
-        if (this.wastedPixels >= this.minWastedPixels) {
-            // Limit defragmentations from happening all the time when it can't keep up.
-            if (this.lastDefragFrame < this.stage.frameCounter - 300) {
-                this.defragment();
-            }
-        }
-    }
-
-    if (this.uploads.length) {
-        this.lastImportFrame = this.stage.frameCounter;
-        this.uploadTextureSources(this.uploads);
-        this.uploads = [];
-    }
-};
-
-
-
-/**
- * The texture atlas.
- * @constructor
- */
-function TextureAtlasTree(w, h) {
-    this.w = w;
-    this.h = h;
-    this.root = {x: 0, y: 0, w: w, h: h};
-    this.spaces = new Set([this.root]);
-
-    this.maxH = h;
-}
-
-TextureAtlasTree.prototype.reset = function() {
-    this.root = {x: 0, y: 0, w: this.w, h: this.h};
-    this.spaces = new Set([this.root]);
-    this.maxH = this.h;
-};
-
-TextureAtlasTree.prototype.add = function(texture) {
-    // We need an extra border to fix linear interpolation artifacts (see TextureAtlasRenderer).
-    var w = texture.w + 2;
-    var h = texture.h + 2;
-
-    if (h > this.maxH) {
-        return false;
-    }
-
-    var mp = 0;
-    var found = null;
-    var maxH = 0;
-    this.spaces.forEach(function(n) {
-        if (n.h > maxH) {
-            maxH = n.h;
-        }
-        if (n.w >= w && n.h >= h) {
-            if (!mp || mp > w * h) {
-                mp = w * h;
-                found = n;
-            }
-        }
-    });
-    this.maxH = maxH;
-
-    // Best match.
-    if (!found) {
-        return false;
-    }
-
-    this.useNode(found, texture);
-    return found;
-};
-
-TextureAtlasTree.prototype.findNode = function(node, w, h) {
-    if (!node) return null;
-    if (!node.o) {
-        if (w <= node.w && h <= node.h) {
-            return node;
-        } else {
-            // No space.
+        if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
+            console.log(this.gl.getShaderInfoLog(shader));
             return null;
         }
-    } else {
-        return this.findNode(node.r, w, h) || this.findNode(node.d, w, h);
-    }
-};
 
-TextureAtlasTree.prototype.useNode = function(node, texture) {
-    var w = texture.w + 2, h = texture.h + 2;
-    if (node.w > w) {
-        node.r = {x: node.x + w, y: node.y, w: node.w - w, h: h};
-        this.spaces.add(node.r);
-    }
-    if (node.h > h) {
-        node.d = {x: node.x, y: node.y + h, w: node.w, h: node.h - h};
-        this.spaces.add(node.d);
-    }
-    this.spaces.delete(node);
-    node.o = texture;
-};
-
-/**
- * @returns {Texture[]}
- */
-TextureAtlasTree.prototype.getTextures = function() {
-    var n = [this.root];
-
-    var textures = [];
-    var c = 1;
-    while(c) {
-        var item = n.pop();
-        c--;
-
-        if (item.o) {
-            textures.push(item.o);
-            if (item.r) {
-                n.push(item.r);
-                c++;
-            }
-            if (item.d) {
-                n.push(item.d);
-                c++;
-            }
-        }
+        return shader;
     }
 
-    return textures;
-};
-
-
-/**
- * An empty component that may contain other components (comparable to a div html element).
- * @constructor
- * @abstract
- */
-var Component = function(stage) {
-    EventEmitter.call(this);
-
-    /**
-     * The global id. May be used by c++ addons.
-     * @type {number}
-     */
-    this.id = Stage.componentId++;
-
-    /**
-     * The update component lightweight object.
-     * @type {UComponent}
-     */
-    this.uComponent = stage.adapter.getUComponentContext().createUComponentForComponent(this);
-
-    /**
-     * The stage that this component belongs to.
-     * @type {Stage}
-     */
-    this.stage = stage;
-
-    /**
-     * A component is active if it is a descendant of the stage root, and if it is visible.
-     * @type {boolean}
-     */
-    this.active = false;
-
-    /**
-     * A component is active if it is a descendant of the stage root.
-     * @type {boolean}
-     */
-    this.attached = false;
-
-    /**
-     * @type {Component}
-     */
-    this.parent = null;
-
-    /**
-     * Flag to quickly check if this component has children.
-     * @type {boolean}
-     */
-    this.hasChildren = false;
-
-    this._clipping = false;
-
-    this._displayedTexture = null;
-
-    // Cache width & height, only maintained when component is active.
-    this._renderWidth = 0;
-    this._renderHeight = 0;
-
-    /**
-     * Flag that indicates if this component has borders at all.
-     * @type {boolean}
-     */
-    this.hasBorders = false;
-
-    /**
-     * 'Normal' children.
-     * @type {Component[]}
-     */
-    this._children = [];
-
-    /**
-     * Color tint of this sprite.
-     * @type {number}
-     */
-    this._colorTopLeft = 0xffffffff;
-    this._colorTopRight = 0xffffffff;
-    this._colorBottomLeft = 0xffffffff;
-    this._colorBottomRight = 0xffffffff;
-
-    /**
-     * The transitions (indexed by property index, null if not used).
-     * @type {Transition[]}
-     */
-    this.transitions = null;
-
-    /**
-     * All transitions, for quick looping.
-     * @type {Set<Transition>}
-     */
-    this.transitionSet = null;
-
-    /**
-     * All animations that have this component has subject.
-     * @type {Set<Animation>}
-     */
-    this.animationSet = null;
-
-    /**
-     * Manages the tags for this component.
-     * @type {ComponentTags}
-     */
-    this._tags = new ComponentTags(this);
+    destroy() {
+        this.gl.deleteBuffer(this._paramsGlBuffer);
+        this.gl.deleteBuffer(this._indicesGlBuffer);
+        this.gl.deleteProgram(this._program);
+    }
     
-    this._x = 0;
-    this._y = 0;
-    this._w = 0;
-    this._h = 0;
-    this._scaleX = 1;
-    this._scaleY = 1;
-    this._pivotX = 0.5;
-    this._pivotY = 0.5;
-    this._mountX = 0;
-    this._mountY = 0;
-    this._alpha = 1;
-    this._rotation = 0;
-    this._borderWidthTop = 0;
-    this._borderWidthBottom = 0;
-    this._borderWidthLeft = 0;
-    this._borderWidthRight = 0;
-    this._borderColorTop = 0xffffffff;
-    this._borderColorBottom = 0xffffffff;
-    this._borderColorLeft = 0xffffffff;
-    this._borderColorRight = 0xffffffff;
-    this._visible = true;
-
-    /**
-     * Manages text rendering for this component. Lazy loaded.
-     * @type {ComponentText}
-     */
-    this.textRenderer = null;
-
-    /**
-     * The texture that is currently set.
-     * This is changed when changing the src and should never be changed manually.
-     * @type {Texture}
-     */
-    this._texture = null;
-
-    /**
-     * The currently displayed texture. While this.texture is loading, this one may be different.
-     * @type {Texture}
-     */
-    this.displayedTexture = this._displayedTexture = null;
-
-    /**
-     * Image source, if set.
-     * @type {String}
-     * @private
-     */
-    this._src = null;
-
-    /**
-     * If true, this component is being 'clipped' around the edges. For non-sprite components, the width and height
-     * must be explicitly set.
-     * @type {boolean}
-     */
-    this.clipping = false;
-
-    /**
-     * The z-index, which determines the rendering order (in the same way as in HTML). 0 = no z-index.
-     * @type {number}
-     */
-    this._zIndex = 0;
-
-    /**
-     * If true, this component always behaves as a z-index context. Z-indexed descendants will never be rendered
-     * outside of this context.
-     * @type {boolean}
-     */
-    this._forceZIndexContext = false;
-
-    /**
-     * This function is called when this component becomes active.
-     * @type {Function}
-     */
-    this.notifyActivate = null;
-
-    /**
-     * This function is called when this component becomes inactive.
-     * @type {Function}
-     */
-    this.notifyDeactivate = null;
-
-    /**
-     * The cached rotation value (because cos and sin are slow).
-     * @type {number}
-     */
-    this.rotationCache = 0;
-    this._sr = 0;
-    this._cr = 1;
-
-};
-
-Utils.extendClass(Component, EventEmitter);
-
-Component.prototype.setAsRoot = function() {
-    this.updateActiveFlag();
-    this.updateAttachedFlag();
-    this.uComponent.setAsRoot();
-};
-
-Component.prototype.setParent = function(parent) {
-    if (this.parent === parent) return;
-
-    if (this.parent) {
-        this.parent.hasChildren = (this.parent._children.length > 1);
-
-        this._tags.unsetParent();
-    }
-
-    this.parent = parent;
-
-    if (parent) {
-        // Alpha, transform, translate.
-        this.uComponent.recalc = true;
-
-        parent.hasChildren = true;
-
-        this._tags.setParent(parent._tags);
-    }
-
-    this.updateActiveFlag();
-
-    this.updateAttachedFlag();
-};
-
-Component.prototype.add = function(o) {
-    if (o instanceof Component) {
-        this.addChild(o);
-        return o;
-    } else if (Utils.isArray(o)) {
-        for (var i = 0, n = o.length; i < n; i++) {
-            this.add(o[i]);
-        }
-        return null;
-    } else if (Utils.isPlainObject(o)) {
-        var c = this.stage.c(o);
-        this.addChild(c);
-        return c;
-    }
-};
-
-Component.prototype.addChild = function (child) {
-    if (child.parent === this && this._children.indexOf(child) >= 0) {
-        return child;
-    }
-    this.addChildAt(child, this._children.length);
-};
-
-Component.prototype.addChildren = function (children) {
-    var i, n = children.length;
-    for (i = 0; i < n; i++) {
-        this.addChild(children[i]);
-    }
-};
-
-Component.prototype.setChildren = function (children) {
-    this.removeChildren();
-    this.addChildren(children);
-};
-
-Component.prototype.addChildAt = function (child, index) {
-    // prevent adding self as child
-    if (child === this) {
-        return
-    }
-
-    if (index >= 0 && index <= this._children.length) {
-        if (child.parent === this && this._children.indexOf(child) === index) {
-            // Ignore.
-        } else {
-            if (child.parent) {
-                var p = child.parent;
-                p.removeChild(child);
-            }
-
-            child.setParent(this);
-            this._children.splice(index, 0, child);
-
-            // Sync.
-            this.uComponent.insertChild(index, child.uComponent);
-        }
-
-        return;
-    } else {
-        throw new Error(child + 'addChildAt: The index '+ index +' supplied is out of bounds ' + this.children.length);
-    }
-};
-
-Component.prototype.getChildIndex = function (child) {
-    return this._children.indexOf(child);
-};
-
-Component.prototype.removeChild = function (child) {
-    var index = this._children.indexOf(child);
-
-    if (index !== -1) {
-        this.removeChildAt(index);
-    }
-};
-
-Component.prototype.removeChildAt = function (index) {
-    var child = this._children[index];
-
-    child.setParent(null);
-    this._children.splice(index, 1);
-
-    // Sync.
-    this.uComponent.removeChild(index);
-
-    return child;
-};
-
-Component.prototype.removeChildren = function() {
-    var n = this._children.length;
-    if (n) {
-        for (var i = 0; i < n; i++) {
-            var child = this._children[i];
-            child.setParent(null);
-        }
-        this._children.splice(0, n);
-
-        // Sync.
-        this.uComponent.clearChildren();
-    }
-};
-
-Component.prototype.getDepth = function() {
-    var depth = 0;
-
-    var p = this;
-    do {
-        depth++;
-        p = p.parent;
-    } while(p);
-
-    return depth;
-};
-
-Component.prototype.getAncestor = function(l) {
-    var p = this;
-    while(l > 0 && p.parent) {
-        p = p.parent;
-        l--;
-    }
-    return p;
-};
-
-Component.prototype.getAncestorAtDepth = function(depth) {
-    var levels = this.getDepth() - depth;
-    if (levels < 0) {
-        return null;
-    }
-    return this.getAncestor(levels);
-};
-
-Component.prototype.isAncestorOf = function(c) {
-    var p = c;
-    while(p.parent) {
-        if (this === p) {
-            return true;
-        }
-        p = p.parent;
-    }
-    return false;
-};
-
-Component.prototype.getSharedAncestor = function(c) {
-    var o1 = this;
-    var o2 = c;
-    var l1 = o1.getDepth();
-    var l2 = o2.getDepth();
-    if (l1 > l2) {
-        o1 = o1.getAncestor(l1 - l2);
-    } else if (l2 > l1) {
-        o2 = o2.getAncestor(l2 - l1);
-    }
-
-    do {
-        if (o1 === o2) {
-            return o1;
-        }
-
-        o1 = o1.parent;
-        o2 = o2.parent;
-    } while(o1 && o2);
-
-    return null;
-};
-
-Component.prototype.isActive = function() {
-    return this._visible && (this._alpha > 0) && (this.parent ? this.parent.active : (this.stage.root === this));
-};
-
-Component.prototype.isAttached = function() {
-    return (this.parent ? this.parent.attached : (this.stage.root === this));
-};
-
-/**
- * Updates the 'active' flag for this branch.
- * @private
- */
-Component.prototype.updateActiveFlag = function() {
-    // Calculate active flag.
-    var newActive = this.isActive();
-    if (this.active !== newActive) {
-        if (newActive) {
-            if (this.zIndex != 0) {
-                // Component uses z-index.
-                this.stage.zIndexUsage++;
-            }
-
-            // Detect texture changes.
-            var dt = null;
-            if (this.texture && this.texture.source.glTexture) {
-                dt = this.texture;
-                this.texture.addComponent(this);
-            } else if (this.displayedTexture && this.displayedTexture.source.glTexture) {
-                dt = this.displayedTexture;
-            }
-
-            this.displayedTexture = dt;
-
-            // Force re-check of texture because dimensions might have changed (cutting).
-            this.checkForResize();
-            this._updateTextureCoords();
-
-            this.active = newActive;
-
-            if (this.texture) {
-                // It is important to add the source listener before the texture listener because that may trigger a load.
-                this.texture.addComponent(this);
-            }
-
-            if (this.displayedTexture && this.displayedTexture !== this.texture) {
-                this.displayedTexture.addComponent(this);
-            }
-        } else {
-            if (this.zIndex != 0) {
-                // Component uses z-index.
-                this.stage.zIndexUsage--;
-            }
-
-            if (this.texture) {
-                this.texture.removeComponent(this, true);
-            }
-
-            if (this.displayedTexture) {
-                this.displayedTexture.removeComponent(this, true);
-            }
-
-            this.active = newActive;
-        }
-
-        var m = this._children.length;
-        if (m > 0) {
-            for (var i = 0; i < m; i++) {
-                this._children[i].updateActiveFlag();
-            }
-        }
-
-        // Run this after all _children because we'd like to see (de)activating a branch as an 'atomic' operation.
-        if (newActive) {
-            this.notifyActivate && this.notifyActivate();
-        } else {
-            this.notifyDeactivate && this.notifyDeactivate();
-        }
-    }
-};
-
-/**
- * Updates the 'attached' flag for this branch.
- * @private
- */
-Component.prototype.updateAttachedFlag = function() {
-    // Calculate active flag.
-    var newAttached = this.isAttached();
-    if (this.attached !== newAttached) {
-        this.attached = newAttached;
-
-        if (newAttached) {
-            var self = this;
-
-            // Check if there are remaining active transitions that should be re-activated.
-            if (this.transitionSet) {
-                this.transitionSet.forEach(function(transition) {
-                    if (transition.isActive()) {
-                        self.stage.addActiveTransition(transition);
-                    }
-                });
-            }
-
-            if (this.animationSet) {
-                this.animationSet.forEach(function(animation) {
-                    if (animation.isActive()) {
-                        self.stage.addActiveAnimation(animation);
-                    }
-                });
-            }
-        }
-
-        var m = this._children.length;
-        if (m > 0) {
-            for (var i = 0; i < m; i++) {
-                this._children[i].updateAttachedFlag();
-            }
-        }
-    }
-};
-
-Component.prototype.addAnimation = function(a) {
-    if (!this.animationSet) {
-        this.animationSet = new Set();
-    }
-    this.animationSet.add(a);
-};
-
-Component.prototype.removeAnimation = function(a) {
-    this.animationSet.delete(a);
-};
-
-Component.prototype.animation = function(settings) {
-    var a = this.stage.animation(settings);
-    a.subject = this;
-    return a;
-};
-
-Component.prototype.a = function(settings) {
-    return this.animation(settings);
-};
-
-Component.prototype.transition = function(property, settings) {
-    var props = Component.propAliases.get(property);
-    if (settings || settings === null) {
-        if (props) {
-            for (var i = 0, n = props.length; i < n; i++) {
-                this.setPropertyTransition(props[i], settings);
-            }
-            return settings ? this.getPropertyTransition(props[0]) : null;
-        } else {
-            return this.setPropertyTransition(property, settings);
-        }
-    } else {
-        return this.getPropertyTransition(property, settings);
-    }
-};
-
-Component.prototype.t = function(property, settings) {
-    this.transition(property, settings);
-};
-
-Component.prototype.fastForward = function(property) {
-    var props = Component.propAliases.get(property);
-    if (!props) props = [property];
-    for (var i = 0, n = props.length; i < n; i++) {
-        var name = props[i];
-        var setting = Component.SETTINGS[name];
-        if (setting && setting.m) {
-            var t = this.getPropertyTransition(name);
-            if (t) {
-                t.updateTargetValue(setting.g(this), setting.g(this));
-            }
-        } else {
-            console.warn("Unknown transition property: " + name);
-        }
-    }
-};
-
-Component.prototype.getRenderWidth = function() {
-    if (this.active) {
-        return this._renderWidth;
-    } else {
-        return this._getRenderWidth();
-    }
-};
-
-Component.prototype._getRenderWidth = function() {
-    if (this._w) {
-        return this._w;
-    } else if (this.texture && this.texture.source.glTexture) {
-        // Texture already loaded, but not yet updated (probably because it's not active).
-        return (this.texture.w || (this.texture.source.w / this.texture.precision));
-    } else if (this.displayedTexture) {
-        return (this.displayedTexture.w || (this.displayedTexture.source.w / this.displayedTexture.precision));
-    } else {
-        return 0;
-    }
-};
-
-Component.prototype.getRenderHeight = function() {
-    if (this.active) {
-        return this._renderHeight;
-    } else {
-        return this._getRenderHeight();
-    }
-};
-
-Component.prototype._getRenderHeight = function() {
-    if (this._h) {
-        return this._h;
-    } else if (this.texture && this.texture.source.glTexture) {
-        // Texture already loaded, but not yet updated (probably because it's not active).
-        return (this.texture.h || this.texture.source.h) / this.texture.precision;
-    } else if (this.displayedTexture) {
-        return (this.displayedTexture.h || this.displayedTexture.source.h) / this.displayedTexture.precision;
-    } else {
-        return 0;
-    }
-};
-
-Component.prototype.setPropertyTransition = function(property, settings) {
-    var propertyIndex = Component.getPropertyIndex(property);
-    if (propertyIndex == -1) {
-        throw new Error("Unknown transition property: " + property);
-    }
-
-    if (!settings) {
-        if (this.transitions) {
-            if (this.transitions[propertyIndex]) {
-                var setting = Component.SETTINGS[property];
-                setting.sf(this, setting.g(this));
-                this.stage.activeTransitions.delete(this.transitions[propertyIndex]);
-                this.transitionSet.delete(this.transitions[propertyIndex]);
-                this.transitions[propertyIndex] = null;
-            }
-        }
-    } else {
-        // Only reset on change.
-        if (!this.transitions) {
-            this.transitions = new Array(Component.nTransitions);
-            this.transitionSet = new Set();
-        }
-        if (!this.transitions[propertyIndex]) {
-            this.transitions[propertyIndex] = new Transition(this, property);
-            this.transitionSet.add(this.transitions[propertyIndex]);
-        }
-        this.transitions[propertyIndex].set(settings);
-    }
-
-    return this.transitions[propertyIndex];
-};
-
-Component.prototype.getPropertyTransition = function(property) {
-    var propertyIndex = Component.getPropertyIndex(property);
-    if (propertyIndex == -1) {
-        throw new Error("Unknown transition property: " + property);
-    }
-
-    if (this.transitions && this.transitions[propertyIndex]) {
-        return this.transitions[propertyIndex];
-    } else {
-        return null;
-    }
-};
-
-Component.prototype.getCornerPoints = function() {
-    return this.uComponent.getCornerPoints();
-};
-
-Component.prototype.getLocationString = function() {
-    var i;
-    if (this.parent) {
-        i = this.parent._children.indexOf(this);
-        if (i >= 0) {
-            var localTags = this.getTags();
-            return this.parent.getLocationString() + ":" + i + "[" + this.id + "]" + (localTags.length ? "(" + localTags.join(",") + ")" : "");
-        }
-    }
-    return "";
-};
-
-Component.prototype.getTags = function() {
-    return this._tags.getLocalTags();
-};
-
-Component.prototype.setTags = function(tags) {
-    this._tags.setTags(tags);
-};
-
-Component.prototype.addTag = function(tag) {
-    this._tags.addTag(tag);
-};
-
-Component.prototype.removeTag = function(tag) {
-    this._tags.removeTag(tag);
-};
-
-Component.prototype.hasTag = function(tag) {
-    return this._tags.hasTag(tag);
-};
-
-Component.prototype.tag = function(tag) {
-    return this._tags.tag(tag);
-};
-
-Component.prototype.mtag = function(tag) {
-    return this._tags.mtag(tag);
-};
-
-Component.prototype.stag = function(tag, settings) {
-    var t = this.mtag(tag);
-    var n = t.length;
-    for (var i = 0; i < n; i++) {
-        t[i].set(settings);
-    }
-};
-
-Component.prototype.onTextureSourceLoaded = function() {
-    // Now we can start showing this texture.
-    this.displayedTexture = this.texture;
-};
-
-Component.prototype.onTextureSourceLoadError = function(e) {
-    if (this._eventsCount) {
-        this.emit('txError', e, this.texture.source);
-    }
-};
-
-Component.prototype.onTextureSourceAddedToTextureAtlas = function() {
-    this._updateTextureCoords();
-};
-
-Component.prototype.onTextureSourceRemovedFromTextureAtlas = function() {
-    this._updateTextureCoords();
-};
-
-Component.prototype.onDisplayedTextureClippingChanged = function() {
-    this._renderWidth = this._getRenderWidth();
-    this._renderHeight = this._getRenderHeight();
-
-    this._updateLocalDimensions();
-    this._updateTextureCoords();
-};
-
-Component.prototype.onPrecisionChanged = function() {
-    this._renderWidth = this._getRenderWidth();
-    this._renderHeight = this._getRenderHeight();
-
-    this._updateLocalDimensions();
-};
-
-Component.prototype.set = function(obj) {
-    var keys = Object.keys(obj);
-    for (var i = 0; i < keys.length; i++) {
-        var value = obj[keys[i]];
-        this.setSetting(keys[i], value);
-    }
-};
-
-Component.prototype.setSetting = function(name, value) {
-    var aliases = Component.propAliases.get(name);
-    if (aliases) {
-        for (var i = 0, n = aliases.length; i < n; i++) {
-            this.setSetting(aliases[i], value);
-        }
-        return;
-    }
-
-    switch(name) {
-        case 'transitions':
-            if (!Utils.isObject(value)) {
-                throw new TypeError('Transitions must be object.');
-            }
-
-            for (var key in value) {
-                this.transition(key, value[key]);
-            }
-
-            break;
-        default:
-            var setting = Component.SETTINGS[name];
-            if (setting) {
-                setting.s(this, value);
-            } else {
-                setting = Component.FINAL_SETTINGS[name];
-                if (setting) {
-                    setting.sf(this, value);
-                } else {
-                    throw new Error("Unknown component property: " + name);
-                }
-            }
-    }
-};
-
-Component.prototype.toString = function() {
-    var obj = this.getSettingsObject();
-    return Component.getPrettyJsonified(obj, "");
-};
-
-Component.getPrettyJsonified = function(obj, indent) {
-    var children = obj.children;
-    delete obj.children;
-
-    // Convert singular json settings object.
-    var colorKeys = ["color", "colorTopLeft", "colorTopRight", "colorBottomLeft", "colorBottomRight", "borderColor", "borderColorTop", "borderColorBottom", "borderColorLeft", "borderColorRight"]
-    var str = JSON.stringify(obj, function(k, v) {
-        if (colorKeys.indexOf(k) !== -1) {
-            return "COLOR[" + v.toString(16) + "]";
-        }
-        return v;
-    });
-    str = str.replace(/"COLOR\[([a-f0-9]{1,8})\]"/g, "0x$1");
-
-    if (children && children.length) {
-        var isEmpty = (str === "{}");
-        str = str.substr(0, str.length - 1) + (isEmpty ? "" : ",") + "\"children\":[\n";
-        var n = children.length;
-        for (var i = 0; i < n; i++) {
-            str += Component.getPrettyJsonified(children[i], indent + "  ") + (i < n - 1 ? "," : "") + "\n";
-        }
-        str += indent + "]}";
-    }
-
-    return indent + str;
-};
-
-Component.prototype.getSettingsObject = function() {
-    var obj = this.getNonDefaults();
-    if (this.hasChildren) {
-        obj.children = this._children.map(function(c) {
-            return c.getSettingsObject();
-        });
-    }
-    return obj;
-};
-
-Component.prototype.getNonDefaults = function() {
-    var nonDefaults = {};
-
-    if (this._tags && this._tags.tags) {
-        nonDefaults['tags'] = this.getTags();
-    }
-
-    if (this.x !== 0) nonDefaults['x'] = this.x;
-    if (this.y !== 0) nonDefaults['y'] = this.y;
-    if (this.w !== 0) nonDefaults['w'] = this.w;
-    if (this.h !== 0) nonDefaults['h'] = this.h;
-
-    if (this.alpha !== 1) nonDefaults['alpha'] = this.alpha;
-    if (this.rotation !== 0) nonDefaults['rotation'] = this.rotation;
-    if (this.visible !== true) nonDefaults['visible'] = this.visible;
-    if (this.clipping !== false) nonDefaults['clipping'] = this.clipping;
-    if (this.zIndex) nonDefaults['zIndex'] = this.zIndex;
-    if (this.forceZIndexContext !== false) nonDefaults['forceZIndexContext'] = this.forceZIndexContext;
-
-    if (this.textRenderer) {
-        nonDefaults['text'] = this.textRenderer.settings.getNonDefaults();
-    }
-
-    if (this.src) nonDefaults['src'] = this.src;
-
-    if (this.rect) nonDefaults['rect'] = true;
-
-
-    if (this.scaleX !== 1 && this.scaleX === this.scaleY) {
-        nonDefaults['scale'] = this.scaleX;
-    } else {
-        if (this.scaleX !== 1) nonDefaults['scaleX'] = this.scaleX;
-        if (this.scaleY !== 1) nonDefaults['scaleY'] = this.scaleY;
-    }
-
-    if (this.pivotX !== 0.5) nonDefaults['pivotX'] = this.pivotX;
-    if (this.pivotY !== 0.5) nonDefaults['pivotY'] = this.pivotY;
-
-    if (this.mountX !== 0) nonDefaults['mountX'] = this.mountX;
-    if (this.mountY !== 0) nonDefaults['mountY'] = this.mountY;
-
-    if (this.borderWidthTop !== 0 && this.borderWidthTop === this.borderWidthBottom && this.borderWidthTop === this.borderWidthLeft && this.borderWidthTop === this.borderWidthRight) {
-        nonDefaults['borderWidth'] = this.borderWidthTop;
-    } else {
-        if (this.borderWidthTop !== 0) nonDefaults['borderWidthTop'] = this.borderWidthTop;
-        if (this.borderWidthBottom !== 0) nonDefaults['borderWidthBottom'] = this.borderWidthBottom;
-        if (this.borderWidthLeft !== 0) nonDefaults['borderWidthLeft'] = this.borderWidthLeft;
-        if (this.borderWidthRight !== 0) nonDefaults['borderWidthRight'] = this.borderWidthRight;
-    }
-
-    if (this.borderColorTop !== 0xffffffff && this.borderColorTop === this.borderColorBottom && this.borderColorTop === this.borderColorLeft && this.borderColorTop === this.borderColorRight) {
-        nonDefaults['borderColor'] = this.borderColorTop;
-    } else {
-        if (this.borderColorTop !== 0xffffffff) nonDefaults['borderColorTop'] = this.borderColorTop;
-        if (this.borderColorBottom !== 0xffffffff) nonDefaults['borderColorBottom'] = this.borderColorBottom;
-        if (this.borderColorLeft !== 0xffffffff) nonDefaults['borderColorLeft'] = this.borderColorLeft;
-        if (this.borderColorRight !== 0xffffffff) nonDefaults['borderColorRight'] = this.borderColorRight;
-    }
-
-    if (this.colorTopLeft !== 0xffffffff && this.colorTopLeft === this.colorTopRight && this.colorTopLeft === this.colorBottomLeft && this.colorTopLeft === this.colorBottomRight) {
-        nonDefaults['color'] = this.colorTopLeft;
-    } else {
-        if (this.colorTopLeft !== 0xffffffff) nonDefaults['colorTopLeft'] = this.colorTopLeft;
-        if (this.colorTopRight !== 0xffffffff) nonDefaults['colorTopRight'] = this.colorTopRight;
-        if (this.colorBottomLeft !== 0xffffffff) nonDefaults['colorBottomLeft'] = this.colorBottomLeft;
-        if (this.colorBottomRight !== 0xffffffff) nonDefaults['colorBottomRight'] = this.colorBottomRight;
-    }
-
-    if (this.texture) {
-        var tnd = this.texture.getNonDefaults();
-        if (Object.keys(tnd).length) {
-            nonDefaults['texture'] = tnd;
-        }
-    }
-
-    return nonDefaults;
-};
-
-
-Component.prototype.hasEqualColors = function() {
-    return (this._colorTopLeft === this._colorTopRight) && (this._colorTopLeft === this._colorBottomRight) && (this._colorTopLeft === this._colorBottomLeft);
-};
-
-Component.prototype.checkForResize = function() {
-    var beforeW = this._renderWidth;
-    var beforeH = this._renderHeight;
-    this._renderWidth = this._getRenderWidth();
-    this._renderHeight = this._getRenderHeight();
-    if (beforeW !== this._renderWidth || beforeH !== this._renderHeight) {
-        // Due to width/height change: update the translation vector and borders.
-        this._updateLocalDimensions();
-    }
-};
-
-/**
- * Holds the known property aliases.
- * @type {Map<string, string[]>}
- */
-Component.propAliases = new Map();
-Component.propAliases.set("scale", ["scaleX", "scaleY"]);
-Component.propAliases.set("borderWidth", ["borderWidthTop", "borderWidthBottom", "borderWidthLeft", "borderWidthRight"]);
-Component.propAliases.set("borderColor", ["borderColorTop", "borderColorBottom", "borderColorLeft", "borderColorRight"]);
-Component.propAliases.set("color", ["colorTopLeft", "colorTopRight", "colorBottomLeft", "colorBottomRight"]);
-Component.propAliases.set("colorTop", ["colorTopLeft", "colorTopRight"]);
-Component.propAliases.set("colorBottom", ["colorBottomLeft", "colorBottomRight"]);
-Component.propAliases.set("colorLeft", ["colorTopLeft", "colorBottomLeft"]);
-Component.propAliases.set("colorRight", ["colorTopRight", "colorBottomRight"]);
-
-Object.defineProperty(Component.prototype, 'renderWidth', {
-    get: function () {
-        return this.getRenderWidth();
-    }
-});
-
-Object.defineProperty(Component.prototype, 'renderHeight', {
-    get: function () {
-        return this.getRenderHeight();
-    }
-});
-
-Object.defineProperty(Component.prototype, 'x', {
-    get: function () {
-        if (this.transitions && this.transitions[0]) {
-            return this.transitions[0].targetValue;
-        } else {
-            return this.X;
-        }
-    },
-    set: function(v) {
-        if (this.transitions && this.transitions[0]) {
-            this.setTransitionTargetValue(this.transitions[0], v, this.X);
-        } else {
-            this.X = v;
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'X', {
-    get: function () {
-        return this._x;
-    },
-    set: function(v) {
-        var pv = this._x;
-        if (pv !== v) {
-            this._x = v;
-            this._updateLocalTranslateDelta(v - pv, 0);
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'y', {
-    get: function () {
-        if (this.transitions && this.transitions[1]) {
-            return this.transitions[1].targetValue;
-        } else {
-            return this.Y;
-        }
-    },
-    set: function(v) {
-        if (this.transitions && this.transitions[1]) {
-            this.setTransitionTargetValue(this.transitions[1], v, this.Y);
-        } else {
-            this.Y = v;
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'Y', {
-    get: function () {
-        return this._y;
-    },
-    set: function(v) {
-        var pv = this._y;
-        if (pv !== v) {
-            this._y = v;
-            this._updateLocalTranslateDelta(0, v - pv);
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'w', {
-    get: function () {
-        if (this.transitions && this.transitions[2]) {
-            return this.transitions[2].targetValue;
-        } else {
-            return this.W;
-        }
-    },
-    set: function(v) {
-        if (this.transitions && this.transitions[2]) {
-            this.setTransitionTargetValue(this.transitions[2], v, this.W);
-        } else {
-            this.W = v;
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'W', {
-    get: function () {
-        return this._w;
-    },
-    set: function(v) {
-        var pv = this._w;
-        if (pv !== v) {
-            this._w = v;
-            this._renderWidth = this._getRenderWidth();
-            this._updateLocalDimensions();
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'h', {
-    get: function () {
-        if (this.transitions && this.transitions[3]) {
-            return this.transitions[3].targetValue;
-        } else {
-            return this.H;
-        }
-    },
-    set: function(v) {
-        if (this.transitions && this.transitions[3]) {
-            this.setTransitionTargetValue(this.transitions[3], v, this.H);
-        } else {
-            this.H = v;
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'H', {
-    get: function () {
-        return this._h;
-    },
-    set: function(v) {
-        var pv = this._h;
-        if (pv !== v) {
-            this._h = v;
-            this._renderHeight = this._getRenderHeight();
-            this._updateLocalDimensions();
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'scaleX', {
-    get: function () {
-        if (this.transitions && this.transitions[4]) {
-            return this.transitions[4].targetValue;
-        } else {
-            return this.SCALEX;
-        }
-    },
-    set: function(v) {
-        if (this.transitions && this.transitions[4]) {
-            this.setTransitionTargetValue(this.transitions[4], v, this.SCALEX);
-        } else {
-            this.SCALEX = v;
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'SCALEX', {
-    get: function () {
-        return this._scaleX;
-    },
-    set: function(v) {
-        var pv = this._scaleX;
-        if (pv !== v) {
-            this._scaleX = v;
-            this._updateLocalTransform();
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'scaleY', {
-    get: function () {
-        if (this.transitions && this.transitions[5]) {
-            return this.transitions[5].targetValue;
-        } else {
-            return this.SCALEY;
-        }
-    },
-    set: function(v) {
-        if (this.transitions && this.transitions[5]) {
-            this.setTransitionTargetValue(this.transitions[5], v, this.SCALEY);
-        } else {
-            this.SCALEY = v;
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'SCALEY', {
-    get: function () {
-        return this._scaleY;
-    },
-    set: function(v) {
-        var pv = this._scaleY;
-        if (pv !== v) {
-            this._scaleY = v;
-            this._updateLocalTransform();
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'pivotX', {
-    get: function () {
-        if (this.transitions && this.transitions[6]) {
-            return this.transitions.get('pivotX').targetValue;
-        } else {
-            return this.PIVOTX;
-        }
-    },
-    set: function(v) {
-        if (this.transitions && this.transitions[6]) {
-            this.setTransitionTargetValue(this.transitions[6], v, this.PIVOTX);
-        } else {
-            this.PIVOTX = v;
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'PIVOTX', {
-    get: function () {
-        return this._pivotX;
-    },
-    set: function(v) {
-        var pv = this._pivotX;
-        if (pv !== v) {
-            this._pivotX = v;
-            this._updateLocalTranslate();
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'pivotY', {
-    get: function () {
-        if (this.transitions && this.transitions[7]) {
-            return this.transitions[7].targetValue;
-        } else {
-            return this.PIVOTY;
-        }
-    },
-    set: function(v) {
-        if (this.transitions && this.transitions[7]) {
-            this.setTransitionTargetValue(this.transitions[7], v, this.PIVOTY);
-        } else {
-            this.PIVOTY = v;
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'PIVOTY', {
-    get: function () {
-        return this._pivotY;
-    },
-    set: function(v) {
-        var pv = this._pivotY;
-        if (pv !== v) {
-            this._pivotY = v;
-            this._updateLocalTranslate();
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'mountX', {
-    get: function () {
-        if (this.transitions && this.transitions[8]) {
-            return this.transitions[8].targetValue;
-        } else {
-            return this.MOUNTX;
-        }
-    },
-    set: function(v) {
-        if (this.transitions && this.transitions[8]) {
-            this.setTransitionTargetValue(this.transitions[8], v, this.MOUNTX);
-        } else {
-            this.MOUNTX = v;
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'MOUNTX', {
-    get: function () {
-        return this._mountX;
-    },
-    set: function(v) {
-        var pv = this._mountX;
-        if (pv !== v) {
-            this._mountX = v;
-            this._updateLocalTranslate();
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'mountY', {
-    get: function () {
-        if (this.transitions && this.transitions[9]) {
-            return this.transitions[9].targetValue;
-        } else {
-            return this.MOUNTY;
-        }
-    },
-    set: function(v) {
-        if (this.transitions && this.transitions[9]) {
-            this.setTransitionTargetValue(this.transitions[9], v, this.MOUNTY);
-        } else {
-            this.MOUNTY = v;
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'MOUNTY', {
-    get: function () {
-        return this._mountY;
-    },
-    set: function(v) {
-        var pv = this._mountY;
-        if (pv !== v) {
-            this._mountY = v;
-            this._updateLocalTranslate();
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'alpha', {
-    get: function () {
-        if (this.transitions && this.transitions[10]) {
-            return this.transitions[10].targetValue;
-        } else {
-            return this.ALPHA;
-        }
-    },
-    set: function(v) {
-        if (this.transitions && this.transitions[10]) {
-            this.setTransitionTargetValue(this.transitions[10], v, this.ALPHA);
-        } else {
-            this.ALPHA = v;
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'ALPHA', {
-    get: function () {
-        return this._alpha;
-    },
-    set: function(v) {
-        if (v > 1) {
-            v = 1;
-        } else if (v < 0) {
-            v = 0;
-        }
-
-        if (v < 1e-14 && v > -1e-14) {
-            // Tiny rounding errors may cause failing visibility tests.
-            v = 0;
-        }
-
-        var pv = this._alpha;
-        if (pv !== v) {
-            this._alpha = v;
-            this._updateLocalAlpha();
-            if ((pv === 0) !== (v === 0)) {
-                this.updateActiveFlag();
-            }
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'rotation', {
-    get: function () {
-        if (this.transitions && this.transitions[11]) {
-            return this.transitions[11].targetValue;
-        } else {
-            return this.ROTATION;
-        }
-    },
-    set: function(v) {
-        if (this.transitions && this.transitions[11]) {
-            this.setTransitionTargetValue(this.transitions[11], v, this.ROTATION);
-        } else {
-            this.ROTATION = v;
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'ROTATION', {
-    get: function () {
-        return this._rotation;
-    },
-    set: function(v) {
-        var pv = this._rotation;
-        if (pv !== v) {
-            this._rotation = v;
-            this._updateLocalTransform();
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'borderWidthTop', {
-    get: function () {
-        if (this.transitions && this.transitions[12]) {
-            return this.transitions[12].targetValue;
-        } else {
-            return this.BORDERWIDTHTOP;
-        }
-    },
-    set: function(v) {
-        if (this.transitions && this.transitions[12]) {
-            this.setTransitionTargetValue(this.transitions[12], v, this.BORDERWIDTHTOP);
-        } else {
-            this.BORDERWIDTHTOP = v;
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'BORDERWIDTHTOP', {
-    get: function () {
-        return this._borderWidthTop;
-    },
-    set: function(v) {
-        var pv = this._borderWidthTop;
-        if (pv !== v) {
-            this._borderWidthTop = v;
-            if ((pv === 0) !== (v === 0)) {
-                this.hasBorders = this._borderWidthTop || this._borderWidthBottom || this._borderWidthLeft || this._borderWidthRight;
-            }
-
-            this.uComponent.setBorderTop(this._borderWidthTop, this._borderColorTop);
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'borderWidthBottom', {
-    get: function () {
-        if (this.transitions && this.transitions[13]) {
-            return this.transitions[13].targetValue;
-        } else {
-            return this.BORDERWIDTHBOTTOM;
-        }
-    },
-    set: function(v) {
-        if (this.transitions && this.transitions[13]) {
-            this.setTransitionTargetValue(this.transitions[13], v, this.BORDERWIDTHBOTTOM);
-        } else {
-            this.BORDERWIDTHBOTTOM = v;
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'BORDERWIDTHBOTTOM', {
-    get: function () {
-        return this._borderWidthBottom;
-    },
-    set: function(v) {
-        var pv = this._borderWidthBottom;
-        if (pv !== v) {
-            this._borderWidthBottom = v;
-            if ((pv === 0) !== (v === 0)) {
-                this.hasBorders = this._borderWidthBottom || this._borderWidthBottom || this._borderWidthLeft || this._borderWidthRight;
-            }
-
-            this.uComponent.setBorderBottom(this._borderWidthBottom, this._borderColorBottom);
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'borderWidthLeft', {
-    get: function () {
-        if (this.transitions && this.transitions[14]) {
-            return this.transitions[14].targetValue;
-        } else {
-            return this.BORDERWIDTHLEFT;
-        }
-    },
-    set: function(v) {
-        if (this.transitions && this.transitions[14]) {
-            this.setTransitionTargetValue(this.transitions[14], v, this.BORDERWIDTHLEFT);
-        } else {
-            this.BORDERWIDTHLEFT = v;
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'BORDERWIDTHLEFT', {
-    get: function () {
-        return this._borderWidthLeft;
-    },
-    set: function(v) {
-        var pv = this._borderWidthLeft;
-        if (pv !== v) {
-            this._borderWidthLeft = v;
-            if ((pv === 0) !== (v === 0)) {
-                this.hasBorders = this._borderWidthLeft || this._borderWidthBottom || this._borderWidthLeft || this._borderWidthRight;
-            }
-            this.uComponent.setBorderLeft(this._borderWidthLeft, this._borderColorLeft);
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'borderWidthRight', {
-    get: function () {
-        if (this.transitions && this.transitions[15]) {
-            return this.transitions[15].targetValue;
-        } else {
-            return this.BORDERWIDTHRIGHT;
-        }
-    },
-    set: function(v) {
-        if (this.transitions && this.transitions[15]) {
-            this.setTransitionTargetValue(this.transitions[15], v, this.BORDERWIDTHRIGHT);
-        } else {
-            this.BORDERWIDTHRIGHT = v;
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'BORDERWIDTHRIGHT', {
-    get: function () {
-        return this._borderWidthRight;
-    },
-    set: function(v) {
-        var pv = this._borderWidthRight;
-        if (pv !== v) {
-            this._borderWidthRight = v;
-            if ((pv === 0) !== (v === 0)) {
-                this.hasBorders = this._borderWidthRight || this._borderWidthBottom || this._borderWidthRight || this._borderWidthRight;
-            }
-            this.uComponent.setBorderRight(this._borderWidthRight, this._borderColorRight);
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'borderColorTop', {
-    get: function () {
-        if (this.transitions && this.transitions[16]) {
-            return this.transitions[16].targetValue;
-        } else {
-            return this.BORDERCOLORTOP;
-        }
-    },
-    set: function(v) {
-        if (this.transitions && this.transitions[16]) {
-            this.setTransitionTargetValue(this.transitions[16], v, this.BORDERCOLORTOP);
-        } else {
-            this.BORDERCOLORTOP = v;
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'BORDERCOLORTOP', {
-    get: function () {
-        return this._borderColorTop;
-    },
-    set: function(v) {
-        var pv = this._borderColorTop;
-        if (pv !== v) {
-            this._borderColorTop = v;
-            this.uComponent.setBorderTop(this._borderWidthTop, this._borderColorTop);
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'borderColorBottom', {
-    get: function () {
-        if (this.transitions && this.transitions[17]) {
-            return this.transitions[17].targetValue;
-        } else {
-            return this.BORDERCOLORBOTTOM;
-        }
-    },
-    set: function(v) {
-        if (this.transitions && this.transitions[17]) {
-            this.setTransitionTargetValue(this.transitions[17], v, this.BORDERCOLORBOTTOM);
-        } else {
-            this.BORDERCOLORBOTTOM = v;
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'BORDERCOLORBOTTOM', {
-    get: function () {
-        return this._borderColorBottom;
-    },
-    set: function(v) {
-        var pv = this._borderColorBottom;
-        if (pv !== v) {
-            this._borderColorBottom = v;
-            this.uComponent.setBorderBottom(this._borderWidthBottom, this._borderColorBottom);
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'borderColorLeft', {
-    get: function () {
-        if (this.transitions && this.transitions[18]) {
-            return this.transitions[18].targetValue;
-        } else {
-            return this.BORDERCOLORLEFT;
-        }
-    },
-    set: function(v) {
-        if (this.transitions && this.transitions[18]) {
-            this.setTransitionTargetValue(this.transitions[18], v, this.BORDERCOLORLEFT);
-        } else {
-            this.BORDERCOLORLEFT = v;
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'BORDERCOLORLEFT', {
-    get: function () {
-        return this._borderColorLeft;
-    },
-    set: function(v) {
-        var pv = this._borderColorLeft;
-        if (pv !== v) {
-            this._borderColorLeft = v;
-            this.uComponent.setBorderLeft(this._borderWidthLeft, this._borderColorLeft);
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'borderColorRight', {
-    get: function () {
-        if (this.transitions && this.transitions[19]) {
-            return this.transitions[19].targetValue;
-        } else {
-            return this.BORDERCOLORRIGHT;
-        }
-    },
-    set: function(v) {
-        if (this.transitions && this.transitions[19]) {
-            this.setTransitionTargetValue(this.transitions[19], v, this.BORDERCOLORRIGHT);
-        } else {
-            this.BORDERCOLORRIGHT = v;
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'BORDERCOLORRIGHT', {
-    get: function () {
-        return this._borderColorRight;
-    },
-    set: function(v) {
-        var pv = this._borderColorRight;
-        if (pv !== v) {
-            this._borderColorRight = v;
-            this.uComponent.setBorderRight(this._borderWidthRight, this._borderColorRight);
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'colorTopLeft', {
-    get: function () {
-        if (this.transitions && this.transitions[20]) {
-            return this.transitions[20].targetValue;
-        } else {
-            return this.COLORTOPLEFT;
-        }
-    },
-    set: function(v) {
-        if (this.transitions && this.transitions[20]) {
-            this.setTransitionTargetValue(this.transitions[20], v, this.COLORTOPLEFT);
-        } else {
-            this.COLORTOPLEFT = v;
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'COLORTOPLEFT', {
-    get: function () {
-        return this._colorTopLeft;
-    },
-    set: function(v) {
-        var pv = this._colorTopLeft;
-        if (pv !== v) {
-            this._colorTopLeft = v;
-            this.uComponent.setColorUl(v);
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'colorTopRight', {
-    get: function () {
-        if (this.transitions && this.transitions[21]) {
-            return this.transitions[21].targetValue;
-        } else {
-            return this.COLORTOPRIGHT;
-        }
-    },
-    set: function(v) {
-        if (this.transitions && this.transitions[21]) {
-            this.setTransitionTargetValue(this.transitions[21], v, this.COLORTOPRIGHT);
-        } else {
-            this.COLORTOPRIGHT = v;
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'COLORTOPRIGHT', {
-    get: function () {
-        return this._colorTopRight;
-    },
-    set: function(v) {
-        var pv = this._colorTopRight;
-        if (pv !== v) {
-            this._colorTopRight = v;
-            this.uComponent.setColorUr(v);
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'colorBottomLeft', {
-    get: function () {
-        if (this.transitions && this.transitions[22]) {
-            return this.transitions[22].targetValue;
-        } else {
-            return this.COLORBOTTOMLEFT;
-        }
-    },
-    set: function(v) {
-        if (this.transitions && this.transitions[22]) {
-            this.setTransitionTargetValue(this.transitions[22], v, this.COLORBOTTOMLEFT);
-        } else {
-            this.COLORBOTTOMLEFT = v;
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'COLORBOTTOMLEFT', {
-    get: function () {
-        return this._colorBottomLeft;
-    },
-    set: function(v) {
-        var pv = this._colorBottomLeft;
-        if (pv !== v) {
-            this._colorBottomLeft = v;
-            this.uComponent.setColorBl(v);
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'colorBottomRight', {
-    get: function () {
-        if (this.transitions && this.transitions[23]) {
-            return this.transitions[23].targetValue;
-        } else {
-            return this.COLORBOTTOMRIGHT;
-        }
-    },
-    set: function(v) {
-        if (this.transitions && this.transitions[23]) {
-            this.setTransitionTargetValue(this.transitions[23], v, this.COLORBOTTOMRIGHT);
-        } else {
-            this.COLORBOTTOMRIGHT = v;
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'COLORBOTTOMRIGHT', {
-    get: function () {
-        return this._colorBottomRight;
-    },
-    set: function(v) {
-        var pv = this._colorBottomRight;
-        if (pv !== v) {
-            this._colorBottomRight = v;
-            this.uComponent.setColorBr(v);
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'visible', {
-    get: function () {
-        return this._visible;
-    },
-    set: function(v) {
-        var pv = this._visible;
-        if (pv !== v) {
-            this._visible = !!v;
-            this._updateLocalAlpha();
-            this.updateActiveFlag();
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'clipping', {
-    get: function () {
-        return this._clipping;
-    },
-    set: function(v) {
-        var pv = this._clipping;
-        if (pv !== v) {
-            this._clipping = v;
-            this.uComponent.setClipping(v);
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'zIndex', {
-    get: function () {
-        return this._zIndex;
-    },
-    set: function(v) {
-        var pv = this._zIndex;
-        if (pv !== v) {
-            this._zIndex = v;
-            if (this.active) {
-                if (pv !== 0 && v === 0) {
-                    this.stage.zIndexUsage--;
-                } else if (pv === 0 && v !== 0) {
-                    this.stage.zIndexUsage++;
-                }
-            }
-            this.uComponent.setZIndex(this.zIndex);
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'forceZIndexContext', {
-    get: function () {
-        return this._forceZIndexContext;
-    },
-    set: function(v) {
-        var pv = this._forceZIndexContext;
-        if (pv !== v) {
-            this._forceZIndexContext = v;
-            this.uComponent.setForceZIndexContext(this.forceZIndexContext);
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'scale', {
-    get: function() { return this.scaleX; },
-    set: function(v) {
-        this.scaleX = v;
-        this.scaleY = v;
-    }
-});
-
-Object.defineProperty(Component.prototype, 'borderWidth', {
-    get: function() { return this.borderWidthTop; },
-    set: function(v) {
-        this.borderWidthTop = v;
-        this.borderWidthBottom = v;
-        this.borderWidthLeft = v;
-        this.borderWidthRight = v;
-    }
-});
-
-Object.defineProperty(Component.prototype, 'borderColor', {
-    get: function() { return this.borderColorTop; },
-    set: function(v) {
-        this.borderColorTop = v;
-        this.borderColorBottom = v;
-        this.borderColorLeft = v;
-        this.borderColorRight = v;
-    }
-});
-
-Object.defineProperty(Component.prototype, 'texture', {
-    get: function() { return this._texture; },
-    set: function(v) {
-        if (v === null || v instanceof Texture) {
-            var prevValue = this._texture;
-            if (v !== prevValue) {
-                if (v !== null && !(v instanceof Texture)) {
-                    throw new Error('incorrect value for texture');
-                }
-
-                this._texture = v;
-
-                if (this.active && prevValue && this.displayedTexture !== prevValue) {
-                    // Keep reference to component for texture source
-                    prevValue.removeComponent(this, (!v || prevValue.source !== v.source) && (!this.displayedTexture || (this.displayedTexture.source !== prevValue.source)));
-                }
-
-                if (v) {
-                    if (this.active) {
-                        // When the texture is changed, maintain the texture's sprite registry.
-                        // While the displayed texture is different from the texture (not yet loaded), two textures are referenced.
-                        v.addComponent(this);
-                    }
-
-                    if (v.source.glTexture) {
-                        this.displayedTexture = v;
-                    }
-                } else {
-                    // Make sure that current texture is cleared when the texture is explicitly set to null.
-                    this.displayedTexture = null;
-                }
-            }
-        } else if (Utils.isPlainObject(v)) {
-            if (this._texture) {
-                this._texture.set(v);
-            }
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'displayedTexture', {
-    get: function() { return this._displayedTexture; },
-    set: function(v) {
-        if (v === null || v instanceof Texture) {
-            var prevValue = this._displayedTexture;
-            if (v !== prevValue) {
-                if (this.active && prevValue) {
-                    // We can assume that this._texture === this._displayedTexture.
-
-                    if (prevValue !== this.texture) {
-                        // The old displayed texture is deprecated.
-                        prevValue.removeComponent(this, (!v || (prevValue.source !== v.source)));
-                    }
-                }
-
-                this._displayedTexture = v;
-
-                this.checkForResize();
-
-                if (v) {
-                    if (this._eventsCount) {
-                        this.emit('txLoaded', v);
-                    }
-
-                    // We don't need to reference the displayed texture because it was already referenced (this.texture === this.displayedTexture).
-                    this._updateTextureCoords();
-                    this.stage.uComponentContext.setDisplayedTextureSource(this.uComponent, v.source);
-                } else {
-                    if (this._eventsCount) {
-                        this.emit('txUnloaded', v);
-                    }
-
-                    this.stage.uComponentContext.setDisplayedTextureSource(this.uComponent, null);
-                }
-            }
-        } else if (Utils.isPlainObject(v)) {
-            if (this._displayedTexture) {
-                this._displayedTexture.set(v);
-            }
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'color', {
-    get: function() { return this.colorTopLeft; },
-    set: function(v) {
-        this.colorTopLeft = v;
-        this.colorTopRight = v;
-        this.colorBottomLeft = v;
-        this.colorBottomRight = v;
-    }
-});
-
-Object.defineProperty(Component.prototype, 'colorTop', {
-    get: function() { return this.colorTopLeft; },
-    set: function(v) {
-        this.colorTopLeft = v;
-        this.colorTopRight = v;
-    }
-});
-
-Object.defineProperty(Component.prototype, 'colorBottom', {
-    get: function() { return this.colorBottomLeft; },
-    set: function(v) {
-        this.colorBottomLeft = v;
-        this.colorBottomRight = v;
-    }
-});
-
-Object.defineProperty(Component.prototype, 'colorLeft', {
-    get: function() { return this.colorTopLeft; },
-    set: function(v) {
-        this.colorTopLeft = v;
-        this.colorBottomLeft = v;
-    }
-});
-
-Object.defineProperty(Component.prototype, 'colorRight', {
-    get: function() { return this.colorTopRight; },
-    set: function(v) {
-        this.colorTopRight = v;
-        this.colorBottomRight = v;
-    }
-});
-
-Object.defineProperty(Component.prototype, 'src', {
-    get: function() { return this._src; },
-    set: function(v) {
-        var prevValue = this._src;
-
-        if (!prevValue || prevValue !== v || !this.texture || !this.texture.source.renderInfo || this.texture.source.renderInfo.src !== v) {
-            if (!v) {
-                if (prevValue) {
-                    this.texture = null;
-                }
-                this._src = null;
-            } else {
-                this.texture = this.stage.textureManager.getTexture(v);
-
-                this._src = v;
-            }
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'text', {
-    get: function() {
-        if (!this.textRenderer) {
-            this.textRenderer = new ComponentText(this);
-        }
-        return this.textRenderer;
-    },
-    set: function(settings) {
-        if (settings === null) {
-            if (this.textRenderer) {
-                this.textRenderer = null;
-                this.texture = null;
-            }
-        } else {
-            if (!this.textRenderer) {
-                this.textRenderer = new ComponentText(this);
-            }
-            if (Utils.isString(settings)) {
-                this.textRenderer.text = settings;
-            } else {
-                this.textRenderer.set(settings);
-            }
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'rect', {
-    get: function() {
-        return (this.texture === this.stage.getRectangleTexture());
-    },
-    set: function(v) {
-        if (v) {
-            this.texture = this.stage.getRectangleTexture();
-        } else {
-            this.texture = null;
-        }
-    }
-});
-
-Object.defineProperty(Component.prototype, 'tags', {
-    get: function() {
-        // Copy to make sure they aren't changed externally.
-        return this.getTags();
-    },
-    set: function(v) {
-        this.setTags(v);
-    }
-});
-
-Object.defineProperty(Component.prototype, 'children', {
-    get: function() {
-        // Copy to make sure they aren't changed externally.
-        return this._children;
-    },
-    set: function(v) {
-        var stage = this.stage;
-        if (!Utils.isArray(v)) {
-            throw new TypeError('Children must be array.');
-        }
-        var c = [];
-        for (var i = 0, n = v.length; i < n; i++) {
-            if (v[i] instanceof Component) {
-                c[i] = v[i];
-            } else {
-                c[i] = stage.c(v[i]);
-            }
-        }
-        this.setChildren(c);
-    }
-});
-
-Component.prototype.setTransitionTargetValue = function(transition, targetValue, currentValue) {
-    transition.updateTargetValue(targetValue, currentValue);
-};
-
-Component.prototype._updateLocalTransform = function() {
-    if (this._rotation !== 0 && this._rotation % (2 * Math.PI)) {
-        // check to see if the rotation is the same as the previous render. This means we only need to use sin and cos when rotation actually changes
-        if (this._rotation !== this.rotationCache) {
-            this.rotationCache = this._rotation;
-            this._sr = Math.sin(this._rotation);
-            this._cr = Math.cos(this._rotation);
-        }
-
-        this.uComponent.setLocalTransform(
-            this._cr * this._scaleX,
-            -this._sr * this._scaleY,
-            this._sr * this._scaleX,
-            this._cr * this._scaleY
-        );
-    } else {
-        this.uComponent.setLocalTransform(
-            this._scaleX,
-            0,
-            0,
-            this._scaleY
-        );
-    }
-    this._updateLocalTranslate();
-};
-
-Component.prototype._updateLocalTranslate = function() {
-    var pivotXMul = this._pivotX * this._renderWidth;
-    var pivotYMul = this._pivotY * this._renderHeight;
-    var px = this._x - (pivotXMul * this.uComponent.getLocalTa() + pivotYMul * this.uComponent.getLocalTb()) + pivotXMul;
-    var py = this._y - (pivotXMul * this.uComponent.getLocalTc() + pivotYMul * this.uComponent.getLocalTd()) + pivotYMul;
-    px -= this._mountX * this._renderWidth;
-    py -= this._mountY * this._renderHeight;
-    this.uComponent.setLocalTranslate(
-        px,
-        py
-    );
-};
-
-Component.prototype._updateLocalTranslateDelta = function(dx, dy) {
-    this.uComponent.addLocalTranslate(dx, dy);
-};
-
-Component.prototype._updateLocalAlpha = function() {
-    this.uComponent.setLocalAlpha(this._visible ? this._alpha : 0);
-};
-
-Component.prototype._updateLocalDimensions = function() {
-    this.uComponent.setDimensions(this._renderWidth, this._renderHeight);
-    this._updateLocalTranslate();
-};
-
-Component.prototype.textureIsLoaded = function() {
-    return this.texture ? !!this.texture.source.glTexture : false;
-};
-
-Component.prototype.loadTexture = function(sync) {
-    if (this.texture) {
-        this.texture.load(sync);
-    }
-};
-
-Component.prototype._updateTextureCoords = function() {
-    if (this.displayedTexture && this.displayedTexture.source) {
-        var displayedTexture = this.displayedTexture;
-        var displayedTextureSource = this.displayedTexture.source;
-        
-        var tx1 = 0, ty1 = 0, tx2 = 1.0, ty2 = 1.0;
-        if (displayedTexture.clipping) {
-            // Apply texture clipping.
-            var w = displayedTextureSource.getRenderWidth();
-            var h = displayedTextureSource.getRenderHeight();
-            var iw, ih, rw, rh;
-            iw = 1 / w;
-            ih = 1 / h;
-
-            if (displayedTexture.w) {
-                rw = displayedTexture.w * iw;
-            } else {
-                rw = (w - displayedTexture.x) * iw;
-            }
-
-            if (displayedTexture.h) {
-                rh = displayedTexture.h * ih;
-            } else {
-                rh = (h - displayedTexture.y) * ih;
-            }
-
-            iw *= displayedTexture.x;
-            ih *= displayedTexture.y;
-
-            tx1 = Math.min(1.0, Math.max(0, iw));
-            ty1 = Math.min(1.0, Math.max(ih));
-            tx2 = Math.min(1.0, Math.max(tx2 * rw + iw));
-            ty2 = Math.min(1.0, Math.max(ty2 * rh + ih));
-        }
-
-        if (displayedTextureSource.inTextureAtlas) {
-            // Calculate texture atlas texture coordinates.
-            var textureAtlasI = 0.000488281;    // 1/2048.
-
-            var tax = (displayedTextureSource.textureAtlasX * textureAtlasI);
-            var tay = (displayedTextureSource.textureAtlasY * textureAtlasI);
-            var dax = (displayedTextureSource.w * textureAtlasI);
-            var day = (displayedTextureSource.h * textureAtlasI);
-
-            tx1 = tax;
-            ty1 = tay;
-
-            tx2 = tx2 * dax + tax;
-            ty2 = ty2 * day + tay;
-        }
-
-        this.uComponent.setTextureCoords(tx1, ty1, tx2, ty2);
-        this.uComponent.setInTextureAtlas(displayedTextureSource.inTextureAtlas);
-    }
-};
-
-Component.getPropertyIndex = function(name) {
-    return Component.SETTINGS[name] ? Component.SETTINGS[name].i : -1;
-};
-
-Component.getPropertyIndexFinal = function(name) {
-    return Component.FINAL_SETTINGS[name] ? Component.FINAL_SETTINGS[name].i : -1;
-};
-
-Component.SETTINGS = {
-    'x': {i:0, s: function(obj, value) {obj.x = value}, g: function(obj) {return obj.x}, sf: function(obj, value) {obj.X = value}, gf: function(obj) {return obj.X}, m: StageUtils.mergeNumbers},
-    'y': {i:1, s: function(obj, value) {obj.y = value}, g: function(obj) {return obj.y}, sf: function(obj, value) {obj.Y = value}, gf: function(obj) {return obj.Y}, m: StageUtils.mergeNumbers},
-    'w': {i:2, s: function(obj, value) {obj.w = value}, g: function(obj) {return obj.w}, sf: function(obj, value) {obj.W = value}, gf: function(obj) {return obj.W}, m: StageUtils.mergeNumbers},
-    'h': {i:3, s: function(obj, value) {obj.h = value}, g: function(obj) {return obj.h}, sf: function(obj, value) {obj.H = value}, gf: function(obj) {return obj.H}, m: StageUtils.mergeNumbers},
-    'scaleX': {i:4, s: function(obj, value) {obj.scaleX = value}, g: function(obj) {return obj.scaleX}, sf: function(obj, value) {obj.SCALEX = value}, gf: function(obj) {return obj.SCALEX}, m: StageUtils.mergeNumbers},
-    'scaleY': {i:5, s: function(obj, value) {obj.scaleY = value}, g: function(obj) {return obj.scaleY}, sf: function(obj, value) {obj.SCALEY = value}, gf: function(obj) {return obj.SCALEY}, m: StageUtils.mergeNumbers},
-    'pivotX': {i:6, s: function(obj, value) {obj.pivotX = value}, g: function(obj) {return obj.pivotX}, sf: function(obj, value) {obj.PIVOTX = value}, gf: function(obj) {return obj.PIVOTX}, m: StageUtils.mergeNumbers},
-    'pivotY': {i:7, s: function(obj, value) {obj.pivotY = value}, g: function(obj) {return obj.pivotY}, sf: function(obj, value) {obj.PIVOTY = value}, gf: function(obj) {return obj.PIVOTY}, m: StageUtils.mergeNumbers},
-    'mountX': {i:8, s: function(obj, value) {obj.mountX = value}, g: function(obj) {return obj.mountX}, sf: function(obj, value) {obj.MOUNTX = value}, gf: function(obj) {return obj.MOUNTX}, m: StageUtils.mergeNumbers},
-    'mountY': {i:9, s: function(obj, value) {obj.mountY = value}, g: function(obj) {return obj.mountY}, sf: function(obj, value) {obj.MOUNTY = value}, gf: function(obj) {return obj.MOUNTY}, m: StageUtils.mergeNumbers},
-    'alpha': {i:10, s: function(obj, value) {obj.alpha = value}, g: function(obj) {return obj.alpha}, sf: function(obj, value) {obj.ALPHA = value}, gf: function(obj) {return obj.ALPHA}, m: StageUtils.mergeNumbers},
-    'rotation': {i:11, s: function(obj, value) {obj.rotation = value}, g: function(obj) {return obj.rotation}, sf: function(obj, value) {obj.ROTATION = value}, gf: function(obj) {return obj.ROTATION}, m: StageUtils.mergeNumbers},
-    'borderWidthTop': {i:12, s: function(obj, value) {obj.borderWidthTop = value}, g: function(obj) {return obj.borderWidthTop}, sf: function(obj, value) {obj.BORDERWIDTHTOP = value}, gf: function(obj) {return obj.BORDERWIDTHTOP}, m: StageUtils.mergeNumbers},
-    'borderWidthBottom': {i:13, s: function(obj, value) {obj.borderWidthBottom = value}, g: function(obj) {return obj.borderWidthBottom}, sf: function(obj, value) {obj.BORDERWIDTHBOTTOM = value}, gf: function(obj) {return obj.BORDERWIDTHBOTTOM}, m: StageUtils.mergeNumbers},
-    'borderWidthLeft': {i:14, s: function(obj, value) {obj.borderWidthLeft = value}, g: function(obj) {return obj.borderWidthLeft}, sf: function(obj, value) {obj.BORDERWIDTHLEFT = value}, gf: function(obj) {return obj.BORDERWIDTHLEFT}, m: StageUtils.mergeNumbers},
-    'borderWidthRight': {i:15, s: function(obj, value) {obj.borderWidthRight = value}, g: function(obj) {return obj.borderWidthRight}, sf: function(obj, value) {obj.BORDERWIDTHRIGHT = value}, gf: function(obj) {return obj.BORDERWIDTHRIGHT}, m: StageUtils.mergeNumbers},
-    'borderColorTop': {i:16, s: function(obj, value) {obj.borderColorTop = value}, g: function(obj) {return obj.borderColorTop}, sf: function(obj, value) {obj.BORDERCOLORTOP = value}, gf: function(obj) {return obj.BORDERCOLORTOP}, m: StageUtils.mergeColors},
-    'borderColorBottom': {i:17, s: function(obj, value) {obj.borderColorBottom = value}, g: function(obj) {return obj.borderColorBottom}, sf: function(obj, value) {obj.BORDERCOLORBOTTOM = value}, gf: function(obj) {return obj.BORDERCOLORBOTTOM}, m: StageUtils.mergeColors},
-    'borderColorLeft': {i:18, s: function(obj, value) {obj.borderColorLeft = value}, g: function(obj) {return obj.borderColorLeft}, sf: function(obj, value) {obj.BORDERCOLORLEFT = value}, gf: function(obj) {return obj.BORDERCOLORLEFT}, m: StageUtils.mergeColors},
-    'borderColorRight': {i:19, s: function(obj, value) {obj.borderColorRight = value}, g: function(obj) {return obj.borderColorRight}, sf: function(obj, value) {obj.BORDERCOLORRIGHT = value}, gf: function(obj) {return obj.BORDERCOLORRIGHT}, m: StageUtils.mergeColors},
-    'colorTopLeft': {i:20, s: function(obj, value) {obj.colorTopLeft = value}, g: function(obj) {return obj.colorTopLeft}, sf: function(obj, value) {obj.COLORTOPLEFT = value}, gf: function(obj) {return obj.COLORTOPLEFT}, m: StageUtils.mergeColors},
-    'colorTopRight': {i:21, s: function(obj, value) {obj.colorTopRight = value}, g: function(obj) {return obj.colorTopRight}, sf: function(obj, value) {obj.COLORTOPRIGHT = value}, gf: function(obj) {return obj.COLORTOPRIGHT}, m: StageUtils.mergeColors},
-    'colorBottomLeft': {i:22, s: function(obj, value) {obj.colorBottomLeft = value}, g: function(obj) {return obj.colorBottomLeft}, sf: function(obj, value) {obj.COLORBOTTOMLEFT = value}, gf: function(obj) {return obj.COLORBOTTOMLEFT}, m: StageUtils.mergeColors},
-    'colorBottomRight': {i:23, s: function(obj, value) {obj.colorBottomRight = value}, g: function(obj) {return obj.colorBottomRight}, sf: function(obj, value) {obj.COLORBOTTOMRIGHT = value}, gf: function(obj) {return obj.COLORBOTTOMRIGHT}, m: StageUtils.mergeColors},
-    'visible': {s: function(obj, value) {obj.visible = value}, g: function(obj) {return obj.visible}, sf: function(obj, value) {obj.VISIBLE = value}, gf: function(obj) {return obj.VISIBLE}, m: null},
-    'zIndex': {s: function(obj, value) {obj.zIndex = value}, g: function(obj) {return obj.zIndex}, sf: function(obj, value) {obj.VISIBLE = value}, gf: function(obj) {return obj.VISIBLE}, m: null},
-    'forceZIndexContext': {s: function(obj, value) {obj.forceZIndexContext = value}, g: function(obj) {return obj.forceZIndexContext}, sf: function(obj, value) {obj.FORCEZINDEXCONTEXT = value}, gf: function(obj) {return obj.FORCEZINDEXCONTEXT}, m: null},
-    'clipping': {s: function(obj, value) {obj.clipping = value}, g: function(obj) {return obj.clipping}, sf: function(obj, value) {obj.CLIPPING = value}, gf: function(obj) {return obj.CLIPPING}, m: null},
-    'rect': {s: function(obj, value) {obj.rect = value}, g: function(obj) {return obj.rect}, m: null},
-    'src': {s: function(obj, value) {obj.src = value}, g: function(obj) {return obj.src}, m: null},
-    'text': {s: function(obj, value) {obj.text = value}, g: function(obj) {return obj.text}, m: null},
-    'texture': {s: function(obj, value) {obj.texture = value}, g: function(obj) {return obj.src}, m: null},
-    'tag': {s: function(obj, value) {obj.tags = value}, g: function(obj) {return obj.tags}, m: null},
-    'tags': {s: function(obj, value) {obj.tags = value}, g: function(obj) {return obj.tags}, m: null},
-    'children': {s: function(obj, value) {obj.children = value}, g: function(obj) {return obj.children;}, m: null}
-};
-
-Component.FINAL_SETTINGS = {};
-for (var key in Component.SETTINGS) {
-    if (Component.SETTINGS.hasOwnProperty(key) && Component.SETTINGS[key]['sf']) {
-        Component.FINAL_SETTINGS[key.toUpperCase()] = Component.SETTINGS[key];
-    }
-}
-
-Component.nTransitions = 24;
-
-
-
-var ComponentTags = function(component) {
-
-    this.component = component;
-
-    /**
-     * Parent component's tag manager.
-     * @type {ComponentTags}
-     */
-    this.parent = null;
-
-    /**
-     * Tags that can be used to identify/search for a specific component.
-     * @type {String[]}
-     */
-    this.tags = null;
-
-    /**
-     * The tree's tags mapping.
-     * This contains all components for all known tags, at all times.
-     * @type {Map}
-     * @private
-     */
-    this.treeTags = null;
-
-    /**
-     * Cache for the tag/mtag methods.
-     * @type {Map<String,Component[]>}
-     */
-    this.cache = null;
-
-    /**
-     * Tag-to-complex cache (all tags that are part of the complex caches).
-     * This maps tags to cached complex tags in the cache.
-     * @type {Map<String,String[]>}
-     */
-    this.tagToComplex = null;
-
-};
-
-/**
- * Clears the cache(s) for the specified tag.
- * @param {String} tag
- */
-ComponentTags.prototype.clearCache = function(tag) {
-    if (this.cache) {
-        this.cache.delete(tag);
-
-        if (this.tagToComplex) {
-            var s = this.tagToComplex.get(tag);
-            if (s) {
-                for (var i = 0, n = s.length; i < n; i++) {
-                    this.cache.delete(s[i]);
-                }
-                this.tagToComplex.delete(tag);
-            }
-        }
-    }
-};
-
-ComponentTags.prototype.unsetParent = function() {
-    var tags = null;
-    var n = 0;
-    if (this.treeTags) {
-        tags = Utils.iteratorToArray(this.treeTags.keys());
-        n = tags.length;
-
-        if (n > 0) {
-            for (var i = 0; i < n; i++) {
-                var tagSet = this.treeTags.get(tags[i]);
-
-                // Remove from treeTags.
-                var p = this;
-                while (p = p.parent) {
-                    var parentTreeTags = p.treeTags.get(tags[i]);
-
-                    tagSet.forEach(function(comp) {
-                        parentTreeTags.delete(comp);
-                    });
-
-
-                    p.clearCache(tags[i]);
-                }
-            }
-        }
-    }
-
-};
-
-ComponentTags.prototype.setParent = function(parent) {
-    this.parent = parent;
-
-    var tags = null;
-    var n = 0;
-    if (this.treeTags) {
-        tags = Utils.iteratorToArray(this.treeTags.keys());
-        n = tags.length;
-
-        if (n > 0) {
-            for (var i = 0; i < n; i++) {
-                var tagSet = this.treeTags.get(tags[i]);
-
-                // Add to treeTags.
-                var p = this;
-                while (p = p.parent) {
-                    if (!p.treeTags) {
-                        p.treeTags = new Map();
-                    }
-
-                    var s = p.treeTags.get(tags[i]);
-                    if (!s) {
-                        s = new Set();
-                        p.treeTags.set(tags[i], s);
-                    }
-
-                    tagSet.forEach(function(comp) {
-                        s.add(comp);
-                    });
-
-                    p.clearCache(tags[i]);
-                }
-            }
-        }
-    }
-};
-
-ComponentTags.prototype.getLocalTags = function() {
-    // We clone it to make sure it's not changed externally.
-    return this.tags ? this.tags : [];
-};
-
-ComponentTags.prototype.setTags = function(tags) {
-    if (!Utils.isArray(tags)) {
-        tags = [tags];
-    }
-
-    var i, n = tags.length;
-    var removes = [];
-    var adds = [];
-    for (i = 0; i < n; i++) {
-        if (!this.hasTag(tags[i])) {
-            adds.push(tags[i]);
-        }
-    }
-
-    var currentTags = this.tags || [];
-    n = currentTags.length;
-    for (i = 0; i < n; i++) {
-        if (tags.indexOf(currentTags[i]) == -1) {
-            removes.push(currentTags[i]);
-        }
-    }
-
-    for (i = 0; i < removes.length; i++) {
-        this.removeTag(removes[i]);
-    }
-
-    for (i = 0; i < adds.length; i++) {
-        this.addTag(adds[i]);
-    }
-};
-
-ComponentTags.prototype.addTag = function(tag) {
-    if (!this.tags) {
-        this.tags = [];
-    }
-    if (this.tags.indexOf(tag) === -1) {
-        this.tags.push(tag);
-
-        // Add to treeTags hierarchy.
-        var p = this;
-        do {
-            if (!p.treeTags) {
-                p.treeTags = new Map();
-            }
-
-            var s = p.treeTags.get(tag);
-            if (!s) {
-                var s = new Set();
-                p.treeTags.set(tag, s);
-            }
-
-            s.add(this.component);
-
-            p.clearCache(tag);
-        } while (p = p.parent);
-    }
-};
-
-ComponentTags.prototype.removeTag = function(tag) {
-    var i = this.tags.indexOf(tag);
-    if (i !== -1) {
-        this.tags.splice(i, 1);
-
-        // Remove from treeTags hierarchy.
-        var p = this;
-        do {
-            var list = p.treeTags.get(tag);
-            if (list) {
-                list.delete(this.component);
-
-                p.clearCache(tag);
-            }
-        } while (p = p.parent);
-    }
-};
-
-ComponentTags.prototype.hasTag = function(tag) {
-    return (this.tags && (this.tags.indexOf(tag) !== -1));
-};
-
-/**
- * Returns one of the components from the subtree that have this tag.
- * @param {string} tag
- * @returns {Component}
- */
-ComponentTags.prototype.tag = function(tag) {
-    var res = this.mtag(tag);
-    return res[0];
-};
-
-ComponentTags.prototype.get = function(tag) {
-    if (!this.treeTags) {
-        return [];
-    }
-    var t = this.treeTags.get(tag);
-    return t ? Utils.setToArray(t) : [];
-};
-
-/**
- * Returns all components from the subtree that have this tag.
- * @param {string} tag
- * @returns {Component[]}
- */
-ComponentTags.prototype.mtag = function(tag) {
-    var res = null;
-    if (this.cache) {
-        res = this.cache.get(tag);
-    }
-
-    if (!res) {
-        var idx = tag.indexOf(".");
-        if (idx >= 0) {
-            var parts = tag.split('.');
-            res = this.get(parts[0]);
-            var level = 1;
-            var c = parts.length;
-            while (res.length && level < c) {
-                var resn = [];
-                for (var j = 0, n = res.length; j < n; j++) {
-                    resn = resn.concat(res[j]._tags.get(parts[level]));
-                }
-
-                res = resn;
-                level++;
-            }
-        } else {
-            res = this.get(tag);
-        }
-
-        if (!this.cache) {
-            this.cache = new Map();
-        }
-
-        this.cache.set(tag, res);
-    }
-    return res;
-};
-
-
-
-/**
- * Renders text as a component texture.
- * @constructor
- * @abstract
- */
-function ComponentText(component) {
-
-    this.stage = component.stage;
-
-    this.component = component;
-
-    this.updatingTexture = false;
-
-    this.settings = new TextRendererSettings();
-
-    this.texture = null;
-
-    this.updateTexture();
-}
-
-ComponentText.prototype.set = function(settings) {
-    this.settings.set(settings);
-    if (this.settings.hasUpdates) {
-        this.updateTexture();
-    }
-};
-
-ComponentText.prototype.updateTexture = function() {
-    if (this.settings.text == "") {
-        // Clear current displayed texture (when changing text back to empty).
-        this.component.texture = null;
-        return;
-    }
-
-    this.settings.hasUpdates = false;
-    if (this.updatingTexture && this.component.texture === this.texture) return;
-
-    this.updatingTexture = true;
-
-    // Create a dummy texture that loads the actual texture.
-    var self = this;
-
-    this.component.texture = this.texture = this.stage.texture(function(cb, ts, sync) {
-        // Create 'real' texture and set it.
-        self.updatingTexture = false;
-
-        // Ignore this texture source load.
-        cb(null, null);
-
-        // Replace with the newly generated texture source.
-        var settings = self.getFinalizedSettings();
-        var source = self.createTextureSource(settings);
-
-        // Inherit texture precision from text settings.
-        self.texture.precision = settings.precision;
-
-        // Make sure that the new texture source is loaded.
-        source.load(sync || settings.sync);
-
-        self.texture.replaceTextureSource(source);
-    });
-};
-
-ComponentText.prototype.getFinalizedSettings = function() {
-    var settings = this.settings.clone();
-    settings.finalize(this.component);
-    return settings;
-};
-
-ComponentText.prototype.createTextureSource = function(settings) {
-    var self = this;
-    var m = this.stage.textureManager;
-
-    var loadCb = function (cb, ts, sync) {
-        if (self.stage.measureLongFrames) {
-            var s = self.stage.getHrTime();
-        }
-        m.loadText(settings, ts, sync, cb);
-        if (self.stage.measureLongFrames) {
-            self.stage.longFrameComponents.text += (self.stage.getHrTime() - s);
-            self.stage.longFrameComponents.nText++;
-        }
-    };
-
-    return self.stage.textureManager.getTextureSource(loadCb, settings.getTextureId());
-};
-
-ComponentText.prototype.measure = function() {
-    var tr = new TextRenderer(this.stage.drawingCanvasFactory, this.settings.clone());
-
-    if (!tr.settings.w && this.component.w) {
-        tr.settings.w = this.component.w;
-    }
-
-    if (!tr.settings.h && this.component.h) {
-        tr.settings.h = this.component.h;
-    }
-
-    var rval = tr.draw(true);
-
-    return rval.renderInfo;
-};
-
-Object.defineProperty(ComponentText.prototype, 'renderInfo', {
-    get: function() {
-        return (this.texture && this.texture.source ? this.texture.source.renderInfo : {});
-    }
-});
-
-// Proxy all settable properties to the settings object.
-Object.defineProperty(ComponentText.prototype, 'text', {
-    get: function() {
-        return this.settings.text;
-    },
-    set: function(v) {
-        this.settings.text = v;
-        if (v === null) {
-            this.component.text = null;
-        } else {
-            if (this.settings.hasUpdates) this.updateTexture();
-        }
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'w', {
-    get: function() {
-        return this.settings.w;
-    },
-    set: function(v) {
-        this.settings.w = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'h', {
-    get: function() {
-        return this.settings.h;
-    },
-    set: function(v) {
-        this.settings.h = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'fontStyle', {
-    get: function() {
-        return this.settings.fontStyle;
-    },
-    set: function(v) {
-        this.settings.fontStyle = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'fontSize', {
-    get: function() {
-        return this.settings.fontSize;
-    },
-    set: function(v) {
-        this.settings.fontSize = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'fontFace', {
-    get: function() {
-        return this.settings.fontFace;
-    },
-    set: function(v) {
-        this.settings.fontFace = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'wordWrap', {
-    get: function() {
-        return this.settings.wordWrap;
-    },
-    set: function(v) {
-        this.settings.wordWrap = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'wordWrapWidth', {
-    get: function() {
-        return this.settings.wordWrapWidth;
-    },
-    set: function(v) {
-        this.settings.wordWrapWidth = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'lineHeight', {
-    get: function() {
-        return this.settings.lineHeight;
-    },
-    set: function(v) {
-        this.settings.lineHeight = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'textBaseline', {
-    get: function() {
-        return this.settings.textBaseline;
-    },
-    set: function(v) {
-        this.settings.textBaseline = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'textAlign', {
-    get: function() {
-        return this.settings.textAlign;
-    },
-    set: function(v) {
-        this.settings.textAlign = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'offsetY', {
-    get: function() {
-        return this.settings.offsetY;
-    },
-    set: function(v) {
-        this.settings.offsetY = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'maxLines', {
-    get: function() {
-        return this.settings.maxLines;
-    },
-    set: function(v) {
-        this.settings.maxLines = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'maxLinesSuffix', {
-    get: function() {
-        return this.settings.maxLinesSuffix;
-    },
-    set: function(v) {
-        this.settings.maxLinesSuffix = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'precision', {
-    get: function() {
-        return this.settings.precision;
-    },
-    set: function(v) {
-        this.settings.precision = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'textColor', {
-    get: function() {
-        return this.settings.textColor;
-    },
-    set: function(v) {
-        this.settings.textColor = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'paddingLeft', {
-    get: function() {
-        return this.settings.paddingLeft;
-    },
-    set: function(v) {
-        this.settings.paddingLeft = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'paddingRight', {
-    get: function() {
-        return this.settings.paddingRight;
-    },
-    set: function(v) {
-        this.settings.paddingRight = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'shadow', {
-    get: function() {
-        return this.settings.shadow;
-    },
-    set: function(v) {
-        this.settings.shadow = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'shadowColor', {
-    get: function() {
-        return this.settings.shadowColor;
-    },
-    set: function(v) {
-        this.settings.shadowColor = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'shadowOffsetX', {
-    get: function() {
-        return this.settings.shadowOffsetX;
-    },
-    set: function(v) {
-        this.settings.shadowOffsetX = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'shadowOffsetY', {
-    get: function() {
-        return this.settings.shadowOffsetY;
-    },
-    set: function(v) {
-        this.settings.shadowOffsetY = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'shadowBlur', {
-    get: function() {
-        return this.settings.shadowBlur;
-    },
-    set: function(v) {
-        this.settings.shadowBlur = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'highlight', {
-    get: function() {
-        return this.settings.highlight;
-    },
-    set: function(v) {
-        this.settings.highlight = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'highlightHeight', {
-    get: function() {
-        return this.settings.highlightHeight;
-    },
-    set: function(v) {
-        this.settings.highlightHeight = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'highlightColor', {
-    get: function() {
-        return this.settings.highlightColor;
-    },
-    set: function(v) {
-        this.settings.highlightColor = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'highlightOffset', {
-    get: function() {
-        return this.settings.highlightOffset;
-    },
-    set: function(v) {
-        this.settings.highlightOffset = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'highlightPaddingLeft', {
-    get: function() {
-        return this.settings.highlightPaddingLeft;
-    },
-    set: function(v) {
-        this.settings.highlightPaddingLeft = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'highlightPaddingRight', {
-    get: function() {
-        return this.settings.highlightPaddingRight;
-    },
-    set: function(v) {
-        this.settings.highlightPaddingRight = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'cutSx', {
-    get: function() {
-        return this.settings.cutSx;
-    },
-    set: function(v) {
-        this.settings.cutSx = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'cutEx', {
-    get: function() {
-        return this.settings.cutEx;
-    },
-    set: function(v) {
-        this.settings.cutEx = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'cutSy', {
-    get: function() {
-        return this.settings.cutSy;
-    },
-    set: function(v) {
-        this.settings.cutSy = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-Object.defineProperty(ComponentText.prototype, 'cutEy', {
-    get: function() {
-        return this.settings.cutEy;
-    },
-    set: function(v) {
-        this.settings.cutEy = v;
-        if (this.settings.hasUpdates) this.updateTexture();
-    }
-});
-
-
-
-function TextRenderer(drawingCanvasFactory, settings) {
-    this.drawingCanvasFactory = drawingCanvasFactory;
-
-    this.settings = settings;
-
-    this.canvas = null;
-
-    this.context = null;
-}
-
-TextRenderer.prototype.getPrecision = function() {
-    return this.settings.precision;
-};
-
-TextRenderer.prototype.setFontProperties = function(withPrecision) {
-    var ff = this.settings.fontFace;
-    var fonts = '"' + (Utils.isArray(ff) ? this.settings.fontFace.join('","') : ff) + '"';
-    var precision = (withPrecision ? this.getPrecision() : 1);
-    this.context.font = this.settings.fontStyle + " " + (this.settings.fontSize * precision) + "px " + fonts;
-    this.context.textBaseline = this.settings.textBaseline;
-};
-
-TextRenderer.prototype.createCanvas = function() {
-    this.canvas = this.drawingCanvasFactory();
-    this.context = this.canvas.getContext('2d');
-};
-
-TextRenderer.prototype.unlinkCanvas = function() {
-    this.canvas = null;
-    this.context = null;
-};
-
-TextRenderer.prototype.draw = function(noDraw) {
-    this.createCanvas();
-
-    var renderInfo = {};
-
-    // Set font properties.
-    this.setFontProperties(false);
-
-    // Total width.
-    var width = this.settings.w || (2048 / this.getPrecision());
-
-    // Inner width.
-    var innerWidth = width - (this.settings.paddingLeft + this.settings.paddingRight);
-    if (innerWidth < 10) {
-        width += (10 - innerWidth);
-        innerWidth += (10 - innerWidth);
-    }
-
-    var wordWrapWidth = this.settings.wordWrapWidth || innerWidth;
-
-    // word wrap
-    // preserve original text
-    var linesInfo;
-    if (this.settings.wordWrap) {
-        linesInfo = this.wrapText(this.settings.text, wordWrapWidth);
-    } else {
-        linesInfo = {l: this.settings.text.split(/(?:\r\n|\r|\n)/), n: []};
-        var i, n = linesInfo.l.length;
-        for (var i = 0; i < n - 1; i++) {
-            linesInfo.n.push(i);
-        }
-    }
-    var lines = linesInfo.l;
-
-    if (this.settings.maxLines && lines.length > this.settings.maxLines) {
-        var usedLines = lines.slice(0, this.settings.maxLines);
-
-        var otherLines = null;
-        if (this.settings.maxLinesSuffix) {
-            // Wrap again with max lines suffix enabled.
-            var al = this.wrapText(usedLines[usedLines.length - 1] + this.settings.maxLinesSuffix, wordWrapWidth);
-            usedLines[usedLines.length - 1] = al.l[0];
-            otherLines = [al.l.length > 1 ? al.l[1] : ''];
-        } else {
-            otherLines = ['']
-        }
-
-        // Re-assemble the remaining text.
-        var i, n = lines.length;
-        var j = 0;
-        var m = linesInfo.n.length;
-        for (i = this.settings.maxLines; i < n; i++) {
-            otherLines[j] += (otherLines[j] ? " " : "") + lines[i];
-            if (i + 1 < m && linesInfo.n[i + 1]) {
-                j++;
-            }
-        }
-
-        renderInfo.remainingText = otherLines.join("\n");
-
-        renderInfo.moreTextLines = true;
-
-        lines = usedLines;
-    } else {
-        renderInfo.moreTextLines = false;
-        renderInfo.remainingText = "";
-    }
-
-    // calculate text width
-    var maxLineWidth = 0;
-    var lineWidths = [];
-    for (var i = 0; i < lines.length; i++) {
-        var lineWidth = this.context.measureText(lines[i]).width;
-        lineWidths.push(lineWidth);
-        maxLineWidth = Math.max(maxLineWidth, lineWidth);
-    }
-
-    renderInfo.lineWidths = lineWidths;
-
-    if (!this.settings.w) {
-        // Auto-set width to max text length.
-        width = maxLineWidth + this.settings.paddingLeft + this.settings.paddingRight;
-        innerWidth = maxLineWidth;
-    }
-
-    // calculate text height
-    var lineHeight = this.settings.lineHeight || (this.settings.fontSize);
-
-    var height;
-    if (this.settings.h) {
-        height = this.settings.h;
-    } else {
-        height = lineHeight * (lines.length - 1) + 0.5 * this.settings.fontSize + Math.max(lineHeight, this.settings.fontSize) + this.settings.offsetY;
-    }
-
-    var offsetY = this.settings.offsetY === null ? this.settings.fontSize : this.settings.offsetY;
-
-    var precision = this.getPrecision();
-
-    renderInfo.w = width * precision;
-    renderInfo.h = height * precision;
-    renderInfo.lines = lines;
-    renderInfo.precision = precision;
-
-    if (!noDraw) {
-        if (!width) {
-            // To prevent canvas errors.
-            width = 1;
-        }
-
-        if (!height) {
-            // To prevent canvas errors.
-            height = 1;
-        }
-
-        if (this.settings.cutSx || this.settings.cutEx) {
-            width = Math.min(width, this.settings.cutEx - this.settings.cutSx);
-        }
-
-        if (this.settings.cutSy || this.settings.cutEy) {
-            height = Math.min(height, this.settings.cutEy - this.settings.cutSy);
-        }
-
-        // Get corrected precision so that text
-        this.canvas.width = Math.ceil(width * precision);
-        this.canvas.height = Math.ceil(height * precision);
-
-        // After changing the canvas, we need to reset the properties.
-        this.setFontProperties(true);
-
-        if (this.settings.cutSx || this.settings.cutSy) {
-            this.context.translate(-(this.settings.cutSx * precision), -(this.settings.cutSy * precision));
-        }
-
-        var linePositionX;
-        var linePositionY;
-
-        var drawLines = [];
-
-        // Draw lines line by line.
-        for (i = 0; i < lines.length; i++) {
-            linePositionX = 0;
-            linePositionY = (i * lineHeight) + offsetY;
-
-            if (this.settings.textAlign === 'right') {
-                linePositionX += (innerWidth - lineWidths[i]);
-            } else if (this.settings.textAlign === 'center') {
-                linePositionX += ((innerWidth - lineWidths[i]) / 2);
-            }
-            linePositionX += this.settings.paddingLeft;
-
-            drawLines.push({text: lines[i], x: linePositionX * precision, y: linePositionY * precision, w: lineWidths[i] * precision});
-        }
-
-        // Highlight.
-        if (this.settings.highlight) {
-            var color = this.settings.highlightColor || 0x00000000;
-            var hlHeight = (this.settings.highlightHeight || this.settings.fontSize * 1.5);
-            var offset = (this.settings.highlightOffset !== null ? this.settings.highlightOffset : -0.5 * this.settings.fontSize);
-            var paddingLeft = (this.settings.highlightPaddingLeft !== null ? this.settings.highlightPaddingLeft : this.settings.paddingLeft);
-            var paddingRight = (this.settings.highlightPaddingRight !== null ? this.settings.highlightPaddingRight : this.settings.paddingRight);
-
-            this.context.fillStyle = StageUtils.getRgbaString(color);
-            for (i = 0; i < drawLines.length; i++) {
-                var drawLine = drawLines[i];
-                this.context.fillRect((drawLine.x - paddingLeft) * precision, (drawLine.y + offset) * precision, (drawLine.w + paddingRight + paddingLeft) * precision, hlHeight * precision);
-            }
-        }
-
-        // Text shadow.
-        var prevShadowSettings = null;
-        if (this.settings.shadow) {
-            prevShadowSettings = [this.context.shadowColor, this.context.shadowOffsetX, this.context.shadowOffsetY, this.context.shadowBlur];
-
-            this.context.shadowColor = StageUtils.getRgbaString(this.settings.shadowColor);
-            this.context.shadowOffsetX = this.settings.shadowOffsetX * precision;
-            this.context.shadowOffsetY = this.settings.shadowOffsetY * precision;
-            this.context.shadowBlur = this.settings.shadowBlur * precision;
-        }
-
-        this.context.fillStyle = StageUtils.getRgbaString(this.settings.textColor);
-        for (i = 0; i < drawLines.length; i++) {
-            var drawLine = drawLines[i];
-            this.context.fillText(drawLine.text, drawLine.x, drawLine.y);
-        }
-
-        if (prevShadowSettings) {
-            this.context.shadowColor = prevShadowSettings[0];
-            this.context.shadowOffsetX = prevShadowSettings[1];
-            this.context.shadowOffsetY = prevShadowSettings[2];
-            this.context.shadowBlur = prevShadowSettings[3];
-        }
-
-        if (this.settings.cutSx || this.settings.cutSy) {
-            this.context.translate(this.settings.cutSx, this.settings.cutSy);
-        }
-    }
-
-    var canvas = this.canvas;
-    this.unlinkCanvas();
-    return {renderInfo: renderInfo, canvas: canvas};
-};
-
-/**
- * Applies newlines to a string to have it optimally fit into the horizontal
- * bounds set by the Text object's wordWrapWidth property.
- */
-TextRenderer.prototype.wrapText = function(text, wordWrapWidth) {
-    // Greedy wrapping algorithm that will wrap words as the line grows longer
-    // than its horizontal bounds.
-    var lines = text.split(/\r?\n/g);
-    var allLines = [];
-    var realNewlines = [];
-    for (var i = 0; i < lines.length; i++) {
-        var resultLines = [];
-        var result = '';
-        var spaceLeft = wordWrapWidth;
-        var words = lines[i].split(' ');
-        for (var j = 0; j < words.length; j++) {
-            var wordWidth = this.context.measureText(words[j]).width;
-            var wordWidthWithSpace = wordWidth + this.context.measureText(' ').width;
-            if (j === 0 || wordWidthWithSpace > spaceLeft) {
-                // Skip printing the newline if it's the first word of the line that is
-                // greater than the word wrap width.
-                if (j > 0) {
-                    resultLines.push(result);
-                    result = '';
-                }
-                result += words[j];
-                spaceLeft = wordWrapWidth - wordWidth;
-            }
-            else {
-                spaceLeft -= wordWidthWithSpace;
-                result += ' ' + words[j];
-            }
-        }
-
-        if (result) {
-            resultLines.push(result);
-            result = '';
-        }
-
-        allLines = allLines.concat(resultLines);
-
-        if (i < lines.length - 1) {
-            realNewlines.push(allLines.length);
-        }
-    }
-
-    return {l: allLines, n: realNewlines};
-};
-
-
-
-var TextRendererSettings = function() {
-
-    // The default text options.
-    this.text = this._text = "";
-    this.w = this._w = 0;
-    this.h = this._h = 0;
-    this.fontStyle = this._fontStyle = "normal";
-    this.fontSize = this._fontSize = 40;
-    this.fontFace = this._fontFace = null;
-    this.wordWrap = this._wordWrap = true;
-    this.wordWrapWidth = this._wordWrapWidth = 0;
-    this.lineHeight = this._lineHeight = null;
-    this.textBaseline = this._textBaseline = "alphabetic";
-    this.textAlign = this._textAlign = "left";
-    this.offsetY = this._offsetY = null;
-    this.maxLines = this._maxLines = 0;
-    this.maxLinesSuffix = this._maxLinesSuffix = "..";
-    this.precision = this._precision = null;
-    this.textColor = this._textColor = 0xffffffff;
-    this.paddingLeft = this._paddingLeft = 0;
-    this.paddingRight = this._paddingRight = 0;
-    this.shadow = this._shadow = false;
-    this.shadowColor = this._shadowColor = 0xff000000;
-    this.shadowOffsetX = this._shadowOffsetX = 0;
-    this.shadowOffsetY = this._shadowOffsetY = 0;
-    this.shadowBlur = this._shadowBlur = 5;
-    this.highlight = this._highlight = false;
-    this.highlightHeight = this._highlightHeight = 0;
-    this.highlightColor = this._highlightColor = 0xff000000;
-    this.highlightOffset = this._highlightOffset = null;
-    this.highlightPaddingLeft = this._highlightPaddingLeft = null;
-    this.highlightPaddingRight = this._highlightPaddingRight = null;
-
-    // Cut the canvas.
-    this.cutSx = this._cutSx = 0;
-    this.cutEx = this._cutEx = 0;
-    this.cutSy = this._cutSy = 0;
-    this.cutEy = this._cutEy = 0;
-
-    // If true, then texture loads are performed on the main thread (blocking the next frame until fully loaded).
-    this.sync = this._sync = false;
-
-    // Flag that indicates if any property has changed.
-    this.hasUpdates = false;
-};
-
-TextRendererSettings.prototype.set = function(obj) {
-    var keys = Object.keys(obj);
-    for (var i = 0; i < keys.length; i++) {
-        var value = obj[keys[i]];
-        this.setSetting(keys[i], value);
-    }
-};
-
-TextRendererSettings.prototype.setSetting = function(name, value) {
-    var setting = TextRendererSettings.SETTINGS[name];
-    if (setting) {
-        setting.s(this, value);
-    } else {
-        console.warn("Unknown text property: " + name);
-    }
-};
-
-/**
- * Finalize this settings object so that it is no longer dependent on possibly changing defaults.
- */
-TextRendererSettings.prototype.finalize = function(component) {
-    // Inherit width and height from component.
-    if (!this.w && component.w) {
-        this.w = component.w;
-    }
-
-    if (!this.h && component.h) {
-        this.h = component.h;
-    }
-
-    if (this.fontFace === null) {
-        this.fontFace = component.stage.defaultFontFace;
-    }
-
-    if (this.precision === null) {
-        this.precision = component.stage.defaultPrecision;
-    }
-};
-
-TextRendererSettings.prototype.getNonDefaults = function() {
-    var nonDefaults = {};
-
-    if (this.text !== "") nonDefaults['text'] = this.text;
-    if (this.w !== 0) nonDefaults['w'] = this.w;
-    if (this.h !== 0) nonDefaults['h'] = this.h;
-    if (this.fontStyle !== "normal") nonDefaults['fontStyle'] = this.fontStyle;
-    if (this.fontSize !== 40) nonDefaults["fontSize"] = this.fontSize;
-    if (this.fontFace !== null) nonDefaults["fontFace"] = this.fontFace;
-    if (this.wordWrap !== true) nonDefaults["wordWrap"] = this.wordWrap;
-    if (this.wordWrapWidth !== 0) nonDefaults["wordWrapWidth"] = this.wordWrapWidth;
-    if (this.lineHeight !== null) nonDefaults["lineHeight"] = this.lineHeight;
-    if (this.textBaseline !== "alphabetic") nonDefaults["textBaseline"] = this.textBaseline;
-    if (this.textAlign !== "left") nonDefaults["textAlign"] = this.textAlign;
-    if (this.offsetY !== null) nonDefaults["offsetY"] = this.offsetY;
-    if (this.maxLines !== 0) nonDefaults["maxLines"] = this.maxLines;
-    if (this.maxLinesSuffix !== "..") nonDefaults["maxLinesSuffix"] = this.maxLinesSuffix;
-    if (this.precision !== null) nonDefaults["precision"] = this.precision;
-    if (this.textColor !== 0xffffffff) nonDefaults["textColor"] = this.textColor;
-    if (this.paddingLeft !== 0) nonDefaults["paddingLeft"] = this.paddingLeft;
-    if (this.paddingRight !== 0) nonDefaults["paddingRight"] = this.paddingRight;
-    if (this.shadow !== false) nonDefaults["shadow"] = this.shadow;
-    if (this.shadowColor !== 0xff000000) nonDefaults["shadowColor"] = this.shadowColor;
-    if (this.shadowOffsetX !== 0) nonDefaults["shadowOffsetX"] = this.shadowOffsetX;
-    if (this.shadowOffsetY !== 0) nonDefaults["shadowOffsetY"] = this.shadowOffsetY;
-    if (this.shadowBlur !== 5) nonDefaults["shadowBlur"] = this.shadowBlur;
-    if (this.highlight !== false) nonDefaults["highlight"] = this.highlight;
-    if (this.highlightHeight !== 0) nonDefaults["highlightHeight"] = this.highlightHeight;
-    if (this.highlightColor !== 0xff000000) nonDefaults["highlightColor"] = this.highlightColor;
-    if (this.highlightOffset !== null) nonDefaults["highlightOffset"] = this.highlightOffset;
-    if (this.highlightPaddingLeft !== null) nonDefaults["highlightPaddingLeft"] = this.highlightPaddingLeft;
-    if (this.highlightPaddingRight !== null) nonDefaults["highlightPaddingRight"] = this.highlightPaddingRight;
-
-    if (this.cutSx) nonDefaults["cutSx"] = this.cutSx;
-    if (this.cutEx) nonDefaults["cutEx"] = this.cutEx;
-    if (this.cutSy) nonDefaults["cutSy"] = this.cutSy;
-    if (this.cutEy) nonDefaults["cutEy"] = this.cutEy;
-
-    if (this.sync) nonDefaults["sync"] = this.sync;
-
-    return nonDefaults;
-};
-
-TextRendererSettings.prototype.getRenderNonDefaults = function() {
-    var nonDefaults = this.getNonDefaults();
-
-    // Remove properties that are not important for rendering.
-    delete nonDefaults['sync'];
-
-    return nonDefaults;
-};
-
-TextRendererSettings.prototype.getTextureId = function() {
-    var parts = [];
-
-    if (this.w !== 0) parts.push("w " + this.w);
-    if (this.h !== 0) parts.push("h " + this.h);
-    if (this.fontStyle !== "normal") parts.push("fS" + this.fontStyle);
-    if (this.fontSize !== 40) parts.push("fs" + this.fontSize);
-    if (this.fontFace !== null) parts.push("ff" + (Utils.isArray(this.fontFace) ? this.fontFace.join(",") : this.fontFace));
-    if (this.wordWrap !== true) parts.push("wr" + (this.wordWrap ? 1 : 0));
-    if (this.wordWrapWidth !== 0) parts.push("ww" + this.wordWrapWidth);
-    if (this.lineHeight !== null) parts.push("lh" + this.lineHeight);
-    if (this.textBaseline !== "alphabetic") parts.push("tb" + this.textBaseline);
-    if (this.textAlign !== "left") parts.push("ta" + this.textAlign);
-    if (this.offsetY !== null) parts.push("oy" + this.offsetY);
-    if (this.maxLines !== 0) parts.push("ml" + this.maxLines);
-    if (this.maxLinesSuffix !== "..") parts.push("ms" + this.maxLinesSuffix);
-    if (this.precision !== null) parts.push("pc" + this.precision);
-    if (this.textColor !== 0xffffffff) parts.push("co" + this.textColor.toString(16));
-    if (this.paddingLeft !== 0) parts.push("pl" + this.paddingLeft);
-    if (this.paddingRight !== 0) parts.push("pr" + this.paddingRight);
-    if (this.shadow !== false) parts.push("sh" + (this.shadow ? 1 : 0));
-    if (this.shadowColor !== 0xff000000) parts.push("sc" + this.shadowColor.toString(16));
-    if (this.shadowOffsetX !== 0) parts.push("sx" + this.shadowOffsetX);
-    if (this.shadowOffsetY !== 0) parts.push("sy" + this.shadowOffsetY);
-    if (this.shadowBlur !== 5) parts.push("sb" + this.shadowBlur);
-    if (this.highlight !== false) parts.push("hL" + (this.highlight ? 1 : 0));
-    if (this.highlightHeight !== 0) parts.push("hh" + this.highlightHeight);
-    if (this.highlightColor !== 0xff000000) parts.push("hc" + this.highlightColor.toString(16));
-    if (this.highlightOffset !== null) parts.push("ho" + this.highlightOffset);
-    if (this.highlightPaddingLeft !== null) parts.push("hl" + this.highlightPaddingLeft);
-    if (this.highlightPaddingRight !== null) parts.push("hr" + this.highlightPaddingRight);
-
-    if (this.cutSx) parts.push("csx" + this.cutSx);
-    if (this.cutEx) parts.push("cex" + this.cutEx);
-    if (this.cutSy) parts.push("csy" + this.cutSy);
-    if (this.cutEy) parts.push("cey" + this.cutEy);
-
-    if (this.sync) parts.push("sync");
-
-    var id = "TX$" + parts.join("|") + ":" + this.text;
-    return id;
-};
-
-TextRendererSettings.prototype.clone = function() {
-    var t = new TextRendererSettings();
-    t.set(this.getNonDefaults());
-    return t;
-};
-
-TextRendererSettings.prototype.notifyUpdate = function() {
-    this.hasUpdates = true;
-};
-
-Object.defineProperty(TextRendererSettings.prototype, 'text', {
-    get: function () {
-        return this._text;
-    },
-    set: function(v) {
-        var pv = this._text;
-        if (pv !== v) {
-            this._text = v;
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'w', {
-    get: function () {
-        return this._w;
-    },
-    set: function(v) {
-        var pv = this._w;
-        if (pv !== v) {
-            this._w = v;
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'h', {
-    get: function () {
-        return this._h;
-    },
-    set: function(v) {
-        var pv = this._h;
-        if (pv !== v) {
-            this._h = v;
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'fontStyle', {
-    get: function () {
-        return this._fontStyle;
-    },
-    set: function(v) {
-        var pv = this._fontStyle;
-        if (pv !== v) {
-            this._fontStyle = v;
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'fontSize', {
-    get: function () {
-        return this._fontSize;
-    },
-    set: function(v) {
-        var pv = this._fontSize;
-        if (pv !== v) {
-            this._fontSize = v;
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'fontFace', {
-    get: function () {
-        return this._fontFace;
-    },
-    set: function(v) {
-        var pv = this._fontFace;
-        if (pv !== v) {
-            this._fontFace = v;
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'wordWrap', {
-    get: function () {
-        return this._wordWrap;
-    },
-    set: function(v) {
-        var pv = this._wordWrap;
-        if (pv !== v) {
-            this._wordWrap = v;
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'wordWrapWidth', {
-    get: function () {
-        return this._wordWrapWidth;
-    },
-    set: function(v) {
-        var pv = this._wordWrapWidth;
-        if (pv !== v) {
-            this._wordWrapWidth = v;
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'lineHeight', {
-    get: function () {
-        return this._lineHeight;
-    },
-    set: function(v) {
-        var pv = this._lineHeight;
-        if (pv !== v) {
-            this._lineHeight = v;
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'textBaseline', {
-    get: function () {
-        return this._textBaseline;
-    },
-    set: function(v) {
-        var pv = this._textBaseline;
-        if (pv !== v) {
-            this._textBaseline = v;
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'textAlign', {
-    get: function () {
-        return this._textAlign;
-    },
-    set: function(v) {
-        var pv = this._textAlign;
-        if (pv !== v) {
-            this._textAlign = v;
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'offsetY', {
-    get: function () {
-        return this._offsetY;
-    },
-    set: function(v) {
-        var pv = this._offsetY;
-        if (pv !== v) {
-            this._offsetY = v;
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'maxLines', {
-    get: function () {
-        return this._maxLines;
-    },
-    set: function(v) {
-        var pv = this._maxLines;
-        if (pv !== v) {
-            this._maxLines = v;
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'maxLinesSuffix', {
-    get: function () {
-        return this._maxLinesSuffix;
-    },
-    set: function(v) {
-        var pv = this._maxLinesSuffix;
-        if (pv !== v) {
-            this._maxLinesSuffix = v;
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'precision', {
-    get: function () {
-        return this._precision;
-    },
-    set: function(v) {
-        var pv = this._precision;
-        if (pv !== v) {
-            this._precision = v;
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'textColor', {
-    get: function () {
-        return this._textColor;
-    },
-    set: function(v) {
-        var pv = this._textColor;
-        if (pv !== v) {
-            this._textColor = v;
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'paddingLeft', {
-    get: function () {
-        return this._paddingLeft;
-    },
-    set: function(v) {
-        var pv = this._paddingLeft;
-        if (pv !== v) {
-            this._paddingLeft = v;
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'paddingRight', {
-    get: function () {
-        return this._paddingRight;
-    },
-    set: function(v) {
-        var pv = this._paddingRight;
-        if (pv !== v) {
-            this._paddingRight = v;
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'shadow', {
-    get: function () {
-        return this._shadow;
-    },
-    set: function(v) {
-        var pv = this._shadow;
-        if (pv !== v) {
-            this._shadow = v;
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'shadowColor', {
-    get: function () {
-        return this._shadowColor;
-    },
-    set: function(v) {
-        var pv = this._shadowColor;
-        if (pv !== v) {
-            this._shadowColor = v;
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'shadowOffsetX', {
-    get: function () {
-        return this._shadowOffsetX;
-    },
-    set: function(v) {
-        var pv = this._shadowOffsetX;
-        if (pv !== v) {
-            this._shadowOffsetX = v;
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'shadowOffsetY', {
-    get: function () {
-        return this._shadowOffsetY;
-    },
-    set: function(v) {
-        var pv = this._shadowOffsetY;
-        if (pv !== v) {
-            this._shadowOffsetY = v;
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'shadowBlur', {
-    get: function () {
-        return this._shadowBlur;
-    },
-    set: function(v) {
-        var pv = this._shadowBlur;
-        if (pv !== v) {
-            this._shadowBlur = v;
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'highlight', {
-    get: function () {
-        return this._highlight;
-    },
-    set: function(v) {
-        var pv = this._highlight;
-        if (pv !== v) {
-            this._highlight = v;
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'highlightHeight', {
-    get: function () {
-        return this._highlightHeight;
-    },
-    set: function(v) {
-        var pv = this._highlightHeight;
-        if (pv !== v) {
-            this._highlightHeight = v;
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'highlightColor', {
-    get: function () {
-        return this._highlightColor;
-    },
-    set: function(v) {
-        var pv = this._highlightColor;
-        if (pv !== v) {
-            this._highlightColor = v;
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'highlightOffset', {
-    get: function () {
-        return this._highlightOffset;
-    },
-    set: function(v) {
-        var pv = this._highlightOffset;
-        if (pv !== v) {
-            this._highlightOffset = v;
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'highlightPaddingLeft', {
-    get: function () {
-        return this._highlightPaddingLeft;
-    },
-    set: function(v) {
-        var pv = this._highlightPaddingLeft;
-        if (pv !== v) {
-            this._highlightPaddingLeft = v;
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'highlightPaddingRight', {
-    get: function () {
-        return this._highlightPaddingRight;
-    },
-    set: function(v) {
-        var pv = this._highlightPaddingRight;
-        if (pv !== v) {
-            this._highlightPaddingRight = v;
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'cutSx', {
-    get: function () {
-        return this._cutSx;
-    },
-    set: function(v) {
-        var pv = this._cutSx;
-        if (pv !== v) {
-            this._cutSx = Math.max(0, v);
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'cutEx', {
-    get: function () {
-        return this._cutEx;
-    },
-    set: function(v) {
-        var pv = this._cutEx;
-        if (pv !== v) {
-            this._cutEx = Math.max(0, v);
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'cutSy', {
-    get: function () {
-        return this._cutSy;
-    },
-    set: function(v) {
-        var pv = this._cutSy;
-        if (pv !== v) {
-            this._cutSy = Math.max(0, v);
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'cutEy', {
-    get: function () {
-        return this._cutEy;
-    },
-    set: function(v) {
-        var pv = this._cutEy;
-        if (pv !== v) {
-            this._cutEy = Math.max(0, v);
-            this.notifyUpdate();
-        }
-    }
-});
-
-Object.defineProperty(TextRendererSettings.prototype, 'sync', {
-    get: function () {
-        return this._sync;
-    },
-    set: function(v) {
-        var pv = this._sync;
-        if (pv !== v) {
-            this._sync = v;
-        }
-    }
-});
-
-TextRendererSettings.SETTINGS = {
-    'text': {s: function(obj, v) {obj.text = v;}, m: null},
-    'w': {s: function(obj, v) {obj.w = v;}, m: null},
-    'h': {s: function(obj, v) {obj.h = v;}, m: null},
-    'fontStyle': {s: function(obj, v) {obj.fontStyle = v;}, m: null},
-    'fontSize': {s: function(obj, v) {
-        obj.fontSize = v;
-    }, m: null},
-    'fontFace': {s: function(obj, v) {obj.fontFace = v;}, m: null},
-    'wordWrap': {s: function(obj, v) {obj.wordWrap = v;}, m: null},
-    'wordWrapWidth': {s: function(obj, v) {obj.wordWrapWidth = v;}, m: null},
-    'lineHeight': {s: function(obj, v) {obj.lineHeight = v;}, m: null},
-    'textBaseline': {s: function(obj, v) {obj.textBaseline = v;}, m: null},
-    'textAlign': {s: function(obj, v) {obj.textAlign = v;}, m: null},
-    'offsetY': {s: function(obj, v) {obj.offsetY = v;}, m: null},
-    'maxLines': {s: function(obj, v) {obj.maxLines = v;}, m: null},
-    'maxLinesSuffix': {s: function(obj, v) {obj.maxLinesSuffix = v;}, m: null},
-    'precision': {s: function(obj, v) {obj.precision = v;}, m: null},
-    'textColor': {s: function(obj, v) {obj.textColor = v;}, m: null},
-    'paddingLeft': {s: function(obj, v) {obj.paddingLeft = v;}, m: null},
-    'paddingRight': {s: function(obj, v) {obj.paddingRight = v;}, m: null},
-    'shadow': {s: function(obj, v) {obj.shadow = v;}, m: null},
-    'shadowColor': {s: function(obj, v) {obj.shadowColor = v;}, m: null},
-    'shadowOffsetX': {s: function(obj, v) {obj.shadowOffsetX = v;}, m: null},
-    'shadowOffsetY': {s: function(obj, v) {obj.shadowOffsetY = v;}, m: null},
-    'shadowBlur': {s: function(obj, v) {obj.shadowBlur = v;}, m: null},
-    'highlight': {s: function(obj, v) {obj.highlight = v;}, m: null},
-    'highlightHeight': {s: function(obj, v) {obj.highlightHeight = v;}, m: null},
-    'highlightColor': {s: function(obj, v) {obj.highlightColor = v;}, m: null},
-    'highlightOffset': {s: function(obj, v) {obj.highlightOffset = v;}, m: null},
-    'highlightPaddingLeft': {s: function(obj, v) {obj.highlightPaddingLeft = v;}, m: null},
-    'highlightPaddingRight': {s: function(obj, v) {obj.highlightPaddingRight = v;}, m: null},
-    'cutSx': {s: function(obj, v) {obj.cutSx = v;}, m: null},
-    'cutEx': {s: function(obj, v) {obj.cutEx = v;}, m: null},
-    'cutSy': {s: function(obj, v) {obj.cutSy = v;}, m: null},
-    'cutEy': {s: function(obj, v) {obj.cutEy = v;}, m: null},
-    'sync': {s: function(obj, v) {obj.sync = v;}, m: null}
-};
-
-
-/**
- * A transition for some element.
- * @constructor
- */
-function GenericTransition(v) {
-    EventEmitter.call(this);
-
-    this._delay = 0;
-    this._duration = 1;
-    this.timingFunction = 'ease';
-
-    /**
-     * @access private
-     */
-    this.delayLeft = 0;
-
-    /**
-     * @access private
-     */
-    this.p = 1;
-
-    /**
-     * @access private
-     */
-    this.startValue = v;
-
-    /**
-     * @access private
-     */
-    this.targetValue = this.startValue;
-
-}
-
-Utils.extendClass(GenericTransition, EventEmitter);
-
-GenericTransition.prototype.reset = function(startValue, targetValue, p) {
-    this.startValue = startValue;
-    this.targetValue = targetValue;
-    this.p = p;
-
-    if (this.isActive()) {
-        this.activate();
-    } else if (p === 1) {
-        this.setValue(this.getDrawValue());
-
-        // Immediately invoke onFinish event.
-        this.invokeListeners();
-    }
-};
-
-GenericTransition.prototype.isActive = function() {
-    return this.p < 1.0;
-};
-
-/**
- * Updates the target value and resets the transition.
- * @param targetValue
- * @param startValue
- */
-GenericTransition.prototype.updateTargetValue = function(targetValue, startValue) {
-    if (targetValue === startValue) {
-        this.reset(startValue, targetValue, 1);
-    } else {
-        this.targetValue = targetValue;
-
-        this.startValue = startValue;
-
-        // Reset.
-        this.p = 0;
-
-        this.delayLeft = this.delay;
-
-        if (this._eventsCount) this.emit('start');
-
-        if (this.isActive()) {
-            this.activate();
-        }
-    }
-};
-
-GenericTransition.prototype.activate = function() {
-};
-
-/**
- * Progress this transition.
- */
-GenericTransition.prototype.progress = function(dt) {
-    if (this.p < 1) {
-        if (this.delayLeft > 0) {
-            this.delayLeft -= dt;
-
-            if (this.delayLeft < 0) {
-                dt = -this.delayLeft;
-                this.delayLeft = 0;
-
-                if (this._eventsCount) this.emit('delayEnd');
-            } else {
-                return;
-            }
-        }
-
-        if (this.duration == 0) {
-            this.p = 1;
-        } else {
-            this.p += dt / this.duration;
-        }
-        if (this.p >= 1) {
-            // Finished!
-            this.p = 1;
-        }
-    }
-
-    this.setValue(this.getDrawValue());
-
-    this.invokeListeners();
-};
-
-GenericTransition.prototype.invokeListeners = function() {
-    if (this._eventsCount) this.emit('progress', this.p);
-    if (this.p === 1) {
-        if (this._eventsCount) this.emit('finish');
-    }
-};
-
-/**
- * Change current/target values while keeping the current transition ratio.
- */
-GenericTransition.prototype.setValuesDynamic = function(targetValue, currentFinalValue) {
-    var v = this._timingFunctionImpl(this.p);
-
-    if (v == 1) {
-        this.targetValue = targetValue;
-    } else if (v == 0) {
-        this.targetValue = targetValue;
-        this.startValue = currentFinalValue;
-        this.targetValue = targetValue;
-    } else {
-        // Calculate the would-be start value.
-        this.targetValue = targetValue;
-        this.targetValue = targetValue;
-        this.startValue = targetValue - ((targetValue - currentFinalValue) / (1 - v));
-    }
-};
-
-GenericTransition.prototype.set = function(settings) {
-    var propNames = Object.keys(settings);
-    for (var i = 0; i < propNames.length; i++) {
-        var name = propNames[i];
-        var v = settings[name];
-        this.setSetting(name, v);
-    }
-};
-
-GenericTransition.prototype.setSetting = function(name, value) {
-    if (this[name] === undefined) {
-        throw new TypeError('Unknown property:' + name);
-    }
-    this[name] = value;
-};
-
-GenericTransition.prototype.getProgress = function() {
-    return this.p;
-};
-
-GenericTransition.prototype.getDrawValue = function() {
-    if (this.p >= 1) {
-        return this.targetValue;
-    } else {
-        var v = this._timingFunctionImpl(this.p);
-        return this.getMergedValue(v);
-    }
-};
-
-GenericTransition.prototype.setValue = function(v) {
-};
-
-GenericTransition.prototype.getMergedValue = function(v) {
-    // Numeric merge. Inline for performance.
-    return this.targetValue * v + this.startValue * (1 - v);
-};
-
-Object.defineProperty(GenericTransition.prototype, 'delay', {
-    get: function() { return this._delay; },
-    set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError('delay must be a number');
-        }
-        this._delay = v;
-    }
-});
-
-Object.defineProperty(GenericTransition.prototype, 'duration', {
-    get: function() { return this._duration; },
-    set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError('duration must be a number');
-        }
-        this._duration = v;
-    }
-});
-
-Object.defineProperty(GenericTransition.prototype, 'timingFunction', {
-    get: function() { return this._timingFunction; },
-    set: function(v) {
-        if (v !== this._timingFunction) {
-            this._timingFunction = v;
-            this._timingFunctionImpl = StageUtils.getTimingFunction(v);
-        }
-    }
-});
-
-
-
-/**
- * A transition for some component property.
- * @constructor
- */
-function Transition(component, property) {
-    this.component = component;
-
-    this.property = property;
-
-    this.setting = Component.SETTINGS[property];
-
-    GenericTransition.call(this, this.setting.g(this.component));
-
-    /**
-     * The merge function. If null then use plain numeric interpolation merge.
-     * @type {Function}
-     */
-    this.mergeFunction = this.setting.m;
-
-    this.valueSetterFunction = this.setting.sf;
-
-}
-
-Utils.extendClass(Transition, GenericTransition);
-
-Transition.prototype.setValue = function(v) {
-    this.valueSetterFunction(this.component, v);
-};
-
-Transition.prototype.getMergedValue = function(v) {
-    return this.mergeFunction(this.targetValue, this.startValue, v);
-};
-
-Transition.prototype.activate = function() {
-    this.component.stage.addActiveTransition(this);
-};
-
-
-/**
- * An animation.
- * @constructor
- */
-function GenericAnimation(stage) {
-
-    this.stage = stage;
-
-    /**
-     * @type {Component}
-     */
-    this._subject = null;
-
-    this.actions = [];
-
-    /**
-     * @access private
-     */
-    this.p = 0;
-
-    /**
-     * Dummy for getFrameForProgress. Causes frame to be 0 when this is not a timed animation.
-     * @type {number}
-     */
-    this.duration = 0;
-
-}
-
-GenericAnimation.prototype.set = function(settings) {
-    var propNames = Object.keys(settings);
-    for (var i = 0; i < propNames.length; i++) {
-        var name = propNames[i];
-        var v = settings[name];
-        this.setSetting(name, v);
-    }
-};
-
-GenericAnimation.prototype.setSetting = function(name, value) {
-    switch(name) {
-        case 'actions':
-            this.actions = [];
-            for (var i = 0, n = value.length; i < n; i++) {
-                this.add(value[i]);
-            }
-            break;
-        default:
-            if (this[name] === undefined) {
-                throw new TypeError('Unknown property:' + name);
-            }
-            this[name] = value;
-    }
-};
-
-GenericAnimation.prototype.add = function(settings) {
-    var e = new AnimationAction(this);
-    e.set(settings);
-    this.actions.push(e);
-    return e;
-};
-
-GenericAnimation.prototype.remove = function(element) {
-    var index = this.actions.indexOf(element);
-    if (index >= 0) {
-        this.actions.splice(index, 1);
-    }
-};
-
-GenericAnimation.prototype.get = function(index) {
-    return this.actions[index];
-};
-
-GenericAnimation.prototype.getProgress = function() {
-    return this.p;
-};
-
-GenericAnimation.prototype.getFrameForProgress = function(p) {
-    return Math.round(p * this.duration * 60);
-};
-
-GenericAnimation.prototype.applyTransforms = function() {
-    var n = this.actions.length;
-    for (var i = 0; i < n; i++) {
-        this.actions[i].applyTransforms(this.p, 1);
-    }
-};
-
-GenericAnimation.prototype.resetTransforms = function() {
-    var n = this.actions.length;
-    for (var i = 0; i < n; i++) {
-        this.actions[i].resetTransforms();
-    }
-};
-
-Object.defineProperty(GenericAnimation.prototype, 'subject', {
-    get: function() { return this._subject; },
-    set: function(v) {
-        this._subject = v;
-    }
-});
-
-
-/**
- * An action within an animation.
- * @constructor
- */
-function AnimationAction(animation) {
-
-    this.animation = animation;
-
-    /**
-     * The tags to which this transformation applies.
-     * @type {string[]}
-     */
-    this._tags = [];
-
-    /**
-     * The value items, ordered by progress offset.
-     * @type {AnimationActionItems}
-     * @private
-     */
-    this._items = new AnimationActionItems(this);
-
-    /**
-     * The affected properties (names).
-     * @type {{n: String, [s]: Function, [o]: String}[]}
-     * @private
-     */
-    this._properties = [];
-
-    /**
-     * The value to reset to when stopping the timed animation.
-     * @type {*}
-     * @private
-     */
-    this._resetValue = null;
-
-    this.hasResetValue = false;
-
-    /**
-     * Mergable function for values.
-     * @type {Function}
-     * @private
-     */
-    this.mergeFunction = null;
-
-    // Default.
-    this.tags = '';
-
-}
-
-/**
- * Returns the components to be animated.
- */
-AnimationAction.prototype.getAnimatedComponents = function() {
-    var n = this.tags.length;
-    if (!this.animation.subject || !n) {
-        return [];
-    }
-
-    if (n === 1) {
-        if (this.tags[0] == '') {
-            return [this.animation.subject];
-        } else {
-            return this.animation.subject.mtag(this.tags[0]);
-        }
-    } else {
-        return this.getAnimatedMultiComponents();
-    }
-};
-
-/**
- * Returns the components to be animated.
- */
-AnimationAction.prototype.getAnimatedMultiComponents = function() {
-    var i, n = this.tags.length, j, m;
-
-    var taggedComponents = [];
-    for (i = 0; i < n; i++) {
-        if (this.tags[i] === '') {
-            taggedComponents.push(this.animation.subject);
-        } else {
-            var comps = this.animation.subject.mtag(this.tags[i]);
-            m = comps.length;
-            for (j = 0; j < m; j++) {
-                taggedComponents.push(comps[j]);
-            }
-        }
-    }
-
-    return taggedComponents;
-};
-
-AnimationAction.prototype.setValue = function(def) {
-    this._items.parseDefinition(def);
-};
-
-AnimationAction.prototype.getItem = function(p) {
-    var n = this._items.length;
-    if (!n) {
-        return null;
-    }
-
-    if (p < this._items[0].p) {
-        return null;
-    }
-
-    for (var i = 0; i < n; i++) {
-        if (this._items[i].p <= p && p < this._items[i].pe) {
-            return this._items[i];
-        }
-    }
-
-    return this._items[n - 1];
-};
-
-AnimationAction.prototype.getResetValue = function() {
-    if (this.hasResetValue) {
-        return this.resetValue;
-    } else {
-        if (this._items.length) {
-            return this._items.lv[0];
-        }
-    }
-    return 0;
-};
-
-AnimationAction.prototype.applyTransforms = function(m) {
-    if (!this._properties.length) {
-        return;
-    }
-
-    var c = this.getAnimatedComponents();
-    if (!c.length) {
-        return;
-    }
-
-    var v = this._items.getCurrentValue();
-
-    if (v === undefined) {
-        return;
-    }
-
-    if (m !== 1) {
-        var sv = this.getResetValue();
-        if (this.mergeFunction) {
-            v = this.mergeFunction(v, sv, m);
-        }
-    }
-
-    // Apply transformation to all components.
-    var n = this._properties.length;
-
-    var tcl = c.length;
-    for (var i = 0; i < n; i++) {
-        for (var j = 0; j < tcl; j++) {
-            if (this._properties[i].s) {
-                this._properties[i].s(c[j], v);
-            }
-        }
-    }
-};
-
-AnimationAction.prototype.resetTransforms = function() {
-    if (!this._properties.length) {
-        return;
-    }
-
-    var v = this.getResetValue();
-
-    // Apply transformation to all components.
-    var n = this._properties.length;
-
-    var c = this.getAnimatedComponents();
-    var tcl = c.length;
-    for (var i = 0; i < n; i++) {
-        for (var j = 0; j < tcl; j++) {
-            if (this._properties[i].s) {
-                this._properties[i].s(c[j], v);
-            }
-        }
-    }
-
-};
-
-AnimationAction.prototype.set = function(settings) {
-    var propNames = Object.keys(settings);
-    for (var i = 0; i < propNames.length; i++) {
-        var name = propNames[i];
-        var v = settings[name];
-        this.setSetting(name, v);
-    }
-};
-
-AnimationAction.prototype.setSetting = function(name, value) {
-    switch(name) {
-        case 'value':
-        case 'v':
-            this.value = value;
-            break;
-        default:
-            if (this[name] === undefined) {
-                throw new TypeError('Unknown property:' + name);
-            }
-            this[name] = value;
-    }
-};
-
-
-Object.defineProperty(AnimationAction.prototype, 'tags', {
-    get: function() { return this._tags; },
-    set: function(v) {
-        if (!Utils.isArray(v)) {
-            v = [v];
-        }
-        this._tags = v;
-    }
-});
-
-Object.defineProperty(AnimationAction.prototype, 'tag', {
-    get: function() { return this.tags; },
-    set: function(v) {
-        this.tags = v;
-    }
-});
-
-Object.defineProperty(AnimationAction.prototype, 't', {
-    get: function() { return this.tags; },
-    set: function(v) {
-        this.tags = v;
-    }
-});
-
-Object.defineProperty(AnimationAction.prototype, 'properties', {
-    get: function() { return this._properties.map(function(p) {return p.name;}); },
-    set: function(v) {
-        var vs = v;
-        if (!Utils.isArray(v)) {
-            vs = [vs];
-        }
-
-        var properties = [];
-        var n = vs.length;
-        for (var i = 0; i < n; i++) {
-            v = vs[i];
-
-            if (!Utils.isString(v)) {
-                throw new TypeError('property must be a string');
-            }
-
-            if (Component.propAliases.has(v)) {
-                var aliases = Component.propAliases.get(v);
-                for (var j = 0, m = aliases.length; j < m; j++) {
-                    properties.push({n: aliases[j]});
-                }
-            } else {
-                properties.push({n: v});
-            }
-        }
-
-        this.mergeFunction = null;
-        var mergeFunctionConflict = false;
-        for (i = 0, n = properties.length; i < n; i++) {
-            var p = properties[i];
-
-            var name = p.n;
-
-            var index = name.indexOf('.');
-            if (index >= 0) {
-                // Sub object.
-                p.o = name.substr(0, index);
-                p.n = name.substr(index + 1);
-            } else {
-                p.o = 'component';
-            }
-
-            var setting = null;
-            switch(p.o) {
-                case 'text':
-                    setting = TextRendererSettings.SETTINGS[p.n];
-                    if (setting) {
-                        p.s = function(c, v) {
-                            setting.s(c.text, v)
-                        };
-                    }
-                    break;
-                case 'displayedTexture':
-                    setting = Texture.SETTINGS[p.n];
-                    if (setting) {
-                        p.s = function(c, v) {if (c.displayedTexture) {setting.s(c.displayedTexture, v)}};
-                    }
-                    break;
-                case 'texture':
-                    setting = Texture.SETTINGS[p.n];
-                    if (setting) {
-                        p.s = function(c, v) {if (c.texture) {setting.s(c.texture, v)}};
-                    }
-                    break;
-                case 'component':
-                    setting = Component.SETTINGS[p.n];
-                    if (setting) {
-                        p.s = setting.s;
-                    }
-                    break;
-                default:
-            }
-
-            if (!setting) {
-                console.error("Unknown animation property:" + (p.o ? p.o + "." : "") + p.n);
-                properties.splice(i, 1);
-                i--;
-                n--;
-                continue;
-            }
-
-            if (i == 0) {
-                this.mergeFunction = setting.m;
-            } else {
-                if (setting.m !== this.mergeFunction) {
-                    mergeFunctionConflict = true;
-                }
-            }
-        }
-        if (mergeFunctionConflict) {
-            console.error("You can't mix mergable and non-mergable properties in an animation action (" + (properties.map(function(p) {return (p.o ? p.o + "." : "") + p.n;})).join(",") + ")");
-            this.mergeFunction = null;
-        }
-
-        this._properties = properties;
-    }
-});
-
-Object.defineProperty(AnimationAction.prototype, 'property', {
-    get: function() { return this.properties; },
-    set: function(v) {
-        this.properties = v;
-    }
-});
-
-Object.defineProperty(AnimationAction.prototype, 'p', {
-    get: function() { return this.properties; },
-    set: function(v) {
-        this.properties = v;
-    }
-});
-
-Object.defineProperty(AnimationAction.prototype, 'value', {
-    set: function(v) {
-        this.setValue(v);
-    }
-});
-
-Object.defineProperty(AnimationAction.prototype, 'v', {
-    set: function(v) {
-        this.value = v;
-    }
-});
-
-Object.defineProperty(AnimationAction.prototype, 'resetValue', {
-    get: function() { return this._resetValue; },
-    set: function(v) {
-        this._resetValue = v;
-        this.hasResetValue = true;
-    }
-});
-
-Object.defineProperty(AnimationAction.prototype, 'rv', {
-    get: function() { return this.resetValue; },
-    set: function(v) {
-        this.resetValue = v;
-    }
-});
-
-
-var AnimationActionItems = function(animationAction) {
-    this.animationAction = animationAction;
-    this.clear();
-};
-
-AnimationActionItems.prototype.clear = function() {
-    this.p = [];
-    this.pe = [];
-    this.idp = [];
-    this.f = [];
-    this.v = [];
-    this.lv = [];
-    this.sm = [];
-    this.s = [];
-    this.ve = [];
-    this.sme = [];
-    this.se = [];
-
-    this.length = 0;
-};
-
-AnimationActionItems.prototype.push = function(item) {
-    this.p.push(item.p || 0);
-    this.pe.push(item.pe || 0);
-    this.idp.push(item.idp || 0);
-    this.f.push(item.f || false);
-    this.v.push(item.hasOwnProperty('v') ? item.v : 0 /* v might be false or null */ );
-    this.lv.push(item.lv || 0);
-    this.sm.push(item.sm || 0);
-    this.s.push(item.s || 0);
-    this.ve.push(item.ve || 0);
-    this.sme.push(item.sme || 0);
-    this.se.push(item.se || 0);
-    this.length++;
-};
-
-AnimationActionItems.prototype.parseDefinition = function(def) {
-    var i, n;
-    if (!Utils.isPlainObject(def)) {
-        def = {0: def};
-    }
-
-    var items = [];
-    for (var key in def) {
-        if (def.hasOwnProperty(key)) {
-            var obj = def[key];
-            if (!Utils.isPlainObject(obj)) {
-                obj = {v: obj};
-            }
-
-            var p = parseFloat(key);
-            if (!isNaN(p) && p >= 0 && p <= 2) {
-                obj.p = p;
-
-                obj.f = Utils.isFunction(obj.v);
-                obj.lv = obj.f ? obj.v(0, 0) : obj.v;
-
-                items.push(obj);
-            }
-        }
-    }
-
-    // Sort by progress value.
-    items = items.sort(function(a, b) {return a.p - b.p});
-
-    n = items.length;
-
-    for (i = 0; i < n; i++) {
-        var last = (i == n - 1);
-        if (!items[i].hasOwnProperty('pe')) {
-            // Progress.
-            items[i].pe = last ? (items[i].p <= 1 ? 1 : 2 /* support onetotwo stop */) : items[i + 1].p;
-        } else {
-            // Prevent multiple items at the same time.
-            var max = i < n - 1 ? items[i + 1].p : 1;
-            if (items[i].pe > max) {
-                items[i].pe = max;
-            }
-        }
-        if (items[i].pe === items[i].p) {
-            items[i].idp = 0;
-        } else {
-            items[i].idp = 1 / (items[i].pe - items[i].p);
-        }
-    }
-
-    if (this.animationAction.mergeFunction) {
-        var rgba = (this.animationAction.mergeFunction === StageUtils.mergeColors);
-
-        // Calculate bezier helper values.
-        for (i = 0; i < n; i++) {
-            if (!items[i].hasOwnProperty('sm')) {
-                // Smoothness.
-                items[i].sm = 0.5;
-            }
-            if (!items[i].hasOwnProperty('s')) {
-                // Slope.
-                if (i === 0 || i === n - 1 || (items[i].p === 1 /* for onetotwo */)) {
-                    // Horizontal slope at start and end.
-                    items[i].s = rgba ? [0, 0, 0, 0] : 0;
-                } else {
-                    var pi = items[i - 1];
-                    var ni = items[i + 1];
-                    if (pi.p === ni.p) {
-                        items[i].s = rgba ? [0, 0, 0, 0] : 0;
-                    } else {
-                        if (rgba) {
-                            var nc = StageUtils.getRgbaComponents(ni.lv);
-                            var pc = StageUtils.getRgbaComponents(pi.lv);
-                            var d = 1 / (ni.p - pi.p);
-                            items[i].s = [
-                                d * (nc[0] - pc[0]),
-                                d * (nc[1] - pc[1]),
-                                d * (nc[2] - pc[2]),
-                                d * (nc[3] - pc[3])
-                            ];
-                        } else {
-                            items[i].s = (ni.lv - pi.lv) / (ni.p - pi.p);
-                        }
-                    }
-                }
-            }
-        }
-
-        for (i = 0; i < n - 1; i++) {
-            // Calculate value function.
-            if (!items[i].f) {
-                var last = (i === n - 1);
-                if (!items[i].hasOwnProperty('sme')) {
-                    items[i].sme = last ? 0.5 : items[i + 1].sm;
-                }
-                if (!items[i].hasOwnProperty('se')) {
-                    items[i].se = last ? (rgba ? [0, 0, 0, 0] : 0) : items[i + 1].s;
-                }
-                if (!items[i].hasOwnProperty('ve')) {
-                    items[i].ve = last ? items[i].lv : items[i + 1].lv;
-                }
-
-                // Generate spline.
-                if (rgba) {
-                    items[i].v = StageUtils.getSplineRgbaValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
-                } else {
-                    items[i].v = StageUtils.getSplineValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
-                }
-
-                items[i].f = true;
-            }
-        }
-    }
-
-    if (this.length) {
-        this.clear();
-    }
-
-    for (i = 0, n = items.length; i < n; i++) {
-        this.push(items[i]);
-    }
-};
-
-AnimationActionItems.prototype.getCurrentItem = function() {
-    var p = this.animationAction.animation.p;
-
-    var n = this.length;
-    if (!n) {
-        return -1;
-    }
-
-    if (p < this.p[0]) {
-        return -1;
-    }
-
-    for (var i = 0; i < n; i++) {
-        if (this.p[i] <= p && p < this.pe[i]) {
-            return i;
-        }
-    }
-
-    return n - 1;
-};
-
-AnimationActionItems.prototype.getCurrentValue = function() {
-    var p = this.animationAction.animation.p;
-
-    var i = this.getCurrentItem();
-    if (i == -1) {
-        return undefined;
-    } else {
-        if (this.f[i]) {
-            var o = (p - this.p[i]) * this.idp[i];
-            return this.v[i](o);
-        } else {
-            return this.v[i];
-        }
-    }
-};
-
-
-
-/**
- * An animation that is automatically progressed by time.
- * @constructor
- */
-var Animation = function(stage) {
-    GenericAnimation.call(this, stage);
-    EventEmitter.call(this);
-
-    this._delay = 0;
-
-    /**
-     * The duration of the animation, in seconds. If -1, the progress value should be set manually.
-     * @type {number}
-     */
-    this._duration = 1;
-
-    this._repeat = 0;
-    this._repeatOffset = 0;
-    this._repeatDelay = 0;
-
-    /**
-     * @access private
-     */
-    this.delayLeft = 0;
-
-    /**
-     * @access private
-     */
-    this.repeatsLeft = 0;
-
-    /**
-     * Automatically calls stop after finish.
-     * @type {boolean}
-     */
-    this._autostop = false;
-
-    /**
-     * The way that the animation 'stops'.
-     * @type {number}
-     */
-    this._stopMethod = Animation.STOP_METHODS.FADE;
-
-    /**
-     * Advanced options regarding the stop method, such as:
-     * - {number} duration
-     *   This overrules this animation's duration setting.
-     * - {number} delay
-     *   If specified, the stop starts delayed.
-     * - {Function} timingFunction
-     *   This overrules this animation's timing function.
-     * @type {object}
-     */
-    this._stopMethodOptions = {};
-
-    this.stopDelayLeft = 0;
-
-    this.state = Animation.STATES.IDLE;
-
-    this.stoppingProgressTransition = new GenericTransition(0);
-
-};
-
-Utils.extendClass(Animation, GenericAnimation);
-
-Animation.prototype = Object.assign(Animation.prototype, EventEmitter.prototype);
-
-Animation.prototype.isActive = function() {
-    return this.subject && (this.state == Animation.STATES.PLAYING || this.state == Animation.STATES.STOPPING);
-};
-
-Animation.prototype.activate = function() {
-    this.component.stage.addActiveAnimation(this);
-};
-
-Animation.prototype.progress = function(dt) {
-    if (!this.subject) {
-        return;
-    }
-
-    if (this.state == Animation.STATES.STOPPING) {
-        this.stopProgress(dt);
-        return;
-    }
-
-    if (this.state != Animation.STATES.PLAYING) {
-        return;
-    }
-
-    if (this.delayLeft > 0) {
-        this.delayLeft -= dt;
-
-        if (this.delayLeft < 0) {
-            dt = -this.delayLeft;
-            this.delayLeft = 0;
-
-            if (this._eventsCount) this.emit('delayEnd');
-        } else {
+    render() {
+        if (this.gl.isContextLost && this.gl.isContextLost()) {
+            console.error('WebGL context lost');
             return;
         }
-    }
 
-    if (this.duration === 0) {
-        this.p = 1;
-    } else if (this.duration > 0) {
-        this.p += dt / this.duration;
+        // Draw the actual textures to screen.
+        this.renderItems();
     }
-    if (this.p >= 1) {
-        // Finished!
-        if (this.repeat == -1 || this.repeatsLeft > 0) {
-            if (this.repeatsLeft > 0) {
-                this.repeatsLeft--;
+    
+    renderItems() {
+        let i;
+        let gl = this.gl;
+
+        let ctx = this.stage.ctx;
+
+        // Set up WebGL program.
+        gl.useProgram(this._program);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.viewport(0,0,this.stage.options.w,this.stage.options.h);
+        gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+        gl.enable(gl.BLEND);
+        gl.disable(gl.DEPTH_TEST);
+
+        // Clear screen.
+        let glClearColor = this.stage.options.glClearColor;
+        gl.clearColor(glClearColor[0], glClearColor[1], glClearColor[2], glClearColor[3]);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        let view = new DataView(ctx.vboParamsBuffer, 0, ctx.vboIndex * 4);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this._paramsGlBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, view, gl.DYNAMIC_DRAW);
+        let vboGlTextures = ctx.vboGlTextures;
+        let vboGlTextureRepeats = ctx.vboGlTextureRepeats;
+        let count = ctx.vboGlTextures.length;
+
+        if (count) {
+            gl.vertexAttribPointer(this._vertexPositionAttribute, 2, gl.FLOAT, false, 16, 0);
+            gl.vertexAttribPointer(this._textureCoordAttribute, 2, gl.UNSIGNED_SHORT, true, 16, 2 * 4);
+            gl.vertexAttribPointer(this._colorAttribute, 4, gl.UNSIGNED_BYTE, true, 16, 3 * 4);
+
+            gl.enableVertexAttribArray(this._vertexPositionAttribute);
+            gl.enableVertexAttribArray(this._textureCoordAttribute);
+            gl.enableVertexAttribArray(this._colorAttribute);
+
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._indicesGlBuffer);
+
+            let pos = 0;
+            for (i = 0; i < count; i++) {
+                gl.bindTexture(gl.TEXTURE_2D, vboGlTextures[i]);
+                gl.drawElements(gl.TRIANGLES, 6 * vboGlTextureRepeats[i], gl.UNSIGNED_SHORT, pos * 6 * 2);
+                pos += vboGlTextureRepeats[i];
             }
-            this.p = this.repeatOffset;
-
-            if (this.repeatDelay) {
-                this.delayLeft = this.repeatDelay;
-            }
-
-            if (this._eventsCount) this.emit('repeat', this.repeatsLeft);
-        } else {
-            this.p = 1;
-            this.state = Animation.STATES.FINISHED;
-            if (this._eventsCount) this.emit('finish');
-            if (this.autostop) {
-                this.stop();
-            }
-        }
-    } else {
-        if (this._eventsCount) this.emit('progress', this.p);
-    }
-};
-
-Animation.prototype.stopProgress = function(dt) {
-    var duration = this.stopMethodOptions.duration === undefined ? this.duration : this.stopMethodOptions.duration;
-
-    if (this.delayLeft > 0) {
-        // Animation wasn't even started yet: directly finish!
-        this.state = Animation.STATES.STOPPED;
-        if (this._eventsCount) this.emit('stopFinish');
-    }
-
-    if (this.stopDelayLeft > 0) {
-        this.stopDelayLeft -= dt;
-
-        if (this.stopDelayLeft < 0) {
-            dt = -this.stopDelayLeft;
-            this.stopDelayLeft = 0;
-
-            if (this._eventsCount) this.emit('stopDelayEnd');
-        } else {
-            return;
-        }
-    }
-    if (this.stopMethod == Animation.STOP_METHODS.IMMEDIATE) {
-        this.state = Animation.STATES.STOPPED;
-        if (this._eventsCount) this.emit('stop');
-        if (this._eventsCount) this.emit('stopFinish');
-    } else if (this.stopMethod == Animation.STOP_METHODS.REVERSE) {
-        if (duration === 0) {
-            this.p = 0;
-        } else if (duration > 0) {
-            this.p -= dt / duration;
+            gl.disableVertexAttribArray(this._vertexPositionAttribute);
+            gl.disableVertexAttribArray(this._textureCoordAttribute);
+            gl.disableVertexAttribArray(this._colorAttribute);
         }
 
-        if (this.p <= 0) {
-            this.p = 0;
-            this.state = Animation.STATES.STOPPED;
-            if (this._eventsCount) this.emit('stopFinish');
-        }
-    } else if (this.stopMethod == Animation.STOP_METHODS.FADE) {
-        this.stoppingProgressTransition.progress(dt);
-        if (this.stoppingProgressTransition.p >= 1) {
-            this.state = Animation.STATES.STOPPED;
-            if (this._eventsCount) this.emit('stopFinish');
-        }
-    } else if (this.stopMethod == Animation.STOP_METHODS.ONETOTWO) {
-        if (this.p < 2) {
-            if (duration === 0) {
-                this.p = 2;
-            } else if (duration > 0) {
-                if (this.p < 1) {
-                    this.p += dt / this.duration;
-                } else {
-                    this.p += dt / duration;
-                }
-            }
-            if (this.p >= 2) {
-                this.p = 2;
-                this.state = Animation.STATES.STOPPED;
-                if (this._eventsCount) this.emit('stopFinish');
-            } else {
-                if (this._eventsCount) this.emit('progress', this.p);
-            }
-        }
-    } else {
-        if (this.p < 1) {
-            if (duration == 0) {
-                this.p = 1;
-            } else {
-                this.p += dt / duration;
-            }
-            if (this.p >= 1) {
-                if (this.stopMethod == Animation.STOP_METHODS.FORWARD) {
-                    this.p = 1;
-                    this.state = Animation.STATES.STOPPED;
-                    if (this._eventsCount) this.emit('stopFinish');
-                } else {
-                    if (this.repeatsLeft > 0) {
-                        this.repeatsLeft--;
-                        this.p = 0;
-                        if (this._eventsCount) this.emit('repeat', this.repeatsLeft);
-                    } else {
-                        this.p = 1;
-                        this.state = Animation.STATES.STOPPED;
-                        if (this._eventsCount) this.emit('stopFinish');
-                    }
-                }
-            } else {
-                if (this._eventsCount) this.emit('progress', this.p);
-            }
-        }
     }
-};
-
-Animation.prototype.start = function() {
-    this.p = 0;
-    this.delayLeft = this.delay;
-    this.repeatsLeft = this.repeat;
-    this.state = Animation.STATES.PLAYING;
-    if (this._eventsCount) this.emit('start');
-
-    if (this.subject) {
-        this.stage.addActiveAnimation(this);
-    }
-};
-
-Animation.prototype.fastForward = function() {
-    if (this.state === Animation.STATES.PLAYING) {
-        this.delayLeft = 0;
-        this.p = 1;
-    } else if (this.state === Animation.STATES.STOPPING) {
-        this.stopDelayLeft = 0;
-        this.p = 0;
-    }
-};
-
-Animation.prototype.play = function() {
-    if (this.state == Animation.STATES.STOPPING && this.stopMethod == Animation.STOP_METHODS.REVERSE) {
-        // Continue.
-        this.state = Animation.STATES.PLAYING;
-        if (this._eventsCount) this.emit('stopContinue');
-    } else if (this.state != Animation.STATES.PLAYING && this.state != Animation.STATES.FINISHED) {
-        // Restart.
-        this.start();
-    }
-};
-
-Animation.prototype.replay = function() {
-    if (this.state == Animation.STATES.FINISHED) {
-        this.start();
-    } else {
-        this.play();
-    }
-};
-
-Animation.prototype.isPlaying = function() {
-    return this.state === Animation.STATES.PLAYING;
-};
-
-Animation.prototype.isStopping = function() {
-    return this.state === Animation.STATES.STOPPING;
-};
-
-Animation.prototype.skipDelay = function() {
-    this.delayLeft = 0;
-    this.stopDelayLeft = 0;
-};
-
-Animation.prototype.stop = function() {
-    if (this.state === Animation.STATES.STOPPED || this.state === Animation.STATES.IDLE) return;
-
-    if (this.subject) {
-        this.stage.addActiveAnimation(this);
-    }
-
-    this.stopDelayLeft = this.stopMethodOptions.delay || 0;
-
-    if ((this.stopMethod == Animation.STOP_METHODS.IMMEDIATE && !this.stopDelayLeft) || this.delayLeft > 0) {
-        // Stop upon next progress.
-        this.state = Animation.STATES.STOPPING;
-        if (this._eventsCount) this.emit('stop');
-    } else {
-        if (this.stopMethod == Animation.STOP_METHODS.FADE) {
-            if (this.stopMethodOptions.duration) {
-                this.stoppingProgressTransition.duration = this.stopMethodOptions.duration;
-            }
-            if (this.stopMethodOptions.timingFunction) {
-                this.stoppingProgressTransition.timingFunction = this.stopMethodOptions.timingFunction;
-            }
-            this.stoppingProgressTransition.reset(0, 1, 0);
-        }
-
-        this.state = Animation.STATES.STOPPING;
-        if (this._eventsCount) this.emit('stop');
-    }
-
-};
-
-Animation.prototype.stopNow = function() {
-    if (this.state !== Animation.STATES.STOPPED || this.state !== Animation.STATES.IDLE) {
-        this.state = Animation.STATES.STOPPING;
-        this.p = 0;
-        if (this._eventsCount) this.emit('stop');
-        this.resetTransforms();
-        this.state = Animation.STATES.STOPPED;
-        if (this._eventsCount) this.emit('stopFinish');
-    }
-};
-
-
-Animation.prototype.applyTransforms = function() {
-    if (this.state == Animation.STATES.STOPPED) {
-        // After being stopped, reset all values to their start positions.
-        var n = this.actions.length;
-        for (var i = 0; i < n; i++) {
-            this.actions[i].resetTransforms();
-        }
-    } else {
-        // Apply possible fade out effect.
-        var factor = 1;
-        if (this.state == Animation.STATES.STOPPING && this.stopMethod == Animation.STOP_METHODS.FADE) {
-            factor = (1 - this.stoppingProgressTransition.getDrawValue());
-        }
-
-        var n = this.actions.length;
-        for (var i = 0; i < n; i++) {
-            this.actions[i].applyTransforms(factor);
-        }
-    }
-};
-
-Object.defineProperty(Animation.prototype, 'delay', {
-    get: function() { return this._delay; },
-    set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError('delay must be a number');
-        }
-        this._delay = v;
-    }
-});
-
-Object.defineProperty(Animation.prototype, 'repeatDelay', {
-    get: function() { return this._repeatDelay; },
-    set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError('repeatDelay must be a number');
-        }
-        this._repeatDelay = v;
-    }
-});
-
-Object.defineProperty(Animation.prototype, 'duration', {
-    get: function() { return this._duration; },
-    set: function(v) {
-        if (!Utils.isNumber(v)) {
-            throw new TypeError('duration must be a number');
-        }
-        this._duration = v;
-    }
-});
-
-Object.defineProperty(Animation.prototype, 'repeat', {
-    get: function() { return this._repeat; },
-    set: function(v) {
-        if (!Utils.isInteger(v) || v < -1) {
-            throw new TypeError('repeat must be a positive integer, 0 or -1');
-        }
-        this._repeat = v;
-    }
-});
-
-Object.defineProperty(Animation.prototype, 'repeatOffset', {
-    get: function() { return this._repeatOffset; },
-    set: function(v) {
-        if (!Utils.isNumber(v) || v < 0) {
-            throw new TypeError('repeatOffset must be a positive number');
-        }
-        this._repeatOffset = v;
-    }
-});
-
-Object.defineProperty(Animation.prototype, 'stopMethod', {
-    get: function() { return this._stopMethod; },
-    set: function(v) {
-        this._stopMethod = v;
-    }
-});
-
-Object.defineProperty(Animation.prototype, 'autostop', {
-    get: function() { return this._autostop; },
-    set: function(v) {
-        if (!Utils.isBoolean(v)) {
-            throw new TypeError('autostop must be a boolean');
-        }
-        this._autostop = v;
-    }
-});
-
-Object.defineProperty(Animation.prototype, 'stopMethodOptions', {
-    get: function() { return this._stopMethodOptions; },
-    set: function(v) {
-        if (!Utils.isObject(v)) {
-            throw new TypeError('stopMethodOptions must be an object');
-        }
-        this._stopMethodOptions = v;
-    }
-});
-
-Object.defineProperty(Animation.prototype, 'subject', {
-    get: function() { return this._subject; },
-    set: function(subject) {
-        if (subject !== this._subject) {
-            if (this._subject) {
-                this._subject.removeAnimation(this);
-            }
-            if (subject) {
-                subject.addAnimation(this);
-            }
-
-            this._subject = subject;
-            if (this.isActive()) {
-                this.activate();
-            }
-        }
-    }
-});
-
-Animation.STATES = {
-    IDLE: 0,
-    PLAYING: 1,
-    STOPPING: 2,
-    STOPPED: 3,
-    FINISHED: 4
-};
-
-Animation.STOP_METHODS = {
-    FADE: 'fade',
-    REVERSE: 'reverse',
-    FORWARD: 'forward',
-    IMMEDIATE: 'immediate',
-    ONETOTWO: 'onetotwo'
-};
-
-
-/**
- * The WebGL Renderer.
- * @constructor
- */
-function Renderer(stage, w, h) {
-
-    this.stage = stage;
-
-    this.w = w;
-    this.h = h;
-
-    /**
-     * @type {WebGLRenderingContext}
-     */
-    this.gl = stage.adapter.getWebGLRenderingContext(w, h);
-
-    this.program = null;
-
-    this.vertexShaderSrc = [
-        "#ifdef GL_ES",
-        "precision lowp float;",
-        "#endif",
-        "attribute vec2 aVertexPosition;",
-        "attribute vec2 aTextureCoord;",
-        "attribute vec4 aColor;",
-        "uniform mat4 projectionMatrix;",
-        "varying vec2 vTextureCoord;",
-        "varying vec4 vColor;",
-        "void main(void){",
-        "    gl_Position = projectionMatrix * vec4(aVertexPosition, 0.0, 1.0);",
-        "    vTextureCoord = aTextureCoord;",
-        "    vColor = aColor;",
-        "}"
-    ].join("\n");
-
-    this.fragmentShaderSrc = [
-        "#ifdef GL_ES",
-        "precision lowp float;",
-        "#endif",
-        "varying vec2 vTextureCoord;",
-        "varying vec4 vColor;",
-        "uniform sampler2D uSampler;",
-        "void main(void){",
-        "    gl_FragColor = texture2D(uSampler, vTextureCoord) * vColor;",
-        "}"
-    ].join("\n");
-
-    // The matrix that causes the [0,0 - W,H] box to map to [-1,-1 - 1,1] in the end results.
-    this.projectionMatrix = new Float32Array([
-        2/this.stage.renderWidth, 0, 0, 0,
-        0, -2/this.stage.renderHeight, 0, 0,
-        0, 0, 1, 0,
-        -1, 1, 0, 1
-    ]);
-
-    this.paramsGlBuffer = null;
-
-    this.program = null;
-
-    this.vertexPositionAttribute = null;
-    this.textureCoordAttribute = null;
-    this.colorAttribute = null;
-
-    this.indicesGlBuffer = null;
-
-    /**
-     * Drawn frames get assigned a number, so that we can check if we can memcopy the previous result.
-     * @type {number}
-     */
-    this.frameCounter = 0;
-
-    this.initShaderProgram();
-
+    
 }
-
-Renderer.prototype.destroy = function() {
-    this.gl.deleteBuffer(this.paramsGlBuffer);
-    this.gl.deleteBuffer(this.indicesGlBuffer);
-    this.gl.deleteProgram(this.program);
-};
-
-/**
- * @access private
- */
-Renderer.prototype.initShaderProgram = function() {
-    var gl = this.gl;
-
-    var glVertShader = this.glCompile(gl.VERTEX_SHADER, this.vertexShaderSrc);
-    var glFragShader = this.glCompile(gl.FRAGMENT_SHADER, this.fragmentShaderSrc);
-
-    this.program = gl.createProgram();
-
-    gl.attachShader(this.program, glVertShader);
-    gl.attachShader(this.program, glFragShader);
-    gl.linkProgram(this.program);
-
-    // if linking fails, then log and cleanup
-    if (!gl.getProgramParameter(this.program, gl.LINK_STATUS)) {
-        console.error('Error: Could not initialize shader.');
-        console.error('gl.VALIDATE_STATUS', gl.getProgramParameter(this.program, gl.VALIDATE_STATUS));
-        console.error('gl.getError()', gl.getError());
-
-        // if there is a program info log, log it
-        if (gl.getProgramInfoLog(this.program) !== '') {
-            console.warn('Warning: gl.getProgramInfoLog()', gl.getProgramInfoLog(this.program));
-        }
-
-        gl.deleteProgram(this.program);
-        this.program = null;
-    }
-    gl.useProgram(this.program);
-
-    // clean up some shaders
-    gl.deleteShader(glVertShader);
-    gl.deleteShader(glFragShader);
-
-    // Bind attributes.
-    this.vertexPositionAttribute = gl.getAttribLocation(this.program, "aVertexPosition");
-    this.textureCoordAttribute = gl.getAttribLocation(this.program, "aTextureCoord");
-    this.colorAttribute = gl.getAttribLocation(this.program, "aColor");
-
-    // Init webgl arrays.
-
-    this.allIndices = new Uint16Array(100000);
-
-    // fill the indices with the quads to draw.
-    for (var i = 0, j = 0; i < Renderer.MAX_QUADS * 6; i += 6, j += 4) {
-        this.allIndices[i] = j;
-        this.allIndices[i + 1] = j + 1;
-        this.allIndices[i + 2] = j + 2;
-        this.allIndices[i + 3] = j;
-        this.allIndices[i + 4] = j + 2;
-        this.allIndices[i + 5] = j + 3;
-    }
-
-    this.paramsGlBuffer = gl.createBuffer();
-
-    this.indicesGlBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indicesGlBuffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this.allIndices, gl.STATIC_DRAW);
-
-    // Set transformation matrix.
-    var projectionMatrixAttribute = gl.getUniformLocation(this.program, "projectionMatrix");
-    gl.uniformMatrix4fv(projectionMatrixAttribute, false, this.projectionMatrix);
-
-};
-
-Renderer.prototype.render = function() {
-    var gl = this.gl;
-
-    if (gl.isContextLost && gl.isContextLost()) {
-        console.error('WebGL context lost');
-        return;
-    }
-
-    // Draw the actual textures to screen.
-    this.renderItems();
-};
-
-Renderer.prototype.renderItems = function() {
-    var i, n;
-    var gl = this.gl;
-
-    var ctx = this.stage.adapter.getUComponentContext();
-
-    this.stage.measureDetails && this.stage.timeStart('setup');
-    // Set up WebGL program.
-    gl.useProgram(this.program);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.viewport(0,0,this.w,this.h);
-    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-    gl.enable(gl.BLEND);
-    gl.disable(gl.DEPTH_TEST);
-
-    // Clear screen.
-    gl.clearColor(this.stage.glClearColor[0], this.stage.glClearColor[1], this.stage.glClearColor[2], this.stage.glClearColor[3]);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    this.stage.measureDetails && this.stage.timeEnd('setup');
-
-    this.stage.measureDetails && this.stage.timeStart('buffer');
-    var view = new DataView(ctx.getVboParamsBuffer(), 0, ctx.getVboIndex() * 4);
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.paramsGlBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, view, gl.DYNAMIC_DRAW);
-    this.stage.measureDetails && this.stage.timeEnd('buffer');
-    var vboGlTextures = ctx.getVboGlTextures();
-    var vboGlTextureRepeats = ctx.getVboGlTextureRepeats();
-    var count = ctx.getVboGlTexturesCount();
-
-    this.stage.measureDetails && this.stage.timeStart('renderGl');
-    if (count) {
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.paramsGlBuffer);
-        gl.vertexAttribPointer(this.vertexPositionAttribute, 2, gl.FLOAT, false, 16, 0);
-        gl.vertexAttribPointer(this.textureCoordAttribute, 2, gl.UNSIGNED_SHORT, true, 16, 2 * 4);
-        gl.vertexAttribPointer(this.colorAttribute, 4, gl.UNSIGNED_BYTE, true, 16, 3 * 4);
-
-        gl.enableVertexAttribArray(this.vertexPositionAttribute);
-        gl.enableVertexAttribArray(this.textureCoordAttribute);
-        gl.enableVertexAttribArray(this.colorAttribute);
-
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indicesGlBuffer);
-
-        var pos = 0;
-        for (i = 0; i < count; i++) {
-            gl.bindTexture(gl.TEXTURE_2D, vboGlTextures[i]);
-            gl.drawElements(gl.TRIANGLES, 6 * vboGlTextureRepeats[i], gl.UNSIGNED_SHORT, pos * 6 * 2);
-            pos += vboGlTextureRepeats[i];
-        }
-
-        gl.disableVertexAttribArray(this.vertexPositionAttribute);
-        gl.disableVertexAttribArray(this.textureCoordAttribute);
-        gl.disableVertexAttribArray(this.colorAttribute);
-    }
-    this.stage.measureDetails && this.stage.timeEnd('renderGl');
-};
-
-/**
- * @access private
- */
-Renderer.prototype.glCompile = function (type, src) {
-    var shader = this.gl.createShader(type);
-
-    this.gl.shaderSource(shader, src);
-    this.gl.compileShader(shader);
-
-    if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-        console.log(this.gl.getShaderInfoLog(shader));
-        return null;
-    }
-
-    return shader;
-};
 
 /**
  * Max number of quads that can be rendered in one frame.
@@ -8744,1444 +1738,5842 @@ Renderer.prototype.glCompile = function (type, src) {
 Renderer.MAX_QUADS = (65536 / 4)|0;
 
 
-var UComponent = function(ctx) {
-    this.ctx = ctx;
-
-    this.parent = null;
-
-    this.hasUpdates = false;
-
-    this.recalc = 0;
-
-    this.worldAlpha = 1;
-
-    this.updateTreeOrder = 0;
-
-    this.hasBorders = false;
-
-    this.hasChildren = false;
-
-    // All local translation/transform updates: directly propagated from x/y/w/h/scale/whatever.
-    this.worldPx = this.localPx = 0;
-    this.worldPy = this.localPy = 0;
-
-    this.worldTa = this.localTa = 1;
-    this.worldTb = this.localTb = 0;
-    this.worldTc = this.localTc = 0;
-    this.worldTd = this.localTd = 1;
-
-    this.isComplex = false;
-
-    this.localAlpha = 1;
-
-    this.children = [];
-
-    this.w = 0;
-    this.h = 0;
-
-    this.clipping = false;
-    this.clippingParent = null;
-
-    /**
-     * In case of clipping, this flag indicates if we're dealing with a square-shaped clipping area.
-     * @type {boolean}
-     */
-    this.clippingSquare = false;
-
-    this.clippingSquareMinX = 0;
-    this.clippingSquareMaxX = 0;
-    this.clippingSquareMinY = 0;
-    this.clippingSquareMaxY = 0;
-
-    /**
-     * Flag that indicates that clipping area is empty.
-     * @type {boolean}
-     */
-    this.clippingEmpty = false;
-
-    /**
-     * Flag that indicates that the clipping area are the corner points.
-     * @type {boolean}
-     */
-    this.clippingNoEffect = false;
-
-    /**
-     * In case of complex clipping, the corner points of the clipping area.
-     * @type {number[]}
-     */
-    this.clippingArea = null;
-
-    /**
-     * The texture source to be displayed.
-     * @type {TextureSource}
-     */
-    this.displayedTextureSource = null;
-
-    this.colorUl = this.colorUr = this.colorBl = this.colorBr = 0xFFFFFFFF;
-
-    this.txCoordsUl = 0x00000000;
-    this.txCoordsUr = 0x0000FFFF;
-    this.txCoordsBr = 0xFFFFFFFF;
-    this.txCoordsBl = 0xFFFF0000;
-
-    this.ulx = 0;
-    this.uly = 0;
-    this.brx = 1;
-    this.bry = 1;
-
-    this.inTextureAtlas = false;
-
-    this.zIndex = 0;
-    this.forceZIndexContext = false;
-    this.zContextUsage = 0;
-    this.zParent = null;
-    this.zIndexedChildren = [];
-    this.zSort = false;
-
-    this.borderTop = null;
-    this.borderBottom = null;
-    this.borderLeft = null;
-    this.borderRight = null;
-
-    this.isBorder = false;
-
-    this.isRoot = false;
-
-};
 
 /**
- * @param {Number} type
- *   1: alpha
- *   2: translate
- *   4: transform
- *   8: clipping
+ * Copyright Metrological, 2017
  */
-UComponent.prototype.setRecalc = function(type) {
-    this.recalc |= type;
+class TextureManager {
 
-    if (this.worldAlpha) {
-        this.ctx.staticStage = false;
-        var p = this;
-        do {
-            p.hasUpdates = true;
-        } while((p = p.parent) && !p.hasUpdates);
-    } else {
-        this.hasUpdates = true;
+    constructor(stage) {
+        this.stage = stage;
+
+        this.gl = this.stage.gl;
+
+        /**
+         * The currently used amount of texture memory.
+         * @type {number}
+         */
+        this._usedTextureMemory = 0;
+
+        /**
+         * All uploaded texture sources.
+         * @type {TextureSource[]}
+         */
+        this._uploadedTextureSources = [];
+
+        /**
+         * The texture source lookup id to texture source hashmap.
+         * @type {Map<String, TextureSource>}
+         */
+        this.textureSourceHashmap = new Map();
+
+        /**
+         * The texture source id to texture source hashmap.
+         * (only the texture sources that are referenced by one or more active components).
+         * @type {Map<Number, TextureSource>}
+         */
+        this.textureSourceIdHashmap = new Map();
     }
-};
 
-UComponent.prototype.setRecalcForced = function(type, force) {
-    this.recalc |= type;
-
-    if (this.worldAlpha || force) {
-        this.ctx.staticStage = false;
-        var p = this;
-        do {
-            p.hasUpdates = true;
-        } while((p = p.parent) && !p.hasUpdates);
-    } else {
-        this.hasUpdates = true;
-    }
-};
-
-UComponent.prototype.setParent = function(parent) {
-    if (parent !== this.parent) {
-        var prevIsZContext = this.isZContext();
-        var prevParent = this.parent;
-        this.parent = parent;
-        this.setRecalc(1 + 2 + 4);
-
-        if (this.zIndex === 0) {
-            this.setZParent(parent);
-        } else {
-            this.setZParent(parent ? parent.findZContext() : null);
-        }
-
-        if (prevIsZContext !== this.isZContext()) {
-            if (!this.isZContext()) {
-                this.disableZContext();
-            } else {
-                this.enableZContext(prevParent.findZContext());
-            }
-        }
-
-        var newClippingParent = parent ? (parent.clipping ? parent : parent.clippingParent) : null;
-        if (this.isBorder && newClippingParent === this.parent) {
-            // Borders should not be clipped by the immediate parent.
-            newClippingParent = newClippingParent.clippingParent;
-        }
-
-        if (newClippingParent !== this.clippingParent) {
-            this.setClippingParent(newClippingParent);
+    destroy() {
+        for (let i = 0, n = this._uploadedTextureSources.length; i < n; i++) {
+            let ts = this._uploadedTextureSources[i];
+            this.gl.deleteTexture(ts.glTexture);
         }
     }
-};
 
-UComponent.prototype.insertChild = function(index, child) {
-    this.children.splice(index, 0, child);
-    this.hasChildren = true;
-    child.setParent(this);
-};
-
-UComponent.prototype.removeChild = function(index) {
-    var child = this.children[index];
-    this.children.splice(index, 1);
-    this.hasChildren = (this.children.length > 0);
-    child.setParent(null);
-};
-
-UComponent.prototype.clearChildren = function() {
-    for (var i = 0, n = this.children.length; i < n; i++) {
-        this.children[i].setParent(null);
+    loadSrcTexture(src, cb) {
+        //@todo: parallel loading.
+        this.stage.adapter.loadSrcTexture(src, cb);
     }
 
-    this.children.splice(0);
-    this.zIndexedChildren.splice(0);
-
-    this.hasChildren = false;
-};
-
-UComponent.prototype.setLocalTransform = function(a, b, c, d) {
-    this.setRecalc(4);
-    this.localTa = a;
-    this.localTb = b;
-    this.localTc = c;
-    this.localTd = d;
-    this.isComplex = (b != 0) || (c != 0);
-};
-
-UComponent.prototype.setLocalTranslate = function(x, y) {
-    this.setRecalc(2);
-    this.localPx = x;
-    this.localPy = y;
-};
-
-UComponent.prototype.addLocalTranslate = function(x, y) {
-    this.setRecalc(2);
-    this.localPx += x;
-    this.localPy += y;
-};
-
-UComponent.prototype.setLocalAlpha = function(a) {
-    this.setRecalcForced(1, (this.parent && this.parent.worldAlpha) && a);
-
-    if (a < 1e-14 && a > -1e-14) {
-        // Tiny rounding errors may cause failing visibility tests.
-        a = 0;
+    loadTextTexture(settings, cb) {
+        //@todo: parallel loading.
+        this.stage.adapter.loadTextTexture(settings, cb);
     }
 
-    this.localAlpha = a;
-};
+    getTexture(source, options) {
+        let id = options && options.id || null;
 
-UComponent.prototype.setDimensions = function(w, h) {
-    this.w = w;
-    this.h = h;
-    this.setRecalc(2);
+        let texture, textureSource;
+        if (Utils.isString(source)) {
+            id = id || source;
 
-    // Border updates.
-    this.updateBorderDimensions();
-
-};
-
-UComponent.prototype.updateBorderDimensions = function() {
-    var blw = 0, brw = 0;
-    if (this.borderLeft !== null) {
-        this.borderLeft.setDimensions(this.borderLeft.w, this.h);
-        this.borderLeft.setLocalTranslate(-this.borderLeft.w, 0);
-        blw = this.borderLeft.w;
-    }
-
-    if (this.borderRight !== null) {
-        this.borderRight.setDimensions(this.borderRight.w, this.h);
-        this.borderRight.setLocalTranslate(this.w, 0);
-        brw = this.borderRight.w;
-    }
-
-    if (this.borderTop !== null) {
-        this.borderTop.setDimensions(this.w + blw + brw, this.borderTop.h);
-        this.borderTop.setLocalTranslate(0 - blw, -this.borderTop.h);
-    }
-
-    if (this.borderBottom !== null) {
-        this.borderBottom.setDimensions(this.w + blw + brw, this.borderBottom.h);
-        this.borderBottom.setLocalTranslate(0 - blw, this.h);
-    }
-};
-
-UComponent.prototype.setTextureCoords = function(ulx, uly, brx, bry) {
-    if (this.worldAlpha) this.ctx.staticStage = false;
-
-    this.ulx = ulx;
-    this.uly = uly;
-    this.brx = brx;
-    this.bry = bry;
-
-    this.txCoordsUl = ((ulx * 65535 + 0.5)|0) + ((uly * 65535 + 0.5)|0) * 65536;
-    this.txCoordsUr = ((brx * 65535 + 0.5)|0) + ((uly * 65535 + 0.5)|0) * 65536;
-    this.txCoordsBl = ((ulx * 65535 + 0.5)|0) + ((bry * 65535 + 0.5)|0) * 65536;
-    this.txCoordsBr = ((brx * 65535 + 0.5)|0) + ((bry * 65535 + 0.5)|0) * 65536;
-};
-
-UComponent.prototype.setDisplayedTextureSource = function(textureSource) {
-    if (this.worldAlpha) this.ctx.staticStage = false;
-    this.displayedTextureSource = textureSource;
-};
-
-UComponent.prototype.setInTextureAtlas = function(inTextureAtlas) {
-    if (this.worldAlpha) this.ctx.staticStage = false;
-
-    this.inTextureAtlas = inTextureAtlas;
-};
-
-UComponent.prototype.setAsRoot = function() {
-    // Use parent dummy.
-    this.parent = new UComponent();
-
-    // Root is, and will always be, the primary zContext.
-    this.isRoot = true;
-
-    this.ctx.root = this;
-};
-
-UComponent.prototype.isAncestorOf = function(c) {
-    var p = c;
-    while(p = p.parent) {
-        if (this === p) {
-            return true;
-        }
-    }
-    return false;
-};
-
-UComponent.prototype.isZContext = function() {
-    return (this.forceZIndexContext || this.zIndex !== 0 || this.isRoot || !this.parent);
-};
-
-UComponent.prototype.findZContext = function() {
-    if (this.isZContext()) {
-        return this;
-    } else {
-        return this.parent.findZContext();
-    }
-};
-
-UComponent.prototype.setZParent = function(newZParent) {
-    if (this.zParent !== newZParent) {
-        if (this.zParent !== null) {
-            // @pre: old parent's children array has already been modified.
-            if (this.zIndex !== 0) {
-                this.zParent.decZContextUsage();
-            }
-
-            if (this.zParent.zContextUsage > 0) {
-                var index = this.zParent.zIndexedChildren.indexOf(this);
-                this.zParent.zIndexedChildren.splice(index, 1);
-            }
-        }
-
-        if (newZParent !== null) {
-            var hadZContextUsage = (newZParent.zContextUsage > 0);
-
-            // @pre: new parent's children array has already been modified.
-            if (this.zIndex !== 0) {
-                newZParent.incZContextUsage();
-            }
-
-            if (newZParent.zContextUsage > 0) {
-                if (!hadZContextUsage && (this.parent === newZParent)) {
-                    // This child was already in the children list.
-                    // Do not add double.
-                } else {
-                    newZParent.zIndexedChildren.push(this);
+            // Check if texture source is already known.
+            textureSource = this.textureSourceHashmap.get(id);
+            if (!textureSource) {
+                // Create new texture source.
+                let self = this;
+                let func = function (cb, ts, sync) {
+                    self.loadSrcTexture(source, cb);
+                };
+                textureSource = this.getTextureSource(func, id);
+                if (!textureSource.renderInfo) {
+                    textureSource.renderInfo = {src: source};
                 }
-                newZParent.zSort = true;
             }
-        }
-
-        this.zParent = newZParent;
-    }
-};
-
-UComponent.prototype.incZContextUsage = function() {
-    this.zContextUsage++;
-    if (this.zContextUsage === 1) {
-        // Copy.
-        for (var i = 0, n = this.children.length; i < n; i++) {
-            this.zIndexedChildren.push(this.children[i]);
-        }
-    }
-};
-
-UComponent.prototype.decZContextUsage = function() {
-    this.zContextUsage--;
-    if (this.zContextUsage === 0) {
-        this.zSort = false;
-        this.zIndexedChildren.splice(0);
-    }
-};
-
-UComponent.prototype.setZIndex = function(zIndex) {
-    if (this.worldAlpha) this.ctx.staticStage = false;
-
-    var newZParent = this.zParent;
-
-    var prevIsZContext = this.isZContext();
-    if (zIndex === 0 && this.zIndex !== 0) {
-        if (this.parent === this.zParent) {
-            this.zParent.decZContextUsage();
+        } else if (source instanceof TextureSource) {
+            textureSource = source;
         } else {
-            newZParent = this.parent;
+            // Create new texture source.
+            textureSource = this.getTextureSource(source, id);
         }
-    } else if (zIndex !== 0 && this.zIndex === 0) {
-        newZParent = this.parent ? this.parent.findZContext() : null;
-        if (newZParent === this.zParent) {
-            if (this.zParent) {
-                this.zParent.incZContextUsage();
-                this.zParent.zSort = true;
-            }
-        }
-    } else if (zIndex !== this.zIndex) {
-        this.zParent.zSort = true;
+
+        // Create new texture object.
+        texture = new Texture(this, textureSource);
+        texture.x = options && options.x || 0;
+        texture.y = options && options.y || 0;
+        texture.w = options && options.w || 0;
+        texture.h = options && options.h || 0;
+        texture.clipping = !!(texture.x || texture.y || texture.w || texture.h);
+        texture.precision = options && options.precision || 1;
+        return texture;
     }
 
-    if (newZParent !== this.zParent) {
-        this.setZParent(null);
-    }
+    getTextureSource(func, id) {
+        // Check if texture source is already known.
+        let textureSource = id ? this.textureSourceHashmap.get(id) : null;
+        if (!textureSource) {
+            // Create new texture source.
+            textureSource = new TextureSource(this, func);
 
-    this.zIndex = zIndex;
-
-    if (newZParent !== this.zParent) {
-        this.setZParent(newZParent);
-    }
-
-    if (prevIsZContext !== this.isZContext()) {
-        if (!this.isZContext()) {
-            this.disableZContext();
-        } else {
-            this.enableZContext(this.parent.findZContext());
-        }
-    }
-};
-
-UComponent.prototype.setForceZIndexContext = function(v) {
-    if (this.worldAlpha) this.ctx.staticStage = false;
-
-    var prevIsZContext = this.isZContext();
-    this.forceZIndexContext = v;
-
-    if (prevIsZContext !== this.isZContext()) {
-        if (!this.isZContext()) {
-            this.disableZContext();
-        } else {
-            this.enableZContext(this.parent.findZContext());
-        }
-    }
-};
-
-UComponent.prototype.enableZContext = function(prevZContext) {
-    if (prevZContext.zContextUsage > 0) {
-        var self = this;
-        // Transfer from upper z context to this z context.
-        prevZContext.zIndexedChildren.slice().forEach(function(c) {
-            if (self.isAncestorOf(c) && c.zIndex !== 0) {
-                c.setZParent(self);
-            }
-        });
-    }
-};
-
-UComponent.prototype.disableZContext = function() {
-    // Transfer from this z context to upper z context.
-    if (this.zContextUsage > 0) {
-        var newZParent = this.parent.findZContext();
-
-        this.zIndexedChildren.slice().forEach(function(c) {
-            if (c.zIndex !== 0) {
-                c.setZParent(newZParent);
-            }
-        });
-    }
-};
-
-UComponent.prototype.setClipping = function(clipping) {
-    if (clipping !== this.clipping) {
-        this.setRecalc(8);
-        this.clipping = clipping;
-        this.setChildrenClippingParent(clipping ? this : this.clippingParent);
-    }
-};
-
-UComponent.prototype.setChildrenClippingParent = function(clippingParent) {
-    for (var i = 0, n = this.children.length; i < n; i++) {
-        this.children[i].setClippingParent(clippingParent);
-    }
-};
-
-UComponent.prototype.setClippingParent = function(clippingParent) {
-    if (this.clippingParent !== clippingParent) {
-        this.setRecalc(8);
-
-        this.clippingParent = clippingParent;
-        if (!this.clipping) {
-            for (var i = 0, n = this.children.length; i < n; i++) {
-                this.children[i].setClippingParent(clippingParent);
+            if (id) {
+                textureSource.lookupId = id;
+                this.textureSourceHashmap.set(id, textureSource);
             }
         }
 
-        if (this.hasBorders) {
-            if (this.borderTop) this.borderTop.setClippingParent(clippingParent);
-            if (this.borderBottom) this.borderBottom.setClippingParent(clippingParent);
-            if (this.borderLeft) this.borderLeft.setClippingParent(clippingParent);
-            if (this.borderRight) this.borderRight.setClippingParent(clippingParent);
-        }
-    }
-};
-
-UComponent.prototype.setColorUl = function(color) {
-    if (this.worldAlpha) this.ctx.staticStage = false;
-    this.colorUl = color;
-};
-
-UComponent.prototype.setColorUr = function(color) {
-    if (this.worldAlpha) this.ctx.staticStage = false;
-    this.colorUr = color;
-};
-
-UComponent.prototype.setColorBl = function(color) {
-    if (this.worldAlpha) this.ctx.staticStage = false;
-    this.colorBl = color;
-};
-
-UComponent.prototype.setColorBr = function(color) {
-    if (this.worldAlpha) this.ctx.staticStage = false;
-    this.colorBr = color;
-};
-
-UComponent.prototype.setBorderTop = function(width, color) {
-    if (this.worldAlpha) this.ctx.staticStage = false;
-    if (this.borderTop === null) {
-        this.borderTop = this.ctx.createUComponent();
-        this.borderTop.isBorder = true;
-        this.borderTop.setParent(this);
-        this.borderTop.displayedTextureSource = this.ctx.rectangleTextureSource;
-
-        // We assume that, if a texture atlas is being used, that the rectangle is in the upper left corner.
-        this.borderTop.setTextureCoords(0, 0, 0, 0);
-    }
-    this.borderTop.setDimensions(this.w, width);
-    this.borderTop.setLocalTranslate(0, -width);
-    this.borderTop.colorUl = color;
-    this.borderTop.colorUr = color;
-    this.borderTop.colorBr = color;
-    this.borderTop.colorBl = color;
-
-    this.updateBorderDimensions();
-    this.updateHasBorders();
-};
-
-UComponent.prototype.setBorderBottom = function(width, color) {
-    if (this.worldAlpha) this.ctx.staticStage = false;
-    if (this.borderBottom === null) {
-        this.borderBottom = this.ctx.createUComponent();
-        this.borderBottom.isBorder = true;
-        this.borderBottom.setParent(this);
-        this.borderBottom.displayedTextureSource = this.ctx.rectangleTextureSource;
-
-        // We assume that, if a texture atlas is being used, that the rectangle is in the upper left corner.
-        this.borderBottom.setTextureCoords(0, 0, 0, 0);
-    }
-    this.borderBottom.setDimensions(this.w, width);
-    this.borderBottom.setLocalTranslate(0, this.h);
-    this.borderBottom.colorUl = color;
-    this.borderBottom.colorUr = color;
-    this.borderBottom.colorBr = color;
-    this.borderBottom.colorBl = color;
-
-    this.updateBorderDimensions();
-    this.updateHasBorders();
-};
-
-UComponent.prototype.setBorderLeft = function(width, color) {
-    if (this.worldAlpha) this.ctx.staticStage = false;
-    if (this.borderLeft === null) {
-        this.borderLeft = this.ctx.createUComponent();
-        this.borderLeft.isBorder = true;
-        this.borderLeft.setParent(this);
-        this.borderLeft.displayedTextureSource = this.ctx.rectangleTextureSource;
-
-        // We assume that, if a texture atlas is being used, that the rectangle is in the upper left corner.
-        this.borderLeft.setTextureCoords(0, 0, 0, 0);
-    }
-    this.borderLeft.setDimensions(width, this.h);
-    this.borderLeft.setLocalTranslate(-width, 0);
-    this.borderLeft.colorUl = color;
-    this.borderLeft.colorUr = color;
-    this.borderLeft.colorBr = color;
-    this.borderLeft.colorBl = color;
-
-    this.updateBorderDimensions();
-    this.updateHasBorders();
-};
-
-UComponent.prototype.setBorderRight = function(width, color) {
-    if (this.worldAlpha) this.ctx.staticStage = false;
-    if (this.borderRight === null) {
-        this.borderRight = this.ctx.createUComponent();
-        this.borderRight.isBorder = true;
-        this.borderRight.setParent(this);
-        this.borderRight.displayedTextureSource = this.ctx.rectangleTextureSource;
-
-        // We assume that, if a texture atlas is being used, that the rectangle is in the upper left corner.
-        this.borderRight.setTextureCoords(0, 0, 0, 0);
-    }
-    this.borderRight.setDimensions(width, this.h);
-    this.borderRight.setLocalTranslate(this.w, 0);
-    this.borderRight.colorUl = color;
-    this.borderRight.colorUr = color;
-    this.borderRight.colorBr = color;
-    this.borderRight.colorBl = color;
-
-    this.updateBorderDimensions();
-    this.updateHasBorders();
-};
-
-UComponent.prototype.updateHasBorders = function() {
-    this.hasBorders = (this.borderTop !== null && this.borderTop.h)
-        || (this.borderBottom !== null && this.borderBottom.h)
-        || (this.borderLeft !== null && this.borderLeft.w)
-        || (this.borderRight !== null && this.borderRight.w)
-};
-
-UComponent.prototype.update = function() {
-    this.recalc |= this.parent.recalc;
-
-    if (this.zSort) {
-        // Make sure that all descendants are updated so that the updateTreeOrder flags are correctly set.
-        this.ctx.updateTreeOrderForceUpdate++;
+        return textureSource;
     }
 
-    var forceUpdate = (this.ctx.updateTreeOrderForceUpdate > 0);
-    if (this.recalc & 1) {
-        // If case of becoming invisible, we must update the children because they may be z-indexed.
-        forceUpdate = this.worldAlpha && !(this.parent.worldAlpha && this.localAlpha);
+    uploadTextureSource(textureSource, source, format) {
+        if (textureSource.glTexture) return;
 
-        this.worldAlpha = this.parent.worldAlpha * this.localAlpha;
+        // Load texture.
+        let gl = this.gl;
+        let sourceTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
 
-        if (this.worldAlpha < 1e-14 && this.worldAlpha > -1e-14) {
-            // Tiny rounding errors may cause failing visibility tests.
-            this.worldAlpha = 0;
-        }
+        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, format.premultiplyAlpha);
+
+        this.stage.adapter.uploadGlTexture(gl, textureSource, source, format.hasAlpha);
+
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+        // Store texture.
+        textureSource.glTexture = sourceTexture;
+
+        this._usedTextureMemory += textureSource.w * textureSource.h;
+
+        this._uploadedTextureSources.push(textureSource);
     }
 
-    if (this.worldAlpha || forceUpdate) {
-        if (this.recalc & 6) {
-            this.worldPx = this.parent.worldPx + this.localPx * this.parent.worldTa;
-            this.worldPy = this.parent.worldPy + this.localPy * this.parent.worldTd;
-        }
+    isFull() {
+        return this._usedTextureMemory >= this.stage.options.textureMemory;
+    }
 
-        if (this.recalc & 4) {
-            this.worldTa = this.localTa * this.parent.worldTa;
-            this.worldTb = this.localTd * this.parent.worldTb;
-            this.worldTc = this.localTa * this.parent.worldTc;
-            this.worldTd = this.localTd * this.parent.worldTd;
-
-            if (this.isComplex) {
-                this.worldTa += this.localTc * this.parent.worldTb;
-                this.worldTb += this.localTb * this.parent.worldTa;
-                this.worldTc += this.localTc * this.parent.worldTd;
-                this.worldTd += this.localTb * this.parent.worldTc;
-            }
-        }
-
-        if ((this.recalc & 6) && (this.parent.worldTb !== 0 || this.parent.worldTc !== 0)) {
-            this.worldPx += this.localPy * this.parent.worldTb;
-            this.worldPy += this.localPx * this.parent.worldTc;
-        }
-
-        if ((this.recalc & 14 /* 2 + 4 + 8 */) && (this.clippingParent || this.clipping)) {
-            // We must calculate the clipping area.
-            var c1x, c1y, c2x, c2y, c3x, c3y;
-
-            var cp = this.clippingParent;
-            if (cp && cp.clippingEmpty) {
-                this.clippingEmpty = true;
-                this.clippingArea = null;
-                this.clippingNoEffect = false;
+    freeUnusedTextureSources() {
+        let remainingTextureSources = [];
+        let usedTextureMemoryBefore = this._usedTextureMemory;
+        for (let i = 0, n = this._uploadedTextureSources.length; i < n; i++) {
+            let ts = this._uploadedTextureSources[i];
+            if (!ts.permanent && (ts.views.size === 0)) {
+                this.freeTextureSource(ts);
             } else {
-                this.clippingNoEffect = false;
-                this.clippingEmpty = false;
-                this.clippingArea = null;
-                if (cp) {
-                    if (cp.clippingSquare && (this.worldTb === 0 && this.worldTc === 0 && this.worldTa > 0 && this.worldTd > 0)) {
-                        // Special case: 'easy square clipping'.
-                        this.clippingSquare = true;
+                remainingTextureSources.push(ts);
+            }
+        }
 
-                        c2x = this.worldPx + this.w * this.worldTa;
-                        c2y = this.worldPy + this.h * this.worldTd;
+        let self = this;
+        this.textureSourceHashmap.forEach(function(textureSource) {
+            if (!textureSource.permanent && (textureSource.views.size === 0)) {
+                self.freeTextureSource(textureSource);
+            }
+        });
 
-                        this.clippingSquareMinX = this.worldPx;
-                        this.clippingSquareMaxX = c2x;
-                        this.clippingSquareMinY = this.worldPy;
-                        this.clippingSquareMaxY = c2y;
+        this._uploadedTextureSources = remainingTextureSources;
+        console.log('freed ' + ((usedTextureMemoryBefore - this._usedTextureMemory) / 1e6).toFixed(2) + 'M texture pixels from GPU memory. Remaining: ' + this._usedTextureMemory);
+    }
+    
+    freeTextureSource(textureSource) {
+        if (textureSource.glTexture) {
+            this._usedTextureMemory -= textureSource.w * textureSource.h;
+            this.gl.deleteTexture(textureSource.glTexture);
+            textureSource.glTexture = null;
+        }
 
-                        if ((this.clippingSquareMinX >= cp.clippingSquareMinX) && (this.clippingSquareMaxX <= cp.clippingSquareMaxX) && (this.clippingSquareMinY >= cp.clippingSquareMinY) && (this.clippingSquareMaxY <= cp.clippingSquareMaxY)) {
-                            // No effect.
-                            this.clippingNoEffect = true;
+        // Should be reloaded.
+        textureSource.loadingSince = null;
 
-                            if (this.clipping) {
-                                this.clippingSquareMinX = this.worldPx;
-                                this.clippingSquareMaxX = c2x;
-                                this.clippingSquareMinY = this.worldPy;
-                                this.clippingSquareMaxY = c2y;
+        if (textureSource.lookupId) {
+            // Delete it from the texture source hashmap to allow GC to collect it.
+            // If it is still referenced somewhere, we'll re-add it later.
+            this.textureSourceHashmap.delete(textureSource.lookupId);
+        }        
+    }
+
+}
+
+
+
+/**
+ * Copyright Metrological, 2017
+ */
+class Texture {
+
+    /**
+     * @param {TextureManager} manager
+     * @param {TextureSource} source
+     */
+    constructor(manager, source) {
+        this.manager = manager;
+
+        this.id = Texture.id++;
+
+        /**
+         * The associated texture source.
+         * Should not be changed.
+         * @type {TextureSource}
+         */
+        this.source = source;
+
+    }
+
+    _properties() {
+
+        /**
+         * The texture clipping x-offset.
+         * @type {number}
+         */
+        this._x = 0;
+
+        /**
+         * The texture clipping y-offset.
+         * @type {number}
+         */
+        this._y = 0;
+
+        /**
+         * The texture clipping width. If 0 then full width.
+         * @type {number}
+         */
+        this._w = 0;
+
+        /**
+         * The texture clipping height. If 0 then full height.
+         * @type {number}
+         */
+        this._h = 0;
+
+        /**
+         * Render precision (0.5 = fuzzy, 1 = normal, 2 = sharp even when scaled twice, etc.).
+         * @type {number}
+         * @private
+         */
+        this._precision = 1;
+
+        /**
+         * Indicates if Texture.prototype.texture uses clipping.
+         * @type {boolean}
+         */
+        this.clipping = false;
+
+    }
+
+    enableClipping(x, y, w, h) {
+        if (this._x !== x || this._y !== y || this._w !== w || this._h !== h) {
+            this._x = x;
+            this._y = y;
+            this._w = w;
+            this._h = h;
+
+            this.updateClipping(true);
+        }
+    }
+
+    disableClipping() {
+        if (this._x || this._y || this._w || this._h) {
+            this._x = 0;
+            this._y = 0;
+            this._w = 0;
+            this._h = 0;
+
+            this.updateClipping(false);
+        }
+    }
+
+    updateClipping(overrule) {
+        if (overrule === true || overrule === false) {
+            this.clipping = overrule;
+        } else {
+            this.clipping = !!(this._x || this._y || this._w || this._h);
+        }
+
+        let self = this;
+        this.source.views.forEach(function(view) {
+            // Ignore if not the currently displayed texture.
+            if (view.displayedTexture === self) {
+                view.onDisplayedTextureClippingChanged();
+            }
+        });
+    }
+
+    updatePrecision() {
+        let self = this;
+        this.source.views.forEach(function(view) {
+            // Ignore if not the currently displayed texture.
+            if (view.displayedTexture === self) {
+                view.onPrecisionChanged();
+            }
+        });
+    }
+
+    replaceTextureSource(newSource) {
+        let oldSource = this.source;
+
+        this.source = newSource;
+
+        oldSource.views.forEach(view => {
+            if (view.texture === this || view.displayedTexture === this) {
+                // Remove links from previous source, but only if there is no reason for it any more.
+                let keep = (view.displayedTexture && view.displayedTexture !== this && view.displayedTexture.source === oldSource);
+                keep = keep || (view.texture && view.texture !== this && view.texture.source === oldSource);
+
+                if (!keep) {
+                    oldSource.removeView(view);
+                }
+
+                newSource.addView(view);
+
+                if (newSource.glTexture) {
+                    view.displayedTexture = this;
+                }
+            }
+        });
+    }
+
+    getNonDefaults() {
+        let nonDefaults = {};
+        if (this.x !== 0) nonDefaults['x'] = this.x;
+        if (this.y !== 0) nonDefaults['y'] = this.y;
+        if (this.w !== 0) nonDefaults['w'] = this.w;
+        if (this.h !== 0) nonDefaults['h'] = this.h;
+        if (this.precision !== 1) nonDefaults['precision'] = this.precision;
+        return nonDefaults;        
+    }
+    
+    get x() {return this._x}
+    set x(v) {if (this._x !== v) {
+        this._x = v;
+        this.updateClipping();
+    }}
+
+    get y() {return this._y}
+    set y(v) {if (this._y !== v) {
+        this._y = v;
+        this.updateClipping();
+    }}
+
+    get w() {return this._w}
+    set w(v) {if (this._w !== v) {
+        this._w = v;
+        this.updateClipping();
+    }}
+
+    get h() {return this._h}
+    set h(v) {if (this._h !== v) {
+        this._h = v;
+        this.updateClipping();
+    }}
+
+    get precision() {return this._precision}
+    set precision(v) {if (this._precision !== v) {
+        this._precision = v;
+        this.updatePrecision();
+    }}
+    
+}
+
+Texture.id = 0;
+
+
+/**
+ * Copyright Metrological, 2017
+ */
+class TextureSource {
+
+    constructor(manager, loadCb) {
+        this.id = TextureSource.id++;
+
+        this.manager = manager;
+        
+        this.stage = manager.stage;
+
+        this.id = TextureSource.id++;
+
+        /**
+         * The factory for the source of this texture.
+         * @type {Function}
+         */
+        this.loadCb = loadCb;
+
+        /**
+         * All active views that are using this texture source via a texture (either as texture or displayedTexture, or both).
+         * @type {Set<View>}
+         */
+        this.views = new Set();
+        
+    }
+
+    _properties() {
+        
+        /**
+         * Identifier for reuse.
+         * @type {String}
+         */
+        this.lookupId = null;
+
+        /**
+         * If set, this.is called when the texture source is no longer displayed (this.components.size becomes 0).
+         * @type {Function}
+         */
+        this.cancelCb = null;
+
+        /**
+         * Loading since timestamp in millis.
+         * @type {number}
+         */
+        this.loadingSince = 0;
+
+        /**
+         * Flag that indicates if this.texture source was stored in the texture atlas.
+         * @type {boolean}
+         */
+        this.inTextureAtlas = false;
+
+        /**
+         * The x coordinate in the texture atlas.
+         * @type {number}
+         */
+        this.textureAtlasX = 0;
+
+        /**
+         * The y coordinate in the texture atlas.
+         * @type {number}
+         */
+        this.textureAtlasY = 0;
+
+        this.w = 0;
+        this.h = 0;
+
+        this.glTexture = null;
+
+        /**
+         * If true, then this.texture source is never freed from memory during garbage collection.
+         * @type {boolean}
+         */
+        this.permanent = false;
+
+        /**
+         * Sub-object with texture-specific rendering information.
+         * For images, contains the src property, for texts, contains handy rendering information.
+         * @type {Object}
+         */
+        this.renderInfo = null;        
+    }
+    
+    getRenderWidth() {
+        return this.w;
+    }
+
+    getRenderHeight() {
+        return this.h;
+    }
+    
+    addView(v) {
+        if (!this.views.has(v)) {
+            this.views.add(v);
+
+            if (this.glTexture) {
+                // If not yet loaded, wait until it is loaded until adding it to the texture atlas.
+                if (this.stage.textureAtlas) {
+                    this.stage.textureAtlas.addActiveTextureSource(this);
+                }
+            }
+
+            if (this.views.size === 1) {
+                this.manager.textureSourceIdHashmap.set(this.id, this);
+                if (this.lookupId) {
+                    if (!this.manager.textureSourceHashmap.has(this.lookupId)) {
+                        this.manager.textureSourceHashmap.set(this.lookupId, this);
+                    }
+                }
+
+                this.becomesVisible();
+            }
+        }        
+    }
+    
+    removeView(v) {
+        if (this.views.delete(v)) {
+            if (!this.views.size) {
+                if (this.stage.textureAtlas) {
+                    this.stage.textureAtlas.removeActiveTextureSource(this);
+                }
+                this.manager.textureSourceIdHashmap.delete(this.id);
+
+                this.becomesInvisible();
+            }
+        }        
+    }
+
+    becomesVisible() {
+        this.load(false);
+    }
+
+    becomesInvisible() {
+        if (this.isLoading()) {
+            if (this.cancelCb) {
+                this.cancelCb(this);
+            }
+        }
+    }
+
+    load(sync) {
+        if (this.isLoading() && sync) {
+            // We cancel the previous one.
+            if (this.cancelCb) {
+                // Allow the callback to cancel loading.
+                this.cancelCb(this);
+            }
+            this.loadingSince = 0;
+        }
+
+        if (!this.glTexture && !this.isLoading()) {
+            var self = this;
+            this.loadingSince = (new Date()).getTime();
+            this.loadCb(function(err, source, options) {
+                if (self.manager.stage.destroyed) {
+                    // Ignore async load when stage is destroyed.
+                    return;
+                }
+                self.loadingSince = 0;
+                if (err) {
+                    // Emit txError.
+                    self.onError(err);
+                } else if (source) {
+                    self.setSource(source, options);
+                }
+            }, this, !!sync);
+        }
+    }
+
+    isLoading() {
+        return this.loadingSince > 0;
+    }
+
+    setSource(source, options) {
+        this.w = source.width || (options && options.w) || 0;
+        this.h = source.height || (options && options.h) || 0;
+
+        if (this.w > 2048 || this.h > 2048) {
+            console.error('Texture size too large: ' + source.width + 'x' + source.height + ' (max allowed is 2048x2048)');
+            return;
+        }
+
+        if (options && options.renderInfo) {
+            // Assign to id in cache so that it can be reused.
+            this.renderInfo = options.renderInfo;
+        }
+
+        var format = {
+            premultiplyAlpha: true,
+            hasAlpha: true
+        };
+
+        if (options && options.hasOwnProperty('premultiplyAlpha')) {
+            format.premultiplyAlpha = options.premultiplyAlpha;
+        }
+
+        if (options && options.hasOwnProperty('hasAlpha')) {
+            format.hasAlpha = options.hasAlpha;
+        }
+
+        this.manager.uploadTextureSource(this, source, format);
+
+        this.onLoad();
+    }
+
+    isVisible() {
+        return (this.views.size > 0);
+    }
+
+    onLoad() {
+        if (this.isVisible() && this.stage.textureAtlas) {
+            this.stage.textureAtlas.addActiveTextureSource(this);
+        }
+
+        this.views.forEach(function(view) {
+            view.onTextureSourceLoaded();
+        });
+    }
+
+    onError(e) {
+        console.error('texture load error', e, this.id);
+        this.views.forEach(function(view) {
+            view.onTextureSourceLoadError(e);
+        });
+    }
+
+    onAddedToTextureAtlas(x, y) {
+        this.inTextureAtlas = true;
+        this.textureAtlasX = x;
+        this.textureAtlasY = y;
+
+        this.views.forEach(function(view) {
+            view.onTextureSourceAddedToTextureAtlas();
+        });
+    }
+
+    onRemovedFromTextureAtlas() {
+        this.inTextureAtlas = false;
+        this.views.forEach(function(view) {
+            view.onTextureSourceRemovedFromTextureAtlas();
+        });
+    }
+
+    free() {
+        this.manager.freeTextureSource(this);
+    }
+}
+
+TextureSource.id = 1;
+
+
+/**
+ * Copyright Metrological, 2017
+ */
+class TextureAtlas {
+
+    constructor(stage) {
+        this.stage = stage;
+
+        this.w = 2048;
+        this.h = 2048;
+
+        this._activeTree = new TextureAtlasTree(this.w, this.h);
+
+        /**
+         * The texture sources that should be on to the texture atlas (active in stage, loaded and with valid dimensions).
+         * @type {Set<TextureSource>}
+         */
+        this._activeTextureSources = new Set();
+
+        /**
+         * The texture sources that were added to the texture atlas (since the last defragment).
+         * @type {Set<TextureSource>}
+         */
+        this._addedTextureSources = new Set();
+
+        /**
+         * The total surface of the current texture atlas that's being used by unused texture sources.
+         * @type {number}
+         */
+        this._wastedPixels = 0;
+
+        /**
+         * @type {WebGLRenderingContext}
+         */
+        this.gl = this.stage.gl;
+
+        this._vertexShaderSrc = [
+            "#ifdef GL_ES",
+            "precision lowp float;",
+            "#endif",
+            "attribute vec2 aVertexPosition;",
+            "attribute vec2 aTextureCoord;",
+            "uniform mat4 projectionMatrix;",
+            "varying vec2 vTextureCoord;",
+            "void main(void){",
+            "    gl_Position = projectionMatrix * vec4(aVertexPosition, 0.0, 1.0);",
+            "    vTextureCoord = aTextureCoord;",
+            "}"
+        ].join("\n");
+
+        this._fragmentShaderSrc = [
+            "#ifdef GL_ES",
+            "precision lowp float;",
+            "#endif",
+            "varying vec2 vTextureCoord;",
+            "uniform sampler2D uSampler;",
+            "void main(void){",
+            "    gl_FragColor = texture2D(uSampler, vTextureCoord);",
+            "}"
+        ].join("\n");
+
+        this._program = null;
+
+        /**
+         * The last render frame number that the texture atlas was defragmented on.
+         * @type {number}
+         */
+        this._lastDefragFrame = 0;
+
+        /**
+         * Texture atlas size limit.
+         * @type {number}
+         */
+        this._pixelsLimit = this.w * this.h / 16;
+
+        /**
+         * The minimal amount of pixels that should be able to be reclaimed when performing a defragment.
+         * @type {number}
+         */
+        this._minWastedPixels = this.w * this.h / 8;
+
+        this._defragNeeded = false;
+
+        /**
+         * Pending texture sources to be uploaded.
+         * @type {TextureSource[]}
+         */
+        this._uploads = [];
+
+        // The matrix that causes the [0,0 - w,h] box to map to [-1,-1 - 1,1] in the end results.
+        this._projectionMatrix = new Float32Array([
+            2/this.w, 0, 0, 0,
+            0, 2/this.h, 0, 0,
+            0, 0, 1, 0,
+            -1, -1, 0, 1
+        ]);
+
+        this._initShaderProgram();
+        
+    }
+    
+    _initShaderProgram() {
+        let gl = this.gl;
+
+        let glVertShader = this._glCompile(gl.VERTEX_SHADER, this._vertexShaderSrc);
+        let glFragShader = this._glCompile(gl.FRAGMENT_SHADER, this._fragmentShaderSrc);
+
+        this._program = gl.createProgram();
+
+        gl.attachShader(this._program, glVertShader);
+        gl.attachShader(this._program, glFragShader);
+        gl.linkProgram(this._program);
+
+        // if linking fails, then log and cleanup
+        if (!gl.getProgramParameter(this._program, gl.LINK_STATUS)) {
+            console.error('Error: Could not initialize shader.');
+            console.error('gl.VALIDATE_STATUS', gl.getProgramParameter(this._program, gl.VALIDATE_STATUS));
+            console.error('gl.getError()', gl.getError());
+
+            // if there is a program info log, log it
+            if (gl.getProgramInfoLog(this._program) !== '') {
+                console.warn('Warning: gl.getProgramInfoLog()', gl.getProgramInfoLog(this._program));
+            }
+
+            gl.deleteProgram(this._program);
+            this._program = null;
+        }
+        gl.useProgram(this._program);
+
+        // clean up some shaders
+        gl.deleteShader(glVertShader);
+        gl.deleteShader(glFragShader);
+
+        // Bind attributes.
+        this._vertexPositionAttribute = gl.getAttribLocation(this._program, "aVertexPosition");
+        this._textureCoordAttribute = gl.getAttribLocation(this._program, "aTextureCoord");
+
+        // Init webgl arrays.
+        // We support up to 1000 textures per call, all consisting out of 9 elements.
+        this._paramsBuffer = new ArrayBuffer(16 * 4 * 9 * 1000);
+        this._allCoords = new Float32Array(this._paramsBuffer);
+        this._allTexCoords = new Float32Array(this._paramsBuffer);
+
+        this._allIndices = new Uint16Array(6 * 9 * 1000);
+
+        // fill the indices with the quads to draw.
+        for (let i = 0, j = 0; i < 1000 * 6 * 9; i += 6, j += 4) {
+            this._allIndices[i] = j;
+            this._allIndices[i + 1] = j + 1;
+            this._allIndices[i + 2] = j + 2;
+            this._allIndices[i + 3] = j;
+            this._allIndices[i + 4] = j + 2;
+            this._allIndices[i + 5] = j + 3;
+        }
+
+        this._indicesGlBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._indicesGlBuffer);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this._allIndices, gl.STATIC_DRAW);
+
+        // Set transformation matrix.
+        let projectionMatrixAttribute = gl.getUniformLocation(this._program, "projectionMatrix");
+        gl.uniformMatrix4fv(projectionMatrixAttribute, false, this._projectionMatrix);
+
+        this.texture = this.gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, this.texture);
+
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.w, this.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(this.w * this.h * 4));
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.bindTexture(gl.TEXTURE_2D, null);
+
+        // Create framebuffer which can be used to modify the texture.
+        this.framebuffer = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.texture, 0);
+        if (gl.getError() != gl.NO_ERROR) {
+            throw "Some WebGL error occurred while trying to create framebuffer.";
+        }
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    }
+    
+    _glCompile(type, src) {
+        let shader = this.gl.createShader(type);
+
+        this.gl.shaderSource(shader, src);
+        this.gl.compileShader(shader);
+
+        if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
+            console.log(this.gl.getShaderInfoLog(shader));
+            return null;
+        }
+
+        return shader;
+    }
+    
+    destroy() {
+        this.gl.deleteTexture(this.texture);
+        this.gl.deleteFramebuffer(this.framebuffer);
+        this.gl.deleteBuffer(this.paramsGlBuffer);
+        this.gl.deleteBuffer(this._indicesGlBuffer);
+        this.gl.deleteProgram(this._program);        
+    }
+    
+    uploadTextureSources(textureSources) {
+        let i;
+
+        let n = textureSources.length;
+        if (n > 1000) {
+            n = 1000;
+        }
+        for (i = 0; i < n; i++) {
+
+            let w = textureSources[i].w;
+            let h = textureSources[i].h;
+
+            let x = textureSources[i].textureAtlasX;
+            let y = textureSources[i].textureAtlasY;
+
+            let divW = 1 / w;
+            let divH = 1 / h;
+
+            let offset = i * 16 * 9;
+
+            // Add 2px margin to avoid edge artifacts.
+
+            // Full area.
+            this._allCoords[offset + 0] = x;
+            this._allCoords[offset + 1] = y;
+            this._allCoords[offset + 4] = x + w;
+            this._allCoords[offset + 5] = y;
+            this._allCoords[offset + 8] = x + w;
+            this._allCoords[offset + 9] = y + h;
+            this._allCoords[offset + 12] = x;
+            this._allCoords[offset + 13] = y + h;
+
+            // Top row.
+            this._allCoords[offset + 16] = x;
+            this._allCoords[offset + 17] = y - 1;
+            this._allCoords[offset + 20] = x + w;
+            this._allCoords[offset + 21] = y - 1;
+            this._allCoords[offset + 24] = x + w;
+            this._allCoords[offset + 25] = y;
+            this._allCoords[offset + 28] = x;
+            this._allCoords[offset + 29] = y;
+
+            // Bottom row.
+            this._allCoords[offset + 32] = x;
+            this._allCoords[offset + 33] = y + h;
+            this._allCoords[offset + 36] = x + w;
+            this._allCoords[offset + 37] = y + h;
+            this._allCoords[offset + 40] = x + w;
+            this._allCoords[offset + 41] = y + h + 1;
+            this._allCoords[offset + 44] = x;
+            this._allCoords[offset + 45] = y + h + 1;
+
+            // Left row.
+            this._allCoords[offset + 48] = x - 1;
+            this._allCoords[offset + 49] = y;
+            this._allCoords[offset + 52] = x;
+            this._allCoords[offset + 53] = y;
+            this._allCoords[offset + 56] = x;
+            this._allCoords[offset + 57] = y + h;
+            this._allCoords[offset + 60] = x - 1;
+            this._allCoords[offset + 61] = y + h;
+
+            // Right row.
+            this._allCoords[offset + 64] = x + w;
+            this._allCoords[offset + 65] = y;
+            this._allCoords[offset + 68] = x + w + 1;
+            this._allCoords[offset + 69] = y;
+            this._allCoords[offset + 72] = x + w + 1;
+            this._allCoords[offset + 73] = y + h;
+            this._allCoords[offset + 76] = x + w;
+            this._allCoords[offset + 77] = y + h;
+
+            // Upper-left.
+            this._allCoords[offset + 80] = x - 1;
+            this._allCoords[offset + 81] = y - 1;
+            this._allCoords[offset + 84] = x;
+            this._allCoords[offset + 85] = y - 1;
+            this._allCoords[offset + 88] = x;
+            this._allCoords[offset + 89] = y;
+            this._allCoords[offset + 92] = x - 1;
+            this._allCoords[offset + 93] = y;
+
+            // Upper-right.
+            this._allCoords[offset + 96] = x + w;
+            this._allCoords[offset + 97] = y - 1;
+            this._allCoords[offset + 100] = x + w + 1;
+            this._allCoords[offset + 101] = y - 1;
+            this._allCoords[offset + 104] = x + w + 1;
+            this._allCoords[offset + 105] = y;
+            this._allCoords[offset + 108] = x + w;
+            this._allCoords[offset + 109] = y;
+
+            // Lower-right.
+            this._allCoords[offset + 112] = x + w;
+            this._allCoords[offset + 113] = y + h;
+            this._allCoords[offset + 116] = x + w + 1;
+            this._allCoords[offset + 117] = y + h;
+            this._allCoords[offset + 120] = x + w + 1;
+            this._allCoords[offset + 121] = y + h + 1;
+            this._allCoords[offset + 124] = x + w;
+            this._allCoords[offset + 125] = y + h + 1;
+
+            // Lower-left.
+            this._allCoords[offset + 128] = x - 1;
+            this._allCoords[offset + 129] = y + h;
+            this._allCoords[offset + 132] = x;
+            this._allCoords[offset + 133] = y + h;
+            this._allCoords[offset + 136] = x;
+            this._allCoords[offset + 137] = y + h + 1;
+            this._allCoords[offset + 140] = x - 1;
+            this._allCoords[offset + 141] = y + h + 1;
+
+            // Texture coords.
+            this._allTexCoords[offset + 2] = 0;
+            this._allTexCoords[offset + 3] = 0;
+            this._allTexCoords[offset + 6] = 1;
+            this._allTexCoords[offset + 7] = 0;
+            this._allTexCoords[offset + 10] = 1;
+            this._allTexCoords[offset + 11] = 1;
+            this._allTexCoords[offset + 14] = 0;
+            this._allTexCoords[offset + 15] = 1;
+
+            this._allTexCoords[offset + 18] = 0;
+            this._allTexCoords[offset + 19] = 0;
+            this._allTexCoords[offset + 22] = 1;
+            this._allTexCoords[offset + 23] = 0;
+            this._allTexCoords[offset + 26] = 1;
+            this._allTexCoords[offset + 27] = divH;
+            this._allTexCoords[offset + 30] = 0;
+            this._allTexCoords[offset + 31] = divH;
+
+            this._allTexCoords[offset + 34] = 0;
+            this._allTexCoords[offset + 35] = 1 - divH;
+            this._allTexCoords[offset + 38] = 1;
+            this._allTexCoords[offset + 39] = 1 - divH;
+            this._allTexCoords[offset + 42] = 1;
+            this._allTexCoords[offset + 43] = 1;
+            this._allTexCoords[offset + 46] = 0;
+            this._allTexCoords[offset + 47] = 1;
+
+            this._allTexCoords[offset + 50] = 0;
+            this._allTexCoords[offset + 51] = 0;
+            this._allTexCoords[offset + 54] = divW;
+            this._allTexCoords[offset + 55] = 0;
+            this._allTexCoords[offset + 58] = divW;
+            this._allTexCoords[offset + 59] = 1;
+            this._allTexCoords[offset + 62] = 0;
+            this._allTexCoords[offset + 63] = 1;
+
+            this._allTexCoords[offset + 66] = 1 - divW;
+            this._allTexCoords[offset + 67] = 0;
+            this._allTexCoords[offset + 70] = 1;
+            this._allTexCoords[offset + 71] = 0;
+            this._allTexCoords[offset + 74] = 1;
+            this._allTexCoords[offset + 75] = 1;
+            this._allTexCoords[offset + 78] = 1 - divW;
+            this._allTexCoords[offset + 79] = 1;
+
+            this._allTexCoords[offset + 82] = 0;
+            this._allTexCoords[offset + 83] = 0;
+            this._allTexCoords[offset + 86] = divW;
+            this._allTexCoords[offset + 87] = 0;
+            this._allTexCoords[offset + 90] = divW;
+            this._allTexCoords[offset + 91] = divH;
+            this._allTexCoords[offset + 94] = 0;
+            this._allTexCoords[offset + 95] = divH;
+
+            this._allTexCoords[offset + 98] = 1 - divW;
+            this._allTexCoords[offset + 99] = 0;
+            this._allTexCoords[offset + 102] = 1;
+            this._allTexCoords[offset + 103] = 0;
+            this._allTexCoords[offset + 106] = 1;
+            this._allTexCoords[offset + 107] = divH;
+            this._allTexCoords[offset + 110] = 1 - divW;
+            this._allTexCoords[offset + 111] = divH;
+
+            this._allTexCoords[offset + 114] = 1 - divW;
+            this._allTexCoords[offset + 115] = 1 - divH;
+            this._allTexCoords[offset + 118] = 1;
+            this._allTexCoords[offset + 119] = 1 - divH;
+            this._allTexCoords[offset + 122] = 1;
+            this._allTexCoords[offset + 123] = 1;
+            this._allTexCoords[offset + 126] = 1 - divW;
+            this._allTexCoords[offset + 127] = 1;
+
+            this._allTexCoords[offset + 130] = 0;
+            this._allTexCoords[offset + 131] = 1 - divH;
+            this._allTexCoords[offset + 134] = divW;
+            this._allTexCoords[offset + 135] = 1 - divH;
+            this._allTexCoords[offset + 138] = divW;
+            this._allTexCoords[offset + 139] = 1;
+            this._allTexCoords[offset + 142] = 0;
+            this._allTexCoords[offset + 143] = 1;
+        }
+
+        let gl = this.gl;
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
+        gl.useProgram(this._program);
+        gl.viewport(0,0,this.w,this.h);
+        gl.blendFunc(gl.ONE, gl.ZERO);
+        gl.enable(gl.BLEND);
+        gl.disable(gl.DEPTH_TEST);
+
+        // Upload data.
+        this.paramsGlBuffer = this.paramsGlBuffer || gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.paramsGlBuffer);
+
+        // We want to send the first elements from the params buffer, so we allCoords in order to slice some off.
+        let view = new DataView(this._paramsBuffer, 0, 16 * 9 * 4 * n);
+        gl.bufferData(gl.ARRAY_BUFFER, view, gl.DYNAMIC_DRAW);
+
+        gl.vertexAttribPointer(this._vertexPositionAttribute, 2, gl.FLOAT, false, 16, 0);
+        gl.vertexAttribPointer(this._textureCoordAttribute, 2, gl.FLOAT, false, 16, 2 * 4);
+
+        gl.enableVertexAttribArray(this._vertexPositionAttribute);
+        gl.enableVertexAttribArray(this._textureCoordAttribute);
+
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._indicesGlBuffer);
+
+        for (i = 0; i < n; i++) {
+            gl.bindTexture(gl.TEXTURE_2D, textureSources[i].glTexture);
+            gl.drawElements(gl.TRIANGLES, 6 * 9, gl.UNSIGNED_SHORT, i * 6 * 9 * 2);
+        }
+
+        gl.disableVertexAttribArray(this._vertexPositionAttribute);
+        gl.disableVertexAttribArray(this._textureCoordAttribute);
+    }
+
+    /**
+     * Allocates space for a loaded texture.
+     * @param texture
+     * @return {{x: number, y: number}|null}
+     *   The allocated position.
+     */
+    allocate(texture) {
+        return this._activeTree.add(texture);
+    }
+
+    /**
+     * Registers the texture source to the texture atlas.
+     * @param {TextureSource} textureSource
+     * @pre TextureSource.glTexture !== null
+     */    
+    addActiveTextureSource(textureSource) {
+        if (textureSource.id === 1) {
+            // Rectangle texture is automatically added.
+        } else {
+            if ((textureSource.w * textureSource.h < this._pixelsLimit)) {
+                // Only add if dimensions are valid.
+                if (!this._activeTextureSources.has(textureSource)) {
+                    this._activeTextureSources.add(textureSource);
+
+                    // Add it directly (if possible).
+                    if (!this._addedTextureSources.has(textureSource)) {
+                        this.add(textureSource);
+                    }
+                }
+            }
+        }        
+    }
+
+    removeActiveTextureSource(textureSource) {
+        if (this._activeTextureSources.has(textureSource)) {
+            this._activeTextureSources.delete(textureSource);
+
+            let uploadsIndex = this._uploads.indexOf(textureSource);
+            if (uploadsIndex >= 0) {
+                // Still waiting to be uploaded.
+                this._uploads.splice(uploadsIndex, 1);
+
+                // It is not uploaded, so it's not on the texture atlas any more.
+                textureSource.onRemovedFromTextureAtlas();
+
+                this._addedTextureSources.delete(textureSource);
+            }
+
+            if (this._addedTextureSources.has(textureSource)) {
+                this._wastedPixels += textureSource.w * textureSource.h;
+            }
+        }        
+    }
+    
+    add(textureSource) {
+        let position = this.allocate(textureSource);
+        if (position) {
+            this._addedTextureSources.add(textureSource);
+
+            textureSource.onAddedToTextureAtlas(position.x + 1, position.y + 1);
+
+            this._uploads.push(textureSource);
+        } else {
+            this._defragNeeded = true;
+
+            // Error.
+            return false;
+        }
+
+        return true;        
+    }
+    
+    defragment() {
+        console.log('defragment texture atlas');
+
+        // Clear new area (necessary for semi-transparent textures).
+        let gl = this.gl;
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
+        gl.viewport(0,0,this.w,this.h);
+        gl.clearColor(0, 0, 0, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        this._activeTree.reset();
+        this._uploads = [];
+        this._wastedPixels = 0;
+        this._lastDefragFrame = this.stage.frameCounter;
+        this._defragNeeded = false;
+
+        this._addedTextureSources.forEach(function(textureSource) {
+            textureSource.onRemovedFromTextureAtlas();
+        });
+
+        this._addedTextureSources.clear();
+
+        // Automatically re-add the rectangle texture, to make sure that it is at coordinate 0,0.
+        this.add(this.stage.rectangleTexture.source);
+
+        // Then (try to) re-add all active texture sources.
+        // @todo: sort by dimensions (smallest first)?
+        let self = this;
+        this._activeTextureSources.forEach(function(textureSource) {
+            self.add(textureSource);
+        });
+    }
+
+    /**
+     * Actually uploads the previously added sources to the texture atlas.
+     */
+    flush() {
+        if (this._defragNeeded) {
+            // Only defragment when there is something serious to gain.
+            if (this._wastedPixels >= this._minWastedPixels) {
+                // Limit defragmentations from happening all the time when it can't keep up.
+                if (this._lastDefragFrame < this.stage.frameCounter - 300) {
+                    this.defragment();
+                }
+            }
+        }
+
+        if (this._uploads.length) {
+            this.uploadTextureSources(this._uploads);
+            this._uploads = [];
+        }
+    }
+}
+
+
+
+/**
+ * Copyright Metrological, 2017
+ */
+class TextureAtlasTree {
+
+    constructor(w, h) {
+        this.w = w;
+        this.h = h;
+
+        this.reset();
+    }
+
+    reset() {
+        this.root = {x: 0, y: 0, w: this.w, h: this.h};
+        this.spaces = new Set([this.root]);
+        this.maxH = this.h;
+    }
+
+    add(texture) {
+        // We need an extra border to fix linear interpolation artifacts (see TextureAtlasRenderer).
+        let w = texture.w + 2;
+        let h = texture.h + 2;
+
+        if (h > this.maxH) {
+            return false;
+        }
+
+        let mp = 0;
+        let found = null;
+        let maxH = 0;
+        this.spaces.forEach(function(n) {
+            if (n.h > maxH) {
+                maxH = n.h;
+            }
+            if (n.w >= w && n.h >= h) {
+                if (!mp || mp > w * h) {
+                    mp = w * h;
+                    found = n;
+                }
+            }
+        });
+        this.maxH = maxH;
+
+        // Best match.
+        if (!found) {
+            return false;
+        }
+
+        this.useNode(found, texture);
+        return found;
+    }
+
+    findNode(node, w, h) {
+        if (!node) return null;
+        if (!node.o) {
+            if (w <= node.w && h <= node.h) {
+                return node;
+            } else {
+                // No space.
+                return null;
+            }
+        } else {
+            return this.findNode(node.r, w, h) || this.findNode(node.d, w, h);
+        }
+    }
+
+    useNode(node, texture) {
+        let w = texture.w + 2, h = texture.h + 2;
+        if (node.w > w) {
+            node.r = {x: node.x + w, y: node.y, w: node.w - w, h: h};
+            this.spaces.add(node.r);
+        }
+        if (node.h > h) {
+            node.d = {x: node.x, y: node.y + h, w: node.w, h: node.h - h};
+            this.spaces.add(node.d);
+        }
+        this.spaces.delete(node);
+        node.o = texture;
+    }
+    
+    getTextures() {
+        let n = [this.root];
+
+        let textures = [];
+        let c = 1;
+        while(c) {
+            let item = n.pop();
+            c--;
+
+            if (item.o) {
+                textures.push(item.o);
+                if (item.r) {
+                    n.push(item.r);
+                    c++;
+                }
+                if (item.d) {
+                    n.push(item.d);
+                    c++;
+                }
+            }
+        }
+
+        return textures;        
+    }
+    
+}
+
+
+/**
+ * Render tree node.
+ * Copyright Metrological, 2017
+ */
+
+
+class View extends Base {
+
+    constructor(stage) {
+        super();
+
+        EventEmitter.call(this);
+
+        this.id = View.id++;
+
+        this.stage = stage;
+        this.ctx = this.stage.ctx;
+    }
+
+    _properties() {
+
+        /**
+         * A view is active if it is a descendant of the stage root and it is visible (worldAlpha > 0).
+         * @type {boolean}
+         */
+        this._active = false;
+
+        /**
+         * A view is active if it is a descendant of the stage root.
+         * @type {boolean}
+         */
+        this._attached = false;
+
+        /**
+         * @type {View}
+         */
+        this._parent = null;
+
+        /**
+         * The texture that is currently set.
+         * @type {Texture}
+         * @protected
+         */
+        this._texture = null;
+
+        /**
+         * The currently displayed texture. While this.texture is loading, this one may be different.
+         * @type {Texture}
+         * @protected
+         */
+        this._displayedTexture = null;
+
+        /**
+         * Tags that can be used to identify/search for a specific component.
+         * @type {String[]}
+         */
+        this._tags = null;
+
+        /**
+         * The tree's tags mapping.
+         * This contains all components for all known tags, at all times.
+         * @type {Map}
+         */
+        this._treeTags = null;
+
+        /**
+         * Cache for the tag/mtag methods.
+         * @type {Map<String,Component[]>}
+         */
+        this._tagsCache = null;
+
+        /**
+         * Tag-to-complex cache (all tags that are part of the complex caches).
+         * This maps tags to cached complex tags in the cache.
+         * @type {Map<String,String[]>}
+         */
+        this._tagToComplex = null;
+
+        this._x = 0;
+        this._y = 0;
+        this._w = 0;
+        this._h = 0;
+        this._scaleX = 1;
+        this._scaleY = 1;
+        this._pivotX = 0.5;
+        this._pivotY = 0.5;
+        this._mountX = 0;
+        this._mountY = 0;
+        this._alpha = 1;
+        this._rotation = 0;
+        this._visible = true;
+
+        this._colorUl = this._colorUr = this._colorBl = this._colorBr = 0xFFFFFFFF;
+
+        this._clipping = false;
+        this._zIndex = 0;
+        this._forceZIndexContext = false;
+
+        /**
+         * The text functionality in case this view is a text view.
+         * @type {ViewText}
+         */
+        this._viewText = null;
+
+        /**
+         * @type {View[]}
+         * @protected
+         */
+        this._children = null;
+
+        this._hasUpdates = false;
+
+        this._recalc = 0;
+
+        this._worldAlpha = 1;
+
+        this._updateTreeOrder = 0;
+
+        this._hasChildren = false;
+
+        // All local translation/transform updates: directly propagated from x/y/w/h/scale/whatever.
+        this._worldPx = this._localPx = 0;
+        this._worldPy = this._localPy = 0;
+
+        this._worldTa = this._localTa = 1;
+        this._worldTb = this._localTb = 0;
+        this._worldTc = this._localTc = 0;
+        this._worldTd = this._localTd = 1;
+
+        this._isComplex = false;
+
+        this._localAlpha = 1;
+
+        /**
+         * Cached render width/height.
+         * Only maintained if active.
+         * @type {number}
+         * @private
+         */
+        this._rw = 0;
+        this._rh = 0;
+
+        this._clippingParent = null;
+
+        /**
+         * In case of clipping, this flag indicates if we're dealing with a square-shaped clipping area.
+         * @type {boolean}
+         */
+        this._clippingSquare = false;
+
+        this._clippingSquareMinX = 0;
+        this._clippingSquareMaxX = 0;
+        this._clippingSquareMinY = 0;
+        this._clippingSquareMaxY = 0;
+
+        /**
+         * Flag that indicates that clipping area is empty.
+         * @type {boolean}
+         */
+        this._clippingEmpty = false;
+
+        /**
+         * Flag that indicates that the clipping area are the corner points.
+         * @type {boolean}
+         */
+        this._clippingNoEffect = false;
+
+        /**
+         * In case of complex clipping, the corner points of the clipping area.
+         * @type {number[]}
+         */
+        this._clippingArea = null;
+
+        /**
+         * The texture source to be displayed.
+         * @type {TextureSource}
+         */
+        this._displayedTextureSource = null;
+
+        this._txCoordsUl = 0x00000000;
+        this._txCoordsUr = 0x0000FFFF;
+        this._txCoordsBr = 0xFFFFFFFF;
+        this._txCoordsBl = 0xFFFF0000;
+
+        this._ulx = 0;
+        this._uly = 0;
+        this._brx = 1;
+        this._bry = 1;
+
+        this._zContextUsage = 0;
+        this._zParent = null;
+        this._zSort = false;
+
+    }
+
+    setAsRoot() {
+        this._updateActiveFlag();
+        this._updateAttachedFlag();
+
+        // Use a dummy parent to improve update performance.
+        this._parent = new View(this.stage);
+        this.ctx.root = this;
+    }
+
+    isRoot() {
+        return (this.ctx.root === this);
+    }
+
+    _setParent(parent) {
+        if (this._parent === parent) return;
+
+        if (this._parent) {
+            this._unsetTagsParent();
+        }
+
+        let prevIsZContext = this._isZContext();
+        let prevParent = this._parent;
+
+        this._parent = parent;
+
+        if (parent) {
+            this._setTagsParent();
+        }
+
+        this._updateActiveFlag();
+
+        this._updateAttachedFlag();
+
+        this._setRecalc(1 + 2 + 4);
+
+        if (this._zIndex === 0) {
+            this._setZParent(parent);
+        } else {
+            this._setZParent(parent ? parent._findZContext() : null);
+        }
+
+        if (prevIsZContext !== this._isZContext()) {
+            if (!this._isZContext()) {
+                this._disableZContext();
+            } else {
+                this._enableZContext(prevParent._findZContext());
+            }
+        }
+
+        let newClippingParent = parent ? (parent._clipping ? parent : parent._clippingParent) : null;
+
+        if (newClippingParent !== this._clippingParent) {
+            this._setClippingParent(newClippingParent);
+        }
+
+    };
+
+    getDepth() {
+        let depth = 0;
+
+        let p = this;
+        do {
+            depth++;
+            p = p._parent;
+        } while (p);
+
+        return depth;
+    };
+
+    getAncestor(l) {
+        let p = this;
+        while (l > 0 && p._parent) {
+            p = p._parent;
+            l--;
+        }
+        return p;
+    };
+
+    getAncestorAtDepth(depth) {
+        let levels = this.getDepth() - depth;
+        if (levels < 0) {
+            return null;
+        }
+        return this.getAncestor(levels);
+    };
+
+    isAncestorOf(c) {
+        let p = c;
+        while(p = p.parent) {
+            if (this === p) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    getSharedAncestor(c) {
+        let o1 = this;
+        let o2 = c;
+        let l1 = o1.getDepth();
+        let l2 = o2.getDepth();
+        if (l1 > l2) {
+            o1 = o1.getAncestor(l1 - l2);
+        } else if (l2 > l1) {
+            o2 = o2.getAncestor(l2 - l1);
+        }
+
+        do {
+            if (o1 === o2) {
+                return o1;
+            }
+
+            o1 = o1._parent;
+            o2 = o2._parent;
+        } while (o1 && o2);
+
+        return null;
+    };
+
+    addChild(child) {
+        if (!this._children) this._children = [];
+
+        if (child._parent === this && this._children.indexOf(child) >= 0) {
+            return child;
+        }
+        this.addChildAt(child, this._children.length);
+    };
+
+    addChildAt(child, index) {
+        // prevent adding self as child
+        if (child === this) {
+            return
+        }
+
+        if (this._children === null) {
+            this._children = [];
+        }
+
+        if (index >= 0 && index <= this._children.length) {
+            if (child._parent === this && this._children.indexOf(child) === index) {
+                // Ignore.
+            } else {
+                if (child._parent) {
+                    let p = child._parent;
+                    p.removeChild(child);
+                }
+
+                child._setParent(this);
+                this._children.splice(index, 0, child);
+
+                this._hasChildren = true;
+            }
+
+            return;
+        } else {
+            throw new Error(child + 'addChildAt: The index ' + index + ' supplied is out of bounds ' + this.children.length);
+        }
+    };
+
+    getChildIndex(child) {
+        return this._children && this._children.indexOf(child);
+    };
+
+    removeChild(child) {
+        let index = this._children && this._children.indexOf(child);
+
+        if (index !== -1) {
+            this.removeChildAt(index);
+        }
+    };
+
+    removeChildAt(index) {
+        if (!this._children) return;
+
+        let child = this._children[index];
+
+        child._setParent(null);
+        this._children.splice(index, 1);
+
+        this._hasChildren = (this._children.length > 0);
+
+        return child;
+    };
+
+    removeChildren() {
+        if (this._children) {
+            let n = this._children.length;
+            if (n) {
+                for (let i = 0; i < n; i++) {
+                    let child = this._children[i];
+                    child._setParent(null);
+                }
+                this._children.splice(0, n);
+
+                this._hasChildren = false;
+            }
+        }
+    };
+
+    add(o) {
+        if (Utils.isObjectLiteral(o)) {
+            let c = this.stage.createView(o);
+            c.setSettings(o);
+            this.addChild(c);
+            return c;
+        } else if (o instanceof View) {
+            this.addChild(o);
+            return o;
+        } else if (Array.isArray(o)) {
+            for (let i = 0, n = o.length; i < n; i++) {
+                this.add(o[i]);
+            }
+            return null;
+        }
+    };
+
+    isActive() {
+        return this._visible && (this._alpha > 0) && (this._parent ? this._parent._active : (this.stage.root === this));
+    };
+
+    isAttached() {
+        return (this._parent ? this._parent._attached : (this.stage.root === this));
+    };
+
+    /**
+     * Updates the 'active' flag for this branch.
+     */
+    _updateActiveFlag() {
+        // Calculate active flag.
+        let newActive = this.isActive();
+        if (this._active !== newActive) {
+            if (newActive) {
+                this._setActiveFlag();
+            } else {
+                this._unsetActiveFlag();
+            }
+
+            if (this._children) {
+                let m = this._children.length;
+                if (m > 0) {
+                    for (let i = 0; i < m; i++) {
+                        this._children[i]._updateActiveFlag();
+                    }
+                }
+            }
+
+            // Run this after all _children because we'd like to see (de)activating a branch as an 'atomic' operation.
+            if (newActive) {
+                this.notifyActivate && this.notifyActivate();
+            } else {
+                this.notifyDeactivate && this.notifyDeactivate();
+            }
+        }
+    };
+
+    _setActiveFlag() {
+        // Detect texture changes.
+        let dt = null;
+        if (this._texture && this._texture.source.glTexture) {
+            dt = this._texture;
+            this._texture.source.addView(this);
+        } else if (this._displayedTexture && this._displayedTexture.source.glTexture) {
+            dt = this._displayedTexture;
+        }
+
+        this.displayedTexture = dt;
+
+        // Force re-check of texture because dimensions might have changed (cutting).
+        this._updateDimensions();
+        this._updateTextureCoords();
+
+        this._active = true;
+
+        if (this._texture) {
+            // It is important to add the source listener before the texture listener because that may trigger a load.
+            this._texture.source.addView(this);
+        }
+
+        if (this._displayedTexture && this._displayedTexture !== this._texture) {
+            this._displayedTexture.source.addView(this);
+        }
+
+        if (this.zIndex != 0) {
+            // View uses z-index.
+            this.stage.zIndexUsage++;
+        }
+    }
+
+    _unsetActiveFlag() {
+        if (this.zIndex != 0) {
+            // View uses z-index.
+            this.stage.zIndexUsage--;
+        }
+
+        if (this._texture) {
+            this._texture.source.removeView(this);
+        }
+
+        if (this._displayedTexture) {
+            this._displayedTexture.source.removeView(this);
+        }
+
+        this._active = false;
+    }
+
+    /**
+     * Updates the 'attached' flag for this branch.
+     */
+    _updateAttachedFlag() {
+        // Calculate active flag.
+        let newAttached = this.isAttached();
+        if (this._attached !== newAttached) {
+            this._attached = newAttached;
+
+            if (this._children) {
+                let m = this._children.length;
+                if (m > 0) {
+                    for (let i = 0; i < m; i++) {
+                        this._children[i]._updateAttachedFlag();
+                    }
+                }
+            }
+        }
+    };
+
+    _getRenderWidth() {
+        if (this._w) {
+            return this._w;
+        } else if (this._texture && this._texture.source.glTexture) {
+            // Texture already loaded, but not yet updated (probably because it's not active).
+            return (this._texture.w || (this._texture.source.w / this._texture.precision));
+        } else if (this._displayedTexture) {
+            return (this._displayedTexture.w || (this._displayedTexture.source.w / this._displayedTexture.precision));
+        } else {
+            return 0;
+        }
+    };
+
+    _getRenderHeight() {
+        if (this._h) {
+            return this._h;
+        } else if (this._texture && this._texture.source.glTexture) {
+            // Texture already loaded, but not yet updated (probably because it's not active).
+            return (this._texture.h || this._texture.source.h) / this._texture.precision;
+        } else if (this._displayedTexture) {
+            return (this._displayedTexture.h || this._displayedTexture.source.h) / this._displayedTexture.precision;
+        } else {
+            return 0;
+        }
+    };
+
+    get renderWidth() {
+        if (this._active) {
+            // Render width is only maintained if this view is active.
+            return this._rw;
+        } else {
+            return this._getRenderWidth();
+        }
+    }
+
+    get renderHeight() {
+        if (this._active) {
+            return this._rh;
+        } else {
+            return this._getRenderHeight();
+        }
+    }
+
+    get texture() {
+        return this._texture;
+    }
+
+    textureIsLoaded() {
+        return this.texture ? !!this.texture.source.glTexture : false;
+    }
+
+    loadTexture(sync) {
+        if (this.texture) {
+            this.texture.source.load(sync);
+        }
+    }
+
+    set texture(v) {
+        if (v && Utils.isObjectLiteral(v)) {
+            if (this.texture) {
+                Base.setObjectSettings(this.texture, v);
+            } else {
+                console.warn('Trying to set texture properties, but there is no texture.');
+            }
+            return;
+        }
+
+        let prevValue = this._texture;
+        if (v !== prevValue) {
+            if (v !== null && !(v instanceof Texture)) {
+                throw new Error('incorrect value for texture');
+            }
+
+            this._texture = v;
+
+            if (this._active && prevValue && this.displayedTexture !== prevValue) {
+                // Keep reference to component for texture source
+                if ((!v || prevValue.source !== v.source) && (!this.displayedTexture || (this.displayedTexture.source !== prevValue.source))) {
+                    prevValue.source.removeView(this);
+                }
+            }
+
+            if (v) {
+                if (this._active) {
+                    // When the texture is changed, maintain the texture's sprite registry.
+                    // While the displayed texture is different from the texture (not yet loaded), two textures are referenced.
+                    v.source.addView(this);
+                }
+
+                if (v.source.glTexture) {
+                    this.displayedTexture = v;
+                }
+            } else {
+                // Make sure that current texture is cleared when the texture is explicitly set to null.
+                this.displayedTexture = null;
+            }
+        }
+    }
+
+    get displayedTexture() {
+        return this._displayedTexture;
+    }
+
+    set displayedTexture(v) {
+        let prevValue = this._displayedTexture;
+        if (v !== prevValue) {
+            if (this._active && prevValue) {
+                // We can assume that this._texture === this._displayedTexture.
+
+                if (prevValue !== this._texture) {
+                    // The old displayed texture is deprecated.
+                    if (!v || (prevValue.source !== v.source)) {
+                        prevValue.source.removeView(this);
+                    }
+                }
+            }
+
+            this._displayedTexture = v;
+
+            this._updateDimensions();
+
+            if (v) {
+                if (this._eventsCount) {
+                    this.emit('txLoaded', v);
+                }
+
+                // We don't need to reference the displayed texture because it was already referenced (this.texture === this.displayedTexture).
+                this._updateTextureCoords();
+                this._setDisplayedTextureSource(v.source);
+            } else {
+                if (this._eventsCount) {
+                    this.emit('txUnloaded', v);
+                }
+
+                this._setDisplayedTextureSource(null);
+            }
+        }
+    }
+
+    onTextureSourceLoaded() {
+        // Now we can start showing this texture.
+        this.displayedTexture = this._texture;
+    };
+
+    onTextureSourceLoadError(e) {
+        if (this._eventsCount) {
+            this.emit('txError', e, this._texture.source);
+        }
+    };
+
+    onTextureSourceAddedToTextureAtlas() {
+        this._updateTextureCoords();
+    };
+
+    onTextureSourceRemovedFromTextureAtlas() {
+        this._updateTextureCoords();
+    };
+
+    onDisplayedTextureClippingChanged() {
+        this._updateDimensions();
+        this._updateTextureCoords();
+    };
+
+    onPrecisionChanged() {
+        this._updateDimensions();
+    };
+
+    _updateDimensions() {
+        let beforeW = this._rw;
+        let beforeH = this._rh;
+        let rw = this._getRenderWidth();
+        let rh = this._getRenderHeight();
+        if (beforeW !== rw || beforeH !== rh) {
+            // Due to width/height change: update the translation vector and borders.
+            this._setDimensions(this._getRenderWidth(), this._getRenderHeight());
+            this._updateLocalTranslate();
+        }
+    }
+
+    _updateLocalTransform() {
+        if (this._rotation !== 0 && this._rotation % (2 * Math.PI)) {
+            // check to see if the rotation is the same as the previous render. This means we only need to use sin and cos when rotation actually changes
+            let _sr = Math.sin(this._rotation);
+            let _cr = Math.cos(this._rotation);
+
+            this._setLocalTransform(
+                _cr * this._scaleX,
+                -_sr * this._scaleY,
+                _sr * this._scaleX,
+                _cr * this._scaleY
+            );
+        } else {
+            this._setLocalTransform(
+                this._scaleX,
+                0,
+                0,
+                this._scaleY
+            );
+        }
+        this._updateLocalTranslate();
+    };
+
+    _updateLocalTranslate() {
+        let pivotXMul = this._pivotX * this._rw;
+        let pivotYMul = this._pivotY * this._rh;
+        let px = this._x - (pivotXMul * this._localTa + pivotYMul * this._localTb) + pivotXMul;
+        let py = this._y - (pivotXMul * this._localTc + pivotYMul * this._localTd) + pivotYMul;
+        px -= this._mountX * this._rw;
+        py -= this._mountY * this._rh;
+        this._setLocalTranslate(
+            px,
+            py
+        );
+    };
+
+    _updateLocalTranslateDelta(dx, dy) {
+        this._addLocalTranslate(dx, dy)
+    };
+
+    _updateLocalAlpha() {
+        this._setLocalAlpha(this._visible ? this._alpha : 0);
+    };
+
+    _updateTextureCoords() {
+        if (this.displayedTexture && this.displayedTexture.source) {
+            let displayedTexture = this.displayedTexture;
+            let displayedTextureSource = this.displayedTexture.source;
+
+            let tx1 = 0, ty1 = 0, tx2 = 1.0, ty2 = 1.0;
+            if (displayedTexture.clipping) {
+                // Apply texture clipping.
+                let w = displayedTextureSource.getRenderWidth();
+                let h = displayedTextureSource.getRenderHeight();
+                let iw, ih, rw, rh;
+                iw = 1 / w;
+                ih = 1 / h;
+
+                if (displayedTexture.w) {
+                    rw = displayedTexture.w * iw;
+                } else {
+                    rw = (w - displayedTexture.x) * iw;
+                }
+
+                if (displayedTexture.h) {
+                    rh = displayedTexture.h * ih;
+                } else {
+                    rh = (h - displayedTexture.y) * ih;
+                }
+
+                iw *= displayedTexture.x;
+                ih *= displayedTexture.y;
+
+                tx1 = Math.min(1.0, Math.max(0, iw));
+                ty1 = Math.min(1.0, Math.max(ih));
+                tx2 = Math.min(1.0, Math.max(tx2 * rw + iw));
+                ty2 = Math.min(1.0, Math.max(ty2 * rh + ih));
+            }
+
+            if (displayedTextureSource.inTextureAtlas) {
+                // Calculate texture atlas texture coordinates.
+                let textureAtlasI = 0.000488281;    // 1/2048.
+
+                let tax = (displayedTextureSource.textureAtlasX * textureAtlasI);
+                let tay = (displayedTextureSource.textureAtlasY * textureAtlasI);
+                let dax = (displayedTextureSource.w * textureAtlasI);
+                let day = (displayedTextureSource.h * textureAtlasI);
+
+                tx1 = tax;
+                ty1 = tay;
+
+                tx2 = tx2 * dax + tax;
+                ty2 = ty2 * day + tay;
+            }
+
+            this._setTextureCoords(tx1, ty1, tx2, ty2);
+            this._setInTextureAtlas(displayedTextureSource.inTextureAtlas);
+        }
+    }
+
+    getCornerPoints() {
+        return [
+            this._worldPx,
+            this._worldPy,
+            this._worldPx + this._rw * this._worldTa,
+            this._worldPy + this._rw * this._worldTc,
+            this._worldPx + this._rw * this._worldTa + this._rh * this._worldTb,
+            this._worldPy + this._rw * this._worldTc + this._rh * this._worldTd,
+            this._worldPx + this._rh * this._worldTb,
+            this._worldPy + this._rh * this._worldTd
+        ];
+    }
+
+    /**
+     * Clears the cache(s) for the specified tag.
+     * @param {String} tag
+     */
+    _clearTagsCache(tag) {
+        if (this._tagsCache) {
+            this._tagsCache.delete(tag);
+
+            if (this._tagToComplex) {
+                let s = this._tagToComplex.get(tag);
+                if (s) {
+                    for (let i = 0, n = s.length; i < n; i++) {
+                        this._tagsCache.delete(s[i]);
+                    }
+                    this._tagToComplex.delete(tag);
+                }
+            }
+        }
+    };
+
+    _unsetTagsParent() {
+        let tags = null;
+        let n = 0;
+        if (this._treeTags) {
+            tags = Utils.iteratorToArray(this._treeTags.keys());
+            n = tags.length;
+
+            if (n > 0) {
+                for (let i = 0; i < n; i++) {
+                    let tagSet = this._treeTags.get(tags[i]);
+
+                    // Remove from treeTags.
+                    let p = this;
+                    while (p = p._parent) {
+                        let parentTreeTags = p._treeTags.get(tags[i]);
+
+                        tagSet.forEach(function (comp) {
+                            parentTreeTags.delete(comp);
+                        });
+
+
+                        p._clearTagsCache(tags[i]);
+                    }
+                }
+            }
+        }
+
+    };
+
+    _setTagsParent() {
+        if (this._treeTags && this._treeTags.size) {
+            let self = this;
+            this._treeTags.forEach(function (tagSet, tag) {
+                // Add to treeTags.
+                let p = self;
+                while (p = p._parent) {
+                    if (!p._treeTags) {
+                        p._treeTags = new Map();
+                    }
+
+                    let s = p._treeTags.get(tag);
+                    if (!s) {
+                        s = new Set();
+                        p._treeTags.set(tag, s);
+                    }
+
+                    tagSet.forEach(function (comp) {
+                        s.add(comp);
+                    });
+
+                    p._clearTagsCache(tag);
+                }
+            });
+        }
+    };
+
+    _getByTag(tag) {
+        if (!this._treeTags) {
+            return [];
+        }
+        let t = this._treeTags.get(tag);
+        return t ? Utils.setToArray(t) : [];
+    };
+
+    getTags() {
+        return this._tags ? this._tags : [];
+    };
+
+    setTags(tags) {
+        let i, n = tags.length;
+        let removes = [];
+        let adds = [];
+        for (i = 0; i < n; i++) {
+            if (!this.hasTag(tags[i])) {
+                adds.push(tags[i]);
+            }
+        }
+
+        let currentTags = this.tags || [];
+        n = currentTags.length;
+        for (i = 0; i < n; i++) {
+            if (tags.indexOf(currentTags[i]) == -1) {
+                removes.push(currentTags[i]);
+            }
+        }
+
+        for (i = 0; i < removes.length; i++) {
+            this.removeTag(removes[i]);
+        }
+
+        for (i = 0; i < adds.length; i++) {
+            this.addTag(adds[i]);
+        }
+    };
+
+    addTag(tag) {
+        if (!this._tags) {
+            this._tags = [];
+        }
+        if (this._tags.indexOf(tag) === -1) {
+            this._tags.push(tag);
+
+            // Add to treeTags hierarchy.
+            let p = this;
+            do {
+                if (!p._treeTags) {
+                    p._treeTags = new Map();
+                }
+
+                let s = p._treeTags.get(tag);
+                if (!s) {
+                    s = new Set();
+                    p._treeTags.set(tag, s);
+                }
+
+                s.add(this);
+
+                p._clearTagsCache(tag);
+            } while (p = p._parent);
+        }
+    };
+
+    removeTag(tag) {
+        let i = this._tags.indexOf(tag);
+        if (i !== -1) {
+            this._tags.splice(i, 1);
+
+            // Remove from treeTags hierarchy.
+            let p = this;
+            do {
+                let list = p._treeTags.get(tag);
+                if (list) {
+                    list.delete(this);
+
+                    p._clearTagsCache(tag);
+                }
+            } while (p = p._parent);
+        }
+    };
+
+    hasTag(tag) {
+        return (this._tags && (this._tags.indexOf(tag) !== -1));
+    };
+
+    /**
+     * Returns one of the views from the subtree that have this tag.
+     * @param {string} tag
+     * @returns {View}
+     */
+    tag(tag) {
+        let res = this.mtag(tag);
+        return res[0];
+    };
+
+    /**
+     * Returns all views from the subtree that have this tag.
+     * @param {string} tag
+     * @returns {View[]}
+     */
+    mtag(tag) {
+        let res = null;
+        if (this._tagsCache) {
+            res = this._tagsCache.get(tag);
+        }
+
+        if (!res) {
+            let idx = tag.indexOf(".");
+            if (idx >= 0) {
+                let parts = tag.split('.');
+                res = this._getByTag(parts[0]);
+                let level = 1;
+                let c = parts.length;
+                while (res.length && level < c) {
+                    let resn = [];
+                    for (let j = 0, n = res.length; j < n; j++) {
+                        resn = resn.concat(res[j]._tags.get(parts[level]));
+                    }
+
+                    res = resn;
+                    level++;
+                }
+            } else {
+                res = this._getByTag(tag);
+            }
+
+            if (!this._tagsCache) {
+                this._tagsCache = new Map();
+            }
+
+            this._tagsCache.set(tag, res);
+        }
+        return res;
+    };
+
+    stag(tag, settings) {
+        let t = this.mtag(tag);
+        let n = t.length;
+        for (let i = 0; i < n; i++) {
+            t[i].setSettings(settings);
+        }
+    }
+
+    getLocationString() {
+        let i;
+        if (this._parent) {
+            i = this._parent._children.indexOf(this);
+            if (i >= 0) {
+                let localTags = this.getTags();
+                return this._parent.getLocationString() + ":" + i + "[" + this.id + "]" + (localTags.length ? "(" + localTags.join(",") + ")" : "");
+            }
+        }
+        return "";
+    };
+
+    toString() {
+        let obj = this.getSettings();
+        return View.getPrettyString(obj, "");
+    };
+
+    static getPrettyString(obj, indent) {
+        let children = obj.children;
+        delete obj.children;
+
+        // Convert singular json settings object.
+        let colorKeys = ["color", "colorUl", "colorUr", "colorBl", "colorBr"]
+        let str = JSON.stringify(obj, function (k, v) {
+            if (colorKeys.indexOf(k) !== -1) {
+                return "COLOR[" + v.toString(16) + "]";
+            }
+            return v;
+        });
+        str = str.replace(/"COLOR\[([a-f0-9]{1,8})\]"/g, "0x$1");
+
+        if (children && children.length) {
+            let isEmpty = (str === "{}");
+            str = str.substr(0, str.length - 1) + (isEmpty ? "" : ",") + "\"children\":[\n";
+            let n = children.length;
+            for (let i = 0; i < n; i++) {
+                str += View.getPrettyString(children[i], indent + "  ") + (i < n - 1 ? "," : "") + "\n";
+            }
+            str += indent + "]}";
+        }
+
+        return indent + str;
+    }
+
+    getSettings() {
+        let settings = this.getNonDefaults();
+
+        if (this._children) {
+            let n = this._children.length;
+            settings.children = [];
+            for (let i = 0; i < n; i++) {
+                settings.children.push(this._children[i].getSettings());
+            }
+        }
+
+        return settings;
+    }
+
+    getNonDefaults() {
+        let settings = {};
+
+        if (this._tags && this._tags.length) {
+            settings.tags = this._tags;
+        }
+
+        if (this._x !== 0) settings.x = this._x;
+        if (this._y !== 0) settings.y = this._y;
+        if (this._w !== 0) settings.w = this._w;
+        if (this._h !== 0) settings.h = this._h;
+
+        if (this._scaleX === this._scaleY) {
+            if (this._scaleX !== 1) settings.scale = this._scaleX;
+        } else {
+            if (this._scaleX !== 1) settings.scaleX = this._scaleX;
+            if (this._scaleY !== 1) settings.scaleY = this._scaleY;
+        }
+
+        if (this._pivotX === this._pivotY) {
+            if (this._pivotX !== 0.5) settings.pivot = this._pivotX;
+        } else {
+            if (this._pivotX !== 0.5) settings.pivotX = this._pivotX;
+            if (this._pivotY !== 0.5) settings.pivotY = this._pivotY;
+        }
+
+        if (this._mountX === this._mountY) {
+            if (this._mountX !== 0) settings.mount = this._mountX;
+        } else {
+            if (this._mountX !== 0) settings.mountX = this._mountX;
+            if (this._mountY !== 0) settings.mountY = this._mountY;
+        }
+
+        if (this._alpha !== 1) settings.alpha = this._alpha;
+
+        if (this._rotation !== 0) settings.rotation = this._rotation;
+
+        if (this._colorUl === this._colorUr && this._colorBl === this._colorBr && this._colorUl === this._colorBl) {
+            if (this._colorUl !== 0xFFFFFFFF) settings.color = 0xFFFFFFFF;
+        } else {
+            if (this._colorUl !== 0xFFFFFFFF) settings.colorUl = 0xFFFFFFFF;
+            if (this._colorUr !== 0xFFFFFFFF) settings.colorUr = 0xFFFFFFFF;
+            if (this._colorBl !== 0xFFFFFFFF) settings.colorBl = 0xFFFFFFFF;
+            if (this._colorBr !== 0xFFFFFFFF) settings.colorBr = 0xFFFFFFFF;
+        }
+
+        if (!this._visible) settings.visible = false;
+
+        if (this._zIndex) settings.zIndex = this._zIndex;
+
+        if (this._forceZIndexContext) settings.forceZIndexContext = true;
+
+        if (this._clipping) settings.clipping = this._clipping;
+
+        if (this.rect) {
+            settings.rect = true;
+        } else if (this.src) {
+            settings.src = this.src;
+        } else if (this.texture && this._viewText) {
+            settings.text = this._viewText.settings.getNonDefaults();
+        }
+
+        let tnd = this._texture.getNonDefaults();
+        if (Object.keys(tnd).length) {
+            settings.texture = tnd;
+        }
+
+        return settings;
+    };
+
+    setSettings(settings) {
+        Base.setObjectSettings(this, settings);
+    }
+
+    static getGetter(propertyPath) {
+        let setter = View.PROP_GETTERS.has(propertyPath);
+        if (!setter) {
+            setter = new Function('obj', 'return obj.' + propertyPath);
+            View.PROP_GETTERS.set(propertyPath, setter);
+        }
+        return setter;
+    }
+
+    static getSetter(propertyPath) {
+        let setter = View.PROP_SETTERS.has(propertyPath);
+        if (!setter) {
+            setter = new Function('obj', 'v', 'obj.' + propertyPath + ' = v');
+            View.PROP_SETTERS.set(propertyPath, setter);
+        }
+        return setter;
+    }
+
+    static getMerger(propertyPath) {
+        return View.PROP_MERGERS[propertyPath];
+    }
+
+    get x() {
+        return this._x
+    }
+
+    set x(v) {
+        if (this._x !== v) {
+            this._updateLocalTranslateDelta(v - this._x, 0)
+            this._x = v
+        }
+    }
+
+    get y() {
+        return this._y
+    }
+
+    set y(v) {
+        if (this._y !== v) {
+            this._updateLocalTranslateDelta(0, v - this._y)
+            this._y = v
+        }
+    }
+
+    get w() {
+        return this._w
+    }
+
+    set w(v) {
+        if (this._w !== v) {
+            this._w = v
+            this._updateDimensions()
+        }
+    }
+
+    get h() {
+        return this._h
+    }
+
+    set h(v) {
+        if (this._h !== v) {
+            this._h = v
+            this._updateDimensions()
+        }
+    }
+
+    get scaleX() {
+        return this._scaleX
+    }
+
+    set scaleX(v) {
+        if (this._scaleX !== v) {
+            this._scaleX = v
+            this._updateLocalTransform()
+        }
+    }
+
+    get scaleY() {
+        return this._scaleY
+    }
+
+    set scaleY(v) {
+        if (this._scaleY !== v) {
+            this._scaleY = v
+            this._updateLocalTransform()
+        }
+    }
+
+    get scale() {
+        return this._scaleX
+    }
+
+    set scale(v) {
+        if (this._scaleX !== v || this._scaleY !== v) {
+            this._scaleX = v
+            this._scaleY = v
+            this._updateLocalTransform()
+        }
+    }
+
+    get pivotX() {
+        return this._pivotX
+    }
+
+    set pivotX(v) {
+        if (this._pivotX !== v) {
+            this._pivotX = v
+            this._updateLocalTranslate()
+        }
+    }
+
+    get pivotY() {
+        return this._pivotY
+    }
+
+    set pivotY(v) {
+        if (this._pivotY !== v) {
+            this._pivotY = v
+            this._updateLocalTranslate()
+        }
+    }
+
+    get pivot() {
+        return this._pivotX
+    }
+
+    set pivot(v) {
+        if (this._pivotX !== v || this._pivotY !== v) {
+            this._pivotX = v;
+            this._pivotY = v;
+            this._updateLocalTranslate()
+        }
+    }
+
+    get mountX() {
+        return this._mountX
+    }
+
+    set mountX(v) {
+        if (this._mountX !== v) {
+            this._mountX = v
+            this._updateLocalTranslate()
+        }
+    }
+
+    get mountY() {
+        return this._mountY
+    }
+
+    set mountY(v) {
+        if (this._mountY !== v) {
+            this._mountY = v
+            this._updateLocalTranslate()
+        }
+    }
+
+    get mount() {
+        return this._mountX
+    }
+
+    set mount(v) {
+        if (this._mountX !== v || this._mountY !== v) {
+            this._mountX = v
+            this._mountY = v
+            this._updateLocalTranslate()
+        }
+    }
+
+    get alpha() {
+        return this._alpha
+    }
+
+    set alpha(v) {
+        // Account for rounding errors.
+        v = (v > 1 ? 1 : (v < 1e-14 ? 0 : v));
+        if (this._alpha !== v) {
+            let prev = this._alpha
+            this._alpha = v
+            this._updateLocalAlpha();
+            if ((prev === 0) !== (v === 0)) this._updateActiveFlag()
+        }
+    }
+
+    get rotation() {
+        return this._rotation
+    }
+
+    set rotation(v) {
+        if (this._rotation !== v) {
+            this._rotation = v
+            this._updateLocalTransform()
+        }
+    }
+
+    get colorUl() {
+        return this._colorUl;
+    }
+
+    set colorUl(color) {
+        if (this._colorUl !== color) {
+            if (this._worldAlpha) this.ctx.staticStage = false;
+            this._colorUl = color;
+        }
+    }
+
+    get colorUr() {
+        return this._colorUr;
+    }
+
+    set colorUr(color) {
+        if (this._colorUr !== color) {
+            if (this._worldAlpha) this.ctx.staticStage = false;
+            this._colorUr = color;
+        }
+    };
+
+    get colorBl() {
+        return this._colorUr;
+    }
+
+    set colorBl(color) {
+        if (this._colorBl !== color) {
+            if (this._worldAlpha) this.ctx.staticStage = false;
+            this._colorBl = color;
+        }
+    };
+
+    get colorBr() {
+        return this._colorUr;
+    }
+
+    set colorBr(color) {
+        if (this._colorBr !== color) {
+            if (this._worldAlpha) this.ctx.staticStage = false;
+            this._colorBr = color;
+        }
+    };
+
+    get color() {
+        return this._colorUl
+    }
+
+    set color(v) {
+        if (this.colorUl !== v || this.colorUr !== v || this.colorBl !== v || this.colorBr !== v) {
+            this.colorUl = v;
+            this.colorUr = v;
+            this.colorBl = v;
+            this.colorBr = v;
+        }
+    }
+
+    get visible() {
+        return this._visible
+    }
+
+    set visible(v) {
+        if (this._visible !== v) {
+            this._visible = v
+            this._updateLocalAlpha()
+            this._updateActiveFlag()
+        }
+    }
+
+    get zIndex() {
+        return this._zIndex
+    }
+
+    set zIndex(zIndex) {
+        if (this._zIndex !== zIndex) {
+            if (this._worldAlpha) this.ctx.staticStage = false;
+
+            let newZParent;
+
+            let prevIsZContext = this._isZContext();
+            if (zIndex === 0 && this._zIndex !== 0) {
+                if (this._active) {
+                    this.stage.zIndexUsage--;
+                }
+
+                if (this._parent === this._zParent) {
+                    this._zParent._decZContextUsage();
+                } else {
+                    newZParent = this._parent;
+                }
+
+            } else if (zIndex !== 0 && this._zIndex === 0) {
+                if (this._active) {
+                    this.stage.zIndexUsage++;
+                }
+
+                newZParent = this._parent ? this._parent._findZContext() : null;
+                if (newZParent === this._zParent) {
+                    if (this._zParent) {
+                        this._zParent._incZContextUsage();
+                        this._zParent._zSort = true;
+                    }
+                }
+            } else if (zIndex !== this._zIndex) {
+                this._zParent._zSort = true;
+            }
+
+            if (newZParent !== this._zParent) {
+                this._setZParent(null);
+            }
+
+            this._zIndex = zIndex;
+
+            if (newZParent !== this._zParent) {
+                this._setZParent(newZParent);
+            }
+
+            if (prevIsZContext !== this._isZContext()) {
+                if (!this._isZContext()) {
+                    this._disableZContext();
+                } else {
+                    this._enableZContext(this._parent._findZContext());
+                }
+            }
+        }
+    };
+
+    get forceZIndexContext() {
+        return this._forceZIndexContext;
+    }
+
+    set forceZIndexContext(v) {
+        if (this._worldAlpha) this.ctx.staticStage = false;
+
+        let prevIsZContext = this._isZContext();
+        this._forceZIndexContext = v;
+
+        if (prevIsZContext !== this._isZContext()) {
+            if (!this._isZContext()) {
+                this._disableZContext();
+            } else {
+                this._enableZContext(this._parent._findZContext());
+            }
+        }
+    };
+
+    get clipping() {
+        return this._clipping;
+    };
+
+    set clipping(clipping) {
+        if (clipping !== this._clipping) {
+            this._setRecalc(8);
+            this._clipping = clipping;
+            this._setChildrenClippingParent(clipping ? this : this._clippingParent);
+        }
+    };
+
+    get tags() {
+        return this.getTags();
+    }
+
+    set tags(v) {
+        if (!Array.isArray(v)) v = [v];
+        this.setTags(v);
+    }
+
+    get children() {
+        return this._children || [];
+    }
+
+    set children(children) {
+        this.removeChildren();
+        for (let i = 0, n = children.length; i < n; i++) {
+            let o = children[i];
+            if (Utils.isObjectLiteral(o)) {
+                let c = this.stage.createView(o);
+                c.setSettings(o);
+                this.addChild(c);
+            } else if (o instanceof View) {
+                this.addChild(o);
+            }
+        }
+    }
+
+    get src() {
+        if (this.texture && this.texture.source && this.texture.source.renderInfo && this.texture.source.renderInfo.src) {
+            return this.texture.source.renderInfo.src;
+        } else {
+            return null;
+        }
+    }
+
+    set src(v) {
+        if (!v) {
+            this.texture = null;
+        } else if (!this.texture || !this.texture.source.renderInfo || this.texture.source.renderInfo.src !== v) {
+            this.texture = this.stage.textureManager.getTexture(v);
+        }
+    }
+
+    get rect() {
+        return (this.texture === this.stage.rectangleTexture);
+    }
+
+    set rect(v) {
+        if (v) {
+            this.texture = this.stage.rectangleTexture;
+        } else {
+            this.texture = null;
+        }
+    }
+
+    get text() {
+        if (!this._viewText) {
+            this._viewText = new ViewText(this);
+        }
+
+        // Give direct access to the settings.
+        return this._viewText.settings;
+    }
+
+    set text(v) {
+        if (v) {
+            this.texture = this.stage.rectangleTexture;
+        } else {
+            if (!this._viewText) {
+                this._viewText = new ViewText(this);
+            }
+            if (Utils.isString(v)) {
+                this._viewText.settings.text = v;
+            } else {
+                this._viewText.settings.setSettings(v);
+            }
+        }
+    }
+
+    get rw() {
+        return this._rw;
+    }
+
+    get rh() {
+        return this._rh;
+    }
+
+    /**
+     * @param {Number} type
+     *   1: alpha
+     *   2: translate
+     *   4: transform
+     *   8: clipping
+     */
+    _setRecalc(type) {
+        this._recalc |= type;
+
+        if (this._worldAlpha) {
+            this.ctx.staticStage = false;
+            let p = this;
+            do {
+                p._hasUpdates = true;
+            } while ((p = p._parent) && !p._hasUpdates);
+        } else {
+            this._hasUpdates = true;
+        }
+    };
+
+    _setRecalcForced(type, force) {
+        this._recalc |= type;
+
+        if (this._worldAlpha || force) {
+            this.ctx.staticStage = false;
+            let p = this;
+            do {
+                p._hasUpdates = true;
+            } while ((p = p._parent) && !p._hasUpdates);
+        } else {
+            this._hasUpdates = true;
+        }
+    };
+
+    _setLocalTransform(a, b, c, d) {
+        this._setRecalc(4);
+        this._localTa = a;
+        this._localTb = b;
+        this._localTc = c;
+        this._localTd = d;
+        this._isComplex = (b != 0) || (c != 0);
+    };
+
+    _setLocalTranslate(x, y) {
+        this._setRecalc(2);
+        this._localPx = x;
+        this._localPy = y;
+    };
+
+    _addLocalTranslate(dx, dy) {
+        this._setLocalTranslate(this._localPx + dx, this._localPy + dy);
+    }
+
+    _setLocalAlpha(a) {
+        this._setRecalcForced(1, (this._parent && this._parent._worldAlpha) && a);
+
+        if (a < 1e-14) {
+            // Tiny rounding errors may cause failing visibility tests.
+            a = 0;
+        }
+
+        this._localAlpha = a;
+    };
+
+    _setDimensions(w, h) {
+        this._rw = w;
+        this._rh = h;
+        this._setRecalc(2);
+    };
+
+    _setTextureCoords(ulx, uly, brx, bry) {
+        if (this._worldAlpha) this.ctx.staticStage = false;
+
+        this._ulx = ulx;
+        this._uly = uly;
+        this._brx = brx;
+        this._bry = bry;
+
+        this._txCoordsUl = ((ulx * 65535 + 0.5) | 0) + ((uly * 65535 + 0.5) | 0) * 65536;
+        this._txCoordsUr = ((brx * 65535 + 0.5) | 0) + ((uly * 65535 + 0.5) | 0) * 65536;
+        this._txCoordsBl = ((ulx * 65535 + 0.5) | 0) + ((bry * 65535 + 0.5) | 0) * 65536;
+        this._txCoordsBr = ((brx * 65535 + 0.5) | 0) + ((bry * 65535 + 0.5) | 0) * 65536;
+    };
+
+    _setDisplayedTextureSource(textureSource) {
+        if (this._worldAlpha) this.ctx.staticStage = false;
+        this._displayedTextureSource = textureSource;
+    };
+
+    _setInTextureAtlas(inTextureAtlas) {
+        if (this._worldAlpha) this.ctx.staticStage = false;
+
+        this.inTextureAtlas = inTextureAtlas;
+    };
+
+    _isZContext() {
+        return (this._forceZIndexContext || this._zIndex !== 0 || this.isRoot() || !this._parent);
+    };
+
+    _findZContext() {
+        if (this._isZContext()) {
+            return this;
+        } else {
+            return this._parent._findZContext();
+        }
+    };
+
+    _setZParent(newZParent) {
+        if (this._zParent !== newZParent) {
+            if (this._zParent !== null) {
+                if (this._zIndex !== 0) {
+                    this._zParent._decZContextUsage();
+                }
+
+                if (this._zParent._zContextUsage > 0) {
+                    let index = this._zParent._zIndexedChildren.indexOf(this);
+                    this._zParent._zIndexedChildren.splice(index, 1);
+                }
+            }
+
+            if (newZParent !== null) {
+                if (this._zIndex !== 0) {
+                    newZParent._incZContextUsage();
+                }
+
+                if (newZParent._zContextUsage > 0) {
+                    newZParent._zIndexedChildren.push(this);
+                    newZParent._zSort = true;
+                }
+            }
+
+            this._zParent = newZParent;
+        }
+    };
+
+    _incZContextUsage() {
+        this._zContextUsage++;
+        if (this._zContextUsage === 1) {
+            if (!this._zIndexedChildren) {
+                this._zIndexedChildren = [];
+            }
+            if (this._hasChildren) {
+                // Copy.
+                for (let i = 0, n = this._children.length; i < n; i++) {
+                    this._zIndexedChildren.push(this._children[i]);
+                }
+            }
+        }
+    };
+
+    _decZContextUsage() {
+        this._zContextUsage--;
+        if (this._zContextUsage === 0) {
+            this._zSort = false;
+            this._zIndexedChildren.splice(0);
+        }
+    };
+
+    _enableZContext(prevZContext) {
+        if (prevZContext._zContextUsage > 0) {
+            let self = this;
+            // Transfer from upper z context to this z context.
+            prevZContext._zIndexedChildren.slice().forEach(function (c) {
+                if (self.isAncestorOf(c) && c._zIndex !== 0) {
+                    c._setZParent(self);
+                }
+            });
+        }
+    };
+
+    _disableZContext() {
+        // Transfer from this z context to upper z context.
+        if (this._zContextUsage > 0) {
+            let newZParent = this._parent._findZContext();
+
+            this._zIndexedChildren.slice().forEach(function (c) {
+                if (c._zIndex !== 0) {
+                    c._setZParent(newZParent);
+                }
+            });
+        }
+    };
+
+    _sortZIndexedChildren() {
+        // Insertion sort works best for almost correctly ordered arrays.
+        for (let i = 1, n = this._zIndexedChildren.length; i < n; i++) {
+            let a = this._zIndexedChildren[i];
+            let j = i - 1;
+            while (j >= 0) {
+                let b = this._zIndexedChildren[j];
+                if (!(a._zIndex === b._zIndex ? (a._updateTreeOrder < b._updateTreeOrder) : (a._zIndex < b._zIndex))) {
+                    break;
+                }
+
+                this._zIndexedChildren[j + 1] = this._zIndexedChildren[j];
+                j--;
+            }
+
+            this._zIndexedChildren[j + 1] = a;
+        }
+    };
+
+    _setChildrenClippingParent(clippingParent) {
+        if (this._children) {
+            for (let i = 0, n = this._children.length; i < n; i++) {
+                this._children[i]._setClippingParent(clippingParent);
+            }
+        }
+    };
+
+    _setClippingParent(clippingParent) {
+        if (this._clippingParent !== clippingParent) {
+            this._setRecalc(8);
+
+            this._clippingParent = clippingParent;
+            if (!this._clipping) {
+                if (this._children) {
+                    for (let i = 0, n = this._children.length; i < n; i++) {
+                        this._children[i]._setClippingParent(clippingParent);
+                    }
+                }
+            }
+
+        }
+    };
+
+    update() {
+        this._recalc |= this._parent._recalc;
+
+        if (this._zSort) {
+            // Make sure that all descendants are updated so that the updateTreeOrder flags are correctly set.
+            this.ctx.updateTreeOrderForceUpdate++;
+        }
+
+        let forceUpdate = (this.ctx.updateTreeOrderForceUpdate > 0);
+        if (this._recalc & 1) {
+            // If case of becoming invisible, we must update the children because they may be z-indexed.
+            forceUpdate = this._worldAlpha && !(this._parent._worldAlpha && this._localAlpha);
+
+            this._worldAlpha = this._parent._worldAlpha * this._localAlpha;
+
+            if (this._worldAlpha < 1e-14) {
+                // Tiny rounding errors may cause failing visibility tests.
+                this._worldAlpha = 0;
+            }
+        }
+
+        if (this._worldAlpha || forceUpdate) {
+            if (this._recalc & 6) {
+                this._worldPx = this._parent._worldPx + this._localPx * this._parent._worldTa;
+                this._worldPy = this._parent._worldPy + this._localPy * this._parent._worldTd;
+            }
+
+            if (this._recalc & 4) {
+                this._worldTa = this._localTa * this._parent._worldTa;
+                this._worldTb = this._localTd * this._parent._worldTb;
+                this._worldTc = this._localTa * this._parent._worldTc;
+                this._worldTd = this._localTd * this._parent._worldTd;
+
+                if (this._isComplex) {
+                    this._worldTa += this._localTc * this._parent._worldTb;
+                    this._worldTb += this._localTb * this._parent._worldTa;
+                    this._worldTc += this._localTc * this._parent._worldTd;
+                    this._worldTd += this._localTb * this._parent._worldTc;
+                }
+            }
+
+            if ((this._recalc & 6) && (this._parent._worldTb !== 0 || this._parent._worldTc !== 0)) {
+                this._worldPx += this._localPy * this._parent._worldTb;
+                this._worldPy += this._localPx * this._parent._worldTc;
+            }
+
+            if ((this._recalc & 14 /* 2 + 4 + 8 */) && (this._clippingParent || this._clipping)) {
+                // We must calculate the clipping area.
+                let c1x, c1y, c2x, c2y, c3x, c3y;
+
+                let cp = this._clippingParent;
+                if (cp && cp._clippingEmpty) {
+                    this._clippingEmpty = true;
+                    this._clippingArea = null;
+                    this._clippingNoEffect = false;
+                } else {
+                    this._clippingNoEffect = false;
+                    this._clippingEmpty = false;
+                    this._clippingArea = null;
+                    if (cp) {
+                        if (cp._clippingSquare && (this._worldTb === 0 && this._worldTc === 0 && this._worldTa > 0 && this._worldTd > 0)) {
+                            // Special case: 'easy square clipping'.
+                            this._clippingSquare = true;
+
+                            c2x = this._worldPx + this._rw * this._worldTa;
+                            c2y = this._worldPy + this._rh * this._worldTd;
+
+                            this._clippingSquareMinX = this._worldPx;
+                            this._clippingSquareMaxX = c2x;
+                            this._clippingSquareMinY = this._worldPy;
+                            this._clippingSquareMaxY = c2y;
+
+                            if ((this._clippingSquareMinX >= cp._clippingSquareMinX) && (this._clippingSquareMaxX <= cp._clippingSquareMaxX) && (this._clippingSquareMinY >= cp._clippingSquareMinY) && (this._clippingSquareMaxY <= cp._clippingSquareMaxY)) {
+                                // No effect.
+                                this._clippingNoEffect = true;
+
+                                if (this._clipping) {
+                                    this._clippingSquareMinX = this._worldPx;
+                                    this._clippingSquareMaxX = c2x;
+                                    this._clippingSquareMinY = this._worldPy;
+                                    this._clippingSquareMaxY = c2y;
+                                }
+                            } else {
+                                this._clippingSquareMinX = Math.max(this._clippingSquareMinX, cp._clippingSquareMinX);
+                                this._clippingSquareMaxX = Math.min(this._clippingSquareMaxX, cp._clippingSquareMaxX);
+                                this._clippingSquareMinY = Math.max(this._clippingSquareMinY, cp._clippingSquareMinY);
+                                this._clippingSquareMaxY = Math.min(this._clippingSquareMaxY, cp._clippingSquareMaxY);
+                                if (this._clippingSquareMaxX < this._clippingSquareMinX || this._clippingSquareMaxY < this._clippingSquareMinY) {
+                                    this._clippingEmpty = true;
+                                }
                             }
                         } else {
-                            this.clippingSquareMinX = Math.max(this.clippingSquareMinX, cp.clippingSquareMinX);
-                            this.clippingSquareMaxX = Math.min(this.clippingSquareMaxX, cp.clippingSquareMaxX);
-                            this.clippingSquareMinY = Math.max(this.clippingSquareMinY, cp.clippingSquareMinY);
-                            this.clippingSquareMaxY = Math.min(this.clippingSquareMaxY, cp.clippingSquareMaxY);
-                            if (this.clippingSquareMaxX < this.clippingSquareMinX || this.clippingSquareMaxY < this.clippingSquareMinY) {
-                                this.clippingEmpty = true;
+                            //c0x = this._worldPx;
+                            //c0y = this._worldPy;
+                            c1x = this._worldPx + this._rw * this._worldTa;
+                            c1y = this._worldPy + this._rw * this._worldTc;
+                            c2x = this._worldPx + this._rw * this._worldTa + this._rh * this._worldTb;
+                            c2y = this._worldPy + this._rw * this._worldTc + this._rh * this._worldTd;
+                            c3x = this._worldPx + this._rh * this._worldTb;
+                            c3y = this._worldPy + this._rh * this._worldTd;
+
+                            // Complex shape.
+                            this._clippingSquare = false;
+                            let cornerPoints = [this._worldPx, this._worldPy, c1x, c1y, c2x, c2y, c3x, c3y];
+
+                            if (cp._clippingSquare && !cp._clippingArea) {
+                                // We need a clipping area to use for intersection.
+                                cp._clippingArea = [cp._clippingSquareMinX, cp._clippingSquareMinY, cp._clippingSquareMaxX, cp._clippingSquareMinY, cp._clippingSquareMaxX, cp._clippingSquareMaxY, cp._clippingSquareMinX, cp._clippingSquareMaxY];
                             }
+
+                            this._clippingArea = GeometryUtils.intersectConvex(cp._clippingArea, cornerPoints);
+                            this._clippingEmpty = (this._clippingArea.length === 0);
+                            this._clippingNoEffect = (cornerPoints === this._clippingArea);
                         }
                     } else {
-                        //c0x = this.worldPx;
-                        //c0y = this.worldPy;
-                        c1x = this.worldPx + this.w * this.worldTa;
-                        c1y = this.worldPy + this.w * this.worldTc;
-                        c2x = this.worldPx + this.w * this.worldTa + this.h * this.worldTb;
-                        c2y = this.worldPy + this.w * this.worldTc + this.h * this.worldTd;
-                        c3x = this.worldPx + this.h * this.worldTb;
-                        c3y = this.worldPy + this.h * this.worldTd;
+                        c1x = this._worldPx + this._rw * this._worldTa;
+                        c3y = this._worldPy + this._rh * this._worldTd;
 
-                        // Complex shape.
-                        this.clippingSquare = false;
-                        var cornerPoints = [this.worldPx, this.worldPy, c1x, c1y, c2x, c2y, c3x, c3y];
+                        // Just use the corner points.
+                        if (this._worldTb === 0 && this._worldTc === 0 && this._worldTa > 0 && this._worldTd > 0) {
+                            // Square.
+                            this._clippingSquare = true;
+                            if (this._clipping) {
+                                this._clippingSquareMinX = this._worldPx;
+                                this._clippingSquareMaxX = c1x;
+                                this._clippingSquareMinY = this._worldPy;
+                                this._clippingSquareMaxY = c3y;
+                            }
+                            this._clippingEmpty = false;
+                            this._clippingNoEffect = true;
+                        } else {
+                            c1y = this._worldPy + this._rw * this._worldTc;
+                            c2x = this._worldPx + this._rw * this._worldTa + this._rh * this._worldTb;
+                            c2y = this._worldPy + this._rw * this._worldTc + this._rh * this._worldTd;
+                            c3x = this._worldPx + this._rh * this._worldTb;
 
-                        if (cp.clippingSquare && !cp.clippingArea) {
-                            // We need a clipping area to use for intersection.
-                            cp.clippingArea = [cp.clippingSquareMinX, cp.clippingSquareMinY, cp.clippingSquareMaxX, cp.clippingSquareMinY, cp.clippingSquareMaxX, cp.clippingSquareMaxY, cp.clippingSquareMinX, cp.clippingSquareMaxY];
+                            // Complex shape.
+                            this._clippingSquare = false;
+                            if (this._clipping) {
+                                this._clippingArea = [this._worldPx, this._worldPy, c1x, c1y, c2x, c2y, c3x, c3y];
+                            }
+                            this._clippingEmpty = false;
+                            this._clippingNoEffect = true;
                         }
-
-                        this.clippingArea = GeometryUtils.intersectConvex(cp.clippingArea, cornerPoints);
-                        this.clippingEmpty = (this.clippingArea.length === 0);
-                        this.clippingNoEffect = (cornerPoints === this.clippingArea);
-                    }
-                } else {
-                    c1x = this.worldPx + this.w * this.worldTa;
-                    c3y = this.worldPy + this.h * this.worldTd;
-
-                    // Just use the corner points.
-                    if (this.worldTb === 0 && this.worldTc === 0 && this.worldTa > 0 && this.worldTd > 0) {
-                        // Square.
-                        this.clippingSquare = true;
-                        if (this.clipping) {
-                            this.clippingSquareMinX = this.worldPx;
-                            this.clippingSquareMaxX = c1x;
-                            this.clippingSquareMinY = this.worldPy;
-                            this.clippingSquareMaxY = c3y;
-                        }
-                        this.clippingEmpty = false;
-                        this.clippingNoEffect = true;
-                    } else {
-                        c1y = this.worldPy + this.w * this.worldTc;
-                        c2x = this.worldPx + this.w * this.worldTa + this.h * this.worldTb;
-                        c2y = this.worldPy + this.w * this.worldTc + this.h * this.worldTd;
-                        c3x = this.worldPx + this.h * this.worldTb;
-
-                        // Complex shape.
-                        this.clippingSquare = false;
-                        if (this.clipping) {
-                            this.clippingArea = [this.worldPx, this.worldPy, c1x, c1y, c2x, c2y, c3x, c3y];
-                        }
-                        this.clippingEmpty = false;
-                        this.clippingNoEffect = true;
                     }
                 }
             }
-        }
 
-        if (!this.ctx.useZIndexing) {
-            // Use single pass.
-            if (this.displayedTextureSource) {
-                this.addToVbo();
-            }
-        } else {
-            this.updateTreeOrder = this.ctx.updateTreeOrder++;
-        }
-
-        // Clear before calling children, to allow them to reset the hasUpdates flags in case of texture atlas failure.
-        this.hasUpdates = false;
-
-        this.recalc = (this.recalc & 7); /* 1+2+4 */
-
-        if (this.hasBorders) {
-            if (this.borderTop !== null && this.borderTop.h) {
-                this.borderTop.update();
-            }
-
-            if (this.borderBottom !== null && this.borderBottom.h) {
-                this.borderBottom.update();
-            }
-
-            if (this.borderLeft !== null && this.borderLeft.w) {
-                this.borderLeft.update();
-            }
-
-            if (this.borderRight !== null && this.borderRight.w) {
-                this.borderRight.update();
-            }
-        }
-
-        if (this.hasChildren) {
-            for (var i = 0, n = this.children.length; i < n; i++) {
-                if ((this.ctx.updateTreeOrderForceUpdate > 0) || this.recalc || this.children[i].hasUpdates) {
-                    this.children[i].update();
-                } else if (!this.ctx.useZIndexing) {
-                    this.children[i].fillVbo();
-                }
-            }
-        }
-
-        this.recalc = 0;
-    }
-
-    if (this.zSort) {
-        this.ctx.updateTreeOrderForceUpdate--;
-    }
-
-};
-
-UComponent.prototype.sortZIndexedChildren = function() {
-    // Insertion sort works best for almost correctly ordered arrays.
-    for (var i = 1, n = this.zIndexedChildren.length; i < n; i++) {
-        var a = this.zIndexedChildren[i];
-        var j = i - 1;
-        while (j >= 0) {
-            var b = this.zIndexedChildren[j];
-            if (!(a.zIndex === b.zIndex ? (a.updateTreeOrder < b.updateTreeOrder) : (a.zIndex < b.zIndex))) {
-                break;
-            }
-
-            this.zIndexedChildren[j+1] = this.zIndexedChildren[j];
-            j--;
-        }
-
-        this.zIndexedChildren[j+1] = a;
-    }
-};
-
-UComponent.prototype.addToVbo = function() {
-    var vboIndex = this.ctx.vboIndex;
-    var vboBufferFloat = this.ctx.vboBufferFloat;
-    var vboBufferUint = this.ctx.vboBufferUint;
-
-    if (this.clippingParent && !this.clippingNoEffect) {
-        if (!this.clippingEmpty) {
-            this.addToVboClipped();
-        }
-    } else {
-        if (this.worldTb !== 0 || this.worldTc !== 0) {
-            if (vboIndex < 262144) {
-                vboBufferFloat[vboIndex++] = this.worldPx;
-                vboBufferFloat[vboIndex++] = this.worldPy;
-                vboBufferUint[vboIndex++] = this.txCoordsUl; // Texture.
-                vboBufferUint[vboIndex++] = getColorInt(this.colorUl, this.worldAlpha);
-                vboBufferFloat[vboIndex++] = this.worldPx + this.w * this.worldTa;
-                vboBufferFloat[vboIndex++] = this.worldPy + this.w * this.worldTc;
-                vboBufferUint[vboIndex++] = this.txCoordsUr;
-                vboBufferUint[vboIndex++] = getColorInt(this.colorUr, this.worldAlpha);
-                vboBufferFloat[vboIndex++] = this.worldPx + this.w * this.worldTa + this.h * this.worldTb;
-                vboBufferFloat[vboIndex++] = this.worldPy + this.w * this.worldTc + this.h * this.worldTd;
-                vboBufferUint[vboIndex++] = this.txCoordsBr;
-                vboBufferUint[vboIndex++] = getColorInt(this.colorBr, this.worldAlpha);
-                vboBufferFloat[vboIndex++] = this.worldPx + this.h * this.worldTb;
-                vboBufferFloat[vboIndex++] = this.worldPy + this.h * this.worldTd;
-                vboBufferUint[vboIndex++] = this.txCoordsBl;
-                vboBufferUint[vboIndex++] = getColorInt(this.colorBl, this.worldAlpha);
-                this.ctx.addVboTextureSource(this, 1);
-            }
-        } else {
-            // Simple.
-            var cx = this.worldPx + this.w * this.worldTa;
-            var cy = this.worldPy + this.h * this.worldTd;
-
-            if (vboIndex < 262144) {
-                vboBufferFloat[vboIndex++] = this.worldPx;
-                vboBufferFloat[vboIndex++] = this.worldPy;
-                vboBufferUint[vboIndex++] = this.txCoordsUl; // Texture.
-                vboBufferUint[vboIndex++] = getColorInt(this.colorUl, this.worldAlpha);
-                vboBufferFloat[vboIndex++] = cx;
-                vboBufferFloat[vboIndex++] = this.worldPy;
-                vboBufferUint[vboIndex++] = this.txCoordsUr;
-                vboBufferUint[vboIndex++] = getColorInt(this.colorUr, this.worldAlpha);
-                vboBufferFloat[vboIndex++] = cx;
-                vboBufferFloat[vboIndex++] = cy;
-                vboBufferUint[vboIndex++] = this.txCoordsBr;
-                vboBufferUint[vboIndex++] = getColorInt(this.colorBr, this.worldAlpha);
-                vboBufferFloat[vboIndex++] = this.worldPx;
-                vboBufferFloat[vboIndex++] = cy;
-                vboBufferUint[vboIndex++] = this.txCoordsBl;
-                vboBufferUint[vboIndex++] = getColorInt(this.colorBl, this.worldAlpha);
-                this.ctx.addVboTextureSource(this, 1);
-            }
-        }
-    }
-};
-
-UComponent.prototype.addToVboClipped = function() {
-    var vboIndex = this.ctx.vboIndex;
-    var vboBufferFloat = this.ctx.vboBufferFloat;
-    var vboBufferUint = this.ctx.vboBufferUint;
-
-    // Gradients are not supported for clipped quads.
-    var c = getColorInt(this.colorUl, this.worldAlpha);
-
-    if (this.clippingSquare) {
-        // Inverse matrix.
-        var ux = this.w * this.worldTa;
-        var vy = this.h * this.worldTd;
-
-        var d = 1 / (ux * vy);
-        var invTa = vy * d;
-        var invTd = ux * d;
-
-        // Get ranges from 0 to 1.
-        var tx1 = invTa * (this.clippingSquareMinX - this.worldPx);
-        var ty1 = invTd * (this.clippingSquareMinY - this.worldPy);
-        var tx3 = invTa * (this.clippingSquareMaxX - this.worldPx);
-        var ty3 = invTd * (this.clippingSquareMaxY - this.worldPy);
-
-        // Calculate texture coordinates for clipped corner points.
-        var tcx1 = this.ulx * (1 - tx1) + this.brx * tx1;
-        var tcy1 = this.uly * (1 - ty1) + this.bry * ty1;
-        var tcx3 = this.ulx * (1 - tx3) + this.brx * tx3;
-        var tcy3 = this.uly * (1 - ty3) + this.bry * ty3;
-
-        if (vboIndex < 262144) {
-            vboBufferFloat[vboIndex++] = this.clippingSquareMinX;
-            vboBufferFloat[vboIndex++] = this.clippingSquareMinY;
-            vboBufferUint[vboIndex++] =  getVboTextureCoords(tcx1, tcy1);
-            vboBufferUint[vboIndex++] = c;
-            vboBufferFloat[vboIndex++] = this.clippingSquareMaxX;
-            vboBufferFloat[vboIndex++] = this.clippingSquareMinY;
-            vboBufferUint[vboIndex++] = getVboTextureCoords(tcx3, tcy1);
-            vboBufferUint[vboIndex++] = c;
-            vboBufferFloat[vboIndex++] = this.clippingSquareMaxX;
-            vboBufferFloat[vboIndex++] = this.clippingSquareMaxY;
-            vboBufferUint[vboIndex++] = getVboTextureCoords(tcx3, tcy3);
-            vboBufferUint[vboIndex++] = c;
-            vboBufferFloat[vboIndex++] = this.clippingSquareMinX;
-            vboBufferFloat[vboIndex++] = this.clippingSquareMaxY;
-            vboBufferUint[vboIndex++] = getVboTextureCoords(tcx1, tcy3);
-            vboBufferUint[vboIndex++] = c;
-            this.ctx.addVboTextureSource(this, 1);
-        }
-    } else {
-        // Complex clipping.
-
-        // Inverse matrix.
-        ux = this.w * this.worldTa;
-        var uy = this.w * this.worldTc;
-        var vx = this.h * this.worldTb;
-        vy = this.h * this.worldTd;
-
-        d = 1 / (ux * vy - vx * uy);
-        invTa = vy * d;
-        var invTb = -vx * d;
-        var invTc = -uy * d;
-        invTd = ux * d;
-
-        var n = Math.ceil(((this.clippingArea.length / 2) - 2) / 2);
-
-        if (n === 1) {
-            // Texture coordinates.
-            tx1 = invTa * (this.clippingArea[0] - this.worldPx) + invTb * (this.clippingArea[1] - this.worldPy);
-            ty1 = invTc * (this.clippingArea[0] - this.worldPx) + invTd * (this.clippingArea[1] - this.worldPy);
-            var tx2 = invTa * (this.clippingArea[2] - this.worldPx) + invTb * (this.clippingArea[3] - this.worldPy);
-            var ty2 = invTc * (this.clippingArea[2] - this.worldPx) + invTd * (this.clippingArea[3] - this.worldPy);
-            tx3 = invTa * (this.clippingArea[4] - this.worldPx) + invTb * (this.clippingArea[5] - this.worldPy);
-            ty3 = invTc * (this.clippingArea[4] - this.worldPx) + invTd * (this.clippingArea[5] - this.worldPy);
-
-            // Check for polygon instead of quad.
-            g = this.clippingArea.length <= 6 ? 4 : 6;
-            var tx4 = invTa * (this.clippingArea[g] - this.worldPx) + invTb * (this.clippingArea[g + 1] - this.worldPy);
-            var ty4 = invTc * (this.clippingArea[g] - this.worldPx) + invTd * (this.clippingArea[g + 1] - this.worldPy);
-
-            if (vboIndex < 262144) {
-                vboBufferFloat[vboIndex++] = this.clippingArea[0];
-                vboBufferFloat[vboIndex++] = this.clippingArea[1];
-                vboBufferUint[vboIndex++] =  getVboTextureCoords(this.ulx * (1 - tx1) + this.brx * tx1, this.uly * (1 - ty1) + this.bry * ty1);
-                vboBufferUint[vboIndex++] = c;
-                vboBufferFloat[vboIndex++] = this.clippingArea[2];
-                vboBufferFloat[vboIndex++] = this.clippingArea[3];
-                vboBufferUint[vboIndex++] = getVboTextureCoords(this.ulx * (1 - tx2) + this.brx * tx2, this.uly * (1 - ty2) + this.bry * ty2);
-                vboBufferUint[vboIndex++] = c;
-                vboBufferFloat[vboIndex++] = this.clippingArea[4];
-                vboBufferFloat[vboIndex++] = this.clippingArea[5];
-                vboBufferUint[vboIndex++] = getVboTextureCoords(this.ulx * (1 - tx3) + this.brx * tx3, this.uly * (1 - ty3) + this.bry * ty3);
-                vboBufferUint[vboIndex++] = c;
-                vboBufferFloat[vboIndex++] = this.clippingArea[g];
-                vboBufferFloat[vboIndex++] = this.clippingArea[g + 1];
-                vboBufferUint[vboIndex++] = getVboTextureCoords(this.ulx * (1 - tx4) + this.brx * tx4, this.uly * (1 - ty4) + this.bry * ty4);
-                vboBufferUint[vboIndex++] = c;
-                this.ctx.addVboTextureSource(this, 1);
-            }
-        } else {
-            // Multiple quads.
-            var g;
-            for (var i = 0; i < n; i++) {
-                var b = i * 4 + 2;
-                g = b + 4;
-                if (g >= this.clippingArea.length) {
-                    // Roll-over: convert polygon to quad.
-                    g -= 2;
-                }
-
-                // Texture coordinates.
-                tx1 = invTa * (this.clippingArea[0] - this.worldPx) + invTb * (this.clippingArea[1] - this.worldPy);
-                ty1 = invTc * (this.clippingArea[0] - this.worldPx) + invTd * (this.clippingArea[1] - this.worldPy);
-                tx2 = invTa * (this.clippingArea[b] - this.worldPx) + invTb * (this.clippingArea[b+1] - this.worldPy);
-                ty2 = invTc * (this.clippingArea[b] - this.worldPx) + invTd * (this.clippingArea[b+1] - this.worldPy);
-                tx3 = invTa * (this.clippingArea[b+2] - this.worldPx) + invTb * (this.clippingArea[b+3] - this.worldPy);
-                ty3 = invTc * (this.clippingArea[b+2] - this.worldPx) + invTd * (this.clippingArea[b+3] - this.worldPy);
-                tx4 = invTa * (this.clippingArea[g] - this.worldPx) + invTb * (this.clippingArea[g+1] - this.worldPy);
-                ty4 = invTc * (this.clippingArea[g] - this.worldPx) + invTd * (this.clippingArea[g+1] - this.worldPy);
-
-                if (vboIndex < 262144) {
-                    vboBufferFloat[vboIndex++] = this.clippingArea[0];
-                    vboBufferFloat[vboIndex++] = this.clippingArea[1];
-                    vboBufferUint[vboIndex++] =  getVboTextureCoords(this.ulx * (1 - tx1) + this.brx * tx1, this.uly * (1 - ty1) + this.bry * ty1);
-                    vboBufferUint[vboIndex++] = c;
-                    vboBufferFloat[vboIndex++] = this.clippingArea[b];
-                    vboBufferFloat[vboIndex++] = this.clippingArea[b+1];
-                    vboBufferUint[vboIndex++] = getVboTextureCoords(this.ulx * (1 - tx2) + this.brx * tx2, this.uly * (1 - ty2) + this.bry * ty2);
-                    vboBufferUint[vboIndex++] = c;
-                    vboBufferFloat[vboIndex++] = this.clippingArea[b+2];
-                    vboBufferFloat[vboIndex++] = this.clippingArea[b+3];
-                    vboBufferUint[vboIndex++] = getVboTextureCoords(this.ulx * (1 - tx3) + this.brx * tx3, this.uly * (1 - ty3) + this.bry * ty3);
-                    vboBufferUint[vboIndex++] = c;
-                    vboBufferFloat[vboIndex++] = this.clippingArea[g];
-                    vboBufferFloat[vboIndex++] = this.clippingArea[g+1];
-                    vboBufferUint[vboIndex++] = getVboTextureCoords(this.ulx * (1 - tx4) + this.brx * tx4, this.uly * (1 - ty4) + this.bry * ty4);
-                    vboBufferUint[vboIndex++] = c;
-                    this.ctx.addVboTextureSource(this, 1);
-                }
-            }
-        }
-    }
-};
-
-UComponent.prototype.fillVbo = function() {
-    if (this.zSort) {
-        this.sortZIndexedChildren();
-        this.zSort = false;
-    }
-
-    if (this.worldAlpha) {
-        if (this.displayedTextureSource) {
-            this.addToVbo();
-        }
-
-        if (this.hasBorders) {
-            if (this.borderTop !== null && this.borderTop.h) {
-                this.borderTop.addToVbo();
-            }
-
-            if (this.borderBottom !== null && this.borderBottom.h) {
-                this.borderBottom.addToVbo();
-            }
-
-            if (this.borderLeft !== null && this.borderLeft.w) {
-                this.borderLeft.addToVbo();
-            }
-
-            if (this.borderRight !== null && this.borderRight.w) {
-                this.borderRight.addToVbo();
-            }
-        }
-
-        if (this.hasChildren) {
-            if (this.zContextUsage) {
-                for (var i = 0, n = this.zIndexedChildren.length; i < n; i++) {
-                    this.zIndexedChildren[i].fillVbo();
+            if (!this.ctx.useZIndexing) {
+                // Use single pass.
+                if (this._displayedTextureSource) {
+                    this._addToVbo();
                 }
             } else {
-                for (var i = 0, n = this.children.length; i < n; i++) {
-                    if (this.children[i].zIndex === 0) {
-                        // If zIndex is set, this item already belongs to a zIndexedChildren array in one of the ancestors.
-                        this.children[i].fillVbo();
+                this._updateTreeOrder = this.ctx._updateTreeOrder++;
+            }
+
+            this._recalc = (this._recalc & 7);
+            /* 1+2+4 */
+
+            if (this._hasChildren) {
+                for (let i = 0, n = this._children.length; i < n; i++) {
+                    if ((this.ctx.updateTreeOrderForceUpdate > 0) || this._recalc || this._children[i]._hasUpdates) {
+                        this._children[i].update();
+                    } else if (!this.ctx.useZIndexing) {
+                        this._children[i].fillVbo();
+                    }
+                }
+            }
+
+            this._recalc = 0;
+
+            this._hasUpdates = false;
+
+        }
+
+        if (this._zSort) {
+            this.ctx.updateTreeOrderForceUpdate--;
+        }
+
+    };
+
+    _addToVbo() {
+        let vboIndex = this.ctx.vboIndex;
+        let vboBufferFloat = this.ctx.vboBufferFloat;
+        let vboBufferUint = this.ctx.vboBufferUint;
+
+        if (this._clippingParent && !this._clippingNoEffect) {
+            if (!this._clippingEmpty) {
+                this._addToVboClipped();
+            }
+        } else {
+            if (this._worldTb !== 0 || this._worldTc !== 0) {
+                if (vboIndex < 262144) {
+                    vboBufferFloat[vboIndex++] = this._worldPx;
+                    vboBufferFloat[vboIndex++] = this._worldPy;
+                    vboBufferUint[vboIndex++] = this._txCoordsUl; // Texture.
+                    vboBufferUint[vboIndex++] = getColorInt(this.colorUl, this._worldAlpha);
+                    vboBufferFloat[vboIndex++] = this._worldPx + this._rw * this._worldTa;
+                    vboBufferFloat[vboIndex++] = this._worldPy + this._rw * this._worldTc;
+                    vboBufferUint[vboIndex++] = this._txCoordsUr;
+                    vboBufferUint[vboIndex++] = getColorInt(this.colorUr, this._worldAlpha);
+                    vboBufferFloat[vboIndex++] = this._worldPx + this._rw * this._worldTa + this._rh * this._worldTb;
+                    vboBufferFloat[vboIndex++] = this._worldPy + this._rw * this._worldTc + this._rh * this._worldTd;
+                    vboBufferUint[vboIndex++] = this._txCoordsBr;
+                    vboBufferUint[vboIndex++] = getColorInt(this.colorBr, this._worldAlpha);
+                    vboBufferFloat[vboIndex++] = this._worldPx + this._rh * this._worldTb;
+                    vboBufferFloat[vboIndex++] = this._worldPy + this._rh * this._worldTd;
+                    vboBufferUint[vboIndex++] = this._txCoordsBl;
+                    vboBufferUint[vboIndex] = getColorInt(this.colorBl, this._worldAlpha);
+                    this.ctx.addVboTextureSource(this._displayedTextureSource, 1);
+                }
+            } else {
+                // Simple.
+                let cx = this._worldPx + this._rw * this._worldTa;
+                let cy = this._worldPy + this._rh * this._worldTd;
+
+                if (vboIndex < 262144) {
+                    vboBufferFloat[vboIndex++] = this._worldPx;
+                    vboBufferFloat[vboIndex++] = this._worldPy;
+                    vboBufferUint[vboIndex++] = this._txCoordsUl; // Texture.
+                    vboBufferUint[vboIndex++] = getColorInt(this.colorUl, this._worldAlpha);
+                    vboBufferFloat[vboIndex++] = cx;
+                    vboBufferFloat[vboIndex++] = this._worldPy;
+                    vboBufferUint[vboIndex++] = this._txCoordsUr;
+                    vboBufferUint[vboIndex++] = getColorInt(this.colorUr, this._worldAlpha);
+                    vboBufferFloat[vboIndex++] = cx;
+                    vboBufferFloat[vboIndex++] = cy;
+                    vboBufferUint[vboIndex++] = this._txCoordsBr;
+                    vboBufferUint[vboIndex++] = getColorInt(this.colorBr, this._worldAlpha);
+                    vboBufferFloat[vboIndex++] = this._worldPx;
+                    vboBufferFloat[vboIndex++] = cy;
+                    vboBufferUint[vboIndex++] = this._txCoordsBl;
+                    vboBufferUint[vboIndex] = getColorInt(this.colorBl, this._worldAlpha);
+                    this.ctx.addVboTextureSource(this._displayedTextureSource, 1);
+                }
+            }
+        }
+    };
+
+    _addToVboClipped() {
+        let vboIndex = this.ctx.vboIndex;
+        let vboBufferFloat = this.ctx.vboBufferFloat;
+        let vboBufferUint = this.ctx.vboBufferUint;
+
+        // Gradients are not supported for clipped quads.
+        let c = getColorInt(this.colorUl, this._worldAlpha);
+
+        if (this._clippingSquare) {
+            // Inverse matrix.
+            let ux = this._rw * this._worldTa;
+            let vy = this._rh * this._worldTd;
+
+            let d = 1 / (ux * vy);
+            let invTa = vy * d;
+            let invTd = ux * d;
+
+            // Get ranges from 0 to 1.
+            let tx1 = invTa * (this._clippingSquareMinX - this._worldPx);
+            let ty1 = invTd * (this._clippingSquareMinY - this._worldPy);
+            let tx3 = invTa * (this._clippingSquareMaxX - this._worldPx);
+            let ty3 = invTd * (this._clippingSquareMaxY - this._worldPy);
+
+            // Calculate texture coordinates for clipped corner points.
+            let tcx1 = this._ulx * (1 - tx1) + this._brx * tx1;
+            let tcy1 = this._uly * (1 - ty1) + this._bry * ty1;
+            let tcx3 = this._ulx * (1 - tx3) + this._brx * tx3;
+            let tcy3 = this._uly * (1 - ty3) + this._bry * ty3;
+
+            if (vboIndex < 262144) {
+                vboBufferFloat[vboIndex++] = this._clippingSquareMinX;
+                vboBufferFloat[vboIndex++] = this._clippingSquareMinY;
+                vboBufferUint[vboIndex++] = getVboTextureCoords(tcx1, tcy1);
+                vboBufferUint[vboIndex++] = c;
+                vboBufferFloat[vboIndex++] = this._clippingSquareMaxX;
+                vboBufferFloat[vboIndex++] = this._clippingSquareMinY;
+                vboBufferUint[vboIndex++] = getVboTextureCoords(tcx3, tcy1);
+                vboBufferUint[vboIndex++] = c;
+                vboBufferFloat[vboIndex++] = this._clippingSquareMaxX;
+                vboBufferFloat[vboIndex++] = this._clippingSquareMaxY;
+                vboBufferUint[vboIndex++] = getVboTextureCoords(tcx3, tcy3);
+                vboBufferUint[vboIndex++] = c;
+                vboBufferFloat[vboIndex++] = this._clippingSquareMinX;
+                vboBufferFloat[vboIndex++] = this._clippingSquareMaxY;
+                vboBufferUint[vboIndex++] = getVboTextureCoords(tcx1, tcy3);
+                vboBufferUint[vboIndex] = c;
+                this.ctx.addVboTextureSource(this._displayedTextureSource, 1);
+            }
+        } else {
+            // Complex clipping.
+
+            // Inverse matrix.
+            let ux = this._rw * this._worldTa;
+            let uy = this._rw * this._worldTc;
+            let vx = this._rh * this._worldTb;
+            let vy = this._rh * this._worldTd;
+
+            let d = 1 / (ux * vy - vx * uy);
+            let invTa = vy * d;
+            let invTb = -vx * d;
+            let invTc = -uy * d;
+            let invTd = ux * d;
+
+            let n = Math.ceil(((this._clippingArea.length / 2) - 2) / 2);
+
+            if (n === 1) {
+                // Texture coordinates.
+                let tx1 = invTa * (this._clippingArea[0] - this._worldPx) + invTb * (this._clippingArea[1] - this._worldPy);
+                let ty1 = invTc * (this._clippingArea[0] - this._worldPx) + invTd * (this._clippingArea[1] - this._worldPy);
+                let tx2 = invTa * (this._clippingArea[2] - this._worldPx) + invTb * (this._clippingArea[3] - this._worldPy);
+                let ty2 = invTc * (this._clippingArea[2] - this._worldPx) + invTd * (this._clippingArea[3] - this._worldPy);
+                let tx3 = invTa * (this._clippingArea[4] - this._worldPx) + invTb * (this._clippingArea[5] - this._worldPy);
+                let ty3 = invTc * (this._clippingArea[4] - this._worldPx) + invTd * (this._clippingArea[5] - this._worldPy);
+
+                // Check for polygon instead of quad.
+                let g = this._clippingArea.length <= 6 ? 4 : 6;
+                let tx4 = invTa * (this._clippingArea[g] - this._worldPx) + invTb * (this._clippingArea[g + 1] - this._worldPy);
+                let ty4 = invTc * (this._clippingArea[g] - this._worldPx) + invTd * (this._clippingArea[g + 1] - this._worldPy);
+
+                if (vboIndex < 262144) {
+                    vboBufferFloat[vboIndex++] = this._clippingArea[0];
+                    vboBufferFloat[vboIndex++] = this._clippingArea[1];
+                    vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx1) + this._brx * tx1, this._uly * (1 - ty1) + this._bry * ty1);
+                    vboBufferUint[vboIndex++] = c;
+                    vboBufferFloat[vboIndex++] = this._clippingArea[2];
+                    vboBufferFloat[vboIndex++] = this._clippingArea[3];
+                    vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx2) + this._brx * tx2, this._uly * (1 - ty2) + this._bry * ty2);
+                    vboBufferUint[vboIndex++] = c;
+                    vboBufferFloat[vboIndex++] = this._clippingArea[4];
+                    vboBufferFloat[vboIndex++] = this._clippingArea[5];
+                    vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx3) + this._brx * tx3, this._uly * (1 - ty3) + this._bry * ty3);
+                    vboBufferUint[vboIndex++] = c;
+                    vboBufferFloat[vboIndex++] = this._clippingArea[g];
+                    vboBufferFloat[vboIndex++] = this._clippingArea[g + 1];
+                    vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx4) + this._brx * tx4, this._uly * (1 - ty4) + this._bry * ty4);
+                    vboBufferUint[vboIndex] = c;
+                    this.ctx.addVboTextureSource(this._displayedTextureSource, 1);
+                }
+            } else {
+                // Multiple quads.
+                let g;
+                for (let i = 0; i < n; i++) {
+                    let b = i * 4 + 2;
+                    g = b + 4;
+                    if (g >= this._clippingArea.length) {
+                        // Roll-over: convert polygon to quad.
+                        g -= 2;
+                    }
+
+                    // Texture coordinates.
+                    let tx1 = invTa * (this._clippingArea[0] - this._worldPx) + invTb * (this._clippingArea[1] - this._worldPy);
+                    let ty1 = invTc * (this._clippingArea[0] - this._worldPx) + invTd * (this._clippingArea[1] - this._worldPy);
+                    let tx2 = invTa * (this._clippingArea[b] - this._worldPx) + invTb * (this._clippingArea[b + 1] - this._worldPy);
+                    let ty2 = invTc * (this._clippingArea[b] - this._worldPx) + invTd * (this._clippingArea[b + 1] - this._worldPy);
+                    let tx3 = invTa * (this._clippingArea[b + 2] - this._worldPx) + invTb * (this._clippingArea[b + 3] - this._worldPy);
+                    let ty3 = invTc * (this._clippingArea[b + 2] - this._worldPx) + invTd * (this._clippingArea[b + 3] - this._worldPy);
+                    let tx4 = invTa * (this._clippingArea[g] - this._worldPx) + invTb * (this._clippingArea[g + 1] - this._worldPy);
+                    let ty4 = invTc * (this._clippingArea[g] - this._worldPx) + invTd * (this._clippingArea[g + 1] - this._worldPy);
+
+                    if (vboIndex < 262144) {
+                        vboBufferFloat[vboIndex++] = this._clippingArea[0];
+                        vboBufferFloat[vboIndex++] = this._clippingArea[1];
+                        vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx1) + this._brx * tx1, this._uly * (1 - ty1) + this._bry * ty1);
+                        vboBufferUint[vboIndex++] = c;
+                        vboBufferFloat[vboIndex++] = this._clippingArea[b];
+                        vboBufferFloat[vboIndex++] = this._clippingArea[b + 1];
+                        vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx2) + this._brx * tx2, this._uly * (1 - ty2) + this._bry * ty2);
+                        vboBufferUint[vboIndex++] = c;
+                        vboBufferFloat[vboIndex++] = this._clippingArea[b + 2];
+                        vboBufferFloat[vboIndex++] = this._clippingArea[b + 3];
+                        vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx3) + this._brx * tx3, this._uly * (1 - ty3) + this._bry * ty3);
+                        vboBufferUint[vboIndex++] = c;
+                        vboBufferFloat[vboIndex++] = this._clippingArea[g];
+                        vboBufferFloat[vboIndex++] = this._clippingArea[g + 1];
+                        vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx4) + this._brx * tx4, this._uly * (1 - ty4) + this._bry * ty4);
+                        vboBufferUint[vboIndex] = c;
+                        this.ctx.addVboTextureSource(this._displayedTextureSource, 1);
                     }
                 }
             }
         }
-    }
-};
+    };
 
-UComponent.prototype.getLocalTa = function() {
-    return this.localTa;
-};
+    fillVbo() {
+        if (this._zSort) {
+            this._sortZIndexedChildren();
+            this._zSort = false;
+        }
 
-UComponent.prototype.getLocalTb = function() {
-    return this.localTb;
-};
+        if (this._worldAlpha) {
+            if (this._displayedTextureSource) {
+                this._addToVbo();
+            }
 
-UComponent.prototype.getLocalTc = function() {
-    return this.localTc;
-};
+            if (this._hasChildren) {
+                if (this._zContextUsage) {
+                    for (let i = 0, n = this._zIndexedChildren.length; i < n; i++) {
+                        this._zIndexedChildren[i].fillVbo();
+                    }
+                } else {
+                    for (let i = 0, n = this._children.length; i < n; i++) {
+                        if (this._children[i]._zIndex === 0) {
+                            // If zIndex is set, this item already belongs to a zIndexedChildren array in one of the ancestors.
+                            this._children[i].fillVbo();
+                        }
+                    }
+                }
+            }
+        }
+    };
 
-UComponent.prototype.getLocalTd = function() {
-    return this.localTd;
-};
+}
 
-UComponent.prototype.getCornerPoints = function() {
-    return [
-        this.worldPx,
-        this.worldPy,
-        this.worldPx + this.w * this.worldTa,
-        this.worldPy + this.w * this.worldTc,
-        this.worldPx + this.w * this.worldTa + this.h * this.worldTb,
-        this.worldPy + this.w * this.worldTc + this.h * this.worldTd,
-        this.worldPx + this.h * this.worldTb,
-        this.worldPy + this.h * this.worldTd
-    ];
-};
-
-
-var getColorInt = function(c, alpha) {
-    var a = ((c / 16777216 | 0) * alpha) | 0;
+let getColorInt = function (c, alpha) {
+    let a = ((c / 16777216 | 0) * alpha) | 0;
     return (((((c >> 16) & 0xff) * a) >> 8) & 0xff) +
         ((((c & 0xff00) * a) >> 8) & 0xff00) +
         (((((c & 0xff) << 16) * a) >> 8) & 0xff0000) +
         (a << 24);
 };
 
-var getVboTextureCoords = function(x, y) {
-    return ((x * 65535 + 0.5)|0) + ((y * 65535 + 0.5)|0) * 65536;
+let getVboTextureCoords = function (x, y) {
+    return ((x * 65535 + 0.5) | 0) + ((y * 65535 + 0.5) | 0) * 65536;
+};
+
+View.id = 1;
+
+// Getters reused when referencing view (subobject) properties by a property path, as used in a transition or animation ('x', 'texture.x', etc).
+View.PROP_GETTERS = new Map();
+
+// Setters reused when referencing view (subobject) properties by a property path, as used in a transition or animation ('x', 'texture.x', etc).
+View.PROP_SETTERS = new Map();
+
+let mn = StageUtils.mergeNumbers, mc = StageUtils.mergeColors;
+View.PROP_MERGERS = {
+    'x': mn,
+    'y': mn,
+    'w': mn,
+    'h': mn,
+    'scale': mn,
+    'scaleX': mn,
+    'scaleY': mn,
+    'pivot': mn,
+    'pivotX': mn,
+    'pivotY': mn,
+    'mount': mn,
+    'mountX': mn,
+    'mountY': mn,
+    'alpha': mn,
+    'rotation': mn,
+    'color': mc,
+    'colorUl': mc,
+    'colorUr': mc,
+    'colorBl': mc,
+    'colorBr': mc,
+    'texture.x': mn,
+    'texture.y': mn,
+    'texture.w': mn,
+    'texture.h': mn
 };
 
 
+Base.mixinEs5(View, EventEmitter);
 
-var UComponentContext = function() {
-    this.vboGlTextures = [];
-    this.vboGlTextureRepeats = [];
-    this.lastVboGlTexture = null;
-    this.textureAtlasGlTexture = null;
-    this.rectangleTextureSource = null;
-    this.rectangleTextureSourceInTextureAtlas = false;
 
-    this.vboParamsBuffer = new ArrayBuffer(16 * 4 * 16384 * 2);
-    this.vboBufferFloat = new Float32Array(this.vboParamsBuffer);
-    this.vboBufferUint = new Uint32Array(this.vboParamsBuffer);
-    this.vboIndex = 0;
 
-    this.n = 0;
-    this.useZIndexing = false;
+/**
+ * Copyright Metrological, 2017
+ */
+class VboContext {
 
-    this.root = null;
+    constructor(stage) {
+        this.stage = stage;
 
-    this.updateTreeOrder = 0;
-    this.updateTreeOrderForceUpdate = 0;
+        this.vboGlTextures = [];
+        this.vboGlTextureRepeats = [];
+        this.lastVboGlTexture = null;
 
-    this.staticStage = false;
+        this.vboParamsBuffer = new ArrayBuffer(16 * 4 * 16384 * 2);
+        this.vboBufferFloat = new Float32Array(this.vboParamsBuffer);
+        this.vboBufferUint = new Uint32Array(this.vboParamsBuffer);
+        this.vboIndex = 0;
 
-    this.debugTextureAtlas = null;
+        this.n = 0;
 
-};
+        this.updateTreeOrder = 0;
+        this.updateTreeOrderForceUpdate = 0;
 
-UComponentContext.prototype.setStage = function(stage) {
-    this.textureAtlasGlTexture = stage.textureAtlas ? stage.textureAtlas.texture : null;
-    this.rectangleTextureSource = stage.getRectangleTexture().source;
+        this.staticStage = false;
 
-    if (stage.debugTextureAtlas) {
-        this.debugTextureAtlas = this.createUComponent();
-        this.debugTextureAtlas.displayedTextureSource = this.rectangleTextureSource;
-        this.debugTextureAtlas.setInTextureAtlas(true);
-        var min = Math.min(stage.w, stage.h);
-        this.debugTextureAtlas.setDimensions(min, min);
-    }
-};
-
-UComponentContext.prototype.createUComponentForComponent = function(component) {
-    return new UComponent(this);
-};
-
-UComponentContext.prototype.createUComponent = function() {
-    return new UComponent(this);
-};
-
-UComponentContext.prototype.setDisplayedTextureSource = function(uComponent, textureSource) {
-    uComponent.setDisplayedTextureSource(textureSource);
-};
-
-UComponentContext.prototype.reset = function() {
-    this.vboIndex = 0;
-    this.vboGlTextures = [];
-    this.vboGlTextureRepeats = [];
-    this.lastVboGlTexture = null;
-    this.rectangleTextureSourceInTextureAtlas = this.rectangleTextureSource.inTextureAtlas;
-    this.n = 0;
-    this.updateTreeOrder = 0;
-};
-
-UComponentContext.prototype.addVboTextureSource = function(uComponent, repeat) {
-    var glTexture;
-    if (uComponent.isBorder) {
-        glTexture = this.rectangleTextureSourceInTextureAtlas ? this.textureAtlasGlTexture : this.rectangleTextureSource.glTexture;
-    } else {
-        glTexture = uComponent.inTextureAtlas ? this.textureAtlasGlTexture : uComponent.displayedTextureSource.glTexture;
-    }
-    if (this.lastVboGlTexture !== glTexture) {
-        this.vboGlTextures.push(glTexture);
-        this.vboGlTextureRepeats.push(repeat);
-        this.n++;
-        this.lastVboGlTexture = glTexture;
-    } else {
-        this.vboGlTextureRepeats[this.n - 1] += repeat;
+        this.useZIndexing = false;
     }
 
-    this.vboIndex += repeat * 16;
-};
+    reset() {
+        this.vboIndex = 0;
+        this.vboGlTextures = [];
+        this.vboGlTextureRepeats = [];
+        this.textureAtlasGlTexture = this.stage.textureAtlas ? this.stage.textureAtlas.texture : null;
+        this.rectangleTextureSource = this.stage.rectangleTexture.source;
+        this.lastVboGlTexture = null;
+        this.n = 0;
+        this.updateTreeOrder = 0;
+    }
 
-UComponentContext.prototype.getVboIndex = function() {
-    return this.vboIndex;
-};
-
-UComponentContext.prototype.getVboParamsBuffer = function() {
-    return this.vboParamsBuffer;
-};
-
-UComponentContext.prototype.getVboGlTextures = function() {
-    return this.vboGlTextures;
-};
-
-UComponentContext.prototype.getVboGlTextureRepeats = function() {
-    return this.vboGlTextureRepeats;
-};
-
-UComponentContext.prototype.getVboGlTexturesCount = function() {
-    return this.vboGlTextures.length;
-};
-
-UComponentContext.prototype.updateAndFillVbo = function(useZIndexing) {
-    var renderNeeded = !this.staticStage;
-    if (!this.staticStage) {
-        this.useZIndexing = useZIndexing;
+    updateAndFillVbo() {
+        this.useZIndexing = (this.stage.zIndexUsage > 0);
 
         this.reset();
+
+        // The root parent is used when updating the transform matrix, because it saves us from having several branches.
+        if (!this.rootParent) {
+            this.rootParent = new View(this.stage);
+        }
+
+        this.root._parent = this.rootParent;
         this.root.update();
+        this.root._parent = null;
 
         if (this.useZIndexing) {
             // A secondary fill pass is required.
             this.root.fillVbo();
         }
 
-        if (this.debugTextureAtlas) {
-            this.debugTextureAtlas.addToVbo();
+        if (this.stage.textureAtlas && this.stage.options.debugTextureAtlas) {
+            let size = Math.min(this.stage.options.w, this.stage.options.h);
+            let vboIndex = this.vboIndex;
+            this.vboBufferFloat[vboIndex++] = 0;
+            this.vboBufferFloat[vboIndex++] = 0;
+            this.vboBufferUint[vboIndex++] = 0x00000000;
+            this.vboBufferUint[vboIndex++] = 0xFFFFFFFF;
+            this.vboBufferFloat[vboIndex++] = size;
+            this.vboBufferFloat[vboIndex++] = 0;
+            this.vboBufferUint[vboIndex++] = 0x0000FFFF;
+            this.vboBufferUint[vboIndex++] = 0xFFFFFFFF;
+            this.vboBufferFloat[vboIndex++] = size;
+            this.vboBufferFloat[vboIndex++] = size;
+            this.vboBufferUint[vboIndex++] = 0xFFFFFFFF;
+            this.vboBufferUint[vboIndex++] = 0xFFFFFFFF;
+            this.vboBufferFloat[vboIndex++] = 0;
+            this.vboBufferFloat[vboIndex++] = size;
+            this.vboBufferUint[vboIndex++] = 0xFFFF0000;
+            this.vboBufferUint[vboIndex] = 0xFFFFFFFF;
+            this.vboGlTextures.push(this.textureAtlasGlTexture);
+            this.vboGlTextureRepeats.push(1);
+            this.vboIndex += 16;
+
         }
 
         this.staticStage = true;
     }
 
-    return renderNeeded;
-};
+    addVboTextureSource(textureSource, repeat) {
+        let glTexture = textureSource.inTextureAtlas ? this.textureAtlasGlTexture : textureSource.glTexture;
+        if (this.lastVboGlTexture !== glTexture) {
+            this.vboGlTextures.push(glTexture);
+            this.vboGlTextureRepeats.push(repeat);
+            this.n++;
+            this.lastVboGlTexture = glTexture;
+        } else {
+            this.vboGlTextureRepeats[this.n - 1] += repeat;
+        }
 
-Object.defineProperty(UComponentContext.prototype, 'staticStage', {
-    get: function () {
-        return this._staticStage;
-    },
-    set: function(v) {
-        this._staticStage = v;
+        this.vboIndex += repeat * 16;
     }
-});
+
+}
 
 
-var Tools = {};
 
-Tools.getRoundRect = function(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor) {
-    if (fill === undefined) fill = true;
-    if (strokeWidth === undefined) strokeWidth = 0;
 
-    var canvas = stage.adapter.getDrawingCanvas();
-    var ctx = canvas.getContext('2d');
-    ctx.imageSmoothingEnabled = true;
+/**
+ * Copyright Metrological, 2017
+ */
 
-    var id = 'rect' + [w, h, radius, strokeWidth, strokeColor, fill ? 1 : 0, fillColor].join(",");
-    return stage.texture(function(cb) {
-        canvas.width = w + strokeWidth + 2;
-        canvas.height = h + strokeWidth + 2;
+class ViewText extends Base {
 
-        ctx.beginPath();
-        var x = 0.5 * strokeWidth + 1, y = 0.5 * strokeWidth + 1;
-        ctx.moveTo(x + radius, y);
-        ctx.lineTo(x + w - radius, y);
-        ctx.arcTo(x + w, y, x + w, y + radius, radius);
-        ctx.lineTo(x + w, y + h - radius);
-        ctx.arcTo(x + w, y + h, x + w - radius, y + h, radius);
-        ctx.lineTo(x + radius, y + h);
-        ctx.arcTo(x, y + h, x, y + h - radius, radius);
-        ctx.lineTo(x, y + radius);
-        ctx.arcTo(x, y, x + radius, y, radius);
+    constructor(view) {
+        super();
 
-        if (fill) {
-            if (Utils.isNumber(fillColor)) {
-                fillColor = "#" + fillColor.toString(16);
+        this.view = view;
+
+        this.settings = new TextRendererSettings();
+        this.settings.on('change', () => {
+            this.updateTexture();
+        });
+    }
+
+    _properties() {
+        this.updatingTexture = null;
+    }
+
+    updateTexture() {
+        if (this.settings.text == "") {
+            // Clear current displayed texture (when changing text back to empty).
+            this.texture = null;
+            return;
+        }
+
+        if (this.updatingTexture) return;
+
+        this.updatingTexture = true;
+
+        // Create a dummy texture that loads the actual texture.
+        this.view.texture = this.view.stage.texture((cb, ts, sync) => {
+            // Create 'real' texture and set it.
+            this.updatingTexture = false;
+
+            // Ignore this texture source load.
+            cb(null, null);
+
+            // Replace with the newly generated texture source.
+            let settings = this.getFinalizedSettings();
+            let source = this.createTextureSource(settings);
+
+            // Inherit texture precision from text settings.
+            this.view.texture.precision = settings.precision;
+
+            // Make sure that the new texture source is loaded.
+            source.load(sync || settings.sync);
+
+            this.view.texture.replaceTextureSource(source);
+        });
+    };
+
+    setSettings(settings) {
+        // Proxy to the settings object.
+        Base.setObjectSettings(this.settings, settings);
+    }
+
+    getFinalizedSettings() {
+        let settings = this.settings.clone();
+        settings.finalize(this.view);
+        return settings;
+    };
+
+    createTextureSource(settings) {
+        let m = this.view.stage.textureManager;
+
+        let loadCb = (cb) => {
+            m.loadTextTexture(settings, cb);
+        };
+
+        return this.view.stage.textureManager.getTextureSource(loadCb, settings.getTextureId());
+    };
+
+}
+
+
+/**
+ * Copyright Metrological, 2017
+ */
+class TextRenderer {
+
+    constructor(canvas, settings) {
+        this._canvas = canvas;
+        this._context = this._canvas.getContext('2d');
+        this._settings = settings;
+    }
+
+    getPrecision() {
+        return this._settings.precision;
+    };
+
+    setFontProperties(withPrecision) {
+        let ff = this._settings.fontFace;
+        let fonts = '"' + (Array.isArray(ff) ? this._settings.fontFace.join('","') : ff) + '"';
+        let precision = (withPrecision ? this.getPrecision() : 1);
+        this._context.font = this._settings.fontStyle + " " + (this._settings.fontSize * precision) + "px " + fonts;
+        this._context.textBaseline = this._settings.textBaseline;
+    };
+
+    draw(noDraw = false) {
+        let renderInfo = {};
+
+        // Set font properties.
+        this.setFontProperties(false);
+
+        // Total width.
+        let width = this._settings.w || (2048 / this.getPrecision());
+
+        // Inner width.
+        let innerWidth = width - (this._settings.paddingLeft + this._settings.paddingRight);
+        if (innerWidth < 10) {
+            width += (10 - innerWidth);
+            innerWidth += (10 - innerWidth);
+        }
+
+        let wordWrapWidth = this._settings.wordWrapWidth || innerWidth;
+
+        // word wrap
+        // preserve original text
+        let linesInfo;
+        if (this._settings.wordWrap) {
+            linesInfo = this.wrapText(this._settings.text, wordWrapWidth);
+        } else {
+            linesInfo = {l: this._settings.text.split(/(?:\r\n|\r|\n)/), n: []};
+            let i, n = linesInfo.l.length;
+            for (let i = 0; i < n - 1; i++) {
+                linesInfo.n.push(i);
             }
-            ctx.fillStyle = fillColor || "white";
-            ctx.fill();
         }
+        let lines = linesInfo.l;
 
-        if (strokeWidth) {
-            if (Utils.isNumber(strokeColor)) {
-                strokeColor = "#" + strokeColor.toString(16);
+        if (this._settings.maxLines && lines.length > this._settings.maxLines) {
+            let usedLines = lines.slice(0, this._settings.maxLines);
+
+            let otherLines = null;
+            if (this._settings.maxLinesSuffix) {
+                // Wrap again with max lines suffix enabled.
+                let al = this.wrapText(usedLines[usedLines.length - 1] + this._settings.maxLinesSuffix, wordWrapWidth);
+                usedLines[usedLines.length - 1] = al.l[0];
+                otherLines = [al.l.length > 1 ? al.l[1] : ''];
+            } else {
+                otherLines = ['']
             }
-            ctx.strokeStyle = strokeColor || "white";
-            ctx.lineWidth = strokeWidth;
-            ctx.stroke();
+
+            // Re-assemble the remaining text.
+            let i, n = lines.length;
+            let j = 0;
+            let m = linesInfo.n.length;
+            for (i = this._settings.maxLines; i < n; i++) {
+                otherLines[j] += (otherLines[j] ? " " : "") + lines[i];
+                if (i + 1 < m && linesInfo.n[i + 1]) {
+                    j++;
+                }
+            }
+
+            renderInfo.remainingText = otherLines.join("\n");
+
+            renderInfo.moreTextLines = true;
+
+            lines = usedLines;
+        } else {
+            renderInfo.moreTextLines = false;
+            renderInfo.remainingText = "";
         }
 
-        var options = {};
-        var data = canvas;
-                cb(null, data, options);
-    }, {id: id});
-};
+        // calculate text width
+        let maxLineWidth = 0;
+        let lineWidths = [];
+        for (let i = 0; i < lines.length; i++) {
+            let lineWidth = this._context.measureText(lines[i]).width;
+            lineWidths.push(lineWidth);
+            maxLineWidth = Math.max(maxLineWidth, lineWidth);
+        }
 
-var WebAdapter = function() {
-    this.animationFunction = function() {};
-    this.animationLoopStopped = false;
-    this.canvas = null;
+        renderInfo.lineWidths = lineWidths;
 
-    this.uComponentContext = new UComponentContext();
+        if (!this._settings.w) {
+            // Auto-set width to max text length.
+            width = maxLineWidth + this._settings.paddingLeft + this._settings.paddingRight;
+            innerWidth = maxLineWidth;
+        }
 
-    // Default: white background.
-    this.glClearColor = [0, 0, 0, 0];
-};
+        // calculate text height
+        let lineHeight = this._settings.lineHeight || (this._settings.fontSize);
 
-WebAdapter.prototype.init = function() {
-    this.uComponentContext.setStage(this.stage);
-};
+        let height;
+        if (this._settings.h) {
+            height = this._settings.h;
+        } else {
+            height = lineHeight * (lines.length - 1) + 0.5 * this._settings.fontSize + Math.max(lineHeight, this._settings.fontSize) + this._settings.offsetY;
+        }
 
-WebAdapter.prototype.startAnimationLoop = function(f) {
-    this.animationFunction = f || this.animationFunction;
-    this.animationLoopStopped = false;
-    this.loop();
-};
+        let offsetY = this._settings.offsetY === null ? this._settings.fontSize : this._settings.offsetY;
 
-WebAdapter.prototype.stopAnimationLoop = function() {
-    this.animationLoopStopped = true;
-};
+        let precision = this.getPrecision();
 
-WebAdapter.prototype.loop = function() {
-    var self = this;
-    var lp = function() {
-        if (!self.animationLoopStopped) {
-            self.animationFunction();
-            requestAnimationFrame(lp);
+        renderInfo.w = width * precision;
+        renderInfo.h = height * precision;
+        renderInfo.lines = lines;
+        renderInfo.precision = precision;
+
+        if (!noDraw) {
+            if (!width) {
+                // To prevent canvas errors.
+                width = 1;
+            }
+
+            if (!height) {
+                // To prevent canvas errors.
+                height = 1;
+            }
+
+            if (this._settings.cutSx || this._settings.cutEx) {
+                width = Math.min(width, this._settings.cutEx - this._settings.cutSx);
+            }
+
+            if (this._settings.cutSy || this._settings.cutEy) {
+                height = Math.min(height, this._settings.cutEy - this._settings.cutSy);
+            }
+
+            // Get corrected precision so that text
+            this._canvas.width = Math.ceil(width * precision);
+            this._canvas.height = Math.ceil(height * precision);
+
+            // After changing the canvas, we need to reset the properties.
+            this.setFontProperties(true);
+
+            if (this._settings.cutSx || this._settings.cutSy) {
+                this._context.translate(-(this._settings.cutSx * precision), -(this._settings.cutSy * precision));
+            }
+
+            let linePositionX;
+            let linePositionY;
+
+            let drawLines = [];
+
+            // Draw lines line by line.
+            for (let i = 0, n = lines.length; i < n; i++) {
+                linePositionX = 0;
+                linePositionY = (i * lineHeight) + offsetY;
+
+                if (this._settings.textAlign === 'right') {
+                    linePositionX += (innerWidth - lineWidths[i]);
+                } else if (this._settings.textAlign === 'center') {
+                    linePositionX += ((innerWidth - lineWidths[i]) / 2);
+                }
+                linePositionX += this._settings.paddingLeft;
+
+                drawLines.push({text: lines[i], x: linePositionX * precision, y: linePositionY * precision, w: lineWidths[i] * precision});
+            }
+
+            // Highlight.
+            if (this._settings.highlight) {
+                let color = this._settings.highlightColor || 0x00000000;
+                let hlHeight = (this._settings.highlightHeight || this._settings.fontSize * 1.5);
+                let offset = (this._settings.highlightOffset !== null ? this._settings.highlightOffset : -0.5 * this._settings.fontSize);
+                let paddingLeft = (this._settings.highlightPaddingLeft !== null ? this._settings.highlightPaddingLeft : this._settings.paddingLeft);
+                let paddingRight = (this._settings.highlightPaddingRight !== null ? this._settings.highlightPaddingRight : this._settings.paddingRight);
+
+                this._context.fillStyle = StageUtils.getRgbaString(color);
+                for (i = 0; i < drawLines.length; i++) {
+                    let drawLine = drawLines[i];
+                    this._context.fillRect((drawLine.x - paddingLeft) * precision, (drawLine.y + offset) * precision, (drawLine.w + paddingRight + paddingLeft) * precision, hlHeight * precision);
+                }
+            }
+
+            // Text shadow.
+            let prevShadowSettings = null;
+            if (this._settings.shadow) {
+                prevShadowSettings = [this._context.shadowColor, this._context.shadowOffsetX, this._context.shadowOffsetY, this._context.shadowBlur];
+
+                this._context.shadowColor = StageUtils.getRgbaString(this._settings.shadowColor);
+                this._context.shadowOffsetX = this._settings.shadowOffsetX * precision;
+                this._context.shadowOffsetY = this._settings.shadowOffsetY * precision;
+                this._context.shadowBlur = this._settings.shadowBlur * precision;
+            }
+
+            this._context.fillStyle = StageUtils.getRgbaString(this._settings.textColor);
+            for (let i = 0, n = drawLines.length; i < n; i++) {
+                let drawLine = drawLines[i];
+                this._context.fillText(drawLine.text, drawLine.x, drawLine.y);
+            }
+
+            if (prevShadowSettings) {
+                this._context.shadowColor = prevShadowSettings[0];
+                this._context.shadowOffsetX = prevShadowSettings[1];
+                this._context.shadowOffsetY = prevShadowSettings[2];
+                this._context.shadowBlur = prevShadowSettings[3];
+            }
+
+            if (this._settings.cutSx || this._settings.cutSy) {
+                this._context.translate(this._settings.cutSx, this._settings.cutSy);
+            }
+        }
+
+        let canvas = this._canvas;
+        return {renderInfo: renderInfo, canvas: canvas};
+    };
+
+    /**
+     * Applies newlines to a string to have it optimally fit into the horizontal
+     * bounds set by the Text object's wordWrapWidth property.
+     */
+    wrapText(text, wordWrapWidth) {
+        // Greedy wrapping algorithm that will wrap words as the line grows longer
+        // than its horizontal bounds.
+        let lines = text.split(/\r?\n/g);
+        let allLines = [];
+        let realNewlines = [];
+        for (let i = 0; i < lines.length; i++) {
+            let resultLines = [];
+            let result = '';
+            let spaceLeft = wordWrapWidth;
+            let words = lines[i].split(' ');
+            for (let j = 0; j < words.length; j++) {
+                let wordWidth = this._context.measureText(words[j]).width;
+                let wordWidthWithSpace = wordWidth + this._context.measureText(' ').width;
+                if (j === 0 || wordWidthWithSpace > spaceLeft) {
+                    // Skip printing the newline if it's the first word of the line that is
+                    // greater than the word wrap width.
+                    if (j > 0) {
+                        resultLines.push(result);
+                        result = '';
+                    }
+                    result += words[j];
+                    spaceLeft = wordWrapWidth - wordWidth;
+                }
+                else {
+                    spaceLeft -= wordWidthWithSpace;
+                    result += ' ' + words[j];
+                }
+            }
+
+            if (result) {
+                resultLines.push(result);
+                result = '';
+            }
+
+            allLines = allLines.concat(resultLines);
+
+            if (i < lines.length - 1) {
+                realNewlines.push(allLines.length);
+            }
+        }
+
+        return {l: allLines, n: realNewlines};
+    };
+    
+}
+
+
+
+/**
+ * Copyright Metrological, 2017
+ */
+class TextRendererSettings extends Base {
+    constructor() {
+        super();
+
+        EventEmitter.call(this);
+    }
+
+    _properties() {
+        this._text = "";
+        this._w = 0;
+        this._h = 0;
+        this._fontStyle = "normal";
+        this._fontSize = 40;
+        this._fontFace = null;
+        this._wordWrap = true;
+        this._wordWrapWidth = 0;
+        this._lineHeight = null;
+        this._textBaseline = "alphabetic";
+        this._textAlign = "left";
+        this._offsetY = null;
+        this._maxLines = 0;
+        this._maxLinesSuffix = "..";
+        this._precision = null;
+        this._textColor = 0xFFFFFFFF;
+        this._paddingLeft = 0;
+        this._paddingRight = 0;
+        this._shadow = false;
+        this._shadowColor = 0xFF000000;
+        this._shadowOffsetX = 0;
+        this._shadowOffsetY = 0;
+        this._shadowBlur = 5;
+        this._highlight = false;
+        this._highlightHeight = 0;
+        this._highlightColor = 0xFF000000;
+        this._highlightOffset = 0;
+        this._highlightPaddingLeft = 0;
+        this._highlightPaddingRight = 0;
+        this._cutSx = 0;
+        this._cutEx = 0;
+        this._cutSy = 0;
+        this._cutEy = 0;
+
+        this.sync = false;
+    }
+
+    /**
+     * Finalize this settings object so that it is no longer dependent on possibly changing defaults.
+     */
+    finalize(view) {
+        // Inherit width and height from component.
+        if (!this.w && view.w) {
+            this.w = view.w;
+        }
+
+        if (!this.h && view.h) {
+            this.h = view.h;
+        }
+
+        if (this.fontFace === null) {
+            this.fontFace = view.stage.options.defaultFontFace;
+        }
+
+        if (this.precision === null) {
+            this.precision = view.stage.options.defaultPrecision;
         }
     };
-    lp();
-};
 
-WebAdapter.prototype.uploadGlTexture = function(gl, textureSource, source) {
-    if (source instanceof ImageData || source instanceof HTMLImageElement || source instanceof HTMLCanvasElement || source instanceof HTMLVideoElement || (window.ImageBitmap && source instanceof ImageBitmap)) {
-        // Web-specific data types.
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
-    } else {
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, textureSource.w, textureSource.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, source);
-    }
-};
+    getTextureId() {
+        let parts = [];
 
-WebAdapter.prototype.loadTextureSourceString = function(source, cb) {
-    var image = new Image();
-    if (!(source.substr(0,5) == "data:")) {
-        // Base64.
-        image.crossOrigin = "Anonymous";
-    }
-    image.onerror = function(err) {
-        return cb("Image load error");
-    };
-    image.onload = function() {
-        cb(null, image, {renderInfo: {src: source}});
-    };
-    image.src = source;
-};
+        if (this.w !== 0) parts.push("w " + this.w);
+        if (this.h !== 0) parts.push("h " + this.h);
+        if (this.fontStyle !== "normal") parts.push("fS" + this.fontStyle);
+        if (this.fontSize !== 40) parts.push("fs" + this.fontSize);
+        if (this.fontFace !== null) parts.push("ff" + (Array.isArray(this.fontFace) ? this.fontFace.join(",") : this.fontFace));
+        if (this.wordWrap !== true) parts.push("wr" + (this.wordWrap ? 1 : 0));
+        if (this.wordWrapWidth !== 0) parts.push("ww" + this.wordWrapWidth);
+        if (this.lineHeight !== null) parts.push("lh" + this.lineHeight);
+        if (this.textBaseline !== "alphabetic") parts.push("tb" + this.textBaseline);
+        if (this.textAlign !== "left") parts.push("ta" + this.textAlign);
+        if (this.offsetY !== null) parts.push("oy" + this.offsetY);
+        if (this.maxLines !== 0) parts.push("ml" + this.maxLines);
+        if (this.maxLinesSuffix !== "..") parts.push("ms" + this.maxLinesSuffix);
+        if (this.precision !== null) parts.push("pc" + this.precision);
+        if (this.textColor !== 0xffffffff) parts.push("co" + this.textColor.toString(16));
+        if (this.paddingLeft !== 0) parts.push("pl" + this.paddingLeft);
+        if (this.paddingRight !== 0) parts.push("pr" + this.paddingRight);
+        if (this.shadow !== false) parts.push("sh" + (this.shadow ? 1 : 0));
+        if (this.shadowColor !== 0xff000000) parts.push("sc" + this.shadowColor.toString(16));
+        if (this.shadowOffsetX !== 0) parts.push("sx" + this.shadowOffsetX);
+        if (this.shadowOffsetY !== 0) parts.push("sy" + this.shadowOffsetY);
+        if (this.shadowBlur !== 5) parts.push("sb" + this.shadowBlur);
+        if (this.highlight !== false) parts.push("hL" + (this.highlight ? 1 : 0));
+        if (this.highlightHeight !== 0) parts.push("hh" + this.highlightHeight);
+        if (this.highlightColor !== 0xff000000) parts.push("hc" + this.highlightColor.toString(16));
+        if (this.highlightOffset !== null) parts.push("ho" + this.highlightOffset);
+        if (this.highlightPaddingLeft !== null) parts.push("hl" + this.highlightPaddingLeft);
+        if (this.highlightPaddingRight !== null) parts.push("hr" + this.highlightPaddingRight);
 
-WebAdapter.prototype.loadText = function(settings, cb) {
-    // Generate the image.
-    var tr = new TextRenderer(this.stage.drawingCanvasFactory, settings);
-    var rval = tr.draw();
-    var renderInfo = rval.renderInfo;
+        if (this.cutSx) parts.push("csx" + this.cutSx);
+        if (this.cutEx) parts.push("cex" + this.cutEx);
+        if (this.cutSy) parts.push("csy" + this.cutSy);
+        if (this.cutEy) parts.push("cey" + this.cutEy);
 
-    var options = {renderInfo: renderInfo, precision: rval.renderInfo.precision};
-    var data = rval.canvas;
-    cb(null, data, options);
-};
+        if (this.sync) parts.push("sync");
 
-WebAdapter.prototype.getHrTime = function() {
-    return window.performance ? window.performance.now() : (new Date()).getTime();
-};
-
-WebAdapter.prototype.getWebGLRenderingContext = function(w, h) {
-    var canvas;
-    if (this.stage.reuseCanvas) {
-        canvas = this.stage.reuseCanvas;
-    } else {
-        canvas = document.createElement('canvas');
+        let id = "TX$" + parts.join("|") + ":" + this.text;
+        return id;
     }
 
-    canvas.width = w;
-    canvas.height = h;
+    getNonDefaults() {
+        var nonDefaults = {};
 
-    var opts = {
-        alpha: true,
-        antialias: false,
-        premultipliedAlpha: true,
-        stencil: true,
-        preserveDrawingBuffer: false
-    };
+        if (this.text !== "") nonDefaults['text'] = this.text;
+        if (this.w !== 0) nonDefaults['w'] = this.w;
+        if (this.h !== 0) nonDefaults['h'] = this.h;
+        if (this.fontStyle !== "normal") nonDefaults['fontStyle'] = this.fontStyle;
+        if (this.fontSize !== 40) nonDefaults["fontSize"] = this.fontSize;
+        if (this.fontFace !== null) nonDefaults["fontFace"] = this.fontFace;
+        if (this.wordWrap !== true) nonDefaults["wordWrap"] = this.wordWrap;
+        if (this.wordWrapWidth !== 0) nonDefaults["wordWrapWidth"] = this.wordWrapWidth;
+        if (this.lineHeight !== null) nonDefaults["lineHeight"] = this.lineHeight;
+        if (this.textBaseline !== "alphabetic") nonDefaults["textBaseline"] = this.textBaseline;
+        if (this.textAlign !== "left") nonDefaults["textAlign"] = this.textAlign;
+        if (this.offsetY !== null) nonDefaults["offsetY"] = this.offsetY;
+        if (this.maxLines !== 0) nonDefaults["maxLines"] = this.maxLines;
+        if (this.maxLinesSuffix !== "..") nonDefaults["maxLinesSuffix"] = this.maxLinesSuffix;
+        if (this.precision !== null) nonDefaults["precision"] = this.precision;
+        if (this.textColor !== 0xffffffff) nonDefaults["textColor"] = this.textColor;
+        if (this.paddingLeft !== 0) nonDefaults["paddingLeft"] = this.paddingLeft;
+        if (this.paddingRight !== 0) nonDefaults["paddingRight"] = this.paddingRight;
+        if (this.shadow !== false) nonDefaults["shadow"] = this.shadow;
+        if (this.shadowColor !== 0xff000000) nonDefaults["shadowColor"] = this.shadowColor;
+        if (this.shadowOffsetX !== 0) nonDefaults["shadowOffsetX"] = this.shadowOffsetX;
+        if (this.shadowOffsetY !== 0) nonDefaults["shadowOffsetY"] = this.shadowOffsetY;
+        if (this.shadowBlur !== 5) nonDefaults["shadowBlur"] = this.shadowBlur;
+        if (this.highlight !== false) nonDefaults["highlight"] = this.highlight;
+        if (this.highlightHeight !== 0) nonDefaults["highlightHeight"] = this.highlightHeight;
+        if (this.highlightColor !== 0xff000000) nonDefaults["highlightColor"] = this.highlightColor;
+        if (this.highlightOffset !== null) nonDefaults["highlightOffset"] = this.highlightOffset;
+        if (this.highlightPaddingLeft !== null) nonDefaults["highlightPaddingLeft"] = this.highlightPaddingLeft;
+        if (this.highlightPaddingRight !== null) nonDefaults["highlightPaddingRight"] = this.highlightPaddingRight;
 
-    var gl = canvas.getContext('webgl', opts) || canvas.getContext('experimental-webgl', opts);
-    if (!gl) {
-        throw new Error('This browser does not support webGL.');
+        if (this.cutSx) nonDefaults["cutSx"] = this.cutSx;
+        if (this.cutEx) nonDefaults["cutEx"] = this.cutEx;
+        if (this.cutSy) nonDefaults["cutSy"] = this.cutSy;
+        if (this.cutEy) nonDefaults["cutEy"] = this.cutEy;
+
+        if (this.sync) nonDefaults["sync"] = this.sync;
+
+        return nonDefaults;
     }
 
-    this.canvas = canvas;
-
-    return gl;
-};
-
-WebAdapter.prototype.getDrawingCanvas = function() {
-    if (!this.textCanvas) {
-        this.textCanvas = document.createElement('canvas');
+    clone() {
+        let obj = new TextRendererSettings();
+        obj._text = this._text;
+        obj._w = this._w;
+        obj._h = this._h;
+        obj._fontStyle = this._fontStyle;
+        obj._fontSize = this._fontSize;
+        obj._fontFace = this._fontFace;
+        obj._wordWrap = this._wordWrap;
+        obj._wordWrapWidth = this._wordWrapWidth;
+        obj._lineHeight = this._lineHeight;
+        obj._textBaseline = this._textBaseline;
+        obj._textAlign = this._textAlign;
+        obj._offsetY = this._offsetY;
+        obj._maxLines = this._maxLines;
+        obj._maxLinesSuffix = this._maxLinesSuffix;
+        obj._precision = this._precision;
+        obj._textColor = this._textColor;
+        obj._paddingLeft = this._paddingLeft;
+        obj._paddingRight = this._paddingRight;
+        obj._shadow = this._shadow;
+        obj._shadowColor = this._shadowColor;
+        obj._shadowOffsetX = this._shadowOffsetX;
+        obj._shadowOffsetY = this._shadowOffsetY;
+        obj._shadowBlur = this._shadowBlur;
+        obj._highlight = this._highlight;
+        obj._highlightHeight = this._highlightHeight;
+        obj._highlightColor = this._highlightColor;
+        obj._highlightOffset = this._highlightOffset;
+        obj._highlightPaddingLeft = this._highlightPaddingLeft;
+        obj._highlightPaddingRight = this._highlightPaddingRight;
+        obj._cutSx = this._cutSx;
+        obj._cutEx = this._cutEx;
+        obj._cutSy = this._cutSy;
+        obj._cutEy = this._cutEy;
+        obj.sync = this.sync;
+        return obj;
     }
-    return this.textCanvas;
+
+    get text() {
+        return this._text
+    }
+
+    set text(v) {
+        if (this._text !== v) {
+            this._text = v;
+            this.emit('change');
+        }
+    }
+
+    get w() {
+        return this._w
+    }
+
+    set w(v) {
+        if (this._w !== v) {
+            this._w = v;
+            this.emit('change');
+        }
+    }
+
+    get h() {
+        return this._h
+    }
+
+    set h(v) {
+        if (this._h !== v) {
+            this._h = v;
+            this.emit('change');
+        }
+    }
+
+    get fontStyle() {
+        return this._fontStyle
+    }
+
+    set fontStyle(v) {
+        if (this._fontStyle !== v) {
+            this._fontStyle = v;
+            this.emit('change');
+        }
+    }
+
+    get fontSize() {
+        return this._fontSize
+    }
+
+    set fontSize(v) {
+        if (this._fontSize !== v) {
+            this._fontSize = v;
+            this.emit('change');
+        }
+    }
+
+    get fontFace() {
+        return this._fontFace
+    }
+
+    set fontFace(v) {
+        if (this._fontFace !== v) {
+            this._fontFace = v;
+            this.emit('change');
+        }
+    }
+
+    get wordWrap() {
+        return this._wordWrap
+    }
+
+    set wordWrap(v) {
+        if (this._wordWrap !== v) {
+            this._wordWrap = v;
+            this.emit('change');
+        }
+    }
+
+    get wordWrapWidth() {
+        return this._wordWrapWidth
+    }
+
+    set wordWrapWidth(v) {
+        if (this._wordWrapWidth !== v) {
+            this._wordWrapWidth = v;
+            this.emit('change');
+        }
+    }
+
+    get lineHeight() {
+        return this._lineHeight
+    }
+
+    set lineHeight(v) {
+        if (this._lineHeight !== v) {
+            this._lineHeight = v;
+            this.emit('change');
+        }
+    }
+
+    get textBaseline() {
+        return this._textBaseline
+    }
+
+    set textBaseline(v) {
+        if (this._textBaseline !== v) {
+            this._textBaseline = v;
+            this.emit('change');
+        }
+    }
+
+    get textAlign() {
+        return this._textAlign
+    }
+
+    set textAlign(v) {
+        if (this._textAlign !== v) {
+            this._textAlign = v;
+            this.emit('change');
+        }
+    }
+
+    get offsetY() {
+        return this._offsetY
+    }
+
+    set offsetY(v) {
+        if (this._offsetY !== v) {
+            this._offsetY = v;
+            this.emit('change');
+        }
+    }
+
+    get maxLines() {
+        return this._maxLines
+    }
+
+    set maxLines(v) {
+        if (this._maxLines !== v) {
+            this._maxLines = v;
+            this.emit('change');
+        }
+    }
+
+    get maxLinesSuffix() {
+        return this._maxLinesSuffix
+    }
+
+    set maxLinesSuffix(v) {
+        if (this._maxLinesSuffix !== v) {
+            this._maxLinesSuffix = v;
+            this.emit('change');
+        }
+    }
+
+    get precision() {
+        return this._precision
+    }
+
+    set precision(v) {
+        if (this._precision !== v) {
+            this._precision = v;
+            this.emit('change');
+        }
+    }
+
+    get textColor() {
+        return this._textColor
+    }
+
+    set textColor(v) {
+        if (this._textColor !== v) {
+            this._textColor = v;
+            this.emit('change');
+        }
+    }
+
+    get paddingLeft() {
+        return this._paddingLeft
+    }
+
+    set paddingLeft(v) {
+        if (this._paddingLeft !== v) {
+            this._paddingLeft = v;
+            this.emit('change');
+        }
+    }
+
+    get paddingRight() {
+        return this._paddingRight
+    }
+
+    set paddingRight(v) {
+        if (this._paddingRight !== v) {
+            this._paddingRight = v;
+            this.emit('change');
+        }
+    }
+
+    get shadow() {
+        return this._shadow
+    }
+
+    set shadow(v) {
+        if (this._shadow !== v) {
+            this._shadow = v;
+            this.emit('change');
+        }
+    }
+
+    get shadowColor() {
+        return this._shadowColor
+    }
+
+    set shadowColor(v) {
+        if (this._shadowColor !== v) {
+            this._shadowColor = v;
+            this.emit('change');
+        }
+    }
+
+    get shadowOffsetX() {
+        return this._shadowOffsetX
+    }
+
+    set shadowOffsetX(v) {
+        if (this._shadowOffsetX !== v) {
+            this._shadowOffsetX = v;
+            this.emit('change');
+        }
+    }
+
+    get shadowOffsetY() {
+        return this._shadowOffsetY
+    }
+
+    set shadowOffsetY(v) {
+        if (this._shadowOffsetY !== v) {
+            this._shadowOffsetY = v;
+            this.emit('change');
+        }
+    }
+
+    get shadowBlur() {
+        return this._shadowBlur
+    }
+
+    set shadowBlur(v) {
+        if (this._shadowBlur !== v) {
+            this._shadowBlur = v;
+            this.emit('change');
+        }
+    }
+
+    get highlight() {
+        return this._highlight
+    }
+
+    set highlight(v) {
+        if (this._highlight !== v) {
+            this._highlight = v;
+            this.emit('change');
+        }
+    }
+
+    get highlightHeight() {
+        return this._highlightHeight
+    }
+
+    set highlightHeight(v) {
+        if (this._highlightHeight !== v) {
+            this._highlightHeight = v;
+            this.emit('change');
+        }
+    }
+
+    get highlightColor() {
+        return this._highlightColor
+    }
+
+    set highlightColor(v) {
+        if (this._highlightColor !== v) {
+            this._highlightColor = v;
+            this.emit('change');
+        }
+    }
+
+    get highlightOffset() {
+        return this._highlightOffset
+    }
+
+    set highlightOffset(v) {
+        if (this._highlightOffset !== v) {
+            this._highlightOffset = v;
+            this.emit('change');
+        }
+    }
+
+    get highlightPaddingLeft() {
+        return this._highlightPaddingLeft
+    }
+
+    set highlightPaddingLeft(v) {
+        if (this._highlightPaddingLeft !== v) {
+            this._highlightPaddingLeft = v;
+            this.emit('change');
+        }
+    }
+
+    get highlightPaddingRight() {
+        return this._highlightPaddingRight
+    }
+
+    set highlightPaddingRight(v) {
+        if (this._highlightPaddingRight !== v) {
+            this._highlightPaddingRight = v;
+            this.emit('change');
+        }
+    }
+
+    get cutSx() {
+        return this._cutSx
+    }
+
+    set cutSx(v) {
+        if (this._cutSx !== v) {
+            this._cutSx = v;
+            this.emit('change');
+        }
+    }
+
+    get cutEx() {
+        return this._cutEx
+    }
+
+    set cutEx(v) {
+        if (this._cutEx !== v) {
+            this._cutEx = v;
+            this.emit('change');
+        }
+    }
+
+    get cutSy() {
+        return this._cutSy
+    }
+
+    set cutSy(v) {
+        if (this._cutSy !== v) {
+            this._cutSy = v;
+            this.emit('change');
+        }
+    }
+
+    get cutEy() {
+        return this._cutEy
+    }
+
+    set cutEy(v) {
+        if (this._cutEy !== v) {
+            this._cutEy = v;
+            this.emit('change');
+        }
+    }
+}
+
+
+Base.mixinEs5(TextRendererSettings, EventEmitter);
+
+
+class TransitionManager {
+
+    constructor(stage) {
+        this.stage = stage;
+
+        this.stage.on('frameStart', () => this.progress());
+
+        this.viewMap = new WeakMap();
+
+        /**
+         * All transitions that are running and have
+         * @type {Set<Transition>}
+         */
+        this.active = new Set();
+    }
+
+    progress() {
+        if (this.active.size) {
+            let dt = this.stage.dt;
+
+            let filter = false;
+            this.active.forEach(function(a) {
+                if (a.isActive()) {
+                    a.progress(dt);
+                } else {
+                    filter = true;
+                }
+            });
+
+            if (filter) {
+                this.active = new Set([...this.active].filter(t => t.isActive()));
+            }
+        }
+    }
+
+    _get(view, property) {
+        let viewTransitions = this.viewMap.get(view);
+        if (!viewTransitions) {
+            return;
+        } else {
+            return viewTransitions.get(property);
+        }
+    }
+
+    _set(view, property, value) {
+        let viewTransitions = this.viewMap.get(view);
+        if (!viewTransitions) {
+            viewTransitions = new Map();
+            this.viewMap.set(view, viewTransitions);
+        }
+        viewTransitions.set(property, value);
+    }
+
+    set(view, property, settings) {
+        if (Utils.isObjectLiteral(settings)) {
+            // Convert plain object to proper settings object.
+            settings = this.createSettings(settings);
+        }
+
+        let current = this._get(view, property);
+        if (current && current.isTransition) {
+            // Runtime settings change.
+            current.settings = settings;
+            return current;
+        } else {
+            // Transition not yet created; simply replace previous settings declaration.
+            this._set(view, property, settings);
+        }
+    }
+
+    createSettings(settings) {
+        let transitionSettings = new TransitionSettings();
+        Base.setObjectSettings(transitionSettings, settings);
+        return transitionSettings;
+    }
+
+    get(view, property) {
+        let transition = this._get(view, property);
+        if (!transition) {
+            return;
+        }
+
+        if (transition.isTransitionSettings) {
+            // Upgrade to 'real' transition.
+            transition = new Transition(
+                this,
+                transition,
+                view,
+                property
+            );
+            this._set(view, property, transition)
+        }
+
+        return transition;
+    }
+
+    remove(view, property) {
+        let viewTransitions = this.viewMap.get(view);
+        if (viewTransitions) {
+            viewTransitions.delete(property);
+        }
+    }
+
+    start(view, property, targetValue) {
+        let transition = this.get(view, property);
+        if (transition) {
+            transition.start(targetValue);
+        } else {
+            console.error('Property does not have a transition: ' + property);
+        }
+    }
+
+    addActive(transition) {
+        this.active.add(transition);
+    }
+}
+
+
+
+
+class TransitionSettings extends Base {
+    constructor() {
+        super();
+    }
+
+    _properties() {
+        this._timingFunction = 'ease';
+        this._timingFunctionImpl = StageUtils.getTimingFunction(this._timingFunction);
+        this.delay = 0;
+        this.duration = 1;
+        this.isTransitionSettings = true;
+    }
+
+    get timingFunction() {
+        return this._timingFunction;
+    }
+
+    set timingFunction(v) {
+        this._timingFunction = v;
+        this._timingFunctionImpl = StageUtils.getTimingFunction(v);
+    }
+
+    get timingFunctionImpl() {
+        return this._timingFunctionImpl;
+    }
+}
+
+
+
+
+class Transition extends Base {
+
+    constructor(manager, settings, view, property) {
+        super();
+
+        EventEmitter.call(this);
+        
+        this.manager = manager;
+
+        this._settings = settings;
+
+        this._view = view;
+        this._getter = View.getGetter(property);
+        this._setter = View.getSetter(property);
+        this._merger = View.getMerger(property) || StageUtils.mergeNumbers;
+
+        if (!this._merger) {
+            throw new Error("Property does not have a merger: " + property);
+        }
+
+        this._startValue = this._getter(this._view);
+        this._targetValue = this._startValue;
+
+        this._p = 1;
+        this._delayLeft = 0;
+    }
+
+    _properties() {
+        this.isTransition = true;
+    }
+
+    reset(targetValue, p) {
+        this._startValue = this._getter(this._view);
+        this._targetValue = targetValue;
+        this._p = p;
+
+        if (p < 1) {
+            this.checkActive();
+        } else if (p === 1) {
+            this.setValue(this.getDrawValue());
+
+            // Immediately invoke onFinish event.
+            this.invokeListeners();
+        }
+    }
+
+    start(targetValue) {
+        this._startValue = this._getter(this._view);
+
+        if (targetValue === this._startValue) {
+            this.reset(this._startValue, targetValue, 1);
+        } else {
+            this._targetValue = targetValue;
+            this._p = 0;
+            this._delayLeft = this._settings.delay;
+            if (this._eventsCount) this.emit('start');
+            this.checkActive();
+        }
+    }
+
+    finish() {
+        if (this._p < 1) {
+            this._p = 1;
+
+            this._setter(this._view, this.targetValue);
+
+            if (this._eventsCount) {
+                this.invokeListeners();
+            }
+        }
+    }
+
+    checkActive() {
+        if (this.isActive()) {
+            this.manager.addActive(this);
+        }
+    }
+
+    isActive() {
+        return (this._p < 1.0) && this._view.isAttached();
+    }
+
+    progress(dt) {
+        if (this.p < 1) {
+            if (this.delayLeft > 0) {
+                this._delayLeft -= dt;
+
+                if (this.delayLeft < 0) {
+                    dt = -this.delayLeft;
+                    this._delayLeft = 0;
+
+                    if (this._eventsCount) this.emit('delayEnd');
+                } else {
+                    return;
+                }
+            }
+
+            if (this._settings.duration == 0) {
+                this._p = 1;
+            } else {
+                this._p += dt / this._settings.duration;
+            }
+            if (this._p >= 1) {
+                // Finished!
+                this._p = 1;
+            }
+        }
+
+        this._setter(this._view, this.getDrawValue());
+
+        if (this._eventsCount) {
+            this.invokeListeners();
+        }
+    }
+
+    invokeListeners() {
+        this.emit('progress', this.p);
+        if (this.p === 1) {
+            this.emit('finish');
+        }
+    }
+
+    setValuesDynamic(targetValue) {
+        let t = this._settings.timingFunctionImpl(this.p);
+        if (t === 1) {
+            this._targetValue = targetValue;
+        } else if (t === 0) {
+            this._startValue = this._targetValue;
+            this._targetValue = targetValue;
+        } else {
+            this._startValue = targetValue - ((targetValue - this._targetValue) / (1 - v));
+            this._targetValue = targetValue;
+        }
+    }
+
+    getDrawValue() {
+        if (this.p >= 1) {
+            return this.targetValue;
+        } else {
+            let v = this._settings._timingFunctionImpl(this.p);
+            return this._merger(this.targetValue, this.startValue, v);
+        }
+    }
+
+    get startValue() {
+        return this._startValue;
+    }
+
+    get targetValue() {
+        return this._targetValue;
+    }
+
+    get p() {
+        return this._p;
+    }
+
+    get delayLeft() {
+        return this._delayLeft;
+    }
+
+    get view() {
+        return this._view;
+    }
+
+    get settings() {
+        return this._settings;
+    }
+
+    set settings(v) {
+        this._settings = v;
+    }
+
+}
+
+Base.mixinEs5(Transition, EventEmitter);
+
+
+
+class AnimationManager {
+
+    constructor(stage) {
+        this.stage = stage;
+
+        this.stage.on('frameStart', () => this.progress());
+
+        /**
+         * All transitions that are running and have
+         * @type {Set<Transition>}
+         */
+        this.active = new Set();
+    }
+
+    progress() {
+        if (this.active.size) {
+            let dt = this.stage.dt;
+
+            let filter = false;
+            this.active.forEach(function(a) {
+                if (a.isActive()) {
+                    a.progress(dt);
+                } else {
+                    filter = true;
+                }
+            });
+
+            if (filter) {
+                this.active = new Set([...this.active].filter(t => t.isActive()));
+            }
+        }
+    }
+
+    createAnimation(view, settings) {
+        if (Utils.isObjectLiteral(settings)) {
+            // Convert plain object to proper settings object.
+            settings = this.createSettings(settings);
+        }
+
+        return new Animation(
+            this,
+            settings,
+            view
+        );
+    }
+
+    createSettings(settings) {
+        let animationSettings = new AnimationSettings();
+        Base.setObjectSettings(animationSettings, settings);
+        return animationSettings;
+    }
+
+    addActive(transition) {
+        this.active.add(transition);
+    }
+}
+
+
+
+
+class AnimationSettings extends Base {
+    constructor() {
+        super();
+
+        /**
+         * @type {AnimationActionSettings[]}
+         * @private
+         */
+        this._actions = [];
+    }
+
+    _properties() {
+        this.delay = 0;
+        this.duration = 1;
+        
+        this.repeat = 0;
+        this.repeatOffset = 0;
+        this.repeatDelay = 0;
+
+        this.autostop = false;
+
+        this.stopMethod = AnimationSettings.STOP_METHODS.FADE;
+        this._stopTimingFunction = 'ease';
+        this._stopTimingFunctionImpl = StageUtils.getTimingFunction(this._stopTimingFunction);
+        this.stopDuration = 1;
+        this.stopDelay = 0;
+    }
+
+    get actions() {
+        return this._actions;
+    }
+
+    set actions(v) {
+        this._actions = [];
+        for (let i = 0, n = v.length; i < n; i++) {
+            let e = v[i];
+            if (!e.isAnimationActionSettings) {
+                let aas = new AnimationActionSettings(this);
+                Base.setObjectSettings(aas, e);
+                this._actions.push(aas);
+            } else {
+                this._actions.push(e);
+            }
+        }
+    }
+
+    /**
+     * Applies the animation to the specified view, for the specified progress between 0 and 1.
+     * @param {View} view
+     * @param {number} p
+     * @param {number} factor
+     */
+    apply(view, p, factor) {
+        this._actions.forEach(function(action) {
+            action.apply(view, p, factor);
+        });
+    }
+
+    /**
+     * Resets the animation to the reset values.
+     * @param {View} view
+     */
+    reset(view) {
+        this._actions.forEach(function(action) {
+            action.reset(view);
+        });
+    }
+
+    get stopTimingFunction() {
+        return this._stopTimingFunction;
+    }
+
+    set stopTimingFunction(v) {
+        this._stopTimingFunction = v;
+        this._stopTimingFunctionImpl = StageUtils.getTimingFunction(v);
+    }
+
+    get stopTimingFunctionImpl() {
+        return this._stopTimingFunctionImpl;
+    }
+
+}
+
+AnimationSettings.STOP_METHODS = {
+    FADE: 'fade',
+    REVERSE: 'reverse',
+    FORWARD: 'forward',
+    IMMEDIATE: 'immediate',
+    ONETOTWO: 'onetotwo'
 };
 
-WebAdapter.prototype.getUComponentContext = function() {
-    return this.uComponentContext;
-};
 
-WebAdapter.prototype.nextFrame = function(swapBuffers) {
-    /* WebGL blits automatically */
-};
 
-WebAdapter.prototype.getTextureProcess = function() {
-    // Auto-detect worker url.
-    var sc = document.getElementsByTagName("script");
 
-    var workerPath = this.stage.textureProcessWorkerPath;
+class AnimationActionSettings extends Base {
 
-    if (!workerPath) {
-        for (var idx = 0; idx < sc.length; idx++) {
-            var s = sc.item(idx);
+    constructor() {
+        super();
 
-            if (s.src) {
-                var match = /^(.+\/)(wpe(\.min)?|WebAdapter)\.js$/.exec(s.src);
-                if (match) {
-                    workerPath = match[1];
+        /**
+         * The tags to which this transformation applies.
+         * @type {string[]}
+         */
+        this._tags = null;
+
+        /**
+         * The value items, ordered by progress offset.
+         * @type {AnimationActionItems}
+         * @private
+         */
+        this._items = new AnimationActionItems(this);
+
+        /**
+         * The affected properties (paths).
+         * @private
+         */
+        this._props = [];
+
+        /**
+         * Property setters, indexed according to props.
+         * @private
+         */
+        this._propSetters = [];
+    }
+
+    _properties() {
+        this._resetValue = undefined;
+        this._hasResetValue = false;
+        this._merger = undefined;
+
+        this.isAnimationActionSettings = true;
+    }
+
+    getResetValue() {
+        if (this._hasResetValue) {
+            return this._resetValue;
+        } else {
+            return this._items.getValue(0);
+        }
+        return 0;
+    }
+
+    apply(view, p, factor) {
+        let views = this.getAnimatedViews(view);
+
+        let v = this._items.getValue(p);
+
+        if (v === undefined || !views.length) {
+            return;
+        }
+
+        if (factor !== 1) {
+            // Stop factor.
+            let sv = this.getResetValue();
+            if (this._merger) {
+                v = this._merger(v, sv, factor);
+            }
+        }
+
+        // Apply transformation to all components.
+        let n = this._propSetters.length;
+
+        let m = views.length;
+        for (let j = 0; j < m; j++) {
+            for (let i = 0; i < n; i++) {
+                this._propSetters[i](views[j], v);
+            }
+        }
+    }
+    
+    getAnimatedViews(view) {
+        if (!this._tags) {
+            return [view];
+        }
+
+        let n = this._tags.length;
+
+        if (n === 1) {
+            if (this._tags[0] == '') {
+                return [view];
+            } else {
+                return view.mtag(this._tags[0]);
+            }
+        } else {
+            let views = [];
+            for (let i = 0; i < n; i++) {
+                if (this._tags[i] === '') {
+                    views.push(view);
+                } else {
+                    let vs = view.mtag(this._tags[i]);
+                    view = views.concat(vs);
+                }
+            }
+        }        
+    }
+
+    reset(view) {
+        let views = this.getAnimatedViews(view);
+
+        let v = this.getResetValue();
+
+        if (v === undefined || !views.length) {
+            return;
+        }
+
+        // Apply transformation to all components.
+        let n = this._propSetters.length;
+
+        let m = views.length;
+        for (let j = 0; j < m; j++) {
+            for (let i = 0; i < n; i++) {
+                this._propSetters[i](views[j], v);
+            }
+        }
+    }
+    
+    get tags() {
+        return this._tags;
+    }
+    
+    get resetValue() {
+        return this._resetValue;
+    }
+    
+    set resetValue(v) {
+        this._resetValue = v;
+        this._hasResetValue = (v !== undefined);
+    }
+
+    set rv(v) {
+        this.resetValue = v;
+    }
+
+    set value(v) {
+        this._items.parse(v);
+    }
+
+    set v(v) {
+        this.value = v;
+    }
+
+    set properties(v) {
+        if (!Array.isArray(v)) {
+            v = [v];
+        }
+
+        this._props = [];
+
+        this._merger = undefined;
+        let first = true;
+        v.forEach((prop) => {
+            this._props.push(prop);
+            this._propSetters.push(View.getSetter(prop));
+
+            let merger = View.getMerger(prop);
+            if (first) {
+                this._merger = merger;
+                first = false;
+            } else {
+                if (this._merger !== merger) {
+                    // Do not use a merger in case of merger conflicts.
+                    console.warn('Merger conflicts for animation action properties: ' + v.join(','));
+                    this._merger = undefined;
+                }
+            }
+        });
+    }
+
+    set property(v) {
+        this.properties = v;
+    }
+
+    set p(v) {
+        this.properties = v;
+    }
+
+}
+
+
+
+
+class AnimationActionItems extends Base {
+    
+    constructor(action) {
+        super();
+        
+        this._action = action;
+        
+        this._clear();
+    }
+
+    _clear() {
+        this._p = [];
+        this._pe = [];
+        this._idp = [];
+        this._f = [];
+        this._v = [];
+        this._lv = [];
+        this._sm = [];
+        this._s = [];
+        this._ve = [];
+        this._sme = [];
+        this._se = [];
+
+        this._length = 0;
+    }
+    
+    parse(def) {
+        let i, n;
+        if (!Utils.isObjectLiteral(def)) {
+            def = {0: def};
+        }
+
+        let items = [];
+        for (let key in def) {
+            if (def.hasOwnProperty(key)) {
+                let obj = def[key];
+                if (!Utils.isObjectLiteral(obj)) {
+                    obj = {v: obj};
+                }
+
+                let p = parseFloat(key);
+                if (!isNaN(p) && p >= 0 && p <= 2) {
+                    obj.p = p;
+
+                    obj.f = Utils.isFunction(obj.v);
+                    obj.lv = obj.f ? obj.v(0, 0) : obj.v;
+
+                    items.push(obj);
                 }
             }
         }
+
+        // Sort by progress value.
+        items = items.sort(function(a, b) {return a.p - b.p});
+
+        n = items.length;
+
+        for (i = 0; i < n; i++) {
+            let last = (i == n - 1);
+            if (!items[i].hasOwnProperty('pe')) {
+                // Progress.
+                items[i].pe = last ? (items[i].p <= 1 ? 1 : 2 /* support onetotwo stop */) : items[i + 1].p;
+            } else {
+                // Prevent multiple items at the same time.
+                let max = i < n - 1 ? items[i + 1].p : 1;
+                if (items[i].pe > max) {
+                    items[i].pe = max;
+                }
+            }
+            if (items[i].pe === items[i].p) {
+                items[i].idp = 0;
+            } else {
+                items[i].idp = 1 / (items[i].pe - items[i].p);
+            }
+        }
+
+        if (this._action._merger) {
+            // Color merger: we need to split/combine RGBA components.
+            let rgba = (this._action._merger === StageUtils.mergeColors);
+
+            // Calculate bezier helper values.
+            for (i = 0; i < n; i++) {
+                if (!items[i].hasOwnProperty('sm')) {
+                    // Smoothness.
+                    items[i].sm = 0.5;
+                }
+                if (!items[i].hasOwnProperty('s')) {
+                    // Slope.
+                    if (i === 0 || i === n - 1 || (items[i].p === 1 /* for onetotwo */)) {
+                        // Horizontal slope at start and end.
+                        items[i].s = rgba ? [0, 0, 0, 0] : 0;
+                    } else {
+                        let pi = items[i - 1];
+                        let ni = items[i + 1];
+                        if (pi.p === ni.p) {
+                            items[i].s = rgba ? [0, 0, 0, 0] : 0;
+                        } else {
+                            if (rgba) {
+                                let nc = StageUtils.getRgbaComponents(ni.lv);
+                                let pc = StageUtils.getRgbaComponents(pi.lv);
+                                let d = 1 / (ni.p - pi.p);
+                                items[i].s = [
+                                    d * (nc[0] - pc[0]),
+                                    d * (nc[1] - pc[1]),
+                                    d * (nc[2] - pc[2]),
+                                    d * (nc[3] - pc[3])
+                                ];
+                            } else {
+                                items[i].s = (ni.lv - pi.lv) / (ni.p - pi.p);
+                            }
+                        }
+                    }
+                }
+            }
+
+            for (i = 0; i < n - 1; i++) {
+                // Calculate value function.
+                if (!items[i].f) {
+                    let last = (i === n - 1);
+                    if (!items[i].hasOwnProperty('sme')) {
+                        items[i].sme = last ? 0.5 : items[i + 1].sm;
+                    }
+                    if (!items[i].hasOwnProperty('se')) {
+                        items[i].se = last ? (rgba ? [0, 0, 0, 0] : 0) : items[i + 1].s;
+                    }
+                    if (!items[i].hasOwnProperty('ve')) {
+                        items[i].ve = last ? items[i].lv : items[i + 1].lv;
+                    }
+
+                    // Generate spline.
+                    if (rgba) {
+                        items[i].v = StageUtils.getSplineRgbaValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
+                    } else {
+                        items[i].v = StageUtils.getSplineValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
+                    }
+
+                    items[i].f = true;
+                }
+            }
+        }
+
+        if (this.length) {
+            this._clear();
+        }
+
+        for (i = 0, n = items.length; i < n; i++) {
+            this._add(items[i]);
+        }        
     }
 
-    return new TextureProcess({workerPath: workerPath, textServer: this.stage.textureProcessTextServer});
+    _add(item) {
+        this._p.push(item.p || 0);
+        this._pe.push(item.pe || 0);
+        this._idp.push(item.idp || 0);
+        this._f.push(item.f || false);
+        this._v.push(item.hasOwnProperty('v') ? item.v : 0 /* v might be false or null */ );
+        this._lv.push(item.lv || 0);
+        this._sm.push(item.sm || 0);
+        this._s.push(item.s || 0);
+        this._ve.push(item.ve || 0);
+        this._sme.push(item.sme || 0);
+        this._se.push(item.se || 0);
+        this._length++;
+    }
+    
+    _getItem(p) {
+        let n = this._length;
+        if (!n) {
+            return -1;
+        }
+
+        if (p < this._p[0]) {
+            return -1;
+        }
+
+        for (let i = 0; i < n; i++) {
+            if (this._p[i] <= p && p < this._pe[i]) {
+                return i;
+            }
+        }
+
+        return n - 1;        
+    }
+
+    getValue(p) {
+        let i = this._getItem(p);
+        if (i == -1) {
+            return undefined;
+        } else {
+            if (this._f[i]) {
+                let o = (p - this._p[i]) * this._idp[i];
+                return this._v[i](o);
+            } else {
+                return this._v[i];
+            }
+        }        
+    }
+
+}
+
+
+
+
+class Animation extends Base {
+
+    constructor(manager, settings, view) {
+        super();
+
+        EventEmitter.call(this);
+
+        this.manager = manager;
+
+        this._settings = settings;
+
+        this._view = view;
+
+        this._state = Animation.STATES.IDLE;
+    }
+
+    _properties() {
+        this._p = 0;
+        this._delayLeft = 0;
+        this._repeatsLeft = 0;
+        
+        this._stopDelayLeft = 0;
+        this._stopP = 0;
+    }
+
+    start() {
+        this._p = 0;
+        this._delayLeft = this.settings.delay;
+        this._repeatsLeft = this.settings.repeat;
+        this._state = Animation.STATES.PLAYING;
+        if (this._eventsCount) this.emit('start');
+        if (this._view) {
+            this.checkActive();
+        }
+    }
+
+    play() {
+        if (this._state == Animation.STATES.STOPPING && this.settings.stopMethod == AnimationSettings.STOP_METHODS.REVERSE) {
+            // Continue.
+            this._state = Animation.STATES.PLAYING;
+            if (this._eventsCount) this.emit('stopContinue');
+        } else if (this._state != Animation.STATES.PLAYING && this._state != Animation.STATES.FINISHED) {
+            // Restart.
+            this.start();
+        }
+    }
+
+    replay() {
+        if (this._state == Animation.STATES.FINISHED) {
+            this.start();
+        } else {
+            this.play();
+        }
+    }
+
+    skipDelay() {
+        this._delayLeft = 0;
+        this._stopDelayLeft = 0;
+    }
+
+    finish() {
+        if (this._state === Animation.STATES.PLAYING) {
+            this._delayLeft = 0;
+            this._p = 1;
+        } else if (this._state === Animation.STATES.STOPPING) {
+            this._stopDelayLeft = 0;
+            this._p = 0;
+        }
+    }
+
+    stop() {
+        if (this._state === Animation.STATES.STOPPED || this._state === Animation.STATES.IDLE) return;
+
+        if (this._view) {
+            this.checkActive();
+        }
+
+        this._stopDelayLeft = this.settings.stopDelay || 0;
+
+        if (((this.settings.stopMethod === AnimationSettings.STOP_METHODS.IMMEDIATE) && !this._stopDelayLeft) || this._delayLeft > 0) {
+            // Stop upon next progress.
+            this._state = Animation.STATES.STOPPING;
+            if (this._eventsCount) this.emit('stop');
+        } else {
+            if (this.settings.stopMethod === AnimationSettings.STOP_METHODS.FADE) {
+                this._stopP = 0;
+            }
+
+            this._state = Animation.STATES.STOPPING;
+            if (this._eventsCount) this.emit('stop');
+        }
+    }
+
+    stopNow() {
+        if (this._state !== Animation.STATES.STOPPED || this._state !== Animation.STATES.IDLE) {
+            this._state = Animation.STATES.STOPPING;
+            this._p = 0;
+            if (this._eventsCount) this.emit('stop');
+            this.reset();
+            this._state = Animation.STATES.STOPPED;
+            if (this._eventsCount) this.emit('stopFinish');
+        }
+    }
+
+    isPlaying() {
+        return this._state === Animation.STATES.PLAYING;
+    }
+
+    isStopping() {
+        return this._state === Animation.STATES.STOPPING;
+    }
+
+    checkActive() {
+        if (this.isActive()) {
+            this.manager.addActive(this);
+        }
+    }
+
+    isActive() {
+        return (this._state == Animation.STATES.PLAYING || this._state == Animation.STATES.STOPPING) && this._view && this._view.isAttached();
+    }
+
+    progress(dt) {
+        if (!this._view) return;
+        this._progress(dt);
+        this.apply();
+    }
+
+    _progress(dt) {
+        if (this._state == Animation.STATES.STOPPING) {
+            this._stopProgress(dt);
+            return;
+        }
+
+        if (this._state != Animation.STATES.PLAYING) {
+            return;
+        }
+
+        if (this._delayLeft > 0) {
+            this._delayLeft -= dt;
+
+            if (this._delayLeft < 0) {
+                dt = -this._delayLeft;
+                this._delayLeft = 0;
+
+                if (this._eventsCount) this.emit('delayEnd');
+            } else {
+                return;
+            }
+        }
+
+        if (this.settings.duration === 0) {
+            this._p = 1;
+        } else if (this.settings.duration > 0) {
+            this._p += dt / this.settings.duration;
+        }
+        if (this._p >= 1) {
+            // Finished!
+            if (this.settings.repeat == -1 || this._repeatsLeft > 0) {
+                if (this._repeatsLeft > 0) {
+                    this._repeatsLeft--;
+                }
+                this._p = this._repeatOffset;
+
+                if (this.settings.repeatDelay) {
+                    this._delayLeft = this.settings.repeatDelay;
+                }
+
+                if (this._eventsCount) this.emit('repeat', this._repeatsLeft);
+            } else {
+                this._p = 1;
+                this._state = Animation.STATES.FINISHED;
+                if (this._eventsCount) this.emit('finish');
+                if (this.settings.autostop) {
+                    this.stop();
+                }
+            }
+        } else {
+            if (this._eventsCount) this.emit('progress', this._p);
+        }
+    }
+    
+    _stopProgress(dt) {
+        let duration = this._getStopDuration();
+
+        if (this._stopDelayLeft > 0) {
+            // Animation wasn't even started yet: directly finish!
+            this._state = Animation.STATES.STOPPED;
+            if (this._eventsCount) this.emit('stopFinish');
+        }
+
+        if (this._stopDelayLeft > 0) {
+            this._stopDelayLeft -= dt;
+
+            if (this._stopDelayLeft < 0) {
+                dt = -this._stopDelayLeft;
+                this._stopDelayLeft = 0;
+
+                if (this._eventsCount) this.emit('stopDelayEnd');
+            } else {
+                return;
+            }
+        }
+        if (this.settings.stopMethod == AnimationSettings.STOP_METHODS.IMMEDIATE) {
+            this._state = Animation.STATES.STOPPED;
+            if (this._eventsCount) this.emit('stop');
+            if (this._eventsCount) this.emit('stopFinish');
+        } else if (this.settings.stopMethod == AnimationSettings.STOP_METHODS.REVERSE) {
+            if (duration === 0) {
+                this._p = 0;
+            } else if (duration > 0) {
+                this._p -= dt / duration;
+            }
+
+            if (this._p <= 0) {
+                this._p = 0;
+                this._state = Animation.STATES.STOPPED;
+                if (this._eventsCount) this.emit('stopFinish');
+            }
+        } else if (this.settings.stopMethod == AnimationSettings.STOP_METHODS.FADE) {
+            this._progressStopTransition(dt);
+            if (this._stopP >= 1) {
+                this._p = 0;
+                this._state = Animation.STATES.STOPPED;
+                if (this._eventsCount) this.emit('stopFinish');
+            }
+        } else if (this.settings.stopMethod == AnimationSettings.STOP_METHODS.ONETOTWO) {
+            if (this._p < 2) {
+                if (duration === 0) {
+                    this._p = 2;
+                } else if (duration > 0) {
+                    if (this._p < 1) {
+                        this._p += dt / this.settings.duration;
+                    } else {
+                        this._p += dt / duration;
+                    }
+                }
+                if (this._p >= 2) {
+                    this._p = 2;
+                    this._state = Animation.STATES.STOPPED;
+                    if (this._eventsCount) this.emit('stopFinish');
+                } else {
+                    if (this._eventsCount) this.emit('progress', this._p);
+                }
+            }
+        } else if (this.settings.stopMethod == AnimationSettings.STOP_METHODS.FORWARD) {
+            if (this._p < 1) {
+                if (this.settings.duration == 0) {
+                    this._p = 1;
+                } else {
+                    this._p += dt / this.settings.duration;
+                }
+                if (this._p >= 1) {
+                    if (this.settings.stopMethod == AnimationSettings.STOP_METHODS.FORWARD) {
+                        this._p = 1;
+                        this._state = Animation.STATES.STOPPED;
+                        if (this._eventsCount) this.emit('stopFinish');
+                    } else {
+                        if (this._repeatsLeft > 0) {
+                            this._repeatsLeft--;
+                            this._p = 0;
+                            if (this._eventsCount) this.emit('repeat', this._repeatsLeft);
+                        } else {
+                            this._p = 1;
+                            this._state = Animation.STATES.STOPPED;
+                            if (this._eventsCount) this.emit('stopFinish');
+                        }
+                    }
+                } else {
+                    if (this._eventsCount) this.emit('progress', this._p);
+                }
+            }
+        }
+        
+    }
+    
+    _progressStopTransition(dt) {
+        if (this._stopP < 1) {
+            if (this._stopDelayLeft > 0) {
+                this._stopDelayLeft -= dt;
+
+                if (this._stopDelayLeft < 0) {
+                    dt = -this.stopDelayLeft;
+                    this._stopDelayLeft = 0;
+
+                    if (this._eventsCount) this.emit('delayEnd');
+                } else {
+                    return;
+                }
+            }
+            
+            let duration = this._getStopDuration();
+
+            if (duration == 0) {
+                this._stopP = 1;
+            } else {
+                this._stopP += dt / duration;
+            }
+            if (this._stopP >= 1) {
+                // Finished!
+                this._stopP = 1;
+            }
+        }
+    }
+
+    _getStopDuration() {
+        return this.settings.stopDuration || this.settings.duration;
+    }
+
+    apply() {
+        if (this._state == Animation.STATES.STOPPED) {
+            this.reset();
+        } else {
+            let factor = 1;
+            if (this._state === Animation.STATES.STOPPING && this.settings.stopMethod === AnimationSettings.STOP_METHODS.FADE) {
+                factor = (1 - this.settings.stopTimingFunctionImpl(this._stopP));
+            }
+            this._settings.apply(this._view, this._p, factor);
+        }
+    }
+
+    reset() {
+        this._settings.reset(this._view);
+    }
+
+    get state() {
+        return this._state;
+    }
+
+    get p() {
+        return this._p;
+    }
+
+    get delayLeft() {
+        return this._delayLeft;
+    }
+
+    get view() {
+        return this._view;
+    }
+
+    get frame() {
+        return Math.round(p * this._settings.duration * 60);
+    }
+
+    get settings() {
+        return this._settings;
+    }
+
+}
+
+
+Base.mixinEs5(Animation, EventEmitter);
+
+Animation.STATES = {
+    IDLE: 0,
+    PLAYING: 1,
+    STOPPING: 2,
+    STOPPED: 3,
+    FINISHED: 4
 };
+
+

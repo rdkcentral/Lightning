@@ -1,3 +1,5 @@
+let Base = require('../core/Base');
+
 class Transition extends Base {
 
     constructor(manager, settings, view, property) {
@@ -172,4 +174,10 @@ class Transition extends Base {
 
 }
 
+let EventEmitter = require('../browser/EventEmitter');
 Base.mixinEs5(Transition, EventEmitter);
+
+module.exports = Transition;
+
+let StageUtils = require('../core/StageUtils');
+let View = require('../core/View');

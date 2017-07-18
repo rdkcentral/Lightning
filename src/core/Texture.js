@@ -1,3 +1,6 @@
+/**
+ * Copyright Metrological, 2017
+ */
 class Texture {
 
     /**
@@ -174,3 +177,5 @@ class Texture {
 }
 
 Texture.id = 0;
+
+module.exports = Texture;

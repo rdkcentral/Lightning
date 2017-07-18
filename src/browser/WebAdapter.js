@@ -1,3 +1,7 @@
+/**
+ * Platform-specific functionality.
+ * Copyright Metrological, 2017
+ */
 class WebAdapter {
 
     init(stage) {
@@ -32,7 +36,7 @@ class WebAdapter {
     }
 
     uploadGlTexture(gl, textureSource, source, hasAlpha) {
-        var format = hasAlpha ? gl.RGBA : gl.RGB;
+        let format = hasAlpha ? gl.RGBA : gl.RGB;
 
         if (source instanceof ImageData || source instanceof HTMLImageElement || source instanceof HTMLCanvasElement || source instanceof HTMLVideoElement || (window.ImageBitmap && source instanceof ImageBitmap)) {
             // Web-specific data types.
@@ -68,14 +72,12 @@ class WebAdapter {
         cb(null, data, options);
     }
 
-    createWebGLCanvas(w, h) {
-        let canvas = document.createElement('canvas');
+    createWebGLContext(w, h) {
+        let canvas = this.stage.options.canvas || document.createElement('canvas');
+
         canvas.width = w;
         canvas.height = h;
-        return canvas;
-    }
 
-    getWebGLRenderingContext(canvas) {
         let opts = {
             alpha: true,
             antialias: false,
@@ -94,6 +96,10 @@ class WebAdapter {
         return gl;
     }
 
+    getWebGLCanvas() {
+        return this.canvas;
+    }
+
     getHrTime() {
         return window.performance ? window.performance.now() : (new Date()).getTime();
     }
@@ -105,8 +111,12 @@ class WebAdapter {
         return this.drawingCanvas;
     }
 
-    nextFrame() {
+    nextFrame(changes) {
         /* WebGL blits automatically */
     }
 
 }
+
+module.exports = WebAdapter;
+
+let TextRenderer = require('../core/TextRenderer');

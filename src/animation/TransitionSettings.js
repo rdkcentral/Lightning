@@ -1,3 +1,5 @@
+let Base = require('../core/Base');
+
 class TransitionSettings extends Base {
     constructor() {
         super();
@@ -24,3 +26,7 @@ class TransitionSettings extends Base {
         return this._timingFunctionImpl;
     }
 }
+
+module.exports = TransitionSettings;
+
+let StageUtils = require('../core/StageUtils');

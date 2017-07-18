@@ -1,3 +1,11 @@
+/**
+ * Render tree node.
+ * Copyright Metrological, 2017
+ */
+
+let Base = require('./Base');
+let StageUtils = require('./StageUtils');
+
 class View extends Base {
 
     constructor(stage) {
@@ -274,7 +282,7 @@ class View extends Base {
     };
 
     isAncestorOf(c) {
-        var p = c;
+        let p = c;
         while(p = p.parent) {
             if (this === p) {
                 return true;
@@ -1044,12 +1052,12 @@ class View extends Base {
     };
 
     static getPrettyString(obj, indent) {
-        var children = obj.children;
+        let children = obj.children;
         delete obj.children;
 
         // Convert singular json settings object.
-        var colorKeys = ["color", "colorUl", "colorUr", "colorBl", "colorBr"]
-        var str = JSON.stringify(obj, function (k, v) {
+        let colorKeys = ["color", "colorUl", "colorUr", "colorBl", "colorBr"]
+        let str = JSON.stringify(obj, function (k, v) {
             if (colorKeys.indexOf(k) !== -1) {
                 return "COLOR[" + v.toString(16) + "]";
             }
@@ -1058,10 +1066,10 @@ class View extends Base {
         str = str.replace(/"COLOR\[([a-f0-9]{1,8})\]"/g, "0x$1");
 
         if (children && children.length) {
-            var isEmpty = (str === "{}");
+            let isEmpty = (str === "{}");
             str = str.substr(0, str.length - 1) + (isEmpty ? "" : ",") + "\"children\":[\n";
-            var n = children.length;
-            for (var i = 0; i < n; i++) {
+            let n = children.length;
+            for (let i = 0; i < n; i++) {
                 str += View.getPrettyString(children[i], indent + "  ") + (i < n - 1 ? "," : "") + "\n";
             }
             str += indent + "]}";
@@ -1071,7 +1079,7 @@ class View extends Base {
     }
 
     getSettings() {
-        var settings = this.getNonDefaults();
+        let settings = this.getNonDefaults();
 
         if (this._children) {
             let n = this._children.length;
@@ -1085,7 +1093,7 @@ class View extends Base {
     }
 
     getNonDefaults() {
-        var settings = {};
+        let settings = {};
 
         if (this._tags && this._tags.length) {
             settings.tags = this._tags;
@@ -2237,6 +2245,18 @@ class View extends Base {
 
 }
 
+let getColorInt = function (c, alpha) {
+    let a = ((c / 16777216 | 0) * alpha) | 0;
+    return (((((c >> 16) & 0xff) * a) >> 8) & 0xff) +
+        ((((c & 0xff00) * a) >> 8) & 0xff00) +
+        (((((c & 0xff) << 16) * a) >> 8) & 0xff0000) +
+        (a << 24);
+};
+
+let getVboTextureCoords = function (x, y) {
+    return ((x * 65535 + 0.5) | 0) + ((y * 65535 + 0.5) | 0) * 65536;
+};
+
 View.id = 1;
 
 // Getters reused when referencing view (subobject) properties by a property path, as used in a transition or animation ('x', 'texture.x', etc).
@@ -2273,5 +2293,13 @@ View.PROP_MERGERS = {
     'texture.h': mn
 };
 
+let EventEmitter = require('../browser/EventEmitter');
+
 Base.mixinEs5(View, EventEmitter);
 
+module.exports = View;
+
+let Utils = require('./Utils');
+let GeometryUtils = require('./GeometryUtils');
+let ViewText = require('./ViewText');
+let Texture = require('./Texture');

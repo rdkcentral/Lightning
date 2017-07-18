@@ -403,13 +403,13 @@ Object.defineProperty(View.prototype, '_h', {
 });
 
 View.prototype.updateLeft = function() {
-    var mx = this.mountX * this.getRenderWidth();
+    var mx = this.mountX * this.renderWidth;
     var x = this._x - mx;
     this.dhtml().style.left = x + 'px';
 };
 
 View.prototype.updateTop = function() {
-    var my = this.mountY * this.getRenderHeight();
+    var my = this.mountY * this.renderHeight;
     var y = this._y - my;
     this.dhtml().style.top = y + 'px';
 };

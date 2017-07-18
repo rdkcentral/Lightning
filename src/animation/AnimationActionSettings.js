@@ -1,3 +1,5 @@
+let Base = require('../core/Base');
+
 class AnimationActionSettings extends Base {
 
     constructor() {
@@ -181,3 +183,8 @@ class AnimationActionSettings extends Base {
     }
 
 }
+
+module.exports = AnimationActionSettings;
+
+let AnimationActionItems = require('./AnimationActionItems');
+let View = require('../core/View');

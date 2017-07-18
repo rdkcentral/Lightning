@@ -114,3 +114,10 @@ class TransitionManager {
         this.active.add(transition);
     }
 }
+
+module.exports = TransitionManager;
+
+let Base = require('../core/Base');
+let Utils = require('../core/Utils');
+let TransitionSettings = require('./TransitionSettings');
+let Transition = require('./Transition');

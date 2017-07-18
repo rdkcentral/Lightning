@@ -1,3 +1,5 @@
+let Base = require('../core/Base');
+
 class Animation extends Base {
 
     constructor(manager, settings, view) {
@@ -349,6 +351,8 @@ class Animation extends Base {
 
 }
 
+let EventEmitter = require('../browser/EventEmitter');
+
 Base.mixinEs5(Animation, EventEmitter);
 
 Animation.STATES = {
@@ -359,3 +363,6 @@ Animation.STATES = {
     FINISHED: 4
 };
 
+module.exports = Animation;
+
+let AnimationSettings = require('./AnimationSettings');

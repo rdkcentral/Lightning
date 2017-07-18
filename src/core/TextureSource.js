@@ -1,3 +1,6 @@
+/**
+ * Copyright Metrological, 2017
+ */
 class TextureSource {
 
     constructor(manager, loadCb) {
@@ -246,3 +249,5 @@ class TextureSource {
 }
 
 TextureSource.id = 1;
+
+module.exports = TextureSource;

@@ -1,3 +1,5 @@
+let Base = require('../core/Base');
+
 class AnimationSettings extends Base {
     constructor() {
         super();
@@ -88,3 +90,8 @@ AnimationSettings.STOP_METHODS = {
     IMMEDIATE: 'immediate',
     ONETOTWO: 'onetotwo'
 };
+
+module.exports = AnimationSettings;
+
+let StageUtils = require('../core/StageUtils');
+let AnimationActionSettings = require('./AnimationActionSettings');

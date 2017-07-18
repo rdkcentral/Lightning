@@ -54,3 +54,10 @@ class AnimationManager {
         this.active.add(transition);
     }
 }
+
+module.exports = AnimationManager;
+
+let Base = require('../core/Base');
+let Utils = require('../core/Utils');
+let AnimationSettings = require('./AnimationSettings');
+let Animation = require('./Animation');

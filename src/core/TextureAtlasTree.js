@@ -1,3 +1,6 @@
+/**
+ * Copyright Metrological, 2017
+ */
 class TextureAtlasTree {
 
     constructor(w, h) {
@@ -101,3 +104,5 @@ class TextureAtlasTree {
     }
     
 }
+
+module.exports = TextureAtlasTree;
