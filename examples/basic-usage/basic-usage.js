@@ -14,9 +14,10 @@ var start = function(wpe) {
         document.body.appendChild(stage.getCanvas());
     }
 
+    var texture = wpe.Tools.getRoundRect(stage, 400, 400, 10, 2, 0xFF000000, true, 0xFF00FF00);
     stage.root.add([
         {tags: 'bg', rect: true, x: 20, y: 20, w: 560, h: 560, colorUl: 0xFFFF0000, colorBr: 0xFFFF6666, zIndex: 1, children: [
-           {tags: 'hello', text: {text: "hello world", fontSize: 50}, x: 10, y: 20},
+           {tags: 'hello', texture: texture, x: 10, y: 20},
            {tags: 'box', rect: true, w: 400, h: 200, x: 150, color: 0xAAFF00FF, borderWidth: 1, borderColor: 0xFF000000, children: [
                {tags: 'hello2', text: {text: "hello world", fontSize: 50}, x: 10, y: 20}
            ]}

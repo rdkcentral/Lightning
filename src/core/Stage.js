@@ -7,14 +7,7 @@ let Base = require('./Base');
 
 /**
  * @todo:
- * - class loader (require)
- *   - should allow easy debug in nodejs & web
- *   - should be stripped when building for web
- *   - delete nodejs dist builders
- * - dist version (grunt file)
- * - nodejs
  * - nodejs texture process
- * - tools
  * - list
  * - encapsulate tags branches (for isolating widgets)
  * - merger: isRgba? isNumeric?

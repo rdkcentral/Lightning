@@ -55,7 +55,8 @@ var loadWpe, loadBulk;
             "AnimationSettings":"./animation/AnimationSettings.js",
             "AnimationActionSettings":"./animation/AnimationActionSettings.js",
             "AnimationActionItems":"./animation/AnimationActionItems.js",
-            "Animation":"./animation/Animation.js"
+            "Animation":"./animation/Animation.js",
+            "Tools":"../tools/Tools.js"
         };
         return loadBulk(srcPath, sourceFiles);
     }
