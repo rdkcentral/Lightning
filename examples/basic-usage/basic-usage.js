@@ -29,22 +29,22 @@ var start = function() {
     }, 1000);
 
 
-    // var hello2 = stage.root.tag('hello2');
-    //
-    // stage.transitions.set(hello2, 'texture.x', {duration: 2});
-    // stage.transitions.start(hello2, 'texture.x', 100);
-    //
-    // let animdef = stage.animations.createSettings({duration: 3, autostop: true, stopTimingFunction: 'linear', stopDuration: 3, actions: [
-    //     {property: ['y'], value: {0:0,1:100}},
-    //     {property: ['color'], value: {0:0xFFFFFFFF,1:0xFFFF0000}},
-    // ]});
-    // let anim = stage.animations.createAnimation(stage.root.tag('bg'), animdef);
-    // anim.start();
-    //
-    // setTimeout(function() {
-    //     let anim2 = stage.animations.createAnimation(stage.root.tag('hello2'), animdef);
-    //     anim2.start();
-    // }, 500);
+    var hello2 = stage.root.tag('hello2');
+
+    stage.transitions.set(hello2, 'texture.x', {duration: 2});
+    stage.transitions.start(hello2, 'texture.x', 100);
+
+    let animdef = stage.animations.createSettings({duration: 3, autostop: true, stopTimingFunction: 'linear', stopDuration: 3, actions: [
+        {property: ['y'], value: {0:0,1:100}},
+        {property: ['color'], value: {0:0xFFFFFFFF,1:0xFFFF0000}},
+    ]});
+    let anim = stage.animations.createAnimation(stage.root.tag('bg'), animdef);
+    anim.start();
+
+    setTimeout(function() {
+        let anim2 = stage.animations.createAnimation(stage.root.tag('hello2'), animdef);
+        anim2.start();
+    }, 500);
 
     let i = 1;
     // let def = stage.transitions.createSettings({duration: 2});

@@ -6,6 +6,8 @@
  * - merger: isRgba? isNumeric?
  * - quick clone
  * - hasAlpha in format, and try to prepare images for upload (so that we get buffer performance).
+ * - test for existing apps, convert existing apps
+ * - chagne documentation
  */
 class Stage extends Base {
     constructor(options) {

@@ -1,7 +1,6 @@
 class View extends Base {
 
     constructor(stage) {
-
         super();
 
         EventEmitter.call(this);
@@ -126,6 +125,12 @@ class View extends Base {
 
         this._localAlpha = 1;
 
+        /**
+         * Cached render width/height.
+         * Only maintained if active.
+         * @type {number}
+         * @private
+         */
         this._rw = 0;
         this._rh = 0;
 
@@ -507,23 +512,6 @@ class View extends Base {
         }
     };
 
-    getRenderWidth() {
-        if (this._active) {
-            // Render width is only maintained if this view is active.
-            return this._rw;
-        } else {
-            return this._getRenderWidth();
-        }
-    };
-
-    getRenderHeight() {
-        if (this._active) {
-            return this._rh;
-        } else {
-            return this._getRenderHeight();
-        }
-    };
-
     _getRenderWidth() {
         if (this._w) {
             return this._w;
@@ -551,11 +539,20 @@ class View extends Base {
     };
 
     get renderWidth() {
-        return this.getRenderWidth();
+        if (this._active) {
+            // Render width is only maintained if this view is active.
+            return this._rw;
+        } else {
+            return this._getRenderWidth();
+        }
     }
 
     get renderHeight() {
-        return this.getRenderHeight();
+        if (this._active) {
+            return this._rh;
+        } else {
+            return this._getRenderHeight();
+        }
     }
 
     get texture() {
