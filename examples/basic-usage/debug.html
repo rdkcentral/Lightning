@@ -4,11 +4,14 @@
     <meta charset="UTF-8" />
 
     <script src="../../src/browser/devloader.js"></script>
+    <script src="../../devtools/inspect.js"></script>
     <script src="./basic-usage.js"></script>
 </head>
 <body>
 <script>
     loadWpe("/WPEUIFramework/src").then(function(wpe) {
+        attachInspector(wpe);
+
         start(wpe);
     });
 </script>
