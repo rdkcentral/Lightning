@@ -13,6 +13,7 @@ module.exports = {
     "TextureAtlas": require("./src/core/TextureAtlas"),
     "TextureAtlasTree": require("./src/core/TextureAtlasTree"),
     "View": require("./src/core/View"),
+    "ViewRenderer": require("./src/core/ViewRenderer"),
     "VboContext": require("./src/core/VboContext"),
     "ViewText": require("./src/core/ViewText"),
     "TextRenderer": require("./src/core/TextRenderer"),

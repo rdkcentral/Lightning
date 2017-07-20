@@ -41,14 +41,7 @@ class VboContext {
 
         this.reset();
 
-        // The root parent is used when updating the transform matrix, because it saves us from having several branches.
-        if (!this.rootParent) {
-            this.rootParent = new View(this.stage);
-        }
-
-        this.root._parent = this.rootParent;
         this.root.update();
-        this.root._parent = null;
 
         if (this.useZIndexing) {
             // A secondary fill pass is required.
