@@ -196,6 +196,12 @@ class Stage extends Base {
         return new View(this);
     }
 
+    view(settings) {
+        let view = this.createView();
+        view.setSettings(settings);
+        return view;
+    }
+
     /**
      * Returns the specified texture.
      * @param {string|function} source

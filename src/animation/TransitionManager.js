@@ -77,7 +77,11 @@ class TransitionManager {
     /**
      * @returns {Transition}
      */
-    get(view, property) {
+    get(view, property, settings) {
+        if (settings) {
+            this.set(view, property, settings);
+        }
+
         let transition = this._get(view, property);
         if (!transition) {
             return;

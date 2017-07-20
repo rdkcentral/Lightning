@@ -396,7 +396,7 @@ class View extends Base {
 
     add(o) {
         if (Utils.isObjectLiteral(o)) {
-            let c = this.stage.createView(o);
+            let c = this.stage.createView();
             c.setSettings(o);
             this.addChild(c);
             return c;
@@ -1381,7 +1381,7 @@ class View extends Base {
     };
 
     get colorBl() {
-        return this._colorUr;
+        return this._colorBl;
     }
 
     set colorBl(color) {
@@ -1392,7 +1392,7 @@ class View extends Base {
     };
 
     get colorBr() {
-        return this._colorUr;
+        return this._colorBr;
     }
 
     set colorBr(color) {
@@ -2031,19 +2031,19 @@ class View extends Base {
                     vboBufferFloat[vboIndex++] = this._worldPx;
                     vboBufferFloat[vboIndex++] = this._worldPy;
                     vboBufferUint[vboIndex++] = this._txCoordsUl; // Texture.
-                    vboBufferUint[vboIndex++] = getColorInt(this.colorUl, this._worldAlpha);
+                    vboBufferUint[vboIndex++] = getColorInt(this._colorUl, this._worldAlpha);
                     vboBufferFloat[vboIndex++] = this._worldPx + this._rw * this._worldTa;
                     vboBufferFloat[vboIndex++] = this._worldPy + this._rw * this._worldTc;
                     vboBufferUint[vboIndex++] = this._txCoordsUr;
-                    vboBufferUint[vboIndex++] = getColorInt(this.colorUr, this._worldAlpha);
+                    vboBufferUint[vboIndex++] = getColorInt(this._colorUr, this._worldAlpha);
                     vboBufferFloat[vboIndex++] = this._worldPx + this._rw * this._worldTa + this._rh * this._worldTb;
                     vboBufferFloat[vboIndex++] = this._worldPy + this._rw * this._worldTc + this._rh * this._worldTd;
                     vboBufferUint[vboIndex++] = this._txCoordsBr;
-                    vboBufferUint[vboIndex++] = getColorInt(this.colorBr, this._worldAlpha);
+                    vboBufferUint[vboIndex++] = getColorInt(this._colorBr, this._worldAlpha);
                     vboBufferFloat[vboIndex++] = this._worldPx + this._rh * this._worldTb;
                     vboBufferFloat[vboIndex++] = this._worldPy + this._rh * this._worldTd;
                     vboBufferUint[vboIndex++] = this._txCoordsBl;
-                    vboBufferUint[vboIndex] = getColorInt(this.colorBl, this._worldAlpha);
+                    vboBufferUint[vboIndex] = getColorInt(this._colorBl, this._worldAlpha);
                     this.ctx.addVboTextureSource(this._displayedTextureSource, 1);
                 }
             } else {
@@ -2055,19 +2055,19 @@ class View extends Base {
                     vboBufferFloat[vboIndex++] = this._worldPx;
                     vboBufferFloat[vboIndex++] = this._worldPy;
                     vboBufferUint[vboIndex++] = this._txCoordsUl; // Texture.
-                    vboBufferUint[vboIndex++] = getColorInt(this.colorUl, this._worldAlpha);
+                    vboBufferUint[vboIndex++] = getColorInt(this._colorUl, this._worldAlpha);
                     vboBufferFloat[vboIndex++] = cx;
                     vboBufferFloat[vboIndex++] = this._worldPy;
                     vboBufferUint[vboIndex++] = this._txCoordsUr;
-                    vboBufferUint[vboIndex++] = getColorInt(this.colorUr, this._worldAlpha);
+                    vboBufferUint[vboIndex++] = getColorInt(this._colorUr, this._worldAlpha);
                     vboBufferFloat[vboIndex++] = cx;
                     vboBufferFloat[vboIndex++] = cy;
                     vboBufferUint[vboIndex++] = this._txCoordsBr;
-                    vboBufferUint[vboIndex++] = getColorInt(this.colorBr, this._worldAlpha);
+                    vboBufferUint[vboIndex++] = getColorInt(this._colorBr, this._worldAlpha);
                     vboBufferFloat[vboIndex++] = this._worldPx;
                     vboBufferFloat[vboIndex++] = cy;
                     vboBufferUint[vboIndex++] = this._txCoordsBl;
-                    vboBufferUint[vboIndex] = getColorInt(this.colorBl, this._worldAlpha);
+                    vboBufferUint[vboIndex] = getColorInt(this._colorBl, this._worldAlpha);
                     this.ctx.addVboTextureSource(this._displayedTextureSource, 1);
                 }
             }
@@ -2080,7 +2080,7 @@ class View extends Base {
         let vboBufferUint = this.ctx.vboBufferUint;
 
         // Gradients are not supported for clipped quads.
-        let c = getColorInt(this.colorUl, this._worldAlpha);
+        let c = getColorInt(this._colorUl, this._worldAlpha);
 
         if (this._clippingSquare) {
             // Inverse matrix.

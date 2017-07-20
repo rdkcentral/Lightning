@@ -2,12 +2,12 @@ let Base = require('../core/Base');
 
 class List extends Base {
 
-    constructor(stage) {
+    constructor(view) {
         super();
 
-        this._view = stage.createView();
+        this._view = view;
         
-        this._stage = stage;
+        this._stage = view.stage;
 
         this._wrapper = this._view.add({});
 
@@ -18,6 +18,12 @@ class List extends Base {
         this._index = 0;
 
         this._started = false;
+
+        /**
+         * The transition definition that is being used when scrolling the items.
+         * @type TransitionSettings
+         */
+        this._scrollTransition = this._view.stage.transitions.createSettings({});
 
         EventEmitter.call(this);
     }
@@ -34,30 +40,19 @@ class List extends Base {
         this._itemScrollOffset = 0;
 
         /**
-         * The transition definition that is being used when scrolling the items.
-         * @type TransitionSettings
-         */
-        this._scrollTransition = this.view.stage.transitions.createSettings({});
-
-        /**
-         * Should list roll over to first item or stop at start/end item?
-         */
-        this._rollOver = true;
-
-        /**
          * Should the list jump when scrolling between end to start, or should it be continuous, like a carrousel?
          */
-        this._wrap = true;
+        this._roll = true;
 
         /**
          * Allows restricting the start scroll position.
          */
-        this._wrapMin = 0;
+        this._rollMin = 0;
 
         /**
          * Allows restricting the end scroll position.
          */
-        this._wrapMax = 0;
+        this._rollMax = 0;
 
         /**
          * Definition for a custom animation that is applied when an item is (partially) selected.
@@ -82,9 +77,10 @@ class List extends Base {
     }
     
     start() {
-        this._stage.transitions.set(this._view, this.property, this._scrollTransition)
-        this._transition = this._stage.transitions.get(this._view, this.property);
+        this._transition = this._stage.transitions.get(this._wrapper, this.property, this._scrollTransition);
         this._transition.on('progress', p => this.update());
+
+        this.setIndex(0, true, true);
         this.update();
 
         this._started = true;
@@ -99,8 +95,14 @@ class List extends Base {
     addElement(view) {
         let element = this._stage.createView();
         element.add(view);
+        element.visible = false;
         this._wrapper.add(element);
         this._reloadVisibleElements = true;
+
+        if (this.length === 1) {
+            this.setIndex(0, true, true);
+        }
+
         return element;
     }
     
@@ -123,44 +125,35 @@ class List extends Base {
         this._reloadVisibleElements = true;        
     }
     
-    setIndex(index, immediate, closest) {
+    setIndex(index, immediate = false, closest = false) {
         let nElements = this.length;
         if (!nElements) return;
 
-        this.emit('unfocus', this._index, this.realIndex);
+        this.emit('unfocus', this.getElement(this.realIndex), this._index, this.realIndex);
 
-        if (!this._rollOver) {
-            if (this._index < 0) {
-                this._index = 0;
+        if (closest) {
+            // Scroll to same offset closest to the index.
+            let offset = Utils.getModuloIndex(index, nElements);
+            let o = Utils.getModuloIndex(this.index, nElements);
+            let diff = offset - o;
+            if (diff > 0.5 * nElements) {
+                diff -= nElements;
+            } else if (diff < -0.5 * nElements) {
+                diff += nElements;
             }
-            if (this._index >= nElements) {
-                this._index = nElements - 1;
-            }
-            this._index = index;
+            this._index += diff;
         } else {
-            if (closest) {
-                // Scroll to same offset closest to the index.
-                let offset = Utils.getModuloIndex(index, nElements);
-                let o = Utils.getModuloIndex(this.index, nElements);
-                let diff = offset - o;
-                if (diff > 0.5 * nElements) {
-                    diff -= nElements;
-                } else if (diff < -0.5 * nElements) {
-                    diff += nElements;
-                }
-                this._index += diff;
-            } else {
-                this._index = index;
-            }
+            this._index = index;
         }
-        if (this._wrap || (this.getViewportSize() > this._itemSize * nElements)) {
+
+        if (this._roll || (this.viewportSize > this._itemSize * nElements)) {
             this._index = Utils.getModuloIndex(this._index, nElements);
         }
 
         let direction = (this._horizontal ^ this._invertDirection ? -1 : 1);
         let value = direction * this._index * this._itemSize;
 
-        if (this._wrap) {
+        if (this._roll) {
             let min, max, scrollDelta;
             if (direction == 1) {
                 max = (nElements - 1) * this._itemSize;
@@ -170,8 +163,8 @@ class List extends Base {
 
                 min = this.viewportSize - (this._itemSize + scrollDelta);
 
-                if (this._wrapMin) min -= this._wrapMin;
-                if (this._wrapMax) max += this._wrapMax;
+                if (this._rollMin) min -= this._rollMin;
+                if (this._rollMax) max += this._rollMax;
 
                 value = Math.max(Math.min(value, max), min);
             } else {
@@ -182,8 +175,8 @@ class List extends Base {
 
                 let min = scrollDelta;
 
-                if (this._wrapMin) min -= this._wrapMin;
-                if (this._wrapMax) max += this._wrapMax;
+                if (this._rollMin) min -= this._rollMin;
+                if (this._rollMax) max += this._rollMax;
 
                 value = Math.min(Math.max(-max, value), -min);
             }
@@ -195,7 +188,7 @@ class List extends Base {
             this._transition.finish();
         }
 
-        this.emit('focus', this._index, this.realIndex);
+        this.emit('focus', this.getElement(this.realIndex), this._index, this.realIndex);
     }
 
     update() {
@@ -225,19 +218,23 @@ class List extends Base {
             e = Math.ceil((v - viewportSize) / this._itemSize);
             pe = e - ((v - viewportSize) / this._itemSize);
         }
-        if (this._wrap || (viewportSize > this._itemSize * nElements)) {
+        if (this._roll || (viewportSize > this._itemSize * nElements)) {
             // Don't show additional items.
             if (e >= nElements) {
                 e = nElements - 1;
+                pe = 1;
             }
             if (s >= nElements) {
                 s = nElements - 1;
+                ps = 1;
             }
             if (e <= -1) {
                 e = 0;
+                pe = 1;
             }
             if (s <= -1) {
                 s = 0;
+                ps = 1;
             }
         }
 
@@ -250,7 +247,7 @@ class List extends Base {
             let element = this.getElement(realIndex);
             item = element.parent;
             this._visibleItems.delete(item);
-            if (this.horizontal) {
+            if (this._horizontal) {
                 item.x = offset + scrollDelta;
             } else {
                 item.y = offset + scrollDelta;
@@ -264,7 +261,7 @@ class List extends Base {
                 this.emit('visible', index, realIndex);
             }
 
-            item.visible = true;
+
 
             if (this._progressAnimation) {
                 let p = 1;
@@ -290,7 +287,7 @@ class List extends Base {
 
         for (let index = s; (direction == -1 ? index <= e : index >= e); (direction == -1 ? index++ : index--)) {
             let realIndex = Utils.getModuloIndex(index, nElements);
-            this._visibleItems.add(this.getItem(realIndex));
+            this._visibleItems.add(this.getWrapper(realIndex));
         }
 
         this._reloadVisibleElements = false;
@@ -304,9 +301,8 @@ class List extends Base {
         this.setIndex(this._index + 1);
     }
 
-    getItem(index) {
-        let e = this._wrapper.children[index];
-        return e ? e.children[0] : null;
+    getWrapper(index) {
+        return this._wrapper.children[index];
     }
 
     getElement(index) {
@@ -336,15 +332,6 @@ class List extends Base {
         return this._horizontal ? this._view.w : this._view.h;
     }
 
-    set viewportSize(v) {
-        if (this._horizontal) {
-            this._view.w = v;
-        } else {
-            this._view.h = v;
-        }
-        this.update();
-    }
-
     get index() {
         return this._index;
     }
@@ -371,6 +358,15 @@ class List extends Base {
         this.update();
     }
 
+    get itemScrollOffset() {
+        return this._itemScrollOffset;
+    }
+
+    set itemScrollOffset(v) {
+        this._itemScrollOffset = v;
+        this.update();
+    }
+
     get scrollTransition() {
         return this._scrollTransition;
     }
@@ -384,7 +380,11 @@ class List extends Base {
     }
 
     set progressAnimation(v) {
-        this._progressAnimation = v;
+        if (Utils.isObjectLiteral(v)) {
+            this._progressAnimation = this._stage.animations.createSettings(v);
+        } else {
+            this._progressAnimation = v;
+        }
         this.update();
     }
 
@@ -392,21 +392,30 @@ class List extends Base {
         return this._transition;
     }
 
-    get wrapMin() {
-        return this._wrapMin;
+    get roll() {
+        return this._roll;
     }
 
-    set wrapMin(v) {
-        this._wrapMin = v;
+    set roll(v) {
+        this._roll = v;
         this.update();
     }
 
-    get wrapMax() {
-        return this._wrapMax;
+    get rollMin() {
+        return this._rollMin;
     }
 
-    set wrapMax(v) {
-        this._wrapMax = v;
+    set rollMin(v) {
+        this._rollMin = v;
+        this.update();
+    }
+
+    get rollMax() {
+        return this._rollMax;
+    }
+
+    set rollMax(v) {
+        this._rollMax = v;
         this.update();
     }
 
@@ -425,8 +434,10 @@ class List extends Base {
     }
 
     set horizontal(v) {
-        if (!this._started) {
-            this._horizontal = v;
+        if (v !== this._horizontal) {
+            if (!this._started) {
+                this._horizontal = v;
+            }
         }
     }
 
@@ -441,3 +452,4 @@ let Utils = require('../core/Utils');
 Base.mixinEs5(List, EventEmitter);
 
 
+module.exports = List;
