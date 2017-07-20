@@ -1,3 +1,6 @@
+/**
+ * Copyright Metrological, 2017
+ */
 let Base = require('../core/Base');
 
 class Transition extends Base {
@@ -23,6 +26,9 @@ class Transition extends Base {
         this._startValue = this._getter(this._view);
         this._targetValue = this._startValue;
 
+        // To detect overrides.
+        this._knownValue = this._startValue;
+
         this._p = 1;
         this._delayLeft = 0;
     }
@@ -31,15 +37,23 @@ class Transition extends Base {
         this.isTransition = true;
     }
 
+    stop() {
+        if (this.isActive()) {
+            this._setter(this.targetValue);
+            this._p = 1;
+        }
+    }
+
     reset(targetValue, p) {
         this._startValue = this._getter(this._view);
+        this._knownValue = this._startValue;
         this._targetValue = targetValue;
         this._p = p;
 
         if (p < 1) {
             this.checkActive();
         } else if (p === 1) {
-            this.setValue(this.getDrawValue());
+            this._setter(targetValue);
 
             // Immediately invoke onFinish event.
             this.invokeListeners();
@@ -48,6 +62,7 @@ class Transition extends Base {
 
     start(targetValue) {
         this._startValue = this._getter(this._view);
+        this._knownValue = this._startValue;
 
         if (targetValue === this._startValue) {
             this.reset(this._startValue, targetValue, 1);
@@ -82,6 +97,11 @@ class Transition extends Base {
         return (this._p < 1.0) && this._view.isAttached();
     }
 
+    isOverruled() {
+        let v = this._getter(this._view);
+        return (v !== this._knownValue);
+    }
+
     progress(dt) {
         if (this.p < 1) {
             if (this.delayLeft > 0) {
@@ -108,7 +128,8 @@ class Transition extends Base {
             }
         }
 
-        this._setter(this._view, this.getDrawValue());
+        this._knownValue = this.getDrawValue();
+        this._setter(this._view, this._knownValue);
 
         if (this._eventsCount) {
             this.invokeListeners();

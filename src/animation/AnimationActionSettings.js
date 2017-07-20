@@ -1,3 +1,6 @@
+/**
+ * Copyright Metrological, 2017
+ */
 let Base = require('../core/Base');
 
 class AnimationActionSettings extends Base {
@@ -96,9 +99,10 @@ class AnimationActionSettings extends Base {
                     views.push(view);
                 } else {
                     let vs = view.mtag(this._tags[i]);
-                    view = views.concat(vs);
+                    views = views.concat(vs);
                 }
             }
+            return views;
         }        
     }
 
@@ -125,7 +129,18 @@ class AnimationActionSettings extends Base {
     get tags() {
         return this._tags;
     }
-    
+
+    set tags(v) {
+        if (!Array.isArray(v)) {
+            v = [v];
+        }
+        this._tags = v;
+    }
+
+    set t(v) {
+        this.tags = v;
+    }
+
     get resetValue() {
         return this._resetValue;
     }

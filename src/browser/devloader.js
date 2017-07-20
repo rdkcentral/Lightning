@@ -60,7 +60,7 @@ var loadWpe, loadBulk;
             "List":"./tools/List.js"
         };
         return loadBulk(srcPath, sourceFiles).then(function(wpe) {
-            if (attachInspector) attachInspector(wpe);
+            if (typeof attachInspector !== "undefined") attachInspector(wpe);
             return wpe;
         });
     }

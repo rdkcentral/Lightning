@@ -1,3 +1,6 @@
+/**
+ * Copyright Metrological, 2017
+ */
 let Base = require('../core/Base');
 
 class TransitionSettings extends Base {

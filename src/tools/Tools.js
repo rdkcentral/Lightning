@@ -1,3 +1,6 @@
+/**
+ * Copyright Metrological, 2017
+ */
 let Utils = require('../core/Utils');
 
 class Tools {

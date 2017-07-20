@@ -1,3 +1,6 @@
+/**
+ * Copyright Metrological, 2017
+ */
 class TransitionManager {
 
     constructor(stage) {
@@ -20,7 +23,7 @@ class TransitionManager {
 
             let filter = false;
             this.active.forEach(function(a) {
-                if (a.isActive()) {
+                if (a.isActive() && !a.isOverruled()) {
                     a.progress(dt);
                 } else {
                     filter = true;
@@ -28,7 +31,7 @@ class TransitionManager {
             });
 
             if (filter) {
-                this.active = new Set([...this.active].filter(t => t.isActive()));
+                this.active = new Set([...this.active].filter(t => (t.isActive() && !t.isOverruled())));
             }
         }
     }
@@ -51,7 +54,19 @@ class TransitionManager {
         viewTransitions.set(property, value);
     }
 
+    _remove(view, property) {
+        let t = this._get(view, property);
+        if (t) t.stop();
+        let viewTransitions = this.viewMap.get(view);
+        if (viewTransitions) {
+            viewTransitions.delete(property);
+        }
+    }
+
     set(view, property, settings) {
+        if (!settings) {
+            this._remove(view, property);
+        }
         if (Utils.isObjectLiteral(settings)) {
             // Convert plain object to proper settings object.
             settings = this.createSettings(settings);
@@ -101,19 +116,19 @@ class TransitionManager {
         return transition;
     }
 
-    remove(view, property) {
-        let viewTransitions = this.viewMap.get(view);
-        if (viewTransitions) {
-            viewTransitions.delete(property);
-        }
-    }
-
     start(view, property, targetValue) {
         let transition = this.get(view, property);
         if (transition) {
             transition.start(targetValue);
         } else {
             console.error('Property does not have a transition: ' + property);
+        }
+    }
+
+    stop(view, property) {
+        let transition = this.get(view, property);
+        if (transition) {
+            transition.stop();
         }
     }
 

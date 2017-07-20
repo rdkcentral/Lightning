@@ -1152,9 +1152,11 @@ class View extends Base {
             settings.text = this._viewText.settings.getNonDefaults();
         }
 
-        let tnd = this._texture.getNonDefaults();
-        if (Object.keys(tnd).length) {
-            settings.texture = tnd;
+        if (this._texture) {
+            let tnd = this._texture.getNonDefaults();
+            if (Object.keys(tnd).length) {
+                settings.texture = tnd;
+            }
         }
 
         return settings;
@@ -1165,16 +1167,16 @@ class View extends Base {
     }
 
     static getGetter(propertyPath) {
-        let setter = View.PROP_GETTERS.has(propertyPath);
-        if (!setter) {
-            setter = new Function('obj', 'return obj.' + propertyPath);
-            View.PROP_GETTERS.set(propertyPath, setter);
+        let getter = View.PROP_GETTERS.get(propertyPath);
+        if (!getter) {
+            getter = new Function('obj', 'return obj.' + propertyPath);
+            View.PROP_GETTERS.set(propertyPath, getter);
         }
-        return setter;
+        return getter;
     }
 
     static getSetter(propertyPath) {
-        let setter = View.PROP_SETTERS.has(propertyPath);
+        let setter = View.PROP_SETTERS.get(propertyPath);
         if (!setter) {
             setter = new Function('obj', 'v', 'obj.' + propertyPath + ' = v');
             View.PROP_SETTERS.set(propertyPath, setter);
@@ -1410,6 +1412,28 @@ class View extends Base {
         if (this.colorUl !== v || this.colorUr !== v || this.colorBl !== v || this.colorBr !== v) {
             this.colorUl = v;
             this.colorUr = v;
+            this.colorBl = v;
+            this.colorBr = v;
+        }
+    }
+
+    get colorTop() {
+        return this._colorUl
+    }
+
+    set colorTop(v) {
+        if (this.colorUl !== v || this.colorUr !== v) {
+            this.colorUl = v;
+            this.colorUr = v;
+        }
+    }
+
+    get colorBottom() {
+        return this._colorUl
+    }
+
+    set colorBottom(v) {
+        if (this.colorBl !== v || this.colorBr !== v) {
             this.colorBl = v;
             this.colorBr = v;
         }
@@ -2245,6 +2269,49 @@ class View extends Base {
         }
     };
 
+    /*A¬*/
+    transGet(property) {
+        return this.stage.transitions.get(this, property);
+    }
+    transSet(property, settings) {
+        this.stage.transitions.set(this, property, settings);
+    }
+    transVal(property, value, immediate = false) {
+        let t = this.transGet(property);
+        if (immediate === true || !t) {
+            this[property] = value;
+            if (t) {
+                t.stop();
+            }
+        } else {
+            t.start(value);
+        }
+    }
+    transFin(property) {
+        let t = this.transGet(property);
+        if (t) t.finish();
+    }
+    transTar(property) {
+        let t = this.transGet(property);
+        if (t.isActive() && !t.isOverruled()) {
+            return t.targetValue;
+        } else {
+            return this[property];
+        }
+    }
+
+    animation(settings) {
+        return this.stage.animations.createAnimation(this, settings);
+    }
+
+    set transitions(object) {
+        let keys = Object.keys(object);
+        keys.forEach(property => {
+            this.transSet(property, object[property]);
+        });
+    }
+    /*¬A*/
+
 }
 
 let getColorInt = function (c, alpha) {
@@ -2285,6 +2352,8 @@ View.PROP_MERGERS = {
     'alpha': mn,
     'rotation': mn,
     'color': mc,
+    'colorTop': mc,
+    'colorBottom': mc,
     'colorUl': mc,
     'colorUr': mc,
     'colorBl': mc,

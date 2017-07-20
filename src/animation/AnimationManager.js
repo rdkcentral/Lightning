@@ -1,3 +1,6 @@
+/**
+ * Copyright Metrological, 2017
+ */
 class AnimationManager {
 
     constructor(stage) {
