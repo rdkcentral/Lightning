@@ -59,8 +59,8 @@ class Stage extends Base {
     }
 
     init() {
-        /*W¬*//*N¬*/if (!Utils.isNode) {/*¬N*/this.adapter = new WebAdapter();/*N¬*/}/*¬N*//*¬W*/
-        /*N¬*//*W¬*/if (Utils.isNode) {/*¬W*/this.adapter = new NodeAdapter();/*W¬*/}/*¬W*//*¬N*/
+        /*M¬*/if (!Utils.isNode) {/*¬M*/this.adapter = new WebAdapter();/*M¬*/}
+        if (Utils.isNode) {this.adapter = new NodeAdapter();}/*¬M*/
 
         if (this.adapter.init) {
             this.adapter.init(this);
@@ -219,10 +219,11 @@ class Stage extends Base {
     }
 }
 
-var EventEmitter = require('../browser/EventEmitter');
+let Utils = require('./Utils');
+
+/*M¬*/let EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
 Base.mixinEs5(Stage, EventEmitter);
 
-let Utils = require('./Utils');
 let View = require('./View');
 let StageUtils = require('./StageUtils');
 let TextureManager = require('./TextureManager');
@@ -232,8 +233,8 @@ let VboContext = require('./VboContext');
 /*A¬*/
 let TransitionManager = require('../animation/TransitionManager');
 let AnimationManager = require('../animation/AnimationManager');
-/*¬A*//*R¬*/
-/*W¬*/let WebAdapter = Utils.isNode ? undefined : require('../browser/WebAdapter');/*¬W*/
-/*N¬*/let NodeAdapter = Utils.isNode ? require('../node/NodeAdapter') : null;/*¬N*/
-/*¬R*/
+/*¬A*//*M¬*/
+let WebAdapter = Utils.isNode ? undefined : require('../browser/WebAdapter');
+let NodeAdapter = Utils.isNode ? require('../node/NodeAdapter') : null;
+/*¬M*/
 module.exports = Stage;

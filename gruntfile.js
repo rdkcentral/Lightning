@@ -61,13 +61,13 @@ module.exports = function(grunt) {
             "wpe-core-browser": {
                 src: 'dist/wpe-core.js',
                 options: {
-                    patterns: [/\/\*A¬\*\/(.|\n)+?\/\*¬A\*\//g, /\/\*N¬\*\/(.|\n)+?\/\*¬N\*\//g, /\/\*R¬\*\/(.|\n)+?\/\*¬R\*\//g, /\/\*(.¬|¬.)\*\//g, / *(let|var)[^=]+=\s*require[^)]+\);?\n?/g, / *module\.exports[^;\n]*;?\n?/g]
+                    patterns: [/\/\*A¬\*\/(.|\n)+?\/\*¬A\*\//g, /\/\*M¬\*\/(.|\n)+?\/\*¬M\*\//g, /\/\*(.¬|¬.)\*\//g, / *(let|var)[^=]+=\s*require[^)]+\);?\n?/g, / *module\.exports[^;\n]*;?\n?/g]
                 }
             },
             "wpe-browser": {
                 src: 'dist/wpe.js',
                 options: {
-                    patterns: [/\/\*N¬\*\/(.|\n)+?\/\*¬N\*\//g, /\/\*R¬\*\/(.|\n)+?\/\*¬R\*\//g, /\/\*(.¬|¬.)\*\//g, / *(let|var)[^=]+=\s*require[^)]+\);?\n?/g, / *module\.exports[^;\n]*;?\n?/g]
+                    patterns: [/\/\*M¬\*\/(.|\n)+?\/\*¬M\*\//g, /\/\*(.¬|¬.)\*\//g, / *(let|var)[^=]+=\s*require[^)]+\);?\n?/g, / *module\.exports[^;\n]*;?\n?/g]
                 }
             }
         }

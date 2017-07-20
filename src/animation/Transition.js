@@ -174,7 +174,9 @@ class Transition extends Base {
 
 }
 
-let EventEmitter = require('../browser/EventEmitter');
+let Utils = require('../core/Utils');
+/*M¬*/let EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
+
 Base.mixinEs5(Transition, EventEmitter);
 
 module.exports = Transition;

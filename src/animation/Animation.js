@@ -162,7 +162,7 @@ class Animation extends Base {
                 if (this._repeatsLeft > 0) {
                     this._repeatsLeft--;
                 }
-                this._p = this._repeatOffset;
+                this._p = this.settings.repeatOffset;
 
                 if (this.settings.repeatDelay) {
                     this._delayLeft = this.settings.repeatDelay;
@@ -282,7 +282,7 @@ class Animation extends Base {
                 this._stopDelayLeft -= dt;
 
                 if (this._stopDelayLeft < 0) {
-                    dt = -this.stopDelayLeft;
+                    dt = -this._stopDelayLeft;
                     this._stopDelayLeft = 0;
 
                     if (this._eventsCount) this.emit('delayEnd');
@@ -351,7 +351,8 @@ class Animation extends Base {
 
 }
 
-let EventEmitter = require('../browser/EventEmitter');
+let Utils = require('../core/Utils');
+/*M¬*/let EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
 
 Base.mixinEs5(Animation, EventEmitter);
 

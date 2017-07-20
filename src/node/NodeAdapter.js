@@ -69,7 +69,7 @@ class NodeAdapter {
 
     loadSrcTexture(src, ts, sync, cb) {
         if (this._supercharger && !sync) {
-            this._supercharger.loadTextureSourceString(src, ts, cb)
+            this._supercharger.loadSrcTexture(src, ts, cb)
             return;
         }
 

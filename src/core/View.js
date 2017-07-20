@@ -2293,13 +2293,13 @@ View.PROP_MERGERS = {
     'texture.h': mn
 };
 
-let EventEmitter = require('../browser/EventEmitter');
+let Utils = require('../core/Utils');
+/*M¬*/let EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
 
 Base.mixinEs5(View, EventEmitter);
 
 module.exports = View;
 
-let Utils = require('./Utils');
 let GeometryUtils = require('./GeometryUtils');
 let ViewText = require('./ViewText');
 let Texture = require('./Texture');

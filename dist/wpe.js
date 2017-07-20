@@ -379,7 +379,7 @@ class WebAdapter {
         }
     }
 
-    loadSrcTexture(src, cb) {
+    loadSrcTexture(src, ts, sync, cb) {
         let image = new Image();
         if (!(src.substr(0,5) == "data:")) {
             // Base64.
@@ -394,7 +394,7 @@ class WebAdapter {
         image.src = src;
     }
 
-    loadTextTexture(settings, cb) {
+    loadTextTexture(settings, ts, sync, cb) {
         // Generate the image.
         let tr = new TextRenderer(this.getDrawingCanvas(), settings);
         let rval = tr.draw();
@@ -1299,16 +1299,18 @@ class GeometryUtils {
 
 /**
  * @todo:
- * - nodejs texture process
+ * - convert Twitch
  * - list
+ * - convert UI(?)
+ * - convert Bunnyhopper(?)
+ * - convert TMDB(?)
  * - encapsulate tags branches (for isolating widgets)
  * - merger: isRgba? isNumeric?
  * - quick clone
  * - hasAlpha in format, and try to prepare images for upload (so that we get buffer performance).
- * - test for existing apps, convert existing apps
  * - chagne documentation
- * - zIndexTester
- * - clean up old stuff
+ *   - text2pngEndpoint
+ *   - supercharger?
  */
 class Stage extends Base {
     constructor(options) {
@@ -1350,7 +1352,6 @@ class Stage extends Base {
 
     init() {
         this.adapter = new WebAdapter();
-        
 
         if (this.adapter.init) {
             this.adapter.init(this);
@@ -1508,6 +1509,8 @@ class Stage extends Base {
         return this.textureManager.getTexture(source, options);
     }
 }
+
+
 
 Base.mixinEs5(Stage, EventEmitter);
 
@@ -1775,14 +1778,17 @@ class TextureManager {
         }
     }
 
-    loadSrcTexture(src, cb) {
-        //@todo: parallel loading.
-        this.stage.adapter.loadSrcTexture(src, cb);
+    loadSrcTexture(src, ts, sync, cb) {
+        this.stage.adapter.loadSrcTexture(src, ts, sync, cb);
     }
 
-    loadTextTexture(settings, cb) {
-        //@todo: parallel loading.
-        this.stage.adapter.loadTextTexture(settings, cb);
+    loadTextTexture(settings, ts, sync, cb) {
+        if (this.stage.options.text2pngEndpoint && !sync) {
+            var src = this.stage.options.text2pngEndpoint + "?q=" + encodeURIComponent(JSON.stringify(settings.getNonDefaults()));
+            this.loadSrcTexture(src, ts, sync, cb);
+        } else {
+            this.stage.adapter.loadTextTexture(settings, ts, sync, cb);
+        }
     }
 
     getTexture(source, options) {
@@ -1798,7 +1804,7 @@ class TextureManager {
                 // Create new texture source.
                 let self = this;
                 let func = function (cb, ts, sync) {
-                    self.loadSrcTexture(source, cb);
+                    self.loadSrcTexture(source, ts, sync, cb);
                 };
                 textureSource = this.getTextureSource(func, id);
                 if (!textureSource.renderInfo) {
@@ -1848,6 +1854,10 @@ class TextureManager {
         gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
 
         gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, format.premultiplyAlpha);
+
+        if (Utils.isNode) {
+            gl.pixelStorei(gl.UNPACK_FLIP_BLUE_RED, !!format.flipBlueRed);
+        }
 
         this.stage.adapter.uploadGlTexture(gl, textureSource, source, format.hasAlpha);
 
@@ -2289,6 +2299,10 @@ class TextureSource {
 
         if (options && options.hasOwnProperty('premultiplyAlpha')) {
             format.premultiplyAlpha = options.premultiplyAlpha;
+        }
+
+        if (options && options.hasOwnProperty('flipBlueRed')) {
+            format.flipBlueRed = options.flipBlueRed;
         }
 
         if (options && options.hasOwnProperty('hasAlpha')) {
@@ -5310,6 +5324,7 @@ View.PROP_MERGERS = {
 };
 
 
+
 Base.mixinEs5(View, EventEmitter);
 
 
@@ -5486,8 +5501,8 @@ class ViewText extends Base {
     createTextureSource(settings) {
         let m = this.view.stage.textureManager;
 
-        let loadCb = (cb) => {
-            m.loadTextTexture(settings, cb);
+        let loadCb = function(cb, ts, sync) {
+            m.loadTextTexture(settings, ts, sync, cb);
         };
 
         return this.view.stage.textureManager.getTextureSource(loadCb, settings.getTextureId());
@@ -6332,6 +6347,7 @@ class TextRendererSettings extends Base {
 }
 
 
+
 Base.mixinEs5(TextRendererSettings, EventEmitter);
 
 
@@ -6658,6 +6674,8 @@ class Transition extends Base {
     }
 
 }
+
+
 
 Base.mixinEs5(Transition, EventEmitter);
 
@@ -7369,7 +7387,7 @@ class Animation extends Base {
                 if (this._repeatsLeft > 0) {
                     this._repeatsLeft--;
                 }
-                this._p = this._repeatOffset;
+                this._p = this.settings.repeatOffset;
 
                 if (this.settings.repeatDelay) {
                     this._delayLeft = this.settings.repeatDelay;
@@ -7489,7 +7507,7 @@ class Animation extends Base {
                 this._stopDelayLeft -= dt;
 
                 if (this._stopDelayLeft < 0) {
-                    dt = -this.stopDelayLeft;
+                    dt = -this._stopDelayLeft;
                     this._stopDelayLeft = 0;
 
                     if (this._eventsCount) this.emit('delayEnd');
@@ -7557,6 +7575,7 @@ class Animation extends Base {
     }
 
 }
+
 
 
 Base.mixinEs5(Animation, EventEmitter);
