@@ -56,9 +56,13 @@ var loadWpe, loadBulk;
             "AnimationActionSettings":"./animation/AnimationActionSettings.js",
             "AnimationActionItems":"./animation/AnimationActionItems.js",
             "Animation":"./animation/Animation.js",
-            "Tools":"./tools/Tools.js"
+            "Tools":"./tools/Tools.js",
+            "List":"./tools/List.js"
         };
-        return loadBulk(srcPath, sourceFiles);
+        return loadBulk(srcPath, sourceFiles).then(function(wpe) {
+            if (attachInspector) attachInspector(wpe);
+            return wpe;
+        });
     }
 
     loadBulk = function(srcPath, sourceFiles) {
