@@ -23,7 +23,7 @@ class TransitionManager {
 
             let filter = false;
             this.active.forEach(function(a) {
-                if (a.isActive() && !a.isOverruled()) {
+                if (a.isActive()) {
                     a.progress(dt);
                 } else {
                     filter = true;
@@ -31,7 +31,7 @@ class TransitionManager {
             });
 
             if (filter) {
-                this.active = new Set([...this.active].filter(t => (t.isActive() && !t.isOverruled())));
+                this.active = new Set([...this.active].filter(t => (t.isActive())));
             }
         }
     }

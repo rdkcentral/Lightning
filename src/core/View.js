@@ -2293,7 +2293,7 @@ class View extends Base {
     }
     transTar(property) {
         let t = this.transGet(property);
-        if (t.isActive() && !t.isOverruled()) {
+        if (t.isActive()) {
             return t.targetValue;
         } else {
             return this[property];

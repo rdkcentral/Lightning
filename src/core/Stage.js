@@ -7,7 +7,9 @@ let Base = require('./Base');
 
 /**
  * @todo:
- * - convert Twitch
+ * - better solution for transitions (revert back to in-view? how about overwriting setters at runtime?)
+ *   current problem: property paths such as 'texture.x' must be transition-aware as well.
+ *   (transition.set(value))
  * - convert UI(?)
  * - convert Bunnyhopper(?)
  * - convert TMDB(?)
@@ -18,6 +20,7 @@ let Base = require('./Base');
  * - chagne documentation
  *   - text2pngEndpoint
  *   - supercharger?
+ *   - transition changes
  */
 class Stage extends Base {
     constructor(options) {

@@ -97,11 +97,6 @@ class Transition extends Base {
         return (this._p < 1.0) && this._view.isAttached();
     }
 
-    isOverruled() {
-        let v = this._getter(this._view);
-        return (v !== this._knownValue);
-    }
-
     progress(dt) {
         if (this.p < 1) {
             if (this.delayLeft > 0) {
