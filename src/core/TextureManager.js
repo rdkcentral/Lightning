@@ -41,14 +41,17 @@ class TextureManager {
         }
     }
 
-    loadSrcTexture(src, cb) {
-        //@todo: parallel loading.
-        this.stage.adapter.loadSrcTexture(src, cb);
+    loadSrcTexture(src, ts, sync, cb) {
+        this.stage.adapter.loadSrcTexture(src, ts, sync, cb);
     }
 
-    loadTextTexture(settings, cb) {
-        //@todo: parallel loading.
-        this.stage.adapter.loadTextTexture(settings, cb);
+    loadTextTexture(settings, ts, sync, cb) {
+        if (this.stage.options.text2pngEndpoint && !sync) {
+            var src = this.stage.options.text2pngEndpoint + "?q=" + encodeURIComponent(JSON.stringify(settings.getNonDefaults()));
+            this.loadSrcTexture(src, ts, sync, cb);
+        } else {
+            this.stage.adapter.loadTextTexture(settings, ts, sync, cb);
+        }
     }
 
     getTexture(source, options) {
@@ -64,7 +67,7 @@ class TextureManager {
                 // Create new texture source.
                 let self = this;
                 let func = function (cb, ts, sync) {
-                    self.loadSrcTexture(source, cb);
+                    self.loadSrcTexture(source, ts, sync, cb);
                 };
                 textureSource = this.getTextureSource(func, id);
                 if (!textureSource.renderInfo) {
@@ -114,6 +117,10 @@ class TextureManager {
         gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
 
         gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, format.premultiplyAlpha);
+
+        if (Utils.isNode) {
+            gl.pixelStorei(gl.UNPACK_FLIP_BLUE_RED, !!format.flipBlueRed);
+        }
 
         this.stage.adapter.uploadGlTexture(gl, textureSource, source, format.hasAlpha);
 

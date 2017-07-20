@@ -11,6 +11,23 @@ class NodeAdapter {
         this.canvas = null;
         this._looping = false;
         this._awaitingLoop = false;
+
+        if (this.stage.options.supercharger) {
+            try {
+                // Images are downloaded, parsed and pre-processed off-thread.
+                this._supercharger = require('wpe-uiframework-supercharger');
+                console.log('Using WPEUIFramework supercharger.');
+            } catch(e) {
+                console.warn('WPEUIFramework supercharger not found. Images will be downloaded and parsed on-thread.');
+            }
+
+            if (this._supercharger) {
+                let options = {allowFiles: (!!this.stage.options.supercharger.localImagePath), allowedFilePath: this.stage.options.supercharger.localImagePath};
+                this._supercharger.init(options);
+            }
+        } else {
+            console.warn('Specify supercharger option to enable off-thread (supercharged) image loading.');
+        }
     }
 
     startLoop() {
@@ -29,6 +46,9 @@ class NodeAdapter {
         let lp = function() {
             self._awaitingLoop = false;
             if (self._looping) {
+                if (self._supercharger) {
+                    self._supercharger.process();
+                }
                 self.stage.drawFrame();
                 if (self.changes) {
                     // We depend on blit to limit to 60fps.
@@ -47,7 +67,12 @@ class NodeAdapter {
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, textureSource.w, textureSource.h, 0, format, gl.UNSIGNED_BYTE, source);
     }
 
-    loadSrcTexture(src, cb) {
+    loadSrcTexture(src, ts, sync, cb) {
+        if (this._supercharger && !sync) {
+            this._supercharger.loadTextureSourceString(src, ts, cb)
+            return;
+        }
+
         let self = this;
         if (/^https?:\/\//i.test(src)) {
             // URL. Download first.
@@ -94,7 +119,7 @@ class NodeAdapter {
         cb(null, buf, {w: img.width, h: img.height, premultiplyAlpha: false, flipBlueRed: true});
     }
 
-    loadTextTexture(settings, cb) {
+    loadTextTexture(settings, ts, sync, cb) {
         // Generate the image.
         let tr = new TextRenderer(this.getDrawingCanvas(), settings);
         let rval = tr.draw();

@@ -68,8 +68,8 @@ class ViewText extends Base {
     createTextureSource(settings) {
         let m = this.view.stage.textureManager;
 
-        let loadCb = (cb) => {
-            m.loadTextTexture(settings, cb);
+        let loadCb = function(cb, ts, sync) {
+            m.loadTextTexture(settings, ts, sync, cb);
         };
 
         return this.view.stage.textureManager.getTextureSource(loadCb, settings.getTextureId());

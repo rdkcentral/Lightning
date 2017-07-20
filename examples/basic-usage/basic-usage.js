@@ -6,7 +6,12 @@ var start = function(wpe) {
     var options = {w: 600, h: 600, glClearColor: 0xFF000000, useTextureAtlas: true, debugTextureAtlas: false};
 
     // Nodejs-specific options.
-    options.window = {title: "Usage example", fullscreen: false};
+    if (Utils.isNode) {
+        options.window = {title: "Usage example", fullscreen: false};
+        options.supercharger = {localImagePath: __dirname};
+    }
+
+    options.text2pngEndpoint = 'http://localhost:3457/';
 
     var stage = new Stage(options);
 
@@ -18,7 +23,7 @@ var start = function(wpe) {
     stage.root.add([
         {tags: 'bg', rect: true, x: 20, y: 20, w: 560, h: 560, colorUl: 0xFFFF0000, colorBr: 0xFFFF6666, zIndex: 1, children: [
            {tags: 'hello', texture: texture, x: 10, y: 20},
-           {tags: 'box', rect: true, w: 400, h: 200, x: 150, color: 0xAAFF00FF, borderWidth: 1, borderColor: 0xFF000000, children: [
+           {src: 'http://adn.gpupdate.net/news/297192.jpg', w: 400, h: 200, x: 150, color: 0xAAFFFFFF, children: [
                {tags: 'hello2', text: {text: "hello world", fontSize: 50}, x: 10, y: 20}
            ]}
         ]}

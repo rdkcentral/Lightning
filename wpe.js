@@ -24,5 +24,6 @@ module.exports = {
     "AnimationSettings": require("./src/animation/AnimationSettings"),
     "AnimationActionSettings": require("./src/animation/AnimationActionSettings"),
     "AnimationActionItems": require("./src/animation/AnimationActionItems"),
-    "Animation": require("./src/animation/Animation")
+    "Animation": require("./src/animation/Animation"),
+    "Tools": require("./tools/Tools")
 }

@@ -46,7 +46,7 @@ class WebAdapter {
         }
     }
 
-    loadSrcTexture(src, cb) {
+    loadSrcTexture(src, ts, sync, cb) {
         let image = new Image();
         if (!(src.substr(0,5) == "data:")) {
             // Base64.
@@ -61,7 +61,7 @@ class WebAdapter {
         image.src = src;
     }
 
-    loadTextTexture(settings, cb) {
+    loadTextTexture(settings, ts, sync, cb) {
         // Generate the image.
         let tr = new TextRenderer(this.getDrawingCanvas(), settings);
         let rval = tr.draw();

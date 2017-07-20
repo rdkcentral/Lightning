@@ -7,16 +7,18 @@ let Base = require('./Base');
 
 /**
  * @todo:
- * - nodejs texture process
+ * - convert Twitch
  * - list
+ * - convert UI(?)
+ * - convert Bunnyhopper(?)
+ * - convert TMDB(?)
  * - encapsulate tags branches (for isolating widgets)
  * - merger: isRgba? isNumeric?
  * - quick clone
  * - hasAlpha in format, and try to prepare images for upload (so that we get buffer performance).
- * - test for existing apps, convert existing apps
  * - chagne documentation
- * - zIndexTester
- * - clean up old stuff
+ *   - text2pngEndpoint
+ *   - supercharger?
  */
 class Stage extends Base {
     constructor(options) {

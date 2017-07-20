@@ -196,6 +196,10 @@ class TextureSource {
             format.premultiplyAlpha = options.premultiplyAlpha;
         }
 
+        if (options && options.hasOwnProperty('flipBlueRed')) {
+            format.flipBlueRed = options.flipBlueRed;
+        }
+
         if (options && options.hasOwnProperty('hasAlpha')) {
             format.hasAlpha = options.hasAlpha;
         }
