@@ -11,7 +11,7 @@ var start = function(wpe) {
         options.supercharger = {localImagePath: __dirname};
     }
 
-    options.text2pngEndpoint = 'http://localhost:3457/';
+    //options.text2pngEndpoint = 'http://localhost:3457/';
 
     var stage = new Stage(options);
 
@@ -29,10 +29,6 @@ var start = function(wpe) {
         ]}
     ]);
 
-    var hello2 = stage.root.tag('hello2');
-    stage.transitions.set(hello2, 'texture.x', {duration: 2});
-    stage.transitions.start(hello2, 'texture.x', 100);
-
     let animdef = stage.animations.createSettings({duration: 3, autostop: true, stopTimingFunction: 'linear', stopDuration: 3, actions: [
         {property: ['y'], value: {0:0,1:100}},
         {property: ['color'], value: {0:0xFFFFFFFF,1:0xFFFF0000}},
@@ -40,9 +36,14 @@ var start = function(wpe) {
     let anim = stage.animations.createAnimation(stage.root.tag('bg'), animdef);
     anim.start();
 
+    var hello2 = stage.root.tag('hello2');
+    stage.transitions.set(hello2, 'texture.x', {duration: 2});
+    stage.transitions.start(hello2, 'texture.x', 100);
+
     setTimeout(function() {
         let anim2 = stage.animations.createAnimation(stage.root.tag('hello2'), animdef);
         anim2.start();
+
     }, 500);
 };
 

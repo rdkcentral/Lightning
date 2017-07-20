@@ -65,6 +65,10 @@ class Base {
         return superclass;
     };
 
+    setSettings(settings) {
+        Base.setObjectSettings(this, settings);
+    }
+
     static setObjectSettings(obj, settings) {
         for (let name in settings) {
             let v = settings[name];
@@ -74,7 +78,7 @@ class Base {
                     var p = obj[name];
                     if (p.setSettings) {
                         // Custom setSettings method.
-                        p.setSettings(p, v);
+                        p.setSettings(v);
                     } else {
                         Base.setObjectSettings(p, v);
                     }

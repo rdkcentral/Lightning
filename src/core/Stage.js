@@ -7,8 +7,8 @@ let Base = require('./Base');
 
 /**
  * @todo:
- * - convert Twitch
  * - list
+ * - convert Twitch
  * - convert UI(?)
  * - convert Bunnyhopper(?)
  * - convert TMDB(?)

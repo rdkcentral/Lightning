@@ -54,11 +54,6 @@ class ViewText extends Base {
         });
     };
 
-    setSettings(settings) {
-        // Proxy to the settings object.
-        Base.setObjectSettings(this.settings, settings);
-    }
-
     getFinalizedSettings() {
         let settings = this.settings.clone();
         settings.finalize(this.view);

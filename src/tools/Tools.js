@@ -1,4 +1,4 @@
-let Utils = require('../src/core/Utils');
+let Utils = require('../core/Utils');
 
 class Tools {
     

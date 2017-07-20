@@ -52,7 +52,7 @@ class AnimationSettings extends Base {
      * @param {number} p
      * @param {number} factor
      */
-    apply(view, p, factor) {
+    apply(view, p, factor = 1) {
         this._actions.forEach(function(action) {
             action.apply(view, p, factor);
         });

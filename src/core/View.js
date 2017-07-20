@@ -53,21 +53,21 @@ class View extends Base {
         this._displayedTexture = null;
 
         /**
-         * Tags that can be used to identify/search for a specific component.
+         * Tags that can be used to identify/search for a specific view.
          * @type {String[]}
          */
         this._tags = null;
 
         /**
          * The tree's tags mapping.
-         * This contains all components for all known tags, at all times.
+         * This contains all views for all known tags, at all times.
          * @type {Map}
          */
         this._treeTags = null;
 
         /**
          * Cache for the tag/mtag methods.
-         * @type {Map<String,Component[]>}
+         * @type {Map<String,View[]>}
          */
         this._tagsCache = null;
 
@@ -442,10 +442,8 @@ class View extends Base {
             }
 
             // Run this after all _children because we'd like to see (de)activating a branch as an 'atomic' operation.
-            if (newActive) {
-                this.notifyActivate && this.notifyActivate();
-            } else {
-                this.notifyDeactivate && this.notifyDeactivate();
+            if (this._eventsCount) {
+                this.emit('active', newActive);
             }
         }
     };
@@ -596,7 +594,7 @@ class View extends Base {
             this._texture = v;
 
             if (this._active && prevValue && this.displayedTexture !== prevValue) {
-                // Keep reference to component for texture source
+                // Keep reference to view for texture source
                 if ((!v || prevValue.source !== v.source) && (!this.displayedTexture || (this.displayedTexture.source !== prevValue.source))) {
                     prevValue.source.removeView(this);
                 }
@@ -1543,6 +1541,10 @@ class View extends Base {
                 this.addChild(o);
             }
         }
+    }
+
+    get parent() {
+        return this._parent;
     }
 
     get src() {
