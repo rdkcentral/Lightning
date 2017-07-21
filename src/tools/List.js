@@ -80,7 +80,8 @@ class List extends Base {
     }
     
     start() {
-        this._transition = this._stage.transitions.get(this._wrapper, this.property, this._scrollTransition);
+        this._wrapper.transition(this.property, this._scrollTransition)
+        this._transition = this._wrapper.transition(this.property);
         this._transition.on('progress', p => this.update());
 
         this.setIndex(0, true, true);

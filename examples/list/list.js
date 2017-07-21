@@ -3,7 +3,7 @@ let stage = new wpe.Stage({w: 1000, h: 800, glClearColor: 0xFF000000, useTexture
 
 let view = stage.view({x: 200, w: 600, h: 400, color: 0xFF777777, rect: true});
 let list = new wpe.List(view);
-list.setSettings({itemSize: 100, scrollTransition: {duration: 0.5}, invertDirection: false, roll: true, viewportScrollOffset: 0.5, itemScrollOffset: 0.5});
+list.setSettings({itemSize: 100, scrollTransition: {duration: 0.3}, invertDirection: false, roll: true, viewportScrollOffset: 0.5, itemScrollOffset: 0.5});
 list.progressAnimation = {duration: 0.3, actions: [
     {t: '', p: 'scale', v: {0: 0.2, 1: 1}},
     {t: '', p: 'alpha', v: {0: 0.5, 1: 1.2}}
@@ -33,6 +33,6 @@ setInterval(function() {
     } else if (c == 0) {
         list.setNext();
     }
-}, 500);
+}, 150);
 
 stage.root.add(list.view);
