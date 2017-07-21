@@ -1229,28 +1229,53 @@ class View {
         }
     }
 
-    get colorUl() {return this.renderer.colorUl}
-    set colorUl(v) {this.renderer.colorUl = v;}
+    get colorUl() {
+        return this.renderer.colorUl
+    }
 
-    get colorUr() {return this.renderer.colorUr}
-    set colorUr(v) {this.renderer.colorUr = v;}
+    set colorUl(v) {
+        this.renderer.colorUl = v;
+    }
 
-    get colorBl() {return this.renderer.colorBl}
-    set colorBl(v) {this.renderer.colorBl = v;}
+    get colorUr() {
+        return this.renderer.colorUr
+    }
 
-    get colorBr() {return this.renderer.colorBr}
-    set colorBr(v) {this.renderer.colorBr = v;}
+    set colorUr(v) {
+        this.renderer.colorUr = v;
+    }
 
-    get color() {return this.renderer.colorUl}
-    set color(v) {if (this.colorUl !== v || this.colorUr !== v || this.colorBl !== v || this.colorBr !== v) {
-        this.colorUl = v;
-        this.colorUr = v;
-        this.colorBl = v;
-        this.colorBr = v;
-    }}
+    get colorBl() {
+        return this.renderer.colorBl
+    }
+
+    set colorBl(v) {
+        this.renderer.colorBl = v;
+    }
+
+    get colorBr() {
+        return this.renderer.colorBr
+    }
+
+    set colorBr(v) {
+        this.renderer.colorBr = v;
+    }
+
+    get color() {
+        return this.renderer.colorUl
+    }
+
+    set color(v) {
+        if (this.colorUl !== v || this.colorUr !== v || this.colorBl !== v || this.colorBr !== v) {
+            this.colorUl = v;
+            this.colorUr = v;
+            this.colorBl = v;
+            this.colorBr = v;
+        }
+    }
 
     get colorTop() {
-        return this._colorUl
+        return this.colorUl
     }
 
     set colorTop(v) {
@@ -1261,12 +1286,34 @@ class View {
     }
 
     get colorBottom() {
-        return this._colorUl
+        return this.colorBl
     }
 
     set colorBottom(v) {
         if (this.colorBl !== v || this.colorBr !== v) {
             this.colorBl = v;
+            this.colorBr = v;
+        }
+    }
+
+    get colorLeft() {
+        return this.colorUl
+    }
+
+    set colorLeft(v) {
+        if (this.colorUl !== v || this.colorBl !== v) {
+            this.colorUl = v;
+            this.colorBl = v;
+        }
+    }
+
+    get colorRight() {
+        return this.colorUr
+    }
+
+    set colorRight(v) {
+        if (this.colorUr !== v || this.colorBr !== v) {
+            this.colorUr = v;
             this.colorBr = v;
         }
     }
@@ -1375,17 +1422,13 @@ class View {
     }
 
     set text(v) {
-        if (v) {
-            this.texture = this.stage.rectangleTexture;
+        if (!this._viewText) {
+            this._viewText = new ViewText(this);
+        }
+        if (Utils.isString(v)) {
+            this._viewText.settings.text = v;
         } else {
-            if (!this._viewText) {
-                this._viewText = new ViewText(this);
-            }
-            if (Utils.isString(v)) {
-                this._viewText.settings.text = v;
-            } else {
-                this._viewText.settings.setSettings(v);
-            }
+            this._viewText.settings.setSettings(v);
         }
     }
 
@@ -1410,6 +1453,15 @@ class View {
         });
     }
 
+    fastForward(property) {
+        if (this._transitions) {
+            let t = this._transitions[property];
+            if (t && t.isTransition) {
+                t.finish();
+            }
+        }
+    }
+
     _getTransition(property) {
         if (!this._transitions) {
             this._transitions = {};
@@ -1417,7 +1469,7 @@ class View {
         let t = this._transitions[property];
         if (!t) {
             // Create default transition.
-            t = new Transition(this.stage.transitions, this.stage.transitions.createSettings({}), this, property);
+            t = new Transition(this.stage.transitions, this.stage.transitions.defaultTransitionSettings, this, property);
         } else if (t.isTransitionSettings) {
             // Upgrade to 'real' transition.
             t = new Transition(
@@ -1426,9 +1478,8 @@ class View {
                 this,
                 property
             );
-
-            this._transitions[property] = t;
         }
+        this._transitions[property] = t;
         return t;
     }
 
@@ -1573,8 +1624,20 @@ class View {
         return this._getTransVal('color', this.color);
     }
 
-    set COLOR(v) {
-        this._setTransVal('color', v) || (this.color = v);
+    set COLORTOP(v) {
+        this._setTransVal('colorTop', v) || (this.colorTop = v);
+    }
+
+    set COLORBOTTOM(v) {
+        this._setTransVal('colorBottom', v) || (this.colorBottom = v);
+    }
+
+    set COLORLEFT(v) {
+        this._setTransVal('colorLeft', v) || (this.colorLeft = v);
+    }
+
+    set COLORRIGHT(v) {
+        this._setTransVal('colorRight', v) || (this.colorRight = v);
     }
 
     get COLORUL() {
@@ -1640,6 +1703,8 @@ View.PROP_MERGERS = {
     'color': mc,
     'colorTop': mc,
     'colorBottom': mc,
+    'colorLeft': mc,
+    'colorRight': mc,
     'colorUl': mc,
     'colorUr': mc,
     'colorBl': mc,
@@ -1660,4 +1725,5 @@ module.exports = View;
 let GeometryUtils = require('./GeometryUtils');
 let ViewText = require('./ViewText');
 let Texture = require('./Texture');
-/*A¬*/let Transition = require('../animation/Transition')/*¬A*/
+/*A¬*/let Transition = require('../animation/Transition')
+let TransitionSettings = require('../animation/TransitionSettings')/*¬A*/

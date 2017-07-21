@@ -13,6 +13,8 @@ class TransitionManager {
          * @type {Set<Transition>}
          */
         this.active = new Set();
+
+        this.defaultTransitionSettings = new TransitionSettings();
     }
 
     progress() {

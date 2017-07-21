@@ -12,7 +12,7 @@ class TransitionSettings extends Base {
         this._timingFunction = 'ease';
         this._timingFunctionImpl = StageUtils.getTimingFunction(this._timingFunction);
         this.delay = 0;
-        this.duration = 1;
+        this.duration = 0.2;
         this.isTransitionSettings = true;
     }
 

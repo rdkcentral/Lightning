@@ -185,7 +185,10 @@ class ViewRenderer {
             }
 
             this._children.splice(0);
-            this._zIndexedChildren.splice(0);
+
+            if (this._zIndexedChildren) {
+                this._zIndexedChildren.splice(0);
+            }
         }
     };
 
@@ -493,7 +496,7 @@ class ViewRenderer {
     };
 
     get colorBl() {
-        return this._colorUr;
+        return this._colorBl;
     }
 
     set colorBl(color) {
@@ -504,7 +507,7 @@ class ViewRenderer {
     };
 
     get colorBr() {
-        return this._colorUr;
+        return this._colorBr;
     }
 
     set colorBr(color) {

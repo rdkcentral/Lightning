@@ -1,8 +1,8 @@
-let Base = require('./Base');
-
 /**
  * Copyright Metrological, 2017
  */
+
+let Base = require('./Base');
 
 class ViewText extends Base {
 
@@ -24,7 +24,7 @@ class ViewText extends Base {
     updateTexture() {
         if (this.settings.text == "") {
             // Clear current displayed texture (when changing text back to empty).
-            this.texture = null;
+            this.view.texture = null;
             return;
         }
 

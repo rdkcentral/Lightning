@@ -27,7 +27,7 @@ class AnimationSettings extends Base {
         this.stopMethod = AnimationSettings.STOP_METHODS.FADE;
         this._stopTimingFunction = 'ease';
         this._stopTimingFunctionImpl = StageUtils.getTimingFunction(this._stopTimingFunction);
-        this.stopDuration = 1;
+        this.stopDuration = 0;
         this.stopDelay = 0;
     }
 

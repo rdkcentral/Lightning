@@ -45,7 +45,7 @@ class List extends Base {
         /**
          * Should the list jump when scrolling between end to start, or should it be continuous, like a carrousel?
          */
-        this._roll = true;
+        this._roll = false;
 
         /**
          * Allows restricting the start scroll position.
@@ -97,6 +97,8 @@ class List extends Base {
     }
     
     addElement(view) {
+        if (!this._started) this.start();
+
         let element = this._stage.createView();
         element.add(view);
         element.visible = false;
@@ -106,6 +108,8 @@ class List extends Base {
         if (this.length === 1) {
             this.setIndex(0, true, true);
         }
+
+        this.update();
 
         return element;
     }

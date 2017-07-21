@@ -7,20 +7,20 @@ let Base = require('./Base');
 
 /**
  * @todo:
- * - better solution for transitions (revert back to in-view? how about overwriting setters at runtime?)
- *   current problem: property paths such as 'texture.x' must be transition-aware as well.
- *   (transition.set(value))
  * - convert UI(?)
  * - convert Bunnyhopper(?)
  * - convert TMDB(?)
- * - encapsulate tags branches (for isolating widgets)
- * - merger: isRgba? isNumeric?
+ * - list subclasses View?
  * - quick clone
  * - hasAlpha in format, and try to prepare images for upload (so that we get buffer performance).
- * - chagne documentation
+ * - borders
+ * - change documentation
  *   - text2pngEndpoint
  *   - supercharger?
  *   - transition changes
+ *   -getRenderWidth
+ * - encapsulate tags branches (for isolating widgets)
+ * - merger: isRgba? isNumeric?
  */
 class Stage extends Base {
     constructor(options) {
@@ -202,6 +202,10 @@ class Stage extends Base {
         let view = this.createView();
         view.setSettings(settings);
         return view;
+    }
+
+    c(settings) {
+        return this.view(settings);
     }
 
     /**

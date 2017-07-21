@@ -76,10 +76,6 @@ class Animation extends Base {
     stop() {
         if (this._state === Animation.STATES.STOPPED || this._state === Animation.STATES.IDLE) return;
 
-        if (this._view) {
-            this.checkActive();
-        }
-
         this._stopDelayLeft = this.settings.stopDelay || 0;
 
         if (((this.settings.stopMethod === AnimationSettings.STOP_METHODS.IMMEDIATE) && !this._stopDelayLeft) || this._delayLeft > 0) {
@@ -94,6 +90,8 @@ class Animation extends Base {
             this._state = Animation.STATES.STOPPING;
             if (this._eventsCount) this.emit('stop');
         }
+
+        this.checkActive();
     }
 
     stopNow() {

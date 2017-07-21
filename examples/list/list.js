@@ -10,18 +10,20 @@ list.progressAnimation = {duration: 0.3, actions: [
 ]};
 list.start();
 
+let s = stage.transitions.createSettings({duration: 0.2});
 for (let i = 0, n = 10; i < n; i++) {
-    list.addElement(stage.view({x: 5, w: 90, y: i * 10, h: 400 - i * 20, rect: true, colorUl: 0xFFFF0000, colorUr: 0xFFFF0000, colorBl: 0xFF00FF00, colorBr: 0xFF00FF00}));
+    list.addElement(stage.view({x: 5, w: 90, y: i * 10, h: 400 - i * 20, rect: true, colorUl: 0xFFFF0000, colorUr: 0xFFFF0000, colorBl: 0xFF00FF00, colorBr: 0xFF00FF00, transitions: {rotation: s}}));
 }
 
 list.update();
 
+
 list.on('focus', function(v) {
-    v.rotation = 0.1;
+    v.ROTATION = 0.1;
 });
 
 list.on('unfocus', function(v) {
-    v.rotation = 0;
+    v.ROTATION = 0;
 });
 
 var c = 40;
