@@ -663,8 +663,8 @@ class View {
                 let dax = (displayedTextureSource.w * textureAtlasI);
                 let day = (displayedTextureSource.h * textureAtlasI);
 
-                tx1 = tax;
-                ty1 = tay;
+                tx1 = tx1 * dax + tax;
+                ty1 = ty1 * dax + tay;
 
                 tx2 = tx2 * dax + tax;
                 ty2 = ty2 * day + tay;
@@ -1390,45 +1390,223 @@ class View {
     }
 
     /*A¬*/
-    transGet(property) {
-        return this.stage.transitions.get(this, property);
-    }
-    transSet(property, settings) {
-        this.stage.transitions.set(this, property, settings);
-    }
-    transVal(property, value, immediate = false) {
-        let t = this.transGet(property);
-        if (immediate === true || !t) {
-            this[property] = value;
-            if (t) {
-                t.stop();
-            }
-        } else {
-            t.start(value);
-        }
-    }
-    transFin(property) {
-        let t = this.transGet(property);
-        if (t) t.finish();
-    }
-    transTar(property) {
-        let t = this.transGet(property);
-        if (t.isActive()) {
-            return t.targetValue;
-        } else {
-            return this[property];
-        }
-    }
-
     animation(settings) {
         return this.stage.animations.createAnimation(this, settings);
+    }
+
+    transition(property, settings) {
+        if (settings === undefined) {
+            return this._getTransition(property);
+        } else {
+            this._setTransition(property, settings);
+            return null;
+        }
     }
 
     set transitions(object) {
         let keys = Object.keys(object);
         keys.forEach(property => {
-            this.transSet(property, object[property]);
+            this.transition(property, object[property]);
         });
+    }
+
+    _getTransition(property) {
+        if (!this._transitions) {
+            this._transitions = {};
+        }
+        let t = this._transitions[property];
+        if (!t) {
+            // Create default transition.
+            t = new Transition(this.stage.transitions, this.stage.transitions.createSettings({}), this, property);
+        } else if (t.isTransitionSettings) {
+            // Upgrade to 'real' transition.
+            t = new Transition(
+                this.stage.transitions,
+                t,
+                this,
+                property
+            );
+
+            this._transitions[property] = t;
+        }
+        return t;
+    }
+
+    _setTransition(property, settings) {
+        if (!settings) {
+            this._removeTransition(property);
+        }
+        if (Utils.isObjectLiteral(settings)) {
+            // Convert plain object to proper settings object.
+            settings = this.stage.transitions.createSettings(settings);
+        }
+
+        if (!this._transitions) {
+            this._transitions = {};
+        }
+
+        let current = this._transitions[property];
+        if (current && current.isTransition) {
+            // Runtime settings change.
+            current.settings = settings;
+            return current;
+        } else {
+            // Initially, only set the settings and upgrade to a 'real' transition when it is used.
+            this._transitions[property] = settings;
+        }
+    }
+
+    _removeTransition(property) {
+        if (this._transitions) {
+            delete this._transitions[property];
+        }
+    }
+
+    _getTransVal(property, v) {
+        let t = this._getTransition(property);
+        if (t && t.isActive()) {
+            return t.targetValue;
+        } else {
+            return v;
+        }
+    }
+
+    _setTransVal(property, v) {
+        let t = this._getTransition(property);
+        if (t) {
+            t.start(v);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    get X() {
+        return this._getTransVal('x', this.x);
+    }
+    
+    set X(v) {
+        this._setTransVal('x', v) || (this.x = v);
+    }
+
+    get Y() {
+        return this._getTransVal('y', this.y);
+    }
+
+    set Y(v) {
+        this._setTransVal('y', v) || (this.y = v);
+    }
+
+    get W() {
+        return this._getTransVal('w', this.w);
+    }
+
+    set H(v) {
+        this._setTransVal('h', v) || (this.h = v);
+    }
+
+    get SCALE() {
+        return this._getTransVal('scale', this.scale);
+    }
+
+    set SCALE(v) {
+        this._setTransVal('scale', v) || (this.scale = v);
+    }
+
+    get SCALEX() {
+        return this._getTransVal('scaleX', this.scaleX);
+    }
+
+    set SCALEX(v) {
+        this._setTransVal('scaleX', v) || (this.scaleX = v);
+    }
+
+    get PIVOT() {
+        return this._getTransVal('pivot', this.pivot);
+    }
+
+    set PIVOT(v) {
+        this._setTransVal('pivot', v) || (this.pivot = v);
+    }
+
+    get PIVOTX() {
+        return this._getTransVal('pivotX', this.pivotX);
+    }
+
+    set PIVOTX(v) {
+        this._setTransVal('pivotX', v) || (this.pivotX = v);
+    }
+    
+    get MOUNT() {
+        return this._getTransVal('mount', this.mount);
+    }
+
+    set MOUNT(v) {
+        this._setTransVal('mount', v) || (this.mount = v);
+    }
+
+    get MOUNTX() {
+        return this._getTransVal('mountX', this.mountX);
+    }
+
+    set MOUNTX(v) {
+        this._setTransVal('mountX', v) || (this.mountX = v);
+    }
+
+    get ALPHA() {
+        return this._getTransVal('alpha', this.alpha);
+    }
+
+    set ALPHA(v) {
+        this._setTransVal('alpha', v) || (this.alpha = v);
+    }
+
+    get ROTATION() {
+        return this._getTransVal('rotation', this.rotation);
+    }
+
+    set ROTATION(v) {
+        this._setTransVal('rotation', v) || (this.rotation = v);
+    }
+
+    get COLOR() {
+        return this._getTransVal('color', this.color);
+    }
+
+    set COLOR(v) {
+        this._setTransVal('color', v) || (this.color = v);
+    }
+
+    get COLORUL() {
+        return this._getTransVal('colorUl', this.colorUl);
+    }
+
+    set COLORUL(v) {
+        this._setTransVal('colorUl', v) || (this.colorUl = v);
+    }
+
+    get COLORUR() {
+        return this._getTransVal('colorUr', this.colorUr);
+    }
+
+    set COLORUR(v) {
+        this._setTransVal('colorUr', v) || (this.colorUr = v);
+    }
+
+    get COLORBL() {
+        return this._getTransVal('colorBl', this.colorBl);
+    }
+
+    set COLORBL(v) {
+        this._setTransVal('colorBl', v) || (this.colorBl = v);
+    }
+
+    get COLORBR() {
+        return this._getTransVal('colorBr', this.colorBr);
+    }
+
+    set COLORBR(v) {
+        this._setTransVal('colorBr', v) || (this.colorBr = v);
     }
     /*¬A*/
 
@@ -1472,7 +1650,7 @@ View.PROP_MERGERS = {
     'texture.h': mn
 };
 
-let Utils = require('../core/Utils');
+let Utils = require('./Utils');
 /*M¬*/let EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
 
 Base.mixinEs5(View, EventEmitter);
@@ -1482,3 +1660,4 @@ module.exports = View;
 let GeometryUtils = require('./GeometryUtils');
 let ViewText = require('./ViewText');
 let Texture = require('./Texture');
+/*A¬*/let Transition = require('../animation/Transition')/*¬A*/

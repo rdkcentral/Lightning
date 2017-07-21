@@ -14,6 +14,9 @@ class Transition extends Base {
 
         this._settings = settings;
 
+        if (!View) {
+            View = require('../core/View');
+        }
         this._view = view;
         this._getter = View.getGetter(property);
         this._setter = View.getSetter(property);
@@ -25,9 +28,6 @@ class Transition extends Base {
 
         this._startValue = this._getter(this._view);
         this._targetValue = this._startValue;
-
-        // To detect overrides.
-        this._knownValue = this._startValue;
 
         this._p = 1;
         this._delayLeft = 0;
@@ -46,7 +46,6 @@ class Transition extends Base {
 
     reset(targetValue, p) {
         this._startValue = this._getter(this._view);
-        this._knownValue = this._startValue;
         this._targetValue = targetValue;
         this._p = p;
 
@@ -62,7 +61,6 @@ class Transition extends Base {
 
     start(targetValue) {
         this._startValue = this._getter(this._view);
-        this._knownValue = this._startValue;
 
         if (targetValue === this._startValue) {
             this.reset(this._startValue, targetValue, 1);
@@ -123,8 +121,7 @@ class Transition extends Base {
             }
         }
 
-        this._knownValue = this.getDrawValue();
-        this._setter(this._view, this._knownValue);
+        this._setter(this._view, this.getDrawValue());
 
         if (this._eventsCount) {
             this.invokeListeners();
@@ -198,4 +195,4 @@ Base.mixinEs5(Transition, EventEmitter);
 module.exports = Transition;
 
 let StageUtils = require('../core/StageUtils');
-let View = require('../core/View');
+let View = null;

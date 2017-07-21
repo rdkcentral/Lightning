@@ -24,7 +24,7 @@ var start = function(wpe) {
         {tags: 'bg', rect: true, x: 20, y: 20, w: 560, h: 560, colorUl: 0xFFFF0000, colorBr: 0xFFFF6666, zIndex: 1, children: [
            {tags: 'hello', texture: texture, x: 10, y: 20},
            {src: 'http://adn.gpupdate.net/news/297192.jpg', w: 400, h: 200, x: 150, color: 0xAAFFFFFF, children: [
-               {tags: 'hello2', text: {text: "hello world", fontSize: 50}, x: 10, y: 20}
+               {tags: 'hello2', text: {text: "hello world", fontSize: 80}, x: 10, y: 20}
            ]}
         ]}
     ]);
@@ -37,8 +37,8 @@ var start = function(wpe) {
     anim.start();
 
     var hello2 = stage.root.tag('hello2');
-    stage.transitions.set(hello2, 'texture.x', {duration: 2});
-    stage.transitions.start(hello2, 'texture.x', 100);
+    hello2.transition('x', {duration: 5});
+    hello2.X = 100;
 
     setTimeout(function() {
         let anim2 = stage.animations.createAnimation(stage.root.tag('hello2'), animdef);

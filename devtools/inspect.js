@@ -37,7 +37,6 @@ var attachInspector = function(wpe) {
         };
 
 // _properties must have been called already to prevent init mayhem.
-        Base.initPrototype(View.prototype);
         Base.initPrototype(ViewText.prototype);
 
         window.mutationCounter = 0;
@@ -246,6 +245,10 @@ var attachInspector = function(wpe) {
             window.mutationCounter++;
         });
 
+        ViewRenderer.prototype.dhtml = function() {
+            return this._view.dhtml();
+        }
+
         View.prototype.dhtml = function() {
             if (!this.debugElement) {
                 this.debugElement = document.createElement('DIV');
@@ -332,6 +335,9 @@ var attachInspector = function(wpe) {
 
 // Change an attribute due to new value inputs.
         var val = function(c, n, v, dv) {
+            if (c._view) {
+                c = c._view;
+            }
             if (v == dv) {
                 c.dhtmlRemoveAttribute(n);
             } else {
@@ -416,31 +422,31 @@ var attachInspector = function(wpe) {
             this.dhtml().style.top = y + 'px';
         };
 
-        View.prototype.__rw = View.prototype._rw;
-        Object.defineProperty(View.prototype, '_rw', {
+        ViewRenderer.prototype.__rw = 0;
+        Object.defineProperty(ViewRenderer.prototype, '_rw', {
             get: function() {
                 return this.__rw;
             },
             set: function(v) {
                 this.__rw = v;
                 this.dhtml().style.width = v + 'px';
-                this.updateLeft();
+                this._view.updateLeft();
             }
         });
 
-        View.prototype.__rh = View.prototype._rh;
-        Object.defineProperty(View.prototype, '_rh', {
+        ViewRenderer.prototype.__rh = 0;
+        Object.defineProperty(ViewRenderer.prototype, '_rh', {
             get: function() {
                 return this.__rh;
             },
             set: function(v) {
                 this.__rh = v;
                 this.dhtml().style.height = v + 'px';
-                this.updateTop();
+                this._view.updateTop();
             }
         });
 
-        View.prototype.__alpha = View.prototype._alpha;
+        View.prototype.__alpha = 1;
         Object.defineProperty(View.prototype, '_alpha', {
             get: function() {
                 return this.__alpha;
@@ -455,7 +461,7 @@ var attachInspector = function(wpe) {
             }
         });
 
-        View.prototype.__visible = View.prototype._visible;
+        View.prototype.__visible = true;
         Object.defineProperty(View.prototype, '_visible', {
             get: function() {
                 return this.__visible;
@@ -470,7 +476,7 @@ var attachInspector = function(wpe) {
             }
         });
 
-        View.prototype.__texture = View.prototype._texture;
+        View.prototype.__texture = null;
         Object.defineProperty(View.prototype, '_texture', {
             get: function() {
                 return this.__texture;
@@ -483,7 +489,7 @@ var attachInspector = function(wpe) {
             }
         });
 
-        View.prototype.__rotation = View.prototype._rotation;
+        View.prototype.__rotation = 0;
         Object.defineProperty(View.prototype, '_rotation', {
             get: function() {
                 return this.__rotation;
@@ -498,7 +504,7 @@ var attachInspector = function(wpe) {
         });
 
 
-        View.prototype.__scaleX = View.prototype._scaleX;
+        View.prototype.__scaleX = 1;
         Object.defineProperty(View.prototype, '_scaleX', {
             get: function() {
                 return this.__scaleX;
@@ -512,7 +518,7 @@ var attachInspector = function(wpe) {
             }
         });
 
-        View.prototype.__scaleY = View.prototype._scaleY;
+        View.prototype.__scaleY = 1;
         Object.defineProperty(View.prototype, '_scaleY', {
             get: function() {
                 return this.__scaleY;
@@ -526,7 +532,7 @@ var attachInspector = function(wpe) {
             }
         });
 
-        View.prototype.__pivotX = View.prototype._pivotX;
+        View.prototype.__pivotX = 0.5;
         Object.defineProperty(View.prototype, '_pivotX', {
             get: function() {
                 return this.__pivotX;
@@ -540,7 +546,7 @@ var attachInspector = function(wpe) {
             }
         });
 
-        View.prototype.__pivotY = View.prototype._pivotY;
+        View.prototype.__pivotY = 0.5;
         Object.defineProperty(View.prototype, '_pivotY', {
             get: function() {
                 return this.__pivotY;
@@ -554,7 +560,7 @@ var attachInspector = function(wpe) {
             }
         });
 
-        View.prototype.__mountX = View.prototype._mountX;
+        View.prototype.__mountX = 0;
         Object.defineProperty(View.prototype, '_mountX', {
             get: function() {
                 return this.__mountX;
@@ -568,7 +574,7 @@ var attachInspector = function(wpe) {
             }
         });
 
-        View.prototype.__mountY = View.prototype._mountY;
+        View.prototype.__mountY = 0;
         Object.defineProperty(View.prototype, '_mountY', {
             get: function() {
                 return this.__mountY;
@@ -582,7 +588,7 @@ var attachInspector = function(wpe) {
             }
         });
 
-        View.prototype.__zIndex = View.prototype._zIndex;
+        View.prototype.__zIndex = 0;
         Object.defineProperty(View.prototype, '_zIndex', {
             get: function() {
                 return this.__zIndex;
@@ -598,7 +604,7 @@ var attachInspector = function(wpe) {
             }
         });
 
-        View.prototype.__forceZIndexContext = View.prototype._forceZIndexContext;
+        View.prototype.__forceZIndexContext = false;
         Object.defineProperty(View.prototype, '_forceZIndexContext', {
             get: function() {
                 return this.__forceZIndexContext;
@@ -611,7 +617,7 @@ var attachInspector = function(wpe) {
             }
         });
 
-        View.prototype.__clipping = View.prototype._clipping;
+        View.prototype.__clipping = false;
         Object.defineProperty(View.prototype, '_clipping', {
             get: function() {
                 return this.__clipping;
@@ -628,8 +634,8 @@ var attachInspector = function(wpe) {
             }
         });
 
-        View.prototype.__colorUl = View.prototype._colorUl;
-        Object.defineProperty(View.prototype, '_colorUl', {
+        ViewRenderer.prototype.__colorUl = 0xFFFFFFFF;
+        Object.defineProperty(ViewRenderer.prototype, '_colorUl', {
             get: function() {
                 return this.__colorUl;
             },
@@ -642,8 +648,8 @@ var attachInspector = function(wpe) {
             }
         });
 
-        View.prototype.__colorUr = View.prototype._colorUr;
-        Object.defineProperty(View.prototype, '_colorUr', {
+        ViewRenderer.prototype.__colorUr = 0xFFFFFFFF;
+        Object.defineProperty(ViewRenderer.prototype, '_colorUr', {
             get: function() {
                 return this.__colorUr;
             },
@@ -656,8 +662,8 @@ var attachInspector = function(wpe) {
             }
         });
 
-        View.prototype.__colorBl = View.prototype._colorBl;
-        Object.defineProperty(View.prototype, '_colorBl', {
+        ViewRenderer.prototype.__colorBl = 0xFFFFFFFF;
+        Object.defineProperty(ViewRenderer.prototype, '_colorBl', {
             get: function() {
                 return this.__colorBl;
             },
@@ -670,8 +676,8 @@ var attachInspector = function(wpe) {
             }
         });
 
-        View.prototype.__colorBr = View.prototype._colorBr;
-        Object.defineProperty(View.prototype, '_colorBr', {
+        ViewRenderer.prototype.__colorBr = 0xFFFFFFFF;
+        Object.defineProperty(ViewRenderer.prototype, '_colorBr', {
             get: function() {
                 return this.__colorBr;
             },
@@ -684,15 +690,16 @@ var attachInspector = function(wpe) {
             }
         });
 
-        var checkColors = function(view) {
-            if (view._colorBr === undefined) {
+        var checkColors = function(viewRenderer) {
+            let view = viewRenderer._view;
+            if (viewRenderer._colorBr === undefined) {
                 // View initialization.
                 return;
             }
 
-            if (view._colorUl === view._colorUr && view._colorUl === view._colorBl && view._colorUl === view._colorBr) {
-                if (view._colorUl !== 0xffffffff) {
-                    view.dhtmlSetAttribute('color', view._colorUl.toString(16));
+            if (viewRenderer._colorUl === viewRenderer._colorUr && viewRenderer._colorUl === viewRenderer._colorBl && viewRenderer._colorUl === viewRenderer._colorBr) {
+                if (viewRenderer._colorUl !== 0xffffffff) {
+                    view.dhtmlSetAttribute('color', viewRenderer._colorUl.toString(16));
                 } else {
                     view.dhtmlRemoveAttribute('color');
                 }
@@ -701,10 +708,10 @@ var attachInspector = function(wpe) {
                 view.dhtmlRemoveAttribute('colorbl');
                 view.dhtmlRemoveAttribute('colorbr');
             } else {
-                val(view, 'colorUr', view._colorUr.toString(16), "ffffffff");
-                val(view, 'colorUl', view._colorUl.toString(16), "ffffffff");
-                val(view, 'colorBr', view._colorBr.toString(16), "ffffffff");
-                val(view, 'colorBl', view._colorBl.toString(16), "ffffffff");
+                val(view, 'colorUr', viewRenderer.colorUr.toString(16), "ffffffff");
+                val(view, 'colorUl', viewRenderer.colorUl.toString(16), "ffffffff");
+                val(view, 'colorBr', viewRenderer.colorBr.toString(16), "ffffffff");
+                val(view, 'colorBl', viewRenderer.colorBl.toString(16), "ffffffff");
                 view.dhtmlRemoveAttribute('color');
             }
         };
