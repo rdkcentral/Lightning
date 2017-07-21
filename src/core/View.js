@@ -3,15 +3,13 @@
  * Copyright Metrological, 2017
  */
 
-let Base = require('./Base');
 let StageUtils = require('./StageUtils');
 let ViewRenderer = require('./ViewRenderer');
+let Base = require('./Base');
 
-class View extends Base {
+class View {
 
     constructor(stage) {
-        super();
-
         EventEmitter.call(this);
 
         this.id = View.id++;
@@ -19,9 +17,6 @@ class View extends Base {
         this.stage = stage;
 
         this.renderer = new ViewRenderer(this);
-    }
-
-    _properties() {
 
         /**
          * A view is active if it is a descendant of the stage root and it is visible (worldAlpha > 0).

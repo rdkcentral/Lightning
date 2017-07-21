@@ -1,14 +1,10 @@
-var Base = require('./Base');
-
 /**
  * Graphical calculations / VBO buffer filling.
  */
-class ViewRenderer extends Base {
+class ViewRenderer {
 
     constructor(view) {
-        super();
-
-        this.view = view;
+        this._view = view;
 
         this.ctx = view.stage.ctx;
 
@@ -256,7 +252,7 @@ class ViewRenderer extends Base {
 
     setAsRoot() {
         // Use parent dummy.
-        this._parent = new ViewRenderer(this.view);
+        this._parent = new ViewRenderer(this._view);
 
         // Root is, and will always be, the primary zContext.
         this._isRoot = true;

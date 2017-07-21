@@ -37,7 +37,7 @@ class VboContext {
     }
 
     updateAndFillVbo() {
-        this.useZIndexing = true;//(this.stage.zIndexUsage > 0);
+        this.useZIndexing = (this.stage.zIndexUsage > 0);
 
         this.reset();
 
