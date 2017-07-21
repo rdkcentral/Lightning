@@ -11,9 +11,7 @@ class ViewRenderer extends Base {
         this.view = view;
 
         this.ctx = view.stage.ctx;
-    }
 
-    _properties() {
         this._parent = null;
 
         this._hasUpdates = false;
