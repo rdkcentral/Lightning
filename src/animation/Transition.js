@@ -195,4 +195,4 @@ Base.mixinEs5(Transition, EventEmitter);
 module.exports = Transition;
 
 let StageUtils = require('../core/StageUtils');
-let View = null;
+/*M¬*/let View = null;/*¬M*/
