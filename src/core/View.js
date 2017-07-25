@@ -848,10 +848,18 @@ class View {
      * @param {string} tag
      * @returns {View}
      */
-    tag(tag) {
+    _tag(tag) {
         let res = this.mtag(tag);
         return res[0];
     };
+
+    get tag() {
+        return this._tag;
+    }
+
+    set tag(t) {
+        this.tags = t;
+    }
 
     /**
      * Returns all views from the subtree that have this tag.
@@ -874,7 +882,7 @@ class View {
                 while (res.length && level < c) {
                     let resn = [];
                     for (let j = 0, n = res.length; j < n; j++) {
-                        resn = resn.concat(res[j]._tags.get(parts[level]));
+                        resn = resn.concat(res[j]._getByTag(parts[level]));
                     }
 
                     res = resn;

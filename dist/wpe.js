@@ -524,8 +524,8 @@ class Base {
 
     static setObjectSettings(obj, settings) {
         for (let name in settings) {
-            let v = settings[name];
             if (settings.hasOwnProperty(name)) {
+                let v = settings[name];
                 if (Utils.isObjectLiteral(v) && Utils.isObject(obj[name])) {
                     // Sub object.
                     var p = obj[name];
@@ -1306,7 +1306,10 @@ class GeometryUtils {
  * - convert UI(?)
  * - convert Bunnyhopper(?)
  * - convert TMDB(?)
- * - list subclasses View?
+ * - bug tag selectors
+ * - List subclasses View?
+ * - BorderView subclasses View?
+ * - type extensions
  * - quick clone
  * - hasAlpha in format, and try to prepare images for upload (so that we get buffer performance).
  * - borders
@@ -3893,10 +3896,18 @@ class View {
      * @param {string} tag
      * @returns {View}
      */
-    tag(tag) {
+    _tag(tag) {
         let res = this.mtag(tag);
         return res[0];
     };
+
+    get tag() {
+        return this._tag;
+    }
+
+    set tag(t) {
+        this.tags = t;
+    }
 
     /**
      * Returns all views from the subtree that have this tag.
@@ -3919,7 +3930,7 @@ class View {
                 while (res.length && level < c) {
                     let resn = [];
                     for (let j = 0, n = res.length; j < n; j++) {
-                        resn = resn.concat(res[j]._tags.get(parts[level]));
+                        resn = resn.concat(res[j]._getByTag(parts[level]));
                     }
 
                     res = resn;
@@ -4405,6 +4416,10 @@ class View {
     set tags(v) {
         if (!Array.isArray(v)) v = [v];
         this.setTags(v);
+    }
+
+    set t(v) {
+        this.tags = v;
     }
 
     get children() {

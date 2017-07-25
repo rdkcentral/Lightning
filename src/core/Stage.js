@@ -10,6 +10,7 @@ let Base = require('./Base');
  * - convert UI(?)
  * - convert Bunnyhopper(?)
  * - convert TMDB(?)
+ * - bug tag selectors
  * - List subclasses View?
  * - BorderView subclasses View?
  * - type extensions
