@@ -157,6 +157,10 @@ class Transition extends Base {
         }
     }
 
+    skipDelay() {
+        this._delayLeft = 0;
+    }
+
     get startValue() {
         return this._startValue;
     }

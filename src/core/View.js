@@ -1362,6 +1362,10 @@ class View {
         this.setTags(v);
     }
 
+    set t(v) {
+        this.tags = v;
+    }
+
     get children() {
         return this._children || [];
     }

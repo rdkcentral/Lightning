@@ -71,8 +71,8 @@ class Base {
 
     static setObjectSettings(obj, settings) {
         for (let name in settings) {
-            let v = settings[name];
             if (settings.hasOwnProperty(name)) {
+                let v = settings[name];
                 if (Utils.isObjectLiteral(v) && Utils.isObject(obj[name])) {
                     // Sub object.
                     var p = obj[name];

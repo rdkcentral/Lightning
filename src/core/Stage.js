@@ -10,7 +10,9 @@ let Base = require('./Base');
  * - convert UI(?)
  * - convert Bunnyhopper(?)
  * - convert TMDB(?)
- * - list subclasses View?
+ * - List subclasses View?
+ * - BorderView subclasses View?
+ * - type extensions
  * - quick clone
  * - hasAlpha in format, and try to prepare images for upload (so that we get buffer performance).
  * - borders

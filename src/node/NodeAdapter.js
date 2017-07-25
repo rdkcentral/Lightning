@@ -22,7 +22,11 @@ class NodeAdapter {
             }
 
             if (this._supercharger) {
-                let options = {allowFiles: (!!this.stage.options.supercharger.localImagePath), allowedFilePath: this.stage.options.supercharger.localImagePath};
+                let localImagePath = this.stage.options.supercharger.localImagePath;
+                let options = {allowFiles: (!!localImagePath)};
+                if (localImagePath !== true) {
+                    this.options.allowedFilePath = localImagePath;
+                }
                 this._supercharger.init(options);
             }
         } else {
