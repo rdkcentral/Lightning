@@ -821,7 +821,7 @@ class View {
     getLocationString() {
         let i;
         if (this._parent) {
-            i = this._parent._children.get().getIndex(this);
+            i = this._parent._children.getIndex(this);
             if (i >= 0) {
                 let localTags = this.getTags();
                 return this._parent.getLocationString() + ":" + i + "[" + this.id + "]" + (localTags.length ? "(" + localTags.join(",") + ")" : "");

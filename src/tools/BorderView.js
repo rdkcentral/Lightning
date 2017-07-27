@@ -16,19 +16,21 @@ class BorderView extends View {
         this._borderBottom = super._children.a({rect: true, visible: false});
         this._borderLeft = super._children.a({rect: true, visible: false, mountX: 1});
 
-        this.layoutExit = function (view) {
-            let rw = view.renderWidth;
-            let rh = view.renderHeight;
-            view._borderTop.w = rw;
-            view._borderBottom.y = rh;
-            view._borderBottom.w = rw;
-            view._borderLeft.h = rh + view._borderTop.h + view._borderBottom.h;
-            view._borderLeft.y = -view._borderTop.h;
-            view._borderRight.x = rw;
-            view._borderRight.h = rh + view._borderTop.h + view._borderBottom.h;
-            view._borderRight.y = -view._borderTop.h;
-            view._wrapper.w = rw;
-            view._wrapper.h = rh;
+        this.layoutExit = function (view, recalc) {
+            if (recalc) {
+                let rw = view.renderWidth;
+                let rh = view.renderHeight;
+                view._borderTop.w = rw;
+                view._borderBottom.y = rh;
+                view._borderBottom.w = rw;
+                view._borderLeft.h = rh + view._borderTop.h + view._borderBottom.h;
+                view._borderLeft.y = -view._borderTop.h;
+                view._borderRight.x = rw;
+                view._borderRight.h = rh + view._borderTop.h + view._borderBottom.h;
+                view._borderRight.y = -view._borderTop.h;
+                view._wrapper.w = rw;
+                view._wrapper.h = rh;
+            }
         }
     }
 

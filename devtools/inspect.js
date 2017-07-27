@@ -64,7 +64,7 @@ var attachInspector = function(wpe) {
                     var removedNodes = mutation.removedNodes;
                     for (var i = 0, n = removedNodes.length; i < n; i++) {
                         if (removedNodes[i].view) {
-                            c.removeChild(removedNodes[i].view);
+                            c._children.remove(removedNodes[i].view);
                         }
                     }
 
@@ -291,9 +291,9 @@ var attachInspector = function(wpe) {
 
             if (!window.mutatingChildren) {
                 if (parent) {
-                    var index = parent.getChildIndex(this);
+                    var index = parent._children.getIndex(this);
                     parent.__ignore_child_list_changes = window.mutationCounter;
-                    if (index == parent.children.length - 1) {
+                    if (index == parent._children.get().length - 1) {
                         parent.dhtml().appendChild(this.dhtml());
                     } else {
                         parent.dhtml().insertBefore(this.dhtml(), parent.dhtml().children[index]);

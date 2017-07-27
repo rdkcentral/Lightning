@@ -18,7 +18,7 @@ class ViewRenderer {
 
         this._hasLayoutHooks = 0;
 
-        this._recalc = 0;
+        this._recalc = 128;
 
         this._worldAlpha = 1;
 
@@ -110,6 +110,7 @@ class ViewRenderer {
      *   2: translate
      *   4: transform
      *   8: clipping
+     * 128: force layout when becoming visible
      * @private
      */
     _setRecalc(type) {
@@ -126,9 +127,6 @@ class ViewRenderer {
         }
     };
 
-    /**
-     * @private
-     */
     _setRecalcForced(type, force) {
         this._recalc |= type;
 
@@ -561,32 +559,41 @@ class ViewRenderer {
     layout() {
         if (this._hasLayoutHooks !== 0) {
             // Carry positioning changes downwards to ensure re-layout.
-            this._recalc |= (this._parent._recalc & 6);
+            let origRecalc = this._recalc;
 
-            let layoutChanged = (this._recalc & 6);
+            if (this.isVisible()) {
+                this._recalc |= (this._parent._recalc & 6);
+                let layoutChanged = (this._recalc & 6);
 
-            if (layoutChanged && this._layoutEntry) {
-                this._layoutEntry(this._view);
-            }
-            if (this._children) {
-                if (this._hasLayoutHooks === -1) {
-                    let hasLayoutHooks = false;
-                    for (let i = 0, n = this._children.length; i < n; i++) {
-                        this._children[i].layout();
-                        hasLayoutHooks = hasLayoutHooks || (this._children[i]._hasLayoutHooks === 1);
-                    }
-                    this._hasLayoutHooks = hasLayoutHooks ? 1 : 0;
-                } else {
-                    if (this._hasUpdates || layoutChanged) {
+                if (this._layoutEntry) {
+                    this._layoutEntry(this._view, origRecalc);
+                }
+                if (this._children) {
+                    if (this._hasLayoutHooks === -1) {
+                        let hasLayoutHooks = false;
                         for (let i = 0, n = this._children.length; i < n; i++) {
                             this._children[i].layout();
+                            hasLayoutHooks = hasLayoutHooks || (this._children[i]._hasLayoutHooks === 1);
+                        }
+                        this._hasLayoutHooks = hasLayoutHooks ? 1 : 0;
+                    } else {
+                        for (let i = 0, n = this._children.length; i < n; i++) {
+                            if (this._children[i]._hasUpdates || layoutChanged) {
+                                this._children[i].layout();
+                            }
                         }
                     }
                 }
+                if (this._layoutExit) {
+                    this._layoutExit(this._view, origRecalc);
+                }
+
+                if ((this._recalc & 128)) {
+                    // Clear 'force layout' flag.
+                    this._recalc -= 128;
+                }
             }
-            if (layoutChanged && this._layoutExit) {
-                this._layoutExit(this._view);
-            }
+
         }
     }
 
@@ -760,189 +767,12 @@ class ViewRenderer {
                 }
             }
 
-            this._recalc = 0;
-
-            this._hasUpdates = false;
-
-        }
-
-        if (this._zSort) {
-            this.ctx.updateTreeOrderForceUpdate--;
-        }
-
-    };
-
-    update2() {
-        this._recalc |= this._parent._recalc;
-
-        if (this._zSort) {
-            // Make sure that all descendants are updated so that the updateTreeOrder flags are correctly set.
-            this.ctx.updateTreeOrderForceUpdate++;
-        }
-
-        let forceUpdate = (this.ctx.updateTreeOrderForceUpdate > 0);
-        if (this._recalc & 1) {
-            // If case of becoming invisible, we must update the children because they may be z-indexed.
-            forceUpdate = this._worldAlpha && !(this._parent._worldAlpha && this._localAlpha);
-
-            this._worldAlpha = this._parent._worldAlpha * this._localAlpha;
-
-            if (this._worldAlpha < 1e-14) {
-                // Tiny rounding errors may cause failing visibility tests.
-                this._worldAlpha = 0;
-            }
-        }
-
-        if (this._worldAlpha || forceUpdate) {
-            if (this._recalc & 6) {
-                this._worldPx = this._parent._worldPx + this._localPx * this._parent._worldTa;
-                this._worldPy = this._parent._worldPy + this._localPy * this._parent._worldTd;
-            }
-
-            if (this._recalc & 4) {
-                this._worldTa = this._localTa * this._parent._worldTa;
-                this._worldTb = this._localTd * this._parent._worldTb;
-                this._worldTc = this._localTa * this._parent._worldTc;
-                this._worldTd = this._localTd * this._parent._worldTd;
-
-                if (this._isComplex) {
-                    this._worldTa += this._localTc * this._parent._worldTb;
-                    this._worldTb += this._localTb * this._parent._worldTa;
-                    this._worldTc += this._localTc * this._parent._worldTd;
-                    this._worldTd += this._localTb * this._parent._worldTc;
-                }
-            }
-
-            if ((this._recalc & 6) && (this._parent._worldTb !== 0 || this._parent._worldTc !== 0)) {
-                this._worldPx += this._localPy * this._parent._worldTb;
-                this._worldPy += this._localPx * this._parent._worldTc;
-            }
-
-            if ((this._recalc & 14 /* 2 + 4 + 8 */) && (this._clippingParent || this._clipping)) {
-                // We must calculate the clipping area.
-                let c1x, c1y, c2x, c2y, c3x, c3y;
-
-                let cp = this._clippingParent;
-                if (cp && cp._clippingEmpty) {
-                    this._clippingEmpty = true;
-                    this._clippingArea = null;
-                    this._clippingNoEffect = false;
-                } else {
-                    this._clippingNoEffect = false;
-                    this._clippingEmpty = false;
-                    this._clippingArea = null;
-                    if (cp) {
-                        if (cp._clippingSquare && (this._worldTb === 0 && this._worldTc === 0 && this._worldTa > 0 && this._worldTd > 0)) {
-                            // Special case: 'easy square clipping'.
-                            this._clippingSquare = true;
-
-                            c2x = this._worldPx + this._rw * this._worldTa;
-                            c2y = this._worldPy + this._rh * this._worldTd;
-
-                            this._clippingSquareMinX = this._worldPx;
-                            this._clippingSquareMaxX = c2x;
-                            this._clippingSquareMinY = this._worldPy;
-                            this._clippingSquareMaxY = c2y;
-
-                            if ((this._clippingSquareMinX >= cp._clippingSquareMinX) && (this._clippingSquareMaxX <= cp._clippingSquareMaxX) && (this._clippingSquareMinY >= cp._clippingSquareMinY) && (this._clippingSquareMaxY <= cp._clippingSquareMaxY)) {
-                                // No effect.
-                                this._clippingNoEffect = true;
-
-                                if (this._clipping) {
-                                    this._clippingSquareMinX = this._worldPx;
-                                    this._clippingSquareMaxX = c2x;
-                                    this._clippingSquareMinY = this._worldPy;
-                                    this._clippingSquareMaxY = c2y;
-                                }
-                            } else {
-                                this._clippingSquareMinX = Math.max(this._clippingSquareMinX, cp._clippingSquareMinX);
-                                this._clippingSquareMaxX = Math.min(this._clippingSquareMaxX, cp._clippingSquareMaxX);
-                                this._clippingSquareMinY = Math.max(this._clippingSquareMinY, cp._clippingSquareMinY);
-                                this._clippingSquareMaxY = Math.min(this._clippingSquareMaxY, cp._clippingSquareMaxY);
-                                if (this._clippingSquareMaxX < this._clippingSquareMinX || this._clippingSquareMaxY < this._clippingSquareMinY) {
-                                    this._clippingEmpty = true;
-                                }
-                            }
-                        } else {
-                            //c0x = this._worldPx;
-                            //c0y = this._worldPy;
-                            c1x = this._worldPx + this._rw * this._worldTa;
-                            c1y = this._worldPy + this._rw * this._worldTc;
-                            c2x = this._worldPx + this._rw * this._worldTa + this._rh * this._worldTb;
-                            c2y = this._worldPy + this._rw * this._worldTc + this._rh * this._worldTd;
-                            c3x = this._worldPx + this._rh * this._worldTb;
-                            c3y = this._worldPy + this._rh * this._worldTd;
-
-                            // Complex shape.
-                            this._clippingSquare = false;
-                            let cornerPoints = [this._worldPx, this._worldPy, c1x, c1y, c2x, c2y, c3x, c3y];
-
-                            if (cp._clippingSquare && !cp._clippingArea) {
-                                // We need a clipping area to use for intersection.
-                                cp._clippingArea = [cp._clippingSquareMinX, cp._clippingSquareMinY, cp._clippingSquareMaxX, cp._clippingSquareMinY, cp._clippingSquareMaxX, cp._clippingSquareMaxY, cp._clippingSquareMinX, cp._clippingSquareMaxY];
-                            }
-
-                            this._clippingArea = GeometryUtils.intersectConvex(cp._clippingArea, cornerPoints);
-                            this._clippingEmpty = (this._clippingArea.length === 0);
-                            this._clippingNoEffect = (cornerPoints === this._clippingArea);
-                        }
-                    } else {
-                        c1x = this._worldPx + this._rw * this._worldTa;
-                        c3y = this._worldPy + this._rh * this._worldTd;
-
-                        // Just use the corner points.
-                        if (this._worldTb === 0 && this._worldTc === 0 && this._worldTa > 0 && this._worldTd > 0) {
-                            // Square.
-                            this._clippingSquare = true;
-                            if (this._clipping) {
-                                this._clippingSquareMinX = this._worldPx;
-                                this._clippingSquareMaxX = c1x;
-                                this._clippingSquareMinY = this._worldPy;
-                                this._clippingSquareMaxY = c3y;
-                            }
-                            this._clippingEmpty = false;
-                            this._clippingNoEffect = true;
-                        } else {
-                            c1y = this._worldPy + this._rw * this._worldTc;
-                            c2x = this._worldPx + this._rw * this._worldTa + this._rh * this._worldTb;
-                            c2y = this._worldPy + this._rw * this._worldTc + this._rh * this._worldTd;
-                            c3x = this._worldPx + this._rh * this._worldTb;
-
-                            // Complex shape.
-                            this._clippingSquare = false;
-                            if (this._clipping) {
-                                this._clippingArea = [this._worldPx, this._worldPy, c1x, c1y, c2x, c2y, c3x, c3y];
-                            }
-                            this._clippingEmpty = false;
-                            this._clippingNoEffect = true;
-                        }
-                    }
-                }
-            }
-
-            if (!this.ctx.useZIndexing) {
-                // Use single pass.
-                if (this._displayedTextureSource) {
-                    this.addToVbo();
-                }
+            if (this._worldAlpha === 0) {
+                // Layout must be run when this view becomes visible.
+                this._recalc = 128;
             } else {
-                this._updateTreeOrder = this.ctx.updateTreeOrder++;
+                this._recalc = 0;
             }
-
-            this._recalc = (this._recalc & 7);
-            /* 1+2+4 */
-
-            if (this._children) {
-                for (let i = 0, n = this._children.length; i < n; i++) {
-                    if ((this.ctx.updateTreeOrderForceUpdate > 0) || this._recalc || this._children[i]._hasUpdates) {
-                        this._children[i].update();
-                    } else if (!this.ctx.useZIndexing) {
-                        this._children[i].fillVbo();
-                    }
-                }
-            }
-
-            this._recalc = 0;
 
             this._hasUpdates = false;
 
