@@ -25,7 +25,7 @@ class NodeAdapter {
                 let localImagePath = this.stage.options.supercharger.localImagePath;
                 let options = {allowFiles: (!!localImagePath)};
                 if (localImagePath !== true) {
-                    this.options.allowedFilePath = localImagePath;
+                    options.allowedFilePath = localImagePath;
                 }
                 this._supercharger.init(options);
             }

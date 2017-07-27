@@ -1303,10 +1303,14 @@ class GeometryUtils {
 
 /**
  * @todo:
+ * - ViewCollection class: collection of views with accessors
+ *   - set all at once
+ *   - basic accessors (addChild, etc)
+ *   - target view
+ *   - encapsulation (wrapping in another structure before adding)
  * - convert UI(?)
  * - convert Bunnyhopper(?)
  * - convert TMDB(?)
- * - bug tag selectors
  * - List subclasses View?
  * - BorderView subclasses View?
  * - type extensions
@@ -1497,7 +1501,15 @@ class Stage extends Base {
     }
 
     view(settings) {
-        let view = this.createView();
+        if (settings.isView) return settings;
+
+        let view;
+        if (settings.type) {
+            view = new settings.type(this);
+            delete settings.type;
+        } else {
+            view = this.createView();
+        }
         view.setSettings(settings);
         return view;
     }
@@ -3144,10 +3156,17 @@ class View {
         this._viewText = null;
 
         /**
-         * @type {View[]}
-         * @protected
+         * (Lazy-initialised) list of children owned by this view.
+         * @type {ViewChildList}
          */
-        this._children = null;
+        this._childList = null;
+
+        /**
+         * (Lazy-initialised) exposed (public) list of children for this view.
+         * This is normally the same as _childList except for complex views such as Lists.
+         * @type {ViewChildList}
+         */
+        this._exposedChildList = null;
 
     }
 
@@ -3237,106 +3256,6 @@ class View {
         return null;
     };
 
-    addChild(child) {
-        if (!this._children) this._children = [];
-
-        if (child._parent === this && this._children.indexOf(child) >= 0) {
-            return child;
-        }
-        this.addChildAt(child, this._children.length);
-    };
-
-    addChildAt(child, index) {
-        // prevent adding self as child
-        if (child === this) {
-            return
-        }
-
-        if (this._children === null) {
-            this._children = [];
-        }
-
-        if (index >= 0 && index <= this._children.length) {
-            if (child._parent === this && this._children.indexOf(child) === index) {
-                // Ignore.
-            } else {
-                if (child._parent) {
-                    let p = child._parent;
-                    p.removeChild(child);
-                }
-
-                child._setParent(this);
-                this._children.splice(index, 0, child);
-
-                // Sync.
-                this.renderer.addChildAt(index, child.renderer);
-            }
-
-            return;
-        } else {
-            throw new Error(child + 'addChildAt: The index ' + index + ' supplied is out of bounds ' + this.children.length);
-        }
-    };
-
-    getChildIndex(child) {
-        return this._children && this._children.indexOf(child);
-    };
-
-    removeChild(child) {
-        let index = this._children && this._children.indexOf(child);
-
-        if (index !== -1) {
-            this.removeChildAt(index);
-        }
-    };
-
-    removeChildAt(index) {
-        if (!this._children) return;
-
-        let child = this._children[index];
-
-        child._setParent(null);
-        this._children.splice(index, 1);
-
-        // Sync.
-        this.renderer.removeChildAt(index);
-
-        return child;
-    };
-
-    removeChildren() {
-        if (this._children) {
-            let n = this._children.length;
-            if (n) {
-                for (let i = 0; i < n; i++) {
-                    let child = this._children[i];
-                    child._setParent(null);
-                }
-                this._children.splice(0, n);
-
-                // Sync.
-                this.renderer.removeChildren();
-            }
-        }
-    };
-
-    add(o) {
-        if (Utils.isObjectLiteral(o)) {
-            let c = this.stage.createView();
-            c.setSettings(o);
-            this.addChild(c);
-            return c;
-        } else if (o instanceof View) {
-            this.addChild(o);
-            return o;
-        } else if (Array.isArray(o)) {
-            for (let i = 0, n = o.length; i < n; i++) {
-                this.add(o[i]);
-            }
-            return null;
-        }
-    };
-
     isActive() {
         return this._visible && (this._alpha > 0) && (this._parent ? this._parent._active : (this.stage.root === this));
     };
@@ -3358,11 +3277,12 @@ class View {
                 this._unsetActiveFlag();
             }
 
-            if (this._children) {
-                let m = this._children.length;
+            let children = this._children.get();
+            if (children) {
+                let m = children.length;
                 if (m > 0) {
                     for (let i = 0; i < m; i++) {
-                        this._children[i]._updateActiveFlag();
+                        children[i]._updateActiveFlag();
                     }
                 }
             }
@@ -3433,11 +3353,12 @@ class View {
         if (this._attached !== newAttached) {
             this._attached = newAttached;
 
-            if (this._children) {
-                let m = this._children.length;
+            let children = this._children.get();
+            if (children) {
+                let m = children.length;
                 if (m > 0) {
                     for (let i = 0; i < m; i++) {
-                        this._children[i]._updateAttachedFlag();
+                        children[i]._updateAttachedFlag();
                     }
                 }
             }
@@ -3960,7 +3881,7 @@ class View {
     getLocationString() {
         let i;
         if (this._parent) {
-            i = this._parent._children.indexOf(this);
+            i = this._parent._children.get().getIndex(this);
             if (i >= 0) {
                 let localTags = this.getTags();
                 return this._parent.getLocationString() + ":" + i + "[" + this.id + "]" + (localTags.length ? "(" + localTags.join(",") + ")" : "");
@@ -4004,11 +3925,12 @@ class View {
     getSettings() {
         let settings = this.getNonDefaults();
 
-        if (this._children) {
-            let n = this._children.length;
+        let children = this._children.get();
+        if (children) {
+            let n = children.length;
             settings.children = [];
             for (let i = 0; i < n; i++) {
-                settings.children.push(this._children[i].getSettings());
+                settings.children.push(children[i].getSettings());
             }
         }
 
@@ -4422,22 +4344,62 @@ class View {
         this.tags = v;
     }
 
+    get _children() {
+        if (!this._childList) {
+            this._childList = new ViewChildList(this)
+        }
+        return this._childList
+    }
+
+    get childList() {
+        if (!this._exposedChildList) {
+            this._exposedChildList = this._getExposedChildList()
+        }
+        return this._exposedChildList
+    }
+
+    _getExposedChildList() {
+        return this._children
+    }
+
     get children() {
-        return this._children || [];
+        return this.childList.get()
     }
 
     set children(children) {
-        this.removeChildren();
-        for (let i = 0, n = children.length; i < n; i++) {
-            let o = children[i];
-            if (Utils.isObjectLiteral(o)) {
-                let c = this.stage.createView(o);
-                c.setSettings(o);
-                this.addChild(c);
-            } else if (o instanceof View) {
-                this.addChild(o);
-            }
-        }
+        this.childList.set(children)
+    }
+
+    getChildren() {
+        return this.childList.get();
+    }
+
+    addChild(child) {
+        return this.childList.add(child);
+    }
+
+    addChildAt(child, index) {
+        return this.childList.addAt(child, index);
+    }
+
+    getChildIndex(child) {
+        return this.childList.getIndex(child);
+    }
+
+    removeChild(child) {
+        return this.childList.remove(child);
+    }
+
+    removeChildAt(index) {
+        return this.childList.removeAt(index);
+    }
+
+    removeChildren() {
+        return this.childList.clear();
+    }
+
+    add(o) {
+        return this.childList.a(o);
     }
 
     get parent() {
@@ -4735,6 +4697,8 @@ class View {
 
 }
 
+View.prototype.isView = 1;
+
 View.id = 1;
 
 // Getters reused when referencing view (subobject) properties by a property path, as used in a transition or animation ('x', 'texture.x', etc).
@@ -4778,6 +4742,147 @@ View.PROP_MERGERS = {
 
 
 Base.mixinEs5(View, EventEmitter);
+
+
+
+
+/**
+ * Manages the list of children for a view.
+ */
+class ViewChildList {
+    
+    constructor(view) {
+
+        this._view = view;
+
+        /**
+         * Lazy-initialised child array.
+         * @type {View[]}
+         */
+        this._children = null;
+
+    }
+
+    get() {
+        return this._children || [];
+    }
+
+    add(view) {
+        if (!this._children) this._children = [];
+
+        if (view._parent === this && this._children.indexOf(view) >= 0) {
+            return view;
+        }
+        this.addAt(view, this._children.length);
+    };
+
+    addAt(view, index) {
+        // prevent adding self as view
+        if (view === this._view) {
+            return
+        }
+
+        if (this._children === null) {
+            this._children = [];
+        }
+
+        if (index >= 0 && index <= this._children.length) {
+            if (view._parent === this._view && this._children.indexOf(view) === index) {
+                // Ignore.
+            } else {
+                if (view._parent) {
+                    let p = view._parent;
+                    p._children.remove(view);
+                }
+
+                view._setParent(this._view);
+                this._children.splice(index, 0, view);
+
+                // Sync.
+                this._view.renderer.addChildAt(index, view.renderer);
+            }
+
+            return;
+        } else {
+            throw new Error(view + 'addChildAt: The index ' + index + ' supplied is out of bounds ' + this._children.length);
+        }
+    };
+
+    getIndex(view) {
+        return this._children && this._children.indexOf(view);
+    };
+
+    remove(view) {
+        let index = this.getIndex(view);
+
+        if (index !== -1) {
+            this.removeAt(index);
+        }
+    };
+
+    removeAt(index) {
+        if (!this._children) return;
+
+        let view = this._children[index];
+
+        view._setParent(null);
+        this._children.splice(index, 1);
+
+        // Sync.
+        this._view.renderer.removeAt(index);
+
+        return view;
+    };
+
+    clear() {
+        if (this._children) {
+            let n = this._children.length;
+            if (n) {
+                for (let i = 0; i < n; i++) {
+                    let view = this._children[i];
+                    view._setParent(null);
+                }
+                this._children.splice(0, n);
+
+                // Sync.
+                this.renderer.removeChildren();
+            }
+        }
+    };
+
+    a(o) {
+        if (Utils.isObjectLiteral(o)) {
+            let c = this._view.stage.view(o);
+            this.add(c);
+            return c;
+        } else if (o.isView) {
+            this.add(o);
+            return o;
+        } else if (Array.isArray(o)) {
+            for (let i = 0, n = o.length; i < n; i++) {
+                this.a(o[i]);
+            }
+            return null;
+        }
+    };
+    
+    set(views) {
+        this.clear();
+        for (let i = 0, n = views.length; i < n; i++) {
+            let o = views[i];
+            if (Utils.isObjectLiteral(o)) {
+                let c = this._view.stage.view(o);
+                this.add(c);
+            } else if (o.isView) {
+                this.add(o);
+            }
+        }
+    }
+
+    get length() {
+        return this._children ? this._children.length : 0;
+    }
+}
 
 
 
@@ -8258,19 +8363,72 @@ class Tools {
 
 
 /**
+ * Virtual child list that proxies accessors to a different child list.
+ * This is handy for complex view subtypes.
+ */
+class ViewChildListProxy {
+
+    /**
+     * @param {ViewChildList} viewChildList
+     */
+    constructor(viewChildList) {
+
+        this._viewChildList = viewChildList;
+
+    }
+
+    get() {
+        return this._viewChildList.get();
+    }
+
+    add(view) {
+        return this._viewChildList.add(view);
+    };
+
+    addAt(view, index) {
+        return this._viewChildList.addAt(view, index);
+    };
+
+    getIndex(view) {
+        return this._viewChildList.getIndex(view);
+    };
+
+    remove(view) {
+        return this._viewChildList.remove(view);
+    };
+
+    removeAt(index) {
+        return this._viewChildList.removeAt(index);
+    };
+
+    clear() {
+        return this._viewChildList.clear();
+    };
+
+    a(o) {
+        return this._viewChildList.a(o);
+    };
+
+    set(views) {
+        return this._viewChildList.set(views);
+    }
+
+    get length() {
+        return this._viewChildList.length;
+    }
+}
+
+
+/**
  * Copyright Metrological, 2017
  */
 
-class List extends Base {
+class List extends View {
 
-    constructor(view) {
-        super();
+    constructor(stage) {
+        super(stage);
 
-        this._view = view;
-        
-        this._stage = view.stage;
-
-        this._wrapper = this._view.add({});
+        this._wrapper = super._children.a({});
 
         this._reloadVisibleElements = false;
 
@@ -8284,12 +8442,7 @@ class List extends Base {
          * The transition definition that is being used when scrolling the items.
          * @type TransitionSettings
          */
-        this._scrollTransition = this._view.stage.transitions.createSettings({});
-
-        EventEmitter.call(this);
-    }
-
-    _properties() {
+        this._scrollTransition = this.stage.transitions.createSettings({});
 
         /**
          * The scroll area size in pixels per item.
@@ -8334,9 +8487,70 @@ class List extends Base {
          * @private
          */
         this._horizontal = true;
-        
+
     }
-    
+
+    _getExposedChildList() {
+        // Proxy children to wrapper and encapsulate for positioning purposes.
+        return new (class extends ViewChildListProxy {
+            constructor(view, list) {
+                super(view);
+                this.list = list;
+            }
+
+            addAt(view, index) {
+                let encaps = view.stage.createView();
+                encaps.add(view);
+                super.addAt(encaps, index);
+
+                this.list._reloadVisibleElements = true;
+                if (!this.list._started) {
+                    this.list.start();
+                } else {
+                    if (this.list.length === 1) {
+                        this.list.setIndex(0, true, true);
+                    }
+                    this.list.update();
+                }
+            }
+
+            getIndex(view) {
+                return super.getIndex(view.parent);
+            }
+
+            removeAt(index) {
+                let ri = this.list.realIndex;
+
+                let view = super.removeAt(index);
+
+                if (ri === index) {
+                    if (ri === this.list.length) {
+                        ri--;
+                    }
+                    if (ri >= 0) {
+                        this.list.setIndex(ri);
+                    }
+                } else if (ri > index) {
+                    this.list.setIndex(ri - 1);
+                }
+
+                this.list._reloadVisibleElements = true;
+
+                return view._children.get()[0];
+            }
+
+            get() {
+                return super.get().map(function(view) {return view._children.get()[0]})
+            }
+
+            clear() {
+                super.clear();
+                this.list._reloadVisibleElements = true;
+                this.list._index = 0;
+            }
+        })(this._wrapper._children, this);
+    }
+
     start() {
         this._wrapper.transition(this.property, this._scrollTransition)
         this._transition = this._wrapper.transition(this.property);
@@ -8347,50 +8561,7 @@ class List extends Base {
 
         this._started = true;
     }
-    
-    clearElements() {
-        this._wrapper.removeChildren();
-        this._reloadVisibleElements = true;
-        this._index = 0;
-    }
-    
-    addElement(view) {
-        if (!this._started) this.start();
 
-        let element = this._stage.createView();
-        element.add(view);
-        element.visible = false;
-        this._wrapper.add(element);
-        this._reloadVisibleElements = true;
-
-        if (this.length === 1) {
-            this.setIndex(0, true, true);
-        }
-
-        this.update();
-
-        return element;
-    }
-    
-    removeElementAt(index) {
-        let ri = this.realIndex;
-
-        this._wrapper.removeChildAt(index);
-
-        if (ri === index) {
-            if (ri === this.length) {
-                ri--;
-            }
-            if (ri >= 0) {
-                this.setIndex(ri);
-            }
-        } else if (ri > index) {
-            this.setIndex(ri - 1);
-        }
-
-        this._reloadVisibleElements = true;        
-    }
-    
     setIndex(index, immediate = false, closest = false) {
         let nElements = this.length;
         if (!nElements) return;
@@ -8595,7 +8766,7 @@ class List extends Base {
     }
 
     get viewportSize() {
-        return this._horizontal ? this._view.w : this._view.h;
+        return this._horizontal ? this.w : this.h;
     }
 
     get index() {
@@ -8647,7 +8818,7 @@ class List extends Base {
 
     set progressAnimation(v) {
         if (Utils.isObjectLiteral(v)) {
-            this._progressAnimation = this._stage.animations.createSettings(v);
+            this._progressAnimation = this.stage.animations.createSettings(v);
         } else {
             this._progressAnimation = v;
         }
@@ -8707,13 +8878,7 @@ class List extends Base {
         }
     }
 
-    get view() {
-        return this._view;
-    }
 }
 
-
-
-Base.mixinEs5(List, EventEmitter);
 
 

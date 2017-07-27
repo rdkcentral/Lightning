@@ -7,10 +7,14 @@ let Base = require('./Base');
 
 /**
  * @todo:
+ * - ViewCollection class: collection of views with accessors
+ *   - set all at once
+ *   - basic accessors (addChild, etc)
+ *   - target view
+ *   - encapsulation (wrapping in another structure before adding)
  * - convert UI(?)
  * - convert Bunnyhopper(?)
  * - convert TMDB(?)
- * - bug tag selectors
  * - List subclasses View?
  * - BorderView subclasses View?
  * - type extensions
@@ -202,7 +206,15 @@ class Stage extends Base {
     }
 
     view(settings) {
-        let view = this.createView();
+        if (settings.isView) return settings;
+
+        let view;
+        if (settings.type) {
+            view = new settings.type(this);
+            delete settings.type;
+        } else {
+            view = this.createView();
+        }
         view.setSettings(settings);
         return view;
     }

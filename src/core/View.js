@@ -96,10 +96,17 @@ class View {
         this._viewText = null;
 
         /**
-         * @type {View[]}
-         * @protected
+         * (Lazy-initialised) list of children owned by this view.
+         * @type {ViewChildList}
          */
-        this._children = null;
+        this._childList = null;
+
+        /**
+         * (Lazy-initialised) exposed (public) list of children for this view.
+         * This is normally the same as _childList except for complex views such as Lists.
+         * @type {ViewChildList}
+         */
+        this._exposedChildList = null;
 
     }
 
@@ -189,106 +196,6 @@ class View {
         return null;
     };
 
-    addChild(child) {
-        if (!this._children) this._children = [];
-
-        if (child._parent === this && this._children.indexOf(child) >= 0) {
-            return child;
-        }
-        this.addChildAt(child, this._children.length);
-    };
-
-    addChildAt(child, index) {
-        // prevent adding self as child
-        if (child === this) {
-            return
-        }
-
-        if (this._children === null) {
-            this._children = [];
-        }
-
-        if (index >= 0 && index <= this._children.length) {
-            if (child._parent === this && this._children.indexOf(child) === index) {
-                // Ignore.
-            } else {
-                if (child._parent) {
-                    let p = child._parent;
-                    p.removeChild(child);
-                }
-
-                child._setParent(this);
-                this._children.splice(index, 0, child);
-
-                // Sync.
-                this.renderer.addChildAt(index, child.renderer);
-            }
-
-            return;
-        } else {
-            throw new Error(child + 'addChildAt: The index ' + index + ' supplied is out of bounds ' + this.children.length);
-        }
-    };
-
-    getChildIndex(child) {
-        return this._children && this._children.indexOf(child);
-    };
-
-    removeChild(child) {
-        let index = this._children && this._children.indexOf(child);
-
-        if (index !== -1) {
-            this.removeChildAt(index);
-        }
-    };
-
-    removeChildAt(index) {
-        if (!this._children) return;
-
-        let child = this._children[index];
-
-        child._setParent(null);
-        this._children.splice(index, 1);
-
-        // Sync.
-        this.renderer.removeChildAt(index);
-
-        return child;
-    };
-
-    removeChildren() {
-        if (this._children) {
-            let n = this._children.length;
-            if (n) {
-                for (let i = 0; i < n; i++) {
-                    let child = this._children[i];
-                    child._setParent(null);
-                }
-                this._children.splice(0, n);
-
-                // Sync.
-                this.renderer.removeChildren();
-            }
-        }
-    };
-
-    add(o) {
-        if (Utils.isObjectLiteral(o)) {
-            let c = this.stage.createView();
-            c.setSettings(o);
-            this.addChild(c);
-            return c;
-        } else if (o instanceof View) {
-            this.addChild(o);
-            return o;
-        } else if (Array.isArray(o)) {
-            for (let i = 0, n = o.length; i < n; i++) {
-                this.add(o[i]);
-            }
-            return null;
-        }
-    };
-
     isActive() {
         return this._visible && (this._alpha > 0) && (this._parent ? this._parent._active : (this.stage.root === this));
     };
@@ -310,11 +217,12 @@ class View {
                 this._unsetActiveFlag();
             }
 
-            if (this._children) {
-                let m = this._children.length;
+            let children = this._children.get();
+            if (children) {
+                let m = children.length;
                 if (m > 0) {
                     for (let i = 0; i < m; i++) {
-                        this._children[i]._updateActiveFlag();
+                        children[i]._updateActiveFlag();
                     }
                 }
             }
@@ -385,11 +293,12 @@ class View {
         if (this._attached !== newAttached) {
             this._attached = newAttached;
 
-            if (this._children) {
-                let m = this._children.length;
+            let children = this._children.get();
+            if (children) {
+                let m = children.length;
                 if (m > 0) {
                     for (let i = 0; i < m; i++) {
-                        this._children[i]._updateAttachedFlag();
+                        children[i]._updateAttachedFlag();
                     }
                 }
             }
@@ -912,7 +821,7 @@ class View {
     getLocationString() {
         let i;
         if (this._parent) {
-            i = this._parent._children.indexOf(this);
+            i = this._parent._children.get().getIndex(this);
             if (i >= 0) {
                 let localTags = this.getTags();
                 return this._parent.getLocationString() + ":" + i + "[" + this.id + "]" + (localTags.length ? "(" + localTags.join(",") + ")" : "");
@@ -956,11 +865,12 @@ class View {
     getSettings() {
         let settings = this.getNonDefaults();
 
-        if (this._children) {
-            let n = this._children.length;
+        let children = this._children.get();
+        if (children) {
+            let n = children.length;
             settings.children = [];
             for (let i = 0; i < n; i++) {
-                settings.children.push(this._children[i].getSettings());
+                settings.children.push(children[i].getSettings());
             }
         }
 
@@ -1374,22 +1284,62 @@ class View {
         this.tags = v;
     }
 
+    get _children() {
+        if (!this._childList) {
+            this._childList = new ViewChildList(this, false)
+        }
+        return this._childList
+    }
+
+    get childList() {
+        if (!this._exposedChildList) {
+            this._exposedChildList = this._getExposedChildList()
+        }
+        return this._exposedChildList
+    }
+
+    _getExposedChildList() {
+        return this._children
+    }
+
     get children() {
-        return this._children || [];
+        return this.childList.get()
     }
 
     set children(children) {
-        this.removeChildren();
-        for (let i = 0, n = children.length; i < n; i++) {
-            let o = children[i];
-            if (Utils.isObjectLiteral(o)) {
-                let c = this.stage.createView(o);
-                c.setSettings(o);
-                this.addChild(c);
-            } else if (o instanceof View) {
-                this.addChild(o);
-            }
-        }
+        this.childList.set(children)
+    }
+
+    getChildren() {
+        return this.childList.get();
+    }
+
+    addChild(child) {
+        return this.childList.add(child);
+    }
+
+    addChildAt(child, index) {
+        return this.childList.addAt(child, index);
+    }
+
+    getChildIndex(child) {
+        return this.childList.getIndex(child);
+    }
+
+    removeChild(child) {
+        return this.childList.remove(child);
+    }
+
+    removeChildAt(index) {
+        return this.childList.removeAt(index);
+    }
+
+    removeChildren() {
+        return this.childList.clear();
+    }
+
+    add(o) {
+        return this.childList.a(o);
     }
 
     get parent() {
@@ -1687,6 +1637,8 @@ class View {
 
 }
 
+View.prototype.isView = 1;
+
 View.id = 1;
 
 // Getters reused when referencing view (subobject) properties by a property path, as used in a transition or animation ('x', 'texture.x', etc).
@@ -1739,3 +1691,5 @@ let ViewText = require('./ViewText');
 let Texture = require('./Texture');
 /*A¬*/let Transition = require('../animation/Transition')
 let TransitionSettings = require('../animation/TransitionSettings')/*¬A*/
+
+let ViewChildList = require('./ViewChildList');

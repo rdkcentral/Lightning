@@ -44,6 +44,7 @@ var loadWpe, loadBulk;
             "TextureAtlas":"./core/TextureAtlas.js",
             "TextureAtlasTree":"./core/TextureAtlasTree.js",
             "View":"./core/View.js",
+            "ViewChildList":"./core/ViewChildList.js",
             "ViewRenderer":"./core/ViewRenderer.js",
             "VboContext":"./core/VboContext.js",
             "ViewText":"./core/ViewText.js",

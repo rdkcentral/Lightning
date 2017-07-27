@@ -1,18 +1,15 @@
 /**
  * Copyright Metrological, 2017
  */
-let Base = require('../core/Base');
+let View = require('../core/View');
+let ViewChildList = require('../core/ViewChildList');
 
-class List extends Base {
+class List extends View {
 
-    constructor(view) {
-        super();
+    constructor(stage) {
+        super(stage);
 
-        this._view = view;
-        
-        this._stage = view.stage;
-
-        this._wrapper = this._view.add({});
+        this._wrapper = super._children.a({});
 
         this._reloadVisibleElements = false;
 
@@ -26,12 +23,7 @@ class List extends Base {
          * The transition definition that is being used when scrolling the items.
          * @type TransitionSettings
          */
-        this._scrollTransition = this._view.stage.transitions.createSettings({});
-
-        EventEmitter.call(this);
-    }
-
-    _properties() {
+        this._scrollTransition = this.stage.transitions.createSettings({});
 
         /**
          * The scroll area size in pixels per item.
@@ -76,9 +68,71 @@ class List extends Base {
          * @private
          */
         this._horizontal = true;
-        
+
     }
-    
+
+    _getExposedChildList() {
+        // Proxy children to wrapper and encapsulate for positioning purposes.
+        return new (class extends ViewChildList {
+            constructor(view, list) {
+                super(view);
+                this.list = list;
+            }
+
+            addAt(view, index) {
+                let encaps = view.stage.createView();
+                encaps.add(view);
+                encaps.visible = false;
+                super.addAt(encaps, index);
+
+                this.list._reloadVisibleElements = true;
+                if (!this.list._started) {
+                    this.list.start();
+                } else {
+                    if (this.list.length === 1) {
+                        this.list.setIndex(0, true, true);
+                    }
+                    this.list.update();
+                }
+            }
+
+            getIndex(view) {
+                return super.getIndex(view.parent);
+            }
+
+            removeAt(index) {
+                let ri = this.list.realIndex;
+
+                let view = super.removeAt(index);
+
+                if (ri === index) {
+                    if (ri === this.list.length) {
+                        ri--;
+                    }
+                    if (ri >= 0) {
+                        this.list.setIndex(ri);
+                    }
+                } else if (ri > index) {
+                    this.list.setIndex(ri - 1);
+                }
+
+                this.list._reloadVisibleElements = true;
+
+                return view._children.get()[0];
+            }
+
+            get() {
+                return super.get().map(function(view) {return view._children.get()[0]})
+            }
+
+            clear() {
+                super.clear();
+                this.list._reloadVisibleElements = true;
+                this.list._index = 0;
+            }
+        })(this._wrapper, this);
+    }
+
     start() {
         this._wrapper.transition(this.property, this._scrollTransition)
         this._transition = this._wrapper.transition(this.property);
@@ -89,50 +143,7 @@ class List extends Base {
 
         this._started = true;
     }
-    
-    clearElements() {
-        this._wrapper.removeChildren();
-        this._reloadVisibleElements = true;
-        this._index = 0;
-    }
-    
-    addElement(view) {
-        if (!this._started) this.start();
 
-        let element = this._stage.createView();
-        element.add(view);
-        element.visible = false;
-        this._wrapper.add(element);
-        this._reloadVisibleElements = true;
-
-        if (this.length === 1) {
-            this.setIndex(0, true, true);
-        }
-
-        this.update();
-
-        return element;
-    }
-    
-    removeElementAt(index) {
-        let ri = this.realIndex;
-
-        this._wrapper.removeChildAt(index);
-
-        if (ri === index) {
-            if (ri === this.length) {
-                ri--;
-            }
-            if (ri >= 0) {
-                this.setIndex(ri);
-            }
-        } else if (ri > index) {
-            this.setIndex(ri - 1);
-        }
-
-        this._reloadVisibleElements = true;        
-    }
-    
     setIndex(index, immediate = false, closest = false) {
         let nElements = this.length;
         if (!nElements) return;
@@ -337,7 +348,7 @@ class List extends Base {
     }
 
     get viewportSize() {
-        return this._horizontal ? this._view.w : this._view.h;
+        return this._horizontal ? this.w : this.h;
     }
 
     get index() {
@@ -389,7 +400,7 @@ class List extends Base {
 
     set progressAnimation(v) {
         if (Utils.isObjectLiteral(v)) {
-            this._progressAnimation = this._stage.animations.createSettings(v);
+            this._progressAnimation = this.stage.animations.createSettings(v);
         } else {
             this._progressAnimation = v;
         }
@@ -449,15 +460,9 @@ class List extends Base {
         }
     }
 
-    get view() {
-        return this._view;
-    }
 }
 
 let Utils = require('../core/Utils');
 /*M¬*/let EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
-
-Base.mixinEs5(List, EventEmitter);
-
 
 module.exports = List;
