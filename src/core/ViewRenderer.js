@@ -12,6 +12,12 @@ class ViewRenderer {
 
         this._hasUpdates = false;
 
+        this._layoutEntry = null;
+
+        this._layoutExit = null;
+
+        this._hasLayoutHooks = 0;
+
         this._recalc = 0;
 
         this._worldAlpha = 1;
@@ -95,6 +101,7 @@ class ViewRenderer {
         this._children = null;
 
         this._zIndexedChildren = null;
+
     }
 
     /**
@@ -110,7 +117,7 @@ class ViewRenderer {
 
         if (this._worldAlpha) {
             this.ctx.staticStage = false;
-            var p = this;
+            let p = this;
             do {
                 p._hasUpdates = true;
             } while ((p = p._parent) && !p._hasUpdates);
@@ -127,7 +134,7 @@ class ViewRenderer {
 
         if (this._worldAlpha || force) {
             this.ctx.staticStage = false;
-            var p = this;
+            let p = this;
             do {
                 p._hasUpdates = true;
             } while ((p = p._parent) && !p._hasUpdates);
@@ -136,11 +143,41 @@ class ViewRenderer {
         }
     };
 
+    _setHasLayoutHooks() {
+        if (this._hasLayoutHooks !== 1) {
+            let p = this;
+            do {
+                p._hasLayoutHooks = 1;
+            } while ((p = p._parent) && p._hasLayoutHooks !== 1);
+        }
+    }
+
+    _setHasLayoutHooksCheck() {
+        if (this._hasLayoutHooks !== -1) {
+            let p = this;
+            do {
+                p._hasLayoutHooks = -1;
+            } while ((p = p._parent) && p._hasLayoutHooks === 0);
+        }
+    }
+
     setParent(parent) {
         if (parent !== this._parent) {
-            var prevIsZContext = this.isZContext();
-            var prevParent = this._parent;
+            let prevIsZContext = this.isZContext();
+            let prevParent = this._parent;
             this._parent = parent;
+
+            if (prevParent && prevParent._hasLayoutHooks === 1) {
+                prevParent._setHasLayoutHooksCheck(); // Unknown.
+            }
+
+            if (parent) {
+                if (this._hasLayoutHooks === 1) {
+                    parent._setHasLayoutHooks();
+                } else if (this._hasLayoutHooks === -1) {
+                    parent._setHasLayoutHooksCheck();
+                }
+            }
 
             this._setRecalc(1 + 2 + 4);
 
@@ -158,7 +195,7 @@ class ViewRenderer {
                 }
             }
 
-            var newClippingParent = parent ? (parent._clipping ? parent : parent._clippingParent) : null;
+            let newClippingParent = parent ? (parent._clipping ? parent : parent._clippingParent) : null;
 
             if (newClippingParent !== this._clippingParent) {
                 this.setClippingParent(newClippingParent);
@@ -173,14 +210,14 @@ class ViewRenderer {
     };
 
     removeChildAt(index) {
-        var child = this._children[index];
+        let child = this._children[index];
         this._children.splice(index, 1);
         child.setParent(null);
     };
 
     removeChildren() {
         if (this._children) {
-            for (var i = 0, n = this._children.length; i < n; i++) {
+            for (let i = 0, n = this._children.length; i < n; i++) {
                 this._children[i].setParent(null);
             }
 
@@ -264,7 +301,7 @@ class ViewRenderer {
     };
 
     isAncestorOf(c) {
-        var p = c;
+        let p = c;
         while (p = p._parent) {
             if (this === p) {
                 return true;
@@ -293,13 +330,13 @@ class ViewRenderer {
                 }
 
                 if (this._zParent._zContextUsage > 0) {
-                    var index = this._zParent._zIndexedChildren.indexOf(this);
+                    let index = this._zParent._zIndexedChildren.indexOf(this);
                     this._zParent._zIndexedChildren.splice(index, 1);
                 }
             }
 
             if (newZParent !== null) {
-                var hadZContextUsage = (newZParent._zContextUsage > 0);
+                let hadZContextUsage = (newZParent._zContextUsage > 0);
 
                 // @pre: new parent's children array has already been modified.
                 if (this._zIndex !== 0) {
@@ -329,7 +366,7 @@ class ViewRenderer {
             }
             if (this._children) {
                 // Copy.
-                for (var i = 0, n = this._children.length; i < n; i++) {
+                for (let i = 0, n = this._children.length; i < n; i++) {
                     this._zIndexedChildren.push(this._children[i]);
                 }
             }
@@ -352,9 +389,9 @@ class ViewRenderer {
         if (this._zIndex !== zIndex) {
             if (this._worldAlpha) this.ctx.staticStage = false;
 
-            var newZParent = this._zParent;
+            let newZParent = this._zParent;
 
-            var prevIsZContext = this.isZContext();
+            let prevIsZContext = this.isZContext();
             if (zIndex === 0 && this._zIndex !== 0) {
                 if (this._parent === this._zParent) {
                     this._zParent.decZContextUsage();
@@ -400,7 +437,7 @@ class ViewRenderer {
     set forceZIndexContext(v) {
         if (this._worldAlpha) this.ctx.staticStage = false;
 
-        var prevIsZContext = this.isZContext();
+        let prevIsZContext = this.isZContext();
         this._forceZIndexContext = v;
 
         if (prevIsZContext !== this.isZContext()) {
@@ -414,7 +451,7 @@ class ViewRenderer {
 
     enableZContext(prevZContext) {
         if (prevZContext._zContextUsage > 0) {
-            var self = this;
+            let self = this;
             // Transfer from upper z context to this z context.
             prevZContext._zIndexedChildren.slice().forEach(function (c) {
                 if (self.isAncestorOf(c) && c._zIndex !== 0) {
@@ -427,7 +464,7 @@ class ViewRenderer {
     disableZContext() {
         // Transfer from this z context to upper z context.
         if (this._zContextUsage > 0) {
-            var newZParent = this._parent.findZContext();
+            let newZParent = this._parent.findZContext();
 
             this._zIndexedChildren.slice().forEach(function (c) {
                 if (c._zIndex !== 0) {
@@ -451,7 +488,7 @@ class ViewRenderer {
 
     setChildrenClippingParent(clippingParent) {
         if (this._children) {
-            for (var i = 0, n = this._children.length; i < n; i++) {
+            for (let i = 0, n = this._children.length; i < n; i++) {
                 this._children[i].setClippingParent(clippingParent);
             }
         }
@@ -464,7 +501,7 @@ class ViewRenderer {
             this._clippingParent = clippingParent;
             if (!this._clipping) {
                 if (this._children) {
-                    for (var i = 0, n = this._children.length; i < n; i++) {
+                    for (let i = 0, n = this._children.length; i < n; i++) {
                         this._children[i].setClippingParent(clippingParent);
                     }
                 }
@@ -521,6 +558,38 @@ class ViewRenderer {
         return (this._localAlpha > 1e-14);
     };
 
+    layout() {
+        if (this._hasLayoutHooks !== 0) {
+            // Carry positioning changes downwards to ensure re-layout.
+            this._recalc |= (this._parent._recalc & 6);
+
+            let layoutChanged = (this._recalc & 6);
+
+            if (layoutChanged && this._layoutEntry) {
+                this._layoutEntry(this._view);
+            }
+            if (this._children) {
+                if (this._hasLayoutHooks === -1) {
+                    let hasLayoutHooks = false;
+                    for (let i = 0, n = this._children.length; i < n; i++) {
+                        this._children[i].layout();
+                        hasLayoutHooks = hasLayoutHooks || (this._children[i]._hasLayoutHooks === 1);
+                    }
+                    this._hasLayoutHooks = hasLayoutHooks ? 1 : 0;
+                } else {
+                    if (this._hasUpdates || layoutChanged) {
+                        for (let i = 0, n = this._children.length; i < n; i++) {
+                            this._children[i].layout();
+                        }
+                    }
+                }
+            }
+            if (layoutChanged && this._layoutExit) {
+                this._layoutExit(this._view);
+            }
+        }
+    }
+
     update() {
         this._recalc |= this._parent._recalc;
 
@@ -529,9 +598,9 @@ class ViewRenderer {
             this.ctx.updateTreeOrderForceUpdate++;
         }
 
-        var forceUpdate = (this.ctx.updateTreeOrderForceUpdate > 0);
+        let forceUpdate = (this.ctx.updateTreeOrderForceUpdate > 0);
         if (this._recalc & 1) {
-            // If case of becoming invisible, we must update the children because they may be z-indexed.
+            // In case of becoming invisible, we must update the children because they may be z-indexed.
             forceUpdate = this._worldAlpha && !(this._parent._worldAlpha && this._localAlpha);
 
             this._worldAlpha = this._parent._worldAlpha * this._localAlpha;
@@ -569,9 +638,9 @@ class ViewRenderer {
 
             if ((this._recalc & 14 /* 2 + 4 + 8 */) && (this._clippingParent || this._clipping)) {
                 // We must calculate the clipping area.
-                var c1x, c1y, c2x, c2y, c3x, c3y;
+                let c1x, c1y, c2x, c2y, c3x, c3y;
 
-                var cp = this._clippingParent;
+                let cp = this._clippingParent;
                 if (cp && cp._clippingEmpty) {
                     this._clippingEmpty = true;
                     this._clippingArea = null;
@@ -624,7 +693,7 @@ class ViewRenderer {
 
                             // Complex shape.
                             this._clippingSquare = false;
-                            var cornerPoints = [this._worldPx, this._worldPy, c1x, c1y, c2x, c2y, c3x, c3y];
+                            let cornerPoints = [this._worldPx, this._worldPy, c1x, c1y, c2x, c2y, c3x, c3y];
 
                             if (cp._clippingSquare && !cp._clippingArea) {
                                 // We need a clipping area to use for intersection.
@@ -682,7 +751,7 @@ class ViewRenderer {
             /* 1+2+4 */
 
             if (this._children) {
-                for (var i = 0, n = this._children.length; i < n; i++) {
+                for (let i = 0, n = this._children.length; i < n; i++) {
                     if ((this.ctx.updateTreeOrderForceUpdate > 0) || this._recalc || this._children[i]._hasUpdates) {
                         this._children[i].update();
                     } else if (!this.ctx.useZIndexing) {
@@ -711,7 +780,7 @@ class ViewRenderer {
             this.ctx.updateTreeOrderForceUpdate++;
         }
 
-        var forceUpdate = (this.ctx.updateTreeOrderForceUpdate > 0);
+        let forceUpdate = (this.ctx.updateTreeOrderForceUpdate > 0);
         if (this._recalc & 1) {
             // If case of becoming invisible, we must update the children because they may be z-indexed.
             forceUpdate = this._worldAlpha && !(this._parent._worldAlpha && this._localAlpha);
@@ -751,9 +820,9 @@ class ViewRenderer {
 
             if ((this._recalc & 14 /* 2 + 4 + 8 */) && (this._clippingParent || this._clipping)) {
                 // We must calculate the clipping area.
-                var c1x, c1y, c2x, c2y, c3x, c3y;
+                let c1x, c1y, c2x, c2y, c3x, c3y;
 
-                var cp = this._clippingParent;
+                let cp = this._clippingParent;
                 if (cp && cp._clippingEmpty) {
                     this._clippingEmpty = true;
                     this._clippingArea = null;
@@ -806,7 +875,7 @@ class ViewRenderer {
 
                             // Complex shape.
                             this._clippingSquare = false;
-                            var cornerPoints = [this._worldPx, this._worldPy, c1x, c1y, c2x, c2y, c3x, c3y];
+                            let cornerPoints = [this._worldPx, this._worldPy, c1x, c1y, c2x, c2y, c3x, c3y];
 
                             if (cp._clippingSquare && !cp._clippingArea) {
                                 // We need a clipping area to use for intersection.
@@ -864,7 +933,7 @@ class ViewRenderer {
             /* 1+2+4 */
 
             if (this._children) {
-                for (var i = 0, n = this._children.length; i < n; i++) {
+                for (let i = 0, n = this._children.length; i < n; i++) {
                     if ((this.ctx.updateTreeOrderForceUpdate > 0) || this._recalc || this._children[i]._hasUpdates) {
                         this._children[i].update();
                     } else if (!this.ctx.useZIndexing) {
@@ -887,11 +956,11 @@ class ViewRenderer {
 
     sortZIndexedChildren() {
         // Insertion sort works best for almost correctly ordered arrays.
-        for (var i = 1, n = this._zIndexedChildren.length; i < n; i++) {
-            var a = this._zIndexedChildren[i];
-            var j = i - 1;
+        for (let i = 1, n = this._zIndexedChildren.length; i < n; i++) {
+            let a = this._zIndexedChildren[i];
+            let j = i - 1;
             while (j >= 0) {
-                var b = this._zIndexedChildren[j];
+                let b = this._zIndexedChildren[j];
                 if (!(a._zIndex === b._zIndex ? (a._updateTreeOrder < b._updateTreeOrder) : (a._zIndex < b._zIndex))) {
                     break;
                 }
@@ -905,9 +974,9 @@ class ViewRenderer {
     };
 
     addToVbo() {
-        var vboIndex = this.ctx.vboIndex;
-        var vboBufferFloat = this.ctx.vboBufferFloat;
-        var vboBufferUint = this.ctx.vboBufferUint;
+        let vboIndex = this.ctx.vboIndex;
+        let vboBufferFloat = this.ctx.vboBufferFloat;
+        let vboBufferUint = this.ctx.vboBufferUint;
 
         if (this._clippingParent && !this._clippingNoEffect) {
             if (!this._clippingEmpty) {
@@ -936,8 +1005,8 @@ class ViewRenderer {
                 }
             } else {
                 // Simple.
-                var cx = this._worldPx + this._rw * this._worldTa;
-                var cy = this._worldPy + this._rh * this._worldTd;
+                let cx = this._worldPx + this._rw * this._worldTa;
+                let cy = this._worldPy + this._rh * this._worldTd;
 
                 if (vboIndex < 262144) {
                     vboBufferFloat[vboIndex++] = this._worldPx;
@@ -963,33 +1032,33 @@ class ViewRenderer {
     };
 
     addToVboClipped() {
-        var vboIndex = this.ctx.vboIndex;
-        var vboBufferFloat = this.ctx.vboBufferFloat;
-        var vboBufferUint = this.ctx.vboBufferUint;
+        let vboIndex = this.ctx.vboIndex;
+        let vboBufferFloat = this.ctx.vboBufferFloat;
+        let vboBufferUint = this.ctx.vboBufferUint;
 
         // Gradients are not supported for clipped quads.
-        var c = getColorInt(this._colorUl, this._worldAlpha);
+        let c = getColorInt(this._colorUl, this._worldAlpha);
 
         if (this._clippingSquare) {
             // Inverse matrix.
-            var ux = this._rw * this._worldTa;
-            var vy = this._rh * this._worldTd;
+            let ux = this._rw * this._worldTa;
+            let vy = this._rh * this._worldTd;
 
-            var d = 1 / (ux * vy);
-            var invTa = vy * d;
-            var invTd = ux * d;
+            let d = 1 / (ux * vy);
+            let invTa = vy * d;
+            let invTd = ux * d;
 
             // Get ranges from 0 to 1.
-            var tx1 = invTa * (this._clippingSquareMinX - this._worldPx);
-            var ty1 = invTd * (this._clippingSquareMinY - this._worldPy);
-            var tx3 = invTa * (this._clippingSquareMaxX - this._worldPx);
-            var ty3 = invTd * (this._clippingSquareMaxY - this._worldPy);
+            let tx1 = invTa * (this._clippingSquareMinX - this._worldPx);
+            let ty1 = invTd * (this._clippingSquareMinY - this._worldPy);
+            let tx3 = invTa * (this._clippingSquareMaxX - this._worldPx);
+            let ty3 = invTd * (this._clippingSquareMaxY - this._worldPy);
 
             // Calculate texture coordinates for clipped corner points.
-            var tcx1 = this._ulx * (1 - tx1) + this._brx * tx1;
-            var tcy1 = this._uly * (1 - ty1) + this._bry * ty1;
-            var tcx3 = this._ulx * (1 - tx3) + this._brx * tx3;
-            var tcy3 = this._uly * (1 - ty3) + this._bry * ty3;
+            let tcx1 = this._ulx * (1 - tx1) + this._brx * tx1;
+            let tcy1 = this._uly * (1 - ty1) + this._bry * ty1;
+            let tcx3 = this._ulx * (1 - tx3) + this._brx * tx3;
+            let tcy3 = this._uly * (1 - ty3) + this._bry * ty3;
 
             if (vboIndex < 262144) {
                 vboBufferFloat[vboIndex++] = this._clippingSquareMinX;
@@ -1014,32 +1083,32 @@ class ViewRenderer {
             // Complex clipping.
 
             // Inverse matrix.
-            var ux = this._rw * this._worldTa;
-            var uy = this._rw * this._worldTc;
-            var vx = this._rh * this._worldTb;
-            var vy = this._rh * this._worldTd;
+            let ux = this._rw * this._worldTa;
+            let uy = this._rw * this._worldTc;
+            let vx = this._rh * this._worldTb;
+            let vy = this._rh * this._worldTd;
 
-            var d = 1 / (ux * vy - vx * uy);
-            var invTa = vy * d;
-            var invTb = -vx * d;
-            var invTc = -uy * d;
-            var invTd = ux * d;
+            let d = 1 / (ux * vy - vx * uy);
+            let invTa = vy * d;
+            let invTb = -vx * d;
+            let invTc = -uy * d;
+            let invTd = ux * d;
 
-            var n = Math.ceil(((this._clippingArea.length / 2) - 2) / 2);
+            let n = Math.ceil(((this._clippingArea.length / 2) - 2) / 2);
 
             if (n === 1) {
                 // Texture coordinates.
-                var tx1 = invTa * (this._clippingArea[0] - this._worldPx) + invTb * (this._clippingArea[1] - this._worldPy);
-                var ty1 = invTc * (this._clippingArea[0] - this._worldPx) + invTd * (this._clippingArea[1] - this._worldPy);
-                var tx2 = invTa * (this._clippingArea[2] - this._worldPx) + invTb * (this._clippingArea[3] - this._worldPy);
-                var ty2 = invTc * (this._clippingArea[2] - this._worldPx) + invTd * (this._clippingArea[3] - this._worldPy);
-                var tx3 = invTa * (this._clippingArea[4] - this._worldPx) + invTb * (this._clippingArea[5] - this._worldPy);
-                var ty3 = invTc * (this._clippingArea[4] - this._worldPx) + invTd * (this._clippingArea[5] - this._worldPy);
+                let tx1 = invTa * (this._clippingArea[0] - this._worldPx) + invTb * (this._clippingArea[1] - this._worldPy);
+                let ty1 = invTc * (this._clippingArea[0] - this._worldPx) + invTd * (this._clippingArea[1] - this._worldPy);
+                let tx2 = invTa * (this._clippingArea[2] - this._worldPx) + invTb * (this._clippingArea[3] - this._worldPy);
+                let ty2 = invTc * (this._clippingArea[2] - this._worldPx) + invTd * (this._clippingArea[3] - this._worldPy);
+                let tx3 = invTa * (this._clippingArea[4] - this._worldPx) + invTb * (this._clippingArea[5] - this._worldPy);
+                let ty3 = invTc * (this._clippingArea[4] - this._worldPx) + invTd * (this._clippingArea[5] - this._worldPy);
 
                 // Check for polygon instead of quad.
-                var g = this._clippingArea.length <= 6 ? 4 : 6;
-                var tx4 = invTa * (this._clippingArea[g] - this._worldPx) + invTb * (this._clippingArea[g + 1] - this._worldPy);
-                var ty4 = invTc * (this._clippingArea[g] - this._worldPx) + invTd * (this._clippingArea[g + 1] - this._worldPy);
+                let g = this._clippingArea.length <= 6 ? 4 : 6;
+                let tx4 = invTa * (this._clippingArea[g] - this._worldPx) + invTb * (this._clippingArea[g + 1] - this._worldPy);
+                let ty4 = invTc * (this._clippingArea[g] - this._worldPx) + invTd * (this._clippingArea[g + 1] - this._worldPy);
 
                 if (vboIndex < 262144) {
                     vboBufferFloat[vboIndex++] = this._clippingArea[0];
@@ -1062,9 +1131,9 @@ class ViewRenderer {
                 }
             } else {
                 // Multiple quads.
-                var g;
-                for (var i = 0; i < n; i++) {
-                    var b = i * 4 + 2;
+                let g;
+                for (let i = 0; i < n; i++) {
+                    let b = i * 4 + 2;
                     g = b + 4;
                     if (g >= this._clippingArea.length) {
                         // Roll-over: convert polygon to quad.
@@ -1072,14 +1141,14 @@ class ViewRenderer {
                     }
 
                     // Texture coordinates.
-                    var tx1 = invTa * (this._clippingArea[0] - this._worldPx) + invTb * (this._clippingArea[1] - this._worldPy);
-                    var ty1 = invTc * (this._clippingArea[0] - this._worldPx) + invTd * (this._clippingArea[1] - this._worldPy);
-                    var tx2 = invTa * (this._clippingArea[b] - this._worldPx) + invTb * (this._clippingArea[b + 1] - this._worldPy);
-                    var ty2 = invTc * (this._clippingArea[b] - this._worldPx) + invTd * (this._clippingArea[b + 1] - this._worldPy);
-                    var tx3 = invTa * (this._clippingArea[b + 2] - this._worldPx) + invTb * (this._clippingArea[b + 3] - this._worldPy);
-                    var ty3 = invTc * (this._clippingArea[b + 2] - this._worldPx) + invTd * (this._clippingArea[b + 3] - this._worldPy);
-                    var tx4 = invTa * (this._clippingArea[g] - this._worldPx) + invTb * (this._clippingArea[g + 1] - this._worldPy);
-                    var ty4 = invTc * (this._clippingArea[g] - this._worldPx) + invTd * (this._clippingArea[g + 1] - this._worldPy);
+                    let tx1 = invTa * (this._clippingArea[0] - this._worldPx) + invTb * (this._clippingArea[1] - this._worldPy);
+                    let ty1 = invTc * (this._clippingArea[0] - this._worldPx) + invTd * (this._clippingArea[1] - this._worldPy);
+                    let tx2 = invTa * (this._clippingArea[b] - this._worldPx) + invTb * (this._clippingArea[b + 1] - this._worldPy);
+                    let ty2 = invTc * (this._clippingArea[b] - this._worldPx) + invTd * (this._clippingArea[b + 1] - this._worldPy);
+                    let tx3 = invTa * (this._clippingArea[b + 2] - this._worldPx) + invTb * (this._clippingArea[b + 3] - this._worldPy);
+                    let ty3 = invTc * (this._clippingArea[b + 2] - this._worldPx) + invTd * (this._clippingArea[b + 3] - this._worldPy);
+                    let tx4 = invTa * (this._clippingArea[g] - this._worldPx) + invTb * (this._clippingArea[g + 1] - this._worldPy);
+                    let ty4 = invTc * (this._clippingArea[g] - this._worldPx) + invTd * (this._clippingArea[g + 1] - this._worldPy);
 
                     if (vboIndex < 262144) {
                         vboBufferFloat[vboIndex++] = this._clippingArea[0];
@@ -1118,11 +1187,11 @@ class ViewRenderer {
 
             if (this._children) {
                 if (this._zContextUsage) {
-                    for (var i = 0, n = this._zIndexedChildren.length; i < n; i++) {
+                    for (let i = 0, n = this._zIndexedChildren.length; i < n; i++) {
                         this._zIndexedChildren[i].fillVbo();
                     }
                 } else {
-                    for (var i = 0, n = this._children.length; i < n; i++) {
+                    for (let i = 0, n = this._children.length; i < n; i++) {
                         if (this._children[i]._zIndex === 0) {
                             // If zIndex is set, this item already belongs to a zIndexedChildren array in one of the ancestors.
                             this._children[i].fillVbo();
@@ -1170,20 +1239,40 @@ class ViewRenderer {
         ];
     };
 
+    set layoutEntry(f) {
+        this._layoutEntry = f;
+
+        if (f) {
+            this._setHasLayoutHooks();
+        } else if (this._hasLayoutHooks === 1 && !this._layoutExit) {
+            this._setHasLayoutHooksCheck();
+        }
+    }
+
+    set layoutExit(f) {
+        this._layoutExit = f;
+
+        if (f) {
+            this._setHasLayoutHooks();
+        } else if (this._hasLayoutHooks === 1 && !this._layoutEntry) {
+            this._setHasLayoutHooksCheck();
+        }
+    }
+
 }
 
-var getColorInt = function (c, alpha) {
-    var a = ((c / 16777216 | 0) * alpha) | 0;
+let getColorInt = function (c, alpha) {
+    let a = ((c / 16777216 | 0) * alpha) | 0;
     return (((((c >> 16) & 0xff) * a) >> 8) & 0xff) +
         ((((c & 0xff00) * a) >> 8) & 0xff00) +
         (((((c & 0xff) << 16) * a) >> 8) & 0xff0000) +
         (a << 24);
 };
 
-var getVboTextureCoords = function (x, y) {
+let getVboTextureCoords = function (x, y) {
     return ((x * 65535 + 0.5) | 0) + ((y * 65535 + 0.5) | 0) * 65536;
 };
 
-var GeometryUtils = require('./GeometryUtils');
+let GeometryUtils = require('./GeometryUtils');
 
 module.exports = ViewRenderer;

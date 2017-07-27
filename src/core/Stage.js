@@ -7,15 +7,7 @@ let Base = require('./Base');
 
 /**
  * @todo:
- * - ViewCollection class: collection of views with accessors
- *   - set all at once
- *   - basic accessors (addChild, etc)
- *   - target view
- *   - encapsulation (wrapping in another structure before adding)
- * - convert UI(?)
- * - convert Bunnyhopper(?)
- * - convert TMDB(?)
- * - List subclasses View?
+ * - preUpdate, postUpdate hooks for layout purposes
  * - BorderView subclasses View?
  * - type extensions
  * - quick clone
@@ -28,6 +20,9 @@ let Base = require('./Base');
  *   -getRenderWidth
  * - encapsulate tags branches (for isolating widgets)
  * - merger: isRgba? isNumeric?
+ * - convert UI(?)
+ * - convert Bunnyhopper(?)
+ * - convert TMDB(?)
  */
 class Stage extends Base {
     constructor(options) {
@@ -182,6 +177,8 @@ class Stage extends Base {
 
         let changes = !this.ctx.staticStage;
         if (changes) {
+            this.ctx.layout();
+
             this.ctx.updateAndFillVbo(this.zIndexUsage > 0);
 
             // We will render the stage even if it's stable shortly after importing a texture in the texture atlas, to prevent out-of-syncs.

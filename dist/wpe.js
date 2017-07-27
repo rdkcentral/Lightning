@@ -1303,15 +1303,7 @@ class GeometryUtils {
 
 /**
  * @todo:
- * - ViewCollection class: collection of views with accessors
- *   - set all at once
- *   - basic accessors (addChild, etc)
- *   - target view
- *   - encapsulation (wrapping in another structure before adding)
- * - convert UI(?)
- * - convert Bunnyhopper(?)
- * - convert TMDB(?)
- * - List subclasses View?
+ * - preUpdate, postUpdate hooks for layout purposes
  * - BorderView subclasses View?
  * - type extensions
  * - quick clone
@@ -1324,6 +1316,9 @@ class GeometryUtils {
  *   -getRenderWidth
  * - encapsulate tags branches (for isolating widgets)
  * - merger: isRgba? isNumeric?
+ * - convert UI(?)
+ * - convert Bunnyhopper(?)
+ * - convert TMDB(?)
  */
 class Stage extends Base {
     constructor(options) {
@@ -1477,6 +1472,8 @@ class Stage extends Base {
 
         let changes = !this.ctx.staticStage;
         if (changes) {
+            this.ctx.layout();
+
             this.ctx.updateAndFillVbo(this.zIndexUsage > 0);
 
             // We will render the stage even if it's stable shortly after importing a texture in the texture atlas, to prevent out-of-syncs.
@@ -4346,7 +4343,7 @@ class View {
 
     get _children() {
         if (!this._childList) {
-            this._childList = new ViewChildList(this)
+            this._childList = new ViewChildList(this, false)
         }
         return this._childList
     }
@@ -4452,6 +4449,14 @@ class View {
         } else {
             this._viewText.settings.setSettings(v);
         }
+    }
+
+    set layoutEntry(f) {
+        this.renderer.layoutEntry = f;
+    }
+
+    set layoutExit(f) {
+        this.renderer.layoutExit = f;
     }
 
     
@@ -4750,26 +4755,29 @@ Base.mixinEs5(View, EventEmitter);
  * Manages the list of children for a view.
  */
 class ViewChildList {
-    
-    constructor(view) {
+
+    /**
+     * @param view
+     * @param isProxy
+     *   A proxy mutates the children of another view. It is not used in core but is handy for extensions that extend
+     *   the View class and wish to provide an alternative children implementation or other view collections.
+     */
+    constructor(view, isProxy = true) {
 
         this._view = view;
 
         /**
-         * Lazy-initialised child array.
          * @type {View[]}
          */
-        this._children = null;
+        this._children = isProxy ? this._view._children._children : [];
 
     }
 
     get() {
-        return this._children || [];
+        return this._children;
     }
 
     add(view) {
-        if (!this._children) this._children = [];
-
         if (view._parent === this && this._children.indexOf(view) >= 0) {
             return view;
         }
@@ -4780,10 +4788,6 @@ class ViewChildList {
         // prevent adding self as view
         if (view === this._view) {
             return
-        }
-
-        if (this._children === null) {
-            this._children = [];
         }
 
         if (index >= 0 && index <= this._children.length) {
@@ -4809,7 +4813,7 @@ class ViewChildList {
     };
 
     getIndex(view) {
-        return this._children && this._children.indexOf(view);
+        return this._children.indexOf(view);
     };
 
     remove(view) {
@@ -4821,8 +4825,6 @@ class ViewChildList {
     };
 
     removeAt(index) {
-        if (!this._children) return;
-
         let view = this._children[index];
 
         view._setParent(null);
@@ -4835,18 +4837,16 @@ class ViewChildList {
     };
 
     clear() {
-        if (this._children) {
-            let n = this._children.length;
-            if (n) {
-                for (let i = 0; i < n; i++) {
-                    let view = this._children[i];
-                    view._setParent(null);
-                }
-                this._children.splice(0, n);
-
-                // Sync.
-                this.renderer.removeChildren();
+        let n = this._children.length;
+        if (n) {
+            for (let i = 0; i < n; i++) {
+                let view = this._children[i];
+                view._setParent(null);
             }
+            this._children.splice(0, n);
+
+            // Sync.
+            this.renderer.removeChildren();
         }
     };
 
@@ -4855,14 +4855,14 @@ class ViewChildList {
             let c = this._view.stage.view(o);
             this.add(c);
             return c;
-        } else if (o.isView) {
-            this.add(o);
-            return o;
         } else if (Array.isArray(o)) {
             for (let i = 0, n = o.length; i < n; i++) {
                 this.a(o[i]);
             }
             return null;
+        } else if (o.isView) {
+            this.add(o);
+            return o;
         }
     };
     
@@ -4880,7 +4880,7 @@ class ViewChildList {
     }
 
     get length() {
-        return this._children ? this._children.length : 0;
+        return this._children.length;
     }
 }
 
@@ -4899,6 +4899,12 @@ class ViewRenderer {
         this._parent = null;
 
         this._hasUpdates = false;
+
+        this._layoutEntry = null;
+
+        this._layoutExit = null;
+
+        //this._hasLayout = false;
 
         this._recalc = 0;
 
@@ -4983,6 +4989,7 @@ class ViewRenderer {
         this._children = null;
 
         this._zIndexedChildren = null;
+
     }
 
     /**
@@ -5409,6 +5416,43 @@ class ViewRenderer {
         return (this._localAlpha > 1e-14);
     };
 
+    layout() {
+        // if (this._layoutEntry) {
+        //     this._layoutEntry(this._view);
+        // }
+        if (this._children) {
+            // if (this._recalc & 6) {
+            //     // Translate/transform: must update layout recursively.
+            //     for (let i = 0, n = this._children.length; i < n; i++) {
+            //         this._children[i].layoutAll();
+            //     }
+            // } else {
+                for (let i = 0, n = this._children.length; i < n; i++) {
+                    // if (this._children[i]._hasUpdates) {
+                        this._children[i].layout();
+                    // }
+                }
+            // }
+        }
+        // if (this._layoutExit) {
+        //     this._layoutExit(this._view);
+        // }
+    }
+
+    layoutAll() {
+        // if (this._layoutEntry) {
+        //     this._layoutEntry(this._view);
+        // }
+        if (this._children) {
+            for (let i = 0, n = this._children.length; i < n; i++) {
+                this._children[i].layoutAll();
+            }
+        }
+        // if (this._layoutExit) {
+        //     this._layoutExit(this._view);
+        // }
+    }
+
     update() {
         this._recalc |= this._parent._recalc;
 
@@ -5417,9 +5461,9 @@ class ViewRenderer {
             this.ctx.updateTreeOrderForceUpdate++;
         }
 
-        var forceUpdate = (this.ctx.updateTreeOrderForceUpdate > 0);
+        let forceUpdate = (this.ctx.updateTreeOrderForceUpdate > 0);
         if (this._recalc & 1) {
-            // If case of becoming invisible, we must update the children because they may be z-indexed.
+            // In case of becoming invisible, we must update the children because they may be z-indexed.
             forceUpdate = this._worldAlpha && !(this._parent._worldAlpha && this._localAlpha);
 
             this._worldAlpha = this._parent._worldAlpha * this._localAlpha;
@@ -5570,7 +5614,7 @@ class ViewRenderer {
             /* 1+2+4 */
 
             if (this._children) {
-                for (var i = 0, n = this._children.length; i < n; i++) {
+                for (let i = 0, n = this._children.length; i < n; i++) {
                     if ((this.ctx.updateTreeOrderForceUpdate > 0) || this._recalc || this._children[i]._hasUpdates) {
                         this._children[i].update();
                     } else if (!this.ctx.useZIndexing) {
@@ -6058,6 +6102,14 @@ class ViewRenderer {
         ];
     };
 
+    set layoutEntry(f) {
+        this._layoutEntry = f;
+    }
+
+    set layoutExit(f) {
+        this._layoutExit = f;
+    }
+
 }
 
 var getColorInt = function (c, alpha) {
@@ -6109,6 +6161,10 @@ class VboContext {
         this.lastVboGlTexture = null;
         this.n = 0;
         this.updateTreeOrder = 0;
+    }
+
+    layout() {
+        this.root.layout();
     }
 
     updateAndFillVbo() {
@@ -8363,63 +8419,6 @@ class Tools {
 
 
 /**
- * Virtual child list that proxies accessors to a different child list.
- * This is handy for complex view subtypes.
- */
-class ViewChildListProxy {
-
-    /**
-     * @param {ViewChildList} viewChildList
-     */
-    constructor(viewChildList) {
-
-        this._viewChildList = viewChildList;
-
-    }
-
-    get() {
-        return this._viewChildList.get();
-    }
-
-    add(view) {
-        return this._viewChildList.add(view);
-    };
-
-    addAt(view, index) {
-        return this._viewChildList.addAt(view, index);
-    };
-
-    getIndex(view) {
-        return this._viewChildList.getIndex(view);
-    };
-
-    remove(view) {
-        return this._viewChildList.remove(view);
-    };
-
-    removeAt(index) {
-        return this._viewChildList.removeAt(index);
-    };
-
-    clear() {
-        return this._viewChildList.clear();
-    };
-
-    a(o) {
-        return this._viewChildList.a(o);
-    };
-
-    set(views) {
-        return this._viewChildList.set(views);
-    }
-
-    get length() {
-        return this._viewChildList.length;
-    }
-}
-
-
-/**
  * Copyright Metrological, 2017
  */
 
@@ -8492,7 +8491,7 @@ class List extends View {
 
     _getExposedChildList() {
         // Proxy children to wrapper and encapsulate for positioning purposes.
-        return new (class extends ViewChildListProxy {
+        return new (class extends ViewChildList {
             constructor(view, list) {
                 super(view);
                 this.list = list;
@@ -8501,6 +8500,7 @@ class List extends View {
             addAt(view, index) {
                 let encaps = view.stage.createView();
                 encaps.add(view);
+                encaps.visible = false;
                 super.addAt(encaps, index);
 
                 this.list._reloadVisibleElements = true;
@@ -8548,7 +8548,7 @@ class List extends View {
                 this.list._reloadVisibleElements = true;
                 this.list._index = 0;
             }
-        })(this._wrapper._children, this);
+        })(this._wrapper, this);
     }
 
     start() {

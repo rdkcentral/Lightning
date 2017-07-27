@@ -36,6 +36,10 @@ class VboContext {
         this.updateTreeOrder = 0;
     }
 
+    layout() {
+        this.root.layout();
+    }
+
     updateAndFillVbo() {
         this.useZIndexing = (this.stage.zIndexUsage > 0);
 

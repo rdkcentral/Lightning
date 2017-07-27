@@ -2,6 +2,7 @@ var start = function(wpe) {
 
     var Stage = wpe.Stage;
     var Utils = wpe.Utils;
+    var BorderView = wpe.BorderView;
 
     var options = {w: 600, h: 600, glClearColor: 0xFF000000, useTextureAtlas: true, debugTextureAtlas: false};
 
@@ -23,7 +24,7 @@ var start = function(wpe) {
     stage.root.add([
         {tags: 'bg', rect: true, x: 20, y: 20, w: 560, h: 560, colorUl: 0xFFFF0000, colorBr: 0xFFFF6666, zIndex: 1, children: [
            {tags: 'hello', texture: texture, x: 10, y: 20},
-           {src: 'http://adn.gpupdate.net/news/297192.jpg', w: 400, h: 200, x: 150, color: 0xAAFFFFFF, children: [
+           {type: BorderView, borderWidth: 10, src: 'http://adn.gpupdate.net/news/297192.jpg', w: 400, h: 200, x: 150, color: 0xAAFFFFFF, children: [
                {tags: 'hello2', text: {text: "hello world", fontSize: 80}, x: 10, y: 20}
            ]}
         ]}

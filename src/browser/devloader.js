@@ -59,7 +59,8 @@ var loadWpe, loadBulk;
             "AnimationActionItems":"./animation/AnimationActionItems.js",
             "Animation":"./animation/Animation.js",
             "Tools":"./tools/Tools.js",
-            "List":"./tools/List.js"
+            "List":"./tools/List.js",
+            "BorderView":"./tools/BorderView.js"
         };
         return loadBulk(srcPath, sourceFiles).then(function(wpe) {
             if (typeof attachInspector !== "undefined") attachInspector(wpe);

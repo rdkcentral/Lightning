@@ -1394,6 +1394,14 @@ class View {
         }
     }
 
+    set layoutEntry(f) {
+        this.renderer.layoutEntry = f;
+    }
+
+    set layoutExit(f) {
+        this.renderer.layoutExit = f;
+    }
+
     /*A¬*/
     animation(settings) {
         return this.stage.animations.createAnimation(this, settings);
@@ -1676,7 +1684,8 @@ View.PROP_MERGERS = {
     'texture.x': mn,
     'texture.y': mn,
     'texture.w': mn,
-    'texture.h': mn
+    'texture.h': mn,
+    'borderWidth': mn
 };
 
 let Utils = require('./Utils');

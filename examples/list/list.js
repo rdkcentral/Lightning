@@ -1,8 +1,8 @@
 let wpe = require('../../wpe');
 let stage = new wpe.Stage({w: 1000, h: 800, glClearColor: 0xFF000000, useTextureAtlas: true, debugTextureAtlas: false})
 
-let s = stage.transitions.createSettings({duration: 0.2});
-stage.root.add({type: wpe.List, tag: 'list', x: 200, w: 600, h: 400, clipping: false, itemSize: 100, scrollTransition: {duration: 0.3}, invertDirection: false, roll: true, viewportScrollOffset: 0.5, itemScrollOffset: 0.5, children: [
+let s = stage.transitions.createSettings({duration: 1.2});
+stage.root.add({type: wpe.List, tag: 'list', x: 200, w: 600, h: 400, clipping: false, itemSize: 100, scrollTransition: {duration: 1.3}, invertDirection: false, roll: false, viewportScrollOffset: 0.5, itemScrollOffset: 0.5, children: [
     {tag: 'item', x: 5, w: 90, y: 0, h: 400},
     {tag: 'item', x: 5, w: 90, y: 10, h: 380},
     {tag: 'item', x: 5, w: 90, y: 20, h: 360},
@@ -41,4 +41,4 @@ setInterval(function() {
     } else if (c == 0) {
         list.setNext();
     }
-}, 150);
+}, 1000);
