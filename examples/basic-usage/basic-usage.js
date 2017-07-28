@@ -24,16 +24,16 @@ var start = function(wpe) {
     stage.root.add([
         {tags: 'bg', rect: true, x: 20, y: 20, w: 560, h: 560, colorUl: 0xFFFF0000, colorBr: 0xFFFF6666, zIndex: 1, children: [
            {tags: 'hello', texture: texture, x: 10, y: 20},
-           {tag: 'borders', type: BorderView, borderWidth: 20, src: 'http://adn.gpupdate.net/news/297192.jpg', w: 400, h: 200, x: 150, color: 0xAAFFFFFF, children: [
+           {tag: 'borders', type: BorderView, borderWidth: 20, rect: true, w: 400, h: 200, x: 150, color: 0xAAFFFFFF, children: [
                {tags: 'hello2', text: {text: "hello world", fontSize: 80}, x: 10, y: 20}
            ]}
         ]}
     ]);
 
     let animdef = stage.animations.createSettings({duration: 3, autostop: true, stopTimingFunction: 'linear', stopDuration: 3, actions: [
-        {property: ['y'], value: {0:0,1:100}},
-        {property: ['color'], value: {0:0xFFFFFFFF,1:0xFFFF0000}},
-        {property: 'borderWidth', t: 'borders', value: {0:0,1:100}, type: BorderView},
+        // {property: ['y'], value: {0:0,1:100}},
+        // {property: ['color'], value: {0:0xFFFFFFFF,1:0xFFFF0000}},
+        {property: 'borderColor', t: 'borders', merger: null, value: {0:0xFFFFFFFF,1:0xFF00FF00}},
     ]});
     let anim = stage.animations.createAnimation(stage.root.tag('bg'), animdef);
     anim.start();

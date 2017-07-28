@@ -201,6 +201,10 @@ class AnimationActionItems extends Base {
         }        
     }
 
+    get length() {
+        return this._length;
+    }
+
 }
 
 module.exports = AnimationActionItems;

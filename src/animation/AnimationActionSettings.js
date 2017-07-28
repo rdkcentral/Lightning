@@ -34,17 +34,16 @@ class AnimationActionSettings extends Base {
         this._propSetters = [];
 
         /**
-         * The view type to determine the property mergers.
-         * @type {class}
+         * The way that values should be interpolated.
+         * @type {Function}
          * @private
          */
-        this._type = undefined;
+        this._merger = undefined;
     }
 
     _properties() {
         this._resetValue = undefined;
         this._hasResetValue = false;
-        this._merger = undefined;
 
         this.isAnimationActionSettings = true;
     }
@@ -176,22 +175,24 @@ class AnimationActionSettings extends Base {
 
         this._props = [];
 
-        this._merger = undefined;
+        let detectMerger = (this._merger === undefined);
+
         let first = true;
         v.forEach((prop) => {
             this._props.push(prop);
             this._propSetters.push(View.getSetter(prop));
 
-
-            let merger = View.getMerger(prop, this._type);
-            if (first) {
-                this._merger = merger;
-                first = false;
-            } else {
-                if (this._merger !== merger) {
-                    // Do not use a merger in case of merger conflicts.
-                    console.warn('Merger conflicts for animation action properties: ' + v.join(','));
-                    this._merger = undefined;
+            if (detectMerger) {
+                let merger = View.getMerger(prop);
+                if (first) {
+                    this._merger = merger;
+                    first = false;
+                } else {
+                    if (this._merger !== merger) {
+                        // Do not use a merger in case of merger conflicts.
+                        console.warn('Merger conflicts for animation action properties: ' + v.join(','));
+                        this._merger = undefined;
+                    }
                 }
             }
         });
@@ -205,12 +206,11 @@ class AnimationActionSettings extends Base {
         this.properties = v;
     }
 
-    setSettings(settings) {
-        if (settings.type) {
-            // Make sure that type is known before settings properties.
-            this._type = settings.type;
+    set merger(f) {
+        if (this._items.length) {
+            console.trace('You should specify the merger before the values');
         }
-        Base.setObjectSettings(this, settings);
+        this._merger = f;
     }
 
 }
