@@ -57,7 +57,7 @@ module.exports = function(grunt) {
                     'src/animation/AnimationActionItems.js',
                     'src/animation/Animation.js',
                     'src/tools/Tools.js',
-                    'src/tools/List.js',
+                    'src/tools/ListView.js',
                     'src/tools/BorderView.js'
                 ],
                 dest : 'dist/wpe.js'

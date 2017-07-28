@@ -1303,19 +1303,19 @@ class GeometryUtils {
 
 /**
  * @todo:
- * - preUpdate, postUpdate hooks for layout purposes
- * - BorderView subclasses View?
- * - type extensions
+ * - list transitions
  * - quick clone
  * - hasAlpha in format, and try to prepare images for upload (so that we get buffer performance).
- * - borders
  * - change documentation
  *   - text2pngEndpoint
  *   - supercharger?
  *   - transition changes
- *   -getRenderWidth
+ *   - list/borders
+ *   - layout
+ *   - getRenderWidth
  * - encapsulate tags branches (for isolating widgets)
- * - merger: isRgba? isNumeric?
+ * - shaders (VAOs)
+ *
  * - convert UI(?)
  * - convert Bunnyhopper(?)
  * - convert TMDB(?)
@@ -4028,10 +4028,6 @@ class View {
         return setter;
     }
 
-    static getMerger(propertyPath) {
-        return View.PROP_MERGERS[propertyPath];
-    }
-
     get x() {
         return this._x
     }
@@ -4551,12 +4547,7 @@ class View {
 
     _setTransVal(property, v) {
         let t = this._getTransition(property);
-        if (t) {
-            t.start(v);
-            return true;
-        } else {
-            return false;
-        }
+        t.start(v);
     }
 
     get X() {
@@ -4564,7 +4555,7 @@ class View {
     }
     
     set X(v) {
-        this._setTransVal('x', v) || (this.x = v);
+        this._setTransVal('x', v)
     }
 
     get Y() {
@@ -4572,7 +4563,7 @@ class View {
     }
 
     set Y(v) {
-        this._setTransVal('y', v) || (this.y = v);
+        this._setTransVal('y', v)
     }
 
     get W() {
@@ -4580,7 +4571,7 @@ class View {
     }
 
     set H(v) {
-        this._setTransVal('h', v) || (this.h = v);
+        this._setTransVal('h', v)
     }
 
     get SCALE() {
@@ -4588,7 +4579,7 @@ class View {
     }
 
     set SCALE(v) {
-        this._setTransVal('scale', v) || (this.scale = v);
+        this._setTransVal('scale', v)
     }
 
     get SCALEX() {
@@ -4596,7 +4587,7 @@ class View {
     }
 
     set SCALEX(v) {
-        this._setTransVal('scaleX', v) || (this.scaleX = v);
+        this._setTransVal('scaleX', v)
     }
 
     get PIVOT() {
@@ -4604,7 +4595,7 @@ class View {
     }
 
     set PIVOT(v) {
-        this._setTransVal('pivot', v) || (this.pivot = v);
+        this._setTransVal('pivot', v)
     }
 
     get PIVOTX() {
@@ -4612,7 +4603,7 @@ class View {
     }
 
     set PIVOTX(v) {
-        this._setTransVal('pivotX', v) || (this.pivotX = v);
+        this._setTransVal('pivotX', v)
     }
     
     get MOUNT() {
@@ -4620,7 +4611,7 @@ class View {
     }
 
     set MOUNT(v) {
-        this._setTransVal('mount', v) || (this.mount = v);
+        this._setTransVal('mount', v)
     }
 
     get MOUNTX() {
@@ -4628,7 +4619,7 @@ class View {
     }
 
     set MOUNTX(v) {
-        this._setTransVal('mountX', v) || (this.mountX = v);
+        this._setTransVal('mountX', v)
     }
 
     get ALPHA() {
@@ -4636,7 +4627,7 @@ class View {
     }
 
     set ALPHA(v) {
-        this._setTransVal('alpha', v) || (this.alpha = v);
+        this._setTransVal('alpha', v)
     }
 
     get ROTATION() {
@@ -4644,7 +4635,7 @@ class View {
     }
 
     set ROTATION(v) {
-        this._setTransVal('rotation', v) || (this.rotation = v);
+        this._setTransVal('rotation', v)
     }
 
     get COLOR() {
@@ -4652,19 +4643,19 @@ class View {
     }
 
     set COLORTOP(v) {
-        this._setTransVal('colorTop', v) || (this.colorTop = v);
+        this._setTransVal('colorTop', v)
     }
 
     set COLORBOTTOM(v) {
-        this._setTransVal('colorBottom', v) || (this.colorBottom = v);
+        this._setTransVal('colorBottom', v)
     }
 
     set COLORLEFT(v) {
-        this._setTransVal('colorLeft', v) || (this.colorLeft = v);
+        this._setTransVal('colorLeft', v)
     }
 
     set COLORRIGHT(v) {
-        this._setTransVal('colorRight', v) || (this.colorRight = v);
+        this._setTransVal('colorRight', v)
     }
 
     get COLORUL() {
@@ -4672,7 +4663,7 @@ class View {
     }
 
     set COLORUL(v) {
-        this._setTransVal('colorUl', v) || (this.colorUl = v);
+        this._setTransVal('colorUl', v)
     }
 
     get COLORUR() {
@@ -4680,7 +4671,7 @@ class View {
     }
 
     set COLORUR(v) {
-        this._setTransVal('colorUr', v) || (this.colorUr = v);
+        this._setTransVal('colorUr', v)
     }
 
     get COLORBL() {
@@ -4688,7 +4679,7 @@ class View {
     }
 
     set COLORBL(v) {
-        this._setTransVal('colorBl', v) || (this.colorBl = v);
+        this._setTransVal('colorBl', v)
     }
 
     get COLORBR() {
@@ -4696,11 +4687,55 @@ class View {
     }
 
     set COLORBR(v) {
-        this._setTransVal('colorBr', v) || (this.colorBr = v);
+        this._setTransVal('colorBr', v)
     }
     
 
+    isNumberProperty(property) {
+        return View.isNumberProperty(property, this.constructor);
+    }
+
+    isColorProperty(property) {
+        return View.isColorProperty(property, this.constructor);
+    }
+
+    getMerger(property) {
+        return View.getMerger(property, this.constructor);
+    }
 }
+
+View.isNumberProperty = function(property, type = View) {
+    do {
+        if (type.NUMBER_PROPERTIES && type.NUMBER_PROPERTIES.has(property)) {
+            return true
+        }
+    } while((type !== View) && (type = Object.getPrototypeOf(type)));
+
+    return false
+}
+
+View.isColorProperty = function(property, type = View) {
+    do {
+        if (type.COLOR_PROPERTIES && type.COLOR_PROPERTIES.has(property)) {
+            return true
+        }
+    } while((type !== View) && (type = Object.getPrototypeOf(type)));
+
+    return false
+}
+
+View.getMerger = function(property, type = View) {
+    if (View.isNumberProperty(property, type)) {
+        return StageUtils.mergeNumbers
+    } else if (View.isColorProperty(property, type)) {
+        return StageUtils.mergeColors
+    } else {
+        return undefined
+    }
+}
+
+View.NUMBER_PROPERTIES = new Set(['x', 'y', 'w', 'h', 'scale', 'scaleX', 'scaleY', 'pivot', 'pivotX', 'pivotY', 'mount', 'mountX', 'mountY', 'alpha', 'rotation', 'texture.x', 'texture.y', 'texture.w', 'texture.h'])
+View.COLOR_PROPERTIES = new Set(['color', 'colorTop', 'colorBottom', 'colorLeft', 'colorRight', 'colorUl', 'colorUr', 'colorBl', 'colorBr'])
 
 View.prototype.isView = 1;
 
@@ -4711,39 +4746,6 @@ View.PROP_GETTERS = new Map();
 
 // Setters reused when referencing view (subobject) properties by a property path, as used in a transition or animation ('x', 'texture.x', etc).
 View.PROP_SETTERS = new Map();
-
-let mn = StageUtils.mergeNumbers, mc = StageUtils.mergeColors;
-View.PROP_MERGERS = {
-    'x': mn,
-    'y': mn,
-    'w': mn,
-    'h': mn,
-    'scale': mn,
-    'scaleX': mn,
-    'scaleY': mn,
-    'pivot': mn,
-    'pivotX': mn,
-    'pivotY': mn,
-    'mount': mn,
-    'mountX': mn,
-    'mountY': mn,
-    'alpha': mn,
-    'rotation': mn,
-    'color': mc,
-    'colorTop': mc,
-    'colorBottom': mc,
-    'colorLeft': mc,
-    'colorRight': mc,
-    'colorUl': mc,
-    'colorUr': mc,
-    'colorBl': mc,
-    'colorBr': mc,
-    'texture.x': mn,
-    'texture.y': mn,
-    'texture.w': mn,
-    'texture.h': mn,
-    'borderWidth': mn
-};
 
 
 
@@ -4847,7 +4849,7 @@ class ViewChildList {
             this._children.splice(0, n);
 
             // Sync.
-            this.renderer.removeChildren();
+            this._view.renderer.removeChildren();
         }
     };
 
@@ -5454,7 +5456,7 @@ class ViewRenderer {
                 this._recalc |= (this._parent._recalc & 6);
                 let layoutChanged = (this._recalc & 6);
 
-                if (this._layoutEntry) {
+                if (this._layoutEntry && layoutChanged) {
                     this._layoutEntry(this._view, origRecalc);
                 }
                 if (this._children) {
@@ -5473,7 +5475,7 @@ class ViewRenderer {
                         }
                     }
                 }
-                if (this._layoutExit) {
+                if (this._layoutExit && this._hasUpdates) {
                     this._layoutExit(this._view, origRecalc);
                 }
 
@@ -7109,13 +7111,15 @@ class Transition extends Base {
         if (!View) {
             View = require('../core/View');
         }
-        this._view = view;
-        this._getter = View.getGetter(property);
-        this._setter = View.getSetter(property);
-        this._merger = View.getMerger(property) || StageUtils.mergeNumbers;
+        this._view = view
+        this._getter = View.getGetter(property)
+        this._setter = View.getSetter(property)
+
+
+        this._merger = this._view.getMerger(property)
 
         if (!this._merger) {
-            throw new Error("Property does not have a merger: " + property);
+            throw new Error("Property must be a number or a color");
         }
 
         this._startValue = this._getter(this._view);
@@ -7394,7 +7398,7 @@ class AnimationSettings extends Base {
             let e = v[i];
             if (!e.isAnimationActionSettings) {
                 let aas = new AnimationActionSettings(this);
-                Base.setObjectSettings(aas, e);
+                aas.setSettings(e);
                 this._actions.push(aas);
             } else {
                 this._actions.push(e);
@@ -7482,12 +7486,18 @@ class AnimationActionSettings extends Base {
          * @private
          */
         this._propSetters = [];
+
+        /**
+         * The way that values should be interpolated.
+         * @type {Function}
+         * @private
+         */
+        this._merger = undefined;
     }
 
     _properties() {
         this._resetValue = undefined;
         this._hasResetValue = false;
-        this._merger = undefined;
 
         this.isAnimationActionSettings = true;
     }
@@ -7619,21 +7629,24 @@ class AnimationActionSettings extends Base {
 
         this._props = [];
 
-        this._merger = undefined;
+        let detectMerger = (this._merger === undefined);
+
         let first = true;
         v.forEach((prop) => {
             this._props.push(prop);
             this._propSetters.push(View.getSetter(prop));
 
-            let merger = View.getMerger(prop);
-            if (first) {
-                this._merger = merger;
-                first = false;
-            } else {
-                if (this._merger !== merger) {
-                    // Do not use a merger in case of merger conflicts.
-                    console.warn('Merger conflicts for animation action properties: ' + v.join(','));
-                    this._merger = undefined;
+            if (detectMerger) {
+                let merger = View.getMerger(prop);
+                if (first) {
+                    this._merger = merger;
+                    first = false;
+                } else {
+                    if (this._merger !== merger) {
+                        // Do not use a merger in case of merger conflicts.
+                        console.warn('Merger conflicts for animation action properties: ' + v.join(','));
+                        this._merger = undefined;
+                    }
                 }
             }
         });
@@ -7645,6 +7658,13 @@ class AnimationActionSettings extends Base {
 
     set p(v) {
         this.properties = v;
+    }
+
+    set merger(f) {
+        if (this._items.length) {
+            console.trace('You should specify the merger before the values');
+        }
+        this._merger = f;
     }
 
 }
@@ -7851,6 +7871,10 @@ class AnimationActionItems extends Base {
                 return this._v[i];
             }
         }        
+    }
+
+    get length() {
+        return this._length;
     }
 
 }
@@ -8290,7 +8314,7 @@ class Tools {
  * Copyright Metrological, 2017
  */
 
-class List extends View {
+class ListView extends View {
 
     constructor(stage) {
         super(stage);
@@ -8766,8 +8790,10 @@ class BorderView extends View {
         this._borderBottom = super._children.a({rect: true, visible: false});
         this._borderLeft = super._children.a({rect: true, visible: false, mountX: 1});
 
+        this._updateLayout = false;
+
         this.layoutExit = function (view, recalc) {
-            if (recalc) {
+            if (recalc || view._updateLayout) {
                 let rw = view.renderWidth;
                 let rh = view.renderHeight;
                 view._borderTop.w = rw;
@@ -8780,6 +8806,7 @@ class BorderView extends View {
                 view._borderRight.y = -view._borderTop.h;
                 view._wrapper.w = rw;
                 view._wrapper.h = rh;
+                view._updateLayout = false;
             }
         }
     }
@@ -8819,23 +8846,47 @@ class BorderView extends View {
     set borderWidthTop(v) {
         this._borderTop.h = v;
         this._borderTop.visible = (v > 0);
+        this._updateLayout = true;
     }
 
     set borderWidthRight(v) {
         this._borderRight.w = v;
         this._borderRight.visible = (v > 0);
+        this._updateLayout = true;
     }
 
     set borderWidthBottom(v) {
         this._borderBottom.h = v;
         this._borderBottom.visible = (v > 0);
+        this._updateLayout = true;
     }
 
     set borderWidthLeft(v) {
         this._borderLeft.w = v;
         this._borderLeft.visible = (v > 0);
+        this._updateLayout = true;
     }
 
+    get borderColor() {
+        return this.borderColorTop;
+    }
+
+    get borderColorTop() {
+        return this._borderTop.color;
+    }
+
+    get borderColorRight() {
+        return this._borderRight.color;
+    }
+
+    get borderColorBottom() {
+        return this._borderBottom.color;
+    }
+
+    get borderColorLeft() {
+        return this._borderLeft.color;
+    }
+    
     set borderColor(v) {
         this.borderColorTop = v;
         this.borderColorRight = v;
@@ -8911,7 +8962,7 @@ class BorderView extends View {
     }
 
     set BORDERWIDTH(v) {
-        this._setTransVal('borderWidth', v) || (this.borderWidth = v);
+        this._setTransVal('borderWidth', v)
     }
 
     get BORDERWIDTHTOP() {
@@ -8919,7 +8970,7 @@ class BorderView extends View {
     }
 
     set BORDERWIDTHTOP(v) {
-        this._setTransVal('borderWidthTop', v) || (this.borderWidthTop = v);
+        this._setTransVal('borderWidthTop', v)
     }
 
     get BORDERWIDTHRIGHT() {
@@ -8927,7 +8978,7 @@ class BorderView extends View {
     }
 
     set BORDERWIDTHRIGHT(v) {
-        this._setTransVal('borderWidthRight', v) || (this.borderWidthRight = v);
+        this._setTransVal('borderWidthRight', v)
     }
 
     get BORDERWIDTHBOTTOM() {
@@ -8935,7 +8986,7 @@ class BorderView extends View {
     }
 
     set BORDERWIDTHBOTTOM(v) {
-        this._setTransVal('borderWidthBottom', v) || (this.borderWidthBottom = v);
+        this._setTransVal('borderWidthBottom', v)
     }
 
     get BORDERWIDTHLEFT() {
@@ -8943,8 +8994,51 @@ class BorderView extends View {
     }
 
     set BORDERWIDTHLEFT(v) {
-        this._setTransVal('borderWidthLeft', v) || (this.borderWidthLeft = v);
+        this._setTransVal('borderWidthLeft', v)
     }
 
+    get BORDERCOLOR() {
+        return this._getTransVal('borderColor', this.borderColor);
+    }
+
+    set BORDERCOLOR(v) {
+        this._setTransVal('borderColor', v)
+    }
+
+    get BORDERCOLORTOP() {
+        return this._getTransVal('borderColorTop', this.borderColorTop);
+    }
+
+    set BORDERCOLORTOP(v) {
+        this._setTransVal('borderColorTop', v)
+    }
+
+    get BORDERCOLORRIGHT() {
+        return this._getTransVal('borderColorRight', this.borderColorRight);
+    }
+
+    set BORDERCOLORRIGHT(v) {
+        this._setTransVal('borderColorRight', v)
+    }
+
+    get BORDERCOLORBOTTOM() {
+        return this._getTransVal('borderColorBottom', this.borderColorBottom);
+    }
+
+    set BORDERCOLORBOTTOM(v) {
+        this._setTransVal('borderColorBottom', v)
+    }
+
+    get BORDERCOLORLEFT() {
+        return this._getTransVal('borderColorLeft', this.borderColorLeft);
+    }
+
+    set BORDERCOLORLEFT(v) {
+        this._setTransVal('borderColorLeft', v)
+    }
 }
+
+BorderView.NUMBER_PROPERTIES = new Set(['borderWidth', 'borderWidthTop', 'borderWidthRight', 'borderWidthBottom', 'borderWidthLeft'])
+BorderView.COLOR_PROPERTIES = new Set(['borderColor', 'borderColorTop', 'borderColorRight', 'borderColorBottom', 'borderColorLeft'])
+
 

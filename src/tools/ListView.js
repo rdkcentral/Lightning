@@ -4,7 +4,7 @@
 let View = require('../core/View');
 let ViewChildList = require('../core/ViewChildList');
 
-class List extends View {
+class ListView extends View {
 
     constructor(stage) {
         super(stage);
@@ -23,7 +23,7 @@ class List extends View {
          * The transition definition that is being used when scrolling the items.
          * @type TransitionSettings
          */
-        this._scrollTransition = this.stage.transitions.createSettings({});
+        this._scrollTransitionSettings = this.stage.transitions.createSettings({});
 
         /**
          * The scroll area size in pixels per item.
@@ -134,9 +134,9 @@ class List extends View {
     }
 
     start() {
-        this._wrapper.transition(this.property, this._scrollTransition)
-        this._transition = this._wrapper.transition(this.property);
-        this._transition.on('progress', p => this.update());
+        this._wrapper.transition(this.property, this._scrollTransitionSettings)
+        this._scrollTransition = this._wrapper.transition(this.property);
+        this._scrollTransition.on('progress', p => this.update());
 
         this.setIndex(0, true, true);
         this.update();
@@ -201,10 +201,10 @@ class List extends View {
             }
         }
 
-        this._transition.start(value);
+        this._scrollTransition.start(value);
 
         if (immediate) {
-            this._transition.finish();
+            this._scrollTransition.finish();
         }
 
         this.emit('focus', this.getElement(this.realIndex), this._index, this.realIndex);
@@ -377,6 +377,14 @@ class List extends View {
         this.update();
     }
 
+    get VIEWPORTSCROLLOFFSET() {
+        return this._getTransVal('viewportScrollOffset', this.viewportScrollOffset);
+    }
+
+    set VIEWPORTSCROLLOFFSET(v) {
+        this._setTransVal('viewportScrollOffset', v)
+    }
+    
     get itemScrollOffset() {
         return this._itemScrollOffset;
     }
@@ -386,12 +394,28 @@ class List extends View {
         this.update();
     }
 
-    get scrollTransition() {
-        return this._scrollTransition;
+    get ITEMSCROLLOFFSET() {
+        return this._getTransVal('itemScrollOffset', this.itemScrollOffset);
+    }
+
+    set ITEMSCROLLOFFSET(v) {
+        this._setTransVal('itemScrollOffset', v)
+    }
+
+    get scrollTransitionSettings() {
+        return this._scrollTransitionSettings;
+    }
+
+    set scrollTransitionSettings(v) {
+        this._scrollTransitionSettings.setSettings(v);
     }
 
     set scrollTransition(v) {
-        this._transition.settings = v;
+        this._scrollTransitionSettings.setSettings(v);
+    }
+
+    get scrollTransition() {
+        return this._scrollTransition;
     }
 
     get progressAnimation() {
@@ -405,10 +429,6 @@ class List extends View {
             this._progressAnimation = v;
         }
         this.update();
-    }
-
-    get transition() {
-        return this._transition;
     }
 
     get roll() {
@@ -462,7 +482,9 @@ class List extends View {
 
 }
 
+ListView.NUMBER_PROPERTIES = new Set(['viewportScrollOffset', 'itemScrollOffset'])
+
 let Utils = require('../core/Utils');
 /*M¬*/let EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
 
-module.exports = List;
+module.exports = ListView;

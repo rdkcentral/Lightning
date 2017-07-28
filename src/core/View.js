@@ -1585,6 +1585,10 @@ class View {
         return this._getTransVal('color', this.color);
     }
 
+    set COLOR(v) {
+        this._setTransVal('color', v)
+    }
+
     set COLORTOP(v) {
         this._setTransVal('colorTop', v)
     }

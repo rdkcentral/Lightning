@@ -7,8 +7,7 @@ let Base = require('./Base');
 
 /**
  * @todo:
- * - merger: isRgba? isNumeric?
- * - border width transitions
+ * - list transitions
  * - quick clone
  * - hasAlpha in format, and try to prepare images for upload (so that we get buffer performance).
  * - change documentation
