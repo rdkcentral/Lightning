@@ -204,6 +204,10 @@ class TextureSource {
             format.hasAlpha = options.hasAlpha;
         }
 
+        if (!format.hasAlpha) {
+            format.premultiplyAlpha = false;
+        }
+
         this.manager.uploadTextureSource(this, source, format);
 
         this.onLoad();

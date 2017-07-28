@@ -380,18 +380,33 @@ class WebAdapter {
     }
 
     loadSrcTexture(src, ts, sync, cb) {
-        let image = new Image();
-        if (!(src.substr(0,5) == "data:")) {
-            // Base64.
-            image.crossOrigin = "Anonymous";
+        let isPng = (src.indexOf(".png") >= 0)
+        if (window.OffthreadImage && OffthreadImage.available) {
+            // For offthread support: simply include https://github.com/GoogleChrome/offthread-image/blob/master/dist/offthread-img.js
+            // Possible optimisation: do not paint on canvas, but directly pass ImageData to texImage2d.
+            let element = document.createElement('DIV');
+            element.setAttribute('alt', '.');
+            let image = new OffthreadImage(element);
+            element.addEventListener('painted', function () {
+                let canvas = element.childNodes[0];
+                // Because a canvas stores all in RGBA alpha-premultiplied, GPU upload is fastest with those settings.
+                cb(null, canvas, {renderInfo: {src}, hasAlpha: true, premultiplyAlpha: true});
+            });
+            image.src = src;
+        } else {
+            let image = new Image();
+            if (!(src.substr(0,5) == "data:")) {
+                // Base64.
+                image.crossOrigin = "Anonymous";
+            }
+            image.onerror = function(err) {
+                return cb("Image load error");
+            };
+            image.onload = function() {
+                cb(null, image, {renderInfo: {src: src}, hasAlpha: isPng});
+            };
+            image.src = src;
         }
-        image.onerror = function(err) {
-            return cb("Image load error");
-        };
-        image.onload = function() {
-            cb(null, image, {renderInfo: {src: src}});
-        };
-        image.src = src;
     }
 
     loadTextTexture(settings, ts, sync, cb) {
@@ -1303,17 +1318,22 @@ class GeometryUtils {
 
 /**
  * @todo:
- * - list transitions
- * - quick clone
  * - hasAlpha in format, and try to prepare images for upload (so that we get buffer performance).
+ * - encapsulate tags branches (for isolating widgets)
+ * - quick clone
+ *   - text texture problems or not?
  * - change documentation
  *   - text2pngEndpoint
  *   - supercharger?
  *   - transition changes
+ *   - animation mergers: native vs non-native
+ *   - type extensions
  *   - list/borders
  *   - layout
  *   - getRenderWidth
- * - encapsulate tags branches (for isolating widgets)
+ *   - quick clone
+ *   - offthread-image for better image loading performance
+ * - merge es6 to master
  * - shaders (VAOs)
  *
  * - convert UI(?)
@@ -2335,6 +2355,10 @@ class TextureSource {
 
         if (options && options.hasOwnProperty('hasAlpha')) {
             format.hasAlpha = options.hasAlpha;
+        }
+
+        if (!format.hasAlpha) {
+            format.premultiplyAlpha = false;
         }
 
         this.manager.uploadTextureSource(this, source, format);
@@ -4640,6 +4664,10 @@ class View {
 
     get COLOR() {
         return this._getTransVal('color', this.color);
+    }
+
+    set COLOR(v) {
+        this._setTransVal('color', v)
     }
 
     set COLORTOP(v) {
@@ -8263,39 +8291,8 @@ class Tools {
 
         let id = 'rect' + [w, h, radius, strokeWidth, strokeColor, fill ? 1 : 0, fillColor].join(",");
         return stage.texture(function(cb) {
-            canvas.width = w + strokeWidth + 2;
-            canvas.height = h + strokeWidth + 2;
+            let canvas = Tools.createRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor);
 
-            ctx.beginPath();
-            let x = 0.5 * strokeWidth + 1, y = 0.5 * strokeWidth + 1;
-            ctx.moveTo(x + radius, y);
-            ctx.lineTo(x + w - radius, y);
-            ctx.arcTo(x + w, y, x + w, y + radius, radius);
-            ctx.lineTo(x + w, y + h - radius);
-            ctx.arcTo(x + w, y + h, x + w - radius, y + h, radius);
-            ctx.lineTo(x + radius, y + h);
-            ctx.arcTo(x, y + h, x, y + h - radius, radius);
-            ctx.lineTo(x, y + radius);
-            ctx.arcTo(x, y, x + radius, y, radius);
-
-            if (fill) {
-                if (Utils.isNumber(fillColor)) {
-                    fillColor = "#" + fillColor.toString(16);
-                }
-                ctx.fillStyle = fillColor || "white";
-                ctx.fill();
-            }
-
-            if (strokeWidth) {
-                if (Utils.isNumber(strokeColor)) {
-                    strokeColor = "#" + strokeColor.toString(16);
-                }
-                ctx.strokeStyle = strokeColor || "white";
-                ctx.lineWidth = strokeWidth;
-                ctx.stroke();
-            }
-
-            let options = {};
             let data = canvas;
             if (Utils.isNode) {
                 data = canvas.toBuffer('raw');
@@ -8306,6 +8303,50 @@ class Tools {
             }
             cb(null, data, options);
         }, {id: id});
+    }
+
+    static createRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor) {
+        if (fill === undefined) fill = true;
+        if (strokeWidth === undefined) strokeWidth = 0;
+
+        let canvas = stage.adapter.getDrawingCanvas();
+        let ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+
+        let id = 'rect' + [w, h, radius, strokeWidth, strokeColor, fill ? 1 : 0, fillColor].join(",");
+        canvas.width = w + strokeWidth + 2;
+        canvas.height = h + strokeWidth + 2;
+
+        ctx.beginPath();
+        let x = 0.5 * strokeWidth + 1, y = 0.5 * strokeWidth + 1;
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + w - radius, y);
+        ctx.arcTo(x + w, y, x + w, y + radius, radius);
+        ctx.lineTo(x + w, y + h - radius);
+        ctx.arcTo(x + w, y + h, x + w - radius, y + h, radius);
+        ctx.lineTo(x + radius, y + h);
+        ctx.arcTo(x, y + h, x, y + h - radius, radius);
+        ctx.lineTo(x, y + radius);
+        ctx.arcTo(x, y, x + radius, y, radius);
+
+        if (fill) {
+            if (Utils.isNumber(fillColor)) {
+                fillColor = "#" + fillColor.toString(16);
+            }
+            ctx.fillStyle = fillColor || "white";
+            ctx.fill();
+        }
+
+        if (strokeWidth) {
+            if (Utils.isNumber(strokeColor)) {
+                strokeColor = "#" + strokeColor.toString(16);
+            }
+            ctx.strokeStyle = strokeColor || "white";
+            ctx.lineWidth = strokeWidth;
+            ctx.stroke();
+        }
+
+        return canvas;
     }
 }
 
@@ -8333,7 +8374,7 @@ class ListView extends View {
          * The transition definition that is being used when scrolling the items.
          * @type TransitionSettings
          */
-        this._scrollTransition = this.stage.transitions.createSettings({});
+        this._scrollTransitionSettings = this.stage.transitions.createSettings({});
 
         /**
          * The scroll area size in pixels per item.
@@ -8444,9 +8485,9 @@ class ListView extends View {
     }
 
     start() {
-        this._wrapper.transition(this.property, this._scrollTransition)
-        this._transition = this._wrapper.transition(this.property);
-        this._transition.on('progress', p => this.update());
+        this._wrapper.transition(this.property, this._scrollTransitionSettings)
+        this._scrollTransition = this._wrapper.transition(this.property);
+        this._scrollTransition.on('progress', p => this.update());
 
         this.setIndex(0, true, true);
         this.update();
@@ -8511,10 +8552,10 @@ class ListView extends View {
             }
         }
 
-        this._transition.start(value);
+        this._scrollTransition.start(value);
 
         if (immediate) {
-            this._transition.finish();
+            this._scrollTransition.finish();
         }
 
         this.emit('focus', this.getElement(this.realIndex), this._index, this.realIndex);
@@ -8687,6 +8728,14 @@ class ListView extends View {
         this.update();
     }
 
+    get VIEWPORTSCROLLOFFSET() {
+        return this._getTransVal('viewportScrollOffset', this.viewportScrollOffset);
+    }
+
+    set VIEWPORTSCROLLOFFSET(v) {
+        this._setTransVal('viewportScrollOffset', v)
+    }
+    
     get itemScrollOffset() {
         return this._itemScrollOffset;
     }
@@ -8696,12 +8745,28 @@ class ListView extends View {
         this.update();
     }
 
-    get scrollTransition() {
-        return this._scrollTransition;
+    get ITEMSCROLLOFFSET() {
+        return this._getTransVal('itemScrollOffset', this.itemScrollOffset);
+    }
+
+    set ITEMSCROLLOFFSET(v) {
+        this._setTransVal('itemScrollOffset', v)
+    }
+
+    get scrollTransitionSettings() {
+        return this._scrollTransitionSettings;
+    }
+
+    set scrollTransitionSettings(v) {
+        this._scrollTransitionSettings.setSettings(v);
     }
 
     set scrollTransition(v) {
-        this._transition.settings = v;
+        this._scrollTransitionSettings.setSettings(v);
+    }
+
+    get scrollTransition() {
+        return this._scrollTransition;
     }
 
     get progressAnimation() {
@@ -8715,10 +8780,6 @@ class ListView extends View {
             this._progressAnimation = v;
         }
         this.update();
-    }
-
-    get transition() {
-        return this._transition;
     }
 
     get roll() {
@@ -8771,6 +8832,8 @@ class ListView extends View {
     }
 
 }
+
+ListView.NUMBER_PROPERTIES = new Set(['viewportScrollOffset', 'itemScrollOffset'])
 
 
 

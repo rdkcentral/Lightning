@@ -47,18 +47,33 @@ class WebAdapter {
     }
 
     loadSrcTexture(src, ts, sync, cb) {
-        let image = new Image();
-        if (!(src.substr(0,5) == "data:")) {
-            // Base64.
-            image.crossOrigin = "Anonymous";
+        let isPng = (src.indexOf(".png") >= 0)
+        if (window.OffthreadImage && OffthreadImage.available) {
+            // For offthread support: simply include https://github.com/GoogleChrome/offthread-image/blob/master/dist/offthread-img.js
+            // Possible optimisation: do not paint on canvas, but directly pass ImageData to texImage2d.
+            let element = document.createElement('DIV');
+            element.setAttribute('alt', '.');
+            let image = new OffthreadImage(element);
+            element.addEventListener('painted', function () {
+                let canvas = element.childNodes[0];
+                // Because a canvas stores all in RGBA alpha-premultiplied, GPU upload is fastest with those settings.
+                cb(null, canvas, {renderInfo: {src}, hasAlpha: true, premultiplyAlpha: true});
+            });
+            image.src = src;
+        } else {
+            let image = new Image();
+            if (!(src.substr(0,5) == "data:")) {
+                // Base64.
+                image.crossOrigin = "Anonymous";
+            }
+            image.onerror = function(err) {
+                return cb("Image load error");
+            };
+            image.onload = function() {
+                cb(null, image, {renderInfo: {src: src}, hasAlpha: isPng});
+            };
+            image.src = src;
         }
-        image.onerror = function(err) {
-            return cb("Image load error");
-        };
-        image.onload = function() {
-            cb(null, image, {renderInfo: {src: src}});
-        };
-        image.src = src;
     }
 
     loadTextTexture(settings, ts, sync, cb) {

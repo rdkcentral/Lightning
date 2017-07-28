@@ -7,17 +7,22 @@ let Base = require('./Base');
 
 /**
  * @todo:
- * - list transitions
- * - quick clone
  * - hasAlpha in format, and try to prepare images for upload (so that we get buffer performance).
+ * - encapsulate tags branches (for isolating widgets)
+ * - quick clone
+ *   - text texture problems or not?
  * - change documentation
  *   - text2pngEndpoint
  *   - supercharger?
  *   - transition changes
+ *   - animation mergers: native vs non-native
+ *   - type extensions
  *   - list/borders
  *   - layout
  *   - getRenderWidth
- * - encapsulate tags branches (for isolating widgets)
+ *   - quick clone
+ *   - offthread-image for better image loading performance
+ * - merge es6 to master
  * - shaders (VAOs)
  *
  * - convert UI(?)
