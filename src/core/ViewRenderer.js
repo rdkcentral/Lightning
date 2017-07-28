@@ -565,7 +565,7 @@ class ViewRenderer {
                 this._recalc |= (this._parent._recalc & 6);
                 let layoutChanged = (this._recalc & 6);
 
-                if (this._layoutEntry) {
+                if (this._layoutEntry && layoutChanged) {
                     this._layoutEntry(this._view, origRecalc);
                 }
                 if (this._children) {
@@ -584,7 +584,7 @@ class ViewRenderer {
                         }
                     }
                 }
-                if (this._layoutExit) {
+                if (this._layoutExit && this._hasUpdates) {
                     this._layoutExit(this._view, origRecalc);
                 }
 

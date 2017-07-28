@@ -93,7 +93,7 @@ class ViewChildList {
             this._children.splice(0, n);
 
             // Sync.
-            this.renderer.removeChildren();
+            this._view.renderer.removeChildren();
         }
     };
 

@@ -7,19 +7,19 @@ let Base = require('./Base');
 
 /**
  * @todo:
- * - preUpdate, postUpdate hooks for layout purposes
- * - BorderView subclasses View?
- * - type extensions
+ * - merger: isRgba? isNumeric?
  * - quick clone
  * - hasAlpha in format, and try to prepare images for upload (so that we get buffer performance).
- * - borders
  * - change documentation
  *   - text2pngEndpoint
  *   - supercharger?
  *   - transition changes
- *   -getRenderWidth
+ *   - list/borders
+ *   - layout
+ *   - getRenderWidth
  * - encapsulate tags branches (for isolating widgets)
- * - merger: isRgba? isNumeric?
+ * - shaders (VAOs)
+ *
  * - convert UI(?)
  * - convert Bunnyhopper(?)
  * - convert TMDB(?)
