@@ -971,10 +971,6 @@ class View {
         return setter;
     }
 
-    static getMerger(propertyPath) {
-        return View.PROP_MERGERS[propertyPath];
-    }
-
     get x() {
         return this._x
     }
@@ -1494,12 +1490,7 @@ class View {
 
     _setTransVal(property, v) {
         let t = this._getTransition(property);
-        if (t) {
-            t.start(v);
-            return true;
-        } else {
-            return false;
-        }
+        t.start(v);
     }
 
     get X() {
@@ -1507,7 +1498,7 @@ class View {
     }
     
     set X(v) {
-        this._setTransVal('x', v) || (this.x = v);
+        this._setTransVal('x', v)
     }
 
     get Y() {
@@ -1515,7 +1506,7 @@ class View {
     }
 
     set Y(v) {
-        this._setTransVal('y', v) || (this.y = v);
+        this._setTransVal('y', v)
     }
 
     get W() {
@@ -1523,7 +1514,7 @@ class View {
     }
 
     set H(v) {
-        this._setTransVal('h', v) || (this.h = v);
+        this._setTransVal('h', v)
     }
 
     get SCALE() {
@@ -1531,7 +1522,7 @@ class View {
     }
 
     set SCALE(v) {
-        this._setTransVal('scale', v) || (this.scale = v);
+        this._setTransVal('scale', v)
     }
 
     get SCALEX() {
@@ -1539,7 +1530,7 @@ class View {
     }
 
     set SCALEX(v) {
-        this._setTransVal('scaleX', v) || (this.scaleX = v);
+        this._setTransVal('scaleX', v)
     }
 
     get PIVOT() {
@@ -1547,7 +1538,7 @@ class View {
     }
 
     set PIVOT(v) {
-        this._setTransVal('pivot', v) || (this.pivot = v);
+        this._setTransVal('pivot', v)
     }
 
     get PIVOTX() {
@@ -1555,7 +1546,7 @@ class View {
     }
 
     set PIVOTX(v) {
-        this._setTransVal('pivotX', v) || (this.pivotX = v);
+        this._setTransVal('pivotX', v)
     }
     
     get MOUNT() {
@@ -1563,7 +1554,7 @@ class View {
     }
 
     set MOUNT(v) {
-        this._setTransVal('mount', v) || (this.mount = v);
+        this._setTransVal('mount', v)
     }
 
     get MOUNTX() {
@@ -1571,7 +1562,7 @@ class View {
     }
 
     set MOUNTX(v) {
-        this._setTransVal('mountX', v) || (this.mountX = v);
+        this._setTransVal('mountX', v)
     }
 
     get ALPHA() {
@@ -1579,7 +1570,7 @@ class View {
     }
 
     set ALPHA(v) {
-        this._setTransVal('alpha', v) || (this.alpha = v);
+        this._setTransVal('alpha', v)
     }
 
     get ROTATION() {
@@ -1587,7 +1578,7 @@ class View {
     }
 
     set ROTATION(v) {
-        this._setTransVal('rotation', v) || (this.rotation = v);
+        this._setTransVal('rotation', v)
     }
 
     get COLOR() {
@@ -1595,19 +1586,19 @@ class View {
     }
 
     set COLORTOP(v) {
-        this._setTransVal('colorTop', v) || (this.colorTop = v);
+        this._setTransVal('colorTop', v)
     }
 
     set COLORBOTTOM(v) {
-        this._setTransVal('colorBottom', v) || (this.colorBottom = v);
+        this._setTransVal('colorBottom', v)
     }
 
     set COLORLEFT(v) {
-        this._setTransVal('colorLeft', v) || (this.colorLeft = v);
+        this._setTransVal('colorLeft', v)
     }
 
     set COLORRIGHT(v) {
-        this._setTransVal('colorRight', v) || (this.colorRight = v);
+        this._setTransVal('colorRight', v)
     }
 
     get COLORUL() {
@@ -1615,7 +1606,7 @@ class View {
     }
 
     set COLORUL(v) {
-        this._setTransVal('colorUl', v) || (this.colorUl = v);
+        this._setTransVal('colorUl', v)
     }
 
     get COLORUR() {
@@ -1623,7 +1614,7 @@ class View {
     }
 
     set COLORUR(v) {
-        this._setTransVal('colorUr', v) || (this.colorUr = v);
+        this._setTransVal('colorUr', v)
     }
 
     get COLORBL() {
@@ -1631,7 +1622,7 @@ class View {
     }
 
     set COLORBL(v) {
-        this._setTransVal('colorBl', v) || (this.colorBl = v);
+        this._setTransVal('colorBl', v)
     }
 
     get COLORBR() {
@@ -1639,11 +1630,55 @@ class View {
     }
 
     set COLORBR(v) {
-        this._setTransVal('colorBr', v) || (this.colorBr = v);
+        this._setTransVal('colorBr', v)
     }
     /*¬A*/
 
+    isNumberProperty(property) {
+        return View.isNumberProperty(property, this.constructor);
+    }
+
+    isColorProperty(property) {
+        return View.isColorProperty(property, this.constructor);
+    }
+
+    getMerger(property) {
+        return View.getMerger(property, this.constructor);
+    }
 }
+
+View.isNumberProperty = function(property, type = View) {
+    do {
+        if (type.NUMBER_PROPERTIES && type.NUMBER_PROPERTIES.has(property)) {
+            return true
+        }
+    } while((type !== View) && (type = Object.getPrototypeOf(type)));
+
+    return false
+}
+
+View.isColorProperty = function(property, type = View) {
+    do {
+        if (type.COLOR_PROPERTIES && type.COLOR_PROPERTIES.has(property)) {
+            return true
+        }
+    } while((type !== View) && (type = Object.getPrototypeOf(type)));
+
+    return false
+}
+
+View.getMerger = function(property, type = View) {
+    if (View.isNumberProperty(property, type)) {
+        return StageUtils.mergeNumbers
+    } else if (View.isColorProperty(property, type)) {
+        return StageUtils.mergeColors
+    } else {
+        return undefined
+    }
+}
+
+View.NUMBER_PROPERTIES = new Set(['x', 'y', 'w', 'h', 'scale', 'scaleX', 'scaleY', 'pivot', 'pivotX', 'pivotY', 'mount', 'mountX', 'mountY', 'alpha', 'rotation', 'texture.x', 'texture.y', 'texture.w', 'texture.h'])
+View.COLOR_PROPERTIES = new Set(['color', 'colorTop', 'colorBottom', 'colorLeft', 'colorRight', 'colorUl', 'colorUr', 'colorBl', 'colorBr'])
 
 View.prototype.isView = 1;
 
@@ -1654,39 +1689,6 @@ View.PROP_GETTERS = new Map();
 
 // Setters reused when referencing view (subobject) properties by a property path, as used in a transition or animation ('x', 'texture.x', etc).
 View.PROP_SETTERS = new Map();
-
-let mn = StageUtils.mergeNumbers, mc = StageUtils.mergeColors;
-View.PROP_MERGERS = {
-    'x': mn,
-    'y': mn,
-    'w': mn,
-    'h': mn,
-    'scale': mn,
-    'scaleX': mn,
-    'scaleY': mn,
-    'pivot': mn,
-    'pivotX': mn,
-    'pivotY': mn,
-    'mount': mn,
-    'mountX': mn,
-    'mountY': mn,
-    'alpha': mn,
-    'rotation': mn,
-    'color': mc,
-    'colorTop': mc,
-    'colorBottom': mc,
-    'colorLeft': mc,
-    'colorRight': mc,
-    'colorUl': mc,
-    'colorUr': mc,
-    'colorBl': mc,
-    'colorBr': mc,
-    'texture.x': mn,
-    'texture.y': mn,
-    'texture.w': mn,
-    'texture.h': mn,
-    'borderWidth': mn
-};
 
 let Utils = require('./Utils');
 /*M¬*/let EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/

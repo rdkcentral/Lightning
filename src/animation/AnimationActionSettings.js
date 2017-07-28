@@ -32,6 +32,13 @@ class AnimationActionSettings extends Base {
          * @private
          */
         this._propSetters = [];
+
+        /**
+         * The view type to determine the property mergers.
+         * @type {class}
+         * @private
+         */
+        this._type = undefined;
     }
 
     _properties() {
@@ -175,7 +182,8 @@ class AnimationActionSettings extends Base {
             this._props.push(prop);
             this._propSetters.push(View.getSetter(prop));
 
-            let merger = View.getMerger(prop);
+
+            let merger = View.getMerger(prop, this._type);
             if (first) {
                 this._merger = merger;
                 first = false;
@@ -195,6 +203,14 @@ class AnimationActionSettings extends Base {
 
     set p(v) {
         this.properties = v;
+    }
+
+    setSettings(settings) {
+        if (settings.type) {
+            // Make sure that type is known before settings properties.
+            this._type = settings.type;
+        }
+        Base.setObjectSettings(this, settings);
     }
 
 }

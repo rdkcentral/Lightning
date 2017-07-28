@@ -41,7 +41,7 @@ class AnimationSettings extends Base {
             let e = v[i];
             if (!e.isAnimationActionSettings) {
                 let aas = new AnimationActionSettings(this);
-                Base.setObjectSettings(aas, e);
+                aas.setSettings(e);
                 this._actions.push(aas);
             } else {
                 this._actions.push(e);

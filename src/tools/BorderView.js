@@ -16,8 +16,10 @@ class BorderView extends View {
         this._borderBottom = super._children.a({rect: true, visible: false});
         this._borderLeft = super._children.a({rect: true, visible: false, mountX: 1});
 
+        this._updateLayout = false;
+
         this.layoutExit = function (view, recalc) {
-            if (recalc) {
+            if (recalc || view._updateLayout) {
                 let rw = view.renderWidth;
                 let rh = view.renderHeight;
                 view._borderTop.w = rw;
@@ -30,6 +32,7 @@ class BorderView extends View {
                 view._borderRight.y = -view._borderTop.h;
                 view._wrapper.w = rw;
                 view._wrapper.h = rh;
+                view._updateLayout = false;
             }
         }
     }
@@ -69,23 +72,47 @@ class BorderView extends View {
     set borderWidthTop(v) {
         this._borderTop.h = v;
         this._borderTop.visible = (v > 0);
+        this._updateLayout = true;
     }
 
     set borderWidthRight(v) {
         this._borderRight.w = v;
         this._borderRight.visible = (v > 0);
+        this._updateLayout = true;
     }
 
     set borderWidthBottom(v) {
         this._borderBottom.h = v;
         this._borderBottom.visible = (v > 0);
+        this._updateLayout = true;
     }
 
     set borderWidthLeft(v) {
         this._borderLeft.w = v;
         this._borderLeft.visible = (v > 0);
+        this._updateLayout = true;
     }
 
+    get borderColor() {
+        return this.borderColorTop;
+    }
+
+    get borderColorTop() {
+        return this._borderTop.color;
+    }
+
+    get borderColorRight() {
+        return this._borderRight.color;
+    }
+
+    get borderColorBottom() {
+        return this._borderBottom.color;
+    }
+
+    get borderColorLeft() {
+        return this._borderLeft.color;
+    }
+    
     set borderColor(v) {
         this.borderColorTop = v;
         this.borderColorRight = v;
@@ -161,7 +188,7 @@ class BorderView extends View {
     }
 
     set BORDERWIDTH(v) {
-        this._setTransVal('borderWidth', v) || (this.borderWidth = v);
+        this._setTransVal('borderWidth', v)
     }
 
     get BORDERWIDTHTOP() {
@@ -169,7 +196,7 @@ class BorderView extends View {
     }
 
     set BORDERWIDTHTOP(v) {
-        this._setTransVal('borderWidthTop', v) || (this.borderWidthTop = v);
+        this._setTransVal('borderWidthTop', v)
     }
 
     get BORDERWIDTHRIGHT() {
@@ -177,7 +204,7 @@ class BorderView extends View {
     }
 
     set BORDERWIDTHRIGHT(v) {
-        this._setTransVal('borderWidthRight', v) || (this.borderWidthRight = v);
+        this._setTransVal('borderWidthRight', v)
     }
 
     get BORDERWIDTHBOTTOM() {
@@ -185,7 +212,7 @@ class BorderView extends View {
     }
 
     set BORDERWIDTHBOTTOM(v) {
-        this._setTransVal('borderWidthBottom', v) || (this.borderWidthBottom = v);
+        this._setTransVal('borderWidthBottom', v)
     }
 
     get BORDERWIDTHLEFT() {
@@ -193,9 +220,52 @@ class BorderView extends View {
     }
 
     set BORDERWIDTHLEFT(v) {
-        this._setTransVal('borderWidthLeft', v) || (this.borderWidthLeft = v);
+        this._setTransVal('borderWidthLeft', v)
     }
 
+    get BORDERCOLOR() {
+        return this._getTransVal('borderColor', this.borderColor);
+    }
+
+    set BORDERCOLOR(v) {
+        this._setTransVal('borderColor', v)
+    }
+
+    get BORDERCOLORTOP() {
+        return this._getTransVal('borderColorTop', this.borderColorTop);
+    }
+
+    set BORDERCOLORTOP(v) {
+        this._setTransVal('borderColorTop', v)
+    }
+
+    get BORDERCOLORRIGHT() {
+        return this._getTransVal('borderColorRight', this.borderColorRight);
+    }
+
+    set BORDERCOLORRIGHT(v) {
+        this._setTransVal('borderColorRight', v)
+    }
+
+    get BORDERCOLORBOTTOM() {
+        return this._getTransVal('borderColorBottom', this.borderColorBottom);
+    }
+
+    set BORDERCOLORBOTTOM(v) {
+        this._setTransVal('borderColorBottom', v)
+    }
+
+    get BORDERCOLORLEFT() {
+        return this._getTransVal('borderColorLeft', this.borderColorLeft);
+    }
+
+    set BORDERCOLORLEFT(v) {
+        this._setTransVal('borderColorLeft', v)
+    }
 }
+
+BorderView.NUMBER_PROPERTIES = new Set(['borderWidth', 'borderWidthTop', 'borderWidthRight', 'borderWidthBottom', 'borderWidthLeft'])
+BorderView.COLOR_PROPERTIES = new Set(['borderColor', 'borderColorTop', 'borderColorRight', 'borderColorBottom', 'borderColorLeft'])
+
 
 module.exports = BorderView;

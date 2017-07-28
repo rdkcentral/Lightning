@@ -17,13 +17,15 @@ class Transition extends Base {
         if (!View) {
             View = require('../core/View');
         }
-        this._view = view;
-        this._getter = View.getGetter(property);
-        this._setter = View.getSetter(property);
-        this._merger = View.getMerger(property) || StageUtils.mergeNumbers;
+        this._view = view
+        this._getter = View.getGetter(property)
+        this._setter = View.getSetter(property)
+
+
+        this._merger = this._view.getMerger(property)
 
         if (!this._merger) {
-            throw new Error("Property does not have a merger: " + property);
+            throw new Error("Property must be a number or a color");
         }
 
         this._startValue = this._getter(this._view);
