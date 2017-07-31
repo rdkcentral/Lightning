@@ -1,9 +1,39 @@
 /**
  * Copyright Metrological, 2017
  */
-class TextureAtlas {
+
+let Shader = require('./Shader');
+
+class TextureAtlas extends Shader {
 
     constructor(stage) {
+        let vertexShaderSrc = `
+            #ifdef GL_ES
+            precision lowp float;
+            #endif
+            attribute vec2 aVertexPosition;
+            attribute vec2 aTextureCoord;
+            uniform mat4 projectionMatrix;
+            varying vec2 vTextureCoord;
+            void main(void){
+                gl_Position = projectionMatrix * vec4(aVertexPosition, 0.0, 1.0);
+                vTextureCoord = aTextureCoord;
+            }
+        `;
+
+        let fragmentShaderSrc = `
+            #ifdef GL_ES
+            precision lowp float;
+            #endif
+            varying vec2 vTextureCoord;
+            uniform sampler2D uSampler;
+            void main(void){
+                gl_FragColor = texture2D(uSampler, vTextureCoord);
+            }
+        `;
+
+        super(stage.gl, vertexShaderSrc, fragmentShaderSrc);
+
         this.stage = stage;
 
         this.w = 2048;
@@ -28,38 +58,6 @@ class TextureAtlas {
          * @type {number}
          */
         this._wastedPixels = 0;
-
-        /**
-         * @type {WebGLRenderingContext}
-         */
-        this.gl = this.stage.gl;
-
-        this._vertexShaderSrc = [
-            "#ifdef GL_ES",
-            "precision lowp float;",
-            "#endif",
-            "attribute vec2 aVertexPosition;",
-            "attribute vec2 aTextureCoord;",
-            "uniform mat4 projectionMatrix;",
-            "varying vec2 vTextureCoord;",
-            "void main(void){",
-            "    gl_Position = projectionMatrix * vec4(aVertexPosition, 0.0, 1.0);",
-            "    vTextureCoord = aTextureCoord;",
-            "}"
-        ].join("\n");
-
-        this._fragmentShaderSrc = [
-            "#ifdef GL_ES",
-            "precision lowp float;",
-            "#endif",
-            "varying vec2 vTextureCoord;",
-            "uniform sampler2D uSampler;",
-            "void main(void){",
-            "    gl_FragColor = texture2D(uSampler, vTextureCoord);",
-            "}"
-        ].join("\n");
-
-        this._program = null;
 
         /**
          * The last render frame number that the texture atlas was defragmented on.
@@ -87,49 +85,11 @@ class TextureAtlas {
          */
         this._uploads = [];
 
-        // The matrix that causes the [0,0 - w,h] box to map to [-1,-1 - 1,1] in the end results.
-        this._projectionMatrix = new Float32Array([
-            2/this.w, 0, 0, 0,
-            0, 2/this.h, 0, 0,
-            0, 0, 1, 0,
-            -1, -1, 0, 1
-        ]);
-
-        this._initShaderProgram();
-        
+        this._init();
     }
     
-    _initShaderProgram() {
+    _init() {
         let gl = this.gl;
-
-        let glVertShader = this._glCompile(gl.VERTEX_SHADER, this._vertexShaderSrc);
-        let glFragShader = this._glCompile(gl.FRAGMENT_SHADER, this._fragmentShaderSrc);
-
-        this._program = gl.createProgram();
-
-        gl.attachShader(this._program, glVertShader);
-        gl.attachShader(this._program, glFragShader);
-        gl.linkProgram(this._program);
-
-        // if linking fails, then log and cleanup
-        if (!gl.getProgramParameter(this._program, gl.LINK_STATUS)) {
-            console.error('Error: Could not initialize shader.');
-            console.error('gl.VALIDATE_STATUS', gl.getProgramParameter(this._program, gl.VALIDATE_STATUS));
-            console.error('gl.getError()', gl.getError());
-
-            // if there is a program info log, log it
-            if (gl.getProgramInfoLog(this._program) !== '') {
-                console.warn('Warning: gl.getProgramInfoLog()', gl.getProgramInfoLog(this._program));
-            }
-
-            gl.deleteProgram(this._program);
-            this._program = null;
-        }
-        gl.useProgram(this._program);
-
-        // clean up some shaders
-        gl.deleteShader(glVertShader);
-        gl.deleteShader(glFragShader);
 
         // Bind attributes.
         this._vertexPositionAttribute = gl.getAttribLocation(this._program, "aVertexPosition");
@@ -158,6 +118,14 @@ class TextureAtlas {
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this._allIndices, gl.STATIC_DRAW);
 
         // Set transformation matrix.
+        // The matrix that causes the [0,0 - w,h] box to map to [-1,-1 - 1,1] in the end results.
+        this._projectionMatrix = new Float32Array([
+            2/this.w, 0, 0, 0,
+            0, 2/this.h, 0, 0,
+            0, 0, 1, 0,
+            -1, -1, 0, 1
+        ]);
+
         let projectionMatrixAttribute = gl.getUniformLocation(this._program, "projectionMatrix");
         gl.uniformMatrix4fv(projectionMatrixAttribute, false, this._projectionMatrix);
 
@@ -182,26 +150,12 @@ class TextureAtlas {
 
     }
     
-    _glCompile(type, src) {
-        let shader = this.gl.createShader(type);
-
-        this.gl.shaderSource(shader, src);
-        this.gl.compileShader(shader);
-
-        if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-            console.log(this.gl.getShaderInfoLog(shader));
-            return null;
-        }
-
-        return shader;
-    }
-    
     destroy() {
         this.gl.deleteTexture(this.texture);
         this.gl.deleteFramebuffer(this.framebuffer);
         this.gl.deleteBuffer(this.paramsGlBuffer);
         this.gl.deleteBuffer(this._indicesGlBuffer);
-        this.gl.deleteProgram(this._program);        
+        super.destroy();
     }
     
     uploadTextureSources(textureSources) {

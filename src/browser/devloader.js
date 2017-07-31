@@ -37,6 +37,7 @@ var loadWpe, loadBulk;
             "StageUtils":"./core/StageUtils.js",
             "GeometryUtils":"./core/GeometryUtils.js",
             "Stage":"./core/Stage.js",
+            "Shader":"./core/Shader.js",
             "Renderer":"./core/Renderer.js",
             "TextureManager":"./core/TextureManager.js",
             "Texture":"./core/Texture.js",

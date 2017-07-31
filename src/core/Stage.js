@@ -7,7 +7,6 @@ let Base = require('./Base');
 
 /**
  * @todo:
- * - encapsulate tags branches (for isolating widgets)
  * - shaders (VAOs)
  * - quick clone
  *   - text texture problems or not?

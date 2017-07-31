@@ -1,97 +1,46 @@
 /**
  * Copyright Metrological, 2017
  */
-class Renderer {
+
+let Shader = require('./Shader');
+
+class Renderer extends Shader {
 
     constructor(stage) {
+        let vertexShaderSrc = `
+            #ifdef GL_ES
+            precision lowp float;
+            #endif
+            attribute vec2 aVertexPosition;
+            attribute vec2 aTextureCoord;
+            attribute vec4 aColor;
+            uniform mat4 projectionMatrix;
+            varying vec2 vTextureCoord;
+            varying vec4 vColor;
+            void main(void){
+                gl_Position = projectionMatrix * vec4(aVertexPosition, 0.0, 1.0);
+                vTextureCoord = aTextureCoord;
+                vColor = aColor;
+            }
+        `;
+
+        let fragmentShaderSrc = `
+            #ifdef GL_ES
+            precision lowp float;
+            #endif
+            varying vec2 vTextureCoord;
+            varying vec4 vColor;
+            uniform sampler2D uSampler;
+            void main(void){
+                gl_FragColor = texture2D(uSampler, vTextureCoord) * vColor;
+            }
+        `;
+
+        super(stage.gl, vertexShaderSrc, fragmentShaderSrc);
+
         this.stage = stage;
 
-        this.gl = stage.gl;
-
-        this._program = null;
-
-        this._vertexShaderSrc = [
-            "#ifdef GL_ES",
-            "precision lowp float;",
-            "#endif",
-            "attribute vec2 aVertexPosition;",
-            "attribute vec2 aTextureCoord;",
-            "attribute vec4 aColor;",
-            "uniform mat4 projectionMatrix;",
-            "varying vec2 vTextureCoord;",
-            "varying vec4 vColor;",
-            "void main(void){",
-            "    gl_Position = projectionMatrix * vec4(aVertexPosition, 0.0, 1.0);",
-            "    vTextureCoord = aTextureCoord;",
-            "    vColor = aColor;",
-            "}"
-        ].join("\n");
-
-        this._fragmentShaderSrc = [
-            "#ifdef GL_ES",
-            "precision lowp float;",
-            "#endif",
-            "varying vec2 vTextureCoord;",
-            "varying vec4 vColor;",
-            "uniform sampler2D uSampler;",
-            "void main(void){",
-            "    gl_FragColor = texture2D(uSampler, vTextureCoord) * vColor;",
-            "}"
-        ].join("\n");
-
-        // The matrix that causes the [0,0 - W,H] box to map to [-1,-1 - 1,1] in the end results.
-        this._projectionMatrix = new Float32Array([
-            2/this.stage.options.renderWidth, 0, 0, 0,
-            0, -2/this.stage.options.renderHeight, 0, 0,
-            0, 0, 1, 0,
-            -1, 1, 0, 1
-        ]);
-
-        this._paramsGlBuffer = null;
-
-        this._program = null;
-
-        this._vertexPositionAttribute = null;
-        this._textureCoordAttribute = null;
-        this._colorAttribute = null;
-
-        this._indicesGlBuffer = null;
-
-        this._initShaderProgram();
-
-    }
-
-    _initShaderProgram() {
         let gl = this.gl;
-
-        let glVertShader = this._glCompile(gl.VERTEX_SHADER, this._vertexShaderSrc);
-        let glFragShader = this._glCompile(gl.FRAGMENT_SHADER, this._fragmentShaderSrc);
-
-        this._program = gl.createProgram();
-
-        gl.attachShader(this._program, glVertShader);
-        gl.attachShader(this._program, glFragShader);
-        gl.linkProgram(this._program);
-
-        // if linking fails, then log and cleanup
-        if (!gl.getProgramParameter(this._program, gl.LINK_STATUS)) {
-            console.error('Error: Could not initialize shader.');
-            console.error('gl.VALIDATE_STATUS', gl.getProgramParameter(this._program, gl.VALIDATE_STATUS));
-            console.error('gl.getError()', gl.getError());
-
-            // if there is a program info log, log it
-            if (gl.getProgramInfoLog(this._program) !== '') {
-                console.warn('Warning: gl.getProgramInfoLog()', gl.getProgramInfoLog(this._program));
-            }
-
-            gl.deleteProgram(this._program);
-            this._program = null;
-        }
-        gl.useProgram(this._program);
-
-        // clean up some shaders
-        gl.deleteShader(glVertShader);
-        gl.deleteShader(glFragShader);
 
         // Bind attributes.
         this._vertexPositionAttribute = gl.getAttribLocation(this._program, "aVertexPosition");
@@ -118,29 +67,24 @@ class Renderer {
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._indicesGlBuffer);
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this.allIndices, gl.STATIC_DRAW);
 
+        // The matrix that causes the [0,0 - W,H] box to map to [-1,-1 - 1,1] in the end results.
+        this._projectionMatrix = new Float32Array([
+            2/this.stage.options.renderWidth, 0, 0, 0,
+            0, -2/this.stage.options.renderHeight, 0, 0,
+            0, 0, 1, 0,
+            -1, 1, 0, 1
+        ]);
+
         // Set transformation matrix.
         let projectionMatrixAttribute = gl.getUniformLocation(this._program, "projectionMatrix");
         gl.uniformMatrix4fv(projectionMatrixAttribute, false, this._projectionMatrix);
-    }
-    
-    _glCompile(type, src) {
-        let shader = this.gl.createShader(type);
 
-        this.gl.shaderSource(shader, src);
-        this.gl.compileShader(shader);
-
-        if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-            console.log(this.gl.getShaderInfoLog(shader));
-            return null;
-        }
-
-        return shader;
     }
 
     destroy() {
         this.gl.deleteBuffer(this._paramsGlBuffer);
         this.gl.deleteBuffer(this._indicesGlBuffer);
-        this.gl.deleteProgram(this._program);
+        super.destroy();
     }
     
     render() {
