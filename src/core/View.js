@@ -75,6 +75,13 @@ class View {
          */
         this._tagToComplex = null;
 
+        /**
+         * Creates a tag context: tagged views in this branch will not be reachable from ancestors of this view.
+         * @type {boolean}
+         * @private
+         */
+        this._tagRoot = false;
+
         this._x = 0;
         this._y = 0;
         this._w = 0;
@@ -611,7 +618,7 @@ class View {
     _unsetTagsParent() {
         let tags = null;
         let n = 0;
-        if (this._treeTags) {
+        if (!this._tagRoot && this._treeTags) {
             tags = Utils.iteratorToArray(this._treeTags.keys());
             n = tags.length;
 
@@ -621,7 +628,7 @@ class View {
 
                     // Remove from treeTags.
                     let p = this;
-                    while (p = p._parent) {
+                    while ((p = p._parent) && !p._tagRoot) {
                         let parentTreeTags = p._treeTags.get(tags[i]);
 
                         tagSet.forEach(function (comp) {
@@ -634,16 +641,15 @@ class View {
                 }
             }
         }
-
     };
 
     _setTagsParent() {
-        if (this._treeTags && this._treeTags.size) {
+        if (!this._tagRoot && this._treeTags && this._treeTags.size) {
             let self = this;
             this._treeTags.forEach(function (tagSet, tag) {
                 // Add to treeTags.
                 let p = self;
-                while (p = p._parent) {
+                while ((p = p._parent) && !p._tagRoot) {
                     if (!p._treeTags) {
                         p._treeTags = new Map();
                     }
@@ -815,6 +821,22 @@ class View {
         let n = t.length;
         for (let i = 0; i < n; i++) {
             t[i].setSettings(settings);
+        }
+    }
+
+    get tagRoot() {
+        return this._tagRoot;
+    }
+
+    set tagRoot(v) {
+        if (this._tagRoot !== v) {
+            if (!v) {
+                this._setTagsParent();
+            } else {
+                this._unsetTagsParent();
+            }
+
+            this._tagRoot = v;
         }
     }
 

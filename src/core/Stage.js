@@ -7,8 +7,8 @@ let Base = require('./Base');
 
 /**
  * @todo:
- * - hasAlpha in format, and try to prepare images for upload (so that we get buffer performance).
  * - encapsulate tags branches (for isolating widgets)
+ * - shaders (VAOs)
  * - quick clone
  *   - text texture problems or not?
  * - change documentation
@@ -22,8 +22,8 @@ let Base = require('./Base');
  *   - getRenderWidth
  *   - quick clone
  *   - offthread-image for better image loading performance
+ *   - shaders
  * - merge es6 to master
- * - shaders (VAOs)
  *
  * - convert UI(?)
  * - convert Bunnyhopper(?)
