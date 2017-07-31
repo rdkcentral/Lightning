@@ -2,9 +2,9 @@
  * Copyright Metrological, 2017
  */
 
-let Shader = require('./Shader');
+let ShaderProgram = require('./ShaderProgram');
 
-class Renderer extends Shader {
+class Renderer {
 
     constructor(stage) {
         let vertexShaderSrc = `
@@ -36,16 +36,17 @@ class Renderer extends Shader {
             }
         `;
 
-        super(stage.gl, vertexShaderSrc, fragmentShaderSrc);
+        this._program = new ShaderProgram(vertexShaderSrc, fragmentShaderSrc)
+        this._program.compile(stage.gl);
 
         this.stage = stage;
 
         let gl = this.gl;
 
         // Bind attributes.
-        this._vertexPositionAttribute = gl.getAttribLocation(this._program, "aVertexPosition");
-        this._textureCoordAttribute = gl.getAttribLocation(this._program, "aTextureCoord");
-        this._colorAttribute = gl.getAttribLocation(this._program, "aColor");
+        this._vertexPositionAttribute = gl.getAttribLocation(this.glProgram, "aVertexPosition");
+        this._textureCoordAttribute = gl.getAttribLocation(this.glProgram, "aTextureCoord");
+        this._colorAttribute = gl.getAttribLocation(this.glProgram, "aColor");
 
         // Init webgl arrays.
 
@@ -76,7 +77,7 @@ class Renderer extends Shader {
         ]);
 
         // Set transformation matrix.
-        let projectionMatrixAttribute = gl.getUniformLocation(this._program, "projectionMatrix");
+        let projectionMatrixAttribute = gl.getUniformLocation(this.glProgram, "projectionMatrix");
         gl.uniformMatrix4fv(projectionMatrixAttribute, false, this._projectionMatrix);
 
     }
@@ -84,7 +85,7 @@ class Renderer extends Shader {
     destroy() {
         this.gl.deleteBuffer(this._paramsGlBuffer);
         this.gl.deleteBuffer(this._indicesGlBuffer);
-        super.destroy();
+        this._program.destroy();
     }
     
     render() {
@@ -104,7 +105,7 @@ class Renderer extends Shader {
         let ctx = this.stage.ctx;
 
         // Set up WebGL program.
-        gl.useProgram(this._program);
+        gl.useProgram(this.glProgram);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.viewport(0,0,this.stage.options.w,this.stage.options.h);
         gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
@@ -145,6 +146,14 @@ class Renderer extends Shader {
             gl.disableVertexAttribArray(this._colorAttribute);
         }
 
+    }
+
+    get glProgram() {
+        return this._program.glProgram;
+    }
+
+    get gl() {
+        return this._program.gl;
     }
     
 }

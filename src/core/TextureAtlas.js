@@ -2,9 +2,9 @@
  * Copyright Metrological, 2017
  */
 
-let Shader = require('./Shader');
+let ShaderProgram = require('./ShaderProgram');
 
-class TextureAtlas extends Shader {
+class TextureAtlas {
 
     constructor(stage) {
         let vertexShaderSrc = `
@@ -32,7 +32,8 @@ class TextureAtlas extends Shader {
             }
         `;
 
-        super(stage.gl, vertexShaderSrc, fragmentShaderSrc);
+        this._program = new ShaderProgram(vertexShaderSrc, fragmentShaderSrc)
+        this._program.compile(stage.gl);
 
         this.stage = stage;
 
@@ -92,8 +93,8 @@ class TextureAtlas extends Shader {
         let gl = this.gl;
 
         // Bind attributes.
-        this._vertexPositionAttribute = gl.getAttribLocation(this._program, "aVertexPosition");
-        this._textureCoordAttribute = gl.getAttribLocation(this._program, "aTextureCoord");
+        this._vertexPositionAttribute = gl.getAttribLocation(this.glProgram, "aVertexPosition");
+        this._textureCoordAttribute = gl.getAttribLocation(this.glProgram, "aTextureCoord");
 
         // Init webgl arrays.
         // We support up to 1000 textures per call, all consisting out of 9 elements.
@@ -126,7 +127,7 @@ class TextureAtlas extends Shader {
             -1, -1, 0, 1
         ]);
 
-        let projectionMatrixAttribute = gl.getUniformLocation(this._program, "projectionMatrix");
+        let projectionMatrixAttribute = gl.getUniformLocation(this.glProgram, "projectionMatrix");
         gl.uniformMatrix4fv(projectionMatrixAttribute, false, this._projectionMatrix);
 
         this.texture = this.gl.createTexture();
@@ -155,7 +156,7 @@ class TextureAtlas extends Shader {
         this.gl.deleteFramebuffer(this.framebuffer);
         this.gl.deleteBuffer(this.paramsGlBuffer);
         this.gl.deleteBuffer(this._indicesGlBuffer);
-        super.destroy();
+        this._program.destroy();
     }
     
     uploadTextureSources(textureSources) {
@@ -355,7 +356,7 @@ class TextureAtlas extends Shader {
 
         let gl = this.gl;
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
-        gl.useProgram(this._program);
+        gl.useProgram(this.glProgram);
         gl.viewport(0,0,this.w,this.h);
         gl.blendFunc(gl.ONE, gl.ZERO);
         gl.enable(gl.BLEND);
@@ -510,6 +511,15 @@ class TextureAtlas extends Shader {
             this._uploads = [];
         }
     }
+
+    get glProgram() {
+        return this._program.glProgram;
+    }
+
+    get gl() {
+        return this._program.gl;
+    }
+
 }
 
 module.exports = TextureAtlas;
