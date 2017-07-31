@@ -38,7 +38,8 @@ var loadWpe, loadBulk;
             "GeometryUtils":"./core/GeometryUtils.js",
             "Stage":"./core/Stage.js",
             "ShaderProgram":"./core/ShaderProgram.js",
-            "Renderer":"./core/Renderer.js",
+            "Shader":"./core/Shader.js",
+            "DefaultShader":"./core/DefaultShader.js",
             "TextureManager":"./core/TextureManager.js",
             "Texture":"./core/Texture.js",
             "TextureSource":"./core/TextureSource.js",
@@ -61,7 +62,8 @@ var loadWpe, loadBulk;
             "Animation":"./animation/Animation.js",
             "Tools":"./tools/Tools.js",
             "ListView":"./tools/ListView.js",
-            "BorderView":"./tools/BorderView.js"
+            "BorderView":"./tools/BorderView.js",
+            "LightningShader":"./tools/shaders/LightningShader.js"
         };
         return loadBulk(srcPath, sourceFiles).then(function(wpe) {
             if (typeof attachInspector !== "undefined") attachInspector(wpe);

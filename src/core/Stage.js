@@ -85,8 +85,6 @@ class Stage extends Base {
         this.animations = new AnimationManager(this);
         /*¬A*/
 
-        this.renderer = new Renderer(this);
-
         this.textureManager = new TextureManager(this);
 
         if (this.options.useTextureAtlas) {
@@ -102,13 +100,6 @@ class Stage extends Base {
         this.startTime = 0;
         this.currentTime = 0;
         this.dt = 0;
-
-        /**
-         * Counts the number of attached components that are using z-indices.
-         * This is used to determine if we can use a single-pass or dual-pass update/render loop.
-         * @type {number}
-         */
-        this.zIndexUsage = 0;
 
         this._destroyed = false;
 
@@ -136,7 +127,7 @@ class Stage extends Base {
         if (this.textureAtlas) {
             this.textureAtlas.destroy();
         }
-        this.renderer.destroy();
+        this.ctx.destroy();
         this.textureManager.destroy();
         this._destroyed = true;
     }
@@ -183,10 +174,7 @@ class Stage extends Base {
         if (changes) {
             this.ctx.layout();
 
-            this.ctx.updateAndFillVbo(this.zIndexUsage > 0);
-
-            // We will render the stage even if it's stable shortly after importing a texture in the texture atlas, to prevent out-of-syncs.
-            this.renderer.render();
+            this.ctx.updateAndRender();
         }
 
         this.adapter.nextFrame(changes);
@@ -255,7 +243,6 @@ Base.mixinEs5(Stage, EventEmitter);
 let View = require('./View');
 let StageUtils = require('./StageUtils');
 let TextureManager = require('./TextureManager');
-let Renderer = require('./Renderer');
 let TextureAtlas = require('./TextureAtlas');
 let VboContext = require('./VboContext');
 /*A¬*/

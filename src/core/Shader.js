@@ -1,19 +1,42 @@
+/**
+ * Copyright Metrological, 2017
+ */
+
 let ShaderProgram = require('./ShaderProgram');
 
 class Shader {
 
     constructor(vertexShaderSource, fragmentShaderSource) {
         this._program = new ShaderProgram(vertexShaderSource, fragmentShaderSource);
+        this._initialized = false;
     }
 
-    compile(gl) {
-        if (!this._program.compiled) {
-            this._program.compile(gl);
-        }
+    init(vboContext) {
+        this._program.compile(vboContext.gl);
+        this._initialized = true;
     }
 
-    render(vboContext, offset, length) {
-        // Set up shader attributes, unforms, draw elements and disable attributes.
+    drawElements(vboContext, offset, length) {
+        // Set up shader attributes, uniforms, draw elements and disable attributes.
+    }
+
+    setup(vboContext) {
+
+    }
+
+    cleanup(vboContext) {
+    }
+
+    get initialized() {
+        return this._initialized;
+    }
+
+    destroy() {
+        this._program.destroy();
+    }
+
+    get glProgram() {
+        return this._program.glProgram;
     }
 
 }

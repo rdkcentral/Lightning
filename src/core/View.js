@@ -267,19 +267,9 @@ class View {
         if (this._displayedTexture && this._displayedTexture !== this._texture) {
             this._displayedTexture.source.addView(this);
         }
-
-        if (this.zIndex != 0) {
-            // View uses z-index.
-            this.stage.zIndexUsage++;
-        }
     }
 
     _unsetActiveFlag() {
-        if (this.zIndex != 0) {
-            // View uses z-index.
-            this.stage.zIndexUsage--;
-        }
-
         if (this._texture) {
             this._texture.source.removeView(this);
         }
@@ -1270,13 +1260,6 @@ class View {
     set zIndex(v) {
         let prev = this.renderer.zIndex;
         this.renderer.zIndex = v;
-        if (this._active) {
-            if (prev !== 0 && v === 0) {
-                this.stage.zIndexUsage--
-            } else if (prev === 0 && v !== 0) {
-                this.stage.zIndexUsage++
-            }
-        }
     }
 
     get forceZIndexContext() {return this.renderer.forceZIndexContext}
@@ -1418,6 +1401,14 @@ class View {
 
     set layoutExit(f) {
         this.renderer.layoutExit = f;
+    }
+
+    get vboShader() {
+        return this.renderer._vboShader;
+    }
+
+    set vboShader(v) {
+        this.renderer._vboShader = v;
     }
 
     /*A¬*/

@@ -102,6 +102,8 @@ class ViewRenderer {
 
         this._zIndexedChildren = null;
 
+        this._vboShader = null;
+
     }
 
     /**
@@ -745,14 +747,7 @@ class ViewRenderer {
                 }
             }
 
-            if (!this.ctx.useZIndexing) {
-                // Use single pass.
-                if (this._displayedTextureSource) {
-                    this.addToVbo();
-                }
-            } else {
-                this._updateTreeOrder = this.ctx.updateTreeOrder++;
-            }
+            this._updateTreeOrder = this.ctx.updateTreeOrder++;
 
             this._recalc = (this._recalc & 7);
             /* 1+2+4 */
@@ -761,8 +756,6 @@ class ViewRenderer {
                 for (let i = 0, n = this._children.length; i < n; i++) {
                     if ((this.ctx.updateTreeOrderForceUpdate > 0) || this._recalc || this._children[i]._hasUpdates) {
                         this._children[i].update();
-                    } else if (!this.ctx.useZIndexing) {
-                        this._children[i].fillVbo();
                     }
                 }
             }
@@ -831,7 +824,7 @@ class ViewRenderer {
                     vboBufferFloat[vboIndex++] = this._worldPy + this._rh * this._worldTd;
                     vboBufferUint[vboIndex++] = this._txCoordsBl;
                     vboBufferUint[vboIndex] = getColorInt(this._colorBl, this._worldAlpha);
-                    this.ctx.addVboTextureSource(this._displayedTextureSource, 1);
+                    this.ctx.addVbo(this);
                 }
             } else {
                 // Simple.
@@ -855,7 +848,7 @@ class ViewRenderer {
                     vboBufferFloat[vboIndex++] = cy;
                     vboBufferUint[vboIndex++] = this._txCoordsBl;
                     vboBufferUint[vboIndex] = getColorInt(this._colorBl, this._worldAlpha);
-                    this.ctx.addVboTextureSource(this._displayedTextureSource, 1);
+                    this.ctx.addVbo(this);
                 }
             }
         }
@@ -907,7 +900,7 @@ class ViewRenderer {
                 vboBufferFloat[vboIndex++] = this._clippingSquareMaxY;
                 vboBufferUint[vboIndex++] = getVboTextureCoords(tcx1, tcy3);
                 vboBufferUint[vboIndex] = c;
-                this.ctx.addVboTextureSource(this._displayedTextureSource, 1);
+                this.ctx.addVbo(this);
             }
         } else {
             // Complex clipping.
@@ -957,7 +950,7 @@ class ViewRenderer {
                     vboBufferFloat[vboIndex++] = this._clippingArea[g + 1];
                     vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx4) + this._brx * tx4, this._uly * (1 - ty4) + this._bry * ty4);
                     vboBufferUint[vboIndex] = c;
-                    this.ctx.addVboTextureSource(this._displayedTextureSource, 1);
+                    this.ctx.addVbo(this);
                 }
             } else {
                 // Multiple quads.
@@ -997,17 +990,25 @@ class ViewRenderer {
                         vboBufferFloat[vboIndex++] = this._clippingArea[g + 1];
                         vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx4) + this._brx * tx4, this._uly * (1 - ty4) + this._bry * ty4);
                         vboBufferUint[vboIndex++] = c;
-                        this.ctx.addVboTextureSource(this._displayedTextureSource, 1);
+                        this.ctx.addVbo(this);
                     }
                 }
             }
         }
     };
 
-    fillVbo() {
+    render() {
         if (this._zSort) {
             this.sortZIndexedChildren();
             this._zSort = false;
+        }
+
+        let ctx = this.ctx;
+
+        if (this._vboShader && (ctx.vboShader !== this._vboShader)) {
+            // Render all items in vbo.
+            ctx.flush();
+            ctx.setupVboShader(this);
         }
 
         if (this._worldAlpha) {
@@ -1018,13 +1019,13 @@ class ViewRenderer {
             if (this._children) {
                 if (this._zContextUsage) {
                     for (let i = 0, n = this._zIndexedChildren.length; i < n; i++) {
-                        this._zIndexedChildren[i].fillVbo();
+                        this._zIndexedChildren[i].render();
                     }
                 } else {
                     for (let i = 0, n = this._children.length; i < n; i++) {
                         if (this._children[i]._zIndex === 0) {
                             // If zIndex is set, this item already belongs to a zIndexedChildren array in one of the ancestors.
-                            this._children[i].fillVbo();
+                            this._children[i].render();
                         }
                     }
                 }
@@ -1089,6 +1090,13 @@ class ViewRenderer {
         }
     }
 
+    get vboShader() {
+        return this._vboShader;
+    }
+
+    set vboShader(v) {
+        this._vboShader = v;
+    }
 }
 
 let getColorInt = function (c, alpha) {

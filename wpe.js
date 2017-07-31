@@ -6,7 +6,8 @@ module.exports = {
     "StageUtils": require("./src/core/StageUtils"),
     "GeometryUtils": require("./src/core/GeometryUtils"),
     "Stage": require("./src/core/Stage"),
-    "Renderer": require("./src/core/Renderer"),
+    "Shader": require("./src/core/Shader"),
+    "DefaultShader": require("./src/core/DefaultShader"),
     "TextureManager": require("./src/core/TextureManager"),
     "Texture": require("./src/core/Texture"),
     "TextureSource": require("./src/core/TextureSource"),
@@ -28,5 +29,6 @@ module.exports = {
     "Animation": require("./src/animation/Animation"),
     "Tools": require("./src/tools/Tools"),
     "ListView": require("./src/tools/ListView"),
-    "BorderView": require("./src/tools/BorderView")
+    "BorderView": require("./src/tools/BorderView"),
+    "LightningShader": require("./src/tools/shaders/LightningShader")
 }
