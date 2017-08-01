@@ -33,6 +33,7 @@ class Shader {
 
     destroy() {
         this._program.destroy();
+        this._initialized = false;
     }
 
     get glProgram() {

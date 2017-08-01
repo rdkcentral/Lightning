@@ -22,7 +22,7 @@ class Transition extends Base {
         this._setter = View.getSetter(property)
 
 
-        this._merger = this._view.getMerger(property)
+        this._merger = settings.merger || this._view.getMerger(property)
 
         if (!this._merger) {
             throw new Error("Property must be a number or a color");

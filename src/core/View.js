@@ -1492,7 +1492,7 @@ class View {
         }
     }
 
-    _getTransVal(property, v) {
+    getTval(property, v) {
         let t = this._getTransition(property);
         if (t && t.isActive()) {
             return t.targetValue;
@@ -1501,153 +1501,156 @@ class View {
         }
     }
 
-    _setTransVal(property, v) {
+    setTval(property, v, settings) {
+        if (settings) {
+            this._setTransition(property, settings);
+        }
         let t = this._getTransition(property);
         t.start(v);
     }
 
     get X() {
-        return this._getTransVal('x', this.x);
+        return this.getTval('x', this.x);
     }
     
     set X(v) {
-        this._setTransVal('x', v)
+        this.setTval('x', v)
     }
 
     get Y() {
-        return this._getTransVal('y', this.y);
+        return this.getTval('y', this.y);
     }
 
     set Y(v) {
-        this._setTransVal('y', v)
+        this.setTval('y', v)
     }
 
     get W() {
-        return this._getTransVal('w', this.w);
+        return this.getTval('w', this.w);
     }
 
     set H(v) {
-        this._setTransVal('h', v)
+        this.setTval('h', v)
     }
 
     get SCALE() {
-        return this._getTransVal('scale', this.scale);
+        return this.getTval('scale', this.scale);
     }
 
     set SCALE(v) {
-        this._setTransVal('scale', v)
+        this.setTval('scale', v)
     }
 
     get SCALEX() {
-        return this._getTransVal('scaleX', this.scaleX);
+        return this.getTval('scaleX', this.scaleX);
     }
 
     set SCALEX(v) {
-        this._setTransVal('scaleX', v)
+        this.setTval('scaleX', v)
     }
 
     get PIVOT() {
-        return this._getTransVal('pivot', this.pivot);
+        return this.getTval('pivot', this.pivot);
     }
 
     set PIVOT(v) {
-        this._setTransVal('pivot', v)
+        this.setTval('pivot', v)
     }
 
     get PIVOTX() {
-        return this._getTransVal('pivotX', this.pivotX);
+        return this.getTval('pivotX', this.pivotX);
     }
 
     set PIVOTX(v) {
-        this._setTransVal('pivotX', v)
+        this.setTval('pivotX', v)
     }
     
     get MOUNT() {
-        return this._getTransVal('mount', this.mount);
+        return this.getTval('mount', this.mount);
     }
 
     set MOUNT(v) {
-        this._setTransVal('mount', v)
+        this.setTval('mount', v)
     }
 
     get MOUNTX() {
-        return this._getTransVal('mountX', this.mountX);
+        return this.getTval('mountX', this.mountX);
     }
 
     set MOUNTX(v) {
-        this._setTransVal('mountX', v)
+        this.setTval('mountX', v)
     }
 
     get ALPHA() {
-        return this._getTransVal('alpha', this.alpha);
+        return this.getTval('alpha', this.alpha);
     }
 
     set ALPHA(v) {
-        this._setTransVal('alpha', v)
+        this.setTval('alpha', v)
     }
 
     get ROTATION() {
-        return this._getTransVal('rotation', this.rotation);
+        return this.getTval('rotation', this.rotation);
     }
 
     set ROTATION(v) {
-        this._setTransVal('rotation', v)
+        this.setTval('rotation', v)
     }
 
     get COLOR() {
-        return this._getTransVal('color', this.color);
+        return this.getTval('color', this.color);
     }
 
     set COLOR(v) {
-        this._setTransVal('color', v)
+        this.setTval('color', v)
     }
 
     set COLORTOP(v) {
-        this._setTransVal('colorTop', v)
+        this.setTval('colorTop', v)
     }
 
     set COLORBOTTOM(v) {
-        this._setTransVal('colorBottom', v)
+        this.setTval('colorBottom', v)
     }
 
     set COLORLEFT(v) {
-        this._setTransVal('colorLeft', v)
+        this.setTval('colorLeft', v)
     }
 
     set COLORRIGHT(v) {
-        this._setTransVal('colorRight', v)
+        this.setTval('colorRight', v)
     }
 
     get COLORUL() {
-        return this._getTransVal('colorUl', this.colorUl);
+        return this.getTval('colorUl', this.colorUl);
     }
 
     set COLORUL(v) {
-        this._setTransVal('colorUl', v)
+        this.setTval('colorUl', v)
     }
 
     get COLORUR() {
-        return this._getTransVal('colorUr', this.colorUr);
+        return this.getTval('colorUr', this.colorUr);
     }
 
     set COLORUR(v) {
-        this._setTransVal('colorUr', v)
+        this.setTval('colorUr', v)
     }
 
     get COLORBL() {
-        return this._getTransVal('colorBl', this.colorBl);
+        return this.getTval('colorBl', this.colorBl);
     }
 
     set COLORBL(v) {
-        this._setTransVal('colorBl', v)
+        this.setTval('colorBl', v)
     }
 
     get COLORBR() {
-        return this._getTransVal('colorBr', this.colorBr);
+        return this.getTval('colorBr', this.colorBr);
     }
 
     set COLORBR(v) {
-        this._setTransVal('colorBr', v)
+        this.setTval('colorBr', v)
     }
     /*¬A*/
 

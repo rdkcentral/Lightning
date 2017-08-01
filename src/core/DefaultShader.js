@@ -50,7 +50,8 @@ class DefaultShader extends Shader {
 
         if (length) {
             gl.useProgram(this.glProgram);
-            gl.uniformMatrix4fv(this._projectionMatrixAttribute, false, vboContext.projectionMatrix);
+
+            this.setupUniforms(vboContext);
 
             let view = new DataView(vboContext.vboParamsBuffer, offset * vboContext.bytesPerQuad, length * vboContext.bytesPerQuad);
             gl.bufferData(gl.ARRAY_BUFFER, view, gl.DYNAMIC_DRAW);
@@ -71,6 +72,11 @@ class DefaultShader extends Shader {
                 gl.drawElements(gl.TRIANGLES, 6 * (end - pos), gl.UNSIGNED_SHORT, pos * 6 * 2);
             }
         }
+    }
+
+    setupUniforms(vboContext) {
+        let gl = vboContext.gl
+        gl.uniformMatrix4fv(this._projectionMatrixAttribute, false, vboContext.projectionMatrix)
     }
 
     cleanup(vboContext) {

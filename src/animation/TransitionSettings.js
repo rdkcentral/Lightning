@@ -14,6 +14,7 @@ class TransitionSettings extends Base {
         this.delay = 0;
         this.duration = 0.2;
         this.isTransitionSettings = true;
+        this.merger = null;
     }
 
     get timingFunction() {
@@ -28,6 +29,7 @@ class TransitionSettings extends Base {
     get timingFunctionImpl() {
         return this._timingFunctionImpl;
     }
+
 }
 
 module.exports = TransitionSettings;
