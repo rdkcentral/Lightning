@@ -102,7 +102,11 @@ class ViewRenderer {
 
         this._zIndexedChildren = null;
 
-        this._vboShader = null;
+        this._shader = null;
+
+        this._activeShader = null;
+
+        this._shaderSettings = null;
 
     }
 
@@ -112,6 +116,7 @@ class ViewRenderer {
      *   2: translate
      *   4: transform
      *   8: clipping
+     *  64: shader settings
      * 128: force layout when becoming visible
      * @private
      */
@@ -168,7 +173,7 @@ class ViewRenderer {
             this._parent = parent;
 
             if (prevParent && prevParent._hasLayoutHooks === 1) {
-                prevParent._setHasLayoutHooksCheck(); // Unknown.
+                prevParent._setHasLayoutHooksCheck();
             }
 
             if (parent) {
@@ -179,7 +184,7 @@ class ViewRenderer {
                 }
             }
 
-            this._setRecalc(1 + 2 + 4);
+            this._setRecalc(1 + 2 + 4 + 64);
 
             if (this._zIndex === 0) {
                 this.setZParent(parent);
@@ -199,6 +204,13 @@ class ViewRenderer {
 
             if (newClippingParent !== this._clippingParent) {
                 this.setClippingParent(newClippingParent);
+            }
+
+            if (!this._shader) {
+                let newActiveShader = parent ? parent._activeShader : null;
+                if (newActiveShader !== this._activeShader) {
+                    this._setActiveShaderRecursive(newActiveShader);
+                }
             }
         }
     };
@@ -554,6 +566,67 @@ class ViewRenderer {
         }
     };
 
+
+    set layoutEntry(f) {
+        this._layoutEntry = f;
+
+        if (f) {
+            this._setHasLayoutHooks();
+        } else if (this._hasLayoutHooks === 1 && !this._layoutExit) {
+            this._setHasLayoutHooksCheck();
+        }
+    }
+
+    set layoutExit(f) {
+        this._layoutExit = f;
+
+        if (f) {
+            this._setHasLayoutHooks();
+        } else if (this._hasLayoutHooks === 1 && !this._layoutEntry) {
+            this._setHasLayoutHooksCheck();
+        }
+    }
+
+    get shader() {
+        return this._shader;
+    }
+
+    set shader(v) {
+        let prevShader = this._shader;
+        this._shader = v;
+        if (!v && prevShader) {
+            // Disabled shader.
+            let newActiveShader = (this._parent ? this._parent._shader : null);
+            this._setActiveShaderRecursive(newActiveShader);
+        } else {
+            // Enabled shader.
+            this._setActiveShaderRecursive(v);
+        }
+    }
+
+    get shaderSettings() {
+        if (!this._shaderSettings) {
+            this._shaderSettings = this.activeShader.createViewSettings(this);
+        }
+        return this._shaderSettings;
+    }
+
+    get activeShader() {
+        return this._activeShader || this.ctx.defaultShader;
+    }
+
+    _setActiveShaderRecursive(shader) {
+        this._activeShader = shader;
+        this._shaderSettings = null;
+        if (this._children) {
+            for (let i = 0, n = this._children.length; i < n; i++) {
+                if (!this._children[i]._shader) {
+                    this._children[i]._setActiveShaderRecursive(shader);
+                }
+            }
+        }
+    };
+
     isVisible() {
         return (this._localAlpha > 1e-14);
     };
@@ -747,10 +820,14 @@ class ViewRenderer {
                 }
             }
 
+            if (this._activeShader && this._activeShader.hasViewSettings()) {
+                this.shaderSettings.update();
+            }
+
             this._updateTreeOrder = this.ctx.updateTreeOrder++;
 
-            this._recalc = (this._recalc & 7);
-            /* 1+2+4 */
+            this._recalc = (this._recalc & 71);
+            /* 1+2+4+64 */
 
             if (this._children) {
                 for (let i = 0, n = this._children.length; i < n; i++) {
@@ -1003,16 +1080,16 @@ class ViewRenderer {
             this._zSort = false;
         }
 
-        let ctx = this.ctx;
-
-        if (this._vboShader && (ctx.vboShader !== this._vboShader)) {
-            // Render all items in vbo.
-            ctx.flush();
-            ctx.setupVboShader(this);
-        }
-
         if (this._worldAlpha) {
+            let ctx = this.ctx;
+
             if (this._displayedTextureSource) {
+                if (this.activeShader && (ctx.shader !== this.activeShader)) {
+                    // Render all items in vbo.
+                    ctx.flush();
+                    ctx.setupShader(this);
+                }
+
                 this.addToVbo();
             }
 
@@ -1069,34 +1146,6 @@ class ViewRenderer {
             this._worldPy + this._rh * this._worldTd
         ];
     };
-
-    set layoutEntry(f) {
-        this._layoutEntry = f;
-
-        if (f) {
-            this._setHasLayoutHooks();
-        } else if (this._hasLayoutHooks === 1 && !this._layoutExit) {
-            this._setHasLayoutHooksCheck();
-        }
-    }
-
-    set layoutExit(f) {
-        this._layoutExit = f;
-
-        if (f) {
-            this._setHasLayoutHooks();
-        } else if (this._hasLayoutHooks === 1 && !this._layoutEntry) {
-            this._setHasLayoutHooksCheck();
-        }
-    }
-
-    get vboShader() {
-        return this._vboShader;
-    }
-
-    set vboShader(v) {
-        this._vboShader = v;
-    }
 }
 
 let getColorInt = function (c, alpha) {

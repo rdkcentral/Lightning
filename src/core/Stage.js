@@ -14,6 +14,7 @@ let Base = require('./Base');
  *   - text2pngEndpoint
  *   - supercharger?
  *   - transition changes
+ *   - transition merger
  *   - animation mergers: native vs non-native
  *   - type extensions
  *   - list/borders
@@ -200,6 +201,7 @@ class Stage extends Base {
         let view;
         if (settings.type) {
             view = new settings.type(this);
+            settings = Utils.cloneObj(settings);
             delete settings.type;
         } else {
             view = this.createView();

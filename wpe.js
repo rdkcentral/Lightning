@@ -7,6 +7,7 @@ module.exports = {
     "GeometryUtils": require("./src/core/GeometryUtils"),
     "Stage": require("./src/core/Stage"),
     "Shader": require("./src/core/Shader"),
+    "ShaderSettings": require("./src/core/ShaderSettings"),
     "DefaultShader": require("./src/core/DefaultShader"),
     "TextureManager": require("./src/core/TextureManager"),
     "Texture": require("./src/core/Texture"),
@@ -30,5 +31,5 @@ module.exports = {
     "Tools": require("./src/tools/Tools"),
     "ListView": require("./src/tools/ListView"),
     "BorderView": require("./src/tools/BorderView"),
-    "LightningShader": require("./src/tools/shaders/LightningShader")
+    "Light3dShader": require("./src/tools/shaders/Light3dShader")
 }

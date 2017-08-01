@@ -6,8 +6,8 @@ let Shader = require('./Shader');
 
 class DefaultShader extends Shader {
 
-    constructor(vertexShaderSource = DefaultShader.vertexShaderSource, fragmentShaderSource = DefaultShader.fragmentShaderSrc) {
-        super(vertexShaderSource, fragmentShaderSource);
+    constructor(stage, vertexShaderSource = DefaultShader.vertexShaderSource, fragmentShaderSource = DefaultShader.fragmentShaderSrc) {
+        super(stage, vertexShaderSource, fragmentShaderSource);
     }
 
     init(vboContext) {
@@ -31,6 +31,8 @@ class DefaultShader extends Shader {
         gl.enable(gl.BLEND);
         gl.disable(gl.DEPTH_TEST);
 
+        gl.bindBuffer(gl.ARRAY_BUFFER, vboContext.paramsGlBuffer);
+
         gl.vertexAttribPointer(this._vertexPositionAttribute, 2, gl.FLOAT, false, 16, 0);
         gl.vertexAttribPointer(this._textureCoordAttribute, 2, gl.UNSIGNED_SHORT, true, 16, 2 * 4);
         gl.vertexAttribPointer(this._colorAttribute, 4, gl.UNSIGNED_BYTE, true, 16, 3 * 4);
@@ -40,9 +42,12 @@ class DefaultShader extends Shader {
         gl.enableVertexAttribArray(this._colorAttribute);
 
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, vboContext.quadsGlBuffer);
-        gl.bindBuffer(gl.ARRAY_BUFFER, vboContext.paramsGlBuffer);
 
         this.setupExtra(vboContext);
+    }
+
+    getExtraBufferSizePerQuad() {
+        return 0;
     }
 
     drawElements(vboContext, offset, length) {
@@ -53,7 +58,7 @@ class DefaultShader extends Shader {
 
             this.setupUniforms(vboContext);
 
-            let view = new DataView(vboContext.vboParamsBuffer, offset * vboContext.bytesPerQuad, length * vboContext.bytesPerQuad);
+            let view = new DataView(vboContext.vboParamsBuffer, offset * vboContext.bytesPerQuad, length * (vboContext.bytesPerQuad + this.getExtraBufferSizePerQuad()));
             gl.bufferData(gl.ARRAY_BUFFER, view, gl.DYNAMIC_DRAW);
 
             let glTexture = vboContext.getVboGlTexture(0);
@@ -65,6 +70,7 @@ class DefaultShader extends Shader {
                     gl.bindTexture(gl.TEXTURE_2D, glTexture);
                     gl.drawElements(gl.TRIANGLES, 6 * (i - pos), gl.UNSIGNED_SHORT, pos * 6 * 2);
                     glTexture = tx;
+                    pos = i;
                 }
             }
             if (pos < end) {

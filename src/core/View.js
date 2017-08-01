@@ -1403,12 +1403,31 @@ class View {
         this.renderer.layoutExit = f;
     }
 
-    get vboShader() {
-        return this.renderer._vboShader;
+    get shader() {
+        return this.renderer.shader;
     }
 
-    set vboShader(v) {
-        this.renderer._vboShader = v;
+    set shader(v) {
+        let shader;
+        if (Utils.isPlainObject(v)) {
+            shader = new v.type(this.stage);
+            v = Utils.cloneObj(v);
+            delete v.type;
+            shader.setSettings(v);
+        } else if (v === null) {
+            shader = this.stage.ctx.defaultShader;
+        } else {
+            shader = v;
+        }
+        this.renderer.shader = shader;
+    }
+
+    get shaderSettings() {
+        return this.renderer.shaderSettings;
+    }
+
+    set shaderSettings(v) {
+        this.shaderSettings.setSettings(v);
     }
 
     /*A¬*/
@@ -1492,7 +1511,7 @@ class View {
         }
     }
 
-    getTval(property, v) {
+    getSmooth(property, v) {
         let t = this._getTransition(property);
         if (t && t.isActive()) {
             return t.targetValue;
@@ -1501,7 +1520,7 @@ class View {
         }
     }
 
-    setTval(property, v, settings) {
+    setSmooth(property, v, settings) {
         if (settings) {
             this._setTransition(property, settings);
         }
@@ -1510,147 +1529,147 @@ class View {
     }
 
     get X() {
-        return this.getTval('x', this.x);
+        return this.getSmooth('x', this.x);
     }
     
     set X(v) {
-        this.setTval('x', v)
+        this.setSmooth('x', v)
     }
 
     get Y() {
-        return this.getTval('y', this.y);
+        return this.getSmooth('y', this.y);
     }
 
     set Y(v) {
-        this.setTval('y', v)
+        this.setSmooth('y', v)
     }
 
     get W() {
-        return this.getTval('w', this.w);
+        return this.getSmooth('w', this.w);
     }
 
     set H(v) {
-        this.setTval('h', v)
+        this.setSmooth('h', v)
     }
 
     get SCALE() {
-        return this.getTval('scale', this.scale);
+        return this.getSmooth('scale', this.scale);
     }
 
     set SCALE(v) {
-        this.setTval('scale', v)
+        this.setSmooth('scale', v)
     }
 
     get SCALEX() {
-        return this.getTval('scaleX', this.scaleX);
+        return this.getSmooth('scaleX', this.scaleX);
     }
 
     set SCALEX(v) {
-        this.setTval('scaleX', v)
+        this.setSmooth('scaleX', v)
     }
 
     get PIVOT() {
-        return this.getTval('pivot', this.pivot);
+        return this.getSmooth('pivot', this.pivot);
     }
 
     set PIVOT(v) {
-        this.setTval('pivot', v)
+        this.setSmooth('pivot', v)
     }
 
     get PIVOTX() {
-        return this.getTval('pivotX', this.pivotX);
+        return this.getSmooth('pivotX', this.pivotX);
     }
 
     set PIVOTX(v) {
-        this.setTval('pivotX', v)
+        this.setSmooth('pivotX', v)
     }
     
     get MOUNT() {
-        return this.getTval('mount', this.mount);
+        return this.getSmooth('mount', this.mount);
     }
 
     set MOUNT(v) {
-        this.setTval('mount', v)
+        this.setSmooth('mount', v)
     }
 
     get MOUNTX() {
-        return this.getTval('mountX', this.mountX);
+        return this.getSmooth('mountX', this.mountX);
     }
 
     set MOUNTX(v) {
-        this.setTval('mountX', v)
+        this.setSmooth('mountX', v)
     }
 
     get ALPHA() {
-        return this.getTval('alpha', this.alpha);
+        return this.getSmooth('alpha', this.alpha);
     }
 
     set ALPHA(v) {
-        this.setTval('alpha', v)
+        this.setSmooth('alpha', v)
     }
 
     get ROTATION() {
-        return this.getTval('rotation', this.rotation);
+        return this.getSmooth('rotation', this.rotation);
     }
 
     set ROTATION(v) {
-        this.setTval('rotation', v)
+        this.setSmooth('rotation', v)
     }
 
     get COLOR() {
-        return this.getTval('color', this.color);
+        return this.getSmooth('color', this.color);
     }
 
     set COLOR(v) {
-        this.setTval('color', v)
+        this.setSmooth('color', v)
     }
 
     set COLORTOP(v) {
-        this.setTval('colorTop', v)
+        this.setSmooth('colorTop', v)
     }
 
     set COLORBOTTOM(v) {
-        this.setTval('colorBottom', v)
+        this.setSmooth('colorBottom', v)
     }
 
     set COLORLEFT(v) {
-        this.setTval('colorLeft', v)
+        this.setSmooth('colorLeft', v)
     }
 
     set COLORRIGHT(v) {
-        this.setTval('colorRight', v)
+        this.setSmooth('colorRight', v)
     }
 
     get COLORUL() {
-        return this.getTval('colorUl', this.colorUl);
+        return this.getSmooth('colorUl', this.colorUl);
     }
 
     set COLORUL(v) {
-        this.setTval('colorUl', v)
+        this.setSmooth('colorUl', v)
     }
 
     get COLORUR() {
-        return this.getTval('colorUr', this.colorUr);
+        return this.getSmooth('colorUr', this.colorUr);
     }
 
     set COLORUR(v) {
-        this.setTval('colorUr', v)
+        this.setSmooth('colorUr', v)
     }
 
     get COLORBL() {
-        return this.getTval('colorBl', this.colorBl);
+        return this.getSmooth('colorBl', this.colorBl);
     }
 
     set COLORBL(v) {
-        this.setTval('colorBl', v)
+        this.setSmooth('colorBl', v)
     }
 
     get COLORBR() {
-        return this.getTval('colorBr', this.colorBr);
+        return this.getSmooth('colorBr', this.colorBr);
     }
 
     set COLORBR(v) {
-        this.setTval('colorBr', v)
+        this.setSmooth('colorBr', v)
     }
     /*¬A*/
 
@@ -1662,9 +1681,6 @@ class View {
         return View.isColorProperty(property, this.constructor);
     }
 
-    getMerger(property) {
-        return View.getMerger(property, this.constructor);
-    }
 }
 
 View.isNumberProperty = function(property, type = View) {

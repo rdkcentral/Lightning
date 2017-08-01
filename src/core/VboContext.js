@@ -16,8 +16,8 @@ class VboContext {
         this.vboGlTextures = [];
 
         // Current shader info.
-        this.vboShader = null;
-        this.vboShaderOwner = null;
+        this.shader = null;
+        this.shaderOwner = null;
 
         this.bytesPerQuad = 64;
 
@@ -31,8 +31,8 @@ class VboContext {
         this._activeShaders = new Set();
 
         let DefaultShader = require('./DefaultShader');
-        this.defaultVboShader = new DefaultShader();
-        this.initShader(this.defaultVboShader);
+        this.defaultShader = new DefaultShader(this.stage);
+        this.initShader(this.defaultShader);
 
         this.initSharedShaderData();
     }
@@ -95,7 +95,7 @@ class VboContext {
         this.n = 0;
         this.updateTreeOrder = 0;
 
-        this.vboShader = null;
+        this.shader = null;
     }
 
     layout() {
@@ -123,7 +123,7 @@ class VboContext {
         this.root.update();
 
         // Setup the first added vbo shader.
-        this.setupVboShader(this.root);
+        this.setupShader(this.root);
 
         this.root.render();
 
@@ -134,7 +134,7 @@ class VboContext {
         }
 
         // Cleanup the latest added vbo shader.
-        this.vboShader.cleanup(this);
+        this.shader.cleanup(this);
 
         this.staticStage = true;
     }
@@ -147,32 +147,40 @@ class VboContext {
         this.vboViewRenderers.push(viewRenderer);
 
         this.vboIndex += 16;
+
+        if (this.vboOffset > VboContext.MAX_QUADS - 10) {
+            this.flush();
+        }
     }
 
-    setupVboShader(viewRenderer, vboShader) {
-        let shader = vboShader || viewRenderer._vboShader || this.defaultVboShader;
-
-        let prevWasDefault = (this.vboShader && this.vboShader.isDefaultShader);
-        let newIsDefault = (shader && shader.isDefaultShader);
+    setupShader(viewRenderer, specificShader) {
+        let shader = specificShader || viewRenderer.activeShader;
 
         if (!shader.initialized) {
             this.initShader(shader);
         }
 
-        if (prevWasDefault && newIsDefault) {
-            // All attributes are assumed to stay in the same order.
-            // Allow to only setup additional attributes/uniforms.
-            this.vboShader.cleanupExtra(this);
-            shader.setupExtra(this);
+        if (this.shader && (this.shader.constructor === shader.constructor)) {
+            // We keep using the same shader, so we don't need to switch attributes.
         } else {
-            if (this.vboShader) {
-                this.vboShader.cleanup(this);
+            let prevWasDefault = (this.shader && this.shader.isDefaultShader);
+            let newIsDefault = (shader && shader.isDefaultShader);
+
+            if (prevWasDefault && newIsDefault) {
+                // All attributes are assumed to stay in the same order.
+                // Allow to only setup additional attributes/uniforms.
+                this.shader.cleanupExtra(this);
+                shader.setupExtra(this);
+            } else {
+                if (this.shader) {
+                    this.shader.cleanup(this);
+                }
+                shader.setup(this);
             }
-            shader.setup(this);
         }
 
-        this.vboShader = shader;
-        this.vboShaderOwner = viewRenderer;
+        this.shader = shader;
+        this.shaderOwner = viewRenderer;
     }
 
     flush() {
@@ -183,11 +191,11 @@ class VboContext {
     }
 
     drawElements(offset, length) {
-        this.vboShader.drawElements(this, offset, length);
+        ;this.shader.drawElements(this, offset, length);
     }
 
     renderDebugTextureAtlas() {
-        this.setupVboShader(null, this.defaultVboShader);
+        this.setupShader(null, this.defaultShader);
 
         let size = Math.min(this.stage.options.w, this.stage.options.h);
         let vboIndex = this.vboIndex;
@@ -215,15 +223,19 @@ class VboContext {
     }
 
     getView(vboOffset) {
-        return this.vboViewRenderers[vboOffset].view;
+        return this.vboViewRenderers[vboOffset]._view;
+    }
+
+    getViewRenderer(vboOffset) {
+        return this.vboViewRenderers[vboOffset];
     }
 
     getVboGlTexture(vboOffset) {
         return this.vboGlTextures[vboOffset];
     }
 
-    getVboShaderOwner() {
-        return this.vboShaderOwner;
+    getShaderOwner() {
+        return this.shaderOwner;
     }
 
     get gl() {
@@ -241,7 +253,7 @@ class VboContext {
  * @note if a sprite is being clipped or has borders, it may use more than 1 quad.
  * @type {number}
  */
-VboContext.MAX_QUADS = (65536 / 4)|0;
+VboContext.MAX_QUADS = 10000;
 
 module.exports = VboContext;
 

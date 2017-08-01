@@ -20,6 +20,10 @@ class BorderView extends View {
 
         this.layoutExit = function (view, recalc) {
             if (recalc || view._updateLayout) {
+                if (view.children.length === 1) {
+                    view.w = view.children[0].renderWidth;
+                    view.h = view.children[0].renderHeight;
+                }
                 let rw = view.renderWidth;
                 let rh = view.renderHeight;
                 view._borderTop.w = rw;

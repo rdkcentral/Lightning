@@ -2,13 +2,21 @@
  * Copyright Metrological, 2017
  */
 
-let ShaderProgram = require('./ShaderProgram');
+let ShaderProgram = require('./ShaderProgram')
+let Base = require('./Base')
 
-class Shader {
+class Shader extends Base {
 
-    constructor(vertexShaderSource, fragmentShaderSource) {
+    constructor(stage, vertexShaderSource, fragmentShaderSource) {
+        super();
         this._program = new ShaderProgram(vertexShaderSource, fragmentShaderSource);
         this._initialized = false;
+
+        this._stage = stage;
+    }
+
+    redraw() {
+        this._stage.ctx.staticStage = false;
     }
 
     init(vboContext) {
@@ -38,6 +46,14 @@ class Shader {
 
     get glProgram() {
         return this._program.glProgram;
+    }
+
+    hasViewSettings() {
+        return false;
+    }
+
+    createViewSettings() {
+        return null;
     }
 
 }

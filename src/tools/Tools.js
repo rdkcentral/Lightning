@@ -2,6 +2,7 @@
  * Copyright Metrological, 2017
  */
 let Utils = require('../core/Utils');
+let StageUtils = require('../core/StageUtils');
 
 class Tools {
 
@@ -52,17 +53,19 @@ class Tools {
 
         if (fill) {
             if (Utils.isNumber(fillColor)) {
-                fillColor = "#" + fillColor.toString(16);
+                ctx.fillStyle = StageUtils.getRgbaString(fillColor);
+            } else {
+                ctx.fillStyle = "white";
             }
-            ctx.fillStyle = fillColor || "white";
             ctx.fill();
         }
 
         if (strokeWidth) {
             if (Utils.isNumber(strokeColor)) {
-                strokeColor = "#" + strokeColor.toString(16);
+                ctx.strokeStyle = StageUtils.getRgbaString(strokeColor);
+            } else {
+                ctx.strokeStyle = "white";
             }
-            ctx.strokeStyle = strokeColor || "white";
             ctx.lineWidth = strokeWidth;
             ctx.stroke();
         }

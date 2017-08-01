@@ -39,6 +39,7 @@ var loadWpe, loadBulk;
             "Stage":"./core/Stage.js",
             "ShaderProgram":"./core/ShaderProgram.js",
             "Shader":"./core/Shader.js",
+            "ShaderSettings":"./core/ShaderSettings.js",
             "DefaultShader":"./core/DefaultShader.js",
             "TextureManager":"./core/TextureManager.js",
             "Texture":"./core/Texture.js",
@@ -63,7 +64,7 @@ var loadWpe, loadBulk;
             "Tools":"./tools/Tools.js",
             "ListView":"./tools/ListView.js",
             "BorderView":"./tools/BorderView.js",
-            "LightningShader":"./tools/shaders/LightningShader.js"
+            "Light3dShader":"./tools/shaders/Light3dShader.js"
         };
         return loadBulk(srcPath, sourceFiles).then(function(wpe) {
             if (typeof attachInspector !== "undefined") attachInspector(wpe);

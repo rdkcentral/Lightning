@@ -99,8 +99,9 @@ class ViewChildList {
 
     a(o) {
         if (Utils.isObjectLiteral(o)) {
-            let c = this._view.stage.view(o);
+            let c = this._view.stage.createView();
             this.add(c);
+            c.setSettings(o);
             return c;
         } else if (Array.isArray(o)) {
             for (let i = 0, n = o.length; i < n; i++) {
