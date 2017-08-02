@@ -23,8 +23,8 @@ var start = function(wpe) {
 
     var texture = wpe.Tools.getRoundRect(stage, 400, 200, 10, 2, 0xFFFFFF00, true, 0xFF00FF00);
     stage.root.add([
-        {tags: 'bg', rect: true, zIndex: 1, x: 20, y: 20, w: 560, rotation: 0.0, h: 560, colorUl: 0xFFFF0000, colorBr: 0xFFFF6666, children: [
-            {tags: 'image', z: 0, shader: {type: wpe.Light3dShader}, rotation: 0.5, pivotX: 0.5, pivotY: 0.5, shaderSettings: {z: 0}, alpha: 1, src: 'http://adn.gpupdate.net/news/297192.jpg', scale: 1, y: 100, children: [
+        {tags: 'bg', clipping: false, rect: true, zIndex: 1, x: 20, y: 20, w: 560, rotation: 0.0, h: 560, colorUl: 0xFFFF0000, colorBr: 0xFFFF6666, children: [
+            {tags: 'image', z: 0, shader: {type: wpe.Light3dShader}, rotation: 0.0, pivotX: 0.5, pivotY: 0.5, shaderSettings: {z: 0}, alpha: 1, src: 'http://adn.gpupdate.net/news/297192.jpg', scale: 1, y: 100, children: [
                 {tag: 'borders', z: 0, shader: null, type: BorderView, borderWidth: 20, x: 150, y: -100, children: [
                     {tags: 'hello', z: 0, zIndex: -2, texture: texture}
                 ]}
@@ -54,11 +54,10 @@ var start = function(wpe) {
 
     // stage.root.tag('image.borders.hello').vboShader = shader;
 
+    stage.root.tag('image').setSmooth('rotation', 5, {duration: 30});
 
-    //stage.root.tag('image').shaderSettings.z = 5;
-    stage.root.tag('image').setSmooth('shaderSettings.z', 0, {duration: 3});
-    stage.root.tag('image').setSmooth('shaderSettings.rx', 30, {duration: 30});
-    //stage.root.tag('image').setSmooth('shaderSettings.ry', -10, {duration: 30});
+    //stage.root.tag('image').setSmooth('shaderSettings.z', 0, {duration: 3});
+    //stage.root.tag('image').setSmooth('shaderSettings.rx', 30, {duration: 30});
 
     //stage.root.tag('image.borders').shaderSettings.z = -1;
     //stage.root.tag('image.borders').setTval('shaderSettings.rx', -10, {duration: 3, merger: StageUtils.mergeNumbers});

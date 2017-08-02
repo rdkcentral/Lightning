@@ -1146,6 +1146,13 @@ class ViewRenderer {
             this._worldPy + this._rh * this._worldTd
         ];
     };
+
+    getAbsoluteCoords(relX, relY) {
+        return [
+            this._worldPx + this._worldTa * relX + this._worldTb * relY,
+            this._worldPy + this._worldTc * relX + this._worldTd * relY
+        ];
+    }
 }
 
 let getColorInt = function (c, alpha) {
