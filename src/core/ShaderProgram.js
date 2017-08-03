@@ -9,9 +9,12 @@ class ShaderProgram {
         this.vertexShaderSource = vertexShaderSource;
         this.fragmentShaderSource = fragmentShaderSource;
 
+        this._program = null;
     }
 
     compile(gl) {
+        if (this._program) return;
+
         this.gl = gl;
 
         this._program = gl.createProgram();
@@ -60,6 +63,7 @@ class ShaderProgram {
 
     destroy() {
         this.gl.deleteProgram(this._program);
+        this._program = null;
     }
 
     get glProgram() {

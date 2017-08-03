@@ -2,6 +2,8 @@
  * Copyright Metrological, 2017
  */
 
+let Shader = require('./Shader');
+
 class VboContext {
 
     constructor(stage) {
@@ -48,6 +50,7 @@ class VboContext {
         this.gl.deleteBuffer(this.paramsGlBuffer);
         this.gl.deleteBuffer(this.quadsGlBuffer);
         this._activeShaders.forEach(shader => {this.destroyShader(shader)});
+        Shader.destroyPrograms();
     }
 
     initSharedShaderData() {
@@ -89,6 +92,7 @@ class VboContext {
     }
 
     destroyShader(shader) {
+        shader.destroy();
         this._activeShaders.delete(shader);
     }
 
@@ -149,7 +153,19 @@ class VboContext {
 
         this.root._parent._hasRenderUpdates = false;
 
+        this.destroyUnusedShaders();
+
         return true;
+    }
+
+    destroyUnusedShaders() {
+        // Delete 'old' shaders.
+        let fc = this.stage.frameCounter;
+        this._activeShaders.forEach(shader => {
+            if (shader._lastFrameUsed < fc - 600) {
+                this.destroyShader(shader);
+            }
+        });
     }
 
     /**
@@ -183,6 +199,8 @@ class VboContext {
         if (!shader.initialized) {
             this.initShader(shader);
         }
+
+        shader._lastFrameUsed = this.stage.frameCounter;
 
         if (this.shader && (this.shader.constructor === shader.constructor)) {
             // We keep using the same shader, so we don't need to switch attributes.

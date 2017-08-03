@@ -1013,6 +1013,7 @@ class ViewRenderer {
                 if (this._renderGlTexture && !this._hasRenderUpdates) {
                     // Nothing needs to be done, just re-use the existing texture.
                     if (this.activeShader && (ctx.shader !== this.activeShader)) {
+                        ctx.flush();
                         ctx.setupShader(this);
                     }
                     ctx.overrideAddVboTexture(this.getRenderGlTexture());

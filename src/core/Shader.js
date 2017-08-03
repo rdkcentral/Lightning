@@ -9,10 +9,17 @@ class Shader extends Base {
 
     constructor(stage, vertexShaderSource, fragmentShaderSource) {
         super();
-        this._program = new ShaderProgram(vertexShaderSource, fragmentShaderSource);
+
+        this._program = Shader.programs.get(this.constructor);
+        if (!this._program) {
+            this._program = new ShaderProgram(vertexShaderSource, fragmentShaderSource);
+            Shader.programs.set(this.constructor, this._program);
+        }
         this._initialized = false;
 
         this._stage = stage;
+
+        this._lastFrameUsed = 0;
     }
 
     redraw() {
@@ -40,7 +47,6 @@ class Shader extends Base {
     }
 
     destroy() {
-        this._program.destroy();
         this._initialized = false;
     }
 
@@ -56,6 +62,11 @@ class Shader extends Base {
         return null;
     }
 
+}
+
+Shader.programs = new Map();
+Shader.destroyPrograms = function() {
+    Shader.programs.forEach(program => program.destroy());
 }
 
 module.exports = Shader;

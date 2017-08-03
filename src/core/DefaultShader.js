@@ -81,7 +81,6 @@ class DefaultShader extends Shader {
         let newPjm = vboContext.getProjectionMatrix();
         if (this._setupPjm !== newPjm) {
             let gl = vboContext.gl
-            this._projectionMatrixAttribute = gl.getUniformLocation(this.glProgram, "projectionMatrix");
             gl.uniformMatrix4fv(this._projectionMatrixAttribute, false, newPjm)
             this._setupPjm = newPjm;
         }
@@ -110,8 +109,9 @@ class DefaultShader extends Shader {
     }
 
     setupExtra(vboContext) {
-        // Set transformation matrix.
-        this.updateProjectionMatrix(vboContext);
+        this._projectionMatrixAttribute = vboContext.gl.getUniformLocation(this.glProgram, "projectionMatrix");
+
+        // Set up additional params.
     }
 
     cleanupExtra(vboContext) {

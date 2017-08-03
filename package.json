@@ -6,7 +6,7 @@
   "license": "apache",
   "dependencies": {
     "canvas": "https://github.com/basvanmeurs/node-canvas.git",
-    "wpe-webgl": "^0.0.3"
+    "wpe-webgl": "^0.0.4"
   },
   "devDependencies": {
     "babel-preset-babili": "^0.1.4",

@@ -41,6 +41,10 @@ class Light3dShader extends DefaultShader {
         gl.vertexAttribPointer(this._xyRotAttribute, 2, gl.FLOAT, false, 28, byteOffset - (offset * this.getExtraBufferSizePerQuad()) + 20);
         gl.enableVertexAttribArray(this._xyRotAttribute);
 
+        gl.uniform1f(this._strengthUniform, this._strength)
+        gl.uniform1f(this._ambientUniform, this._ambient)
+        gl.uniform1f(this._fudgeUniform, this._fudge)
+
         let base = byteOffset / 4;
         for (let i = 0; i < length; i++) {
             let viewRenderer = vboContext.getViewRenderer(i);
@@ -75,15 +79,6 @@ class Light3dShader extends DefaultShader {
 
     getExtraBufferSizePerQuad() {
         return 28 * 4; // 20 bytes * 4 vertices.
-    }
-
-    setupExtra(vboContext) {
-        super.setupExtra(vboContext)
-
-        let gl = vboContext.gl
-        gl.uniform1f(this._strengthUniform, this._strength)
-        gl.uniform1f(this._ambientUniform, this._ambient)
-        gl.uniform1f(this._fudgeUniform, this._fudge)
     }
 
     set strength(v) {
