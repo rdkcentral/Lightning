@@ -94,7 +94,7 @@ class Stage extends Base {
 
         this.ctx = new VboContext(this);
 
-        this.root = this.createView();
+        this.root = new View(this);
 
         this.root.setAsRoot();
 
@@ -201,10 +201,8 @@ class Stage extends Base {
         let view;
         if (settings.type) {
             view = new settings.type(this);
-            settings = Utils.cloneObj(settings);
-            delete settings.type;
         } else {
-            view = this.createView();
+            view = new View(this);
         }
         view.setSettings(settings);
         return view;

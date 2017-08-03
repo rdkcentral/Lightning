@@ -29,7 +29,7 @@ class Shader extends Base {
     }
 
     setup(vboContext) {
-
+        vboContext.gl.useProgram(this.glProgram);
     }
 
     cleanup(vboContext) {

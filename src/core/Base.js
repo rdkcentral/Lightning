@@ -71,7 +71,8 @@ class Base {
 
     static setObjectSettings(obj, settings) {
         for (let name in settings) {
-            if (settings.hasOwnProperty(name)) {
+            // Type is a reserved keyword to specify the class type on creation.
+            if (settings.hasOwnProperty(name) && name != 'type') {
                 let v = settings[name];
                 if (Utils.isObjectLiteral(v) && Utils.isObject(obj[name])) {
                     // Sub object.

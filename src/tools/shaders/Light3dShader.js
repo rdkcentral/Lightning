@@ -77,8 +77,9 @@ class Light3dShader extends DefaultShader {
         return 28 * 4; // 20 bytes * 4 vertices.
     }
 
-    setupUniforms(vboContext) {
-        super.setupUniforms(vboContext)
+    setupExtra(vboContext) {
+        super.setupExtra(vboContext)
+
         let gl = vboContext.gl
         gl.uniform1f(this._strengthUniform, this._strength)
         gl.uniform1f(this._ambientUniform, this._ambient)

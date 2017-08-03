@@ -278,6 +278,8 @@ class View {
             this._displayedTexture.source.removeView(this);
         }
 
+        this.renderer.deleteRenderGlTexture();
+
         this._active = false;
     }
 
@@ -1428,6 +1430,14 @@ class View {
 
     set shaderSettings(v) {
         this.shaderSettings.setSettings(v);
+    }
+
+    get renderAsTexture() {
+        return this.renderer.renderAsTexture;
+    }
+
+    set renderAsTexture(v) {
+        this.renderer.renderAsTexture = v;
     }
 
     /*A¬*/

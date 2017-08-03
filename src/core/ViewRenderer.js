@@ -108,6 +108,7 @@ class ViewRenderer {
 
         this._shaderSettings = null;
 
+        this._renderGlTexture = null;
     }
 
     /**
@@ -208,6 +209,7 @@ class ViewRenderer {
 
             if (!this._shader) {
                 let newActiveShader = parent ? parent._activeShader : null;
+                if (parent._renderAsTexture) newActiveShader = this.ctx.defaultShader;
                 if (newActiveShader !== this._activeShader) {
                     this._setActiveShaderRecursive(newActiveShader);
                 }
@@ -275,6 +277,7 @@ class ViewRenderer {
         this._rw = w;
         this._rh = h;
         this._setRecalc(2);
+        this.deleteRenderGlTexture();
     };
 
     setTextureCoords(ulx, uly, brx, bry) {
@@ -323,7 +326,7 @@ class ViewRenderer {
     };
 
     isZContext() {
-        return (this._forceZIndexContext || this._zIndex !== 0 || this._isRoot || !this._parent);
+        return (this._forceZIndexContext || this._renderAsTexture || this._zIndex !== 0 || this._isRoot || !this._parent);
     };
 
     findZContext() {
@@ -606,7 +609,7 @@ class ViewRenderer {
 
     get shaderSettings() {
         if (!this._shaderSettings) {
-            this._shaderSettings = this.activeShader.createViewSettings(this);
+            this._shaderSettings = this.activeShader.createViewSettings(this) || {};
         }
         return this._shaderSettings;
     }
@@ -615,17 +618,101 @@ class ViewRenderer {
         return this._activeShader || this.ctx.defaultShader;
     }
 
+    get renderAsTexture() {
+        return this._renderAsTexture;
+    }
+
+    set renderAsTexture(v) {
+        if (this._renderAsTexture != v) {
+            let prevIsZContext = this.isZContext();
+
+            this._renderAsTexture = v;
+
+            // Force z-index context because we can't handle views 'leaking out' of the texture in a consistent manner.
+            if (prevIsZContext !== this.isZContext()) {
+                if (!this.isZContext()) {
+                    this.disableZContext();
+                } else {
+                    this.enableZContext(this._parent.findZContext());
+                }
+            }
+
+            // Due to the renderAsTexture-specific code in update: must update world properties.
+            this._setRecalc(7);
+
+            if (!v) {
+                this.deleteRenderGlTexture();
+            }
+
+            if (v) {
+                // Texture rendering is started in default shader mode.
+                this._setActiveShaderChildrenRecursive(this.ctx.defaultShader);
+            } else {
+                this._setActiveShaderChildrenRecursive(this.activeShader);
+            }
+        }
+    }
+    
+    deleteRenderGlTexture() {
+        if (this._renderGlTexture) {
+            this.ctx.deleteRenderGlTexture(this._renderGlTexture);
+        }
+    }
+    
+    getRenderGlTexture() {
+        if (!this._renderGlTexture) {
+            this._renderGlTexture = this.ctx.createRenderGlTexture(this._rw, this._rh);
+        }
+        return this._renderGlTexture;
+    }
+
     _setActiveShaderRecursive(shader) {
         this._activeShader = shader;
         this._shaderSettings = null;
         if (this._children) {
             for (let i = 0, n = this._children.length; i < n; i++) {
-                if (!this._children[i]._shader) {
+                if (!this._children[i]._shader && !this._children[i]._renderAsTexture) {
                     this._children[i]._setActiveShaderRecursive(shader);
                 }
             }
         }
     };
+
+    _setActiveShaderChildrenRecursive(shader) {
+        if (this._children) {
+            for (let i = 0, n = this._children.length; i < n; i++) {
+                if (!this._children[i]._shader && !this._children[i]._renderAsTexture) {
+                    this._children[i]._setActiveShaderRecursive(shader);
+                }
+            }
+        }
+    };
+
+    _stashWorld() {
+        this._stashedWorld = [this._worldAlpha, this._worldPx, this._worldPy, this._worldTa, this._worldTb, this._worldTc, this._worldTd, this.ctx.ignoredClippingParent];
+        this._worldAlpha = 1;
+        this._worldPx = 0;
+        this._worldPy = 0;
+        this._worldTa = 1;
+        this._worldTb = 0;
+        this._worldTc = 0;
+        this._worldTd = 1;
+
+        // We create a new 'clipping context' by simply ignoring the current clipping parent
+        this.ctx.ignoredClippingParent = this._clipping ? this : this._clippingParent;
+    }
+
+    _unstashWorld() {
+        this._worldAlpha = this._stashedWorld[0];
+        this._worldPx = this._stashedWorld[1];
+        this._worldPy = this._stashedWorld[2];
+        this._worldTa = this._stashedWorld[3];
+        this._worldTb = this._stashedWorld[4];
+        this._worldTc = this._stashedWorld[5];
+        this._worldTd = this._stashedWorld[6];
+        this.ctx.ignoredClippingParent = this._stashedWorld[7];
+        this._stashedWorld = null;
+    }
 
     isVisible() {
         return (this._localAlpha > 1e-14);
@@ -718,7 +805,7 @@ class ViewRenderer {
                 this._worldPy += this._localPx * this._parent._worldTc;
             }
 
-            if ((this._recalc & 14 /* 2 + 4 + 8 */) && (this._clippingParent || this._clipping)) {
+            if ((this._recalc & 14 /* 2 + 4 + 8 */) && (this._clipping || (this._clippingParent && (this.ctx.ignoredClippingParent !== this._clippingParent)))) {
                 // We must calculate the clipping area.
                 let c1x, c1y, c2x, c2y, c3x, c3y;
 
@@ -829,12 +916,22 @@ class ViewRenderer {
             this._recalc = (this._recalc & 71);
             /* 1+2+4+64 */
 
+            let saved;
+            if (this._renderAsTexture) {
+                // For 0-based square texture rendering: set identity matrix while traversing children.
+                saved = this._stashWorld();
+            }
+
             if (this._children) {
                 for (let i = 0, n = this._children.length; i < n; i++) {
                     if ((this.ctx.updateTreeOrderForceUpdate > 0) || this._recalc || this._children[i]._hasUpdates) {
                         this._children[i].update();
                     }
                 }
+            }
+
+            if (this._renderAsTexture) {
+                this._unstashWorld(saved);
             }
 
             if (this._worldAlpha === 0) {
@@ -845,13 +942,81 @@ class ViewRenderer {
             }
 
             this._hasUpdates = false;
-
         }
 
         if (this._zSort) {
             this.ctx.updateTreeOrderForceUpdate--;
         }
 
+    };
+
+    render() {
+        if (this._zSort) {
+            this.sortZIndexedChildren();
+            this._zSort = false;
+        }
+
+        if (this._worldAlpha) {
+            let ctx = this.ctx;
+
+            if (this._renderAsTexture) {
+                if (this._rw === 0 || this._rh === 0) {
+                    // Ignore this branch and don't draw anything.
+                    return;
+                }
+                ctx.flush();
+
+                // Use default shader for texture.
+                if (ctx.shader !== this.ctx.defaultShader) {
+                    ctx.setupShader(this, this.ctx.defaultShader);
+                }
+
+                let texture = this.getRenderGlTexture();
+                ctx.setRenderTarget(texture);
+
+                this._stashWorld();
+
+                if (this._displayedTextureSource) {
+                    // Add displayed texture source in local coordinates.
+                    this.addToVbo();
+                }
+            } else if (this._displayedTextureSource) {
+                if (this.activeShader && (ctx.shader !== this.activeShader)) {
+                    ctx.flush();
+                    ctx.setupShader(this);
+                }
+                this.addToVbo();
+            }
+
+            if (this._children) {
+                if (this._zContextUsage) {
+                    for (let i = 0, n = this._zIndexedChildren.length; i < n; i++) {
+                        this._zIndexedChildren[i].render();
+                    }
+                } else {
+                    for (let i = 0, n = this._children.length; i < n; i++) {
+                        if (this._children[i]._zIndex === 0) {
+                            // If zIndex is set, this item already belongs to a zIndexedChildren array in one of the ancestors.
+                            this._children[i].render();
+                        }
+                    }
+                }
+            }
+
+            if (this._renderAsTexture) {
+                ctx.flush();
+                ctx.restoreRenderTarget();
+
+                // Draw generated texture as this view.
+                this._unstashWorld();
+                if (this.activeShader && (ctx.shader !== this.activeShader)) {
+                    ctx.setupShader(this);
+                }
+                ctx.overrideAddVboTexture(this.getRenderGlTexture());
+                this.addToVbo();
+                ctx.overrideAddVboTexture(null);
+            }
+        }
     };
 
     sortZIndexedChildren() {
@@ -878,7 +1043,7 @@ class ViewRenderer {
         let vboBufferFloat = this.ctx.vboBufferFloat;
         let vboBufferUint = this.ctx.vboBufferUint;
 
-        if (this._clippingParent && !this._clippingNoEffect) {
+        if ((this._clippingParent && (this.ctx.ignoredClippingParent !== this._clippingParent)) && !this._clippingNoEffect) {
             if (!this._clippingEmpty) {
                 this.addToVboClipped();
             }
@@ -1074,42 +1239,6 @@ class ViewRenderer {
         }
     };
 
-    render() {
-        if (this._zSort) {
-            this.sortZIndexedChildren();
-            this._zSort = false;
-        }
-
-        if (this._worldAlpha) {
-            let ctx = this.ctx;
-
-            if (this._displayedTextureSource) {
-                if (this.activeShader && (ctx.shader !== this.activeShader)) {
-                    // Render all items in vbo.
-                    ctx.flush();
-                    ctx.setupShader(this);
-                }
-
-                this.addToVbo();
-            }
-
-            if (this._children) {
-                if (this._zContextUsage) {
-                    for (let i = 0, n = this._zIndexedChildren.length; i < n; i++) {
-                        this._zIndexedChildren[i].render();
-                    }
-                } else {
-                    for (let i = 0, n = this._children.length; i < n; i++) {
-                        if (this._children[i]._zIndex === 0) {
-                            // If zIndex is set, this item already belongs to a zIndexedChildren array in one of the ancestors.
-                            this._children[i].render();
-                        }
-                    }
-                }
-            }
-        }
-    };
-
     get localTa() {
         return this._localTa;
     };
@@ -1132,6 +1261,10 @@ class ViewRenderer {
 
     get rh() {
         return this._rh;
+    }
+
+    get view() {
+        return this._view;
     }
 
     getCornerPoints() {

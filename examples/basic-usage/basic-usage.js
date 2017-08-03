@@ -5,7 +5,7 @@ var start = function(wpe) {
     var BorderView = wpe.BorderView;
     var StageUtils = wpe.StageUtils;
 
-    var options = {w: 600, h: 600, glClearColor: 0xFF000000, useTextureAtlas: false, debugTextureAtlas: false};
+    var options = {w: 900, h: 900, glClearColor: 0xFF000000, useTextureAtlas: false, debugTextureAtlas: false};
 
     // Nodejs-specific options.
     if (Utils.isNode) {
@@ -23,18 +23,22 @@ var start = function(wpe) {
 
     var texture = wpe.Tools.getRoundRect(stage, 400, 200, 10, 2, 0xFFFFFF00, true, 0xFF00FF00);
     stage.root.add([
-        {tags: 'bg', clipping: false, rect: true, zIndex: 1, x: 20, y: 20, w: 560, rotation: 0.0, h: 560, colorUl: 0xFFFF0000, colorBr: 0xFFFF6666, children: [
-            {tags: 'image', z: 0, shader: {type: wpe.Light3dShader}, rotation: 0.0, pivotX: 0.5, pivotY: 0.5, shaderSettings: {z: 0}, alpha: 1, src: 'http://adn.gpupdate.net/news/297192.jpg', scale: 1, y: 100, children: [
-                {tag: 'borders', z: 0, shader: null, type: BorderView, borderWidth: 20, x: 150, y: -100, children: [
-                    {tags: 'hello', z: 0, zIndex: -2, texture: texture}
-                ]}
-            ]},
+        {tags: 'bg', clipping: true, rect: true, zIndex: 1, x: 20, y: 20, w: 600, rotation: 0.0, h: 600, colorUl: 0xFFFF0000, colorBr: 0xFFFF6666, children: [
+            {tag: 'image-3d', clipping: false, renderAsTexture: true, rotation: -0.1, w: 700, h: 700, y: 100, x: 10, scale: 1.3, children: [
+                {tags: 'image', renderAsTexture: true, shader: {type: wpe.Light3dShader}, shaderSettings: {z: 0, rx: 0}, rotation: 0.5, pivotX: 0.5, pivotY: 0.5, alpha: 1, mountX: 0.5, mountY:0.5, x: 450, y: 450, src: 'http://adn.gpupdate.net/news/297192.jpg', scale: 1, children: [
+                    {tag: 'border', type: BorderView, borderWidth: 20, rect: false, color: 0xFFFF0000, w: 100, h: 10, x: 150, y: 100, children: [
+                        {tags: 'hello', zIndex: -2, texture: texture}
+                    ]}
+                ]},
+            ]}
             // {tags: 'hello', texture: texture, x: 10, y: 20},
             // {tag: 'borders', type: BorderView, borderWidth: 20, rect: true, w: 400, h: 200, x: 150, color: 0xAAFFFFFF, children: [
             //     {tags: 'hello2', text: {text: "hello world", fontSize: 80}, x: 10, y: 20}
             // ]}
         ]}
     ]);
+    stage.root.transition('x', {duration: 10});
+    stage.root.X = 100;
 
     // // let animdef = stage.animations.createSettings({duration: 3, delay: 3, autostop: true, stopTimingFunction: 'linear', stopDuration: 3, actions: [
     // //     {property: ['y'], value: {0:0,1:100}},
@@ -57,7 +61,7 @@ var start = function(wpe) {
     stage.root.tag('image').setSmooth('rotation', 5, {duration: 30});
 
     //stage.root.tag('image').setSmooth('shaderSettings.z', 0, {duration: 3});
-    //stage.root.tag('image').setSmooth('shaderSettings.rx', 30, {duration: 30});
+    stage.root.tag('image').setSmooth('shaderSettings.rx', 30, {duration: 30});
 
     //stage.root.tag('image.borders').shaderSettings.z = -1;
     //stage.root.tag('image.borders').setTval('shaderSettings.rx', -10, {duration: 3, merger: StageUtils.mergeNumbers});

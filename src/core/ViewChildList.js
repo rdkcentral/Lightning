@@ -99,7 +99,12 @@ class ViewChildList {
 
     a(o) {
         if (Utils.isObjectLiteral(o)) {
-            let c = this._view.stage.createView();
+            let c;
+            if (o.type) {
+                c = new o.type(this._view.stage);
+            } else {
+                c = this._view.stage.createView();
+            }
             this.add(c);
             c.setSettings(o);
             return c;
@@ -119,8 +124,14 @@ class ViewChildList {
         for (let i = 0, n = views.length; i < n; i++) {
             let o = views[i];
             if (Utils.isObjectLiteral(o)) {
-                let c = this._view.stage.view(o);
+                let c;
+                if (o.type) {
+                    c = new o.type(this._view.stage);
+                } else {
+                    c = this._view.stage.createView();
+                }
                 this.add(c);
+                c.setSettings(o);
             } else if (o.isView) {
                 this.add(o);
             }

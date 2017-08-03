@@ -19,12 +19,11 @@ class DefaultShader extends Shader {
         this._vertexPositionAttribute = gl.getAttribLocation(this.glProgram, "aVertexPosition");
         this._textureCoordAttribute = gl.getAttribLocation(this.glProgram, "aTextureCoord");
         this._colorAttribute = gl.getAttribLocation(this.glProgram, "aColor");
-
-        // Set transformation matrix.
-        this._projectionMatrixAttribute = gl.getUniformLocation(this.glProgram, "projectionMatrix");
     }
 
     setup(vboContext) {
+        super.setup(vboContext);
+
         let gl = vboContext.gl;
 
         gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
@@ -54,9 +53,7 @@ class DefaultShader extends Shader {
         let gl = vboContext.gl;
 
         if (length) {
-            gl.useProgram(this.glProgram);
-
-            this.setupUniforms(vboContext);
+            this.updateProjectionMatrix(vboContext);
 
             let view = new DataView(vboContext.vboParamsBuffer, offset * vboContext.bytesPerQuad, length * (vboContext.bytesPerQuad + this.getExtraBufferSizePerQuad()));
             gl.bufferData(gl.ARRAY_BUFFER, view, gl.DYNAMIC_DRAW);
@@ -80,12 +77,19 @@ class DefaultShader extends Shader {
         }
     }
 
-    setupUniforms(vboContext) {
-        let gl = vboContext.gl
-        gl.uniformMatrix4fv(this._projectionMatrixAttribute, false, vboContext.projectionMatrix)
+    updateProjectionMatrix(vboContext) {
+        let newPjm = vboContext.getProjectionMatrix();
+        if (this._setupPjm !== newPjm) {
+            let gl = vboContext.gl
+            this._projectionMatrixAttribute = gl.getUniformLocation(this.glProgram, "projectionMatrix");
+            gl.uniformMatrix4fv(this._projectionMatrixAttribute, false, newPjm)
+            this._setupPjm = newPjm;
+        }
     }
 
     cleanup(vboContext) {
+        super.cleanup(vboContext);
+
         let gl = vboContext.gl;
 
         gl.disableVertexAttribArray(this._vertexPositionAttribute);
@@ -95,12 +99,24 @@ class DefaultShader extends Shader {
         this.cleanupExtra(vboContext);
     }
 
+    setupExtraOnly(vboContext) {
+        vboContext.gl.useProgram(this.glProgram);
+
+        this.setupExtra(vboContext);
+    }
+
+    cleanupExtraOnly(vboContext) {
+        this.cleanupExtra(vboContext);
+    }
+
     setupExtra(vboContext) {
-        // Set up additional params.
+        // Set transformation matrix.
+        this.updateProjectionMatrix(vboContext);
     }
 
     cleanupExtra(vboContext) {
         // Clean up additional params.
+        this._setupPjm = null;
     }
 
 }
