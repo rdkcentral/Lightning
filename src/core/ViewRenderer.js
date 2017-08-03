@@ -1009,19 +1009,25 @@ class ViewRenderer {
                     // Ignore this branch and don't draw anything.
                     return;
                 }
+
+                if (this._renderGlTexture && !this._hasRenderUpdates) {
+                    // Nothing needs to be done, just re-use the existing texture.
+                    if (this.activeShader && (ctx.shader !== this.activeShader)) {
+                        ctx.setupShader(this);
+                    }
+                    ctx.overrideAddVboTexture(this.getRenderGlTexture());
+                    this._stashTexCoords();
+                    this.addToVbo();
+                    this._unstashTexCoords();
+                    ctx.overrideAddVboTexture(null);
+                    return;
+                }
+
                 ctx.flush();
 
                 // Use default shader for texture.
                 if (ctx.shader !== this.ctx.defaultShader) {
                     ctx.setupShader(this, this.ctx.defaultShader);
-                }
-
-                if (this._renderGlTexture && !this._hasRenderUpdates) {
-                    // Nothing needs to be done, just re-use the existing texture.
-                    ctx.overrideAddVboTexture(this.getRenderGlTexture());
-                    this.addToVbo();
-                    ctx.overrideAddVboTexture(null);
-                    return;
                 }
 
                 let texture = this.getRenderGlTexture();
