@@ -142,7 +142,7 @@ class ViewRenderer {
             } while ((p = p._parent) && !p._hasUpdates);
 
             // Any changes in descendants should trigger texture updates.
-            this._parent._setHasRenderUpdates();
+            if (this._parent) this._parent._setHasRenderUpdates();
         } else {
             this._hasUpdates = true;
         }
@@ -162,7 +162,9 @@ class ViewRenderer {
                 this._setHasRenderUpdates();
             } else {
                 // Any changes in descendants should trigger texture updates.
-                this._parent._setHasRenderUpdates();
+                if (this._parent) {
+                    this._parent._setHasRenderUpdates();
+                }
             }
         } else {
             this._hasUpdates = true;
@@ -680,6 +682,7 @@ class ViewRenderer {
     deleteRenderGlTexture() {
         if (this._renderGlTexture) {
             this.ctx.deleteRenderGlTexture(this._renderGlTexture);
+            this._renderGlTexture = null;
         }
     }
     
@@ -1013,13 +1016,13 @@ class ViewRenderer {
                     ctx.setupShader(this, this.ctx.defaultShader);
                 }
 
-                // if (this._renderGlTexture && !this._hasRenderUpdates) {
-                //     // Nothing needs to be done, just re-use the existing texture.
-                //     ctx.overrideAddVboTexture(this.getRenderGlTexture());
-                //     this.addToVbo();
-                //     ctx.overrideAddVboTexture(null);
-                //     return;
-                // }
+                if (this._renderGlTexture && !this._hasRenderUpdates) {
+                    // Nothing needs to be done, just re-use the existing texture.
+                    ctx.overrideAddVboTexture(this.getRenderGlTexture());
+                    this.addToVbo();
+                    ctx.overrideAddVboTexture(null);
+                    return;
+                }
 
                 let texture = this.getRenderGlTexture();
                 ctx.setRenderTarget(texture);
