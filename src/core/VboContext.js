@@ -26,8 +26,6 @@ class VboContext {
         this.updateTreeOrder = 0;
         this.updateTreeOrderForceUpdate = 0;
 
-        this.staticStage = false;
-
         this._activeShaders = new Set();
 
         this._renderTargetStack = [];
@@ -122,7 +120,13 @@ class VboContext {
         this.gl.clear(gl.COLOR_BUFFER_BIT);
     }
 
-    updateAndRender() {
+    frame() {
+        if (!this.root._parent._hasRenderUpdates) {
+            return false;
+        }
+
+        this.layout();
+
         this.reset();
 
         this.root.update();
@@ -143,7 +147,9 @@ class VboContext {
         // Cleanup the latest added vbo shader.
         this.shader.cleanup(this);
 
-        this.staticStage = true;
+        this.root._parent._hasRenderUpdates = false;
+
+        return true;
     }
 
     /**

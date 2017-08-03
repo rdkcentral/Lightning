@@ -171,12 +171,7 @@ class Stage extends Base {
             this.textureAtlas.flush();
         }
 
-        let changes = !this.ctx.staticStage;
-        if (changes) {
-            this.ctx.layout();
-
-            this.ctx.updateAndRender();
-        }
+        let changes = this.ctx.frame();
 
         this.adapter.nextFrame(changes);
 
