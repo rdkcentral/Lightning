@@ -24,11 +24,11 @@ var start = function(wpe) {
     var texture = wpe.Tools.getRoundRect(stage, 400, 200, 10, 2, 0xFFFFFF00, true, 0xFF00FF00);
     stage.root.add([
         {tags: 'bg', clipping: false, rect: true, zIndex: 1, x: 20, y: 20, w: 600, rotation: 0.0, h: 600, colorUl: 0xFFFF0000, colorBr: 0xFFFF6666, children: [
-            {tag: 'image-3d', clipping: false, renderAsTexture: true, rotation: -0.1, w: 700, h: 700, y: 100, x: 10, scale: 1.3, children: [
-                {tags: 'hello', renderAsTexture: true, texture: texture, x: 10, y: 20, w: 400, h: 200},
-                {tags: 'image', renderAsTexture: true, shader: {type: wpe.Light3dShader}, shaderSettings: {z: 0, rx: 0}, rotation: 0.5, pivotX: 0.5, pivotY: 0.5, alpha: 1, mountX: 0.5, mountY:0.5, x: 450, y: 450, src: 'http://adn.gpupdate.net/news/297192.jpg', scale: 1, children: [
-                    {tag: 'border', type: BorderView, borderWidth: 20, rect: false, color: 0xFFFF0000, w: 100, h: 10, x: 150, y: 100, children: [
-                        {tags: 'hello', zIndex: -2, texture: texture}
+            {tag: 'image-3d', clipping: false, renderAsTexture: false, rotation: 0, w: 700, h: 700, y: 100, x: 10, scale: 1.3, children: [
+                {tags: 'hello', renderAsTexture: false, texture: texture, x: 10, y: 20, w: 400, h: 200},
+                {tags: 'image', shader: {type: wpe.Light3dShader, rx: 0.5, ry: 0.8}, shaderSettings: {z: 10}, rotation: 0.0, pivotX: 0.5, pivotY: 0.5, alpha: 1, mountX: 0.5, mountY:0.5, x: 450, y: 450, src: 'http://adn.gpupdate.net/news/297192.jpg', scale: 1, children: [
+                    {tag: 'border', type: BorderView, shaderSettings: {z: -100}, borderWidth: 20, rect: false, color: 0xFFFF0000, w: 100, h: 10, x: 150, y: 100, children: [
+                        {tags: 'hello', zIndex: 0, texture: texture, shaderSettings: {z: 50}}
                     ]}
                 ]},
             ]},
@@ -41,6 +41,8 @@ var start = function(wpe) {
 
     stage.root.transition('x', {duration: 10});
     stage.root.X = 100;
+
+
 
     // // let animdef = stage.animations.createSettings({duration: 3, delay: 3, autostop: true, stopTimingFunction: 'linear', stopDuration: 3, actions: [
     // //     {property: ['y'], value: {0:0,1:100}},
@@ -62,7 +64,9 @@ var start = function(wpe) {
 
     // stage.root.tag('image').setSmooth('rotation', 5, {duration: 30});
     //
-    stage.root.tag('image').setSmooth('shaderSettings.rx', 30, {duration: 30});
+    stage.root.tag('image').setSmooth('shader.rx', 30, {duration: 30});
+
+    stage.root.tag('border').setSmooth('x', 300, {duration: 3});
 
     //stage.root.tag('image.borders').shaderSettings.z = -1;
     //stage.root.tag('image.borders').setTval('shaderSettings.rx', -10, {duration: 3, merger: StageUtils.mergeNumbers});

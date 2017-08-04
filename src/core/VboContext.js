@@ -363,7 +363,7 @@ class VboContext {
         if (this._renderTarget) {
             return this._renderTarget.w;
         } else {
-            return this.stage.w;
+            return this.stage.options.w;
         }
     }
 
@@ -371,7 +371,7 @@ class VboContext {
         if (this._renderTarget) {
             return this._renderTarget.h;
         } else {
-            return this.stage.h;
+            return this.stage.options.h;
         }
     }
 }

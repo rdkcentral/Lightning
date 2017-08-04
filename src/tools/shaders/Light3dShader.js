@@ -11,6 +11,9 @@ class Light3dShader extends DefaultShader {
         this._strength = 1;
         this._ambient = 0;
         this._fudge = 0.4;
+
+        this._rx = 0;
+        this._ry = 0;
     }
 
     init(vboContext) {
@@ -20,10 +23,10 @@ class Light3dShader extends DefaultShader {
         this._strengthUniform = gl.getUniformLocation(this.glProgram, "strength");
         this._ambientUniform = gl.getUniformLocation(this.glProgram, "ambient");
         this._fudgeUniform = gl.getUniformLocation(this.glProgram, "fudge");
+        this._pivotUniform = gl.getUniformLocation(this.glProgram, "pivot");
+        this._rotUniform = gl.getUniformLocation(this.glProgram, "rot");
 
-        this._rotAttribute = gl.getAttribLocation(this.glProgram, "rot");
-        this._pivotAttribute = gl.getAttribLocation(this.glProgram, "pivot");
-        this._xyRotAttribute = gl.getAttribLocation(this.glProgram, "xyRot");
+        this._zAttribute = gl.getAttribLocation(this.glProgram, "z");
 
     }
 
@@ -32,53 +35,41 @@ class Light3dShader extends DefaultShader {
 
         let byteOffset = (offset + length) * vboContext.bytesPerQuad;
 
-        gl.vertexAttribPointer(this._rotAttribute, 3, gl.FLOAT, false, 28, byteOffset - (offset * this.getExtraBufferSizePerQuad()));
-        gl.enableVertexAttribArray(this._rotAttribute);
-
-        gl.vertexAttribPointer(this._pivotAttribute, 2, gl.FLOAT, false, 28, byteOffset - (offset * this.getExtraBufferSizePerQuad()) + 12);
-        gl.enableVertexAttribArray(this._pivotAttribute);
-
-        gl.vertexAttribPointer(this._xyRotAttribute, 2, gl.FLOAT, false, 28, byteOffset - (offset * this.getExtraBufferSizePerQuad()) + 20);
-        gl.enableVertexAttribArray(this._xyRotAttribute);
+        gl.vertexAttribPointer(this._zAttribute, 1, gl.FLOAT, false, 4, byteOffset - (offset * this.getExtraBufferSizePerQuad()));
+        gl.enableVertexAttribArray(this._zAttribute);
 
         gl.uniform1f(this._strengthUniform, this._strength)
         gl.uniform1f(this._ambientUniform, this._ambient)
         gl.uniform1f(this._fudgeUniform, this._fudge)
 
+        let vr = vboContext.shaderOwner;
+        let view = vr.view;
+        let coords = vr.getAbsoluteCoords(vr.rw * view.pivotX, vr.rh * view.pivotY);
+        coords.push(vr.shaderSettings.z / vboContext.getViewportWidth());
+        gl.uniform3fv(this._pivotUniform, new Float32Array(coords));
+
+        let rotZ = Math.atan2(vr._worldTc, vr._worldTa);
+        gl.uniform3fv(this._rotUniform, new Float32Array([this._rx, this._ry, rotZ]));
+
         let base = byteOffset / 4;
         for (let i = 0; i < length; i++) {
             let viewRenderer = vboContext.getViewRenderer(i);
             let s = viewRenderer.shaderSettings;
-            let z = s.totalZ;
-            let rx = s.totalRx;
-            let ry = s.totalRy;
+            let z = s.totalZ / vboContext.getViewportWidth();
 
-            let pivotX = s.pivotX;
-            let pivotY = s.pivotY;
-
-            let rotCos = s.rotCos;
-            let rotSin = s.rotSin;
-
-            for (let j = 0; j < 28; j+=7) {
-                vboContext.vboBufferFloat[base + i * 28 + j] = rx
-                vboContext.vboBufferFloat[base + i * 28 + j + 1] = ry
-                vboContext.vboBufferFloat[base + i * 28 + j + 2] = z
-                vboContext.vboBufferFloat[base + i * 28 + j + 3] = pivotX
-                vboContext.vboBufferFloat[base + i * 28 + j + 4] = pivotY
-                vboContext.vboBufferFloat[base + i * 28 + j + 5] = rotCos
-                vboContext.vboBufferFloat[base + i * 28 + j + 6] = rotSin
-            }
+            vboContext.vboBufferFloat[base + i * 4] = z
+            vboContext.vboBufferFloat[base + i * 4 + 1] = z
+            vboContext.vboBufferFloat[base + i * 4 + 2] = z
+            vboContext.vboBufferFloat[base + i * 4 + 3] = z
         }
 
         super.drawElements(vboContext, offset, length);
 
-        gl.disableVertexAttribArray(this._rotAttribute);
-        gl.disableVertexAttribArray(this._pivotAttribute);
-        gl.disableVertexAttribArray(this._xyRotAttribute);
+        gl.disableVertexAttribArray(this._zAttribute);
     }
 
     getExtraBufferSizePerQuad() {
-        return 28 * 4; // 20 bytes * 4 vertices.
+        return 4 * 4; // 4 bytes * 4 vertices.
     }
 
     set strength(v) {
@@ -108,6 +99,24 @@ class Light3dShader extends DefaultShader {
         return this._fudge;
     }
 
+    get rx() {
+        return this._rx;
+    }
+
+    set rx(v) {
+        this._rx = v;
+        this.redraw();
+    }
+
+    get ry() {
+        return this._ry;
+    }
+
+    set ry(v) {
+        this._ry = v;
+        this.redraw();
+    }
+
     hasViewSettings() {
         return true;
     }
@@ -128,29 +137,31 @@ Light3dShader.vertexShaderSource = `
     varying vec2 vTextureCoord;
     varying vec4 vColor;
 
-    attribute vec3 rot;
-    attribute vec2 pivot;
-    attribute vec2 xyRot;
+    attribute float z;
     uniform float fudge;
     uniform float strength;
     uniform float ambient;
+    uniform vec3 pivot;
+    uniform vec3 rot;
     varying float light;
 
     void main(void){
         vec4 pos = projectionMatrix * vec4(aVertexPosition, 0, 1);
+        
+        pos.z = z;
 
         float rx = rot.x;
         float ry = rot.y;
-        float z = rot.z;
+        float rz = rot.z;
 
         /* Translate to pivot position */
-        vec4 pivotPos = projectionMatrix * vec4(pivot, 0, 1);
+        vec4 pivotPos = projectionMatrix * vec4(pivot, 1);
         pivotPos.w = 0.0;
         pos -= pivotPos;
         
         /* Undo XY rotation */
-        mat2 iRotXy = mat2( xyRot.x, xyRot.y, 
-                           -xyRot.y, xyRot.x);
+        mat2 iRotXy = mat2( cos(rz), sin(rz), 
+                           -sin(rz), cos(rz));
         pos.xy = iRotXy * pos.xy;
 
         /* Perform rotations */
@@ -208,16 +219,6 @@ class Light3dShaderViewSettings extends ShaderSettings {
 
         this._z = 0;
         this._totalZ = 0;
-        this._rx = 0;
-        this._totalRx = 0;
-        this._ry = 0;
-        this._totalRy = 0;
-
-        this._pivotX = 0;
-        this._pivotY = 0;
-
-        this._rotCos = 1;
-        this._rotSin = 0;
     }
 
     get z() {
@@ -236,88 +237,10 @@ class Light3dShaderViewSettings extends ShaderSettings {
         return this._totalZ;
     }
 
-    get rx() {
-        return this._rx;
-    }
-
-    set rx(v) {
-        if (this._rx !== v) {
-            this._rx = v;
-
-            this._recalc();
-        }
-    }
-
-    get totalRx() {
-        return this._totalRx;
-    }
-
-    get ry() {
-        return this._ry;
-    }
-
-    set ry(v) {
-        if (this._ry !== v) {
-            this._ry = v;
-
-            this._recalc();
-        }
-    }
-
-    get totalRy() {
-        return this._totalRy;
-    }
-
-    get pivotX() {
-        return this._pivotX
-    }
-
-    get pivotY() {
-        return this._pivotY
-    }
-
-    get rotCos() {
-        return this._rotCos;
-    }
-
-    get rotSin() {
-        return this._rotSin;
-    }
-
     update() {
-        let vr = this._viewRenderer;
-        let view = vr._view;
-
-        let coords = vr.getAbsoluteCoords(vr.rw * view.pivotX, vr.rh * view.pivotY);
-
-        let x = coords[0];
-        let y = coords[1];
-
-        if (!vr._worldTc) {
-            this._rotCos = 1;
-            this._rotSin = 0;
-        } else {
-            this._rotCos = vr._worldTa;
-            this._rotSin = vr._worldTc;
-            let sq = vr._worldTa * vr._worldTa + vr._worldTc * vr._worldTc;
-            if (sq !== 1) {
-                let ilen = 1.0 / Math.sqrt(sq);
-                this._rotCos *= ilen;
-                this._rotSin *= ilen;
-            }
-        }
-
-        this._pivotX = x;
-        this._pivotY = y;
-
-        this._totalRx = this._rx;
-        this._totalRy = this._ry;
-
         this._totalZ = this._z;
         let parent = this._viewRenderer._parent;
         if (parent && parent.activeShader === this._shader) {
-            this._totalRx += parent.shaderSettings._totalRx;
-            this._totalRy += parent.shaderSettings._totalRy;
             this._totalZ += parent.shaderSettings._totalZ;
         }
     }
