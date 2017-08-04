@@ -11,7 +11,9 @@ module.exports = function(grunt) {
                     'src/core/GeometryUtils.js',
                     'src/core/Stage.js',
                     'src/core/ShaderProgram.js',
-                    'src/core/Renderer.js',
+                    'src/core/Shader.js',
+                    'src/core/ShaderSettings.js',
+                    'src/core/DefaultShader.js',
                     'src/core/TextureManager.js',
                     'src/core/Texture.js',
                     'src/core/TextureSource.js',
@@ -37,7 +39,9 @@ module.exports = function(grunt) {
                     'src/core/GeometryUtils.js',
                     'src/core/Stage.js',
                     'src/core/ShaderProgram.js',
-                    'src/core/Renderer.js',
+                    'src/core/Shader.js',
+                    'src/core/ShaderSettings.js',
+                    'src/core/DefaultShader.js',
                     'src/core/TextureManager.js',
                     'src/core/Texture.js',
                     'src/core/TextureSource.js',
@@ -60,7 +64,9 @@ module.exports = function(grunt) {
                     'src/animation/Animation.js',
                     'src/tools/Tools.js',
                     'src/tools/ListView.js',
-                    'src/tools/BorderView.js'
+                    'src/tools/BorderView.js',
+                    "src/tools/shaders/Light3dShader.js",
+                    "src/tools/shaders/BlurShader.js"
                 ],
                 dest : 'dist/wpe.js'
             }

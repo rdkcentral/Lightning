@@ -377,14 +377,6 @@ class ListView extends View {
         this.update();
     }
 
-    get VIEWPORTSCROLLOFFSET() {
-        return this._getTransVal('viewportScrollOffset', this.viewportScrollOffset);
-    }
-
-    set VIEWPORTSCROLLOFFSET(v) {
-        this._setTransVal('viewportScrollOffset', v)
-    }
-    
     get itemScrollOffset() {
         return this._itemScrollOffset;
     }
@@ -392,14 +384,6 @@ class ListView extends View {
     set itemScrollOffset(v) {
         this._itemScrollOffset = v;
         this.update();
-    }
-
-    get ITEMSCROLLOFFSET() {
-        return this._getTransVal('itemScrollOffset', this.itemScrollOffset);
-    }
-
-    set ITEMSCROLLOFFSET(v) {
-        this._setTransVal('itemScrollOffset', v)
     }
 
     get scrollTransitionSettings() {

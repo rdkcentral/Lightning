@@ -688,7 +688,7 @@ class ViewRenderer {
     
     getRenderGlTexture() {
         if (!this._renderGlTexture) {
-            this._renderGlTexture = this.ctx.createRenderGlTexture(this._rw, this._rh);
+            this._renderGlTexture = this.ctx.createRenderGlTexture(Math.min(2048, this._rw), Math.min(2048, this._rh));
         }
         return this._renderGlTexture;
     }
@@ -1077,6 +1077,12 @@ class ViewRenderer {
                 this._stashTexCoords();
                 this.addToVbo();
                 this._unstashTexCoords();
+
+                let samples = this.shader.getMultisamples(this);
+                if (samples > 0) {
+                    this.ctx.flushMultisample(this);
+                }
+
                 ctx.overrideAddVboTexture(null);
             }
 

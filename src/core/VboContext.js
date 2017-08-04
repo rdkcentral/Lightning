@@ -9,7 +9,7 @@ class VboContext {
     constructor(stage) {
         this.stage = stage;
 
-        this.vboParamsBuffer = new ArrayBuffer(16 * 4 * 16384 * 2);
+        this.vboParamsBuffer = new ArrayBuffer(VboContext.GL_PARAMSBUFFER_MEMORY);
         this.vboBufferFloat = new Float32Array(this.vboParamsBuffer);
         this.vboBufferUint = new Uint32Array(this.vboParamsBuffer);
         this.vboIndex = 0;
@@ -17,11 +17,13 @@ class VboContext {
         this.vboViewRenderers = [];
         this.vboGlTextures = [];
 
+        this.vboParamsBufferBytesRemaining = VboContext.GL_PARAMSBUFFER_MEMORY;
+
         // Current shader info.
         this.shader = null;
         this.shaderOwner = null;
 
-        this.bytesPerQuad = 64;
+        this.bytesPerQuad = 80;
 
         this.n = 0;
 
@@ -59,11 +61,13 @@ class VboContext {
         // Create new sharable buffer for params.
         this.paramsGlBuffer = gl.createBuffer();
 
+        let maxQuads = Math.floor(VboContext.GL_PARAMSBUFFER_MEMORY / 64);
+
         // Init webgl arrays.
-        let allIndices = new Uint16Array(VboContext.MAX_QUADS * 6);
+        let allIndices = new Uint16Array(maxQuads * 6);
 
         // fill the indices with the quads to draw.
-        for (let i = 0, j = 0; i < VboContext.MAX_QUADS * 6; i += 6, j += 4) {
+        for (let i = 0, j = 0; i < maxQuads; i += 6, j += 4) {
             allIndices[i] = j;
             allIndices[i + 1] = j + 1;
             allIndices[i + 2] = j + 2;
@@ -101,7 +105,6 @@ class VboContext {
         this.vboViewRenderers = [];
         this.vboGlTextures = [];
         this.textureAtlasGlTexture = this.stage.textureAtlas ? this.stage.textureAtlas.texture : null;
-        this.lastVboGlTexture = null;
         this.n = 0;
         this.updateTreeOrder = 0;
 
@@ -188,7 +191,9 @@ class VboContext {
 
         this.vboIndex += 16;
 
-        if (this.vboOffset > VboContext.MAX_QUADS - 10) {
+        this.vboParamsBufferBytesRemaining -= this.shader.getBufferSizePerQuad();
+
+        if (this.vboParamsBufferBytesRemaining < 1000) {
             this.flush();
         }
     }
@@ -230,6 +235,15 @@ class VboContext {
         this.vboIndex = 0;
         this.vboViewRenderers = [];
         this.vboGlTextures = [];
+        this.vboParamsBufferBytesRemaining = VboContext.GL_PARAMSBUFFER_MEMORY;
+    }
+
+    flushMultisample(viewRenderer) {
+        this.shader.drawMultisample(this, viewRenderer);
+        this.vboIndex = 0;
+        this.vboViewRenderers = [];
+        this.vboGlTextures = [];
+        this.vboParamsBufferBytesRemaining = VboContext.GL_PARAMSBUFFER_MEMORY;
     }
 
     drawElements(offset, length) {
@@ -262,6 +276,20 @@ class VboContext {
         this.vboIndex += 16;
 
         this.flush();
+    }
+
+    getMultisampleTextureA() {
+        if (!this.multisampleTextureA) {
+            this.multisampleTextureA = this.createRenderGlTexture(2048, 2048);
+        }
+        return this.multisampleTextureA;
+    }
+
+    getMultisampleTextureB() {
+        if (!this.multisampleTextureB) {
+            this.multisampleTextureB = this.createRenderGlTexture(2048, 2048);
+        }
+        return this.multisampleTextureB;
     }
 
     getView(vboOffset) {
@@ -376,13 +404,7 @@ class VboContext {
     }
 }
 
-/**
- * Max number of quads that can be rendered in one operation.
- * The memory usage is 64B * Renderer.MAX_QUADS.
- * @note if a sprite is being clipped or has borders, it may use more than 1 quad.
- * @type {number}
- */
-VboContext.MAX_QUADS = 10000;
+VboContext.GL_PARAMSBUFFER_MEMORY = 1000000;
 
 module.exports = VboContext;
 

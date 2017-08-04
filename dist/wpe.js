@@ -539,7 +539,8 @@ class Base {
 
     static setObjectSettings(obj, settings) {
         for (let name in settings) {
-            if (settings.hasOwnProperty(name)) {
+            // Type is a reserved keyword to specify the class type on creation.
+            if (settings.hasOwnProperty(name) && name != 'type') {
                 let v = settings[name];
                 if (Utils.isObjectLiteral(v) && Utils.isObject(obj[name])) {
                     // Sub object.
@@ -1318,14 +1319,14 @@ class GeometryUtils {
 
 /**
  * @todo:
- * - hasAlpha in format, and try to prepare images for upload (so that we get buffer performance).
- * - encapsulate tags branches (for isolating widgets)
+ * - shaders (VAOs)
  * - quick clone
  *   - text texture problems or not?
  * - change documentation
  *   - text2pngEndpoint
  *   - supercharger?
  *   - transition changes
+ *   - transition merger
  *   - animation mergers: native vs non-native
  *   - type extensions
  *   - list/borders
@@ -1333,8 +1334,8 @@ class GeometryUtils {
  *   - getRenderWidth
  *   - quick clone
  *   - offthread-image for better image loading performance
+ *   - shaders
  * - merge es6 to master
- * - shaders (VAOs)
  *
  * - convert UI(?)
  * - convert Bunnyhopper(?)
@@ -1396,8 +1397,6 @@ class Stage extends Base {
         this.animations = new AnimationManager(this);
         
 
-        this.renderer = new Renderer(this);
-
         this.textureManager = new TextureManager(this);
 
         if (this.options.useTextureAtlas) {
@@ -1406,20 +1405,13 @@ class Stage extends Base {
 
         this.ctx = new VboContext(this);
 
-        this.root = this.createView();
+        this.root = new View(this);
 
         this.root.setAsRoot();
 
         this.startTime = 0;
         this.currentTime = 0;
         this.dt = 0;
-
-        /**
-         * Counts the number of attached components that are using z-indices.
-         * This is used to determine if we can use a single-pass or dual-pass update/render loop.
-         * @type {number}
-         */
-        this.zIndexUsage = 0;
 
         this._destroyed = false;
 
@@ -1447,7 +1439,7 @@ class Stage extends Base {
         if (this.textureAtlas) {
             this.textureAtlas.destroy();
         }
-        this.renderer.destroy();
+        this.ctx.destroy();
         this.textureManager.destroy();
         this._destroyed = true;
     }
@@ -1490,15 +1482,7 @@ class Stage extends Base {
             this.textureAtlas.flush();
         }
 
-        let changes = !this.ctx.staticStage;
-        if (changes) {
-            this.ctx.layout();
-
-            this.ctx.updateAndFillVbo(this.zIndexUsage > 0);
-
-            // We will render the stage even if it's stable shortly after importing a texture in the texture atlas, to prevent out-of-syncs.
-            this.renderer.render();
-        }
+        let changes = this.ctx.frame();
 
         this.adapter.nextFrame(changes);
 
@@ -1523,9 +1507,8 @@ class Stage extends Base {
         let view;
         if (settings.type) {
             view = new settings.type(this);
-            delete settings.type;
         } else {
-            view = this.createView();
+            view = new View(this);
         }
         view.setSettings(settings);
         return view;
@@ -1566,75 +1549,28 @@ Base.mixinEs5(Stage, EventEmitter);
 
 
 /**
+ * Base functionality for shader setup/destroy.
  * Copyright Metrological, 2017
  */
-class Renderer {
+class ShaderProgram {
 
-    constructor(stage) {
-        this.stage = stage;
+    constructor(vertexShaderSource, fragmentShaderSource) {
 
-        this.gl = stage.gl;
-
-        this._program = null;
-
-        this._vertexShaderSrc = [
-            "#ifdef GL_ES",
-            "precision lowp float;",
-            "#endif",
-            "attribute vec2 aVertexPosition;",
-            "attribute vec2 aTextureCoord;",
-            "attribute vec4 aColor;",
-            "uniform mat4 projectionMatrix;",
-            "varying vec2 vTextureCoord;",
-            "varying vec4 vColor;",
-            "void main(void){",
-            "    gl_Position = projectionMatrix * vec4(aVertexPosition, 0.0, 1.0);",
-            "    vTextureCoord = aTextureCoord;",
-            "    vColor = aColor;",
-            "}"
-        ].join("\n");
-
-        this._fragmentShaderSrc = [
-            "#ifdef GL_ES",
-            "precision lowp float;",
-            "#endif",
-            "varying vec2 vTextureCoord;",
-            "varying vec4 vColor;",
-            "uniform sampler2D uSampler;",
-            "void main(void){",
-            "    gl_FragColor = texture2D(uSampler, vTextureCoord) * vColor;",
-            "}"
-        ].join("\n");
-
-        // The matrix that causes the [0,0 - W,H] box to map to [-1,-1 - 1,1] in the end results.
-        this._projectionMatrix = new Float32Array([
-            2/this.stage.options.renderWidth, 0, 0, 0,
-            0, -2/this.stage.options.renderHeight, 0, 0,
-            0, 0, 1, 0,
-            -1, 1, 0, 1
-        ]);
-
-        this._paramsGlBuffer = null;
+        this.vertexShaderSource = vertexShaderSource;
+        this.fragmentShaderSource = fragmentShaderSource;
 
         this._program = null;
-
-        this._vertexPositionAttribute = null;
-        this._textureCoordAttribute = null;
-        this._colorAttribute = null;
-
-        this._indicesGlBuffer = null;
-
-        this._initShaderProgram();
-
     }
 
-    _initShaderProgram() {
-        let gl = this.gl;
+    compile(gl) {
+        if (this._program) return;
 
-        let glVertShader = this._glCompile(gl.VERTEX_SHADER, this._vertexShaderSrc);
-        let glFragShader = this._glCompile(gl.FRAGMENT_SHADER, this._fragmentShaderSrc);
+        this.gl = gl;
 
         this._program = gl.createProgram();
+
+        let glVertShader = this._glCompile(gl.VERTEX_SHADER, this.vertexShaderSource);
+        let glFragShader = this._glCompile(gl.FRAGMENT_SHADER, this.fragmentShaderSource);
 
         gl.attachShader(this._program, glVertShader);
         gl.attachShader(this._program, glFragShader);
@@ -1659,37 +1595,8 @@ class Renderer {
         // clean up some shaders
         gl.deleteShader(glVertShader);
         gl.deleteShader(glFragShader);
-
-        // Bind attributes.
-        this._vertexPositionAttribute = gl.getAttribLocation(this._program, "aVertexPosition");
-        this._textureCoordAttribute = gl.getAttribLocation(this._program, "aTextureCoord");
-        this._colorAttribute = gl.getAttribLocation(this._program, "aColor");
-
-        // Init webgl arrays.
-
-        this.allIndices = new Uint16Array(100000);
-
-        // fill the indices with the quads to draw.
-        for (let i = 0, j = 0; i < Renderer.MAX_QUADS * 6; i += 6, j += 4) {
-            this.allIndices[i] = j;
-            this.allIndices[i + 1] = j + 1;
-            this.allIndices[i + 2] = j + 2;
-            this.allIndices[i + 3] = j;
-            this.allIndices[i + 4] = j + 2;
-            this.allIndices[i + 5] = j + 3;
-        }
-
-        this._paramsGlBuffer = gl.createBuffer();
-
-        this._indicesGlBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._indicesGlBuffer);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this.allIndices, gl.STATIC_DRAW);
-
-        // Set transformation matrix.
-        let projectionMatrixAttribute = gl.getUniformLocation(this._program, "projectionMatrix");
-        gl.uniformMatrix4fv(projectionMatrixAttribute, false, this._projectionMatrix);
     }
-    
+
     _glCompile(type, src) {
         let shader = this.gl.createShader(type);
 
@@ -1705,83 +1612,300 @@ class Renderer {
     }
 
     destroy() {
-        this.gl.deleteBuffer(this._paramsGlBuffer);
-        this.gl.deleteBuffer(this._indicesGlBuffer);
         this.gl.deleteProgram(this._program);
+        this._program = null;
     }
-    
-    render() {
-        if (this.gl.isContextLost && this.gl.isContextLost()) {
-            console.error('WebGL context lost');
-            return;
+
+    get glProgram() {
+        return this._program;
+    }
+
+    get compiled() {
+        return !!this._program;
+    }
+
+}
+
+/**
+ * Copyright Metrological, 2017
+ */
+
+
+class Shader extends Base {
+
+    constructor(stage, vertexShaderSource, fragmentShaderSource) {
+        super();
+
+        this._program = Shader.programs.get(this.constructor);
+        if (!this._program) {
+            this._program = new ShaderProgram(vertexShaderSource, fragmentShaderSource);
+            Shader.programs.set(this.constructor, this._program);
+        }
+        this._initialized = false;
+
+        this._stage = stage;
+
+        this._lastFrameUsed = 0;
+    }
+
+    redraw() {
+        this._stage.ctx.staticStage = false;
+    }
+
+    init(vboContext) {
+        this._program.compile(vboContext.gl);
+        this._initialized = true;
+    }
+
+    drawElements(vboContext, offset, length, multisample = 0) {
+        // Set up shader attributes, uniforms, draw elements and disable attributes.
+    }
+
+    drawMultisample(vboContext, viewRenderer) {
+        // Draws a renderAsTexture in a multisampled way.
+        let amount = this.getMultisamples(viewRenderer)
+
+        let origSource = vboContext.vboGlTextures[0]
+        let target = null;
+        for (let i = 0; i < amount; i++) {
+            target = i % 2 === 0 ? vboContext.getMultisampleTextureA() : vboContext.getMultisampleTextureB();
+
+            vboContext.setRenderTarget(target);
+
+            // Limit viewport to texture dimensions.
+            vboContext.gl.viewport(0, 0, origSource.w, origSource.h);
+
+            if (i !== 0) {
+                vboContext.vboGlTextures[0] = (i % 2 === 0 ? vboContext.getMultisampleTextureB() : vboContext.getMultisampleTextureA());
+            }
+
+            this.drawElements(vboContext, 0, vboContext.vboOffset, i + 1);
+
+            vboContext.restoreRenderTarget();
         }
 
-        // Draw the actual textures to screen.
-        this.renderItems();
+        // Actually render to the real render target.
+        vboContext.vboGlTextures[0] = target;
+        this.drawElements(vboContext, 0, vboContext.vboOffset, 0)
     }
-    
-    renderItems() {
-        let i;
-        let gl = this.gl;
 
-        let ctx = this.stage.ctx;
+    setup(vboContext) {
+        vboContext.gl.useProgram(this.glProgram);
+    }
 
-        // Set up WebGL program.
-        gl.useProgram(this._program);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.viewport(0,0,this.stage.options.w,this.stage.options.h);
+    cleanup(vboContext) {
+    }
+
+    get initialized() {
+        return this._initialized;
+    }
+
+    destroy() {
+        this._initialized = false;
+    }
+
+    get glProgram() {
+        return this._program.glProgram;
+    }
+
+    hasViewSettings() {
+        return false;
+    }
+
+    createViewSettings() {
+        return null;
+    }
+
+    getBufferSizePerQuad() {
+        return 0;
+    }
+
+    getMultisamples(viewRenderer) {
+        return 0;
+    }
+
+}
+
+Shader.programs = new Map();
+Shader.destroyPrograms = function() {
+    Shader.programs.forEach(program => program.destroy());
+}
+
+
+class ShaderSettings extends Base {
+
+    constructor(shader, viewRenderer) {
+        super();
+        this._shader = shader;
+        this._viewRenderer = viewRenderer;
+    }
+
+    _recalc() {
+        this._shader.redraw();
+        // Force hasUpdates.
+        this._viewRenderer._setRecalc(64);
+    }
+
+    update() {
+    }
+}
+
+/**
+ * Copyright Metrological, 2017
+ */
+
+
+class DefaultShader extends Shader {
+
+    constructor(stage, vertexShaderSource = DefaultShader.vertexShaderSource, fragmentShaderSource = DefaultShader.fragmentShaderSrc) {
+        super(stage, vertexShaderSource, fragmentShaderSource);
+    }
+
+    init(vboContext) {
+        super.init(vboContext);
+
+        let gl = vboContext.gl;
+
+        // Bind attributes.
+        this._vertexPositionAttribute = gl.getAttribLocation(this.glProgram, "aVertexPosition");
+        this._textureCoordAttribute = gl.getAttribLocation(this.glProgram, "aTextureCoord");
+        this._colorAttribute = gl.getAttribLocation(this.glProgram, "aColor");
+    }
+
+    setup(vboContext) {
+        super.setup(vboContext);
+
+        let gl = vboContext.gl;
+
         gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
         gl.enable(gl.BLEND);
         gl.disable(gl.DEPTH_TEST);
 
-        // Clear screen.
-        let glClearColor = this.stage.options.glClearColor;
-        gl.clearColor(glClearColor[0], glClearColor[1], glClearColor[2], glClearColor[3]);
-        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.bindBuffer(gl.ARRAY_BUFFER, vboContext.paramsGlBuffer);
 
-        let view = new DataView(ctx.vboParamsBuffer, 0, ctx.vboIndex * 4);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this._paramsGlBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, view, gl.DYNAMIC_DRAW);
-        let vboGlTextures = ctx.vboGlTextures;
-        let vboGlTextureRepeats = ctx.vboGlTextureRepeats;
-        let count = ctx.vboGlTextures.length;
+        gl.vertexAttribPointer(this._vertexPositionAttribute, 2, gl.FLOAT, false, 16, 0);
+        gl.vertexAttribPointer(this._textureCoordAttribute, 2, gl.UNSIGNED_SHORT, true, 16, 2 * 4);
+        gl.vertexAttribPointer(this._colorAttribute, 4, gl.UNSIGNED_BYTE, true, 16, 3 * 4);
 
-        if (count) {
-            gl.vertexAttribPointer(this._vertexPositionAttribute, 2, gl.FLOAT, false, 16, 0);
-            gl.vertexAttribPointer(this._textureCoordAttribute, 2, gl.UNSIGNED_SHORT, true, 16, 2 * 4);
-            gl.vertexAttribPointer(this._colorAttribute, 4, gl.UNSIGNED_BYTE, true, 16, 3 * 4);
+        gl.enableVertexAttribArray(this._vertexPositionAttribute);
+        gl.enableVertexAttribArray(this._textureCoordAttribute);
+        gl.enableVertexAttribArray(this._colorAttribute);
 
-            gl.enableVertexAttribArray(this._vertexPositionAttribute);
-            gl.enableVertexAttribArray(this._textureCoordAttribute);
-            gl.enableVertexAttribArray(this._colorAttribute);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, vboContext.quadsGlBuffer);
 
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._indicesGlBuffer);
-
-            let pos = 0;
-            for (i = 0; i < count; i++) {
-                gl.bindTexture(gl.TEXTURE_2D, vboGlTextures[i]);
-                gl.drawElements(gl.TRIANGLES, 6 * vboGlTextureRepeats[i], gl.UNSIGNED_SHORT, pos * 6 * 2);
-                pos += vboGlTextureRepeats[i];
-            }
-            gl.disableVertexAttribArray(this._vertexPositionAttribute);
-            gl.disableVertexAttribArray(this._textureCoordAttribute);
-            gl.disableVertexAttribArray(this._colorAttribute);
-        }
-
+        this.setupExtra(vboContext);
     }
-    
+
+    getExtraBufferSizePerQuad() {
+        return 0
+    }
+
+    getBufferSizePerQuad() {
+        return 64 + this.getExtraBufferSizePerQuad()
+    }
+
+    drawElements(vboContext, offset, length) {
+        let gl = vboContext.gl;
+
+        if (length) {
+            this.updateProjectionMatrix(vboContext);
+
+            let view = new DataView(vboContext.vboParamsBuffer, offset * vboContext.bytesPerQuad, length * (vboContext.bytesPerQuad + this.getExtraBufferSizePerQuad()));
+            gl.bufferData(gl.ARRAY_BUFFER, view, gl.DYNAMIC_DRAW);
+
+            let glTexture = vboContext.getVboGlTexture(0);
+            let pos = offset;
+            let end = offset + length;
+            for (let i = offset; i < end; i++) {
+                let tx = vboContext.getVboGlTexture(i);
+                if (glTexture !== tx) {
+                    gl.bindTexture(gl.TEXTURE_2D, glTexture);
+                    gl.drawElements(gl.TRIANGLES, 6 * (i - pos), gl.UNSIGNED_SHORT, pos * 6 * 2);
+                    glTexture = tx;
+                    pos = i;
+                }
+            }
+            if (pos < end) {
+                gl.bindTexture(gl.TEXTURE_2D, glTexture);
+                gl.drawElements(gl.TRIANGLES, 6 * (end - pos), gl.UNSIGNED_SHORT, pos * 6 * 2);
+            }
+        }
+    }
+
+    updateProjectionMatrix(vboContext) {
+        let newPjm = vboContext.getProjectionMatrix();
+        if (this._setupPjm !== newPjm) {
+            let gl = vboContext.gl
+            gl.uniformMatrix4fv(this._projectionMatrixAttribute, false, newPjm)
+            this._setupPjm = newPjm;
+        }
+    }
+
+    cleanup(vboContext) {
+        super.cleanup(vboContext);
+
+        let gl = vboContext.gl;
+
+        gl.disableVertexAttribArray(this._vertexPositionAttribute);
+        gl.disableVertexAttribArray(this._textureCoordAttribute);
+        gl.disableVertexAttribArray(this._colorAttribute);
+
+        this.cleanupExtra(vboContext);
+    }
+
+    setupExtraOnly(vboContext) {
+        vboContext.gl.useProgram(this.glProgram);
+
+        this.setupExtra(vboContext);
+    }
+
+    cleanupExtraOnly(vboContext) {
+        this.cleanupExtra(vboContext);
+    }
+
+    setupExtra(vboContext) {
+        this._projectionMatrixAttribute = vboContext.gl.getUniformLocation(this.glProgram, "projectionMatrix");
+
+        // Set up additional params.
+    }
+
+    cleanupExtra(vboContext) {
+        // Clean up additional params.
+        this._setupPjm = null;
+    }
+
 }
 
-/**
- * Max number of quads that can be rendered in one frame.
- * The memory usage is 64B * Renderer.MAX_QUADS.
- * Notice that this may never be higher than (65536 / 4)|0 due to index buffer limitations.
- * @note if a sprite is being clipped or has borders, it may use more than 1 quad.
- * @type {number}
- */
-Renderer.MAX_QUADS = (65536 / 4)|0;
+DefaultShader.vertexShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    attribute vec2 aVertexPosition;
+    attribute vec2 aTextureCoord;
+    attribute vec4 aColor;
+    uniform mat4 projectionMatrix;
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    void main(void){
+        gl_Position = projectionMatrix * vec4(aVertexPosition, 0.0, 1.0);
+        vTextureCoord = aTextureCoord;
+        vColor = aColor;
+    }
+`;
 
+DefaultShader.fragmentShaderSrc = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    uniform sampler2D uSampler;
+    void main(void){
+        gl_FragColor = texture2D(uSampler, vTextureCoord) * vColor;
+    }
+`;
 
+DefaultShader.prototype.isDefaultShader = true;
 
 /**
  * Copyright Metrological, 2017
@@ -2415,9 +2539,39 @@ TextureSource.id = 1;
 /**
  * Copyright Metrological, 2017
  */
+
+
 class TextureAtlas {
 
     constructor(stage) {
+        let vertexShaderSrc = `
+            #ifdef GL_ES
+            precision lowp float;
+            #endif
+            attribute vec2 aVertexPosition;
+            attribute vec2 aTextureCoord;
+            uniform mat4 projectionMatrix;
+            varying vec2 vTextureCoord;
+            void main(void){
+                gl_Position = projectionMatrix * vec4(aVertexPosition, 0.0, 1.0);
+                vTextureCoord = aTextureCoord;
+            }
+        `;
+
+        let fragmentShaderSrc = `
+            #ifdef GL_ES
+            precision lowp float;
+            #endif
+            varying vec2 vTextureCoord;
+            uniform sampler2D uSampler;
+            void main(void){
+                gl_FragColor = texture2D(uSampler, vTextureCoord);
+            }
+        `;
+
+        this._program = new ShaderProgram(vertexShaderSrc, fragmentShaderSrc)
+        this._program.compile(stage.gl);
+
         this.stage = stage;
 
         this.w = 2048;
@@ -2442,38 +2596,6 @@ class TextureAtlas {
          * @type {number}
          */
         this._wastedPixels = 0;
-
-        /**
-         * @type {WebGLRenderingContext}
-         */
-        this.gl = this.stage.gl;
-
-        this._vertexShaderSrc = [
-            "#ifdef GL_ES",
-            "precision lowp float;",
-            "#endif",
-            "attribute vec2 aVertexPosition;",
-            "attribute vec2 aTextureCoord;",
-            "uniform mat4 projectionMatrix;",
-            "varying vec2 vTextureCoord;",
-            "void main(void){",
-            "    gl_Position = projectionMatrix * vec4(aVertexPosition, 0.0, 1.0);",
-            "    vTextureCoord = aTextureCoord;",
-            "}"
-        ].join("\n");
-
-        this._fragmentShaderSrc = [
-            "#ifdef GL_ES",
-            "precision lowp float;",
-            "#endif",
-            "varying vec2 vTextureCoord;",
-            "uniform sampler2D uSampler;",
-            "void main(void){",
-            "    gl_FragColor = texture2D(uSampler, vTextureCoord);",
-            "}"
-        ].join("\n");
-
-        this._program = null;
 
         /**
          * The last render frame number that the texture atlas was defragmented on.
@@ -2501,53 +2623,15 @@ class TextureAtlas {
          */
         this._uploads = [];
 
-        // The matrix that causes the [0,0 - w,h] box to map to [-1,-1 - 1,1] in the end results.
-        this._projectionMatrix = new Float32Array([
-            2/this.w, 0, 0, 0,
-            0, 2/this.h, 0, 0,
-            0, 0, 1, 0,
-            -1, -1, 0, 1
-        ]);
-
-        this._initShaderProgram();
-        
+        this._init();
     }
     
-    _initShaderProgram() {
+    _init() {
         let gl = this.gl;
 
-        let glVertShader = this._glCompile(gl.VERTEX_SHADER, this._vertexShaderSrc);
-        let glFragShader = this._glCompile(gl.FRAGMENT_SHADER, this._fragmentShaderSrc);
-
-        this._program = gl.createProgram();
-
-        gl.attachShader(this._program, glVertShader);
-        gl.attachShader(this._program, glFragShader);
-        gl.linkProgram(this._program);
-
-        // if linking fails, then log and cleanup
-        if (!gl.getProgramParameter(this._program, gl.LINK_STATUS)) {
-            console.error('Error: Could not initialize shader.');
-            console.error('gl.VALIDATE_STATUS', gl.getProgramParameter(this._program, gl.VALIDATE_STATUS));
-            console.error('gl.getError()', gl.getError());
-
-            // if there is a program info log, log it
-            if (gl.getProgramInfoLog(this._program) !== '') {
-                console.warn('Warning: gl.getProgramInfoLog()', gl.getProgramInfoLog(this._program));
-            }
-
-            gl.deleteProgram(this._program);
-            this._program = null;
-        }
-        gl.useProgram(this._program);
-
-        // clean up some shaders
-        gl.deleteShader(glVertShader);
-        gl.deleteShader(glFragShader);
-
         // Bind attributes.
-        this._vertexPositionAttribute = gl.getAttribLocation(this._program, "aVertexPosition");
-        this._textureCoordAttribute = gl.getAttribLocation(this._program, "aTextureCoord");
+        this._vertexPositionAttribute = gl.getAttribLocation(this.glProgram, "aVertexPosition");
+        this._textureCoordAttribute = gl.getAttribLocation(this.glProgram, "aTextureCoord");
 
         // Init webgl arrays.
         // We support up to 1000 textures per call, all consisting out of 9 elements.
@@ -2572,13 +2656,21 @@ class TextureAtlas {
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this._allIndices, gl.STATIC_DRAW);
 
         // Set transformation matrix.
-        let projectionMatrixAttribute = gl.getUniformLocation(this._program, "projectionMatrix");
+        // The matrix that causes the [0,0 - w,h] box to map to [-1,-1 - 1,1] in the end results.
+        this._projectionMatrix = new Float32Array([
+            2/this.w, 0, 0, 0,
+            0, 2/this.h, 0, 0,
+            0, 0, 1, 0,
+            -1, -1, 0, 1
+        ]);
+
+        let projectionMatrixAttribute = gl.getUniformLocation(this.glProgram, "projectionMatrix");
         gl.uniformMatrix4fv(projectionMatrixAttribute, false, this._projectionMatrix);
 
         this.texture = this.gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
 
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.w, this.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(this.w * this.h * 4));
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.w, this.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -2596,26 +2688,12 @@ class TextureAtlas {
 
     }
     
-    _glCompile(type, src) {
-        let shader = this.gl.createShader(type);
-
-        this.gl.shaderSource(shader, src);
-        this.gl.compileShader(shader);
-
-        if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-            console.log(this.gl.getShaderInfoLog(shader));
-            return null;
-        }
-
-        return shader;
-    }
-    
     destroy() {
         this.gl.deleteTexture(this.texture);
         this.gl.deleteFramebuffer(this.framebuffer);
         this.gl.deleteBuffer(this.paramsGlBuffer);
         this.gl.deleteBuffer(this._indicesGlBuffer);
-        this.gl.deleteProgram(this._program);        
+        this._program.destroy();
     }
     
     uploadTextureSources(textureSources) {
@@ -2815,7 +2893,7 @@ class TextureAtlas {
 
         let gl = this.gl;
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
-        gl.useProgram(this._program);
+        gl.useProgram(this.glProgram);
         gl.viewport(0,0,this.w,this.h);
         gl.blendFunc(gl.ONE, gl.ZERO);
         gl.enable(gl.BLEND);
@@ -2970,6 +3048,15 @@ class TextureAtlas {
             this._uploads = [];
         }
     }
+
+    get glProgram() {
+        return this._program.glProgram;
+    }
+
+    get gl() {
+        return this._program.gl;
+    }
+
 }
 
 
@@ -3156,6 +3243,13 @@ class View {
          */
         this._tagToComplex = null;
 
+        /**
+         * Creates a tag context: tagged views in this branch will not be reachable from ancestors of this view.
+         * @type {boolean}
+         * @private
+         */
+        this._tagRoot = false;
+
         this._x = 0;
         this._y = 0;
         this._w = 0;
@@ -3341,19 +3435,9 @@ class View {
         if (this._displayedTexture && this._displayedTexture !== this._texture) {
             this._displayedTexture.source.addView(this);
         }
-
-        if (this.zIndex != 0) {
-            // View uses z-index.
-            this.stage.zIndexUsage++;
-        }
     }
 
     _unsetActiveFlag() {
-        if (this.zIndex != 0) {
-            // View uses z-index.
-            this.stage.zIndexUsage--;
-        }
-
         if (this._texture) {
             this._texture.source.removeView(this);
         }
@@ -3361,6 +3445,8 @@ class View {
         if (this._displayedTexture) {
             this._displayedTexture.source.removeView(this);
         }
+
+        this.renderer.deleteRenderGlTexture();
 
         this._active = false;
     }
@@ -3692,7 +3778,7 @@ class View {
     _unsetTagsParent() {
         let tags = null;
         let n = 0;
-        if (this._treeTags) {
+        if (!this._tagRoot && this._treeTags) {
             tags = Utils.iteratorToArray(this._treeTags.keys());
             n = tags.length;
 
@@ -3702,7 +3788,7 @@ class View {
 
                     // Remove from treeTags.
                     let p = this;
-                    while (p = p._parent) {
+                    while ((p = p._parent) && !p._tagRoot) {
                         let parentTreeTags = p._treeTags.get(tags[i]);
 
                         tagSet.forEach(function (comp) {
@@ -3715,16 +3801,15 @@ class View {
                 }
             }
         }
-
     };
 
     _setTagsParent() {
-        if (this._treeTags && this._treeTags.size) {
+        if (!this._tagRoot && this._treeTags && this._treeTags.size) {
             let self = this;
             this._treeTags.forEach(function (tagSet, tag) {
                 // Add to treeTags.
                 let p = self;
-                while (p = p._parent) {
+                while ((p = p._parent) && !p._tagRoot) {
                     if (!p._treeTags) {
                         p._treeTags = new Map();
                     }
@@ -3896,6 +3981,22 @@ class View {
         let n = t.length;
         for (let i = 0; i < n; i++) {
             t[i].setSettings(settings);
+        }
+    }
+
+    get tagRoot() {
+        return this._tagRoot;
+    }
+
+    set tagRoot(v) {
+        if (this._tagRoot !== v) {
+            if (!v) {
+                this._setTagsParent();
+            } else {
+                this._unsetTagsParent();
+            }
+
+            this._tagRoot = v;
         }
     }
 
@@ -4329,13 +4430,6 @@ class View {
     set zIndex(v) {
         let prev = this.renderer.zIndex;
         this.renderer.zIndex = v;
-        if (this._active) {
-            if (prev !== 0 && v === 0) {
-                this.stage.zIndexUsage--
-            } else if (prev === 0 && v !== 0) {
-                this.stage.zIndexUsage++
-            }
-        }
     }
 
     get forceZIndexContext() {return this.renderer.forceZIndexContext}
@@ -4479,6 +4573,41 @@ class View {
         this.renderer.layoutExit = f;
     }
 
+    get shader() {
+        return this.renderer.shader;
+    }
+
+    set shader(v) {
+        let shader;
+        if (Utils.isPlainObject(v)) {
+            shader = new v.type(this.stage);
+            v = Utils.cloneObj(v);
+            delete v.type;
+            shader.setSettings(v);
+        } else if (v === null) {
+            shader = this.stage.ctx.defaultShader;
+        } else {
+            shader = v;
+        }
+        this.renderer.shader = shader;
+    }
+
+    get shaderSettings() {
+        return this.renderer.shaderSettings;
+    }
+
+    set shaderSettings(v) {
+        this.shaderSettings.setSettings(v);
+    }
+
+    get renderAsTexture() {
+        return this.renderer.renderAsTexture;
+    }
+
+    set renderAsTexture(v) {
+        this.renderer.renderAsTexture = v;
+    }
+
     
     animation(settings) {
         return this.stage.animations.createAnimation(this, settings);
@@ -4560,7 +4689,7 @@ class View {
         }
     }
 
-    _getTransVal(property, v) {
+    getSmooth(property, v) {
         let t = this._getTransition(property);
         if (t && t.isActive()) {
             return t.targetValue;
@@ -4569,153 +4698,12 @@ class View {
         }
     }
 
-    _setTransVal(property, v) {
+    setSmooth(property, v, settings) {
+        if (settings) {
+            this._setTransition(property, settings);
+        }
         let t = this._getTransition(property);
         t.start(v);
-    }
-
-    get X() {
-        return this._getTransVal('x', this.x);
-    }
-    
-    set X(v) {
-        this._setTransVal('x', v)
-    }
-
-    get Y() {
-        return this._getTransVal('y', this.y);
-    }
-
-    set Y(v) {
-        this._setTransVal('y', v)
-    }
-
-    get W() {
-        return this._getTransVal('w', this.w);
-    }
-
-    set H(v) {
-        this._setTransVal('h', v)
-    }
-
-    get SCALE() {
-        return this._getTransVal('scale', this.scale);
-    }
-
-    set SCALE(v) {
-        this._setTransVal('scale', v)
-    }
-
-    get SCALEX() {
-        return this._getTransVal('scaleX', this.scaleX);
-    }
-
-    set SCALEX(v) {
-        this._setTransVal('scaleX', v)
-    }
-
-    get PIVOT() {
-        return this._getTransVal('pivot', this.pivot);
-    }
-
-    set PIVOT(v) {
-        this._setTransVal('pivot', v)
-    }
-
-    get PIVOTX() {
-        return this._getTransVal('pivotX', this.pivotX);
-    }
-
-    set PIVOTX(v) {
-        this._setTransVal('pivotX', v)
-    }
-    
-    get MOUNT() {
-        return this._getTransVal('mount', this.mount);
-    }
-
-    set MOUNT(v) {
-        this._setTransVal('mount', v)
-    }
-
-    get MOUNTX() {
-        return this._getTransVal('mountX', this.mountX);
-    }
-
-    set MOUNTX(v) {
-        this._setTransVal('mountX', v)
-    }
-
-    get ALPHA() {
-        return this._getTransVal('alpha', this.alpha);
-    }
-
-    set ALPHA(v) {
-        this._setTransVal('alpha', v)
-    }
-
-    get ROTATION() {
-        return this._getTransVal('rotation', this.rotation);
-    }
-
-    set ROTATION(v) {
-        this._setTransVal('rotation', v)
-    }
-
-    get COLOR() {
-        return this._getTransVal('color', this.color);
-    }
-
-    set COLOR(v) {
-        this._setTransVal('color', v)
-    }
-
-    set COLORTOP(v) {
-        this._setTransVal('colorTop', v)
-    }
-
-    set COLORBOTTOM(v) {
-        this._setTransVal('colorBottom', v)
-    }
-
-    set COLORLEFT(v) {
-        this._setTransVal('colorLeft', v)
-    }
-
-    set COLORRIGHT(v) {
-        this._setTransVal('colorRight', v)
-    }
-
-    get COLORUL() {
-        return this._getTransVal('colorUl', this.colorUl);
-    }
-
-    set COLORUL(v) {
-        this._setTransVal('colorUl', v)
-    }
-
-    get COLORUR() {
-        return this._getTransVal('colorUr', this.colorUr);
-    }
-
-    set COLORUR(v) {
-        this._setTransVal('colorUr', v)
-    }
-
-    get COLORBL() {
-        return this._getTransVal('colorBl', this.colorBl);
-    }
-
-    set COLORBL(v) {
-        this._setTransVal('colorBl', v)
-    }
-
-    get COLORBR() {
-        return this._getTransVal('colorBr', this.colorBr);
-    }
-
-    set COLORBR(v) {
-        this._setTransVal('colorBr', v)
     }
     
 
@@ -4727,9 +4715,6 @@ class View {
         return View.isColorProperty(property, this.constructor);
     }
 
-    getMerger(property) {
-        return View.getMerger(property, this.constructor);
-    }
 }
 
 View.isNumberProperty = function(property, type = View) {
@@ -4883,8 +4868,14 @@ class ViewChildList {
 
     a(o) {
         if (Utils.isObjectLiteral(o)) {
-            let c = this._view.stage.view(o);
+            let c;
+            if (o.type) {
+                c = new o.type(this._view.stage);
+            } else {
+                c = this._view.stage.createView();
+            }
             this.add(c);
+            c.setSettings(o);
             return c;
         } else if (Array.isArray(o)) {
             for (let i = 0, n = o.length; i < n; i++) {
@@ -4902,8 +4893,14 @@ class ViewChildList {
         for (let i = 0, n = views.length; i < n; i++) {
             let o = views[i];
             if (Utils.isObjectLiteral(o)) {
-                let c = this._view.stage.view(o);
+                let c;
+                if (o.type) {
+                    c = new o.type(this._view.stage);
+                } else {
+                    c = this._view.stage.createView();
+                }
                 this.add(c);
+                c.setSettings(o);
             } else if (o.isView) {
                 this.add(o);
             }
@@ -4930,6 +4927,8 @@ class ViewRenderer {
         this._parent = null;
 
         this._hasUpdates = false;
+
+        this._hasRenderUpdates = false;
 
         this._layoutEntry = null;
 
@@ -5021,6 +5020,22 @@ class ViewRenderer {
 
         this._zIndexedChildren = null;
 
+        this._shader = null;
+
+        this._activeShader = null;
+
+        this._shaderSettings = null;
+
+        this._renderGlTexture = null;
+    }
+
+    _setHasRenderUpdates() {
+        if (this._worldAlpha) {
+            let p = this;
+            do {
+                p._hasRenderUpdates = true;
+            } while ((p = p._parent) && !p._hasRenderUpdates);
+        }
     }
 
     /**
@@ -5029,6 +5044,7 @@ class ViewRenderer {
      *   2: translate
      *   4: transform
      *   8: clipping
+     *  64: shader settings
      * 128: force layout when becoming visible
      * @private
      */
@@ -5036,11 +5052,13 @@ class ViewRenderer {
         this._recalc |= type;
 
         if (this._worldAlpha) {
-            this.ctx.staticStage = false;
             let p = this;
             do {
                 p._hasUpdates = true;
             } while ((p = p._parent) && !p._hasUpdates);
+
+            // Any changes in descendants should trigger texture updates.
+            if (this._parent) this._parent._setHasRenderUpdates();
         } else {
             this._hasUpdates = true;
         }
@@ -5050,11 +5068,20 @@ class ViewRenderer {
         this._recalc |= type;
 
         if (this._worldAlpha || force) {
-            this.ctx.staticStage = false;
             let p = this;
             do {
                 p._hasUpdates = true;
             } while ((p = p._parent) && !p._hasUpdates);
+
+            if (force) {
+                // View is becoming visible: it's own rendering may have changed while invisible.
+                this._setHasRenderUpdates();
+            } else {
+                // Any changes in descendants should trigger texture updates.
+                if (this._parent) {
+                    this._parent._setHasRenderUpdates();
+                }
+            }
         } else {
             this._hasUpdates = true;
         }
@@ -5085,7 +5112,7 @@ class ViewRenderer {
             this._parent = parent;
 
             if (prevParent && prevParent._hasLayoutHooks === 1) {
-                prevParent._setHasLayoutHooksCheck(); // Unknown.
+                prevParent._setHasLayoutHooksCheck();
             }
 
             if (parent) {
@@ -5096,7 +5123,7 @@ class ViewRenderer {
                 }
             }
 
-            this._setRecalc(1 + 2 + 4);
+            this._setRecalc(1 + 2 + 4 + 64);
 
             if (this._zIndex === 0) {
                 this.setZParent(parent);
@@ -5116,6 +5143,15 @@ class ViewRenderer {
 
             if (newClippingParent !== this._clippingParent) {
                 this.setClippingParent(newClippingParent);
+            }
+
+            if (!this._shader) {
+                let newActiveShader = parent ? parent._activeShader : null;
+                if (parent._renderAsTexture) newActiveShader = this.ctx.defaultShader;
+                if (newActiveShader !== this._activeShader) {
+                    this._setHasRenderUpdates();
+                    this._setActiveShaderRecursive(newActiveShader);
+                }
             }
         }
     };
@@ -5180,10 +5216,11 @@ class ViewRenderer {
         this._rw = w;
         this._rh = h;
         this._setRecalc(2);
+        this.deleteRenderGlTexture();
     };
 
     setTextureCoords(ulx, uly, brx, bry) {
-        if (this._worldAlpha) this.ctx.staticStage = false;
+        this._setHasRenderUpdates();
 
         this._ulx = ulx;
         this._uly = uly;
@@ -5197,13 +5234,12 @@ class ViewRenderer {
     };
 
     setDisplayedTextureSource(textureSource) {
-        if (this._worldAlpha) this.ctx.staticStage = false;
+        this._setHasRenderUpdates();
         this._displayedTextureSource = textureSource;
     };
 
     setInTextureAtlas(inTextureAtlas) {
-        if (this._worldAlpha) this.ctx.staticStage = false;
-
+        this._setHasRenderUpdates();
         this.inTextureAtlas = inTextureAtlas;
     };
 
@@ -5228,7 +5264,7 @@ class ViewRenderer {
     };
 
     isZContext() {
-        return (this._forceZIndexContext || this._zIndex !== 0 || this._isRoot || !this._parent);
+        return (this._forceZIndexContext || this._renderAsTexture || this._zIndex !== 0 || this._isRoot || !this._parent);
     };
 
     findZContext() {
@@ -5304,7 +5340,7 @@ class ViewRenderer {
 
     set zIndex(zIndex) {
         if (this._zIndex !== zIndex) {
-            if (this._worldAlpha) this.ctx.staticStage = false;
+            this._setHasRenderUpdates();
 
             let newZParent = this._zParent;
 
@@ -5352,7 +5388,7 @@ class ViewRenderer {
     }
 
     set forceZIndexContext(v) {
-        if (this._worldAlpha) this.ctx.staticStage = false;
+        this._setHasRenderUpdates();
 
         let prevIsZContext = this.isZContext();
         this._forceZIndexContext = v;
@@ -5433,7 +5469,7 @@ class ViewRenderer {
 
     set colorUl(color) {
         if (this._colorUl !== color) {
-            if (this._worldAlpha) this.ctx.staticStage = false;
+            this._setHasRenderUpdates();
             this._colorUl = color;
         }
     }
@@ -5444,7 +5480,7 @@ class ViewRenderer {
 
     set colorUr(color) {
         if (this._colorUr !== color) {
-            if (this._worldAlpha) this.ctx.staticStage = false;
+            this._setHasRenderUpdates();
             this._colorUr = color;
         }
     };
@@ -5455,7 +5491,7 @@ class ViewRenderer {
 
     set colorBl(color) {
         if (this._colorBl !== color) {
-            if (this._worldAlpha) this.ctx.staticStage = false;
+            this._setHasRenderUpdates();
             this._colorBl = color;
         }
     };
@@ -5466,10 +5502,178 @@ class ViewRenderer {
 
     set colorBr(color) {
         if (this._colorBr !== color) {
-            if (this._worldAlpha) this.ctx.staticStage = false;
+            this._setHasRenderUpdates();
             this._colorBr = color;
         }
     };
+
+
+    set layoutEntry(f) {
+        this._layoutEntry = f;
+
+        if (f) {
+            this._setHasLayoutHooks();
+        } else if (this._hasLayoutHooks === 1 && !this._layoutExit) {
+            this._setHasLayoutHooksCheck();
+        }
+    }
+
+    set layoutExit(f) {
+        this._layoutExit = f;
+
+        if (f) {
+            this._setHasLayoutHooks();
+        } else if (this._hasLayoutHooks === 1 && !this._layoutEntry) {
+            this._setHasLayoutHooksCheck();
+        }
+    }
+
+    get shader() {
+        return this._shader;
+    }
+
+    set shader(v) {
+        this._setHasRenderUpdates();
+
+        let prevShader = this._shader;
+        this._shader = v;
+        if (!v && prevShader) {
+            // Disabled shader.
+            let newActiveShader = (this._parent ? this._parent._shader : null);
+            this._setActiveShaderRecursive(newActiveShader);
+        } else {
+            // Enabled shader.
+            this._setActiveShaderRecursive(v);
+        }
+    }
+
+    get shaderSettings() {
+        if (!this._shaderSettings) {
+            this._shaderSettings = this.activeShader.createViewSettings(this) || {};
+        }
+        return this._shaderSettings;
+    }
+
+    get activeShader() {
+        return this._activeShader || this.ctx.defaultShader;
+    }
+
+    get renderAsTexture() {
+        return this._renderAsTexture;
+    }
+
+    set renderAsTexture(v) {
+        if (this._renderAsTexture != v) {
+            this._setHasRenderUpdates();
+
+            let prevIsZContext = this.isZContext();
+
+            this._renderAsTexture = v;
+
+            // Force z-index context because we can't handle views 'leaking out' of the texture in a consistent manner.
+            if (prevIsZContext !== this.isZContext()) {
+                if (!this.isZContext()) {
+                    this.disableZContext();
+                } else {
+                    this.enableZContext(this._parent.findZContext());
+                }
+            }
+
+            // Due to the renderAsTexture-specific code in update: must update world properties.
+            this._setRecalc(7);
+
+            if (!v) {
+                this.deleteRenderGlTexture();
+            }
+
+            if (v) {
+                // Texture rendering is started in default shader mode.
+                this._setActiveShaderChildrenRecursive(this.ctx.defaultShader);
+            } else {
+                this._setActiveShaderChildrenRecursive(this.activeShader);
+            }
+        }
+    }
+    
+    deleteRenderGlTexture() {
+        if (this._renderGlTexture) {
+            this.ctx.deleteRenderGlTexture(this._renderGlTexture);
+            this._renderGlTexture = null;
+        }
+    }
+    
+    getRenderGlTexture() {
+        if (!this._renderGlTexture) {
+            this._renderGlTexture = this.ctx.createRenderGlTexture(Math.min(2048, this._rw), Math.min(2048, this._rh));
+        }
+        return this._renderGlTexture;
+    }
+
+    _setActiveShaderRecursive(shader) {
+        this._activeShader = shader;
+        this._shaderSettings = null;
+        if (this._children) {
+            for (let i = 0, n = this._children.length; i < n; i++) {
+                if (!this._children[i]._shader && !this._children[i]._renderAsTexture) {
+                    this._children[i]._setActiveShaderRecursive(shader);
+                    this._children[i]._hasRenderUpdates = true;
+                }
+            }
+        }
+    };
+
+    _setActiveShaderChildrenRecursive(shader) {
+        if (this._children) {
+            for (let i = 0, n = this._children.length; i < n; i++) {
+                if (!this._children[i]._shader && !this._children[i]._renderAsTexture) {
+                    this._children[i]._setActiveShaderRecursive(shader);
+                    this._children[i]._hasRenderUpdates = true;
+                }
+            }
+        }
+    };
+
+    _stashWorld() {
+        this._stashedWorld = [this._worldAlpha, this._worldPx, this._worldPy, this._worldTa, this._worldTb, this._worldTc, this._worldTd, this.ctx.ignoredClippingParent];
+        this._worldAlpha = 1;
+        this._worldPx = 0;
+        this._worldPy = 0;
+        this._worldTa = 1;
+        this._worldTb = 0;
+        this._worldTc = 0;
+        this._worldTd = 1;
+
+        // We create a new 'clipping context' by simply ignoring the current clipping parent
+        this.ctx.ignoredClippingParent = this._clipping ? this : this._clippingParent;
+    }
+
+    _unstashWorld() {
+        this._worldAlpha = this._stashedWorld[0];
+        this._worldPx = this._stashedWorld[1];
+        this._worldPy = this._stashedWorld[2];
+        this._worldTa = this._stashedWorld[3];
+        this._worldTb = this._stashedWorld[4];
+        this._worldTc = this._stashedWorld[5];
+        this._worldTd = this._stashedWorld[6];
+        this.ctx.ignoredClippingParent = this._stashedWorld[7];
+        this._stashedWorld = null;
+    }
+
+    _stashTexCoords() {
+        this._stashedTexCoords = [this._txCoordsUl, this._txCoordsUr, this._txCoordsBr, this._txCoordsBl];
+        this._txCoordsUl = 0x00000000;
+        this._txCoordsUr = 0x0000FFFF;
+        this._txCoordsBr = 0xFFFFFFFF;
+        this._txCoordsBl = 0xFFFF0000;
+    }
+
+    _unstashTexCoords() {
+        this._txCoordsUl = this._stashedTexCoords[0];
+        this._txCoordsUr = this._stashedTexCoords[1];
+        this._txCoordsBr = this._stashedTexCoords[2];
+        this._txCoordsBl = this._stashedTexCoords[3];
+        this._stashedTexCoords = null;
+    }
 
     isVisible() {
         return (this._localAlpha > 1e-14);
@@ -5562,7 +5766,7 @@ class ViewRenderer {
                 this._worldPy += this._localPx * this._parent._worldTc;
             }
 
-            if ((this._recalc & 14 /* 2 + 4 + 8 */) && (this._clippingParent || this._clipping)) {
+            if ((this._recalc & 14 /* 2 + 4 + 8 */) && (this._clipping || (this._clippingParent && (this.ctx.ignoredClippingParent !== this._clippingParent)))) {
                 // We must calculate the clipping area.
                 let c1x, c1y, c2x, c2y, c3x, c3y;
 
@@ -5664,26 +5868,31 @@ class ViewRenderer {
                 }
             }
 
-            if (!this.ctx.useZIndexing) {
-                // Use single pass.
-                if (this._displayedTextureSource) {
-                    this.addToVbo();
-                }
-            } else {
-                this._updateTreeOrder = this.ctx.updateTreeOrder++;
+            if (this._activeShader && this._activeShader.hasViewSettings()) {
+                this.shaderSettings.update();
             }
 
-            this._recalc = (this._recalc & 7);
-            /* 1+2+4 */
+            this._updateTreeOrder = this.ctx.updateTreeOrder++;
+
+            this._recalc = (this._recalc & 71);
+            /* 1+2+4+64 */
+
+            let saved;
+            if (this._renderAsTexture) {
+                // For 0-based square texture rendering: set identity matrix while traversing children.
+                saved = this._stashWorld();
+            }
 
             if (this._children) {
                 for (let i = 0, n = this._children.length; i < n; i++) {
                     if ((this.ctx.updateTreeOrderForceUpdate > 0) || this._recalc || this._children[i]._hasUpdates) {
                         this._children[i].update();
-                    } else if (!this.ctx.useZIndexing) {
-                        this._children[i].fillVbo();
                     }
                 }
+            }
+
+            if (this._renderAsTexture) {
+                this._unstashWorld(saved);
             }
 
             if (this._worldAlpha === 0) {
@@ -5694,13 +5903,107 @@ class ViewRenderer {
             }
 
             this._hasUpdates = false;
-
         }
 
         if (this._zSort) {
             this.ctx.updateTreeOrderForceUpdate--;
         }
 
+    };
+
+    render() {
+        if (this._zSort) {
+            this.sortZIndexedChildren();
+            this._zSort = false;
+        }
+
+        if (this._worldAlpha) {
+            let ctx = this.ctx;
+
+            if (this._renderAsTexture) {
+                if (this._rw === 0 || this._rh === 0) {
+                    // Ignore this branch and don't draw anything.
+                    return;
+                }
+
+                if (this._renderGlTexture && !this._hasRenderUpdates) {
+                    // Nothing needs to be done, just re-use the existing texture.
+                    if (this.activeShader && (ctx.shader !== this.activeShader)) {
+                        ctx.flush();
+                        ctx.setupShader(this);
+                    }
+                    ctx.overrideAddVboTexture(this.getRenderGlTexture());
+                    this._stashTexCoords();
+                    this.addToVbo();
+                    this._unstashTexCoords();
+                    ctx.overrideAddVboTexture(null);
+                    return;
+                }
+
+                ctx.flush();
+
+                // Use default shader for texture.
+                if (ctx.shader !== this.ctx.defaultShader) {
+                    ctx.setupShader(this, this.ctx.defaultShader);
+                }
+
+                let texture = this.getRenderGlTexture();
+                ctx.setRenderTarget(texture);
+
+                this._stashWorld();
+
+                if (this._displayedTextureSource) {
+                    // Add displayed texture source in local coordinates.
+                    this.addToVbo();
+                }
+            } else if (this._displayedTextureSource) {
+                if (this.activeShader && (ctx.shader !== this.activeShader)) {
+                    ctx.flush();
+                    ctx.setupShader(this);
+                }
+                this.addToVbo();
+            }
+
+            if (this._children) {
+                if (this._zContextUsage) {
+                    for (let i = 0, n = this._zIndexedChildren.length; i < n; i++) {
+                        this._zIndexedChildren[i].render();
+                    }
+                } else {
+                    for (let i = 0, n = this._children.length; i < n; i++) {
+                        if (this._children[i]._zIndex === 0) {
+                            // If zIndex is set, this item already belongs to a zIndexedChildren array in one of the ancestors.
+                            this._children[i].render();
+                        }
+                    }
+                }
+            }
+
+            if (this._renderAsTexture) {
+                ctx.flush();
+                ctx.restoreRenderTarget();
+
+                // Draw generated texture as this view.
+                this._unstashWorld();
+
+                if (this.activeShader && (ctx.shader !== this.activeShader)) {
+                    ctx.setupShader(this);
+                }
+                ctx.overrideAddVboTexture(this.getRenderGlTexture());
+                this._stashTexCoords();
+                this.addToVbo();
+                this._unstashTexCoords();
+
+                let samples = this.shader.getMultisamples(this);
+                if (samples > 0) {
+                    this.ctx.flushMultisample(this);
+                }
+
+                ctx.overrideAddVboTexture(null);
+            }
+
+            this._hasRenderUpdates = false;
+        }
     };
 
     sortZIndexedChildren() {
@@ -5727,7 +6030,7 @@ class ViewRenderer {
         let vboBufferFloat = this.ctx.vboBufferFloat;
         let vboBufferUint = this.ctx.vboBufferUint;
 
-        if (this._clippingParent && !this._clippingNoEffect) {
+        if ((this._clippingParent && (this.ctx.ignoredClippingParent !== this._clippingParent)) && !this._clippingNoEffect) {
             if (!this._clippingEmpty) {
                 this.addToVboClipped();
             }
@@ -5750,7 +6053,7 @@ class ViewRenderer {
                     vboBufferFloat[vboIndex++] = this._worldPy + this._rh * this._worldTd;
                     vboBufferUint[vboIndex++] = this._txCoordsBl;
                     vboBufferUint[vboIndex] = getColorInt(this._colorBl, this._worldAlpha);
-                    this.ctx.addVboTextureSource(this._displayedTextureSource, 1);
+                    this.ctx.addVbo(this);
                 }
             } else {
                 // Simple.
@@ -5774,7 +6077,7 @@ class ViewRenderer {
                     vboBufferFloat[vboIndex++] = cy;
                     vboBufferUint[vboIndex++] = this._txCoordsBl;
                     vboBufferUint[vboIndex] = getColorInt(this._colorBl, this._worldAlpha);
-                    this.ctx.addVboTextureSource(this._displayedTextureSource, 1);
+                    this.ctx.addVbo(this);
                 }
             }
         }
@@ -5826,7 +6129,7 @@ class ViewRenderer {
                 vboBufferFloat[vboIndex++] = this._clippingSquareMaxY;
                 vboBufferUint[vboIndex++] = getVboTextureCoords(tcx1, tcy3);
                 vboBufferUint[vboIndex] = c;
-                this.ctx.addVboTextureSource(this._displayedTextureSource, 1);
+                this.ctx.addVbo(this);
             }
         } else {
             // Complex clipping.
@@ -5876,7 +6179,7 @@ class ViewRenderer {
                     vboBufferFloat[vboIndex++] = this._clippingArea[g + 1];
                     vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx4) + this._brx * tx4, this._uly * (1 - ty4) + this._bry * ty4);
                     vboBufferUint[vboIndex] = c;
-                    this.ctx.addVboTextureSource(this._displayedTextureSource, 1);
+                    this.ctx.addVbo(this);
                 }
             } else {
                 // Multiple quads.
@@ -5916,35 +6219,7 @@ class ViewRenderer {
                         vboBufferFloat[vboIndex++] = this._clippingArea[g + 1];
                         vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx4) + this._brx * tx4, this._uly * (1 - ty4) + this._bry * ty4);
                         vboBufferUint[vboIndex++] = c;
-                        this.ctx.addVboTextureSource(this._displayedTextureSource, 1);
-                    }
-                }
-            }
-        }
-    };
-
-    fillVbo() {
-        if (this._zSort) {
-            this.sortZIndexedChildren();
-            this._zSort = false;
-        }
-
-        if (this._worldAlpha) {
-            if (this._displayedTextureSource) {
-                this.addToVbo();
-            }
-
-            if (this._children) {
-                if (this._zContextUsage) {
-                    for (let i = 0, n = this._zIndexedChildren.length; i < n; i++) {
-                        this._zIndexedChildren[i].fillVbo();
-                    }
-                } else {
-                    for (let i = 0, n = this._children.length; i < n; i++) {
-                        if (this._children[i]._zIndex === 0) {
-                            // If zIndex is set, this item already belongs to a zIndexedChildren array in one of the ancestors.
-                            this._children[i].fillVbo();
-                        }
+                        this.ctx.addVbo(this);
                     }
                 }
             }
@@ -5975,6 +6250,10 @@ class ViewRenderer {
         return this._rh;
     }
 
+    get view() {
+        return this._view;
+    }
+
     getCornerPoints() {
         return [
             this._worldPx,
@@ -5988,26 +6267,12 @@ class ViewRenderer {
         ];
     };
 
-    set layoutEntry(f) {
-        this._layoutEntry = f;
-
-        if (f) {
-            this._setHasLayoutHooks();
-        } else if (this._hasLayoutHooks === 1 && !this._layoutExit) {
-            this._setHasLayoutHooksCheck();
-        }
+    getAbsoluteCoords(relX, relY) {
+        return [
+            this._worldPx + this._worldTa * relX + this._worldTb * relY,
+            this._worldPy + this._worldTc * relX + this._worldTd * relY
+        ];
     }
-
-    set layoutExit(f) {
-        this._layoutExit = f;
-
-        if (f) {
-            this._setHasLayoutHooks();
-        } else if (this._hasLayoutHooks === 1 && !this._layoutEntry) {
-            this._setHasLayoutHooksCheck();
-        }
-    }
-
 }
 
 let getColorInt = function (c, alpha) {
@@ -6026,100 +6291,408 @@ let getVboTextureCoords = function (x, y) {
 /**
  * Copyright Metrological, 2017
  */
+
+
 class VboContext {
 
     constructor(stage) {
         this.stage = stage;
 
-        this.vboGlTextures = [];
-        this.vboGlTextureRepeats = [];
-        this.lastVboGlTexture = null;
-
-        this.vboParamsBuffer = new ArrayBuffer(16 * 4 * 16384 * 2);
+        this.vboParamsBuffer = new ArrayBuffer(VboContext.GL_PARAMSBUFFER_MEMORY);
         this.vboBufferFloat = new Float32Array(this.vboParamsBuffer);
         this.vboBufferUint = new Uint32Array(this.vboParamsBuffer);
         this.vboIndex = 0;
+
+        this.vboViewRenderers = [];
+        this.vboGlTextures = [];
+
+        this.vboParamsBufferBytesRemaining = VboContext.GL_PARAMSBUFFER_MEMORY;
+
+        // Current shader info.
+        this.shader = null;
+        this.shaderOwner = null;
+
+        this.bytesPerQuad = 64;
 
         this.n = 0;
 
         this.updateTreeOrder = 0;
         this.updateTreeOrderForceUpdate = 0;
 
-        this.staticStage = false;
+        this._activeShaders = new Set();
 
-        this.useZIndexing = false;
+        this._renderTargetStack = [];
+
+        this._renderTarget = null;
+
+        this._overrideGlTexture = null;
+
+        // Used for renderAsTexture in the update/render loop to disable the world clipping context (and temporarily create a new one)
+        this.ignoredClippingParent = null;
+
+        this.defaultShader = new DefaultShader(this.stage);
+        this.initShader(this.defaultShader);
+
+        this.initSharedShaderData();
+    }
+
+    destroy() {
+        this.gl.deleteBuffer(this.paramsGlBuffer);
+        this.gl.deleteBuffer(this.quadsGlBuffer);
+        this._activeShaders.forEach(shader => {this.destroyShader(shader)});
+        Shader.destroyPrograms();
+    }
+
+    initSharedShaderData() {
+        let gl = this.gl;
+
+        // Create new sharable buffer for params.
+        this.paramsGlBuffer = gl.createBuffer();
+
+        let maxQuads = Math.floor(VboContext.GL_PARAMSBUFFER_MEMORY / 64);
+
+        // Init webgl arrays.
+        let allIndices = new Uint16Array(maxQuads * 6);
+
+        // fill the indices with the quads to draw.
+        for (let i = 0, j = 0; i < maxQuads; i += 6, j += 4) {
+            allIndices[i] = j;
+            allIndices[i + 1] = j + 1;
+            allIndices[i + 2] = j + 2;
+            allIndices[i + 3] = j;
+            allIndices[i + 4] = j + 2;
+            allIndices[i + 5] = j + 3;
+        }
+
+        // The quads buffer can be (re)used to draw a range of quads.
+        this.quadsGlBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.quadsGlBuffer);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, allIndices, gl.STATIC_DRAW);
+
+        // The matrix that causes the [0,0 - W,H] box to map to [-1,-1 - 1,1] in the end results.
+        this._projectionMatrix = new Float32Array([
+            2/this.stage.options.renderWidth, 0, 0, 0,
+            0, -2/this.stage.options.renderHeight, 0, 0,
+            0, 0, 1, 0,
+            -1, 1, 0, 1
+        ]);
+    }
+
+    initShader(shader) {
+        shader.init(this);
+        this._activeShaders.add(shader);
+    }
+
+    destroyShader(shader) {
+        shader.destroy();
+        this._activeShaders.delete(shader);
     }
 
     reset() {
         this.vboIndex = 0;
+        this.vboViewRenderers = [];
         this.vboGlTextures = [];
-        this.vboGlTextureRepeats = [];
         this.textureAtlasGlTexture = this.stage.textureAtlas ? this.stage.textureAtlas.texture : null;
-        this.rectangleTextureSource = this.stage.rectangleTexture.source;
-        this.lastVboGlTexture = null;
         this.n = 0;
         this.updateTreeOrder = 0;
+
+        this.shader = null;
+        this._renderTargetStack = []
+        this._overrideGlTexture = null;
     }
 
     layout() {
         this.root.layout();
     }
 
-    updateAndFillVbo() {
-        this.useZIndexing = (this.stage.zIndexUsage > 0);
+    resetGl() {
+        let gl = this.gl;
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.viewport(0,0,this.stage.options.w,this.stage.options.h);
+
+        let glClearColor = this.stage.options.glClearColor;
+        this.gl.clearColor(glClearColor[0], glClearColor[1], glClearColor[2], glClearColor[3]);
+        this.gl.clear(gl.COLOR_BUFFER_BIT);
+    }
+
+    frame() {
+        if (!this.root._parent._hasRenderUpdates) {
+            return false;
+        }
+
+        this.layout();
 
         this.reset();
 
         this.root.update();
 
-        if (this.useZIndexing) {
-            // A secondary fill pass is required.
-            this.root.fillVbo();
-        }
+        this.resetGl();
+
+        // Setup the first added vbo shader.
+        this.setupShader(this.root);
+
+        this.root.render();
+
+        this.flush();
 
         if (this.stage.textureAtlas && this.stage.options.debugTextureAtlas) {
-            let size = Math.min(this.stage.options.w, this.stage.options.h);
-            let vboIndex = this.vboIndex;
-            this.vboBufferFloat[vboIndex++] = 0;
-            this.vboBufferFloat[vboIndex++] = 0;
-            this.vboBufferUint[vboIndex++] = 0x00000000;
-            this.vboBufferUint[vboIndex++] = 0xFFFFFFFF;
-            this.vboBufferFloat[vboIndex++] = size;
-            this.vboBufferFloat[vboIndex++] = 0;
-            this.vboBufferUint[vboIndex++] = 0x0000FFFF;
-            this.vboBufferUint[vboIndex++] = 0xFFFFFFFF;
-            this.vboBufferFloat[vboIndex++] = size;
-            this.vboBufferFloat[vboIndex++] = size;
-            this.vboBufferUint[vboIndex++] = 0xFFFFFFFF;
-            this.vboBufferUint[vboIndex++] = 0xFFFFFFFF;
-            this.vboBufferFloat[vboIndex++] = 0;
-            this.vboBufferFloat[vboIndex++] = size;
-            this.vboBufferUint[vboIndex++] = 0xFFFF0000;
-            this.vboBufferUint[vboIndex] = 0xFFFFFFFF;
-            this.vboGlTextures.push(this.textureAtlasGlTexture);
-            this.vboGlTextureRepeats.push(1);
-            this.vboIndex += 16;
-
+            this.renderDebugTextureAtlas();
         }
 
-        this.staticStage = true;
+        // Cleanup the latest added vbo shader.
+        this.shader.cleanup(this);
+
+        this.root._parent._hasRenderUpdates = false;
+
+        this.destroyUnusedShaders();
+
+        return true;
     }
 
-    addVboTextureSource(textureSource, repeat) {
-        let glTexture = textureSource.inTextureAtlas ? this.textureAtlasGlTexture : textureSource.glTexture;
-        if (this.lastVboGlTexture !== glTexture) {
-            this.vboGlTextures.push(glTexture);
-            this.vboGlTextureRepeats.push(repeat);
-            this.n++;
-            this.lastVboGlTexture = glTexture;
+    destroyUnusedShaders() {
+        // Delete 'old' shaders.
+        let fc = this.stage.frameCounter;
+        this._activeShaders.forEach(shader => {
+            if (shader._lastFrameUsed < fc - 600) {
+                this.destroyShader(shader);
+            }
+        });
+    }
+
+    /**
+     * Specifically for renderAsTexture rendering.
+     * @param texture
+     */
+    overrideAddVboTexture(texture) {
+        this._overrideGlTexture = texture;
+    }
+
+    addVbo(viewRenderer) {
+        let glTexture = this._overrideGlTexture;
+        if (!glTexture) {
+            let textureSource = viewRenderer._displayedTextureSource;
+            glTexture = textureSource.inTextureAtlas ? this.textureAtlasGlTexture : textureSource.glTexture;
+        }
+
+        this.vboGlTextures.push(glTexture);
+        this.vboViewRenderers.push(viewRenderer);
+
+        this.vboIndex += 16;
+
+        this.vboParamsBufferBytesRemaining -= this.shader.getBufferSizePerQuad();
+
+        if (this.vboParamsBufferBytesRemaining < 10000) {
+            this.flush();
+        }
+    }
+
+    setupShader(viewRenderer, specificShader) {
+        let shader = specificShader || viewRenderer.activeShader;
+
+        if (!shader.initialized) {
+            this.initShader(shader);
+        }
+
+        shader._lastFrameUsed = this.stage.frameCounter;
+
+        if (this.shader && (this.shader.constructor === shader.constructor)) {
+            // We keep using the same shader, so we don't need to switch attributes.
         } else {
-            this.vboGlTextureRepeats[this.n - 1] += repeat;
+            let prevWasDefault = (this.shader && this.shader.isDefaultShader);
+            let newIsDefault = (shader && shader.isDefaultShader);
+
+            if (prevWasDefault && newIsDefault) {
+                // All attributes are assumed to stay in the same order.
+                // Allow to only setup additional attributes/uniforms.
+                this.shader.cleanupExtraOnly(this);
+                shader.setupExtraOnly(this);
+            } else {
+                if (this.shader) {
+                    this.shader.cleanup(this);
+                }
+                shader.setup(this);
+            }
         }
 
-        this.vboIndex += repeat * 16;
+        this.shader = shader;
+        this.shaderOwner = viewRenderer;
     }
 
+    flush() {
+        this.drawElements(0, this.vboOffset);
+        this.vboIndex = 0;
+        this.vboViewRenderers = [];
+        this.vboGlTextures = [];
+        this.vboParamsBufferBytesRemaining = VboContext.GL_PARAMSBUFFER_MEMORY;
+    }
+
+    flushMultisample(viewRenderer) {
+        this.shader.drawMultisample(this, viewRenderer);
+        this.vboIndex = 0;
+        this.vboViewRenderers = [];
+        this.vboGlTextures = [];
+        this.vboParamsBufferBytesRemaining = VboContext.GL_PARAMSBUFFER_MEMORY;
+    }
+
+    drawElements(offset, length) {
+        this.shader.drawElements(this, offset, length);
+    }
+
+    renderDebugTextureAtlas() {
+        this.setupShader(null, this.defaultShader);
+
+        let size = Math.min(this.stage.options.w, this.stage.options.h);
+        let vboIndex = this.vboIndex;
+        this.vboBufferFloat[vboIndex++] = 0;
+        this.vboBufferFloat[vboIndex++] = 0;
+        this.vboBufferUint[vboIndex++] = 0x00000000;
+        this.vboBufferUint[vboIndex++] = 0xFFFFFFFF;
+        this.vboBufferFloat[vboIndex++] = size;
+        this.vboBufferFloat[vboIndex++] = 0;
+        this.vboBufferUint[vboIndex++] = 0x0000FFFF;
+        this.vboBufferUint[vboIndex++] = 0xFFFFFFFF;
+        this.vboBufferFloat[vboIndex++] = size;
+        this.vboBufferFloat[vboIndex++] = size;
+        this.vboBufferUint[vboIndex++] = 0xFFFFFFFF;
+        this.vboBufferUint[vboIndex++] = 0xFFFFFFFF;
+        this.vboBufferFloat[vboIndex++] = 0;
+        this.vboBufferFloat[vboIndex++] = size;
+        this.vboBufferUint[vboIndex++] = 0xFFFF0000;
+        this.vboBufferUint[vboIndex] = 0xFFFFFFFF;
+        this.vboGlTextures.push(this.textureAtlasGlTexture);
+        this.vboViewRenderers.push(null);
+        this.vboIndex += 16;
+
+        this.flush();
+    }
+
+    getMultisampleTextureA() {
+        if (!this.multisampleTextureA) {
+            this.multisampleTextureA = this.createRenderGlTexture(2048, 2048);
+        }
+        return this.multisampleTextureA;
+    }
+
+    getMultisampleTextureB() {
+        if (!this.multisampleTextureB) {
+            this.multisampleTextureB = this.createRenderGlTexture(2048, 2048);
+        }
+        return this.multisampleTextureB;
+    }
+
+    getView(vboOffset) {
+        return this.vboViewRenderers[vboOffset]._view;
+    }
+
+    getViewRenderer(vboOffset) {
+        return this.vboViewRenderers[vboOffset];
+    }
+
+    getVboGlTexture(vboOffset) {
+        return this.vboGlTextures[vboOffset];
+    }
+
+    getShaderOwner() {
+        return this.shaderOwner;
+    }
+
+    get gl() {
+        return this.stage.gl;
+    }
+
+    get vboOffset() {
+        return this.vboIndex / 16;
+    }
+
+    createRenderGlTexture(w, h) {
+        let gl = this.gl;
+
+        let sourceTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
+
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+        // We need a specific framebuffer for every render texture.
+        sourceTexture.w = w;
+        sourceTexture.h = h;
+        sourceTexture.framebuffer = gl.createFramebuffer();
+        sourceTexture.projectionMatrix = new Float32Array([
+            2/w, 0, 0, 0,
+            0, 2/h, 0, 0,
+            0, 0, 1, 0,
+            -1, -1, 0, 1
+        ]);
+
+        gl.bindFramebuffer(gl.FRAMEBUFFER, sourceTexture.framebuffer);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, sourceTexture, 0);
+
+        return sourceTexture;
+    }
+
+    deleteRenderGlTexture(glTexture) {
+        let gl = this.stage.gl;
+        gl.deleteFramebuffer(glTexture.framebuffer);
+        gl.deleteTexture(glTexture);
+    }
+
+    setRenderTarget(glTexture) {
+        this._renderTargetStack.push(this._renderTarget)
+        this._setRenderTarget(glTexture)
+    }
+
+    restoreRenderTarget() {
+        this._setRenderTarget(this._renderTargetStack.pop());
+    }
+
+    _setRenderTarget(v) {
+        let gl = this.stage.gl;
+
+        this._renderTarget = v
+
+        if (!v) {
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+            gl.viewport(0,0,this.stage.options.w,this.stage.options.h)
+        } else {
+            gl.bindFramebuffer(gl.FRAMEBUFFER, this._renderTarget.framebuffer)
+            gl.viewport(0,0,this._renderTarget.w, this._renderTarget.h)
+
+            // Clear texture.
+            gl.clearColor(0, 0, 0, 0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+        }
+    }
+
+    getProjectionMatrix() {
+        if (this._renderTarget) {
+            return this._renderTarget.projectionMatrix;
+        } else {
+            return this._projectionMatrix;
+        }
+    }
+
+    getViewportWidth() {
+        if (this._renderTarget) {
+            return this._renderTarget.w;
+        } else {
+            return this.stage.options.w;
+        }
+    }
+
+    getViewportHeight() {
+        if (this._renderTarget) {
+            return this._renderTarget.h;
+        } else {
+            return this.stage.options.h;
+        }
+    }
 }
+
+VboContext.GL_PARAMSBUFFER_MEMORY = 1000000;
 
 
 
@@ -7103,6 +7676,7 @@ class TransitionSettings extends Base {
         this.delay = 0;
         this.duration = 0.2;
         this.isTransitionSettings = true;
+        this.merger = null;
     }
 
     get timingFunction() {
@@ -7117,6 +7691,7 @@ class TransitionSettings extends Base {
     get timingFunctionImpl() {
         return this._timingFunctionImpl;
     }
+
 }
 
 
@@ -7144,10 +7719,14 @@ class Transition extends Base {
         this._setter = View.getSetter(property)
 
 
-        this._merger = this._view.getMerger(property)
+        this._merger = settings.merger
 
         if (!this._merger) {
-            throw new Error("Property must be a number or a color");
+            if (view.isColorProperty(property)) {
+                this._merger = StageUtils.mergeColors
+            } else {
+                this._merger = StageUtils.mergeNumbers
+            }
         }
 
         this._startValue = this._getter(this._view);
@@ -8280,20 +8859,11 @@ Animation.STATES = {
  */
 
 class Tools {
-    
-    static getRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor) {
-        if (fill === undefined) fill = true;
-        if (strokeWidth === undefined) strokeWidth = 0;
 
-        let canvas = stage.adapter.getDrawingCanvas();
-        let ctx = canvas.getContext('2d');
-        ctx.imageSmoothingEnabled = true;
-
-        let id = 'rect' + [w, h, radius, strokeWidth, strokeColor, fill ? 1 : 0, fillColor].join(",");
+    static getCanvasTexture(stage, canvas, texOptions = {}, options = {}) {
         return stage.texture(function(cb) {
-            let canvas = Tools.createRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor);
-
             let data = canvas;
+            let options = {};
             if (Utils.isNode) {
                 data = canvas.toBuffer('raw');
                 options.w = canvas.width;
@@ -8302,7 +8872,13 @@ class Tools {
                 options.flipBlueRed = true;
             }
             cb(null, data, options);
-        }, {id: id});
+        }, texOptions);
+    }
+
+    static getRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor) {
+        let canvas = this.createRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor)
+        let id = 'rect' + [w, h, radius, strokeWidth, strokeColor, fill ? 1 : 0, fillColor].join(",");
+        return Tools.getCanvasTexture(stage, canvas, {id: id});
     }
 
     static createRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor) {
@@ -8331,17 +8907,19 @@ class Tools {
 
         if (fill) {
             if (Utils.isNumber(fillColor)) {
-                fillColor = "#" + fillColor.toString(16);
+                ctx.fillStyle = StageUtils.getRgbaString(fillColor);
+            } else {
+                ctx.fillStyle = "white";
             }
-            ctx.fillStyle = fillColor || "white";
             ctx.fill();
         }
 
         if (strokeWidth) {
             if (Utils.isNumber(strokeColor)) {
-                strokeColor = "#" + strokeColor.toString(16);
+                ctx.strokeStyle = StageUtils.getRgbaString(strokeColor);
+            } else {
+                ctx.strokeStyle = "white";
             }
-            ctx.strokeStyle = strokeColor || "white";
             ctx.lineWidth = strokeWidth;
             ctx.stroke();
         }
@@ -8728,14 +9306,6 @@ class ListView extends View {
         this.update();
     }
 
-    get VIEWPORTSCROLLOFFSET() {
-        return this._getTransVal('viewportScrollOffset', this.viewportScrollOffset);
-    }
-
-    set VIEWPORTSCROLLOFFSET(v) {
-        this._setTransVal('viewportScrollOffset', v)
-    }
-    
     get itemScrollOffset() {
         return this._itemScrollOffset;
     }
@@ -8743,14 +9313,6 @@ class ListView extends View {
     set itemScrollOffset(v) {
         this._itemScrollOffset = v;
         this.update();
-    }
-
-    get ITEMSCROLLOFFSET() {
-        return this._getTransVal('itemScrollOffset', this.itemScrollOffset);
-    }
-
-    set ITEMSCROLLOFFSET(v) {
-        this._setTransVal('itemScrollOffset', v)
     }
 
     get scrollTransitionSettings() {
@@ -8857,6 +9419,10 @@ class BorderView extends View {
 
         this.layoutExit = function (view, recalc) {
             if (recalc || view._updateLayout) {
+                if (view.children.length === 1) {
+                    view.w = view.children[0].renderWidth;
+                    view.h = view.children[0].renderHeight;
+                }
                 let rw = view.renderWidth;
                 let rh = view.renderHeight;
                 view._borderTop.w = rw;
@@ -9020,88 +9586,332 @@ class BorderView extends View {
         this._wrapper.clipping = v;
     }
 
-    get BORDERWIDTH() {
-        return this._getTransVal('borderWidth', this.borderWidth);
-    }
-
-    set BORDERWIDTH(v) {
-        this._setTransVal('borderWidth', v)
-    }
-
-    get BORDERWIDTHTOP() {
-        return this._getTransVal('borderWidthTop', this.borderWidthTop);
-    }
-
-    set BORDERWIDTHTOP(v) {
-        this._setTransVal('borderWidthTop', v)
-    }
-
-    get BORDERWIDTHRIGHT() {
-        return this._getTransVal('borderWidthRight', this.borderWidthRight);
-    }
-
-    set BORDERWIDTHRIGHT(v) {
-        this._setTransVal('borderWidthRight', v)
-    }
-
-    get BORDERWIDTHBOTTOM() {
-        return this._getTransVal('borderWidthBottom', this.borderWidthBottom);
-    }
-
-    set BORDERWIDTHBOTTOM(v) {
-        this._setTransVal('borderWidthBottom', v)
-    }
-
-    get BORDERWIDTHLEFT() {
-        return this._getTransVal('borderWidthLeft', this.borderWidthLeft);
-    }
-
-    set BORDERWIDTHLEFT(v) {
-        this._setTransVal('borderWidthLeft', v)
-    }
-
-    get BORDERCOLOR() {
-        return this._getTransVal('borderColor', this.borderColor);
-    }
-
-    set BORDERCOLOR(v) {
-        this._setTransVal('borderColor', v)
-    }
-
-    get BORDERCOLORTOP() {
-        return this._getTransVal('borderColorTop', this.borderColorTop);
-    }
-
-    set BORDERCOLORTOP(v) {
-        this._setTransVal('borderColorTop', v)
-    }
-
-    get BORDERCOLORRIGHT() {
-        return this._getTransVal('borderColorRight', this.borderColorRight);
-    }
-
-    set BORDERCOLORRIGHT(v) {
-        this._setTransVal('borderColorRight', v)
-    }
-
-    get BORDERCOLORBOTTOM() {
-        return this._getTransVal('borderColorBottom', this.borderColorBottom);
-    }
-
-    set BORDERCOLORBOTTOM(v) {
-        this._setTransVal('borderColorBottom', v)
-    }
-
-    get BORDERCOLORLEFT() {
-        return this._getTransVal('borderColorLeft', this.borderColorLeft);
-    }
-
-    set BORDERCOLORLEFT(v) {
-        this._setTransVal('borderColorLeft', v)
-    }
 }
 
 BorderView.NUMBER_PROPERTIES = new Set(['borderWidth', 'borderWidthTop', 'borderWidthRight', 'borderWidthBottom', 'borderWidthLeft'])
 BorderView.COLOR_PROPERTIES = new Set(['borderColor', 'borderColorTop', 'borderColorRight', 'borderColorBottom', 'borderColorLeft'])
 
+
+/**
+ * Copyright Metrological, 2017
+ */
+
+
+class Light3dShader extends DefaultShader {
+    constructor(stage) {
+        super(stage, Light3dShader.vertexShaderSource, Light3dShader.fragmentShaderSrc);
+
+        this._strength = 1;
+        this._ambient = 0;
+        this._fudge = 0.4;
+
+        this._rx = 0;
+        this._ry = 0;
+    }
+
+    init(vboContext) {
+        super.init(vboContext)
+
+        let gl = vboContext.gl;
+        this._strengthUniform = gl.getUniformLocation(this.glProgram, "strength");
+        this._ambientUniform = gl.getUniformLocation(this.glProgram, "ambient");
+        this._fudgeUniform = gl.getUniformLocation(this.glProgram, "fudge");
+        this._pivotUniform = gl.getUniformLocation(this.glProgram, "pivot");
+        this._rotUniform = gl.getUniformLocation(this.glProgram, "rot");
+
+        this._zAttribute = gl.getAttribLocation(this.glProgram, "z");
+
+    }
+
+    drawElements(vboContext, offset, length) {
+        let gl = vboContext.gl;
+
+        let byteOffset = (offset + length) * vboContext.bytesPerQuad;
+
+        gl.vertexAttribPointer(this._zAttribute, 1, gl.FLOAT, false, 4, byteOffset - (offset * this.getExtraBufferSizePerQuad()));
+        gl.enableVertexAttribArray(this._zAttribute);
+
+        gl.uniform1f(this._strengthUniform, this._strength)
+        gl.uniform1f(this._ambientUniform, this._ambient)
+        gl.uniform1f(this._fudgeUniform, this._fudge)
+
+        let vr = vboContext.shaderOwner;
+        let view = vr.view;
+        let coords = vr.getAbsoluteCoords(vr.rw * view.pivotX, vr.rh * view.pivotY);
+        coords.push(vr.shaderSettings.z / vboContext.getViewportWidth());
+        gl.uniform3fv(this._pivotUniform, new Float32Array(coords));
+
+        let rotZ = Math.atan2(vr._worldTc, vr._worldTa);
+        gl.uniform3fv(this._rotUniform, new Float32Array([this._rx, this._ry, rotZ]));
+
+        let base = byteOffset / 4;
+        for (let i = 0; i < length; i++) {
+            let viewRenderer = vboContext.getViewRenderer(i);
+            let s = viewRenderer.shaderSettings;
+            let z = s.totalZ / vboContext.getViewportWidth();
+
+            vboContext.vboBufferFloat[base + i * 4] = z
+            vboContext.vboBufferFloat[base + i * 4 + 1] = z
+            vboContext.vboBufferFloat[base + i * 4 + 2] = z
+            vboContext.vboBufferFloat[base + i * 4 + 3] = z
+        }
+
+        super.drawElements(vboContext, offset, length);
+
+        gl.disableVertexAttribArray(this._zAttribute);
+    }
+
+    getExtraBufferSizePerQuad() {
+        return 4 * 4; // 4 bytes * 4 vertices.
+    }
+
+    set strength(v) {
+        this._strength = v;
+        this.redraw();
+    }
+
+    get strength() {
+        return this._strength;
+    }
+
+    set ambient(v) {
+        this._ambient = v;
+        this.redraw();
+    }
+
+    get ambient() {
+        return this._ambient;
+    }
+
+    set fudge(v) {
+        this._fudge = v;
+        this.redraw();
+    }
+
+    get fudge() {
+        return this._fudge;
+    }
+
+    get rx() {
+        return this._rx;
+    }
+
+    set rx(v) {
+        this._rx = v;
+        this.redraw();
+    }
+
+    get ry() {
+        return this._ry;
+    }
+
+    set ry(v) {
+        this._ry = v;
+        this.redraw();
+    }
+
+    hasViewSettings() {
+        return true;
+    }
+
+    createViewSettings(view) {
+        return new Light3dShaderViewSettings(this, view);
+    }
+}
+
+Light3dShader.vertexShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    attribute vec2 aVertexPosition;
+    attribute vec2 aTextureCoord;
+    attribute vec4 aColor;
+    uniform mat4 projectionMatrix;
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+
+    attribute float z;
+    uniform float fudge;
+    uniform float strength;
+    uniform float ambient;
+    uniform vec3 pivot;
+    uniform vec3 rot;
+    varying float light;
+
+    void main(void){
+        vec4 pos = projectionMatrix * vec4(aVertexPosition, 0, 1);
+        
+        pos.z = z;
+
+        float rx = rot.x;
+        float ry = rot.y;
+        float rz = rot.z;
+
+        /* Translate to pivot position */
+        vec4 pivotPos = projectionMatrix * vec4(pivot, 1);
+        pivotPos.w = 0.0;
+        pos -= pivotPos;
+        
+        /* Undo XY rotation */
+        mat2 iRotXy = mat2( cos(rz), sin(rz), 
+                           -sin(rz), cos(rz));
+        pos.xy = iRotXy * pos.xy;
+
+        /* Perform rotations */
+        gl_Position.x = cos(rx) * pos.x - sin(rx) * pos.z;
+        gl_Position.y = pos.y;
+        gl_Position.z = sin(rx) * pos.x + cos(rx) * pos.z;
+        
+        pos.y = cos(ry) * gl_Position.y - sin(ry) * gl_Position.z;
+        gl_Position.z = sin(ry) * gl_Position.y + cos(ry) * gl_Position.z;
+        gl_Position.y = pos.y;
+        
+        /* Set depth perspective */
+        gl_Position.w = 1.0 + fudge * (z + gl_Position.z);
+        
+        /* Set z to 0 because we don't want to perform z-clipping */
+        gl_Position.z = 0.0;
+        
+        /* Redo XY rotation */
+        iRotXy[0][1] = -iRotXy[0][1];
+        iRotXy[1][0] = -iRotXy[1][0];
+        gl_Position.xy = iRotXy * gl_Position.xy; 
+
+        /* Undo translate to pivot position */
+        gl_Position += pivotPos;
+
+        /* Use texture normal to calculate light strength */ 
+        light = ambient + strength * abs(cos(ry) * cos(rx));
+        
+        vTextureCoord = aTextureCoord;
+        vColor = aColor;
+    }
+`;
+
+Light3dShader.fragmentShaderSrc = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    varying float light;
+    uniform sampler2D uSampler;
+    void main(void){
+        vec4 rgba = texture2D(uSampler, vTextureCoord);
+        rgba.rgb = rgba.rgb * light;
+        gl_FragColor = rgba * vColor;
+    }
+`;
+
+
+class Light3dShaderViewSettings extends ShaderSettings {
+
+    constructor(shader, viewRenderer) {
+        super(shader, viewRenderer);
+
+        this._z = 0;
+        this._totalZ = 0;
+    }
+
+    get z() {
+        return this._z;
+    }
+
+    set z(v) {
+        if (this._z !== v) {
+            this._z = v;
+            
+            this._recalc();
+        }
+    }
+
+    get totalZ() {
+        return this._totalZ;
+    }
+
+    update() {
+        this._totalZ = this._z;
+        let parent = this._viewRenderer._parent;
+        if (parent && parent.activeShader === this._shader) {
+            this._totalZ += parent.shaderSettings._totalZ;
+        }
+    }
+
+}
+
+
+/**
+ * Copyright Metrological, 2017
+ */
+
+
+class BlurShader extends DefaultShader {
+    constructor(stage) {
+        super(stage, BlurShader.vertexShaderSource, BlurShader.fragmentShaderSrc);
+    }
+
+    init(vboContext) {
+        super.init(vboContext)
+
+        let gl = vboContext.gl;
+        this._iResolutionUniform = gl.getUniformLocation(this.glProgram, "iResolution");
+        this._directionUniform = gl.getUniformLocation(this.glProgram, "direction");
+
+    }
+
+    drawElements(vboContext, offset, length) {
+        let gl = vboContext.gl;
+
+        gl.uniform2fv(this._iResolutionUniform, new Float32Array([vboContext.getViewportWidth(), vboContext.getViewportHeight()]));
+        gl.uniform2fv(this._directionUniform, new Float32Array([1, 0]));
+
+        super.drawElements(vboContext, offset, length);
+    }
+
+    getMultisamples(viewRenderer) {
+        return 5;
+    }
+
+}
+
+BlurShader.vertexShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    attribute vec2 aVertexPosition;
+    attribute vec2 aTextureCoord;
+    attribute vec4 aColor;
+    uniform mat4 projectionMatrix;
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    void main(void){
+        gl_Position = projectionMatrix * vec4(aVertexPosition, 0.0, 1.0);
+        vTextureCoord = aTextureCoord;
+        vColor = aColor;
+    }
+`;
+
+BlurShader.fragmentShaderSrc = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    uniform sampler2D uSampler;
+    uniform vec2 iResolution;
+    uniform vec2 direction;
+    
+    vec4 blur(sampler2D image, vec2 uv, vec2 resolution, vec2 direction) {
+        vec4 color = vec4(0.0);
+        vec2 off1 = vec2(1.3333333333333333) * direction;
+        color += texture2D(image, uv) * 0.29411764705882354;
+        color += texture2D(image, uv + (off1 / resolution)) * 0.35294117647058826;
+        color += texture2D(image, uv - (off1 / resolution)) * 0.35294117647058826;
+        return color; 
+    }
+    
+    void main(void){
+        gl_FragColor = blur(uSampler, vTextureCoord, iResolution, direction) * vColor;
+    }
+`;
 
