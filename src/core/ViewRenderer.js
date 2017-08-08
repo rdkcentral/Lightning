@@ -1154,9 +1154,9 @@ class ViewRenderer {
                 let resultTexture = this.getRenderGlTexture();
 
                 let useShader = null;
-                
+
                 if (hasFilters) {
-                    if (this._hasRenderUpdates >= 2 || !this._filters.renderGlTexture) {
+                    if ((this._hasRenderUpdates >= 2 || !this._filters.cached)) {
                         let res = this.applyFilters();
                         resultTexture = res.texture;
                         useShader = res.shader;
@@ -1190,51 +1190,70 @@ class ViewRenderer {
     applyFilters() {
         let sourceTexture = this._renderGlTexture;
 
-        let targetTexture = this._filters._getRenderGlTexture();
-
         let ctx = this.ctx;
         let activeShaders = this._filters.getActiveShaders();
 
         let n = activeShaders.length;
 
-        let intermediate;
-        if (n > 1) {
-            intermediate = ctx.createRenderGlTexture(Math.min(2048, this._rw), Math.min(2048, this._rh), true);
-        }
+        let textureRenders = n;
 
-        for (let i = 0; i < n; i++) {
-            let last = (i === n - 1);
-            if (last && this._hasRenderUpdates >= 2 && this.activeShader.drawsAsDefault()) {
-                if (intermediate) {
-                    ctx.releaseGlTexture(intermediate);
-                }
+        this._filters.cached = false
 
-                ctx.clear();
+        // Final shader element may be rendered to the 'real' render target, at the expense of not filling the
+        // filter cache. That's why this is only done when this view was volatile last frame.
+        let lastWithShader = (this._hasRenderUpdates >= 2 && this.activeShader.drawsAsDefault());
 
-                // Final shader element may be rendered to the 'real' render target, at the expense of not filling the
-                // filter cache. That's why this is only done when this view was volatile last frame.
+        if (lastWithShader) textureRenders--;
+
+
+        if (textureRenders === 0) {
+            if (lastWithShader) {
                 return {texture: sourceTexture, shader: activeShaders[0]}
+            } else {
+                // No filters: just render the source texture with the normal shader.
+                return {texture: sourceTexture, shader: null}
             }
+        } else if (textureRenders === 1) {
+            let targetTexture = this._filters._getRenderGlTexture();
+            // No intermediate texture is needed.
+            activeShaders[0].drawFilterQuad(sourceTexture, this, targetTexture);
+            ctx.clear();
+            if (lastWithShader) {
+                return {texture: targetTexture, shader: activeShaders[1]}
+            } else {
+                this._filters.cached = true;
+                return {texture: targetTexture, shader: null}
+            }
+        } else {
+            let targetTexture = this._filters._getRenderGlTexture();
+            let intermediate = ctx.createGlTexture(Math.min(2048, this._rw), Math.min(2048, this._rh), true);
+            let source = intermediate;
+            let target = targetTexture;
 
-            if (i === 0) {
-                activeShaders[i].drawFilterQuad(sourceTexture, this, (last ? targetTexture : intermediate));
+            let even = ((textureRenders % 2) === 0);
 
-                if (!last) {
-                    // Switch source/intermediate for next round.
-                    let tmp = sourceTexture;
-                    sourceTexture = intermediate;
-                    intermediate = tmp;
+            for (let i = 0; i < textureRenders; i++) {
+                if (i !== 0 || even) {
+                    // Finally, the target should contain targetTexture, and source the intermediate texture.
+                    let tmp = source;
+                    source = target;
+                    target = tmp;
                 }
+
+                activeShaders[i].drawFilterQuad(i === 0 ? sourceTexture : source, this, target);
+            }
+
+            ctx.clear();
+
+            ctx.releaseGlTexture(intermediate);
+
+            if (lastWithShader) {
+                return {texture: target, shader: activeShaders[n - 1]}
+            } else {
+                this._filters.cached = true;
+                return {texture: target, shader: null}
             }
         }
-
-        if (intermediate) {
-            ctx.releaseGlTexture(intermediate);
-        }
-
-        ctx.clear();
-
-        return {texture: targetTexture, shader: null}
     }
 
     sortZIndexedChildren() {

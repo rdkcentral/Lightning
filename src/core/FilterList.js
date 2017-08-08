@@ -14,10 +14,13 @@ class FilterList extends Base {
         this._shaders = []
 
         this._renderGlTexture = null;
+
+        this.cached = true;
     }
 
     clear() {
         this._shaders = []
+        this.cached = false
     }
 
     get length() {
@@ -77,6 +80,7 @@ class FilterList extends Base {
             this._viewRenderer.ctx.releaseGlTexture(this._renderGlTexture);
             this._renderGlTexture = null;
         }
+        this.cached = false
     }
 
     get renderGlTexture() {

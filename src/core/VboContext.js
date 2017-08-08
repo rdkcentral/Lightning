@@ -230,10 +230,11 @@ class VboContext {
         if (!size) {
             size = this.length * this.shader.getBytesPerVertex() * 4;
         }
-        if (this._filterQuadMode && this._filterQuadModeParamsBuffered && size === 16) {
+        if (this._filterQuadMode && this._filterQuadModeParamsBuffered && size === 64) {
             // Params already buffered in memory.
         } else {
             let view = new DataView(this.vboParamsBuffer, 0, size);
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.paramsGlBuffer);
             this.gl.bufferData(this.gl.ARRAY_BUFFER, view, this.gl.DYNAMIC_DRAW);
             if (this._filterQuadMode) {
                 this._filterQuadModeParamsBuffered = true;
@@ -434,6 +435,7 @@ class VboContext {
 
         let texture = this._createGlTexture(w, h);
         texture.f = this.stage.frameCounter;
+        texture.r = Math.random();
         if (!allocate) {
             this._availableGlTextures.push(texture);
         }
