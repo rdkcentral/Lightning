@@ -20,10 +20,10 @@ class Shader extends Base {
         this.ctx = vboContext;
 
         /**
-         * The view renders that own this shader, mapped to the frame number when this shader was last used by the view.
-         * @type {Map<ViewRenderer, number>}
+         * The view renders that use this shader, either as a shader owner or as a filter.
+         * @type {Set<ViewRenderer>}
          */
-        this._users = new Map();
+        this._users = new Set();
     }
 
     _uniform(name) {
@@ -59,10 +59,9 @@ class Shader extends Base {
     }
 
     /**
-     * Set up params buffer based on filter shader settings.
-     * @param {object} settings
+     * Set up params buffer for filtering.
      */
-    prepareFilterQuad(settings) {
+    prepareFilterQuad() {
     }
 
     /**
@@ -71,11 +70,14 @@ class Shader extends Base {
     prepareQuads() {
     }
 
-    drawFilterQuad(sourceTexture, viewRenderer, settings) {
+    drawFilterQuad(sourceTexture, viewRenderer, targetTexture) {
+        this.ctx.flush();
+        this.ctx.setShader(this, viewRenderer);
+        this.ctx.setRenderTarget(targetTexture);
         this.ctx.setFilterQuadMode(sourceTexture, viewRenderer);
-        this.ctx.setupShader(viewRenderer, this);
-        this.prepareFilterQuad(settings);
+        this.prepareFilterQuad();
         this._draw();
+        this.ctx.restoreRenderTarget();
     }
 
     drawQuads() {
@@ -93,7 +95,7 @@ class Shader extends Base {
      * This function should be called for every shader owner or filter owner that runs this shader.
      */
     updateUserReference(viewRenderer) {
-        this._users.set(viewRenderer, viewRenderer.lastUpdateFrame);
+        this._users.add(viewRenderer);
     }
 
     get initialized() {
@@ -118,19 +120,14 @@ class Shader extends Base {
     }
 
     redraw() {
-        this._users.forEach((frame, viewRenderer) => {
-            if (viewRenderer.lastUpdateFrame === frame && viewRenderer.view.active) {
-                viewRenderer.setHasRenderUpdates(1);
-            } else {
-                this._users.delete(viewRenderer)
-                return false;
-            }
+        this._users.forEach((viewRenderer) => {
+            viewRenderer.redrawShader(this);
         });
     }
 
     checkUsers() {
-        this._users.forEach((frame, viewRenderer) => {
-            if (!(viewRenderer.lastUpdateFrame === frame && viewRenderer.view.active)) {
+        this._users.forEach((viewRenderer) => {
+            if (!viewRenderer.usesShader(this)) {
                 this._users.delete(viewRenderer)
             }
         });
@@ -158,6 +155,8 @@ class Shader extends Base {
     }
 
 }
+
+Shader.prototype.isShader = true;
 
 Shader.programs = new Map();
 Shader.destroyPrograms = function() {

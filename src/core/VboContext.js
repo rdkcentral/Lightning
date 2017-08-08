@@ -108,19 +108,19 @@ class VboContext {
         if (!this._filterQuadMode) {
             let f = this.vboBufferFloat;
             let u = this.vboBufferUint;
-            f[0] = 0;
-            f[1] = 0;
+            f[0] = -1;
+            f[1] = -1;
             u[2] = 0x00000000;
             u[3] = 0xFFFFFFFF;
             f[4] = 1;
-            f[5] = 0;
+            f[5] = -1;
             u[6] = 0x0000FFFF;
             u[7] = 0xFFFFFFFF;
             f[8] = 1;
             f[9] = 1;
             u[10] = 0xFFFFFFFF;
             u[11] = 0xFFFFFFFF;
-            f[12] = 0;
+            f[12] = -1;
             f[13] = 1;
             u[14] = 0xFFFF0000;
             u[15] = 0xFFFFFFFF;
@@ -243,13 +243,14 @@ class VboContext {
 
     setViewShader(viewRenderer) {
         let shader = viewRenderer.activeShader;
+        let owner = viewRenderer.activeShaderOwner;
         if (shader.drawsAsDefault()) {
             // We can just use the default shader, which is probably faster and limits the amount of shader changes.
             shader = this.defaultShader;
+            owner = null;
         }
 
-        let owner = viewRenderer.shader === shader ? viewRenderer : null;
-        this.setShader(shader, viewRenderer);
+        this.setShader(shader, owner);
     }
 
     setShader(shader, owner = null) {

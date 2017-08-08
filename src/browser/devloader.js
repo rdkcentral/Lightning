@@ -40,6 +40,7 @@ var loadWpe, loadBulk;
             "ShaderProgram":"./core/ShaderProgram.js",
             "Shader":"./core/Shader.js",
             "ShaderSettings":"./core/ShaderSettings.js",
+            "FilterList":"./core/FilterList.js",
             "DefaultShader":"./core/DefaultShader.js",
             "TextureManager":"./core/TextureManager.js",
             "Texture":"./core/Texture.js",

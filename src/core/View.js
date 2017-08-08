@@ -286,7 +286,7 @@ class View {
             this._displayedTexture.source.removeView(this);
         }
 
-        this.renderer.releaseRenderGlTexture();
+        this.renderer.deactivate();
 
         this._active = false;
     }
@@ -1445,28 +1445,20 @@ class View {
         this.shaderSettings.setSettings(v);
     }
 
-    get filter() {
-        return this.renderer.filter;
+    get filters() {
+        return this.renderer.filters;
     }
 
-    set filter(v) {
-        let filter;
-        if (Utils.isPlainObject(v)) {
-            if (v.type) {
-                filter = new v.type(this.stage.ctx)
-            } else {
-                filter = this.filter
-            }
+    set filters(v) {
+        this.renderer.filters = filters;
+    }
 
-            if (filter) {
-                filter.setSettings(v);
-            }
-        } else if (v === null) {
-            filter = null;
-        } else {
-            filter = v;
-        }
-        this.renderer.filter = filter;
+    get renderAsTexture() {
+        return this.renderer.renderAsTexture
+    }
+
+    set renderAsTexture(v) {
+        this.renderer.renderAsTexture = v
     }
 
     /*A¬*/

@@ -15,9 +15,11 @@ class Light3dShader extends DefaultShader {
 
         this._rx = 0;
         this._ry = 0;
+
+        this.filterZ = 0;
     }
 
-    prepareFilterQuad(settings) {
+    prepareFilterQuad() {
         let ctx = this.ctx;
         let gl = ctx.gl;
 
@@ -27,7 +29,7 @@ class Light3dShader extends DefaultShader {
         let view = vr.view;
         let x = view.pivotX * 2 - 1;
         let y = view.pivotY * 2 - 1;
-        let z = (settings.z || 0) / ctx.getViewportWidth();
+        let z = this.filterZ / ctx.getViewportWidth();
 
         gl.uniform3fv(this._uniform("pivot"), new Float32Array([x, y, z]));
         gl.uniform3fv(this._uniform("rot"), new Float32Array([this._rx, this._ry, 0]));
