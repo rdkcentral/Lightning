@@ -1,9 +1,12 @@
+/**
+ *
+ */
 var start = function(wpe) {
 
     wpe = wpe || {};
 
     with(wpe) {
-        var options = {w: 900, h: 900, glClearColor: 0xFF000000, useTextureAtlas: true, debugTextureAtlas: false};
+        var options = {w: 900, h: 900, glClearColor: 0xFF000000, useTextureAtlas: false, debugTextureAtlas: false};
 
         // Nodejs-specific options.
         if (Utils.isNode) {
@@ -31,17 +34,30 @@ var start = function(wpe) {
         //     ]}
         // ]);
         //
+        // stage.root.add([
+        //     {tags: 'bg', clipping: false, rect: true, zIndex: 1, x: 20, y: 20, w: 600, rotation: 0.0, h: 600, colorUl: 0xFFFF0000, colorBr: 0xFFFF6666, children: [
+        //         {tags: 'image', colorUl: 0xFFFF0000, shader: {type: Light3dShader, rx: 0.5, ry: 0.8, ambient: 0.2}, shaderSettings: {z: 10}, rotation: 0.0, pivotX: 0.5, pivotY: 0.5, alpha: 1, mountX: 0.5, mountY:0.5, x: 450, y: 450, rect: true, w: 400, h: 400, scale: 1, children: [
+        //             {tag: 'border', type: BorderView, shaderSettings: {z: -100}, borderWidth: 20, rect: false, color: 0xFFFF0000, w: 100, h: 10, x: 150, y: 100, children: [
+        //                 {tags: 'hello', zIndex: 0, shader: null, texture: texture, shaderSettings: {z: 50}}
+        //             ]}
+        //         ]}
+        //     ]}
+        // ])
+
         stage.root.add([
-            {tags: 'image', colorUl: 0xFFFF0000, shader: {type: Light3dShader, rx: 0.5, ry: 0.8}, shaderSettings: {z: 10}, rotation: 0.0, pivotX: 0.5, pivotY: 0.5, alpha: 1, mountX: 0.5, mountY:0.5, x: 450, y: 450, rect: true, w: 400, h: 400, scale: 1, children: [
-                // {tag: 'border', type: BorderView, shaderSettings: {z: -100}, borderWidth: 20, rect: false, color: 0xFFFF0000, w: 100, h: 10, x: 150, y: 100, children: [
-                //     {tags: 'hello', zIndex: 0, texture: texture, shaderSettings: {z: 50}}
-                // ]}
+            {tags: 'bg', clipping: false, rect: true, zIndex: 1, x: 20, y: 20, w: 600, rotation: 0.0, h: 600, colorUl: 0xFFFF0000, colorBr: 0xFFFF6666, children: [
+                {tags: 'image', src: 'http://adn.gpupdate.net/news/297192.jpg', shader: {type: Light3dShader, rx: 0.5}, rotation: 0.0, pivotX: 0.5, pivotY: 0.5, alpha: 1, mountX: 0.5, mountY:0.5, x: 450, y: 450, scale: 1, children: [
+                    {tag: 'border', type: BorderView, shaderSettings: {z: -100}, borderWidth: 20, rect: false, color: 0xFFFF0000, w: 100, h: 10, x: 150, y: 100, children: [
+                        {tags: 'hello', src: 'http://adn.gpupdate.net/news/297192.jpg', zIndex: 0/*, texture: texture*/, shaderSettings: {z: 50}}
+                    ]}
+                ]}
             ]}
         ])
 
-        stage.root.transition('x', {duration: 10});
-        stage.root.setSmooth('x', 100);
-        stage.root.tag('image').setSmooth('shader.rx', 30, {duration: 30});
+        setTimeout(() => stage.root.removeChildren(), 4000);
+
+        stage.root.setSmooth('x', 100, {duration: 10});
+        stage.root.tag('image').setSmooth('shader.rx', 10, {duration: 10});
 
         //stage.root.tag('border').setSmooth('x', 300, {duration: 3});
 

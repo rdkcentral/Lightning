@@ -31,6 +31,6 @@ module.exports = {
     "Tools": require("./src/tools/Tools"),
     "ListView": require("./src/tools/ListView"),
     "BorderView": require("./src/tools/BorderView"),
-    "BlurShader": require("./src/tools/shaders/BlurShader"),
+    "LinearBlurShader": require("./src/tools/shaders/LinearBlurShader"),
     "Light3dShader": require("./src/tools/shaders/Light3dShader")
 }

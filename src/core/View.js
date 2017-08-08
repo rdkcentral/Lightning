@@ -203,6 +203,14 @@ class View {
         return null;
     };
 
+    get active() {
+        return this._active
+    }
+
+    get attached() {
+        return this._attached
+    }
+
     isActive() {
         return this._visible && (this._alpha > 0) && (this._parent ? this._parent._active : (this.stage.root === this));
     };
@@ -278,7 +286,7 @@ class View {
             this._displayedTexture.source.removeView(this);
         }
 
-        this.renderer.deleteRenderGlTexture();
+        this.renderer.releaseRenderGlTexture();
 
         this._active = false;
     }
@@ -1412,10 +1420,15 @@ class View {
     set shader(v) {
         let shader;
         if (Utils.isPlainObject(v)) {
-            shader = new v.type(this.stage);
-            v = Utils.cloneObj(v);
-            delete v.type;
-            shader.setSettings(v);
+            if (v.type) {
+                shader = new v.type(this.stage.ctx)
+            } else {
+                shader = this.shader
+            }
+
+            if (shader) {
+                shader.setSettings(v);
+            }
         } else if (v === null) {
             shader = this.stage.ctx.defaultShader;
         } else {
@@ -1432,12 +1445,28 @@ class View {
         this.shaderSettings.setSettings(v);
     }
 
-    get renderAsTexture() {
-        return this.renderer.renderAsTexture;
+    get filter() {
+        return this.renderer.filter;
     }
 
-    set renderAsTexture(v) {
-        this.renderer.renderAsTexture = v;
+    set filter(v) {
+        let filter;
+        if (Utils.isPlainObject(v)) {
+            if (v.type) {
+                filter = new v.type(this.stage.ctx)
+            } else {
+                filter = this.filter
+            }
+
+            if (filter) {
+                filter.setSettings(v);
+            }
+        } else if (v === null) {
+            filter = null;
+        } else {
+            filter = v;
+        }
+        this.renderer.filter = filter;
     }
 
     /*A¬*/

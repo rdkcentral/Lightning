@@ -6,63 +6,57 @@ let Shader = require('./Shader');
 
 class DefaultShader extends Shader {
 
-    constructor(stage, vertexShaderSource = DefaultShader.vertexShaderSource, fragmentShaderSource = DefaultShader.fragmentShaderSrc) {
-        super(stage, vertexShaderSource, fragmentShaderSource);
+    constructor(vboContext, vertexShaderSource = DefaultShader.vertexShaderSource, fragmentShaderSource = DefaultShader.fragmentShaderSrc) {
+        super(vboContext, vertexShaderSource, fragmentShaderSource);
+
+        this._isSubShader = (this.constructor !== DefaultShader);
     }
 
-    init(vboContext) {
-        super.init(vboContext);
+    useProgram() {
+        super.useProgram();
 
-        let gl = vboContext.gl;
-
-        // Bind attributes.
-        this._vertexPositionAttribute = gl.getAttribLocation(this.glProgram, "aVertexPosition");
-        this._textureCoordAttribute = gl.getAttribLocation(this.glProgram, "aTextureCoord");
-        this._colorAttribute = gl.getAttribLocation(this.glProgram, "aColor");
-    }
-
-    setup(vboContext) {
-        super.setup(vboContext);
-
-        let gl = vboContext.gl;
+        let gl = this.ctx.gl;
 
         gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
         gl.enable(gl.BLEND);
         gl.disable(gl.DEPTH_TEST);
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, vboContext.paramsGlBuffer);
+        gl.vertexAttribPointer(this._attrib("aVertexPosition"), 2, gl.FLOAT, false, 16, 0);
+        gl.vertexAttribPointer(this._attrib("aTextureCoord"), 2, gl.UNSIGNED_SHORT, true, 16, 2 * 4);
+        gl.vertexAttribPointer(this._attrib("aColor"), 4, gl.UNSIGNED_BYTE, true, 16, 3 * 4);
 
-        gl.vertexAttribPointer(this._vertexPositionAttribute, 2, gl.FLOAT, false, 16, 0);
-        gl.vertexAttribPointer(this._textureCoordAttribute, 2, gl.UNSIGNED_SHORT, true, 16, 2 * 4);
-        gl.vertexAttribPointer(this._colorAttribute, 4, gl.UNSIGNED_BYTE, true, 16, 3 * 4);
+        gl.enableVertexAttribArray(this._attrib("aVertexPosition"));
+        gl.enableVertexAttribArray(this._attrib("aTextureCoord"));
+        gl.enableVertexAttribArray(this._attrib("aColor"));
 
-        gl.enableVertexAttribArray(this._vertexPositionAttribute);
-        gl.enableVertexAttribArray(this._textureCoordAttribute);
-        gl.enableVertexAttribArray(this._colorAttribute);
-
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, vboContext.quadsGlBuffer);
-
-        this.setupExtra(vboContext);
+        this._setupPjm = null;
     }
 
-    getExtraBufferSizePerQuad() {
-        return 0;
+    stopProgram() {
+        super.stopProgram();
+
+        let gl = this.ctx.gl;
+
+        gl.disableVertexAttribArray(this._attrib("aVertexPosition"));
+        gl.disableVertexAttribArray(this._attrib("aTextureCoord"));
+        gl.disableVertexAttribArray(this._attrib("aColor"));
     }
 
-    drawElements(vboContext, offset, length) {
-        let gl = vboContext.gl;
+    _draw() {
+        let gl = this.ctx.gl;
+        let ctx = this.ctx;
+
+        let length = this.ctx.length;
 
         if (length) {
-            this.updateProjectionMatrix(vboContext);
+            this.updateProjectionMatrix();
 
-            let view = new DataView(vboContext.vboParamsBuffer, offset * vboContext.bytesPerQuad, length * (vboContext.bytesPerQuad + this.getExtraBufferSizePerQuad()));
-            gl.bufferData(gl.ARRAY_BUFFER, view, gl.DYNAMIC_DRAW);
+            ctx.bufferGlParams();
 
-            let glTexture = vboContext.getVboGlTexture(0);
-            let pos = offset;
-            let end = offset + length;
-            for (let i = offset; i < end; i++) {
-                let tx = vboContext.getVboGlTexture(i);
+            let glTexture = this.ctx.getVboGlTexture(0);
+            let pos = 0;
+            for (let i = 0; i < length; i++) {
+                let tx = ctx.getVboGlTexture(i);
                 if (glTexture !== tx) {
                     gl.bindTexture(gl.TEXTURE_2D, glTexture);
                     gl.drawElements(gl.TRIANGLES, 6 * (i - pos), gl.UNSIGNED_SHORT, pos * 6 * 2);
@@ -70,53 +64,42 @@ class DefaultShader extends Shader {
                     pos = i;
                 }
             }
-            if (pos < end) {
+            if (pos < length) {
                 gl.bindTexture(gl.TEXTURE_2D, glTexture);
-                gl.drawElements(gl.TRIANGLES, 6 * (end - pos), gl.UNSIGNED_SHORT, pos * 6 * 2);
+                gl.drawElements(gl.TRIANGLES, 6 * (length - pos), gl.UNSIGNED_SHORT, pos * 6 * 2);
             }
         }
     }
 
-    updateProjectionMatrix(vboContext) {
-        let newPjm = vboContext.getProjectionMatrix();
+    updateProjectionMatrix() {
+        let newPjm = this.ctx.getProjectionMatrix();
         if (this._setupPjm !== newPjm) {
-            let gl = vboContext.gl
-            gl.uniformMatrix4fv(this._projectionMatrixAttribute, false, newPjm)
+            let gl = this.ctx.gl
+            gl.uniformMatrix4fv(this._uniform("projectionMatrix"), false, newPjm)
             this._setupPjm = newPjm;
         }
     }
 
-    cleanup(vboContext) {
-        super.cleanup(vboContext);
-
-        let gl = vboContext.gl;
-
-        gl.disableVertexAttribArray(this._vertexPositionAttribute);
-        gl.disableVertexAttribArray(this._textureCoordAttribute);
-        gl.disableVertexAttribArray(this._colorAttribute);
-
-        this.cleanupExtra(vboContext);
+    getBytesPerVertex() {
+        return 16 + this.getExtraBytesPerVertex();
     }
 
-    setupExtraOnly(vboContext) {
-        vboContext.gl.useProgram(this.glProgram);
-
-        this.setupExtra(vboContext);
+    getExtraParamsBufferOffset() {
+        return this.ctx.length * 64;
     }
 
-    cleanupExtraOnly(vboContext) {
-        this.cleanupExtra(vboContext);
+    getExtraBytesPerVertex() {
+        return 0;
     }
 
-    setupExtra(vboContext) {
-        this._projectionMatrixAttribute = vboContext.gl.getUniformLocation(this.glProgram, "projectionMatrix");
-
-        // Set up additional params.
+    drawsAsDefault() {
+        // Default for subclasses of default shader: has effect.
+        return !this._isSubShader;
     }
 
-    cleanupExtra(vboContext) {
-        // Clean up additional params.
-        this._setupPjm = null;
+    drawsPerPixel() {
+        // Default for subclasses of default shader: does not draw per pixel.
+        return this._isSubShader;
     }
 
 }

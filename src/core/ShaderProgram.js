@@ -10,6 +10,9 @@ class ShaderProgram {
         this.fragmentShaderSource = fragmentShaderSource;
 
         this._program = null;
+
+        this._uniformLocations = new Map();
+        this._attributeLocations = new Map();
     }
 
     compile(gl) {
@@ -61,9 +64,31 @@ class ShaderProgram {
         return shader;
     }
 
+    getUniformLocation(name) {
+        let location = this._uniformLocations.get(name);
+        if (location === undefined) {
+            location = this.gl.getUniformLocation(this._program, name);
+            this._uniformLocations.set(name, location);
+        }
+
+        return location;
+    }
+
+    getAttribLocation(name) {
+        let location = this._attributeLocations.get(name);
+        if (location === undefined) {
+            location = this.gl.getAttribLocation(this._program, name);
+            this._attributeLocations.set(name, location);
+        }
+
+        return location;
+    }
+
     destroy() {
-        this.gl.deleteProgram(this._program);
-        this._program = null;
+        if (this._program) {
+            this.gl.deleteProgram(this._program);
+            this._program = null;
+        }
     }
 
     get glProgram() {

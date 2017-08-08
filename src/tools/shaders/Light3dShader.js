@@ -5,71 +5,88 @@
 let DefaultShader = require('../../core/DefaultShader');
 
 class Light3dShader extends DefaultShader {
-    constructor(stage) {
-        super(stage, Light3dShader.vertexShaderSource, Light3dShader.fragmentShaderSrc);
+
+    constructor(ctx) {
+        super(ctx, Light3dShader.vertexShaderSource, Light3dShader.fragmentShaderSrc);
 
         this._strength = 1;
-        this._ambient = 0;
+        this._ambient = 0.2;
         this._fudge = 0.4;
 
         this._rx = 0;
         this._ry = 0;
     }
 
-    init(vboContext) {
-        super.init(vboContext)
+    prepareFilterQuad(settings) {
+        let ctx = this.ctx;
+        let gl = ctx.gl;
 
-        let gl = vboContext.gl;
-        this._strengthUniform = gl.getUniformLocation(this.glProgram, "strength");
-        this._ambientUniform = gl.getUniformLocation(this.glProgram, "ambient");
-        this._fudgeUniform = gl.getUniformLocation(this.glProgram, "fudge");
-        this._pivotUniform = gl.getUniformLocation(this.glProgram, "pivot");
-        this._rotUniform = gl.getUniformLocation(this.glProgram, "rot");
+        let byteOffset = this.getExtraParamsBufferOffset();
 
-        this._zAttribute = gl.getAttribLocation(this.glProgram, "z");
-
-    }
-
-    drawElements(vboContext, offset, length) {
-        let gl = vboContext.gl;
-
-        let byteOffset = (offset + length) * vboContext.bytesPerQuad;
-
-        gl.vertexAttribPointer(this._zAttribute, 1, gl.FLOAT, false, 4, byteOffset - (offset * this.getExtraBufferSizePerQuad()));
-        gl.enableVertexAttribArray(this._zAttribute);
-
-        gl.uniform1f(this._strengthUniform, this._strength)
-        gl.uniform1f(this._ambientUniform, this._ambient)
-        gl.uniform1f(this._fudgeUniform, this._fudge)
-
-        let vr = vboContext.shaderOwner;
+        let vr = ctx.shaderOwner;
         let view = vr.view;
-        let coords = vr.getAbsoluteCoords(vr.rw * view.pivotX, vr.rh * view.pivotY);
-        coords.push(vr.shaderSettings.z / vboContext.getViewportWidth());
-        gl.uniform3fv(this._pivotUniform, new Float32Array(coords));
+        let x = view.pivotX * 2 - 1;
+        let y = view.pivotY * 2 - 1;
+        let z = (settings.z || 0) / ctx.getViewportWidth();
 
-        let rotZ = Math.atan2(vr._worldTc, vr._worldTa);
-        gl.uniform3fv(this._rotUniform, new Float32Array([this._rx, this._ry, rotZ]));
+        gl.uniform3fv(this._uniform("pivot"), new Float32Array([x, y, z]));
+        gl.uniform3fv(this._uniform("rot"), new Float32Array([this._rx, this._ry, 0]));
 
         let base = byteOffset / 4;
-        for (let i = 0; i < length; i++) {
-            let viewRenderer = vboContext.getViewRenderer(i);
-            let s = viewRenderer.shaderSettings;
-            let z = s.totalZ / vboContext.getViewportWidth();
-
-            vboContext.vboBufferFloat[base + i * 4] = z
-            vboContext.vboBufferFloat[base + i * 4 + 1] = z
-            vboContext.vboBufferFloat[base + i * 4 + 2] = z
-            vboContext.vboBufferFloat[base + i * 4 + 3] = z
-        }
-
-        super.drawElements(vboContext, offset, length);
-
-        gl.disableVertexAttribArray(this._zAttribute);
+        ctx.vboBufferFloat[base] = z
+        ctx.vboBufferFloat[base + 1] = z
+        ctx.vboBufferFloat[base + 2] = z
+        ctx.vboBufferFloat[base + 3] = z
     }
 
-    getExtraBufferSizePerQuad() {
-        return 4 * 4; // 4 bytes * 4 vertices.
+    prepareQuads() {
+        let ctx = this.ctx;
+        let gl = ctx.gl;
+
+        let byteOffset = this.getExtraParamsBufferOffset();
+
+        let vr = ctx.shaderOwner;
+        let view = vr.view;
+        let coords = vr.getAbsoluteCoords(vr.rw * view.pivotX, vr.rh * view.pivotY);
+        coords.push(vr.shaderSettings.z / ctx.getViewportWidth());
+        gl.uniform3fv(this._uniform("pivot"), new Float32Array(coords));
+
+        let rotZ = Math.atan2(vr._worldTc, vr._worldTa);
+        gl.uniform3fv(this._uniform("rot"), new Float32Array([this._rx, this._ry, rotZ]));
+
+        let length = ctx.length
+        let base = byteOffset / 4;
+        for (let i = 0; i < length; i++) {
+            let viewRenderer = ctx.getViewRenderer(i);
+            let s = viewRenderer.shaderSettings;
+            let z = s.totalZ / ctx.getViewportWidth();
+
+            ctx.vboBufferFloat[base + i * 4] = z
+            ctx.vboBufferFloat[base + i * 4 + 1] = z
+            ctx.vboBufferFloat[base + i * 4 + 2] = z
+            ctx.vboBufferFloat[base + i * 4 + 3] = z
+        }
+    }
+
+    useProgram() {
+        super.useProgram();
+
+        let gl = this.ctx.gl
+        gl.uniform1f(this._uniform("strength"), this._strength)
+        gl.uniform1f(this._uniform("ambient"), this._ambient)
+        gl.uniform1f(this._uniform("fudge"), this._fudge)
+    }
+
+    _draw() {
+        let gl = this.ctx.gl
+        gl.vertexAttribPointer(this._attrib("z"), 1, gl.FLOAT, false, 4, this.getExtraParamsBufferOffset())
+        gl.enableVertexAttribArray(this._attrib("z"))
+
+        super._draw()
+    }
+
+    getExtraBytesPerVertex() {
+        return 4;
     }
 
     set strength(v) {

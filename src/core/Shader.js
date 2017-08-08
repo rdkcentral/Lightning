@@ -7,7 +7,7 @@ let Base = require('./Base')
 
 class Shader extends Base {
 
-    constructor(stage, vertexShaderSource, fragmentShaderSource) {
+    constructor(vboContext, vertexShaderSource, fragmentShaderSource) {
         super();
 
         this._program = Shader.programs.get(this.constructor);
@@ -17,66 +17,87 @@ class Shader extends Base {
         }
         this._initialized = false;
 
-        this._stage = stage;
+        this.ctx = vboContext;
 
-        this._lastFrameUsed = 0;
+        /**
+         * The view renders that own this shader, mapped to the frame number when this shader was last used by the view.
+         * @type {Map<ViewRenderer, number>}
+         */
+        this._users = new Map();
     }
 
-    redraw() {
-        this._stage.ctx.root._setHasRenderUpdates();
-        //@todo: make sure that renderAsTextures that contain this shader are not reused.
+    _uniform(name) {
+        return this._program.getUniformLocation(name);
     }
 
-    init(vboContext) {
-        this._program.compile(vboContext.gl);
-        this._initialized = true;
+    _attrib(name) {
+        return this._program.getAttribLocation(name);
     }
 
-    drawElements(vboContext, offset, length, multisample = 0) {
-        // Set up shader attributes, uniforms, draw elements and disable attributes.
-    }
-
-    drawMultisample(vboContext, viewRenderer) {
-        // Draws a renderAsTexture in a multisampled way.
-        let amount = this.getMultisamples(viewRenderer)
-
-        let origSource = vboContext.vboGlTextures[0]
-        let target = null;
-        for (let i = 0; i < amount; i++) {
-            target = i % 2 === 0 ? vboContext.getMultisampleTextureA() : vboContext.getMultisampleTextureB();
-
-            vboContext.setRenderTarget(target);
-
-            // Limit viewport to texture dimensions.
-            vboContext.gl.viewport(0, 0, origSource.w, origSource.h);
-
-            if (i !== 0) {
-                vboContext.vboGlTextures[0] = (i % 2 === 0 ? vboContext.getMultisampleTextureB() : vboContext.getMultisampleTextureA());
-            }
-
-            this.drawElements(vboContext, 0, vboContext.vboOffset, i + 1);
-
-            vboContext.restoreRenderTarget();
+    _init() {
+        if (!this._initialized) {
+            this._program.compile(this.ctx.gl);
+            this._initialized = true;
         }
-
-        // Actually render to the real render target.
-        vboContext.vboGlTextures[0] = target;
-        this.drawElements(vboContext, 0, vboContext.vboOffset, 0)
     }
 
-    setup(vboContext) {
-        vboContext.gl.useProgram(this.glProgram);
+    _free() {
+        if (!this._initialized) {
+            this._program.destroy();
+            this._initialized = false;
+        }
     }
 
-    cleanup(vboContext) {
+    useProgram() {
+        this.ctx.initShader(this);
+        this.ctx.gl.useProgram(this.glProgram);
+
+        this.ctx.bindDefaultGlBuffers();
+    }
+
+    stopProgram() {
+    }
+
+    /**
+     * Set up params buffer based on filter shader settings.
+     * @param {object} settings
+     */
+    prepareFilterQuad(settings) {
+    }
+
+    /**
+     * Set up params buffer based on shader settings in context.
+     */
+    prepareQuads() {
+    }
+
+    drawFilterQuad(sourceTexture, viewRenderer, settings) {
+        this.ctx.setFilterQuadMode(sourceTexture, viewRenderer);
+        this.ctx.setupShader(viewRenderer, this);
+        this.prepareFilterQuad(settings);
+        this._draw();
+    }
+
+    drawQuads() {
+        if (this.ctx.shader !== this) {
+            throw new Error("Shader conflict");
+        }
+        this.prepareQuads();
+        this._draw();
+    }
+
+    _draw() {
+    }
+
+    /**
+     * This function should be called for every shader owner or filter owner that runs this shader.
+     */
+    updateUserReference(viewRenderer) {
+        this._users.set(viewRenderer, viewRenderer.lastUpdateFrame);
     }
 
     get initialized() {
         return this._initialized;
-    }
-
-    destroy() {
-        this._initialized = false;
     }
 
     get glProgram() {
@@ -88,15 +109,52 @@ class Shader extends Base {
     }
 
     createViewSettings() {
-        return null;
+        // Return a dummy object to prevent userland errors.
+        return {};
     }
 
-    getBufferSizePerQuad() {
+    getBytesPerVertex() {
         return 0;
     }
 
-    getMultisamples(viewRenderer) {
-        return 0;
+    redraw() {
+        this._users.forEach((frame, viewRenderer) => {
+            if (viewRenderer.lastUpdateFrame === frame && viewRenderer.view.active) {
+                viewRenderer.setHasRenderUpdates(1);
+            } else {
+                this._users.delete(viewRenderer)
+                return false;
+            }
+        });
+    }
+
+    checkUsers() {
+        this._users.forEach((frame, viewRenderer) => {
+            if (!(viewRenderer.lastUpdateFrame === frame && viewRenderer.view.active)) {
+                this._users.delete(viewRenderer)
+            }
+        });
+    }
+
+    hasUsers() {
+        return this._users.size > 0;
+    }
+
+    drawsAsDefault() {
+        // Should return true if this shader is configured (using it's properties) to just draw the quads as the default
+        // shader.
+        // This may save us from unnecessary shader program switches, or even texture copies (renderAsTexture, filters,
+        // filterAsTexture).
+        // it will be ignored when used as a filter, reducing the amount of texture
+        // copies. Even when used as a shader, it may prevent us from
+        // Warning: the return value may only depend on the Shader's properties. Return false when in doubt.
+        return false;
+    }
+
+    drawsPerPixel() {
+        // Should return true if this shader (in it's current property-based configuration) draws pixels independent
+        // of other texture regions. To put it otherwise: renderAsTexture enabled has no effect on the result.
+        return false;
     }
 
 }

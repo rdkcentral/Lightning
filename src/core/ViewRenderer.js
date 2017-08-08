@@ -12,7 +12,7 @@ class ViewRenderer {
 
         this._hasUpdates = false;
 
-        this._hasRenderUpdates = false;
+        this._hasRenderUpdates = 0;
 
         this._layoutEntry = null;
 
@@ -106,19 +106,36 @@ class ViewRenderer {
 
         this._shader = null;
 
-        this._activeShader = null;
+        // The ViewRenderer that owns the shader that's active in this branch. Null if none is active (default shader).
+        this._shaderOwner = null;
 
         this._shaderSettings = null;
 
+        this._filter = null;
+
         this._renderGlTexture = null;
+
+        this._renderAsTexture = 0;
+
+        this._renderAsTextureEnabled = false;
+
+        this.lastUpdateFrame = 0;
     }
 
-    _setHasRenderUpdates() {
+    /**
+     * @param {number} type
+     * 0: no updates
+     * 1: re-invoke shader
+     * 2: re-invoke filter
+     * 3: re-create render texture and re-invoke shader and filter
+     */
+    setHasRenderUpdates(type) {
         if (this._worldAlpha) {
             let p = this;
-            do {
-                p._hasRenderUpdates = true;
-            } while ((p = p._parent) && !p._hasRenderUpdates);
+            p._hasRenderUpdates = type;
+            while ((p = p._parent) && (p._hasRenderUpdates != 3)) {
+                p._hasRenderUpdates = 3;
+            }
         }
     }
 
@@ -142,7 +159,7 @@ class ViewRenderer {
             } while ((p = p._parent) && !p._hasUpdates);
 
             // Any changes in descendants should trigger texture updates.
-            if (this._parent) this._parent._setHasRenderUpdates();
+            if (this._parent) this._parent.setHasRenderUpdates(3);
         } else {
             this._hasUpdates = true;
         }
@@ -159,11 +176,11 @@ class ViewRenderer {
 
             if (force) {
                 // View is becoming visible: it's own rendering may have changed while invisible.
-                this._setHasRenderUpdates();
+                this.setHasRenderUpdates(3);
             } else {
                 // Any changes in descendants should trigger texture updates.
                 if (this._parent) {
-                    this._parent._setHasRenderUpdates();
+                    this._parent.setHasRenderUpdates(3);
                 }
             }
         } else {
@@ -230,15 +247,29 @@ class ViewRenderer {
             }
 
             if (!this._shader) {
-                let newActiveShader = parent ? parent._activeShader : null;
-                if (parent._renderAsTexture) newActiveShader = this.ctx.defaultShader;
-                if (newActiveShader !== this._activeShader) {
-                    this._setHasRenderUpdates();
-                    this._setActiveShaderRecursive(newActiveShader);
+                let newShaderOwner = parent && !parent._renderAsTextureEnabled ? parent._shaderOwner : null;
+                if (newShaderOwner !== this._shaderOwner) {
+                    this.setHasRenderUpdates(1);
+                    this._setShaderOwnerRecursive(newShaderOwner);
                 }
             }
         }
     };
+
+    /**
+     * Returns the mode that indicates when renderAsTexture should be performed during this frame:
+     * 0 = never
+     * 1 = only if last render was static
+     * 2 = always
+     * @returns {*|number}
+     */
+    _getRenderAsTextureMode() {
+        let mode = this._renderAsTexture;
+        if (mode < 2 && this._filter) {
+            mode = Math.max(this._filter.getRenderAsTexture());
+        }
+        return mode;
+    }
 
     addChildAt(index, child) {
         if (!this._children) this._children = [];
@@ -300,11 +331,11 @@ class ViewRenderer {
         this._rw = w;
         this._rh = h;
         this._setRecalc(2);
-        this.deleteRenderGlTexture();
+        this.releaseRenderGlTexture();
     };
 
     setTextureCoords(ulx, uly, brx, bry) {
-        this._setHasRenderUpdates();
+        this.setHasRenderUpdates(3);
 
         this._ulx = ulx;
         this._uly = uly;
@@ -318,12 +349,11 @@ class ViewRenderer {
     };
 
     setDisplayedTextureSource(textureSource) {
-        this._setHasRenderUpdates();
+        this.setHasRenderUpdates(3);
         this._displayedTextureSource = textureSource;
     };
 
     setInTextureAtlas(inTextureAtlas) {
-        this._setHasRenderUpdates();
         this.inTextureAtlas = inTextureAtlas;
     };
 
@@ -348,7 +378,7 @@ class ViewRenderer {
     };
 
     isZContext() {
-        return (this._forceZIndexContext || this._renderAsTexture || this._zIndex !== 0 || this._isRoot || !this._parent);
+        return (this._forceZIndexContext || this._renderAsTextureEnabled || this._zIndex !== 0 || this._isRoot || !this._parent);
     };
 
     findZContext() {
@@ -424,7 +454,7 @@ class ViewRenderer {
 
     set zIndex(zIndex) {
         if (this._zIndex !== zIndex) {
-            this._setHasRenderUpdates();
+            this.setHasRenderUpdates(1);
 
             let newZParent = this._zParent;
 
@@ -472,7 +502,7 @@ class ViewRenderer {
     }
 
     set forceZIndexContext(v) {
-        this._setHasRenderUpdates();
+        this.setHasRenderUpdates(1);
 
         let prevIsZContext = this.isZContext();
         this._forceZIndexContext = v;
@@ -553,7 +583,7 @@ class ViewRenderer {
 
     set colorUl(color) {
         if (this._colorUl !== color) {
-            this._setHasRenderUpdates();
+            this.setHasRenderUpdates(3);
             this._colorUl = color;
         }
     }
@@ -564,7 +594,7 @@ class ViewRenderer {
 
     set colorUr(color) {
         if (this._colorUr !== color) {
-            this._setHasRenderUpdates();
+            this.setHasRenderUpdates(3);
             this._colorUr = color;
         }
     };
@@ -575,7 +605,7 @@ class ViewRenderer {
 
     set colorBl(color) {
         if (this._colorBl !== color) {
-            this._setHasRenderUpdates();
+            this.setHasRenderUpdates(3);
             this._colorBl = color;
         }
     };
@@ -586,7 +616,7 @@ class ViewRenderer {
 
     set colorBr(color) {
         if (this._colorBr !== color) {
-            this._setHasRenderUpdates();
+            this.setHasRenderUpdates(3);
             this._colorBr = color;
         }
     };
@@ -617,29 +647,38 @@ class ViewRenderer {
     }
 
     set shader(v) {
-        this._setHasRenderUpdates();
+        this.setHasRenderUpdates(1);
 
         let prevShader = this._shader;
         this._shader = v;
         if (!v && prevShader) {
             // Disabled shader.
-            let newActiveShader = (this._parent ? this._parent._shader : null);
-            this._setActiveShaderRecursive(newActiveShader);
+            let newShaderOwner = (this._parent ? this._parent._shaderOwner : null);
+            this._setShaderOwnerRecursive(newShaderOwner);
         } else {
             // Enabled shader.
-            this._setActiveShaderRecursive(v);
+            this._setShaderOwnerRecursive(this);
         }
     }
 
     get shaderSettings() {
         if (!this._shaderSettings) {
-            this._shaderSettings = this.activeShader.createViewSettings(this) || {};
+            this._shaderSettings = this.activeShader.createViewSettings(this);
         }
         return this._shaderSettings;
     }
 
     get activeShader() {
-        return this._activeShader || this.ctx.defaultShader;
+        return this._shaderOwner ? this._shaderOwner.shader : this.ctx.defaultShader;
+    }
+
+    get filter() {
+        return this._filter;
+    }
+
+    set filter(v) {
+        this._filter = v;
+        this._updateRenderAsTextureEnabled();
     }
 
     get renderAsTexture() {
@@ -647,12 +686,18 @@ class ViewRenderer {
     }
 
     set renderAsTexture(v) {
-        if (this._renderAsTexture != v) {
-            this._setHasRenderUpdates();
+        this._renderAsTexture = v;
+        this._updateRenderAsTextureEnabled();
+    }
+
+    _updateRenderAsTextureEnabled() {
+        let v = !!this._filter || (this._renderAsTexture > 0);
+        if (this._renderAsTextureEnabled !== v) {
+            this.setHasRenderUpdates(3);
 
             let prevIsZContext = this.isZContext();
 
-            this._renderAsTexture = v;
+            this._renderAsTextureEnabled = v;
 
             // Force z-index context because we can't handle views 'leaking out' of the texture in a consistent manner.
             if (prevIsZContext !== this.isZContext()) {
@@ -667,50 +712,50 @@ class ViewRenderer {
             this._setRecalc(7);
 
             if (!v) {
-                this.deleteRenderGlTexture();
+                this.releaseRenderGlTexture();
             }
 
             if (v) {
                 // Texture rendering is started in default shader mode.
-                this._setActiveShaderChildrenRecursive(this.ctx.defaultShader);
+                this._setShaderOwnerChildrenRecursive(null);
             } else {
-                this._setActiveShaderChildrenRecursive(this.activeShader);
+                this._setShaderOwnerChildrenRecursive(this._shaderOwner);
             }
         }
     }
     
-    deleteRenderGlTexture() {
+    releaseRenderGlTexture() {
         if (this._renderGlTexture) {
-            this.ctx.deleteRenderGlTexture(this._renderGlTexture);
+            this.ctx.releaseGlTexture(this._renderGlTexture);
             this._renderGlTexture = null;
         }
     }
     
     getRenderGlTexture() {
         if (!this._renderGlTexture) {
-            this._renderGlTexture = this.ctx.createRenderGlTexture(Math.min(2048, this._rw), Math.min(2048, this._rh));
+            this._renderGlTexture = this.ctx.createGlTexture(Math.min(2048, this._rw), Math.min(2048, this._rh), true);
         }
         return this._renderGlTexture;
     }
 
-    _setActiveShaderRecursive(shader) {
-        this._activeShader = shader;
+    _setShaderOwnerRecursive(viewRenderer) {
+        this._shaderOwner = viewRenderer;
         this._shaderSettings = null;
         if (this._children) {
             for (let i = 0, n = this._children.length; i < n; i++) {
                 if (!this._children[i]._shader && !this._children[i]._renderAsTexture) {
-                    this._children[i]._setActiveShaderRecursive(shader);
+                    this._children[i]._setShaderOwnerRecursive(viewRenderer);
                     this._children[i]._hasRenderUpdates = true;
                 }
             }
         }
     };
 
-    _setActiveShaderChildrenRecursive(shader) {
+    _setShaderOwnerChildrenRecursive(viewRenderer) {
         if (this._children) {
             for (let i = 0, n = this._children.length; i < n; i++) {
                 if (!this._children[i]._shader && !this._children[i]._renderAsTexture) {
-                    this._children[i]._setActiveShaderRecursive(shader);
+                    this._children[i]._setShaderOwnerRecursive(viewRenderer);
                     this._children[i]._hasRenderUpdates = true;
                 }
             }
@@ -952,7 +997,7 @@ class ViewRenderer {
                 }
             }
 
-            if (this._activeShader && this._activeShader.hasViewSettings()) {
+            if (this._shaderOwner && this.activeShader.hasViewSettings()) {
                 this.shaderSettings.update();
             }
 
@@ -996,59 +1041,63 @@ class ViewRenderer {
     };
 
     render() {
+        this._lastHasRenderUpdates = this._hasRenderUpdates;
+
         if (this._zSort) {
             this.sortZIndexedChildren();
             this._zSort = false;
         }
 
+        // Update user references for garbage-collection purposes.
+        this.lastUpdateFrame = this.ctx.stage.frameCounter;
+
+        if (this._shader) {
+            this._shader.updateUserReference(this);
+        }
+
+        let filterShaders;
+        if (this._filter) {
+            filterShaders = this._filter.getShaders();
+            for (let i = 0, n = filterShaders.length; i < n; i++) {
+                filterShaders[i].updateUserReference(this);
+            }
+        }
+
         if (this._worldAlpha) {
             let ctx = this.ctx;
 
+            let mustRenderChildren = true;
             if (this._renderAsTexture) {
                 if (this._rw === 0 || this._rh === 0) {
                     // Ignore this branch and don't draw anything.
+                    this._hasRenderUpdates = 0;
                     return;
-                }
+                } else if (this._renderGlTexture && (this._hasRenderUpdates == 3)) {
+                    // Re-create gl texture.
+                    ctx.flush();
 
-                if (this._renderGlTexture && !this._hasRenderUpdates) {
-                    // Nothing needs to be done, just re-use the existing texture.
-                    if (this.activeShader && (ctx.shader !== this.activeShader)) {
-                        ctx.flush();
-                        ctx.setupShader(this);
+                    // Use default shader for rendering the texture.
+                    ctx.setShader(this.ctx.defaultShader, this);
+
+                    let texture = this.getRenderGlTexture();
+                    ctx.setRenderTarget(texture);
+
+                    this._stashWorld();
+
+                    if (this._displayedTextureSource) {
+                        // Add displayed texture source in local coordinates.
+                        this.addToVbo();
                     }
-                    ctx.overrideAddVboTexture(this.getRenderGlTexture());
-                    this._stashTexCoords();
-                    this.addToVbo();
-                    this._unstashTexCoords();
-                    ctx.overrideAddVboTexture(null);
-                    return;
-                }
-
-                ctx.flush();
-
-                // Use default shader for texture.
-                if (ctx.shader !== this.ctx.defaultShader) {
-                    ctx.setupShader(this, this.ctx.defaultShader);
-                }
-
-                let texture = this.getRenderGlTexture();
-                ctx.setRenderTarget(texture);
-
-                this._stashWorld();
-
-                if (this._displayedTextureSource) {
-                    // Add displayed texture source in local coordinates.
-                    this.addToVbo();
+                } else {
+                    mustRenderChildren = false;
                 }
             } else if (this._displayedTextureSource) {
-                if (this.activeShader && (ctx.shader !== this.activeShader)) {
-                    ctx.flush();
-                    ctx.setupShader(this);
-                }
+                ctx.setViewShader(this);
                 this.addToVbo();
             }
 
-            if (this._children) {
+            // Also add children to the VBO.
+            if (mustRenderChildren && this._children) {
                 if (this._zContextUsage) {
                     for (let i = 0, n = this._zIndexedChildren.length; i < n; i++) {
                         this._zIndexedChildren[i].render();
@@ -1064,31 +1113,36 @@ class ViewRenderer {
             }
 
             if (this._renderAsTexture) {
-                ctx.flush();
-                ctx.restoreRenderTarget();
+                if (mustRenderChildren) {
+                    // Draw to texture.
+                    ctx.flush();
+                    ctx.restoreRenderTarget();
 
-                // Draw generated texture as this view.
-                this._unstashWorld();
-
-                if (this.activeShader && (ctx.shader !== this.activeShader)) {
-                    ctx.setupShader(this);
+                    this._unstashWorld();
                 }
+
+                // RenderTexture is now ready. Apply filters.
+                if (this._hasRenderUpdates >= 2) {
+                    this._hasRenderUpdates = 0;
+
+                    //@todo: invoke filters. setFilterQuadMode: add targetTexture and set renderTarget?
+                    //@todo: rename _renderAsTexture to _hasActiveFilter, filter.isEnabled, filter.forceReuseRenderTexture.
+                } else {
+                    this._hasRenderUpdates = 0;
+                }
+
+                // Configure shader and add result texture.
+                ctx.setViewShader(this);
+
                 ctx.overrideAddVboTexture(this.getRenderGlTexture());
                 this._stashTexCoords();
                 this.addToVbo();
                 this._unstashTexCoords();
 
-                let samples = this.shader.getMultisamples(this);
-                if (samples > 0) {
-                    this.ctx.flushMultisample(this);
-                }
-
                 ctx.overrideAddVboTexture(null);
             }
-
-            this._hasRenderUpdates = false;
         }
-    };
+    }
 
     sortZIndexedChildren() {
         // Insertion sort works best for almost correctly ordered arrays.
