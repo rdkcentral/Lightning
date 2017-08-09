@@ -42,12 +42,11 @@ class LinearBlurShader extends DefaultShader {
         this.redraw();
     }
 
-    useProgram() {
-        super.useProgram()
+    setup() {
+        super.setup()
 
         let ctx = this.ctx
         let gl = ctx.gl
-
         gl.uniform2fv(this._uniform("iResolution"), new Float32Array([ctx.getViewportWidth(), ctx.getViewportHeight()]))
         gl.uniform2fv(this._uniform("direction"), this._direction)
         gl.uniform1i(this._uniform("kernelRadius"), this._kernelRadius)

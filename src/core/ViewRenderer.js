@@ -825,6 +825,22 @@ class ViewRenderer {
         this._stashedTexCoords = null;
     }
 
+    _stashColors() {
+        this._stashedColors = [this._colorUl, this._colorUr, this._colorBr, this._colorBl];
+        this._colorUl = 0xFFFFFFFF;
+        this._colorUr = 0xFFFFFFFF;
+        this._colorBr = 0xFFFFFFFF;
+        this._colorBl = 0xFFFFFFFF;
+    }
+
+    _unstashColors() {
+        this._colorUl = this._stashedColors[0];
+        this._colorUr = this._stashedColors[1];
+        this._colorBr = this._stashedColors[2];
+        this._colorBl = this._stashedColors[3];
+        this._stashedColors = null;
+    }
+
     isVisible() {
         return (this._localAlpha > 1e-14);
     };
@@ -1177,7 +1193,9 @@ class ViewRenderer {
 
                     ctx.overrideAddVboTexture(resultTexture);
                     this._stashTexCoords();
+                    this._stashColors();
                     this.addToVbo();
+                    this._unstashColors();
                     this._unstashTexCoords();
                     ctx.overrideAddVboTexture(null);
                 }
@@ -1204,7 +1222,6 @@ class ViewRenderer {
         let lastWithShader = (this._hasRenderUpdates >= 2 && this.activeShader.drawsAsDefault());
 
         if (lastWithShader) textureRenders--;
-
 
         if (textureRenders === 0) {
             if (lastWithShader) {

@@ -163,6 +163,7 @@ class VboContext {
     }
 
     frame() {
+        if (this.stage.frameCounter % 50) return;
         if (!this.root._parent._hasRenderUpdates) {
             return false;
         }
@@ -269,13 +270,18 @@ class VboContext {
             shader.useProgram();
         }
 
+        shader.setup();
+
         this.shader = shader;
         this.shaderOwner = owner;
     }
 
     flush() {
-        this.drawQuads();
-        this.clear();
+        if (!this._filterQuadMode) {
+            // Flushes registered quads (only in quads mode, in filter mode the draw should be issued directly).
+            this.drawQuads();
+            this.clear();
+        }
     }
 
     clear() {
@@ -435,7 +441,7 @@ class VboContext {
 
         let texture = this._createGlTexture(w, h);
         texture.f = this.stage.frameCounter;
-        texture.r = Math.random();
+
         if (!allocate) {
             this._availableGlTextures.push(texture);
         }
@@ -486,6 +492,7 @@ class VboContext {
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, sourceTexture.framebuffer);
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, sourceTexture, 0);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this._renderTarget ? this._renderTarget.framebuffer : null);
 
         return sourceTexture;
     }

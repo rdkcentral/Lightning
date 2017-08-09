@@ -55,6 +55,13 @@ class Shader extends Base {
         this.ctx.bindDefaultGlBuffers();
     }
 
+    /**
+     * Sets up this shader instance.
+     * Normally, you apply any uniforms here.
+     */
+    setup() {
+    }
+
     stopProgram() {
     }
 

@@ -51,7 +51,9 @@ class FilterList extends Base {
         this.clear();
         v.forEach(shader => {
             if (Utils.isObjectLiteral(shader) && shader.type) {
-                this._addShader(new shader.type(this._viewRenderer.ctx));
+                let s = new shader.type(this._viewRenderer.ctx)
+                s.setSettings(shader)
+                this._addShader(s)
             } else if (shader.isShader) {
                 this._addShader(shader);
             } else {

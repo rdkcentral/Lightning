@@ -70,8 +70,8 @@ class Light3dShader extends DefaultShader {
         }
     }
 
-    useProgram() {
-        super.useProgram();
+    setup() {
+        super.setup();
 
         let gl = this.ctx.gl
         gl.uniform1f(this._uniform("strength"), this._strength)
