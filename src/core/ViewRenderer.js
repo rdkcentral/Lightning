@@ -1242,7 +1242,7 @@ class ViewRenderer {
                     // Ignore this branch and don't draw anything.
                     this._hasRenderUpdates = 0;
                     return;
-                } else if (!this._renderGlTexture || (this._hasRenderUpdates >= 3) || true) {
+                } else if (!this._renderGlTexture || (this._hasRenderUpdates >= 3)) {
                     // Re-create gl texture.
                     ctx.flush();
 
