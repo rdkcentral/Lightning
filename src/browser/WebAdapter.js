@@ -120,10 +120,8 @@ class WebAdapter {
     }
 
     getDrawingCanvas() {
-        if (!this.drawingCanvas) {
-            this.drawingCanvas = document.createElement('canvas');
-        }
-        return this.drawingCanvas;
+        // We can't reuse this canvas because textures may load async.
+        return document.createElement('canvas');
     }
 
     nextFrame(changes) {

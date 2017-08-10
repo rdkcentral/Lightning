@@ -77,24 +77,6 @@ class Shader extends Base {
     prepareQuads() {
     }
 
-    drawFilterQuad(sourceTexture, viewRenderer, targetTexture) {
-        this.ctx.flush();
-        this.ctx.setShader(this, viewRenderer);
-        this.ctx.setRenderTarget(targetTexture);
-        this.ctx.setFilterQuadMode(sourceTexture, viewRenderer);
-        this.prepareFilterQuad();
-        this._draw();
-        this.ctx.restoreRenderTarget();
-    }
-
-    drawQuads() {
-        if (this.ctx.shader !== this) {
-            throw new Error("Shader conflict");
-        }
-        this.prepareQuads();
-        this._draw();
-    }
-
     _draw() {
     }
 
@@ -145,19 +127,17 @@ class Shader extends Base {
     }
 
     drawsAsDefault() {
-        // Should return true if this shader is configured (using it's properties) to just draw the quads as the default
-        // shader.
-        // This may save us from unnecessary shader program switches, or even texture copies (renderAsTexture, filters,
-        // filterAsTexture).
-        // it will be ignored when used as a filter, reducing the amount of texture
-        // copies. Even when used as a shader, it may prevent us from
-        // Warning: the return value may only depend on the Shader's properties. Return false when in doubt.
+        // Should return true if this shader is configured (using it's properties) to not have any effect.
+        // This may allow the shader engine to avoid unnecessary shader program switches or even texture copies.
+        // Warning: the return value may only depend on the Shader's properties.
         return false;
     }
 
-    drawsPerPixel() {
-        // Should return true if this shader (in it's current property-based configuration) draws pixels independent
-        // of other texture regions. To put it otherwise: renderAsTexture enabled has no effect on the result.
+    isSimple() {
+        // Should return true if this shader (in it's current property-based configuration) gives exactly the same
+        // result when all quads are drawn with this shader, as if the quads where first rendered to a texture and then
+        // drawn with this shader.
+        // Warning: the return value may only depend on the Shader's properties.
         return false;
     }
 

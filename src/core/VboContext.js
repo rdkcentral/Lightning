@@ -40,9 +40,6 @@ class VboContext {
 
         this._overrideGlTexture = null;
 
-        // Used for renderAsTexture in the update/render loop to disable the world clipping context (and temporarily create a new one)
-        this.ignoredClippingParent = null;
-
         this._availableGlTextures = [];
 
         let DefaultShader = require('./DefaultShader');
@@ -52,6 +49,10 @@ class VboContext {
         this.initSharedShaderData();
 
         this._filterQuadMode = false;
+
+        // Variables used when traversing ViewRenderer.update.
+        this.updateRttContext = null
+        this.updateRttContextStack = []
     }
 
     destroy() {
@@ -163,39 +164,57 @@ class VboContext {
     }
 
     frame() {
-        if (this.stage.frameCounter % 50) return;
+        if (this.stage.frameCounter % 100 != 99) return false;
         if (!this.root._parent._hasRenderUpdates) {
             return false;
         }
 
         this.layout();
 
-        this.reset();
+        this.update();
 
-        this.root.update();
-
-        this.resetGl();
-
-        this.root.render();
-
-        this.flush();
-
-        if (this.stage.textureAtlas && this.stage.options.debugTextureAtlas) {
-            this.renderDebugTextureAtlas();
-        }
-
-        // Clear flag to identify if anything changes before the next frame.
-        this.root._parent._hasRenderUpdates = false;
+        this.render();
 
         this._freeUnusedGlTextures();
 
         this._freeUnusedShaders();
 
+        // Clear flag to identify if anything changes before the next frame.
+        this.root._parent._hasRenderUpdates = false;
+
         return true;
     }
 
+    update() {
+        this.updateRttContext = null
+        this.updateRttContextStack = []
+
+        this.root.update();
+    }
+
+    setUpdateRttContext(viewRenderer) {
+        this.updateRttContextStack.push(this.updateRttContext)
+        this.updateRttContext = viewRenderer
+    }
+
+    restoreUpdateRttContext() {
+        this.updateRttContext = this.updateRttContextStack.pop()
+    }
+
+    render() {
+        this.reset();
+        this.resetGl();
+
+        this.root.render();
+
+        this.flush();
+        if (this.stage.textureAtlas && this.stage.options.debugTextureAtlas) {
+            this.renderDebugTextureAtlas();
+        }
+    }
+
     /**
-     * Specifically for renderAsTexture rendering.
+     * Specifically for renderToTexture rendering.
      * @param texture
      */
     overrideAddVboTexture(texture) {
@@ -236,6 +255,7 @@ class VboContext {
         } else {
             let view = new DataView(this.vboParamsBuffer, 0, size);
             this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.paramsGlBuffer);
+
             this.gl.bufferData(this.gl.ARRAY_BUFFER, view, this.gl.DYNAMIC_DRAW);
             if (this._filterQuadMode) {
                 this._filterQuadModeParamsBuffered = true;
@@ -243,19 +263,14 @@ class VboContext {
         }
     }
 
-    setViewShader(viewRenderer) {
-        let shader = viewRenderer.activeShader;
-        let owner = viewRenderer.activeShaderOwner;
+    setShader(shader, owner = null) {
+
         if (shader.drawsAsDefault()) {
             // We can just use the default shader, which is probably faster and limits the amount of shader changes.
             shader = this.defaultShader;
             owner = null;
         }
 
-        this.setShader(shader, owner);
-    }
-
-    setShader(shader, owner = null) {
         if (this.shader === shader) {
             return;
         }
@@ -276,15 +291,38 @@ class VboContext {
         this.shaderOwner = owner;
     }
 
+    drawFilterQuad(shader, sourceTexture, viewRenderer, targetTexture, clear = true) {
+        this.flush();
+        this.setShader(shader, viewRenderer);
+        this.setRenderTarget(targetTexture);
+        if (clear) this.clearRenderTarget();
+        this.setFilterQuadMode(sourceTexture, viewRenderer);
+        shader.prepareFilterQuad();
+        shader._draw();
+        this.restoreRenderTarget();
+    }
+
+    drawQuads() {
+        if (this._filterQuadMode) {
+            this._clear();
+            this._filterQuadMode = false;
+        }
+
+        if (this.shader && this.length) {
+            this.shader.prepareQuads();
+            this.shader._draw();
+        }
+    }
+
     flush() {
         if (!this._filterQuadMode) {
             // Flushes registered quads (only in quads mode, in filter mode the draw should be issued directly).
             this.drawQuads();
-            this.clear();
+            this._clear();
         }
     }
 
-    clear() {
+    _clear() {
         this.vboIndex = 0;
         this.vboViewRenderers = [];
         this.vboGlTextures = [];
@@ -294,12 +332,6 @@ class VboContext {
 
     get length() {
         return this.vboOffset;
-    }
-
-    drawQuads() {
-        if (this.shader && this.length) {
-            this.shader.drawQuads();
-        }
     }
 
     renderDebugTextureAtlas() {
@@ -375,12 +407,17 @@ class VboContext {
         } else {
             gl.bindFramebuffer(gl.FRAMEBUFFER, this._renderTarget.framebuffer)
             gl.viewport(0,0,this._renderTarget.w, this._renderTarget.h)
-
-            // Clear texture.
-            gl.clearColor(0, 0, 0, 0);
-            gl.clear(gl.COLOR_BUFFER_BIT);
         }
     }
+
+    clearRenderTarget() {
+        let gl = this.stage.gl;
+
+        // Clear texture.
+        gl.clearColor(0, 0, 0, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+    }
+
 
     getProjectionMatrix() {
         if (this._filterQuadMode) {
@@ -396,7 +433,7 @@ class VboContext {
         if (this._renderTarget) {
             return this._renderTarget.w;
         } else {
-            return this.stage.options.w;
+            return this.getScreenWidth();
         }
     }
 
@@ -404,8 +441,16 @@ class VboContext {
         if (this._renderTarget) {
             return this._renderTarget.h;
         } else {
-            return this.stage.options.h;
+            return this.getScreenHeight();
         }
+    }
+
+    getScreenWidth() {
+        return this.stage.options.w
+    }
+
+    getScreenHeight() {
+        return this.stage.options.h
     }
 
     initShader(shader) {

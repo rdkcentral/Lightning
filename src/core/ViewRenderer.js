@@ -116,9 +116,17 @@ class ViewRenderer {
 
         this._renderGlTexture = null;
 
-        this._renderAsTexture = 0;
+        this._renderToTexture = 0;
 
-        this._renderAsTextureEnabled = false;
+        this._renderToTextureEnabled = false;
+
+        // Helper variables for render to texture support.
+        this._prevRttContext = null
+        this._worldCoordsAttribsMode = true
+        this._useWorldAttribsForRendering = true
+        this._stashedCoordAttribs = null
+        this._tempStashedCoordAttribs = null
+        this._mustRenderToTexture = false
     }
 
     /**
@@ -128,8 +136,8 @@ class ViewRenderer {
      * 2: re-invoke filter
      * 3: re-create render texture and re-invoke shader and filter
      */
-    setHasRenderUpdates(type) {
-        if (this._worldAlpha) {
+    setHasRenderUpdates(type, force = false) {
+        if (this._worldAlpha || force) {
             let p = this;
             p._hasRenderUpdates = Math.max(type, p._hasRenderUpdates);
             while ((p = p._parent) && (p._hasRenderUpdates != 3)) {
@@ -175,7 +183,7 @@ class ViewRenderer {
 
             if (force) {
                 // View is becoming visible: it's own rendering may have changed while invisible.
-                this.setHasRenderUpdates(3);
+                this.setHasRenderUpdates(3, force);
             } else {
                 // Any changes in descendants should trigger texture updates.
                 if (this._parent) {
@@ -246,7 +254,7 @@ class ViewRenderer {
             }
 
             if (!this._shader) {
-                let newShaderOwner = parent && !parent._renderAsTextureEnabled ? parent._shaderOwner : null;
+                let newShaderOwner = parent ? parent._shaderOwner : null;
                 if (newShaderOwner !== this._shaderOwner) {
                     this.setHasRenderUpdates(1);
                     this._setShaderOwnerRecursive(newShaderOwner);
@@ -365,7 +373,7 @@ class ViewRenderer {
     };
 
     isZContext() {
-        return (this._forceZIndexContext || this._renderAsTextureEnabled || this._zIndex !== 0 || this._isRoot || !this._parent);
+        return (this._forceZIndexContext || this._renderToTextureEnabled || this._zIndex !== 0 || this._isRoot || !this._parent);
     };
 
     findZContext() {
@@ -672,28 +680,28 @@ class ViewRenderer {
 
     set filters(v) {
         this.filters.setSettings(v);
-        this._updateRenderAsTextureEnabled();
+        this._updateRenderToTextureEnabled();
     }
 
-    get renderAsTexture() {
-        return this._renderAsTexture;
+    get renderToTexture() {
+        return this._renderToTexture;
     }
 
-    set renderAsTexture(v) {
-        this._renderAsTexture = v;
-        this._updateRenderAsTextureEnabled();
+    set renderToTexture(v) {
+        this._renderToTexture = v;
+        this._updateRenderToTextureEnabled();
     }
 
     _hasFilters() {
-        return this._filters && (this._filters.length > 0);
+        return this._filters ? (this._filters.length > 0) : false;
     }
 
     _hasActiveFilters() {
-        return this._filters && this._filters.hasActiveShaders();
+        return this._filters ? this._filters.hasActiveShaders() : false;
     }
 
     usesShader(shader) {
-        return (this._filters && this._filters.shaders.indexOf(shader) !== -1) || (this._shader === shader);
+        return (this._filters ? ((this._filters.shaders.indexOf(shader) !== -1) || (this._shader === shader)) : false);
     }
     
     redrawShader(shader) {
@@ -704,14 +712,14 @@ class ViewRenderer {
         }
     }
 
-    _updateRenderAsTextureEnabled() {
-        let v = (this._hasFilters() || (this._renderAsTexture > 0));
-        if (this._renderAsTextureEnabled !== v) {
+    _updateRenderToTextureEnabled() {
+        let v = (this._hasFilters() || (this._renderToTexture > 0));
+        if (this._renderToTextureEnabled !== v) {
             this.setHasRenderUpdates(3);
 
             let prevIsZContext = this.isZContext();
 
-            this._renderAsTextureEnabled = v;
+            this._renderToTextureEnabled = v;
 
             // Force z-index context because we can't handle views 'leaking out' of the texture in a consistent manner.
             if (prevIsZContext !== this.isZContext()) {
@@ -722,18 +730,11 @@ class ViewRenderer {
                 }
             }
 
-            // Due to the renderAsTexture-specific code in update: must update world properties.
+            // Due to the renderToTexture-specific code in update: must update world properties.
             this._setRecalc(7);
 
             if (!v) {
                 this._releaseRenderGlTexture();
-            }
-
-            if (v) {
-                // Texture rendering is started in default shader mode.
-                this._setShaderOwnerChildrenRecursive(null);
-            } else {
-                this._setShaderOwnerChildrenRecursive(this._shaderOwner);
             }
         }
     }
@@ -764,7 +765,7 @@ class ViewRenderer {
         this._shaderSettings = null;
         if (this._children) {
             for (let i = 0, n = this._children.length; i < n; i++) {
-                if (!this._children[i]._shader && !this._children[i]._renderAsTexture) {
+                if (!this._children[i]._shader && !this._children[i]._renderToTexture) {
                     this._children[i]._setShaderOwnerRecursive(viewRenderer);
                     this._children[i]._hasRenderUpdates = true;
                 }
@@ -772,42 +773,85 @@ class ViewRenderer {
         }
     };
 
-    _setShaderOwnerChildrenRecursive(viewRenderer) {
-        if (this._children) {
-            for (let i = 0, n = this._children.length; i < n; i++) {
-                if (!this._children[i]._shader && !this._children[i]._renderAsTexture) {
-                    this._children[i]._setShaderOwnerRecursive(viewRenderer);
-                    this._children[i]._hasRenderUpdates = true;
-                }
-            }
+    _setWorldCoordAttribsMode() {
+        if (!this._worldCoordsAttribsMode) {
+            this._toggleStashAttribCoords();
+            this._worldCoordsAttribsMode = true
         }
-    };
-
-    _stashWorld() {
-        this._stashedWorld = [this._worldAlpha, this._worldPx, this._worldPy, this._worldTa, this._worldTb, this._worldTc, this._worldTd, this.ctx.ignoredClippingParent];
-        this._worldAlpha = 1;
-        this._worldPx = 0;
-        this._worldPy = 0;
-        this._worldTa = 1;
-        this._worldTb = 0;
-        this._worldTc = 0;
-        this._worldTd = 1;
-
-        // We create a new 'clipping context' by simply ignoring the current clipping parent
-        this.ctx.ignoredClippingParent = this._clipping ? this : this._clippingParent;
     }
 
-    _unstashWorld() {
-        this._worldAlpha = this._stashedWorld[0];
-        this._worldPx = this._stashedWorld[1];
-        this._worldPy = this._stashedWorld[2];
-        this._worldTa = this._stashedWorld[3];
-        this._worldTb = this._stashedWorld[4];
-        this._worldTc = this._stashedWorld[5];
-        this._worldTd = this._stashedWorld[6];
-        this.ctx.ignoredClippingParent = this._stashedWorld[7];
-        this._stashedWorld = null;
+    _setRenderCoordAttribsMode() {
+        if (this._worldCoordsAttribsMode) {
+            this._toggleStashAttribCoords();
+            this._worldCoordsAttribsMode = false
+        }
     }
+
+    _toggleStashAttribCoords() {
+        if (!this._tempStashedCoordAttribs) this._tempStashedCoordAttribs = []
+        this._stashCoordAttribs(this._tempStashedCoordAttribs)
+        if (!this._stashedCoordAttribs) this._stashedCoordAttribs = [1, 0, 0, 1, 0, 0, 1]
+        this._unstashCoordAttribs(this._stashedCoordAttribs)
+        let temp = this._stashedCoordAttribs
+        this._stashedCoordAttribs = this._tempStashedCoordAttribs
+        this._tempStashedCoordAttribs = temp
+    }
+
+    _hasReusableRttCoordAttribs() {
+        return (this._worldAlpha === 1)
+            && (this._worldPx === 0)
+            && (this._worldPy === 0)
+            && (this._worldTa === 1)
+            && (this._worldTb === 0)
+            && (this._worldTc === 0)
+            && (this._worldTd === 1)
+            && !this._hasClipping()
+    }
+
+    _hasClipping() {
+        return !(!this._clipping && !this._clippingParent)
+    }
+
+    _stashCoordAttribs(arr) {
+        arr[0] = this._worldAlpha
+        arr[1] = this._worldPx
+        arr[2] = this._worldPy
+        arr[3] = this._worldTa
+        arr[4] = this._worldTb
+        arr[5] = this._worldTc
+        arr[6] = this._worldTd
+        if (this._hasClipping()) {
+            arr[7] = this._clippingEmpty
+            arr[8] = this._clippingNoEffect
+            arr[9] = this._clippingSquare
+            arr[10] = this._clippingSquareMinX
+            arr[11] = this._clippingSquareMaxX
+            arr[12] = this._clippingSquareMinY
+            arr[13] = this._clippingSquareMaxY
+            arr[14] = this._clippingArea
+        }
+    }
+
+    _unstashCoordAttribs(arr) {
+        this._worldAlpha = arr[0]
+        this._worldPx = arr[1]
+        this._worldPy = arr[2]
+        this._worldTa = arr[3]
+        this._worldTb = arr[4]
+        this._worldTc = arr[5]
+        this._worldTd = arr[6]
+        if (this._hasClipping()) {
+            this._clippingEmpty = arr[7]
+            this._clippingNoEffect = arr[8]
+            this._clippingSquare = arr[9]
+            this._clippingSquareMinX = arr[10]
+            this._clippingSquareMaxX = arr[11]
+            this._clippingSquareMinY = arr[12]
+            this._clippingSquareMaxY = arr[13]
+            this._clippingArea = arr[14]
+        }
+    }
+
 
     _stashTexCoords() {
         this._stashedTexCoords = [this._txCoordsUl, this._txCoordsUr, this._txCoordsBr, this._txCoordsBl];
@@ -887,152 +931,185 @@ class ViewRenderer {
     }
 
     update() {
+        let ignoreClippingParent = null;
+
         this._recalc |= this._parent._recalc;
 
-        if (this._zSort) {
-            // Make sure that all descendants are updated so that the updateTreeOrder flags are correctly set.
-            this.ctx.updateTreeOrderForceUpdate++;
-        }
+        // In case of becoming invisible, we must update the children because they may be z-indexed.
+        let visible = (this._parent._worldAlpha && this._localAlpha);
+        let forceUpdate = this._worldAlpha && !visible;
 
-        let forceUpdate = (this.ctx.updateTreeOrderForceUpdate > 0);
-        if (this._recalc & 1) {
-            // In case of becoming invisible, we must update the children because they may be z-indexed.
-            forceUpdate = this._worldAlpha && !(this._parent._worldAlpha && this._localAlpha);
-
-            this._worldAlpha = this._parent._worldAlpha * this._localAlpha;
-
-            if (this._worldAlpha < 1e-14) {
-                // Tiny rounding errors may cause failing visibility tests.
-                this._worldAlpha = 0;
-            }
-        }
-
-        if (this._worldAlpha || forceUpdate) {
-            if (this._recalc & 6) {
-                this._worldPx = this._parent._worldPx + this._localPx * this._parent._worldTa;
-                this._worldPy = this._parent._worldPy + this._localPy * this._parent._worldTd;
+        if (visible || forceUpdate) {
+            if (this._zSort) {
+                // Make sure that all descendants are updated so that the updateTreeOrder flags are correctly set.
+                this.ctx.updateTreeOrderForceUpdate++;
             }
 
-            if (this._recalc & 4) {
-                this._worldTa = this._localTa * this._parent._worldTa;
-                this._worldTb = this._localTd * this._parent._worldTb;
-                this._worldTc = this._localTa * this._parent._worldTc;
-                this._worldTd = this._localTd * this._parent._worldTd;
+            let rttContext = this.ctx.updateRttContext;
 
-                if (this._isComplex) {
-                    this._worldTa += this._localTc * this._parent._worldTb;
-                    this._worldTb += this._localTb * this._parent._worldTa;
-                    this._worldTc += this._localTc * this._parent._worldTd;
-                    this._worldTd += this._localTb * this._parent._worldTc;
+            // We have at least one 'world coord attribs' pass, and possibly another 'render coords attribs pass'.
+            do {
+                if (this._recalc & 1) {
+                    this._worldAlpha = this._parent._worldAlpha * this._localAlpha;
+
+                    if (this._worldAlpha < 1e-14) {
+                        // Tiny rounding errors may cause failing visibility tests.
+                        this._worldAlpha = 0;
+                    }
                 }
-            }
 
-            if ((this._recalc & 6) && (this._parent._worldTb !== 0 || this._parent._worldTc !== 0)) {
-                this._worldPx += this._localPy * this._parent._worldTb;
-                this._worldPy += this._localPx * this._parent._worldTc;
-            }
+                if (this._recalc & 6) {
+                    this._worldPx = this._parent._worldPx + this._localPx * this._parent._worldTa;
+                    this._worldPy = this._parent._worldPy + this._localPy * this._parent._worldTd;
+                }
 
-            if ((this._recalc & 14 /* 2 + 4 + 8 */) && (this._clipping || (this._clippingParent && (this.ctx.ignoredClippingParent !== this._clippingParent)))) {
-                // We must calculate the clipping area.
-                let c1x, c1y, c2x, c2y, c3x, c3y;
+                if (this._recalc & 4) {
+                    this._worldTa = this._localTa * this._parent._worldTa;
+                    this._worldTb = this._localTd * this._parent._worldTb;
+                    this._worldTc = this._localTa * this._parent._worldTc;
+                    this._worldTd = this._localTd * this._parent._worldTd;
 
-                let cp = this._clippingParent;
-                if (cp && cp._clippingEmpty) {
-                    this._clippingEmpty = true;
-                    this._clippingArea = null;
-                    this._clippingNoEffect = false;
-                } else {
-                    this._clippingNoEffect = false;
-                    this._clippingEmpty = false;
-                    this._clippingArea = null;
-                    if (cp) {
-                        if (cp._clippingSquare && (this._worldTb === 0 && this._worldTc === 0 && this._worldTa > 0 && this._worldTd > 0)) {
-                            // Special case: 'easy square clipping'.
-                            this._clippingSquare = true;
+                    if (this._isComplex) {
+                        this._worldTa += this._localTc * this._parent._worldTb;
+                        this._worldTb += this._localTb * this._parent._worldTa;
+                        this._worldTc += this._localTc * this._parent._worldTd;
+                        this._worldTd += this._localTb * this._parent._worldTc;
+                    }
+                }
 
-                            c2x = this._worldPx + this._rw * this._worldTa;
-                            c2y = this._worldPy + this._rh * this._worldTd;
+                if ((this._recalc & 6) && (this._parent._worldTb !== 0 || this._parent._worldTc !== 0)) {
+                    this._worldPx += this._localPy * this._parent._worldTb;
+                    this._worldPy += this._localPx * this._parent._worldTc;
+                }
 
-                            this._clippingSquareMinX = this._worldPx;
-                            this._clippingSquareMaxX = c2x;
-                            this._clippingSquareMinY = this._worldPy;
-                            this._clippingSquareMaxY = c2y;
+                if ((this._recalc & 14 /* 2 + 4 + 8 */) && (this._clipping || (this._clippingParent && (ignoreClippingParent !== this._clippingParent)))) {
+                    // We must calculate the clipping area.
+                    let c1x, c1y, c2x, c2y, c3x, c3y;
 
-                            if ((this._clippingSquareMinX >= cp._clippingSquareMinX) && (this._clippingSquareMaxX <= cp._clippingSquareMaxX) && (this._clippingSquareMinY >= cp._clippingSquareMinY) && (this._clippingSquareMaxY <= cp._clippingSquareMaxY)) {
-                                // No effect.
-                                this._clippingNoEffect = true;
+                    let cp = this._clippingParent;
+                    if (cp && cp._clippingEmpty) {
+                        this._clippingEmpty = true;
+                        this._clippingArea = null;
+                        this._clippingNoEffect = false;
+                    } else {
+                        this._clippingNoEffect = false;
+                        this._clippingEmpty = false;
+                        this._clippingArea = null;
+                        if (cp) {
+                            if (cp._clippingSquare && (this._worldTb === 0 && this._worldTc === 0 && this._worldTa > 0 && this._worldTd > 0)) {
+                                // Special case: 'easy square clipping'.
+                                this._clippingSquare = true;
 
-                                if (this._clipping) {
-                                    this._clippingSquareMinX = this._worldPx;
-                                    this._clippingSquareMaxX = c2x;
-                                    this._clippingSquareMinY = this._worldPy;
-                                    this._clippingSquareMaxY = c2y;
+                                c2x = this._worldPx + this._rw * this._worldTa;
+                                c2y = this._worldPy + this._rh * this._worldTd;
+
+                                this._clippingSquareMinX = this._worldPx;
+                                this._clippingSquareMaxX = c2x;
+                                this._clippingSquareMinY = this._worldPy;
+                                this._clippingSquareMaxY = c2y;
+
+                                if ((this._clippingSquareMinX >= cp._clippingSquareMinX) && (this._clippingSquareMaxX <= cp._clippingSquareMaxX) && (this._clippingSquareMinY >= cp._clippingSquareMinY) && (this._clippingSquareMaxY <= cp._clippingSquareMaxY)) {
+                                    // No effect.
+                                    this._clippingNoEffect = true;
+
+                                    if (this._clipping) {
+                                        this._clippingSquareMinX = this._worldPx;
+                                        this._clippingSquareMaxX = c2x;
+                                        this._clippingSquareMinY = this._worldPy;
+                                        this._clippingSquareMaxY = c2y;
+                                    }
+                                } else {
+                                    this._clippingSquareMinX = Math.max(this._clippingSquareMinX, cp._clippingSquareMinX);
+                                    this._clippingSquareMaxX = Math.min(this._clippingSquareMaxX, cp._clippingSquareMaxX);
+                                    this._clippingSquareMinY = Math.max(this._clippingSquareMinY, cp._clippingSquareMinY);
+                                    this._clippingSquareMaxY = Math.min(this._clippingSquareMaxY, cp._clippingSquareMaxY);
+                                    if (this._clippingSquareMaxX < this._clippingSquareMinX || this._clippingSquareMaxY < this._clippingSquareMinY) {
+                                        this._clippingEmpty = true;
+                                    }
                                 }
                             } else {
-                                this._clippingSquareMinX = Math.max(this._clippingSquareMinX, cp._clippingSquareMinX);
-                                this._clippingSquareMaxX = Math.min(this._clippingSquareMaxX, cp._clippingSquareMaxX);
-                                this._clippingSquareMinY = Math.max(this._clippingSquareMinY, cp._clippingSquareMinY);
-                                this._clippingSquareMaxY = Math.min(this._clippingSquareMaxY, cp._clippingSquareMaxY);
-                                if (this._clippingSquareMaxX < this._clippingSquareMinX || this._clippingSquareMaxY < this._clippingSquareMinY) {
-                                    this._clippingEmpty = true;
+                                //c0x = this._worldPx;
+                                //c0y = this._worldPy;
+                                c1x = this._worldPx + this._rw * this._worldTa;
+                                c1y = this._worldPy + this._rw * this._worldTc;
+                                c2x = this._worldPx + this._rw * this._worldTa + this._rh * this._worldTb;
+                                c2y = this._worldPy + this._rw * this._worldTc + this._rh * this._worldTd;
+                                c3x = this._worldPx + this._rh * this._worldTb;
+                                c3y = this._worldPy + this._rh * this._worldTd;
+
+                                // Complex shape.
+                                this._clippingSquare = false;
+                                let cornerPoints = [this._worldPx, this._worldPy, c1x, c1y, c2x, c2y, c3x, c3y];
+
+                                if (cp._clippingSquare && !cp._clippingArea) {
+                                    // We need a clipping area to use for intersection.
+                                    cp._clippingArea = [cp._clippingSquareMinX, cp._clippingSquareMinY, cp._clippingSquareMaxX, cp._clippingSquareMinY, cp._clippingSquareMaxX, cp._clippingSquareMaxY, cp._clippingSquareMinX, cp._clippingSquareMaxY];
                                 }
+
+                                this._clippingArea = GeometryUtils.intersectConvex(cp._clippingArea, cornerPoints);
+                                this._clippingEmpty = (this._clippingArea.length === 0);
+                                this._clippingNoEffect = (cornerPoints === this._clippingArea);
                             }
                         } else {
-                            //c0x = this._worldPx;
-                            //c0y = this._worldPy;
                             c1x = this._worldPx + this._rw * this._worldTa;
-                            c1y = this._worldPy + this._rw * this._worldTc;
-                            c2x = this._worldPx + this._rw * this._worldTa + this._rh * this._worldTb;
-                            c2y = this._worldPy + this._rw * this._worldTc + this._rh * this._worldTd;
-                            c3x = this._worldPx + this._rh * this._worldTb;
                             c3y = this._worldPy + this._rh * this._worldTd;
 
-                            // Complex shape.
-                            this._clippingSquare = false;
-                            let cornerPoints = [this._worldPx, this._worldPy, c1x, c1y, c2x, c2y, c3x, c3y];
+                            // Just use the corner points.
+                            if (this._worldTb === 0 && this._worldTc === 0 && this._worldTa > 0 && this._worldTd > 0) {
+                                // Square.
+                                this._clippingSquare = true;
+                                if (this._clipping) {
+                                    this._clippingSquareMinX = this._worldPx;
+                                    this._clippingSquareMaxX = c1x;
+                                    this._clippingSquareMinY = this._worldPy;
+                                    this._clippingSquareMaxY = c3y;
+                                }
+                                this._clippingEmpty = false;
+                                this._clippingNoEffect = true;
+                            } else {
+                                c1y = this._worldPy + this._rw * this._worldTc;
+                                c2x = this._worldPx + this._rw * this._worldTa + this._rh * this._worldTb;
+                                c2y = this._worldPy + this._rw * this._worldTc + this._rh * this._worldTd;
+                                c3x = this._worldPx + this._rh * this._worldTb;
 
-                            if (cp._clippingSquare && !cp._clippingArea) {
-                                // We need a clipping area to use for intersection.
-                                cp._clippingArea = [cp._clippingSquareMinX, cp._clippingSquareMinY, cp._clippingSquareMaxX, cp._clippingSquareMinY, cp._clippingSquareMaxX, cp._clippingSquareMaxY, cp._clippingSquareMinX, cp._clippingSquareMaxY];
+                                // Complex shape.
+                                this._clippingSquare = false;
+                                if (this._clipping) {
+                                    this._clippingArea = [this._worldPx, this._worldPy, c1x, c1y, c2x, c2y, c3x, c3y];
+                                }
+                                this._clippingEmpty = false;
+                                this._clippingNoEffect = true;
                             }
-
-                            this._clippingArea = GeometryUtils.intersectConvex(cp._clippingArea, cornerPoints);
-                            this._clippingEmpty = (this._clippingArea.length === 0);
-                            this._clippingNoEffect = (cornerPoints === this._clippingArea);
-                        }
-                    } else {
-                        c1x = this._worldPx + this._rw * this._worldTa;
-                        c3y = this._worldPy + this._rh * this._worldTd;
-
-                        // Just use the corner points.
-                        if (this._worldTb === 0 && this._worldTc === 0 && this._worldTa > 0 && this._worldTd > 0) {
-                            // Square.
-                            this._clippingSquare = true;
-                            if (this._clipping) {
-                                this._clippingSquareMinX = this._worldPx;
-                                this._clippingSquareMaxX = c1x;
-                                this._clippingSquareMinY = this._worldPy;
-                                this._clippingSquareMaxY = c3y;
-                            }
-                            this._clippingEmpty = false;
-                            this._clippingNoEffect = true;
-                        } else {
-                            c1y = this._worldPy + this._rw * this._worldTc;
-                            c2x = this._worldPx + this._rw * this._worldTa + this._rh * this._worldTb;
-                            c2y = this._worldPy + this._rw * this._worldTc + this._rh * this._worldTd;
-                            c3x = this._worldPx + this._rh * this._worldTb;
-
-                            // Complex shape.
-                            this._clippingSquare = false;
-                            if (this._clipping) {
-                                this._clippingArea = [this._worldPx, this._worldPy, c1x, c1y, c2x, c2y, c3x, c3y];
-                            }
-                            this._clippingEmpty = false;
-                            this._clippingNoEffect = true;
                         }
                     }
                 }
-            }
+
+                if (!this._worldCoordsAttribsMode) {
+                    // Rtt update was done.
+                    this._setWorldCoordAttribsMode();
+                    this._parent._setWorldCoordAttribsMode();
+                    break;
+                } else if (rttContext) {
+                    // Prepare.
+
+                    // Even if the parent has _useWorldAttribsForRendering, we rely on the dummy identity coords attribs
+                    // to be set.
+                    this._parent._setRenderCoordAttribsMode();
+                    this._setRenderCoordAttribsMode();
+
+                    ignoreClippingParent = rttContext.clipping ? rttContext : rttContext._clippingParent;
+
+                    if (rttContext !== this._prevRttContext) {
+                        this._recalc |= (1 + 2 + 4 + 8);
+                    }
+
+                    this._useWorldAttribsForRendering = false
+                } else {
+                    this._useWorldAttribsForRendering = true
+                }
+            } while(rttContext);
+
+            this._prevRttContext = rttContext;
 
             if (this._shaderOwner && this.activeShader.hasViewSettings()) {
                 this.shaderSettings.update();
@@ -1043,38 +1120,49 @@ class ViewRenderer {
             this._recalc = (this._recalc & 71);
             /* 1+2+4+64 */
 
-            let saved;
+
 
             // Determine whether we must use a 'renderTexture'.
-            this._mustRenderAsTexture = false;
-            if (this._renderAsTextureEnabled) {
+            this._mustRenderToTexture = false;
+            if (this._renderToTextureEnabled) {
                 // Check if we must really render as texture.
-                if (this._renderAsTexture === 2) {
-                    this._mustRenderAsTexture = true;
-                } else if (this._renderAsTexture === 1 && this._hasRenderUpdates < 3) {
-                    // Static-only: if renderAsTexture did not need to update during last drawn frame, generate it as a cache.
-                    this._mustRenderAsTexture = true;
+                if (this._renderToTexture === 2) {
+                    this._mustRenderToTexture = true;
+                } else if (this._renderToTexture === 1 && this._hasRenderUpdates < 3) {
+                    // Static-only: if renderToTexture did not need to update during last drawn frame, generate it as a cache.
+                    this._mustRenderToTexture = true;
                 } else if (this._hasActiveFilters()) {
                     // Only render as texture if there is at least one filter shader to be applied.
-                    this._mustRenderAsTexture = true;
+                    this._mustRenderToTexture = true;
                 }
             }
 
-            if (this._mustRenderAsTexture) {
-                // For 0-based square texture rendering: set identity matrix while traversing children.
-                saved = this._stashWorld();
+            // We do not use rtt context attribs if it is not needed (such as when the root has rtt).
+            let useRttContext = this._mustRenderToTexture && !this._hasReusableRttCoordAttribs();
+            let tempArr;
+            if (useRttContext) {
+                // Temporarily replace the render coord attribs by the identity matrix.
+                tempArr = this._stashedCoordAttribs
+                this._stashedCoordAttribs = [1,0,0,1,0,0,1]
+
+                this.ctx.setUpdateRttContext(this)
             }
 
             if (this._children) {
                 for (let i = 0, n = this._children.length; i < n; i++) {
-                    if ((this.ctx.updateTreeOrderForceUpdate > 0) || this._recalc || this._children[i]._hasUpdates) {
+                    if (this._recalc || this._children[i]._hasUpdates) {
                         this._children[i].update();
+                    } else if (this.ctx.updateTreeOrderForceUpdate > 0) {
+                        // No more changes in branch, but still we want to update the tree order.
+                        this._children[i].updateTreeOrder();
                     }
                 }
             }
 
-            if (this._mustRenderAsTexture) {
-                this._unstashWorld(saved);
+            if (useRttContext) {
+                this.ctx.restoreUpdateRttContext()
+
+                this._stashedCoordAttribs = tempArr;
             }
 
             if (this._worldAlpha === 0) {
@@ -1085,13 +1173,43 @@ class ViewRenderer {
             }
 
             this._hasUpdates = false;
+
+            if (this._zSort) {
+                this.ctx.updateTreeOrderForceUpdate--;
+            }
+        } else if (this.ctx.updateTreeOrderForceUpdate > 0) {
+            // Branch is invisible, but still we want to update the tree order.
+            this.updateTreeOrder();
+        }
+    };
+
+    updateTreeOrder() {
+        if (this._zSort) {
+            // Make sure that all descendants are updated so that the updateTreeOrder flags are correctly set.
+            this.ctx.updateTreeOrderForceUpdate++;
+        }
+
+        this._updateTreeOrder = this.ctx.updateTreeOrder++;
+
+        if (this._children) {
+            for (let i = 0, n = this._children.length; i < n; i++) {
+                let hasZSort = this._children[i]._zSort
+                if (hasZSort) {
+                    this.ctx.updateTreeOrderForceUpdate--;
+                }
+
+                this._children[i].updateTreeOrder();
+
+                if (hasZSort) {
+                    this.ctx.updateTreeOrderForceUpdate--;
+                }
+            }
         }
 
         if (this._zSort) {
             this.ctx.updateTreeOrderForceUpdate--;
         }
-
-    };
+    }
 
     render() {
         if (this._zSort) {
@@ -1108,35 +1226,59 @@ class ViewRenderer {
         }
 
         if (this._worldAlpha) {
+            if (this._useWorldAttribsForRendering) {
+                this._setWorldCoordAttribsMode()
+            } else {
+                this._setRenderCoordAttribsMode()
+            }
+
             let ctx = this.ctx;
 
+            ctx.setShader(this.activeShader, this._shaderOwner);
+
             let mustRenderChildren = true;
-            if (this._mustRenderAsTexture) {
+            if (this._mustRenderToTexture) {
                 if (this._rw === 0 || this._rh === 0) {
                     // Ignore this branch and don't draw anything.
                     this._hasRenderUpdates = 0;
                     return;
-                } else if (!this._renderGlTexture || (this._hasRenderUpdates >= 3)) {
+                } else if (!this._renderGlTexture || (this._hasRenderUpdates >= 3) || true) {
                     // Re-create gl texture.
                     ctx.flush();
 
-                    // Use default shader for rendering the texture.
-                    ctx.setShader(this.ctx.defaultShader, this);
-
                     let texture = this.getRenderGlTexture();
                     ctx.setRenderTarget(texture);
-
-                    this._stashWorld();
+                    ctx.clearRenderTarget()
 
                     if (this._displayedTextureSource) {
+                        // Use an identity context for drawing the displayed texture to the render texture.
+                        let storedMatrix = [this._worldPx, this._worldPy, this._worldTa, this._worldTb, this._worldTc, this._worldTd];
+                        let storedClippingParent = this._clippingParent;
+                        this._worldPx = 0;
+                        this._worldPy = 0;
+                        this._worldTa = 1;
+                        this._worldTb = 0;
+                        this._worldTc = 0;
+                        this._worldTd = 1;
+
+                        // Prevent the texture to be clipped incorrectly.
+                        this._clippingParent = null;
+
                         // Add displayed texture source in local coordinates.
                         this.addToVbo();
+
+                        this._worldPx = storedMatrix[0]
+                        this._worldPy = storedMatrix[1]
+                        this._worldTa = storedMatrix[2]
+                        this._worldTb = storedMatrix[3]
+                        this._worldTc = storedMatrix[4]
+                        this._worldTd = storedMatrix[5]
+                        this._clippingParent = storedClippingParent
                     }
                 } else {
                     mustRenderChildren = false;
                 }
             } else if (this._displayedTextureSource) {
-                ctx.setViewShader(this);
                 this.addToVbo();
             }
 
@@ -1156,13 +1298,11 @@ class ViewRenderer {
                 }
             }
 
-            if (this._mustRenderAsTexture) {
+            if (this._mustRenderToTexture) {
                 if (mustRenderChildren) {
                     // Finish refreshing renderGlTexture.
                     ctx.flush();
                     ctx.restoreRenderTarget();
-
-                    this._unstashWorld();
                 }
 
                 let hasFilters = this._hasActiveFilters();
@@ -1188,7 +1328,7 @@ class ViewRenderer {
                     if (useShader) {
                         ctx.setShader(useShader, this);
                     } else {
-                        ctx.setViewShader(this);
+                        ctx.setShader(this.ctx.defaultShader, this);
                     }
 
                     ctx.overrideAddVboTexture(resultTexture);
@@ -1202,6 +1342,8 @@ class ViewRenderer {
             }
 
             this._hasRenderUpdates = 0;
+
+            this._setWorldCoordAttribsMode()
         }
     }
 
@@ -1232,9 +1374,9 @@ class ViewRenderer {
             }
         } else if (textureRenders === 1) {
             let targetTexture = this._filters._getRenderGlTexture();
+
             // No intermediate texture is needed.
-            activeShaders[0].drawFilterQuad(sourceTexture, this, targetTexture);
-            ctx.clear();
+            ctx.drawFilterQuad(activeShaders[0], sourceTexture, this, targetTexture);
             if (lastWithShader) {
                 return {texture: targetTexture, shader: activeShaders[1]}
             } else {
@@ -1257,10 +1399,8 @@ class ViewRenderer {
                     target = tmp;
                 }
 
-                activeShaders[i].drawFilterQuad(i === 0 ? sourceTexture : source, this, target);
+                ctx.drawFilterQuad(activeShaders[i], i === 0 ? sourceTexture : source, this, target)
             }
-
-            ctx.clear();
 
             ctx.releaseGlTexture(intermediate);
 
@@ -1297,7 +1437,7 @@ class ViewRenderer {
         let vboBufferFloat = this.ctx.vboBufferFloat;
         let vboBufferUint = this.ctx.vboBufferUint;
 
-        if ((this._clippingParent && (this.ctx.ignoredClippingParent !== this._clippingParent)) && !this._clippingNoEffect) {
+        if (this._clippingParent && !this._clippingNoEffect) {
             if (!this._clippingEmpty) {
                 this.addToVboClipped();
             }
@@ -1533,6 +1673,17 @@ class ViewRenderer {
             this._worldPy + this._rh * this._worldTd
         ];
     };
+
+    getRenderTargetCoords(relX, relY) {
+        if (this._useWorldAttribsForRendering) {
+            return this.getAbsoluteCoords(relX, relY);
+        } else {
+            return [
+                this._stashedCoordAttribs[1] + this._stashedCoordAttribs[3] * relX + this._stashedCoordAttribs[4] * relY,
+                this._stashedCoordAttribs[2] + this._stashedCoordAttribs[5] * relX + this._stashedCoordAttribs[6] * relY
+            ];
+        }
+    }
 
     getAbsoluteCoords(relX, relY) {
         return [

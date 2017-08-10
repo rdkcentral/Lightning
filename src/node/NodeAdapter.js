@@ -159,10 +159,8 @@ class NodeAdapter {
     }
 
     getDrawingCanvas() {
-        if (!this.drawingCanvas) {
-            this.drawingCanvas = new Canvas(0, 0);
-        }
-        return this.drawingCanvas;
+        // We can't reuse this canvas because textures may load async.
+        return new Canvas(0, 0);
     }
 
     nextFrame(changes) {

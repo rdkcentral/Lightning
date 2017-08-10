@@ -1453,12 +1453,12 @@ class View {
         this.renderer.filters = filters;
     }
 
-    get renderAsTexture() {
-        return this.renderer.renderAsTexture
+    get renderToTexture() {
+        return this.renderer.renderToTexture
     }
 
-    set renderAsTexture(v) {
-        this.renderer.renderAsTexture = v
+    set renderToTexture(v) {
+        this.renderer.renderToTexture = v
     }
 
     /*A¬*/
@@ -1557,6 +1557,150 @@ class View {
         }
         let t = this._getTransition(property);
         t.start(v);
+    }
+
+    get X() {
+        return this.getSmooth('x', this.x);
+    }
+
+    set X(v) {
+        this.setSmooth('x', v)
+    }
+
+    get Y() {
+        return this.getSmooth('y', this.y);
+    }
+
+    set Y(v) {
+        this.setSmooth('y', v)
+    }
+
+    get W() {
+        return this.getSmooth('w', this.w);
+    }
+
+    set H(v) {
+        this.setSmooth('h', v)
+    }
+
+    get SCALE() {
+        return this.getSmooth('scale', this.scale);
+    }
+
+    set SCALE(v) {
+        this.setSmooth('scale', v)
+    }
+
+    get SCALEX() {
+        return this.getSmooth('scaleX', this.scaleX);
+    }
+
+    set SCALEX(v) {
+        this.setSmooth('scaleX', v)
+    }
+
+    get PIVOT() {
+        return this.getSmooth('pivot', this.pivot);
+    }
+
+    set PIVOT(v) {
+        this.setSmooth('pivot', v)
+    }
+
+    get PIVOTX() {
+        return this.getSmooth('pivotX', this.pivotX);
+    }
+
+    set PIVOTX(v) {
+        this.setSmooth('pivotX', v)
+    }
+
+    get MOUNT() {
+        return this.getSmooth('mount', this.mount);
+    }
+
+    set MOUNT(v) {
+        this.setSmooth('mount', v)
+    }
+
+    get MOUNTX() {
+        return this.getSmooth('mountX', this.mountX);
+    }
+
+    set MOUNTX(v) {
+        this.setSmooth('mountX', v)
+    }
+
+    get ALPHA() {
+        return this.getSmooth('alpha', this.alpha);
+    }
+
+    set ALPHA(v) {
+        this.setSmooth('alpha', v)
+    }
+
+    get ROTATION() {
+        return this.getSmooth('rotation', this.rotation);
+    }
+
+    set ROTATION(v) {
+        this.setSmooth('rotation', v)
+    }
+
+    get COLOR() {
+        return this.getSmooth('color', this.color);
+    }
+
+    set COLOR(v) {
+        this.setSmooth('color', v)
+    }
+
+    set COLORTOP(v) {
+        this.setSmooth('colorTop', v)
+    }
+
+    set COLORBOTTOM(v) {
+        this.setSmooth('colorBottom', v)
+    }
+
+    set COLORLEFT(v) {
+        this.setSmooth('colorLeft', v)
+    }
+
+    set COLORRIGHT(v) {
+        this.setSmooth('colorRight', v)
+    }
+
+    get COLORUL() {
+        return this.getSmooth('colorUl', this.colorUl);
+    }
+
+    set COLORUL(v) {
+        this.setSmooth('colorUl', v)
+    }
+
+    get COLORUR() {
+        return this.getSmooth('colorUr', this.colorUr);
+    }
+
+    set COLORUR(v) {
+        this.setSmooth('colorUr', v)
+    }
+
+    get COLORBL() {
+        return this.getSmooth('colorBl', this.colorBl);
+    }
+
+    set COLORBL(v) {
+        this.setSmooth('colorBl', v)
+    }
+
+    get COLORBR() {
+        return this.getSmooth('colorBr', this.colorBr);
+    }
+
+    set COLORBR(v) {
+        this.setSmooth('colorBr', v)
     }
     /*¬A*/
 

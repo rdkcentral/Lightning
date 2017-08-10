@@ -61,7 +61,7 @@ class FilterList extends Base {
             }
         })
 
-        this._viewRenderer._updateRenderAsTextureEnabled();
+        this._viewRenderer._updateRenderToTextureEnabled();
     }
 
     updateShaderUserReferences() {

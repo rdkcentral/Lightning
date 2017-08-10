@@ -29,7 +29,7 @@ class Light3dShader extends DefaultShader {
         let view = vr.view;
         let x = view.pivotX * 2 - 1;
         let y = view.pivotY * 2 - 1;
-        let z = this.filterZ / ctx.getViewportWidth();
+        let z = this.filterZ / ctx.stage.options.w;
 
         gl.uniform3fv(this._uniform("pivot"), new Float32Array([x, y, z]));
         gl.uniform3fv(this._uniform("rot"), new Float32Array([this._rx, this._ry, 0]));
@@ -50,7 +50,8 @@ class Light3dShader extends DefaultShader {
         let vr = ctx.shaderOwner;
         let view = vr.view;
         let coords = vr.getAbsoluteCoords(vr.rw * view.pivotX, vr.rh * view.pivotY);
-        coords.push(vr.shaderSettings.z / ctx.getViewportWidth());
+        coords.push(vr.shaderSettings.z / ctx.getScreenWidth());
+
         gl.uniform3fv(this._uniform("pivot"), new Float32Array(coords));
 
         let rotZ = Math.atan2(vr._worldTc, vr._worldTa);
@@ -61,7 +62,7 @@ class Light3dShader extends DefaultShader {
         for (let i = 0; i < length; i++) {
             let viewRenderer = ctx.getViewRenderer(i);
             let s = viewRenderer.shaderSettings;
-            let z = s.totalZ / ctx.getViewportWidth();
+            let z = s.totalZ / ctx.stage.options.w;
 
             ctx.vboBufferFloat[base + i * 4] = z
             ctx.vboBufferFloat[base + i * 4 + 1] = z
@@ -176,6 +177,7 @@ Light3dShader.vertexShaderSource = `
         /* Translate to pivot position */
         vec4 pivotPos = projectionMatrix * vec4(pivot, 1);
         pivotPos.w = 0.0;
+        
         pos -= pivotPos;
         
         /* Undo XY rotation */
@@ -193,7 +195,8 @@ Light3dShader.vertexShaderSource = `
         gl_Position.y = pos.y;
         
         /* Set depth perspective */
-        gl_Position.w = 1.0 + fudge * (z + gl_Position.z);
+        float perspective = 1.0 + fudge * (z + gl_Position.z);
+        gl_Position.w = perspective;
         
         /* Set z to 0 because we don't want to perform z-clipping */
         gl_Position.z = 0.0;

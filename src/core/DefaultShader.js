@@ -97,8 +97,8 @@ class DefaultShader extends Shader {
         return !this._isSubShader;
     }
 
-    drawsPerPixel() {
-        // Default for subclasses of default shader: does not draw per pixel.
+    isSimple() {
+        // Default for subclasses of default shader: is not simple.
         return this._isSubShader;
     }
 
