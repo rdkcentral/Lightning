@@ -76,6 +76,12 @@ class TextureSource {
         this.permanent = false;
 
         /**
+         * If this texture source should ever be added to the texture atlas.
+         * @type {boolean}
+         */
+        this.noTextureAtlas = false;
+
+        /**
          * Sub-object with texture-specific rendering information.
          * For images, contains the src property, for texts, contains handy rendering information.
          * @type {Object}
@@ -90,20 +96,23 @@ class TextureSource {
     getRenderHeight() {
         return this.h;
     }
-    
+
+    isLoadedByCore() {
+        return !this.loadCb;
+    }
+
     addView(v) {
         if (!this.views.has(v)) {
             this.views.add(v);
 
             if (this.glTexture) {
                 // If not yet loaded, wait until it is loaded until adding it to the texture atlas.
-                if (this.stage.textureAtlas) {
+                if (this.stage.textureAtlas && !this.noTextureAtlas) {
                     this.stage.textureAtlas.addActiveTextureSource(this);
                 }
             }
 
             if (this.views.size === 1) {
-                this.manager.textureSourceIdHashmap.set(this.id, this);
                 if (this.lookupId) {
                     if (!this.manager.textureSourceHashmap.has(this.lookupId)) {
                         this.manager.textureSourceHashmap.set(this.lookupId, this);
@@ -121,7 +130,6 @@ class TextureSource {
                 if (this.stage.textureAtlas) {
                     this.stage.textureAtlas.removeActiveTextureSource(this);
                 }
-                this.manager.textureSourceIdHashmap.delete(this.id);
 
                 this.becomesInvisible();
             }
@@ -141,6 +149,11 @@ class TextureSource {
     }
 
     load(sync) {
+        if (this.isLoadedByCore()) {
+            // Core texture source (View resultGlTexture), for which the loading is managed by the core.
+            return;
+        }
+
         if (this.isLoading() && sync) {
             // We cancel the previous one.
             if (this.cancelCb) {
@@ -218,13 +231,27 @@ class TextureSource {
     }
 
     onLoad() {
-        if (this.isVisible() && this.stage.textureAtlas) {
+        if (this.isVisible() && this.stage.textureAtlas && !this.noTextureAtlas) {
             this.stage.textureAtlas.addActiveTextureSource(this);
         }
 
         this.views.forEach(function(view) {
             view.onTextureSourceLoaded();
         });
+    }
+
+    _changeGlTexture(glTexture, w, h) {
+        let prevGlTexture = this.glTexture;
+        // Loaded by core.
+        this.glTexture = glTexture;
+        this.w = w;
+        this.h = h;
+
+        if (!prevGlTexture && this.glTexture) {
+            this.views.forEach(view => view.onTextureSourceLoaded());
+        }
+
+        this.views.forEach(view => view._updateDimensions());
     }
 
     onError(e) {

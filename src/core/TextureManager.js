@@ -26,12 +26,6 @@ class TextureManager {
          */
         this.textureSourceHashmap = new Map();
 
-        /**
-         * The texture source id to texture source hashmap.
-         * (only the texture sources that are referenced by one or more active components).
-         * @type {Map<Number, TextureSource>}
-         */
-        this.textureSourceIdHashmap = new Map();
     }
 
     destroy() {
@@ -155,7 +149,7 @@ class TextureManager {
 
         let self = this;
         this.textureSourceHashmap.forEach(function(textureSource) {
-            if (!textureSource.permanent && (textureSource.views.size === 0)) {
+            if (textureSource.views.size === 0) {
                 self.freeTextureSource(textureSource);
             }
         });
@@ -165,20 +159,22 @@ class TextureManager {
     }
     
     freeTextureSource(textureSource) {
-        if (textureSource.glTexture) {
-            this._usedTextureMemory -= textureSource.w * textureSource.h;
-            this.gl.deleteTexture(textureSource.glTexture);
-            textureSource.glTexture = null;
+        if (textureSource.isLoadedByCore()) {
+            if (textureSource.glTexture) {
+                this._usedTextureMemory -= textureSource.w * textureSource.h;
+                this.gl.deleteTexture(textureSource.glTexture);
+                textureSource.glTexture = null;
+            }
+
+            // Should be reloaded.
+            textureSource.loadingSince = null;
+
+            if (textureSource.lookupId) {
+                // Delete it from the texture source hashmap to allow GC to collect it.
+                // If it is still referenced somewhere, we'll re-add it later.
+                this.textureSourceHashmap.delete(textureSource.lookupId);
+            }
         }
-
-        // Should be reloaded.
-        textureSource.loadingSince = null;
-
-        if (textureSource.lookupId) {
-            // Delete it from the texture source hashmap to allow GC to collect it.
-            // If it is still referenced somewhere, we'll re-add it later.
-            this.textureSourceHashmap.delete(textureSource.lookupId);
-        }        
     }
 
 }

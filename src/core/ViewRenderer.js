@@ -327,6 +327,7 @@ class ViewRenderer {
         if (this._filters) {
             this._filters.releaseRenderGlTexture();
         }
+        this.view.setResultGlTexture(null)
     };
 
     setTextureCoords(ulx, uly, brx, bry) {
@@ -678,6 +679,9 @@ class ViewRenderer {
     get filters() {
         if (!this._filters) {
             this._filters = new FilterList(this);
+            if (this.view._resultTextureSource) {
+                this._filters.disableLastWithShader = true
+            }
         }
         return this._filters;
     }
@@ -748,6 +752,7 @@ class ViewRenderer {
         if (this._filters) {
             this._filters.releaseRenderGlTexture();
         }
+        this.view.setResultGlTexture(null)
     }
     
     _releaseRenderGlTexture() {
@@ -758,8 +763,21 @@ class ViewRenderer {
     }
     
     getRenderGlTexture() {
+// if (this._renderGlTexture && this.view.stage.frameCounter !== this._renderGlTexture.f && !this.view.hasTag('image')) {
+//     let gl = this.ctx.gl;
+//
+//     let w = this._renderGlTexture.w;
+//     let h = this._renderGlTexture.h;
+//     this._renderGlTexture.projectionMatrix = new Float32Array([
+//         2/w, 0, 0, 0,
+//         0, 2/h, 0, 0,
+//         0, 0, 1, 0,
+//         -1, -1, 0, 1
+//     ])
+//
+// }
         if (!this._renderGlTexture) {
-            this._renderGlTexture = this.ctx.createGlTexture(Math.min(2048, this._rw), Math.min(2048, this._rh), true);
+            this._renderGlTexture = this.ctx.createGlTexture(Math.min(2048, this._rw), Math.min(2048, this._rh));
         }
         return this._renderGlTexture;
     }
@@ -1251,6 +1269,9 @@ class ViewRenderer {
                     ctx.flushQuads();
 
                     let texture = this.getRenderGlTexture();
+                    if (this.view.id == 1) {
+                        texture.framebuffer.r = 826
+                    }
                     ctx.setRenderTarget(texture);
                     ctx.clearRenderTarget()
 
@@ -1326,6 +1347,8 @@ class ViewRenderer {
                 }
 
                 if (resultTexture) {
+                    this.view.setResultGlTexture(resultTexture);
+
                     // Render result texture to the actual render target.
 
                     // Configure shader and add result texture.
@@ -1342,6 +1365,8 @@ class ViewRenderer {
                     this._unstashColors();
                     this._unstashTexCoords();
                     ctx.overrideAddVboTexture(null);
+                } else {
+                    this.view.setResultGlTexture(null);
                 }
             }
 
@@ -1365,7 +1390,23 @@ class ViewRenderer {
 
         // Final shader element may be rendered to the 'real' render target, at the expense of not filling the
         // filter cache. That's why this is only done when this view was volatile last frame.
-        let lastWithShader = (this._hasRenderUpdates >= 2 && this.activeShader.drawsAsDefault() && activeShaders[0].allowAsMultiquadShader());
+        let lastWithShader = (this._hasRenderUpdates >= 2 && activeShaders[0].allowAsMultiquadShader() && !this._filters.disableLastWithShader);
+
+        if (!lastWithShader && this._hasRenderUpdates < 2 && n > 1) {
+            // Filters have not yet been cached, but there were no updates since last frame.
+            // This means that we can assume that the amount of filters is still the same, and that the target target
+            // contains up to the last filter already rendered.
+            let targetTexture = this._filters._getRenderGlTexture();
+            let intermediate = ctx.createGlTexture(Math.min(2048, this._rw), Math.min(2048, this._rh));
+            ctx.drawFilterQuad(activeShaders[n - 1], targetTexture, this, intermediate)
+
+            this._filters.cached = true
+
+            // Swap the textures.
+            this._filters.replaceRenderGlTexture(intermediate)
+
+            return {texture: intermediate, shader: null}
+        }
 
         if (lastWithShader) textureRenders--;
 
@@ -1389,7 +1430,7 @@ class ViewRenderer {
             }
         } else {
             let targetTexture = this._filters._getRenderGlTexture();
-            let intermediate = ctx.createGlTexture(Math.min(2048, this._rw), Math.min(2048, this._rh), true);
+            let intermediate = ctx.createGlTexture(Math.min(2048, this._rw), Math.min(2048, this._rh));
             let source = intermediate;
             let target = targetTexture;
 

@@ -115,6 +115,11 @@ class View {
          */
         this._exposedChildList = null;
 
+        /**
+         * If this view renders to texture, the glTexture that contains the rendered output (if any).
+         */
+        this._resultGlTexture = null;
+
     }
 
     setAsRoot() {
@@ -381,8 +386,13 @@ class View {
 
         let prevValue = this._texture;
         if (v !== prevValue) {
-            if (v !== null && !(v instanceof Texture)) {
-                throw new Error('incorrect value for texture');
+            if (v !== null) {
+                if (v instanceof TextureSource) {
+                    v = this.stage.texture(v);
+                } else if (!v instanceof Texture) {
+                    console.error('incorrect value for texture');
+                    return;
+                }
             }
 
             this._texture = v;
@@ -1450,6 +1460,9 @@ class View {
     }
 
     set filters(v) {
+        if (Array.isArray(v)) {
+            v = {shaders: v}
+        }
         this.renderer.filters = v;
     }
 
@@ -1459,6 +1472,34 @@ class View {
 
     set renderToTexture(v) {
         this.renderer.renderToTexture = v
+    }
+
+    getResultTextureSource() {
+        if (!this._resultTextureSource) {
+            this._resultTextureSource = new TextureSource(this.stage.textureManager, null);
+
+            this.setResultGlTexture(this._resultGlTexture)
+
+            if (this.renderer._filters) {
+                // Forces filters to always generate a full result texture.
+                this.renderer._filters.disableLastWithShader = true;
+            }
+
+            // For convenience: you'll want to force the existence of a render texture.
+            this.renderToTexture = 2;
+        }
+        return this._resultTextureSource
+    }
+
+    setResultGlTexture(resultGlTexture) {
+        this._resultGlTexture = resultGlTexture
+        if (this._resultTextureSource) {
+            if (this._resultTextureSource.glTexture !== resultGlTexture) {
+                let w = resultGlTexture ? resultGlTexture.w : 0
+                let h = resultGlTexture ? resultGlTexture.h : 0
+                this._resultTextureSource._changeGlTexture(resultGlTexture, w, h)
+            }
+        }
     }
 
     /*A¬*/
@@ -1767,7 +1808,7 @@ module.exports = View;
 let GeometryUtils = require('./GeometryUtils');
 let ViewText = require('./ViewText');
 let Texture = require('./Texture');
+let TextureSource = require('./TextureSource')
 /*A¬*/let Transition = require('../animation/Transition')
 let TransitionSettings = require('../animation/TransitionSettings')/*¬A*/
-
 let ViewChildList = require('./ViewChildList');

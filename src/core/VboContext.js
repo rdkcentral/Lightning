@@ -446,7 +446,7 @@ class VboContext {
     }
 
     _setRenderTarget(glTexture) {
-        if (this._renderTarget === this._newRenderTarget) return
+        if (this._renderTarget === glTexture) return
 
         this._renderTarget = glTexture
 
@@ -524,14 +524,12 @@ class VboContext {
         });
     }
 
-    createGlTexture(w, h, allocate) {
+    createGlTexture(w, h) {
         for (let i = 0, n = this._availableGlTextures.length; i < n; i++) {
             let texture = this._availableGlTextures[i];
             if (texture.w === w && texture.h === h) {
                 texture.f = this.stage.frameCounter;
-                if (allocate) {
-                    this._availableGlTextures.splice(i, 1);
-                }
+                this._availableGlTextures.splice(i, 1);
                 return texture;
             }
         }
@@ -539,9 +537,6 @@ class VboContext {
         let texture = this._createGlTexture(w, h);
         texture.f = this.stage.frameCounter;
 
-        if (!allocate) {
-            this._availableGlTextures.push(texture);
-        }
         return texture;
     }
 
@@ -552,7 +547,8 @@ class VboContext {
 
     _freeUnusedGlTextures() {
         // Clean up all textures that are no longer used.
-        // This cache is short-lived because it is really just mean to supply running shaders and filters.
+        // This cache is short-lived because it is really just meant to supply running shaders and filters that are
+        // updated during a number of frames.
         let limit = this.stage.frameCounter - 60;
         this._availableGlTextures.filter(texture => {
             if (texture.f < limit) {

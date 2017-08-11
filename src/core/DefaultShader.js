@@ -90,10 +90,10 @@ class DefaultShader extends Shader {
 
     updateProjectionMatrix() {
         let newPjm = this.ctx.getProjectionMatrix();
-        if (this._setupPjm !== newPjm) {
+        if (this._program._setupPjm !== newPjm) {
             let gl = this.ctx.gl
             gl.uniformMatrix4fv(this._uniform("projectionMatrix"), false, newPjm)
-            this._setupPjm = newPjm;
+            this._program._setupPjm = newPjm;
         }
     }
 

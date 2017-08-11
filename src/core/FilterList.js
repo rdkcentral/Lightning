@@ -16,9 +16,11 @@ class FilterList extends Base {
         this._renderGlTexture = null;
 
         this.cached = true;
+
+        this.disableLastWithShader = false
     }
 
-    clear() {
+    _clear() {
         this._shaders = []
         this.cached = false
     }
@@ -40,7 +42,6 @@ class FilterList extends Base {
 
     _addShader(shader) {
         this._shaders.push(shader);
-        this._viewRenderer.setHasRenderUpdates(2);
     }
 
     get shaders() {
@@ -48,7 +49,7 @@ class FilterList extends Base {
     }
 
     set shaders(v) {
-        this.clear();
+        this._clear();
         v.forEach(shader => {
             if (Utils.isObjectLiteral(shader) && shader.type) {
                 let s = new shader.type(this._viewRenderer.ctx)
@@ -62,6 +63,7 @@ class FilterList extends Base {
         })
 
         this._viewRenderer._updateRenderToTextureEnabled();
+        this._viewRenderer.setHasRenderUpdates(2);
     }
 
     updateShaderUserReferences() {
@@ -72,7 +74,7 @@ class FilterList extends Base {
 
     _getRenderGlTexture() {
         if (!this._renderGlTexture) {
-            this._renderGlTexture = this._viewRenderer.ctx.createGlTexture(Math.min(2048, this._viewRenderer._rw), Math.min(2048, this._viewRenderer._rh), true);
+            this._renderGlTexture = this._viewRenderer.ctx.createGlTexture(Math.min(2048, this._viewRenderer._rw), Math.min(2048, this._viewRenderer._rh));
         }
         return this._renderGlTexture;
     }
@@ -83,6 +85,13 @@ class FilterList extends Base {
             this._renderGlTexture = null;
         }
         this.cached = false
+    }
+
+    replaceRenderGlTexture(otherTexture) {
+        if (this._renderGlTexture) {
+            this._viewRenderer.ctx.releaseGlTexture(this._renderGlTexture);
+        }
+        this._renderGlTexture = otherTexture
     }
 
     get renderGlTexture() {
