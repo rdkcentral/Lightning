@@ -19,24 +19,12 @@ class VboContext {
 
         this.vboParamsBufferBytesRemaining = VboContext.GL_PARAMSBUFFER_MEMORY;
 
-        // Current shader info.
-        this.shader = null;
-
-        // The view renderer that the current shader was defined on (if available).
-        this.shaderOwner = null;
-
-        this.bytesPerQuad = 64;
-
         this.n = 0;
 
         this.updateTreeOrder = 0;
         this.updateTreeOrderForceUpdate = 0;
 
         this._initialisedShaders = new Set();
-
-        this._renderTargetStack = [];
-
-        this._renderTarget = null;
 
         this._overrideGlTexture = null;
 
@@ -47,12 +35,6 @@ class VboContext {
         this.initShader(this.defaultShader);
 
         this.initSharedShaderData();
-
-        this._filterQuadMode = false;
-
-        // Variables used when traversing ViewRenderer.update.
-        this.updateRttContext = null
-        this.updateRttContextStack = []
     }
 
     destroy() {
@@ -143,10 +125,16 @@ class VboContext {
         this.n = 0;
         this.updateTreeOrder = 0;
 
-        this.shader = null;
+        this.shader = null
+        this._shaderOwner = null // The view renderer that the current shader was defined on (if available).
+        this._newShader = null
+        this._newShaderOwner = null
+        this._renderTarget = null
+        this._newRenderTarget = null
         this._renderTargetStack = []
         this._overrideGlTexture = null;
         this._filterQuadMode = false
+
     }
 
     layout() {
@@ -164,7 +152,6 @@ class VboContext {
     }
 
     frame() {
-        if (this.stage.frameCounter % 100 != 99) return false;
         if (!this.root._parent._hasRenderUpdates) {
             return false;
         }
@@ -207,7 +194,7 @@ class VboContext {
 
         this.root.render();
 
-        this.flush();
+        this.flushQuads();
         if (this.stage.textureAtlas && this.stage.options.debugTextureAtlas) {
             this.renderDebugTextureAtlas();
         }
@@ -222,6 +209,14 @@ class VboContext {
     }
 
     addVbo(viewRenderer) {
+        if (this._filterQuadMode) {
+            // Switch to quads mode automatically.
+            this._clear();
+            this._filterQuadMode = false;
+        }
+
+        this._commitShader()
+
         let glTexture = this._overrideGlTexture;
         if (!glTexture) {
             let textureSource = viewRenderer._displayedTextureSource;
@@ -236,8 +231,10 @@ class VboContext {
         this.vboParamsBufferBytesRemaining -= this.shader.getBytesPerVertex() * 4;
 
         if (this.vboParamsBufferBytesRemaining < 1000) {
-            this.flush();
+            this.flushQuads();
         }
+
+        return this.vboIndex - 16;
     }
 
     bindDefaultGlBuffers() {
@@ -257,6 +254,12 @@ class VboContext {
             this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.paramsGlBuffer);
 
             this.gl.bufferData(this.gl.ARRAY_BUFFER, view, this.gl.DYNAMIC_DRAW);
+
+            // for (let i = 0, n = this.length; i < n; i++) {
+            //     let base = i * 16;
+            //     console.log(i, this.vboBufferFloat[base], this.vboBufferFloat[base+1], this.vboBufferUint[base+2], this.vboBufferUint[base+3], this.vboGlTextures[i], this.vboViewRenderers[i]);
+            // }
+
             if (this._filterQuadMode) {
                 this._filterQuadModeParamsBuffered = true;
             }
@@ -264,6 +267,11 @@ class VboContext {
     }
 
     setShader(shader, owner = null) {
+        this._newShader = shader
+        this._newShaderOwner = owner
+    }
+
+    _setShader(shader, owner = null) {
 
         if (shader.drawsAsDefault()) {
             // We can just use the default shader, which is probably faster and limits the amount of shader changes.
@@ -271,15 +279,15 @@ class VboContext {
             owner = null;
         }
 
-        if (this.shader === shader) {
+        if (this.shader === shader && this._shaderOwner === owner) {
             return;
         }
 
         // Draw currently pending.
-        this.flush();
+        this.flushQuads();
 
         if (this.shader && (this.shader.constructor === shader.constructor)) {
-            // We keep using the same shader, so we don't need to setup program.
+            // We keep using the same shader, so we are already using the same program.
         } else {
             if (this.shader) this.shader.stopProgram();
             shader.useProgram();
@@ -291,10 +299,19 @@ class VboContext {
         this.shaderOwner = owner;
     }
 
+    _commitShader() {
+        if (this._newShader) {
+            this._setShader(this._newShader, this._newShaderOwner)
+        }
+    }
+
+
     drawFilterQuad(shader, sourceTexture, viewRenderer, targetTexture, clear = true) {
-        this.flush();
+        this.flushQuads();
         this.setShader(shader, viewRenderer);
+        this._commitShader();
         this.setRenderTarget(targetTexture);
+        this._commitRenderTarget();
         if (clear) this.clearRenderTarget();
         this.setFilterQuadMode(sourceTexture, viewRenderer);
         shader.prepareFilterQuad();
@@ -302,22 +319,20 @@ class VboContext {
         this.restoreRenderTarget();
     }
 
-    drawQuads() {
-        if (this._filterQuadMode) {
-            this._clear();
-            this._filterQuadMode = false;
-        }
-
+    _drawQuads() {
+        // We must commit the shader on addVbo only, because that's when it should matter.
         if (this.shader && this.length) {
+            this._commitRenderTarget()
             this.shader.prepareQuads();
             this.shader._draw();
         }
     }
 
-    flush() {
+    flushQuads() {
         if (!this._filterQuadMode) {
+
             // Flushes registered quads (only in quads mode, in filter mode the draw should be issued directly).
-            this.drawQuads();
+            this._drawQuads();
             this._clear();
         }
     }
@@ -336,6 +351,7 @@ class VboContext {
 
     renderDebugTextureAtlas() {
         this.setShader(this.defaultShader, null);
+        this._commitShader();
 
         let size = Math.min(this.stage.options.w, this.stage.options.h);
         let vboIndex = this.vboIndex;
@@ -359,7 +375,7 @@ class VboContext {
         this.vboViewRenderers.push(null);
         this.vboIndex += 16;
 
-        this.flush();
+        this.flushQuads();
     }
 
 
@@ -375,6 +391,30 @@ class VboContext {
         return this.vboGlTextures[vboOffset];
     }
 
+    getTextureWidth(vboOffset = 0) {
+        let glTexture = this.vboGlTextures[vboOffset]
+        if (glTexture.w) {
+            // Render texture
+            return glTexture.w
+        } else if (glTexture === this.textureAtlasGlTexture) {
+            return 2048
+        } else {
+            return this.vboViewRenderers[vboOffset]._displayedTextureSource.w
+        }
+    }
+
+    getTextureHeight(vboOffset = 0) {
+        let glTexture = this.vboGlTextures[vboOffset]
+        if (glTexture.h) {
+            // Render texture
+            return glTexture.h
+        } else if (glTexture === this.textureAtlasGlTexture) {
+            return 2048
+        } else {
+            return this.vboViewRenderers[vboOffset]._displayedTextureSource.h
+        }
+    }
+
     getShaderOwner() {
         return this.shaderOwner;
     }
@@ -388,20 +428,30 @@ class VboContext {
     }
 
     setRenderTarget(glTexture) {
-        this._renderTargetStack.push(this._renderTarget)
-        this._setRenderTarget(glTexture)
+        this._renderTargetStack.push(this._newRenderTarget)
+        this._newRenderTarget = glTexture;
+        this._setRenderTarget(this._newRenderTarget)
+    }
+
+    getRenderTarget() {
+        return this._newRenderTarget
     }
 
     restoreRenderTarget() {
-        this._setRenderTarget(this._renderTargetStack.pop());
+        this._newRenderTarget = this._renderTargetStack.pop();
     }
 
-    _setRenderTarget(v) {
+    _commitRenderTarget() {
+        this._setRenderTarget(this._newRenderTarget)
+    }
+
+    _setRenderTarget(glTexture) {
+        if (this._renderTarget === this._newRenderTarget) return
+
+        this._renderTarget = glTexture
+
         let gl = this.stage.gl;
-
-        this._renderTarget = v
-
-        if (!v) {
+        if (!this._renderTarget) {
             gl.bindFramebuffer(gl.FRAMEBUFFER, null)
             gl.viewport(0,0,this.stage.options.w,this.stage.options.h)
         } else {
@@ -412,6 +462,8 @@ class VboContext {
 
     clearRenderTarget() {
         let gl = this.stage.gl;
+
+        this._commitRenderTarget();
 
         // Clear texture.
         gl.clearColor(0, 0, 0, 0);
@@ -525,9 +577,9 @@ class VboContext {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
         // We need a specific framebuffer for every render texture.
+        sourceTexture.framebuffer = gl.createFramebuffer();
         sourceTexture.w = w;
         sourceTexture.h = h;
-        sourceTexture.framebuffer = gl.createFramebuffer();
         sourceTexture.projectionMatrix = new Float32Array([
             2/w, 0, 0, 0,
             0, 2/h, 0, 0,
@@ -535,10 +587,12 @@ class VboContext {
             -1, -1, 0, 1
         ]);
 
-        gl.bindFramebuffer(gl.FRAMEBUFFER, sourceTexture.framebuffer);
+        this.setRenderTarget(sourceTexture)
+        this._commitRenderTarget()
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, sourceTexture, 0);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, this._renderTarget ? this._renderTarget.framebuffer : null);
+        this.restoreRenderTarget()
 
+        // We do not need to worry about restoring the framebuffer: we can rely on _commitRenderTarget to do this.
         return sourceTexture;
     }
 

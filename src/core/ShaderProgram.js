@@ -43,7 +43,6 @@ class ShaderProgram {
             gl.deleteProgram(this._program);
             this._program = null;
         }
-        gl.useProgram(this._program);
 
         // clean up some shaders
         gl.deleteShader(glVertShader);
@@ -57,6 +56,7 @@ class ShaderProgram {
         this.gl.compileShader(shader);
 
         if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
+            console.log('Type: ' + (type === this.gl.VERTEX_SHADER ? 'vertex shader' : 'fragment shader') );
             console.log(this.gl.getShaderInfoLog(shader));
             return null;
         }

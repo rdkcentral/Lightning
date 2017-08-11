@@ -66,7 +66,8 @@ module.exports = function(grunt) {
                     'src/tools/ListView.js',
                     'src/tools/BorderView.js',
                     "src/tools/shaders/Light3dShader.js",
-                    "src/tools/shaders/LinearBlurShader.js"
+                    "src/tools/shaders/LinearBlurShader.js",
+                    "src/tools/shaders/FxaaShader.js"
                 ],
                 dest : 'dist/wpe.js'
             }

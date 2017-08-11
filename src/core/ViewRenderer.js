@@ -642,6 +642,10 @@ class ViewRenderer {
     }
 
     set shader(v) {
+        if (v && !v.allowAsMultiquadShader()) {
+            console.error("This shader can only be used as a filter")
+        }
+
         this.setHasRenderUpdates(1);
 
         let prevShader = this._shader;
@@ -1244,7 +1248,7 @@ class ViewRenderer {
                     return;
                 } else if (!this._renderGlTexture || (this._hasRenderUpdates >= 3)) {
                     // Re-create gl texture.
-                    ctx.flush();
+                    ctx.flushQuads();
 
                     let texture = this.getRenderGlTexture();
                     ctx.setRenderTarget(texture);
@@ -1301,7 +1305,7 @@ class ViewRenderer {
             if (this._mustRenderToTexture) {
                 if (mustRenderChildren) {
                     // Finish refreshing renderGlTexture.
-                    ctx.flush();
+                    ctx.flushQuads();
                     ctx.restoreRenderTarget();
                 }
 
@@ -1361,7 +1365,7 @@ class ViewRenderer {
 
         // Final shader element may be rendered to the 'real' render target, at the expense of not filling the
         // filter cache. That's why this is only done when this view was volatile last frame.
-        let lastWithShader = (this._hasRenderUpdates >= 2 && this.activeShader.drawsAsDefault());
+        let lastWithShader = (this._hasRenderUpdates >= 2 && this.activeShader.drawsAsDefault() && activeShaders[0].allowAsMultiquadShader());
 
         if (lastWithShader) textureRenders--;
 
@@ -1433,7 +1437,6 @@ class ViewRenderer {
     };
 
     addToVbo() {
-        let vboIndex = this.ctx.vboIndex;
         let vboBufferFloat = this.ctx.vboBufferFloat;
         let vboBufferUint = this.ctx.vboBufferUint;
 
@@ -1443,55 +1446,50 @@ class ViewRenderer {
             }
         } else {
             if (this._worldTb !== 0 || this._worldTc !== 0) {
-                if (vboIndex < 262144) {
-                    vboBufferFloat[vboIndex++] = this._worldPx;
-                    vboBufferFloat[vboIndex++] = this._worldPy;
-                    vboBufferUint[vboIndex++] = this._txCoordsUl; // Texture.
-                    vboBufferUint[vboIndex++] = getColorInt(this._colorUl, this._worldAlpha);
-                    vboBufferFloat[vboIndex++] = this._worldPx + this._rw * this._worldTa;
-                    vboBufferFloat[vboIndex++] = this._worldPy + this._rw * this._worldTc;
-                    vboBufferUint[vboIndex++] = this._txCoordsUr;
-                    vboBufferUint[vboIndex++] = getColorInt(this._colorUr, this._worldAlpha);
-                    vboBufferFloat[vboIndex++] = this._worldPx + this._rw * this._worldTa + this._rh * this._worldTb;
-                    vboBufferFloat[vboIndex++] = this._worldPy + this._rw * this._worldTc + this._rh * this._worldTd;
-                    vboBufferUint[vboIndex++] = this._txCoordsBr;
-                    vboBufferUint[vboIndex++] = getColorInt(this._colorBr, this._worldAlpha);
-                    vboBufferFloat[vboIndex++] = this._worldPx + this._rh * this._worldTb;
-                    vboBufferFloat[vboIndex++] = this._worldPy + this._rh * this._worldTd;
-                    vboBufferUint[vboIndex++] = this._txCoordsBl;
-                    vboBufferUint[vboIndex] = getColorInt(this._colorBl, this._worldAlpha);
-                    this.ctx.addVbo(this);
-                }
+                let vboIndex = this.ctx.addVbo(this);
+                vboBufferFloat[vboIndex++] = this._worldPx;
+                vboBufferFloat[vboIndex++] = this._worldPy;
+                vboBufferUint[vboIndex++] = this._txCoordsUl; // Texture.
+                vboBufferUint[vboIndex++] = getColorInt(this._colorUl, this._worldAlpha);
+                vboBufferFloat[vboIndex++] = this._worldPx + this._rw * this._worldTa;
+                vboBufferFloat[vboIndex++] = this._worldPy + this._rw * this._worldTc;
+                vboBufferUint[vboIndex++] = this._txCoordsUr;
+                vboBufferUint[vboIndex++] = getColorInt(this._colorUr, this._worldAlpha);
+                vboBufferFloat[vboIndex++] = this._worldPx + this._rw * this._worldTa + this._rh * this._worldTb;
+                vboBufferFloat[vboIndex++] = this._worldPy + this._rw * this._worldTc + this._rh * this._worldTd;
+                vboBufferUint[vboIndex++] = this._txCoordsBr;
+                vboBufferUint[vboIndex++] = getColorInt(this._colorBr, this._worldAlpha);
+                vboBufferFloat[vboIndex++] = this._worldPx + this._rh * this._worldTb;
+                vboBufferFloat[vboIndex++] = this._worldPy + this._rh * this._worldTd;
+                vboBufferUint[vboIndex++] = this._txCoordsBl;
+                vboBufferUint[vboIndex] = getColorInt(this._colorBl, this._worldAlpha);
             } else {
                 // Simple.
                 let cx = this._worldPx + this._rw * this._worldTa;
                 let cy = this._worldPy + this._rh * this._worldTd;
 
-                if (vboIndex < 262144) {
-                    vboBufferFloat[vboIndex++] = this._worldPx;
-                    vboBufferFloat[vboIndex++] = this._worldPy;
-                    vboBufferUint[vboIndex++] = this._txCoordsUl; // Texture.
-                    vboBufferUint[vboIndex++] = getColorInt(this._colorUl, this._worldAlpha);
-                    vboBufferFloat[vboIndex++] = cx;
-                    vboBufferFloat[vboIndex++] = this._worldPy;
-                    vboBufferUint[vboIndex++] = this._txCoordsUr;
-                    vboBufferUint[vboIndex++] = getColorInt(this._colorUr, this._worldAlpha);
-                    vboBufferFloat[vboIndex++] = cx;
-                    vboBufferFloat[vboIndex++] = cy;
-                    vboBufferUint[vboIndex++] = this._txCoordsBr;
-                    vboBufferUint[vboIndex++] = getColorInt(this._colorBr, this._worldAlpha);
-                    vboBufferFloat[vboIndex++] = this._worldPx;
-                    vboBufferFloat[vboIndex++] = cy;
-                    vboBufferUint[vboIndex++] = this._txCoordsBl;
-                    vboBufferUint[vboIndex] = getColorInt(this._colorBl, this._worldAlpha);
-                    this.ctx.addVbo(this);
-                }
+                let vboIndex = this.ctx.addVbo(this);
+                vboBufferFloat[vboIndex++] = this._worldPx;
+                vboBufferFloat[vboIndex++] = this._worldPy;
+                vboBufferUint[vboIndex++] = this._txCoordsUl; // Texture.
+                vboBufferUint[vboIndex++] = getColorInt(this._colorUl, this._worldAlpha);
+                vboBufferFloat[vboIndex++] = cx;
+                vboBufferFloat[vboIndex++] = this._worldPy;
+                vboBufferUint[vboIndex++] = this._txCoordsUr;
+                vboBufferUint[vboIndex++] = getColorInt(this._colorUr, this._worldAlpha);
+                vboBufferFloat[vboIndex++] = cx;
+                vboBufferFloat[vboIndex++] = cy;
+                vboBufferUint[vboIndex++] = this._txCoordsBr;
+                vboBufferUint[vboIndex++] = getColorInt(this._colorBr, this._worldAlpha);
+                vboBufferFloat[vboIndex++] = this._worldPx;
+                vboBufferFloat[vboIndex++] = cy;
+                vboBufferUint[vboIndex++] = this._txCoordsBl;
+                vboBufferUint[vboIndex] = getColorInt(this._colorBl, this._worldAlpha);
             }
         }
     };
 
     addToVboClipped() {
-        let vboIndex = this.ctx.vboIndex;
         let vboBufferFloat = this.ctx.vboBufferFloat;
         let vboBufferUint = this.ctx.vboBufferUint;
 
@@ -1519,25 +1517,23 @@ class ViewRenderer {
             let tcx3 = this._ulx * (1 - tx3) + this._brx * tx3;
             let tcy3 = this._uly * (1 - ty3) + this._bry * ty3;
 
-            if (vboIndex < 262144) {
-                vboBufferFloat[vboIndex++] = this._clippingSquareMinX;
-                vboBufferFloat[vboIndex++] = this._clippingSquareMinY;
-                vboBufferUint[vboIndex++] = getVboTextureCoords(tcx1, tcy1);
-                vboBufferUint[vboIndex++] = c;
-                vboBufferFloat[vboIndex++] = this._clippingSquareMaxX;
-                vboBufferFloat[vboIndex++] = this._clippingSquareMinY;
-                vboBufferUint[vboIndex++] = getVboTextureCoords(tcx3, tcy1);
-                vboBufferUint[vboIndex++] = c;
-                vboBufferFloat[vboIndex++] = this._clippingSquareMaxX;
-                vboBufferFloat[vboIndex++] = this._clippingSquareMaxY;
-                vboBufferUint[vboIndex++] = getVboTextureCoords(tcx3, tcy3);
-                vboBufferUint[vboIndex++] = c;
-                vboBufferFloat[vboIndex++] = this._clippingSquareMinX;
-                vboBufferFloat[vboIndex++] = this._clippingSquareMaxY;
-                vboBufferUint[vboIndex++] = getVboTextureCoords(tcx1, tcy3);
-                vboBufferUint[vboIndex] = c;
-                this.ctx.addVbo(this);
-            }
+            let vboIndex = this.ctx.addVbo(this);
+            vboBufferFloat[vboIndex++] = this._clippingSquareMinX;
+            vboBufferFloat[vboIndex++] = this._clippingSquareMinY;
+            vboBufferUint[vboIndex++] = getVboTextureCoords(tcx1, tcy1);
+            vboBufferUint[vboIndex++] = c;
+            vboBufferFloat[vboIndex++] = this._clippingSquareMaxX;
+            vboBufferFloat[vboIndex++] = this._clippingSquareMinY;
+            vboBufferUint[vboIndex++] = getVboTextureCoords(tcx3, tcy1);
+            vboBufferUint[vboIndex++] = c;
+            vboBufferFloat[vboIndex++] = this._clippingSquareMaxX;
+            vboBufferFloat[vboIndex++] = this._clippingSquareMaxY;
+            vboBufferUint[vboIndex++] = getVboTextureCoords(tcx3, tcy3);
+            vboBufferUint[vboIndex++] = c;
+            vboBufferFloat[vboIndex++] = this._clippingSquareMinX;
+            vboBufferFloat[vboIndex++] = this._clippingSquareMaxY;
+            vboBufferUint[vboIndex++] = getVboTextureCoords(tcx1, tcy3);
+            vboBufferUint[vboIndex] = c;
         } else {
             // Complex clipping.
 
@@ -1569,25 +1565,23 @@ class ViewRenderer {
                 let tx4 = invTa * (this._clippingArea[g] - this._worldPx) + invTb * (this._clippingArea[g + 1] - this._worldPy);
                 let ty4 = invTc * (this._clippingArea[g] - this._worldPx) + invTd * (this._clippingArea[g + 1] - this._worldPy);
 
-                if (vboIndex < 262144) {
-                    vboBufferFloat[vboIndex++] = this._clippingArea[0];
-                    vboBufferFloat[vboIndex++] = this._clippingArea[1];
-                    vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx1) + this._brx * tx1, this._uly * (1 - ty1) + this._bry * ty1);
-                    vboBufferUint[vboIndex++] = c;
-                    vboBufferFloat[vboIndex++] = this._clippingArea[2];
-                    vboBufferFloat[vboIndex++] = this._clippingArea[3];
-                    vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx2) + this._brx * tx2, this._uly * (1 - ty2) + this._bry * ty2);
-                    vboBufferUint[vboIndex++] = c;
-                    vboBufferFloat[vboIndex++] = this._clippingArea[4];
-                    vboBufferFloat[vboIndex++] = this._clippingArea[5];
-                    vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx3) + this._brx * tx3, this._uly * (1 - ty3) + this._bry * ty3);
-                    vboBufferUint[vboIndex++] = c;
-                    vboBufferFloat[vboIndex++] = this._clippingArea[g];
-                    vboBufferFloat[vboIndex++] = this._clippingArea[g + 1];
-                    vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx4) + this._brx * tx4, this._uly * (1 - ty4) + this._bry * ty4);
-                    vboBufferUint[vboIndex] = c;
-                    this.ctx.addVbo(this);
-                }
+                let vboIndex = this.ctx.addVbo(this);
+                vboBufferFloat[vboIndex++] = this._clippingArea[0];
+                vboBufferFloat[vboIndex++] = this._clippingArea[1];
+                vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx1) + this._brx * tx1, this._uly * (1 - ty1) + this._bry * ty1);
+                vboBufferUint[vboIndex++] = c;
+                vboBufferFloat[vboIndex++] = this._clippingArea[2];
+                vboBufferFloat[vboIndex++] = this._clippingArea[3];
+                vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx2) + this._brx * tx2, this._uly * (1 - ty2) + this._bry * ty2);
+                vboBufferUint[vboIndex++] = c;
+                vboBufferFloat[vboIndex++] = this._clippingArea[4];
+                vboBufferFloat[vboIndex++] = this._clippingArea[5];
+                vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx3) + this._brx * tx3, this._uly * (1 - ty3) + this._bry * ty3);
+                vboBufferUint[vboIndex++] = c;
+                vboBufferFloat[vboIndex++] = this._clippingArea[g];
+                vboBufferFloat[vboIndex++] = this._clippingArea[g + 1];
+                vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx4) + this._brx * tx4, this._uly * (1 - ty4) + this._bry * ty4);
+                vboBufferUint[vboIndex] = c;
             } else {
                 // Multiple quads.
                 let g;
@@ -1609,25 +1603,23 @@ class ViewRenderer {
                     let tx4 = invTa * (this._clippingArea[g] - this._worldPx) + invTb * (this._clippingArea[g + 1] - this._worldPy);
                     let ty4 = invTc * (this._clippingArea[g] - this._worldPx) + invTd * (this._clippingArea[g + 1] - this._worldPy);
 
-                    if (vboIndex < 262144) {
-                        vboBufferFloat[vboIndex++] = this._clippingArea[0];
-                        vboBufferFloat[vboIndex++] = this._clippingArea[1];
-                        vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx1) + this._brx * tx1, this._uly * (1 - ty1) + this._bry * ty1);
-                        vboBufferUint[vboIndex++] = c;
-                        vboBufferFloat[vboIndex++] = this._clippingArea[b];
-                        vboBufferFloat[vboIndex++] = this._clippingArea[b + 1];
-                        vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx2) + this._brx * tx2, this._uly * (1 - ty2) + this._bry * ty2);
-                        vboBufferUint[vboIndex++] = c;
-                        vboBufferFloat[vboIndex++] = this._clippingArea[b + 2];
-                        vboBufferFloat[vboIndex++] = this._clippingArea[b + 3];
-                        vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx3) + this._brx * tx3, this._uly * (1 - ty3) + this._bry * ty3);
-                        vboBufferUint[vboIndex++] = c;
-                        vboBufferFloat[vboIndex++] = this._clippingArea[g];
-                        vboBufferFloat[vboIndex++] = this._clippingArea[g + 1];
-                        vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx4) + this._brx * tx4, this._uly * (1 - ty4) + this._bry * ty4);
-                        vboBufferUint[vboIndex++] = c;
-                        this.ctx.addVbo(this);
-                    }
+                    let vboIndex = this.ctx.addVbo(this);
+                    vboBufferFloat[vboIndex++] = this._clippingArea[0];
+                    vboBufferFloat[vboIndex++] = this._clippingArea[1];
+                    vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx1) + this._brx * tx1, this._uly * (1 - ty1) + this._bry * ty1);
+                    vboBufferUint[vboIndex++] = c;
+                    vboBufferFloat[vboIndex++] = this._clippingArea[b];
+                    vboBufferFloat[vboIndex++] = this._clippingArea[b + 1];
+                    vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx2) + this._brx * tx2, this._uly * (1 - ty2) + this._bry * ty2);
+                    vboBufferUint[vboIndex++] = c;
+                    vboBufferFloat[vboIndex++] = this._clippingArea[b + 2];
+                    vboBufferFloat[vboIndex++] = this._clippingArea[b + 3];
+                    vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx3) + this._brx * tx3, this._uly * (1 - ty3) + this._bry * ty3);
+                    vboBufferUint[vboIndex++] = c;
+                    vboBufferFloat[vboIndex++] = this._clippingArea[g];
+                    vboBufferFloat[vboIndex++] = this._clippingArea[g + 1];
+                    vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx4) + this._brx * tx4, this._uly * (1 - ty4) + this._bry * ty4);
+                    vboBufferUint[vboIndex++] = c;
                 }
             }
         }

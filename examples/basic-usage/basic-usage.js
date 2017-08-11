@@ -6,7 +6,7 @@ var start = function(wpe) {
     wpe = wpe || {};
 
     with(wpe) {
-        var options = {w: 900, h: 900, glClearColor: 0xFF000000, useTextureAtlas: false, debugTextureAtlas: false};
+        var options = {w: 900, h: 900, glClearColor: 0xFF000000, useTextureAtlas: true, debugTextureAtlas: false};
 
         // Nodejs-specific options.
         if (Utils.isNode) {
@@ -56,16 +56,26 @@ var start = function(wpe) {
         //     ]}
         // ])
 
+//         stage.root.add([
+// //            {filters: [{type: Light3dShader, rx: 0.2}], w: 710, h: 355, children: [
+//                 {tags: 'image', src: 'http://adn.gpupdate.net/news/297192.jpg'/*, rect: false*/, colorLeft: 0xffff0000, colorRight: 0xff00ff00, renderToTexture: 0, shader: {type: LinearBlurShader, kernelRadius: 3, x: 10}, filters: {shaders: [{type: LinearBlurShader, kernelRadius: 3}, {type: LinearBlurShader, kernelRadius: 3, y: -1, x: 0}]}, rotation: 0.0, y: 95, mountY: 0, pivotX: 0.5, pivotY: 0.5, alpha: 1, x: 10, scale: 1, children: [
+//                     // {tags: 'hello', src: 'http://adn.gpupdate.net/news/297192.jpg', y: 100}
+//                     {tag: 'border', scale: 0.5, type: BorderView, borderWidth: 20, rect: false, shaderSettings: {z: 0}, color: 0xFFFF0000, x: 0, y: 100, children: [
+//                         {tags: 'hello', src: 'http://adn.gpupdate.net/news/297192.jpg', zIndex: 0/*, texture: texture*/, shaderSettings: {z: 0}}
+//                     ]}
+//                 ]}
+// //            ]}
+//         ])
+
         stage.root.add([
-//            {filters: [{type: Light3dShader, rx: 0.2}], w: 710, h: 355, children: [
-                {tags: 'image', src: 'http://adn.gpupdate.net/news/297192.jpg'/*, rect: false*/, shader: null, colorLeft: 0xffff0000, colorRight: 0xff00ff00, renderAsTexture: 2, filters: {shaders: [{type: LinearBlurShader, kernelRadius: 3}]}, rotation: 0.0, y: 95, mountY: 0, pivotX: 0.5, pivotY: 0.5, alpha: 1, x: 10, scale: 1, children: [
-                    {tags: 'hello', src: 'http://adn.gpupdate.net/news/297192.jpg', y: 100}
-                    // {tag: 'border', scale: 1, type: BorderView, borderWidth: 20, rect: false, shaderSettings: {z: 0}, color: 0xFFFF0000, x: 0, y: 100, children: [
-                    //     {tags: 'hello', src: 'http://adn.gpupdate.net/news/297192.jpg', zIndex: 0/*, texture: texture*/, shaderSettings: {z: 0}}
-                    // ]}
-                ]}
-//            ]}
+            {rect: true, rotation: 0.4, w: 400, h: 400, x: 250, y: 250, children: [
+                {rect: true, x: 10, y: 10, w: 100, h: 100, color: 0xFFFF0000}
+            ]}
         ])
+
+        stage.root.filters = {shaders: [{type: FxaaShader}]}
+
+        stage.root.setSmooth('rotation', 2, {duration: 10});
 
         // stage.root.add([
         //     {x: 10, y: 10, w: 500, h: 500, rect: true, renderToTexture: 0, color: 0xFFFF0000, children: [
@@ -78,7 +88,8 @@ var start = function(wpe) {
 
         //stage.root.tag('border').setSmooth('x', 400, {duration:2});
 
-        stage.root.setSmooth('y', 1.1, {duration: 1000});
+        // stage.root.tag('image').setSmooth('y', 100, {duration: 10});
+        // stage.root.tag('image').setSmooth('rotation', 10, {duration: 10});
 
         // setTimeout(function() {
         //     stage.root.x = 5;

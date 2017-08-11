@@ -95,6 +95,8 @@ class Stage extends Base {
         this.ctx = new VboContext(this);
 
         this.root = new View(this);
+        this.root.w = this.options.w
+        this.root.h = this.options.h
 
         this.root.setAsRoot();
 

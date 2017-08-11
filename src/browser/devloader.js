@@ -66,7 +66,8 @@ var loadWpe, loadBulk;
             "ListView":"./tools/ListView.js",
             "BorderView":"./tools/BorderView.js",
             "Light3dShader":"./tools/shaders/Light3dShader.js",
-            "LinearBlurShader":"./tools/shaders/LinearBlurShader.js"
+            "LinearBlurShader":"./tools/shaders/LinearBlurShader.js",
+            "FxaaShader":"./tools/shaders/FxaaShader.js"
         };
         return loadBulk(srcPath, sourceFiles).then(function(wpe) {
             if (typeof attachInspector !== "undefined") attachInspector(wpe);

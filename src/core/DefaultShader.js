@@ -22,12 +22,17 @@ class DefaultShader extends Shader {
         gl.disable(gl.DEPTH_TEST);
 
         gl.vertexAttribPointer(this._attrib("aVertexPosition"), 2, gl.FLOAT, false, 16, 0);
-        gl.vertexAttribPointer(this._attrib("aTextureCoord"), 2, gl.UNSIGNED_SHORT, true, 16, 2 * 4);
-        gl.vertexAttribPointer(this._attrib("aColor"), 4, gl.UNSIGNED_BYTE, true, 16, 3 * 4);
-
         gl.enableVertexAttribArray(this._attrib("aVertexPosition"));
-        gl.enableVertexAttribArray(this._attrib("aTextureCoord"));
-        gl.enableVertexAttribArray(this._attrib("aColor"));
+
+        if (this.usesTextureCoords()) {
+            gl.vertexAttribPointer(this._attrib("aTextureCoord"), 2, gl.UNSIGNED_SHORT, true, 16, 2 * 4);
+            gl.enableVertexAttribArray(this._attrib("aTextureCoord"));
+        }
+
+        if (this.usesColors()) {
+            gl.vertexAttribPointer(this._attrib("aColor"), 4, gl.UNSIGNED_BYTE, true, 16, 3 * 4);
+            gl.enableVertexAttribArray(this._attrib("aColor"));
+        }
 
         this._setupPjm = null;
     }
@@ -38,8 +43,20 @@ class DefaultShader extends Shader {
         let gl = this.ctx.gl;
 
         gl.disableVertexAttribArray(this._attrib("aVertexPosition"));
-        gl.disableVertexAttribArray(this._attrib("aTextureCoord"));
-        gl.disableVertexAttribArray(this._attrib("aColor"));
+        if (this.usesTextureCoords()) {
+            gl.disableVertexAttribArray(this._attrib("aTextureCoord"));
+        }
+        if (this.usesColors()) {
+            gl.disableVertexAttribArray(this._attrib("aColor"));
+        }
+    }
+
+    usesTextureCoords() {
+        return true;
+    }
+
+    usesColors() {
+        return true;
     }
 
     _draw() {
@@ -95,11 +112,6 @@ class DefaultShader extends Shader {
     drawsAsDefault() {
         // Default for subclasses of default shader: has effect.
         return !this._isSubShader;
-    }
-
-    isSimple() {
-        // Default for subclasses of default shader: is not simple.
-        return this._isSubShader;
     }
 
 }

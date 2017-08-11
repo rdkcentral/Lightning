@@ -5929,7 +5929,7 @@ class ViewRenderer {
                 if (this._renderGlTexture && !this._hasRenderUpdates) {
                     // Nothing needs to be done, just re-use the existing texture.
                     if (this.activeShader && (ctx.shader !== this.activeShader)) {
-                        ctx.flush();
+                        ctx.flushQuads();
                         ctx.setupShader(this);
                     }
                     ctx.overrideAddVboTexture(this.getRenderGlTexture());
@@ -5940,7 +5940,7 @@ class ViewRenderer {
                     return;
                 }
 
-                ctx.flush();
+                ctx.flushQuads();
 
                 // Use default shader for texture.
                 if (ctx.shader !== this.ctx.defaultShader) {
@@ -5958,7 +5958,7 @@ class ViewRenderer {
                 }
             } else if (this._displayedTextureSource) {
                 if (this.activeShader && (ctx.shader !== this.activeShader)) {
-                    ctx.flush();
+                    ctx.flushQuads();
                     ctx.setupShader(this);
                 }
                 this.addToVbo();
@@ -5980,7 +5980,7 @@ class ViewRenderer {
             }
 
             if (this._renderAsTexture) {
-                ctx.flush();
+                ctx.flushQuads();
                 ctx.restoreRenderTarget();
 
                 // Draw generated texture as this view.

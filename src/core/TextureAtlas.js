@@ -92,6 +92,8 @@ class TextureAtlas {
     _init() {
         let gl = this.gl;
 
+        gl.useProgram(this.glProgram);
+
         // Bind attributes.
         this._vertexPositionAttribute = gl.getAttribLocation(this.glProgram, "aVertexPosition");
         this._textureCoordAttribute = gl.getAttribLocation(this.glProgram, "aTextureCoord");

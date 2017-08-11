@@ -133,12 +133,10 @@ class Shader extends Base {
         return false;
     }
 
-    isSimple() {
-        // Should return true if this shader (in it's current property-based configuration) gives exactly the same
-        // result when all quads are drawn with this shader, as if the quads where first rendered to a texture and then
-        // drawn with this shader.
-        // Warning: the return value may only depend on the Shader's properties.
-        return false;
+    allowAsMultiquadShader() {
+        // Some filters, such as FXAA, rely on the texture size being equal to the render target size. Such filters
+        // can't be used as multiquad shaders.
+        return true
     }
 
 }

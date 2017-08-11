@@ -47,19 +47,67 @@ class LinearBlurShader extends DefaultShader {
 
         let ctx = this.ctx
         let gl = ctx.gl
-        gl.uniform2fv(this._uniform("iResolution"), new Float32Array([ctx.getViewportWidth(), ctx.getViewportHeight()]))
+
         gl.uniform2fv(this._uniform("direction"), this._direction)
         gl.uniform1i(this._uniform("kernelRadius"), this._kernelRadius)
     }
 
-    drawElements(vboContext, offset, length, multisample = -1) {
-        let gl = vboContext.gl;
-
-        super.drawElements(vboContext, offset, length);
-    }
-
     drawsAsDefault() {
         return (this._kernelRadius === 0)
+    }
+
+    getExtraBytesPerVertex() {
+        return 8;
+    }
+
+    prepareFilterQuad() {
+        let ctx = this.ctx;
+
+        let byteOffset = this.getExtraParamsBufferOffset();
+
+        let w = ctx.getTextureWidth()
+        let h = ctx.getTextureHeight()
+
+        let base = byteOffset / 4;
+        ctx.vboBufferFloat[base] = w
+        ctx.vboBufferFloat[base + 1] = h
+        ctx.vboBufferFloat[base + 2] = w
+        ctx.vboBufferFloat[base + 3] = h
+        ctx.vboBufferFloat[base + 4] = w
+        ctx.vboBufferFloat[base + 5] = h
+        ctx.vboBufferFloat[base + 6] = w
+        ctx.vboBufferFloat[base + 7] = h
+    }
+
+    prepareQuads() {
+        let ctx = this.ctx;
+
+        let byteOffset = this.getExtraParamsBufferOffset();
+
+        let length = ctx.length
+        for (let i = 0; i < length; i++) {
+            let w = ctx.getTextureWidth(i)
+            let h = ctx.getTextureHeight(i)
+
+            let base = (byteOffset / 4) + i * 8;
+
+            ctx.vboBufferFloat[base] = w
+            ctx.vboBufferFloat[base + 1] = h
+            ctx.vboBufferFloat[base + 2] = w
+            ctx.vboBufferFloat[base + 3] = h
+            ctx.vboBufferFloat[base + 4] = w
+            ctx.vboBufferFloat[base + 5] = h
+            ctx.vboBufferFloat[base + 6] = w
+            ctx.vboBufferFloat[base + 7] = h
+        }
+    }
+
+    _draw() {
+        let gl = this.ctx.gl
+        gl.vertexAttribPointer(this._attrib("aTextureRes"), 2, gl.FLOAT, false, 8, this.getExtraParamsBufferOffset())
+        gl.enableVertexAttribArray(this._attrib("aTextureRes"))
+
+        super._draw();
     }
 
 }
@@ -71,13 +119,16 @@ LinearBlurShader.vertexShaderSource = `
     attribute vec2 aVertexPosition;
     attribute vec2 aTextureCoord;
     attribute vec4 aColor;
+    attribute vec2 aTextureRes;
     uniform mat4 projectionMatrix;
     varying vec2 vTextureCoord;
     varying vec4 vColor;
+    varying vec2 vTextureRes;
     void main(void){
         gl_Position = projectionMatrix * vec4(aVertexPosition, 0.0, 1.0);
         vTextureCoord = aTextureCoord;
         vColor = aColor;
+        vTextureRes = aTextureRes;
     }
 `;
 
@@ -85,10 +136,10 @@ LinearBlurShader.fragmentShaderSrc = `
     #ifdef GL_ES
     precision lowp float;
     #endif
+    varying vec2 vTextureRes;
     varying vec2 vTextureCoord;
     varying vec4 vColor;
     uniform sampler2D uSampler;
-    uniform vec2 iResolution;
     uniform vec2 direction;
     uniform int kernelRadius;
     
@@ -132,11 +183,11 @@ LinearBlurShader.fragmentShaderSrc = `
         if (kernelRadius == 0) {
             gl_FragColor = texture2D(uSampler, vTextureCoord) * vColor;
         } else if (kernelRadius == 1) {
-            gl_FragColor = blur1(uSampler, vTextureCoord, iResolution, direction) * vColor;
+            gl_FragColor = blur1(uSampler, vTextureCoord, vTextureRes, direction) * vColor;
         } else if (kernelRadius == 2) {
-            gl_FragColor = blur2(uSampler, vTextureCoord, iResolution, direction) * vColor;
+            gl_FragColor = blur2(uSampler, vTextureCoord, vTextureRes, direction) * vColor;
         } else {
-            gl_FragColor = blur3(uSampler, vTextureCoord, iResolution, direction) * vColor;
+            gl_FragColor = blur3(uSampler, vTextureCoord, vTextureRes, direction) * vColor;
         }
     }
 `;

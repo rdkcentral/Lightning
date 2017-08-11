@@ -1450,7 +1450,7 @@ class View {
     }
 
     set filters(v) {
-        this.renderer.filters = filters;
+        this.renderer.filters = v;
     }
 
     get renderToTexture() {
