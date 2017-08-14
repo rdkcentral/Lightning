@@ -245,7 +245,7 @@ var attachInspector = function(wpe) {
             window.mutationCounter++;
         });
 
-        ViewRenderer.prototype.dhtml = function() {
+        ViewCore.prototype.dhtml = function() {
             return this._view.dhtml();
         }
 
@@ -422,8 +422,8 @@ var attachInspector = function(wpe) {
             this.dhtml().style.top = y + 'px';
         };
 
-        ViewRenderer.prototype.__rw = 0;
-        Object.defineProperty(ViewRenderer.prototype, '_rw', {
+        ViewCore.prototype.__rw = 0;
+        Object.defineProperty(ViewCore.prototype, '_rw', {
             get: function() {
                 return this.__rw;
             },
@@ -434,8 +434,8 @@ var attachInspector = function(wpe) {
             }
         });
 
-        ViewRenderer.prototype.__rh = 0;
-        Object.defineProperty(ViewRenderer.prototype, '_rh', {
+        ViewCore.prototype.__rh = 0;
+        Object.defineProperty(ViewCore.prototype, '_rh', {
             get: function() {
                 return this.__rh;
             },
@@ -634,8 +634,8 @@ var attachInspector = function(wpe) {
             }
         });
 
-        ViewRenderer.prototype.__colorUl = 0xFFFFFFFF;
-        Object.defineProperty(ViewRenderer.prototype, '_colorUl', {
+        ViewCore.prototype.__colorUl = 0xFFFFFFFF;
+        Object.defineProperty(ViewCore.prototype, '_colorUl', {
             get: function() {
                 return this.__colorUl;
             },
@@ -648,8 +648,8 @@ var attachInspector = function(wpe) {
             }
         });
 
-        ViewRenderer.prototype.__colorUr = 0xFFFFFFFF;
-        Object.defineProperty(ViewRenderer.prototype, '_colorUr', {
+        ViewCore.prototype.__colorUr = 0xFFFFFFFF;
+        Object.defineProperty(ViewCore.prototype, '_colorUr', {
             get: function() {
                 return this.__colorUr;
             },
@@ -662,8 +662,8 @@ var attachInspector = function(wpe) {
             }
         });
 
-        ViewRenderer.prototype.__colorBl = 0xFFFFFFFF;
-        Object.defineProperty(ViewRenderer.prototype, '_colorBl', {
+        ViewCore.prototype.__colorBl = 0xFFFFFFFF;
+        Object.defineProperty(ViewCore.prototype, '_colorBl', {
             get: function() {
                 return this.__colorBl;
             },
@@ -676,8 +676,8 @@ var attachInspector = function(wpe) {
             }
         });
 
-        ViewRenderer.prototype.__colorBr = 0xFFFFFFFF;
-        Object.defineProperty(ViewRenderer.prototype, '_colorBr', {
+        ViewCore.prototype.__colorBr = 0xFFFFFFFF;
+        Object.defineProperty(ViewCore.prototype, '_colorBr', {
             get: function() {
                 return this.__colorBr;
             },

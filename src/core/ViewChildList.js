@@ -50,7 +50,7 @@ class ViewChildList {
                 this._children.splice(index, 0, view);
 
                 // Sync.
-                this._view.renderer.addChildAt(index, view.renderer);
+                this._view._core.addChildAt(index, view._core);
             }
 
             return;
@@ -78,7 +78,7 @@ class ViewChildList {
         this._children.splice(index, 1);
 
         // Sync.
-        this._view.renderer.removeAt(index);
+        this._view._core.removeAt(index);
 
         return view;
     };
@@ -93,7 +93,7 @@ class ViewChildList {
             this._children.splice(0, n);
 
             // Sync.
-            this._view.renderer.removeChildren();
+            this._view._core.removeChildren();
         }
     };
 

@@ -3184,7 +3184,7 @@ class View {
 
         this.stage = stage;
 
-        this.renderer = new ViewRenderer(this);
+        this._core = new ViewRenderer(this);
 
         /**
          * A view is active if it is a descendant of the stage root and it is visible (worldAlpha > 0).
@@ -3288,7 +3288,7 @@ class View {
     setAsRoot() {
         this._updateActiveFlag();
         this._updateAttachedFlag();
-        this.renderer.setAsRoot();
+        this._core.setAsRoot();
     }
 
     _setParent(parent) {
@@ -3446,7 +3446,7 @@ class View {
             this._displayedTexture.source.removeView(this);
         }
 
-        this.renderer.deleteRenderGlTexture();
+        this._core.deleteRenderGlTexture();
 
         this._active = false;
     }
@@ -3501,7 +3501,7 @@ class View {
     get renderWidth() {
         if (this._active) {
             // Render width is only maintained if this view is active.
-            return this.renderer._rw;
+            return this._core._rw;
         } else {
             return this._getRenderWidth();
         }
@@ -3509,7 +3509,7 @@ class View {
 
     get renderHeight() {
         if (this._active) {
-            return this.renderer._rh;
+            return this._core._rh;
         } else {
             return this._getRenderHeight();
         }
@@ -3600,13 +3600,13 @@ class View {
 
                 // We don't need to reference the displayed texture because it was already referenced (this.texture === this.displayedTexture).
                 this._updateTextureCoords();
-                this.renderer.setDisplayedTextureSource(v.source);
+                this._core.setDisplayedTextureSource(v.source);
             } else {
                 if (this._eventsCount) {
                     this.emit('txUnloaded', v);
                 }
 
-                this.renderer.setDisplayedTextureSource(null);
+                this._core.setDisplayedTextureSource(null);
             }
         }
     }
@@ -3640,13 +3640,13 @@ class View {
     };
 
     _updateDimensions() {
-        let beforeW = this.renderer.rw;
-        let beforeH = this.renderer.rh;
+        let beforeW = this._core.rw;
+        let beforeH = this._core.rh;
         let rw = this._getRenderWidth();
         let rh = this._getRenderHeight();
         if (beforeW !== rw || beforeH !== rh) {
             // Due to width/height change: update the translation vector and borders.
-            this.renderer.setDimensions(this._getRenderWidth(), this._getRenderHeight());
+            this._core.setDimensions(this._getRenderWidth(), this._getRenderHeight());
             this._updateLocalTranslate();
         }
     }
@@ -3657,14 +3657,14 @@ class View {
             let _sr = Math.sin(this._rotation);
             let _cr = Math.cos(this._rotation);
 
-            this.renderer.setLocalTransform(
+            this._core.setLocalTransform(
                 _cr * this._scaleX,
                 -_sr * this._scaleY,
                 _sr * this._scaleX,
                 _cr * this._scaleY
             );
         } else {
-            this.renderer.setLocalTransform(
+            this._core.setLocalTransform(
                 this._scaleX,
                 0,
                 0,
@@ -3675,24 +3675,24 @@ class View {
     };
 
     _updateLocalTranslate() {
-        let pivotXMul = this._pivotX * this.renderer.rw;
-        let pivotYMul = this._pivotY * this.renderer.rh;
-        let px = this._x - (pivotXMul * this.renderer.localTa + pivotYMul * this.renderer.localTb) + pivotXMul;
-        let py = this._y - (pivotXMul * this.renderer.localTc + pivotYMul * this.renderer.localTd) + pivotYMul;
+        let pivotXMul = this._pivotX * this._core.rw;
+        let pivotYMul = this._pivotY * this._core.rh;
+        let px = this._x - (pivotXMul * this._core.localTa + pivotYMul * this._core.localTb) + pivotXMul;
+        let py = this._y - (pivotXMul * this._core.localTc + pivotYMul * this._core.localTd) + pivotYMul;
         px -= this._mountX * this.renderWidth;
         py -= this._mountY * this.renderHeight;
-        this.renderer.setLocalTranslate(
+        this._core.setLocalTranslate(
             px,
             py
         );
     };
 
     _updateLocalTranslateDelta(dx, dy) {
-        this.renderer.addLocalTranslate(dx, dy)
+        this._core.addLocalTranslate(dx, dy)
     };
 
     _updateLocalAlpha() {
-        this.renderer.setLocalAlpha(this._visible ? this._alpha : 0);
+        this._core.setLocalAlpha(this._visible ? this._alpha : 0);
     };
 
     _updateTextureCoords() {
@@ -3746,13 +3746,13 @@ class View {
                 ty2 = ty2 * day + tay;
             }
 
-            this.renderer.setTextureCoords(tx1, ty1, tx2, ty2);
-            this.renderer.setInTextureAtlas(displayedTextureSource.inTextureAtlas);
+            this._core.setTextureCoords(tx1, ty1, tx2, ty2);
+            this._core.setInTextureAtlas(displayedTextureSource.inTextureAtlas);
         }
     }
 
     getCornerPoints() {
-        return this.renderer.getCornerPoints();
+        return this._core.getCornerPoints();
     }
 
     /**
@@ -4107,11 +4107,11 @@ class View {
 
         if (!this._visible) settings.visible = false;
 
-        if (this.renderer.zIndex) settings.zIndex = this.renderer.zIndex;
+        if (this._core.zIndex) settings.zIndex = this._core.zIndex;
 
-        if (this.renderer.forceZIndexContext) settings.forceZIndexContext = true;
+        if (this._core.forceZIndexContext) settings.forceZIndexContext = true;
 
-        if (this.renderer.clipping) settings.clipping = this.renderer.clipping;
+        if (this._core.clipping) settings.clipping = this._core.clipping;
 
         if (this.rect) {
             settings.rect = true;
@@ -4326,39 +4326,39 @@ class View {
     }
 
     get colorUl() {
-        return this.renderer.colorUl
+        return this._core.colorUl
     }
 
     set colorUl(v) {
-        this.renderer.colorUl = v;
+        this._core.colorUl = v;
     }
 
     get colorUr() {
-        return this.renderer.colorUr
+        return this._core.colorUr
     }
 
     set colorUr(v) {
-        this.renderer.colorUr = v;
+        this._core.colorUr = v;
     }
 
     get colorBl() {
-        return this.renderer.colorBl
+        return this._core.colorBl
     }
 
     set colorBl(v) {
-        this.renderer.colorBl = v;
+        this._core.colorBl = v;
     }
 
     get colorBr() {
-        return this.renderer.colorBr
+        return this._core.colorBr
     }
 
     set colorBr(v) {
-        this.renderer.colorBr = v;
+        this._core.colorBr = v;
     }
 
     get color() {
-        return this.renderer.colorUl
+        return this._core.colorUl
     }
 
     set color(v) {
@@ -4426,20 +4426,20 @@ class View {
         }
     }
 
-    get zIndex() {return this.renderer.zIndex}
+    get zIndex() {return this._core.zIndex}
     set zIndex(v) {
-        let prev = this.renderer.zIndex;
-        this.renderer.zIndex = v;
+        let prev = this._core.zIndex;
+        this._core.zIndex = v;
     }
 
-    get forceZIndexContext() {return this.renderer.forceZIndexContext}
+    get forceZIndexContext() {return this._core.forceZIndexContext}
     set forceZIndexContext(v) {
-        this.renderer.forceZIndexContext = v;
+        this._core.forceZIndexContext = v;
     }
 
-    get clipping() {return this.renderer.clipping}
+    get clipping() {return this._core.clipping}
     set clipping(v) {
-        this.renderer.clipping = v;
+        this._core.clipping = v;
     }
 
     get tags() {
@@ -4566,15 +4566,15 @@ class View {
     }
 
     set layoutEntry(f) {
-        this.renderer.layoutEntry = f;
+        this._core.layoutEntry = f;
     }
 
     set layoutExit(f) {
-        this.renderer.layoutExit = f;
+        this._core.layoutExit = f;
     }
 
     get shader() {
-        return this.renderer.shader;
+        return this._core.shader;
     }
 
     set shader(v) {
@@ -4589,11 +4589,11 @@ class View {
         } else {
             shader = v;
         }
-        this.renderer.shader = shader;
+        this._core.shader = shader;
     }
 
     get shaderSettings() {
-        return this.renderer.shaderSettings;
+        return this._core.shaderSettings;
     }
 
     set shaderSettings(v) {
@@ -4601,11 +4601,11 @@ class View {
     }
 
     get renderAsTexture() {
-        return this.renderer.renderAsTexture;
+        return this._core.renderAsTexture;
     }
 
     set renderAsTexture(v) {
-        this.renderer.renderAsTexture = v;
+        this._core.renderAsTexture = v;
     }
 
     
@@ -4819,7 +4819,7 @@ class ViewChildList {
                 this._children.splice(index, 0, view);
 
                 // Sync.
-                this._view.renderer.addChildAt(index, view.renderer);
+                this._view._core.addChildAt(index, view._core);
             }
 
             return;
@@ -4847,7 +4847,7 @@ class ViewChildList {
         this._children.splice(index, 1);
 
         // Sync.
-        this._view.renderer.removeAt(index);
+        this._view._core.removeAt(index);
 
         return view;
     };
@@ -4862,7 +4862,7 @@ class ViewChildList {
             this._children.splice(0, n);
 
             // Sync.
-            this._view.renderer.removeChildren();
+            this._view._core.removeChildren();
         }
     };
 

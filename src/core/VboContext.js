@@ -14,7 +14,7 @@ class VboContext {
         this.vboBufferUint = new Uint32Array(this.vboParamsBuffer);
         this.vboIndex = 0;
 
-        this.vboViewRenderers = [];
+        this.vboViewCores = [];
         this.vboGlTextures = [];
 
         this.vboParamsBufferBytesRemaining = VboContext.GL_PARAMSBUFFER_MEMORY;
@@ -24,15 +24,12 @@ class VboContext {
         this.updateTreeOrder = 0;
         this.updateTreeOrderForceUpdate = 0;
 
-        this._initialisedShaders = new Set();
-
         this._overrideGlTexture = null;
 
-        this._availableGlTextures = [];
+        this._availableRenderTextures = [];
 
         let DefaultShader = require('./DefaultShader');
         this.defaultShader = new DefaultShader(this);
-        this.initShader(this.defaultShader);
 
         this.initSharedShaderData();
     }
@@ -40,8 +37,7 @@ class VboContext {
     destroy() {
         this.gl.deleteBuffer(this.paramsGlBuffer);
         this.gl.deleteBuffer(this.quadsGlBuffer);
-        this._initialisedShaders.forEach(shader => this._freeShader(shader));
-        this._availableGlTextures.forEach(texture => this._freeGlTexture(texture));
+        this._availableRenderTextures.forEach(texture => this._freeGlTexture(texture));
     }
 
     initSharedShaderData() {
@@ -87,7 +83,7 @@ class VboContext {
         ]);
     }
 
-    setFilterQuadMode(sourceTexture, viewRenderer) {
+    setFilterQuadMode(sourceTexture, viewCore) {
         if (!this._filterQuadMode) {
             let f = this.vboBufferFloat;
             let u = this.vboBufferUint;
@@ -108,24 +104,24 @@ class VboContext {
             u[14] = 0xFFFF0000;
             u[15] = 0xFFFFFFFF;
             this.vboIndex = 16;
-            this.vboViewRenderers = [];
+            this.vboViewCores = [];
             this.vboGlTextures = [];
             this._filterQuadModeParamsBuffered = false;
         }
-        this.vboViewRenderers[0] = viewRenderer;
+        this.vboViewCores[0] = viewCore;
         this.vboGlTextures[0] = sourceTexture;
         this._filterQuadMode = true;
     }
 
     reset() {
         this.vboIndex = 0;
-        this.vboViewRenderers = [];
+        this.vboViewCores = [];
         this.vboGlTextures = [];
         this.textureAtlasGlTexture = this.stage.textureAtlas ? this.stage.textureAtlas.texture : null;
         this.n = 0;
 
         this.shader = null
-        this._shaderOwner = null // The view renderer that the current shader was defined on (if available).
+        this._shaderOwner = null // The view core that the current shader was defined on (if available).
         this._newShader = null
         this._newShaderOwner = null
         this._renderTarget = null
@@ -162,9 +158,7 @@ class VboContext {
 
         this.render();
 
-        this._freeUnusedGlTextures();
-
-        this._freeUnusedShaders();
+        this._freeUnusedRenderTextures();
 
         // Clear flag to identify if anything changes before the next frame.
         this.root._parent._hasRenderUpdates = false;
@@ -179,9 +173,9 @@ class VboContext {
         this.root.update();
     }
 
-    setUpdateRttContext(viewRenderer) {
+    setUpdateRttContext(viewCore) {
         this.updateRttContextStack.push(this.updateRttContext)
-        this.updateRttContext = viewRenderer
+        this.updateRttContext = viewCore
     }
 
     restoreUpdateRttContext() {
@@ -208,7 +202,7 @@ class VboContext {
         this._overrideGlTexture = texture;
     }
 
-    addVbo(viewRenderer) {
+    addVbo(viewCore) {
         if (this._filterQuadMode) {
             // Switch to quads mode automatically.
             this._clear();
@@ -219,12 +213,12 @@ class VboContext {
 
         let glTexture = this._overrideGlTexture;
         if (!glTexture) {
-            let textureSource = viewRenderer._displayedTextureSource;
+            let textureSource = viewCore._displayedTextureSource;
             glTexture = textureSource.inTextureAtlas ? this.textureAtlasGlTexture : textureSource.glTexture;
         }
 
         this.vboGlTextures.push(glTexture);
-        this.vboViewRenderers.push(viewRenderer);
+        this.vboViewCores.push(viewCore);
 
         this.vboIndex += 16;
 
@@ -257,7 +251,7 @@ class VboContext {
 
             // for (let i = 0, n = this.length; i < n; i++) {
             //     let base = i * 16;
-            //     console.log(i, this.vboBufferFloat[base], this.vboBufferFloat[base+1], this.vboBufferUint[base+2], this.vboBufferUint[base+3], this.vboGlTextures[i], this.vboViewRenderers[i]);
+            //     console.log(i, this.vboBufferFloat[base], this.vboBufferFloat[base+1], this.vboBufferUint[base+2], this.vboBufferUint[base+3], this.vboGlTextures[i], this.vboViewCores[i]);
             // }
 
             if (this._filterQuadMode) {
@@ -273,7 +267,7 @@ class VboContext {
 
     _setShader(shader, owner = null) {
 
-        if (shader.drawsAsDefault()) {
+        if (shader.useDefault()) {
             // We can just use the default shader, which is probably faster and limits the amount of shader changes.
             shader = this.defaultShader;
             owner = null;
@@ -306,14 +300,14 @@ class VboContext {
     }
 
 
-    drawFilterQuad(shader, sourceTexture, viewRenderer, targetTexture, clear = true) {
+    drawFilterQuad(shader, sourceTexture, viewCore, targetTexture, clear = true) {
         this.flushQuads();
-        this.setShader(shader, viewRenderer);
+        this.setShader(shader, viewCore);
         this._commitShader();
         this.setRenderTarget(targetTexture);
         this._commitRenderTarget();
         if (clear) this.clearRenderTarget();
-        this.setFilterQuadMode(sourceTexture, viewRenderer);
+        this.setFilterQuadMode(sourceTexture, viewCore);
         shader.prepareFilterQuad();
         shader._draw();
         this.restoreRenderTarget();
@@ -339,7 +333,7 @@ class VboContext {
 
     _clear() {
         this.vboIndex = 0;
-        this.vboViewRenderers = [];
+        this.vboViewCores = [];
         this.vboGlTextures = [];
         this.vboParamsBufferBytesRemaining = VboContext.GL_PARAMSBUFFER_MEMORY;
         this._filterQuadMode = false;
@@ -372,7 +366,7 @@ class VboContext {
         this.vboBufferUint[vboIndex++] = 0xFFFF0000;
         this.vboBufferUint[vboIndex] = 0xFFFFFFFF;
         this.vboGlTextures.push(this.textureAtlasGlTexture);
-        this.vboViewRenderers.push(null);
+        this.vboViewCores.push(null);
         this.vboIndex += 16;
 
         this.flushQuads();
@@ -380,11 +374,11 @@ class VboContext {
 
 
     getView(vboOffset) {
-        return this.vboViewRenderers[vboOffset]._view;
+        return this.vboViewCores[vboOffset]._view;
     }
 
-    getViewRenderer(vboOffset) {
-        return this.vboViewRenderers[vboOffset];
+    getViewCore(vboOffset) {
+        return this.vboViewCores[vboOffset];
     }
 
     getVboGlTexture(vboOffset) {
@@ -399,7 +393,7 @@ class VboContext {
         } else if (glTexture === this.textureAtlasGlTexture) {
             return 2048
         } else {
-            return this.vboViewRenderers[vboOffset]._displayedTextureSource.w
+            return this.vboViewCores[vboOffset]._displayedTextureSource.w
         }
     }
 
@@ -411,7 +405,7 @@ class VboContext {
         } else if (glTexture === this.textureAtlasGlTexture) {
             return 2048
         } else {
-            return this.vboViewRenderers[vboOffset]._displayedTextureSource.h
+            return this.vboViewCores[vboOffset]._displayedTextureSource.h
         }
     }
 
@@ -505,31 +499,12 @@ class VboContext {
         return this.stage.options.h
     }
 
-    initShader(shader) {
-        shader._init(this);
-        this._initialisedShaders.add(shader);
-    }
-
-    _freeShader(shader) {
-        shader._free();
-        this._initialisedShaders.delete(shader);
-    }
-
-    _freeUnusedShaders() {
-        this._initialisedShaders.forEach(shader => {
-            shader.checkUsers();
-            if (!shader.hasUsers() && shader !== this.defaultShader) {
-                this._initialisedShaders.delete(shader);
-            }
-        });
-    }
-
-    createGlTexture(w, h) {
-        for (let i = 0, n = this._availableGlTextures.length; i < n; i++) {
-            let texture = this._availableGlTextures[i];
+    allocateRenderTexture(w, h) {
+        for (let i = 0, n = this._availableRenderTextures.length; i < n; i++) {
+            let texture = this._availableRenderTextures[i];
             if (texture.w === w && texture.h === h) {
                 texture.f = this.stage.frameCounter;
-                this._availableGlTextures.splice(i, 1);
+                this._availableRenderTextures.splice(i, 1);
                 return texture;
             }
         }
@@ -540,17 +515,17 @@ class VboContext {
         return texture;
     }
 
-    releaseGlTexture(texture) {
-        this._availableGlTextures.push(texture);
+    releaseRenderTexture(texture) {
+        this._availableRenderTextures.push(texture);
         texture.f = this.stage.frameCounter;
     }
 
-    _freeUnusedGlTextures() {
+    _freeUnusedRenderTextures() {
         // Clean up all textures that are no longer used.
         // This cache is short-lived because it is really just meant to supply running shaders and filters that are
         // updated during a number of frames.
         let limit = this.stage.frameCounter - 60;
-        this._availableGlTextures.filter(texture => {
+        this._availableRenderTextures.filter(texture => {
             if (texture.f < limit) {
                 this._freeGlTexture(texture);
                 return false;

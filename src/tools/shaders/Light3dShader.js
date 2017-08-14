@@ -50,7 +50,9 @@ class Light3dShader extends DefaultShader {
         let vr = ctx.shaderOwner;
         let view = vr.view;
         let coords = vr.getAbsoluteCoords(vr.rw * view.pivotX, vr.rh * view.pivotY);
-        coords.push(vr.shaderSettings.z / ctx.getScreenWidth());
+
+        //@todo: fetch z
+        coords.push(0 / ctx.getScreenWidth());
 
         gl.uniform3fv(this._uniform("pivot"), new Float32Array(coords));
 
@@ -60,9 +62,8 @@ class Light3dShader extends DefaultShader {
         let length = ctx.length
         let base = byteOffset / 4;
         for (let i = 0; i < length; i++) {
-            let viewRenderer = ctx.getViewRenderer(i);
-            let s = viewRenderer.shaderSettings;
-            let z = s.totalZ / ctx.stage.options.w;
+            let viewCore = ctx.getViewCore(i);
+            let z = 0 / ctx.stage.options.w;
 
             ctx.vboBufferFloat[base + i * 4] = z
             ctx.vboBufferFloat[base + i * 4 + 1] = z
@@ -232,42 +233,6 @@ Light3dShader.fragmentShaderSrc = `
     }
 `;
 
-let ShaderSettings = require('../../core/ShaderSettings');
-
-class Light3dShaderViewSettings extends ShaderSettings {
-
-    constructor(shader, viewRenderer) {
-        super(shader, viewRenderer);
-
-        this._z = 0;
-        this._totalZ = 0;
-    }
-
-    get z() {
-        return this._z;
-    }
-
-    set z(v) {
-        if (this._z !== v) {
-            this._z = v;
-            
-            this._recalc();
-        }
-    }
-
-    get totalZ() {
-        return this._totalZ;
-    }
-
-    update() {
-        this._totalZ = this._z;
-        let parent = this._viewRenderer._parent;
-        if (parent && parent.activeShader === this._shader) {
-            this._totalZ += parent.shaderSettings._totalZ;
-        }
-    }
-
-}
 
 
 module.exports = Light3dShader;

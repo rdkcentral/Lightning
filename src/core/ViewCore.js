@@ -2,7 +2,7 @@
  * Graphical calculations / VBO buffer filling.
  */
 
-class ViewRenderer {
+class ViewCore {
 
     constructor(view) {
         this._view = view;
@@ -107,18 +107,12 @@ class ViewRenderer {
 
         this._shader = null;
 
-        // The ViewRenderer that owns the shader that's active in this branch. Null if none is active (default shader).
+        // The ViewCore that owns the shader that's active in this branch. Null if none is active (default shader).
         this._shaderOwner = null;
 
-        this._shaderSettings = null;
-
-        this._filters = null;
-
-        this._renderGlTexture = null;
-
-        this._renderToTexture = 0;
-
         this._renderToTextureEnabled = false;
+
+        this._texturizer = null
 
         // Helper variables for render to texture support.
         this._prevRttContext = null
@@ -152,7 +146,6 @@ class ViewRenderer {
      *   2: translate
      *   4: transform
      *   8: clipping
-     *  64: shader settings
      * 128: force layout when becoming visible
      * @private
      */
@@ -231,7 +224,7 @@ class ViewRenderer {
                 }
             }
 
-            this._setRecalc(1 + 2 + 4 + 64);
+            this._setRecalc(1 + 2 + 4);
 
             if (this._zIndex === 0) {
                 this.setZParent(parent);
@@ -323,11 +316,11 @@ class ViewRenderer {
         this._rw = w;
         this._rh = h;
         this._setRecalc(2);
-        this._releaseRenderGlTexture();
-        if (this._filters) {
-            this._filters.releaseRenderGlTexture();
+        if (this._texturizer) {
+            this._texturizer.releaseRenderTexture();
+            this._texturizer.releaseFilterTexture();
+            this._texturizer.updateResultTexture()
         }
-        this.view.setResultGlTexture(null)
     };
 
     setTextureCoords(ulx, uly, brx, bry) {
@@ -355,7 +348,7 @@ class ViewRenderer {
 
     setAsRoot() {
         // Use parent dummy.
-        this._parent = new ViewRenderer(this._view);
+        this._parent = new ViewCore(this._view);
 
         // Root is, and will always be, the primary zContext.
         this._isRoot = true;
@@ -579,7 +572,7 @@ class ViewRenderer {
 
     set colorUl(color) {
         if (this._colorUl !== color) {
-            this.setHasRenderUpdates(3);
+            this.setHasRenderUpdates(this._displayedTextureSource ? 3 : 1);
             this._colorUl = color;
         }
     }
@@ -590,7 +583,7 @@ class ViewRenderer {
 
     set colorUr(color) {
         if (this._colorUr !== color) {
-            this.setHasRenderUpdates(3);
+            this.setHasRenderUpdates(this._displayedTextureSource ? 3 : 1);
             this._colorUr = color;
         }
     };
@@ -601,7 +594,7 @@ class ViewRenderer {
 
     set colorBl(color) {
         if (this._colorBl !== color) {
-            this.setHasRenderUpdates(3);
+            this.setHasRenderUpdates(this._displayedTextureSource ? 3 : 1);
             this._colorBl = color;
         }
     };
@@ -612,7 +605,7 @@ class ViewRenderer {
 
     set colorBr(color) {
         if (this._colorBr !== color) {
-            this.setHasRenderUpdates(3);
+            this.setHasRenderUpdates(this._displayedTextureSource ? 3 : 1);
             this._colorBr = color;
         }
     };
@@ -643,10 +636,6 @@ class ViewRenderer {
     }
 
     set shader(v) {
-        if (v && !v.allowAsMultiquadShader()) {
-            console.error("This shader can only be used as a filter")
-        }
-
         this.setHasRenderUpdates(1);
 
         let prevShader = this._shader;
@@ -659,13 +648,14 @@ class ViewRenderer {
             // Enabled shader.
             this._setShaderOwnerRecursive(this);
         }
-    }
 
-    get shaderSettings() {
-        if (!this._shaderSettings) {
-            this._shaderSettings = this.activeShader.createViewSettings(this);
+        if (prevShader) {
+            prevShader.removeView(this);
         }
-        return this._shaderSettings;
+
+        if (this._shader) {
+            this._shader.addView(this);
+        }
     }
 
     get activeShader() {
@@ -676,52 +666,8 @@ class ViewRenderer {
         return this._shaderOwner;
     }
 
-    get filters() {
-        if (!this._filters) {
-            this._filters = new FilterList(this);
-            if (this.view._resultTextureSource) {
-                this._filters.disableLastWithShader = true
-            }
-        }
-        return this._filters;
-    }
-
-    set filters(v) {
-        this.filters.setSettings(v);
-        this._updateRenderToTextureEnabled();
-    }
-
-    get renderToTexture() {
-        return this._renderToTexture;
-    }
-
-    set renderToTexture(v) {
-        this._renderToTexture = v;
-        this._updateRenderToTextureEnabled();
-    }
-
-    _hasFilters() {
-        return this._filters ? (this._filters.length > 0) : false;
-    }
-
-    _hasActiveFilters() {
-        return this._filters ? this._filters.hasActiveShaders() : false;
-    }
-
-    usesShader(shader) {
-        return (this._filters ? ((this._filters.shaders.indexOf(shader) !== -1) || (this._shader === shader)) : false);
-    }
-    
-    redrawShader(shader) {
-        if (this._filters && this._filters.shaders.indexOf(shader) !== -1) {
-            this._setHasRenderUpdates(2);
-        } else if (this._shader === shader) {
-            this._setHasRenderUpdates(1);
-        }
-    }
-
-    _updateRenderToTextureEnabled() {
-        let v = (this._hasFilters() || (this._renderToTexture > 0));
+    _setRenderToTextureEnabled(v) {
+        // Called from texturizer.
         if (this._renderToTextureEnabled !== v) {
             this.setHasRenderUpdates(3);
 
@@ -740,55 +686,15 @@ class ViewRenderer {
 
             // Due to the renderToTexture-specific code in update: must update world properties.
             this._setRecalc(7);
-
-            if (!v) {
-                this._releaseRenderGlTexture();
-            }
         }
     }
 
-    deactivate() {
-        this._releaseRenderGlTexture()
-        if (this._filters) {
-            this._filters.releaseRenderGlTexture();
-        }
-        this.view.setResultGlTexture(null)
-    }
-    
-    _releaseRenderGlTexture() {
-        if (this._renderGlTexture) {
-            this.ctx.releaseGlTexture(this._renderGlTexture);
-            this._renderGlTexture = null;
-        }
-    }
-    
-    getRenderGlTexture() {
-// if (this._renderGlTexture && this.view.stage.frameCounter !== this._renderGlTexture.f && !this.view.hasTag('image')) {
-//     let gl = this.ctx.gl;
-//
-//     let w = this._renderGlTexture.w;
-//     let h = this._renderGlTexture.h;
-//     this._renderGlTexture.projectionMatrix = new Float32Array([
-//         2/w, 0, 0, 0,
-//         0, 2/h, 0, 0,
-//         0, 0, 1, 0,
-//         -1, -1, 0, 1
-//     ])
-//
-// }
-        if (!this._renderGlTexture) {
-            this._renderGlTexture = this.ctx.createGlTexture(Math.min(2048, this._rw), Math.min(2048, this._rh));
-        }
-        return this._renderGlTexture;
-    }
-
-    _setShaderOwnerRecursive(viewRenderer) {
-        this._shaderOwner = viewRenderer;
-        this._shaderSettings = null;
+    _setShaderOwnerRecursive(viewCore) {
+        this._shaderOwner = viewCore;
         if (this._children) {
             for (let i = 0, n = this._children.length; i < n; i++) {
                 if (!this._children[i]._shader && !this._children[i]._renderToTexture) {
-                    this._children[i]._setShaderOwnerRecursive(viewRenderer);
+                    this._children[i]._setShaderOwnerRecursive(viewCore);
                     this._children[i]._hasRenderUpdates = true;
                 }
             }
@@ -1133,30 +1039,15 @@ class ViewRenderer {
 
             this._prevRttContext = rttContext;
 
-            if (this._shaderOwner && this.activeShader.hasViewSettings()) {
-                this.shaderSettings.update();
-            }
-
             this._updateTreeOrder = this.ctx.updateTreeOrder++;
 
-            this._recalc = (this._recalc & 71);
-            /* 1+2+4+64 */
-
-
+            this._recalc = (this._recalc & 7);
+            /* 1+2+4 */
 
             // Determine whether we must use a 'renderTexture'.
             this._mustRenderToTexture = false;
             if (this._renderToTextureEnabled) {
-                // Check if we must really render as texture.
-                if (this._renderToTexture === 2) {
-                    this._mustRenderToTexture = true;
-                } else if (this._renderToTexture === 1 && this._hasRenderUpdates < 3) {
-                    // Static-only: if renderToTexture did not need to update during last drawn frame, generate it as a cache.
-                    this._mustRenderToTexture = true;
-                } else if (this._hasActiveFilters()) {
-                    // Only render as texture if there is at least one filter shader to be applied.
-                    this._mustRenderToTexture = true;
-                }
+                this._mustRenderToTexture = this._texturizer.mustRenderToTexture()
             }
 
             // We do not use rtt context attribs if it is not needed (such as when the root has rtt).
@@ -1239,14 +1130,6 @@ class ViewRenderer {
             this._zSort = false;
         }
 
-        if (this._shader) {
-            this._shader.updateUserReference(this);
-        }
-
-        if (this._hasFilters()) {
-            this._filters.updateShaderUserReferences();
-        }
-
         if (this._worldAlpha) {
             if (this._useWorldAttribsForRendering) {
                 this._setWorldCoordAttribsMode()
@@ -1264,14 +1147,12 @@ class ViewRenderer {
                     // Ignore this branch and don't draw anything.
                     this._hasRenderUpdates = 0;
                     return;
-                } else if (!this._renderGlTexture || (this._hasRenderUpdates >= 3)) {
+                } else if (!this._texturizer.hasRenderTexture() || (this._hasRenderUpdates >= 3)) {
                     // Re-create gl texture.
                     ctx.flushQuads();
 
-                    let texture = this.getRenderGlTexture();
-                    if (this.view.id == 1) {
-                        texture.framebuffer.r = 826
-                    }
+                    let texture = this._texturizer.getRenderTexture();
+
                     ctx.setRenderTarget(texture);
                     ctx.clearRenderTarget()
 
@@ -1330,44 +1211,36 @@ class ViewRenderer {
                     ctx.restoreRenderTarget();
                 }
 
-                let hasFilters = this._hasActiveFilters();
+                let hasFilters = this._texturizer._hasActiveFilters();
 
-                let resultTexture = this.getRenderGlTexture();
+                let resultTexture = this._texturizer.getResultTexture();
 
                 let useShader = null;
 
                 if (hasFilters) {
-                    if ((this._hasRenderUpdates >= 2 || !this._filters.cached)) {
+                    if ((this._hasRenderUpdates >= 2 || !this._texturizer.filterResultCached)) {
                         let res = this.applyFilters();
                         resultTexture = res.texture;
                         useShader = res.shader;
-                    } else {
-                        resultTexture = this._filters.renderGlTexture;
                     }
                 }
 
-                if (resultTexture) {
-                    this.view.setResultGlTexture(resultTexture);
+                this._texturizer.updateResultTexture();
 
-                    // Render result texture to the actual render target.
-
-                    // Configure shader and add result texture.
-                    if (useShader) {
-                        ctx.setShader(useShader, this);
-                    } else {
-                        ctx.setShader(this.ctx.defaultShader, this);
-                    }
-
-                    ctx.overrideAddVboTexture(resultTexture);
-                    this._stashTexCoords();
-                    this._stashColors();
-                    this.addToVbo();
-                    this._unstashColors();
-                    this._unstashTexCoords();
-                    ctx.overrideAddVboTexture(null);
+                // Render result texture to the actual render target.
+                if (useShader) {
+                    ctx.setShader(useShader, this);
                 } else {
-                    this.view.setResultGlTexture(null);
+                    ctx.setShader(this.ctx.defaultShader, this);
                 }
+
+                ctx.overrideAddVboTexture(resultTexture);
+                this._stashTexCoords();
+                this._stashColors();
+                this.addToVbo();
+                this._unstashColors();
+                this._unstashTexCoords();
+                ctx.overrideAddVboTexture(null);
             }
 
             this._hasRenderUpdates = 0;
@@ -1377,33 +1250,33 @@ class ViewRenderer {
     }
 
     applyFilters() {
-        let sourceTexture = this._renderGlTexture;
+        let sourceTexture = this._texturizer.getRenderTexture();
 
         let ctx = this.ctx;
-        let activeShaders = this._filters.getActiveShaders();
+        let activeShaders = this._texturizer.getActiveFilters();
 
         let n = activeShaders.length;
 
         let textureRenders = n;
 
-        this._filters.cached = false
+        this._texturizer.filterResultCached = false
 
         // Final shader element may be rendered to the 'real' render target, at the expense of not filling the
         // filter cache. That's why this is only done when this view was volatile last frame.
-        let lastWithShader = (this._hasRenderUpdates >= 2 && activeShaders[0].allowAsMultiquadShader() && !this._filters.disableLastWithShader);
+        let lastWithShader = (this._hasRenderUpdates >= 2 && activeShaders[0].supportsDirectDrawMode() && !this._texturizer.disableResultShading);
 
         if (!lastWithShader && this._hasRenderUpdates < 2 && n > 1) {
             // Filters have not yet been cached, but there were no updates since last frame.
             // This means that we can assume that the amount of filters is still the same, and that the target target
             // contains up to the last filter already rendered.
-            let targetTexture = this._filters._getRenderGlTexture();
-            let intermediate = ctx.createGlTexture(Math.min(2048, this._rw), Math.min(2048, this._rh));
+            let targetTexture = this._texturizer.getFilterTexture();
+            let intermediate = ctx.allocateRenderTexture(Math.min(2048, this._rw), Math.min(2048, this._rh));
             ctx.drawFilterQuad(activeShaders[n - 1], targetTexture, this, intermediate)
 
-            this._filters.cached = true
+            this._texturizer.filterResultCached = true
 
             // Swap the textures.
-            this._filters.replaceRenderGlTexture(intermediate)
+            this.replaceFilterTexture(intermediate)
 
             return {texture: intermediate, shader: null}
         }
@@ -1418,19 +1291,19 @@ class ViewRenderer {
                 return {texture: sourceTexture, shader: null}
             }
         } else if (textureRenders === 1) {
-            let targetTexture = this._filters._getRenderGlTexture();
+            let targetTexture = this._texturizer.getFilterTexture();
 
             // No intermediate texture is needed.
             ctx.drawFilterQuad(activeShaders[0], sourceTexture, this, targetTexture);
             if (lastWithShader) {
                 return {texture: targetTexture, shader: activeShaders[1]}
             } else {
-                this._filters.cached = true;
+                this._texturizer.filterResultCached = true;
                 return {texture: targetTexture, shader: null}
             }
         } else {
-            let targetTexture = this._filters._getRenderGlTexture();
-            let intermediate = ctx.createGlTexture(Math.min(2048, this._rw), Math.min(2048, this._rh));
+            let targetTexture = this._texturizer.getFilterTexture();
+            let intermediate = ctx.allocateRenderTexture(Math.min(2048, this._rw), Math.min(2048, this._rh));
             let source = intermediate;
             let target = targetTexture;
 
@@ -1447,12 +1320,12 @@ class ViewRenderer {
                 ctx.drawFilterQuad(activeShaders[i], i === 0 ? sourceTexture : source, this, target)
             }
 
-            ctx.releaseGlTexture(intermediate);
+            ctx.releaseRenderTexture(intermediate);
 
             if (lastWithShader) {
                 return {texture: target, shader: activeShaders[n - 1]}
             } else {
-                this._filters.cached = true;
+                this._texturizer.filterResultCached = true;
                 return {texture: target, shader: null}
             }
         }
@@ -1707,7 +1580,7 @@ class ViewRenderer {
         ];
     };
 
-    getRenderTargetCoords(relX, relY) {
+    getRenderTextureCoords(relX, relY) {
         if (this._useWorldAttribsForRendering) {
             return this.getAbsoluteCoords(relX, relY);
         } else {
@@ -1739,6 +1612,5 @@ let getVboTextureCoords = function (x, y) {
 };
 
 let GeometryUtils = require('./GeometryUtils');
-let FilterList = require('./FilterList')
 
-module.exports = ViewRenderer;
+module.exports = ViewCore;

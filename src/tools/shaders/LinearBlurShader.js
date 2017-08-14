@@ -52,7 +52,7 @@ class LinearBlurShader extends DefaultShader {
         gl.uniform1i(this._uniform("kernelRadius"), this._kernelRadius)
     }
 
-    drawsAsDefault() {
+    useDefault() {
         return (this._kernelRadius === 0)
     }
 

@@ -109,7 +109,7 @@ class DefaultShader extends Shader {
         return 0;
     }
 
-    drawsAsDefault() {
+    useDefault() {
         // Default for subclasses of default shader: has effect.
         return !this._isSubShader;
     }

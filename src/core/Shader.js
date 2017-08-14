@@ -20,10 +20,10 @@ class Shader extends Base {
         this.ctx = vboContext;
 
         /**
-         * The view renders that use this shader, either as a shader owner or as a filter.
-         * @type {Set<ViewRenderer>}
+         * The (active) views that use this shader.
+         * @type {Set<ViewCore>}
          */
-        this._users = new Set();
+        this._views = new Set();
     }
 
     _uniform(name) {
@@ -41,15 +41,16 @@ class Shader extends Base {
         }
     }
 
-    _free() {
-        if (!this._initialized) {
-            //this._program.destroy();
-            this._initialized = false;
-        }
+    addView(viewCore) {
+        this._views.add(viewCore)
+    }
+
+    removeView(viewCore) {
+        this._views.delete(viewCore)
     }
 
     useProgram() {
-        this.ctx.initShader(this);
+        this._init()
         this.ctx.gl.useProgram(this.glProgram);
 
         this.ctx.bindDefaultGlBuffers();
@@ -80,13 +81,6 @@ class Shader extends Base {
     _draw() {
     }
 
-    /**
-     * This function should be called for every shader owner or filter owner that runs this shader.
-     */
-    updateUserReference(viewRenderer) {
-        this._users.add(viewRenderer);
-    }
-
     get initialized() {
         return this._initialized;
     }
@@ -109,31 +103,17 @@ class Shader extends Base {
     }
 
     redraw() {
-        this._users.forEach((viewRenderer) => {
-            viewRenderer.redrawShader(this);
-        });
+        this._views.forEach(viewCore => viewCore._setHasRenderUpdates(2))
     }
 
-    checkUsers() {
-        this._users.forEach((viewRenderer) => {
-            if (!viewRenderer.usesShader(this)) {
-                this._users.delete(viewRenderer)
-            }
-        });
-    }
-
-    hasUsers() {
-        return this._users.size > 0;
-    }
-
-    drawsAsDefault() {
+    useDefault() {
         // Should return true if this shader is configured (using it's properties) to not have any effect.
         // This may allow the shader engine to avoid unnecessary shader program switches or even texture copies.
         // Warning: the return value may only depend on the Shader's properties.
         return false;
     }
 
-    allowAsMultiquadShader() {
+    supportsDirectDrawMode() {
         // Some filters, such as FXAA, rely on the texture size being equal to the render target size. Such filters
         // can't be used as multiquad shaders.
         return true
