@@ -13,6 +13,12 @@ class ShaderProgram {
 
         this._uniformLocations = new Map();
         this._attributeLocations = new Map();
+
+        this._currentUniformValues = {};
+
+        this._pendingUniformValues = {};
+        this._pendingUniformFunctions = {};
+        this._pendingCount = 0
     }
 
     compile(gl) {
@@ -99,6 +105,49 @@ class ShaderProgram {
         return !!this._program;
     }
 
+    _valueEquals(v1, v2) {
+        // Uniform value is either a typed array or a numeric value.
+        if (v1.length && v2.length) {
+            for (let i = 0, n = v1.length; i < n; i++) {
+                if (v1[i] !== v2[i]) return false
+            }
+            return true
+        } else {
+            return (v1 === v2)
+        }
+    }
+
+    _valueClone(v) {
+        if (v.length) {
+            return v.slice(0)
+        } else {
+            return v
+        }
+    }
+
+    setUniformValue(name, value, glFunction) {
+        let v = this._currentUniformValues[name];
+        if (v === undefined || !this._valueEquals(v, value)) {
+            this._pendingUniformValues.set(name, this._valueClone(value))
+            this._pendingUniformFunctions.set(name, glFunction)
+            this._pendingCount++
+        }
+    }
+
+    hasUniformUpdates() {
+        return (this._pendingCount > 0)
+    }
+
+    commitUniformValues() {
+        let names = Object.keys(this._currentUniformValues)
+        names.forEach(name => {
+            this._pendingUniformFunctions[name](this.getUniformLocation(name), this._pendingUniformValues[name])
+        })
+        this._pendingUniformValues = {}
+        this._pendingUniformValues = {}
+        this._pendingCount = 0
+    }
+
 }
 
-module.exports = ShaderProgram;
+module.exports = ShaderProgram

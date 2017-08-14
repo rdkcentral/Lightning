@@ -28,6 +28,8 @@ class VboContext {
 
         this._availableRenderTextures = [];
 
+        this.shaderPrograms = new Map()
+
         let DefaultShader = require('./DefaultShader');
         this.defaultShader = new DefaultShader(this);
 
@@ -38,6 +40,7 @@ class VboContext {
         this.gl.deleteBuffer(this.paramsGlBuffer);
         this.gl.deleteBuffer(this.quadsGlBuffer);
         this._availableRenderTextures.forEach(texture => this._freeGlTexture(texture));
+        this.shaderPrograms.forEach(shaderProgram => shaderProgram.destroy());
     }
 
     initSharedShaderData() {

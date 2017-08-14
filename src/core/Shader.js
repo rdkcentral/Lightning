@@ -10,10 +10,12 @@ class Shader extends Base {
     constructor(vboContext, vertexShaderSource, fragmentShaderSource) {
         super();
 
-        this._program = Shader.programs.get(this.constructor);
+        this._program = vboContext.shaderPrograms.get(this.constructor);
         if (!this._program) {
             this._program = new ShaderProgram(vertexShaderSource, fragmentShaderSource);
-            Shader.programs.set(this.constructor, this._program);
+
+            // Let the vbo context perform garbage collection.
+            vboContext.shaderPrograms.set(this.constructor, this._program);
         }
         this._initialized = false;
 
@@ -36,8 +38,8 @@ class Shader extends Base {
 
     _init() {
         if (!this._initialized) {
-            this._program.compile(this.ctx.gl);
-            this._initialized = true;
+            this._program.compile(this.ctx.gl)
+            this._initialized = true
         }
     }
 
@@ -103,13 +105,12 @@ class Shader extends Base {
     }
 
     redraw() {
-        this._views.forEach(viewCore => viewCore._setHasRenderUpdates(2))
+        this._views.forEach(viewCore => viewCore._setHasRenderUpdates(1))
     }
 
     useDefault() {
         // Should return true if this shader is configured (using it's properties) to not have any effect.
-        // This may allow the shader engine to avoid unnecessary shader program switches or even texture copies.
-        // Warning: the return value may only depend on the Shader's properties.
+        // This may allow the render engine to avoid unnecessary shader program switches or even texture copies.
         return false;
     }
 
@@ -122,10 +123,5 @@ class Shader extends Base {
 }
 
 Shader.prototype.isShader = true;
-
-Shader.programs = new Map();
-Shader.destroyPrograms = function() {
-    Shader.programs.forEach(program => program.destroy());
-}
 
 module.exports = Shader;

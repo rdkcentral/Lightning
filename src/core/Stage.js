@@ -132,6 +132,7 @@ class Stage extends Base {
         }
         this.ctx.destroy();
         this.textureManager.destroy();
+        ShaderProgram.destroy
         this._destroyed = true;
     }
 
