@@ -28,19 +28,16 @@ class Shader extends Base {
         this._views = new Set();
     }
 
-    _uniform(name) {
-        return this._program.getUniformLocation(name);
-    }
-
-    _attrib(name) {
-        return this._program.getAttribLocation(name);
-    }
-
     _init() {
         if (!this._initialized) {
             this._program.compile(this.ctx.gl)
             this._initialized = true
         }
+    }
+
+    useProgram() {
+        this._init()
+        this.ctx.gl.useProgram(this.glProgram);
     }
 
     addView(viewCore) {
@@ -51,61 +48,39 @@ class Shader extends Base {
         this._views.delete(viewCore)
     }
 
-    useProgram() {
-        this._init()
-        this.ctx.gl.useProgram(this.glProgram);
-
-        this.ctx.bindDefaultGlBuffers();
+    redraw() {
+        this._views.forEach(viewCore => viewCore._setHasRenderUpdates(1))
     }
 
-    /**
-     * Sets up this shader instance.
-     * Normally, you apply any uniforms here.
-     */
-    setup() {
+    _uniform(name) {
+        return this._program.getUniformLocation(name);
     }
 
-    stopProgram() {
+    _attrib(name) {
+        return this._program.getAttribLocation(name);
     }
 
-    /**
-     * Set up params buffer for filtering.
-     */
-    prepareFilterQuad() {
-    }
-
-    /**
-     * Set up params buffer based on shader settings in context.
-     */
-    prepareQuads() {
-    }
-
-    _draw() {
-    }
-
-    get initialized() {
-        return this._initialized;
-    }
-
-    get glProgram() {
-        return this._program.glProgram;
-    }
-
-    hasViewSettings() {
-        return false;
-    }
-
-    createViewSettings() {
-        // Return a dummy object to prevent userland errors.
-        return {};
+    _setUniform(name, value, glFunction) {
+        this._program.setUniformValue(name, value, glFunction)
     }
 
     getBytesPerVertex() {
-        return 0;
+        return 16;
     }
 
-    redraw() {
-        this._views.forEach(viewCore => viewCore._setHasRenderUpdates(1))
+    getExtraBytesPerVertex() {
+        return 0
+    }
+
+    getExtraBytes(length) {
+        // Custom shaders that wish to reuse the attribs array may wish to overrule this.
+        // (or they could bind their own attrib arrays)
+        return length * 4 * this.getExtraBytesPerVertex()
+    }
+
+    setExtraAttribsInBuffer(options) {
+        // Set extra attrib data in in options.quadList.attribsBuffer.data/floats/uints, starting from
+        // options.quadList.extraAttribsBufferByteOffset.
     }
 
     useDefault() {
@@ -114,10 +89,46 @@ class Shader extends Base {
         return false;
     }
 
-    supportsDirectDrawMode() {
-        // Some filters, such as FXAA, rely on the texture size being equal to the render target size. Such filters
-        // can't be used as multiquad shaders.
-        return true
+    hasCustomDraw() {
+        // Returns true if this shader has a custom draw function. No attributes or uniforms are set. The framebuffer is
+        // set and the _draw function is called.
+    }
+
+    setupUniforms(options) {
+    }
+
+    enableExtraAttribs() {
+        // Enables the attribs in the shader program.
+    }
+
+    beforeDraw(options) {
+
+    }
+
+    draw(options) {
+        // Override in case of custom draw.
+    }
+
+    afterDraw(options) {
+        // Make sure that any non-default gl settings (blend functions etc) are undone here.
+    }
+
+    disableExtraAttribs() {
+        // Disables the attribs in the shader program.
+    }
+
+    supportsCombining() {
+        // Multiple shader instances that have the same type and same uniforms may be combined into one draw operation.
+        // Notice that this causes the shaderOwner to very within the same draw, so it is nullified in the shader options.
+        return true;
+    }
+
+    get initialized() {
+        return this._initialized;
+    }
+
+    get glProgram() {
+        return this._program.glProgram;
     }
 
 }

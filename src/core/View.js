@@ -4,7 +4,7 @@
  */
 
 let StageUtils = require('./StageUtils');
-let ViewCore = require('./ViewCore');
+let ViewCore = require('./core/ViewCore');
 let Base = require('./Base');
 
 class View {

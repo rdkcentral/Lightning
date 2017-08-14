@@ -92,7 +92,7 @@ class Stage extends Base {
             this.textureAtlas = new TextureAtlas(this);
         }
 
-        this.ctx = new VboContext(this);
+        this.ctx = new CoreContext(this);
 
         this.root = new View(this);
         this.root.w = this.options.w
@@ -132,7 +132,6 @@ class Stage extends Base {
         }
         this.ctx.destroy();
         this.textureManager.destroy();
-        ShaderProgram.destroy
         this._destroyed = true;
     }
 
@@ -231,6 +230,14 @@ class Stage extends Base {
     texture(source, options) {
         return this.textureManager.getTexture(source, options);
     }
+
+    get w() {
+        return this.options.w
+    }
+
+    get h() {
+        return this.options.h
+    }
 }
 
 let Utils = require('./Utils');
@@ -242,7 +249,7 @@ let View = require('./View');
 let StageUtils = require('./StageUtils');
 let TextureManager = require('./TextureManager');
 let TextureAtlas = require('./TextureAtlas');
-let VboContext = require('./VboContext');
+let CoreContext = require('./core/CoreContext');
 /*A¬*/
 let TransitionManager = require('../animation/TransitionManager');
 let AnimationManager = require('../animation/AnimationManager');
