@@ -57,17 +57,21 @@ var start = function(wpe) {
         // ])
 
         stage.root.add([
+            {tag: 'wrapper', w: 900, h: 900, children: [
 //            {filters: [{type: Light3dShader, rx: 0.2}], w: 710, h: 355, children: [
                 {tags: 'image', src: 'http://adn.gpupdate.net/news/297192.jpg'/*, rect: false*/, colorLeft: 0xffff0000, colorRight: 0xff00ff00, renderToTexture: 2, filters: [{type: LinearBlurShader, kernelRadius: 1, x: 5}, {type: LinearBlurShader, kernelRadius: 1, y: 5}], rotation: 0.0, y: 95, mountY: 0, pivotX: 0.5, pivotY: 0.5, alpha: 1, x: 10, scale: 1, children: [
                     {tags: 'hello', src: 'http://adn.gpupdate.net/news/297192.jpg', zIndex: 0/*, texture: texture*/, shaderSettings: {z: 0}}
 //                     {tag: 'border', scale: 0.5/*, type: BorderView, borderWidth: 20*/, rect: false, shaderSettings: {z: 0}, color: 0xFFFF0000, x: 0, y: 50, children: [                  ]}
                 ]}
 //            ]}
+            ]}
         ])
 
-        stage.root.renderToTexture = 2;
-//        let ts = stage.root.getResultTextureSource();
-        //stage.root.add({tag: 'replica', texture: ts, mountY: 1, y: 900, mountX: 1, x: 900, scale: 0.1, shader: {type: Light3dShader, ry: Math.PI}, filters: [{type: FxaaShader}]})
+        let ts = stage.root.tag('wrapper').getResultTextureSource();
+        stage.root.add({tag: 'replica', texture: ts, x: 0, y: 900, w: 900, h: 900, mountY: 1, pivotX: 0, pivotY: 1, shader: {type: Light3dShader, ry: 0.4 * Math.PI, ambient: 0.2}})
+//        stage.root.add({tag: 'replica', texture: ts, mountY: 1, y: 900, mountX: 1, x: 900, scale: 0.1, shader: {type: Light3dShader, ry: 0}, filters: [{type: FxaaShader}]})
+
+//        stage.root.tag('replica').setSmooth('shader.ry', 2, {duration: 10});
 
         // stage.root.add([
         //     {rect: true, rotation: 0.4, w: 400, h: 400, x: 250, y: 250, children: [
@@ -89,7 +93,7 @@ var start = function(wpe) {
         // ])
 
 
-        stage.root.tag('image').setSmooth('y', 400, {duration: 10});
+//        stage.root.tag('image').setSmooth('y', 400, {duration: 10});
         stage.root.tag('hello').setSmooth('x', 400, {duration:5});
         // stage.root.tag('image').setSmooth('rotation', 10, {duration: 10});
 

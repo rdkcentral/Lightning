@@ -123,7 +123,6 @@ class VboContext {
         this.vboGlTextures = [];
         this.textureAtlasGlTexture = this.stage.textureAtlas ? this.stage.textureAtlas.texture : null;
         this.n = 0;
-        this.updateTreeOrder = 0;
 
         this.shader = null
         this._shaderOwner = null // The view renderer that the current shader was defined on (if available).
@@ -158,6 +157,7 @@ class VboContext {
 
         this.layout();
 
+        this.updateTreeOrder = 0;
         this.update();
 
         this.render();

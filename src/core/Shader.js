@@ -43,7 +43,7 @@ class Shader extends Base {
 
     _free() {
         if (!this._initialized) {
-            this._program.destroy();
+            //this._program.destroy();
             this._initialized = false;
         }
     }
