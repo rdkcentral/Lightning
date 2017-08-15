@@ -1612,6 +1612,14 @@ class View {
         return this.getSmooth('w', this.w);
     }
 
+    set W(v) {
+        return this.setSmooth('w', v);
+    }
+
+    get H() {
+        return this.getSmooth('h', this.h);
+    }
+
     set H(v) {
         this.setSmooth('h', v)
     }
