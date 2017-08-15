@@ -42,8 +42,8 @@ class CoreRenderExecutor {
 
         // The matrix that causes the [0,0 - W,H] box to map to [-1,-1 - 1,1] in the end results.
         this._projectionMatrix = new Float32Array([
-            2/this.stage.options.renderWidth, 0, 0, 0,
-            0, -2/this.stage.options.renderHeight, 0, 0,
+            2/this.ctx.stage.rw, 0, 0, 0,
+            0, -2/this.ctx.stage.rw, 0, 0,
             0, 0, 1, 0,
             -1, 1, 0, 1
         ]);
@@ -81,22 +81,25 @@ class CoreRenderExecutor {
         // Finally, run flushQuads.
     }
 
-    _execQuadOperation(quadOperation) {
+    _processQuadOperation(quadOperation) {
         this._quadOperation = quadOperation
 
-        //@todo
+        //@todo: check if quad operation can be merged or not.
+        // if not, execute previous. If so, make sure that length is extended.
 
         this._quadOperation = null
     }
 
-    _execFilterOperation(quadOperation) {
+    _execQuadOperation() {
+        // if (this._renderTexture !== op.renderTexture || op.clearRenderTexture) {
+        //     this._bindRenderTexture(renderTexture, op.clearRenderTexture)
+        // }
 
     }
 
-    _setRenderTexture(renderTexture, clear) {
-        if (clear || this._renderTexture !== renderTexture) {
-            this._bindRenderTexture(renderTexture, clear)
-        }
+    _processFilterOperation(quadOperation) {
+        // Execute pending quad operation (if one).
+        // Then execute filter.
     }
 
     _bindRenderTexture(renderTexture, clear) {
@@ -124,26 +127,28 @@ class CoreRenderExecutor {
         }
     }
 
-    _setShader(shader, shaderOwner) {
-        if (shader.supportsCombining()) {
-            shader.setupUniforms(this._quadOperation)
-
-            // Projection matrix?
+    _getProjectionMatrix() {
+        if (this._renderTexture === null) {
+            return this._projectionMatrix
         } else {
-
+            return this._renderTexture.projectionMatrix
         }
-        //@todo: if different type or uncombinable then flush quads
-        // if same type and combinable run setupUniforms, then check if uniform updates.
-        // If true then flush quads and then commit uniform updates.
-        // Finally, set shader & shader owner. And useProgram.
     }
 
     _flushQuads() {
-        // Create options (if combined then no shader owner), then enableExtraAttribs, then beforeDraw, drawQuads/draw, afterDraw, disableExtraAttribs
+        this._shader.enableExtraAttribs()
+        this._shader.beforeDraw()
+        if (this._shaderOwner.hasCustomDraw()) {
+            this._shader.draw()
+        } else {
+            this._drawQuads()
+        }
+        this._shader.afterDraw()
+        this._shader.disableExtraAttribs()
     }
 
     _drawQuads() {
-
+        //check current operation, get length, invoke drawElements.
     }
 
 }

@@ -241,6 +241,15 @@ class Stage extends Base {
     get h() {
         return this.options.h
     }
+
+    get rw() {
+        return this.options.renderWidth
+    }
+
+    get rh() {
+        return this.options.renderHeight
+    }
+
 }
 
 let Utils = require('./Utils');

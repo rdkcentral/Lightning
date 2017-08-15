@@ -126,6 +126,14 @@ class Shader extends Base {
         return true;
     }
 
+    hasSameType(other) {
+        if (other && other._program === this._program) {
+            return true
+        } else {
+            return false
+        }
+    }
+
     get initialized() {
         return this._initialized;
     }
