@@ -100,7 +100,7 @@ class Shader extends Base {
         this._program.commitUniformUpdates()
     }
 
-    enableExtraAttribs() {
+    enableAttribs() {
         // Enables the attribs in the shader program.
     }
 
@@ -116,7 +116,7 @@ class Shader extends Base {
         // Make sure that any non-default gl settings (blend functions etc) are undone here.
     }
 
-    disableExtraAttribs() {
+    disableAttribs() {
         // Disables the attribs in the shader program.
     }
 

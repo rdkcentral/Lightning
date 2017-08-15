@@ -7,6 +7,7 @@ let Base = require('./Base');
 
 /**
  * @todo:
+ * - shader: blocked by render texture context
  * - shaders & filters
  * - VAOs
  * - smart shader/filter switching

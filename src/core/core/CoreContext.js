@@ -18,6 +18,7 @@ class CoreContext {
         this._renderState = new CoreRenderState(this)
 
         this._renderExecutor = new CoreRenderExecutor(this)
+        this._renderExecutor.init()
 
         this._renderTexturePool = []
 
@@ -72,13 +73,15 @@ class CoreContext {
     }
 
     render() {
+        // Obtain a sequence of the quad and filter operations.
         this.state.reset()
-        //@todo: fill the render state from the render tree
-        //@todo: reset & run the render executor
+        this.root.render()
+        this.state.finish()
+
+        // Now run them with the render executor.
+        this._renderExecutor.execute()
 
         this._freeUnusedRenderTextures();
-
-
     }
 
     allocateRenderTexture(w, h) {

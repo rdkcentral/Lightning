@@ -59,8 +59,6 @@ class CoreRenderExecutor {
         this._bindRenderTexture(null, true)
 
         this._quadOperation = null
-        this._shader = null
-        this._shaderOwner = null
     }
 
     _setupBuffers() {
@@ -75,31 +73,107 @@ class CoreRenderExecutor {
         this._reset()
         this._setupBuffers()
 
+        let qops = this.state.quadOperations
+        let fops = this.state.filterOperations
 
-        // Call exec quad/filter operation in the correct order
+        let i = 0, j = 0, n = qops.length, m = fops.length
+        while (i < n) {
+            while (j < m && i === fops[j].beforeQuadOperation) {
+                if (this._quadOperation) {
+                    this._execQuadOperation(this._quadOperation)
+                }
+                this._execFilterOperation(fops[j])
+                j++
+            }
 
-        // Finally, run flushQuads.
+            this._processQuadOperation(qops[i])
+            i++
+        }
+
+        if (this._quadOperation) {
+            this._execQuadOperation()
+        }
+
+        while (j < m) {
+            this._execFilterOperation(fops[j])
+            j++
+        }
+    }
+
+    _mergeQuadOperation(quadOperation) {
+        if (!this._quadOperation) {
+            this._quadOperation.length += quadOperation.length
+
+            // We remove the shader owner, because the shader should not rely on it.
+            this._quadOperation.shaderOwner = null
+        }
     }
 
     _processQuadOperation(quadOperation) {
-        this._quadOperation = quadOperation
+        // Check if quad operation can be merged; uniforms are set lazily in the process.
+        let shader = quadOperation.shader
+        if (shader.hasSameType(this._quadOperation.shader)) {
+            shader.setupUniforms(quadOperation)
+            if (shader.hasUniformUpdates()) {
+                this._execQuadOperation()
+                this._quadOperation = quadOperation
+            } else {
+                this._mergeQuadOperation(quadOperation)
+            }
+        } else {
+            if (this._quadOperation.shader === shader) {
+                this._mergeQuadOperation(quadOperation)
+            } else {
+                this._execQuadOperation()
+                shader.setupUniforms(quadOperation)
+                this._quadOperation = quadOperation
+            }
+        }
+    }
 
-        //@todo: check if quad operation can be merged or not.
-        // if not, execute previous. If so, make sure that length is extended.
+    _execQuadOperation() {
+        let op = this._quadOperation
+
+        let shader = op.shader
+
+        if (this._shader !== shader) {
+            shader.useProgram()
+            shader.enableAttribs()
+            this._shader = shader
+        }
+
+        // Set the prepared updates.
+        shader.commitUniformUpdates()
+
+        // Set render texture.
+        if (this._renderTexture !== op.renderTexture || op.clearRenderTexture) {
+            this._bindRenderTexture(op.renderTexture, op.clearRenderTexture)
+        }
+
+        shader.beforeDraw()
+        if (shader.hasCustomDraw()) {
+            shader.draw()
+        } else {
+            this._drawQuads()
+        }
+        shader.afterDraw()
 
         this._quadOperation = null
     }
 
-    _execQuadOperation() {
-        // if (this._renderTexture !== op.renderTexture || op.clearRenderTexture) {
-        //     this._bindRenderTexture(renderTexture, op.clearRenderTexture)
-        // }
+    _execFilterOperation(filterOperation) {
+        let filter = filterOperation.filter
+        filter.useProgram()
+        filter.setupUniforms(filterOperation)
+        filter.commitUniformUpdates()
+        filter.beforeDraw()
+        this._bindRenderTexture(filterOperation.renderTexture, true)
 
-    }
+        let gl = this.gl
+        gl.bindTexture(gl.TEXTURE_2D, filterOperation.source);
+        gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
 
-    _processFilterOperation(quadOperation) {
-        // Execute pending quad operation (if one).
-        // Then execute filter.
+        filter.afterDraw()
     }
 
     _bindRenderTexture(renderTexture, clear) {
@@ -133,18 +207,6 @@ class CoreRenderExecutor {
         } else {
             return this._renderTexture.projectionMatrix
         }
-    }
-
-    _flushQuads() {
-        this._shader.enableExtraAttribs()
-        this._shader.beforeDraw()
-        if (this._shaderOwner.hasCustomDraw()) {
-            this._shader.draw()
-        } else {
-            this._drawQuads()
-        }
-        this._shader.afterDraw()
-        this._shader.disableExtraAttribs()
     }
 
     _drawQuads() {
