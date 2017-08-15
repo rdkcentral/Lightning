@@ -72,15 +72,9 @@ class Shader extends Base {
         return 0
     }
 
-    getExtraBytes(length) {
-        // Custom shaders that wish to reuse the attribs array may wish to overrule this.
-        // (or they could bind their own attrib arrays)
-        return length * 4 * this.getExtraBytesPerVertex()
-    }
-
-    setExtraAttribsInBuffer(options) {
-        // Set extra attrib data in in options.quadList.attribsBuffer.data/floats/uints, starting from
-        // options.quadList.extraAttribsBufferByteOffset.
+    setExtraAttribsInBuffer(operation) {
+        // Set extra attrib data in in operation.quads.attribsBuffer.data/floats/uints, starting from
+        // operation.extraAttribsBufferByteOffset.
     }
 
     useDefault() {
@@ -94,7 +88,16 @@ class Shader extends Base {
         // set and the _draw function is called.
     }
 
-    setupUniforms(options) {
+    setupUniforms(operation) {
+        // Set all shader-specific uniforms.
+    }
+
+    hasUniformUpdates() {
+        return this._program.hasUniformUpdates()
+    }
+
+    confirmUpdates() {
+        this._program.commitUniformUpdates()
     }
 
     enableExtraAttribs() {

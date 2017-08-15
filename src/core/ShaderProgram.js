@@ -138,7 +138,7 @@ class ShaderProgram {
         return (this._pendingCount > 0)
     }
 
-    commitUniformValues() {
+    commitUniformUpdates() {
         let names = Object.keys(this._currentUniformValues)
         names.forEach(name => {
             this._pendingUniformFunctions[name](this.getUniformLocation(name), this._pendingUniformValues[name])

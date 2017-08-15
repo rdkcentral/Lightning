@@ -7,7 +7,10 @@ let Base = require('./Base');
 
 /**
  * @todo:
- * - shaders (VAOs)
+ * - shaders & filters
+ * - VAOs
+ * - smart shader/filter switching
+ * - buffer overflow?
  * - quick clone
  *   - text texture problems or not?
  * - change documentation
