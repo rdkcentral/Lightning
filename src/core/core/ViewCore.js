@@ -1277,11 +1277,11 @@ class ViewCore {
             let targetTexture = this._texturizer.getFilterTexture();
 
             // No intermediate texture is needed.
-            renderState.addFilter(activeFilters[0], sourceTexture, this, targetTexture);
+            renderState.addFilter(activeFilters[0], this, sourceTexture, targetTexture);
             this._texturizer.filterResultCached = true;
         } else {
             let targetTexture = this._texturizer.getFilterTexture();
-            let intermediate = renderState.allocateRenderTexture(Math.min(2048, this._rw), Math.min(2048, this._rh));
+            let intermediate = this.ctx.allocateRenderTexture(Math.min(2048, this._rw), Math.min(2048, this._rh));
             let source = intermediate;
             let target = targetTexture;
 
@@ -1295,10 +1295,10 @@ class ViewCore {
                     target = tmp;
                 }
 
-                renderState.addFilter(activeFilters[i], i === 0 ? sourceTexture : source, this, target)
+                renderState.addFilter(activeFilters[i], this, i === 0 ? sourceTexture : source, target)
             }
 
-            renderState.releaseRenderTexture(intermediate);
+            this.ctx.releaseRenderTexture(intermediate);
 
             this._texturizer.filterResultCached = true;
         }

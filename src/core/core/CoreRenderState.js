@@ -154,8 +154,8 @@ class CoreRenderState {
         this._check = false
     }
 
-    addFilter(filter, source, renderTexture) {
-        this.filterOperations.push(new CoreFilterOperation(filter, source, renderTexture, this.quadOperations.length))
+    addFilter(filter, owner, source, renderTexture) {
+        this.filterOperations.push(new CoreFilterOperation(this.ctx, filter, owner, source, renderTexture, this.quadOperations.length))
     }
 
     finish() {

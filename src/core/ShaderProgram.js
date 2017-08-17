@@ -18,7 +18,7 @@ class ShaderProgram {
 
         this._pendingUniformValues = {};
         this._pendingUniformFunctions = {};
-        this._pendingCount = 0
+        this._pendingUniformCount = 0
     }
 
     compile(gl) {
@@ -130,22 +130,37 @@ class ShaderProgram {
         if (v === undefined || !this._valueEquals(v, value)) {
             this._pendingUniformValues[name] = this._valueClone(value)
             this._pendingUniformFunctions[name] = glFunction
-            this._pendingCount++
+            this._pendingUniformCount++
+        } else {
+            if (v !== undefined) {
+                if (this._pendingUniformValues[name]) {
+                    delete this._pendingUniformValues[name]
+                    delete this._pendingUniformFunctions[name]
+                    this._pendingUniformCount--
+                }
+            }
         }
     }
 
     hasUniformUpdates() {
-        return (this._pendingCount > 0)
+        return (this._pendingUniformCount > 0)
     }
 
     commitUniformUpdates() {
-        let names = Object.keys(this._currentUniformValues)
+        let names = Object.keys(this._pendingUniformValues)
         names.forEach(name => {
-            this._pendingUniformFunctions[name](this.getUniformLocation(name), this._pendingUniformValues[name])
+            this._currentUniformValues[name] = this._pendingUniformValues[name]
+
+            let matrix = (this._pendingUniformFunctions[name] === this.gl.uniformMatrix2fv || this._pendingUniformFunctions[name] === this.gl.uniformMatrix3fv || this._pendingUniformFunctions[name] === this.gl.uniformMatrix4fv)
+            if (matrix) {
+                this._pendingUniformFunctions[name].call(this.gl, this.getUniformLocation(name), false, this._pendingUniformValues[name])
+            } else {
+                this._pendingUniformFunctions[name].call(this.gl, this.getUniformLocation(name), this._pendingUniformValues[name])
+            }
         })
         this._pendingUniformValues = {}
-        this._pendingUniformValues = {}
-        this._pendingCount = 0
+        this._pendingUniformFunctions = {}
+        this._pendingUniformCount = 0
     }
 
 }

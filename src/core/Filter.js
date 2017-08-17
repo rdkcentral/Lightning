@@ -79,4 +79,6 @@ Filter.fragmentShaderSource = `
     }
 `;
 
+Filter.prototype.isShader = true
+
 module.exports = Filter

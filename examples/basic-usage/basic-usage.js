@@ -59,7 +59,7 @@ var start = function(wpe) {
         stage.root.add([
             {tag: 'wrapper', w: 900, h: 900, children: [
 //            {filters: [{type: Light3dShader, rx: 0.2}], w: 710, h: 355, children: [
-                {tags: 'image', src: 'http://adn.gpupdate.net/news/297192.jpg'/*, rect: false*/, colorLeft: 0xffff0000, colorRight: 0xff00ff00, renderToTexture: 2, filters: [{type: LinearBlurShader, kernelRadius: 1, x: 5}, {type: LinearBlurShader, kernelRadius: 1, y: 5}], rotation: 0.0, y: 95, mountY: 0, pivotX: 0.5, pivotY: 0.5, alpha: 1, x: 10, scale: 1, children: [
+                {tags: 'image', src: 'http://adn.gpupdate.net/news/297192.jpg'/*, rect: false*/, colorLeft: 0xffff0000, colorRight: 0xff00ff00, renderToTexture: 2/*, filters: [{type: LinearBlurFilter, kernelRadius: 1, x: 5}, {type: LinearBlurFilter, kernelRadius: 1, y: 5}]*/, rotation: 0.0, y: 95, mountY: 0, pivotX: 0.5, pivotY: 0.5, alpha: 1, x: 10, scale: 1, children: [
                     {tags: 'hello', src: 'http://adn.gpupdate.net/news/297192.jpg', zIndex: 0/*, texture: texture*/, shaderSettings: {z: 0}, x: 250}
 //                     {tag: 'border', scale: 0.5/*, type: BorderView, borderWidth: 20*/, rect: false, shaderSettings: {z: 0}, color: 0xFFFF0000, x: 0, y: 50, children: [                  ]}
                 ]}

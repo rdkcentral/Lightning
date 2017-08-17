@@ -4,9 +4,11 @@
 
 class CoreFilterOperation {
 
-    constructor(filter, source, renderTexture, beforeQuadOperation) {
+    constructor(ctx, filter, owner, source, renderTexture, beforeQuadOperation) {
 
+        this.ctx = ctx
         this.filter = filter
+        this.owner = owner
         this.source = source
         this.renderTexture = renderTexture
         this.beforeQuadOperation = beforeQuadOperation

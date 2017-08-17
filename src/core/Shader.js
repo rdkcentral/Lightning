@@ -60,7 +60,7 @@ class Shader extends ShaderBase {
 
     setupUniforms(operation) {
         // Set all shader-specific uniforms.
-        this._setUniform("projectionMatrix", this._getProjectionMatrix(operation), this.ctx.gl.uniformMatrix4fv)
+        this._setUniform("projectionMatrix", this._getProjectionMatrix(operation), this.ctx.gl.uniformMatrix4fv, false)
     }
 
     _getProjectionMatrix(operation) {
@@ -132,6 +132,6 @@ Shader.fragmentShaderSrc = `
     }
 `;
 
-Shader.prototype.isShader = true;
+Shader.prototype.isShader = true
 
 module.exports = Shader;

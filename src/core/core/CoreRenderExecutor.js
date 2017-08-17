@@ -173,10 +173,10 @@ class CoreRenderExecutor {
         this._useShaderProgram(filter)
         filter.setupUniforms(filterOperation)
         filter.commitUniformUpdates()
-        filter.beforeDraw()
+        filter.beforeDraw(filter)
         this._bindRenderTexture(filterOperation.renderTexture, true)
-        filter.draw()
-        filter.afterDraw()
+        filter.draw(filter)
+        filter.afterDraw(filter)
     }
 
     /**

@@ -34,7 +34,7 @@ class LinearBlurShader extends Shader {
     }
 
     get kernelRadius() {
-        return this._kernelRadius[0];
+        return this._kernelRadius;
     }
 
     set kernelRadius(v) {
@@ -46,7 +46,7 @@ class LinearBlurShader extends Shader {
         super.setupUniforms(operation)
         let gl = this.gl
         this._setUniform("direction", this._direction, gl.uniform2fv)
-        this._setUniform("kernelRadius", this.kernelRadius, gl.uniform1i)
+        this._setUniform("kernelRadius", this._kernelRadius, gl.uniform1i)
     }
 
     useDefault() {
