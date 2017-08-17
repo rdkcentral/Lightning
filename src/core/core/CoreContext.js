@@ -7,6 +7,8 @@ class CoreContext {
     constructor(stage) {
         this.stage = stage
 
+        this.gl = stage.gl
+
         this.root = null
 
         this.updateTreeOrder = 0
@@ -15,15 +17,12 @@ class CoreContext {
         this.shaderPrograms = new Map()
 
 
-        this._renderState = new CoreRenderState(this)
+        this.renderState = new CoreRenderState(this)
 
-        this._renderExecutor = new CoreRenderExecutor(this)
-        this._renderExecutor.init()
+        this.renderExec = new CoreRenderExecutor(this)
+        this.renderExec.init()
 
         this._renderTexturePool = []
-
-        let DefaultShader = require('../DefaultShader');
-        this.defaultShader = new DefaultShader(this);
 
     }
 
@@ -74,12 +73,12 @@ class CoreContext {
 
     render() {
         // Obtain a sequence of the quad and filter operations.
-        this.state.reset()
+        this.renderState.reset()
         this.root.render()
-        this.state.finish()
+        this.renderState.finish()
 
         // Now run them with the render executor.
-        this._renderExecutor.execute()
+        this.renderExec.execute()
 
         this._freeUnusedRenderTextures();
     }
@@ -143,12 +142,9 @@ class CoreContext {
             -1, -1, 0, 1
         ]);
 
-        this.setRenderTarget(sourceTexture)
-        this._commitRenderTarget()
+        gl.bindFramebuffer(gl.FRAMEBUFFER, sourceTexture.framebuffer)
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, sourceTexture, 0);
-        this.restoreRenderTarget()
 
-        // We do not need to worry about restoring the framebuffer: we can rely on _commitRenderTarget to do this.
         return sourceTexture;
     }
 

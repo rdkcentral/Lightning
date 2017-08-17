@@ -39,7 +39,7 @@ var loadWpe, loadBulk;
             "Stage":"./core/Stage.js",
             "ShaderProgram":"./core/ShaderProgram.js",
             "Shader":"./core/Shader.js",
-            "DefaultShader":"./core/DefaultShader.js",
+            "CustomShader":"./core/CustomShader.js",
             "TextureManager":"./core/TextureManager.js",
             "Texture":"./core/Texture.js",
             "TextureSource":"./core/TextureSource.js",
@@ -55,7 +55,6 @@ var loadWpe, loadBulk;
             "CoreQuadOperation":"./core/core/CoreQuadOperation.js",
             "CoreFilterOperation":"./core/core/CoreFilterOperation.js",
             "CoreRenderExecutor":"./core/core/CoreRenderExecutor.js",
-            "VboContext":"./core/VboContext.js",
             "ViewText":"./core/ViewText.js",
             "TextRenderer":"./core/TextRenderer.js",
             "TextRendererSettings":"./core/TextRendererSettings.js",
@@ -72,7 +71,7 @@ var loadWpe, loadBulk;
             "BorderView":"./tools/BorderView.js",
             "Light3dShader":"./tools/shaders/Light3dShader.js",
             "LinearBlurShader":"./tools/shaders/LinearBlurShader.js",
-            "FxaaShader":"./tools/shaders/FxaaShader.js"
+            "FxaaFilter":"./tools/shaders/FxaaFilter.js"
         };
         return loadBulk(srcPath, sourceFiles).then(function(wpe) {
             if (typeof attachInspector !== "undefined") attachInspector(wpe);

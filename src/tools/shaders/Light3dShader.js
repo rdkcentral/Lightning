@@ -2,9 +2,9 @@
  * Copyright Metrological, 2017
  */
 
-let DefaultShader = require('../../core/DefaultShader');
+let Shader = require('../../core/Shader');
 
-class Light3dShader extends DefaultShader {
+class Light3dShader extends Shader {
 
     constructor(ctx) {
         super(ctx, Light3dShader.vertexShaderSource, Light3dShader.fragmentShaderSrc);
@@ -15,82 +15,68 @@ class Light3dShader extends DefaultShader {
 
         this._rx = 0;
         this._ry = 0;
-
-        this.filterZ = 0;
     }
 
-    prepareFilterQuad() {
-        let ctx = this.ctx;
-        let gl = ctx.gl;
-
-        let byteOffset = this.getExtraParamsBufferOffset();
-
-        let vr = ctx.shaderOwner;
-        let view = vr.view;
-        let x = view.pivotX * 2 - 1;
-        let y = view.pivotY * 2 - 1;
-        let z = this.filterZ / ctx.stage.options.w;
-
-        gl.uniform3fv(this._uniform("pivot"), new Float32Array([x, y, z]));
-        gl.uniform3fv(this._uniform("rot"), new Float32Array([this._rx, this._ry, 0]));
-
-        let base = byteOffset / 4;
-        ctx.vboBufferFloat[base] = z
-        ctx.vboBufferFloat[base + 1] = z
-        ctx.vboBufferFloat[base + 2] = z
-        ctx.vboBufferFloat[base + 3] = z
-    }
-
-    prepareQuads() {
-        let ctx = this.ctx;
-        let gl = ctx.gl;
-
-        let byteOffset = this.getExtraParamsBufferOffset();
-
-        let vr = ctx.shaderOwner;
-        let view = vr.view;
-        let coords = vr.getAbsoluteCoords(vr.rw * view.pivotX, vr.rh * view.pivotY);
-
-        //@todo: fetch z
-        coords.push(0 / ctx.getScreenWidth());
-
-        gl.uniform3fv(this._uniform("pivot"), new Float32Array(coords));
-
-        let rotZ = Math.atan2(vr._worldTc, vr._worldTa);
-        gl.uniform3fv(this._uniform("rot"), new Float32Array([this._rx, this._ry, rotZ]));
-
-        let length = ctx.length
-        let base = byteOffset / 4;
-        for (let i = 0; i < length; i++) {
-            let viewCore = ctx.getViewCore(i);
-            let z = 0 / ctx.stage.options.w;
-
-            ctx.vboBufferFloat[base + i * 4] = z
-            ctx.vboBufferFloat[base + i * 4 + 1] = z
-            ctx.vboBufferFloat[base + i * 4 + 2] = z
-            ctx.vboBufferFloat[base + i * 4 + 3] = z
-        }
-    }
-
-    setup() {
-        super.setup();
-
-        let gl = this.ctx.gl
-        gl.uniform1f(this._uniform("strength"), this._strength)
-        gl.uniform1f(this._uniform("ambient"), this._ambient)
-        gl.uniform1f(this._uniform("fudge"), this._fudge)
-    }
-
-    _draw() {
-        let gl = this.ctx.gl
-        gl.vertexAttribPointer(this._attrib("z"), 1, gl.FLOAT, false, 4, this.getExtraParamsBufferOffset())
-        gl.enableVertexAttribArray(this._attrib("z"))
-
-        super._draw()
+    supportsMerging() {
+        // As we need the shader owner, we do not support merging.
+        return false
     }
 
     getExtraBytesPerVertex() {
-        return 4;
+        return 4
+    }
+
+    enableAttribs() {
+        super.enableAttribs()
+        this.gl.enableVertexAttribArray(this._attrib("z"))
+    }
+
+    disableAttribs() {
+        super.disableAttribs()
+        this.gl.disableVertexAttribArray(this._attrib("z"))
+    }
+
+    setExtraAttribsInBuffer(operation) {
+        let offset = operation.extraAttribsDataByteOffset / 4
+        let floats = operation.quads.floats
+
+        let length = operation.length
+        let w = operation.getRenderWidth()
+        for (let i = 0; i < length; i++) {
+
+            //@todo: set z for view (View.shaderSettings => active shader.getViewSettings(view))
+            let z = 0 / w;
+
+            floats[offset] = z
+            floats[offset + 1] = z
+            floats[offset + 2] = z
+            floats[offset + 3] = z
+
+            offset += 4
+        }
+    }
+
+    setupUniforms(operation) {
+        super.setupUniforms(operation)
+
+        let view = operation.shaderOwner.view;
+        let x = view.pivotX * 2 - 1;
+        let y = view.pivotY * 2 - 1;
+
+        //@todo: grab from view settings.
+        let z = 0;
+
+        this._setUniform("pivot", new Float32Array([x, y, 0]), gl.uniform3fv)
+        this._setUniform("rot", new Float32Array([this._rx, this._ry, 0]), gl.uniform3fv)
+
+        this._setUniform("strength", this._strength, gl.uniform1f)
+        this._setUniform("ambient", this._ambient, gl.uniform1f)
+        this._setUniform("fudge", this._fudge, gl.uniform1f)
+    }
+
+    beforeDraw(operation) {
+        let gl = this.gl
+        gl.vertexAttribPointer(this._attrib("z"), 1, gl.FLOAT, false, 4, operation.extraAttribsDataByteOffset)
     }
 
     set strength(v) {
@@ -138,13 +124,6 @@ class Light3dShader extends DefaultShader {
         this.redraw();
     }
 
-    hasViewSettings() {
-        return true;
-    }
-
-    createViewSettings(view) {
-        return new Light3dShaderViewSettings(this, view);
-    }
 }
 
 Light3dShader.vertexShaderSource = `

@@ -68,7 +68,7 @@ var start = function(wpe) {
         ])
 
         let ts = stage.root.tag('wrapper').getResultTextureSource();
-        stage.root.add({tag: 'replica', texture: ts, x: 0, y: 900, w: 900, h: 900, mountY: 1, pivotX: 0, pivotY: 1, shader: {type: Light3dShader, ry: 0.4 * Math.PI, ambient: 0.2}})
+        stage.root.add({tag: 'replica', texture: ts, x: 0, y: 900, w: 900, h: 900, mountY: 1, pivotX: 0, pivotY: 1/*, shader: {type: Light3dShader, ry: 0.4 * Math.PI, ambient: 0.2}*/})
 
 //        stage.root.add({tag: 'replica', texture: ts, mountY: 1, y: 900, mountX: 1, x: 900, scale: 0.1, shader: {type: Light3dShader, ry: 0}, filters: [{type: FxaaShader}]})
 

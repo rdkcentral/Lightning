@@ -7,7 +7,7 @@ class CoreRenderExecutor {
     constructor(ctx) {
         this.ctx = ctx
 
-        this.state = ctx._renderState
+        this.renderState = ctx.renderState
 
         this.gl = this.ctx.stage.gl
 
@@ -20,7 +20,7 @@ class CoreRenderExecutor {
         // Create new sharable buffer for params.
         this._attribsBuffer = gl.createBuffer();
 
-        let maxQuads = Math.floor(this.ctx.renderState.quads.data.byteLength / 64);
+        let maxQuads = Math.floor(this.renderState.quads.data.byteLength / 64);
 
         // Init webgl arrays.
         let allIndices = new Uint16Array(maxQuads * 6);
@@ -58,7 +58,14 @@ class CoreRenderExecutor {
     _reset() {
         this._bindRenderTexture(null, true)
 
+        // Set up default settings. Shaders should, after drawing, reset these properly.
+        let gl = this.gl
+        gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+        gl.enable(gl.BLEND);
+        gl.disable(gl.DEPTH_TEST);
+
         this._quadOperation = null
+        this._currentShaderProgramOwner = null
     }
 
     _setupBuffers() {
@@ -73,8 +80,8 @@ class CoreRenderExecutor {
         this._reset()
         this._setupBuffers()
 
-        let qops = this.state.quadOperations
-        let fops = this.state.filterOperations
+        let qops = this.renderState.quadOperations
+        let fops = this.renderState.filterOperations
 
         let i = 0, j = 0, n = qops.length, m = fops.length
         while (i < n) {
@@ -98,6 +105,8 @@ class CoreRenderExecutor {
             this._execFilterOperation(fops[j])
             j++
         }
+
+        this._stopShaderProgram()
     }
 
     _mergeQuadOperation(quadOperation) {
@@ -112,22 +121,28 @@ class CoreRenderExecutor {
     _processQuadOperation(quadOperation) {
         // Check if quad operation can be merged; uniforms are set lazily in the process.
         let shader = quadOperation.shader
-        if (shader.hasSameType(this._quadOperation.shader)) {
-            shader.setupUniforms(quadOperation)
-            if (shader.hasUniformUpdates()) {
-                this._execQuadOperation()
-                this._quadOperation = quadOperation
-            } else {
-                this._mergeQuadOperation(quadOperation)
-            }
-        } else {
+
+        let merged = false
+        if (this._quadOperation && this._quadOperation.shader.supportsMerging()) {
             if (this._quadOperation.shader === shader) {
                 this._mergeQuadOperation(quadOperation)
-            } else {
-                this._execQuadOperation()
+                merged = true
+            } else if (shader.hasSameProgram(this._quadOperation.shader)) {
                 shader.setupUniforms(quadOperation)
-                this._quadOperation = quadOperation
+                if (!shader.hasUniformUpdates()) {
+                    this._mergeQuadOperation(quadOperation)
+                    merged = true
+                }
             }
+        }
+
+        if (!merged) {
+            if (this._quadOperation) {
+                this._execQuadOperation()
+            }
+
+            shader.setupUniforms(quadOperation)
+            this._quadOperation = quadOperation
         }
     }
 
@@ -136,11 +151,7 @@ class CoreRenderExecutor {
 
         let shader = op.shader
 
-        if (this._shader !== shader) {
-            shader.useProgram()
-            shader.enableAttribs()
-            this._shader = shader
-        }
+        this._useShaderProgram(shader)
 
         // Set the prepared updates.
         shader.commitUniformUpdates()
@@ -150,20 +161,16 @@ class CoreRenderExecutor {
             this._bindRenderTexture(op.renderTexture, op.clearRenderTexture)
         }
 
-        shader.beforeDraw()
-        if (shader.hasCustomDraw()) {
-            shader.draw()
-        } else {
-            this._drawQuads()
-        }
-        shader.afterDraw()
+        shader.beforeDraw(op)
+        shader.draw(op)
+        shader.afterDraw(op)
 
         this._quadOperation = null
     }
 
     _execFilterOperation(filterOperation) {
         let filter = filterOperation.filter
-        filter.useProgram()
+        this._useShaderProgram(filter)
         filter.setupUniforms(filterOperation)
         filter.commitUniformUpdates()
         filter.beforeDraw()
@@ -174,6 +181,27 @@ class CoreRenderExecutor {
         gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
 
         filter.afterDraw()
+    }
+
+    /**
+     * @param {Filter|Shader} owner
+     */
+    _useShaderProgram(owner) {
+        if (!owner.hasSameProgram(this._currentShaderProgramOwner)) {
+            if (this._currentShaderProgramOwner) {
+                this._currentShaderProgramOwner.stopProgram()
+            }
+            owner.useProgram()
+            this._currentShaderProgramOwner = owner
+        }
+    }
+
+    _stopShaderProgram() {
+        if (this._currentShaderProgramOwner) {
+            // The currently used shader program should be stopped gracefully.
+            this._currentShaderProgramOwner.stopProgram()
+            this._currentShaderProgramOwner = null
+        }
     }
 
     _bindRenderTexture(renderTexture, clear) {
@@ -199,18 +227,6 @@ class CoreRenderExecutor {
                 gl.clear(gl.COLOR_BUFFER_BIT);
             }
         }
-    }
-
-    _getProjectionMatrix() {
-        if (this._renderTexture === null) {
-            return this._projectionMatrix
-        } else {
-            return this._renderTexture.projectionMatrix
-        }
-    }
-
-    _drawQuads() {
-        //check current operation, get length, invoke drawElements.
     }
 
 }

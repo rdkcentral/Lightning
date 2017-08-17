@@ -11,12 +11,14 @@ class CoreRenderState {
 
         this.textureAtlasGlTexture = this.stage.textureAtlas ? this.stage.textureAtlas.texture : null;
 
-        // Allocate a fairly big chunk of memory that should be enough to support ~100000 quads.
-        // We do not handle memory overflow.
+        // Allocate a fairly big chunk of memory that should be enough to support ~100000 (default) quads.
+        // We do not (want to) handle memory overflow.
+
+        // We could optimize memory usage by increasing the ArrayBuffer gradually.
         this.quads = new CoreQuadList(ctx, 8e6)
 
-        let DefaultShader = require('../DefaultShader')
-        this.defaultShader = new DefaultShader(this)
+        let Shader = require('../Shader');
+        this.defaultShader = new Shader(this);
     }
 
     reset() {
@@ -33,7 +35,6 @@ class CoreRenderState {
         this._shaderOwner = null
 
         this._check = false
-        this._forceChange = false
 
         this.quadOperations = []
         this.filterOperations = []
@@ -42,37 +43,58 @@ class CoreRenderState {
 
         this._quadOperation = null
 
-        // Total number of quads.
-        this.length = 0
+    }
+
+    get length() {
+        return this.quads.quadTextures.length
     }
 
     setShader(shader, owner) {
+        if (this._shaderOwner === owner && this._realShader === shader) {
+            // Same shader owner: active shader is also the same.
+            // Prevent any shader usage to save performance.
+            return
+        }
+
         if (shader.useDefault()) {
             // Use the default shader when possible to prevent unnecessary program changes.
+            this._realShader = shader
             shader = this.defaultShader
         }
-        this._shader = shader
-        this._shaderOwner = owner
-        this._check = true
+        if (this._shader !== shader || this._shaderOwner !== owner) {
+            this._shader = shader
+            this._shaderOwner = owner
+            this._check = true
+        }
     }
 
     setRenderTexture(renderTexture, clear = false) {
-        this._renderTextureStack.push(this._renderTarget)
+        this._renderTextureStack.push(this._renderTexture)
 
-        this._renderTexture = renderTexture
-        this._clearRenderTexture = clear
-        this._check = true
-
-        if (clear) {
-            this._forceChange = true
-        }
+        this._setRenderTexture(renderTexture, clear)
     }
 
     restoreRenderTexture() {
-        this._renderTexture = this._renderTextureStack.pop();
+        this.setRenderTexture(this._renderTextureStack.pop(), false);
     }
 
-    overrideQuadTexture(texture) {
+    _setRenderTexture(renderTexture, clear = false) {
+        if (this._renderTexture !== renderTexture || clear) {
+            this._renderTexture = renderTexture
+            this._clearRenderTexture = clear
+
+            if (clear) {
+                // We must close off the current quad operation and then add a new one,
+                // to make sure that (even if there are no quads) the 'clear render texture'
+                // is added in an empty quad operation.
+                this._addQuadOperation()
+            } else {
+                this._check = true
+            }
+        }
+    }
+
+    setOverrideQuadTexture(texture) {
         this._overrideQuadTexture = texture
     }
 
@@ -89,21 +111,18 @@ class CoreRenderState {
             let textureSource = viewCore._displayedTextureSource;
             glTexture = textureSource.inTextureAtlas ? this.textureAtlasGlTexture : textureSource.glTexture;
         }
-        
+
+        let offset = this.length * 64 + 64 // Skip the identity filter quad.
+
         this.quads.quadTextures.push(glTexture)
         this.quads.quadViews.push(viewCore)
 
-        let offset = this.length * 64
-        
-        this.length++
         this._quadOperation.length++
 
-        return offset + 64 // Skip the identity filter quad.
+        return offset
     }
 
     _hasChanges() {
-        if (this._forceChange) return true
-
         let q = this._quadOperation
         if (this._shader !== q.shader) return true
         if (this._shaderOwner !== q.shaderOwner) return true
@@ -112,16 +131,20 @@ class CoreRenderState {
         return false
     }
     
-    _addQuadOperation() {
-        if (this._quadOperation.length || this._shader.hasCustomDraw()) {
-            this.quadOperations.push(this._quadOperation)
+    _addQuadOperation(create = true) {
+        if (this._quadOperation) {
+            if (this._clearRenderTexture || this._quadOperation.length || this._shader.addEmpty()) {
+                this.quadOperations.push(this._quadOperation)
+            }
         }
-        this._createQuadOperation()
+        if (create) {
+            this._createQuadOperation()
+        }
     }
-    
+
     _createQuadOperation() {
         this._quadOperation = new CoreQuadOperation(
-            this.quads,
+            this.ctx,
             this._shader,
             this._shaderOwner,
             this._renderTexture,
@@ -142,7 +165,7 @@ class CoreRenderState {
 
         if (this._quadOperation) {
             // Add remaining.
-            this._addQuadOperation()
+            this._addQuadOperation(false)
         }
 
         this._setExtraShaderAttribs()
@@ -151,7 +174,7 @@ class CoreRenderState {
     _renderDebugTextureAtlas() {
         this.setShader(this.ctx.defaultShader, this.ctx.root)
         this.setRenderTexture(null)
-        this.overrideQuadTexture(this.ctx.textureAtlasGlTexture)
+        this.setOverrideQuadTexture(this.ctx.textureAtlasGlTexture)
         
         let offset = this.addQuad(this.ctx.root) / 4
         let f = this.quads.floats
@@ -173,11 +196,11 @@ class CoreRenderState {
         u[offset++] = 0xFFFF0000;
         u[offset] = 0xFFFFFFFF;
 
-        this.overrideQuadTexture(null)
+        this.setOverrideQuadTexture(null)
     }
     
     _setExtraShaderAttribs() {
-        let offset = this.quadOperations.length * 64 + 64
+        let offset = this.length * 64 + 64
         for (let i = 0, n = this.quadOperations.length; i < n; i++) {
             this.quadOperations[i].extraAttribsDataByteOffset = offset;
             let extra = this.quadOperations[i].shader.getExtraBytesPerVertex() * 4
@@ -186,7 +209,7 @@ class CoreRenderState {
                 this.quadOperations[i].shader.setExtraAttribsInBuffer(this.quadOperations[i], this.quads)
             }
         }
-        this.quads.bytesUsed = offset
+        this.quads.dataLength = offset
     }
 
 }

@@ -4,9 +4,9 @@
 
 class CoreQuadOperation {
 
-    constructor(quads, shader, shaderOwner, renderTexture, clearRenderTexture, index) {
+    constructor(ctx, quads, shader, shaderOwner, renderTexture, clearRenderTexture, index) {
 
-        this.quads = quads
+        this.ctx = ctx
         this.shader = shader
         this.shaderOwner = shaderOwner
         this.renderTexture = renderTexture
@@ -15,6 +15,26 @@ class CoreQuadOperation {
         this.length = 0
         this.extraAttribsDataByteOffset = 0
 
+    }
+
+    get quads() {
+        return this.ctx.renderState.quads
+    }
+
+    getRenderWidth() {
+        if (this.renderTexture) {
+            return this.renderTexture.w
+        } else {
+            return this.ctx.stage.w
+        }
+    }
+
+    getRenderHeight() {
+        if (this.renderTexture) {
+            return this.renderTexture.h
+        } else {
+            return this.ctx.stage.h
+        }
     }
 
 }

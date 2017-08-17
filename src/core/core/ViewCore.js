@@ -9,7 +9,7 @@ class ViewCore {
 
         this.ctx = view.stage.ctx;
         
-        this.renderState = this.ctx._renderState;
+        this.renderState = this.ctx.renderState;
 
         this._parent = null;
 
@@ -644,7 +644,7 @@ class ViewCore {
         this._shader = v;
         if (!v && prevShader) {
             // Disabled shader.
-            let newShaderOwner = (this._parent ? this._parent._shaderOwner : null);
+            let newShaderOwner = (this._parent && !this._parent._renderToTextureEnabled ? this._parent._shaderOwner : null);
             this._setShaderOwnerRecursive(newShaderOwner);
         } else {
             // Enabled shader.
@@ -688,16 +688,34 @@ class ViewCore {
 
             // Due to the renderToTexture-specific code in update: must update world properties.
             this._setRecalc(7);
+
+            // If render to texture is active, a new shader context is started.
+            if (v) {
+                this._setShaderOwnerChildrenRecursive(null)
+            } else {
+                this._setShaderOwnerChildrenRecursive(this._shaderOwner)
+            }
         }
     }
 
     _setShaderOwnerRecursive(viewCore) {
         this._shaderOwner = viewCore;
+        if (this._children && !this._renderToTextureEnabled) {
+            for (let i = 0, n = this._children.length; i < n; i++) {
+                if (!this._children[i]._shader) {
+                    this._children[i]._setShaderOwnerRecursive(viewCore);
+                    this._children[i]._hasRenderUpdates = 3;
+                }
+            }
+        }
+    };
+
+    _setShaderOwnerChildrenRecursive(viewCore) {
         if (this._children) {
             for (let i = 0, n = this._children.length; i < n; i++) {
-                if (!this._children[i]._shader && !this._children[i]._renderToTexture) {
+                if (!this._children[i]._shader) {
                     this._children[i]._setShaderOwnerRecursive(viewCore);
-                    this._children[i]._hasRenderUpdates = true;
+                    this._children[i]._hasRenderUpdates = 3;
                 }
             }
         }
@@ -1151,12 +1169,13 @@ class ViewCore {
                     return;
                 } else if (!this._texturizer.hasRenderTexture() || (this._hasRenderUpdates >= 3)) {
                     // Re-create gl texture.
-                    renderState.flushQuads();
 
                     let texture = this._texturizer.getRenderTexture();
 
-                    renderState.setRenderTarget(texture);
-                    renderState.clearRenderTarget()
+                    renderState.setRenderTexture(texture, true);
+
+                    // Switch to default shader for building up the render texture.
+                    renderState.setShader(renderState.defaultShader, this)
 
                     if (this._displayedTextureSource) {
                         // Use an identity context for drawing the displayed texture to the render texture.
@@ -1224,15 +1243,15 @@ class ViewCore {
                 this._texturizer.updateResultTexture();
 
                 // Render result texture to the actual render target.
-                renderState.setShader(this._parent.activeShader, this._parent._shaderOwner);
+                renderState.setShader(this.activeShader, this._shaderOwner);
 
-                renderState.overrideAddVboTexture(resultTexture);
+                renderState.setOverrideQuadTexture(resultTexture);
                 this._stashTexCoords();
                 this._stashColors();
                 this.addQuads();
                 this._unstashColors();
                 this._unstashTexCoords();
-                renderState.overrideAddVboTexture(null);
+                renderState.setOverrideQuadTexture(null);
             }
 
             this._hasRenderUpdates = 0;
@@ -1314,7 +1333,7 @@ class ViewCore {
             }
         } else {
             if (this._worldTb !== 0 || this._worldTc !== 0) {
-                let offset = this.renderState.addVbo(this) / 4;
+                let offset = this.renderState.addQuad(this) / 4;
                 floats[offset++] = this._worldPx;
                 floats[offset++] = this._worldPy;
                 uints[offset++] = this._txCoordsUl; // Texture.
@@ -1336,7 +1355,7 @@ class ViewCore {
                 let cx = this._worldPx + this._rw * this._worldTa;
                 let cy = this._worldPy + this._rh * this._worldTd;
 
-                let offset = this.renderState.addVbo(this) / 4;
+                let offset = this.renderState.addQuad(this) / 4;
                 floats[offset++] = this._worldPx;
                 floats[offset++] = this._worldPy;
                 uints[offset++] = this._txCoordsUl; // Texture.
@@ -1385,7 +1404,7 @@ class ViewCore {
             let tcx3 = this._ulx * (1 - tx3) + this._brx * tx3;
             let tcy3 = this._uly * (1 - ty3) + this._bry * ty3;
 
-            let offset = this.renderState.addVbo(this) / 4;
+            let offset = this.renderState.addQuad(this) / 4;
             floats[offset++] = this._clippingSquareMinX;
             floats[offset++] = this._clippingSquareMinY;
             uints[offset++] = getVboTextureCoords(tcx1, tcy1);
@@ -1433,7 +1452,7 @@ class ViewCore {
                 let tx4 = invTa * (this._clippingArea[g] - this._worldPx) + invTb * (this._clippingArea[g + 1] - this._worldPy);
                 let ty4 = invTc * (this._clippingArea[g] - this._worldPx) + invTd * (this._clippingArea[g + 1] - this._worldPy);
 
-                let offset = this.renderState.addVbo(this) / 4;
+                let offset = this.renderState.addQuad(this) / 4;
                 floats[offset++] = this._clippingArea[0];
                 floats[offset++] = this._clippingArea[1];
                 uints[offset++] = getVboTextureCoords(this._ulx * (1 - tx1) + this._brx * tx1, this._uly * (1 - ty1) + this._bry * ty1);
@@ -1471,7 +1490,7 @@ class ViewCore {
                     let tx4 = invTa * (this._clippingArea[g] - this._worldPx) + invTb * (this._clippingArea[g + 1] - this._worldPy);
                     let ty4 = invTc * (this._clippingArea[g] - this._worldPx) + invTd * (this._clippingArea[g + 1] - this._worldPy);
 
-                    let offset = this.renderState.addVbo(this) / 4;
+                    let offset = this.renderState.addQuad(this) / 4;
                     floats[offset++] = this._clippingArea[0];
                     floats[offset++] = this._clippingArea[1];
                     uints[offset++] = getVboTextureCoords(this._ulx * (1 - tx1) + this._brx * tx1, this._uly * (1 - ty1) + this._bry * ty1);
@@ -1565,6 +1584,6 @@ let getVboTextureCoords = function (x, y) {
     return ((x * 65535 + 0.5) | 0) + ((y * 65535 + 0.5) | 0) * 65536;
 };
 
-let GeometryUtils = require('./GeometryUtils');
+let GeometryUtils = require('../GeometryUtils');
 
 module.exports = ViewCore;

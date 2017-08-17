@@ -128,8 +128,8 @@ class ShaderProgram {
     setUniformValue(name, value, glFunction) {
         let v = this._currentUniformValues[name];
         if (v === undefined || !this._valueEquals(v, value)) {
-            this._pendingUniformValues.set(name, this._valueClone(value))
-            this._pendingUniformFunctions.set(name, glFunction)
+            this._pendingUniformValues[name] = this._valueClone(value)
+            this._pendingUniformFunctions[name] = glFunction
             this._pendingCount++
         }
     }

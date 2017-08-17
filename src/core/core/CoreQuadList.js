@@ -10,8 +10,6 @@ class CoreQuadList {
 
         this.textureAtlasGlTexture = this.ctx.textureAtlas ? this.ctx.textureAtlas.texture : null
 
-        this.byteSize = byteSize
-
         this.dataLength = 0
 
         this.data = new ArrayBuffer(byteSize)
