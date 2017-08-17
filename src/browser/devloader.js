@@ -38,7 +38,9 @@ var loadWpe, loadBulk;
             "GeometryUtils":"./core/GeometryUtils.js",
             "Stage":"./core/Stage.js",
             "ShaderProgram":"./core/ShaderProgram.js",
+            "ShaderBase":"./core/ShaderBase.js",
             "Shader":"./core/Shader.js",
+            "Filter":"./core/Filter.js",
             "CustomShader":"./core/CustomShader.js",
             "TextureManager":"./core/TextureManager.js",
             "Texture":"./core/Texture.js",
@@ -71,7 +73,7 @@ var loadWpe, loadBulk;
             "BorderView":"./tools/BorderView.js",
             "Light3dShader":"./tools/shaders/Light3dShader.js",
             "LinearBlurShader":"./tools/shaders/LinearBlurShader.js",
-            "FxaaFilter":"./tools/shaders/FxaaFilter.js"
+            "FxaaFilter":"./tools/filters/FxaaFilter.js"
         };
         return loadBulk(srcPath, sourceFiles).then(function(wpe) {
             if (typeof attachInspector !== "undefined") attachInspector(wpe);

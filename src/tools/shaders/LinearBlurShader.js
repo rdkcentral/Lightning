@@ -7,7 +7,7 @@ let Shader = require('../../core/Shader');
 /**
  * @see https://github.com/Jam3/glsl-fast-gaussian-blur
  */
-class LinearBlurShader extends DefaultShader {
+class LinearBlurShader extends Shader {
     constructor(ctx) {
         super(ctx, LinearBlurShader.vertexShaderSource, LinearBlurShader.fragmentShaderSrc);
 

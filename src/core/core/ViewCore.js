@@ -661,7 +661,7 @@ class ViewCore {
     }
 
     get activeShader() {
-        return this._shaderOwner ? this._shaderOwner.shader : this.ctx.defaultShader;
+        return this._shaderOwner ? this._shaderOwner.shader : this.renderState.defaultShader;
     }
 
     get activeShaderOwner() {

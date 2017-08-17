@@ -175,11 +175,7 @@ class CoreRenderExecutor {
         filter.commitUniformUpdates()
         filter.beforeDraw()
         this._bindRenderTexture(filterOperation.renderTexture, true)
-
-        let gl = this.gl
-        gl.bindTexture(gl.TEXTURE_2D, filterOperation.source);
-        gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
-
+        filter.draw()
         filter.afterDraw()
     }
 

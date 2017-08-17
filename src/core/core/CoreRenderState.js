@@ -18,7 +18,7 @@ class CoreRenderState {
         this.quads = new CoreQuadList(ctx, 8e6)
 
         let Shader = require('../Shader');
-        this.defaultShader = new Shader(this);
+        this.defaultShader = new Shader(this.ctx);
     }
 
     reset() {
@@ -203,7 +203,7 @@ class CoreRenderState {
         let offset = this.length * 64 + 64
         for (let i = 0, n = this.quadOperations.length; i < n; i++) {
             this.quadOperations[i].extraAttribsDataByteOffset = offset;
-            let extra = this.quadOperations[i].shader.getExtraBytesPerVertex() * 4
+            let extra = this.quadOperations[i].shader.getExtraAttribBytesPerVertex() * 4
             offset += extra
             if (extra) {
                 this.quadOperations[i].shader.setExtraAttribsInBuffer(this.quadOperations[i], this.quads)

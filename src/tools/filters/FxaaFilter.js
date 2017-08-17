@@ -2,80 +2,18 @@
  * Copyright Metrological, 2017
  */
 
-let DefaultShader = require('../../core/DefaultShader');
+let Filter = require('../../core/Filter');
 
 /**
  * @see https://github.com/mattdesl/glsl-fxaa
  */
-class FxaaShader extends DefaultShader {
+class FxaaFilter extends Filter {
     constructor(ctx) {
-        super(ctx, FxaaShader.vertexShaderSource, FxaaShader.fragmentShaderSrc);
+        super(ctx, undefined, FxaaFilter.fragmentShaderSrc);
     }
-
-    getExtraBytesPerVertex() {
-        return 8;
-    }
-
-    prepareFilterQuad() {
-        let ctx = this.ctx;
-
-        let byteOffset = this.getExtraParamsBufferOffset();
-
-        let w = ctx.getRenderTarget().w
-        let h = ctx.getRenderTarget().h
-
-        let base = byteOffset / 4;
-        ctx.vboBufferFloat[base] = w
-        ctx.vboBufferFloat[base + 1] = h
-        ctx.vboBufferFloat[base + 2] = w
-        ctx.vboBufferFloat[base + 3] = h
-        ctx.vboBufferFloat[base + 4] = w
-        ctx.vboBufferFloat[base + 5] = h
-        ctx.vboBufferFloat[base + 6] = w
-        ctx.vboBufferFloat[base + 7] = h
-    }
-
-    allowAsMultiquadShader() {
-        // The FXAA shader only works when the texture size is identical to the render target size.
-        // This is not the case for shaders, only for filters.
-        return false
-    }
-
-    _draw() {
-        let gl = this.ctx.gl
-        gl.vertexAttribPointer(this._attrib("aTextureRes"), 2, gl.FLOAT, false, 8, this.getExtraParamsBufferOffset())
-        gl.enableVertexAttribArray(this._attrib("aTextureRes"))
-
-        super._draw();
-    }
-
-    usesTextureCoords() {
-        return false
-    }
-
-    usesColors() {
-        return false
-    }
-
 }
 
-FxaaShader.vertexShaderSource = `
-    #ifdef GL_ES
-    precision lowp float;
-    #endif
-    attribute vec2 aVertexPosition;
-    attribute vec2 aTextureRes;
-    uniform mat4 projectionMatrix;
-    varying vec2 vTextureCoord;
-    varying vec2 vTextureRes;
-    void main(void){
-        gl_Position = projectionMatrix * vec4(aVertexPosition, 0.0, 1.0);
-        vTextureRes = aTextureRes;
-    }
-`;
-
-
-FxaaShader.fxaa = `
+FxaaFilter.fxaa = `
     #ifndef FXAA_REDUCE_MIN
         #define FXAA_REDUCE_MIN   (1.0/ 128.0)
     #endif
@@ -164,20 +102,20 @@ FxaaShader.fxaa = `
     }    
 `
 
-FxaaShader.fragmentShaderSrc = `
+FxaaFilter.fragmentShaderSrc = `
     #ifdef GL_ES
     precision lowp float;
     #endif
     
-    ${FxaaShader.fxaa}
+    ${FxaaFilter.fxaa}
     
-    varying vec2 vTextureRes;
+    uniform vec2 resolution;
     uniform sampler2D uSampler;
     void main(void){
-        gl_FragColor = apply(uSampler, gl_FragCoord.xy, vTextureRes);
+        gl_FragColor = apply(uSampler, gl_FragCoord.xy, resolution);
     }
     
 `;
 
 
-module.exports = FxaaShader;
+module.exports = FxaaFilter

@@ -3,85 +3,12 @@
  */
 
 let ShaderProgram = require('./ShaderProgram')
-let Base = require('./Base')
+let ShaderBase = require('./ShaderBase')
 
-class Filter extends Base {
+class Filter extends ShaderBase {
 
-    constructor(vboContext, vertexShaderSource, fragmentShaderSource) {
-        super();
-
-        this._program = vboContext.shaderPrograms.get(this.constructor);
-        if (!this._program) {
-            this._program = new ShaderProgram(vertexShaderSource, fragmentShaderSource);
-
-            // Let the vbo context perform garbage collection.
-            vboContext.shaderPrograms.set(this.constructor, this._program);
-        }
-        this._initialized = false;
-
-        this.ctx = vboContext;
-
-        /**
-         * The (active) views that use this shader.
-         * @type {Set<ViewCore>}
-         */
-        this._views = new Set();
-    }
-
-    _uniform(name) {
-        return this._program.getUniformLocation(name);
-    }
-
-    _init() {
-        if (!this._initialized) {
-            this._program.compile(this.ctx.gl)
-            this._initialized = true
-        }
-    }
-
-    addView(viewCore) {
-        this._views.add(viewCore)
-    }
-
-    removeView(viewCore) {
-        this._views.delete(viewCore)
-    }
-
-    useProgram() {
-        this._init()
-        this.ctx.gl.useProgram(this.glProgram);
-    }
-
-    _setUniform(name, value, glFunction) {
-        this._program.setUniformValue(name, value, glFunction)
-    }
-
-    setupUniforms(options) {
-        //@todo: set up projection matrix and/or render texture dimensions
-    }
-
-    beforeDraw(options) {
-
-    }
-
-    afterDraw(options) {
-        // Make sure that any non-default gl settings (blend functions etc) are undone here.
-    }
-
-    supportsDirectDrawMode() {
-        return true
-    }
-
-    get initialized() {
-        return this._initialized;
-    }
-
-    get glProgram() {
-        return this._program.glProgram;
-    }
-
-    redraw() {
-        this._views.forEach(viewCore => viewCore._setHasRenderUpdates(2))
+    constructor(coreContext, vertexShaderSource = Filter.vertexShaderSource, fragmentShaderSource = Filter.fragmentShaderSrc) {
+        super(coreContext, vertexShaderSource, fragmentShaderSource);
     }
 
     useDefault() {
@@ -90,14 +17,66 @@ class Filter extends Base {
         return false
     }
 
-    supportsDirectDrawMode() {
-        // Some filters, such as FXAA, rely on the texture size being equal to the render target size. Such filters
-        // can't be drawn directly and must be drawn on an intermediate texture.
-        return true
+    enableAttribs() {
+        // Enables the attribs in the shader program.
+        let gl = this.ctx.gl
+        gl.vertexAttribPointer(this._attrib("aVertexPosition"), 2, gl.FLOAT, false, 16, 0)
+        gl.enableVertexAttribArray(this._attrib("aVertexPosition"))
+
+        gl.vertexAttribPointer(this._attrib("aTextureCoord"), 2, gl.UNSIGNED_SHORT, true, 16, 2 * 4)
+        gl.enableVertexAttribArray(this._attrib("aTextureCoord"))
+    }
+
+    disableAttribs() {
+        // Disables the attribs in the shader program.
+        let gl = this.ctx.gl
+        gl.disableVertexAttribArray(this._attrib("aVertexPosition"));
+        gl.disableVertexAttribArray(this._attrib("aTextureCoord"))
+    }
+
+    setupUniforms(operation) {
+        this._setUniform("resolution", new Float32Array([operation.getRenderWidth(), operation.getRenderHeight()]), this.gl.uniform2fv)
+    }
+
+    beforeDraw(operation) {
+    }
+
+    afterDraw(operation) {
+    }
+
+    draw(operation) {
+        // Draw the identity quad.
+        let gl = this.gl
+        gl.bindTexture(gl.TEXTURE_2D, operation.source);
+        gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
     }
 
 }
 
-Filter.prototype.isFilter = true;
+Filter.prototype.isFilter = true
 
-module.exports = Shader;
+Filter.vertexShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    attribute vec2 aVertexPosition;
+    attribute vec2 aTextureCoord;
+    varying vec2 vTextureCoord;
+    void main(void){
+        gl_Position = vec4(aVertexPosition, 0.0, 1.0);
+        vTextureRes = aTextureRes;
+    }
+`;
+
+Filter.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoord;
+    uniform sampler2D uSampler;
+    void main(void){
+        gl_FragColor = texture2D(uSampler, vTextureCoord);
+    }
+`;
+
+module.exports = Filter

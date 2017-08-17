@@ -2,68 +2,12 @@
  * Copyright Metrological, 2017
  */
 
-let ShaderProgram = require('./ShaderProgram')
-let Base = require('./Base')
+let ShaderBase = require('./ShaderBase')
 
-class Shader extends Base {
+class Shader extends ShaderBase {
 
-    constructor(vboContext, vertexShaderSource = Shader.vertexShaderSource, fragmentShaderSource = Shader.fragmentShaderSrc) {
-        super();
-
-        this._program = vboContext.shaderPrograms.get(this.constructor);
-        if (!this._program) {
-            this._program = new ShaderProgram(vertexShaderSource, fragmentShaderSource);
-
-            // Let the vbo context perform garbage collection.
-            vboContext.shaderPrograms.set(this.constructor, this._program);
-        }
-        this._initialized = false
-
-        this.ctx = vboContext
-
-        this.gl = this.ctx.gl
-
-        /**
-         * The (active) views that use this shader.
-         * @type {Set<ViewCore>}
-         */
-        this._views = new Set();
-    }
-
-    _init() {
-        if (!this._initialized) {
-            this._program.compile(this.ctx.gl)
-            this._initialized = true
-        }
-    }
-
-    _uniform(name) {
-        return this._program.getUniformLocation(name);
-    }
-
-    _attrib(name) {
-        return this._program.getAttribLocation(name);
-    }
-
-    _setUniform(name, value, glFunction) {
-        this._program.setUniformValue(name, value, glFunction)
-    }
-
-    useProgram() {
-        this._init()
-        this.ctx.gl.useProgram(this.glProgram);
-        this.enableAttribs()
-        this.beforeUsage()
-    }
-
-    stopProgram() {
-        this.afterUsage()
-        this.disableAttribs()
-    }
-
-    hasSameProgram(other) {
-        // For performance reasons, we first check for identical references.
-        return (other && ((other === this) || (other._program === this._program)))
+    constructor(coreContext, vertexShaderSource = Shader.vertexShaderSource, fragmentShaderSource = Shader.fragmentShaderSrc) {
+        super(coreContext, vertexShaderSource, fragmentShaderSource);
     }
 
     enableAttribs() {
@@ -87,19 +31,7 @@ class Shader extends Base {
         gl.disableVertexAttribArray(this._attrib("aColor"))
     }
 
-    beforeUsage() {
-        // Override to set settings other than the default settings (blend mode etc).
-    }
-
-    afterUsage() {
-        // All settings changed in beforeUsage should be reset here.
-    }
-
-    getBytesPerVertex() {
-        return 16;
-    }
-
-    getExtraBytesPerVertex() {
+    getExtraAttribBytesPerVertex() {
         return 0
     }
 
@@ -139,14 +71,6 @@ class Shader extends Base {
         }
     }
 
-    hasUniformUpdates() {
-        return this._program.hasUniformUpdates()
-    }
-
-    confirmUpdates() {
-        this._program.commitUniformUpdates()
-    }
-
     beforeDraw(operation) {
     }
 
@@ -169,34 +93,13 @@ class Shader extends Base {
             }
             if (pos < length) {
                 gl.bindTexture(gl.TEXTURE_2D, glTexture);
-                gl.drawElements(gl.TRIANGLES, 6 * (length - pos), gl.UNSIGNED_SHORT, pos * 6 * 2);
+                gl.drawElements(gl.TRIANGLES, 6 * (length - pos), gl.UNSIGNED_SHORT, (pos + operation.index) * 6 * 2);
             }
         }
     }
 
     afterDraw(operation) {
     }
-
-    get initialized() {
-        return this._initialized;
-    }
-
-    get glProgram() {
-        return this._program.glProgram;
-    }
-
-    addView(viewCore) {
-        this._views.add(viewCore)
-    }
-
-    removeView(viewCore) {
-        this._views.delete(viewCore)
-    }
-
-    redraw() {
-        this._views.forEach(viewCore => viewCore._setHasRenderUpdates(1))
-    }
-
 
 }
 
