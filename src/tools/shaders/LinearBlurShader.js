@@ -2,7 +2,7 @@
  * Copyright Metrological, 2017
  */
 
-let DefaultShader = require('../../core/DefaultShader');
+let Shader = require('../../core/Shader');
 
 /**
  * @see https://github.com/Jam3/glsl-fast-gaussian-blur
@@ -42,14 +42,11 @@ class LinearBlurShader extends DefaultShader {
         this.redraw();
     }
 
-    setup() {
-        super.setup()
-
-        let ctx = this.ctx
-        let gl = ctx.gl
-
-        gl.uniform2fv(this._uniform("direction"), this._direction)
-        gl.uniform1i(this._uniform("kernelRadius"), this._kernelRadius)
+    setupUniforms(operation) {
+        super.setupUniforms(operation)
+        let gl = this.gl
+        this._setUniform("direction", this._direction, gl.uniform2fv)
+        this._setUniform("kernelRadius", this.kernelRadius, gl.uniform1i)
     }
 
     useDefault() {
@@ -60,54 +57,41 @@ class LinearBlurShader extends DefaultShader {
         return 8;
     }
 
-    prepareFilterQuad() {
-        let ctx = this.ctx;
-
-        let byteOffset = this.getExtraParamsBufferOffset();
-
-        let w = ctx.getTextureWidth()
-        let h = ctx.getTextureHeight()
-
-        let base = byteOffset / 4;
-        ctx.vboBufferFloat[base] = w
-        ctx.vboBufferFloat[base + 1] = h
-        ctx.vboBufferFloat[base + 2] = w
-        ctx.vboBufferFloat[base + 3] = h
-        ctx.vboBufferFloat[base + 4] = w
-        ctx.vboBufferFloat[base + 5] = h
-        ctx.vboBufferFloat[base + 6] = w
-        ctx.vboBufferFloat[base + 7] = h
+    enableAttribs() {
+        super.enableAttribs()
+        this.gl.enableVertexAttribArray(this._attrib("aTextureRes"))
     }
 
-    prepareQuads() {
-        let ctx = this.ctx;
+    disableAttribs() {
+        super.disableAttribs()
+        this.gl.disableVertexAttribArray(this._attrib("aTextureRes"))
+    }
 
-        let byteOffset = this.getExtraParamsBufferOffset();
+    setExtraAttribsInBuffer(operation) {
+        let offset = operation.extraAttribsDataByteOffset / 4
+        let floats = operation.quads.floats
 
-        let length = ctx.length
+        let length = operation.length
         for (let i = 0; i < length; i++) {
-            let w = ctx.getTextureWidth(i)
-            let h = ctx.getTextureHeight(i)
+            let w = operation.quads.getTextureWidth(operation.index + i)
+            let h = operation.quads.getTextureHeight(operation.index + i)
 
-            let base = (byteOffset / 4) + i * 8;
+            floats[offset] = w
+            floats[offset + 1] = h
+            floats[offset + 2] = w
+            floats[offset + 3] = h
+            floats[offset + 4] = w
+            floats[offset + 5] = h
+            floats[offset + 6] = w
+            floats[offset + 7] = h
 
-            ctx.vboBufferFloat[base] = w
-            ctx.vboBufferFloat[base + 1] = h
-            ctx.vboBufferFloat[base + 2] = w
-            ctx.vboBufferFloat[base + 3] = h
-            ctx.vboBufferFloat[base + 4] = w
-            ctx.vboBufferFloat[base + 5] = h
-            ctx.vboBufferFloat[base + 6] = w
-            ctx.vboBufferFloat[base + 7] = h
+            offset += 8
         }
     }
 
-    _draw() {
-        let gl = this.ctx.gl
-        gl.vertexAttribPointer(this._attrib("aTextureRes"), 2, gl.FLOAT, false, 8, this.getExtraParamsBufferOffset())
-        gl.enableVertexAttribArray(this._attrib("aTextureRes"))
-
-        super._draw();
+    beforeDraw(operation) {
+        let gl = this.gl
+        gl.vertexAttribPointer(this._attrib("aTextureRes"), 2, gl.FLOAT, false, 8, operation.extraAttribsDataByteOffset)
     }
 
 }
