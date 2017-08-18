@@ -1812,4 +1812,4 @@ let TextureSource = require('./TextureSource')
 /*A¬*/let Transition = require('../animation/Transition')
 let TransitionSettings = require('../animation/TransitionSettings')/*¬A*/
 let ViewChildList = require('./ViewChildList');
-let ViewTexturizer = require('./ViewTexturizer')
+let ViewTexturizer = require('./core/ViewTexturizer')

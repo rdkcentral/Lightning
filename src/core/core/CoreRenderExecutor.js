@@ -110,7 +110,7 @@ class CoreRenderExecutor {
     }
 
     _mergeQuadOperation(quadOperation) {
-        if (!this._quadOperation) {
+        if (this._quadOperation) {
             this._quadOperation.length += quadOperation.length
 
             // We remove the shader owner, because the shader should not rely on it.
@@ -123,7 +123,7 @@ class CoreRenderExecutor {
         let shader = quadOperation.shader
 
         let merged = false
-        if (this._quadOperation && this._quadOperation.shader.supportsMerging()) {
+        if (this._quadOperation && (this._quadOperation.renderTexture === quadOperation.renderTexture) && this._quadOperation.shader.supportsMerging() && quadOperation.shader.supportsMerging()) {
             if (this._quadOperation.shader === shader) {
                 this._mergeQuadOperation(quadOperation)
                 merged = true
@@ -151,21 +151,23 @@ class CoreRenderExecutor {
 
         let shader = op.shader
 
-        this._useShaderProgram(shader)
-
-        // Set the prepared updates.
-        shader.commitUniformUpdates()
-
         // Set render texture.
         if (this._renderTexture !== op.renderTexture || op.clearRenderTexture) {
             this._bindRenderTexture(op.renderTexture, op.clearRenderTexture)
         }
 
-        shader.beforeDraw(op)
-        shader.draw(op)
-        shader.afterDraw(op)
+        if (op.length || shader.addEmpty()) {
+            this._useShaderProgram(shader)
 
-        this._quadOperation = null
+            // Set the prepared updates.
+            shader.commitUniformUpdates()
+
+            shader.beforeDraw(op)
+            shader.draw(op)
+            shader.afterDraw(op)
+
+            this._quadOperation = null
+        }
     }
 
     _execFilterOperation(filterOperation) {

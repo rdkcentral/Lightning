@@ -27,6 +27,10 @@ class CustomShader extends Shader {
         return true
     }
 
+    supportsMerging() {
+        return false
+    }
+
 }
 
 module.exports = CustomShader;

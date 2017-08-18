@@ -21,8 +21,6 @@ class ViewTexturizer {
         
         this._resultTexture = null
 
-        this.disableResultShading = false
-
         this._resultTextureSource = null
         
         this._renderToTextureEnabled = false
@@ -103,21 +101,17 @@ class ViewTexturizer {
     _updateRenderToTextureEnabled() {
         let v = (this._hasFilters() || (this._enabled))
         this._core._setRenderToTextureEnabled(v)
-        
+
         if (!v) {
             this.releaseRenderTexture()
         }
     }
-    
     
     getResultTextureSource() {
         if (!this._resultTextureSource) {
             this._resultTextureSource = new TextureSource(this._view.stage.textureManager, null);
 
             this.updateResultTexture()
-
-            // Forces filters to always generate a full result texture.
-            this.disableResultShading = true
 
             // For convenience: you'll want to force the existence of a render texture.
             this.enabled = true
@@ -171,7 +165,6 @@ class ViewTexturizer {
 
     getRenderTexture() {
         if (!this._renderTexture) {
-            //@todo: replace to coreRenderer
             this._renderTexture = this.ctx.allocateRenderTexture(Math.min(2048, this._core._rw), Math.min(2048, this._core._rh));
         }
         return this._renderTexture;
@@ -179,7 +172,6 @@ class ViewTexturizer {
 
     getFilterTexture() {
         if (!this._resultTexture) {
-            //@todo: replace to coreRenderer
             this._resultTexture = this.ctx.allocateRenderTexture(Math.min(2048, this._core._rw), Math.min(2048, this._core._rh));
         }
         return this._resultTexture;
@@ -205,7 +197,7 @@ class ViewTexturizer {
 
 }
 
-let Utils = require('./Utils')
-let TextureSource = require('./TextureSource')
+let Utils = require('../Utils')
+let TextureSource = require('../TextureSource')
 
 module.exports = ViewTexturizer

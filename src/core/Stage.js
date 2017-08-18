@@ -9,9 +9,15 @@ let Base = require('./Base');
  * @todo:
  * - shader: blocked by render texture context
  * - shaders & filters
+ * - combine quad/filter operations into one
+ * - colorize renderToTexture
+ * - save dependency level / quad groups
+ * - optimize by resorting operations by dependency level/quad groups
+ * - final filter as shader
+ * - result textureSource: if has views, then force not using final filter as shader
  * - VAOs
- * - smart shader/filter switching
- * - buffer overflow?
+ * - implement more filters/textures
+ *
  * - quick clone
  *   - text texture problems or not?
  * - change documentation

@@ -36,6 +36,7 @@ class CoreContext {
     }
 
     frame() {
+        if (this.stage.frameCounter % 100 != 99) return
         if (!this.root._parent._hasRenderUpdates) {
             return false
         }
