@@ -1269,9 +1269,9 @@ class ViewCore {
 
                 renderState.setOverrideQuadTexture(resultTexture);
                 this._stashTexCoords();
-                this._stashColors();
+                if (!this._texturizer.colorize) this._stashColors()
                 this.addQuads();
-                this._unstashColors();
+                if (!this._texturizer.colorize) this._unstashColors();
                 this._unstashTexCoords();
                 renderState.setOverrideQuadTexture(null);
             }

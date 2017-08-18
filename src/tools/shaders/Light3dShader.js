@@ -73,7 +73,7 @@ class Light3dShader extends Shader {
 
         let view = operation.shaderOwner.view;
         let x = view.pivotX * 2 - 1;
-        let y = view.pivotY * 2 - 1;
+        let y = 1 - view.pivotY * 2;
 
         //@todo: grab from view settings.
         let z = 0;
@@ -168,7 +168,8 @@ Light3dShader.vertexShaderSource = `
         float rz = rot.z;
 
         /* Translate to pivot position */
-        vec4 pivotPos = projectionMatrix * vec4(pivot, 1);
+        vec4 pivotPos = vec4(pivot, 1);
+        
         pivotPos.w = 0.0;
         
         pos -= pivotPos;

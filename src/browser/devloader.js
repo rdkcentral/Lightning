@@ -28,7 +28,7 @@ var loadWpe, loadBulk;
         })
     }
 
-    loadWpe = function(srcPath) {
+    loadWpe = function(srcPath, additional) {
         var sourceFiles = {
             "EventEmitter":"./browser/EventEmitter.js",
             "WebAdapter":"./browser/WebAdapter.js",
@@ -41,7 +41,6 @@ var loadWpe, loadBulk;
             "ShaderBase":"./core/ShaderBase.js",
             "Shader":"./core/Shader.js",
             "Filter":"./core/Filter.js",
-            "CustomShader":"./core/CustomShader.js",
             "TextureManager":"./core/TextureManager.js",
             "Texture":"./core/Texture.js",
             "TextureSource":"./core/TextureSource.js",
@@ -78,6 +77,9 @@ var loadWpe, loadBulk;
             "FxaaFilter":"./tools/filters/FxaaFilter.js",
             "InversionFilter":"./tools/filters/InversionFilter.js"
         };
+
+        Object.assign(sourceFiles, additional)
+
         return loadBulk(srcPath, sourceFiles).then(function(wpe) {
             if (typeof attachInspector !== "undefined") attachInspector(wpe);
             return wpe;

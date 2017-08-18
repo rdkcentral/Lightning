@@ -64,6 +64,8 @@ class ShaderProgram {
         if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
             console.log(this.constructor.name, 'Type: ' + (type === this.gl.VERTEX_SHADER ? 'vertex shader' : 'fragment shader') );
             console.log(this.gl.getShaderInfoLog(shader));
+            let idx = 0
+            console.log("========== source ==========\n" + src.split("\n").map(line => "" + (++idx) + ": " + line).join("\n"))
             return null;
         }
 

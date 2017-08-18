@@ -7,14 +7,11 @@ let Base = require('./Base');
 
 /**
  * @todo:
- * - make shaders/filters work
- * - Custom shader
- * - Light3dShader shader owner settings
+ * - Light3dShader shader owner settings (pivot relative to current texture)
+ * - final filter as shader
  * - combine quad/filter operations into one
- * - colorize renderToTexture
  * - save dependency level / quad groups
  * - optimize by resorting operations by dependency level/quad groups: warning for clear-only quad groups
- * - final filter as shader
  * - result textureSource: if has views, then force not using final filter as shader
  * - VAOs
  * - implement more filters/textures

@@ -46,7 +46,7 @@ class ViewTexturizer {
             this._colorize = v
             
             // Only affects the finally drawn quad.
-            this._core._setHasRenderUpdates(1)
+            this._core.setHasRenderUpdates(1)
         }
     }
 
