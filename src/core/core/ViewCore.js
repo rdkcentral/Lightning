@@ -83,6 +83,12 @@ class ViewCore {
          */
         this._displayedTextureSource = null;
 
+        /**
+         * If the current coordinates are stored for the texture atlas.
+         * @type {boolean}
+         */
+        this.inTextureAtlas = false
+
         this._colorUl = this._colorUr = this._colorBl = this._colorBr = 0xFFFFFFFF;
 
         this._txCoordsUl = 0x00000000;
@@ -343,6 +349,10 @@ class ViewCore {
         this.setHasRenderUpdates(3);
         this._displayedTextureSource = textureSource;
     };
+
+    allowTextureAtlas() {
+        return this.activeShader.supportsTextureAtlas()
+    }
 
     setInTextureAtlas(inTextureAtlas) {
         this.inTextureAtlas = inTextureAtlas;
@@ -699,12 +709,18 @@ class ViewCore {
     }
 
     _setShaderOwnerRecursive(viewCore) {
+        let support = this.activeShader.supportsTextureAtlas()
         this._shaderOwner = viewCore;
+        if (support !== this.activeShader.supportsTextureAtlas()) {
+            this._view._updateTextureCoords()
+        }
+
         if (this._children && !this._renderToTextureEnabled) {
             for (let i = 0, n = this._children.length; i < n; i++) {
-                if (!this._children[i]._shader) {
-                    this._children[i]._setShaderOwnerRecursive(viewCore);
-                    this._children[i]._hasRenderUpdates = 3;
+                let c = this._children[i]
+                if (!c._shader) {
+                    c._setShaderOwnerRecursive(viewCore);
+                    c._hasRenderUpdates = 3;
                 }
             }
         }
@@ -713,9 +729,10 @@ class ViewCore {
     _setShaderOwnerChildrenRecursive(viewCore) {
         if (this._children) {
             for (let i = 0, n = this._children.length; i < n; i++) {
-                if (!this._children[i]._shader) {
-                    this._children[i]._setShaderOwnerRecursive(viewCore);
-                    this._children[i]._hasRenderUpdates = 3;
+                let c = this._children[i]
+                if (!c._shader) {
+                    c._setShaderOwnerRecursive(viewCore);
+                    c._hasRenderUpdates = 3;
                 }
             }
         }
@@ -1226,9 +1243,11 @@ class ViewCore {
             }
 
             if (this._mustRenderToTexture) {
+                let updateResultTexture = false
                 if (mustRenderChildren) {
                     // Finish refreshing renderGlTexture.
                     renderState.restoreRenderTexture();
+                    updateResultTexture = true
                 }
 
                 let hasFilters = this._texturizer._hasActiveFilters();
@@ -1236,11 +1255,14 @@ class ViewCore {
                 if (hasFilters) {
                     if ((this._hasRenderUpdates >= 2 || !this._texturizer.filterResultCached)) {
                         this.applyFilters();
+                        updateResultTexture = true
                     }
                 }
 
                 let resultTexture = this._texturizer.getResultTexture();
-                this._texturizer.updateResultTexture();
+                if (updateResultTexture) {
+                    this._texturizer.updateResultTexture();
+                }
 
                 // Render result texture to the actual render target.
                 renderState.setShader(this.activeShader, this._shaderOwner);
@@ -1574,9 +1596,9 @@ class ViewCore {
 
 let getColorInt = function (c, alpha) {
     let a = ((c / 16777216 | 0) * alpha) | 0;
-    return (((((c >> 16) & 0xff) * a) >> 8) & 0xff) +
-        ((((c & 0xff00) * a) >> 8) & 0xff00) +
-        (((((c & 0xff) << 16) * a) >> 8) & 0xff0000) +
+    return (((((c >> 16) & 0xff) * a) / 255) & 0xff) +
+        ((((c & 0xff00) * a) / 255) & 0xff00) +
+        (((((c & 0xff) << 16) * a) / 255) & 0xff0000) +
         (a << 24);
 };
 

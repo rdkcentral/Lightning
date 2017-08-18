@@ -7,12 +7,12 @@ let ShaderProgram = require('./ShaderProgram')
 
 class ShaderBase extends Base {
 
-    constructor(coreContext, vertexShaderSource, fragmentShaderSource) {
+    constructor(coreContext) {
         super();
 
         this._program = coreContext.shaderPrograms.get(this.constructor);
         if (!this._program) {
-            this._program = new ShaderProgram(vertexShaderSource, fragmentShaderSource);
+            this._program = new ShaderProgram(this.getVertexShaderSource(), this.getFragmentShaderSource());
 
             // Let the vbo context perform garbage collection.
             coreContext.shaderPrograms.set(this.constructor, this._program);
@@ -28,6 +28,14 @@ class ShaderBase extends Base {
          * @type {Set<ViewCore>}
          */
         this._views = new Set();
+    }
+
+    getVertexShaderSource() {
+        return ""
+    }
+
+    getFragmentShaderSource() {
+        return ""
     }
 
     _init() {
@@ -99,7 +107,7 @@ class ShaderBase extends Base {
     }
 
     redraw() {
-        this._views.forEach(viewCore => viewCore._setHasRenderUpdates(1))
+        this._views.forEach(viewCore => viewCore.setHasRenderUpdates(1))
     }
 
 }

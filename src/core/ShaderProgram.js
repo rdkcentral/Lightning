@@ -62,7 +62,7 @@ class ShaderProgram {
         this.gl.compileShader(shader);
 
         if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-            console.log('Type: ' + (type === this.gl.VERTEX_SHADER ? 'vertex shader' : 'fragment shader') );
+            console.log(this.constructor.name, 'Type: ' + (type === this.gl.VERTEX_SHADER ? 'vertex shader' : 'fragment shader') );
             console.log(this.gl.getShaderInfoLog(shader));
             return null;
         }
@@ -151,11 +151,14 @@ class ShaderProgram {
         names.forEach(name => {
             this._currentUniformValues[name] = this._pendingUniformValues[name]
 
-            let matrix = (this._pendingUniformFunctions[name] === this.gl.uniformMatrix2fv || this._pendingUniformFunctions[name] === this.gl.uniformMatrix3fv || this._pendingUniformFunctions[name] === this.gl.uniformMatrix4fv)
-            if (matrix) {
-                this._pendingUniformFunctions[name].call(this.gl, this.getUniformLocation(name), false, this._pendingUniformValues[name])
-            } else {
-                this._pendingUniformFunctions[name].call(this.gl, this.getUniformLocation(name), this._pendingUniformValues[name])
+            let loc = this.getUniformLocation(name)
+            if (loc !== -1) {
+                let matrix = (this._pendingUniformFunctions[name] === this.gl.uniformMatrix2fv || this._pendingUniformFunctions[name] === this.gl.uniformMatrix3fv || this._pendingUniformFunctions[name] === this.gl.uniformMatrix4fv)
+                if (matrix) {
+                    this._pendingUniformFunctions[name].call(this.gl, loc, false, this._pendingUniformValues[name])
+                } else {
+                    this._pendingUniformFunctions[name].call(this.gl, loc, this._pendingUniformValues[name])
+                }
             }
         })
         this._pendingUniformValues = {}

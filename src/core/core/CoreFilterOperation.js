@@ -15,6 +15,22 @@ class CoreFilterOperation {
 
     }
 
+    getRenderWidth() {
+        if (this.renderTexture) {
+            return this.renderTexture.w
+        } else {
+            return this.ctx.stage.w
+        }
+    }
+
+    getRenderHeight() {
+        if (this.renderTexture) {
+            return this.renderTexture.h
+        } else {
+            return this.ctx.stage.h
+        }
+    }
+
 }
 
 module.exports = CoreFilterOperation

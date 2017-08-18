@@ -9,10 +9,18 @@ let Shader = require('../../core/Shader');
  */
 class LinearBlurShader extends Shader {
     constructor(ctx) {
-        super(ctx, LinearBlurShader.vertexShaderSource, LinearBlurShader.fragmentShaderSrc);
+        super(ctx);
 
         this._direction = new Float32Array([1, 0]);
         this._kernelRadius = 1;
+    }
+
+    getVertexShaderSource() {
+        return LinearBlurShader.vertexShaderSource
+    }
+
+    getFragmentShaderSource() {
+        return LinearBlurShader.fragmentShaderSource
     }
 
     get x() {
@@ -53,7 +61,7 @@ class LinearBlurShader extends Shader {
         return (this._kernelRadius === 0)
     }
 
-    getExtraBytesPerVertex() {
+    getExtraAttribBytesPerVertex() {
         return 8;
     }
 
@@ -91,7 +99,7 @@ class LinearBlurShader extends Shader {
 
     beforeDraw(operation) {
         let gl = this.gl
-        gl.vertexAttribPointer(this._attrib("aTextureRes"), 2, gl.FLOAT, false, 8, operation.extraAttribsDataByteOffset)
+        gl.vertexAttribPointer(this._attrib("aTextureRes"), 2, gl.FLOAT, false, this.getExtraAttribBytesPerVertex(), this.getVertexAttribPointerOffset(operation))
     }
 
 }
@@ -116,7 +124,7 @@ LinearBlurShader.vertexShaderSource = `
     }
 `;
 
-LinearBlurShader.fragmentShaderSrc = `
+LinearBlurShader.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif

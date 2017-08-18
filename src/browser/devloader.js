@@ -73,7 +73,10 @@ var loadWpe, loadBulk;
             "BorderView":"./tools/BorderView.js",
             "Light3dShader":"./tools/shaders/Light3dShader.js",
             "LinearBlurShader":"./tools/shaders/LinearBlurShader.js",
-            "FxaaFilter":"./tools/filters/FxaaFilter.js"
+            "PixelateShader":"./tools/shaders/PixelateShader.js",
+            "InversionShader":"./tools/shaders/InversionShader.js",
+            "FxaaFilter":"./tools/filters/FxaaFilter.js",
+            "InversionFilter":"./tools/filters/InversionFilter.js"
         };
         return loadBulk(srcPath, sourceFiles).then(function(wpe) {
             if (typeof attachInspector !== "undefined") attachInspector(wpe);

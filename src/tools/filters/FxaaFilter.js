@@ -9,8 +9,17 @@ let Filter = require('../../core/Filter');
  */
 class FxaaFilter extends Filter {
     constructor(ctx) {
-        super(ctx, undefined, FxaaFilter.fragmentShaderSrc);
+        super(ctx);
     }
+
+    getVertexShaderSource() {
+        return Filter.vertexShaderSource
+    }
+
+    getFragmentShaderSource() {
+        return FxaaFilter.fragmentShaderSource
+    }
+
 }
 
 FxaaFilter.fxaa = `

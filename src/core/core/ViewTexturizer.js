@@ -60,11 +60,13 @@ class ViewTexturizer {
             if (Utils.isObjectLiteral(filter) && filter.type) {
                 let s = new filter.type(this.ctx)
                 s.setSettings(filter)
-                this._addFilter(s)
-            } else if (filter.isFilter) {
+                filter = s
+            }
+
+            if (filter.isFilter) {
                 this._addFilter(filter);
             } else {
-                console.error("Please specify a shader or shader type.");
+                console.error("Please specify a filter type.");
             }
         })
 
@@ -128,6 +130,9 @@ class ViewTexturizer {
                 let h = resultTexture ? resultTexture.h : 0
                 this._resultTextureSource._changeGlTexture(resultTexture, w, h)
             }
+
+            // Texture will be updated: all views using the source need to be updated as well.
+            this._resultTextureSource.views.forEach(view => view._core.setHasRenderUpdates(3))
         }
     }
 
@@ -153,7 +158,6 @@ class ViewTexturizer {
 
     releaseRenderTexture() {
         if (this._renderTexture) {
-            //@todo: replace to coreRenderer
             this.ctx.releaseRenderTexture(this._renderTexture);
             this._renderTexture = null;
         }
@@ -175,13 +179,6 @@ class ViewTexturizer {
             this._resultTexture = this.ctx.allocateRenderTexture(Math.min(2048, this._core._rw), Math.min(2048, this._core._rh));
         }
         return this._resultTexture;
-    }
-
-    replaceFilterTexture(otherTexture) {
-        if (this._resultTexture) {
-            this.ctx.releaseRenderTexture(this._resultTexture);
-        }
-        this._resultTexture = otherTexture
     }
 
     releaseFilterTexture() {

@@ -24,6 +24,7 @@ class CoreContext {
 
         this._renderTexturePool = []
 
+        this._renderTextureId = 1
     }
 
     destroy() {
@@ -36,7 +37,7 @@ class CoreContext {
     }
 
     frame() {
-        if (this.stage.frameCounter % 100 != 99) return
+        //if (this.stage.frameCounter % 100 != 99) return
         if (!this.root._parent._hasRenderUpdates) {
             return false
         }
@@ -136,6 +137,7 @@ class CoreContext {
         sourceTexture.framebuffer = gl.createFramebuffer();
         sourceTexture.w = w;
         sourceTexture.h = h;
+        sourceTexture.id = this._renderTextureId++
         sourceTexture.projectionMatrix = new Float32Array([
             2/w, 0, 0, 0,
             0, 2/h, 0, 0,

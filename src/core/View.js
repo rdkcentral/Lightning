@@ -583,7 +583,8 @@ class View {
                 ty2 = Math.min(1.0, Math.max(ty2 * rh + ih));
             }
 
-            if (displayedTextureSource.inTextureAtlas) {
+            let inTextureAtlas = this._core.allowTextureAtlas() && displayedTextureSource.inTextureAtlas
+            if (inTextureAtlas) {
                 // Calculate texture atlas texture coordinates.
                 let textureAtlasI = 0.000488281;    // 1/2048.
 
@@ -600,7 +601,7 @@ class View {
             }
 
             this._core.setTextureCoords(tx1, ty1, tx2, ty2);
-            this._core.setInTextureAtlas(displayedTextureSource.inTextureAtlas);
+            this._core.setInTextureAtlas(inTextureAtlas);
         }
     }
 
@@ -1443,9 +1444,13 @@ class View {
                 shader.setSettings(v);
             }
         } else if (v === null) {
-            shader = this.stage.ctx.defaultShader;
+            shader = this.stage.ctx.renderState.defaultShader;
         } else {
-            shader = v;
+            if (v.isShader) {
+                shader = v;
+            } else {
+                console.error("Please specify a shader type.");
+            }
         }
         this._core.shader = shader;
     }

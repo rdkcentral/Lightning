@@ -57,18 +57,22 @@ var start = function(wpe) {
         // ])
 
         stage.root.add([
-            {tag: 'wrapper', w: 900, h: 900, children: [
+            {tag: 'wrapper'/*, filters: [{type: InversionFilter}]*/, w: 900, h: 900, renderToTexture: 2, children: [
 //            {filters: [{type: Light3dShader, rx: 0.2}], w: 710, h: 355, children: [
-                {tags: 'image', src: 'http://adn.gpupdate.net/news/297192.jpg'/*, rect: false*/, colorLeft: 0xffff0000, colorRight: 0xff00ff00, renderToTexture: 2/*, filters: [{type: LinearBlurFilter, kernelRadius: 1, x: 5}, {type: LinearBlurFilter, kernelRadius: 1, y: 5}]*/, rotation: 0.0, y: 95, mountY: 0, pivotX: 0.5, pivotY: 0.5, alpha: 1, x: 10, scale: 1, children: [
-                    {tags: 'hello', src: 'http://adn.gpupdate.net/news/297192.jpg', zIndex: 0/*, texture: texture*/, shaderSettings: {z: 0}, x: 250}
+                {tags: 'image', rect: true, src: 'http://adn.gpupdate.net/news/297192.jpg', w: 700, h: 350, colorLeft: 0xffff0000, colorRight: 0xff00ff00, renderToTexture: 0, y: 95, x: 10, children: [
+//                    {tags: 'hello', src: 'http://adn.gpupdate.net/news/297192.jpg', x: 250}
 //                     {tag: 'border', scale: 0.5/*, type: BorderView, borderWidth: 20*/, rect: false, shaderSettings: {z: 0}, color: 0xFFFF0000, x: 0, y: 50, children: [                  ]}
                 ]}
 //            ]}
             ]}
         ])
 
+
+
+        // stage.root.tag('wrapper').setSmooth('shader.size', 20, {duration: 1})
+
         let ts = stage.root.tag('wrapper').getResultTextureSource();
-        stage.root.add({tag: 'replica', texture: ts, x: 0, y: 900, w: 900, h: 900, mountY: 1, pivotX: 0, pivotY: 1/*, shader: {type: Light3dShader, ry: 0.4 * Math.PI, ambient: 0.2}*/})
+        stage.root.add({tag: 'replica', shader: {type: Light3dShader, ry: 0.2}, scale: 0.5, texture: ts, x: 0, y: 0, alpha: 0.5})
 
 //        stage.root.add({tag: 'replica', texture: ts, mountY: 1, y: 900, mountX: 1, x: 900, scale: 0.1, shader: {type: Light3dShader, ry: 0}, filters: [{type: FxaaShader}]})
 
@@ -94,9 +98,9 @@ var start = function(wpe) {
         // ])
 
 
-//        stage.root.tag('image').setSmooth('y', 400, {duration: 10});
-        stage.root.tag('hello').setSmooth('x', 400, {duration:5});
-         //stage.root.tag('image').setSmooth('rotation', 10, {duration: 10});
+        stage.root.tag('image').setSmooth('y', 200, {duration: 10});
+//        stage.root.tag('image').setSmooth('x', 400, {duration:5});
+//         stage.root.tag('wrapper').setSmooth('shader.rx', 20, {duration: 10});
 
         // setTimeout(function() {
         //     stage.root.x = 5;

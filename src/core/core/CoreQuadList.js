@@ -41,6 +41,10 @@ class CoreQuadList {
         u[15] = 0xFFFFFFFF;
     }
 
+    get length() {
+        return this.quadTextures.length
+    }
+
     reset() {
         this.quadTextures = []
         this.quadViews = []
@@ -81,6 +85,23 @@ class CoreQuadList {
         } else {
             return this.quadViews[index]._displayedTextureSource.h
         }
+    }
+
+    getQuadContents() {
+        // Debug: log contents of quad buffer.
+        let floats = this.floats
+        let uints = this.uints
+        let lines = []
+        for (let i = 1; i <= this.length; i++) {
+            let str = 'entry ' + i + ': ';
+            for (let j = 0; j < 4; j++) {
+                let b = i * 16 + j * 4
+                str += floats[b] + ',' + floats[b+1] + ':' + uints[b+2].toString(16) + '[' + uints[b+3].toString(16) + '] ';
+            }
+            lines.push(str)
+        }
+
+        return lines
     }
 }
 

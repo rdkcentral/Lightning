@@ -165,9 +165,9 @@ class CoreRenderExecutor {
             shader.beforeDraw(op)
             shader.draw(op)
             shader.afterDraw(op)
-
-            this._quadOperation = null
         }
+
+        this._quadOperation = null
     }
 
     _execFilterOperation(filterOperation) {
@@ -175,10 +175,10 @@ class CoreRenderExecutor {
         this._useShaderProgram(filter)
         filter.setupUniforms(filterOperation)
         filter.commitUniformUpdates()
-        filter.beforeDraw(filter)
+        filter.beforeDraw(filterOperation)
         this._bindRenderTexture(filterOperation.renderTexture, true)
-        filter.draw(filter)
-        filter.afterDraw(filter)
+        filter.draw(filterOperation)
+        filter.afterDraw(filterOperation)
     }
 
     /**
@@ -221,7 +221,7 @@ class CoreRenderExecutor {
 
             if (clear) {
                 // Clear texture.
-                gl.clearColor(0, 0, 0, 0);
+                gl.clearColor(0, 0, 0, 1);
                 gl.clear(gl.COLOR_BUFFER_BIT);
             }
         }

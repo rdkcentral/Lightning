@@ -7,8 +7,16 @@ let ShaderBase = require('./ShaderBase')
 
 class Filter extends ShaderBase {
 
-    constructor(coreContext, vertexShaderSource = Filter.vertexShaderSource, fragmentShaderSource = Filter.fragmentShaderSrc) {
-        super(coreContext, vertexShaderSource, fragmentShaderSource);
+    constructor(coreContext) {
+        super(coreContext);
+    }
+
+    getVertexShaderSource() {
+        return Filter.vertexShaderSource
+    }
+
+    getFragmentShaderSource() {
+        return Filter.fragmentShaderSource
     }
 
     useDefault() {
@@ -64,7 +72,7 @@ Filter.vertexShaderSource = `
     varying vec2 vTextureCoord;
     void main(void){
         gl_Position = vec4(aVertexPosition, 0.0, 1.0);
-        vTextureRes = aTextureRes;
+        vTextureCoord = aTextureCoord;
     }
 `;
 
@@ -79,6 +87,6 @@ Filter.fragmentShaderSource = `
     }
 `;
 
-Filter.prototype.isShader = true
+Filter.prototype.isFilter = true
 
 module.exports = Filter

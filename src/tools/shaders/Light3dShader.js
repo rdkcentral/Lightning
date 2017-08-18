@@ -7,7 +7,7 @@ let Shader = require('../../core/Shader');
 class Light3dShader extends Shader {
 
     constructor(ctx) {
-        super(ctx, Light3dShader.vertexShaderSource, Light3dShader.fragmentShaderSrc);
+        super(ctx);
 
         this._strength = 1;
         this._ambient = 0.2;
@@ -17,12 +17,24 @@ class Light3dShader extends Shader {
         this._ry = 0;
     }
 
+    getVertexShaderSource() {
+        return Light3dShader.vertexShaderSource
+    }
+
+    getFragmentShaderSource() {
+        return Light3dShader.fragmentShaderSource
+    }
+
+    supportsTextureAtlas() {
+        return true
+    }
+
     supportsMerging() {
         // As we need the shader owner, we do not support merging.
         return false
     }
 
-    getExtraBytesPerVertex() {
+    getExtraAttribBytesPerVertex() {
         return 4
     }
 
@@ -66,6 +78,7 @@ class Light3dShader extends Shader {
         //@todo: grab from view settings.
         let z = 0;
 
+        let gl = this.gl
         this._setUniform("pivot", new Float32Array([x, y, 0]), gl.uniform3fv)
         this._setUniform("rot", new Float32Array([this._rx, this._ry, 0]), gl.uniform3fv)
 
@@ -76,7 +89,7 @@ class Light3dShader extends Shader {
 
     beforeDraw(operation) {
         let gl = this.gl
-        gl.vertexAttribPointer(this._attrib("z"), 1, gl.FLOAT, false, 4, operation.extraAttribsDataByteOffset)
+        gl.vertexAttribPointer(this._attrib("z"), 1, gl.FLOAT, false, this.getExtraAttribBytesPerVertex(), this.getVertexAttribPointerOffset(operation))
     }
 
     set strength(v) {
@@ -197,7 +210,7 @@ Light3dShader.vertexShaderSource = `
     }
 `;
 
-Light3dShader.fragmentShaderSrc = `
+Light3dShader.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif

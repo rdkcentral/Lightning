@@ -6,8 +6,22 @@ let ShaderBase = require('./ShaderBase')
 
 class Shader extends ShaderBase {
 
-    constructor(coreContext, vertexShaderSource = Shader.vertexShaderSource, fragmentShaderSource = Shader.fragmentShaderSrc) {
-        super(coreContext, vertexShaderSource, fragmentShaderSource);
+    constructor(coreContext) {
+        super(coreContext);
+        this.isDefault = this.constructor === Shader;
+    }
+
+    getVertexShaderSource() {
+        return Shader.vertexShaderSource
+    }
+
+    getFragmentShaderSource() {
+        return Shader.fragmentShaderSource
+    }
+
+    supportsTextureAtlas() {
+        // Most shaders that are performing out-of-bounds texture reads will produce artifacts when using texture atlas.
+        return this.isDefault
     }
 
     enableAttribs() {
@@ -16,23 +30,38 @@ class Shader extends ShaderBase {
         gl.vertexAttribPointer(this._attrib("aVertexPosition"), 2, gl.FLOAT, false, 16, 0)
         gl.enableVertexAttribArray(this._attrib("aVertexPosition"))
 
-        gl.vertexAttribPointer(this._attrib("aTextureCoord"), 2, gl.UNSIGNED_SHORT, true, 16, 2 * 4)
-        gl.enableVertexAttribArray(this._attrib("aTextureCoord"))
+        if (this._attrib("aTextureCoord") !== -1) {
+            gl.vertexAttribPointer(this._attrib("aTextureCoord"), 2, gl.UNSIGNED_SHORT, true, 16, 2 * 4)
+            gl.enableVertexAttribArray(this._attrib("aTextureCoord"))
+        }
 
-        gl.vertexAttribPointer(this._attrib("aColor"), 4, gl.UNSIGNED_BYTE, true, 16, 3 * 4)
-        gl.enableVertexAttribArray(this._attrib("aColor"))
+        if (this._attrib("aColor") !== -1) {
+            // Some shaders may ignore the color.
+            gl.vertexAttribPointer(this._attrib("aColor"), 4, gl.UNSIGNED_BYTE, true, 16, 3 * 4)
+            gl.enableVertexAttribArray(this._attrib("aColor"))
+        }
     }
 
     disableAttribs() {
         // Disables the attribs in the shader program.
         let gl = this.ctx.gl
         gl.disableVertexAttribArray(this._attrib("aVertexPosition"));
-        gl.disableVertexAttribArray(this._attrib("aTextureCoord"))
-        gl.disableVertexAttribArray(this._attrib("aColor"))
+
+        if (this._attrib("aTextureCoord") !== -1) {
+            gl.disableVertexAttribArray(this._attrib("aTextureCoord"))
+        }
+
+        if (this._attrib("aColor") !== -1) {
+            gl.disableVertexAttribArray(this._attrib("aColor"))
+        }
     }
 
     getExtraAttribBytesPerVertex() {
         return 0
+    }
+
+    getVertexAttribPointerOffset(operation) {
+        return operation.extraAttribsDataByteOffset - (operation.index + 1) * 4 * this.getExtraAttribBytesPerVertex()
     }
 
     useDefault() {
@@ -60,6 +89,8 @@ class Shader extends ShaderBase {
 
     setupUniforms(operation) {
         // Set all shader-specific uniforms.
+        // Notice that all uniforms should be set, even if they have not been changed within this shader instance.
+        // The uniforms are shared by all shaders that have the same type (and shader program).
         this._setUniform("projectionMatrix", this._getProjectionMatrix(operation), this.ctx.gl.uniformMatrix4fv, false)
     }
 
@@ -120,7 +151,7 @@ Shader.vertexShaderSource = `
     }
 `;
 
-Shader.fragmentShaderSrc = `
+Shader.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
