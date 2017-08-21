@@ -91,14 +91,14 @@ class Shader extends ShaderBase {
         // Set all shader-specific uniforms.
         // Notice that all uniforms should be set, even if they have not been changed within this shader instance.
         // The uniforms are shared by all shaders that have the same type (and shader program).
-        this._setUniform("projectionMatrix", this._getProjectionMatrix(operation), this.ctx.gl.uniformMatrix4fv, false)
+        this._setUniform("projection", this._getProjection(operation), this.ctx.gl.uniform2fv, false)
     }
 
-    _getProjectionMatrix(operation) {
+    _getProjection(operation) {
         if (operation.renderTexture === null) {
-            return this.ctx.renderExec._projectionMatrix
+            return this.ctx.renderExec._projection
         } else {
-            return operation.renderTexture.projectionMatrix
+            return operation.renderTexture.projection
         }
     }
 
@@ -141,13 +141,14 @@ Shader.vertexShaderSource = `
     attribute vec2 aVertexPosition;
     attribute vec2 aTextureCoord;
     attribute vec4 aColor;
-    uniform mat4 projectionMatrix;
+    uniform vec2 projection;
     varying vec2 vTextureCoord;
     varying vec4 vColor;
     void main(void){
-        gl_Position = projectionMatrix * vec4(aVertexPosition, 0.0, 1.0);
+        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);
         vTextureCoord = aTextureCoord;
         vColor = aColor;
+        gl_Position.y = -sign(projection.y) * gl_Position.y;
     }
 `;
 

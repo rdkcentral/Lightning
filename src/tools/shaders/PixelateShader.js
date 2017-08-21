@@ -112,15 +112,16 @@ PixelateShader.vertexShaderSource = `
     attribute vec2 aTextureCoord;
     attribute vec4 aColor;
     attribute vec2 aTextureRes;
-    uniform mat4 projectionMatrix;
+    uniform vec2 projection;
     varying vec2 vTextureCoord;
     varying vec4 vColor;
     varying vec2 vTextureRes;
     void main(void){
-        gl_Position = projectionMatrix * vec4(aVertexPosition, 0.0, 1.0);
+        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);
         vTextureCoord = aTextureCoord;
         vColor = aColor;
         vTextureRes = aTextureRes;
+        gl_Position.y = -sign(projection.y) * gl_Position.y;
     }
 `;
 

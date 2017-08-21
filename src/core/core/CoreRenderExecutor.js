@@ -41,12 +41,7 @@ class CoreRenderExecutor {
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, allIndices, gl.STATIC_DRAW);
 
         // The matrix that causes the [0,0 - W,H] box to map to [-1,-1 - 1,1] in the end results.
-        this._projectionMatrix = new Float32Array([
-            2/this.ctx.stage.rw, 0, 0, 0,
-            0, -2/this.ctx.stage.rw, 0, 0,
-            0, 0, 1, 0,
-            -1, 1, 0, 1
-        ]);
+        this._projection = new Float32Array([2/this.ctx.stage.rw, -2/this.ctx.stage.rh])
 
     }
 

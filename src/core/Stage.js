@@ -8,13 +8,9 @@ let Base = require('./Base');
 /**
  * @todo:
  * - Light3dShader shader owner settings (pivot relative to current texture)
- * - final filter as shader
- * - combine quad/filter operations into one
- * - save dependency level / quad groups
- * - optimize by resorting operations by dependency level/quad groups: warning for clear-only quad groups
- * - result textureSource: if has views, then force not using final filter as shader
- * - VAOs
  * - implement more filters/textures
+ * - VAOs
+ * - evaluate performance on rpi
  *
  * - quick clone
  *   - text texture problems or not?

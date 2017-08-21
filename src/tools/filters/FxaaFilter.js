@@ -111,7 +111,7 @@ FxaaFilter.fxaa = `
     }    
 `
 
-FxaaFilter.fragmentShaderSrc = `
+FxaaFilter.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif

@@ -41,6 +41,21 @@ class CoreQuadOperation {
         return this.quads.getTextureHeight(this.index + index)
     }
 
+    /**
+     * Returns the relative pixel coordinates in the shader owner to gl position coordinates in the render texture.
+     * @param x
+     * @param y
+     * @return {number[]}
+     */
+    getNormalRenderTextureCoords(x, y) {
+        let coords = this.shaderOwner.getRenderTextureCoords(x, y)
+        coords[0] /= this.getRenderWidth()
+        coords[1] /= this.getRenderHeight()
+        coords[0] = coords[0] * 2 - 1
+        coords[1] = 1 - coords[1] * 2
+        return coords
+    }
+
     getRenderWidth() {
         if (this.renderTexture) {
             return this.renderTexture.w

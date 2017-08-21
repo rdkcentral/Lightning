@@ -31,15 +31,19 @@ class Filter extends ShaderBase {
         gl.vertexAttribPointer(this._attrib("aVertexPosition"), 2, gl.FLOAT, false, 16, 0)
         gl.enableVertexAttribArray(this._attrib("aVertexPosition"))
 
-        gl.vertexAttribPointer(this._attrib("aTextureCoord"), 2, gl.UNSIGNED_SHORT, true, 16, 2 * 4)
-        gl.enableVertexAttribArray(this._attrib("aTextureCoord"))
+        if (this._attrib("aTextureCoord") !== -1) {
+            gl.vertexAttribPointer(this._attrib("aTextureCoord"), 2, gl.UNSIGNED_SHORT, true, 16, 2 * 4)
+            gl.enableVertexAttribArray(this._attrib("aTextureCoord"))
+        }
     }
 
     disableAttribs() {
         // Disables the attribs in the shader program.
         let gl = this.ctx.gl
         gl.disableVertexAttribArray(this._attrib("aVertexPosition"));
-        gl.disableVertexAttribArray(this._attrib("aTextureCoord"))
+        if (this._attrib("aTextureCoord") !== -1) {
+            gl.disableVertexAttribArray(this._attrib("aTextureCoord"))
+        }
     }
 
     setupUniforms(operation) {

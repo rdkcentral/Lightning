@@ -752,6 +752,18 @@ class ViewCore {
         }
     }
 
+    setRenderCoordAttribsMode() {
+        if (!this._useWorldAttribsForRendering) {
+            this._setRenderCoordAttribsMode()
+        } else {
+            this._setWorldCoordAttribsMode()
+        }
+    }
+
+    setWorldCoordAttribsMode() {
+        this._setWorldCoordAttribsMode()
+    }
+
     _toggleStashAttribCoords() {
         if (!this._tempStashedCoordAttribs) this._tempStashedCoordAttribs = []
         this._stashCoordAttribs(this._tempStashedCoordAttribs)

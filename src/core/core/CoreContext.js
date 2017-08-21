@@ -138,12 +138,7 @@ class CoreContext {
         sourceTexture.w = w;
         sourceTexture.h = h;
         sourceTexture.id = this._renderTextureId++
-        sourceTexture.projectionMatrix = new Float32Array([
-            2/w, 0, 0, 0,
-            0, 2/h, 0, 0,
-            0, 0, 1, 0,
-            -1, -1, 0, 1
-        ]);
+        sourceTexture.projection = new Float32Array([2/w, 2/h])
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, sourceTexture.framebuffer)
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, sourceTexture, 0);

@@ -7,14 +7,16 @@ let Shader = require('../../core/Shader');
 class Light3dShader extends Shader {
 
     constructor(ctx) {
-        super(ctx);
+        super(ctx)
 
-        this._strength = 1;
-        this._ambient = 0.2;
-        this._fudge = 0.4;
+        this._strength = 0.5
+        this._ambient = 0.5
+        this._fudge = 0.4
 
-        this._rx = 0;
-        this._ry = 0;
+        this._rx = 0
+        this._ry = 0
+
+        this._z = 0
     }
 
     getVertexShaderSource() {
@@ -34,62 +36,26 @@ class Light3dShader extends Shader {
         return false
     }
 
-    getExtraAttribBytesPerVertex() {
-        return 4
-    }
-
-    enableAttribs() {
-        super.enableAttribs()
-        this.gl.enableVertexAttribArray(this._attrib("z"))
-    }
-
-    disableAttribs() {
-        super.disableAttribs()
-        this.gl.disableVertexAttribArray(this._attrib("z"))
-    }
-
-    setExtraAttribsInBuffer(operation) {
-        let offset = operation.extraAttribsDataByteOffset / 4
-        let floats = operation.quads.floats
-
-        let length = operation.length
-        let w = operation.getRenderWidth()
-        for (let i = 0; i < length; i++) {
-
-            //@todo: set z for view (View.shaderSettings => active shader.getViewSettings(view))
-            let z = 0 / w;
-
-            floats[offset] = z
-            floats[offset + 1] = z
-            floats[offset + 2] = z
-            floats[offset + 3] = z
-
-            offset += 4
-        }
-    }
-
     setupUniforms(operation) {
         super.setupUniforms(operation)
 
-        let view = operation.shaderOwner.view;
-        let x = view.pivotX * 2 - 1;
-        let y = 1 - view.pivotY * 2;
+        let vr = operation.shaderOwner;
+        let view = vr.view;
 
-        //@todo: grab from view settings.
-        let z = 0;
+        let coords = operation.getNormalRenderTextureCoords(view.pivotX * vr.rw, view.pivotY * vr.rh);
+
+        // Counter normal rotation.
+        vr.setRenderCoordAttribsMode()
+        let rz = Math.atan2(vr._worldTc, vr._worldTa)
+        vr.setWorldCoordAttribsMode()
 
         let gl = this.gl
-        this._setUniform("pivot", new Float32Array([x, y, 0]), gl.uniform3fv)
-        this._setUniform("rot", new Float32Array([this._rx, this._ry, 0]), gl.uniform3fv)
+        this._setUniform("pivot", new Float32Array([coords[0], coords[1], this._z]), gl.uniform3fv)
+        this._setUniform("rot", new Float32Array([this._rx, this._ry, rz]), gl.uniform3fv)
 
         this._setUniform("strength", this._strength, gl.uniform1f)
         this._setUniform("ambient", this._ambient, gl.uniform1f)
         this._setUniform("fudge", this._fudge, gl.uniform1f)
-    }
-
-    beforeDraw(operation) {
-        let gl = this.gl
-        gl.vertexAttribPointer(this._attrib("z"), 1, gl.FLOAT, false, this.getExtraAttribBytesPerVertex(), this.getVertexAttribPointerOffset(operation))
     }
 
     set strength(v) {
@@ -137,6 +103,15 @@ class Light3dShader extends Shader {
         this.redraw();
     }
 
+    get z() {
+        return this._z;
+    }
+
+    set z(v) {
+        this._z = v;
+        this.redraw();
+    }
+
 }
 
 Light3dShader.vertexShaderSource = `
@@ -146,11 +121,10 @@ Light3dShader.vertexShaderSource = `
     attribute vec2 aVertexPosition;
     attribute vec2 aTextureCoord;
     attribute vec4 aColor;
-    uniform mat4 projectionMatrix;
+    uniform vec2 projection;
     varying vec2 vTextureCoord;
     varying vec4 vColor;
 
-    attribute float z;
     uniform float fudge;
     uniform float strength;
     uniform float ambient;
@@ -158,8 +132,10 @@ Light3dShader.vertexShaderSource = `
     uniform vec3 rot;
     varying float light;
 
-    void main(void){
-        vec4 pos = projectionMatrix * vec4(aVertexPosition, 0, 1);
+    void main(void) {
+        vec4 pos = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);
+        
+        float z = pivot.z;
         
         pos.z = z;
 
@@ -192,9 +168,6 @@ Light3dShader.vertexShaderSource = `
         float perspective = 1.0 + fudge * (z + gl_Position.z);
         gl_Position.w = perspective;
         
-        /* Set z to 0 because we don't want to perform z-clipping */
-        gl_Position.z = 0.0;
-        
         /* Redo XY rotation */
         iRotXy[0][1] = -iRotXy[0][1];
         iRotXy[1][0] = -iRotXy[1][0];
@@ -203,11 +176,16 @@ Light3dShader.vertexShaderSource = `
         /* Undo translate to pivot position */
         gl_Position += pivotPos;
 
+        /* Set z to 0 because we don't want to perform z-clipping */
+        gl_Position.z = 0.0;
+        
         /* Use texture normal to calculate light strength */ 
         light = ambient + strength * abs(cos(ry) * cos(rx));
         
         vTextureCoord = aTextureCoord;
         vColor = aColor;
+        
+        gl_Position.y = -sign(projection.y) * gl_Position.y;
     }
 `;
 

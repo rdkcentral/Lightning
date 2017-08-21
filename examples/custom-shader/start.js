@@ -14,18 +14,21 @@ var start = function(wpe) {
 
         stage.root.add([
             {tags: 'main-wrap', colorTop: 0xFFFF55FF, colorBottom: 0xFFFF0000, colorizeResultTexture: true, renderToTexture: 2, w: 900, h: 900, scale: 1, children: [
-                {tags: 'main', shader: {type: BeatShader}, rect: true, w: 900, h: 800}
+                {tags: 'main', shader: {type: BeatShader}, rect: true, w: 900, h: 900}
             ]}
         ]);
 
+        //stage.root.renderToTexture = 2
+        stage.root.filters = [{type: FxaaFilter}]
+
         let ts = stage.root.tag('main-wrap').getResultTextureSource();
-        stage.root.add({tag: 'replica', colorTop: 0xFFCCAAFF, colorBottom: 0xFF00AAFF, shader: {type: Light3dShader, ry: 1.2, ambient: 0.8, fudge: 0.6, strength: 0.2}, pivotY: 450/900, y: 450, mountY: 0, texture: ts, alpha: 1})
-
-        stage.root.tag('replica').texture.y = 450
-        stage.root.tag('replica').texture.h = 450
-
+        stage.root.add({tag: 'replica', colorTop: 0xFFCCAAFF, colorBottom: 0xFF00AAFF, rotation: 0.3, shader: {type: Light3dShader, ry: 0, z: 3.0, ambient: 0.8, fudge: 0.6, strength: 0.2}, pivotY: 0.5, y: 500, mountY: 0, texture: ts, alpha: 1})
+        stage.root.tag('replica').texture.y = (900 - 400) / 2
+        stage.root.tag('replica').texture.h = 400
         stage.root.tag('main').setSmooth('shader.time', 1000, {duration: 1000, timingFunction: 'linear'})
-//        stage.root.tag('replica').setSmooth('shader.ry', 2, {duration: 10, timingFunction: 'linear'})
+//        stage.root.tag('replica').setSmooth('shader.z', 0, {duration: 15, timingFunction: 'linear'})
+        stage.root.tag('replica').setSmooth('shader.rx', 10 * 0.5 * Math.PI, {duration: 15})
+        // stage.root.tag('replica').setSmooth('shader.ry', 10 * 0.5 * Math.PI, {duration: 15})
     }
 };
 
