@@ -7,6 +7,7 @@ let Base = require('./Base');
 
 /**
  * @todo:
+ * - nodejs
  * - implement more filters/textures
  * - VAOs
  * - evaluate performance on rpi

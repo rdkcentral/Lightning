@@ -97,7 +97,17 @@ class ViewTexturizer {
     }
 
     getActiveFilters() {
-        return this._filters.filter(filter => !filter.useDefault())
+        let activeFilters = []
+        this._filters.forEach(filter => {
+            if (!filter.useDefault()) {
+                if (filter.getFilters) {
+                    filter.getFilters().forEach(f => activeFilters.push(f))
+                } else {
+                    activeFilters.push(filter)
+                }
+            }
+        })
+        return activeFilters
     }
 
     _updateRenderToTextureEnabled() {
