@@ -7,7 +7,6 @@ let Base = require('./Base');
 
 /**
  * @todo:
- * - Light3dShader shader owner settings (pivot relative to current texture)
  * - implement more filters/textures
  * - VAOs
  * - evaluate performance on rpi

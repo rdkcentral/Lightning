@@ -42,11 +42,11 @@ class Light3dShader extends Shader {
         let vr = operation.shaderOwner;
         let view = vr.view;
 
-        let coords = operation.getNormalRenderTextureCoords(view.pivotX * vr.rw, view.pivotY * vr.rh);
+        let coords = vr.getRenderTextureCoords(view.pivotX * vr.rw, view.pivotY * vr.rh)
 
         // Counter normal rotation.
         vr.setRenderCoordAttribsMode()
-        let rz = Math.atan2(vr._worldTc, vr._worldTa)
+        let rz = -Math.atan2(vr._worldTc, vr._worldTa)
         vr.setWorldCoordAttribsMode()
 
         let gl = this.gl
@@ -133,40 +133,23 @@ Light3dShader.vertexShaderSource = `
     varying float light;
 
     void main(void) {
-        vec4 pos = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);
+        vec3 pos = vec3(aVertexPosition.xy, pivot.z);
         
-        float z = pivot.z;
-        
-        pos.z = z;
+        pos -= pivot;
 
-        float rx = rot.x;
-        float ry = rot.y;
-        float rz = rot.z;
-
-        /* Translate to pivot position */
-        vec4 pivotPos = vec4(pivot, 1);
-        
-        pivotPos.w = 0.0;
-        
-        pos -= pivotPos;
-        
         /* Undo XY rotation */
-        mat2 iRotXy = mat2( cos(rz), sin(rz), 
-                           -sin(rz), cos(rz));
+        mat2 iRotXy = mat2( cos(rot.z), sin(rot.z), 
+                           -sin(rot.z), cos(rot.z));
         pos.xy = iRotXy * pos.xy;
-
-        /* Perform rotations */
-        gl_Position.x = cos(rx) * pos.x - sin(rx) * pos.z;
-        gl_Position.y = pos.y;
-        gl_Position.z = sin(rx) * pos.x + cos(rx) * pos.z;
         
-        pos.y = cos(ry) * gl_Position.y - sin(ry) * gl_Position.z;
-        gl_Position.z = sin(ry) * gl_Position.y + cos(ry) * gl_Position.z;
+        /* Perform 3d rotations */
+        gl_Position.x = cos(rot.x) * pos.x - sin(rot.x) * pos.z;
         gl_Position.y = pos.y;
+        gl_Position.z = sin(rot.x) * pos.x + cos(rot.x) * pos.z;
         
-        /* Set depth perspective */
-        float perspective = 1.0 + fudge * (z + gl_Position.z);
-        gl_Position.w = perspective;
+        pos.y = cos(rot.y) * gl_Position.y - sin(rot.y) * gl_Position.z;
+        gl_Position.z = sin(rot.y) * gl_Position.y + cos(rot.y) * gl_Position.z;
+        gl_Position.y = pos.y;
         
         /* Redo XY rotation */
         iRotXy[0][1] = -iRotXy[0][1];
@@ -174,13 +157,19 @@ Light3dShader.vertexShaderSource = `
         gl_Position.xy = iRotXy * gl_Position.xy; 
 
         /* Undo translate to pivot position */
-        gl_Position += pivotPos;
+        gl_Position.xyz += pivot;
+        
+        /* Set depth perspective */
+        float perspective = 1.0 + fudge * gl_Position.z * projection.x;
 
+        /* Map coords to gl coordinate space. */
+        gl_Position = vec4(gl_Position.x * projection.x - 1.0, gl_Position.y * -abs(projection.y) + 1.0, 0.0, perspective);
+        
         /* Set z to 0 because we don't want to perform z-clipping */
         gl_Position.z = 0.0;
-        
+
         /* Use texture normal to calculate light strength */ 
-        light = ambient + strength * abs(cos(ry) * cos(rx));
+        light = ambient + strength * abs(cos(rot.y) * cos(rot.x));
         
         vTextureCoord = aTextureCoord;
         vColor = aColor;
