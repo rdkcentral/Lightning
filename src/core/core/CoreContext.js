@@ -111,7 +111,7 @@ class CoreContext {
         // This cache is short-lived because it is really just meant to supply running shaders and filters that are
         // updated during a number of frames.
         let limit = this.stage.frameCounter - 60;
-        this._renderTexturePool.filter(texture => {
+        this._renderTexturePool = this._renderTexturePool.filter(texture => {
             if (texture.f < limit) {
                 this._freeRenderTexture(texture);
                 return false;

@@ -41,7 +41,7 @@ FxaaFilter.fxaa = `
             vec2 v_rgbM) {
             
         vec4 color;
-        mediump vec2 inverseVP = vec2(1.0 / resolution.x, 1.0 / resolution.y);
+        vec2 inverseVP = vec2(1.0 / resolution.x, 1.0 / resolution.y);
         vec3 rgbNW = texture2D(tex, v_rgbNW).xyz;
         vec3 rgbNE = texture2D(tex, v_rgbNE).xyz;
         vec3 rgbSW = texture2D(tex, v_rgbSW).xyz;
@@ -57,7 +57,7 @@ FxaaFilter.fxaa = `
         float lumaMin = min(lumaM, min(min(lumaNW, lumaNE), min(lumaSW, lumaSE)));
         float lumaMax = max(lumaM, max(max(lumaNW, lumaNE), max(lumaSW, lumaSE)));
         
-        mediump vec2 dir;
+        vec2 dir;
         dir.x = -((lumaNW + lumaNE) - (lumaSW + lumaSE));
         dir.y =  ((lumaNW + lumaSW) - (lumaNE + lumaSE));
         
@@ -97,11 +97,11 @@ FxaaFilter.fxaa = `
         v_rgbM = vec2(fragCoord * inverseVP);
     }
     vec4 apply(sampler2D tex, vec2 fragCoord, vec2 resolution) {
-        mediump vec2 v_rgbNW;
-        mediump vec2 v_rgbNE;
-        mediump vec2 v_rgbSW;
-        mediump vec2 v_rgbSE;
-        mediump vec2 v_rgbM;
+        vec2 v_rgbNW;
+        vec2 v_rgbNE;
+        vec2 v_rgbSW;
+        vec2 v_rgbSE;
+        vec2 v_rgbM;
     
         //compute the texture coords
         texcoords(fragCoord, resolution, v_rgbNW, v_rgbNE, v_rgbSW, v_rgbSE, v_rgbM);

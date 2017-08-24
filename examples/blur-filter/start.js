@@ -10,10 +10,12 @@ var start = function(wpe) {
 
         var stage = new Stage(options);
 
-        document.body.appendChild(stage.getCanvas());
+        if (!Utils.isNode) {
+            document.body.appendChild(stage.getCanvas());
+        }
 
         stage.root.add([
-            {tags: 'image', rect: true, src: 'http://adn.gpupdate.net/news/297192.jpg', w: 700, h: 350, colorLeft: 0xffff0000, colorRight: 0xff00ff00, renderToTexture: 0, y: 95, x: 10}
+            {tags: 'image', rect: true, src: './boat.png', colorLeft: 0xffff0000, colorRight: 0xff00ff00, renderToTexture: 0, y: 95, x: 10}
         ]);
 
         stage.root.tag('image').filters = [{type: BlurFilter}]
