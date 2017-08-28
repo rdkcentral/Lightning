@@ -9,7 +9,11 @@
 </head>
 <body>
 <script>
-    let custom = {"CloudShader": "../examples/custom-shader/CloudShader.js", "BeatShader": "../examples/custom-shader/BeatShader.js"}
+    let custom = {
+        "CloudShader": "../examples/custom-shader/CloudShader.js",
+        "BeatShader": "../examples/custom-shader/BeatShader.js",
+        "PhongShader": "../examples/custom-shader/PhongShader.js"
+    }
     loadWpe("/WPEUIFramework/src", custom).then(function(wpe) {
         start(wpe);
     });
