@@ -1198,7 +1198,6 @@ class ViewCore {
                     return;
                 } else if (!this._texturizer.hasRenderTexture() || (this._hasRenderUpdates >= 3)) {
                     // Re-create gl texture.
-
                     let texture = this._texturizer.getRenderTexture();
 
                     renderState.setRenderTexture(texture, true);

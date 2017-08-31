@@ -140,9 +140,6 @@ class CoreRenderState {
         if (this._quadOperation) {
             if (this._clearRenderTexture || this._quadOperation.length || this._shader.addEmpty()) {
                 this.quadOperations.push(this._quadOperation)
-
-                // If the render texture is not changed or explicitly cleared again, it shouldn't be cleared.
-                this._clearRenderTexture = false
             }
 
             this._quadOperation = null
@@ -151,6 +148,9 @@ class CoreRenderState {
         if (create) {
             this._createQuadOperation()
         }
+
+        // If the render texture is not changed or explicitly cleared again, it shouldn't be cleared.
+        this._clearRenderTexture = false
     }
 
     _createQuadOperation() {
