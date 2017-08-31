@@ -102,6 +102,10 @@ class Shader extends ShaderBase {
         }
     }
 
+    getFlipY(operation) {
+        return this._getProjection()[1] < 0
+    }
+
     beforeDraw(operation) {
     }
 
