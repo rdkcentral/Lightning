@@ -22,11 +22,11 @@ class BlurFilter extends Filter {
         this.steps = 1
     }
 
-    get kernalRadius() {
+    get kernelRadius() {
         return this._kernalRadius
     }
 
-    set kernalRadius(v) {
+    set kernelRadius(v) {
         this._kernalRadius = v
         this.redraw()
     }
@@ -51,11 +51,11 @@ class BlurFilter extends Filter {
                 lbf._direction[1] = i
                 add.push(lbf)
             }
-            this._steps = add.concat(this._steps)
+            this._steps = this._steps.concat(add)
             this.redraw();
-        } else if (currentSteps < this._size) {
-            let r = this._size - currentSteps
-            this._steps.splice(-r)
+        } else if (currentSteps > this._size) {
+            let r = currentSteps - this._size
+            this._steps.splice(-r * 2)
             this.redraw();
         }
     }

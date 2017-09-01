@@ -199,7 +199,7 @@ class ViewTexturizer {
     }
 
     getResultTexture() {
-        return this._hasFilters() ? this._resultTexture : this._renderTexture
+        return this._hasActiveFilters() ? this._resultTexture : this._renderTexture
     }
 
 }

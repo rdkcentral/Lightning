@@ -10,7 +10,9 @@ var start = function(wpe) {
 
         var stage = new Stage(options);
 
-        document.body.appendChild(stage.getCanvas());
+        if (!Utils.isNode) {
+            document.body.appendChild(stage.getCanvas());
+        }
 
         stage.root.add([
             {tags: 'fg', w: 1280, h: 720, renderToTexture: 2, children: [
