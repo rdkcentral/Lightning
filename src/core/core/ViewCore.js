@@ -832,11 +832,15 @@ class ViewCore {
 
 
     _stashTexCoords() {
-        this._stashedTexCoords = [this._txCoordsUl, this._txCoordsUr, this._txCoordsBr, this._txCoordsBl];
+        this._stashedTexCoords = [this._txCoordsUl, this._txCoordsUr, this._txCoordsBr, this._txCoordsBl, this._ulx, this._uly, this._brx, this._bry];
         this._txCoordsUl = 0x00000000;
         this._txCoordsUr = 0x0000FFFF;
         this._txCoordsBr = 0xFFFFFFFF;
         this._txCoordsBl = 0xFFFF0000;
+        this._ulx = 0;
+        this._uly = 0;
+        this._brx = 1;
+        this._bry = 1;
     }
 
     _unstashTexCoords() {
@@ -844,6 +848,10 @@ class ViewCore {
         this._txCoordsUr = this._stashedTexCoords[1];
         this._txCoordsBr = this._stashedTexCoords[2];
         this._txCoordsBl = this._stashedTexCoords[3];
+        this._ulx = this._stashedTexCoords[4];
+        this._uly = this._stashedTexCoords[5];
+        this._brx = this._stashedTexCoords[6];
+        this._bry = this._stashedTexCoords[7];
         this._stashedTexCoords = null;
     }
 
@@ -1201,15 +1209,16 @@ class ViewCore {
                     // Re-create gl texture.
                     let texture = this._texturizer.getRenderTexture();
 
-                    renderState.setRenderTexture(texture, true);
-
                     // Switch to default shader for building up the render texture.
                     renderState.setShader(renderState.defaultShader, this)
 
+                    renderState.setRenderTexture(texture, true);
+
                     if (this._displayedTextureSource) {
                         // Use an identity context for drawing the displayed texture to the render texture.
-                        let storedMatrix = [this._worldPx, this._worldPy, this._worldTa, this._worldTb, this._worldTc, this._worldTd];
+                        let storedMatrix = [this._worldAlpha, this._worldPx, this._worldPy, this._worldTa, this._worldTb, this._worldTc, this._worldTd];
                         let storedClippingParent = this._clippingParent;
+                        this._worldAlpha = 1;
                         this._worldPx = 0;
                         this._worldPy = 0;
                         this._worldTa = 1;
@@ -1223,12 +1232,13 @@ class ViewCore {
                         // Add displayed texture source in local coordinates.
                         this.addQuads();
 
-                        this._worldPx = storedMatrix[0]
-                        this._worldPy = storedMatrix[1]
-                        this._worldTa = storedMatrix[2]
-                        this._worldTb = storedMatrix[3]
-                        this._worldTc = storedMatrix[4]
-                        this._worldTd = storedMatrix[5]
+                        this._worldAlpha = storedMatrix[0]
+                        this._worldPx = storedMatrix[1]
+                        this._worldPy = storedMatrix[2]
+                        this._worldTa = storedMatrix[3]
+                        this._worldTb = storedMatrix[4]
+                        this._worldTc = storedMatrix[5]
+                        this._worldTd = storedMatrix[6]
                         this._clippingParent = storedClippingParent
                     }
                 } else {

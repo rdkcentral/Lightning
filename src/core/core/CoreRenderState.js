@@ -138,7 +138,7 @@ class CoreRenderState {
     
     _addQuadOperation(create = true) {
         if (this._quadOperation) {
-            if (this._clearRenderTexture || this._quadOperation.length || this._shader.addEmpty()) {
+            if (this._quadOperation.clearRenderTexture || this._quadOperation.length || this._shader.addEmpty()) {
                 this.quadOperations.push(this._quadOperation)
             }
 
