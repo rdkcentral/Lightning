@@ -15,7 +15,7 @@ class BlurFilter extends Filter {
 
         this.ctx = ctx
 
-        this._kernalRadius = 1
+        this._kernelRadius = 1
 
         this._steps = []
 
@@ -23,11 +23,12 @@ class BlurFilter extends Filter {
     }
 
     get kernelRadius() {
-        return this._kernalRadius
+        return this._kernelRadius
     }
 
     set kernelRadius(v) {
-        this._kernalRadius = v
+        this._kernelRadius = v
+        this._steps.forEach(step => step._kernelRadius = v)
         this.redraw()
     }
 
@@ -45,9 +46,11 @@ class BlurFilter extends Filter {
             for (let i = currentSteps + 1; i <= this._size; i++) {
                 let lbf = new LinearBlurFilter(this.ctx)
                 lbf._direction[0] = i
+                lbf._kernelRadius = this._kernelRadius
                 add.push(lbf)
 
                 lbf = new LinearBlurFilter(this.ctx)
+                lbf._kernelRadius = this._kernelRadius
                 lbf._direction[1] = i
                 add.push(lbf)
             }
@@ -76,7 +79,7 @@ class LinearBlurFilter extends Filter {
         super(ctx)
 
         this._direction = new Float32Array([0, 0])
-        this._kernelRadius = 2
+        this._kernelRadius = 1
     }
 
     getFragmentShaderSource() {
