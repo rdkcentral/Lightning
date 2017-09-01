@@ -23,6 +23,7 @@ class CoreContext {
         this.renderExec.init()
 
         this._renderTexturePool = []
+        this._renderTexturePoolPixels = 0
 
         this._renderTextureId = 1
     }
@@ -91,6 +92,7 @@ class CoreContext {
             if (texture.w === w && texture.h === h) {
                 texture.f = this.stage.frameCounter;
                 this._renderTexturePool.splice(i, 1);
+                this._renderTexturePoolPixels -= texture.w * texture.h
                 return texture;
             }
         }
@@ -102,6 +104,7 @@ class CoreContext {
     }
 
     releaseRenderTexture(texture) {
+        this._renderTexturePoolPixels += texture.w * texture.h
         this._renderTexturePool.push(texture);
     }
 
@@ -110,14 +113,22 @@ class CoreContext {
         // This cache is short-lived because it is really just meant to supply running shaders and filters that are
         // updated during a number of frames.
         let limit = this.stage.frameCounter - 60;
-        if (this._renderTexturePool.length > 100) limit = this.stage.frameCounter;
-        this._renderTexturePool = this._renderTexturePool.filter(texture => {
-            if (texture.f < limit) {
-                this._freeRenderTexture(texture);
-                return false;
-            }
-            return true;
-        });
+        if (this._renderTexturePoolPixels > this.stage.options.renderTexturePoolPixels) {
+            console.log('flush render texture pool')
+            // Cleanup all.
+            this._renderTexturePool.forEach(texture => this._freeRenderTexture(texture))
+            this._renderTexturePool = []
+            this._renderTexturePoolPixels = 0
+        } else {
+            this._renderTexturePool = this._renderTexturePool.filter(texture => {
+                if (texture.f < limit) {
+                    this._freeRenderTexture(texture);
+                    this._renderTexturePoolPixels -= texture.w * texture.h
+                    return false;
+                }
+                return true;
+            });
+        }
     }
 
     _createRenderTexture(w, h) {

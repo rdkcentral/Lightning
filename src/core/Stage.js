@@ -63,6 +63,7 @@ class Stage extends Base {
         opt('renderWidth', this.options.w);
         opt('renderHeight', this.options.h);
         opt('textureMemory', 12e6);
+        opt('renderTexturePoolPixels', 12e6);
         opt('glClearColor', [0, 0, 0, 0]);
         opt('defaultFontFace', 'Sans-Serif');
         opt('defaultPrecision', (this.options.h / this.options.renderHeight));
