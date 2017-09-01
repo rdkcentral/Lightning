@@ -63,6 +63,16 @@ class Filter extends ShaderBase {
         gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
     }
 
+    redraw() {
+        this._views.forEach(viewCore => {
+            viewCore.setHasRenderUpdates(2)
+
+            // Changing filter settings may cause a change mustRenderToTexture for the branch:
+            // we need to be sure that the update function is called for this branch.
+            viewCore._setRecalc(1 + 2 + 4 + 8)
+        })
+    }
+
 }
 
 Filter.prototype.isFilter = true

@@ -159,7 +159,7 @@ class TextureManager {
     }
     
     freeTextureSource(textureSource) {
-        if (textureSource.isLoadedByCore()) {
+        if (!textureSource.isLoadedByCore()) {
             if (textureSource.glTexture) {
                 this._usedTextureMemory -= textureSource.w * textureSource.h;
                 this.gl.deleteTexture(textureSource.glTexture);

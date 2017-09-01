@@ -107,7 +107,9 @@ class ShaderBase extends Base {
     }
 
     redraw() {
-        this._views.forEach(viewCore => viewCore.setHasRenderUpdates(2))
+        this._views.forEach(viewCore => {
+            viewCore.setHasRenderUpdates(2)
+        })
     }
 
 }

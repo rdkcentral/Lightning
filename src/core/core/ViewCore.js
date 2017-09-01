@@ -155,7 +155,6 @@ class ViewCore {
      *   4: transform
      *   8: clipping
      * 128: force layout when becoming visible
-     * @private
      */
     _setRecalc(type) {
         this._recalc |= type;
@@ -518,7 +517,7 @@ class ViewCore {
     };
 
     enableZContext(prevZContext) {
-        if (prevZContext._zContextUsage > 0) {
+        if (prevZContext && prevZContext._zContextUsage > 0) {
             let self = this;
             // Transfer from upper z context to this z context.
             prevZContext._zIndexedChildren.slice().forEach(function (c) {
@@ -692,7 +691,7 @@ class ViewCore {
                 if (!this.isZContext()) {
                     this.disableZContext();
                 } else {
-                    this.enableZContext(this._parent.findZContext());
+                    this.enableZContext(this._parent ? this._parent.findZContext() : null);
                 }
             }
 
@@ -806,6 +805,7 @@ class ViewCore {
             arr[12] = this._clippingSquareMinY
             arr[13] = this._clippingSquareMaxY
             arr[14] = this._clippingArea
+            arr[15] = this._clippingParent
         }
     }
 
@@ -817,7 +817,7 @@ class ViewCore {
         this._worldTb = arr[4]
         this._worldTc = arr[5]
         this._worldTd = arr[6]
-        if (this._hasClipping()) {
+        if (arr.length > 6) {
             this._clippingEmpty = arr[7]
             this._clippingNoEffect = arr[8]
             this._clippingSquare = arr[9]
@@ -826,6 +826,7 @@ class ViewCore {
             this._clippingSquareMinY = arr[12]
             this._clippingSquareMaxY = arr[13]
             this._clippingArea = arr[14]
+            this._clippingParent = arr[15]
         }
     }
 

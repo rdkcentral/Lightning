@@ -195,6 +195,7 @@ class ViewTexturizer {
         if (this._resultTexture) {
             this.ctx.releaseRenderTexture(this._resultTexture)
             this._resultTexture = null
+            this.filterResultCached = false
         }
     }
 
