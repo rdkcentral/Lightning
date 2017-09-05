@@ -96,7 +96,6 @@ class CoreContext {
                 return texture;
             }
         }
-
         let texture = this._createRenderTexture(w, h);
         texture.f = this.stage.frameCounter;
 
@@ -112,7 +111,7 @@ class CoreContext {
         // Clean up all textures that are no longer used.
         // This cache is short-lived because it is really just meant to supply running shaders and filters that are
         // updated during a number of frames.
-        let limit = this.stage.frameCounter - 60;
+        let limit = this.stage.frameCounter - 6000;
         if (this._renderTexturePoolPixels > this.stage.options.renderTexturePoolPixels) {
             console.log('flush render texture pool')
             // Cleanup all.

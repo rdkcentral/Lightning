@@ -60,12 +60,11 @@ FastBlurOutputShader.fragmentShaderSource = `
     uniform sampler2D uSampler2;
     uniform float a;
     void main(void){
-        gl_FragColor = texture2D(uSampler, vTextureCoord) * vColor;
-/*        if (a == 1.0) {
+        if (a == 1.0) {
             gl_FragColor = texture2D(uSampler2, vTextureCoord) * vColor;
         } else {
             gl_FragColor = ((1.0 - a) * texture2D(uSampler, vTextureCoord) + (a * texture2D(uSampler2, vTextureCoord))) * vColor;
-        }*/
+        }
     }
 `;
 

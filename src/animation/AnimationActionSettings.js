@@ -210,6 +210,13 @@ class AnimationActionSettings extends Base {
         if (this._items.length) {
             console.trace('You should specify the merger before the values');
         }
+
+        if (f === 'numbers') {
+            f = StageUtils.mergeNumbers
+        } else if (f === 'colors') {
+            f = StageUtils.mergeColors
+        }
+
         this._merger = f;
     }
 
@@ -219,3 +226,4 @@ module.exports = AnimationActionSettings;
 
 let AnimationActionItems = require('./AnimationActionItems');
 let View = require('../core/View');
+let StageUtils = require('../core/StageUtils');

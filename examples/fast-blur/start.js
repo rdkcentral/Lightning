@@ -17,25 +17,29 @@ var start = function(wpe) {
         }
 
         stage.root.add([
-            {tag: 'blur', type: FastBlurView, amount: 1, w: 1280, h: 720}
+            {tag: 'blur', type: FastBlurView, amount: 0.9, w: 1280, h: 720}
         ]);
 
-        stage.root.tag('blur').children = [{tag: 'mountains', src: './mountains.jpg', alpha: 1}]
-        console.log(stage.root._lchildren[0]._lchildren.length)
+        stage.root.tag('blur').children = [{tag: 'mountains', src: './boat.png', alpha: 0.5, w: 1280, h: 720}]
 
         let r = stage.root
         //r.setSmooth('rotation', 8, {duration : 10})
         //r.tag('mountains').setSmooth('rotation', 8, {duration: 20})
-        //r.tag('blur').setSmooth('amount', 4, {duration: 20})
 
-        r.tag('mountains').setSmooth('x', 200, {duration: 20})
+        // r.animation({duration: 3, repeat: -1, actions: [
+        //     {t: 'blur', p: 'amount', merger: 'numbers', v: {0:0.0, 1:2}}
+        // ]}).start();
+
+
+        r.animation({duration: 3, repeat: -1, actions: [
+            {t: 'blur', p: 'amount', merger: 'numbers', v: {0:0.0, 0.5:3, 1: 0.0}}
+        ]}).start();
+
+        r.setSmooth('x', 300, {duration: 10})
 
         if (!Utils.isNode)
             window.stage = stage
 
-        setTimeout(function() {
-            console.log(r._lchildren[0]._lchildren.length)
-        }, 1000)
     }
 };
 
