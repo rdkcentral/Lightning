@@ -1286,16 +1286,18 @@ class ViewCore {
                     this._texturizer.updateResultTexture();
                 }
 
-                // Render result texture to the actual render target.
-                renderState.setShader(this.activeShader, this._shaderOwner);
+                if (!this._texturizer.hideResult) {
+                    // Render result texture to the actual render target.
+                    renderState.setShader(this.activeShader, this._shaderOwner);
 
-                renderState.setOverrideQuadTexture(resultTexture);
-                this._stashTexCoords();
-                if (!this._texturizer.colorize) this._stashColors()
-                this.addQuads();
-                if (!this._texturizer.colorize) this._unstashColors();
-                this._unstashTexCoords();
-                renderState.setOverrideQuadTexture(null);
+                    renderState.setOverrideQuadTexture(resultTexture);
+                    this._stashTexCoords();
+                    if (!this._texturizer.colorize) this._stashColors()
+                    this.addQuads();
+                    if (!this._texturizer.colorize) this._unstashColors();
+                    this._unstashTexCoords();
+                    renderState.setOverrideQuadTexture(null);
+                }
             }
 
             this._hasRenderUpdates = 0;

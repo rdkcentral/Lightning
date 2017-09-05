@@ -501,7 +501,9 @@ class View {
             // Due to width/height change: update the translation vector and borders.
             this._core.setDimensions(this._getRenderWidth(), this._getRenderHeight());
             this._updateLocalTranslate();
+            return true
         }
+        return false
     }
 
     _updateLocalTransform() {
@@ -950,13 +952,13 @@ class View {
 
         if (this._rotation !== 0) settings.rotation = this._rotation;
 
-        if (this._colorUl === this._colorUr && this._colorBl === this._colorBr && this._colorUl === this._colorBl) {
-            if (this._colorUl !== 0xFFFFFFFF) settings.color = 0xFFFFFFFF;
+        if (this._core.colorUl === this._core.colorUr && this._core.colorBl === this._core.colorBr && this._core.colorUl === this._core.colorBl) {
+            if (this._core.colorUl !== 0xFFFFFFFF) settings.color = 0xFFFFFFFF;
         } else {
-            if (this._colorUl !== 0xFFFFFFFF) settings.colorUl = 0xFFFFFFFF;
-            if (this._colorUr !== 0xFFFFFFFF) settings.colorUr = 0xFFFFFFFF;
-            if (this._colorBl !== 0xFFFFFFFF) settings.colorBl = 0xFFFFFFFF;
-            if (this._colorBr !== 0xFFFFFFFF) settings.colorBr = 0xFFFFFFFF;
+            if (this._core.colorUl !== 0xFFFFFFFF) settings.colorUl = 0xFFFFFFFF;
+            if (this._core.colorUr !== 0xFFFFFFFF) settings.colorUr = 0xFFFFFFFF;
+            if (this._core.colorBl !== 0xFFFFFFFF) settings.colorBl = 0xFFFFFFFF;
+            if (this._core.colorBr !== 0xFFFFFFFF) settings.colorBr = 0xFFFFFFFF;
         }
 
         if (!this._visible) settings.visible = false;
@@ -979,6 +981,21 @@ class View {
             let tnd = this._texture.getNonDefaults();
             if (Object.keys(tnd).length) {
                 settings.texture = tnd;
+            }
+        }
+
+        if (this._texturizer) {
+            if (this._texturizer.enabled) {
+                settings.renderToTexture = this._texturizer.enabled
+            }
+            if (this._texturizer.lazy) {
+                settings.renderToTextureLazy = this._texturizer.lazy
+            }
+            if (this._texturizer.colorize) {
+                settings.colorizeResultTexture = this._texturizer.colorize
+            }
+            if (this._texturizer.hideResult) {
+                settings.hideResultTexture = this._texturizer.hideResult
             }
         }
 
@@ -1316,6 +1333,10 @@ class View {
         return this._childList
     }
 
+    get _lchildren() {
+        return this._childList.get()
+    }
+
     get childList() {
         if (!this._exposedChildList) {
             this._exposedChildList = this._getExposedChildList()
@@ -1433,7 +1454,7 @@ class View {
 
     set shader(v) {
         let shader;
-        if (Utils.isPlainObject(v)) {
+        if (Utils.isObjectLiteral(v)) {
             if (v.type) {
                 shader = new v.type(this.stage.ctx)
             } else {
@@ -1450,13 +1471,14 @@ class View {
                 shader = v;
             } else {
                 console.error("Please specify a shader type.");
+                return
             }
         }
         this._core.shader = shader;
     }
 
     get renderToTexture() {
-        return this.texturizer.enabled
+        return this._texturizer && this.texturizer.enabled
     }
 
     set renderToTexture(v) {
@@ -1464,15 +1486,23 @@ class View {
     }
 
     get renderToTextureLazy() {
-        return this.texturizer.lazy
+        return this._texturizer && this.texturizer.lazy
     }
 
     set renderToTextureLazy(v) {
         this.texturizer.lazy = v
     }
 
+    get hideResultTexture() {
+        return this._texturizer && this.texturizer.hideResult
+    }
+
+    set hideResultTexture(v) {
+        this.texturizer.hideResult = v
+    }
+
     get colorizeResultTexture() {
-        return this.texturizer.colorize
+        return this._texturizer && this.texturizer.colorize
     }
 
     set colorizeResultTexture(v) {
@@ -1595,6 +1625,7 @@ class View {
         }
         let t = this._getTransition(property);
         t.start(v);
+        return t
     }
 
     get X() {

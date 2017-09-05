@@ -76,7 +76,8 @@ var loadWpe, loadBulk;
             "InversionShader":"./tools/shaders/InversionShader.js",
             "FxaaFilter":"./tools/filters/FxaaFilter.js",
             "InversionFilter":"./tools/filters/InversionFilter.js",
-            "BlurFilter":"./tools/filters/BlurFilter.js"
+            "BlurFilter":"./tools/filters/BlurFilter.js",
+            "LinearBlurFilter":"./tools/filters/LinearBlurFilter.js"
         };
 
         Object.assign(sourceFiles, additional)

@@ -43,5 +43,6 @@ module.exports = {
     "InversionShader": require("./src/tools/shaders/InversionShader"),
     "FxaaFilter": require("./src/tools/filters/FxaaFilter"),
     "InversionFilter": require("./src/tools/filters/InversionFilter"),
-    "BlurFilter": require("./src/tools/filters/BlurFilter")
+    "BlurFilter": require("./src/tools/filters/BlurFilter"),
+    "LinearBlurFilter": require("./src/tools/filters/LinearBlurFilter")
 }

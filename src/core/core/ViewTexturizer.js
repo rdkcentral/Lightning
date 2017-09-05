@@ -25,6 +25,8 @@ class ViewTexturizer {
         
         this._renderToTextureEnabled = false
 
+        this._hideResult = false
+
         this.filterResultCached = false
     }
 
@@ -36,7 +38,16 @@ class ViewTexturizer {
         this._enabled = v
         this._updateRenderToTextureEnabled()
     }
-    
+
+    get hideResult() {
+        return this._hideResult
+    }
+
+    set hideResult(v) {
+        this._hideResult = v
+        this._core.setHasRenderUpdates(1);
+    }
+
     get colorize() {
         return this._colorize
     }
@@ -124,10 +135,6 @@ class ViewTexturizer {
             this._resultTextureSource = new TextureSource(this._view.stage.textureManager, null);
 
             this.updateResultTexture()
-
-            // For convenience: you'll want to force the existence of a render texture.
-            this.enabled = true
-            this.lazy = false
         }
         return this._resultTextureSource
     }

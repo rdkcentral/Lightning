@@ -42,7 +42,7 @@ var attachInspector = function(wpe) {
         window.mutationCounter = 0;
         window.mutatingChildren = false;
         var observer = new MutationObserver(function(mutations) {
-            var fa = ["x", "y", "w", "h", "alpha", "mountX", "mountY", "pivotX", "pivotY", "scaleX", "scaleY", "rotation", "visible", "clipping", "rect", "colorUl", "colorUr", "colorBl", "colorBr", "color", "borderWidthLeft", "borderWidthRight", "borderWidthTop", "borderWidthBottom", "borderWidth", "borderColorLeft", "borderColorRight", "borderColorTop", "borderColorBottom", "borderColor", "zIndex", "forceZIndexContext"];
+            var fa = ["x", "y", "w", "h", "alpha", "mountX", "mountY", "pivotX", "pivotY", "scaleX", "scaleY", "rotation", "visible", "clipping", "rect", "colorUl", "colorUr", "colorBl", "colorBr", "color", "borderWidthLeft", "borderWidthRight", "borderWidthTop", "borderWidthBottom", "borderWidth", "borderColorLeft", "borderColorRight", "borderColorTop", "borderColorBottom", "borderColor", "zIndex", "forceZIndexContext", "renderToTexture", "renderToTextureLazy", "hideResultTexture", "colorizeResultTexture"];
             var fac = fa.map(function(v) {return v.toLowerCase()});
 
             var ta = ["text", "fontStyle", "fontSize", "fontFace", "wordWrap", "wordWrapWidth", "lineHeight", "textBaseline", "textAlign", "offsetY", "maxLines", "maxLinesSuffix", "precision", "paddingLeft", "paddingRight", "shadow", "shadowOffsetX", "shadowOffsetY", "shadowBlur", "highlight", "highlightHeight", "highlightOffset", "highlightPaddingLeft", "highlightPaddingRight", "cutSx", "cutEx", "cutSy", "cutEy", "textColor", "shadowColor", "highlightColor"];
@@ -125,6 +125,18 @@ var attachInspector = function(wpe) {
                                         }
                                         pv = 0xffffffff;
                                         break;
+                                    case "renderToTexture":
+                                        pv = false
+                                        break;
+                                    case "renderToTextureLazy":
+                                        pv = false
+                                        break;
+                                    case "hideResultTexture":
+                                        pv = false
+                                        break;
+                                    case "colorizeResultTexture":
+                                        pv = false
+                                        break;
                                     default:
                                         pv = 0;
                                 }
@@ -138,16 +150,14 @@ var attachInspector = function(wpe) {
                                         pv = parseInt(v, 16);
                                         break;
                                     case "visible":
-                                        pv = (v === "true");
-                                        break;
                                     case "clipping":
-                                        pv = (v === "true");
-                                        break;
                                     case "rect":
-                                        pv = (v === "true");
-                                        break;
                                     case "forceZIndexContext":
-                                        pv = (v === "false");
+                                    case "renderToTexture":
+                                    case "renderToTextureLazy":
+                                    case "hideResultTexture":
+                                    case "colorizeResultTexture":
+                                        pv = (v === "true");
                                         break;
                                     default:
                                         pv = parseFloat(v);
@@ -157,21 +167,6 @@ var attachInspector = function(wpe) {
 
                             var fv;
                             switch(rn) {
-                                case "clipping":
-                                    c.clipping = pv;
-                                    break;
-                                case "visible":
-                                    c.visible = pv;
-                                    break;
-                                case "rect":
-                                    c.rect = pv;
-                                    break;
-                                case "zIndex":
-                                    c.zIndex = pv;
-                                    break;
-                                case "forceZIndexContext":
-                                    c.forceZIndexContext = pv;
-                                    break;
                                 case "color":
                                     var f = ['colorUl','colorUr','colorBl','colorBr'].map(function(q) {
                                         return mutation.target.hasAttribute(q);
@@ -588,8 +583,8 @@ var attachInspector = function(wpe) {
             }
         });
 
-        View.prototype.__zIndex = 0;
-        Object.defineProperty(View.prototype, '_zIndex', {
+        ViewCore.prototype.__zIndex = 0;
+        Object.defineProperty(ViewCore.prototype, '_zIndex', {
             get: function() {
                 return this.__zIndex;
             },
@@ -604,8 +599,8 @@ var attachInspector = function(wpe) {
             }
         });
 
-        View.prototype.__forceZIndexContext = false;
-        Object.defineProperty(View.prototype, '_forceZIndexContext', {
+        ViewCore.prototype.__forceZIndexContext = false;
+        Object.defineProperty(ViewCore.prototype, '_forceZIndexContext', {
             get: function() {
                 return this.__forceZIndexContext;
             },
@@ -617,8 +612,8 @@ var attachInspector = function(wpe) {
             }
         });
 
-        View.prototype.__clipping = false;
-        Object.defineProperty(View.prototype, '_clipping', {
+        ViewCore.prototype.__clipping = false;
+        Object.defineProperty(ViewCore.prototype, '_clipping', {
             get: function() {
                 return this.__clipping;
             },
@@ -715,6 +710,58 @@ var attachInspector = function(wpe) {
                 view.dhtmlRemoveAttribute('color');
             }
         };
+
+        ViewTexturizer.prototype.__enabled = false;
+        Object.defineProperty(ViewTexturizer.prototype, '_enabled', {
+            get: function() {
+                return this.__enabled;
+            },
+            set: function(v) {
+                if (this.__enabled !== v) {
+                    val(this, 'renderToTexture', v, false);
+                    this.__enabled = v;
+                }
+            }
+        });
+
+        ViewTexturizer.prototype.__lazy = false;
+        Object.defineProperty(ViewTexturizer.prototype, '_lazy', {
+            get: function() {
+                return this.__lazy;
+            },
+            set: function(v) {
+                if (this.__lazy !== v) {
+                    val(this, 'renderToTextureLazy', v, false);
+                    this.__lazy = v;
+                }
+            }
+        });
+
+        ViewTexturizer.prototype.__colorize = false;
+        Object.defineProperty(ViewTexturizer.prototype, '_colorize', {
+            get: function() {
+                return this.__colorize;
+            },
+            set: function(v) {
+                if (this.__colorize !== v) {
+                    val(this, 'colorizeResultTexture', v, false);
+                    this.__colorize = v;
+                }
+            }
+        });
+
+        ViewTexturizer.prototype.__hideResult = false;
+        Object.defineProperty(ViewTexturizer.prototype, '_hideResult', {
+            get: function() {
+                return this.__hideResult;
+            },
+            set: function(v) {
+                if (this.__hideResult !== v) {
+                    val(this, 'hideResultTexture', v, false);
+                    this.__hideResult = v;
+                }
+            }
+        });
 
         var dtaKeys = Object.keys(defaultTextAttributes);
         var dtaValues = dtaKeys.map(function(k) {return defaultTextAttributes[k];});

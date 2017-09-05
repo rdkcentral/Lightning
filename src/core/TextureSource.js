@@ -1,9 +1,14 @@
 /**
  * Copyright Metrological, 2017
  */
-class TextureSource {
+
+let Base = require('./Base')
+
+class TextureSource extends Base {
 
     constructor(manager, loadCb) {
+        super()
+
         this.id = TextureSource.id++;
 
         this.manager = manager;
@@ -23,7 +28,7 @@ class TextureSource {
          * @type {Set<View>}
          */
         this.views = new Set();
-        
+
     }
 
     _properties() {

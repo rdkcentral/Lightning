@@ -78,7 +78,7 @@ class ViewChildList {
         this._children.splice(index, 1);
 
         // Sync.
-        this._view._core.removeAt(index);
+        this._view._core.removeChildAt(index);
 
         return view;
     };
