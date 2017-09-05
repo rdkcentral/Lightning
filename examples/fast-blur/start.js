@@ -12,19 +12,17 @@ var start = function(wpe) {
 
         if (!Utils.isNode) {
             document.body.appendChild(stage.getCanvas());
-        } else {
-            var FastBlurView = require('./FastBlurView')
         }
 
         stage.root.add([
-            {tag: 'blur', type: FastBlurView, amount: 0.9, w: 1280, h: 720}
+            {tag: 'blur', type: FastBlurView, amount: 1, w: 1280, h: 720}
         ]);
 
         stage.root.tag('blur').children = [{tag: 'mountains', src: './boat.png', alpha: 0.5, w: 1280, h: 720}]
 
         let r = stage.root
         //r.setSmooth('rotation', 8, {duration : 10})
-        //r.tag('mountains').setSmooth('rotation', 8, {duration: 20})
+        r.tag('mountains').setSmooth('rotation', 8, {duration: 20})
 
         // r.animation({duration: 3, repeat: -1, actions: [
         //     {t: 'blur', p: 'amount', merger: 'numbers', v: {0:0.0, 1:2}}

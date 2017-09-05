@@ -1,8 +1,8 @@
 /**
  * Copyright Metrological, 2017
  */
-let View = require('../core/View');
-let ViewChildList = require('../core/ViewChildList');
+let View = require('../../core/View');
+let ViewChildList = require('../../core/ViewChildList');
 
 class ListView extends View {
 
@@ -468,7 +468,7 @@ class ListView extends View {
 
 ListView.NUMBER_PROPERTIES = new Set(['viewportScrollOffset', 'itemScrollOffset'])
 
-let Utils = require('../core/Utils');
-/*M¬*/let EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
+let Utils = require('../../core/Utils');
+/*M¬*/let EventEmitter = require(Utils.isNode ? 'events' : '../../browser/EventEmitter');/*¬M*/
 
 module.exports = ListView;

@@ -1,8 +1,8 @@
 /**
  * Copyright Metrological, 2017
  */
-let View = require('../core/View');
-let ViewChildList = require('../core/ViewChildList');
+let View = require('../../core/View');
+let ViewChildList = require('../../core/ViewChildList');
 
 class BorderView extends View {
 

@@ -1,11 +1,10 @@
 /**
  * Copyright Metrological, 2017
  */
-let View = require('../../src/core/View');
+let View = require('../../core/View');
 
-var LinearBlurFilter = require('../../src/tools/filters/LinearBlurFilter')
-var FastBoxBlurShader = require('./FastBoxBlurShader')
-var FastBlurOutputShader = require('./FastBlurOutputShader')
+var LinearBlurFilter = require('../filters/LinearBlurFilter')
+let Shader = require('../../core/Shader')
 
 class FastBlurView extends View {
 
@@ -37,6 +36,7 @@ class FastBlurView extends View {
         this.getLayerContents(3).texture = this.getLayer(2).getResultTextureSource()
 
         let filters = FastBlurView.getLinearBlurFilters(stage.ctx)
+        this.getLayer(0).filters = [filters[0], filters[1]]
         this.getLayer(1).filters = [filters[0], filters[1]]
         this.getLayer(2).filters = [filters[2], filters[3], filters[0], filters[1]]
         this.getLayer(3).filters = [filters[2], filters[3], filters[0], filters[1]]
@@ -205,7 +205,143 @@ class FastBlurView extends View {
 
 FastBlurView.NUMBER_PROPERTIES = new Set(['amount'])
 
-let Utils = require('../../src/core/Utils');
-/*M¬*/let EventEmitter = require(Utils.isNode ? 'events' : '../../src/browser/EventEmitter');/*¬M*/
+/**
+ * 4x4 box blur shader which works in conjunction with a 50% rescale.
+ */
+class FastBoxBlurShader extends Shader {
+
+    constructor(ctx) {
+        super(ctx)
+    }
+
+    getVertexShaderSource() {
+        return FastBoxBlurShader.vertexShaderSource
+    }
+
+    getFragmentShaderSource() {
+        return FastBoxBlurShader.fragmentShaderSource
+    }
+
+    setupUniforms(operation) {
+        super.setupUniforms(operation)
+        var dx = 1.0 / operation.getTextureWidth(0);
+        var dy = 1.0 / operation.getTextureHeight(0);
+        this._setUniform("stepTextureCoord", new Float32Array([dx, dy]), this.gl.uniform2fv)
+    }
+
+}
+
+FastBoxBlurShader.vertexShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    uniform vec2 stepTextureCoord;
+    attribute vec2 aVertexPosition;
+    attribute vec2 aTextureCoord;
+    attribute vec4 aColor;
+    uniform vec2 projection;
+    varying vec4 vColor;
+    varying vec2 vTextureCoordUl;
+    varying vec2 vTextureCoordUr;
+    varying vec2 vTextureCoordBl;
+    varying vec2 vTextureCoordBr;
+    void main(void){
+        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);
+        vTextureCoordUl = aTextureCoord - stepTextureCoord;
+        vTextureCoordBr = aTextureCoord + stepTextureCoord;
+        vTextureCoordUr = vec2(vTextureCoordBr.x, vTextureCoordUl.y);
+        vTextureCoordBl = vec2(vTextureCoordUl.x, vTextureCoordBr.y);
+        vColor = aColor;
+        gl_Position.y = -sign(projection.y) * gl_Position.y;
+    }
+`;
+
+FastBoxBlurShader.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoordUl;
+    varying vec2 vTextureCoordUr;
+    varying vec2 vTextureCoordBl;
+    varying vec2 vTextureCoordBr;
+    varying vec4 vColor;
+    uniform sampler2D uSampler;
+    void main(void){
+        vec4 color = 0.25 * (texture2D(uSampler, vTextureCoordUl) + texture2D(uSampler, vTextureCoordUr) + texture2D(uSampler, vTextureCoordBl) + texture2D(uSampler, vTextureCoordBr));
+        gl_FragColor = color * vColor;
+    }
+`;
+
+/**
+ * Shader that combines two textures into one output.
+ */
+class FastBlurOutputShader extends Shader {
+
+    constructor(ctx) {
+        super(ctx)
+
+        this._a = 0
+        this._otherTextureSource = null
+    }
+
+    get a() {
+        return this._a
+    }
+
+    set a(v) {
+        this._a = v
+        this.redraw()
+    }
+
+    set otherTextureSource(v) {
+        this._otherTextureSource = v
+        this.redraw()
+    }
+
+    getFragmentShaderSource() {
+        return FastBlurOutputShader.fragmentShaderSource
+    }
+
+    setupUniforms(operation) {
+        super.setupUniforms(operation)
+        this._setUniform("a", this._a, this.gl.uniform1f)
+        this._setUniform("uSampler2", 1, this.gl.uniform1i)
+    }
+
+    beforeDraw(operation) {
+        let glTexture = this._otherTextureSource ? this._otherTextureSource.glTexture : null
+
+        let gl = this.gl
+        gl.activeTexture(gl.TEXTURE1)
+        gl.bindTexture(gl.TEXTURE_2D, glTexture)
+        gl.activeTexture(gl.TEXTURE0)
+    }
+
+    isMergable(shader) {
+        return super.isMergable(shader) && (shader._otherTextureSource === this._otherTextureSource)
+    }
+
+}
+
+FastBlurOutputShader.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    uniform sampler2D uSampler;
+    uniform sampler2D uSampler2;
+    uniform float a;
+    void main(void){
+        if (a == 1.0) {
+            gl_FragColor = texture2D(uSampler2, vTextureCoord) * vColor;
+        } else {
+            gl_FragColor = ((1.0 - a) * texture2D(uSampler, vTextureCoord) + (a * texture2D(uSampler2, vTextureCoord))) * vColor;
+        }
+    }
+`;
+
+let Utils = require('../../core/Utils');
+/*M¬*/let EventEmitter = require(Utils.isNode ? 'events' : '../../browser/EventEmitter');/*¬M*/
 
 module.exports = FastBlurView

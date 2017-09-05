@@ -124,7 +124,7 @@ class CoreRenderExecutor {
                 merged = true
             } else if (shader.hasSameProgram(this._quadOperation.shader)) {
                 shader.setupUniforms(quadOperation)
-                if (!shader.hasUniformUpdates()) {
+                if (shader.isMergable(this._quadOperation.shader)) {
                     this._mergeQuadOperation(quadOperation)
                     merged = true
                 }

@@ -94,6 +94,11 @@ class Shader extends ShaderBase {
         this._setUniform("projection", this._getProjection(operation), this.ctx.gl.uniform2fv, false)
     }
 
+    isMergable(shader) {
+        // This must be overruled if the
+        return this.hasUniformUpdates();
+    }
+
     _getProjection(operation) {
         if (operation.renderTexture === null) {
             return this.ctx.renderExec._projection
