@@ -7,7 +7,7 @@ let Base = require('./Base');
 
 /**
  * @todo:
- * - nodejs
+ * - render texture management when overloading / overload detection
  * - implement more filters/textures
  * - VAOs
  * - evaluate performance on rpi
@@ -68,7 +68,7 @@ class Stage extends Base {
         opt('defaultFontFace', 'Sans-Serif');
         opt('defaultPrecision', (this.options.h / this.options.renderHeight));
         opt('fixedDt', 0);
-        opt('useTextureAtlas', true);
+        opt('useTextureAtlas', false);
         opt('debugTextureAtlas', false);
     }
 

@@ -256,6 +256,10 @@ class TextureSource extends Base {
             this.views.forEach(view => view.onTextureSourceLoaded());
         }
 
+        if (!this.glTexture) {
+            this.views.forEach(view => {view.displayedTexture = null});
+        }
+
         this.views.forEach(view => view._updateDimensions());
     }
 

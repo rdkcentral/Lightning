@@ -92,7 +92,6 @@ class CoreContext {
             if (texture.w === w && texture.h === h) {
                 texture.f = this.stage.frameCounter;
                 this._renderTexturePool.splice(i, 1);
-                this._renderTexturePoolPixels -= texture.w * texture.h
                 return texture;
             }
         }
@@ -103,7 +102,6 @@ class CoreContext {
     }
 
     releaseRenderTexture(texture) {
-        this._renderTexturePoolPixels += texture.w * texture.h
         this._renderTexturePool.push(texture);
     }
 
@@ -111,28 +109,28 @@ class CoreContext {
         // Clean up all textures that are no longer used.
         // This cache is short-lived because it is really just meant to supply running shaders and filters that are
         // updated during a number of frames.
-        let limit = this.stage.frameCounter - 6000;
-        if (this._renderTexturePoolPixels > this.stage.options.renderTexturePoolPixels) {
-            console.log('flush render texture pool')
-            // Cleanup all.
-            this._renderTexturePool.forEach(texture => this._freeRenderTexture(texture))
-            this._renderTexturePool = []
-            this._renderTexturePoolPixels = 0
-        } else {
-            this._renderTexturePool = this._renderTexturePool.filter(texture => {
-                if (texture.f < limit) {
-                    this._freeRenderTexture(texture);
-                    this._renderTexturePoolPixels -= texture.w * texture.h
-                    return false;
-                }
-                return true;
-            });
-        }
+        let limit = this.stage.frameCounter - 60;
+
+        this._renderTexturePool = this._renderTexturePool.filter(texture => {
+            if (texture.f < limit) {
+                this._freeRenderTexture(texture);
+                this._renderTexturePoolPixels -= texture.w * texture.h
+                return false;
+            }
+            return true;
+        });
     }
 
     _createRenderTexture(w, h) {
-        let gl = this.gl;
+        this._renderTexturePoolPixels += w * h
+        if (this._renderTexturePoolPixels > this.stage.options.renderTexturePoolPixels) {
+            this._freeUnusedRenderTextures()
+            if (this._renderTexturePoolPixels > this.stage.options.renderTexturePoolPixels) {
+                console.warn("Render texture pool overflow: " + this._renderTexturePoolPixels + "px")
+            }
+        }
 
+        let gl = this.gl;
         let sourceTexture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
 
@@ -158,6 +156,7 @@ class CoreContext {
 
     _freeRenderTexture(glTexture) {
         let gl = this.stage.gl;
+        this._renderTexturePoolPixels -= glTexture.w * glTexture.h
         gl.deleteFramebuffer(glTexture.framebuffer);
         gl.deleteTexture(glTexture);
     }

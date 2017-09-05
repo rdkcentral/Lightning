@@ -8,9 +8,9 @@ class ViewTexturizer {
 
         this._view = view
         this._core = view._core
-        
+
         this.ctx = this._core.ctx
-        
+
         this._enabled = false
         this.lazy = false
         this._colorize = false
@@ -18,11 +18,11 @@ class ViewTexturizer {
         this._filters = []
 
         this._renderTexture = null
-        
+
         this._resultTexture = null
 
         this._resultTextureSource = null
-        
+
         this._renderToTextureEnabled = false
 
         this._hideResult = false
@@ -51,11 +51,11 @@ class ViewTexturizer {
     get colorize() {
         return this._colorize
     }
-    
+
     set colorize(v) {
         if (this._colorize !== v) {
             this._colorize = v
-            
+
             // Only affects the finally drawn quad.
             this._core.setHasRenderUpdates(1)
         }
@@ -129,7 +129,7 @@ class ViewTexturizer {
             this.releaseRenderTexture()
         }
     }
-    
+
     getResultTextureSource() {
         if (!this._resultTextureSource) {
             this._resultTextureSource = new TextureSource(this._view.stage.textureManager, null);
@@ -170,13 +170,13 @@ class ViewTexturizer {
     deactivate() {
         this.releaseRenderTexture()
         this.releaseFilterTexture()
-        this.updateResultTexture()
     }
 
     releaseRenderTexture() {
         if (this._renderTexture) {
             this.ctx.releaseRenderTexture(this._renderTexture);
             this._renderTexture = null;
+            this.updateResultTexture()
         }
     }
 
@@ -203,6 +203,7 @@ class ViewTexturizer {
             this.ctx.releaseRenderTexture(this._resultTexture)
             this._resultTexture = null
             this.filterResultCached = false
+            this.updateResultTexture()
         }
     }
 
