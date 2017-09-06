@@ -1440,12 +1440,12 @@ class View {
         }
     }
 
-    set layoutEntry(f) {
-        this._core.layoutEntry = f;
+    set visitEntry(f) {
+        this._core.visitEntry = f;
     }
 
-    set layoutExit(f) {
-        this._core.layoutExit = f;
+    set visitExit(f) {
+        this._core.visitExit = f;
     }
 
     get shader() {

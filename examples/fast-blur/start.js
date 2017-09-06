@@ -18,7 +18,7 @@ var start = function(wpe) {
             {tag: 'blur', type: FastBlurView, amount: 1, w: 1280, h: 720}
         ]);
 
-        stage.root.tag('blur').children = [{tag: 'mountains', src: './boat.png', alpha: 0.5, w: 1280, h: 720}]
+        stage.root.tag('blur').children = [{tag: 'mountains', type: BorderView, borderWidth: 20, src: './boat.png', alpha: 0.5, w: 1280, h: 720}]
 
         let r = stage.root
         //r.setSmooth('rotation', 8, {duration : 10})

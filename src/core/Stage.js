@@ -7,10 +7,10 @@ let Base = require('./Base');
 
 /**
  * @todo:
- * - render texture management when overloading / overload detection
+ * - allow multiple visitEntry, visitExit hooks:
+ *   - view.addVisitEntry, view.removeVisitEntry. If only one: direct. If multiple: set view.visitEntryHooks array and use View.visitEntryMultiple.
  * - implement more filters/textures
  * - VAOs
- * - evaluate performance on rpi
  *
  * - quick clone
  *   - text texture problems or not?
@@ -22,7 +22,7 @@ let Base = require('./Base');
  *   - animation mergers: native vs non-native
  *   - type extensions
  *   - list/borders
- *   - layout
+ *   - visit
  *   - getRenderWidth
  *   - quick clone
  *   - offthread-image for better image loading performance

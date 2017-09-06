@@ -16,7 +16,6 @@ class CoreContext {
 
         this.shaderPrograms = new Map()
 
-
         this.renderState = new CoreRenderState(this)
 
         this.renderExec = new CoreRenderExecutor(this)
@@ -33,8 +32,8 @@ class CoreContext {
         this._renderTexturePool.forEach(texture => this._freeRenderTexture(texture));
     }
 
-    layout() {
-        this.root.layout()
+    visit() {
+        this.root.visit()
     }
 
     frame() {
@@ -43,7 +42,7 @@ class CoreContext {
             return false
         }
 
-        this.layout()
+        this.visit()
 
         this.update()
 

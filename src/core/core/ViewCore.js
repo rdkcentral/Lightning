@@ -17,13 +17,11 @@ class ViewCore {
 
         this._hasRenderUpdates = 0;
 
-        this._layoutEntry = null;
+        this._visitEntry = null;
 
-        this._layoutExit = null;
+        this._visitExit = null;
 
-        this._hasLayoutHooks = 0;
-
-        this._recalc = 128;
+        this._recalc = 0;
 
         this._worldAlpha = 1;
 
@@ -154,7 +152,7 @@ class ViewCore {
      *   2: translate
      *   4: transform
      *   8: clipping
-     * 128: force layout when becoming visible
+     * 128: becomes visible
      */
     _setRecalc(type) {
         this._recalc |= type;
@@ -172,64 +170,25 @@ class ViewCore {
         }
     };
 
-    _setRecalcForced(type, force) {
+    _setRecalcForced(type) {
         this._recalc |= type;
 
-        if (this._worldAlpha || force) {
-            let p = this;
-            do {
-                p._hasUpdates = true;
-            } while ((p = p._parent) && !p._hasUpdates);
+        let p = this;
+        do {
+            p._hasUpdates = true;
+        } while ((p = p._parent) && !p._hasUpdates);
 
-            if (force) {
-                // View is becoming visible: it's own rendering may have changed while invisible.
-                this.setHasRenderUpdates(3, force);
-            } else {
-                // Any changes in descendants should trigger texture updates.
-                if (this._parent) {
-                    this._parent.setHasRenderUpdates(3);
-                }
-            }
-        } else {
-            this._hasUpdates = true;
+        // Any changes in descendants should trigger texture updates.
+        if (this._parent) {
+            this._parent.setHasRenderUpdates(3);
         }
     };
-
-    _setHasLayoutHooks() {
-        if (this._hasLayoutHooks !== 1) {
-            let p = this;
-            do {
-                p._hasLayoutHooks = 1;
-            } while ((p = p._parent) && p._hasLayoutHooks !== 1);
-        }
-    }
-
-    _setHasLayoutHooksCheck() {
-        if (this._hasLayoutHooks !== -1) {
-            let p = this;
-            do {
-                p._hasLayoutHooks = -1;
-            } while ((p = p._parent) && p._hasLayoutHooks === 0);
-        }
-    }
 
     setParent(parent) {
         if (parent !== this._parent) {
             let prevIsZContext = this.isZContext();
             let prevParent = this._parent;
             this._parent = parent;
-
-            if (prevParent && prevParent._hasLayoutHooks === 1) {
-                prevParent._setHasLayoutHooksCheck();
-            }
-
-            if (parent) {
-                if (this._hasLayoutHooks === 1) {
-                    parent._setHasLayoutHooks();
-                } else if (this._hasLayoutHooks === -1) {
-                    parent._setHasLayoutHooksCheck();
-                }
-            }
 
             this._setRecalc(1 + 2 + 4);
 
@@ -309,7 +268,15 @@ class ViewCore {
     }
 
     setLocalAlpha(a) {
-        this._setRecalcForced(1, (this._parent && this._parent._worldAlpha) && a);
+        if (!this._worldAlpha && ((this._parent && this._parent._worldAlpha) && a)) {
+            // View is becoming visible.
+            this._setRecalcForced(1 + 128);
+
+            // View's rendering properties may have changed while being invisible.
+            this.setHasRenderUpdates(3, true);
+        } else {
+            this._setRecalc(1);
+        }
 
         if (a < 1e-14) {
             // Tiny rounding errors may cause failing visibility tests.
@@ -622,24 +589,12 @@ class ViewCore {
     };
 
 
-    set layoutEntry(f) {
-        this._layoutEntry = f;
-
-        if (f) {
-            this._setHasLayoutHooks();
-        } else if (this._hasLayoutHooks === 1 && !this._layoutExit) {
-            this._setHasLayoutHooksCheck();
-        }
+    set visitEntry(f) {
+        this._visitEntry = f;
     }
 
-    set layoutExit(f) {
-        this._layoutExit = f;
-
-        if (f) {
-            this._setHasLayoutHooks();
-        } else if (this._hasLayoutHooks === 1 && !this._layoutEntry) {
-            this._setHasLayoutHooksCheck();
-        }
+    set visitExit(f) {
+        this._visitExit = f;
     }
 
     get shader() {
@@ -875,44 +830,34 @@ class ViewCore {
         return (this._localAlpha > 1e-14);
     };
 
-    layout() {
-        if (this._hasLayoutHooks !== 0) {
-            // Carry positioning changes downwards to ensure re-layout.
-            let origRecalc = this._recalc;
+    visit() {
+        if (this.isVisible()) {
+            let changed = (this._recalc > 0) || (this._hasRenderUpdates > 0) || this._hasUpdates
 
-            if (this.isVisible()) {
-                this._recalc |= (this._parent._recalc & 6);
-                let layoutChanged = (this._recalc & 6);
-
-                if (this._layoutEntry && layoutChanged) {
-                    this._layoutEntry(this._view, origRecalc);
+            if (changed) {
+                if (this._visitEntry) {
+                    this._visitEntry(this._view);
                 }
+
                 if (this._children) {
-                    if (this._hasLayoutHooks === -1) {
-                        let hasLayoutHooks = false;
-                        for (let i = 0, n = this._children.length; i < n; i++) {
-                            this._children[i].layout();
-                            hasLayoutHooks = hasLayoutHooks || (this._children[i]._hasLayoutHooks === 1);
-                        }
-                        this._hasLayoutHooks = hasLayoutHooks ? 1 : 0;
-                    } else {
-                        for (let i = 0, n = this._children.length; i < n; i++) {
-                            if (this._children[i]._hasUpdates || layoutChanged) {
-                                this._children[i].layout();
-                            }
-                        }
+                    // Positioning changes are propagated downwards.
+                    let recalc = this._recalc
+
+                    this._recalc |= (this._parent._recalc & 6)
+
+                    for (let i = 0, n = this._children.length; i < n; i++) {
+                        this._children[i].visit()
                     }
-                }
-                if (this._layoutExit && this._hasUpdates) {
-                    this._layoutExit(this._view, origRecalc);
+
+                    // Reset recalc so that visitExit is able to distinguish between a local positioning change and a
+                    // positioning changed forced by the ancestor.
+                    this._recalc = recalc
                 }
 
-                if ((this._recalc & 128)) {
-                    // Clear 'force layout' flag.
-                    this._recalc -= 128;
+                if (this._visitExit) {
+                    this._visitExit(this._view);
                 }
             }
-
         }
     }
 
@@ -1099,8 +1044,8 @@ class ViewCore {
 
             this._updateTreeOrder = this.ctx.updateTreeOrder++;
 
-            this._recalc = (this._recalc & 7);
-            /* 1+2+4 */
+            this._recalc = (this._recalc & 135);
+            /* 1+2+4+128 */
 
             // Determine whether we must use a 'renderTexture'.
             this._mustRenderToTexture = false;
@@ -1136,12 +1081,7 @@ class ViewCore {
                 this._stashedCoordAttribs = tempArr;
             }
 
-            if (this._worldAlpha === 0) {
-                // Layout must be run when this view becomes visible.
-                this._recalc = 128;
-            } else {
-                this._recalc = 0;
-            }
+            this._recalc = 0
 
             this._hasUpdates = false;
 
@@ -1586,7 +1526,12 @@ class ViewCore {
         return this._view;
     }
 
+    get renderUpdates() {
+        return this._hasRenderUpdates
+    }
+
     getCornerPoints() {
+        // Outside of the update/render loops, all coordinates are always in world coords mode.
         return [
             this._worldPx,
             this._worldPy,
