@@ -36,7 +36,6 @@ class FastBlurView extends View {
         this.getLayerContents(3).texture = this.getLayer(2).getResultTextureSource()
 
         let filters = FastBlurView.getLinearBlurFilters(stage.ctx)
-        this.getLayer(0).filters = [filters[0], filters[1]]
         this.getLayer(1).filters = [filters[0], filters[1]]
         this.getLayer(2).filters = [filters[2], filters[3], filters[0], filters[1]]
         this.getLayer(3).filters = [filters[2], filters[3], filters[0], filters[1]]
