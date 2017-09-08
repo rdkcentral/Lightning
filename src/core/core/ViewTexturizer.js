@@ -19,6 +19,8 @@ class ViewTexturizer {
 
         this._renderTexture = null
 
+        this._renderTextureReused = false
+
         this._resultTexture = null
 
         this._resultTextureSource = null
@@ -172,11 +174,27 @@ class ViewTexturizer {
         this.releaseFilterTexture()
     }
 
+    get renderTextureReused() {
+        return this._renderTextureReused
+    }
+
     releaseRenderTexture() {
         if (this._renderTexture) {
-            this.ctx.releaseRenderTexture(this._renderTexture);
-            this._renderTexture = null;
+            if (!this._renderTextureReused) {
+                this.ctx.releaseRenderTexture(this._renderTexture)
+            }
+            this._renderTexture = null
+            this._renderTextureReused = false
             this.updateResultTexture()
+        }
+    }
+
+    // Reuses the specified texture as the render texture.
+    reuseTextureAsRenderTexture(glTexture) {
+        if (this._renderTexture !== glTexture) {
+            this.releaseRenderTexture()
+            this._renderTexture = glTexture
+            this._renderTextureReused = true
         }
     }
 
@@ -187,6 +205,7 @@ class ViewTexturizer {
     getRenderTexture() {
         if (!this._renderTexture) {
             this._renderTexture = this.ctx.allocateRenderTexture(Math.min(2048, this._core._rw), Math.min(2048, this._core._rh));
+            this._renderTextureReused = false
         }
         return this._renderTexture;
     }

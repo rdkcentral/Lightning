@@ -114,7 +114,8 @@ class FastBlurView extends View {
     }
 
     /**
-     * Sets the amount of blur. A value between 0 and 4.
+     * Sets the amount of blur. A value between 0 and 4. Goes up exponentially for blur.
+     * Best results for non-fractional values.
      * @param v
      */
     set amount(v) {

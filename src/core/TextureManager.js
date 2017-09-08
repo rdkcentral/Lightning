@@ -126,6 +126,10 @@ class TextureManager {
         // Store texture.
         textureSource.glTexture = sourceTexture;
 
+        // Used by CoreRenderState for optimizations.
+        sourceTexture.w = textureSource.w
+        sourceTexture.h = textureSource.h
+
         this._usedTextureMemory += textureSource.w * textureSource.h;
 
         this._uploadedTextureSources.push(textureSource);

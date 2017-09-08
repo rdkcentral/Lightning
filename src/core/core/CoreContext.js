@@ -86,6 +86,8 @@ class CoreContext {
     }
 
     allocateRenderTexture(w, h) {
+        w = Math.round(w)
+        h = Math.round(h)
         for (let i = 0, n = this._renderTexturePool.length; i < n; i++) {
             let texture = this._renderTexturePool[i];
             if (texture.w === w && texture.h === h) {

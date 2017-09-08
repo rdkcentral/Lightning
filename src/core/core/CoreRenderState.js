@@ -22,10 +22,9 @@ class CoreRenderState {
     }
 
     reset() {
-        this._renderTexture = null
-        this._clearRenderTexture = false
+        this._renderTextureInfo = null
 
-        this._renderTextureStack = []
+        this._renderTextureInfoStack = []
 
         /**
          * @type {Shader}
@@ -70,29 +69,20 @@ class CoreRenderState {
         }
     }
 
-    setRenderTexture(renderTexture, clear = false) {
-        this._renderTextureStack.push(this._renderTexture)
+    setRenderTextureInfo(renderTextureInfo) {
+        this._renderTextureInfoStack.push(this._renderTextureInfo)
 
-        this._setRenderTexture(renderTexture, clear)
+        this._setRenderTextureInfo(renderTextureInfo)
     }
 
-    restoreRenderTexture() {
-        this._setRenderTexture(this._renderTextureStack.pop(), false);
+    restoreRenderTextureInfo() {
+        this._setRenderTextureInfo(this._renderTextureInfoStack.pop(), false);
     }
 
-    _setRenderTexture(renderTexture, clear = false) {
-        if (this._renderTexture !== renderTexture || clear) {
-            this._renderTexture = renderTexture
-            this._clearRenderTexture = clear
-
-            if (clear) {
-                // We must close off the current quad operation and then add a new one,
-                // to make sure that (even if there are no quads) the 'clear render texture'
-                // is added in an empty quad operation.
-                this._addQuadOperation()
-            } else {
-                this._check = true
-            }
+    _setRenderTextureInfo(renderTextureInfo) {
+        if (this._renderTextureInfo !== renderTextureInfo) {
+            this._renderTextureInfo = renderTextureInfo
+            this._check = true
         }
     }
 
@@ -119,6 +109,17 @@ class CoreRenderState {
 
         let offset = this.length * 64 + 64 // Skip the identity filter quad.
 
+        if (this._renderTextureInfo) {
+            if (this._renderTextureInfo.empty && (this._renderTextureInfo.w === glTexture.w && this._renderTextureInfo.h === glTexture.h)) {
+                // The texture might be reusable under some conditions. We will check them in ViewCore.renderer.
+                this._renderTextureInfo.glTexture = glTexture
+                this._renderTextureInfo.offset = offset
+            } else {
+                // It is not possible to reuse another texture when there is more than one quad.
+                this._renderTextureInfo.glTexture = null
+            }
+        }
+
         this.quads.quadTextures.push(glTexture)
         this.quads.quadViews.push(viewCore)
 
@@ -131,14 +132,14 @@ class CoreRenderState {
         let q = this._quadOperation
         if (this._shader !== q.shader) return true
         if (this._shaderOwner !== q.shaderOwner) return true
-        if (this._renderTexture !== q.renderTexture) return true
+        if (this._renderTextureInfo !== q.renderTextureInfo) return true
 
         return false
     }
     
     _addQuadOperation(create = true) {
         if (this._quadOperation) {
-            if (this._quadOperation.clearRenderTexture || this._quadOperation.length || this._shader.addEmpty()) {
+            if (this._quadOperation.length || this._shader.addEmpty()) {
                 this.quadOperations.push(this._quadOperation)
             }
 
@@ -148,9 +149,6 @@ class CoreRenderState {
         if (create) {
             this._createQuadOperation()
         }
-
-        // If the render texture is not changed or explicitly cleared again, it shouldn't be cleared.
-        this._clearRenderTexture = false
     }
 
     _createQuadOperation() {
@@ -158,18 +156,17 @@ class CoreRenderState {
             this.ctx,
             this._shader,
             this._shaderOwner,
-            this._renderTexture,
-            this._clearRenderTexture,
+            this._renderTextureInfo,
             this.length
         )
         this._check = false
     }
 
-    addFilter(filter, owner, source, renderTexture) {
+    addFilter(filter, owner, source, target) {
         // Close current quad operation.
         this._addQuadOperation(false)
 
-        this.filterOperations.push(new CoreFilterOperation(this.ctx, filter, owner, source, renderTexture, this.quadOperations.length))
+        this.filterOperations.push(new CoreFilterOperation(this.ctx, filter, owner, source, target, this.quadOperations.length))
     }
 
     finish() {
@@ -187,7 +184,7 @@ class CoreRenderState {
     
     _renderDebugTextureAtlas() {
         this.setShader(this.defaultShader, this.ctx.root)
-        this.setRenderTexture(null)
+        this.setRenderTextureInfo(null)
         this.setOverrideQuadTexture(this.textureAtlasGlTexture)
 
         let size = Math.min(this.ctx.stage.w, this.ctx.stage.h)

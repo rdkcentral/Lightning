@@ -135,6 +135,9 @@ class TextureAtlas {
         this.texture = this.gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
 
+        this.texture.w = this.w
+        this.texture.h = this.h
+
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.w, this.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);

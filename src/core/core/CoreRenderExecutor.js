@@ -114,11 +114,16 @@ class CoreRenderExecutor {
     }
 
     _processQuadOperation(quadOperation) {
+        if (quadOperation.renderTextureInfo && quadOperation.renderTextureInfo.ignore) {
+            // Ignore quad operations when we are 're-using' another texture as the render texture result.
+            return
+        }
+
         // Check if quad operation can be merged; uniforms are set lazily in the process.
         let shader = quadOperation.shader
 
         let merged = false
-        if (this._quadOperation && (this._quadOperation.renderTexture === quadOperation.renderTexture) && this._quadOperation.shader.supportsMerging() && quadOperation.shader.supportsMerging()) {
+        if (this._quadOperation && (this._quadOperation.renderTextureInfo === quadOperation.renderTextureInfo) && this._quadOperation.shader.supportsMerging() && quadOperation.shader.supportsMerging()) {
             if (this._quadOperation.shader === shader) {
                 this._mergeQuadOperation(quadOperation)
                 merged = true
@@ -147,8 +152,12 @@ class CoreRenderExecutor {
         let shader = op.shader
 
         // Set render texture.
-        if (this._renderTexture !== op.renderTexture || op.clearRenderTexture) {
-            this._bindRenderTexture(op.renderTexture, op.clearRenderTexture)
+        let glTexture = op.renderTextureInfo ? op.renderTextureInfo.glTexture : null;
+        if (this._renderTexture !== glTexture) {
+            this._bindRenderTexture(glTexture, op.renderTextureInfo && !op.renderTextureInfo.cleared)
+            if (op.renderTextureInfo) {
+                op.renderTextureInfo.cleared = true
+            }
         }
 
         if (op.length || shader.addEmpty()) {

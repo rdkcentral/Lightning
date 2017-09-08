@@ -1140,19 +1140,19 @@ class ViewCore {
             renderState.setShader(this.activeShader, this._shaderOwner);
 
             let mustRenderChildren = true;
+            let renderTextureInfo;
             if (this._mustRenderToTexture) {
                 if (this._rw === 0 || this._rh === 0) {
                     // Ignore this branch and don't draw anything.
                     this._hasRenderUpdates = 0;
                     return;
                 } else if (!this._texturizer.hasRenderTexture() || (this._hasRenderUpdates >= 3)) {
-                    // Re-create gl texture.
-                    let texture = this._texturizer.getRenderTexture();
-
                     // Switch to default shader for building up the render texture.
                     renderState.setShader(renderState.defaultShader, this)
 
-                    renderState.setRenderTexture(texture, true);
+                    renderTextureInfo = {glTexture: null, offset: 0, w: this._rw, h: this._rh, empty: true, cleared: false, ignore: false}
+
+                    renderState.setRenderTextureInfo(renderTextureInfo);
 
                     if (this._displayedTextureSource) {
                         // Use an identity context for drawing the displayed texture to the render texture.
@@ -1207,8 +1207,49 @@ class ViewCore {
             if (this._mustRenderToTexture) {
                 let updateResultTexture = false
                 if (mustRenderChildren) {
-                    // Finish refreshing renderGlTexture.
-                    renderState.restoreRenderTexture();
+                    // Finish refreshing renderTexture.
+                    if (renderTextureInfo.glTexture) {
+                        // There was only one texture drawn in this render texture.
+                        // Check if we can reuse it (it should exactly span this render texture).
+                        let floats = renderState.quads.floats
+                        let uints = renderState.quads.uints
+                        let offset = renderTextureInfo.offset / 4
+                        let reuse = ((floats[offset] === 0) &&
+                            (floats[offset + 1] === 0) &&
+                            (uints[offset + 2] === 0x00000000) &&
+                            (uints[offset + 3] === 0xFFFFFFFF) &&
+                            (floats[offset + 4] === renderTextureInfo.w) &&
+                            (floats[offset + 5] === 0) &&
+                            (uints[offset + 6] === 0x0000FFFF) &&
+                            (uints[offset + 7] === 0xFFFFFFFF) &&
+                            (floats[offset + 8] === renderTextureInfo.w) &&
+                            (floats[offset + 9] === renderTextureInfo.h) &&
+                            (uints[offset + 10] === 0xFFFFFFFF) &&
+                            (uints[offset + 11] === 0xFFFFFFFF) &&
+                            (floats[offset + 12] === 0) &&
+                            (floats[offset + 13] === renderTextureInfo.h) &&
+                            (uints[offset + 14] === 0xFFFF0000) &&
+                            (uints[offset + 15] === 0xFFFFFFFF))
+                        if (!reuse) {
+                            renderTextureInfo.glTexture = null
+                        }
+                    }
+
+                    if (renderTextureInfo.glTexture) {
+                        // If glTexture is set, we can reuse that directly instead of creating a new render texture.
+                        this._texturizer.reuseTextureAsRenderTexture(renderTextureInfo.glTexture)
+
+                        renderTextureInfo.ignore = true
+                    } else {
+                        if (this._texturizer.renderTextureReused) {
+                            // Quad operations must be written to a render texture actually owned.
+                            this._texturizer.releaseRenderTexture()
+                        }
+                        // Just create the render texture.
+                        renderTextureInfo.glTexture = this._texturizer.getRenderTexture()
+                    }
+
+                    renderState.restoreRenderTextureInfo();
                     updateResultTexture = true
                 }
 

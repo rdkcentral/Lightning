@@ -100,10 +100,10 @@ class Shader extends ShaderBase {
     }
 
     _getProjection(operation) {
-        if (operation.renderTexture === null) {
+        if (operation.renderTextureInfo === null) {
             return this.ctx.renderExec._projection
         } else {
-            return operation.renderTexture.projection
+            return operation.renderTextureInfo.glTexture.projection
         }
     }
 
