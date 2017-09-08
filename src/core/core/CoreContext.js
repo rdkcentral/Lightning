@@ -51,6 +51,8 @@ class CoreContext {
         // Clear flag to identify if anything changes before the next frame.
         this.root._parent._hasRenderUpdates = false
 
+        this._freeUnusedRenderTextures(6000)
+
         return true
     }
 
@@ -81,8 +83,6 @@ class CoreContext {
 
         // Now run them with the render executor.
         this.renderExec.execute()
-
-        this._freeUnusedRenderTextures();
     }
 
     allocateRenderTexture(w, h) {
@@ -106,11 +106,11 @@ class CoreContext {
         this._renderTexturePool.push(texture);
     }
 
-    _freeUnusedRenderTextures() {
+    _freeUnusedRenderTextures(maxAge = 60) {
         // Clean up all textures that are no longer used.
         // This cache is short-lived because it is really just meant to supply running shaders and filters that are
         // updated during a number of frames.
-        let limit = this.stage.frameCounter - 60;
+        let limit = this.stage.frameCounter - maxAge;
 
         this._renderTexturePool = this._renderTexturePool.filter(texture => {
             if (texture.f < limit) {
@@ -123,7 +123,6 @@ class CoreContext {
     }
 
     _createRenderTexture(w, h) {
-        this._renderTexturePoolPixels += w * h
         if (this._renderTexturePoolPixels > this.stage.options.renderTexturePoolPixels) {
             this._freeUnusedRenderTextures()
             if (this._renderTexturePoolPixels > this.stage.options.renderTexturePoolPixels) {
