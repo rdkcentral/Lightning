@@ -96,8 +96,9 @@ class ViewCore {
 
         this._texturizer = null
 
-        this._mustRenderToTexture = false
+        this._useRenderToTexture = false
 
+        this._useViewportClipping = false
     }
 
     /**
@@ -566,7 +567,8 @@ class ViewCore {
 
     set clipping(v) {
         this._clipping = v
-        //@todo: make sure that view context is enabled.
+
+        this._updateRenderContext()
     }
 
     _setShaderOwnerRecursive(viewCore) {
@@ -842,10 +844,15 @@ class ViewCore {
             /* 1+2+4+128 */
 
             // Determine whether we must use a 'renderTexture'.
-            this._mustRenderToTexture = this._renderToTextureEnabled && this._texturizer.mustRenderToTexture()
+            this._useRenderToTexture = this._renderToTextureEnabled && this._texturizer.mustRenderToTexture()
+
+            // Determine whether we must 'clip'
+            this._useViewportClipping = !this._useRenderToTexture && this._renderContextEnabled && this._renderContext.isSquare()
+
+            let useRenderContext = this._useRenderToTexture || this._useViewportClipping
 
             let r
-            if (this._renderContextEnabled) {
+            if (useRenderContext) {
                 r = this._renderContext
 
                 if (this._worldContext.isIdentity()) {
@@ -871,7 +878,7 @@ class ViewCore {
                 }
             }
 
-            if (this._renderContextEnabled) {
+            if (useRenderContext) {
                 this._renderContext = r
             }
 
@@ -927,9 +934,11 @@ class ViewCore {
 
             renderState.setShader(this.activeShader, this._shaderOwner);
 
-            let mustRenderChildren = true;
-            let renderTextureInfo;
-            if (this._mustRenderToTexture) {
+            let mustRenderChildren = true
+            let renderTextureInfo
+            let prevRenderTextureInfo
+            let prevViewport
+            if (this._useRenderToTexture) {
                 if (this._rw === 0 || this._rh === 0) {
                     // Ignore this branch and don't draw anything.
                     this._hasRenderUpdates = 0;
@@ -938,7 +947,17 @@ class ViewCore {
                     // Switch to default shader for building up the render texture.
                     renderState.setShader(renderState.defaultShader, this)
 
-                    renderTextureInfo = {glTexture: null, offset: 0, w: this._rw, h: this._rh, empty: true, cleared: false, ignore: false}
+                    prevRenderTextureInfo = renderState.renderTextureInfo
+
+                    renderTextureInfo = {
+                        glTexture: null,
+                        offset: 0,
+                        w: this._rw,
+                        h: this._rh,
+                        empty: true,
+                        cleared: false,
+                        ignore: false
+                    }
 
                     renderState.setRenderTextureInfo(renderTextureInfo);
 
@@ -955,6 +974,27 @@ class ViewCore {
                     }
                 } else {
                     mustRenderChildren = false;
+                }
+            } else if (this._useViewportClipping) {
+                // Calculate and set clipping area on render texture.
+                let x = Math.round(this._parent._renderContext[0])
+                let y = Math.round(this._parent._renderContext[1])
+                let w = Math.round(this._parent._renderContext[2] * this._parent._rw)
+                let h = Math.round(this._parent._renderContext[5] * this._parent._rh)
+
+                prevViewport = renderState.getViewport()
+                renderState.setViewport([x, y, w, h])
+
+                if (this._displayedTextureSource) {
+                    let r = this._renderContext
+
+                    // Use an identity context for drawing the displayed texture to the render texture.
+                    this._renderContext = ViewCoreContext.IDENTITY
+
+                    // Add displayed texture source in local coordinates.
+                    this.addQuads()
+
+                    this._renderContext = r
                 }
             } else if (this._displayedTextureSource) {
                 this.addQuads();
@@ -976,7 +1016,7 @@ class ViewCore {
                 }
             }
 
-            if (this._mustRenderToTexture) {
+            if (this._useRenderToTexture) {
                 let updateResultTexture = false
                 if (mustRenderChildren) {
                     // Finish refreshing renderTexture.
@@ -1021,7 +1061,9 @@ class ViewCore {
                         renderTextureInfo.glTexture = this._texturizer.getRenderTexture()
                     }
 
-                    renderState.restoreRenderTextureInfo();
+                    // Restore the parent's render texture.
+                    renderState.setRenderTextureInfo(prevRenderTextureInfo)
+
                     updateResultTexture = true
                 }
 
@@ -1051,6 +1093,8 @@ class ViewCore {
                     this._unstashTexCoords();
                     renderState.setOverrideQuadTexture(null);
                 }
+            } else if (this._useViewportClipping) {
+                renderState.setViewport(prevViewport)
             }
 
             this._hasRenderUpdates = 0;
@@ -1263,6 +1307,10 @@ class ViewCoreContext {
             this.tb === 0 &&
             this.tc === 0 &&
             this.td === 1
+    }
+
+    isSquare() {
+        return this.tb === 0 && this.tc === 0
     }
 }
 

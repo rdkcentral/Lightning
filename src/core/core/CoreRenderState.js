@@ -24,7 +24,7 @@ class CoreRenderState {
     reset() {
         this._renderTextureInfo = null
 
-        this._renderTextureInfoStack = []
+        this._viewport = null
 
         /**
          * @type {Shader}
@@ -69,17 +69,22 @@ class CoreRenderState {
         }
     }
 
+    get renderTextureInfo() {
+        return this._renderTextureInfo
+    }
+
+    setViewport(viewport) {
+        //@todo. Round x,y,w,h.
+        var i = 1;
+        this._viewport = viewport
+        this._check = true
+    }
+
+    getViewport() {
+        return this._viewport
+    }
+
     setRenderTextureInfo(renderTextureInfo) {
-        this._renderTextureInfoStack.push(this._renderTextureInfo)
-
-        this._setRenderTextureInfo(renderTextureInfo)
-    }
-
-    restoreRenderTextureInfo() {
-        this._setRenderTextureInfo(this._renderTextureInfoStack.pop(), false);
-    }
-
-    _setRenderTextureInfo(renderTextureInfo) {
         if (this._renderTextureInfo !== renderTextureInfo) {
             this._renderTextureInfo = renderTextureInfo
             this._check = true
