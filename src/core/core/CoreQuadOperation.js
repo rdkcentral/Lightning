@@ -4,12 +4,13 @@
 
 class CoreQuadOperation {
 
-    constructor(ctx, shader, shaderOwner, renderTextureInfo, index) {
+    constructor(ctx, shader, shaderOwner, renderTextureInfo, viewport, index) {
 
         this.ctx = ctx
         this.shader = shader
         this.shaderOwner = shaderOwner
         this.renderTextureInfo = renderTextureInfo
+        this.viewport = viewport
         this.index = index
         this.length = 0
         this.extraAttribsDataByteOffset = 0

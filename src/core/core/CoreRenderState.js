@@ -74,8 +74,6 @@ class CoreRenderState {
     }
 
     setViewport(viewport) {
-        //@todo. Round x,y,w,h.
-        var i = 1;
         this._viewport = viewport
         this._check = true
     }
@@ -87,6 +85,7 @@ class CoreRenderState {
     setRenderTextureInfo(renderTextureInfo) {
         if (this._renderTextureInfo !== renderTextureInfo) {
             this._renderTextureInfo = renderTextureInfo
+            this._viewport = null
             this._check = true
         }
     }
@@ -123,6 +122,7 @@ class CoreRenderState {
                 // It is not possible to reuse another texture when there is more than one quad.
                 this._renderTextureInfo.glTexture = null
             }
+            this._renderTextureInfo.empty = false
         }
 
         this.quads.quadTextures.push(glTexture)
@@ -138,6 +138,7 @@ class CoreRenderState {
         if (this._shader !== q.shader) return true
         if (this._shaderOwner !== q.shaderOwner) return true
         if (this._renderTextureInfo !== q.renderTextureInfo) return true
+        if (this._viewport !== q.viewport) return true
 
         return false
     }
@@ -162,6 +163,7 @@ class CoreRenderState {
             this._shader,
             this._shaderOwner,
             this._renderTextureInfo,
+            this._viewport,
             this.length
         )
         this._check = false

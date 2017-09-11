@@ -1047,7 +1047,9 @@ class ViewCore {
                         }
                     }
 
-                    if (renderTextureInfo.glTexture) {
+                    if (renderTextureInfo.empty) {
+                        // We ignore empty render textures and do not draw the final quad.
+                    } else if (renderTextureInfo.glTexture) {
                         // If glTexture is set, we can reuse that directly instead of creating a new render texture.
                         this._texturizer.reuseTextureAsRenderTexture(renderTextureInfo.glTexture)
 
@@ -1081,7 +1083,8 @@ class ViewCore {
                     this._texturizer.updateResultTexture();
                 }
 
-                if (!this._texturizer.hideResult) {
+                // Do not draw textures that do not have any contents.
+                if ((!mustRenderChildren || !renderTextureInfo.empty) && !this._texturizer.hideResult) {
                     // Render result texture to the actual render target.
                     renderState.setShader(this.activeShader, this._shaderOwner);
 

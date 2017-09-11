@@ -52,6 +52,7 @@ class CoreRenderExecutor {
 
     _reset() {
         this._bindRenderTexture(null, true)
+        this._setViewport(null)
 
         // Set up default settings. Shaders should, after drawing, reset these properly.
         let gl = this.gl
@@ -123,7 +124,7 @@ class CoreRenderExecutor {
         let shader = quadOperation.shader
 
         let merged = false
-        if (this._quadOperation && (this._quadOperation.renderTextureInfo === quadOperation.renderTextureInfo) && this._quadOperation.shader.supportsMerging() && quadOperation.shader.supportsMerging()) {
+        if (this._quadOperation && (this._quadOperation.renderTextureInfo === quadOperation.renderTextureInfo) && (this._quadOperation.viewport === quadOperation.viewport) && this._quadOperation.shader.supportsMerging() && quadOperation.shader.supportsMerging()) {
             if (this._quadOperation.shader === shader) {
                 this._mergeQuadOperation(quadOperation)
                 merged = true
@@ -151,16 +152,18 @@ class CoreRenderExecutor {
 
         let shader = op.shader
 
-        // Set render texture.
-        let glTexture = op.renderTextureInfo ? op.renderTextureInfo.glTexture : null;
-        if (this._renderTexture !== glTexture) {
-            this._bindRenderTexture(glTexture, op.renderTextureInfo && !op.renderTextureInfo.cleared)
-            if (op.renderTextureInfo) {
-                op.renderTextureInfo.cleared = true
-            }
-        }
-
         if (op.length || shader.addEmpty()) {
+            // Set render texture.
+            let glTexture = op.renderTextureInfo ? op.renderTextureInfo.glTexture : null;
+            if (this._renderTexture !== glTexture) {
+                this._bindRenderTexture(glTexture, op.renderTextureInfo && !op.renderTextureInfo.cleared)
+                if (op.renderTextureInfo) {
+                    op.renderTextureInfo.cleared = true
+                }
+            }
+
+            this._setViewport(op.viewport)
+
             this._useShaderProgram(shader)
 
             // Set the prepared updates.
@@ -212,7 +215,6 @@ class CoreRenderExecutor {
         let gl = this.gl;
         if (!this._renderTexture) {
             gl.bindFramebuffer(gl.FRAMEBUFFER, null)
-            gl.viewport(0,0,this.ctx.stage.w,this.ctx.stage.h)
 
             if (clear) {
                 let glClearColor = this.ctx.stage.options.glClearColor;
@@ -221,7 +223,6 @@ class CoreRenderExecutor {
             }
         } else {
             gl.bindFramebuffer(gl.FRAMEBUFFER, this._renderTexture.framebuffer)
-            gl.viewport(0,0,this._renderTexture.w, this._renderTexture.h)
 
             if (clear) {
                 // Clear texture.
@@ -230,6 +231,21 @@ class CoreRenderExecutor {
             }
         }
     }
+
+    _setViewport(viewport) {
+        let gl = this.gl
+        if (!viewport) {
+            if (this._renderTexture) {
+                gl.viewport(0,0,this._renderTexture.w, this._renderTexture.h)
+            } else {
+                gl.viewport(0,0,this.ctx.stage.w,this.ctx.stage.h)
+            }
+        } else {
+            // Viewport is primarily used for fast square clipping.
+            gl.viewport(viewport[0], viewport[1], viewport[2], viewport[3])
+        }
+    }
+
 
 }
 
