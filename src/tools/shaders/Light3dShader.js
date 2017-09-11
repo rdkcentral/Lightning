@@ -45,9 +45,8 @@ class Light3dShader extends Shader {
         let coords = vr.getRenderTextureCoords(view.pivotX * vr.rw, view.pivotY * vr.rh)
 
         // Counter normal rotation.
-        vr.setRenderCoordAttribsMode()
-        let rz = -Math.atan2(vr._worldTc, vr._worldTa)
-        vr.setWorldCoordAttribsMode()
+
+        let rz = -Math.atan2(vr._renderContext.tc, vr._renderContext.ta)
 
         let gl = this.gl
         this._setUniform("pivot", new Float32Array([coords[0], coords[1], this._z]), gl.uniform3fv)
