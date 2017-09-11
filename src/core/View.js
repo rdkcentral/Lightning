@@ -856,7 +856,7 @@ class View {
         }
     }
 
-    loc() {
+    getLocationString() {
         let i;
         if (this._parent) {
             i = this._parent._children.getIndex(this);
@@ -1522,11 +1522,7 @@ class View {
     }
 
     get texturizer() {
-        if (!this._texturizer) {
-            this._texturizer = new ViewTexturizer(this)
-            this._core._texturizer = this._texturizer
-        }
-        return this._texturizer
+        return this._core.texturizer
     }
 
     /*A¬*/
@@ -1847,4 +1843,3 @@ let TextureSource = require('./TextureSource')
 /*A¬*/let Transition = require('../animation/Transition')
 let TransitionSettings = require('../animation/TransitionSettings')/*¬A*/
 let ViewChildList = require('./ViewChildList');
-let ViewTexturizer = require('./core/ViewTexturizer')

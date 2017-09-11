@@ -52,7 +52,7 @@ class CoreRenderExecutor {
 
     _reset() {
         this._bindRenderTexture(null, true)
-        this._setViewport(null)
+        this._setScissor(null)
 
         // Set up default settings. Shaders should, after drawing, reset these properly.
         let gl = this.gl
@@ -105,6 +105,10 @@ class CoreRenderExecutor {
         this._stopShaderProgram()
     }
 
+    getQuadContents() {
+        return this.renderState.quads.getQuadContents()
+    }
+
     _mergeQuadOperation(quadOperation) {
         if (this._quadOperation) {
             this._quadOperation.length += quadOperation.length
@@ -124,7 +128,7 @@ class CoreRenderExecutor {
         let shader = quadOperation.shader
 
         let merged = false
-        if (this._quadOperation && (this._quadOperation.renderTextureInfo === quadOperation.renderTextureInfo) && (this._quadOperation.viewport === quadOperation.viewport) && this._quadOperation.shader.supportsMerging() && quadOperation.shader.supportsMerging()) {
+        if (this._quadOperation && (this._quadOperation.renderTextureInfo === quadOperation.renderTextureInfo) && (this._quadOperation.scissor === quadOperation.scissor) && this._quadOperation.shader.supportsMerging() && quadOperation.shader.supportsMerging()) {
             if (this._quadOperation.shader === shader) {
                 this._mergeQuadOperation(quadOperation)
                 merged = true
@@ -162,7 +166,7 @@ class CoreRenderExecutor {
                 }
             }
 
-            this._setViewport(op.viewport)
+            this._setScissor(op.scissor)
 
             this._useShaderProgram(shader)
 
@@ -184,6 +188,7 @@ class CoreRenderExecutor {
         filter.commitUniformUpdates()
         filter.beforeDraw(filterOperation)
         this._bindRenderTexture(filterOperation.renderTexture, true)
+        this._setScissor(null)
         filter.draw(filterOperation)
         filter.afterDraw(filterOperation)
     }
@@ -215,6 +220,7 @@ class CoreRenderExecutor {
         let gl = this.gl;
         if (!this._renderTexture) {
             gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+            gl.viewport(0,0,this.ctx.stage.w,this.ctx.stage.h)
 
             if (clear) {
                 let glClearColor = this.ctx.stage.options.glClearColor;
@@ -223,6 +229,7 @@ class CoreRenderExecutor {
             }
         } else {
             gl.bindFramebuffer(gl.FRAMEBUFFER, this._renderTexture.framebuffer)
+            gl.viewport(0,0,this._renderTexture.w, this._renderTexture.h)
 
             if (clear) {
                 // Clear texture.
@@ -232,17 +239,13 @@ class CoreRenderExecutor {
         }
     }
 
-    _setViewport(viewport) {
+    _setScissor(area) {
         let gl = this.gl
-        if (!viewport) {
-            if (this._renderTexture) {
-                gl.viewport(0,0,this._renderTexture.w, this._renderTexture.h)
-            } else {
-                gl.viewport(0,0,this.ctx.stage.w,this.ctx.stage.h)
-            }
+        if (!area) {
+            gl.disable(gl.SCISSOR_TEST);
         } else {
-            // Viewport is primarily used for fast square clipping.
-            gl.viewport(viewport[0], viewport[1], viewport[2], viewport[3])
+            gl.enable(gl.SCISSOR_TEST);
+            gl.scissor(area[0], area[1], area[2], area[3]);
         }
     }
 

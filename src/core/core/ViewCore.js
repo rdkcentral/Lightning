@@ -88,9 +88,6 @@ class ViewCore {
         // The ViewCore that owns the shader that's active in this branch. Null if none is active (default shader).
         this._shaderOwner = null;
 
-        // View is rendered into its own viewport.
-        this._renderContextEnabled = false
-
         // View is rendered on another texture.
         this._renderToTextureEnabled = false;
 
@@ -310,7 +307,7 @@ class ViewCore {
     };
 
     isZContext() {
-        return (this._forceZIndexContext || this._renderContextEnabled || this._zIndex !== 0 || this._isRoot || !this._parent);
+        return (this._forceZIndexContext || this._renderToTextureEnabled || this._zIndex !== 0 || this._isRoot || !this._parent);
     };
 
     findZContext() {
@@ -567,8 +564,7 @@ class ViewCore {
 
     set clipping(v) {
         this._clipping = v
-
-        this._updateRenderContext()
+        this.updateRenderToTextureEnabled()
     }
 
     _setShaderOwnerRecursive(viewCore) {
@@ -605,16 +601,39 @@ class ViewCore {
         return this._renderContext !== this._worldContext
     }
 
+    updateRenderToTextureEnabled() {
+        // Enforce texturizer initialisation.
+        let v = (this.texturizer._hasFilters() || this.texturizer._enabled) || this._clipping
+
+        if (v) {
+            this._enableRenderToTexture()
+        } else {
+            this._disableRenderToTexture()
+            this._texturizer.releaseRenderTexture()
+        }
+    }
+
     _enableRenderToTexture() {
         if (!this._renderToTextureEnabled) {
+            let prevIsZContext = this.isZContext()
+
             this._renderToTextureEnabled = true
+
+            this._renderContext = new ViewCoreContext()
 
             // If render to texture is active, a new shader context is started.
             this._setShaderOwnerChildrenRecursive(null)
 
-            this._updateRenderContext()
+            if (!prevIsZContext) {
+                // Render context forces z context.
+                this.enableZContext(this._parent ? this._parent.findZContext() : null);
+            }
 
             this.setHasRenderUpdates(3)
+
+            // Make sure that the render coordinates get updated.
+            this._setRecalc(7);
+
         }
     }
 
@@ -624,43 +643,7 @@ class ViewCore {
 
             this._setShaderOwnerChildrenRecursive(this._shaderOwner)
 
-            this._updateRenderContext()
-
-            this.setHasRenderUpdates(3)
-        }
-    }
-
-    _updateRenderContext() {
-        let v = this._renderToTextureEnabled/* || this._clipping*/
-        if (v) {
-            this._enableRenderContext()
-        } else {
-            this._disableRenderContext()
-        }
-    }
-
-    _enableRenderContext() {
-        if (!this._renderContextEnabled) {
-            let prevIsZContext = this.isZContext()
-
-            this._renderContext = new ViewCoreContext()
-
-            this._renderContextEnabled = true
-
-            if (!prevIsZContext) {
-                // Render context forces z context.
-                this.enableZContext(this._parent ? this._parent.findZContext() : null);
-            }
-
-            // Make sure that the render coordinates get updated.
-            this._setRecalc(7);
-        }
-    }
-
-    _disableRenderContext() {
-        if (this._renderContextEnabled) {
             this._renderContext = this._worldContext
-            this._renderContextEnabled = false
 
             if (!this.isZContext()) {
                 this.disableZContext();
@@ -668,6 +651,8 @@ class ViewCore {
 
             // Make sure that the render coordinates get updated.
             this._setRecalc(7);
+
+            this.setHasRenderUpdates(3)
         }
     }
 
@@ -834,7 +819,7 @@ class ViewCore {
                         r.td += this._localTb * pr.tc
                     }
                 }
-            } else if (!this._renderContextEnabled) {
+            } else {
                 this._renderContext = this._worldContext
             }
 
@@ -846,13 +831,19 @@ class ViewCore {
             // Determine whether we must use a 'renderTexture'.
             this._useRenderToTexture = this._renderToTextureEnabled && this._texturizer.mustRenderToTexture()
 
-            // Determine whether we must 'clip'
-            this._useViewportClipping = !this._useRenderToTexture && this._renderContextEnabled && this._renderContext.isSquare()
-
-            let useRenderContext = this._useRenderToTexture || this._useViewportClipping
+            // Determine whether we must 'clip'.
+            this._useViewportClipping = false
+            if (!this._useRenderToTexture && this._clipping) {
+                if (this._renderContext.isSquare()) {
+                    this._useViewportClipping = true
+                } else {
+                    // Use a render texture to clip.
+                    this._useRenderToTexture = true
+                }
+            }
 
             let r
-            if (useRenderContext) {
+            if (this._useRenderToTexture) {
                 r = this._renderContext
 
                 if (this._worldContext.isIdentity()) {
@@ -878,7 +869,7 @@ class ViewCore {
                 }
             }
 
-            if (useRenderContext) {
+            if (this._useRenderToTexture) {
                 this._renderContext = r
             }
 
@@ -937,7 +928,7 @@ class ViewCore {
             let mustRenderChildren = true
             let renderTextureInfo
             let prevRenderTextureInfo
-            let prevViewport
+            let prevScissor
             if (this._useRenderToTexture) {
                 if (this._rw === 0 || this._rh === 0) {
                     // Ignore this branch and don't draw anything.
@@ -975,29 +966,20 @@ class ViewCore {
                 } else {
                     mustRenderChildren = false;
                 }
-            } else if (this._useViewportClipping) {
-                // Calculate and set clipping area on render texture.
-                let x = Math.round(this._parent._renderContext[0])
-                let y = Math.round(this._parent._renderContext[1])
-                let w = Math.round(this._parent._renderContext[2] * this._parent._rw)
-                let h = Math.round(this._parent._renderContext[5] * this._parent._rh)
-
-                prevViewport = renderState.getViewport()
-                renderState.setViewport([x, y, w, h])
+            } else {
+                if (this._useViewportClipping) {
+                    // Calculate and set clipping area on render texture.
+                    let x = Math.round(this._renderContext.px)
+                    let y = Math.round(this._renderContext.py)
+                    let w = Math.round(this._renderContext.ta * this._rw)
+                    let h = Math.round(this._renderContext.td * this._rh)
+                    prevScissor = renderState.getScissor()
+                    renderState.setScissor([x, y, w, h])
+                }
 
                 if (this._displayedTextureSource) {
-                    let r = this._renderContext
-
-                    // Use an identity context for drawing the displayed texture to the render texture.
-                    this._renderContext = ViewCoreContext.IDENTITY
-
-                    // Add displayed texture source in local coordinates.
                     this.addQuads()
-
-                    this._renderContext = r
                 }
-            } else if (this._displayedTextureSource) {
-                this.addQuads();
             }
 
             // Also add children to the VBO.
@@ -1097,7 +1079,7 @@ class ViewCore {
                     renderState.setOverrideQuadTexture(null);
                 }
             } else if (this._useViewportClipping) {
-                renderState.setViewport(prevViewport)
+                renderState.setScissor(prevScissor)
             }
 
             this._hasRenderUpdates = 0;
@@ -1248,6 +1230,13 @@ class ViewCore {
         return this._hasRenderUpdates
     }
 
+    get texturizer() {
+        if (!this._texturizer) {
+            this._texturizer = new ViewTexturizer(this)
+        }
+        return this._texturizer
+    }
+
     getCornerPoints() {
         let w = this._worldContext
 
@@ -1315,8 +1304,11 @@ class ViewCoreContext {
     isSquare() {
         return this.tb === 0 && this.tc === 0
     }
+
 }
 
 ViewCoreContext.IDENTITY = new ViewCoreContext()
 
 module.exports = ViewCore;
+
+let ViewTexturizer = require('./ViewTexturizer')

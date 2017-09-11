@@ -154,7 +154,7 @@ class ShaderProgram {
             this._currentUniformValues[name] = this._pendingUniformValues[name]
 
             let loc = this.getUniformLocation(name)
-            if (loc !== -1) {
+            if (loc) {
                 let matrix = (this._pendingUniformFunctions[name] === this.gl.uniformMatrix2fv || this._pendingUniformFunctions[name] === this.gl.uniformMatrix3fv || this._pendingUniformFunctions[name] === this.gl.uniformMatrix4fv)
                 if (matrix) {
                     this._pendingUniformFunctions[name].call(this.gl, loc, false, this._pendingUniformValues[name])

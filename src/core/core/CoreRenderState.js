@@ -24,7 +24,7 @@ class CoreRenderState {
     reset() {
         this._renderTextureInfo = null
 
-        this._viewport = null
+        this._scissor = null
 
         /**
          * @type {Shader}
@@ -73,19 +73,19 @@ class CoreRenderState {
         return this._renderTextureInfo
     }
 
-    setViewport(viewport) {
-        this._viewport = viewport
+    setScissor(area) {
+        this._scissor = area
         this._check = true
     }
 
-    getViewport() {
-        return this._viewport
+    getScissor() {
+        return this._scissor
     }
 
     setRenderTextureInfo(renderTextureInfo) {
         if (this._renderTextureInfo !== renderTextureInfo) {
             this._renderTextureInfo = renderTextureInfo
-            this._viewport = null
+            this._scissor = null
             this._check = true
         }
     }
@@ -138,7 +138,7 @@ class CoreRenderState {
         if (this._shader !== q.shader) return true
         if (this._shaderOwner !== q.shaderOwner) return true
         if (this._renderTextureInfo !== q.renderTextureInfo) return true
-        if (this._viewport !== q.viewport) return true
+        if (this._scissor !== q.scissor) return true
 
         return false
     }
@@ -163,7 +163,7 @@ class CoreRenderState {
             this._shader,
             this._shaderOwner,
             this._renderTextureInfo,
-            this._viewport,
+            this._scissor,
             this.length
         )
         this._check = false

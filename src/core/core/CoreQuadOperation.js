@@ -4,13 +4,13 @@
 
 class CoreQuadOperation {
 
-    constructor(ctx, shader, shaderOwner, renderTextureInfo, viewport, index) {
+    constructor(ctx, shader, shaderOwner, renderTextureInfo, scissor, index) {
 
         this.ctx = ctx
         this.shader = shader
         this.shaderOwner = shaderOwner
         this.renderTextureInfo = renderTextureInfo
-        this.viewport = viewport
+        this.scissor = scissor
         this.index = index
         this.length = 0
         this.extraAttribsDataByteOffset = 0
@@ -69,6 +69,14 @@ class CoreQuadOperation {
             return this.renderTexture.h
         } else {
             return this.ctx.stage.h
+        }
+    }
+
+    getProjection() {
+        if (this.renderTextureInfo === null) {
+            return this.ctx.renderExec._projection
+        } else {
+            return this.renderTextureInfo.glTexture.projection
         }
     }
 

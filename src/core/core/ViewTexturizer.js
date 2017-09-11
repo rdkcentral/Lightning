@@ -4,10 +4,10 @@
 
 class ViewTexturizer {
 
-    constructor(view) {
+    constructor(viewCore) {
 
-        this._view = view
-        this._core = view._core
+        this._view = viewCore.view
+        this._core = viewCore
 
         this.ctx = this._core.ctx
 
@@ -38,7 +38,7 @@ class ViewTexturizer {
 
     set enabled(v) {
         this._enabled = v
-        this._updateRenderToTextureEnabled()
+        this._core.updateRenderToTextureEnabled()
     }
 
     get hideResult() {
@@ -83,7 +83,7 @@ class ViewTexturizer {
             }
         })
 
-        this._updateRenderToTextureEnabled();
+        this._core.updateRenderToTextureEnabled();
         this._core.setHasRenderUpdates(2);
     }
 
@@ -121,17 +121,6 @@ class ViewTexturizer {
             }
         })
         return activeFilters
-    }
-
-    _updateRenderToTextureEnabled() {
-        let v = (this._hasFilters() || (this._enabled))
-
-        if (v) {
-            this._core._enableRenderToTexture()
-        } else {
-            this._core._disableRenderToTexture()
-            this.releaseRenderTexture()
-        }
     }
 
     getResultTextureSource() {
