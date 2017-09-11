@@ -60,19 +60,7 @@ class CoreContext {
         this.updateTreeOrderForceUpdate = 0
         this.updateTreeOrder = 0
 
-        this.updateRttContext = null
-        this.updateRttContextStack = []
-
         this.root.update()
-    }
-
-    setUpdateRttContext(viewCore) {
-        this.updateRttContextStack.push(this.updateRttContext)
-        this.updateRttContext = viewCore
-    }
-
-    restoreUpdateRttContext() {
-        this.updateRttContext = this.updateRttContextStack.pop()
     }
 
     render() {

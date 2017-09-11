@@ -856,7 +856,7 @@ class View {
         }
     }
 
-    getLocationString() {
+    loc() {
         let i;
         if (this._parent) {
             i = this._parent._children.getIndex(this);
@@ -866,7 +866,7 @@ class View {
             }
         }
         return "";
-    };
+    }
 
     toString() {
         let obj = this.getSettings();
@@ -1841,7 +1841,6 @@ Base.mixinEs5(View, EventEmitter);
 
 module.exports = View;
 
-let GeometryUtils = require('./GeometryUtils');
 let ViewText = require('./ViewText');
 let Texture = require('./Texture');
 let TextureSource = require('./TextureSource')

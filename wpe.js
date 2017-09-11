@@ -2,7 +2,6 @@ module.exports = {
     "Base": require("./src/core/Base"),
     "Utils": require("./src/core/Utils"),
     "StageUtils": require("./src/core/StageUtils"),
-    "GeometryUtils": require("./src/core/GeometryUtils"),
     "Stage": require("./src/core/Stage"),
     "ShaderProgram": require("./src/core/ShaderProgram"),
     "ShaderBase": require("./src/core/ShaderBase"),

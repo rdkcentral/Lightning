@@ -125,9 +125,11 @@ class ViewTexturizer {
 
     _updateRenderToTextureEnabled() {
         let v = (this._hasFilters() || (this._enabled))
-        this._core._setRenderToTextureEnabled(v)
 
-        if (!v) {
+        if (v) {
+            this._core._enableRenderToTexture()
+        } else {
+            this._core._disableRenderToTexture()
             this.releaseRenderTexture()
         }
     }
