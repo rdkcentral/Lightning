@@ -51,8 +51,9 @@ class CoreRenderExecutor {
     }
 
     _reset() {
-        this._bindRenderTexture(null, true)
+        this._bindRenderTexture(null)
         this._setScissor(null)
+        this._clearRenderTexture()
 
         // Set up default settings. Shaders should, after drawing, reset these properly.
         let gl = this.gl
@@ -160,13 +161,15 @@ class CoreRenderExecutor {
             // Set render texture.
             let glTexture = op.renderTextureInfo ? op.renderTextureInfo.glTexture : null;
             if (this._renderTexture !== glTexture) {
-                this._bindRenderTexture(glTexture, op.renderTextureInfo && !op.renderTextureInfo.cleared)
-                if (op.renderTextureInfo) {
-                    op.renderTextureInfo.cleared = true
-                }
+                this._bindRenderTexture(glTexture)
             }
 
             this._setScissor(op.scissor)
+
+            if (op.renderTextureInfo && !op.renderTextureInfo.cleared) {
+                this._clearRenderTexture()
+                op.renderTextureInfo.cleared = true
+            }
 
             this._useShaderProgram(shader)
 
@@ -187,7 +190,8 @@ class CoreRenderExecutor {
         filter.setupUniforms(filterOperation)
         filter.commitUniformUpdates()
         filter.beforeDraw(filterOperation)
-        this._bindRenderTexture(filterOperation.renderTexture, true)
+        this._bindRenderTexture(filterOperation.renderTexture)
+        this._clearRenderTexture()
         this._setScissor(null)
         filter.draw(filterOperation)
         filter.afterDraw(filterOperation)
@@ -214,38 +218,46 @@ class CoreRenderExecutor {
         }
     }
 
-    _bindRenderTexture(renderTexture, clear) {
+    _bindRenderTexture(renderTexture) {
         this._renderTexture = renderTexture
 
         let gl = this.gl;
         if (!this._renderTexture) {
             gl.bindFramebuffer(gl.FRAMEBUFFER, null)
             gl.viewport(0,0,this.ctx.stage.w,this.ctx.stage.h)
-
-            if (clear) {
-                let glClearColor = this.ctx.stage.options.glClearColor;
-                gl.clearColor(glClearColor[0], glClearColor[1], glClearColor[2], glClearColor[3]);
-                gl.clear(gl.COLOR_BUFFER_BIT);
-            }
         } else {
             gl.bindFramebuffer(gl.FRAMEBUFFER, this._renderTexture.framebuffer)
             gl.viewport(0,0,this._renderTexture.w, this._renderTexture.h)
+        }
+    }
 
-            if (clear) {
-                // Clear texture.
-                gl.clearColor(0, 0, 0, 0);
-                gl.clear(gl.COLOR_BUFFER_BIT);
-            }
+    _clearRenderTexture() {
+        let gl = this.gl
+        if (!this._renderTexture) {
+            let glClearColor = this.ctx.stage.options.glClearColor;
+            gl.clearColor(glClearColor[0], glClearColor[1], glClearColor[2], glClearColor[3]);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+        } else {
+            // Clear texture.
+            gl.clearColor(0, 0, 0, 0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
         }
     }
 
     _setScissor(area) {
-        let gl = this.gl
-        if (!area) {
-            gl.disable(gl.SCISSOR_TEST);
-        } else {
-            gl.enable(gl.SCISSOR_TEST);
-            gl.scissor(area[0], area[1], area[2], area[3]);
+        if (this._scissor !== area) {
+            let gl = this.gl
+            if (!area) {
+                gl.disable(gl.SCISSOR_TEST);
+            } else {
+                gl.enable(gl.SCISSOR_TEST);
+                if (this._renderTexture === null) {
+                    // Flip.
+                    area[1] = this.ctx.stage.h - (area[1] + area[3])
+                }
+                gl.scissor(area[0], area[1], area[2], area[3]);
+            }
+            this._scissor = area
         }
     }
 
