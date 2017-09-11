@@ -110,7 +110,7 @@ class CoreRenderState {
         let offset = this.length * 64 + 64 // Skip the identity filter quad.
 
         if (this._renderTextureInfo) {
-            if (this._renderTextureInfo.empty && (this._renderTextureInfo.w === glTexture.w && this._renderTextureInfo.h === glTexture.h)) {
+            if (this._shader === this.defaultShader && this._renderTextureInfo.empty && (this._renderTextureInfo.w === glTexture.w && this._renderTextureInfo.h === glTexture.h)) {
                 // The texture might be reusable under some conditions. We will check them in ViewCore.renderer.
                 this._renderTextureInfo.glTexture = glTexture
                 this._renderTextureInfo.offset = offset
