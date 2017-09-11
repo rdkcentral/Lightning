@@ -22,7 +22,9 @@ var start = function(wpe) {
 
         stage.root.add([
             {rect: true, clipping: true, x: 200, y: 200, w: 500, h: 500, colorLeft: 0xFFAA0000, colorRight: 0xFF0000FF, children: [
-                {tag: 't', rect: true, color: 0xFFFF0000, w: 300, h: 300, x: -100, y: 300}
+                {tag: 't', rect: true, color: 0xFFFF0000, w: 300, h: 300, x: -100, y: 300, clipping: true, children: [
+                    {rect: true, color: 0xFF00FF00, w: 200, h: 100, x: -50, y: -50}
+                ]}
             ]}
         ])
 

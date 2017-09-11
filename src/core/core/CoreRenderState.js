@@ -74,7 +74,20 @@ class CoreRenderState {
     }
 
     setScissor(area) {
-        this._scissor = area
+        if (area) {
+            if (this._scissor) {
+                // Merge scissor areas.
+                let sx = Math.max(area[0], this._scissor[0])
+                let sy = Math.max(area[1], this._scissor[1])
+                let ex = Math.min(area[0] + area[2], this._scissor[0] + this._scissor[2])
+                let ey = Math.min(area[1] + area[3], this._scissor[1] + this._scissor[3])
+                this._scissor = [sx, sy, ex - sx, ey - sy]
+            } else {
+                this._scissor = area
+            }
+        } else {
+            this._scissor = null
+        }
         this._check = true
     }
 
