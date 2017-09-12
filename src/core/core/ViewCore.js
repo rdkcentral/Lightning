@@ -96,6 +96,8 @@ class ViewCore {
         this._useRenderToTexture = false
 
         this._useViewportClipping = false
+
+        this.render = this._renderSimple
     }
 
     /**
@@ -632,8 +634,9 @@ class ViewCore {
             this.setHasRenderUpdates(3)
 
             // Make sure that the render coordinates get updated.
-            this._setRecalc(7);
+            this._setRecalc(7)
 
+            this.render = this._renderAdvanced
         }
     }
 
@@ -653,6 +656,8 @@ class ViewCore {
             this._setRecalc(7);
 
             this.setHasRenderUpdates(3)
+
+            this.render = this._renderSimple
         }
     }
 
@@ -914,7 +919,44 @@ class ViewCore {
         }
     }
 
-    render() {
+    _renderSimple() {
+        if (this._zSort) {
+            this.sortZIndexedChildren();
+            this._zSort = false;
+        }
+
+        if (this._renderContext.alpha) {
+            let renderState = this.renderState;
+
+            if (this._isRoot) {
+                renderState.setShader(this.activeShader, this._shaderOwner);
+            }
+
+            if (this._displayedTextureSource) {
+                this.addQuads()
+            }
+
+            // Also add children to the VBO.
+            if (this._children) {
+                if (this._zContextUsage) {
+                    for (let i = 0, n = this._zIndexedChildren.length; i < n; i++) {
+                        this._zIndexedChildren[i].render();
+                    }
+                } else {
+                    for (let i = 0, n = this._children.length; i < n; i++) {
+                        if (this._children[i]._zIndex === 0) {
+                            // If zIndex is set, this item already belongs to a zIndexedChildren array in one of the ancestors.
+                            this._children[i].render();
+                        }
+                    }
+                }
+            }
+
+            this._hasRenderUpdates = 0;
+        }
+    }
+
+    _renderAdvanced() {
         if (this._zSort) {
             this.sortZIndexedChildren();
             this._zSort = false;
@@ -1009,21 +1051,21 @@ class ViewCore {
                         let uints = renderState.quads.uints
                         let offset = renderTextureInfo.offset / 4
                         let reuse = ((floats[offset] === 0) &&
-                            (floats[offset + 1] === 0) &&
-                            (uints[offset + 2] === 0x00000000) &&
-                            (uints[offset + 3] === 0xFFFFFFFF) &&
-                            (floats[offset + 4] === renderTextureInfo.w) &&
-                            (floats[offset + 5] === 0) &&
-                            (uints[offset + 6] === 0x0000FFFF) &&
-                            (uints[offset + 7] === 0xFFFFFFFF) &&
-                            (floats[offset + 8] === renderTextureInfo.w) &&
-                            (floats[offset + 9] === renderTextureInfo.h) &&
-                            (uints[offset + 10] === 0xFFFFFFFF) &&
-                            (uints[offset + 11] === 0xFFFFFFFF) &&
-                            (floats[offset + 12] === 0) &&
-                            (floats[offset + 13] === renderTextureInfo.h) &&
-                            (uints[offset + 14] === 0xFFFF0000) &&
-                            (uints[offset + 15] === 0xFFFFFFFF))
+                        (floats[offset + 1] === 0) &&
+                        (uints[offset + 2] === 0x00000000) &&
+                        (uints[offset + 3] === 0xFFFFFFFF) &&
+                        (floats[offset + 4] === renderTextureInfo.w) &&
+                        (floats[offset + 5] === 0) &&
+                        (uints[offset + 6] === 0x0000FFFF) &&
+                        (uints[offset + 7] === 0xFFFFFFFF) &&
+                        (floats[offset + 8] === renderTextureInfo.w) &&
+                        (floats[offset + 9] === renderTextureInfo.h) &&
+                        (uints[offset + 10] === 0xFFFFFFFF) &&
+                        (uints[offset + 11] === 0xFFFFFFFF) &&
+                        (floats[offset + 12] === 0) &&
+                        (floats[offset + 13] === renderTextureInfo.h) &&
+                        (uints[offset + 14] === 0xFFFF0000) &&
+                        (uints[offset + 15] === 0xFFFFFFFF))
                         if (!reuse) {
                             renderTextureInfo.glTexture = null
                         }

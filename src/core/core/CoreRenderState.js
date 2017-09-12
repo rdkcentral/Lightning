@@ -33,6 +33,8 @@ class CoreRenderState {
         
         this._shaderOwner = null
 
+        this._realShader = null
+
         this._check = false
 
         this.quadOperations = []
@@ -51,21 +53,21 @@ class CoreRenderState {
     }
 
     setShader(shader, owner) {
-        if (this._shaderOwner === owner && this._realShader === shader) {
+        if (this._shaderOwner !== owner || this._realShader !== shader) {
             // Same shader owner: active shader is also the same.
             // Prevent any shader usage to save performance.
-            return
-        }
 
-        if (shader.useDefault()) {
-            // Use the default shader when possible to prevent unnecessary program changes.
             this._realShader = shader
-            shader = this.defaultShader
-        }
-        if (this._shader !== shader || this._shaderOwner !== owner) {
-            this._shader = shader
-            this._shaderOwner = owner
-            this._check = true
+
+            if (shader.useDefault()) {
+                // Use the default shader when possible to prevent unnecessary program changes.
+                shader = this.defaultShader
+            }
+            if (this._shader !== shader || this._shaderOwner !== owner) {
+                this._shader = shader
+                this._shaderOwner = owner
+                this._check = true
+            }
         }
     }
 

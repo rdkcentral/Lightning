@@ -41,8 +41,8 @@ class FastBlurView extends View {
         this.getLayer(3).filters = [filters[2], filters[3], filters[0], filters[1]]
 
         this._amount = 0
-        this._paddingX = 48
-        this._paddingY = 48
+        this._paddingX = 0
+        this._paddingY = 0
     }
 
     set padding(v) {

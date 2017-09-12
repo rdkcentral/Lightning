@@ -7,6 +7,7 @@ let Base = require('./Base');
 
 /**
  * @todo:
+ * - add generic 'enabled' option for filter, to be able to disable them temporarily
  * - set shader sources as static properties
  * - allow multiple visitEntry, visitExit hooks:
  *   - view.addVisitEntry, view.removeVisitEntry. If only one: direct. If multiple: set view.visitEntryHooks array and use View.visitEntryMultiple.
