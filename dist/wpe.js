@@ -1099,12 +1099,12 @@ class StageUtils {
 
 /**
  * @todo:
+ * - set shader sources as static properties
  * - allow multiple visitEntry, visitExit hooks:
  *   - view.addVisitEntry, view.removeVisitEntry. If only one: direct. If multiple: set view.visitEntryHooks array and use View.visitEntryMultiple.
- * - implement more filters/textures
  * - VAOs
- * - quick clone
- *   - text texture problems or not?
+ * - try to investigate/improve performance when creating and adding new views
+ * - optimize new render performance
  *
  * - change documentation
  *   - text2pngEndpoint
@@ -1113,17 +1113,13 @@ class StageUtils {
  *   - transition merger
  *   - animation mergers: native vs non-native
  *   - type extensions
- *   - list/borders
+ *   - complex view types
  *   - visit
  *   - getRenderWidth
  *   - quick clone
  *   - offthread-image for better image loading performance
  *   - shaders
  * - merge es6 to master
- *
- * - convert UI(?)
- * - convert Bunnyhopper(?)
- * - convert TMDB(?)
  */
 class Stage extends Base {
     constructor(options) {
@@ -1529,6 +1525,120 @@ class ShaderProgram {
  */
 
 
+class ShaderBase extends Base {
+
+    constructor(coreContext) {
+        super();
+
+        this._program = coreContext.shaderPrograms.get(this.constructor);
+        if (!this._program) {
+            this._program = new ShaderProgram(this.getVertexShaderSource(), this.getFragmentShaderSource());
+
+            // Let the vbo context perform garbage collection.
+            coreContext.shaderPrograms.set(this.constructor, this._program);
+        }
+        this._initialized = false
+
+        this.ctx = coreContext
+
+        this.gl = this.ctx.gl
+
+        /**
+         * The (active) views that use this shader.
+         * @type {Set<ViewCore>}
+         */
+        this._views = new Set();
+    }
+
+    getVertexShaderSource() {
+        return ""
+    }
+
+    getFragmentShaderSource() {
+        return ""
+    }
+
+    _init() {
+        if (!this._initialized) {
+            this._program.compile(this.ctx.gl)
+            this._initialized = true
+        }
+    }
+
+    _uniform(name) {
+        return this._program.getUniformLocation(name);
+    }
+
+    _attrib(name) {
+        return this._program.getAttribLocation(name);
+    }
+
+    _setUniform(name, value, glFunction) {
+        this._program.setUniformValue(name, value, glFunction)
+    }
+
+    useProgram() {
+        this._init()
+        this.ctx.gl.useProgram(this.glProgram);
+        this.beforeUsage()
+        this.enableAttribs()
+    }
+
+    stopProgram() {
+        this.afterUsage()
+        this.disableAttribs()
+    }
+
+    hasSameProgram(other) {
+        // For performance reasons, we first check for identical references.
+        return (other && ((other === this) || (other._program === this._program)))
+    }
+
+    beforeUsage() {
+        // Override to set settings other than the default settings (blend mode etc).
+    }
+
+    afterUsage() {
+        // All settings changed in beforeUsage should be reset here.
+    }
+
+    hasUniformUpdates() {
+        return this._program.hasUniformUpdates()
+    }
+
+    commitUniformUpdates() {
+        this._program.commitUniformUpdates()
+    }
+
+    get initialized() {
+        return this._initialized;
+    }
+
+    get glProgram() {
+        return this._program.glProgram;
+    }
+
+    addView(viewCore) {
+        this._views.add(viewCore)
+    }
+
+    removeView(viewCore) {
+        this._views.delete(viewCore)
+    }
+
+    redraw() {
+        this._views.forEach(viewCore => {
+            viewCore.setHasRenderUpdates(2)
+        })
+    }
+
+}
+
+/**
+ * Copyright Metrological, 2017
+ */
+
+
 class Shader extends ShaderBase {
 
     constructor(coreContext) {
@@ -1695,6 +1805,109 @@ Shader.fragmentShaderSource = `
 `;
 
 Shader.prototype.isShader = true
+
+/**
+ * Copyright Metrological, 2017
+ */
+
+
+class Filter extends ShaderBase {
+
+    constructor(coreContext) {
+        super(coreContext);
+    }
+
+    getVertexShaderSource() {
+        return Filter.vertexShaderSource
+    }
+
+    getFragmentShaderSource() {
+        return Filter.fragmentShaderSource
+    }
+
+    useDefault() {
+        // Should return true if this filter is configured (using it's properties) to not have any effect.
+        // This may allow the render engine to avoid unnecessary shader program switches or even texture copies.
+        return false
+    }
+
+    enableAttribs() {
+        // Enables the attribs in the shader program.
+        let gl = this.ctx.gl
+        gl.vertexAttribPointer(this._attrib("aVertexPosition"), 2, gl.FLOAT, false, 16, 0)
+        gl.enableVertexAttribArray(this._attrib("aVertexPosition"))
+
+        if (this._attrib("aTextureCoord") !== -1) {
+            gl.vertexAttribPointer(this._attrib("aTextureCoord"), 2, gl.UNSIGNED_SHORT, true, 16, 2 * 4)
+            gl.enableVertexAttribArray(this._attrib("aTextureCoord"))
+        }
+    }
+
+    disableAttribs() {
+        // Disables the attribs in the shader program.
+        let gl = this.ctx.gl
+        gl.disableVertexAttribArray(this._attrib("aVertexPosition"));
+        if (this._attrib("aTextureCoord") !== -1) {
+            gl.disableVertexAttribArray(this._attrib("aTextureCoord"))
+        }
+    }
+
+    setupUniforms(operation) {
+        this._setUniform("resolution", new Float32Array([operation.getRenderWidth(), operation.getRenderHeight()]), this.gl.uniform2fv)
+    }
+
+    beforeDraw(operation) {
+    }
+
+    afterDraw(operation) {
+    }
+
+    draw(operation) {
+        // Draw the identity quad.
+        let gl = this.gl
+        gl.bindTexture(gl.TEXTURE_2D, operation.source);
+        gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+    }
+
+    redraw() {
+        this._views.forEach(viewCore => {
+            viewCore.setHasRenderUpdates(2)
+
+            // Changing filter settings may cause a change mustRenderToTexture for the branch:
+            // we need to be sure that the update function is called for this branch.
+            viewCore._setRecalc(1 + 2 + 4 + 8)
+        })
+    }
+
+}
+
+Filter.prototype.isFilter = true
+
+Filter.vertexShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    attribute vec2 aVertexPosition;
+    attribute vec2 aTextureCoord;
+    varying vec2 vTextureCoord;
+    void main(void){
+        gl_Position = vec4(aVertexPosition, 0.0, 1.0);
+        vTextureCoord = aTextureCoord;
+    }
+`;
+
+Filter.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoord;
+    uniform sampler2D uSampler;
+    void main(void){
+        gl_FragColor = texture2D(uSampler, vTextureCoord);
+    }
+`;
+
+Filter.prototype.isFilter = true
 
 /**
  * Copyright Metrological, 2017
@@ -4978,6 +5191,2441 @@ class ViewChildList {
     }
 }
 
+
+
+/**
+ * Copyright Metrological, 2017
+ */
+
+class ViewTexturizer {
+
+    constructor(viewCore) {
+
+        this._view = viewCore.view
+        this._core = viewCore
+
+        this.ctx = this._core.ctx
+
+        this._enabled = false
+        this.lazy = false
+        this._colorize = false
+
+        this._filters = []
+
+        this._renderTexture = null
+
+        this._renderTextureReused = false
+
+        this._resultTexture = null
+
+        this._resultTextureSource = null
+
+        this._renderToTextureEnabled = false
+
+        this._hideResult = false
+
+        this.filterResultCached = false
+    }
+
+    get enabled() {
+        return this._enabled
+    }
+
+    set enabled(v) {
+        this._enabled = v
+        this._core.updateRenderToTextureEnabled()
+    }
+
+    get hideResult() {
+        return this._hideResult
+    }
+
+    set hideResult(v) {
+        this._hideResult = v
+        this._core.setHasRenderUpdates(1);
+    }
+
+    get colorize() {
+        return this._colorize
+    }
+
+    set colorize(v) {
+        if (this._colorize !== v) {
+            this._colorize = v
+
+            // Only affects the finally drawn quad.
+            this._core.setHasRenderUpdates(1)
+        }
+    }
+
+    get filters() {
+        return this._filters
+    }
+
+    set filters(v) {
+        this._clearFilters();
+        v.forEach(filter => {
+            if (Utils.isObjectLiteral(filter) && filter.type) {
+                let s = new filter.type(this.ctx)
+                s.setSettings(filter)
+                filter = s
+            }
+
+            if (filter.isFilter) {
+                this._addFilter(filter);
+            } else {
+                console.error("Please specify a filter type.");
+            }
+        })
+
+        this._core.updateRenderToTextureEnabled();
+        this._core.setHasRenderUpdates(2);
+    }
+
+    _clearFilters() {
+        this._filters.forEach(filter => filter.removeView(this._core))
+        this._filters = []
+        this.filterResultCached = false
+    }
+
+    _addFilter(filter) {
+        filter.addView(this._core)
+        this._filters.push(filter);
+    }
+
+    _hasFilters() {
+        return (this._filters.length > 0);
+    }
+
+    _hasActiveFilters() {
+        for (let i = 0, n = this._filters.length; i < n; i++) {
+            if (!this._filters[i].useDefault()) return true
+        }
+        return false
+    }
+
+    getActiveFilters() {
+        let activeFilters = []
+        this._filters.forEach(filter => {
+            if (!filter.useDefault()) {
+                if (filter.getFilters) {
+                    filter.getFilters().forEach(f => activeFilters.push(f))
+                } else {
+                    activeFilters.push(filter)
+                }
+            }
+        })
+        return activeFilters
+    }
+
+    getResultTextureSource() {
+        if (!this._resultTextureSource) {
+            this._resultTextureSource = new TextureSource(this._view.stage.textureManager, null);
+
+            this.updateResultTexture()
+        }
+        return this._resultTextureSource
+    }
+
+    updateResultTexture() {
+        let resultTexture = this.getResultTexture()
+        if (this._resultTextureSource) {
+            if (this._resultTextureSource.glTexture !== resultTexture) {
+                let w = resultTexture ? resultTexture.w : 0
+                let h = resultTexture ? resultTexture.h : 0
+                this._resultTextureSource._changeGlTexture(resultTexture, w, h)
+            }
+
+            // Texture will be updated: all views using the source need to be updated as well.
+            this._resultTextureSource.views.forEach(view => view._core.setHasRenderUpdates(3))
+        }
+    }
+
+    mustRenderToTexture() {
+        // Check if we must really render as texture.
+        if (this._enabled && !this.lazy) {
+            return true
+        } else if (this._enabled && this.lazy && this._hasRenderUpdates < 3) {
+            // Static-only: if renderToTexture did not need to update during last drawn frame, generate it as a cache.
+            return true
+        } else if (this._hasActiveFilters()) {
+            // Only render as texture if there is at least one filter shader to be applied.
+            return true
+        }
+        return false
+    }
+
+    deactivate() {
+        this.releaseRenderTexture()
+        this.releaseFilterTexture()
+    }
+
+    get renderTextureReused() {
+        return this._renderTextureReused
+    }
+
+    releaseRenderTexture() {
+        if (this._renderTexture) {
+            if (!this._renderTextureReused) {
+                this.ctx.releaseRenderTexture(this._renderTexture)
+            }
+            this._renderTexture = null
+            this._renderTextureReused = false
+            this.updateResultTexture()
+        }
+    }
+
+    // Reuses the specified texture as the render texture.
+    reuseTextureAsRenderTexture(glTexture) {
+        if (this._renderTexture !== glTexture) {
+            this.releaseRenderTexture()
+            this._renderTexture = glTexture
+            this._renderTextureReused = true
+        }
+    }
+
+    hasRenderTexture() {
+        return !!this._renderTexture
+    }
+
+    getRenderTexture() {
+        if (!this._renderTexture) {
+            this._renderTexture = this.ctx.allocateRenderTexture(Math.min(2048, this._core._rw), Math.min(2048, this._core._rh));
+            this._renderTextureReused = false
+        }
+        return this._renderTexture;
+    }
+
+    getFilterTexture() {
+        if (!this._resultTexture) {
+            this._resultTexture = this.ctx.allocateRenderTexture(Math.min(2048, this._core._rw), Math.min(2048, this._core._rh));
+        }
+        return this._resultTexture;
+    }
+
+    releaseFilterTexture() {
+        if (this._resultTexture) {
+            this.ctx.releaseRenderTexture(this._resultTexture)
+            this._resultTexture = null
+            this.filterResultCached = false
+            this.updateResultTexture()
+        }
+    }
+
+    getResultTexture() {
+        return this._hasActiveFilters() ? this._resultTexture : this._renderTexture
+    }
+
+}
+
+
+/**
+ * Graphical calculations / VBO buffer filling.
+ */
+
+class ViewCore {
+
+    constructor(view) {
+        this._view = view;
+
+        this.ctx = view.stage.ctx;
+        
+        this.renderState = this.ctx.renderState;
+
+        this._parent = null;
+
+        this._hasUpdates = false;
+
+        this._hasRenderUpdates = 0;
+
+        this._visitEntry = null;
+
+        this._visitExit = null;
+
+        this._recalc = 0;
+
+        this._updateTreeOrder = 0;
+
+        this._worldContext = new ViewCoreContext()
+
+        this._renderContext = this._worldContext
+
+        // All local translation/transform updates: directly propagated from x/y/w/h/scale/whatever.
+        this._localPx = 0;
+        this._localPy = 0;
+
+        this._localTa = 1;
+        this._localTb = 0;
+        this._localTc = 0;
+        this._localTd = 1;
+
+        this._isComplex = false;
+
+        this._localAlpha = 1;
+
+        this._rw = 0;
+        this._rh = 0;
+
+        this._clipping = false;
+
+        /**
+         * The texture source to be displayed.
+         * @type {TextureSource}
+         */
+        this._displayedTextureSource = null;
+
+        /**
+         * If the current coordinates are stored for the texture atlas.
+         * @type {boolean}
+         */
+        this.inTextureAtlas = false
+
+        this._colorUl = this._colorUr = this._colorBl = this._colorBr = 0xFFFFFFFF;
+
+        this._txCoordsUl = 0x00000000;
+        this._txCoordsUr = 0x0000FFFF;
+        this._txCoordsBr = 0xFFFFFFFF;
+        this._txCoordsBl = 0xFFFF0000;
+
+        this._ulx = 0;
+        this._uly = 0;
+        this._brx = 1;
+        this._bry = 1;
+
+        this._zIndex = 0;
+        this._forceZIndexContext = false;
+        this._zContextUsage = 0;
+        this._zParent = null;
+        this._zSort = false;
+
+        this._isRoot = false;
+
+        this._children = null;
+
+        this._zIndexedChildren = null;
+
+        this._shader = null;
+
+        // The ViewCore that owns the shader that's active in this branch. Null if none is active (default shader).
+        this._shaderOwner = null;
+
+        // View is rendered on another texture.
+        this._renderToTextureEnabled = false;
+
+        this._texturizer = null
+
+        this._useRenderToTexture = false
+
+        this._useViewportClipping = false
+    }
+
+    /**
+     * @param {number} type
+     * 0: no updates
+     * 1: re-invoke shader
+     * 2: re-invoke filter
+     * 3: re-create render texture and re-invoke shader and filter
+     */
+    setHasRenderUpdates(type, force = false) {
+        if (this._worldContext.alpha || force) {
+            let p = this;
+            p._hasRenderUpdates = Math.max(type, p._hasRenderUpdates);
+            while ((p = p._parent) && (p._hasRenderUpdates != 3)) {
+                p._hasRenderUpdates = 3;
+            }
+        }
+    }
+
+    /**
+     * @param {Number} type
+     *   1: alpha
+     *   2: translate
+     *   4: transform
+     * 128: becomes visible
+     */
+    _setRecalc(type) {
+        this._recalc |= type;
+
+        if (this._worldContext.alpha) {
+            let p = this;
+            do {
+                p._hasUpdates = true;
+            } while ((p = p._parent) && !p._hasUpdates);
+
+            // Any changes in descendants should trigger texture updates.
+            if (this._parent) this._parent.setHasRenderUpdates(3);
+        } else {
+            this._hasUpdates = true;
+        }
+    };
+
+    _setRecalcForced(type) {
+        this._recalc |= type;
+
+        let p = this;
+        do {
+            p._hasUpdates = true;
+        } while ((p = p._parent) && !p._hasUpdates);
+
+        // Any changes in descendants should trigger texture updates.
+        if (this._parent) {
+            this._parent.setHasRenderUpdates(3);
+        }
+    };
+
+    setParent(parent) {
+        if (parent !== this._parent) {
+            let prevIsZContext = this.isZContext();
+            let prevParent = this._parent;
+            this._parent = parent;
+
+            this._setRecalc(1 + 2 + 4);
+
+            if (this._zIndex === 0) {
+                this.setZParent(parent);
+            } else {
+                this.setZParent(parent ? parent.findZContext() : null);
+            }
+
+            if (prevIsZContext !== this.isZContext()) {
+                if (!this.isZContext()) {
+                    this.disableZContext();
+                } else {
+                    this.enableZContext(prevParent.findZContext());
+                }
+            }
+
+            if (!this._shader) {
+                let newShaderOwner = parent ? parent._shaderOwner : null;
+                if (newShaderOwner !== this._shaderOwner) {
+                    this.setHasRenderUpdates(1);
+                    this._setShaderOwnerRecursive(newShaderOwner);
+                }
+            }
+        }
+    };
+
+    addChildAt(index, child) {
+        if (!this._children) this._children = [];
+        this._children.splice(index, 0, child);
+        child.setParent(this);
+    };
+
+    removeChildAt(index) {
+        let child = this._children[index];
+        this._children.splice(index, 1);
+        child.setParent(null);
+    };
+
+    removeChildren() {
+        if (this._children) {
+            for (let i = 0, n = this._children.length; i < n; i++) {
+                this._children[i].setParent(null);
+            }
+
+            this._children.splice(0);
+
+            if (this._zIndexedChildren) {
+                this._zIndexedChildren.splice(0);
+            }
+        }
+    };
+
+    setLocalTransform(a, b, c, d) {
+        this._setRecalc(4);
+        this._localTa = a;
+        this._localTb = b;
+        this._localTc = c;
+        this._localTd = d;
+        this._isComplex = (b != 0) || (c != 0);
+    };
+
+    setLocalTranslate(x, y) {
+        this._setRecalc(2);
+        this._localPx = x;
+        this._localPy = y;
+    };
+
+    addLocalTranslate(dx, dy) {
+        this.setLocalTranslate(this._localPx + dx, this._localPy + dy);
+    }
+
+    setLocalAlpha(a) {
+        if (!this._worldContext.alpha && ((this._parent && this._parent._worldContext.alpha) && a)) {
+            // View is becoming visible.
+            this._setRecalcForced(1 + 128);
+
+            // View's rendering properties may have changed while being invisible.
+            this.setHasRenderUpdates(3, true);
+        } else {
+            this._setRecalc(1);
+        }
+
+        if (a < 1e-14) {
+            // Tiny rounding errors may cause failing visibility tests.
+            a = 0;
+        }
+
+        this._localAlpha = a;
+    };
+
+    setDimensions(w, h) {
+        this._rw = w;
+        this._rh = h;
+        this._setRecalc(2);
+        if (this._texturizer) {
+            this._texturizer.releaseRenderTexture();
+            this._texturizer.releaseFilterTexture();
+            this._texturizer.updateResultTexture()
+        }
+    };
+
+    setTextureCoords(ulx, uly, brx, bry) {
+        this.setHasRenderUpdates(3);
+
+        this._ulx = ulx;
+        this._uly = uly;
+        this._brx = brx;
+        this._bry = bry;
+
+        this._txCoordsUl = ((ulx * 65535 + 0.5) | 0) + ((uly * 65535 + 0.5) | 0) * 65536;
+        this._txCoordsUr = ((brx * 65535 + 0.5) | 0) + ((uly * 65535 + 0.5) | 0) * 65536;
+        this._txCoordsBl = ((ulx * 65535 + 0.5) | 0) + ((bry * 65535 + 0.5) | 0) * 65536;
+        this._txCoordsBr = ((brx * 65535 + 0.5) | 0) + ((bry * 65535 + 0.5) | 0) * 65536;
+    };
+
+    setDisplayedTextureSource(textureSource) {
+        this.setHasRenderUpdates(3);
+        this._displayedTextureSource = textureSource;
+    };
+
+    allowTextureAtlas() {
+        return this.activeShader.supportsTextureAtlas()
+    }
+
+    setInTextureAtlas(inTextureAtlas) {
+        this.inTextureAtlas = inTextureAtlas;
+    };
+
+    setAsRoot() {
+        // Use parent dummy.
+        this._parent = new ViewCore(this._view);
+
+        // Root is, and will always be, the primary zContext.
+        this._isRoot = true;
+
+        this.ctx.root = this;
+    };
+
+    isAncestorOf(c) {
+        let p = c;
+        while (p = p._parent) {
+            if (this === p) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    isZContext() {
+        return (this._forceZIndexContext || this._renderToTextureEnabled || this._zIndex !== 0 || this._isRoot || !this._parent);
+    };
+
+    findZContext() {
+        if (this.isZContext()) {
+            return this;
+        } else {
+            return this._parent.findZContext();
+        }
+    };
+
+    setZParent(newZParent) {
+        if (this._zParent !== newZParent) {
+            if (this._zParent !== null) {
+                if (this._zIndex !== 0) {
+                    this._zParent.decZContextUsage();
+                }
+
+                if (this._zParent._zContextUsage > 0) {
+                    let index = this._zParent._zIndexedChildren.indexOf(this);
+                    this._zParent._zIndexedChildren.splice(index, 1);
+                }
+            }
+
+            if (newZParent !== null) {
+                let hadZContextUsage = (newZParent._zContextUsage > 0);
+
+                // @pre: new parent's children array has already been modified.
+                if (this._zIndex !== 0) {
+                    newZParent.incZContextUsage();
+                }
+
+                if (newZParent._zContextUsage > 0) {
+                    if (!hadZContextUsage && (this._parent === newZParent)) {
+                        // This child was already in the children list.
+                        // Do not add double.
+                    } else {
+                        newZParent._zIndexedChildren.push(this);
+                    }
+                    newZParent._zSort = true;
+                }
+            }
+
+            this._zParent = newZParent;
+        }
+    };
+
+    incZContextUsage() {
+        this._zContextUsage++;
+        if (this._zContextUsage === 1) {
+            if (!this._zIndexedChildren) {
+                this._zIndexedChildren = [];
+            }
+            if (this._children) {
+                // Copy.
+                for (let i = 0, n = this._children.length; i < n; i++) {
+                    this._zIndexedChildren.push(this._children[i]);
+                }
+            }
+        }
+    };
+
+    decZContextUsage() {
+        this._zContextUsage--;
+        if (this._zContextUsage === 0) {
+            this._zSort = false;
+            this._zIndexedChildren.splice(0);
+        }
+    };
+
+    get zIndex() {
+        return this._zIndex;
+    }
+
+    set zIndex(zIndex) {
+        if (this._zIndex !== zIndex) {
+            this.setHasRenderUpdates(1);
+
+            let newZParent = this._zParent;
+
+            let prevIsZContext = this.isZContext();
+            if (zIndex === 0 && this._zIndex !== 0) {
+                if (this._parent === this._zParent) {
+                    this._zParent.decZContextUsage();
+                } else {
+                    newZParent = this._parent;
+                }
+            } else if (zIndex !== 0 && this._zIndex === 0) {
+                newZParent = this._parent ? this._parent.findZContext() : null;
+                if (newZParent === this._zParent) {
+                    if (this._zParent) {
+                        this._zParent.incZContextUsage();
+                        this._zParent._zSort = true;
+                    }
+                }
+            } else if (zIndex !== this._zIndex) {
+                this._zParent._zSort = true;
+            }
+
+            if (newZParent !== this._zParent) {
+                this.setZParent(null);
+            }
+
+            this._zIndex = zIndex;
+
+            if (newZParent !== this._zParent) {
+                this.setZParent(newZParent);
+            }
+
+            if (prevIsZContext !== this.isZContext()) {
+                if (!this.isZContext()) {
+                    this.disableZContext();
+                } else {
+                    this.enableZContext(this._parent.findZContext());
+                }
+            }
+        }
+    };
+
+    get forceZIndexContext() {
+        return this._forceZIndexContext;
+    }
+
+    set forceZIndexContext(v) {
+        this.setHasRenderUpdates(1);
+
+        let prevIsZContext = this.isZContext();
+        this._forceZIndexContext = v;
+
+        if (prevIsZContext !== this.isZContext()) {
+            if (!this.isZContext()) {
+                this.disableZContext();
+            } else {
+                this.enableZContext(this._parent.findZContext());
+            }
+        }
+    };
+
+    enableZContext(prevZContext) {
+        if (prevZContext && prevZContext._zContextUsage > 0) {
+            let self = this;
+            // Transfer from upper z context to this z context.
+            prevZContext._zIndexedChildren.slice().forEach(function (c) {
+                if (self.isAncestorOf(c) && c._zIndex !== 0) {
+                    c.setZParent(self);
+                }
+            });
+        }
+    };
+
+    disableZContext() {
+        // Transfer from this z context to upper z context.
+        if (this._zContextUsage > 0) {
+            let newZParent = this._parent.findZContext();
+
+            this._zIndexedChildren.slice().forEach(function (c) {
+                if (c._zIndex !== 0) {
+                    c.setZParent(newZParent);
+                }
+            });
+        }
+    };
+
+    get colorUl() {
+        return this._colorUl;
+    }
+
+    set colorUl(color) {
+        if (this._colorUl !== color) {
+            this.setHasRenderUpdates(this._displayedTextureSource ? 3 : 1);
+            this._colorUl = color;
+        }
+    }
+
+    get colorUr() {
+        return this._colorUr;
+    }
+
+    set colorUr(color) {
+        if (this._colorUr !== color) {
+            this.setHasRenderUpdates(this._displayedTextureSource ? 3 : 1);
+            this._colorUr = color;
+        }
+    };
+
+    get colorBl() {
+        return this._colorBl;
+    }
+
+    set colorBl(color) {
+        if (this._colorBl !== color) {
+            this.setHasRenderUpdates(this._displayedTextureSource ? 3 : 1);
+            this._colorBl = color;
+        }
+    };
+
+    get colorBr() {
+        return this._colorBr;
+    }
+
+    set colorBr(color) {
+        if (this._colorBr !== color) {
+            this.setHasRenderUpdates(this._displayedTextureSource ? 3 : 1);
+            this._colorBr = color;
+        }
+    };
+
+
+    set visitEntry(f) {
+        this._visitEntry = f;
+    }
+
+    set visitExit(f) {
+        this._visitExit = f;
+    }
+
+    get shader() {
+        return this._shader;
+    }
+
+    set shader(v) {
+        this.setHasRenderUpdates(1);
+
+        let prevShader = this._shader;
+        this._shader = v;
+        if (!v && prevShader) {
+            // Disabled shader.
+            let newShaderOwner = (this._parent && !this._parent._renderToTextureEnabled ? this._parent._shaderOwner : null);
+            this._setShaderOwnerRecursive(newShaderOwner);
+        } else {
+            // Enabled shader.
+            this._setShaderOwnerRecursive(this);
+        }
+
+        if (prevShader) {
+            prevShader.removeView(this);
+        }
+
+        if (this._shader) {
+            this._shader.addView(this);
+        }
+    }
+
+    get activeShader() {
+        return this._shaderOwner ? this._shaderOwner.shader : this.renderState.defaultShader;
+    }
+
+    get activeShaderOwner() {
+        return this._shaderOwner;
+    }
+
+    get clipping() {
+        return this._clipping
+    }
+
+    set clipping(v) {
+        this._clipping = v
+        this.updateRenderToTextureEnabled()
+    }
+
+    _setShaderOwnerRecursive(viewCore) {
+        let support = this.activeShader.supportsTextureAtlas()
+        this._shaderOwner = viewCore;
+        if (support !== this.activeShader.supportsTextureAtlas()) {
+            this._view._updateTextureCoords()
+        }
+
+        if (this._children && !this._renderToTextureEnabled) {
+            for (let i = 0, n = this._children.length; i < n; i++) {
+                let c = this._children[i]
+                if (!c._shader) {
+                    c._setShaderOwnerRecursive(viewCore);
+                    c._hasRenderUpdates = 3;
+                }
+            }
+        }
+    };
+
+    _setShaderOwnerChildrenRecursive(viewCore) {
+        if (this._children) {
+            for (let i = 0, n = this._children.length; i < n; i++) {
+                let c = this._children[i]
+                if (!c._shader) {
+                    c._setShaderOwnerRecursive(viewCore);
+                    c._hasRenderUpdates = 3;
+                }
+            }
+        }
+    };
+
+    _hasRenderContext() {
+        return this._renderContext !== this._worldContext
+    }
+
+    updateRenderToTextureEnabled() {
+        // Enforce texturizer initialisation.
+        let v = (this.texturizer._hasFilters() || this.texturizer._enabled) || this._clipping
+
+        if (v) {
+            this._enableRenderToTexture()
+        } else {
+            this._disableRenderToTexture()
+            this._texturizer.releaseRenderTexture()
+        }
+    }
+
+    _enableRenderToTexture() {
+        if (!this._renderToTextureEnabled) {
+            let prevIsZContext = this.isZContext()
+
+            this._renderToTextureEnabled = true
+
+            this._renderContext = new ViewCoreContext()
+
+            // If render to texture is active, a new shader context is started.
+            this._setShaderOwnerChildrenRecursive(null)
+
+            if (!prevIsZContext) {
+                // Render context forces z context.
+                this.enableZContext(this._parent ? this._parent.findZContext() : null);
+            }
+
+            this.setHasRenderUpdates(3)
+
+            // Make sure that the render coordinates get updated.
+            this._setRecalc(7);
+
+        }
+    }
+
+    _disableRenderToTexture() {
+        if (this._renderToTextureEnabled) {
+            this._renderToTextureEnabled = false
+
+            this._setShaderOwnerChildrenRecursive(this._shaderOwner)
+
+            this._renderContext = this._worldContext
+
+            if (!this.isZContext()) {
+                this.disableZContext();
+            }
+
+            // Make sure that the render coordinates get updated.
+            this._setRecalc(7);
+
+            this.setHasRenderUpdates(3)
+        }
+    }
+
+    _stashTexCoords() {
+        this._stashedTexCoords = [this._txCoordsUl, this._txCoordsUr, this._txCoordsBr, this._txCoordsBl, this._ulx, this._uly, this._brx, this._bry];
+        this._txCoordsUl = 0x00000000;
+        this._txCoordsUr = 0x0000FFFF;
+        this._txCoordsBr = 0xFFFFFFFF;
+        this._txCoordsBl = 0xFFFF0000;
+        this._ulx = 0;
+        this._uly = 0;
+        this._brx = 1;
+        this._bry = 1;
+    }
+
+    _unstashTexCoords() {
+        this._txCoordsUl = this._stashedTexCoords[0];
+        this._txCoordsUr = this._stashedTexCoords[1];
+        this._txCoordsBr = this._stashedTexCoords[2];
+        this._txCoordsBl = this._stashedTexCoords[3];
+        this._ulx = this._stashedTexCoords[4];
+        this._uly = this._stashedTexCoords[5];
+        this._brx = this._stashedTexCoords[6];
+        this._bry = this._stashedTexCoords[7];
+        this._stashedTexCoords = null;
+    }
+
+    _stashColors() {
+        this._stashedColors = [this._colorUl, this._colorUr, this._colorBr, this._colorBl];
+        this._colorUl = 0xFFFFFFFF;
+        this._colorUr = 0xFFFFFFFF;
+        this._colorBr = 0xFFFFFFFF;
+        this._colorBl = 0xFFFFFFFF;
+    }
+
+    _unstashColors() {
+        this._colorUl = this._stashedColors[0];
+        this._colorUr = this._stashedColors[1];
+        this._colorBr = this._stashedColors[2];
+        this._colorBl = this._stashedColors[3];
+        this._stashedColors = null;
+    }
+
+    isVisible() {
+        return (this._localAlpha > 1e-14);
+    };
+
+    visit() {
+        if (this.isVisible()) {
+            let changed = (this._recalc > 0) || (this._hasRenderUpdates > 0) || this._hasUpdates
+
+            if (changed) {
+                if (this._visitEntry) {
+                    this._visitEntry(this._view);
+                }
+
+                if (this._children) {
+                    // Positioning changes are propagated downwards.
+                    let recalc = this._recalc
+
+                    this._recalc |= (this._parent._recalc & 6)
+
+                    for (let i = 0, n = this._children.length; i < n; i++) {
+                        this._children[i].visit()
+                    }
+
+                    // Reset recalc so that visitExit is able to distinguish between a local positioning change and a
+                    // positioning changed forced by the ancestor.
+                    this._recalc = recalc
+                }
+
+                if (this._visitExit) {
+                    this._visitExit(this._view);
+                }
+            }
+        }
+    }
+
+    update() {
+        this._recalc |= this._parent._recalc
+
+        let pw = this._parent._worldContext
+        let w = this._worldContext
+
+        // In case of becoming invisible, we must update the children because they may be z-indexed.
+        let visible = (pw.alpha && this._localAlpha);
+        let forceUpdate = w.alpha && !visible;
+
+        if (visible || forceUpdate) {
+            if (this._zSort) {
+                // Make sure that all descendants are updated so that the updateTreeOrder flags are correctly set.
+                this.ctx.updateTreeOrderForceUpdate++;
+            }
+
+            let recalc = this._recalc
+
+            // Update world coords/alpha.
+            if (recalc & 1) {
+                w.alpha = pw.alpha * this._localAlpha;
+
+                if (w.alpha < 1e-14) {
+                    // Tiny rounding errors may cause failing visibility tests.
+                    w.alpha = 0
+                }
+            }
+
+            if (recalc & 6) {
+                w.px = pw.px + this._localPx * pw.ta
+                w.py = pw.py + this._localPy * pw.td
+                if (pw.tb !== 0) w.px += this._localPy * pw.tb;
+                if (pw.tc !== 0) w.py += this._localPx * pw.tc;
+            }
+
+            if (recalc & 4) {
+                w.ta = this._localTa * pw.ta
+                w.tb = this._localTd * pw.tb
+                w.tc = this._localTa * pw.tc
+                w.td = this._localTd * pw.td
+
+                if (this._isComplex) {
+                    w.ta += this._localTc * pw.tb
+                    w.tb += this._localTb * pw.ta
+                    w.tc += this._localTc * pw.td
+                    w.td += this._localTb * pw.tc
+                }
+            }
+
+            // Update render coords/alpha.
+            if (this._parent._hasRenderContext()) {
+                if (this._renderContext === this._worldContext) {
+                    this._renderContext = new ViewCoreContext()
+                }
+
+                let r = this._renderContext
+
+                let pr = this._parent._renderContext
+
+                // Update world coords/alpha.
+                if (recalc & 1) {
+                    r.alpha = pr.alpha * this._localAlpha;
+
+                    if (r.alpha < 1e-14) {
+                        r.alpha = 0
+                    }
+                }
+
+                if (recalc & 6) {
+                    r.px = pr.px + this._localPx * pr.ta
+                    r.py = pr.py + this._localPy * pr.td
+                    if (pr.tb !== 0) r.px += this._localPy * pr.tb;
+                    if (pr.tc !== 0) r.py += this._localPx * pr.tc;
+                }
+
+                if (recalc & 4) {
+                    r.ta = this._localTa * pr.ta
+                    r.tb = this._localTd * pr.tb
+                    r.tc = this._localTa * pr.tc
+                    r.td = this._localTd * pr.td
+
+                    if (this._isComplex) {
+                        r.ta += this._localTc * pr.tb
+                        r.tb += this._localTb * pr.ta
+                        r.tc += this._localTc * pr.td
+                        r.td += this._localTb * pr.tc
+                    }
+                }
+            } else {
+                this._renderContext = this._worldContext
+            }
+
+            this._updateTreeOrder = this.ctx.updateTreeOrder++;
+
+            this._recalc = (this._recalc & 135);
+            /* 1+2+4+128 */
+
+            // Determine whether we must use a 'renderTexture'.
+            this._useRenderToTexture = this._renderToTextureEnabled && this._texturizer.mustRenderToTexture()
+
+            // Determine whether we must 'clip'.
+            this._useViewportClipping = false
+            if (!this._useRenderToTexture && this._clipping) {
+                if (this._renderContext.isSquare()) {
+                    this._useViewportClipping = true
+                } else {
+                    // Use a render texture to clip.
+                    this._useRenderToTexture = true
+                }
+            }
+
+            let r
+            if (this._useRenderToTexture) {
+                r = this._renderContext
+
+                if (this._worldContext.isIdentity()) {
+                    // Optimization.
+                    // The world context is already identity: use the world context as render context to prevents the
+                    // ancestors from having to update the render context.
+                    this._renderContext = this._worldContext
+                } else {
+                    // Temporarily replace the render coord attribs by the identity matrix.
+                    // This allows the children to calculate the render context.
+                    this._renderContext = ViewCoreContext.IDENTITY
+                }
+            }
+
+            if (this._children) {
+                for (let i = 0, n = this._children.length; i < n; i++) {
+                    if (this._recalc || this._children[i]._hasUpdates) {
+                        this._children[i].update();
+                    } else if (this.ctx.updateTreeOrderForceUpdate > 0) {
+                        // No more changes in branch, but still we want to update the tree order.
+                        this._children[i].updateTreeOrder();
+                    }
+                }
+            }
+
+            if (this._useRenderToTexture) {
+                this._renderContext = r
+            }
+
+            this._recalc = 0
+
+            this._hasUpdates = false;
+
+            if (this._zSort) {
+                this.ctx.updateTreeOrderForceUpdate--;
+            }
+        } else if (this.ctx.updateTreeOrderForceUpdate > 0) {
+            // Branch is invisible, but still we want to update the tree order.
+            this.updateTreeOrder();
+        }
+    };
+
+    updateTreeOrder() {
+        if (this._zSort) {
+            // Make sure that all descendants are updated so that the updateTreeOrder flags are correctly set.
+            this.ctx.updateTreeOrderForceUpdate++;
+        }
+
+        this._updateTreeOrder = this.ctx.updateTreeOrder++;
+
+        if (this._children) {
+            for (let i = 0, n = this._children.length; i < n; i++) {
+                let hasZSort = this._children[i]._zSort
+                if (hasZSort) {
+                    this.ctx.updateTreeOrderForceUpdate--;
+                }
+
+                this._children[i].updateTreeOrder();
+
+                if (hasZSort) {
+                    this.ctx.updateTreeOrderForceUpdate--;
+                }
+            }
+        }
+
+        if (this._zSort) {
+            this.ctx.updateTreeOrderForceUpdate--;
+        }
+    }
+
+    render() {
+        if (this._zSort) {
+            this.sortZIndexedChildren();
+            this._zSort = false;
+        }
+
+        if (this._renderContext.alpha) {
+            let renderState = this.renderState;
+
+            renderState.setShader(this.activeShader, this._shaderOwner);
+
+            let mustRenderChildren = true
+            let renderTextureInfo
+            let prevRenderTextureInfo
+            let prevScissor
+            if (this._useRenderToTexture) {
+                if (this._rw === 0 || this._rh === 0) {
+                    // Ignore this branch and don't draw anything.
+                    this._hasRenderUpdates = 0;
+                    return;
+                } else if (!this._texturizer.hasRenderTexture() || (this._hasRenderUpdates >= 3)) {
+                    // Switch to default shader for building up the render texture.
+                    renderState.setShader(renderState.defaultShader, this)
+
+                    prevRenderTextureInfo = renderState.renderTextureInfo
+
+                    renderTextureInfo = {
+                        glTexture: null,
+                        offset: 0,
+                        w: this._rw,
+                        h: this._rh,
+                        empty: true,
+                        cleared: false,
+                        ignore: false
+                    }
+
+                    renderState.setRenderTextureInfo(renderTextureInfo);
+
+                    if (this._displayedTextureSource) {
+                        let r = this._renderContext
+
+                        // Use an identity context for drawing the displayed texture to the render texture.
+                        this._renderContext = ViewCoreContext.IDENTITY
+
+                        // Add displayed texture source in local coordinates.
+                        this.addQuads()
+
+                        this._renderContext = r
+                    }
+                } else {
+                    mustRenderChildren = false;
+                }
+            } else {
+                if (this._useViewportClipping) {
+                    // Calculate and set clipping area on render texture.
+                    let x = Math.round(this._renderContext.px)
+                    let y = Math.round(this._renderContext.py)
+                    let w = Math.round(this._renderContext.ta * this._rw)
+                    let h = Math.round(this._renderContext.td * this._rh)
+                    prevScissor = renderState.getScissor()
+                    renderState.setScissor([x, y, w, h])
+                }
+
+                if (this._displayedTextureSource) {
+                    this.addQuads()
+                }
+            }
+
+            // Also add children to the VBO.
+            if (mustRenderChildren && this._children) {
+                if (this._zContextUsage) {
+                    for (let i = 0, n = this._zIndexedChildren.length; i < n; i++) {
+                        this._zIndexedChildren[i].render();
+                    }
+                } else {
+                    for (let i = 0, n = this._children.length; i < n; i++) {
+                        if (this._children[i]._zIndex === 0) {
+                            // If zIndex is set, this item already belongs to a zIndexedChildren array in one of the ancestors.
+                            this._children[i].render();
+                        }
+                    }
+                }
+            }
+
+            if (this._useRenderToTexture) {
+                let updateResultTexture = false
+                if (mustRenderChildren) {
+                    // Finish refreshing renderTexture.
+                    if (renderTextureInfo.glTexture) {
+                        // There was only one texture drawn in this render texture.
+                        // Check if we can reuse it (it should exactly span this render texture).
+                        let floats = renderState.quads.floats
+                        let uints = renderState.quads.uints
+                        let offset = renderTextureInfo.offset / 4
+                        let reuse = ((floats[offset] === 0) &&
+                            (floats[offset + 1] === 0) &&
+                            (uints[offset + 2] === 0x00000000) &&
+                            (uints[offset + 3] === 0xFFFFFFFF) &&
+                            (floats[offset + 4] === renderTextureInfo.w) &&
+                            (floats[offset + 5] === 0) &&
+                            (uints[offset + 6] === 0x0000FFFF) &&
+                            (uints[offset + 7] === 0xFFFFFFFF) &&
+                            (floats[offset + 8] === renderTextureInfo.w) &&
+                            (floats[offset + 9] === renderTextureInfo.h) &&
+                            (uints[offset + 10] === 0xFFFFFFFF) &&
+                            (uints[offset + 11] === 0xFFFFFFFF) &&
+                            (floats[offset + 12] === 0) &&
+                            (floats[offset + 13] === renderTextureInfo.h) &&
+                            (uints[offset + 14] === 0xFFFF0000) &&
+                            (uints[offset + 15] === 0xFFFFFFFF))
+                        if (!reuse) {
+                            renderTextureInfo.glTexture = null
+                        }
+                    }
+
+                    if (renderTextureInfo.empty) {
+                        // We ignore empty render textures and do not draw the final quad.
+                    } else if (renderTextureInfo.glTexture) {
+                        // If glTexture is set, we can reuse that directly instead of creating a new render texture.
+                        this._texturizer.reuseTextureAsRenderTexture(renderTextureInfo.glTexture)
+
+                        renderTextureInfo.ignore = true
+                    } else {
+                        if (this._texturizer.renderTextureReused) {
+                            // Quad operations must be written to a render texture actually owned.
+                            this._texturizer.releaseRenderTexture()
+                        }
+                        // Just create the render texture.
+                        renderTextureInfo.glTexture = this._texturizer.getRenderTexture()
+                    }
+
+                    // Restore the parent's render texture.
+                    renderState.setRenderTextureInfo(prevRenderTextureInfo)
+
+                    updateResultTexture = true
+                }
+
+                let hasFilters = this._texturizer._hasActiveFilters();
+
+                if (hasFilters) {
+                    if ((this._hasRenderUpdates >= 2 || !this._texturizer.filterResultCached)) {
+                        this.applyFilters();
+                        updateResultTexture = true
+                    }
+                }
+
+                let resultTexture = this._texturizer.getResultTexture();
+                if (updateResultTexture) {
+                    this._texturizer.updateResultTexture();
+                }
+
+                // Do not draw textures that do not have any contents.
+                if ((!mustRenderChildren || !renderTextureInfo.empty) && !this._texturizer.hideResult) {
+                    // Render result texture to the actual render target.
+                    renderState.setShader(this.activeShader, this._shaderOwner);
+
+                    renderState.setOverrideQuadTexture(resultTexture);
+                    this._stashTexCoords();
+                    if (!this._texturizer.colorize) this._stashColors()
+                    this.addQuads();
+                    if (!this._texturizer.colorize) this._unstashColors();
+                    this._unstashTexCoords();
+                    renderState.setOverrideQuadTexture(null);
+                }
+            } else if (this._useViewportClipping) {
+                renderState.setScissor(prevScissor)
+            }
+
+            this._hasRenderUpdates = 0;
+        }
+    }
+
+    applyFilters() {
+        let sourceTexture = this._texturizer.getRenderTexture();
+
+        let renderState = this.renderState;
+        let activeFilters = this._texturizer.getActiveFilters();
+
+        let textureRenders = activeFilters.length;
+
+        this._texturizer.filterResultCached = false
+
+        if (textureRenders === 0) {
+            // No filters: just render the source texture with the normal shader.
+            return sourceTexture
+        } else if (textureRenders === 1) {
+            let targetTexture = this._texturizer.getFilterTexture();
+
+            // No intermediate texture is needed.
+            renderState.addFilter(activeFilters[0], this, sourceTexture, targetTexture);
+            this._texturizer.filterResultCached = true;
+        } else {
+            let targetTexture = this._texturizer.getFilterTexture();
+            let intermediate = this.ctx.allocateRenderTexture(Math.min(2048, this._rw), Math.min(2048, this._rh));
+            let source = intermediate;
+            let target = targetTexture;
+
+            let even = ((textureRenders % 2) === 0);
+
+            for (let i = 0; i < textureRenders; i++) {
+                if (i !== 0 || even) {
+                    // Finally, the target should contain targetTexture, and source the intermediate texture.
+                    let tmp = source;
+                    source = target;
+                    target = tmp;
+                }
+
+                renderState.addFilter(activeFilters[i], this, i === 0 ? sourceTexture : source, target)
+            }
+
+            this.ctx.releaseRenderTexture(intermediate);
+
+            this._texturizer.filterResultCached = true;
+        }
+    }
+
+    sortZIndexedChildren() {
+        // Insertion sort works best for almost correctly ordered arrays.
+        for (let i = 1, n = this._zIndexedChildren.length; i < n; i++) {
+            let a = this._zIndexedChildren[i];
+            let j = i - 1;
+            while (j >= 0) {
+                let b = this._zIndexedChildren[j];
+                if (!(a._zIndex === b._zIndex ? (a._updateTreeOrder < b._updateTreeOrder) : (a._zIndex < b._zIndex))) {
+                    break;
+                }
+
+                this._zIndexedChildren[j + 1] = this._zIndexedChildren[j];
+                j--;
+            }
+
+            this._zIndexedChildren[j + 1] = a;
+        }
+    };
+
+    addQuads() {
+        let r = this._renderContext
+
+        let floats = this.renderState.quads.floats;
+        let uints = this.renderState.quads.uints;
+
+        if (r.tb !== 0 || this.tb !== 0) {
+            let offset = this.renderState.addQuad(this) / 4;
+            floats[offset++] = r.px;
+            floats[offset++] = r.py;
+            uints[offset++] = this._txCoordsUl; // Texture.
+            uints[offset++] = getColorInt(this._colorUl, r.alpha);
+            floats[offset++] = r.px + this._rw * r.ta;
+            floats[offset++] = r.py + this._rw * r.tc;
+            uints[offset++] = this._txCoordsUr;
+            uints[offset++] = getColorInt(this._colorUr, r.alpha);
+            floats[offset++] = r.px + this._rw * r.ta + this._rh * r.tb;
+            floats[offset++] = r.py + this._rw * r.tc + this._rh * r.td;
+            uints[offset++] = this._txCoordsBr;
+            uints[offset++] = getColorInt(this._colorBr, r.alpha);
+            floats[offset++] = r.px + this._rh * r.tb;
+            floats[offset++] = r.py + this._rh * r.td;
+            uints[offset++] = this._txCoordsBl;
+            uints[offset] = getColorInt(this._colorBl, r.alpha);
+        } else {
+            // Simple.
+            let cx = r.px + this._rw * r.ta;
+            let cy = r.py + this._rh * r.td;
+
+            let offset = this.renderState.addQuad(this) / 4;
+            floats[offset++] = r.px;
+            floats[offset++] = r.py
+            uints[offset++] = this._txCoordsUl; // Texture.
+            uints[offset++] = getColorInt(this._colorUl, r.alpha);
+            floats[offset++] = cx;
+            floats[offset++] = r.py;
+            uints[offset++] = this._txCoordsUr;
+            uints[offset++] = getColorInt(this._colorUr, r.alpha);
+            floats[offset++] = cx;
+            floats[offset++] = cy;
+            uints[offset++] = this._txCoordsBr;
+            uints[offset++] = getColorInt(this._colorBr, r.alpha);
+            floats[offset++] = r.px;
+            floats[offset++] = cy;
+            uints[offset++] = this._txCoordsBl;
+            uints[offset] = getColorInt(this._colorBl, r.alpha);
+        }
+    };
+
+    get localTa() {
+        return this._localTa;
+    };
+
+    get localTb() {
+        return this._localTb;
+    };
+
+    get localTc() {
+        return this._localTc;
+    };
+
+    get localTd() {
+        return this._localTd;
+    };
+
+    get rw() {
+        return this._rw;
+    }
+
+    get rh() {
+        return this._rh;
+    }
+
+    get view() {
+        return this._view;
+    }
+
+    get renderUpdates() {
+        return this._hasRenderUpdates
+    }
+
+    get texturizer() {
+        if (!this._texturizer) {
+            this._texturizer = new ViewTexturizer(this)
+        }
+        return this._texturizer
+    }
+
+    getCornerPoints() {
+        let w = this._worldContext
+
+        return [
+            w.px,
+            w.py,
+            w.px + this._rw * w.ta,
+            w.py + this._rw * w.tc,
+            w.px + this._rw * w.ta + this._rh * this.tb,
+            w.py + this._rw * w.tc + this._rh * this.td,
+            w.px + this._rh * this.tb,
+            w.py + this._rh * this.td
+        ]
+    };
+
+    getRenderTextureCoords(relX, relY) {
+        let r = this._renderContext
+        return [
+            r.px + r.ta * relX + r.tb * relY,
+            r.py + r.tc * relX + r.td * relY
+        ]
+    }
+
+    getAbsoluteCoords(relX, relY) {
+        let w = this._renderContext
+        return [
+            w.px + w.ta * relX + w.tb * relY,
+            w.py + w.tc * relX + w.td * relY
+        ]
+    }
+}
+
+let getColorInt = function (c, alpha) {
+    let a = ((c / 16777216 | 0) * alpha) | 0;
+    return (((((c >> 16) & 0xff) * a) / 255) & 0xff) +
+        ((((c & 0xff00) * a) / 255) & 0xff00) +
+        (((((c & 0xff) << 16) * a) / 255) & 0xff0000) +
+        (a << 24);
+};
+
+class ViewCoreContext {
+    
+    constructor() {
+        this.alpha = 1;
+
+        this.px = 0;
+        this.py = 0;
+
+        this.ta = 1;
+        this.tb = 0;
+        this.tc = 0;
+        this.td = 1;
+    }
+
+    isIdentity() {
+        return this.alpha === 1 &&
+            this.px === 0 &&
+            this.py === 0 &&
+            this.ta === 1 &&
+            this.tb === 0 &&
+            this.tc === 0 &&
+            this.td === 1
+    }
+
+    isSquare() {
+        return this.tb === 0 && this.tc === 0
+    }
+
+}
+
+ViewCoreContext.IDENTITY = new ViewCoreContext()
+
+
+/**
+ * Copyright Metrological, 2017
+ */
+
+class CoreContext {
+
+    constructor(stage) {
+        this.stage = stage
+
+        this.gl = stage.gl
+
+        this.root = null
+
+        this.updateTreeOrder = 0
+        this.updateTreeOrderForceUpdate = 0
+
+        this.shaderPrograms = new Map()
+
+        this.renderState = new CoreRenderState(this)
+
+        this.renderExec = new CoreRenderExecutor(this)
+        this.renderExec.init()
+
+        this._renderTexturePool = []
+        this._renderTexturePoolPixels = 0
+
+        this._renderTextureId = 1
+    }
+
+    destroy() {
+        this.shaderPrograms.forEach(shaderProgram => shaderProgram.destroy())
+        this._renderTexturePool.forEach(texture => this._freeRenderTexture(texture));
+    }
+
+    visit() {
+        this.root.visit()
+    }
+
+    frame() {
+        //if (this.stage.frameCounter % 100 != 99) return
+        if (!this.root._parent._hasRenderUpdates) {
+            return false
+        }
+
+        this.visit()
+
+        this.update()
+
+        this.render()
+
+        // Clear flag to identify if anything changes before the next frame.
+        this.root._parent._hasRenderUpdates = false
+
+        this._freeUnusedRenderTextures(6000)
+
+        return true
+    }
+
+    update() {
+        this.updateTreeOrderForceUpdate = 0
+        this.updateTreeOrder = 0
+
+        this.root.update()
+    }
+
+    render() {
+        // Obtain a sequence of the quad and filter operations.
+        this.renderState.reset()
+        this.root.render()
+        this.renderState.finish()
+
+        // Now run them with the render executor.
+        this.renderExec.execute()
+    }
+
+    allocateRenderTexture(w, h) {
+        w = Math.round(w)
+        h = Math.round(h)
+        for (let i = 0, n = this._renderTexturePool.length; i < n; i++) {
+            let texture = this._renderTexturePool[i];
+            if (texture.w === w && texture.h === h) {
+                texture.f = this.stage.frameCounter;
+                this._renderTexturePool.splice(i, 1);
+                return texture;
+            }
+        }
+        let texture = this._createRenderTexture(w, h);
+        texture.f = this.stage.frameCounter;
+
+        return texture;
+    }
+
+    releaseRenderTexture(texture) {
+        this._renderTexturePool.push(texture);
+    }
+
+    _freeUnusedRenderTextures(maxAge = 60) {
+        // Clean up all textures that are no longer used.
+        // This cache is short-lived because it is really just meant to supply running shaders and filters that are
+        // updated during a number of frames.
+        let limit = this.stage.frameCounter - maxAge;
+
+        this._renderTexturePool = this._renderTexturePool.filter(texture => {
+            if (texture.f < limit) {
+                this._freeRenderTexture(texture);
+                this._renderTexturePoolPixels -= texture.w * texture.h
+                return false;
+            }
+            return true;
+        });
+    }
+
+    _createRenderTexture(w, h) {
+        if (this._renderTexturePoolPixels > this.stage.options.renderTexturePoolPixels) {
+            this._freeUnusedRenderTextures()
+            if (this._renderTexturePoolPixels > this.stage.options.renderTexturePoolPixels) {
+                console.warn("Render texture pool overflow: " + this._renderTexturePoolPixels + "px")
+            }
+        }
+
+        let gl = this.gl;
+        let sourceTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
+
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+        // We need a specific framebuffer for every render texture.
+        sourceTexture.framebuffer = gl.createFramebuffer();
+        sourceTexture.w = w;
+        sourceTexture.h = h;
+        sourceTexture.id = this._renderTextureId++
+        sourceTexture.projection = new Float32Array([2/w, 2/h])
+
+        gl.bindFramebuffer(gl.FRAMEBUFFER, sourceTexture.framebuffer)
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, sourceTexture, 0);
+
+        return sourceTexture;
+    }
+
+    _freeRenderTexture(glTexture) {
+        let gl = this.stage.gl;
+        this._renderTexturePoolPixels -= glTexture.w * glTexture.h
+        gl.deleteFramebuffer(glTexture.framebuffer);
+        gl.deleteTexture(glTexture);
+    }
+
+}
+
+
+/**
+ * Copyright Metrological, 2017
+ */
+
+class CoreRenderState {
+
+    constructor(ctx) {
+        this.ctx = ctx
+
+        this.stage = ctx.stage
+
+        this.textureAtlasGlTexture = this.stage.textureAtlas ? this.stage.textureAtlas.texture : null;
+
+        // Allocate a fairly big chunk of memory that should be enough to support ~100000 (default) quads.
+        // We do not (want to) handle memory overflow.
+
+        // We could optimize memory usage by increasing the ArrayBuffer gradually.
+        this.quads = new CoreQuadList(ctx, 8e6)
+
+        this.defaultShader = new Shader(this.ctx);
+    }
+
+    reset() {
+        this._renderTextureInfo = null
+
+        this._scissor = null
+
+        /**
+         * @type {Shader}
+         */
+        this._shader = null
+        
+        this._shaderOwner = null
+
+        this._check = false
+
+        this.quadOperations = []
+        this.filterOperations = []
+
+        this._overrideQuadTexture = null
+
+        this._quadOperation = null
+
+        this.quads.reset()
+
+    }
+
+    get length() {
+        return this.quads.quadTextures.length
+    }
+
+    setShader(shader, owner) {
+        if (this._shaderOwner === owner && this._realShader === shader) {
+            // Same shader owner: active shader is also the same.
+            // Prevent any shader usage to save performance.
+            return
+        }
+
+        if (shader.useDefault()) {
+            // Use the default shader when possible to prevent unnecessary program changes.
+            this._realShader = shader
+            shader = this.defaultShader
+        }
+        if (this._shader !== shader || this._shaderOwner !== owner) {
+            this._shader = shader
+            this._shaderOwner = owner
+            this._check = true
+        }
+    }
+
+    get renderTextureInfo() {
+        return this._renderTextureInfo
+    }
+
+    setScissor(area) {
+        if (area) {
+            if (this._scissor) {
+                // Merge scissor areas.
+                let sx = Math.max(area[0], this._scissor[0])
+                let sy = Math.max(area[1], this._scissor[1])
+                let ex = Math.min(area[0] + area[2], this._scissor[0] + this._scissor[2])
+                let ey = Math.min(area[1] + area[3], this._scissor[1] + this._scissor[3])
+                this._scissor = [sx, sy, ex - sx, ey - sy]
+            } else {
+                this._scissor = area
+            }
+        } else {
+            this._scissor = null
+        }
+        this._check = true
+    }
+
+    getScissor() {
+        return this._scissor
+    }
+
+    setRenderTextureInfo(renderTextureInfo) {
+        if (this._renderTextureInfo !== renderTextureInfo) {
+            this._renderTextureInfo = renderTextureInfo
+            this._scissor = null
+            this._check = true
+        }
+    }
+
+    setOverrideQuadTexture(texture) {
+        this._overrideQuadTexture = texture
+    }
+
+    addQuad(viewCore) {
+        if (!this._quadOperation) {
+            this._createQuadOperation()
+        } else if (this._check && this._hasChanges()) {
+            this._addQuadOperation()
+            this._check = false
+        }
+
+        let glTexture = this._overrideQuadTexture;
+        if (!glTexture) {
+            if (viewCore.inTextureAtlas) {
+                glTexture = this.textureAtlasGlTexture
+            } else {
+                glTexture = viewCore._displayedTextureSource.glTexture
+            }
+        }
+
+        let offset = this.length * 64 + 64 // Skip the identity filter quad.
+
+        if (this._renderTextureInfo) {
+            if (this._shader === this.defaultShader && this._renderTextureInfo.empty && (this._renderTextureInfo.w === glTexture.w && this._renderTextureInfo.h === glTexture.h)) {
+                // The texture might be reusable under some conditions. We will check them in ViewCore.renderer.
+                this._renderTextureInfo.glTexture = glTexture
+                this._renderTextureInfo.offset = offset
+            } else {
+                // It is not possible to reuse another texture when there is more than one quad.
+                this._renderTextureInfo.glTexture = null
+            }
+            this._renderTextureInfo.empty = false
+        }
+
+        this.quads.quadTextures.push(glTexture)
+        this.quads.quadViews.push(viewCore)
+
+        this._quadOperation.length++
+
+        return offset
+    }
+
+    _hasChanges() {
+        let q = this._quadOperation
+        if (this._shader !== q.shader) return true
+        if (this._shaderOwner !== q.shaderOwner) return true
+        if (this._renderTextureInfo !== q.renderTextureInfo) return true
+        if (this._scissor !== q.scissor) return true
+
+        return false
+    }
+    
+    _addQuadOperation(create = true) {
+        if (this._quadOperation) {
+            if (this._quadOperation.length || this._shader.addEmpty()) {
+                this.quadOperations.push(this._quadOperation)
+            }
+
+            this._quadOperation = null
+        }
+
+        if (create) {
+            this._createQuadOperation()
+        }
+    }
+
+    _createQuadOperation() {
+        this._quadOperation = new CoreQuadOperation(
+            this.ctx,
+            this._shader,
+            this._shaderOwner,
+            this._renderTextureInfo,
+            this._scissor,
+            this.length
+        )
+        this._check = false
+    }
+
+    addFilter(filter, owner, source, target) {
+        // Close current quad operation.
+        this._addQuadOperation(false)
+
+        this.filterOperations.push(new CoreFilterOperation(this.ctx, filter, owner, source, target, this.quadOperations.length))
+    }
+
+    finish() {
+        if (this.ctx.stage.textureAtlas && this.ctx.stage.options.debugTextureAtlas) {
+            this._renderDebugTextureAtlas()
+        }
+
+        if (this._quadOperation) {
+            // Add remaining.
+            this._addQuadOperation(false)
+        }
+
+        this._setExtraShaderAttribs()
+    }
+    
+    _renderDebugTextureAtlas() {
+        this.setShader(this.defaultShader, this.ctx.root)
+        this.setRenderTextureInfo(null)
+        this.setOverrideQuadTexture(this.textureAtlasGlTexture)
+
+        let size = Math.min(this.ctx.stage.w, this.ctx.stage.h)
+
+        let offset = this.addQuad(this.ctx.root) / 4
+        let f = this.quads.floats
+        let u = this.quads.uints
+        f[offset++] = 0;
+        f[offset++] = 0;
+        u[offset++] = 0x00000000;
+        u[offset++] = 0xFFFFFFFF;
+        f[offset++] = size;
+        f[offset++] = 0;
+        u[offset++] = 0x0000FFFF;
+        u[offset++] = 0xFFFFFFFF;
+        f[offset++] = size;
+        f[offset++] = size;
+        u[offset++] = 0xFFFFFFFF;
+        u[offset++] = 0xFFFFFFFF;
+        f[offset++] = 0;
+        f[offset++] = size;
+        u[offset++] = 0xFFFF0000;
+        u[offset] = 0xFFFFFFFF;
+
+        this.setOverrideQuadTexture(null)
+    }
+    
+    _setExtraShaderAttribs() {
+        let offset = this.length * 64 + 64
+        for (let i = 0, n = this.quadOperations.length; i < n; i++) {
+            this.quadOperations[i].extraAttribsDataByteOffset = offset;
+            let extra = this.quadOperations[i].shader.getExtraAttribBytesPerVertex() * 4 * this.quadOperations[i].length
+            offset += extra
+            if (extra) {
+                this.quadOperations[i].shader.setExtraAttribsInBuffer(this.quadOperations[i], this.quads)
+            }
+        }
+        this.quads.dataLength = offset
+    }
+
+}
+
+
+
+/**
+ * Copyright Metrological, 2017
+ */
+
+class CoreQuadList {
+
+    constructor(ctx, byteSize) {
+
+        this.ctx = ctx
+
+        this.textureAtlasGlTexture = this.ctx.textureAtlas ? this.ctx.textureAtlas.texture : null
+
+        this.dataLength = 0
+
+        this.data = new ArrayBuffer(byteSize)
+        this.floats = new Float32Array(this.data)
+        this.uints = new Uint32Array(this.data)
+
+        this.quadTextures = []
+
+        this.quadViews = []
+
+        // Set up first quad to the identity quad (reused for filters).
+        let f = this.floats;
+        let u = this.uints;
+        f[0] = -1;
+        f[1] = -1;
+        u[2] = 0x00000000;
+        u[3] = 0xFFFFFFFF;
+        f[4] = 1;
+        f[5] = -1;
+        u[6] = 0x0000FFFF;
+        u[7] = 0xFFFFFFFF;
+        f[8] = 1;
+        f[9] = 1;
+        u[10] = 0xFFFFFFFF;
+        u[11] = 0xFFFFFFFF;
+        f[12] = -1;
+        f[13] = 1;
+        u[14] = 0xFFFF0000;
+        u[15] = 0xFFFFFFFF;
+    }
+
+    get length() {
+        return this.quadTextures.length
+    }
+
+    reset() {
+        this.quadTextures = []
+        this.quadViews = []
+        this.dataLength = 0
+    }
+
+    getView(index) {
+        return this.quadViews[index]._view
+    }
+
+    getViewCore(index) {
+        return this.quadViews[index]
+    }
+
+    getTexture(index) {
+        return this.quadTextures[index]
+    }
+
+    getTextureWidth(index) {
+        let glTexture = this.quadTextures[index]
+        if (glTexture.w) {
+            // Render texture
+            return glTexture.w
+        } else if (glTexture === this.textureAtlasGlTexture) {
+            return 2048
+        } else {
+            return this.quadViews[index]._displayedTextureSource.w
+        }
+    }
+
+    getTextureHeight(index) {
+        let glTexture = this.quadTextures[index]
+        if (glTexture.h) {
+            // Render texture
+            return glTexture.h
+        } else if (glTexture === this.textureAtlasGlTexture) {
+            return 2048
+        } else {
+            return this.quadViews[index]._displayedTextureSource.h
+        }
+    }
+
+    getQuadContents() {
+        // Debug: log contents of quad buffer.
+        let floats = this.floats
+        let uints = this.uints
+        let lines = []
+        for (let i = 1; i <= this.length; i++) {
+            let str = 'entry ' + i + ': ';
+            for (let j = 0; j < 4; j++) {
+                let b = i * 16 + j * 4
+                str += floats[b] + ',' + floats[b+1] + ':' + uints[b+2].toString(16) + '[' + uints[b+3].toString(16) + '] ';
+            }
+            lines.push(str)
+        }
+
+        return lines
+    }
+}
+
+/**
+ * Copyright Metrological, 2017
+ */
+
+class CoreQuadOperation {
+
+    constructor(ctx, shader, shaderOwner, renderTextureInfo, scissor, index) {
+
+        this.ctx = ctx
+        this.shader = shader
+        this.shaderOwner = shaderOwner
+        this.renderTextureInfo = renderTextureInfo
+        this.scissor = scissor
+        this.index = index
+        this.length = 0
+        this.extraAttribsDataByteOffset = 0
+
+    }
+
+    get quads() {
+        return this.ctx.renderState.quads
+    }
+
+    getTexture(index) {
+        return this.quads.getTexture(this.index + index)
+    }
+
+    getViewCore(index) {
+        return this.quads.getViewCore(this.index + index)
+    }
+
+    getView(index) {
+        return this.quads.getView(this.index + index)
+    }
+
+    getTextureWidth(index) {
+        return this.quads.getTextureWidth(this.index + index)
+    }
+
+    getTextureHeight(index) {
+        return this.quads.getTextureHeight(this.index + index)
+    }
+
+    /**
+     * Returns the relative pixel coordinates in the shader owner to gl position coordinates in the render texture.
+     * @param x
+     * @param y
+     * @return {number[]}
+     */
+    getNormalRenderTextureCoords(x, y) {
+        let coords = this.shaderOwner.getRenderTextureCoords(x, y)
+        coords[0] /= this.getRenderWidth()
+        coords[1] /= this.getRenderHeight()
+        coords[0] = coords[0] * 2 - 1
+        coords[1] = 1 - coords[1] * 2
+        return coords
+    }
+
+    getRenderWidth() {
+        if (this.renderTexture) {
+            return this.renderTexture.w
+        } else {
+            return this.ctx.stage.w
+        }
+    }
+
+    getRenderHeight() {
+        if (this.renderTexture) {
+            return this.renderTexture.h
+        } else {
+            return this.ctx.stage.h
+        }
+    }
+
+    getProjection() {
+        if (this.renderTextureInfo === null) {
+            return this.ctx.renderExec._projection
+        } else {
+            return this.renderTextureInfo.glTexture.projection
+        }
+    }
+
+}
+
+/**
+ * Copyright Metrological, 2017
+ */
+
+class CoreFilterOperation {
+
+    constructor(ctx, filter, owner, source, renderTexture, beforeQuadOperation) {
+
+        this.ctx = ctx
+        this.filter = filter
+        this.owner = owner
+        this.source = source
+        this.renderTexture = renderTexture
+        this.beforeQuadOperation = beforeQuadOperation
+
+    }
+
+    getRenderWidth() {
+        if (this.renderTexture) {
+            return this.renderTexture.w
+        } else {
+            return this.ctx.stage.w
+        }
+    }
+
+    getRenderHeight() {
+        if (this.renderTexture) {
+            return this.renderTexture.h
+        } else {
+            return this.ctx.stage.h
+        }
+    }
+
+}
+
+/**
+ * Copyright Metrological, 2017
+ */
+
+class CoreRenderExecutor {
+
+    constructor(ctx) {
+        this.ctx = ctx
+
+        this.renderState = ctx.renderState
+
+        this.gl = this.ctx.stage.gl
+
+        this.init()
+    }
+
+    init() {
+        let gl = this.gl;
+
+        // Create new sharable buffer for params.
+        this._attribsBuffer = gl.createBuffer();
+
+        let maxQuads = Math.floor(this.renderState.quads.data.byteLength / 64);
+
+        // Init webgl arrays.
+        let allIndices = new Uint16Array(maxQuads * 6);
+
+        // fill the indices with the quads to draw.
+        for (let i = 0, j = 0; i < maxQuads; i += 6, j += 4) {
+            allIndices[i] = j;
+            allIndices[i + 1] = j + 1;
+            allIndices[i + 2] = j + 2;
+            allIndices[i + 3] = j;
+            allIndices[i + 4] = j + 2;
+            allIndices[i + 5] = j + 3;
+        }
+
+        // The quads buffer can be (re)used to draw a range of quads.
+        this._quadsBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._quadsBuffer);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, allIndices, gl.STATIC_DRAW);
+
+        // The matrix that causes the [0,0 - W,H] box to map to [-1,-1 - 1,1] in the end results.
+        this._projection = new Float32Array([2/this.ctx.stage.rw, -2/this.ctx.stage.rh])
+
+    }
+
+    destroy() {
+        this.gl.deleteBuffer(this._attribsBuffer);
+        this.gl.deleteBuffer(this._quadsBuffer);
+    }
+
+    _reset() {
+        this._bindRenderTexture(null)
+        this._setScissor(null)
+        this._clearRenderTexture()
+
+        // Set up default settings. Shaders should, after drawing, reset these properly.
+        let gl = this.gl
+        gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+        gl.enable(gl.BLEND);
+        gl.disable(gl.DEPTH_TEST);
+
+        this._quadOperation = null
+        this._currentShaderProgramOwner = null
+    }
+
+    _setupBuffers() {
+        let gl = this.gl
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._quadsBuffer);
+        let view = new DataView(this.renderState.quads.data, 0, this.renderState.quads.dataLength);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this._attribsBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, view, gl.DYNAMIC_DRAW);
+    }
+
+    execute() {
+        this._reset()
+        this._setupBuffers()
+
+        let qops = this.renderState.quadOperations
+        let fops = this.renderState.filterOperations
+
+        let i = 0, j = 0, n = qops.length, m = fops.length
+        while (i < n) {
+            while (j < m && i === fops[j].beforeQuadOperation) {
+                if (this._quadOperation) {
+                    this._execQuadOperation(this._quadOperation)
+                }
+                this._execFilterOperation(fops[j])
+                j++
+            }
+
+            this._processQuadOperation(qops[i])
+            i++
+        }
+
+        if (this._quadOperation) {
+            this._execQuadOperation()
+        }
+
+        while (j < m) {
+            this._execFilterOperation(fops[j])
+            j++
+        }
+
+        this._stopShaderProgram()
+    }
+
+    getQuadContents() {
+        return this.renderState.quads.getQuadContents()
+    }
+
+    _mergeQuadOperation(quadOperation) {
+        if (this._quadOperation) {
+            this._quadOperation.length += quadOperation.length
+
+            // We remove the shader owner, because the shader should not rely on it.
+            this._quadOperation.shaderOwner = null
+        }
+    }
+
+    _processQuadOperation(quadOperation) {
+        if (quadOperation.renderTextureInfo && quadOperation.renderTextureInfo.ignore) {
+            // Ignore quad operations when we are 're-using' another texture as the render texture result.
+            return
+        }
+
+        // Check if quad operation can be merged; uniforms are set lazily in the process.
+        let shader = quadOperation.shader
+
+        let merged = false
+        if (this._quadOperation && (this._quadOperation.renderTextureInfo === quadOperation.renderTextureInfo) && (this._quadOperation.scissor === quadOperation.scissor) && this._quadOperation.shader.supportsMerging() && quadOperation.shader.supportsMerging()) {
+            if (this._quadOperation.shader === shader) {
+                this._mergeQuadOperation(quadOperation)
+                merged = true
+            } else if (shader.hasSameProgram(this._quadOperation.shader)) {
+                shader.setupUniforms(quadOperation)
+                if (shader.isMergable(this._quadOperation.shader)) {
+                    this._mergeQuadOperation(quadOperation)
+                    merged = true
+                }
+            }
+        }
+
+        if (!merged) {
+            if (this._quadOperation) {
+                this._execQuadOperation()
+            }
+
+            shader.setupUniforms(quadOperation)
+            this._quadOperation = quadOperation
+        }
+    }
+
+    _execQuadOperation() {
+        let op = this._quadOperation
+
+        let shader = op.shader
+
+        if (op.length || shader.addEmpty()) {
+            // Set render texture.
+            let glTexture = op.renderTextureInfo ? op.renderTextureInfo.glTexture : null;
+            if (this._renderTexture !== glTexture) {
+                this._bindRenderTexture(glTexture)
+            }
+
+            this._setScissor(op.scissor)
+
+            if (op.renderTextureInfo && !op.renderTextureInfo.cleared) {
+                this._clearRenderTexture()
+                op.renderTextureInfo.cleared = true
+            }
+
+            this._useShaderProgram(shader)
+
+            // Set the prepared updates.
+            shader.commitUniformUpdates()
+
+            shader.beforeDraw(op)
+            shader.draw(op)
+            shader.afterDraw(op)
+        }
+
+        this._quadOperation = null
+    }
+
+    _execFilterOperation(filterOperation) {
+        let filter = filterOperation.filter
+        this._useShaderProgram(filter)
+        filter.setupUniforms(filterOperation)
+        filter.commitUniformUpdates()
+        filter.beforeDraw(filterOperation)
+        this._bindRenderTexture(filterOperation.renderTexture)
+        this._clearRenderTexture()
+        this._setScissor(null)
+        filter.draw(filterOperation)
+        filter.afterDraw(filterOperation)
+    }
+
+    /**
+     * @param {Filter|Shader} owner
+     */
+    _useShaderProgram(owner) {
+        if (!owner.hasSameProgram(this._currentShaderProgramOwner)) {
+            if (this._currentShaderProgramOwner) {
+                this._currentShaderProgramOwner.stopProgram()
+            }
+            owner.useProgram()
+            this._currentShaderProgramOwner = owner
+        }
+    }
+
+    _stopShaderProgram() {
+        if (this._currentShaderProgramOwner) {
+            // The currently used shader program should be stopped gracefully.
+            this._currentShaderProgramOwner.stopProgram()
+            this._currentShaderProgramOwner = null
+        }
+    }
+
+    _bindRenderTexture(renderTexture) {
+        this._renderTexture = renderTexture
+
+        let gl = this.gl;
+        if (!this._renderTexture) {
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+            gl.viewport(0,0,this.ctx.stage.w,this.ctx.stage.h)
+        } else {
+            gl.bindFramebuffer(gl.FRAMEBUFFER, this._renderTexture.framebuffer)
+            gl.viewport(0,0,this._renderTexture.w, this._renderTexture.h)
+        }
+    }
+
+    _clearRenderTexture() {
+        let gl = this.gl
+        if (!this._renderTexture) {
+            let glClearColor = this.ctx.stage.options.glClearColor;
+            gl.clearColor(glClearColor[0], glClearColor[1], glClearColor[2], glClearColor[3]);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+        } else {
+            // Clear texture.
+            gl.clearColor(0, 0, 0, 0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+        }
+    }
+
+    _setScissor(area) {
+        if (this._scissor !== area) {
+            let gl = this.gl
+            if (!area) {
+                gl.disable(gl.SCISSOR_TEST);
+            } else {
+                gl.enable(gl.SCISSOR_TEST);
+                if (this._renderTexture === null) {
+                    // Flip.
+                    area[1] = this.ctx.stage.h - (area[1] + area[3])
+                }
+                gl.scissor(area[0], area[1], area[2], area[3]);
+            }
+            this._scissor = area
+        }
+    }
+
+
+}
 
 
 /**
