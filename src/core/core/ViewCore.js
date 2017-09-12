@@ -928,9 +928,7 @@ class ViewCore {
         if (this._renderContext.alpha) {
             let renderState = this.renderState;
 
-            if (this._isRoot) {
-                renderState.setShader(this.activeShader, this._shaderOwner);
-            }
+            renderState.setShader(this.activeShader, this._shaderOwner);
 
             if (this._displayedTextureSource) {
                 this.addQuads()
