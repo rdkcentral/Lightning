@@ -7,13 +7,13 @@ let Base = require('./Base');
 
 /**
  * @todo:
+ * - set shader sources as static properties
  * - allow multiple visitEntry, visitExit hooks:
  *   - view.addVisitEntry, view.removeVisitEntry. If only one: direct. If multiple: set view.visitEntryHooks array and use View.visitEntryMultiple.
- * - implement more filters/textures
  * - VAOs
+ * - try to investigate/improve performance when creating and adding new views
+ * - optimize new render performance
  *
- * - quick clone
- *   - text texture problems or not?
  * - change documentation
  *   - text2pngEndpoint
  *   - supercharger?
@@ -21,17 +21,13 @@ let Base = require('./Base');
  *   - transition merger
  *   - animation mergers: native vs non-native
  *   - type extensions
- *   - list/borders
+ *   - complex view types
  *   - visit
  *   - getRenderWidth
  *   - quick clone
  *   - offthread-image for better image loading performance
  *   - shaders
  * - merge es6 to master
- *
- * - convert UI(?)
- * - convert Bunnyhopper(?)
- * - convert TMDB(?)
  */
 class Stage extends Base {
     constructor(options) {

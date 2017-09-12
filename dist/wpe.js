@@ -453,10 +453,8 @@ class WebAdapter {
     }
 
     getDrawingCanvas() {
-        if (!this.drawingCanvas) {
-            this.drawingCanvas = document.createElement('canvas');
-        }
-        return this.drawingCanvas;
+        // We can't reuse this canvas because textures may load async.
+        return document.createElement('canvas');
     }
 
     nextFrame(changes) {
@@ -1094,224 +1092,6 @@ class StageUtils {
 
 
 /**
- * Copyright Metrological, 2017
- */
-class GeometryUtils {
-
-    static dotprod(ux, uy, vx, vy) {
-        return ux * vx + uy * vy;
-    };
-
-    /**
-     * Returns true if the specified point lies within the convex polygon.
-     * @param {number[]} a
-     * @param {number} x
-     * @param {number} y
-     * @return {boolean}
-     */
-    static pointInConvex(a, x, y) {
-        let i, n, ax, ay;
-        n = a.length;
-        for (i = 0; i <= a.length - 2; i += 2) {
-            ax = a[(i + 2) % n] - a[i];
-            ay = a[(i + 3) % n] - a[i + 1];
-
-            if (GeometryUtils.dotprod(x - a[i], y - a[i + 1], -ay, ax) <= 0) {
-                return false;
-            }
-        }
-        return true;
-    };
-
-    /**
-     * Returns the (convex) intersection of 2 convex polygons.
-     * @see Suther-Hodgman algorithm
-     * @param {number[]} a
-     * @param {number[]} b
-     * @return {number[]}
-     *   The intersection polygon. Empty if there is no intersection polygon.
-     */
-    static intersectConvex(a, b) {
-        let i, j, n, m;
-
-        n = a.length;
-
-        // Intersection result. We'll slice off the invisible vertices.
-        let c = b;
-        let nc;
-
-        let anyIntersections = false;
-
-        // Traverse all edges of a.
-        for (i = 0; i <= n - 2; i += 2) {
-            // Get unit vector for edge of a.
-            let ax = a[(i + 2) % n] - a[i];
-            let ay = a[(i + 3) % n] - a[i + 1];
-            let l = Math.sqrt(ax * ax + ay * ay);
-            ax /= l;
-            ay /= l;
-
-            m = c.length;
-            nc = [];
-
-            let firstOffsetY, prevOffsetY, firstWasInside, prevWasInside, inside;
-            for (j = 0; j <= m - 2; j += 2) {
-                let dx = c[j] - a[i];
-                let dy = c[j + 1] - a[i + 1];
-
-                // Calculate offset of vertex perpendicular to a-edge.
-                let offsetY = GeometryUtils.dotprod(dx, dy, -ay, ax);
-
-                // Count as 'inside' if the point lies within the polygon or on one of the edges.
-                // We need to include a small margin for rounding errors which may cause 'double' points when
-                // traversing parallel edges.
-                inside = (offsetY >= -1e-9);
-
-                if (j >= 2) {
-                    if (prevWasInside != inside) {
-                        // Add additional intersection point.
-
-                        // Calculate intersection offset.
-                        let prevOffsetX = GeometryUtils.dotprod(c[j - 2] - a[i], c[j - 1] - a[i + 1], ax, ay);
-                        let offsetX = GeometryUtils.dotprod(dx, dy, ax, ay);
-
-                        let dxdy = (offsetX - prevOffsetX) / (offsetY - prevOffsetY);
-                        let isect = (prevOffsetX - dxdy * prevOffsetY);
-
-                        let isectX = a[i] + isect * ax;
-                        let isectY = a[i + 1] + isect * ay;
-
-                        nc.push(isectX, isectY);
-
-                        anyIntersections = true;
-                    }
-                } else {
-                    // Remember for last vertex.
-                    firstWasInside = inside;
-                    firstOffsetY = offsetY;
-                }
-
-                if (inside) {
-                    // Add vertex.
-                    nc.push(c[j], c[j + 1]);
-                }
-
-                if (j == m - 2) {
-                    // Complete the polygon with the edge from last to first.
-                    if (inside != firstWasInside) {
-                        // Add additional intersection point.
-                        let firstOffsetX = GeometryUtils.dotprod(c[0] - a[i], c[1] - a[i + 1], ax, ay);
-
-                        let offsetX = GeometryUtils.dotprod(dx, dy, ax, ay);
-
-                        let dxdy = (offsetX - firstOffsetX) / (offsetY - firstOffsetY);
-                        let isect = (firstOffsetX - dxdy * firstOffsetY);
-
-                        let isectX = a[i] + isect * ax;
-                        let isectY = a[i + 1] + isect * ay;
-
-                        nc.push(isectX, isectY);
-
-                        anyIntersections = true;
-                    }
-                }
-
-                prevWasInside = inside;
-                prevOffsetY = offsetY;
-            }
-
-            c = nc;
-        }
-
-        if (c.length) {
-            if (!anyIntersections) {
-                // The output polygon matches b. Return it by reference so that we can check for clipping activity.
-                return b;
-            } else {
-                return c;
-            }
-        } else {
-            // This is a special case which occurs if there are no intersections of any of the edges.
-
-            // Check which polygon lies inside the other.
-
-            // Get bounding box of a.
-            let minAx = a[0];
-            let maxAx = a[0];
-            let minAy = a[1];
-            let maxAy = a[1];
-
-            // Get average point of a.
-            let avgAx = a[0], avgAy = a[1];
-            for (i = 2; i <= n - 2; i += 2) {
-                avgAx += a[i];
-                avgAy += a[i + 1];
-
-                if (a[i] < minAx) minAx = a[i];
-                if (a[i] > maxAx) maxAx = a[i];
-                if (a[i + 1] < minAy) minAy = a[i + 1];
-                if (a[i + 1] > maxAy) maxAy = a[i + 1];
-            }
-            avgAx /= 0.5 * n;
-            avgAy /= 0.5 * n;
-
-
-            // Get bounding box of b.
-            let minBx = b[0];
-            let maxBx = b[0];
-            let minBy = b[1];
-            let maxBy = b[1];
-
-            // Get average point of a.
-            m = b.length;
-            let avgBx = b[0], avgBy = b[1];
-            for (i = 2; i <= m - 2; i += 2) {
-                avgBx += b[i];
-                avgBy += b[i + 1];
-
-                if (b[i] < minBx) minBx = b[i];
-                if (b[i] > maxBx) maxBx = b[i];
-                if (b[i + 1] < minBy) minBy = b[i + 1];
-                if (b[i + 1] > maxBy) maxBy = b[i + 1];
-            }
-            avgBx /= 0.5 * m;
-            avgBy /= 0.5 * m;
-
-            if (GeometryUtils.pointInConvex(b, avgAx, avgAy)) {
-                if (GeometryUtils.pointInConvex(a, avgBx, avgBy)) {
-                    // Average points both within other polygon: we must check the bbox.
-                    if (minBx < minAx || minBy < minAy || maxBx > maxAx || maxBy > maxAy) {
-                        // Polygon b encapsulates polygon a.
-                        return a;
-                    } else if (minBx > minAx || minBy > minAy || maxBx < maxAx || maxBy < maxAy) {
-                        // Polygon a encapsulates polygon b.
-                        return b;
-                    } else {
-                        // Identical bounds. We must test all corner points individually.
-                        for (i = 0; i <= n - 2; i += 2) {
-                            if (!GeometryUtils.pointInConvex(b, a[i], a[i + 1])) {
-                                return b;
-                            }
-                        }
-                        return a;
-                    }
-                } else {
-                    return a;
-                }
-            } else {
-                if (GeometryUtils.pointInConvex(a, avgBx, avgBy)) {
-                    return b;
-                } else {
-                    // No intersection: empty result.
-                    return [];
-                }
-            }
-        }
-    }
-}
-
-
-/**
  * Maintains and renders a tree structure of views.
  * Copyright Metrological, 2017
  */
@@ -1319,9 +1099,13 @@ class GeometryUtils {
 
 /**
  * @todo:
- * - shaders (VAOs)
+ * - allow multiple visitEntry, visitExit hooks:
+ *   - view.addVisitEntry, view.removeVisitEntry. If only one: direct. If multiple: set view.visitEntryHooks array and use View.visitEntryMultiple.
+ * - implement more filters/textures
+ * - VAOs
  * - quick clone
  *   - text texture problems or not?
+ *
  * - change documentation
  *   - text2pngEndpoint
  *   - supercharger?
@@ -1330,7 +1114,7 @@ class GeometryUtils {
  *   - animation mergers: native vs non-native
  *   - type extensions
  *   - list/borders
- *   - layout
+ *   - visit
  *   - getRenderWidth
  *   - quick clone
  *   - offthread-image for better image loading performance
@@ -1371,11 +1155,12 @@ class Stage extends Base {
         opt('renderWidth', this.options.w);
         opt('renderHeight', this.options.h);
         opt('textureMemory', 12e6);
+        opt('renderTexturePoolPixels', 12e6);
         opt('glClearColor', [0, 0, 0, 0]);
         opt('defaultFontFace', 'Sans-Serif');
         opt('defaultPrecision', (this.options.h / this.options.renderHeight));
         opt('fixedDt', 0);
-        opt('useTextureAtlas', true);
+        opt('useTextureAtlas', false);
         opt('debugTextureAtlas', false);
     }
 
@@ -1403,9 +1188,11 @@ class Stage extends Base {
             this.textureAtlas = new TextureAtlas(this);
         }
 
-        this.ctx = new VboContext(this);
+        this.ctx = new CoreContext(this);
 
         this.root = new View(this);
+        this.root.w = this.options.w
+        this.root.h = this.options.h
 
         this.root.setAsRoot();
 
@@ -1539,6 +1326,23 @@ class Stage extends Base {
     texture(source, options) {
         return this.textureManager.getTexture(source, options);
     }
+
+    get w() {
+        return this.options.w
+    }
+
+    get h() {
+        return this.options.h
+    }
+
+    get rw() {
+        return this.options.renderWidth
+    }
+
+    get rh() {
+        return this.options.renderHeight
+    }
+
 }
 
 
@@ -1560,6 +1364,15 @@ class ShaderProgram {
         this.fragmentShaderSource = fragmentShaderSource;
 
         this._program = null;
+
+        this._uniformLocations = new Map();
+        this._attributeLocations = new Map();
+
+        this._currentUniformValues = {};
+
+        this._pendingUniformValues = {};
+        this._pendingUniformFunctions = {};
+        this._pendingUniformCount = 0
     }
 
     compile(gl) {
@@ -1590,7 +1403,6 @@ class ShaderProgram {
             gl.deleteProgram(this._program);
             this._program = null;
         }
-        gl.useProgram(this._program);
 
         // clean up some shaders
         gl.deleteShader(glVertShader);
@@ -1604,16 +1416,41 @@ class ShaderProgram {
         this.gl.compileShader(shader);
 
         if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
+            console.log(this.constructor.name, 'Type: ' + (type === this.gl.VERTEX_SHADER ? 'vertex shader' : 'fragment shader') );
             console.log(this.gl.getShaderInfoLog(shader));
+            let idx = 0
+            console.log("========== source ==========\n" + src.split("\n").map(line => "" + (++idx) + ": " + line).join("\n"))
             return null;
         }
 
         return shader;
     }
 
+    getUniformLocation(name) {
+        let location = this._uniformLocations.get(name);
+        if (location === undefined) {
+            location = this.gl.getUniformLocation(this._program, name);
+            this._uniformLocations.set(name, location);
+        }
+
+        return location;
+    }
+
+    getAttribLocation(name) {
+        let location = this._attributeLocations.get(name);
+        if (location === undefined) {
+            location = this.gl.getAttribLocation(this._program, name);
+            this._attributeLocations.set(name, location);
+        }
+
+        return location;
+    }
+
     destroy() {
-        this.gl.deleteProgram(this._program);
-        this._program = null;
+        if (this._program) {
+            this.gl.deleteProgram(this._program);
+            this._program = null;
+        }
     }
 
     get glProgram() {
@@ -1624,130 +1461,67 @@ class ShaderProgram {
         return !!this._program;
     }
 
-}
-
-/**
- * Copyright Metrological, 2017
- */
-
-
-class Shader extends Base {
-
-    constructor(stage, vertexShaderSource, fragmentShaderSource) {
-        super();
-
-        this._program = Shader.programs.get(this.constructor);
-        if (!this._program) {
-            this._program = new ShaderProgram(vertexShaderSource, fragmentShaderSource);
-            Shader.programs.set(this.constructor, this._program);
-        }
-        this._initialized = false;
-
-        this._stage = stage;
-
-        this._lastFrameUsed = 0;
-    }
-
-    redraw() {
-        this._stage.ctx.staticStage = false;
-    }
-
-    init(vboContext) {
-        this._program.compile(vboContext.gl);
-        this._initialized = true;
-    }
-
-    drawElements(vboContext, offset, length, multisample = 0) {
-        // Set up shader attributes, uniforms, draw elements and disable attributes.
-    }
-
-    drawMultisample(vboContext, viewRenderer) {
-        // Draws a renderAsTexture in a multisampled way.
-        let amount = this.getMultisamples(viewRenderer)
-
-        let origSource = vboContext.vboGlTextures[0]
-        let target = null;
-        for (let i = 0; i < amount; i++) {
-            target = i % 2 === 0 ? vboContext.getMultisampleTextureA() : vboContext.getMultisampleTextureB();
-
-            vboContext.setRenderTarget(target);
-
-            // Limit viewport to texture dimensions.
-            vboContext.gl.viewport(0, 0, origSource.w, origSource.h);
-
-            if (i !== 0) {
-                vboContext.vboGlTextures[0] = (i % 2 === 0 ? vboContext.getMultisampleTextureB() : vboContext.getMultisampleTextureA());
+    _valueEquals(v1, v2) {
+        // Uniform value is either a typed array or a numeric value.
+        if (v1.length && v2.length) {
+            for (let i = 0, n = v1.length; i < n; i++) {
+                if (v1[i] !== v2[i]) return false
             }
-
-            this.drawElements(vboContext, 0, vboContext.vboOffset, i + 1);
-
-            vboContext.restoreRenderTarget();
+            return true
+        } else {
+            return (v1 === v2)
         }
-
-        // Actually render to the real render target.
-        vboContext.vboGlTextures[0] = target;
-        this.drawElements(vboContext, 0, vboContext.vboOffset, 0)
     }
 
-    setup(vboContext) {
-        vboContext.gl.useProgram(this.glProgram);
+    _valueClone(v) {
+        if (v.length) {
+            return v.slice(0)
+        } else {
+            return v
+        }
     }
 
-    cleanup(vboContext) {
+    setUniformValue(name, value, glFunction) {
+        let v = this._currentUniformValues[name];
+        if (v === undefined || !this._valueEquals(v, value)) {
+            this._pendingUniformValues[name] = this._valueClone(value)
+            this._pendingUniformFunctions[name] = glFunction
+            this._pendingUniformCount++
+        } else {
+            if (v !== undefined) {
+                if (this._pendingUniformValues[name]) {
+                    delete this._pendingUniformValues[name]
+                    delete this._pendingUniformFunctions[name]
+                    this._pendingUniformCount--
+                }
+            }
+        }
     }
 
-    get initialized() {
-        return this._initialized;
+    hasUniformUpdates() {
+        return (this._pendingUniformCount > 0)
     }
 
-    destroy() {
-        this._initialized = false;
+    commitUniformUpdates() {
+        let names = Object.keys(this._pendingUniformValues)
+        names.forEach(name => {
+            this._currentUniformValues[name] = this._pendingUniformValues[name]
+
+            let loc = this.getUniformLocation(name)
+            if (loc) {
+                let matrix = (this._pendingUniformFunctions[name] === this.gl.uniformMatrix2fv || this._pendingUniformFunctions[name] === this.gl.uniformMatrix3fv || this._pendingUniformFunctions[name] === this.gl.uniformMatrix4fv)
+                if (matrix) {
+                    this._pendingUniformFunctions[name].call(this.gl, loc, false, this._pendingUniformValues[name])
+                } else {
+                    this._pendingUniformFunctions[name].call(this.gl, loc, this._pendingUniformValues[name])
+                }
+            }
+        })
+        this._pendingUniformValues = {}
+        this._pendingUniformFunctions = {}
+        this._pendingUniformCount = 0
     }
 
-    get glProgram() {
-        return this._program.glProgram;
-    }
-
-    hasViewSettings() {
-        return false;
-    }
-
-    createViewSettings() {
-        return null;
-    }
-
-    getBufferSizePerQuad() {
-        return 0;
-    }
-
-    getMultisamples(viewRenderer) {
-        return 0;
-    }
-
-}
-
-Shader.programs = new Map();
-Shader.destroyPrograms = function() {
-    Shader.programs.forEach(program => program.destroy());
-}
-
-
-class ShaderSettings extends Base {
-
-    constructor(shader, viewRenderer) {
-        super();
-        this._shader = shader;
-        this._viewRenderer = viewRenderer;
-    }
-
-    _recalc() {
-        this._shader.redraw();
-        // Force hasUpdates.
-        this._viewRenderer._setRecalc(64);
-    }
-
-    update() {
-    }
 }
 
 /**
@@ -1755,145 +1529,160 @@ class ShaderSettings extends Base {
  */
 
 
-class DefaultShader extends Shader {
+class Shader extends ShaderBase {
 
-    constructor(stage, vertexShaderSource = DefaultShader.vertexShaderSource, fragmentShaderSource = DefaultShader.fragmentShaderSrc) {
-        super(stage, vertexShaderSource, fragmentShaderSource);
+    constructor(coreContext) {
+        super(coreContext);
+        this.isDefault = this.constructor === Shader;
     }
 
-    init(vboContext) {
-        super.init(vboContext);
-
-        let gl = vboContext.gl;
-
-        // Bind attributes.
-        this._vertexPositionAttribute = gl.getAttribLocation(this.glProgram, "aVertexPosition");
-        this._textureCoordAttribute = gl.getAttribLocation(this.glProgram, "aTextureCoord");
-        this._colorAttribute = gl.getAttribLocation(this.glProgram, "aColor");
+    getVertexShaderSource() {
+        return Shader.vertexShaderSource
     }
 
-    setup(vboContext) {
-        super.setup(vboContext);
-
-        let gl = vboContext.gl;
-
-        gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-        gl.enable(gl.BLEND);
-        gl.disable(gl.DEPTH_TEST);
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, vboContext.paramsGlBuffer);
-
-        gl.vertexAttribPointer(this._vertexPositionAttribute, 2, gl.FLOAT, false, 16, 0);
-        gl.vertexAttribPointer(this._textureCoordAttribute, 2, gl.UNSIGNED_SHORT, true, 16, 2 * 4);
-        gl.vertexAttribPointer(this._colorAttribute, 4, gl.UNSIGNED_BYTE, true, 16, 3 * 4);
-
-        gl.enableVertexAttribArray(this._vertexPositionAttribute);
-        gl.enableVertexAttribArray(this._textureCoordAttribute);
-        gl.enableVertexAttribArray(this._colorAttribute);
-
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, vboContext.quadsGlBuffer);
-
-        this.setupExtra(vboContext);
+    getFragmentShaderSource() {
+        return Shader.fragmentShaderSource
     }
 
-    getExtraBufferSizePerQuad() {
+    supportsTextureAtlas() {
+        // Most shaders that are performing out-of-bounds texture reads will produce artifacts when using texture atlas.
+        return this.isDefault
+    }
+
+    enableAttribs() {
+        // Enables the attribs in the shader program.
+        let gl = this.ctx.gl
+        gl.vertexAttribPointer(this._attrib("aVertexPosition"), 2, gl.FLOAT, false, 16, 0)
+        gl.enableVertexAttribArray(this._attrib("aVertexPosition"))
+
+        if (this._attrib("aTextureCoord") !== -1) {
+            gl.vertexAttribPointer(this._attrib("aTextureCoord"), 2, gl.UNSIGNED_SHORT, true, 16, 2 * 4)
+            gl.enableVertexAttribArray(this._attrib("aTextureCoord"))
+        }
+
+        if (this._attrib("aColor") !== -1) {
+            // Some shaders may ignore the color.
+            gl.vertexAttribPointer(this._attrib("aColor"), 4, gl.UNSIGNED_BYTE, true, 16, 3 * 4)
+            gl.enableVertexAttribArray(this._attrib("aColor"))
+        }
+    }
+
+    disableAttribs() {
+        // Disables the attribs in the shader program.
+        let gl = this.ctx.gl
+        gl.disableVertexAttribArray(this._attrib("aVertexPosition"));
+
+        if (this._attrib("aTextureCoord") !== -1) {
+            gl.disableVertexAttribArray(this._attrib("aTextureCoord"))
+        }
+
+        if (this._attrib("aColor") !== -1) {
+            gl.disableVertexAttribArray(this._attrib("aColor"))
+        }
+    }
+
+    getExtraAttribBytesPerVertex() {
         return 0
     }
 
-    getBufferSizePerQuad() {
-        return 64 + this.getExtraBufferSizePerQuad()
+    getVertexAttribPointerOffset(operation) {
+        return operation.extraAttribsDataByteOffset - (operation.index + 1) * 4 * this.getExtraAttribBytesPerVertex()
     }
 
-    drawElements(vboContext, offset, length) {
-        let gl = vboContext.gl;
+    useDefault() {
+        // Should return true if this shader is configured (using it's properties) to not have any effect.
+        // This may allow the render engine to avoid unnecessary shader program switches or even texture copies.
+        return false;
+    }
+
+    supportsMerging() {
+        // Multiple shader instances that have the same type and same uniforms may be combined into one draw operation.
+        // Notice that this causes the shaderOwner to vary within the same draw, so it is nullified in the shader options.
+        return true
+    }
+
+    addEmpty() {
+        // Draws this shader even if there are no quads to be added.
+        // This is handy for custom shaders.
+        return false
+    }
+
+    setExtraAttribsInBuffer(operation) {
+        // Set extra attrib data in in operation.quads.data/floats/uints, starting from
+        // operation.extraAttribsBufferByteOffset.
+    }
+
+    setupUniforms(operation) {
+        // Set all shader-specific uniforms.
+        // Notice that all uniforms should be set, even if they have not been changed within this shader instance.
+        // The uniforms are shared by all shaders that have the same type (and shader program).
+        this._setUniform("projection", this._getProjection(operation), this.ctx.gl.uniform2fv, false)
+    }
+
+    isMergable(shader) {
+        // This must be overruled if the
+        return this.hasUniformUpdates();
+    }
+
+    _getProjection(operation) {
+        return operation.getProjection()
+    }
+
+    getFlipY(operation) {
+        return this._getProjection()[1] < 0
+    }
+
+    beforeDraw(operation) {
+    }
+
+    draw(operation) {
+        let gl = this.ctx.gl;
+
+        let length = operation.length;
 
         if (length) {
-            this.updateProjectionMatrix(vboContext);
-
-            let view = new DataView(vboContext.vboParamsBuffer, offset * vboContext.bytesPerQuad, length * (vboContext.bytesPerQuad + this.getExtraBufferSizePerQuad()));
-            gl.bufferData(gl.ARRAY_BUFFER, view, gl.DYNAMIC_DRAW);
-
-            let glTexture = vboContext.getVboGlTexture(0);
-            let pos = offset;
-            let end = offset + length;
-            for (let i = offset; i < end; i++) {
-                let tx = vboContext.getVboGlTexture(i);
+            let glTexture = operation.getTexture(0);
+            let pos = 0;
+            for (let i = 0; i < length; i++) {
+                let tx = operation.getTexture(i);
                 if (glTexture !== tx) {
                     gl.bindTexture(gl.TEXTURE_2D, glTexture);
-                    gl.drawElements(gl.TRIANGLES, 6 * (i - pos), gl.UNSIGNED_SHORT, pos * 6 * 2);
+                    gl.drawElements(gl.TRIANGLES, 6 * (i - pos), gl.UNSIGNED_SHORT, (pos + operation.index + 1) * 6 * 2);
                     glTexture = tx;
                     pos = i;
                 }
             }
-            if (pos < end) {
+            if (pos < length) {
                 gl.bindTexture(gl.TEXTURE_2D, glTexture);
-                gl.drawElements(gl.TRIANGLES, 6 * (end - pos), gl.UNSIGNED_SHORT, pos * 6 * 2);
+                gl.drawElements(gl.TRIANGLES, 6 * (length - pos), gl.UNSIGNED_SHORT, (pos + operation.index + 1) * 6 * 2);
             }
         }
     }
 
-    updateProjectionMatrix(vboContext) {
-        let newPjm = vboContext.getProjectionMatrix();
-        if (this._setupPjm !== newPjm) {
-            let gl = vboContext.gl
-            gl.uniformMatrix4fv(this._projectionMatrixAttribute, false, newPjm)
-            this._setupPjm = newPjm;
-        }
-    }
-
-    cleanup(vboContext) {
-        super.cleanup(vboContext);
-
-        let gl = vboContext.gl;
-
-        gl.disableVertexAttribArray(this._vertexPositionAttribute);
-        gl.disableVertexAttribArray(this._textureCoordAttribute);
-        gl.disableVertexAttribArray(this._colorAttribute);
-
-        this.cleanupExtra(vboContext);
-    }
-
-    setupExtraOnly(vboContext) {
-        vboContext.gl.useProgram(this.glProgram);
-
-        this.setupExtra(vboContext);
-    }
-
-    cleanupExtraOnly(vboContext) {
-        this.cleanupExtra(vboContext);
-    }
-
-    setupExtra(vboContext) {
-        this._projectionMatrixAttribute = vboContext.gl.getUniformLocation(this.glProgram, "projectionMatrix");
-
-        // Set up additional params.
-    }
-
-    cleanupExtra(vboContext) {
-        // Clean up additional params.
-        this._setupPjm = null;
+    afterDraw(operation) {
     }
 
 }
 
-DefaultShader.vertexShaderSource = `
+Shader.vertexShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
     attribute vec2 aVertexPosition;
     attribute vec2 aTextureCoord;
     attribute vec4 aColor;
-    uniform mat4 projectionMatrix;
+    uniform vec2 projection;
     varying vec2 vTextureCoord;
     varying vec4 vColor;
     void main(void){
-        gl_Position = projectionMatrix * vec4(aVertexPosition, 0.0, 1.0);
+        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);
         vTextureCoord = aTextureCoord;
         vColor = aColor;
+        gl_Position.y = -sign(projection.y) * gl_Position.y;
     }
 `;
 
-DefaultShader.fragmentShaderSrc = `
+Shader.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -1905,7 +1694,7 @@ DefaultShader.fragmentShaderSrc = `
     }
 `;
 
-DefaultShader.prototype.isDefaultShader = true;
+Shader.prototype.isShader = true
 
 /**
  * Copyright Metrological, 2017
@@ -1935,12 +1724,6 @@ class TextureManager {
          */
         this.textureSourceHashmap = new Map();
 
-        /**
-         * The texture source id to texture source hashmap.
-         * (only the texture sources that are referenced by one or more active components).
-         * @type {Map<Number, TextureSource>}
-         */
-        this.textureSourceIdHashmap = new Map();
     }
 
     destroy() {
@@ -2041,6 +1824,10 @@ class TextureManager {
         // Store texture.
         textureSource.glTexture = sourceTexture;
 
+        // Used by CoreRenderState for optimizations.
+        sourceTexture.w = textureSource.w
+        sourceTexture.h = textureSource.h
+
         this._usedTextureMemory += textureSource.w * textureSource.h;
 
         this._uploadedTextureSources.push(textureSource);
@@ -2064,7 +1851,7 @@ class TextureManager {
 
         let self = this;
         this.textureSourceHashmap.forEach(function(textureSource) {
-            if (!textureSource.permanent && (textureSource.views.size === 0)) {
+            if (textureSource.views.size === 0) {
                 self.freeTextureSource(textureSource);
             }
         });
@@ -2074,20 +1861,22 @@ class TextureManager {
     }
     
     freeTextureSource(textureSource) {
-        if (textureSource.glTexture) {
-            this._usedTextureMemory -= textureSource.w * textureSource.h;
-            this.gl.deleteTexture(textureSource.glTexture);
-            textureSource.glTexture = null;
+        if (!textureSource.isLoadedByCore()) {
+            if (textureSource.glTexture) {
+                this._usedTextureMemory -= textureSource.w * textureSource.h;
+                this.gl.deleteTexture(textureSource.glTexture);
+                textureSource.glTexture = null;
+            }
+
+            // Should be reloaded.
+            textureSource.loadingSince = null;
+
+            if (textureSource.lookupId) {
+                // Delete it from the texture source hashmap to allow GC to collect it.
+                // If it is still referenced somewhere, we'll re-add it later.
+                this.textureSourceHashmap.delete(textureSource.lookupId);
+            }
         }
-
-        // Should be reloaded.
-        textureSource.loadingSince = null;
-
-        if (textureSource.lookupId) {
-            // Delete it from the texture source hashmap to allow GC to collect it.
-            // If it is still referenced somewhere, we'll re-add it later.
-            this.textureSourceHashmap.delete(textureSource.lookupId);
-        }        
     }
 
 }
@@ -2278,9 +2067,13 @@ Texture.id = 0;
 /**
  * Copyright Metrological, 2017
  */
-class TextureSource {
+
+
+class TextureSource extends Base {
 
     constructor(manager, loadCb) {
+        super()
+
         this.id = TextureSource.id++;
 
         this.manager = manager;
@@ -2300,7 +2093,7 @@ class TextureSource {
          * @type {Set<View>}
          */
         this.views = new Set();
-        
+
     }
 
     _properties() {
@@ -2353,6 +2146,12 @@ class TextureSource {
         this.permanent = false;
 
         /**
+         * If this texture source should ever be added to the texture atlas.
+         * @type {boolean}
+         */
+        this.noTextureAtlas = false;
+
+        /**
          * Sub-object with texture-specific rendering information.
          * For images, contains the src property, for texts, contains handy rendering information.
          * @type {Object}
@@ -2367,20 +2166,23 @@ class TextureSource {
     getRenderHeight() {
         return this.h;
     }
-    
+
+    isLoadedByCore() {
+        return !this.loadCb;
+    }
+
     addView(v) {
         if (!this.views.has(v)) {
             this.views.add(v);
 
             if (this.glTexture) {
                 // If not yet loaded, wait until it is loaded until adding it to the texture atlas.
-                if (this.stage.textureAtlas) {
+                if (this.stage.textureAtlas && !this.noTextureAtlas) {
                     this.stage.textureAtlas.addActiveTextureSource(this);
                 }
             }
 
             if (this.views.size === 1) {
-                this.manager.textureSourceIdHashmap.set(this.id, this);
                 if (this.lookupId) {
                     if (!this.manager.textureSourceHashmap.has(this.lookupId)) {
                         this.manager.textureSourceHashmap.set(this.lookupId, this);
@@ -2398,7 +2200,6 @@ class TextureSource {
                 if (this.stage.textureAtlas) {
                     this.stage.textureAtlas.removeActiveTextureSource(this);
                 }
-                this.manager.textureSourceIdHashmap.delete(this.id);
 
                 this.becomesInvisible();
             }
@@ -2418,6 +2219,11 @@ class TextureSource {
     }
 
     load(sync) {
+        if (this.isLoadedByCore()) {
+            // Core texture source (View resultGlTexture), for which the loading is managed by the core.
+            return;
+        }
+
         if (this.isLoading() && sync) {
             // We cancel the previous one.
             if (this.cancelCb) {
@@ -2495,13 +2301,31 @@ class TextureSource {
     }
 
     onLoad() {
-        if (this.isVisible() && this.stage.textureAtlas) {
+        if (this.isVisible() && this.stage.textureAtlas && !this.noTextureAtlas) {
             this.stage.textureAtlas.addActiveTextureSource(this);
         }
 
         this.views.forEach(function(view) {
             view.onTextureSourceLoaded();
         });
+    }
+
+    _changeGlTexture(glTexture, w, h) {
+        let prevGlTexture = this.glTexture;
+        // Loaded by core.
+        this.glTexture = glTexture;
+        this.w = w;
+        this.h = h;
+
+        if (!prevGlTexture && this.glTexture) {
+            this.views.forEach(view => view.onTextureSourceLoaded());
+        }
+
+        if (!this.glTexture) {
+            this.views.forEach(view => {view.displayedTexture = null});
+        }
+
+        this.views.forEach(view => view._updateDimensions());
     }
 
     onError(e) {
@@ -2629,6 +2453,8 @@ class TextureAtlas {
     _init() {
         let gl = this.gl;
 
+        gl.useProgram(this.glProgram);
+
         // Bind attributes.
         this._vertexPositionAttribute = gl.getAttribLocation(this.glProgram, "aVertexPosition");
         this._textureCoordAttribute = gl.getAttribLocation(this.glProgram, "aTextureCoord");
@@ -2669,6 +2495,9 @@ class TextureAtlas {
 
         this.texture = this.gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
+
+        this.texture.w = this.w
+        this.texture.h = this.h
 
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.w, this.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -3184,7 +3013,13 @@ class View {
 
         this.stage = stage;
 
-        this._core = new ViewRenderer(this);
+        this._core = new ViewCore(this);
+
+        /**
+         * Lazy-loaded texturization module.
+         * @type {ViewTexturizer}
+         */
+        this._texturizer = null;
 
         /**
          * A view is active if it is a descendant of the stage root and it is visible (worldAlpha > 0).
@@ -3371,6 +3206,14 @@ class View {
         return null;
     };
 
+    get active() {
+        return this._active
+    }
+
+    get attached() {
+        return this._attached
+    }
+
     isActive() {
         return this._visible && (this._alpha > 0) && (this._parent ? this._parent._active : (this.stage.root === this));
     };
@@ -3446,7 +3289,9 @@ class View {
             this._displayedTexture.source.removeView(this);
         }
 
-        this._core.deleteRenderGlTexture();
+        if (this._texturizer) {
+            this._texturizer.deactivate();
+        }
 
         this._active = false;
     }
@@ -3541,8 +3386,13 @@ class View {
 
         let prevValue = this._texture;
         if (v !== prevValue) {
-            if (v !== null && !(v instanceof Texture)) {
-                throw new Error('incorrect value for texture');
+            if (v !== null) {
+                if (v instanceof TextureSource) {
+                    v = this.stage.texture(v);
+                } else if (!v instanceof Texture) {
+                    console.error('incorrect value for texture');
+                    return;
+                }
             }
 
             this._texture = v;
@@ -3648,7 +3498,9 @@ class View {
             // Due to width/height change: update the translation vector and borders.
             this._core.setDimensions(this._getRenderWidth(), this._getRenderHeight());
             this._updateLocalTranslate();
+            return true
         }
+        return false
     }
 
     _updateLocalTransform() {
@@ -3730,7 +3582,8 @@ class View {
                 ty2 = Math.min(1.0, Math.max(ty2 * rh + ih));
             }
 
-            if (displayedTextureSource.inTextureAtlas) {
+            let inTextureAtlas = this._core.allowTextureAtlas() && displayedTextureSource.inTextureAtlas
+            if (inTextureAtlas) {
                 // Calculate texture atlas texture coordinates.
                 let textureAtlasI = 0.000488281;    // 1/2048.
 
@@ -3747,7 +3600,7 @@ class View {
             }
 
             this._core.setTextureCoords(tx1, ty1, tx2, ty2);
-            this._core.setInTextureAtlas(displayedTextureSource.inTextureAtlas);
+            this._core.setInTextureAtlas(inTextureAtlas);
         }
     }
 
@@ -4010,7 +3863,7 @@ class View {
             }
         }
         return "";
-    };
+    }
 
     toString() {
         let obj = this.getSettings();
@@ -4096,13 +3949,13 @@ class View {
 
         if (this._rotation !== 0) settings.rotation = this._rotation;
 
-        if (this._colorUl === this._colorUr && this._colorBl === this._colorBr && this._colorUl === this._colorBl) {
-            if (this._colorUl !== 0xFFFFFFFF) settings.color = 0xFFFFFFFF;
+        if (this._core.colorUl === this._core.colorUr && this._core.colorBl === this._core.colorBr && this._core.colorUl === this._core.colorBl) {
+            if (this._core.colorUl !== 0xFFFFFFFF) settings.color = 0xFFFFFFFF;
         } else {
-            if (this._colorUl !== 0xFFFFFFFF) settings.colorUl = 0xFFFFFFFF;
-            if (this._colorUr !== 0xFFFFFFFF) settings.colorUr = 0xFFFFFFFF;
-            if (this._colorBl !== 0xFFFFFFFF) settings.colorBl = 0xFFFFFFFF;
-            if (this._colorBr !== 0xFFFFFFFF) settings.colorBr = 0xFFFFFFFF;
+            if (this._core.colorUl !== 0xFFFFFFFF) settings.colorUl = 0xFFFFFFFF;
+            if (this._core.colorUr !== 0xFFFFFFFF) settings.colorUr = 0xFFFFFFFF;
+            if (this._core.colorBl !== 0xFFFFFFFF) settings.colorBl = 0xFFFFFFFF;
+            if (this._core.colorBr !== 0xFFFFFFFF) settings.colorBr = 0xFFFFFFFF;
         }
 
         if (!this._visible) settings.visible = false;
@@ -4125,6 +3978,21 @@ class View {
             let tnd = this._texture.getNonDefaults();
             if (Object.keys(tnd).length) {
                 settings.texture = tnd;
+            }
+        }
+
+        if (this._texturizer) {
+            if (this._texturizer.enabled) {
+                settings.renderToTexture = this._texturizer.enabled
+            }
+            if (this._texturizer.lazy) {
+                settings.renderToTextureLazy = this._texturizer.lazy
+            }
+            if (this._texturizer.colorize) {
+                settings.colorizeResultTexture = this._texturizer.colorize
+            }
+            if (this._texturizer.hideResult) {
+                settings.hideResultTexture = this._texturizer.hideResult
             }
         }
 
@@ -4462,6 +4330,10 @@ class View {
         return this._childList
     }
 
+    get _lchildren() {
+        return this._childList.get()
+    }
+
     get childList() {
         if (!this._exposedChildList) {
             this._exposedChildList = this._getExposedChildList()
@@ -4565,12 +4437,12 @@ class View {
         }
     }
 
-    set layoutEntry(f) {
-        this._core.layoutEntry = f;
+    set visitEntry(f) {
+        this._core.visitEntry = f;
     }
 
-    set layoutExit(f) {
-        this._core.layoutExit = f;
+    set visitExit(f) {
+        this._core.visitExit = f;
     }
 
     get shader() {
@@ -4579,33 +4451,75 @@ class View {
 
     set shader(v) {
         let shader;
-        if (Utils.isPlainObject(v)) {
-            shader = new v.type(this.stage);
-            v = Utils.cloneObj(v);
-            delete v.type;
-            shader.setSettings(v);
+        if (Utils.isObjectLiteral(v)) {
+            if (v.type) {
+                shader = new v.type(this.stage.ctx)
+            } else {
+                shader = this.shader
+            }
+
+            if (shader) {
+                shader.setSettings(v);
+            }
         } else if (v === null) {
-            shader = this.stage.ctx.defaultShader;
+            shader = this.stage.ctx.renderState.defaultShader;
         } else {
-            shader = v;
+            if (v.isShader) {
+                shader = v;
+            } else {
+                console.error("Please specify a shader type.");
+                return
+            }
         }
         this._core.shader = shader;
     }
 
-    get shaderSettings() {
-        return this._core.shaderSettings;
+    get renderToTexture() {
+        return this._texturizer && this.texturizer.enabled
     }
 
-    set shaderSettings(v) {
-        this.shaderSettings.setSettings(v);
+    set renderToTexture(v) {
+        this.texturizer.enabled = v
     }
 
-    get renderAsTexture() {
-        return this._core.renderAsTexture;
+    get renderToTextureLazy() {
+        return this._texturizer && this.texturizer.lazy
     }
 
-    set renderAsTexture(v) {
-        this._core.renderAsTexture = v;
+    set renderToTextureLazy(v) {
+        this.texturizer.lazy = v
+    }
+
+    get hideResultTexture() {
+        return this._texturizer && this.texturizer.hideResult
+    }
+
+    set hideResultTexture(v) {
+        this.texturizer.hideResult = v
+    }
+
+    get colorizeResultTexture() {
+        return this._texturizer && this.texturizer.colorize
+    }
+
+    set colorizeResultTexture(v) {
+        this.texturizer.colorize = v
+    }
+
+    get filters() {
+        return this.texturizer.filters
+    }
+
+    set filters(v) {
+        this.texturizer.filters = v
+    }
+
+    getResultTextureSource() {
+        return this.texturizer.getResultTextureSource()
+    }
+
+    get texturizer() {
+        return this._core.texturizer
     }
 
     
@@ -4704,6 +4618,159 @@ class View {
         }
         let t = this._getTransition(property);
         t.start(v);
+        return t
+    }
+
+    get X() {
+        return this.getSmooth('x', this.x);
+    }
+
+    set X(v) {
+        this.setSmooth('x', v)
+    }
+
+    get Y() {
+        return this.getSmooth('y', this.y);
+    }
+
+    set Y(v) {
+        this.setSmooth('y', v)
+    }
+
+    get W() {
+        return this.getSmooth('w', this.w);
+    }
+
+    set W(v) {
+        return this.setSmooth('w', v);
+    }
+
+    get H() {
+        return this.getSmooth('h', this.h);
+    }
+
+    set H(v) {
+        this.setSmooth('h', v)
+    }
+
+    get SCALE() {
+        return this.getSmooth('scale', this.scale);
+    }
+
+    set SCALE(v) {
+        this.setSmooth('scale', v)
+    }
+
+    get SCALEX() {
+        return this.getSmooth('scaleX', this.scaleX);
+    }
+
+    set SCALEX(v) {
+        this.setSmooth('scaleX', v)
+    }
+
+    get PIVOT() {
+        return this.getSmooth('pivot', this.pivot);
+    }
+
+    set PIVOT(v) {
+        this.setSmooth('pivot', v)
+    }
+
+    get PIVOTX() {
+        return this.getSmooth('pivotX', this.pivotX);
+    }
+
+    set PIVOTX(v) {
+        this.setSmooth('pivotX', v)
+    }
+
+    get MOUNT() {
+        return this.getSmooth('mount', this.mount);
+    }
+
+    set MOUNT(v) {
+        this.setSmooth('mount', v)
+    }
+
+    get MOUNTX() {
+        return this.getSmooth('mountX', this.mountX);
+    }
+
+    set MOUNTX(v) {
+        this.setSmooth('mountX', v)
+    }
+
+    get ALPHA() {
+        return this.getSmooth('alpha', this.alpha);
+    }
+
+    set ALPHA(v) {
+        this.setSmooth('alpha', v)
+    }
+
+    get ROTATION() {
+        return this.getSmooth('rotation', this.rotation);
+    }
+
+    set ROTATION(v) {
+        this.setSmooth('rotation', v)
+    }
+
+    get COLOR() {
+        return this.getSmooth('color', this.color);
+    }
+
+    set COLOR(v) {
+        this.setSmooth('color', v)
+    }
+
+    set COLORTOP(v) {
+        this.setSmooth('colorTop', v)
+    }
+
+    set COLORBOTTOM(v) {
+        this.setSmooth('colorBottom', v)
+    }
+
+    set COLORLEFT(v) {
+        this.setSmooth('colorLeft', v)
+    }
+
+    set COLORRIGHT(v) {
+        this.setSmooth('colorRight', v)
+    }
+
+    get COLORUL() {
+        return this.getSmooth('colorUl', this.colorUl);
+    }
+
+    set COLORUL(v) {
+        this.setSmooth('colorUl', v)
+    }
+
+    get COLORUR() {
+        return this.getSmooth('colorUr', this.colorUr);
+    }
+
+    set COLORUR(v) {
+        this.setSmooth('colorUr', v)
+    }
+
+    get COLORBL() {
+        return this.getSmooth('colorBl', this.colorBl);
+    }
+
+    set COLORBL(v) {
+        this.setSmooth('colorBl', v)
+    }
+
+    get COLORBR() {
+        return this.getSmooth('colorBr', this.colorBr);
+    }
+
+    set COLORBR(v) {
+        this.setSmooth('colorBr', v)
     }
     
 
@@ -4763,7 +4830,6 @@ View.PROP_SETTERS = new Map();
 
 
 Base.mixinEs5(View, EventEmitter);
-
 
 
 
@@ -4847,7 +4913,7 @@ class ViewChildList {
         this._children.splice(index, 1);
 
         // Sync.
-        this._view._core.removeAt(index);
+        this._view._core.removeChildAt(index);
 
         return view;
     };
@@ -4911,1788 +4977,6 @@ class ViewChildList {
         return this._children.length;
     }
 }
-
-
-
-/**
- * Graphical calculations / VBO buffer filling.
- */
-class ViewRenderer {
-
-    constructor(view) {
-        this._view = view;
-
-        this.ctx = view.stage.ctx;
-
-        this._parent = null;
-
-        this._hasUpdates = false;
-
-        this._hasRenderUpdates = false;
-
-        this._layoutEntry = null;
-
-        this._layoutExit = null;
-
-        this._hasLayoutHooks = 0;
-
-        this._recalc = 128;
-
-        this._worldAlpha = 1;
-
-        this._updateTreeOrder = 0;
-
-        // All local translation/transform updates: directly propagated from x/y/w/h/scale/whatever.
-        this._worldPx = this._localPx = 0;
-        this._worldPy = this._localPy = 0;
-
-        this._worldTa = this._localTa = 1;
-        this._worldTb = this._localTb = 0;
-        this._worldTc = this._localTc = 0;
-        this._worldTd = this._localTd = 1;
-
-        this._isComplex = false;
-
-        this._localAlpha = 1;
-
-        this._rw = 0;
-        this._rh = 0;
-
-        this._clipping = false;
-        this._clippingParent = null;
-
-        /**
-         * In case of clipping, this flag indicates if we're dealing with a square-shaped clipping area.
-         * @type {boolean}
-         */
-        this._clippingSquare = false;
-
-        this._clippingSquareMinX = 0;
-        this._clippingSquareMaxX = 0;
-        this._clippingSquareMinY = 0;
-        this._clippingSquareMaxY = 0;
-
-        /**
-         * Flag that indicates that clipping area is empty.
-         * @type {boolean}
-         */
-        this._clippingEmpty = false;
-
-        /**
-         * Flag that indicates that the clipping area are the corner points.
-         * @type {boolean}
-         */
-        this._clippingNoEffect = false;
-
-        /**
-         * In case of complex clipping, the corner points of the clipping area.
-         * @type {number[]}
-         */
-        this._clippingArea = null;
-
-        /**
-         * The texture source to be displayed.
-         * @type {TextureSource}
-         */
-        this._displayedTextureSource = null;
-
-        this._colorUl = this._colorUr = this._colorBl = this._colorBr = 0xFFFFFFFF;
-
-        this._txCoordsUl = 0x00000000;
-        this._txCoordsUr = 0x0000FFFF;
-        this._txCoordsBr = 0xFFFFFFFF;
-        this._txCoordsBl = 0xFFFF0000;
-
-        this._ulx = 0;
-        this._uly = 0;
-        this._brx = 1;
-        this._bry = 1;
-
-        this._zIndex = 0;
-        this._forceZIndexContext = false;
-        this._zContextUsage = 0;
-        this._zParent = null;
-        this._zSort = false;
-
-        this._isRoot = false;
-
-        this._children = null;
-
-        this._zIndexedChildren = null;
-
-        this._shader = null;
-
-        this._activeShader = null;
-
-        this._shaderSettings = null;
-
-        this._renderGlTexture = null;
-    }
-
-    _setHasRenderUpdates() {
-        if (this._worldAlpha) {
-            let p = this;
-            do {
-                p._hasRenderUpdates = true;
-            } while ((p = p._parent) && !p._hasRenderUpdates);
-        }
-    }
-
-    /**
-     * @param {Number} type
-     *   1: alpha
-     *   2: translate
-     *   4: transform
-     *   8: clipping
-     *  64: shader settings
-     * 128: force layout when becoming visible
-     * @private
-     */
-    _setRecalc(type) {
-        this._recalc |= type;
-
-        if (this._worldAlpha) {
-            let p = this;
-            do {
-                p._hasUpdates = true;
-            } while ((p = p._parent) && !p._hasUpdates);
-
-            // Any changes in descendants should trigger texture updates.
-            if (this._parent) this._parent._setHasRenderUpdates();
-        } else {
-            this._hasUpdates = true;
-        }
-    };
-
-    _setRecalcForced(type, force) {
-        this._recalc |= type;
-
-        if (this._worldAlpha || force) {
-            let p = this;
-            do {
-                p._hasUpdates = true;
-            } while ((p = p._parent) && !p._hasUpdates);
-
-            if (force) {
-                // View is becoming visible: it's own rendering may have changed while invisible.
-                this._setHasRenderUpdates();
-            } else {
-                // Any changes in descendants should trigger texture updates.
-                if (this._parent) {
-                    this._parent._setHasRenderUpdates();
-                }
-            }
-        } else {
-            this._hasUpdates = true;
-        }
-    };
-
-    _setHasLayoutHooks() {
-        if (this._hasLayoutHooks !== 1) {
-            let p = this;
-            do {
-                p._hasLayoutHooks = 1;
-            } while ((p = p._parent) && p._hasLayoutHooks !== 1);
-        }
-    }
-
-    _setHasLayoutHooksCheck() {
-        if (this._hasLayoutHooks !== -1) {
-            let p = this;
-            do {
-                p._hasLayoutHooks = -1;
-            } while ((p = p._parent) && p._hasLayoutHooks === 0);
-        }
-    }
-
-    setParent(parent) {
-        if (parent !== this._parent) {
-            let prevIsZContext = this.isZContext();
-            let prevParent = this._parent;
-            this._parent = parent;
-
-            if (prevParent && prevParent._hasLayoutHooks === 1) {
-                prevParent._setHasLayoutHooksCheck();
-            }
-
-            if (parent) {
-                if (this._hasLayoutHooks === 1) {
-                    parent._setHasLayoutHooks();
-                } else if (this._hasLayoutHooks === -1) {
-                    parent._setHasLayoutHooksCheck();
-                }
-            }
-
-            this._setRecalc(1 + 2 + 4 + 64);
-
-            if (this._zIndex === 0) {
-                this.setZParent(parent);
-            } else {
-                this.setZParent(parent ? parent.findZContext() : null);
-            }
-
-            if (prevIsZContext !== this.isZContext()) {
-                if (!this.isZContext()) {
-                    this.disableZContext();
-                } else {
-                    this.enableZContext(prevParent.findZContext());
-                }
-            }
-
-            let newClippingParent = parent ? (parent._clipping ? parent : parent._clippingParent) : null;
-
-            if (newClippingParent !== this._clippingParent) {
-                this.setClippingParent(newClippingParent);
-            }
-
-            if (!this._shader) {
-                let newActiveShader = parent ? parent._activeShader : null;
-                if (parent._renderAsTexture) newActiveShader = this.ctx.defaultShader;
-                if (newActiveShader !== this._activeShader) {
-                    this._setHasRenderUpdates();
-                    this._setActiveShaderRecursive(newActiveShader);
-                }
-            }
-        }
-    };
-
-    addChildAt(index, child) {
-        if (!this._children) this._children = [];
-        this._children.splice(index, 0, child);
-        child.setParent(this);
-    };
-
-    removeChildAt(index) {
-        let child = this._children[index];
-        this._children.splice(index, 1);
-        child.setParent(null);
-    };
-
-    removeChildren() {
-        if (this._children) {
-            for (let i = 0, n = this._children.length; i < n; i++) {
-                this._children[i].setParent(null);
-            }
-
-            this._children.splice(0);
-
-            if (this._zIndexedChildren) {
-                this._zIndexedChildren.splice(0);
-            }
-        }
-    };
-
-    setLocalTransform(a, b, c, d) {
-        this._setRecalc(4);
-        this._localTa = a;
-        this._localTb = b;
-        this._localTc = c;
-        this._localTd = d;
-        this._isComplex = (b != 0) || (c != 0);
-    };
-
-    setLocalTranslate(x, y) {
-        this._setRecalc(2);
-        this._localPx = x;
-        this._localPy = y;
-    };
-
-    addLocalTranslate(dx, dy) {
-        this.setLocalTranslate(this._localPx + dx, this._localPy + dy);
-    }
-
-    setLocalAlpha(a) {
-        this._setRecalcForced(1, (this._parent && this._parent._worldAlpha) && a);
-
-        if (a < 1e-14) {
-            // Tiny rounding errors may cause failing visibility tests.
-            a = 0;
-        }
-
-        this._localAlpha = a;
-    };
-
-    setDimensions(w, h) {
-        this._rw = w;
-        this._rh = h;
-        this._setRecalc(2);
-        this.deleteRenderGlTexture();
-    };
-
-    setTextureCoords(ulx, uly, brx, bry) {
-        this._setHasRenderUpdates();
-
-        this._ulx = ulx;
-        this._uly = uly;
-        this._brx = brx;
-        this._bry = bry;
-
-        this._txCoordsUl = ((ulx * 65535 + 0.5) | 0) + ((uly * 65535 + 0.5) | 0) * 65536;
-        this._txCoordsUr = ((brx * 65535 + 0.5) | 0) + ((uly * 65535 + 0.5) | 0) * 65536;
-        this._txCoordsBl = ((ulx * 65535 + 0.5) | 0) + ((bry * 65535 + 0.5) | 0) * 65536;
-        this._txCoordsBr = ((brx * 65535 + 0.5) | 0) + ((bry * 65535 + 0.5) | 0) * 65536;
-    };
-
-    setDisplayedTextureSource(textureSource) {
-        this._setHasRenderUpdates();
-        this._displayedTextureSource = textureSource;
-    };
-
-    setInTextureAtlas(inTextureAtlas) {
-        this._setHasRenderUpdates();
-        this.inTextureAtlas = inTextureAtlas;
-    };
-
-    setAsRoot() {
-        // Use parent dummy.
-        this._parent = new ViewRenderer(this._view);
-
-        // Root is, and will always be, the primary zContext.
-        this._isRoot = true;
-
-        this.ctx.root = this;
-    };
-
-    isAncestorOf(c) {
-        let p = c;
-        while (p = p._parent) {
-            if (this === p) {
-                return true;
-            }
-        }
-        return false;
-    };
-
-    isZContext() {
-        return (this._forceZIndexContext || this._renderAsTexture || this._zIndex !== 0 || this._isRoot || !this._parent);
-    };
-
-    findZContext() {
-        if (this.isZContext()) {
-            return this;
-        } else {
-            return this._parent.findZContext();
-        }
-    };
-
-    setZParent(newZParent) {
-        if (this._zParent !== newZParent) {
-            if (this._zParent !== null) {
-                if (this._zIndex !== 0) {
-                    this._zParent.decZContextUsage();
-                }
-
-                if (this._zParent._zContextUsage > 0) {
-                    let index = this._zParent._zIndexedChildren.indexOf(this);
-                    this._zParent._zIndexedChildren.splice(index, 1);
-                }
-            }
-
-            if (newZParent !== null) {
-                let hadZContextUsage = (newZParent._zContextUsage > 0);
-
-                // @pre: new parent's children array has already been modified.
-                if (this._zIndex !== 0) {
-                    newZParent.incZContextUsage();
-                }
-
-                if (newZParent._zContextUsage > 0) {
-                    if (!hadZContextUsage && (this._parent === newZParent)) {
-                        // This child was already in the children list.
-                        // Do not add double.
-                    } else {
-                        newZParent._zIndexedChildren.push(this);
-                    }
-                    newZParent._zSort = true;
-                }
-            }
-
-            this._zParent = newZParent;
-        }
-    };
-
-    incZContextUsage() {
-        this._zContextUsage++;
-        if (this._zContextUsage === 1) {
-            if (!this._zIndexedChildren) {
-                this._zIndexedChildren = [];
-            }
-            if (this._children) {
-                // Copy.
-                for (let i = 0, n = this._children.length; i < n; i++) {
-                    this._zIndexedChildren.push(this._children[i]);
-                }
-            }
-        }
-    };
-
-    decZContextUsage() {
-        this._zContextUsage--;
-        if (this._zContextUsage === 0) {
-            this._zSort = false;
-            this._zIndexedChildren.splice(0);
-        }
-    };
-
-    get zIndex() {
-        return this._zIndex;
-    }
-
-    set zIndex(zIndex) {
-        if (this._zIndex !== zIndex) {
-            this._setHasRenderUpdates();
-
-            let newZParent = this._zParent;
-
-            let prevIsZContext = this.isZContext();
-            if (zIndex === 0 && this._zIndex !== 0) {
-                if (this._parent === this._zParent) {
-                    this._zParent.decZContextUsage();
-                } else {
-                    newZParent = this._parent;
-                }
-            } else if (zIndex !== 0 && this._zIndex === 0) {
-                newZParent = this._parent ? this._parent.findZContext() : null;
-                if (newZParent === this._zParent) {
-                    if (this._zParent) {
-                        this._zParent.incZContextUsage();
-                        this._zParent._zSort = true;
-                    }
-                }
-            } else if (zIndex !== this._zIndex) {
-                this._zParent._zSort = true;
-            }
-
-            if (newZParent !== this._zParent) {
-                this.setZParent(null);
-            }
-
-            this._zIndex = zIndex;
-
-            if (newZParent !== this._zParent) {
-                this.setZParent(newZParent);
-            }
-
-            if (prevIsZContext !== this.isZContext()) {
-                if (!this.isZContext()) {
-                    this.disableZContext();
-                } else {
-                    this.enableZContext(this._parent.findZContext());
-                }
-            }
-        }
-    };
-
-    get forceZIndexContext() {
-        return this._forceZIndexContext;
-    }
-
-    set forceZIndexContext(v) {
-        this._setHasRenderUpdates();
-
-        let prevIsZContext = this.isZContext();
-        this._forceZIndexContext = v;
-
-        if (prevIsZContext !== this.isZContext()) {
-            if (!this.isZContext()) {
-                this.disableZContext();
-            } else {
-                this.enableZContext(this._parent.findZContext());
-            }
-        }
-    };
-
-    enableZContext(prevZContext) {
-        if (prevZContext._zContextUsage > 0) {
-            let self = this;
-            // Transfer from upper z context to this z context.
-            prevZContext._zIndexedChildren.slice().forEach(function (c) {
-                if (self.isAncestorOf(c) && c._zIndex !== 0) {
-                    c.setZParent(self);
-                }
-            });
-        }
-    };
-
-    disableZContext() {
-        // Transfer from this z context to upper z context.
-        if (this._zContextUsage > 0) {
-            let newZParent = this._parent.findZContext();
-
-            this._zIndexedChildren.slice().forEach(function (c) {
-                if (c._zIndex !== 0) {
-                    c.setZParent(newZParent);
-                }
-            });
-        }
-    };
-
-    get clipping() {
-        return this._clipping;
-    };
-
-    set clipping(clipping) {
-        if (clipping !== this._clipping) {
-            this._setRecalc(8);
-            this._clipping = clipping;
-            this.setChildrenClippingParent(clipping ? this : this._clippingParent);
-        }
-    };
-
-    setChildrenClippingParent(clippingParent) {
-        if (this._children) {
-            for (let i = 0, n = this._children.length; i < n; i++) {
-                this._children[i].setClippingParent(clippingParent);
-            }
-        }
-    };
-
-    setClippingParent(clippingParent) {
-        if (this._clippingParent !== clippingParent) {
-            this._setRecalc(8);
-
-            this._clippingParent = clippingParent;
-            if (!this._clipping) {
-                if (this._children) {
-                    for (let i = 0, n = this._children.length; i < n; i++) {
-                        this._children[i].setClippingParent(clippingParent);
-                    }
-                }
-            }
-
-        }
-    };
-
-    get colorUl() {
-        return this._colorUl;
-    }
-
-    set colorUl(color) {
-        if (this._colorUl !== color) {
-            this._setHasRenderUpdates();
-            this._colorUl = color;
-        }
-    }
-
-    get colorUr() {
-        return this._colorUr;
-    }
-
-    set colorUr(color) {
-        if (this._colorUr !== color) {
-            this._setHasRenderUpdates();
-            this._colorUr = color;
-        }
-    };
-
-    get colorBl() {
-        return this._colorBl;
-    }
-
-    set colorBl(color) {
-        if (this._colorBl !== color) {
-            this._setHasRenderUpdates();
-            this._colorBl = color;
-        }
-    };
-
-    get colorBr() {
-        return this._colorBr;
-    }
-
-    set colorBr(color) {
-        if (this._colorBr !== color) {
-            this._setHasRenderUpdates();
-            this._colorBr = color;
-        }
-    };
-
-
-    set layoutEntry(f) {
-        this._layoutEntry = f;
-
-        if (f) {
-            this._setHasLayoutHooks();
-        } else if (this._hasLayoutHooks === 1 && !this._layoutExit) {
-            this._setHasLayoutHooksCheck();
-        }
-    }
-
-    set layoutExit(f) {
-        this._layoutExit = f;
-
-        if (f) {
-            this._setHasLayoutHooks();
-        } else if (this._hasLayoutHooks === 1 && !this._layoutEntry) {
-            this._setHasLayoutHooksCheck();
-        }
-    }
-
-    get shader() {
-        return this._shader;
-    }
-
-    set shader(v) {
-        this._setHasRenderUpdates();
-
-        let prevShader = this._shader;
-        this._shader = v;
-        if (!v && prevShader) {
-            // Disabled shader.
-            let newActiveShader = (this._parent ? this._parent._shader : null);
-            this._setActiveShaderRecursive(newActiveShader);
-        } else {
-            // Enabled shader.
-            this._setActiveShaderRecursive(v);
-        }
-    }
-
-    get shaderSettings() {
-        if (!this._shaderSettings) {
-            this._shaderSettings = this.activeShader.createViewSettings(this) || {};
-        }
-        return this._shaderSettings;
-    }
-
-    get activeShader() {
-        return this._activeShader || this.ctx.defaultShader;
-    }
-
-    get renderAsTexture() {
-        return this._renderAsTexture;
-    }
-
-    set renderAsTexture(v) {
-        if (this._renderAsTexture != v) {
-            this._setHasRenderUpdates();
-
-            let prevIsZContext = this.isZContext();
-
-            this._renderAsTexture = v;
-
-            // Force z-index context because we can't handle views 'leaking out' of the texture in a consistent manner.
-            if (prevIsZContext !== this.isZContext()) {
-                if (!this.isZContext()) {
-                    this.disableZContext();
-                } else {
-                    this.enableZContext(this._parent.findZContext());
-                }
-            }
-
-            // Due to the renderAsTexture-specific code in update: must update world properties.
-            this._setRecalc(7);
-
-            if (!v) {
-                this.deleteRenderGlTexture();
-            }
-
-            if (v) {
-                // Texture rendering is started in default shader mode.
-                this._setActiveShaderChildrenRecursive(this.ctx.defaultShader);
-            } else {
-                this._setActiveShaderChildrenRecursive(this.activeShader);
-            }
-        }
-    }
-    
-    deleteRenderGlTexture() {
-        if (this._renderGlTexture) {
-            this.ctx.deleteRenderGlTexture(this._renderGlTexture);
-            this._renderGlTexture = null;
-        }
-    }
-    
-    getRenderGlTexture() {
-        if (!this._renderGlTexture) {
-            this._renderGlTexture = this.ctx.createRenderGlTexture(Math.min(2048, this._rw), Math.min(2048, this._rh));
-        }
-        return this._renderGlTexture;
-    }
-
-    _setActiveShaderRecursive(shader) {
-        this._activeShader = shader;
-        this._shaderSettings = null;
-        if (this._children) {
-            for (let i = 0, n = this._children.length; i < n; i++) {
-                if (!this._children[i]._shader && !this._children[i]._renderAsTexture) {
-                    this._children[i]._setActiveShaderRecursive(shader);
-                    this._children[i]._hasRenderUpdates = true;
-                }
-            }
-        }
-    };
-
-    _setActiveShaderChildrenRecursive(shader) {
-        if (this._children) {
-            for (let i = 0, n = this._children.length; i < n; i++) {
-                if (!this._children[i]._shader && !this._children[i]._renderAsTexture) {
-                    this._children[i]._setActiveShaderRecursive(shader);
-                    this._children[i]._hasRenderUpdates = true;
-                }
-            }
-        }
-    };
-
-    _stashWorld() {
-        this._stashedWorld = [this._worldAlpha, this._worldPx, this._worldPy, this._worldTa, this._worldTb, this._worldTc, this._worldTd, this.ctx.ignoredClippingParent];
-        this._worldAlpha = 1;
-        this._worldPx = 0;
-        this._worldPy = 0;
-        this._worldTa = 1;
-        this._worldTb = 0;
-        this._worldTc = 0;
-        this._worldTd = 1;
-
-        // We create a new 'clipping context' by simply ignoring the current clipping parent
-        this.ctx.ignoredClippingParent = this._clipping ? this : this._clippingParent;
-    }
-
-    _unstashWorld() {
-        this._worldAlpha = this._stashedWorld[0];
-        this._worldPx = this._stashedWorld[1];
-        this._worldPy = this._stashedWorld[2];
-        this._worldTa = this._stashedWorld[3];
-        this._worldTb = this._stashedWorld[4];
-        this._worldTc = this._stashedWorld[5];
-        this._worldTd = this._stashedWorld[6];
-        this.ctx.ignoredClippingParent = this._stashedWorld[7];
-        this._stashedWorld = null;
-    }
-
-    _stashTexCoords() {
-        this._stashedTexCoords = [this._txCoordsUl, this._txCoordsUr, this._txCoordsBr, this._txCoordsBl];
-        this._txCoordsUl = 0x00000000;
-        this._txCoordsUr = 0x0000FFFF;
-        this._txCoordsBr = 0xFFFFFFFF;
-        this._txCoordsBl = 0xFFFF0000;
-    }
-
-    _unstashTexCoords() {
-        this._txCoordsUl = this._stashedTexCoords[0];
-        this._txCoordsUr = this._stashedTexCoords[1];
-        this._txCoordsBr = this._stashedTexCoords[2];
-        this._txCoordsBl = this._stashedTexCoords[3];
-        this._stashedTexCoords = null;
-    }
-
-    isVisible() {
-        return (this._localAlpha > 1e-14);
-    };
-
-    layout() {
-        if (this._hasLayoutHooks !== 0) {
-            // Carry positioning changes downwards to ensure re-layout.
-            let origRecalc = this._recalc;
-
-            if (this.isVisible()) {
-                this._recalc |= (this._parent._recalc & 6);
-                let layoutChanged = (this._recalc & 6);
-
-                if (this._layoutEntry && layoutChanged) {
-                    this._layoutEntry(this._view, origRecalc);
-                }
-                if (this._children) {
-                    if (this._hasLayoutHooks === -1) {
-                        let hasLayoutHooks = false;
-                        for (let i = 0, n = this._children.length; i < n; i++) {
-                            this._children[i].layout();
-                            hasLayoutHooks = hasLayoutHooks || (this._children[i]._hasLayoutHooks === 1);
-                        }
-                        this._hasLayoutHooks = hasLayoutHooks ? 1 : 0;
-                    } else {
-                        for (let i = 0, n = this._children.length; i < n; i++) {
-                            if (this._children[i]._hasUpdates || layoutChanged) {
-                                this._children[i].layout();
-                            }
-                        }
-                    }
-                }
-                if (this._layoutExit && this._hasUpdates) {
-                    this._layoutExit(this._view, origRecalc);
-                }
-
-                if ((this._recalc & 128)) {
-                    // Clear 'force layout' flag.
-                    this._recalc -= 128;
-                }
-            }
-
-        }
-    }
-
-    update() {
-        this._recalc |= this._parent._recalc;
-
-        if (this._zSort) {
-            // Make sure that all descendants are updated so that the updateTreeOrder flags are correctly set.
-            this.ctx.updateTreeOrderForceUpdate++;
-        }
-
-        let forceUpdate = (this.ctx.updateTreeOrderForceUpdate > 0);
-        if (this._recalc & 1) {
-            // In case of becoming invisible, we must update the children because they may be z-indexed.
-            forceUpdate = this._worldAlpha && !(this._parent._worldAlpha && this._localAlpha);
-
-            this._worldAlpha = this._parent._worldAlpha * this._localAlpha;
-
-            if (this._worldAlpha < 1e-14) {
-                // Tiny rounding errors may cause failing visibility tests.
-                this._worldAlpha = 0;
-            }
-        }
-
-        if (this._worldAlpha || forceUpdate) {
-            if (this._recalc & 6) {
-                this._worldPx = this._parent._worldPx + this._localPx * this._parent._worldTa;
-                this._worldPy = this._parent._worldPy + this._localPy * this._parent._worldTd;
-            }
-
-            if (this._recalc & 4) {
-                this._worldTa = this._localTa * this._parent._worldTa;
-                this._worldTb = this._localTd * this._parent._worldTb;
-                this._worldTc = this._localTa * this._parent._worldTc;
-                this._worldTd = this._localTd * this._parent._worldTd;
-
-                if (this._isComplex) {
-                    this._worldTa += this._localTc * this._parent._worldTb;
-                    this._worldTb += this._localTb * this._parent._worldTa;
-                    this._worldTc += this._localTc * this._parent._worldTd;
-                    this._worldTd += this._localTb * this._parent._worldTc;
-                }
-            }
-
-            if ((this._recalc & 6) && (this._parent._worldTb !== 0 || this._parent._worldTc !== 0)) {
-                this._worldPx += this._localPy * this._parent._worldTb;
-                this._worldPy += this._localPx * this._parent._worldTc;
-            }
-
-            if ((this._recalc & 14 /* 2 + 4 + 8 */) && (this._clipping || (this._clippingParent && (this.ctx.ignoredClippingParent !== this._clippingParent)))) {
-                // We must calculate the clipping area.
-                let c1x, c1y, c2x, c2y, c3x, c3y;
-
-                let cp = this._clippingParent;
-                if (cp && cp._clippingEmpty) {
-                    this._clippingEmpty = true;
-                    this._clippingArea = null;
-                    this._clippingNoEffect = false;
-                } else {
-                    this._clippingNoEffect = false;
-                    this._clippingEmpty = false;
-                    this._clippingArea = null;
-                    if (cp) {
-                        if (cp._clippingSquare && (this._worldTb === 0 && this._worldTc === 0 && this._worldTa > 0 && this._worldTd > 0)) {
-                            // Special case: 'easy square clipping'.
-                            this._clippingSquare = true;
-
-                            c2x = this._worldPx + this._rw * this._worldTa;
-                            c2y = this._worldPy + this._rh * this._worldTd;
-
-                            this._clippingSquareMinX = this._worldPx;
-                            this._clippingSquareMaxX = c2x;
-                            this._clippingSquareMinY = this._worldPy;
-                            this._clippingSquareMaxY = c2y;
-
-                            if ((this._clippingSquareMinX >= cp._clippingSquareMinX) && (this._clippingSquareMaxX <= cp._clippingSquareMaxX) && (this._clippingSquareMinY >= cp._clippingSquareMinY) && (this._clippingSquareMaxY <= cp._clippingSquareMaxY)) {
-                                // No effect.
-                                this._clippingNoEffect = true;
-
-                                if (this._clipping) {
-                                    this._clippingSquareMinX = this._worldPx;
-                                    this._clippingSquareMaxX = c2x;
-                                    this._clippingSquareMinY = this._worldPy;
-                                    this._clippingSquareMaxY = c2y;
-                                }
-                            } else {
-                                this._clippingSquareMinX = Math.max(this._clippingSquareMinX, cp._clippingSquareMinX);
-                                this._clippingSquareMaxX = Math.min(this._clippingSquareMaxX, cp._clippingSquareMaxX);
-                                this._clippingSquareMinY = Math.max(this._clippingSquareMinY, cp._clippingSquareMinY);
-                                this._clippingSquareMaxY = Math.min(this._clippingSquareMaxY, cp._clippingSquareMaxY);
-                                if (this._clippingSquareMaxX < this._clippingSquareMinX || this._clippingSquareMaxY < this._clippingSquareMinY) {
-                                    this._clippingEmpty = true;
-                                }
-                            }
-                        } else {
-                            //c0x = this._worldPx;
-                            //c0y = this._worldPy;
-                            c1x = this._worldPx + this._rw * this._worldTa;
-                            c1y = this._worldPy + this._rw * this._worldTc;
-                            c2x = this._worldPx + this._rw * this._worldTa + this._rh * this._worldTb;
-                            c2y = this._worldPy + this._rw * this._worldTc + this._rh * this._worldTd;
-                            c3x = this._worldPx + this._rh * this._worldTb;
-                            c3y = this._worldPy + this._rh * this._worldTd;
-
-                            // Complex shape.
-                            this._clippingSquare = false;
-                            let cornerPoints = [this._worldPx, this._worldPy, c1x, c1y, c2x, c2y, c3x, c3y];
-
-                            if (cp._clippingSquare && !cp._clippingArea) {
-                                // We need a clipping area to use for intersection.
-                                cp._clippingArea = [cp._clippingSquareMinX, cp._clippingSquareMinY, cp._clippingSquareMaxX, cp._clippingSquareMinY, cp._clippingSquareMaxX, cp._clippingSquareMaxY, cp._clippingSquareMinX, cp._clippingSquareMaxY];
-                            }
-
-                            this._clippingArea = GeometryUtils.intersectConvex(cp._clippingArea, cornerPoints);
-                            this._clippingEmpty = (this._clippingArea.length === 0);
-                            this._clippingNoEffect = (cornerPoints === this._clippingArea);
-                        }
-                    } else {
-                        c1x = this._worldPx + this._rw * this._worldTa;
-                        c3y = this._worldPy + this._rh * this._worldTd;
-
-                        // Just use the corner points.
-                        if (this._worldTb === 0 && this._worldTc === 0 && this._worldTa > 0 && this._worldTd > 0) {
-                            // Square.
-                            this._clippingSquare = true;
-                            if (this._clipping) {
-                                this._clippingSquareMinX = this._worldPx;
-                                this._clippingSquareMaxX = c1x;
-                                this._clippingSquareMinY = this._worldPy;
-                                this._clippingSquareMaxY = c3y;
-                            }
-                            this._clippingEmpty = false;
-                            this._clippingNoEffect = true;
-                        } else {
-                            c1y = this._worldPy + this._rw * this._worldTc;
-                            c2x = this._worldPx + this._rw * this._worldTa + this._rh * this._worldTb;
-                            c2y = this._worldPy + this._rw * this._worldTc + this._rh * this._worldTd;
-                            c3x = this._worldPx + this._rh * this._worldTb;
-
-                            // Complex shape.
-                            this._clippingSquare = false;
-                            if (this._clipping) {
-                                this._clippingArea = [this._worldPx, this._worldPy, c1x, c1y, c2x, c2y, c3x, c3y];
-                            }
-                            this._clippingEmpty = false;
-                            this._clippingNoEffect = true;
-                        }
-                    }
-                }
-            }
-
-            if (this._activeShader && this._activeShader.hasViewSettings()) {
-                this.shaderSettings.update();
-            }
-
-            this._updateTreeOrder = this.ctx.updateTreeOrder++;
-
-            this._recalc = (this._recalc & 71);
-            /* 1+2+4+64 */
-
-            let saved;
-            if (this._renderAsTexture) {
-                // For 0-based square texture rendering: set identity matrix while traversing children.
-                saved = this._stashWorld();
-            }
-
-            if (this._children) {
-                for (let i = 0, n = this._children.length; i < n; i++) {
-                    if ((this.ctx.updateTreeOrderForceUpdate > 0) || this._recalc || this._children[i]._hasUpdates) {
-                        this._children[i].update();
-                    }
-                }
-            }
-
-            if (this._renderAsTexture) {
-                this._unstashWorld(saved);
-            }
-
-            if (this._worldAlpha === 0) {
-                // Layout must be run when this view becomes visible.
-                this._recalc = 128;
-            } else {
-                this._recalc = 0;
-            }
-
-            this._hasUpdates = false;
-        }
-
-        if (this._zSort) {
-            this.ctx.updateTreeOrderForceUpdate--;
-        }
-
-    };
-
-    render() {
-        if (this._zSort) {
-            this.sortZIndexedChildren();
-            this._zSort = false;
-        }
-
-        if (this._worldAlpha) {
-            let ctx = this.ctx;
-
-            if (this._renderAsTexture) {
-                if (this._rw === 0 || this._rh === 0) {
-                    // Ignore this branch and don't draw anything.
-                    return;
-                }
-
-                if (this._renderGlTexture && !this._hasRenderUpdates) {
-                    // Nothing needs to be done, just re-use the existing texture.
-                    if (this.activeShader && (ctx.shader !== this.activeShader)) {
-                        ctx.flushQuads();
-                        ctx.setupShader(this);
-                    }
-                    ctx.overrideAddVboTexture(this.getRenderGlTexture());
-                    this._stashTexCoords();
-                    this.addToVbo();
-                    this._unstashTexCoords();
-                    ctx.overrideAddVboTexture(null);
-                    return;
-                }
-
-                ctx.flushQuads();
-
-                // Use default shader for texture.
-                if (ctx.shader !== this.ctx.defaultShader) {
-                    ctx.setupShader(this, this.ctx.defaultShader);
-                }
-
-                let texture = this.getRenderGlTexture();
-                ctx.setRenderTarget(texture);
-
-                this._stashWorld();
-
-                if (this._displayedTextureSource) {
-                    // Add displayed texture source in local coordinates.
-                    this.addToVbo();
-                }
-            } else if (this._displayedTextureSource) {
-                if (this.activeShader && (ctx.shader !== this.activeShader)) {
-                    ctx.flushQuads();
-                    ctx.setupShader(this);
-                }
-                this.addToVbo();
-            }
-
-            if (this._children) {
-                if (this._zContextUsage) {
-                    for (let i = 0, n = this._zIndexedChildren.length; i < n; i++) {
-                        this._zIndexedChildren[i].render();
-                    }
-                } else {
-                    for (let i = 0, n = this._children.length; i < n; i++) {
-                        if (this._children[i]._zIndex === 0) {
-                            // If zIndex is set, this item already belongs to a zIndexedChildren array in one of the ancestors.
-                            this._children[i].render();
-                        }
-                    }
-                }
-            }
-
-            if (this._renderAsTexture) {
-                ctx.flushQuads();
-                ctx.restoreRenderTarget();
-
-                // Draw generated texture as this view.
-                this._unstashWorld();
-
-                if (this.activeShader && (ctx.shader !== this.activeShader)) {
-                    ctx.setupShader(this);
-                }
-                ctx.overrideAddVboTexture(this.getRenderGlTexture());
-                this._stashTexCoords();
-                this.addToVbo();
-                this._unstashTexCoords();
-
-                let samples = this.shader.getMultisamples(this);
-                if (samples > 0) {
-                    this.ctx.flushMultisample(this);
-                }
-
-                ctx.overrideAddVboTexture(null);
-            }
-
-            this._hasRenderUpdates = false;
-        }
-    };
-
-    sortZIndexedChildren() {
-        // Insertion sort works best for almost correctly ordered arrays.
-        for (let i = 1, n = this._zIndexedChildren.length; i < n; i++) {
-            let a = this._zIndexedChildren[i];
-            let j = i - 1;
-            while (j >= 0) {
-                let b = this._zIndexedChildren[j];
-                if (!(a._zIndex === b._zIndex ? (a._updateTreeOrder < b._updateTreeOrder) : (a._zIndex < b._zIndex))) {
-                    break;
-                }
-
-                this._zIndexedChildren[j + 1] = this._zIndexedChildren[j];
-                j--;
-            }
-
-            this._zIndexedChildren[j + 1] = a;
-        }
-    };
-
-    addToVbo() {
-        let vboIndex = this.ctx.vboIndex;
-        let vboBufferFloat = this.ctx.vboBufferFloat;
-        let vboBufferUint = this.ctx.vboBufferUint;
-
-        if ((this._clippingParent && (this.ctx.ignoredClippingParent !== this._clippingParent)) && !this._clippingNoEffect) {
-            if (!this._clippingEmpty) {
-                this.addToVboClipped();
-            }
-        } else {
-            if (this._worldTb !== 0 || this._worldTc !== 0) {
-                if (vboIndex < 262144) {
-                    vboBufferFloat[vboIndex++] = this._worldPx;
-                    vboBufferFloat[vboIndex++] = this._worldPy;
-                    vboBufferUint[vboIndex++] = this._txCoordsUl; // Texture.
-                    vboBufferUint[vboIndex++] = getColorInt(this._colorUl, this._worldAlpha);
-                    vboBufferFloat[vboIndex++] = this._worldPx + this._rw * this._worldTa;
-                    vboBufferFloat[vboIndex++] = this._worldPy + this._rw * this._worldTc;
-                    vboBufferUint[vboIndex++] = this._txCoordsUr;
-                    vboBufferUint[vboIndex++] = getColorInt(this._colorUr, this._worldAlpha);
-                    vboBufferFloat[vboIndex++] = this._worldPx + this._rw * this._worldTa + this._rh * this._worldTb;
-                    vboBufferFloat[vboIndex++] = this._worldPy + this._rw * this._worldTc + this._rh * this._worldTd;
-                    vboBufferUint[vboIndex++] = this._txCoordsBr;
-                    vboBufferUint[vboIndex++] = getColorInt(this._colorBr, this._worldAlpha);
-                    vboBufferFloat[vboIndex++] = this._worldPx + this._rh * this._worldTb;
-                    vboBufferFloat[vboIndex++] = this._worldPy + this._rh * this._worldTd;
-                    vboBufferUint[vboIndex++] = this._txCoordsBl;
-                    vboBufferUint[vboIndex] = getColorInt(this._colorBl, this._worldAlpha);
-                    this.ctx.addVbo(this);
-                }
-            } else {
-                // Simple.
-                let cx = this._worldPx + this._rw * this._worldTa;
-                let cy = this._worldPy + this._rh * this._worldTd;
-
-                if (vboIndex < 262144) {
-                    vboBufferFloat[vboIndex++] = this._worldPx;
-                    vboBufferFloat[vboIndex++] = this._worldPy;
-                    vboBufferUint[vboIndex++] = this._txCoordsUl; // Texture.
-                    vboBufferUint[vboIndex++] = getColorInt(this._colorUl, this._worldAlpha);
-                    vboBufferFloat[vboIndex++] = cx;
-                    vboBufferFloat[vboIndex++] = this._worldPy;
-                    vboBufferUint[vboIndex++] = this._txCoordsUr;
-                    vboBufferUint[vboIndex++] = getColorInt(this._colorUr, this._worldAlpha);
-                    vboBufferFloat[vboIndex++] = cx;
-                    vboBufferFloat[vboIndex++] = cy;
-                    vboBufferUint[vboIndex++] = this._txCoordsBr;
-                    vboBufferUint[vboIndex++] = getColorInt(this._colorBr, this._worldAlpha);
-                    vboBufferFloat[vboIndex++] = this._worldPx;
-                    vboBufferFloat[vboIndex++] = cy;
-                    vboBufferUint[vboIndex++] = this._txCoordsBl;
-                    vboBufferUint[vboIndex] = getColorInt(this._colorBl, this._worldAlpha);
-                    this.ctx.addVbo(this);
-                }
-            }
-        }
-    };
-
-    addToVboClipped() {
-        let vboIndex = this.ctx.vboIndex;
-        let vboBufferFloat = this.ctx.vboBufferFloat;
-        let vboBufferUint = this.ctx.vboBufferUint;
-
-        // Gradients are not supported for clipped quads.
-        let c = getColorInt(this._colorUl, this._worldAlpha);
-
-        if (this._clippingSquare) {
-            // Inverse matrix.
-            let ux = this._rw * this._worldTa;
-            let vy = this._rh * this._worldTd;
-
-            let d = 1 / (ux * vy);
-            let invTa = vy * d;
-            let invTd = ux * d;
-
-            // Get ranges from 0 to 1.
-            let tx1 = invTa * (this._clippingSquareMinX - this._worldPx);
-            let ty1 = invTd * (this._clippingSquareMinY - this._worldPy);
-            let tx3 = invTa * (this._clippingSquareMaxX - this._worldPx);
-            let ty3 = invTd * (this._clippingSquareMaxY - this._worldPy);
-
-            // Calculate texture coordinates for clipped corner points.
-            let tcx1 = this._ulx * (1 - tx1) + this._brx * tx1;
-            let tcy1 = this._uly * (1 - ty1) + this._bry * ty1;
-            let tcx3 = this._ulx * (1 - tx3) + this._brx * tx3;
-            let tcy3 = this._uly * (1 - ty3) + this._bry * ty3;
-
-            if (vboIndex < 262144) {
-                vboBufferFloat[vboIndex++] = this._clippingSquareMinX;
-                vboBufferFloat[vboIndex++] = this._clippingSquareMinY;
-                vboBufferUint[vboIndex++] = getVboTextureCoords(tcx1, tcy1);
-                vboBufferUint[vboIndex++] = c;
-                vboBufferFloat[vboIndex++] = this._clippingSquareMaxX;
-                vboBufferFloat[vboIndex++] = this._clippingSquareMinY;
-                vboBufferUint[vboIndex++] = getVboTextureCoords(tcx3, tcy1);
-                vboBufferUint[vboIndex++] = c;
-                vboBufferFloat[vboIndex++] = this._clippingSquareMaxX;
-                vboBufferFloat[vboIndex++] = this._clippingSquareMaxY;
-                vboBufferUint[vboIndex++] = getVboTextureCoords(tcx3, tcy3);
-                vboBufferUint[vboIndex++] = c;
-                vboBufferFloat[vboIndex++] = this._clippingSquareMinX;
-                vboBufferFloat[vboIndex++] = this._clippingSquareMaxY;
-                vboBufferUint[vboIndex++] = getVboTextureCoords(tcx1, tcy3);
-                vboBufferUint[vboIndex] = c;
-                this.ctx.addVbo(this);
-            }
-        } else {
-            // Complex clipping.
-
-            // Inverse matrix.
-            let ux = this._rw * this._worldTa;
-            let uy = this._rw * this._worldTc;
-            let vx = this._rh * this._worldTb;
-            let vy = this._rh * this._worldTd;
-
-            let d = 1 / (ux * vy - vx * uy);
-            let invTa = vy * d;
-            let invTb = -vx * d;
-            let invTc = -uy * d;
-            let invTd = ux * d;
-
-            let n = Math.ceil(((this._clippingArea.length / 2) - 2) / 2);
-
-            if (n === 1) {
-                // Texture coordinates.
-                let tx1 = invTa * (this._clippingArea[0] - this._worldPx) + invTb * (this._clippingArea[1] - this._worldPy);
-                let ty1 = invTc * (this._clippingArea[0] - this._worldPx) + invTd * (this._clippingArea[1] - this._worldPy);
-                let tx2 = invTa * (this._clippingArea[2] - this._worldPx) + invTb * (this._clippingArea[3] - this._worldPy);
-                let ty2 = invTc * (this._clippingArea[2] - this._worldPx) + invTd * (this._clippingArea[3] - this._worldPy);
-                let tx3 = invTa * (this._clippingArea[4] - this._worldPx) + invTb * (this._clippingArea[5] - this._worldPy);
-                let ty3 = invTc * (this._clippingArea[4] - this._worldPx) + invTd * (this._clippingArea[5] - this._worldPy);
-
-                // Check for polygon instead of quad.
-                let g = this._clippingArea.length <= 6 ? 4 : 6;
-                let tx4 = invTa * (this._clippingArea[g] - this._worldPx) + invTb * (this._clippingArea[g + 1] - this._worldPy);
-                let ty4 = invTc * (this._clippingArea[g] - this._worldPx) + invTd * (this._clippingArea[g + 1] - this._worldPy);
-
-                if (vboIndex < 262144) {
-                    vboBufferFloat[vboIndex++] = this._clippingArea[0];
-                    vboBufferFloat[vboIndex++] = this._clippingArea[1];
-                    vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx1) + this._brx * tx1, this._uly * (1 - ty1) + this._bry * ty1);
-                    vboBufferUint[vboIndex++] = c;
-                    vboBufferFloat[vboIndex++] = this._clippingArea[2];
-                    vboBufferFloat[vboIndex++] = this._clippingArea[3];
-                    vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx2) + this._brx * tx2, this._uly * (1 - ty2) + this._bry * ty2);
-                    vboBufferUint[vboIndex++] = c;
-                    vboBufferFloat[vboIndex++] = this._clippingArea[4];
-                    vboBufferFloat[vboIndex++] = this._clippingArea[5];
-                    vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx3) + this._brx * tx3, this._uly * (1 - ty3) + this._bry * ty3);
-                    vboBufferUint[vboIndex++] = c;
-                    vboBufferFloat[vboIndex++] = this._clippingArea[g];
-                    vboBufferFloat[vboIndex++] = this._clippingArea[g + 1];
-                    vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx4) + this._brx * tx4, this._uly * (1 - ty4) + this._bry * ty4);
-                    vboBufferUint[vboIndex] = c;
-                    this.ctx.addVbo(this);
-                }
-            } else {
-                // Multiple quads.
-                let g;
-                for (let i = 0; i < n; i++) {
-                    let b = i * 4 + 2;
-                    g = b + 4;
-                    if (g >= this._clippingArea.length) {
-                        // Roll-over: convert polygon to quad.
-                        g -= 2;
-                    }
-
-                    // Texture coordinates.
-                    let tx1 = invTa * (this._clippingArea[0] - this._worldPx) + invTb * (this._clippingArea[1] - this._worldPy);
-                    let ty1 = invTc * (this._clippingArea[0] - this._worldPx) + invTd * (this._clippingArea[1] - this._worldPy);
-                    let tx2 = invTa * (this._clippingArea[b] - this._worldPx) + invTb * (this._clippingArea[b + 1] - this._worldPy);
-                    let ty2 = invTc * (this._clippingArea[b] - this._worldPx) + invTd * (this._clippingArea[b + 1] - this._worldPy);
-                    let tx3 = invTa * (this._clippingArea[b + 2] - this._worldPx) + invTb * (this._clippingArea[b + 3] - this._worldPy);
-                    let ty3 = invTc * (this._clippingArea[b + 2] - this._worldPx) + invTd * (this._clippingArea[b + 3] - this._worldPy);
-                    let tx4 = invTa * (this._clippingArea[g] - this._worldPx) + invTb * (this._clippingArea[g + 1] - this._worldPy);
-                    let ty4 = invTc * (this._clippingArea[g] - this._worldPx) + invTd * (this._clippingArea[g + 1] - this._worldPy);
-
-                    if (vboIndex < 262144) {
-                        vboBufferFloat[vboIndex++] = this._clippingArea[0];
-                        vboBufferFloat[vboIndex++] = this._clippingArea[1];
-                        vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx1) + this._brx * tx1, this._uly * (1 - ty1) + this._bry * ty1);
-                        vboBufferUint[vboIndex++] = c;
-                        vboBufferFloat[vboIndex++] = this._clippingArea[b];
-                        vboBufferFloat[vboIndex++] = this._clippingArea[b + 1];
-                        vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx2) + this._brx * tx2, this._uly * (1 - ty2) + this._bry * ty2);
-                        vboBufferUint[vboIndex++] = c;
-                        vboBufferFloat[vboIndex++] = this._clippingArea[b + 2];
-                        vboBufferFloat[vboIndex++] = this._clippingArea[b + 3];
-                        vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx3) + this._brx * tx3, this._uly * (1 - ty3) + this._bry * ty3);
-                        vboBufferUint[vboIndex++] = c;
-                        vboBufferFloat[vboIndex++] = this._clippingArea[g];
-                        vboBufferFloat[vboIndex++] = this._clippingArea[g + 1];
-                        vboBufferUint[vboIndex++] = getVboTextureCoords(this._ulx * (1 - tx4) + this._brx * tx4, this._uly * (1 - ty4) + this._bry * ty4);
-                        vboBufferUint[vboIndex++] = c;
-                        this.ctx.addVbo(this);
-                    }
-                }
-            }
-        }
-    };
-
-    get localTa() {
-        return this._localTa;
-    };
-
-    get localTb() {
-        return this._localTb;
-    };
-
-    get localTc() {
-        return this._localTc;
-    };
-
-    get localTd() {
-        return this._localTd;
-    };
-
-    get rw() {
-        return this._rw;
-    }
-
-    get rh() {
-        return this._rh;
-    }
-
-    get view() {
-        return this._view;
-    }
-
-    getCornerPoints() {
-        return [
-            this._worldPx,
-            this._worldPy,
-            this._worldPx + this._rw * this._worldTa,
-            this._worldPy + this._rw * this._worldTc,
-            this._worldPx + this._rw * this._worldTa + this._rh * this._worldTb,
-            this._worldPy + this._rw * this._worldTc + this._rh * this._worldTd,
-            this._worldPx + this._rh * this._worldTb,
-            this._worldPy + this._rh * this._worldTd
-        ];
-    };
-
-    getAbsoluteCoords(relX, relY) {
-        return [
-            this._worldPx + this._worldTa * relX + this._worldTb * relY,
-            this._worldPy + this._worldTc * relX + this._worldTd * relY
-        ];
-    }
-}
-
-let getColorInt = function (c, alpha) {
-    let a = ((c / 16777216 | 0) * alpha) | 0;
-    return (((((c >> 16) & 0xff) * a) >> 8) & 0xff) +
-        ((((c & 0xff00) * a) >> 8) & 0xff00) +
-        (((((c & 0xff) << 16) * a) >> 8) & 0xff0000) +
-        (a << 24);
-};
-
-let getVboTextureCoords = function (x, y) {
-    return ((x * 65535 + 0.5) | 0) + ((y * 65535 + 0.5) | 0) * 65536;
-};
-
-
-/**
- * Copyright Metrological, 2017
- */
-
-
-class VboContext {
-
-    constructor(stage) {
-        this.stage = stage;
-
-        this.vboParamsBuffer = new ArrayBuffer(VboContext.GL_PARAMSBUFFER_MEMORY);
-        this.vboBufferFloat = new Float32Array(this.vboParamsBuffer);
-        this.vboBufferUint = new Uint32Array(this.vboParamsBuffer);
-        this.vboIndex = 0;
-
-        this.vboViewRenderers = [];
-        this.vboGlTextures = [];
-
-        this.vboParamsBufferBytesRemaining = VboContext.GL_PARAMSBUFFER_MEMORY;
-
-        // Current shader info.
-        this.shader = null;
-        this.shaderOwner = null;
-
-        this.bytesPerQuad = 64;
-
-        this.n = 0;
-
-        this.updateTreeOrder = 0;
-        this.updateTreeOrderForceUpdate = 0;
-
-        this._activeShaders = new Set();
-
-        this._renderTargetStack = [];
-
-        this._renderTarget = null;
-
-        this._overrideGlTexture = null;
-
-        // Used for renderAsTexture in the update/render loop to disable the world clipping context (and temporarily create a new one)
-        this.ignoredClippingParent = null;
-
-        this.defaultShader = new DefaultShader(this.stage);
-        this.initShader(this.defaultShader);
-
-        this.initSharedShaderData();
-    }
-
-    destroy() {
-        this.gl.deleteBuffer(this.paramsGlBuffer);
-        this.gl.deleteBuffer(this.quadsGlBuffer);
-        this._activeShaders.forEach(shader => {this.destroyShader(shader)});
-        Shader.destroyPrograms();
-    }
-
-    initSharedShaderData() {
-        let gl = this.gl;
-
-        // Create new sharable buffer for params.
-        this.paramsGlBuffer = gl.createBuffer();
-
-        let maxQuads = Math.floor(VboContext.GL_PARAMSBUFFER_MEMORY / 64);
-
-        // Init webgl arrays.
-        let allIndices = new Uint16Array(maxQuads * 6);
-
-        // fill the indices with the quads to draw.
-        for (let i = 0, j = 0; i < maxQuads; i += 6, j += 4) {
-            allIndices[i] = j;
-            allIndices[i + 1] = j + 1;
-            allIndices[i + 2] = j + 2;
-            allIndices[i + 3] = j;
-            allIndices[i + 4] = j + 2;
-            allIndices[i + 5] = j + 3;
-        }
-
-        // The quads buffer can be (re)used to draw a range of quads.
-        this.quadsGlBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.quadsGlBuffer);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, allIndices, gl.STATIC_DRAW);
-
-        // The matrix that causes the [0,0 - W,H] box to map to [-1,-1 - 1,1] in the end results.
-        this._projectionMatrix = new Float32Array([
-            2/this.stage.options.renderWidth, 0, 0, 0,
-            0, -2/this.stage.options.renderHeight, 0, 0,
-            0, 0, 1, 0,
-            -1, 1, 0, 1
-        ]);
-    }
-
-    initShader(shader) {
-        shader.init(this);
-        this._activeShaders.add(shader);
-    }
-
-    destroyShader(shader) {
-        shader.destroy();
-        this._activeShaders.delete(shader);
-    }
-
-    reset() {
-        this.vboIndex = 0;
-        this.vboViewRenderers = [];
-        this.vboGlTextures = [];
-        this.textureAtlasGlTexture = this.stage.textureAtlas ? this.stage.textureAtlas.texture : null;
-        this.n = 0;
-        this.updateTreeOrder = 0;
-
-        this.shader = null;
-        this._renderTargetStack = []
-        this._overrideGlTexture = null;
-    }
-
-    layout() {
-        this.root.layout();
-    }
-
-    resetGl() {
-        let gl = this.gl;
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.viewport(0,0,this.stage.options.w,this.stage.options.h);
-
-        let glClearColor = this.stage.options.glClearColor;
-        this.gl.clearColor(glClearColor[0], glClearColor[1], glClearColor[2], glClearColor[3]);
-        this.gl.clear(gl.COLOR_BUFFER_BIT);
-    }
-
-    frame() {
-        if (!this.root._parent._hasRenderUpdates) {
-            return false;
-        }
-
-        this.layout();
-
-        this.reset();
-
-        this.root.update();
-
-        this.resetGl();
-
-        // Setup the first added vbo shader.
-        this.setupShader(this.root);
-
-        this.root.render();
-
-        this.flush();
-
-        if (this.stage.textureAtlas && this.stage.options.debugTextureAtlas) {
-            this.renderDebugTextureAtlas();
-        }
-
-        // Cleanup the latest added vbo shader.
-        this.shader.cleanup(this);
-
-        this.root._parent._hasRenderUpdates = false;
-
-        this.destroyUnusedShaders();
-
-        return true;
-    }
-
-    destroyUnusedShaders() {
-        // Delete 'old' shaders.
-        let fc = this.stage.frameCounter;
-        this._activeShaders.forEach(shader => {
-            if (shader._lastFrameUsed < fc - 600) {
-                this.destroyShader(shader);
-            }
-        });
-    }
-
-    /**
-     * Specifically for renderAsTexture rendering.
-     * @param texture
-     */
-    overrideAddVboTexture(texture) {
-        this._overrideGlTexture = texture;
-    }
-
-    addVbo(viewRenderer) {
-        let glTexture = this._overrideGlTexture;
-        if (!glTexture) {
-            let textureSource = viewRenderer._displayedTextureSource;
-            glTexture = textureSource.inTextureAtlas ? this.textureAtlasGlTexture : textureSource.glTexture;
-        }
-
-        this.vboGlTextures.push(glTexture);
-        this.vboViewRenderers.push(viewRenderer);
-
-        this.vboIndex += 16;
-
-        this.vboParamsBufferBytesRemaining -= this.shader.getBufferSizePerQuad();
-
-        if (this.vboParamsBufferBytesRemaining < 10000) {
-            this.flush();
-        }
-    }
-
-    setupShader(viewRenderer, specificShader) {
-        let shader = specificShader || viewRenderer.activeShader;
-
-        if (!shader.initialized) {
-            this.initShader(shader);
-        }
-
-        shader._lastFrameUsed = this.stage.frameCounter;
-
-        if (this.shader && (this.shader.constructor === shader.constructor)) {
-            // We keep using the same shader, so we don't need to switch attributes.
-        } else {
-            let prevWasDefault = (this.shader && this.shader.isDefaultShader);
-            let newIsDefault = (shader && shader.isDefaultShader);
-
-            if (prevWasDefault && newIsDefault) {
-                // All attributes are assumed to stay in the same order.
-                // Allow to only setup additional attributes/uniforms.
-                this.shader.cleanupExtraOnly(this);
-                shader.setupExtraOnly(this);
-            } else {
-                if (this.shader) {
-                    this.shader.cleanup(this);
-                }
-                shader.setup(this);
-            }
-        }
-
-        this.shader = shader;
-        this.shaderOwner = viewRenderer;
-    }
-
-    flush() {
-        this.drawElements(0, this.vboOffset);
-        this.vboIndex = 0;
-        this.vboViewRenderers = [];
-        this.vboGlTextures = [];
-        this.vboParamsBufferBytesRemaining = VboContext.GL_PARAMSBUFFER_MEMORY;
-    }
-
-    flushMultisample(viewRenderer) {
-        this.shader.drawMultisample(this, viewRenderer);
-        this.vboIndex = 0;
-        this.vboViewRenderers = [];
-        this.vboGlTextures = [];
-        this.vboParamsBufferBytesRemaining = VboContext.GL_PARAMSBUFFER_MEMORY;
-    }
-
-    drawElements(offset, length) {
-        this.shader.drawElements(this, offset, length);
-    }
-
-    renderDebugTextureAtlas() {
-        this.setupShader(null, this.defaultShader);
-
-        let size = Math.min(this.stage.options.w, this.stage.options.h);
-        let vboIndex = this.vboIndex;
-        this.vboBufferFloat[vboIndex++] = 0;
-        this.vboBufferFloat[vboIndex++] = 0;
-        this.vboBufferUint[vboIndex++] = 0x00000000;
-        this.vboBufferUint[vboIndex++] = 0xFFFFFFFF;
-        this.vboBufferFloat[vboIndex++] = size;
-        this.vboBufferFloat[vboIndex++] = 0;
-        this.vboBufferUint[vboIndex++] = 0x0000FFFF;
-        this.vboBufferUint[vboIndex++] = 0xFFFFFFFF;
-        this.vboBufferFloat[vboIndex++] = size;
-        this.vboBufferFloat[vboIndex++] = size;
-        this.vboBufferUint[vboIndex++] = 0xFFFFFFFF;
-        this.vboBufferUint[vboIndex++] = 0xFFFFFFFF;
-        this.vboBufferFloat[vboIndex++] = 0;
-        this.vboBufferFloat[vboIndex++] = size;
-        this.vboBufferUint[vboIndex++] = 0xFFFF0000;
-        this.vboBufferUint[vboIndex] = 0xFFFFFFFF;
-        this.vboGlTextures.push(this.textureAtlasGlTexture);
-        this.vboViewRenderers.push(null);
-        this.vboIndex += 16;
-
-        this.flush();
-    }
-
-    getMultisampleTextureA() {
-        if (!this.multisampleTextureA) {
-            this.multisampleTextureA = this.createRenderGlTexture(2048, 2048);
-        }
-        return this.multisampleTextureA;
-    }
-
-    getMultisampleTextureB() {
-        if (!this.multisampleTextureB) {
-            this.multisampleTextureB = this.createRenderGlTexture(2048, 2048);
-        }
-        return this.multisampleTextureB;
-    }
-
-    getView(vboOffset) {
-        return this.vboViewRenderers[vboOffset]._view;
-    }
-
-    getViewRenderer(vboOffset) {
-        return this.vboViewRenderers[vboOffset];
-    }
-
-    getVboGlTexture(vboOffset) {
-        return this.vboGlTextures[vboOffset];
-    }
-
-    getShaderOwner() {
-        return this.shaderOwner;
-    }
-
-    get gl() {
-        return this.stage.gl;
-    }
-
-    get vboOffset() {
-        return this.vboIndex / 16;
-    }
-
-    createRenderGlTexture(w, h) {
-        let gl = this.gl;
-
-        let sourceTexture = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
-
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-        // We need a specific framebuffer for every render texture.
-        sourceTexture.w = w;
-        sourceTexture.h = h;
-        sourceTexture.framebuffer = gl.createFramebuffer();
-        sourceTexture.projectionMatrix = new Float32Array([
-            2/w, 0, 0, 0,
-            0, 2/h, 0, 0,
-            0, 0, 1, 0,
-            -1, -1, 0, 1
-        ]);
-
-        gl.bindFramebuffer(gl.FRAMEBUFFER, sourceTexture.framebuffer);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, sourceTexture, 0);
-
-        return sourceTexture;
-    }
-
-    deleteRenderGlTexture(glTexture) {
-        let gl = this.stage.gl;
-        gl.deleteFramebuffer(glTexture.framebuffer);
-        gl.deleteTexture(glTexture);
-    }
-
-    setRenderTarget(glTexture) {
-        this._renderTargetStack.push(this._renderTarget)
-        this._setRenderTarget(glTexture)
-    }
-
-    restoreRenderTarget() {
-        this._setRenderTarget(this._renderTargetStack.pop());
-    }
-
-    _setRenderTarget(v) {
-        let gl = this.stage.gl;
-
-        this._renderTarget = v
-
-        if (!v) {
-            gl.bindFramebuffer(gl.FRAMEBUFFER, null)
-            gl.viewport(0,0,this.stage.options.w,this.stage.options.h)
-        } else {
-            gl.bindFramebuffer(gl.FRAMEBUFFER, this._renderTarget.framebuffer)
-            gl.viewport(0,0,this._renderTarget.w, this._renderTarget.h)
-
-            // Clear texture.
-            gl.clearColor(0, 0, 0, 0);
-            gl.clear(gl.COLOR_BUFFER_BIT);
-        }
-    }
-
-    getProjectionMatrix() {
-        if (this._renderTarget) {
-            return this._renderTarget.projectionMatrix;
-        } else {
-            return this._projectionMatrix;
-        }
-    }
-
-    getViewportWidth() {
-        if (this._renderTarget) {
-            return this._renderTarget.w;
-        } else {
-            return this.stage.options.w;
-        }
-    }
-
-    getViewportHeight() {
-        if (this._renderTarget) {
-            return this._renderTarget.h;
-        } else {
-            return this.stage.options.h;
-        }
-    }
-}
-
-VboContext.GL_PARAMSBUFFER_MEMORY = 1000000;
 
 
 
@@ -8271,6 +6555,13 @@ class AnimationActionSettings extends Base {
         if (this._items.length) {
             console.trace('You should specify the merger before the values');
         }
+
+        if (f === 'numbers') {
+            f = StageUtils.mergeNumbers
+        } else if (f === 'colors') {
+            f = StageUtils.mergeColors
+        }
+
         this._merger = f;
     }
 
@@ -9417,8 +7708,10 @@ class BorderView extends View {
 
         this._updateLayout = false;
 
-        this.layoutExit = function (view, recalc) {
-            if (recalc || view._updateLayout) {
+        this.visitExit = function (view, recalc) {
+            let hasSingleChild = view.children.length === 1;
+            let refresh = (hasSingleChild && (view.children[0]._core._recalc & 2)) || recalc || view._updateLayout;
+            if (refresh) {
                 if (view.children.length === 1) {
                     view.w = view.children[0].renderWidth;
                     view.h = view.children[0].renderHeight;
@@ -9597,72 +7890,399 @@ BorderView.COLOR_PROPERTIES = new Set(['borderColor', 'borderColorTop', 'borderC
  */
 
 
-class Light3dShader extends DefaultShader {
+class FastBlurView extends View {
+
     constructor(stage) {
-        super(stage, Light3dShader.vertexShaderSource, Light3dShader.fragmentShaderSrc);
+        super(stage)
 
-        this._strength = 1;
-        this._ambient = 0;
-        this._fudge = 0.4;
+        let fastBoxBlurShader = FastBlurView.getFastBoxBlurShader(stage.ctx)
 
-        this._rx = 0;
-        this._ry = 0;
+        let c = this._children
+        c.a([
+            {renderToTexture: false, hideResultTexture: true, children: [{}]},
+            {children: [
+                {renderToTexture: true, hideResultTexture: true, visible: false, children: [{shader: fastBoxBlurShader}]},
+                {renderToTexture: true, hideResultTexture: true, visible: false, children: [{shader: fastBoxBlurShader}]},
+                {renderToTexture: true, hideResultTexture: true, visible: false, children: [{shader: fastBoxBlurShader}]},
+                {renderToTexture: true, hideResultTexture: true, visible: false, children: [{shader: fastBoxBlurShader}]},
+            ]},
+            {shader: {type: FastBlurOutputShader}, visible: false}
+        ])
+
+        this._textwrap = c.get()[0]
+        this._wrapper = this._textwrap.children[0]
+        this._layers = c.get()[1].children
+        this._output = c.get()[2]
+
+        this.getLayerContents(0).texture = this._textwrap.getResultTextureSource()
+        this.getLayerContents(1).texture = this.getLayer(0).getResultTextureSource()
+        this.getLayerContents(2).texture = this.getLayer(1).getResultTextureSource()
+        this.getLayerContents(3).texture = this.getLayer(2).getResultTextureSource()
+
+        let filters = FastBlurView.getLinearBlurFilters(stage.ctx)
+        this.getLayer(1).filters = [filters[0], filters[1]]
+        this.getLayer(2).filters = [filters[2], filters[3], filters[0], filters[1]]
+        this.getLayer(3).filters = [filters[2], filters[3], filters[0], filters[1]]
+
+        this._amount = 0
+        this._paddingX = 48
+        this._paddingY = 48
     }
 
-    init(vboContext) {
-        super.init(vboContext)
-
-        let gl = vboContext.gl;
-        this._strengthUniform = gl.getUniformLocation(this.glProgram, "strength");
-        this._ambientUniform = gl.getUniformLocation(this.glProgram, "ambient");
-        this._fudgeUniform = gl.getUniformLocation(this.glProgram, "fudge");
-        this._pivotUniform = gl.getUniformLocation(this.glProgram, "pivot");
-        this._rotUniform = gl.getUniformLocation(this.glProgram, "rot");
-
-        this._zAttribute = gl.getAttribLocation(this.glProgram, "z");
-
+    set padding(v) {
+        this._paddingX = v
+        this._paddingY = v
+        this._updateBlurSize()
     }
 
-    drawElements(vboContext, offset, length) {
-        let gl = vboContext.gl;
+    set paddingX(v) {
+        this.paddingX = v
+        this._updateBlurSize()
+    }
 
-        let byteOffset = (offset + length) * vboContext.bytesPerQuad;
+    set paddingY(v) {
+        this.paddingY = v
+        this._updateBlurSize()
+    }
 
-        gl.vertexAttribPointer(this._zAttribute, 1, gl.FLOAT, false, 4, byteOffset - (offset * this.getExtraBufferSizePerQuad()));
-        gl.enableVertexAttribArray(this._zAttribute);
+    _getExposedChildList() {
+        // Proxy children to wrapper.
+        return this._wrapper._children;
+    }
 
-        gl.uniform1f(this._strengthUniform, this._strength)
-        gl.uniform1f(this._ambientUniform, this._ambient)
-        gl.uniform1f(this._fudgeUniform, this._fudge)
+    getLayer(i) {
+        return this._layers[i]
+    }
 
-        let vr = vboContext.shaderOwner;
-        let view = vr.view;
-        let coords = vr.getAbsoluteCoords(vr.rw * view.pivotX, vr.rh * view.pivotY);
-        coords.push(vr.shaderSettings.z / vboContext.getViewportWidth());
-        gl.uniform3fv(this._pivotUniform, new Float32Array(coords));
+    getLayerContents(i) {
+        return this.getLayer(i).children[0]
+    }
 
-        let rotZ = Math.atan2(vr._worldTc, vr._worldTa);
-        gl.uniform3fv(this._rotUniform, new Float32Array([this._rx, this._ry, rotZ]));
-
-        let base = byteOffset / 4;
-        for (let i = 0; i < length; i++) {
-            let viewRenderer = vboContext.getViewRenderer(i);
-            let s = viewRenderer.shaderSettings;
-            let z = s.totalZ / vboContext.getViewportWidth();
-
-            vboContext.vboBufferFloat[base + i * 4] = z
-            vboContext.vboBufferFloat[base + i * 4 + 1] = z
-            vboContext.vboBufferFloat[base + i * 4 + 2] = z
-            vboContext.vboBufferFloat[base + i * 4 + 3] = z
+    _updateDimensions() {
+        if (super._updateDimensions()) {
+            this._updateBlurSize()
         }
-
-        super.drawElements(vboContext, offset, length);
-
-        gl.disableVertexAttribArray(this._zAttribute);
     }
 
-    getExtraBufferSizePerQuad() {
-        return 4 * 4; // 4 bytes * 4 vertices.
+    _updateBlurSize() {
+        let w = this.renderWidth
+        let h = this.renderHeight
+        
+        let paddingX = this._paddingX
+        let paddingY = this._paddingY
+
+        let fw = w + paddingX * 2
+        let fh = h + paddingY * 2
+        this._textwrap.w = fw
+        this._wrapper.x = paddingX
+        this.getLayer(0).w = this.getLayerContents(0).w = fw / 2
+        this.getLayer(1).w = this.getLayerContents(1).w = fw / 4
+        this.getLayer(2).w = this.getLayerContents(2).w = fw / 8
+        this.getLayer(3).w = this.getLayerContents(3).w = fw / 16
+        this._output.x = -paddingX
+        this._textwrap.x = -paddingX
+        this._output.w = fw
+
+        this._textwrap.h = fh
+        this._wrapper.y = paddingY
+        this.getLayer(0).h = this.getLayerContents(0).h = fh / 2
+        this.getLayer(1).h = this.getLayerContents(1).h = fh / 4
+        this.getLayer(2).h = this.getLayerContents(2).h = fh / 8
+        this.getLayer(3).h = this.getLayerContents(3).h = fh / 16
+        this._output.y = -paddingY
+        this._textwrap.y = -paddingY
+        this._output.h = fh
+
+        this.w = w
+        this.h = h
+    }
+
+    /**
+     * Sets the amount of blur. A value between 0 and 4. Goes up exponentially for blur.
+     * Best results for non-fractional values.
+     * @param v
+     */
+    set amount(v) {
+        this._amount = v
+        this._update()
+    }
+
+    get amount() {
+        return this._amount
+    }
+
+    _update() {
+        let v = Math.min(4, Math.max(0, this._amount))
+        if (v === 0) {
+            this._textwrap.renderToTexture = false
+            this._output.shader.otherTextureSource = null
+            this._output.visible = false
+        } else {
+            this._textwrap.renderToTexture = true
+            this._output.visible = true
+
+            this.getLayer(0).visible = (v > 0);
+            this.getLayer(1).visible = (v > 1);
+            this.getLayer(2).visible = (v > 2);
+            this.getLayer(3).visible = (v > 3);
+
+            if (v <= 1) {
+                this._output.texture = this._textwrap.getResultTextureSource()
+                this._output.shader.otherTextureSource = this.getLayer(0).getResultTextureSource()
+                this._output.shader.a = v
+            } else if (v <= 2) {
+                this._output.texture = this.getLayer(0).getResultTextureSource()
+                this._output.shader.otherTextureSource = this.getLayer(1).getResultTextureSource()
+                this._output.shader.a = v - 1
+            } else if (v <= 3) {
+                this._output.texture = this.getLayer(1).getResultTextureSource()
+                this._output.shader.otherTextureSource = this.getLayer(2).getResultTextureSource()
+                this._output.shader.a = v - 2
+            } else if (v <= 4) {
+                this._output.texture = this.getLayer(2).getResultTextureSource()
+                this._output.shader.otherTextureSource = this.getLayer(3).getResultTextureSource()
+                this._output.shader.a = v - 3
+            }
+        }
+    }
+
+    static getFastBoxBlurShader(ctx) {
+        if (!FastBlurView.fastBoxBlurShader) {
+            FastBlurView.fastBoxBlurShader = new FastBoxBlurShader(ctx)
+        }
+        return FastBlurView.fastBoxBlurShader
+    }
+
+    static getLinearBlurFilters(ctx) {
+        if (!FastBlurView.linearBlurFilters) {
+            FastBlurView.linearBlurFilters = []
+
+            let lbf = new LinearBlurFilter(ctx)
+            lbf.x = 1
+            lbf.y = 0
+            lbf.kernelRadius = 1
+            FastBlurView.linearBlurFilters.push(lbf)
+
+            lbf = new LinearBlurFilter(ctx)
+            lbf.x = 0
+            lbf.y = 1
+            lbf.kernelRadius = 1
+            FastBlurView.linearBlurFilters.push(lbf)
+
+            lbf = new LinearBlurFilter(ctx)
+            lbf.x = 1.5
+            lbf.y = 0
+            lbf.kernelRadius = 1
+            FastBlurView.linearBlurFilters.push(lbf)
+
+            lbf = new LinearBlurFilter(ctx)
+            lbf.x = 0
+            lbf.y = 1.5
+            lbf.kernelRadius = 1
+            FastBlurView.linearBlurFilters.push(lbf)
+        }
+        return FastBlurView.linearBlurFilters
+    }
+
+
+}
+
+FastBlurView.NUMBER_PROPERTIES = new Set(['amount'])
+
+/**
+ * 4x4 box blur shader which works in conjunction with a 50% rescale.
+ */
+class FastBoxBlurShader extends Shader {
+
+    constructor(ctx) {
+        super(ctx)
+    }
+
+    getVertexShaderSource() {
+        return FastBoxBlurShader.vertexShaderSource
+    }
+
+    getFragmentShaderSource() {
+        return FastBoxBlurShader.fragmentShaderSource
+    }
+
+    setupUniforms(operation) {
+        super.setupUniforms(operation)
+        var dx = 1.0 / operation.getTextureWidth(0);
+        var dy = 1.0 / operation.getTextureHeight(0);
+        this._setUniform("stepTextureCoord", new Float32Array([dx, dy]), this.gl.uniform2fv)
+    }
+
+}
+
+FastBoxBlurShader.vertexShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    uniform vec2 stepTextureCoord;
+    attribute vec2 aVertexPosition;
+    attribute vec2 aTextureCoord;
+    attribute vec4 aColor;
+    uniform vec2 projection;
+    varying vec4 vColor;
+    varying vec2 vTextureCoordUl;
+    varying vec2 vTextureCoordUr;
+    varying vec2 vTextureCoordBl;
+    varying vec2 vTextureCoordBr;
+    void main(void){
+        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);
+        vTextureCoordUl = aTextureCoord - stepTextureCoord;
+        vTextureCoordBr = aTextureCoord + stepTextureCoord;
+        vTextureCoordUr = vec2(vTextureCoordBr.x, vTextureCoordUl.y);
+        vTextureCoordBl = vec2(vTextureCoordUl.x, vTextureCoordBr.y);
+        vColor = aColor;
+        gl_Position.y = -sign(projection.y) * gl_Position.y;
+    }
+`;
+
+FastBoxBlurShader.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoordUl;
+    varying vec2 vTextureCoordUr;
+    varying vec2 vTextureCoordBl;
+    varying vec2 vTextureCoordBr;
+    varying vec4 vColor;
+    uniform sampler2D uSampler;
+    void main(void){
+        vec4 color = 0.25 * (texture2D(uSampler, vTextureCoordUl) + texture2D(uSampler, vTextureCoordUr) + texture2D(uSampler, vTextureCoordBl) + texture2D(uSampler, vTextureCoordBr));
+        gl_FragColor = color * vColor;
+    }
+`;
+
+/**
+ * Shader that combines two textures into one output.
+ */
+class FastBlurOutputShader extends Shader {
+
+    constructor(ctx) {
+        super(ctx)
+
+        this._a = 0
+        this._otherTextureSource = null
+    }
+
+    get a() {
+        return this._a
+    }
+
+    set a(v) {
+        this._a = v
+        this.redraw()
+    }
+
+    set otherTextureSource(v) {
+        this._otherTextureSource = v
+        this.redraw()
+    }
+
+    getFragmentShaderSource() {
+        return FastBlurOutputShader.fragmentShaderSource
+    }
+
+    setupUniforms(operation) {
+        super.setupUniforms(operation)
+        this._setUniform("a", this._a, this.gl.uniform1f)
+        this._setUniform("uSampler2", 1, this.gl.uniform1i)
+    }
+
+    beforeDraw(operation) {
+        let glTexture = this._otherTextureSource ? this._otherTextureSource.glTexture : null
+
+        let gl = this.gl
+        gl.activeTexture(gl.TEXTURE1)
+        gl.bindTexture(gl.TEXTURE_2D, glTexture)
+        gl.activeTexture(gl.TEXTURE0)
+    }
+
+    isMergable(shader) {
+        return super.isMergable(shader) && (shader._otherTextureSource === this._otherTextureSource)
+    }
+
+}
+
+FastBlurOutputShader.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    uniform sampler2D uSampler;
+    uniform sampler2D uSampler2;
+    uniform float a;
+    void main(void){
+        if (a == 1.0) {
+            gl_FragColor = texture2D(uSampler2, vTextureCoord) * vColor;
+        } else {
+            gl_FragColor = ((1.0 - a) * texture2D(uSampler, vTextureCoord) + (a * texture2D(uSampler2, vTextureCoord))) * vColor;
+        }
+    }
+`;
+
+
+
+/**
+ * Copyright Metrological, 2017
+ */
+
+
+class Light3dShader extends Shader {
+
+    constructor(ctx) {
+        super(ctx)
+
+        this._strength = 0.5
+        this._ambient = 0.5
+        this._fudge = 0.4
+
+        this._rx = 0
+        this._ry = 0
+
+        this._z = 0
+    }
+
+    getVertexShaderSource() {
+        return Light3dShader.vertexShaderSource
+    }
+
+    getFragmentShaderSource() {
+        return Light3dShader.fragmentShaderSource
+    }
+
+    supportsTextureAtlas() {
+        return true
+    }
+
+    supportsMerging() {
+        // As we need the shader owner, we do not support merging.
+        return false
+    }
+
+    setupUniforms(operation) {
+        super.setupUniforms(operation)
+
+        let vr = operation.shaderOwner;
+        let view = vr.view;
+
+        let coords = vr.getRenderTextureCoords(view.pivotX * vr.rw, view.pivotY * vr.rh)
+
+        // Counter normal rotation.
+
+        let rz = -Math.atan2(vr._renderContext.tc, vr._renderContext.ta)
+
+        let gl = this.gl
+        this._setUniform("pivot", new Float32Array([coords[0], coords[1], this._z]), gl.uniform3fv)
+        this._setUniform("rot", new Float32Array([this._rx, this._ry, rz]), gl.uniform3fv)
+
+        this._setUniform("strength", this._strength, gl.uniform1f)
+        this._setUniform("ambient", this._ambient, gl.uniform1f)
+        this._setUniform("fudge", this._fudge, gl.uniform1f)
     }
 
     set strength(v) {
@@ -9710,13 +8330,15 @@ class Light3dShader extends DefaultShader {
         this.redraw();
     }
 
-    hasViewSettings() {
-        return true;
+    get z() {
+        return this._z;
     }
 
-    createViewSettings(view) {
-        return new Light3dShaderViewSettings(this, view);
+    set z(v) {
+        this._z = v;
+        this.redraw();
     }
+
 }
 
 Light3dShader.vertexShaderSource = `
@@ -9726,11 +8348,10 @@ Light3dShader.vertexShaderSource = `
     attribute vec2 aVertexPosition;
     attribute vec2 aTextureCoord;
     attribute vec4 aColor;
-    uniform mat4 projectionMatrix;
+    uniform vec2 projection;
     varying vec2 vTextureCoord;
     varying vec4 vColor;
 
-    attribute float z;
     uniform float fudge;
     uniform float strength;
     uniform float ambient;
@@ -9738,39 +8359,24 @@ Light3dShader.vertexShaderSource = `
     uniform vec3 rot;
     varying float light;
 
-    void main(void){
-        vec4 pos = projectionMatrix * vec4(aVertexPosition, 0, 1);
+    void main(void) {
+        vec3 pos = vec3(aVertexPosition.xy, pivot.z);
         
-        pos.z = z;
+        pos -= pivot;
 
-        float rx = rot.x;
-        float ry = rot.y;
-        float rz = rot.z;
-
-        /* Translate to pivot position */
-        vec4 pivotPos = projectionMatrix * vec4(pivot, 1);
-        pivotPos.w = 0.0;
-        pos -= pivotPos;
-        
         /* Undo XY rotation */
-        mat2 iRotXy = mat2( cos(rz), sin(rz), 
-                           -sin(rz), cos(rz));
+        mat2 iRotXy = mat2( cos(rot.z), sin(rot.z), 
+                           -sin(rot.z), cos(rot.z));
         pos.xy = iRotXy * pos.xy;
-
-        /* Perform rotations */
-        gl_Position.x = cos(rx) * pos.x - sin(rx) * pos.z;
+        
+        /* Perform 3d rotations */
+        gl_Position.x = cos(rot.x) * pos.x - sin(rot.x) * pos.z;
         gl_Position.y = pos.y;
-        gl_Position.z = sin(rx) * pos.x + cos(rx) * pos.z;
+        gl_Position.z = sin(rot.x) * pos.x + cos(rot.x) * pos.z;
         
-        pos.y = cos(ry) * gl_Position.y - sin(ry) * gl_Position.z;
-        gl_Position.z = sin(ry) * gl_Position.y + cos(ry) * gl_Position.z;
+        pos.y = cos(rot.y) * gl_Position.y - sin(rot.y) * gl_Position.z;
+        gl_Position.z = sin(rot.y) * gl_Position.y + cos(rot.y) * gl_Position.z;
         gl_Position.y = pos.y;
-        
-        /* Set depth perspective */
-        gl_Position.w = 1.0 + fudge * (z + gl_Position.z);
-        
-        /* Set z to 0 because we don't want to perform z-clipping */
-        gl_Position.z = 0.0;
         
         /* Redo XY rotation */
         iRotXy[0][1] = -iRotXy[0][1];
@@ -9778,17 +8384,28 @@ Light3dShader.vertexShaderSource = `
         gl_Position.xy = iRotXy * gl_Position.xy; 
 
         /* Undo translate to pivot position */
-        gl_Position += pivotPos;
+        gl_Position.xyz += pivot;
+        
+        /* Set depth perspective */
+        float perspective = 1.0 + fudge * gl_Position.z * projection.x;
+
+        /* Map coords to gl coordinate space. */
+        gl_Position = vec4(gl_Position.x * projection.x - 1.0, gl_Position.y * -abs(projection.y) + 1.0, 0.0, perspective);
+        
+        /* Set z to 0 because we don't want to perform z-clipping */
+        gl_Position.z = 0.0;
 
         /* Use texture normal to calculate light strength */ 
-        light = ambient + strength * abs(cos(ry) * cos(rx));
+        light = ambient + strength * abs(cos(rot.y) * cos(rot.x));
         
         vTextureCoord = aTextureCoord;
         vColor = aColor;
+        
+        gl_Position.y = -sign(projection.y) * gl_Position.y;
     }
 `;
 
-Light3dShader.fragmentShaderSrc = `
+Light3dShader.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -9804,40 +8421,321 @@ Light3dShader.fragmentShaderSrc = `
 `;
 
 
-class Light3dShaderViewSettings extends ShaderSettings {
 
-    constructor(shader, viewRenderer) {
-        super(shader, viewRenderer);
+/**
+ * Copyright Metrological, 2017
+ */
 
-        this._z = 0;
-        this._totalZ = 0;
+
+/**
+ * @see https://github.com/pixijs/pixi-filters/tree/master/filters/pixelate/src
+ */
+class PixelateShader extends Shader {
+
+    constructor(ctx) {
+        super(ctx);
+
+        this._size = new Float32Array([4, 4]);
     }
 
-    get z() {
-        return this._z;
+    getVertexShaderSource() {
+        return PixelateShader.vertexShaderSource
     }
 
-    set z(v) {
-        if (this._z !== v) {
-            this._z = v;
-            
-            this._recalc();
+    getFragmentShaderSource() {
+        return PixelateShader.fragmentShaderSource
+    }
+
+    get x() {
+        return this._size[0];
+    }
+
+    set x(v) {
+        this._size[0] = v;
+        this.redraw();
+    }
+
+    get y() {
+        return this._size[1];
+    }
+
+    set y(v) {
+        this._size[1] = v;
+        this.redraw();
+    }
+
+    get size() {
+        return this._size[0];
+    }
+
+    set size(v) {
+        this._size[0] = v;
+        this._size[1] = v;
+        this.redraw();
+    }
+
+    setupUniforms(operation) {
+        super.setupUniforms(operation)
+        let gl = this.gl
+        this._setUniform("size", new Float32Array(this._size), gl.uniform2fv)
+    }
+
+    getExtraAttribBytesPerVertex() {
+        return 8;
+    }
+
+    enableAttribs() {
+        super.enableAttribs()
+        this.gl.enableVertexAttribArray(this._attrib("aTextureRes"))
+    }
+
+    disableAttribs() {
+        super.disableAttribs()
+        this.gl.disableVertexAttribArray(this._attrib("aTextureRes"))
+    }
+
+    setExtraAttribsInBuffer(operation) {
+        let offset = operation.extraAttribsDataByteOffset / 4
+        let floats = operation.quads.floats
+
+        let length = operation.length
+        for (let i = 0; i < length; i++) {
+            let w = operation.quads.getTextureWidth(operation.index + i)
+            let h = operation.quads.getTextureHeight(operation.index + i)
+
+            floats[offset] = w
+            floats[offset + 1] = h
+            floats[offset + 2] = w
+            floats[offset + 3] = h
+            floats[offset + 4] = w
+            floats[offset + 5] = h
+            floats[offset + 6] = w
+            floats[offset + 7] = h
+
+            offset += 8
         }
     }
 
-    get totalZ() {
-        return this._totalZ;
+    beforeDraw(operation) {
+        let gl = this.gl
+        gl.vertexAttribPointer(this._attrib("aTextureRes"), 2, gl.FLOAT, false, this.getExtraAttribBytesPerVertex(), this.getVertexAttribPointerOffset(operation))
     }
 
-    update() {
-        this._totalZ = this._z;
-        let parent = this._viewRenderer._parent;
-        if (parent && parent.activeShader === this._shader) {
-            this._totalZ += parent.shaderSettings._totalZ;
-        }
+    useDefault() {
+        return ((this._size[0] === 0) && (this._size[1] === 0))
     }
 
 }
+
+PixelateShader.vertexShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    attribute vec2 aVertexPosition;
+    attribute vec2 aTextureCoord;
+    attribute vec4 aColor;
+    attribute vec2 aTextureRes;
+    uniform vec2 projection;
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    varying vec2 vTextureRes;
+    void main(void){
+        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);
+        vTextureCoord = aTextureCoord;
+        vColor = aColor;
+        vTextureRes = aTextureRes;
+        gl_Position.y = -sign(projection.y) * gl_Position.y;
+    }
+`;
+
+PixelateShader.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    varying vec2 vTextureRes;
+
+    uniform vec2 size;
+    uniform sampler2D uSampler;
+    
+    vec2 mapCoord( vec2 coord )
+    {
+        coord *= vTextureRes.xy;
+        return coord;
+    }
+    
+    vec2 unmapCoord( vec2 coord )
+    {
+        coord /= vTextureRes.xy;
+        return coord;
+    }
+    
+    vec2 pixelate(vec2 coord, vec2 size)
+    {
+        return floor( coord / size ) * size;
+    }
+    
+    void main(void)
+    {
+        vec2 coord = mapCoord(vTextureCoord);
+        coord = pixelate(coord, size);
+        coord = unmapCoord(coord);
+        gl_FragColor = texture2D(uSampler, coord) * vColor;
+    }
+`;
+
+/**
+ * Copyright Metrological, 2017
+ */
+
+
+class InversionShader extends Shader {
+    getFragmentShaderSource() {
+        return InversionShader.fragmentShaderSource
+    }
+}
+
+InversionShader.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    uniform sampler2D uSampler;
+    void main(void){
+        vec4 color = texture2D(uSampler, vTextureCoord);
+        color.rgb = 1.0 - color.rgb; 
+        gl_FragColor = color * vColor;
+    }
+`;
+
+/**
+ * Copyright Metrological, 2017
+ */
+
+
+/**
+ * @see https://github.com/mattdesl/glsl-fxaa
+ */
+class FxaaFilter extends Filter {
+    constructor(ctx) {
+        super(ctx);
+    }
+
+    getVertexShaderSource() {
+        return Filter.vertexShaderSource
+    }
+
+    getFragmentShaderSource() {
+        return FxaaFilter.fragmentShaderSource
+    }
+
+}
+
+FxaaFilter.fxaa = `
+    #ifndef FXAA_REDUCE_MIN
+        #define FXAA_REDUCE_MIN   (1.0/ 128.0)
+    #endif
+    #ifndef FXAA_REDUCE_MUL
+        #define FXAA_REDUCE_MUL   (1.0 / 8.0)
+    #endif
+    #ifndef FXAA_SPAN_MAX
+        #define FXAA_SPAN_MAX     8.0
+    #endif
+    
+    //optimized version for mobile, where dependent 
+    //texture reads can be a bottleneck
+    vec4 fxaa(sampler2D tex, vec2 fragCoord, vec2 resolution,
+            vec2 v_rgbNW, vec2 v_rgbNE, 
+            vec2 v_rgbSW, vec2 v_rgbSE, 
+            vec2 v_rgbM) {
+            
+        vec4 color;
+        vec2 inverseVP = vec2(1.0 / resolution.x, 1.0 / resolution.y);
+        vec3 rgbNW = texture2D(tex, v_rgbNW).xyz;
+        vec3 rgbNE = texture2D(tex, v_rgbNE).xyz;
+        vec3 rgbSW = texture2D(tex, v_rgbSW).xyz;
+        vec3 rgbSE = texture2D(tex, v_rgbSE).xyz;
+        vec4 texColor = texture2D(tex, v_rgbM);
+        vec3 rgbM  = texColor.xyz;
+        vec3 luma = vec3(0.299, 0.587, 0.114);
+        float lumaNW = dot(rgbNW, luma);
+        float lumaNE = dot(rgbNE, luma);
+        float lumaSW = dot(rgbSW, luma);
+        float lumaSE = dot(rgbSE, luma);
+        float lumaM  = dot(rgbM,  luma);
+        float lumaMin = min(lumaM, min(min(lumaNW, lumaNE), min(lumaSW, lumaSE)));
+        float lumaMax = max(lumaM, max(max(lumaNW, lumaNE), max(lumaSW, lumaSE)));
+        
+        vec2 dir;
+        dir.x = -((lumaNW + lumaNE) - (lumaSW + lumaSE));
+        dir.y =  ((lumaNW + lumaSW) - (lumaNE + lumaSE));
+        
+        float dirReduce = max((lumaNW + lumaNE + lumaSW + lumaSE) *
+                              (0.25 * FXAA_REDUCE_MUL), FXAA_REDUCE_MIN);
+        
+        float rcpDirMin = 1.0 / (min(abs(dir.x), abs(dir.y)) + dirReduce);
+        dir = min(vec2(FXAA_SPAN_MAX, FXAA_SPAN_MAX),
+                  max(vec2(-FXAA_SPAN_MAX, -FXAA_SPAN_MAX),
+                  dir * rcpDirMin)) * inverseVP;
+        
+        vec3 rgbA = 0.5 * (
+            texture2D(tex, fragCoord * inverseVP + dir * (1.0 / 3.0 - 0.5)).xyz +
+            texture2D(tex, fragCoord * inverseVP + dir * (2.0 / 3.0 - 0.5)).xyz);
+        vec3 rgbB = rgbA * 0.5 + 0.25 * (
+            texture2D(tex, fragCoord * inverseVP + dir * -0.5).xyz +
+            texture2D(tex, fragCoord * inverseVP + dir * 0.5).xyz);
+    
+        float lumaB = dot(rgbB, luma);
+        if ((lumaB < lumaMin) || (lumaB > lumaMax))
+            color = vec4(rgbA, texColor.a);
+        else
+            color = vec4(rgbB, texColor.a);
+        return color;
+    }
+    
+    void texcoords(vec2 fragCoord, vec2 resolution,
+            out vec2 v_rgbNW, out vec2 v_rgbNE,
+            out vec2 v_rgbSW, out vec2 v_rgbSE,
+            out vec2 v_rgbM) {
+        
+        vec2 inverseVP = 1.0 / resolution.xy;
+        v_rgbNW = (fragCoord + vec2(-1.0, -1.0)) * inverseVP;
+        v_rgbNE = (fragCoord + vec2(1.0, -1.0)) * inverseVP;
+        v_rgbSW = (fragCoord + vec2(-1.0, 1.0)) * inverseVP;
+        v_rgbSE = (fragCoord + vec2(1.0, 1.0)) * inverseVP;
+        v_rgbM = vec2(fragCoord * inverseVP);
+    }
+    vec4 apply(sampler2D tex, vec2 fragCoord, vec2 resolution) {
+        vec2 v_rgbNW;
+        vec2 v_rgbNE;
+        vec2 v_rgbSW;
+        vec2 v_rgbSE;
+        vec2 v_rgbM;
+    
+        //compute the texture coords
+        texcoords(fragCoord, resolution, v_rgbNW, v_rgbNE, v_rgbSW, v_rgbSE, v_rgbM);
+        
+        //compute FXAA
+        return fxaa(tex, fragCoord, resolution, v_rgbNW, v_rgbNE, v_rgbSW, v_rgbSE, v_rgbM);
+    }    
+`
+
+FxaaFilter.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    
+    ${FxaaFilter.fxaa}
+    
+    uniform vec2 resolution;
+    uniform sampler2D uSampler;
+    void main(void){
+        gl_FragColor = apply(uSampler, gl_FragCoord.xy, resolution);
+    }
+    
+`;
 
 
 /**
@@ -9845,63 +8743,171 @@ class Light3dShaderViewSettings extends ShaderSettings {
  */
 
 
-class BlurShader extends DefaultShader {
-    constructor(stage) {
-        super(stage, BlurShader.vertexShaderSource, BlurShader.fragmentShaderSrc);
+/**
+ * @see https://github.com/mattdesl/glsl-fxaa
+ */
+class InversionFilter extends Filter {
+    constructor(ctx) {
+        super(ctx);
     }
 
-    init(vboContext) {
-        super.init(vboContext)
-
-        let gl = vboContext.gl;
-        this._iResolutionUniform = gl.getUniformLocation(this.glProgram, "iResolution");
-        this._directionUniform = gl.getUniformLocation(this.glProgram, "direction");
-
-    }
-
-    drawElements(vboContext, offset, length) {
-        let gl = vboContext.gl;
-
-        gl.uniform2fv(this._iResolutionUniform, new Float32Array([vboContext.getViewportWidth(), vboContext.getViewportHeight()]));
-        gl.uniform2fv(this._directionUniform, new Float32Array([1, 0]));
-
-        super.drawElements(vboContext, offset, length);
-    }
-
-    getMultisamples(viewRenderer) {
-        return 5;
+    getFragmentShaderSource() {
+        return InversionFilter.fragmentShaderSource
     }
 
 }
 
-BlurShader.vertexShaderSource = `
+InversionFilter.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
-    attribute vec2 aVertexPosition;
-    attribute vec2 aTextureCoord;
-    attribute vec4 aColor;
-    uniform mat4 projectionMatrix;
     varying vec2 vTextureCoord;
-    varying vec4 vColor;
+    uniform sampler2D uSampler;
     void main(void){
-        gl_Position = projectionMatrix * vec4(aVertexPosition, 0.0, 1.0);
-        vTextureCoord = aTextureCoord;
-        vColor = aColor;
+        vec4 color = texture2D(uSampler, vTextureCoord);
+        color.rgb = 1.0 - color.rgb; 
+        gl_FragColor = color;
     }
 `;
 
-BlurShader.fragmentShaderSrc = `
+
+/**
+ * Copyright Metrological, 2017
+ */
+
+
+/**
+ * @see https://github.com/Jam3/glsl-fast-gaussian-blur
+ */
+class BlurFilter extends Filter {
+
+    constructor(ctx) {
+        super(ctx);
+
+        this.ctx = ctx
+
+        this._kernelRadius = 1
+
+        this._steps = []
+
+        this.steps = 1
+    }
+
+    get kernelRadius() {
+        return this._kernelRadius
+    }
+
+    set kernelRadius(v) {
+        this._kernelRadius = v
+        this._steps.forEach(step => step._kernelRadius = v)
+        this.redraw()
+    }
+
+    get steps() {
+        return this._size
+    }
+
+    set steps(v) {
+        this._size = Math.round(v)
+
+        let currentSteps = this._steps.length / 2
+        // Try to reuse objects.
+        if (currentSteps < this._size) {
+            let add = [];
+            for (let i = currentSteps + 1; i <= this._size; i++) {
+                let lbf = new LinearBlurFilter(this.ctx)
+                lbf._direction[0] = i
+                lbf._kernelRadius = this._kernelRadius
+                add.push(lbf)
+
+                lbf = new LinearBlurFilter(this.ctx)
+                lbf._kernelRadius = this._kernelRadius
+                lbf._direction[1] = i
+                add.push(lbf)
+            }
+            this._steps = this._steps.concat(add)
+            this.redraw();
+        } else if (currentSteps > this._size) {
+            let r = currentSteps - this._size
+            this._steps.splice(-r * 2)
+            this.redraw();
+        }
+    }
+
+    useDefault() {
+        return (this._size === 0 || this._kernelRadius === 0)
+    }
+
+    getFilters() {
+        return this._steps
+    }
+
+}
+
+/**
+ * Copyright Metrological, 2017
+ */
+
+
+class LinearBlurFilter extends Filter {
+
+    constructor(ctx) {
+        super(ctx)
+
+        this._direction = new Float32Array([0, 0])
+        this._kernelRadius = 1
+    }
+
+    get x() {
+        return this._direction[0]
+    }
+
+    set x(v) {
+        this._direction[0] = v
+        this.redraw()
+    }
+
+    get y() {
+        return this._direction[1]
+    }
+
+    set y(v) {
+        this._direction[1] = v
+        this.redraw()
+    }
+
+    get kernelRadius() {
+        return this._kernelRadius
+    }
+
+    set kernelRadius(v) {
+        this._kernelRadius = v
+        this.redraw()
+    }
+
+    getFragmentShaderSource() {
+        return LinearBlurFilter.fragmentShaderSource
+    }
+
+    setupUniforms(operation) {
+        super.setupUniforms(operation)
+        this._setUniform("direction", this._direction, this.gl.uniform2fv)
+        this._setUniform("kernelRadius", this._kernelRadius, this.gl.uniform1i)
+    }
+
+}
+
+LinearBlurFilter.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
+    uniform vec2 resolution;
     varying vec2 vTextureCoord;
-    varying vec4 vColor;
     uniform sampler2D uSampler;
-    uniform vec2 iResolution;
     uniform vec2 direction;
+    uniform int kernelRadius;
     
-    vec4 blur(sampler2D image, vec2 uv, vec2 resolution, vec2 direction) {
+    vec4 blur1(sampler2D image, vec2 uv, vec2 resolution, vec2 direction) {
         vec4 color = vec4(0.0);
         vec2 off1 = vec2(1.3333333333333333) * direction;
         color += texture2D(image, uv) * 0.29411764705882354;
@@ -9910,8 +8916,43 @@ BlurShader.fragmentShaderSrc = `
         return color; 
     }
     
+    vec4 blur2(sampler2D image, vec2 uv, vec2 resolution, vec2 direction) {
+        vec4 color = vec4(0.0);
+        vec2 off1 = vec2(1.3846153846) * direction;
+        vec2 off2 = vec2(3.2307692308) * direction;
+        color += texture2D(image, uv) * 0.2270270270;
+        color += texture2D(image, uv + (off1 / resolution)) * 0.3162162162;
+        color += texture2D(image, uv - (off1 / resolution)) * 0.3162162162;
+        color += texture2D(image, uv + (off2 / resolution)) * 0.0702702703;
+        color += texture2D(image, uv - (off2 / resolution)) * 0.0702702703;
+        return color;
+    }
+    
+    vec4 blur3(sampler2D image, vec2 uv, vec2 resolution, vec2 direction) {
+        vec4 color = vec4(0.0);
+        vec2 off1 = vec2(1.411764705882353) * direction;
+        vec2 off2 = vec2(3.2941176470588234) * direction;
+        vec2 off3 = vec2(5.176470588235294) * direction;
+        color += texture2D(image, uv) * 0.1964825501511404;
+        color += texture2D(image, uv + (off1 / resolution)) * 0.2969069646728344;
+        color += texture2D(image, uv - (off1 / resolution)) * 0.2969069646728344;
+        color += texture2D(image, uv + (off2 / resolution)) * 0.09447039785044732;
+        color += texture2D(image, uv - (off2 / resolution)) * 0.09447039785044732;
+        color += texture2D(image, uv + (off3 / resolution)) * 0.010381362401148057;
+        color += texture2D(image, uv - (off3 / resolution)) * 0.010381362401148057;
+        return color;
+    }    
+
     void main(void){
-        gl_FragColor = blur(uSampler, vTextureCoord, iResolution, direction) * vColor;
+        if (kernelRadius == 0) {
+            gl_FragColor = texture2D(uSampler, vTextureCoord);
+        } else if (kernelRadius == 1) {
+            gl_FragColor = blur1(uSampler, vTextureCoord, resolution, direction);
+        } else if (kernelRadius == 2) {
+            gl_FragColor = blur2(uSampler, vTextureCoord, resolution, direction);
+        } else {
+            gl_FragColor = blur3(uSampler, vTextureCoord, resolution, direction);
+        }
     }
 `;
 

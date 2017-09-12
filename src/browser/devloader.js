@@ -71,7 +71,6 @@ var loadWpe, loadBulk;
             "BorderView":"./tools/views/BorderView.js",
             "FastBlurView":"./tools/views/FastBlurView.js",
             "Light3dShader":"./tools/shaders/Light3dShader.js",
-            "LinearBlurShader":"./tools/shaders/LinearBlurShader.js",
             "PixelateShader":"./tools/shaders/PixelateShader.js",
             "InversionShader":"./tools/shaders/InversionShader.js",
             "FxaaFilter":"./tools/filters/FxaaFilter.js",

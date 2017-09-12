@@ -38,7 +38,6 @@ module.exports = {
     "BorderView": require("./src/tools/views/BorderView"),
     "FastBlurView": require("./src/tools/views/FastBlurView"),
     "Light3dShader": require("./src/tools/shaders/Light3dShader"),
-    "LinearBlurShader": require("./src/tools/shaders/LinearBlurShader"),
     "PixelateShader": require("./src/tools/shaders/PixelateShader"),
     "InversionShader": require("./src/tools/shaders/InversionShader"),
     "FxaaFilter": require("./src/tools/filters/FxaaFilter"),

@@ -61,11 +61,16 @@ module.exports = function(grunt) {
                     'src/animation/AnimationActionItems.js',
                     'src/animation/Animation.js',
                     'src/tools/Tools.js',
-                    'src/tools/ListView.js',
-                    'src/tools/BorderView.js',
+                    'src/tools/views/ListView.js',
+                    'src/tools/views/BorderView.js',
+                    'src/tools/views/FastBlurView.js',
                     "src/tools/shaders/Light3dShader.js",
-                    "src/tools/shaders/LinearBlurShader.js",
-                    "src/tools/shaders/FxaaShader.js"
+                    "src/tools/shaders/PixelateShader.js",
+                    "src/tools/shaders/InversionShader.js",
+                    "src/tools/filters/FxaaFilter.js",
+                    "src/tools/filters/InversionFilter.js",
+                    "src/tools/filters/BlurFilter.js",
+                    "src/tools/filters/LinearBlurFilter.js"
                 ],
                 dest : 'dist/wpe.js'
             }
