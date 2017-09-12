@@ -29,13 +29,15 @@ class Animation extends Base {
     }
 
     start() {
-        this._p = 0;
-        this._delayLeft = this.settings.delay;
-        this._repeatsLeft = this.settings.repeat;
-        this._state = Animation.STATES.PLAYING;
-        if (this._eventsCount) this.emit('start');
-        if (this._view) {
+        if (this._view && this._view.isAttached()) {
+            this._p = 0;
+            this._delayLeft = this.settings.delay;
+            this._repeatsLeft = this.settings.repeat;
+            this._state = Animation.STATES.PLAYING;
+            if (this._eventsCount) this.emit('start');
             this.checkActive();
+        } else {
+            console.warn("View must be attached before starting animation")
         }
     }
 

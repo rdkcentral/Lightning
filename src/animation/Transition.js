@@ -76,6 +76,10 @@ class Transition extends Base {
             this._delayLeft = this._settings.delay;
             if (this._eventsCount) this.emit('start');
             this.checkActive();
+
+            if (!this._view.isAttached()) {
+                this.finish()
+            }
         }
     }
 
