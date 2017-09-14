@@ -928,6 +928,7 @@ class ViewCore {
         if (this._renderContext.alpha) {
             let renderState = this.renderState;
 
+            //@todo: need to optimize this.
             renderState.setShader(this.activeShader, this._shaderOwner);
 
             if (this._displayedTextureSource) {

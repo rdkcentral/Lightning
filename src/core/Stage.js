@@ -7,6 +7,7 @@ let Base = require('./Base');
 
 /**
  * @todo:
+ * - optimize renderState.setShader(this.activeShader, this._shaderOwner);
  * - add generic 'enabled' option for filter, to be able to disable them temporarily
  * - set shader sources as static properties
  * - allow multiple visitEntry, visitExit hooks:

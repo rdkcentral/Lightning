@@ -1099,6 +1099,8 @@ class StageUtils {
 
 /**
  * @todo:
+ * - optimize renderState.setShader(this.activeShader, this._shaderOwner);
+ * - add generic 'enabled' option for filter, to be able to disable them temporarily
  * - set shader sources as static properties
  * - allow multiple visitEntry, visitExit hooks:
  *   - view.addVisitEntry, view.removeVisitEntry. If only one: direct. If multiple: set view.visitEntryHooks array and use View.visitEntryMultiple.
@@ -5517,6 +5519,8 @@ class ViewCore {
         this._useRenderToTexture = false
 
         this._useViewportClipping = false
+
+        this.render = this._renderSimple
     }
 
     /**
@@ -6053,8 +6057,9 @@ class ViewCore {
             this.setHasRenderUpdates(3)
 
             // Make sure that the render coordinates get updated.
-            this._setRecalc(7);
+            this._setRecalc(7)
 
+            this.render = this._renderAdvanced
         }
     }
 
@@ -6074,6 +6079,8 @@ class ViewCore {
             this._setRecalc(7);
 
             this.setHasRenderUpdates(3)
+
+            this.render = this._renderSimple
         }
     }
 
@@ -6335,7 +6342,43 @@ class ViewCore {
         }
     }
 
-    render() {
+    _renderSimple() {
+        if (this._zSort) {
+            this.sortZIndexedChildren();
+            this._zSort = false;
+        }
+
+        if (this._renderContext.alpha) {
+            let renderState = this.renderState;
+
+            //@todo: need to optimize this.
+            renderState.setShader(this.activeShader, this._shaderOwner);
+
+            if (this._displayedTextureSource) {
+                this.addQuads()
+            }
+
+            // Also add children to the VBO.
+            if (this._children) {
+                if (this._zContextUsage) {
+                    for (let i = 0, n = this._zIndexedChildren.length; i < n; i++) {
+                        this._zIndexedChildren[i].render();
+                    }
+                } else {
+                    for (let i = 0, n = this._children.length; i < n; i++) {
+                        if (this._children[i]._zIndex === 0) {
+                            // If zIndex is set, this item already belongs to a zIndexedChildren array in one of the ancestors.
+                            this._children[i].render();
+                        }
+                    }
+                }
+            }
+
+            this._hasRenderUpdates = 0;
+        }
+    }
+
+    _renderAdvanced() {
         if (this._zSort) {
             this.sortZIndexedChildren();
             this._zSort = false;
@@ -6430,21 +6473,21 @@ class ViewCore {
                         let uints = renderState.quads.uints
                         let offset = renderTextureInfo.offset / 4
                         let reuse = ((floats[offset] === 0) &&
-                            (floats[offset + 1] === 0) &&
-                            (uints[offset + 2] === 0x00000000) &&
-                            (uints[offset + 3] === 0xFFFFFFFF) &&
-                            (floats[offset + 4] === renderTextureInfo.w) &&
-                            (floats[offset + 5] === 0) &&
-                            (uints[offset + 6] === 0x0000FFFF) &&
-                            (uints[offset + 7] === 0xFFFFFFFF) &&
-                            (floats[offset + 8] === renderTextureInfo.w) &&
-                            (floats[offset + 9] === renderTextureInfo.h) &&
-                            (uints[offset + 10] === 0xFFFFFFFF) &&
-                            (uints[offset + 11] === 0xFFFFFFFF) &&
-                            (floats[offset + 12] === 0) &&
-                            (floats[offset + 13] === renderTextureInfo.h) &&
-                            (uints[offset + 14] === 0xFFFF0000) &&
-                            (uints[offset + 15] === 0xFFFFFFFF))
+                        (floats[offset + 1] === 0) &&
+                        (uints[offset + 2] === 0x00000000) &&
+                        (uints[offset + 3] === 0xFFFFFFFF) &&
+                        (floats[offset + 4] === renderTextureInfo.w) &&
+                        (floats[offset + 5] === 0) &&
+                        (uints[offset + 6] === 0x0000FFFF) &&
+                        (uints[offset + 7] === 0xFFFFFFFF) &&
+                        (floats[offset + 8] === renderTextureInfo.w) &&
+                        (floats[offset + 9] === renderTextureInfo.h) &&
+                        (uints[offset + 10] === 0xFFFFFFFF) &&
+                        (uints[offset + 11] === 0xFFFFFFFF) &&
+                        (floats[offset + 12] === 0) &&
+                        (floats[offset + 13] === renderTextureInfo.h) &&
+                        (uints[offset + 14] === 0xFFFF0000) &&
+                        (uints[offset + 15] === 0xFFFFFFFF))
                         if (!reuse) {
                             renderTextureInfo.glTexture = null
                         }
@@ -6919,6 +6962,8 @@ class CoreRenderState {
         
         this._shaderOwner = null
 
+        this._realShader = null
+
         this._check = false
 
         this.quadOperations = []
@@ -6937,21 +6982,21 @@ class CoreRenderState {
     }
 
     setShader(shader, owner) {
-        if (this._shaderOwner === owner && this._realShader === shader) {
+        if (this._shaderOwner !== owner || this._realShader !== shader) {
             // Same shader owner: active shader is also the same.
             // Prevent any shader usage to save performance.
-            return
-        }
 
-        if (shader.useDefault()) {
-            // Use the default shader when possible to prevent unnecessary program changes.
             this._realShader = shader
-            shader = this.defaultShader
-        }
-        if (this._shader !== shader || this._shaderOwner !== owner) {
-            this._shader = shader
-            this._shaderOwner = owner
-            this._check = true
+
+            if (shader.useDefault()) {
+                // Use the default shader when possible to prevent unnecessary program changes.
+                shader = this.defaultShader
+            }
+            if (this._shader !== shader || this._shaderOwner !== owner) {
+                this._shader = shader
+                this._shaderOwner = owner
+                this._check = true
+            }
         }
     }
 
@@ -8705,6 +8750,10 @@ class Transition extends Base {
             this._delayLeft = this._settings.delay;
             if (this._eventsCount) this.emit('start');
             this.checkActive();
+
+            if (!this._view.isAttached()) {
+                this.finish()
+            }
         }
     }
 
@@ -9457,13 +9506,15 @@ class Animation extends Base {
     }
 
     start() {
-        this._p = 0;
-        this._delayLeft = this.settings.delay;
-        this._repeatsLeft = this.settings.repeat;
-        this._state = Animation.STATES.PLAYING;
-        if (this._eventsCount) this.emit('start');
-        if (this._view) {
+        if (this._view && this._view.isAttached()) {
+            this._p = 0;
+            this._delayLeft = this.settings.delay;
+            this._repeatsLeft = this.settings.repeat;
+            this._state = Animation.STATES.PLAYING;
+            if (this._eventsCount) this.emit('start');
             this.checkActive();
+        } else {
+            console.warn("View must be attached before starting animation")
         }
     }
 
@@ -10573,8 +10624,8 @@ class FastBlurView extends View {
         this.getLayer(3).filters = [filters[2], filters[3], filters[0], filters[1]]
 
         this._amount = 0
-        this._paddingX = 48
-        this._paddingY = 48
+        this._paddingX = 0
+        this._paddingY = 0
     }
 
     set padding(v) {
