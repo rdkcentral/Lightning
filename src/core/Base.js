@@ -17,7 +17,7 @@ class Base {
 
     static initPrototype(proto) {
         if (!Base.protoReady.has(proto)) {
-            const stack = [];
+            let stack = [];
 
             // run prototype functions
             while(proto){

@@ -1,1 +1,10962 @@
-'use strict';var _get=function e(o,s,n){null===o&&(o=Function.prototype);var l=Object.getOwnPropertyDescriptor(o,s);if(l===void 0){var d=Object.getPrototypeOf(o);return null===d?void 0:e(d,s,n)}if('value'in l)return l.value;var _=l.get;return void 0===_?void 0:_.call(n)},_typeof='function'==typeof Symbol&&'symbol'==typeof Symbol.iterator?function(e){return typeof e}:function(e){return e&&'function'==typeof Symbol&&e.constructor===Symbol&&e!==Symbol.prototype?'symbol':typeof e},_createClass=function(){function e(e,o){for(var s,n=0;n<o.length;n++)s=o[n],s.enumerable=s.enumerable||!1,s.configurable=!0,'value'in s&&(s.writable=!0),Object.defineProperty(e,s.key,s)}return function(o,s,n){return s&&e(o.prototype,s),n&&e(o,n),o}}();function _toConsumableArray(e){if(Array.isArray(e)){for(var o=0,s=Array(e.length);o<e.length;o++)s[o]=e[o];return s}return Array.from(e)}function _possibleConstructorReturn(e,o){if(!e)throw new ReferenceError('this hasn\'t been initialised - super() hasn\'t been called');return o&&('object'==typeof o||'function'==typeof o)?o:e}function _inherits(e,o){if('function'!=typeof o&&null!==o)throw new TypeError('Super expression must either be null or a function, not '+typeof o);e.prototype=Object.create(o&&o.prototype,{constructor:{value:e,enumerable:!1,writable:!0,configurable:!0}}),o&&(Object.setPrototypeOf?Object.setPrototypeOf(e,o):e.__proto__=o)}function _classCallCheck(e,o){if(!(e instanceof o))throw new TypeError('Cannot call a class as a function')}var has=Object.prototype.hasOwnProperty,prefix='~';function Events(){}Object.create&&(Events.prototype=Object.create(null),!new Events().__proto__&&(prefix=!1));function EE(e,o,s){this.fn=e,this.context=o,this.once=s||!1}function EventEmitter(){this._events=new Events,this._eventsCount=0}EventEmitter.prototype.eventNames=function(){var e,o,s=[];if(0===this._eventsCount)return s;for(o in e=this._events)has.call(e,o)&&s.push(prefix?o.slice(1):o);return Object.getOwnPropertySymbols?s.concat(Object.getOwnPropertySymbols(e)):s},EventEmitter.prototype.listeners=function(e,o){var s=prefix?prefix+e:e,n=this._events[s];if(o)return!!n;if(!n)return[];if(n.fn)return[n.fn];for(var d=0,_=n.length,l=Array(_);d<_;d++)l[d]=n[d].fn;return l},EventEmitter.prototype.emit=function(e,o,s,n,l,d){var _=prefix?prefix+e:e;if(!this._events[_])return!1;var u,c,x=this._events[_],h=arguments.length;if(x.fn){switch(x.once&&this.removeListener(e,x.fn,void 0,!0),h){case 1:return x.fn.call(x.context),!0;case 2:return x.fn.call(x.context,o),!0;case 3:return x.fn.call(x.context,o,s),!0;case 4:return x.fn.call(x.context,o,s,n),!0;case 5:return x.fn.call(x.context,o,s,n,l),!0;case 6:return x.fn.call(x.context,o,s,n,l,d),!0;}for(c=1,u=Array(h-1);c<h;c++)u[c-1]=arguments[c];x.fn.apply(x.context,u)}else{var y,f=x.length;for(c=0;c<f;c++)switch(x[c].once&&this.removeListener(e,x[c].fn,void 0,!0),h){case 1:x[c].fn.call(x[c].context);break;case 2:x[c].fn.call(x[c].context,o);break;case 3:x[c].fn.call(x[c].context,o,s);break;case 4:x[c].fn.call(x[c].context,o,s,n);break;default:if(!u)for(y=1,u=Array(h-1);y<h;y++)u[y-1]=arguments[y];x[c].fn.apply(x[c].context,u);}}return!0},EventEmitter.prototype.on=function(e,o,s){var n=new EE(o,s||this),l=prefix?prefix+e:e;return this._events[l]?this._events[l].fn?this._events[l]=[this._events[l],n]:this._events[l].push(n):(this._events[l]=n,this._eventsCount++),this},EventEmitter.prototype.once=function(e,o,s){var n=new EE(o,s||this,!0),l=prefix?prefix+e:e;return this._events[l]?this._events[l].fn?this._events[l]=[this._events[l],n]:this._events[l].push(n):(this._events[l]=n,this._eventsCount++),this},EventEmitter.prototype.removeListener=function(e,o,s,n){var l=prefix?prefix+e:e;if(!this._events[l])return this;if(!o)return 0==--this._eventsCount?this._events=new Events:delete this._events[l],this;var d=this._events[l];if(d.fn)d.fn!==o||n&&!d.once||s&&d.context!==s||(0==--this._eventsCount?this._events=new Events:delete this._events[l]);else{for(var _=0,u=[],c=d.length;_<c;_++)(d[_].fn!==o||n&&!d[_].once||s&&d[_].context!==s)&&u.push(d[_]);u.length?this._events[l]=1===u.length?u[0]:u:0==--this._eventsCount?this._events=new Events:delete this._events[l]}return this},EventEmitter.prototype.removeAllListeners=function(e){var o;return e?(o=prefix?prefix+e:e,this._events[o]&&(0==--this._eventsCount?this._events=new Events:delete this._events[o])):(this._events=new Events,this._eventsCount=0),this},EventEmitter.prototype.off=EventEmitter.prototype.removeListener,EventEmitter.prototype.addListener=EventEmitter.prototype.on,EventEmitter.prototype.setMaxListeners=function(){return this},EventEmitter.prefixed=prefix,EventEmitter.EventEmitter=EventEmitter,'undefined'!=typeof module;var WebAdapter=function(){function e(){_classCallCheck(this,e)}return _createClass(e,[{key:'init',value:function init(e){this.stage=e,this.canvas=null,this._looping=!1,this._awaitingLoop=!1}},{key:'startLoop',value:function startLoop(){this._looping=!0,this._awaitingLoop||this.loop()}},{key:'stopLoop',value:function stopLoop(){this._looping=!1}},{key:'loop',value:function loop(){var e=this,o=function(){e._awaitingLoop=!1,e._looping&&(e.stage.drawFrame(),requestAnimationFrame(o),e._awaitingLoop=!0)};o()}},{key:'uploadGlTexture',value:function uploadGlTexture(e,o,s,n){var l=n?e.RGBA:e.RGB;s instanceof ImageData||s instanceof HTMLImageElement||s instanceof HTMLCanvasElement||s instanceof HTMLVideoElement||window.ImageBitmap&&s instanceof ImageBitmap?e.texImage2D(e.TEXTURE_2D,0,l,l,e.UNSIGNED_BYTE,s):e.texImage2D(e.TEXTURE_2D,0,l,o.w,o.h,0,l,e.UNSIGNED_BYTE,s)}},{key:'loadSrcTexture',value:function loadSrcTexture(e,o,s,n){var l=0<=e.indexOf('.png');if(window.OffthreadImage&&OffthreadImage.available){var d=document.createElement('DIV');d.setAttribute('alt','.');var _=new OffthreadImage(d);d.addEventListener('painted',function(){var o=d.childNodes[0];n(null,o,{renderInfo:{src:e},hasAlpha:!0,premultiplyAlpha:!0})}),_.src=e}else{var u=new Image;'data:'==e.substr(0,5)||(u.crossOrigin='Anonymous'),u.onerror=function(){return n('Image load error')},u.onload=function(){n(null,u,{renderInfo:{src:e},hasAlpha:l})},u.src=e}}},{key:'loadTextTexture',value:function loadTextTexture(e,o,s,n){var l=new TextRenderer(this.getDrawingCanvas(),e),d=l.draw(),_=d.renderInfo,u={renderInfo:_,precision:d.renderInfo.precision},c=d.canvas;n(null,c,u)}},{key:'createWebGLContext',value:function createWebGLContext(e,o){var s=this.stage.options.canvas||document.createElement('canvas');s.width=e,s.height=o;var n={alpha:!0,antialias:!1,premultipliedAlpha:!0,stencil:!0,preserveDrawingBuffer:!1},l=s.getContext('webgl',n)||s.getContext('experimental-webgl',n);if(!l)throw new Error('This browser does not support webGL.');return this.canvas=s,l}},{key:'getWebGLCanvas',value:function getWebGLCanvas(){return this.canvas}},{key:'getHrTime',value:function getHrTime(){return window.performance?window.performance.now():new Date().getTime()}},{key:'getDrawingCanvas',value:function getDrawingCanvas(){return document.createElement('canvas')}},{key:'nextFrame',value:function nextFrame(){}}]),e}(),Base=function(){function e(){_classCallCheck(this,e);var o=Object.getPrototypeOf(this);e.protoReady.has(o)||e.initPrototype(o)}return _createClass(e,[{key:'_properties',value:function _properties(){}},{key:'setSettings',value:function setSettings(o){e.setObjectSettings(this,o)}}],[{key:'initPrototype',value:function initPrototype(o){if(!e.protoReady.has(o)){for(var s=[];o;)e.protoReady.has(o)||s.push(o),e.protoReady.add(o),o=Object.getPrototypeOf(o);for(var n=stack.length-1;0<=n;n--)o=stack[n],o.hasOwnProperty('_properties')&&o._properties()}}},{key:'mixinEs5',value:function mixinEs5(e,o){for(var s=o.prototype,n=Object.getOwnPropertyNames(s),l=0;l<n.length;l++){var d=n[l],_=Object.getOwnPropertyDescriptor(s,d);'constructor'!==d&&_.configurable&&(e.prototype[d]?console.warn('Mixin overwrites '+d):Object.defineProperty(e.prototype,d,_))}return e}},{key:'setObjectSettings',value:function setObjectSettings(o,s){for(var l in s)if(s.hasOwnProperty(l)&&'type'!=l){var d=s[l];if(Utils.isObjectLiteral(d)&&Utils.isObject(o[l])){var n=o[l];n.setSettings?n.setSettings(d):e.setObjectSettings(n,d)}else o[l]=d}}}]),e}();Base.protoReady=new WeakSet;var Utils=function(){function e(){_classCallCheck(this,e)}return _createClass(e,null,[{key:'isFunction',value:function isFunction(e){return'function'==typeof e}},{key:'isNumber',value:function isNumber(e){return'number'==typeof e}},{key:'isInteger',value:function isInteger(e){return'number'==typeof e&&0==e%1}},{key:'isBoolean',value:function isBoolean(e){return!0===e||!1===e}},{key:'isString',value:function isString(e){return'string'==typeof e}},{key:'cloneObj',value:function cloneObj(e){for(var o=Object.keys(e),s={},n=0;n<o.length;n++)s[o[n]]=e[o[n]];return clone}},{key:'merge',value:function merge(e,o){for(var s=Object.keys(o),n=0;n<s.length;n++)e[s[n]]=o[s[n]];return e}},{key:'isObject',value:function isObject(e){var o='undefined'==typeof e?'undefined':_typeof(e);return!!e&&('object'==o||'function'==o)}},{key:'isPlainObject',value:function isPlainObject(e){var o='undefined'==typeof e?'undefined':_typeof(e);return!!e&&'object'==o}},{key:'isObjectLiteral',value:function isObjectLiteral(e){return'object'===('undefined'==typeof e?'undefined':_typeof(e))&&e&&e.constructor===Object}},{key:'getArrayIndex',value:function getArrayIndex(o,s){return e.getModuloIndex(o,s.length)}},{key:'getModuloIndex',value:function getModuloIndex(e,o){if(0==o)return e;for(;0>e;)e+=Math.ceil(-e/o)*o;return e%=o,e}},{key:'getDeepClone',value:function getDeepClone(o){var s,n;if(e.isFunction(o))return o;if(e.isArray(o)){n=[];var l=Object.keys(o);for(s=0;s<l.length;s++)n[l[s]]=e.getDeepClone(o[l[s]]);return n}if(e.isObject(o)){n={};var d=Object.keys(o);for(s=0;s<d.length;s++)n[d[s]]=e.getDeepClone(o[d[s]]);return n}return o}},{key:'setToArray',value:function setToArray(e){var o=[];return e.forEach(function(e){o.push(e)}),o}},{key:'iteratorToArray',value:function iteratorToArray(e){for(var o=[],s=e.next();!s.done;)o.push(s.value),s=e.next();return result}}]),e}();Utils.isNode='undefined'==typeof window;var StageUtils=function(){function e(){_classCallCheck(this,e)}var o=Math.max,s=Math.min;return _createClass(e,null,[{key:'mergeNumbers',value:function mergeNumbers(e,o,s){return e*s+o*(1-s)}},{key:'rgb',value:function rgb(e,o,s){return(e<<16)+(o<<8)+s+4278190080}},{key:'rgba',value:function rgba(e,o,s,n){return(e<<16)+(o<<8)+s+16777216*(0|255*n)}},{key:'getRgbaString',value:function getRgbaString(e){return'rgba('+(0|e/65536)%256+','+(0|e/256)%256+','+e%256+','+((0|e/16777216)/255).toFixed(4)+')'}},{key:'getRgbaComponentsNormalized',value:function getRgbaComponentsNormalized(e){return[(0|e/65536)%256/255,(0|e/256)%256/255,e%256/255,(0|e/16777216)/255]}},{key:'getRgbaComponents',value:function getRgbaComponents(e){return[(0|e/65536)%256,(0|e/256)%256,e%256,0|e/16777216]}},{key:'getArgbNumber',value:function getArgbNumber(e){e[0]=o(0,s(255,e[0])),e[1]=o(0,s(255,e[1])),e[2]=o(0,s(255,e[2])),e[3]=o(0,s(255,e[3]));var n=((0|e[3])<<24)+((0|e[0])<<16)+((0|e[1])<<8)+(0|e[2]);return 0>n&&(n=4294967295+n+1),n}},{key:'mergeColors',value:function mergeColors(e,o,s){return 16777216*(0|(0|e/16777216)*s+(0|o/16777216)*(1-s))+65536*(0|(0|e/65536)%256*s+(0|o/65536)%256*(1-s))+256*(0|(0|e/256)%256*s+(0|o/256)%256*(1-s))+(0|e%256*s+o%256*(1-s))}},{key:'mergeMultiColors',value:function mergeMultiColors(e,o){for(var s=0,l=0,d=0,_=0,u=0,c=e.length,n=0;n<c;n++){var x=(0|e[n]/65536)%256,h=(0|e[n]/256)%256,y=e[n]%256,f=0|e[n]/16777216;s+=x*o[n],l+=h*o[n],d+=y*o[n],_+=f*o[n],u+=o[n]}return t=1/t,16777216*(0|a*t)+65536*(0|r*t)+256*(0|g*t)+(0|b*t)}},{key:'mergeMultiColorsEqual',value:function mergeMultiColorsEqual(e){for(var o=0,s=0,l=0,d=0,_=0,u=e.length,n=0;n<u;n++){var c=(0|e[n]/65536)%256,x=(0|e[n]/256)%256,h=e[n]%256,y=0|e[n]/16777216;o+=c,s+=x,l+=h,d+=y,_+=1}return t=1/t,16777216*(0|a*t)+65536*(0|r*t)+256*(0|g*t)+(0|b*t)}},{key:'rad',value:function rad(e){return e*(Math.PI/180)}},{key:'getTimingBezier',value:function getTimingBezier(e,o,s,n){var l=3*e,d=3*(s-e)-l,_=1-l-d,u=3*o,c=3*(n-o)-u,x=1-u-c;return function(e){if(1<=e)return 1;if(0>=e)return 0;for(var n=0.5,h=void 0,y=void 0,f=void 0,T=0;20>T;T++){if(h=n*(n*(n*_+d)+l),f=e-h,-1e-8<f&&1e-8>f)return n*(n*(n*x+c)+u);if(y=n*(n*(3*_)+2*d)+l,1e-10<y&&1e-10>y)break;n+=f/y}var o=0,s=1;for(it=0;20>it;it++){if(t=0.5*(o+s),cbx=t*(t*(t*_+d)+l),dx=e-cbx,-1e-8<dx&&1e-8>dx)return t*(t*(t*x+c)+u);0>dx?s=t:o=t}}}},{key:'getTimingFunction',value:function getTimingFunction(o){switch(o){case'linear':return function(e){return e};case'ease':return e.getTimingBezier(0.25,0.1,0.25,1);case'ease-in':return e.getTimingBezier(0.42,0,1,1);case'ease-out':return e.getTimingBezier(0,0,0.58,1);case'ease-in-out':return e.getTimingBezier(0.42,0,0.58,1);case'step-start':return function(){return 1};case'step-end':return function(e){return 1===e?1:0};default:var n='cubic-bezier(';if(o&&0===o.indexOf(n)){var s=o.substr(n.length,o.length-n.length-1).split(',');if(4!==s.length)return console.warn('Unknown timing function: '+o),function(e){return e};var l=parseFloat(s[0]),_=parseFloat(s[1]),u=parseFloat(s[2]),c=parseFloat(s[3]);return isNaN(l)||isNaN(_)||isNaN(u)||isNaN(c)?(console.warn('Unknown timing function: '+o),function(e){return e}):e.getTimingBezier(l,_,u,c)}return console.warn('Unknown timing function: '+o),function(e){return e};}}},{key:'getSplineValueFunction',value:function getSplineValueFunction(o,s,n,l,d,_,u,c){var x=l-n;u*=x,c*=x;var h=e.getSplineHelpers(o,s,d,_,u,c);return h?function(n){return 0==n?o:1==n?s:e.calculateSpline(h,n)}:function(e){return 0==e?o:1==e?s:s*e+o*(1-e)}}},{key:'getSplineRgbaValueFunction',value:function getSplineRgbaValueFunction(o,n,l,d,_,u,c,x){var h=d-l;c[0]*=h,c[1]*=h,c[2]*=h,c[3]*=h,x[0]*=h,x[1]*=h,x[2]*=h,x[3]*=h;var y=e.getRgbaComponents(o),f=e.getRgbaComponents(n),T=[e.getSplineHelpers(y[0],f[0],_,u,c[0],x[0]),e.getSplineHelpers(y[1],f[1],_,u,c[1],x[1]),e.getSplineHelpers(y[2],f[2],_,u,c[2],x[2]),e.getSplineHelpers(y[3],f[3],_,u,c[3],x[3])];return T[0]?function(l){return 0==l?o:1==l?n:e.getArgbNumber([s(255,e.calculateSpline(T[0],l)),s(255,e.calculateSpline(T[1],l)),s(255,e.calculateSpline(T[2],l)),s(255,e.calculateSpline(T[3],l))])}:function(s){return 0==s?o:1==s?n:e.mergeColors(n,o,s)}}},{key:'getSplineHelpers',value:function getSplineHelpers(e,o,s,n,l,d){if(!s&&!n)return null;var _=s,u=e+l*s,c=1-n,x=o-d*n;return[3*_-3*c+1,-6*_+3*c,3*_,3*u-3*x+o-e,3*(x+e)-6*u,3*(u-e),e]}},{key:'calculateSpline',value:function calculateSpline(e,o){var s=e[0],n=e[1],l=e[2],d=e[3],_=e[4],u=e[5],c=e[6];if(-2==s&&-2==d&&0==l&&0==u)return o;for(var y=0.5,f=void 0,T=void 0,S=0;20>S;S++){if(f=y*(y*(y*s+n)+l),T=o-f,-1e-8<T&&1e-8>T)return y*(y*(y*d+_)+u)+c;var C=y*(y*(3*s)+2*n)+l;if(1e-10<C&&1e-10>C)break;y+=T/C}var x=0,h=1;for(it=0;20>it;it++){if(t=0.5*(x+h),cbx=t*(t*(t*s+n)+l),dx=o-cbx,-1e-8<dx&&1e-8>dx)return t*(t*(t*d+_)+u)+c;0>dx?h=t:x=t}return t}}]),e}(),Stage=function(e){function o(e){_classCallCheck(this,o);var s=_possibleConstructorReturn(this,(o.__proto__||Object.getPrototypeOf(o)).call(this));return EventEmitter.call(s),s.setOptions(e),s.init(),s}return _inherits(o,e),_createClass(o,[{key:'setOptions',value:function setOptions(e){var o=this;this.options=e;var s=function(s,n){var l=e[s];o.options[s]=void 0===l?n:l};s('w',1280),s('h',720),s('canvas',this.options.canvas),s('renderWidth',this.options.w),s('renderHeight',this.options.h),s('srcBasePath',null),s('textureMemory',12e6),s('renderTexturePoolPixels',12e6),s('glClearColor',[0,0,0,0]),s('defaultFontFace','Sans-Serif'),s('defaultPrecision',this.options.h/this.options.renderHeight),s('fixedDt',0),s('useTextureAtlas',!1),s('debugTextureAtlas',!1)}},{key:'init',value:function init(){this.adapter=new WebAdapter,this.adapter.init&&this.adapter.init(this),this.gl=this.adapter.createWebGLContext(this.options.w,this.options.h),this.setGlClearColor(this.options.glClearColor),this.frameCounter=0,this.transitions=new TransitionManager(this),this.animations=new AnimationManager(this),this.textureManager=new TextureManager(this),this.options.useTextureAtlas&&(this.textureAtlas=new TextureAtlas(this)),this.ctx=new CoreContext(this),this.root=new View(this),this.root.w=this.options.w,this.root.h=this.options.h,this.root.setAsRoot(),this.startTime=0,this.currentTime=0,this.dt=0,this._destroyed=!1;var e=this;this.rectangleTexture=this.texture(function(e){var o=new Uint8Array([255,255,255,255]);return e(null,o,{w:1,h:1})},{id:'__whitepix'});var o=this.rectangleTexture.source;this.rectangleTexture.source.load(!0),o.permanent=!0,e.textureAtlas&&e.textureAtlas.add(o),e.adapter.startLoop()}},{key:'destroy',value:function destroy(){this.adapter.stopLoop(),this.textureAtlas&&this.textureAtlas.destroy(),this.ctx.destroy(),this.textureManager.destroy(),this._destroyed=!0}},{key:'stop',value:function stop(){this.adapter.stopLoop()}},{key:'resume',value:function resume(){if(this._destroyed)throw new Error('Already destroyed');this.adapter.startLoop()}},{key:'getCanvas',value:function getCanvas(){return this.adapter.getWebGLCanvas()}},{key:'drawFrame',value:function drawFrame(){this.dt=this.options.fixedDt?this.options.fixedDt:this.startTime?.001*(this.currentTime-this.startTime):.02,this.startTime=this.currentTime,this.currentTime=new Date().getTime(),this.emit('frameStart'),this.textureManager.isFull()&&(console.log('clean up'),this.textureManager.freeUnusedTextureSources()),this.emit('update'),this.textureAtlas&&this.textureAtlas.flush();var e=this.ctx.frame();this.adapter.nextFrame(e),this.frameCounter++}},{key:'setGlClearColor',value:function setGlClearColor(e){this.options.glClearColor=Array.isArray(e)?e:StageUtils.getRgbaComponentsNormalized(e)}},{key:'createView',value:function createView(){return new View(this)}},{key:'view',value:function(e){if(e.isView)return e;var o;return o=e.type?new e.type(this):new View(this),o.setSettings(e),o}},{key:'c',value:function c(e){return this.view(e)}},{key:'texture',value:function texture(e,o){return this.textureManager.getTexture(e,o)}},{key:'w',get:function get(){return this.options.w}},{key:'h',get:function get(){return this.options.h}},{key:'rw',get:function get(){return this.options.renderWidth}},{key:'rh',get:function get(){return this.options.renderHeight}}]),o}(Base);Base.mixinEs5(Stage,EventEmitter);var ShaderProgram=function(){function e(o,s){_classCallCheck(this,e),this.vertexShaderSource=o,this.fragmentShaderSource=s,this._program=null,this._uniformLocations=new Map,this._attributeLocations=new Map,this._currentUniformValues={},this._pendingUniformValues={},this._pendingUniformFunctions={},this._pendingUniformCount=0}return _createClass(e,[{key:'compile',value:function compile(e){if(!this._program){this.gl=e,this._program=e.createProgram();var o=this._glCompile(e.VERTEX_SHADER,this.vertexShaderSource),s=this._glCompile(e.FRAGMENT_SHADER,this.fragmentShaderSource);e.attachShader(this._program,o),e.attachShader(this._program,s),e.linkProgram(this._program),e.getProgramParameter(this._program,e.LINK_STATUS)||(console.error('Error: Could not initialize shader.'),console.error('gl.VALIDATE_STATUS',e.getProgramParameter(this._program,e.VALIDATE_STATUS)),console.error('gl.getError()',e.getError()),''!==e.getProgramInfoLog(this._program)&&console.warn('Warning: gl.getProgramInfoLog()',e.getProgramInfoLog(this._program)),e.deleteProgram(this._program),this._program=null),e.deleteShader(o),e.deleteShader(s)}}},{key:'_glCompile',value:function _glCompile(e,o){var s=this.gl.createShader(e);if(this.gl.shaderSource(s,o),this.gl.compileShader(s),!this.gl.getShaderParameter(s,this.gl.COMPILE_STATUS)){console.log(this.constructor.name,'Type: '+(e===this.gl.VERTEX_SHADER?'vertex shader':'fragment shader')),console.log(this.gl.getShaderInfoLog(s));var n=0;return console.log('========== source ==========\n'+o.split('\n').map(function(e){return''+ ++n+': '+e}).join('\n')),null}return s}},{key:'getUniformLocation',value:function getUniformLocation(e){var o=this._uniformLocations.get(e);return void 0===o&&(o=this.gl.getUniformLocation(this._program,e),this._uniformLocations.set(e,o)),o}},{key:'getAttribLocation',value:function getAttribLocation(e){var o=this._attributeLocations.get(e);return void 0===o&&(o=this.gl.getAttribLocation(this._program,e),this._attributeLocations.set(e,o)),o}},{key:'destroy',value:function destroy(){this._program&&(this.gl.deleteProgram(this._program),this._program=null)}},{key:'_valueEquals',value:function _valueEquals(e,o){if(e.length&&o.length){for(var s=0,l=e.length;s<l;s++)if(e[s]!==o[s])return!1;return!0}return e===o}},{key:'_valueClone',value:function _valueClone(e){return e.length?e.slice(0):e}},{key:'setUniformValue',value:function setUniformValue(e,o,s){var n=this._currentUniformValues[e];void 0!==n&&this._valueEquals(n,o)?void 0!==n&&this._pendingUniformValues[e]&&(delete this._pendingUniformValues[e],delete this._pendingUniformFunctions[e],this._pendingUniformCount--):(this._pendingUniformValues[e]=this._valueClone(o),this._pendingUniformFunctions[e]=s,this._pendingUniformCount++)}},{key:'hasUniformUpdates',value:function hasUniformUpdates(){return 0<this._pendingUniformCount}},{key:'commitUniformUpdates',value:function commitUniformUpdates(){var e=this,o=Object.keys(this._pendingUniformValues);o.forEach(function(o){e._currentUniformValues[o]=e._pendingUniformValues[o];var s=e.getUniformLocation(o);if(s){var n=e._pendingUniformFunctions[o]===e.gl.uniformMatrix2fv||e._pendingUniformFunctions[o]===e.gl.uniformMatrix3fv||e._pendingUniformFunctions[o]===e.gl.uniformMatrix4fv;n?e._pendingUniformFunctions[o].call(e.gl,s,!1,e._pendingUniformValues[o]):e._pendingUniformFunctions[o].call(e.gl,s,e._pendingUniformValues[o])}}),this._pendingUniformValues={},this._pendingUniformFunctions={},this._pendingUniformCount=0}},{key:'glProgram',get:function get(){return this._program}},{key:'compiled',get:function get(){return!!this._program}}]),e}(),ShaderBase=function(e){function o(e){_classCallCheck(this,o);var s=_possibleConstructorReturn(this,(o.__proto__||Object.getPrototypeOf(o)).call(this));return s._program=e.shaderPrograms.get(s.constructor),s._program||(s._program=new ShaderProgram(s.getVertexShaderSource(),s.getFragmentShaderSource()),e.shaderPrograms.set(s.constructor,s._program)),s._initialized=!1,s.ctx=e,s.gl=s.ctx.gl,s._views=new Set,s}return _inherits(o,e),_createClass(o,[{key:'getVertexShaderSource',value:function getVertexShaderSource(){return''}},{key:'getFragmentShaderSource',value:function getFragmentShaderSource(){return''}},{key:'_init',value:function _init(){this._initialized||(this._program.compile(this.ctx.gl),this._initialized=!0)}},{key:'_uniform',value:function _uniform(e){return this._program.getUniformLocation(e)}},{key:'_attrib',value:function _attrib(e){return this._program.getAttribLocation(e)}},{key:'_setUniform',value:function _setUniform(e,o,s){this._program.setUniformValue(e,o,s)}},{key:'useProgram',value:function useProgram(){this._init(),this.ctx.gl.useProgram(this.glProgram),this.beforeUsage(),this.enableAttribs()}},{key:'stopProgram',value:function stopProgram(){this.afterUsage(),this.disableAttribs()}},{key:'hasSameProgram',value:function hasSameProgram(e){return e&&(e===this||e._program===this._program)}},{key:'beforeUsage',value:function beforeUsage(){}},{key:'afterUsage',value:function afterUsage(){}},{key:'hasUniformUpdates',value:function hasUniformUpdates(){return this._program.hasUniformUpdates()}},{key:'commitUniformUpdates',value:function commitUniformUpdates(){this._program.commitUniformUpdates()}},{key:'addView',value:function addView(e){this._views.add(e)}},{key:'removeView',value:function removeView(e){this._views.delete(e)}},{key:'redraw',value:function redraw(){this._views.forEach(function(e){e.setHasRenderUpdates(2)})}},{key:'initialized',get:function get(){return this._initialized}},{key:'glProgram',get:function get(){return this._program.glProgram}}]),o}(Base),Shader=function(e){function o(e){_classCallCheck(this,o);var s=_possibleConstructorReturn(this,(o.__proto__||Object.getPrototypeOf(o)).call(this,e));return s.isDefault=s.constructor===o,s}return _inherits(o,e),_createClass(o,[{key:'getVertexShaderSource',value:function getVertexShaderSource(){return o.vertexShaderSource}},{key:'getFragmentShaderSource',value:function getFragmentShaderSource(){return o.fragmentShaderSource}},{key:'supportsTextureAtlas',value:function supportsTextureAtlas(){return this.isDefault}},{key:'enableAttribs',value:function enableAttribs(){var e=this.ctx.gl;e.vertexAttribPointer(this._attrib('aVertexPosition'),2,e.FLOAT,!1,16,0),e.enableVertexAttribArray(this._attrib('aVertexPosition')),-1!==this._attrib('aTextureCoord')&&(e.vertexAttribPointer(this._attrib('aTextureCoord'),2,e.UNSIGNED_SHORT,!0,16,8),e.enableVertexAttribArray(this._attrib('aTextureCoord'))),-1!==this._attrib('aColor')&&(e.vertexAttribPointer(this._attrib('aColor'),4,e.UNSIGNED_BYTE,!0,16,12),e.enableVertexAttribArray(this._attrib('aColor')))}},{key:'disableAttribs',value:function disableAttribs(){var e=this.ctx.gl;e.disableVertexAttribArray(this._attrib('aVertexPosition')),-1!==this._attrib('aTextureCoord')&&e.disableVertexAttribArray(this._attrib('aTextureCoord')),-1!==this._attrib('aColor')&&e.disableVertexAttribArray(this._attrib('aColor'))}},{key:'getExtraAttribBytesPerVertex',value:function getExtraAttribBytesPerVertex(){return 0}},{key:'getVertexAttribPointerOffset',value:function getVertexAttribPointerOffset(e){return e.extraAttribsDataByteOffset-4*(e.index+1)*this.getExtraAttribBytesPerVertex()}},{key:'useDefault',value:function useDefault(){return!1}},{key:'supportsMerging',value:function supportsMerging(){return!0}},{key:'addEmpty',value:function addEmpty(){return!1}},{key:'setExtraAttribsInBuffer',value:function setExtraAttribsInBuffer(){}},{key:'setupUniforms',value:function setupUniforms(e){this._setUniform('projection',this._getProjection(e),this.ctx.gl.uniform2fv,!1)}},{key:'isMergable',value:function isMergable(){return this.hasUniformUpdates()}},{key:'_getProjection',value:function _getProjection(e){return e.getProjection()}},{key:'getFlipY',value:function getFlipY(){return 0>this._getProjection()[1]}},{key:'beforeDraw',value:function beforeDraw(){}},{key:'draw',value:function draw(e){var o=this.ctx.gl,s=e.length;if(s){for(var n,l=e.getTexture(0),d=0,_=0;_<s;_++)n=e.getTexture(_),l!==n&&(o.bindTexture(o.TEXTURE_2D,l),o.drawElements(o.TRIANGLES,6*(_-d),o.UNSIGNED_SHORT,2*(6*(d+e.index+1))),l=n,d=_);pos<s&&(o.bindTexture(o.TEXTURE_2D,glTexture),o.drawElements(o.TRIANGLES,6*(s-pos),o.UNSIGNED_SHORT,2*(6*(pos+e.index+1))))}}},{key:'afterDraw',value:function afterDraw(){}}]),o}(ShaderBase);Shader.vertexShaderSource='\n    #ifdef GL_ES\n    precision lowp float;\n    #endif\n    attribute vec2 aVertexPosition;\n    attribute vec2 aTextureCoord;\n    attribute vec4 aColor;\n    uniform vec2 projection;\n    varying vec2 vTextureCoord;\n    varying vec4 vColor;\n    void main(void){\n        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);\n        vTextureCoord = aTextureCoord;\n        vColor = aColor;\n        gl_Position.y = -sign(projection.y) * gl_Position.y;\n    }\n',Shader.fragmentShaderSource='\n    #ifdef GL_ES\n    precision lowp float;\n    #endif\n    varying vec2 vTextureCoord;\n    varying vec4 vColor;\n    uniform sampler2D uSampler;\n    void main(void){\n        gl_FragColor = texture2D(uSampler, vTextureCoord) * vColor;\n    }\n',Shader.prototype.isShader=!0;var Filter=function(e){function o(e){return _classCallCheck(this,o),_possibleConstructorReturn(this,(o.__proto__||Object.getPrototypeOf(o)).call(this,e))}return _inherits(o,e),_createClass(o,[{key:'getVertexShaderSource',value:function getVertexShaderSource(){return o.vertexShaderSource}},{key:'getFragmentShaderSource',value:function getFragmentShaderSource(){return o.fragmentShaderSource}},{key:'useDefault',value:function useDefault(){return!1}},{key:'enableAttribs',value:function enableAttribs(){var e=this.ctx.gl;e.vertexAttribPointer(this._attrib('aVertexPosition'),2,e.FLOAT,!1,16,0),e.enableVertexAttribArray(this._attrib('aVertexPosition')),-1!==this._attrib('aTextureCoord')&&(e.vertexAttribPointer(this._attrib('aTextureCoord'),2,e.UNSIGNED_SHORT,!0,16,8),e.enableVertexAttribArray(this._attrib('aTextureCoord')))}},{key:'disableAttribs',value:function disableAttribs(){var e=this.ctx.gl;e.disableVertexAttribArray(this._attrib('aVertexPosition')),-1!==this._attrib('aTextureCoord')&&e.disableVertexAttribArray(this._attrib('aTextureCoord'))}},{key:'setupUniforms',value:function setupUniforms(e){this._setUniform('resolution',new Float32Array([e.getRenderWidth(),e.getRenderHeight()]),this.gl.uniform2fv)}},{key:'beforeDraw',value:function beforeDraw(){}},{key:'afterDraw',value:function afterDraw(){}},{key:'draw',value:function draw(e){var o=this.gl;o.bindTexture(o.TEXTURE_2D,e.source),o.drawElements(o.TRIANGLES,6,o.UNSIGNED_SHORT,0)}},{key:'redraw',value:function redraw(){this._views.forEach(function(e){e.setHasRenderUpdates(2),e._setRecalc(15)})}}]),o}(ShaderBase);Filter.prototype.isFilter=!0,Filter.vertexShaderSource='\n    #ifdef GL_ES\n    precision lowp float;\n    #endif\n    attribute vec2 aVertexPosition;\n    attribute vec2 aTextureCoord;\n    varying vec2 vTextureCoord;\n    void main(void){\n        gl_Position = vec4(aVertexPosition, 0.0, 1.0);\n        vTextureCoord = aTextureCoord;\n    }\n',Filter.fragmentShaderSource='\n    #ifdef GL_ES\n    precision lowp float;\n    #endif\n    varying vec2 vTextureCoord;\n    uniform sampler2D uSampler;\n    void main(void){\n        gl_FragColor = texture2D(uSampler, vTextureCoord);\n    }\n',Filter.prototype.isFilter=!0;var TextureManager=function(){function e(o){_classCallCheck(this,e),this.stage=o,this.gl=this.stage.gl,this._usedTextureMemory=0,this._uploadedTextureSources=[],this.textureSourceHashmap=new Map}return _createClass(e,[{key:'destroy',value:function destroy(){for(var e,o=0,s=this._uploadedTextureSources.length;o<s;o++)e=this._uploadedTextureSources[o],this.gl.deleteTexture(e.glTexture)}},{key:'loadSrcTexture',value:function loadSrcTexture(e,o,s,n){if(this.stage.options.srcBasePath){var l=e.charCodeAt(0);-1===e.indexOf('//')&&(65<=l&&90>=l||97<=l&&122>=l||46==l)&&(e=this.stage.options.srcBasePath+e)}this.stage.adapter.loadSrcTexture(e,o,s,n)}},{key:'loadTextTexture',value:function loadTextTexture(e,o,s,n){if(this.stage.options.text2pngEndpoint&&!s){var l=this.stage.options.text2pngEndpoint+'?q='+encodeURIComponent(JSON.stringify(e.getNonDefaults()));this.loadSrcTexture(l,o,s,n)}else this.stage.adapter.loadTextTexture(e,o,s,n)}},{key:'getTexture',value:function getTexture(e,o){var s,n,l=o&&o.id||null;if(!Utils.isString(e))n=e instanceof TextureSource?e:this.getTextureSource(e,l);else if(l=l||e,n=this.textureSourceHashmap.get(l),!n){var d=this;n=this.getTextureSource(function func(o,s,n){d.loadSrcTexture(e,s,n,o)},l),n.renderInfo||(n.renderInfo={src:e})}return s=new Texture(this,n),s.x=o&&o.x||0,s.y=o&&o.y||0,s.w=o&&o.w||0,s.h=o&&o.h||0,s.clipping=!!(s.x||s.y||s.w||s.h),s.precision=o&&o.precision||1,s}},{key:'getTextureSource',value:function getTextureSource(e,o){var s=o?this.textureSourceHashmap.get(o):null;return s||(s=new TextureSource(this,e),o&&(s.lookupId=o,this.textureSourceHashmap.set(o,s))),s}},{key:'uploadTextureSource',value:function uploadTextureSource(e,o,s){if(!e.glTexture){var n=this.gl,l=n.createTexture();n.bindTexture(n.TEXTURE_2D,l),n.pixelStorei(n.UNPACK_PREMULTIPLY_ALPHA_WEBGL,s.premultiplyAlpha),Utils.isNode&&n.pixelStorei(n.UNPACK_FLIP_BLUE_RED,!!s.flipBlueRed),this.stage.adapter.uploadGlTexture(n,e,o,s.hasAlpha),n.texParameteri(n.TEXTURE_2D,n.TEXTURE_MAG_FILTER,n.LINEAR),n.texParameteri(n.TEXTURE_2D,n.TEXTURE_MIN_FILTER,n.LINEAR),n.texParameteri(n.TEXTURE_2D,n.TEXTURE_WRAP_S,n.CLAMP_TO_EDGE),n.texParameteri(n.TEXTURE_2D,n.TEXTURE_WRAP_T,n.CLAMP_TO_EDGE),e.glTexture=l,l.w=e.w,l.h=e.h,this._usedTextureMemory+=e.w*e.h,this._uploadedTextureSources.push(e)}}},{key:'isFull',value:function isFull(){return this._usedTextureMemory>=this.stage.options.textureMemory}},{key:'freeUnusedTextureSources',value:function freeUnusedTextureSources(){for(var o,s=[],l=this._usedTextureMemory,d=0,_=this._uploadedTextureSources.length;d<_;d++)o=this._uploadedTextureSources[d],o.permanent||0!==o.views.size?s.push(o):this.freeTextureSource(o);var e=this;this.textureSourceHashmap.forEach(function(o){0===o.views.size&&e.freeTextureSource(o)}),this._uploadedTextureSources=remainingTextureSources,console.log('freed '+((usedTextureMemoryBefore-this._usedTextureMemory)/1e6).toFixed(2)+'M texture pixels from GPU memory. Remaining: '+this._usedTextureMemory)}},{key:'freeTextureSource',value:function freeTextureSource(e){e.isLoadedByCore()||(e.glTexture&&(this._usedTextureMemory-=e.w*e.h,this.gl.deleteTexture(e.glTexture),e.glTexture=null),e.loadingSince=null,e.lookupId&&this.textureSourceHashmap.delete(e.lookupId))}}]),e}(),Texture=function(){function e(o,s){_classCallCheck(this,e),this.manager=o,this.id=e.id++,this.source=s}return _createClass(e,[{key:'_properties',value:function _properties(){this._x=0,this._y=0,this._w=0,this._h=0,this._precision=1,this.clipping=!1}},{key:'enableClipping',value:function enableClipping(e,o,s,n){(this._x!==e||this._y!==o||this._w!==s||this._h!==n)&&(this._x=e,this._y=o,this._w=s,this._h=n,this.updateClipping(!0))}},{key:'disableClipping',value:function disableClipping(){(this._x||this._y||this._w||this._h)&&(this._x=0,this._y=0,this._w=0,this._h=0,this.updateClipping(!1))}},{key:'updateClipping',value:function updateClipping(e){this.clipping=!0===e||!1===e?e:!!(this._x||this._y||this._w||this._h);var o=this;this.source.views.forEach(function(e){e.displayedTexture===o&&e.onDisplayedTextureClippingChanged()})}},{key:'updatePrecision',value:function updatePrecision(){var e=this;this.source.views.forEach(function(o){o.displayedTexture===e&&o.onPrecisionChanged()})}},{key:'replaceTextureSource',value:function replaceTextureSource(e){var o=this,s=this.source;this.source=e,s.views.forEach(function(n){if(n.texture===o||n.displayedTexture===o){var l=n.displayedTexture&&n.displayedTexture!==o&&n.displayedTexture.source===s;l=l||n.texture&&n.texture!==o&&n.texture.source===s,l||s.removeView(n),e.addView(n),e.glTexture&&(n.displayedTexture=o)}})}},{key:'getNonDefaults',value:function getNonDefaults(){var e={};return 0!==this.x&&(e.x=this.x),0!==this.y&&(e.y=this.y),0!==this.w&&(e.w=this.w),0!==this.h&&(e.h=this.h),1!==this.precision&&(e.precision=this.precision),e}},{key:'x',get:function get(){return this._x},set:function set(e){this._x!==e&&(this._x=e,this.updateClipping())}},{key:'y',get:function get(){return this._y},set:function set(e){this._y!==e&&(this._y=e,this.updateClipping())}},{key:'w',get:function get(){return this._w},set:function set(e){this._w!==e&&(this._w=e,this.updateClipping())}},{key:'h',get:function get(){return this._h},set:function set(e){this._h!==e&&(this._h=e,this.updateClipping())}},{key:'precision',get:function get(){return this._precision},set:function set(e){this._precision!==e&&(this._precision=e,this.updatePrecision())}}]),e}();Texture.id=0;var TextureSource=function(e){function o(e,s){_classCallCheck(this,o);var n=_possibleConstructorReturn(this,(o.__proto__||Object.getPrototypeOf(o)).call(this));return n.id=o.id++,n.manager=e,n.stage=e.stage,n.id=o.id++,n.loadCb=s,n.views=new Set,n}return _inherits(o,e),_createClass(o,[{key:'_properties',value:function _properties(){this.lookupId=null,this.cancelCb=null,this.loadingSince=0,this.inTextureAtlas=!1,this.textureAtlasX=0,this.textureAtlasY=0,this.w=0,this.h=0,this.glTexture=null,this.permanent=!1,this.noTextureAtlas=!1,this.renderInfo=null}},{key:'getRenderWidth',value:function getRenderWidth(){return this.w}},{key:'getRenderHeight',value:function getRenderHeight(){return this.h}},{key:'isLoadedByCore',value:function isLoadedByCore(){return!this.loadCb}},{key:'addView',value:function addView(e){this.views.has(e)||(this.views.add(e),this.glTexture&&this.stage.textureAtlas&&!this.noTextureAtlas&&this.stage.textureAtlas.addActiveTextureSource(this),1===this.views.size&&(this.lookupId&&!this.manager.textureSourceHashmap.has(this.lookupId)&&this.manager.textureSourceHashmap.set(this.lookupId,this),this.becomesVisible()))}},{key:'removeView',value:function removeView(e){this.views.delete(e)&&!this.views.size&&(this.stage.textureAtlas&&this.stage.textureAtlas.removeActiveTextureSource(this),this.becomesInvisible())}},{key:'becomesVisible',value:function becomesVisible(){this.load(!1)}},{key:'becomesInvisible',value:function becomesInvisible(){this.isLoading()&&this.cancelCb&&this.cancelCb(this)}},{key:'load',value:function load(e){if(!this.isLoadedByCore()&&(this.isLoading()&&e&&(this.cancelCb&&this.cancelCb(this),this.loadingSince=0),!this.glTexture&&!this.isLoading())){var o=this;this.loadingSince=new Date().getTime(),this.loadCb(function(e,s,n){o.manager.stage.destroyed||(o.loadingSince=0,e?o.onError(e):s&&o.setSource(s,n))},this,!!e)}}},{key:'isLoading',value:function isLoading(){return 0<this.loadingSince}},{key:'setSource',value:function setSource(e,o){if(this.w=e.width||o&&o.w||0,this.h=e.height||o&&o.h||0,2048<this.w||2048<this.h)return void console.error('Texture size too large: '+e.width+'x'+e.height+' (max allowed is 2048x2048)');o&&o.renderInfo&&(this.renderInfo=o.renderInfo);var s={premultiplyAlpha:!0,hasAlpha:!0};o&&o.hasOwnProperty('premultiplyAlpha')&&(s.premultiplyAlpha=o.premultiplyAlpha),o&&o.hasOwnProperty('flipBlueRed')&&(s.flipBlueRed=o.flipBlueRed),o&&o.hasOwnProperty('hasAlpha')&&(s.hasAlpha=o.hasAlpha),s.hasAlpha||(s.premultiplyAlpha=!1),this.manager.uploadTextureSource(this,e,s),this.onLoad()}},{key:'isVisible',value:function isVisible(){return 0<this.views.size}},{key:'onLoad',value:function onLoad(){this.isVisible()&&this.stage.textureAtlas&&!this.noTextureAtlas&&this.stage.textureAtlas.addActiveTextureSource(this),this.views.forEach(function(e){e.onTextureSourceLoaded()})}},{key:'_changeGlTexture',value:function _changeGlTexture(e,o,s){var n=this.glTexture;this.glTexture=e,this.w=o,this.h=s,!n&&this.glTexture&&this.views.forEach(function(e){return e.onTextureSourceLoaded()}),this.glTexture||this.views.forEach(function(e){e.displayedTexture=null}),this.views.forEach(function(e){return e._updateDimensions()})}},{key:'onError',value:function onError(o){console.error('texture load error',o,this.id),this.views.forEach(function(e){e.onTextureSourceLoadError(o)})}},{key:'onAddedToTextureAtlas',value:function onAddedToTextureAtlas(e,o){this.inTextureAtlas=!0,this.textureAtlasX=e,this.textureAtlasY=o,this.views.forEach(function(e){e.onTextureSourceAddedToTextureAtlas()})}},{key:'onRemovedFromTextureAtlas',value:function onRemovedFromTextureAtlas(){this.inTextureAtlas=!1,this.views.forEach(function(e){e.onTextureSourceRemovedFromTextureAtlas()})}},{key:'free',value:function free(){this.manager.freeTextureSource(this)}}]),o}(Base);TextureSource.id=1;var TextureAtlas=function(){function e(o){_classCallCheck(this,e);this._program=new ShaderProgram('\n            #ifdef GL_ES\n            precision lowp float;\n            #endif\n            attribute vec2 aVertexPosition;\n            attribute vec2 aTextureCoord;\n            uniform mat4 projectionMatrix;\n            varying vec2 vTextureCoord;\n            void main(void){\n                gl_Position = projectionMatrix * vec4(aVertexPosition, 0.0, 1.0);\n                vTextureCoord = aTextureCoord;\n            }\n        ','\n            #ifdef GL_ES\n            precision lowp float;\n            #endif\n            varying vec2 vTextureCoord;\n            uniform sampler2D uSampler;\n            void main(void){\n                gl_FragColor = texture2D(uSampler, vTextureCoord);\n            }\n        '),this._program.compile(o.gl),this.stage=o,this.w=2048,this.h=2048,this._activeTree=new TextureAtlasTree(this.w,this.h),this._activeTextureSources=new Set,this._addedTextureSources=new Set,this._wastedPixels=0,this._lastDefragFrame=0,this._pixelsLimit=this.w*this.h/16,this._minWastedPixels=this.w*this.h/8,this._defragNeeded=!1,this._uploads=[],this._init()}return _createClass(e,[{key:'_init',value:function _init(){var e=this.gl;e.useProgram(this.glProgram),this._vertexPositionAttribute=e.getAttribLocation(this.glProgram,'aVertexPosition'),this._textureCoordAttribute=e.getAttribLocation(this.glProgram,'aTextureCoord'),this._paramsBuffer=new ArrayBuffer(576000),this._allCoords=new Float32Array(this._paramsBuffer),this._allTexCoords=new Float32Array(this._paramsBuffer),this._allIndices=new Uint16Array(54000);for(var s=0,n=0;54000>s;s+=6,n+=4)this._allIndices[s]=n,this._allIndices[s+1]=n+1,this._allIndices[s+2]=n+2,this._allIndices[s+3]=n,this._allIndices[s+4]=n+2,this._allIndices[s+5]=n+3;this._indicesGlBuffer=e.createBuffer(),e.bindBuffer(e.ELEMENT_ARRAY_BUFFER,this._indicesGlBuffer),e.bufferData(e.ELEMENT_ARRAY_BUFFER,this._allIndices,e.STATIC_DRAW),this._projectionMatrix=new Float32Array([2/this.w,0,0,0,0,2/this.h,0,0,0,0,1,0,-1,-1,0,1]);var o=e.getUniformLocation(this.glProgram,'projectionMatrix');if(e.uniformMatrix4fv(o,!1,this._projectionMatrix),this.texture=this.gl.createTexture(),e.bindTexture(e.TEXTURE_2D,this.texture),this.texture.w=this.w,this.texture.h=this.h,e.texImage2D(e.TEXTURE_2D,0,e.RGBA,this.w,this.h,0,e.RGBA,e.UNSIGNED_BYTE,null),e.texParameteri(e.TEXTURE_2D,e.TEXTURE_MAG_FILTER,e.LINEAR),e.texParameteri(e.TEXTURE_2D,e.TEXTURE_MIN_FILTER,e.LINEAR),e.texParameteri(e.TEXTURE_2D,e.TEXTURE_WRAP_S,e.CLAMP_TO_EDGE),e.texParameteri(e.TEXTURE_2D,e.TEXTURE_WRAP_T,e.CLAMP_TO_EDGE),e.bindTexture(e.TEXTURE_2D,null),this.framebuffer=e.createFramebuffer(),e.bindFramebuffer(e.FRAMEBUFFER,this.framebuffer),e.framebufferTexture2D(e.FRAMEBUFFER,e.COLOR_ATTACHMENT0,e.TEXTURE_2D,this.texture,0),e.getError()!=e.NO_ERROR)throw'Some WebGL error occurred while trying to create framebuffer.';e.bindFramebuffer(e.FRAMEBUFFER,null)}},{key:'destroy',value:function destroy(){this.gl.deleteTexture(this.texture),this.gl.deleteFramebuffer(this.framebuffer),this.gl.deleteBuffer(this.paramsGlBuffer),this.gl.deleteBuffer(this._indicesGlBuffer),this._program.destroy()}},{key:'uploadTextureSources',value:function uploadTextureSources(e){var o,s=e.length;for(1e3<s&&(s=1e3),o=0;o<s;o++){var d=e[o].w,_=e[o].h,u=e[o].textureAtlasX,c=e[o].textureAtlasY,x=1/d,h=1/_,y=9*(16*o);this._allCoords[y+0]=u,this._allCoords[y+1]=c,this._allCoords[y+4]=u+d,this._allCoords[y+5]=c,this._allCoords[y+8]=u+d,this._allCoords[y+9]=c+_,this._allCoords[y+12]=u,this._allCoords[y+13]=c+_,this._allCoords[y+16]=u,this._allCoords[y+17]=c-1,this._allCoords[y+20]=u+d,this._allCoords[y+21]=c-1,this._allCoords[y+24]=u+d,this._allCoords[y+25]=c,this._allCoords[y+28]=u,this._allCoords[y+29]=c,this._allCoords[y+32]=u,this._allCoords[y+33]=c+_,this._allCoords[y+36]=u+d,this._allCoords[y+37]=c+_,this._allCoords[y+40]=u+d,this._allCoords[y+41]=c+_+1,this._allCoords[y+44]=u,this._allCoords[y+45]=c+_+1,this._allCoords[y+48]=u-1,this._allCoords[y+49]=c,this._allCoords[y+52]=u,this._allCoords[y+53]=c,this._allCoords[y+56]=u,this._allCoords[y+57]=c+_,this._allCoords[y+60]=u-1,this._allCoords[y+61]=c+_,this._allCoords[y+64]=u+d,this._allCoords[y+65]=c,this._allCoords[y+68]=u+d+1,this._allCoords[y+69]=c,this._allCoords[y+72]=u+d+1,this._allCoords[y+73]=c+_,this._allCoords[y+76]=u+d,this._allCoords[y+77]=c+_,this._allCoords[y+80]=u-1,this._allCoords[y+81]=c-1,this._allCoords[y+84]=u,this._allCoords[y+85]=c-1,this._allCoords[y+88]=u,this._allCoords[y+89]=c,this._allCoords[y+92]=u-1,this._allCoords[y+93]=c,this._allCoords[y+96]=u+d,this._allCoords[y+97]=c-1,this._allCoords[y+100]=u+d+1,this._allCoords[y+101]=c-1,this._allCoords[y+104]=u+d+1,this._allCoords[y+105]=c,this._allCoords[y+108]=u+d,this._allCoords[y+109]=c,this._allCoords[y+112]=u+d,this._allCoords[y+113]=c+_,this._allCoords[y+116]=u+d+1,this._allCoords[y+117]=c+_,this._allCoords[y+120]=u+d+1,this._allCoords[y+121]=c+_+1,this._allCoords[y+124]=u+d,this._allCoords[y+125]=c+_+1,this._allCoords[y+128]=u-1,this._allCoords[y+129]=c+_,this._allCoords[y+132]=u,this._allCoords[y+133]=c+_,this._allCoords[y+136]=u,this._allCoords[y+137]=c+_+1,this._allCoords[y+140]=u-1,this._allCoords[y+141]=c+_+1,this._allTexCoords[y+2]=0,this._allTexCoords[y+3]=0,this._allTexCoords[y+6]=1,this._allTexCoords[y+7]=0,this._allTexCoords[y+10]=1,this._allTexCoords[y+11]=1,this._allTexCoords[y+14]=0,this._allTexCoords[y+15]=1,this._allTexCoords[y+18]=0,this._allTexCoords[y+19]=0,this._allTexCoords[y+22]=1,this._allTexCoords[y+23]=0,this._allTexCoords[y+26]=1,this._allTexCoords[y+27]=h,this._allTexCoords[y+30]=0,this._allTexCoords[y+31]=h,this._allTexCoords[y+34]=0,this._allTexCoords[y+35]=1-h,this._allTexCoords[y+38]=1,this._allTexCoords[y+39]=1-h,this._allTexCoords[y+42]=1,this._allTexCoords[y+43]=1,this._allTexCoords[y+46]=0,this._allTexCoords[y+47]=1,this._allTexCoords[y+50]=0,this._allTexCoords[y+51]=0,this._allTexCoords[y+54]=x,this._allTexCoords[y+55]=0,this._allTexCoords[y+58]=x,this._allTexCoords[y+59]=1,this._allTexCoords[y+62]=0,this._allTexCoords[y+63]=1,this._allTexCoords[y+66]=1-x,this._allTexCoords[y+67]=0,this._allTexCoords[y+70]=1,this._allTexCoords[y+71]=0,this._allTexCoords[y+74]=1,this._allTexCoords[y+75]=1,this._allTexCoords[y+78]=1-x,this._allTexCoords[y+79]=1,this._allTexCoords[y+82]=0,this._allTexCoords[y+83]=0,this._allTexCoords[y+86]=x,this._allTexCoords[y+87]=0,this._allTexCoords[y+90]=x,this._allTexCoords[y+91]=h,this._allTexCoords[y+94]=0,this._allTexCoords[y+95]=h,this._allTexCoords[y+98]=1-x,this._allTexCoords[y+99]=0,this._allTexCoords[y+102]=1,this._allTexCoords[y+103]=0,this._allTexCoords[y+106]=1,this._allTexCoords[y+107]=h,this._allTexCoords[y+110]=1-x,this._allTexCoords[y+111]=h,this._allTexCoords[y+114]=1-x,this._allTexCoords[y+115]=1-h,this._allTexCoords[y+118]=1,this._allTexCoords[y+119]=1-h,this._allTexCoords[y+122]=1,this._allTexCoords[y+123]=1,this._allTexCoords[y+126]=1-x,this._allTexCoords[y+127]=1,this._allTexCoords[y+130]=0,this._allTexCoords[y+131]=1-h,this._allTexCoords[y+134]=x,this._allTexCoords[y+135]=1-h,this._allTexCoords[y+138]=x,this._allTexCoords[y+139]=1,this._allTexCoords[y+142]=0,this._allTexCoords[y+143]=1}var n=this.gl;n.bindFramebuffer(n.FRAMEBUFFER,this.framebuffer),n.useProgram(this.glProgram),n.viewport(0,0,this.w,this.h),n.blendFunc(n.ONE,n.ZERO),n.enable(n.BLEND),n.disable(n.DEPTH_TEST),this.paramsGlBuffer=this.paramsGlBuffer||n.createBuffer(),n.bindBuffer(n.ARRAY_BUFFER,this.paramsGlBuffer);var l=new DataView(this._paramsBuffer,0,576*s);for(n.bufferData(n.ARRAY_BUFFER,l,n.DYNAMIC_DRAW),n.vertexAttribPointer(this._vertexPositionAttribute,2,n.FLOAT,!1,16,0),n.vertexAttribPointer(this._textureCoordAttribute,2,n.FLOAT,!1,16,8),n.enableVertexAttribArray(this._vertexPositionAttribute),n.enableVertexAttribArray(this._textureCoordAttribute),n.bindBuffer(n.ELEMENT_ARRAY_BUFFER,this._indicesGlBuffer),o=0;o<s;o++)n.bindTexture(n.TEXTURE_2D,e[o].glTexture),n.drawElements(n.TRIANGLES,54,n.UNSIGNED_SHORT,2*(9*(6*o)));n.disableVertexAttribArray(this._vertexPositionAttribute),n.disableVertexAttribArray(this._textureCoordAttribute)}},{key:'allocate',value:function allocate(e){return this._activeTree.add(e)}},{key:'addActiveTextureSource',value:function addActiveTextureSource(e){1===e.id||e.w*e.h<this._pixelsLimit&&!this._activeTextureSources.has(e)&&(this._activeTextureSources.add(e),!this._addedTextureSources.has(e)&&this.add(e))}},{key:'removeActiveTextureSource',value:function removeActiveTextureSource(e){if(this._activeTextureSources.has(e)){this._activeTextureSources.delete(e);var o=this._uploads.indexOf(e);0<=o&&(this._uploads.splice(o,1),e.onRemovedFromTextureAtlas(),this._addedTextureSources.delete(e)),this._addedTextureSources.has(e)&&(this._wastedPixels+=e.w*e.h)}}},{key:'add',value:function add(e){var o=this.allocate(e);if(o)this._addedTextureSources.add(e),e.onAddedToTextureAtlas(o.x+1,o.y+1),this._uploads.push(e);else return this._defragNeeded=!0,!1;return!0}},{key:'defragment',value:function defragment(){console.log('defragment texture atlas');var e=this.gl;e.bindFramebuffer(e.FRAMEBUFFER,this.framebuffer),e.viewport(0,0,this.w,this.h),e.clearColor(0,0,0,0),e.clear(e.COLOR_BUFFER_BIT),this._activeTree.reset(),this._uploads=[],this._wastedPixels=0,this._lastDefragFrame=this.stage.frameCounter,this._defragNeeded=!1,this._addedTextureSources.forEach(function(e){e.onRemovedFromTextureAtlas()}),this._addedTextureSources.clear(),this.add(this.stage.rectangleTexture.source);var o=this;this._activeTextureSources.forEach(function(e){o.add(e)})}},{key:'flush',value:function flush(){this._defragNeeded&&this._wastedPixels>=this._minWastedPixels&&this._lastDefragFrame<this.stage.frameCounter-300&&this.defragment(),this._uploads.length&&(this.uploadTextureSources(this._uploads),this._uploads=[])}},{key:'glProgram',get:function get(){return this._program.glProgram}},{key:'gl',get:function get(){return this._program.gl}}]),e}(),TextureAtlasTree=function(){function e(o,s){_classCallCheck(this,e),this.w=o,this.h=s,this.reset()}return _createClass(e,[{key:'reset',value:function reset(){this.root={x:0,y:0,w:this.w,h:this.h},this.spaces=new Set([this.root]),this.maxH=this.h}},{key:'add',value:function add(e){var o=e.w+2,s=e.h+2;if(s>this.maxH)return!1;var l=0,d=null,_=0;return(this.spaces.forEach(function(e){e.h>_&&(_=e.h),e.w>=o&&e.h>=s&&(!l||l>o*s)&&(l=o*s,d=e)}),this.maxH=_,!!d)&&(this.useNode(d,e),d)}},{key:'findNode',value:function findNode(e,o,s){return e?e.o?this.findNode(e.r,o,s)||this.findNode(e.d,o,s):o<=e.w&&s<=e.h?e:null:null}},{key:'useNode',value:function useNode(e,o){var s=o.w+2,n=o.h+2;e.w>s&&(e.r={x:e.x+s,y:e.y,w:e.w-s,h:n},this.spaces.add(e.r)),e.h>n&&(e.d={x:e.x,y:e.y+n,w:e.w,h:e.h-n},this.spaces.add(e.d)),this.spaces.delete(e),e.o=o}},{key:'getTextures',value:function getTextures(){for(var e,o=[this.root],s=[],n=1;n;)e=o.pop(),n--,e.o&&(s.push(e.o),e.r&&(o.push(e.r),n++),e.d&&(o.push(e.d),n++));return textures}}]),e}(),View=function(){function e(o){_classCallCheck(this,e),EventEmitter.call(this),this.id=e.id++,this.stage=o,this._core=new ViewCore(this),this._texturizer=null,this._active=!1,this._attached=!1,this._parent=null,this._texture=null,this._displayedTexture=null,this._tags=null,this._treeTags=null,this._tagsCache=null,this._tagToComplex=null,this._tagRoot=!1,this._x=0,this._y=0,this._w=0,this._h=0,this._scaleX=1,this._scaleY=1,this._pivotX=0.5,this._pivotY=0.5,this._mountX=0,this._mountY=0,this._alpha=1,this._rotation=0,this._visible=!0,this._viewText=null,this._childList=null,this._exposedChildList=null}var o=Math.max,s=Math.min;return _createClass(e,[{key:'setAsRoot',value:function setAsRoot(){this._updateActiveFlag(),this._updateAttachedFlag(),this._core.setAsRoot()}},{key:'_setParent',value:function _setParent(e){this._parent===e||(this._parent&&this._unsetTagsParent(),this._parent=e,e&&this._setTagsParent(),this._updateActiveFlag(),this._updateAttachedFlag())}},{key:'getDepth',value:function getDepth(){var e=0,o=this;do e++,o=o._parent;while(o);return e}},{key:'getAncestor',value:function getAncestor(e){for(var o=this;0<e&&o._parent;)o=o._parent,e--;return p}},{key:'getAncestorAtDepth',value:function getAncestorAtDepth(e){var o=this.getDepth()-e;return 0>o?null:this.getAncestor(o)}},{key:'isAncestorOf',value:function isAncestorOf(e){for(var o=e;o=o.parent;)if(this===o)return!0;return!1}},{key:'getSharedAncestor',value:function getSharedAncestor(e){var o=this,s=e,n=o.getDepth(),l=s.getDepth();n>l?o=o.getAncestor(n-l):l>n&&(s=s.getAncestor(l-n));do{if(o===s)return o;o=o._parent,s=s._parent}while(o&&s);return null}},{key:'isActive',value:function isActive(){return this._visible&&0<this._alpha&&(this._parent?this._parent._active:this.stage.root===this)}},{key:'isAttached',value:function isAttached(){return this._parent?this._parent._attached:this.stage.root===this}},{key:'_updateActiveFlag',value:function _updateActiveFlag(){var e=this.isActive();if(this._active!==e){e?this._setActiveFlag():this._unsetActiveFlag();var o=this._children.get();if(o){var s=o.length;if(0<s)for(var n=0;n<s;n++)o[n]._updateActiveFlag()}this._eventsCount&&this.emit('active',e)}}},{key:'_setActiveFlag',value:function _setActiveFlag(){var e=null;this._texture&&this._texture.source.glTexture?(e=this._texture,this._texture.source.addView(this)):this._displayedTexture&&this._displayedTexture.source.glTexture&&(e=this._displayedTexture),this.displayedTexture=e,this._updateDimensions(),this._updateTextureCoords(),this._active=!0,this._texture&&this._texture.source.addView(this),this._displayedTexture&&this._displayedTexture!==this._texture&&this._displayedTexture.source.addView(this)}},{key:'_unsetActiveFlag',value:function _unsetActiveFlag(){this._texture&&this._texture.source.removeView(this),this._displayedTexture&&this._displayedTexture.source.removeView(this),this._texturizer&&this._texturizer.deactivate(),this._active=!1}},{key:'_updateAttachedFlag',value:function _updateAttachedFlag(){var e=this.isAttached();if(this._attached!==e){this._attached=e;var o=this._children.get();if(o){var s=o.length;if(0<s)for(var n=0;n<s;n++)o[n]._updateAttachedFlag()}}}},{key:'_getRenderWidth',value:function _getRenderWidth(){return this._w?this._w:this._texture&&this._texture.source.glTexture?this._texture.w||this._texture.source.w/this._texture.precision:this._displayedTexture?this._displayedTexture.w||this._displayedTexture.source.w/this._displayedTexture.precision:0}},{key:'_getRenderHeight',value:function _getRenderHeight(){return this._h?this._h:this._texture&&this._texture.source.glTexture?(this._texture.h||this._texture.source.h)/this._texture.precision:this._displayedTexture?(this._displayedTexture.h||this._displayedTexture.source.h)/this._displayedTexture.precision:0}},{key:'textureIsLoaded',value:function textureIsLoaded(){return!!this.texture&&!!this.texture.source.glTexture}},{key:'loadTexture',value:function loadTexture(e){this.texture&&this.texture.source.load(e)}},{key:'onTextureSourceLoaded',value:function onTextureSourceLoaded(){this.displayedTexture=this._texture}},{key:'onTextureSourceLoadError',value:function onTextureSourceLoadError(o){this._eventsCount&&this.emit('txError',o,this._texture.source)}},{key:'onTextureSourceAddedToTextureAtlas',value:function onTextureSourceAddedToTextureAtlas(){this._updateTextureCoords()}},{key:'onTextureSourceRemovedFromTextureAtlas',value:function onTextureSourceRemovedFromTextureAtlas(){this._updateTextureCoords()}},{key:'onDisplayedTextureClippingChanged',value:function onDisplayedTextureClippingChanged(){this._updateDimensions(),this._updateTextureCoords()}},{key:'onPrecisionChanged',value:function onPrecisionChanged(){this._updateDimensions()}},{key:'_updateDimensions',value:function _updateDimensions(){var e=this._core.rw,o=this._core.rh,s=this._getRenderWidth(),n=this._getRenderHeight();return(e!==s||o!==n)&&(this._core.setDimensions(this._getRenderWidth(),this._getRenderHeight()),this._updateLocalTranslate(),!0)}},{key:'_updateLocalTransform',value:function _updateLocalTransform(){if(0!==this._rotation&&this._rotation%(2*Math.PI)){var e=Math.sin(this._rotation),o=Math.cos(this._rotation);this._core.setLocalTransform(o*this._scaleX,-e*this._scaleY,e*this._scaleX,o*this._scaleY)}else this._core.setLocalTransform(this._scaleX,0,0,this._scaleY);this._updateLocalTranslate()}},{key:'_updateLocalTranslate',value:function _updateLocalTranslate(){var e=this._pivotX*this._core.rw,o=this._pivotY*this._core.rh,s=this._x-(e*this._core.localTa+o*this._core.localTb)+e,n=this._y-(e*this._core.localTc+o*this._core.localTd)+o;s-=this._mountX*this.renderWidth,n-=this._mountY*this.renderHeight,this._core.setLocalTranslate(s,n)}},{key:'_updateLocalTranslateDelta',value:function _updateLocalTranslateDelta(e,o){this._core.addLocalTranslate(e,o)}},{key:'_updateLocalAlpha',value:function _updateLocalAlpha(){this._core.setLocalAlpha(this._visible?this._alpha:0)}},{key:'_updateTextureCoords',value:function _updateTextureCoords(){if(this.displayedTexture&&this.displayedTexture.source){var e=this.displayedTexture,n=this.displayedTexture.source,l=0,d=0,_=1,u=1;if(e.clipping){var c,x,y,f,T=n.getRenderWidth(),S=n.getRenderHeight();c=1/T,x=1/S,y=e.w?e.w*c:(T-e.x)*c,f=e.h?e.h*x:(S-e.y)*x,c*=e.x,x*=e.y,l=s(1,o(0,c)),d=s(1,o(x)),_=s(1,o(_*y+c)),u=s(1,o(u*f+x))}var h=this._core.allowTextureAtlas()&&n.inTextureAtlas;if(h){var C=4.88281e-4,k=n.textureAtlasX*C,w=n.textureAtlasY*C,R=n.w*C,E=n.h*C;l=l*R+k,d=d*R+w,_=_*R+k,u=u*E+w}this._core.setTextureCoords(l,d,_,u),this._core.setInTextureAtlas(h)}}},{key:'getCornerPoints',value:function getCornerPoints(){return this._core.getCornerPoints()}},{key:'_clearTagsCache',value:function _clearTagsCache(e){if(this._tagsCache&&(this._tagsCache.delete(e),this._tagToComplex)){var o=this._tagToComplex.get(e);if(o){for(var s=0,l=o.length;s<l;s++)this._tagsCache.delete(o[s]);this._tagToComplex.delete(e)}}}},{key:'_unsetTagsParent',value:function _unsetTagsParent(){var e=null,o=0;if(!this._tagRoot&&this._treeTags&&(e=Utils.iteratorToArray(this._treeTags.keys()),o=e.length,0<o))for(var s=0;s<o;s++)for(var n=this._treeTags.get(e[s]),l=this,d=function(){var o=l._treeTags.get(e[s]);n.forEach(function(e){o.delete(e)}),l._clearTagsCache(e[s])};(l=l._parent)&&!l._tagRoot;)d()}},{key:'_setTagsParent',value:function _setTagsParent(){if(!this._tagRoot&&this._treeTags&&this._treeTags.size){var e=this;this._treeTags.forEach(function(o,n){for(var l=e,s=function(){l._treeTags||(l._treeTags=new Map);var e=l._treeTags.get(n);e||(e=new Set,l._treeTags.set(n,e)),o.forEach(function(o){e.add(o)}),l._clearTagsCache(n)};(l=l._parent)&&!l._tagRoot;)s()})}}},{key:'_getByTag',value:function _getByTag(e){if(!this._treeTags)return[];var o=this._treeTags.get(e);return o?Utils.setToArray(o):[]}},{key:'getTags',value:function getTags(){return this._tags?this._tags:[]}},{key:'setTags',value:function setTags(e){var o,s=e.length,n=[],l=[];for(o=0;o<s;o++)this.hasTag(e[o])||l.push(e[o]);var d=this.tags||[];for(s=d.length,o=0;o<s;o++)-1==e.indexOf(d[o])&&n.push(d[o]);for(o=0;o<n.length;o++)this.removeTag(n[o]);for(o=0;o<l.length;o++)this.addTag(l[o])}},{key:'addTag',value:function addTag(e){if(this._tags||(this._tags=[]),-1===this._tags.indexOf(e)){this._tags.push(e);var o=this;do{o._treeTags||(o._treeTags=new Map);var s=o._treeTags.get(e);s||(s=new Set,o._treeTags.set(e,s)),s.add(this),o._clearTagsCache(e)}while(o=o._parent)}}},{key:'removeTag',value:function removeTag(e){var o=this._tags.indexOf(e);if(-1!==o){this._tags.splice(o,1);var s=this;do{var n=s._treeTags.get(e);n&&(n.delete(this),s._clearTagsCache(e))}while(s=s._parent)}}},{key:'hasTag',value:function hasTag(e){return this._tags&&-1!==this._tags.indexOf(e)}},{key:'_tag',value:function _tag(e){var o=this.mtag(e);return o[0]}},{key:'mtag',value:function mtag(e){var o=null;if(this._tagsCache&&(o=this._tagsCache.get(e)),!o){var s=e.indexOf('.');if(0<=s){var l=e.split('.');o=this._getByTag(l[0]);for(var d=1,_=l.length;o.length&&d<_;){for(var u=[],c=0,x=o.length;c<x;c++)u=u.concat(o[c]._getByTag(l[d]));o=resn,d++}}else o=this._getByTag(e);this._tagsCache||(this._tagsCache=new Map),this._tagsCache.set(e,o)}return o}},{key:'stag',value:function stag(e,o){for(var s=this.mtag(e),l=s.length,n=0;n<l;n++)s[n].setSettings(o)}},{key:'getLocationString',value:function getLocationString(){var e;if(this._parent&&(e=this._parent._children.getIndex(this),0<=e)){var o=this.getTags();return this._parent.getLocationString()+':'+e+'['+this.id+']'+(o.length?'('+o.join(',')+')':'')}return''}},{key:'toString',value:function toString(){var o=this.getSettings();return e.getPrettyString(o,'')}},{key:'getSettings',value:function getSettings(){var e=this.getNonDefaults(),o=this._children.get();if(o){var s=o.length;e.children=[];for(var n=0;n<s;n++)e.children.push(o[n].getSettings())}return e}},{key:'getNonDefaults',value:function getNonDefaults(){var e={};if(this._tags&&this._tags.length&&(e.tags=this._tags),0!==this._x&&(e.x=this._x),0!==this._y&&(e.y=this._y),0!==this._w&&(e.w=this._w),0!==this._h&&(e.h=this._h),this._scaleX===this._scaleY?1!==this._scaleX&&(e.scale=this._scaleX):(1!==this._scaleX&&(e.scaleX=this._scaleX),1!==this._scaleY&&(e.scaleY=this._scaleY)),this._pivotX===this._pivotY?0.5!==this._pivotX&&(e.pivot=this._pivotX):(0.5!==this._pivotX&&(e.pivotX=this._pivotX),0.5!==this._pivotY&&(e.pivotY=this._pivotY)),this._mountX===this._mountY?0!==this._mountX&&(e.mount=this._mountX):(0!==this._mountX&&(e.mountX=this._mountX),0!==this._mountY&&(e.mountY=this._mountY)),1!==this._alpha&&(e.alpha=this._alpha),0!==this._rotation&&(e.rotation=this._rotation),this._core.colorUl===this._core.colorUr&&this._core.colorBl===this._core.colorBr&&this._core.colorUl===this._core.colorBl?4294967295!==this._core.colorUl&&(e.color=4294967295):(4294967295!==this._core.colorUl&&(e.colorUl=4294967295),4294967295!==this._core.colorUr&&(e.colorUr=4294967295),4294967295!==this._core.colorBl&&(e.colorBl=4294967295),4294967295!==this._core.colorBr&&(e.colorBr=4294967295)),this._visible||(e.visible=!1),this._core.zIndex&&(e.zIndex=this._core.zIndex),this._core.forceZIndexContext&&(e.forceZIndexContext=!0),this._core.clipping&&(e.clipping=this._core.clipping),this.rect?e.rect=!0:this.src?e.src=this.src:this.texture&&this._viewText&&(e.text=this._viewText.settings.getNonDefaults()),this._texture){var o=this._texture.getNonDefaults();Object.keys(o).length&&(e.texture=o)}return this._texturizer&&(this._texturizer.enabled&&(e.renderToTexture=this._texturizer.enabled),this._texturizer.lazy&&(e.renderToTextureLazy=this._texturizer.lazy),this._texturizer.colorize&&(e.colorizeResultTexture=this._texturizer.colorize),this._texturizer.hideResult&&(e.hideResultTexture=this._texturizer.hideResult)),e}},{key:'setSettings',value:function setSettings(e){Base.setObjectSettings(this,e)}},{key:'_getExposedChildList',value:function _getExposedChildList(){return this._children}},{key:'getChildren',value:function getChildren(){return this.childList.get()}},{key:'addChild',value:function addChild(e){return this.childList.add(e)}},{key:'addChildAt',value:function addChildAt(e,o){return this.childList.addAt(e,o)}},{key:'getChildIndex',value:function getChildIndex(e){return this.childList.getIndex(e)}},{key:'removeChild',value:function removeChild(e){return this.childList.remove(e)}},{key:'removeChildAt',value:function removeChildAt(e){return this.childList.removeAt(e)}},{key:'removeChildren',value:function removeChildren(){return this.childList.clear()}},{key:'add',value:function add(e){return this.childList.a(e)}},{key:'getResultTextureSource',value:function getResultTextureSource(){return this.texturizer.getResultTextureSource()}},{key:'animation',value:function animation(e){return this.stage.animations.createAnimation(this,e)}},{key:'transition',value:function transition(e,o){return void 0===o?this._getTransition(e):(this._setTransition(e,o),null)}},{key:'fastForward',value:function fastForward(e){if(this._transitions){var o=this._transitions[e];o&&o.isTransition&&o.finish()}}},{key:'_getTransition',value:function _getTransition(e){this._transitions||(this._transitions={});var o=this._transitions[e];return o?o.isTransitionSettings&&(o=new Transition(this.stage.transitions,o,this,e)):o=new Transition(this.stage.transitions,this.stage.transitions.defaultTransitionSettings,this,e),this._transitions[e]=o,o}},{key:'_setTransition',value:function _setTransition(e,o){o||this._removeTransition(e),Utils.isObjectLiteral(o)&&(o=this.stage.transitions.createSettings(o)),this._transitions||(this._transitions={});var s=this._transitions[e];return s&&s.isTransition?(s.settings=o,s):void(this._transitions[e]=o)}},{key:'_removeTransition',value:function _removeTransition(e){this._transitions&&delete this._transitions[e]}},{key:'getSmooth',value:function getSmooth(e,o){var s=this._getTransition(e);return s&&s.isActive()?s.targetValue:o}},{key:'setSmooth',value:function setSmooth(e,o,s){s&&this._setTransition(e,s);var n=this._getTransition(e);return n.start(o),n}},{key:'isNumberProperty',value:function isNumberProperty(o){return e.isNumberProperty(o,this.constructor)}},{key:'isColorProperty',value:function isColorProperty(o){return e.isColorProperty(o,this.constructor)}},{key:'active',get:function get(){return this._active}},{key:'attached',get:function get(){return this._attached}},{key:'renderWidth',get:function get(){return this._active?this._core._rw:this._getRenderWidth()}},{key:'renderHeight',get:function get(){return this._active?this._core._rh:this._getRenderHeight()}},{key:'texture',get:function get(){return this._texture},set:function set(e){if(e&&Utils.isObjectLiteral(e))return void(this.texture?Base.setObjectSettings(this.texture,e):console.warn('Trying to set texture properties, but there is no texture.'));var o=this._texture;if(e!==o){if(null!==e)if(e instanceof TextureSource)e=this.stage.texture(e);else if(!e instanceof Texture)return void console.error('incorrect value for texture');this._texture=e,this._active&&o&&this.displayedTexture!==o&&(!e||o.source!==e.source)&&(!this.displayedTexture||this.displayedTexture.source!==o.source)&&o.source.removeView(this),e?(this._active&&e.source.addView(this),e.source.glTexture&&(this.displayedTexture=e)):this.displayedTexture=null}}},{key:'displayedTexture',get:function get(){return this._displayedTexture},set:function set(e){var o=this._displayedTexture;e!==o&&(this._active&&o&&o!==this._texture&&(!e||o.source!==e.source)&&o.source.removeView(this),this._displayedTexture=e,this._updateDimensions(),e?(this._eventsCount&&this.emit('txLoaded',e),this._updateTextureCoords(),this._core.setDisplayedTextureSource(e.source)):(this._eventsCount&&this.emit('txUnloaded',e),this._core.setDisplayedTextureSource(null)))}},{key:'tag',get:function get(){return this._tag},set:function set(e){this.tags=e}},{key:'tagRoot',get:function get(){return this._tagRoot},set:function set(e){this._tagRoot!==e&&(e?this._unsetTagsParent():this._setTagsParent(),this._tagRoot=e)}},{key:'x',get:function get(){return this._x},set:function set(e){this._x!==e&&(this._updateLocalTranslateDelta(e-this._x,0),this._x=e)}},{key:'y',get:function get(){return this._y},set:function set(e){this._y!==e&&(this._updateLocalTranslateDelta(0,e-this._y),this._y=e)}},{key:'w',get:function get(){return this._w},set:function set(e){this._w!==e&&(this._w=e,this._updateDimensions())}},{key:'h',get:function get(){return this._h},set:function set(e){this._h!==e&&(this._h=e,this._updateDimensions())}},{key:'scaleX',get:function get(){return this._scaleX},set:function set(e){this._scaleX!==e&&(this._scaleX=e,this._updateLocalTransform())}},{key:'scaleY',get:function get(){return this._scaleY},set:function set(e){this._scaleY!==e&&(this._scaleY=e,this._updateLocalTransform())}},{key:'scale',get:function get(){return this._scaleX},set:function set(e){(this._scaleX!==e||this._scaleY!==e)&&(this._scaleX=e,this._scaleY=e,this._updateLocalTransform())}},{key:'pivotX',get:function get(){return this._pivotX},set:function set(e){this._pivotX!==e&&(this._pivotX=e,this._updateLocalTranslate())}},{key:'pivotY',get:function get(){return this._pivotY},set:function set(e){this._pivotY!==e&&(this._pivotY=e,this._updateLocalTranslate())}},{key:'pivot',get:function get(){return this._pivotX},set:function set(e){(this._pivotX!==e||this._pivotY!==e)&&(this._pivotX=e,this._pivotY=e,this._updateLocalTranslate())}},{key:'mountX',get:function get(){return this._mountX},set:function set(e){this._mountX!==e&&(this._mountX=e,this._updateLocalTranslate())}},{key:'mountY',get:function get(){return this._mountY},set:function set(e){this._mountY!==e&&(this._mountY=e,this._updateLocalTranslate())}},{key:'mount',get:function get(){return this._mountX},set:function set(e){(this._mountX!==e||this._mountY!==e)&&(this._mountX=e,this._mountY=e,this._updateLocalTranslate())}},{key:'alpha',get:function get(){return this._alpha},set:function set(e){if(e=1<e?1:1e-14>e?0:e,this._alpha!==e){var o=this._alpha;this._alpha=e,this._updateLocalAlpha(),0===o!=(0===e)&&this._updateActiveFlag()}}},{key:'rotation',get:function get(){return this._rotation},set:function set(e){this._rotation!==e&&(this._rotation=e,this._updateLocalTransform())}},{key:'colorUl',get:function get(){return this._core.colorUl},set:function set(e){this._core.colorUl=e}},{key:'colorUr',get:function get(){return this._core.colorUr},set:function set(e){this._core.colorUr=e}},{key:'colorBl',get:function get(){return this._core.colorBl},set:function set(e){this._core.colorBl=e}},{key:'colorBr',get:function get(){return this._core.colorBr},set:function set(e){this._core.colorBr=e}},{key:'color',get:function get(){return this._core.colorUl},set:function set(e){(this.colorUl!==e||this.colorUr!==e||this.colorBl!==e||this.colorBr!==e)&&(this.colorUl=e,this.colorUr=e,this.colorBl=e,this.colorBr=e)}},{key:'colorTop',get:function get(){return this.colorUl},set:function set(e){(this.colorUl!==e||this.colorUr!==e)&&(this.colorUl=e,this.colorUr=e)}},{key:'colorBottom',get:function get(){return this.colorBl},set:function set(e){(this.colorBl!==e||this.colorBr!==e)&&(this.colorBl=e,this.colorBr=e)}},{key:'colorLeft',get:function get(){return this.colorUl},set:function set(e){(this.colorUl!==e||this.colorBl!==e)&&(this.colorUl=e,this.colorBl=e)}},{key:'colorRight',get:function get(){return this.colorUr},set:function set(e){(this.colorUr!==e||this.colorBr!==e)&&(this.colorUr=e,this.colorBr=e)}},{key:'visible',get:function get(){return this._visible},set:function set(e){this._visible!==e&&(this._visible=e,this._updateLocalAlpha(),this._updateActiveFlag())}},{key:'zIndex',get:function get(){return this._core.zIndex},set:function set(e){this._core.zIndex;this._core.zIndex=e}},{key:'forceZIndexContext',get:function get(){return this._core.forceZIndexContext},set:function set(e){this._core.forceZIndexContext=e}},{key:'clipping',get:function get(){return this._core.clipping},set:function set(e){this._core.clipping=e}},{key:'tags',get:function get(){return this.getTags()},set:function set(e){Array.isArray(e)||(e=[e]),this.setTags(e)}},{key:'t',set:function set(e){this.tags=e}},{key:'_children',get:function get(){return this._childList||(this._childList=new ViewChildList(this,!1)),this._childList}},{key:'_lchildren',get:function get(){return this._childList.get()}},{key:'childList',get:function get(){return this._exposedChildList||(this._exposedChildList=this._getExposedChildList()),this._exposedChildList}},{key:'children',get:function get(){return this.childList.get()},set:function set(e){this.childList.set(e)}},{key:'parent',get:function get(){return this._parent}},{key:'src',get:function get(){return this.texture&&this.texture.source&&this.texture.source.renderInfo&&this.texture.source.renderInfo.src?this.texture.source.renderInfo.src:null},set:function set(e){e?(!this.texture||!this.texture.source.renderInfo||this.texture.source.renderInfo.src!==e)&&(this.texture=this.stage.textureManager.getTexture(e)):this.texture=null}},{key:'rect',get:function get(){return this.texture===this.stage.rectangleTexture},set:function set(e){this.texture=e?this.stage.rectangleTexture:null}},{key:'text',get:function get(){return this._viewText||(this._viewText=new ViewText(this)),this._viewText.settings},set:function set(e){this._viewText||(this._viewText=new ViewText(this)),Utils.isString(e)?this._viewText.settings.text=e:this._viewText.settings.setSettings(e)}},{key:'visitEntry',set:function set(e){this._core.visitEntry=e}},{key:'visitExit',set:function set(e){this._core.visitExit=e}},{key:'shader',get:function get(){return this._core.shader},set:function set(e){var o;if(Utils.isObjectLiteral(e))o=e.type?new e.type(this.stage.ctx):this.shader,o&&o.setSettings(e);else if(null===e)o=this.stage.ctx.renderState.defaultShader;else if(e.isShader)o=e;else return void console.error('Please specify a shader type.');this._core.shader=o}},{key:'renderToTexture',get:function get(){return this._texturizer&&this.texturizer.enabled},set:function set(e){this.texturizer.enabled=e}},{key:'renderToTextureLazy',get:function get(){return this._texturizer&&this.texturizer.lazy},set:function set(e){this.texturizer.lazy=e}},{key:'hideResultTexture',get:function get(){return this._texturizer&&this.texturizer.hideResult},set:function set(e){this.texturizer.hideResult=e}},{key:'colorizeResultTexture',get:function get(){return this._texturizer&&this.texturizer.colorize},set:function set(e){this.texturizer.colorize=e}},{key:'filters',get:function get(){return this.texturizer.filters},set:function set(e){this.texturizer.filters=e}},{key:'texturizer',get:function get(){return this._core.texturizer}},{key:'transitions',set:function set(e){var o=this,s=Object.keys(e);s.forEach(function(s){o.transition(s,e[s])})}},{key:'X',get:function get(){return this.getSmooth('x',this.x)},set:function set(e){this.setSmooth('x',e)}},{key:'Y',get:function get(){return this.getSmooth('y',this.y)},set:function set(e){this.setSmooth('y',e)}},{key:'W',get:function get(){return this.getSmooth('w',this.w)},set:function set(e){return this.setSmooth('w',e)}},{key:'H',get:function get(){return this.getSmooth('h',this.h)},set:function set(e){this.setSmooth('h',e)}},{key:'SCALE',get:function get(){return this.getSmooth('scale',this.scale)},set:function set(e){this.setSmooth('scale',e)}},{key:'SCALEX',get:function get(){return this.getSmooth('scaleX',this.scaleX)},set:function set(e){this.setSmooth('scaleX',e)}},{key:'PIVOT',get:function get(){return this.getSmooth('pivot',this.pivot)},set:function set(e){this.setSmooth('pivot',e)}},{key:'PIVOTX',get:function get(){return this.getSmooth('pivotX',this.pivotX)},set:function set(e){this.setSmooth('pivotX',e)}},{key:'MOUNT',get:function get(){return this.getSmooth('mount',this.mount)},set:function set(e){this.setSmooth('mount',e)}},{key:'MOUNTX',get:function get(){return this.getSmooth('mountX',this.mountX)},set:function set(e){this.setSmooth('mountX',e)}},{key:'ALPHA',get:function get(){return this.getSmooth('alpha',this.alpha)},set:function set(e){this.setSmooth('alpha',e)}},{key:'ROTATION',get:function get(){return this.getSmooth('rotation',this.rotation)},set:function set(e){this.setSmooth('rotation',e)}},{key:'COLOR',get:function get(){return this.getSmooth('color',this.color)},set:function set(e){this.setSmooth('color',e)}},{key:'COLORTOP',set:function set(e){this.setSmooth('colorTop',e)}},{key:'COLORBOTTOM',set:function set(e){this.setSmooth('colorBottom',e)}},{key:'COLORLEFT',set:function set(e){this.setSmooth('colorLeft',e)}},{key:'COLORRIGHT',set:function set(e){this.setSmooth('colorRight',e)}},{key:'COLORUL',get:function get(){return this.getSmooth('colorUl',this.colorUl)},set:function set(e){this.setSmooth('colorUl',e)}},{key:'COLORUR',get:function get(){return this.getSmooth('colorUr',this.colorUr)},set:function set(e){this.setSmooth('colorUr',e)}},{key:'COLORBL',get:function get(){return this.getSmooth('colorBl',this.colorBl)},set:function set(e){this.setSmooth('colorBl',e)}},{key:'COLORBR',get:function get(){return this.getSmooth('colorBr',this.colorBr)},set:function set(e){this.setSmooth('colorBr',e)}}],[{key:'getPrettyString',value:function getPrettyString(o,s){var l=o.children;delete o.children;var d=['color','colorUl','colorUr','colorBl','colorBr'],_=JSON.stringify(o,function(e,o){return-1===d.indexOf(e)?o:'COLOR['+o.toString(16)+']'});if(_=_.replace(/"COLOR\[([a-f0-9]{1,8})\]"/g,'0x$1'),l&&l.length){var u='{}'===_;_=_.substr(0,_.length-1)+(u?'':',')+'"children":[\n';for(var c=l.length,n=0;n<c;n++)_+=e.getPrettyString(l[n],s+'  ')+(n<c-1?',':'')+'\n';_+=s+']}'}return s+_}},{key:'getGetter',value:function getGetter(o){var s=e.PROP_GETTERS.get(o);return s||(s=new Function('obj','return obj.'+o),e.PROP_GETTERS.set(o,s)),s}},{key:'getSetter',value:function getSetter(o){var s=e.PROP_SETTERS.get(o);return s||(s=new Function('obj','v','obj.'+o+' = v'),e.PROP_SETTERS.set(o,s)),s}}]),e}();View.isNumberProperty=function(e){var o=1<arguments.length&&arguments[1]!==void 0?arguments[1]:View;do if(o.NUMBER_PROPERTIES&&o.NUMBER_PROPERTIES.has(e))return!0;while(o!==View&&(o=Object.getPrototypeOf(o)));return!1},View.isColorProperty=function(e){var o=1<arguments.length&&arguments[1]!==void 0?arguments[1]:View;do if(o.COLOR_PROPERTIES&&o.COLOR_PROPERTIES.has(e))return!0;while(o!==View&&(o=Object.getPrototypeOf(o)));return!1},View.getMerger=function(e){var o=1<arguments.length&&arguments[1]!==void 0?arguments[1]:View;return View.isNumberProperty(e,o)?StageUtils.mergeNumbers:View.isColorProperty(e,o)?StageUtils.mergeColors:void 0},View.NUMBER_PROPERTIES=new Set(['x','y','w','h','scale','scaleX','scaleY','pivot','pivotX','pivotY','mount','mountX','mountY','alpha','rotation','texture.x','texture.y','texture.w','texture.h']),View.COLOR_PROPERTIES=new Set(['color','colorTop','colorBottom','colorLeft','colorRight','colorUl','colorUr','colorBl','colorBr']),View.prototype.isView=1,View.id=1,View.PROP_GETTERS=new Map,View.PROP_SETTERS=new Map,Base.mixinEs5(View,EventEmitter);var ViewChildList=function(){function e(o){var s=1<arguments.length&&void 0!==arguments[1]?arguments[1]:!0;_classCallCheck(this,e),this._view=o,this._children=s?this._view._children._children:[]}return _createClass(e,[{key:'get',value:function get(){return this._children}},{key:'add',value:function add(e){return e._parent===this&&0<=this._children.indexOf(e)?e:void this.addAt(e,this._children.length)}},{key:'addAt',value:function addAt(e,o){if(e!==this._view){if(0<=o&&o<=this._children.length){if(e._parent===this._view&&this._children.indexOf(e)===o);else{if(e._parent){var s=e._parent;s._children.remove(e)}e._setParent(this._view),this._children.splice(o,0,e),this._view._core.addChildAt(o,e._core)}return}throw new Error(e+'addChildAt: The index '+o+' supplied is out of bounds '+this._children.length)}}},{key:'getIndex',value:function getIndex(e){return this._children.indexOf(e)}},{key:'remove',value:function remove(e){var o=this.getIndex(e);-1!==o&&this.removeAt(o)}},{key:'removeAt',value:function removeAt(e){var o=this._children[e];return o._setParent(null),this._children.splice(e,1),this._view._core.removeChildAt(e),o}},{key:'clear',value:function clear(){var e=this._children.length;if(e){for(var o,s=0;s<e;s++)o=this._children[s],o._setParent(null);this._children.splice(0,e),this._view._core.removeChildren()}}},{key:'a',value:function a(e){if(Utils.isObjectLiteral(e)){var o;return o=e.type?new e.type(this._view.stage):this._view.stage.createView(),this.add(o),o.setSettings(e),o}if(Array.isArray(e)){for(var s=0,l=e.length;s<l;s++)this.a(e[s]);return null}return e.isView?(this.add(e),e):void 0}},{key:'set',value:function set(e){this.clear();for(var s,o=0,l=e.length;o<l;o++)if(s=e[o],Utils.isObjectLiteral(s)){var n=void 0;n=s.type?new s.type(this._view.stage):this._view.stage.createView(),this.add(n),n.setSettings(s)}else s.isView&&this.add(s)}},{key:'length',get:function get(){return this._children.length}}]),e}(),ViewTexturizer=function(){function e(o){_classCallCheck(this,e),this._view=o.view,this._core=o,this.ctx=this._core.ctx,this._enabled=!1,this.lazy=!1,this._colorize=!1,this._filters=[],this._renderTexture=null,this._renderTextureReused=!1,this._resultTexture=null,this._resultTextureSource=null,this._renderToTextureEnabled=!1,this._hideResult=!1,this.filterResultCached=!1}var o=Math.min;return _createClass(e,[{key:'_clearFilters',value:function _clearFilters(){var e=this;this._filters.forEach(function(o){return o.removeView(e._core)}),this._filters=[],this.filterResultCached=!1}},{key:'_addFilter',value:function _addFilter(e){e.addView(this._core),this._filters.push(e)}},{key:'_hasFilters',value:function _hasFilters(){return 0<this._filters.length}},{key:'_hasActiveFilters',value:function _hasActiveFilters(){for(var e=0,o=this._filters.length;e<o;e++)if(!this._filters[e].useDefault())return!0;return!1}},{key:'getActiveFilters',value:function getActiveFilters(){var e=[];return this._filters.forEach(function(o){o.useDefault()||(o.getFilters?o.getFilters().forEach(function(o){return e.push(o)}):e.push(o))}),e}},{key:'getResultTextureSource',value:function getResultTextureSource(){return this._resultTextureSource||(this._resultTextureSource=new TextureSource(this._view.stage.textureManager,null),this.updateResultTexture()),this._resultTextureSource}},{key:'updateResultTexture',value:function updateResultTexture(){var e=this.getResultTexture();if(this._resultTextureSource){if(this._resultTextureSource.glTexture!==e){var o=e?e.w:0,s=e?e.h:0;this._resultTextureSource._changeGlTexture(e,o,s)}this._resultTextureSource.views.forEach(function(e){return e._core.setHasRenderUpdates(3)})}}},{key:'mustRenderToTexture',value:function mustRenderToTexture(){return this._enabled&&!this.lazy||this._enabled&&this.lazy&&3>this._hasRenderUpdates||!!this._hasActiveFilters()}},{key:'deactivate',value:function deactivate(){this.releaseRenderTexture(),this.releaseFilterTexture()}},{key:'releaseRenderTexture',value:function releaseRenderTexture(){this._renderTexture&&(!this._renderTextureReused&&this.ctx.releaseRenderTexture(this._renderTexture),this._renderTexture=null,this._renderTextureReused=!1,this.updateResultTexture())}},{key:'reuseTextureAsRenderTexture',value:function reuseTextureAsRenderTexture(e){this._renderTexture!==e&&(this.releaseRenderTexture(),this._renderTexture=e,this._renderTextureReused=!0)}},{key:'hasRenderTexture',value:function hasRenderTexture(){return!!this._renderTexture}},{key:'getRenderTexture',value:function getRenderTexture(){return this._renderTexture||(this._renderTexture=this.ctx.allocateRenderTexture(o(2048,this._core._rw),o(2048,this._core._rh)),this._renderTextureReused=!1),this._renderTexture}},{key:'getFilterTexture',value:function getFilterTexture(){return this._resultTexture||(this._resultTexture=this.ctx.allocateRenderTexture(o(2048,this._core._rw),o(2048,this._core._rh))),this._resultTexture}},{key:'releaseFilterTexture',value:function releaseFilterTexture(){this._resultTexture&&(this.ctx.releaseRenderTexture(this._resultTexture),this._resultTexture=null,this.filterResultCached=!1,this.updateResultTexture())}},{key:'getResultTexture',value:function getResultTexture(){return this._hasActiveFilters()?this._resultTexture:this._renderTexture}},{key:'enabled',get:function get(){return this._enabled},set:function set(e){this._enabled=e,this._core.updateRenderToTextureEnabled()}},{key:'hideResult',get:function get(){return this._hideResult},set:function set(e){this._hideResult=e,this._core.setHasRenderUpdates(1)}},{key:'colorize',get:function get(){return this._colorize},set:function set(e){this._colorize!==e&&(this._colorize=e,this._core.setHasRenderUpdates(1))}},{key:'filters',get:function get(){return this._filters},set:function set(e){var o=this;this._clearFilters(),e.forEach(function(e){if(Utils.isObjectLiteral(e)&&e.type){var s=new e.type(o.ctx);s.setSettings(e),e=s}e.isFilter?o._addFilter(e):console.error('Please specify a filter type.')}),this._core.updateRenderToTextureEnabled(),this._core.setHasRenderUpdates(2)}},{key:'renderTextureReused',get:function get(){return this._renderTextureReused}}]),e}(),ViewCore=function(){function e(o){_classCallCheck(this,e),this._view=o,this.ctx=o.stage.ctx,this.renderState=this.ctx.renderState,this._parent=null,this._hasUpdates=!1,this._hasRenderUpdates=0,this._visitEntry=null,this._visitExit=null,this._recalc=0,this._updateTreeOrder=0,this._worldContext=new ViewCoreContext,this._renderContext=this._worldContext,this._localPx=0,this._localPy=0,this._localTa=1,this._localTb=0,this._localTc=0,this._localTd=1,this._isComplex=!1,this._localAlpha=1,this._rw=0,this._rh=0,this._clipping=!1,this._displayedTextureSource=null,this.inTextureAtlas=!1,this._colorUl=this._colorUr=this._colorBl=this._colorBr=4294967295,this._txCoordsUl=0,this._txCoordsUr=65535,this._txCoordsBr=4294967295,this._txCoordsBl=4294901760,this._ulx=0,this._uly=0,this._brx=1,this._bry=1,this._zIndex=0,this._forceZIndexContext=!1,this._zContextUsage=0,this._zParent=null,this._zSort=!1,this._isRoot=!1,this._children=null,this._zIndexedChildren=null,this._shader=null,this._shaderOwner=null,this._renderToTextureEnabled=!1,this._texturizer=null,this._useRenderToTexture=!1,this._useViewportClipping=!1,this.render=this._renderSimple}var o=Math.round,s=Math.min;return _createClass(e,[{key:'setHasRenderUpdates',value:function setHasRenderUpdates(e){var o=1<arguments.length&&void 0!==arguments[1]&&arguments[1];if(this._worldContext.alpha||o){var s=this;for(s._hasRenderUpdates=Math.max(e,s._hasRenderUpdates);(s=s._parent)&&3!=s._hasRenderUpdates;)s._hasRenderUpdates=3}}},{key:'_setRecalc',value:function _setRecalc(e){if(this._recalc|=e,this._worldContext.alpha){var o=this;do o._hasUpdates=!0;while((o=o._parent)&&!o._hasUpdates);this._parent&&this._parent.setHasRenderUpdates(3)}else this._hasUpdates=!0}},{key:'_setRecalcForced',value:function _setRecalcForced(e){this._recalc|=e;var o=this;do o._hasUpdates=!0;while((o=o._parent)&&!o._hasUpdates);this._parent&&this._parent.setHasRenderUpdates(3)}},{key:'setParent',value:function setParent(e){if(e!==this._parent){var o=this.isZContext(),s=this._parent;if(this._parent=e,this._setRecalc(7),0===this._zIndex?this.setZParent(e):this.setZParent(e?e.findZContext():null),o!==this.isZContext()&&(this.isZContext()?this.enableZContext(s.findZContext()):this.disableZContext()),!this._shader){var n=e?e._shaderOwner:null;n!==this._shaderOwner&&(this.setHasRenderUpdates(1),this._setShaderOwnerRecursive(n))}}}},{key:'addChildAt',value:function addChildAt(e,o){this._children||(this._children=[]),this._children.splice(e,0,o),o.setParent(this)}},{key:'removeChildAt',value:function removeChildAt(e){var o=this._children[e];this._children.splice(e,1),o.setParent(null)}},{key:'removeChildren',value:function removeChildren(){if(this._children){for(var e=0,o=this._children.length;e<o;e++)this._children[e].setParent(null);this._children.splice(0),this._zIndexedChildren&&this._zIndexedChildren.splice(0)}}},{key:'setLocalTransform',value:function setLocalTransform(e,o,s,n){this._setRecalc(4),this._localTa=e,this._localTb=o,this._localTc=s,this._localTd=n,this._isComplex=0!=o||0!=s}},{key:'setLocalTranslate',value:function setLocalTranslate(e,o){this._setRecalc(2),this._localPx=e,this._localPy=o}},{key:'addLocalTranslate',value:function addLocalTranslate(e,o){this.setLocalTranslate(this._localPx+e,this._localPy+o)}},{key:'setLocalAlpha',value:function setLocalAlpha(e){!this._worldContext.alpha&&this._parent&&this._parent._worldContext.alpha&&e?(this._setRecalcForced(129),this.setHasRenderUpdates(3,!0)):this._setRecalc(1),1e-14>e&&(e=0),this._localAlpha=e}},{key:'setDimensions',value:function setDimensions(e,o){this._rw=e,this._rh=o,this._setRecalc(2),this._texturizer&&(this._texturizer.releaseRenderTexture(),this._texturizer.releaseFilterTexture(),this._texturizer.updateResultTexture())}},{key:'setTextureCoords',value:function setTextureCoords(e,o,s,n){this.setHasRenderUpdates(3),this._ulx=e,this._uly=o,this._brx=s,this._bry=n,this._txCoordsUl=(0|65535*e+0.5)+65536*(0|65535*o+0.5),this._txCoordsUr=(0|65535*s+0.5)+65536*(0|65535*o+0.5),this._txCoordsBl=(0|65535*e+0.5)+65536*(0|65535*n+0.5),this._txCoordsBr=(0|65535*s+0.5)+65536*(0|65535*n+0.5)}},{key:'setDisplayedTextureSource',value:function setDisplayedTextureSource(e){this.setHasRenderUpdates(3),this._displayedTextureSource=e}},{key:'allowTextureAtlas',value:function allowTextureAtlas(){return this.activeShader.supportsTextureAtlas()}},{key:'setInTextureAtlas',value:function setInTextureAtlas(e){this.inTextureAtlas=e}},{key:'setAsRoot',value:function setAsRoot(){this._parent=new e(this._view),this._isRoot=!0,this.ctx.root=this}},{key:'isAncestorOf',value:function isAncestorOf(e){for(var o=e;o=o._parent;)if(this===o)return!0;return!1}},{key:'isZContext',value:function isZContext(){return this._forceZIndexContext||this._renderToTextureEnabled||0!==this._zIndex||this._isRoot||!this._parent}},{key:'findZContext',value:function findZContext(){return this.isZContext()?this:this._parent.findZContext()}},{key:'setZParent',value:function setZParent(e){if(this._zParent!==e){if(null!==this._zParent&&(0!==this._zIndex&&this._zParent.decZContextUsage(),0<this._zParent._zContextUsage)){var o=this._zParent._zIndexedChildren.indexOf(this);this._zParent._zIndexedChildren.splice(o,1)}if(null!==e){var s=0<e._zContextUsage;0!==this._zIndex&&e.incZContextUsage(),0<e._zContextUsage&&(!s&&this._parent===e||e._zIndexedChildren.push(this),e._zSort=!0)}this._zParent=e}}},{key:'incZContextUsage',value:function incZContextUsage(){if(this._zContextUsage++,1===this._zContextUsage&&(this._zIndexedChildren||(this._zIndexedChildren=[]),this._children))for(var e=0,o=this._children.length;e<o;e++)this._zIndexedChildren.push(this._children[e])}},{key:'decZContextUsage',value:function decZContextUsage(){this._zContextUsage--,0===this._zContextUsage&&(this._zSort=!1,this._zIndexedChildren.splice(0))}},{key:'enableZContext',value:function enableZContext(e){if(e&&0<e._zContextUsage){var o=this;e._zIndexedChildren.slice().forEach(function(e){o.isAncestorOf(e)&&0!==e._zIndex&&e.setZParent(o)})}}},{key:'disableZContext',value:function disableZContext(){if(0<this._zContextUsage){var e=this._parent.findZContext();this._zIndexedChildren.slice().forEach(function(o){0!==o._zIndex&&o.setZParent(e)})}}},{key:'_setShaderOwnerRecursive',value:function _setShaderOwnerRecursive(e){var o=this.activeShader.supportsTextureAtlas();if(this._shaderOwner=e,o!==this.activeShader.supportsTextureAtlas()&&this._view._updateTextureCoords(),this._children&&!this._renderToTextureEnabled)for(var s,l=0,d=this._children.length;l<d;l++)s=this._children[l],s._shader||(s._setShaderOwnerRecursive(e),s._hasRenderUpdates=3)}},{key:'_setShaderOwnerChildrenRecursive',value:function _setShaderOwnerChildrenRecursive(e){if(this._children)for(var o,s=0,l=this._children.length;s<l;s++)o=this._children[s],o._shader||(o._setShaderOwnerRecursive(e),o._hasRenderUpdates=3)}},{key:'_hasRenderContext',value:function _hasRenderContext(){return this._renderContext!==this._worldContext}},{key:'updateRenderToTextureEnabled',value:function updateRenderToTextureEnabled(){var e=this.texturizer._hasFilters()||this.texturizer._enabled||this._clipping;e?this._enableRenderToTexture():(this._disableRenderToTexture(),this._texturizer.releaseRenderTexture())}},{key:'_enableRenderToTexture',value:function _enableRenderToTexture(){if(!this._renderToTextureEnabled){var e=this.isZContext();this._renderToTextureEnabled=!0,this._renderContext=new ViewCoreContext,this._setShaderOwnerChildrenRecursive(null),e||this.enableZContext(this._parent?this._parent.findZContext():null),this.setHasRenderUpdates(3),this._setRecalc(7),this.render=this._renderAdvanced}}},{key:'_disableRenderToTexture',value:function _disableRenderToTexture(){this._renderToTextureEnabled&&(this._renderToTextureEnabled=!1,this._setShaderOwnerChildrenRecursive(this._shaderOwner),this._renderContext=this._worldContext,!this.isZContext()&&this.disableZContext(),this._setRecalc(7),this.setHasRenderUpdates(3),this.render=this._renderSimple)}},{key:'_stashTexCoords',value:function _stashTexCoords(){this._stashedTexCoords=[this._txCoordsUl,this._txCoordsUr,this._txCoordsBr,this._txCoordsBl,this._ulx,this._uly,this._brx,this._bry],this._txCoordsUl=0,this._txCoordsUr=65535,this._txCoordsBr=4294967295,this._txCoordsBl=4294901760,this._ulx=0,this._uly=0,this._brx=1,this._bry=1}},{key:'_unstashTexCoords',value:function _unstashTexCoords(){this._txCoordsUl=this._stashedTexCoords[0],this._txCoordsUr=this._stashedTexCoords[1],this._txCoordsBr=this._stashedTexCoords[2],this._txCoordsBl=this._stashedTexCoords[3],this._ulx=this._stashedTexCoords[4],this._uly=this._stashedTexCoords[5],this._brx=this._stashedTexCoords[6],this._bry=this._stashedTexCoords[7],this._stashedTexCoords=null}},{key:'_stashColors',value:function _stashColors(){this._stashedColors=[this._colorUl,this._colorUr,this._colorBr,this._colorBl],this._colorUl=4294967295,this._colorUr=4294967295,this._colorBr=4294967295,this._colorBl=4294967295}},{key:'_unstashColors',value:function _unstashColors(){this._colorUl=this._stashedColors[0],this._colorUr=this._stashedColors[1],this._colorBr=this._stashedColors[2],this._colorBl=this._stashedColors[3],this._stashedColors=null}},{key:'isVisible',value:function isVisible(){return 1e-14<this._localAlpha}},{key:'visit',value:function visit(){if(this.isVisible()){var e=0<this._recalc||0<this._hasRenderUpdates||this._hasUpdates;if(e){if(this._visitEntry&&this._visitEntry(this._view),this._children){var o=this._recalc;this._recalc|=6&this._parent._recalc;for(var s=0,l=this._children.length;s<l;s++)this._children[s].visit();this._recalc=o}this._visitExit&&this._visitExit(this._view)}}}},{key:'update',value:function update(){this._recalc|=this._parent._recalc;var e=this._parent._worldContext,o=this._worldContext,s=e.alpha&&this._localAlpha,l=o.alpha&&!s;if(s||l){this._zSort&&this.ctx.updateTreeOrderForceUpdate++;var d=this._recalc;if(1&d&&(o.alpha=e.alpha*this._localAlpha,1e-14>o.alpha&&(o.alpha=0)),6&d&&(o.px=e.px+this._localPx*e.ta,o.py=e.py+this._localPy*e.td,0!==e.tb&&(o.px+=this._localPy*e.tb),0!==e.tc&&(o.py+=this._localPx*e.tc)),4&d&&(o.ta=this._localTa*e.ta,o.tb=this._localTd*e.tb,o.tc=this._localTa*e.tc,o.td=this._localTd*e.td,this._isComplex&&(o.ta+=this._localTc*e.tb,o.tb+=this._localTb*e.ta,o.tc+=this._localTc*e.td,o.td+=this._localTb*e.tc)),this._parent._hasRenderContext()){this._renderContext===this._worldContext&&(this._renderContext=new ViewCoreContext);var _=this._renderContext,u=this._parent._renderContext;1&d&&(_.alpha=u.alpha*this._localAlpha,1e-14>_.alpha&&(_.alpha=0)),6&d&&(_.px=u.px+this._localPx*u.ta,_.py=u.py+this._localPy*u.td,0!==u.tb&&(_.px+=this._localPy*u.tb),0!==u.tc&&(_.py+=this._localPx*u.tc)),4&d&&(_.ta=this._localTa*u.ta,_.tb=this._localTd*u.tb,_.tc=this._localTa*u.tc,_.td=this._localTd*u.td,this._isComplex&&(_.ta+=this._localTc*u.tb,_.tb+=this._localTb*u.ta,_.tc+=this._localTc*u.td,_.td+=this._localTb*u.tc))}else this._renderContext=this._worldContext;this._updateTreeOrder=this.ctx.updateTreeOrder++,this._recalc&=135,this._useRenderToTexture=this._renderToTextureEnabled&&this._texturizer.mustRenderToTexture(),this._useViewportClipping=!1,!this._useRenderToTexture&&this._clipping&&(this._renderContext.isSquare()?this._useViewportClipping=!0:this._useRenderToTexture=!0);var c;if(this._useRenderToTexture&&(c=this._renderContext,this._renderContext=this._worldContext.isIdentity()?this._worldContext:ViewCoreContext.IDENTITY),this._children)for(var x=0,h=this._children.length;x<h;x++)this._recalc||this._children[x]._hasUpdates?this._children[x].update():0<this.ctx.updateTreeOrderForceUpdate&&this._children[x].updateTreeOrder();this._useRenderToTexture&&(this._renderContext=c),this._recalc=0,this._hasUpdates=!1,this._zSort&&this.ctx.updateTreeOrderForceUpdate--}else 0<this.ctx.updateTreeOrderForceUpdate&&this.updateTreeOrder()}},{key:'updateTreeOrder',value:function updateTreeOrder(){if(this._zSort&&this.ctx.updateTreeOrderForceUpdate++,this._updateTreeOrder=this.ctx.updateTreeOrder++,this._children)for(var e,o=0,s=this._children.length;o<s;o++)e=this._children[o]._zSort,e&&this.ctx.updateTreeOrderForceUpdate--,this._children[o].updateTreeOrder(),e&&this.ctx.updateTreeOrderForceUpdate--;this._zSort&&this.ctx.updateTreeOrderForceUpdate--}},{key:'_renderSimple',value:function _renderSimple(){if(this._zSort&&(this.sortZIndexedChildren(),this._zSort=!1),this._renderContext.alpha){var e=this.renderState;if(e.setShader(this.activeShader,this._shaderOwner),this._displayedTextureSource&&this.addQuads(),this._children)if(this._zContextUsage)for(var o=0,s=this._zIndexedChildren.length;o<s;o++)this._zIndexedChildren[o].render();else for(var n=0,l=this._children.length;n<l;n++)0===this._children[n]._zIndex&&this._children[n].render();this._hasRenderUpdates=0}}},{key:'_renderAdvanced',value:function _renderAdvanced(){if(this._zSort&&(this.sortZIndexedChildren(),this._zSort=!1),this._renderContext.alpha){var e=this.renderState;e.setShader(this.activeShader,this._shaderOwner);var s,l,d,_=!0;if(this._useRenderToTexture){if(0===this._rw||0===this._rh)return void(this._hasRenderUpdates=0);if(this._texturizer.hasRenderTexture()&&!(3<=this._hasRenderUpdates))_=!1;else if(e.setShader(e.defaultShader,this),l=e.renderTextureInfo,s={glTexture:null,offset:0,w:this._rw,h:this._rh,empty:!0,cleared:!1,ignore:!1},e.setRenderTextureInfo(s),this._displayedTextureSource){var u=this._renderContext;this._renderContext=ViewCoreContext.IDENTITY,this.addQuads(),this._renderContext=u}}else{if(this._useViewportClipping){var c=o(this._renderContext.px),x=o(this._renderContext.py),y=o(this._renderContext.ta*this._rw),f=o(this._renderContext.td*this._rh);d=e.getScissor(),e.setScissor([c,x,y,f])}this._displayedTextureSource&&this.addQuads()}if(_&&this._children)if(this._zContextUsage)for(var h=0,T=this._zIndexedChildren.length;h<T;h++)this._zIndexedChildren[h].render();else for(var n=0,S=this._children.length;n<S;n++)0===this._children[n]._zIndex&&this._children[n].render();if(this._useRenderToTexture){var C=!1;if(_){if(s.glTexture){var k=e.quads.floats,w=e.quads.uints,R=s.offset/4,E=0===k[R]&&0===k[R+1]&&0===w[R+2]&&4294967295===w[R+3]&&k[R+4]===s.w&&0===k[R+5]&&65535===w[R+6]&&4294967295===w[R+7]&&k[R+8]===s.w&&k[R+9]===s.h&&4294967295===w[R+10]&&4294967295===w[R+11]&&0===k[R+12]&&k[R+13]===s.h&&4294901760===w[R+14]&&4294967295===w[R+15];E||(s.glTexture=null)}s.empty||(s.glTexture?(this._texturizer.reuseTextureAsRenderTexture(s.glTexture),s.ignore=!0):(this._texturizer.renderTextureReused&&this._texturizer.releaseRenderTexture(),s.glTexture=this._texturizer.getRenderTexture())),e.setRenderTextureInfo(l),C=!0}var P=this._texturizer._hasActiveFilters();P&&(2<=this._hasRenderUpdates||!this._texturizer.filterResultCached)&&(this.applyFilters(),C=!0);var A=this._texturizer.getResultTexture();C&&this._texturizer.updateResultTexture(),_&&s.empty||this._texturizer.hideResult||(e.setShader(this.activeShader,this._shaderOwner),e.setOverrideQuadTexture(A),this._stashTexCoords(),!this._texturizer.colorize&&this._stashColors(),this.addQuads(),!this._texturizer.colorize&&this._unstashColors(),this._unstashTexCoords(),e.setOverrideQuadTexture(null))}else this._useViewportClipping&&e.setScissor(d);this._hasRenderUpdates=0}}},{key:'applyFilters',value:function applyFilters(){var e=this._texturizer.getRenderTexture(),o=this.renderState,n=this._texturizer.getActiveFilters(),l=n.length;if(this._texturizer.filterResultCached=!1,0===l)return e;if(1===l){var d=this._texturizer.getFilterTexture();o.addFilter(n[0],this,e,d),this._texturizer.filterResultCached=!0}else{for(var _=this._texturizer.getFilterTexture(),u=this.ctx.allocateRenderTexture(s(2048,this._rw),s(2048,this._rh)),c=u,x=_,h=0;h<l;h++){if(0!==h||0==l%2){var y=c;c=x,x=y}o.addFilter(n[h],this,0===h?e:c,x)}this.ctx.releaseRenderTexture(intermediate),this._texturizer.filterResultCached=!0}}},{key:'sortZIndexedChildren',value:function sortZIndexedChildren(){for(var e=1,o=this._zIndexedChildren.length;e<o;e++){for(var s,n=this._zIndexedChildren[e],l=e-1;0<=l&&(s=this._zIndexedChildren[l],n._zIndex===s._zIndex?!!(n._updateTreeOrder<s._updateTreeOrder):!!(n._zIndex<s._zIndex));)this._zIndexedChildren[l+1]=this._zIndexedChildren[l],l--;this._zIndexedChildren[j+1]=a}}},{key:'addQuads',value:function addQuads(){var e=this._renderContext,o=this.renderState.quads.floats,s=this.renderState.quads.uints;if(0!==e.tb||0!==this.tb){var n=this.renderState.addQuad(this)/4;o[n++]=e.px,o[n++]=e.py,s[n++]=this._txCoordsUl,s[n++]=getColorInt(this._colorUl,e.alpha),o[n++]=e.px+this._rw*e.ta,o[n++]=e.py+this._rw*e.tc,s[n++]=this._txCoordsUr,s[n++]=getColorInt(this._colorUr,e.alpha),o[n++]=e.px+this._rw*e.ta+this._rh*e.tb,o[n++]=e.py+this._rw*e.tc+this._rh*e.td,s[n++]=this._txCoordsBr,s[n++]=getColorInt(this._colorBr,e.alpha),o[n++]=e.px+this._rh*e.tb,o[n++]=e.py+this._rh*e.td,s[n++]=this._txCoordsBl,s[n]=getColorInt(this._colorBl,e.alpha)}else{var l=e.px+this._rw*e.ta,d=e.py+this._rh*e.td,_=this.renderState.addQuad(this)/4;o[_++]=e.px,o[_++]=e.py,s[_++]=this._txCoordsUl,s[_++]=getColorInt(this._colorUl,e.alpha),o[_++]=l,o[_++]=e.py,s[_++]=this._txCoordsUr,s[_++]=getColorInt(this._colorUr,e.alpha),o[_++]=l,o[_++]=d,s[_++]=this._txCoordsBr,s[_++]=getColorInt(this._colorBr,e.alpha),o[_++]=e.px,o[_++]=d,s[_++]=this._txCoordsBl,s[_]=getColorInt(this._colorBl,e.alpha)}}},{key:'getCornerPoints',value:function getCornerPoints(){var e=this._worldContext;return[e.px,e.py,e.px+this._rw*e.ta,e.py+this._rw*e.tc,e.px+this._rw*e.ta+this._rh*this.tb,e.py+this._rw*e.tc+this._rh*this.td,e.px+this._rh*this.tb,e.py+this._rh*this.td]}},{key:'getRenderTextureCoords',value:function getRenderTextureCoords(e,o){var s=this._renderContext;return[s.px+s.ta*e+s.tb*o,s.py+s.tc*e+s.td*o]}},{key:'getAbsoluteCoords',value:function getAbsoluteCoords(e,o){var s=this._renderContext;return[s.px+s.ta*e+s.tb*o,s.py+s.tc*e+s.td*o]}},{key:'zIndex',get:function get(){return this._zIndex},set:function set(e){if(this._zIndex!==e){this.setHasRenderUpdates(1);var o=this._zParent,s=this.isZContext();0===e&&0!==this._zIndex?this._parent===this._zParent?this._zParent.decZContextUsage():o=this._parent:0!==e&&0===this._zIndex?(o=this._parent?this._parent.findZContext():null,o===this._zParent&&this._zParent&&(this._zParent.incZContextUsage(),this._zParent._zSort=!0)):e!==this._zIndex&&(this._zParent._zSort=!0),o!==this._zParent&&this.setZParent(null),this._zIndex=e,o!==this._zParent&&this.setZParent(o),s!==this.isZContext()&&(this.isZContext()?this.enableZContext(this._parent.findZContext()):this.disableZContext())}}},{key:'forceZIndexContext',get:function get(){return this._forceZIndexContext},set:function set(e){this.setHasRenderUpdates(1);var o=this.isZContext();this._forceZIndexContext=e,o!==this.isZContext()&&(this.isZContext()?this.enableZContext(this._parent.findZContext()):this.disableZContext())}},{key:'colorUl',get:function get(){return this._colorUl},set:function set(e){this._colorUl!==e&&(this.setHasRenderUpdates(this._displayedTextureSource?3:1),this._colorUl=e)}},{key:'colorUr',get:function get(){return this._colorUr},set:function set(e){this._colorUr!==e&&(this.setHasRenderUpdates(this._displayedTextureSource?3:1),this._colorUr=e)}},{key:'colorBl',get:function get(){return this._colorBl},set:function set(e){this._colorBl!==e&&(this.setHasRenderUpdates(this._displayedTextureSource?3:1),this._colorBl=e)}},{key:'colorBr',get:function get(){return this._colorBr},set:function set(e){this._colorBr!==e&&(this.setHasRenderUpdates(this._displayedTextureSource?3:1),this._colorBr=e)}},{key:'visitEntry',set:function set(e){this._visitEntry=e}},{key:'visitExit',set:function set(e){this._visitExit=e}},{key:'shader',get:function get(){return this._shader},set:function set(e){this.setHasRenderUpdates(1);var o=this._shader;if(this._shader=e,!e&&o){var s=this._parent&&!this._parent._renderToTextureEnabled?this._parent._shaderOwner:null;this._setShaderOwnerRecursive(s)}else this._setShaderOwnerRecursive(this);o&&o.removeView(this),this._shader&&this._shader.addView(this)}},{key:'activeShader',get:function get(){return this._shaderOwner?this._shaderOwner.shader:this.renderState.defaultShader}},{key:'activeShaderOwner',get:function get(){return this._shaderOwner}},{key:'clipping',get:function get(){return this._clipping},set:function set(e){this._clipping=e,this.updateRenderToTextureEnabled()}},{key:'localTa',get:function get(){return this._localTa}},{key:'localTb',get:function get(){return this._localTb}},{key:'localTc',get:function get(){return this._localTc}},{key:'localTd',get:function get(){return this._localTd}},{key:'rw',get:function get(){return this._rw}},{key:'rh',get:function get(){return this._rh}},{key:'view',get:function get(){return this._view}},{key:'renderUpdates',get:function get(){return this._hasRenderUpdates}},{key:'texturizer',get:function get(){return this._texturizer||(this._texturizer=new ViewTexturizer(this)),this._texturizer}}]),e}(),getColorInt=function(e,o){var s=0|(0|e/16777216)*o;return(255&(255&e>>16)*s/255)+(65280&(65280&e)*s/255)+(16711680&((255&e)<<16)*s/255)+(s<<24)},ViewCoreContext=function(){function e(){_classCallCheck(this,e),this.alpha=1,this.px=0,this.py=0,this.ta=1,this.tb=0,this.tc=0,this.td=1}return _createClass(e,[{key:'isIdentity',value:function isIdentity(){return 1===this.alpha&&0===this.px&&0===this.py&&1===this.ta&&0===this.tb&&0===this.tc&&1===this.td}},{key:'isSquare',value:function isSquare(){return 0===this.tb&&0===this.tc}}]),e}();ViewCoreContext.IDENTITY=new ViewCoreContext;var CoreContext=function(){function e(o){_classCallCheck(this,e),this.stage=o,this.gl=o.gl,this.root=null,this.updateTreeOrder=0,this.updateTreeOrderForceUpdate=0,this.shaderPrograms=new Map,this.renderState=new CoreRenderState(this),this.renderExec=new CoreRenderExecutor(this),this.renderExec.init(),this._renderTexturePool=[],this._renderTexturePoolPixels=0,this._renderTextureId=1}var o=Math.round;return _createClass(e,[{key:'destroy',value:function destroy(){var e=this;this.shaderPrograms.forEach(function(e){return e.destroy()}),this._renderTexturePool.forEach(function(o){return e._freeRenderTexture(o)})}},{key:'visit',value:function visit(){this.root.visit()}},{key:'frame',value:function frame(){return!!this.root._parent._hasRenderUpdates&&(this.visit(),this.update(),this.render(),this.root._parent._hasRenderUpdates=!1,this._freeUnusedRenderTextures(6e3),!0)}},{key:'update',value:function update(){this.updateTreeOrderForceUpdate=0,this.updateTreeOrder=0,this.root.update()}},{key:'render',value:function render(){this.renderState.reset(),this.root.render(),this.renderState.finish(),this.renderExec.execute()}},{key:'allocateRenderTexture',value:function allocateRenderTexture(e,s){e=o(e),s=o(s);for(var d,_=0,u=this._renderTexturePool.length;_<u;_++)if(d=this._renderTexturePool[_],d.w===e&&d.h===s)return d.f=this.stage.frameCounter,this._renderTexturePool.splice(_,1),d;var l=this._createRenderTexture(e,s);return l.f=this.stage.frameCounter,l}},{key:'releaseRenderTexture',value:function releaseRenderTexture(e){this._renderTexturePool.push(e)}},{key:'_freeUnusedRenderTextures',value:function _freeUnusedRenderTextures(){var e=this,o=0<arguments.length&&void 0!==arguments[0]?arguments[0]:60,s=this.stage.frameCounter-o;this._renderTexturePool=this._renderTexturePool.filter(function(o){return!(o.f<s)||(e._freeRenderTexture(o),e._renderTexturePoolPixels-=o.w*o.h,!1)})}},{key:'_createRenderTexture',value:function _createRenderTexture(e,o){this._renderTexturePoolPixels>this.stage.options.renderTexturePoolPixels&&(this._freeUnusedRenderTextures(),this._renderTexturePoolPixels>this.stage.options.renderTexturePoolPixels&&console.warn('Render texture pool overflow: '+this._renderTexturePoolPixels+'px'));var s=this.gl,n=s.createTexture();return s.bindTexture(s.TEXTURE_2D,n),s.texImage2D(s.TEXTURE_2D,0,s.RGBA,e,o,0,s.RGBA,s.UNSIGNED_BYTE,null),s.texParameteri(s.TEXTURE_2D,s.TEXTURE_MAG_FILTER,s.LINEAR),s.texParameteri(s.TEXTURE_2D,s.TEXTURE_MIN_FILTER,s.LINEAR),s.texParameteri(s.TEXTURE_2D,s.TEXTURE_WRAP_S,s.CLAMP_TO_EDGE),s.texParameteri(s.TEXTURE_2D,s.TEXTURE_WRAP_T,s.CLAMP_TO_EDGE),n.framebuffer=s.createFramebuffer(),n.w=e,n.h=o,n.id=this._renderTextureId++,n.projection=new Float32Array([2/e,2/o]),s.bindFramebuffer(s.FRAMEBUFFER,n.framebuffer),s.framebufferTexture2D(s.FRAMEBUFFER,s.COLOR_ATTACHMENT0,s.TEXTURE_2D,n,0),n}},{key:'_freeRenderTexture',value:function _freeRenderTexture(e){var o=this.stage.gl;this._renderTexturePoolPixels-=e.w*e.h,o.deleteFramebuffer(e.framebuffer),o.deleteTexture(e)}}]),e}(),CoreRenderState=function(){function e(o){_classCallCheck(this,e),this.ctx=o,this.stage=o.stage,this.textureAtlasGlTexture=this.stage.textureAtlas?this.stage.textureAtlas.texture:null,this.quads=new CoreQuadList(o,8e6),this.defaultShader=new Shader(this.ctx)}var o=Math.max,s=Math.min;return _createClass(e,[{key:'reset',value:function reset(){this._renderTextureInfo=null,this._scissor=null,this._shader=null,this._shaderOwner=null,this._realShader=null,this._check=!1,this.quadOperations=[],this.filterOperations=[],this._overrideQuadTexture=null,this._quadOperation=null,this.quads.reset()}},{key:'setShader',value:function setShader(e,o){(this._shaderOwner!==o||this._realShader!==e)&&(this._realShader=e,e.useDefault()&&(e=this.defaultShader),(this._shader!==e||this._shaderOwner!==o)&&(this._shader=e,this._shaderOwner=o,this._check=!0))}},{key:'setScissor',value:function setScissor(e){if(!e)this._scissor=null;else if(this._scissor){var n=o(e[0],this._scissor[0]),l=o(e[1],this._scissor[1]),d=s(e[0]+e[2],this._scissor[0]+this._scissor[2]),_=s(e[1]+e[3],this._scissor[1]+this._scissor[3]);this._scissor=[n,l,d-n,_-l]}else this._scissor=e;this._check=!0}},{key:'getScissor',value:function getScissor(){return this._scissor}},{key:'setRenderTextureInfo',value:function setRenderTextureInfo(e){this._renderTextureInfo!==e&&(this._renderTextureInfo=e,this._scissor=null,this._check=!0)}},{key:'setOverrideQuadTexture',value:function setOverrideQuadTexture(e){this._overrideQuadTexture=e}},{key:'addQuad',value:function addQuad(e){this._quadOperation?this._check&&this._hasChanges()&&(this._addQuadOperation(),this._check=!1):this._createQuadOperation();var o=this._overrideQuadTexture;o||(e.inTextureAtlas?o=this.textureAtlasGlTexture:o=e._displayedTextureSource.glTexture);var s=64*this.length+64;return this._renderTextureInfo&&(this._shader===this.defaultShader&&this._renderTextureInfo.empty&&this._renderTextureInfo.w===o.w&&this._renderTextureInfo.h===o.h?(this._renderTextureInfo.glTexture=o,this._renderTextureInfo.offset=s):this._renderTextureInfo.glTexture=null,this._renderTextureInfo.empty=!1),this.quads.quadTextures.push(o),this.quads.quadViews.push(e),this._quadOperation.length++,s}},{key:'_hasChanges',value:function _hasChanges(){var e=this._quadOperation;return this._shader!==e.shader||this._shaderOwner!==e.shaderOwner||this._renderTextureInfo!==e.renderTextureInfo||this._scissor!==e.scissor}},{key:'_addQuadOperation',value:function _addQuadOperation(){var e=0<arguments.length&&void 0!==arguments[0]?arguments[0]:!0;this._quadOperation&&((this._quadOperation.length||this._shader.addEmpty())&&this.quadOperations.push(this._quadOperation),this._quadOperation=null),e&&this._createQuadOperation()}},{key:'_createQuadOperation',value:function _createQuadOperation(){this._quadOperation=new CoreQuadOperation(this.ctx,this._shader,this._shaderOwner,this._renderTextureInfo,this._scissor,this.length),this._check=!1}},{key:'addFilter',value:function addFilter(e,o,s,n){this._addQuadOperation(!1),this.filterOperations.push(new CoreFilterOperation(this.ctx,e,o,s,n,this.quadOperations.length))}},{key:'finish',value:function finish(){this.ctx.stage.textureAtlas&&this.ctx.stage.options.debugTextureAtlas&&this._renderDebugTextureAtlas(),this._quadOperation&&this._addQuadOperation(!1),this._setExtraShaderAttribs()}},{key:'_renderDebugTextureAtlas',value:function _renderDebugTextureAtlas(){this.setShader(this.defaultShader,this.ctx.root),this.setRenderTextureInfo(null),this.setOverrideQuadTexture(this.textureAtlasGlTexture);var e=s(this.ctx.stage.w,this.ctx.stage.h),o=this.addQuad(this.ctx.root)/4,n=this.quads.floats,l=this.quads.uints;n[o++]=0,n[o++]=0,l[o++]=0,l[o++]=4294967295,n[o++]=e,n[o++]=0,l[o++]=65535,l[o++]=4294967295,n[o++]=e,n[o++]=e,l[o++]=4294967295,l[o++]=4294967295,n[o++]=0,n[o++]=e,l[o++]=4294901760,l[o]=4294967295,this.setOverrideQuadTexture(null)}},{key:'_setExtraShaderAttribs',value:function _setExtraShaderAttribs(){for(var e=64*this.length+64,o=0,s=this.quadOperations.length;o<s;o++){this.quadOperations[o].extraAttribsDataByteOffset=e;var n=4*this.quadOperations[o].shader.getExtraAttribBytesPerVertex()*this.quadOperations[o].length;e+=n,n&&this.quadOperations[o].shader.setExtraAttribsInBuffer(this.quadOperations[o],this.quads)}this.quads.dataLength=offset}},{key:'length',get:function get(){return this.quads.quadTextures.length}},{key:'renderTextureInfo',get:function get(){return this._renderTextureInfo}}]),e}(),CoreQuadList=function(){function e(o,s){_classCallCheck(this,e),this.ctx=o,this.textureAtlasGlTexture=this.ctx.textureAtlas?this.ctx.textureAtlas.texture:null,this.dataLength=0,this.data=new ArrayBuffer(s),this.floats=new Float32Array(this.data),this.uints=new Uint32Array(this.data),this.quadTextures=[],this.quadViews=[];var n=this.floats,l=this.uints;n[0]=-1,n[1]=-1,l[2]=0,l[3]=4294967295,n[4]=1,n[5]=-1,l[6]=65535,l[7]=4294967295,n[8]=1,n[9]=1,l[10]=4294967295,l[11]=4294967295,n[12]=-1,n[13]=1,l[14]=4294901760,l[15]=4294967295}return _createClass(e,[{key:'reset',value:function reset(){this.quadTextures=[],this.quadViews=[],this.dataLength=0}},{key:'getView',value:function getView(e){return this.quadViews[e]._view}},{key:'getViewCore',value:function getViewCore(e){return this.quadViews[e]}},{key:'getTexture',value:function getTexture(e){return this.quadTextures[e]}},{key:'getTextureWidth',value:function getTextureWidth(e){var o=this.quadTextures[e];return o.w?o.w:o===this.textureAtlasGlTexture?2048:this.quadViews[e]._displayedTextureSource.w}},{key:'getTextureHeight',value:function getTextureHeight(e){var o=this.quadTextures[e];return o.h?o.h:o===this.textureAtlasGlTexture?2048:this.quadViews[e]._displayedTextureSource.h}},{key:'getQuadContents',value:function getQuadContents(){for(var e,o=this.floats,s=this.uints,n=[],l=1;l<=this.length;l++){e='entry '+l+': ';for(var d,_=0;4>_;_++)d=16*l+4*_,e+=o[d]+','+o[d+1]+':'+s[d+2].toString(16)+'['+s[d+3].toString(16)+'] ';n.push(e)}return lines}},{key:'length',get:function get(){return this.quadTextures.length}}]),e}(),CoreQuadOperation=function(){function e(o,s,n,l,d,_){_classCallCheck(this,e),this.ctx=o,this.shader=s,this.shaderOwner=n,this.renderTextureInfo=l,this.scissor=d,this.index=_,this.length=0,this.extraAttribsDataByteOffset=0}return _createClass(e,[{key:'getTexture',value:function getTexture(e){return this.quads.getTexture(this.index+e)}},{key:'getViewCore',value:function getViewCore(e){return this.quads.getViewCore(this.index+e)}},{key:'getView',value:function getView(e){return this.quads.getView(this.index+e)}},{key:'getTextureWidth',value:function getTextureWidth(e){return this.quads.getTextureWidth(this.index+e)}},{key:'getTextureHeight',value:function getTextureHeight(e){return this.quads.getTextureHeight(this.index+e)}},{key:'getNormalRenderTextureCoords',value:function getNormalRenderTextureCoords(e,o){var s=this.shaderOwner.getRenderTextureCoords(e,o);return s[0]/=this.getRenderWidth(),s[1]/=this.getRenderHeight(),s[0]=2*s[0]-1,s[1]=1-2*s[1],s}},{key:'getRenderWidth',value:function getRenderWidth(){return this.renderTexture?this.renderTexture.w:this.ctx.stage.w}},{key:'getRenderHeight',value:function getRenderHeight(){return this.renderTexture?this.renderTexture.h:this.ctx.stage.h}},{key:'getProjection',value:function getProjection(){return null===this.renderTextureInfo?this.ctx.renderExec._projection:this.renderTextureInfo.glTexture.projection}},{key:'quads',get:function get(){return this.ctx.renderState.quads}}]),e}(),CoreFilterOperation=function(){function e(o,s,n,l,d,_){_classCallCheck(this,e),this.ctx=o,this.filter=s,this.owner=n,this.source=l,this.renderTexture=d,this.beforeQuadOperation=_}return _createClass(e,[{key:'getRenderWidth',value:function getRenderWidth(){return this.renderTexture?this.renderTexture.w:this.ctx.stage.w}},{key:'getRenderHeight',value:function getRenderHeight(){return this.renderTexture?this.renderTexture.h:this.ctx.stage.h}}]),e}(),CoreRenderExecutor=function(){function e(o){_classCallCheck(this,e),this.ctx=o,this.renderState=o.renderState,this.gl=this.ctx.stage.gl,this.init()}return _createClass(e,[{key:'init',value:function init(){var e=this.gl;this._attribsBuffer=e.createBuffer();for(var o=Math.floor(this.renderState.quads.data.byteLength/64),s=new Uint16Array(6*o),n=0,l=0;n<o;n+=6,l+=4)s[n]=l,s[n+1]=l+1,s[n+2]=l+2,s[n+3]=l,s[n+4]=l+2,s[n+5]=l+3;this._quadsBuffer=e.createBuffer(),e.bindBuffer(e.ELEMENT_ARRAY_BUFFER,this._quadsBuffer),e.bufferData(e.ELEMENT_ARRAY_BUFFER,allIndices,e.STATIC_DRAW),this._projection=new Float32Array([2/this.ctx.stage.rw,-2/this.ctx.stage.rh])}},{key:'destroy',value:function destroy(){this.gl.deleteBuffer(this._attribsBuffer),this.gl.deleteBuffer(this._quadsBuffer)}},{key:'_reset',value:function _reset(){this._bindRenderTexture(null),this._setScissor(null),this._clearRenderTexture();var e=this.gl;e.blendFunc(e.ONE,e.ONE_MINUS_SRC_ALPHA),e.enable(e.BLEND),e.disable(e.DEPTH_TEST),this._quadOperation=null,this._currentShaderProgramOwner=null}},{key:'_setupBuffers',value:function _setupBuffers(){var e=this.gl;e.bindBuffer(e.ELEMENT_ARRAY_BUFFER,this._quadsBuffer);var o=new DataView(this.renderState.quads.data,0,this.renderState.quads.dataLength);e.bindBuffer(e.ARRAY_BUFFER,this._attribsBuffer),e.bufferData(e.ARRAY_BUFFER,o,e.DYNAMIC_DRAW)}},{key:'execute',value:function execute(){this._reset(),this._setupBuffers();for(var e=this.renderState.quadOperations,o=this.renderState.filterOperations,s=0,l=0,d=e.length,n=o.length;s<d;){for(;l<n&&s===o[l].beforeQuadOperation;)this._quadOperation&&this._execQuadOperation(this._quadOperation),this._execFilterOperation(o[l]),l++;this._processQuadOperation(e[s]),s++}for(this._quadOperation&&this._execQuadOperation();j<m;)this._execFilterOperation(fops[j]),j++;this._stopShaderProgram()}},{key:'getQuadContents',value:function getQuadContents(){return this.renderState.quads.getQuadContents()}},{key:'_mergeQuadOperation',value:function _mergeQuadOperation(e){this._quadOperation&&(this._quadOperation.length+=e.length,this._quadOperation.shaderOwner=null)}},{key:'_processQuadOperation',value:function _processQuadOperation(e){if(!(e.renderTextureInfo&&e.renderTextureInfo.ignore)){var o=e.shader,s=!1;this._quadOperation&&this._quadOperation.renderTextureInfo===e.renderTextureInfo&&this._quadOperation.scissor===e.scissor&&this._quadOperation.shader.supportsMerging()&&e.shader.supportsMerging()&&(this._quadOperation.shader===o?(this._mergeQuadOperation(e),s=!0):o.hasSameProgram(this._quadOperation.shader)&&(o.setupUniforms(e),o.isMergable(this._quadOperation.shader)&&(this._mergeQuadOperation(e),s=!0))),s||(this._quadOperation&&this._execQuadOperation(),o.setupUniforms(e),this._quadOperation=e)}}},{key:'_execQuadOperation',value:function _execQuadOperation(){var e=this._quadOperation,o=e.shader;if(e.length||o.addEmpty()){var s=e.renderTextureInfo?e.renderTextureInfo.glTexture:null;this._renderTexture!==s&&this._bindRenderTexture(s),this._setScissor(e.scissor),e.renderTextureInfo&&!e.renderTextureInfo.cleared&&(this._clearRenderTexture(),e.renderTextureInfo.cleared=!0),this._useShaderProgram(o),o.commitUniformUpdates(),o.beforeDraw(e),o.draw(e),o.afterDraw(e)}this._quadOperation=null}},{key:'_execFilterOperation',value:function _execFilterOperation(e){var o=e.filter;this._useShaderProgram(o),o.setupUniforms(e),o.commitUniformUpdates(),o.beforeDraw(e),this._bindRenderTexture(e.renderTexture),this._clearRenderTexture(),this._setScissor(null),o.draw(e),o.afterDraw(e)}},{key:'_useShaderProgram',value:function _useShaderProgram(e){e.hasSameProgram(this._currentShaderProgramOwner)||(this._currentShaderProgramOwner&&this._currentShaderProgramOwner.stopProgram(),e.useProgram(),this._currentShaderProgramOwner=e)}},{key:'_stopShaderProgram',value:function _stopShaderProgram(){this._currentShaderProgramOwner&&(this._currentShaderProgramOwner.stopProgram(),this._currentShaderProgramOwner=null)}},{key:'_bindRenderTexture',value:function _bindRenderTexture(e){this._renderTexture=e;var o=this.gl;this._renderTexture?(o.bindFramebuffer(o.FRAMEBUFFER,this._renderTexture.framebuffer),o.viewport(0,0,this._renderTexture.w,this._renderTexture.h)):(o.bindFramebuffer(o.FRAMEBUFFER,null),o.viewport(0,0,this.ctx.stage.w,this.ctx.stage.h))}},{key:'_clearRenderTexture',value:function _clearRenderTexture(){var e=this.gl;if(!this._renderTexture){var o=this.ctx.stage.options.glClearColor;e.clearColor(o[0],o[1],o[2],o[3]),e.clear(e.COLOR_BUFFER_BIT)}else e.clearColor(0,0,0,0),e.clear(e.COLOR_BUFFER_BIT)}},{key:'_setScissor',value:function _setScissor(e){if(this._scissor!==e){var o=this.gl;e?(o.enable(o.SCISSOR_TEST),null===this._renderTexture&&(e[1]=this.ctx.stage.h-(e[1]+e[3])),o.scissor(e[0],e[1],e[2],e[3])):o.disable(o.SCISSOR_TEST),this._scissor=e}}}]),e}(),ViewText=function(e){function o(e){_classCallCheck(this,o);var s=_possibleConstructorReturn(this,(o.__proto__||Object.getPrototypeOf(o)).call(this));return s.view=e,s.settings=new TextRendererSettings,s.settings.on('change',function(){s.updateTexture()}),s}return _inherits(o,e),_createClass(o,[{key:'_properties',value:function _properties(){this.updatingTexture=null}},{key:'updateTexture',value:function updateTexture(){var e=this;return''==this.settings.text?void(this.view.texture=null):void(this.updatingTexture||(this.updatingTexture=!0,this.view.texture=this.view.stage.texture(function(o,s,n){e.updatingTexture=!1,o(null,null);var l=e.getFinalizedSettings(),d=e.createTextureSource(l);e.view.texture.precision=l.precision,d.load(n||l.sync),e.view.texture.replaceTextureSource(d)})))}},{key:'getFinalizedSettings',value:function getFinalizedSettings(){var e=this.settings.clone();return e.finalize(this.view),e}},{key:'createTextureSource',value:function createTextureSource(e){var o=this.view.stage.textureManager;return this.view.stage.textureManager.getTextureSource(function loadCb(s,n,l){o.loadTextTexture(e,n,l,s)},e.getTextureId())}}]),o}(Base),TextRenderer=function(){function e(o,s){_classCallCheck(this,e),this._canvas=o,this._context=this._canvas.getContext('2d'),this._settings=s}var o=Math.max,s=Math.min,n=Math.ceil;return _createClass(e,[{key:'getPrecision',value:function getPrecision(){return this._settings.precision}},{key:'setFontProperties',value:function setFontProperties(e){var o=this._settings.fontFace,s='"'+(Array.isArray(o)?this._settings.fontFace.join('","'):o)+'"',n=e?this.getPrecision():1;this._context.font=this._settings.fontStyle+' '+this._settings.fontSize*n+'px '+s,this._context.textBaseline=this._settings.textBaseline}},{key:'draw',value:function draw(){var e=0<arguments.length&&void 0!==arguments[0]&&arguments[0],l={};this.setFontProperties(!1);var d=this._settings.w||2048/this.getPrecision(),_=d-(this._settings.paddingLeft+this._settings.paddingRight);10>_&&(d+=10-_,_+=10-_);var u,c=this._settings.wordWrapWidth||_;if(this._settings.wordWrap)u=this.wrapText(this._settings.text,c);else{u={l:this._settings.text.split(/(?:\r\n|\r|\n)/),n:[]};for(var C=u.l.length,k=0;k<C-1;k++)u.n.push(k)}var x=u.l;if(this._settings.maxLines&&x.length>this._settings.maxLines){var w=x.slice(0,this._settings.maxLines),R=null;if(this._settings.maxLinesSuffix){var E=this.wrapText(w[w.length-1]+this._settings.maxLinesSuffix,c);w[w.length-1]=E.l[0],R=[1<E.l.length?E.l[1]:'']}else R=[''];var P,A=x.length,O=0,L=u.n.length;for(P=this._settings.maxLines;P<A;P++)R[O]+=(R[O]?' ':'')+x[P],P+1<L&&u.n[P+1]&&O++;l.remainingText=R.join('\n'),l.moreTextLines=!0,x=w}else l.moreTextLines=!1,l.remainingText='';for(var U,z=0,I=[],F=0;F<x.length;F++)U=this._context.measureText(x[F]).width,I.push(U),z=o(z,U);l.lineWidths=lineWidths,this._settings.w||(d=maxLineWidth+this._settings.paddingLeft+this._settings.paddingRight,_=maxLineWidth);var h,y=this._settings.lineHeight||this._settings.fontSize;h=this._settings.h?this._settings.h:y*(x.length-1)+0.5*this._settings.fontSize+o(y,this._settings.fontSize)+this._settings.offsetY;var f=null===this._settings.offsetY?this._settings.fontSize:this._settings.offsetY,T=this.getPrecision();if(l.w=d*T,l.h=h*T,l.lines=x,l.precision=T,!e){d||(d=1),h||(h=1),(this._settings.cutSx||this._settings.cutEx)&&(d=s(d,this._settings.cutEx-this._settings.cutSx)),(this._settings.cutSy||this._settings.cutEy)&&(h=s(h,this._settings.cutEy-this._settings.cutSy)),this._canvas.width=n(d*T),this._canvas.height=n(h*T),this.setFontProperties(!0),(this._settings.cutSx||this._settings.cutSy)&&this._context.translate(-(this._settings.cutSx*T),-(this._settings.cutSy*T));for(var D=void 0,B=void 0,V=[],N=0,M=x.length;N<M;N++)D=0,B=N*y+f,'right'===this._settings.textAlign?D+=_-lineWidths[N]:'center'===this._settings.textAlign&&(D+=(_-lineWidths[N])/2),D+=this._settings.paddingLeft,V.push({text:x[N],x:D*T,y:B*T,w:lineWidths[N]*T});if(this._settings.highlight){var X=this._settings.highlightColor||0,W=this._settings.highlightHeight||1.5*this._settings.fontSize,H=null===this._settings.highlightOffset?-0.5*this._settings.fontSize:this._settings.highlightOffset,Y=null===this._settings.highlightPaddingLeft?this._settings.paddingLeft:this._settings.highlightPaddingLeft,G=null===this._settings.highlightPaddingRight?this._settings.paddingRight:this._settings.highlightPaddingRight;for(this._context.fillStyle=StageUtils.getRgbaString(X),i=0;i<drawLines.length;i++){var q=drawLines[i];this._context.fillRect((q.x-Y)*T,(q.y+H)*T,(q.w+G+Y)*T,W*T)}}var Z=null;this._settings.shadow&&(Z=[this._context.shadowColor,this._context.shadowOffsetX,this._context.shadowOffsetY,this._context.shadowBlur],this._context.shadowColor=StageUtils.getRgbaString(this._settings.shadowColor),this._context.shadowOffsetX=this._settings.shadowOffsetX*T,this._context.shadowOffsetY=this._settings.shadowOffsetY*T,this._context.shadowBlur=this._settings.shadowBlur*T),this._context.fillStyle=StageUtils.getRgbaString(this._settings.textColor);for(var Q,K=0,$=drawLines.length;K<$;K++)Q=drawLines[K],this._context.fillText(Q.text,Q.x,Q.y);Z&&(this._context.shadowColor=Z[0],this._context.shadowOffsetX=Z[1],this._context.shadowOffsetY=Z[2],this._context.shadowBlur=Z[3]),(this._settings.cutSx||this._settings.cutSy)&&this._context.translate(this._settings.cutSx,this._settings.cutSy)}var S=this._canvas;return{renderInfo:l,canvas:S}}},{key:'wrapText',value:function wrapText(e,o){for(var s=e.split(/\r?\n/g),n=[],l=[],d=0;d<s.length;d++){for(var _=[],u='',c=o,x=s[d].split(' '),h=0;h<x.length;h++){var y=this._context.measureText(x[h]).width,f=y+this._context.measureText(' ').width;0===h||f>c?(0<h&&(_.push(u),u=''),u+=x[h],c=o-y):(c-=f,u+=' '+x[h])}result&&(resultLines.push(result),result=''),n=n.concat(resultLines),d<s.length-1&&l.push(n.length)}return{l:allLines,n:realNewlines}}}]),e}(),TextRendererSettings=function(e){function o(){_classCallCheck(this,o);var e=_possibleConstructorReturn(this,(o.__proto__||Object.getPrototypeOf(o)).call(this));return EventEmitter.call(e),e}return _inherits(o,e),_createClass(o,[{key:'_properties',value:function _properties(){this._text='',this._w=0,this._h=0,this._fontStyle='normal',this._fontSize=40,this._fontFace=null,this._wordWrap=!0,this._wordWrapWidth=0,this._lineHeight=null,this._textBaseline='alphabetic',this._textAlign='left',this._offsetY=null,this._maxLines=0,this._maxLinesSuffix='..',this._precision=null,this._textColor=4294967295,this._paddingLeft=0,this._paddingRight=0,this._shadow=!1,this._shadowColor=4278190080,this._shadowOffsetX=0,this._shadowOffsetY=0,this._shadowBlur=5,this._highlight=!1,this._highlightHeight=0,this._highlightColor=4278190080,this._highlightOffset=0,this._highlightPaddingLeft=0,this._highlightPaddingRight=0,this._cutSx=0,this._cutEx=0,this._cutSy=0,this._cutEy=0,this.sync=!1}},{key:'finalize',value:function finalize(e){!this.w&&e.w&&(this.w=e.w),!this.h&&e.h&&(this.h=e.h),null===this.fontFace&&(this.fontFace=e.stage.options.defaultFontFace),null===this.precision&&(this.precision=e.stage.options.defaultPrecision)}},{key:'getTextureId',value:function getTextureId(){var e=[];0!==this.w&&e.push('w '+this.w),0!==this.h&&e.push('h '+this.h),'normal'!==this.fontStyle&&e.push('fS'+this.fontStyle),40!==this.fontSize&&e.push('fs'+this.fontSize),null!==this.fontFace&&e.push('ff'+(Array.isArray(this.fontFace)?this.fontFace.join(','):this.fontFace)),!0!==this.wordWrap&&e.push('wr'+(this.wordWrap?1:0)),0!==this.wordWrapWidth&&e.push('ww'+this.wordWrapWidth),null!==this.lineHeight&&e.push('lh'+this.lineHeight),'alphabetic'!==this.textBaseline&&e.push('tb'+this.textBaseline),'left'!==this.textAlign&&e.push('ta'+this.textAlign),null!==this.offsetY&&e.push('oy'+this.offsetY),0!==this.maxLines&&e.push('ml'+this.maxLines),'..'!==this.maxLinesSuffix&&e.push('ms'+this.maxLinesSuffix),null!==this.precision&&e.push('pc'+this.precision),4294967295!==this.textColor&&e.push('co'+this.textColor.toString(16)),0!==this.paddingLeft&&e.push('pl'+this.paddingLeft),0!==this.paddingRight&&e.push('pr'+this.paddingRight),!1!==this.shadow&&e.push('sh'+(this.shadow?1:0)),4278190080!==this.shadowColor&&e.push('sc'+this.shadowColor.toString(16)),0!==this.shadowOffsetX&&e.push('sx'+this.shadowOffsetX),0!==this.shadowOffsetY&&e.push('sy'+this.shadowOffsetY),5!==this.shadowBlur&&e.push('sb'+this.shadowBlur),!1!==this.highlight&&e.push('hL'+(this.highlight?1:0)),0!==this.highlightHeight&&e.push('hh'+this.highlightHeight),4278190080!==this.highlightColor&&e.push('hc'+this.highlightColor.toString(16)),null!==this.highlightOffset&&e.push('ho'+this.highlightOffset),null!==this.highlightPaddingLeft&&e.push('hl'+this.highlightPaddingLeft),null!==this.highlightPaddingRight&&e.push('hr'+this.highlightPaddingRight),this.cutSx&&e.push('csx'+this.cutSx),this.cutEx&&e.push('cex'+this.cutEx),this.cutSy&&e.push('csy'+this.cutSy),this.cutEy&&e.push('cey'+this.cutEy),this.sync&&e.push('sync');var o='TX$'+e.join('|')+':'+this.text;return o}},{key:'getNonDefaults',value:function getNonDefaults(){var e={};return''!==this.text&&(e.text=this.text),0!==this.w&&(e.w=this.w),0!==this.h&&(e.h=this.h),'normal'!==this.fontStyle&&(e.fontStyle=this.fontStyle),40!==this.fontSize&&(e.fontSize=this.fontSize),null!==this.fontFace&&(e.fontFace=this.fontFace),!0!==this.wordWrap&&(e.wordWrap=this.wordWrap),0!==this.wordWrapWidth&&(e.wordWrapWidth=this.wordWrapWidth),null!==this.lineHeight&&(e.lineHeight=this.lineHeight),'alphabetic'!==this.textBaseline&&(e.textBaseline=this.textBaseline),'left'!==this.textAlign&&(e.textAlign=this.textAlign),null!==this.offsetY&&(e.offsetY=this.offsetY),0!==this.maxLines&&(e.maxLines=this.maxLines),'..'!==this.maxLinesSuffix&&(e.maxLinesSuffix=this.maxLinesSuffix),null!==this.precision&&(e.precision=this.precision),4294967295!==this.textColor&&(e.textColor=this.textColor),0!==this.paddingLeft&&(e.paddingLeft=this.paddingLeft),0!==this.paddingRight&&(e.paddingRight=this.paddingRight),!1!==this.shadow&&(e.shadow=this.shadow),4278190080!==this.shadowColor&&(e.shadowColor=this.shadowColor),0!==this.shadowOffsetX&&(e.shadowOffsetX=this.shadowOffsetX),0!==this.shadowOffsetY&&(e.shadowOffsetY=this.shadowOffsetY),5!==this.shadowBlur&&(e.shadowBlur=this.shadowBlur),!1!==this.highlight&&(e.highlight=this.highlight),0!==this.highlightHeight&&(e.highlightHeight=this.highlightHeight),4278190080!==this.highlightColor&&(e.highlightColor=this.highlightColor),null!==this.highlightOffset&&(e.highlightOffset=this.highlightOffset),null!==this.highlightPaddingLeft&&(e.highlightPaddingLeft=this.highlightPaddingLeft),null!==this.highlightPaddingRight&&(e.highlightPaddingRight=this.highlightPaddingRight),this.cutSx&&(e.cutSx=this.cutSx),this.cutEx&&(e.cutEx=this.cutEx),this.cutSy&&(e.cutSy=this.cutSy),this.cutEy&&(e.cutEy=this.cutEy),this.sync&&(e.sync=this.sync),e}},{key:'clone',value:function clone(){var e=new o;return e._text=this._text,e._w=this._w,e._h=this._h,e._fontStyle=this._fontStyle,e._fontSize=this._fontSize,e._fontFace=this._fontFace,e._wordWrap=this._wordWrap,e._wordWrapWidth=this._wordWrapWidth,e._lineHeight=this._lineHeight,e._textBaseline=this._textBaseline,e._textAlign=this._textAlign,e._offsetY=this._offsetY,e._maxLines=this._maxLines,e._maxLinesSuffix=this._maxLinesSuffix,e._precision=this._precision,e._textColor=this._textColor,e._paddingLeft=this._paddingLeft,e._paddingRight=this._paddingRight,e._shadow=this._shadow,e._shadowColor=this._shadowColor,e._shadowOffsetX=this._shadowOffsetX,e._shadowOffsetY=this._shadowOffsetY,e._shadowBlur=this._shadowBlur,e._highlight=this._highlight,e._highlightHeight=this._highlightHeight,e._highlightColor=this._highlightColor,e._highlightOffset=this._highlightOffset,e._highlightPaddingLeft=this._highlightPaddingLeft,e._highlightPaddingRight=this._highlightPaddingRight,e._cutSx=this._cutSx,e._cutEx=this._cutEx,e._cutSy=this._cutSy,e._cutEy=this._cutEy,e.sync=this.sync,e}},{key:'text',get:function get(){return this._text},set:function set(e){this._text!==e&&(this._text=e,this.emit('change'))}},{key:'w',get:function get(){return this._w},set:function set(e){this._w!==e&&(this._w=e,this.emit('change'))}},{key:'h',get:function get(){return this._h},set:function set(e){this._h!==e&&(this._h=e,this.emit('change'))}},{key:'fontStyle',get:function get(){return this._fontStyle},set:function set(e){this._fontStyle!==e&&(this._fontStyle=e,this.emit('change'))}},{key:'fontSize',get:function get(){return this._fontSize},set:function set(e){this._fontSize!==e&&(this._fontSize=e,this.emit('change'))}},{key:'fontFace',get:function get(){return this._fontFace},set:function set(e){this._fontFace!==e&&(this._fontFace=e,this.emit('change'))}},{key:'wordWrap',get:function get(){return this._wordWrap},set:function set(e){this._wordWrap!==e&&(this._wordWrap=e,this.emit('change'))}},{key:'wordWrapWidth',get:function get(){return this._wordWrapWidth},set:function set(e){this._wordWrapWidth!==e&&(this._wordWrapWidth=e,this.emit('change'))}},{key:'lineHeight',get:function get(){return this._lineHeight},set:function set(e){this._lineHeight!==e&&(this._lineHeight=e,this.emit('change'))}},{key:'textBaseline',get:function get(){return this._textBaseline},set:function set(e){this._textBaseline!==e&&(this._textBaseline=e,this.emit('change'))}},{key:'textAlign',get:function get(){return this._textAlign},set:function set(e){this._textAlign!==e&&(this._textAlign=e,this.emit('change'))}},{key:'offsetY',get:function get(){return this._offsetY},set:function set(e){this._offsetY!==e&&(this._offsetY=e,this.emit('change'))}},{key:'maxLines',get:function get(){return this._maxLines},set:function set(e){this._maxLines!==e&&(this._maxLines=e,this.emit('change'))}},{key:'maxLinesSuffix',get:function get(){return this._maxLinesSuffix},set:function set(e){this._maxLinesSuffix!==e&&(this._maxLinesSuffix=e,this.emit('change'))}},{key:'precision',get:function get(){return this._precision},set:function set(e){this._precision!==e&&(this._precision=e,this.emit('change'))}},{key:'textColor',get:function get(){return this._textColor},set:function set(e){this._textColor!==e&&(this._textColor=e,this.emit('change'))}},{key:'paddingLeft',get:function get(){return this._paddingLeft},set:function set(e){this._paddingLeft!==e&&(this._paddingLeft=e,this.emit('change'))}},{key:'paddingRight',get:function get(){return this._paddingRight},set:function set(e){this._paddingRight!==e&&(this._paddingRight=e,this.emit('change'))}},{key:'shadow',get:function get(){return this._shadow},set:function set(e){this._shadow!==e&&(this._shadow=e,this.emit('change'))}},{key:'shadowColor',get:function get(){return this._shadowColor},set:function set(e){this._shadowColor!==e&&(this._shadowColor=e,this.emit('change'))}},{key:'shadowOffsetX',get:function get(){return this._shadowOffsetX},set:function set(e){this._shadowOffsetX!==e&&(this._shadowOffsetX=e,this.emit('change'))}},{key:'shadowOffsetY',get:function get(){return this._shadowOffsetY},set:function set(e){this._shadowOffsetY!==e&&(this._shadowOffsetY=e,this.emit('change'))}},{key:'shadowBlur',get:function get(){return this._shadowBlur},set:function set(e){this._shadowBlur!==e&&(this._shadowBlur=e,this.emit('change'))}},{key:'highlight',get:function get(){return this._highlight},set:function set(e){this._highlight!==e&&(this._highlight=e,this.emit('change'))}},{key:'highlightHeight',get:function get(){return this._highlightHeight},set:function set(e){this._highlightHeight!==e&&(this._highlightHeight=e,this.emit('change'))}},{key:'highlightColor',get:function get(){return this._highlightColor},set:function set(e){this._highlightColor!==e&&(this._highlightColor=e,this.emit('change'))}},{key:'highlightOffset',get:function get(){return this._highlightOffset},set:function set(e){this._highlightOffset!==e&&(this._highlightOffset=e,this.emit('change'))}},{key:'highlightPaddingLeft',get:function get(){return this._highlightPaddingLeft},set:function set(e){this._highlightPaddingLeft!==e&&(this._highlightPaddingLeft=e,this.emit('change'))}},{key:'highlightPaddingRight',get:function get(){return this._highlightPaddingRight},set:function set(e){this._highlightPaddingRight!==e&&(this._highlightPaddingRight=e,this.emit('change'))}},{key:'cutSx',get:function get(){return this._cutSx},set:function set(e){this._cutSx!==e&&(this._cutSx=e,this.emit('change'))}},{key:'cutEx',get:function get(){return this._cutEx},set:function set(e){this._cutEx!==e&&(this._cutEx=e,this.emit('change'))}},{key:'cutSy',get:function get(){return this._cutSy},set:function set(e){this._cutSy!==e&&(this._cutSy=e,this.emit('change'))}},{key:'cutEy',get:function get(){return this._cutEy},set:function set(e){this._cutEy!==e&&(this._cutEy=e,this.emit('change'))}}]),o}(Base);Base.mixinEs5(TextRendererSettings,EventEmitter);var TransitionManager=function(){function e(o){var s=this;_classCallCheck(this,e),this.stage=o,this.stage.on('frameStart',function(){return s.progress()}),this.active=new Set,this.defaultTransitionSettings=new TransitionSettings}return _createClass(e,[{key:'progress',value:function progress(){if(this.active.size){var e=this.stage.dt,o=!1;this.active.forEach(function(s){s.isActive()?s.progress(e):o=!0}),o&&(this.active=new Set([].concat(_toConsumableArray(this.active)).filter(function(e){return e.isActive()})))}}},{key:'createSettings',value:function createSettings(e){var o=new TransitionSettings;return Base.setObjectSettings(o,e),o}},{key:'addActive',value:function addActive(e){this.active.add(e)}}]),e}(),TransitionSettings=function(e){function o(){return _classCallCheck(this,o),_possibleConstructorReturn(this,(o.__proto__||Object.getPrototypeOf(o)).call(this))}return _inherits(o,e),_createClass(o,[{key:'_properties',value:function _properties(){this._timingFunction='ease',this._timingFunctionImpl=StageUtils.getTimingFunction(this._timingFunction),this.delay=0,this.duration=0.2,this.isTransitionSettings=!0,this.merger=null}},{key:'timingFunction',get:function get(){return this._timingFunction},set:function set(e){this._timingFunction=e,this._timingFunctionImpl=StageUtils.getTimingFunction(e)}},{key:'timingFunctionImpl',get:function get(){return this._timingFunctionImpl}}]),o}(Base),Transition=function(e){function o(e,s,n,l){_classCallCheck(this,o);var d=_possibleConstructorReturn(this,(o.__proto__||Object.getPrototypeOf(o)).call(this));return EventEmitter.call(d),d.manager=e,d._settings=s,View||(View=require('../core/View')),d._view=n,d._getter=View.getGetter(l),d._setter=View.getSetter(l),d._merger=s.merger,d._merger||(n.isColorProperty(l)?d._merger=StageUtils.mergeColors:d._merger=StageUtils.mergeNumbers),d._startValue=d._getter(d._view),d._targetValue=d._startValue,d._p=1,d._delayLeft=0,d}return _inherits(o,e),_createClass(o,[{key:'_properties',value:function _properties(){this.isTransition=!0}},{key:'stop',value:function stop(){this.isActive()&&(this._setter(this.targetValue),this._p=1)}},{key:'reset',value:function reset(e,o){this._startValue=this._getter(this._view),this._targetValue=e,this._p=o,1>o?this.checkActive():1===o&&(this._setter(e),this.invokeListeners())}},{key:'start',value:function start(e){this._startValue=this._getter(this._view),e===this._startValue?this.reset(this._startValue,e,1):(this._targetValue=e,this._p=0,this._delayLeft=this._settings.delay,this._eventsCount&&this.emit('start'),this.checkActive(),!this._view.isAttached()&&this.finish())}},{key:'finish',value:function finish(){1>this._p&&(this._p=1,this._setter(this._view,this.targetValue),this._eventsCount&&this.invokeListeners())}},{key:'checkActive',value:function checkActive(){this.isActive()&&this.manager.addActive(this)}},{key:'isActive',value:function isActive(){return 1>this._p&&this._view.isAttached()}},{key:'progress',value:function progress(e){if(1>this.p){if(0<this.delayLeft)if(this._delayLeft-=e,0>this.delayLeft)e=-this.delayLeft,this._delayLeft=0,this._eventsCount&&this.emit('delayEnd');else return;0==this._settings.duration?this._p=1:this._p+=e/this._settings.duration,1<=this._p&&(this._p=1)}this._setter(this._view,this.getDrawValue()),this._eventsCount&&this.invokeListeners()}},{key:'invokeListeners',value:function invokeListeners(){this.emit('progress',this.p),1===this.p&&this.emit('finish')}},{key:'setValuesDynamic',value:function setValuesDynamic(e){var o=this._settings.timingFunctionImpl(this.p);1===o?this._targetValue=e:0===o?(this._startValue=this._targetValue,this._targetValue=e):(this._startValue=e-(e-this._targetValue)/(1-v),this._targetValue=e)}},{key:'getDrawValue',value:function getDrawValue(){if(1<=this.p)return this.targetValue;var e=this._settings._timingFunctionImpl(this.p);return this._merger(this.targetValue,this.startValue,e)}},{key:'skipDelay',value:function skipDelay(){this._delayLeft=0}},{key:'startValue',get:function get(){return this._startValue}},{key:'targetValue',get:function get(){return this._targetValue}},{key:'p',get:function get(){return this._p}},{key:'delayLeft',get:function get(){return this._delayLeft}},{key:'view',get:function get(){return this._view}},{key:'settings',get:function get(){return this._settings},set:function set(e){this._settings=e}}]),o}(Base);Base.mixinEs5(Transition,EventEmitter);var AnimationManager=function(){function e(o){var s=this;_classCallCheck(this,e),this.stage=o,this.stage.on('frameStart',function(){return s.progress()}),this.active=new Set}return _createClass(e,[{key:'progress',value:function progress(){if(this.active.size){var e=this.stage.dt,o=!1;this.active.forEach(function(s){s.isActive()?s.progress(e):o=!0}),o&&(this.active=new Set([].concat(_toConsumableArray(this.active)).filter(function(e){return e.isActive()})))}}},{key:'createAnimation',value:function createAnimation(e,o){return Utils.isObjectLiteral(o)&&(o=this.createSettings(o)),new Animation(this,o,e)}},{key:'createSettings',value:function createSettings(e){var o=new AnimationSettings;return Base.setObjectSettings(o,e),o}},{key:'addActive',value:function addActive(e){this.active.add(e)}}]),e}(),AnimationSettings=function(e){function o(){_classCallCheck(this,o);var e=_possibleConstructorReturn(this,(o.__proto__||Object.getPrototypeOf(o)).call(this));return e._actions=[],e}return _inherits(o,e),_createClass(o,[{key:'_properties',value:function _properties(){this.delay=0,this.duration=1,this.repeat=0,this.repeatOffset=0,this.repeatDelay=0,this.autostop=!1,this.stopMethod=o.STOP_METHODS.FADE,this._stopTimingFunction='ease',this._stopTimingFunctionImpl=StageUtils.getTimingFunction(this._stopTimingFunction),this.stopDuration=0,this.stopDelay=0}},{key:'apply',value:function apply(e,o){var s=2<arguments.length&&void 0!==arguments[2]?arguments[2]:1;this._actions.forEach(function(n){n.apply(e,o,s)})}},{key:'reset',value:function reset(e){this._actions.forEach(function(o){o.reset(e)})}},{key:'actions',get:function get(){return this._actions},set:function set(o){this._actions=[];for(var s,e=0,l=o.length;e<l;e++)if(s=o[e],!s.isAnimationActionSettings){var n=new AnimationActionSettings(this);n.setSettings(s),this._actions.push(n)}else this._actions.push(s)}},{key:'stopTimingFunction',get:function get(){return this._stopTimingFunction},set:function set(e){this._stopTimingFunction=e,this._stopTimingFunctionImpl=StageUtils.getTimingFunction(e)}},{key:'stopTimingFunctionImpl',get:function get(){return this._stopTimingFunctionImpl}}]),o}(Base);AnimationSettings.STOP_METHODS={FADE:'fade',REVERSE:'reverse',FORWARD:'forward',IMMEDIATE:'immediate',ONETOTWO:'onetotwo'};var AnimationActionSettings=function(e){function o(){_classCallCheck(this,o);var e=_possibleConstructorReturn(this,(o.__proto__||Object.getPrototypeOf(o)).call(this));return e._tags=null,e._items=new AnimationActionItems(e),e._props=[],e._propSetters=[],e._merger=void 0,e}return _inherits(o,e),_createClass(o,[{key:'_properties',value:function _properties(){this._resetValue=void 0,this._hasResetValue=!1,this.isAnimationActionSettings=!0}},{key:'getResetValue',value:function getResetValue(){return this._hasResetValue?this._resetValue:this._items.getValue(0)}},{key:'apply',value:function apply(e,o,s){var l=this.getAnimatedViews(e),d=this._items.getValue(o);if(void 0!==d&&l.length){if(1!==s){var _=this.getResetValue();this._merger&&(d=this._merger(d,_,s))}for(var u=this._propSetters.length,n=l.length,c=0;c<n;c++)for(var x=0;x<u;x++)this._propSetters[x](l[c],d)}}},{key:'getAnimatedViews',value:function getAnimatedViews(e){if(!this._tags)return[e];var o=this._tags.length;if(1===o)return''==this._tags[0]?[e]:e.mtag(this._tags[0]);for(var s=[],n=0;n<o;n++)if(''===this._tags[n])s.push(e);else{var l=e.mtag(this._tags[n]);s=s.concat(l)}return views}},{key:'reset',value:function reset(e){var o=this.getAnimatedViews(e),s=this.getResetValue();if(void 0!==s&&o.length)for(var l=this._propSetters.length,n=o.length,d=0;d<n;d++)for(var _=0;_<l;_++)this._propSetters[_](o[d],s)}},{key:'tags',get:function get(){return this._tags},set:function set(e){Array.isArray(e)||(e=[e]),this._tags=e}},{key:'t',set:function set(e){this.tags=e}},{key:'resetValue',get:function get(){return this._resetValue},set:function set(e){this._resetValue=e,this._hasResetValue=void 0!==e}},{key:'rv',set:function set(e){this.resetValue=e}},{key:'value',set:function set(e){this._items.parse(e)}},{key:'v',set:function set(e){this.value=e}},{key:'properties',set:function set(e){var o=this;Array.isArray(e)||(e=[e]),this._props=[];var s=void 0===this._merger,n=!0;e.forEach(function(l){if(o._props.push(l),o._propSetters.push(View.getSetter(l)),s){var d=View.getMerger(l);n?(o._merger=d,n=!1):o._merger!==d&&(console.warn('Merger conflicts for animation action properties: '+e.join(',')),o._merger=void 0)}})}},{key:'property',set:function set(e){this.properties=e}},{key:'p',set:function set(e){this.properties=e}},{key:'merger',set:function set(e){this._items.length&&console.trace('You should specify the merger before the values'),'numbers'===e?e=StageUtils.mergeNumbers:'colors'===e&&(e=StageUtils.mergeColors),this._merger=e}}]),o}(Base),AnimationActionItems=function(e){function o(e){_classCallCheck(this,o);var s=_possibleConstructorReturn(this,(o.__proto__||Object.getPrototypeOf(o)).call(this));return s._action=e,s._clear(),s}return _inherits(o,e),_createClass(o,[{key:'_clear',value:function _clear(){this._p=[],this._pe=[],this._idp=[],this._f=[],this._v=[],this._lv=[],this._sm=[],this._s=[],this._ve=[],this._sme=[],this._se=[],this._length=0}},{key:'parse',value:function parse(e){var o,s;Utils.isObjectLiteral(e)||(e={0:e});var n=[];for(var l in e)if(e.hasOwnProperty(l)){var _=e[l];Utils.isObjectLiteral(_)||(_={v:_});var u=parseFloat(l);!isNaN(u)&&0<=u&&2>=u&&(_.p=u,_.f=Utils.isFunction(_.v),_.lv=_.f?_.v(0,0):_.v,n.push(_))}for(n=n.sort(function(e,o){return e.p-o.p}),s=n.length,o=0;o<s;o++){var c=o==s-1;if(!n[o].hasOwnProperty('pe'))n[o].pe=c?1>=n[o].p?1:2:n[o+1].p;else{var x=o<s-1?n[o+1].p:1;n[o].pe>x&&(n[o].pe=x)}n[o].idp=n[o].pe===n[o].p?0:1/(n[o].pe-n[o].p)}if(this._action._merger){var h=this._action._merger===StageUtils.mergeColors;for(o=0;o<s;o++)if(n[o].hasOwnProperty('sm')||(n[o].sm=0.5),!n[o].hasOwnProperty('s'))if(0===o||o===s-1||1===n[o].p)n[o].s=h?[0,0,0,0]:0;else{var y=n[o-1],f=n[o+1];if(y.p===f.p)n[o].s=h?[0,0,0,0]:0;else if(h){var T=StageUtils.getRgbaComponents(f.lv),S=StageUtils.getRgbaComponents(y.lv),C=1/(f.p-y.p);n[o].s=[C*(T[0]-S[0]),C*(T[1]-S[1]),C*(T[2]-S[2]),C*(T[3]-S[3])]}else n[o].s=(f.lv-y.lv)/(f.p-y.p)}for(o=0;o<s-1;o++)if(!n[o].f){var d=o===s-1;n[o].hasOwnProperty('sme')||(n[o].sme=d?0.5:n[o+1].sm),n[o].hasOwnProperty('se')||(n[o].se=d?h?[0,0,0,0]:0:n[o+1].s),n[o].hasOwnProperty('ve')||(n[o].ve=d?n[o].lv:n[o+1].lv),n[o].v=h?StageUtils.getSplineRgbaValueFunction(n[o].v,n[o].ve,n[o].p,n[o].pe,n[o].sm,n[o].sme,n[o].s,n[o].se):StageUtils.getSplineValueFunction(n[o].v,n[o].ve,n[o].p,n[o].pe,n[o].sm,n[o].sme,n[o].s,n[o].se),n[o].f=!0}}for(this.length&&this._clear(),o=0,s=n.length;o<s;o++)this._add(n[o])}},{key:'_add',value:function _add(e){this._p.push(e.p||0),this._pe.push(e.pe||0),this._idp.push(e.idp||0),this._f.push(e.f||!1),this._v.push(e.hasOwnProperty('v')?e.v:0),this._lv.push(e.lv||0),this._sm.push(e.sm||0),this._s.push(e.s||0),this._ve.push(e.ve||0),this._sme.push(e.sme||0),this._se.push(e.se||0),this._length++}},{key:'_getItem',value:function _getItem(e){var o=this._length;if(!o)return-1;if(e<this._p[0])return-1;for(var s=0;s<o;s++)if(this._p[s]<=e&&e<this._pe[s])return s;return o-1}},{key:'getValue',value:function getValue(e){var s=this._getItem(e);if(-1!=s){if(this._f[s]){var n=(e-this._p[s])*this._idp[s];return this._v[s](n)}return this._v[s]}}},{key:'length',get:function get(){return this._length}}]),o}(Base),Animation=function(e){function o(e,s,n){_classCallCheck(this,o);var l=_possibleConstructorReturn(this,(o.__proto__||Object.getPrototypeOf(o)).call(this));return EventEmitter.call(l),l.manager=e,l._settings=s,l._view=n,l._state=o.STATES.IDLE,l}return _inherits(o,e),_createClass(o,[{key:'_properties',value:function _properties(){this._p=0,this._delayLeft=0,this._repeatsLeft=0,this._stopDelayLeft=0,this._stopP=0}},{key:'start',value:function start(){this._view&&this._view.isAttached()?(this._p=0,this._delayLeft=this.settings.delay,this._repeatsLeft=this.settings.repeat,this._state=o.STATES.PLAYING,this._eventsCount&&this.emit('start'),this.checkActive()):console.warn('View must be attached before starting animation')}},{key:'play',value:function play(){this._state==o.STATES.STOPPING&&this.settings.stopMethod==AnimationSettings.STOP_METHODS.REVERSE?(this._state=o.STATES.PLAYING,this._eventsCount&&this.emit('stopContinue')):this._state!=o.STATES.PLAYING&&this._state!=o.STATES.FINISHED&&this.start()}},{key:'replay',value:function replay(){this._state==o.STATES.FINISHED?this.start():this.play()}},{key:'skipDelay',value:function skipDelay(){this._delayLeft=0,this._stopDelayLeft=0}},{key:'finish',value:function finish(){this._state===o.STATES.PLAYING?(this._delayLeft=0,this._p=1):this._state===o.STATES.STOPPING&&(this._stopDelayLeft=0,this._p=0)}},{key:'stop',value:function stop(){this._state===o.STATES.STOPPED||this._state===o.STATES.IDLE||(this._stopDelayLeft=this.settings.stopDelay||0,this.settings.stopMethod===AnimationSettings.STOP_METHODS.IMMEDIATE&&!this._stopDelayLeft||0<this._delayLeft?(this._state=o.STATES.STOPPING,this._eventsCount&&this.emit('stop')):(this.settings.stopMethod===AnimationSettings.STOP_METHODS.FADE&&(this._stopP=0),this._state=o.STATES.STOPPING,this._eventsCount&&this.emit('stop')),this.checkActive())}},{key:'stopNow',value:function stopNow(){(this._state!==o.STATES.STOPPED||this._state!==o.STATES.IDLE)&&(this._state=o.STATES.STOPPING,this._p=0,this._eventsCount&&this.emit('stop'),this.reset(),this._state=o.STATES.STOPPED,this._eventsCount&&this.emit('stopFinish'))}},{key:'isPlaying',value:function isPlaying(){return this._state===o.STATES.PLAYING}},{key:'isStopping',value:function isStopping(){return this._state===o.STATES.STOPPING}},{key:'checkActive',value:function checkActive(){this.isActive()&&this.manager.addActive(this)}},{key:'isActive',value:function isActive(){return(this._state==o.STATES.PLAYING||this._state==o.STATES.STOPPING)&&this._view&&this._view.isAttached()}},{key:'progress',value:function progress(e){this._view&&(this._progress(e),this.apply())}},{key:'_progress',value:function _progress(e){if(this._state==o.STATES.STOPPING)return void this._stopProgress(e);if(this._state==o.STATES.PLAYING){if(0<this._delayLeft)if(this._delayLeft-=e,0>this._delayLeft)e=-this._delayLeft,this._delayLeft=0,this._eventsCount&&this.emit('delayEnd');else return;0===this.settings.duration?this._p=1:0<this.settings.duration&&(this._p+=e/this.settings.duration),1<=this._p?-1==this.settings.repeat||0<this._repeatsLeft?(0<this._repeatsLeft&&this._repeatsLeft--,this._p=this.settings.repeatOffset,this.settings.repeatDelay&&(this._delayLeft=this.settings.repeatDelay),this._eventsCount&&this.emit('repeat',this._repeatsLeft)):(this._p=1,this._state=o.STATES.FINISHED,this._eventsCount&&this.emit('finish'),this.settings.autostop&&this.stop()):this._eventsCount&&this.emit('progress',this._p)}}},{key:'_stopProgress',value:function _stopProgress(e){var s=this._getStopDuration();if(0<this._stopDelayLeft&&(this._state=o.STATES.STOPPED,this._eventsCount&&this.emit('stopFinish')),0<this._stopDelayLeft)if(this._stopDelayLeft-=e,0>this._stopDelayLeft)e=-this._stopDelayLeft,this._stopDelayLeft=0,this._eventsCount&&this.emit('stopDelayEnd');else return;this.settings.stopMethod==AnimationSettings.STOP_METHODS.IMMEDIATE?(this._state=o.STATES.STOPPED,this._eventsCount&&this.emit('stop'),this._eventsCount&&this.emit('stopFinish')):this.settings.stopMethod==AnimationSettings.STOP_METHODS.REVERSE?(0===s?this._p=0:0<s&&(this._p-=e/s),0>=this._p&&(this._p=0,this._state=o.STATES.STOPPED,this._eventsCount&&this.emit('stopFinish'))):this.settings.stopMethod==AnimationSettings.STOP_METHODS.FADE?(this._progressStopTransition(e),1<=this._stopP&&(this._p=0,this._state=o.STATES.STOPPED,this._eventsCount&&this.emit('stopFinish'))):this.settings.stopMethod==AnimationSettings.STOP_METHODS.ONETOTWO?2>this._p&&(0===s?this._p=2:0<s&&(1>this._p?this._p+=e/this.settings.duration:this._p+=e/s),2<=this._p?(this._p=2,this._state=o.STATES.STOPPED,this._eventsCount&&this.emit('stopFinish')):this._eventsCount&&this.emit('progress',this._p)):this.settings.stopMethod==AnimationSettings.STOP_METHODS.FORWARD&&1>this._p&&(0==this.settings.duration?this._p=1:this._p+=e/this.settings.duration,1<=this._p?this.settings.stopMethod==AnimationSettings.STOP_METHODS.FORWARD?(this._p=1,this._state=o.STATES.STOPPED,this._eventsCount&&this.emit('stopFinish')):0<this._repeatsLeft?(this._repeatsLeft--,this._p=0,this._eventsCount&&this.emit('repeat',this._repeatsLeft)):(this._p=1,this._state=o.STATES.STOPPED,this._eventsCount&&this.emit('stopFinish')):this._eventsCount&&this.emit('progress',this._p))}},{key:'_progressStopTransition',value:function _progressStopTransition(e){if(1>this._stopP){if(0<this._stopDelayLeft)if(this._stopDelayLeft-=e,0>this._stopDelayLeft)e=-this._stopDelayLeft,this._stopDelayLeft=0,this._eventsCount&&this.emit('delayEnd');else return;var o=this._getStopDuration();0==o?this._stopP=1:this._stopP+=e/o,1<=this._stopP&&(this._stopP=1)}}},{key:'_getStopDuration',value:function _getStopDuration(){return this.settings.stopDuration||this.settings.duration}},{key:'apply',value:function apply(){if(this._state==o.STATES.STOPPED)this.reset();else{var e=1;this._state===o.STATES.STOPPING&&this.settings.stopMethod===AnimationSettings.STOP_METHODS.FADE&&(e=1-this.settings.stopTimingFunctionImpl(this._stopP)),this._settings.apply(this._view,this._p,e)}}},{key:'reset',value:function reset(){this._settings.reset(this._view)}},{key:'state',get:function get(){return this._state}},{key:'p',get:function get(){return this._p}},{key:'delayLeft',get:function get(){return this._delayLeft}},{key:'view',get:function get(){return this._view}},{key:'frame',get:function get(){return Math.round(60*(p*this._settings.duration))}},{key:'settings',get:function get(){return this._settings}}]),o}(Base);Base.mixinEs5(Animation,EventEmitter),Animation.STATES={IDLE:0,PLAYING:1,STOPPING:2,STOPPED:3,FINISHED:4};var Tools=function(){function e(){_classCallCheck(this,e)}return _createClass(e,null,[{key:'getCanvasTexture',value:function getCanvasTexture(e,o){var s=2<arguments.length&&void 0!==arguments[2]?arguments[2]:{},n=3<arguments.length&&void 0!==arguments[3]?arguments[3]:{};return e.texture(function(e){var s=o,n={};Utils.isNode&&(s=o.toBuffer('raw'),n.w=o.width,n.h=o.height,n.premultiplyAlpha=!1,n.flipBlueRed=!0),e(null,s,n)},s)}},{key:'getRoundRect',value:function getRoundRect(o,s,n,l,d,_,u,c){var x=this.createRoundRect(o,s,n,l,d,_,u,c),h='rect'+[s,n,l,d,_,u?1:0,c].join(',');return e.getCanvasTexture(o,x,{id:h})}},{key:'createRoundRect',value:function createRoundRect(e,o,s,n,l,d,_,u){void 0===_&&(_=!0),void 0===l&&(l=0);var c=e.adapter.getDrawingCanvas(),h=c.getContext('2d');h.imageSmoothingEnabled=!0;'rect'+[o,s,n,l,d,_?1:0,u].join(',');c.width=o+l+2,c.height=s+l+2,h.beginPath();var f=0.5*l+1,x=0.5*l+1;return h.moveTo(f+n,x),h.lineTo(f+o-n,x),h.arcTo(f+o,x,f+o,x+n,n),h.lineTo(f+o,x+s-n),h.arcTo(f+o,x+s,f+o-n,x+s,n),h.lineTo(f+n,x+s),h.arcTo(f,x+s,f,x+s-n,n),h.lineTo(f,x+n),h.arcTo(f,x,f+n,x,n),_&&(h.fillStyle=Utils.isNumber(u)?StageUtils.getRgbaString(u):'white',h.fill()),l&&(h.strokeStyle=Utils.isNumber(d)?StageUtils.getRgbaString(d):'white',h.lineWidth=l,h.stroke()),c}}]),e}(),ListView=function(e){function o(e){_classCallCheck(this,o);var s=_possibleConstructorReturn(this,(o.__proto__||Object.getPrototypeOf(o)).call(this,e));return s._wrapper=_get(o.prototype.__proto__||Object.getPrototypeOf(o.prototype),'_children',s).a({}),s._reloadVisibleElements=!1,s._visibleItems=new Set,s._index=0,s._started=!1,s._scrollTransitionSettings=s.stage.transitions.createSettings({}),s._itemSize=100,s._viewportScrollOffset=0,s._itemScrollOffset=0,s._roll=!1,s._rollMin=0,s._rollMax=0,s._progressAnimation=null,s._invertDirection=!1,s._horizontal=!0,s}var n=Math.floor,s=Math.max,l=Math.min,d=Math.ceil;return _inherits(o,e),_createClass(o,[{key:'_getExposedChildList',value:function _getExposedChildList(){return new(function(e){function o(e,s){_classCallCheck(this,o);var n=_possibleConstructorReturn(this,(o.__proto__||Object.getPrototypeOf(o)).call(this,e));return n.list=s,n}return _inherits(o,e),_createClass(o,[{key:'addAt',value:function addAt(e,s){var n=e.stage.createView();n.add(e),n.visible=!1,_get(o.prototype.__proto__||Object.getPrototypeOf(o.prototype),'addAt',this).call(this,n,s),this.list._reloadVisibleElements=!0,this.list._started?(1===this.list.length&&this.list.setIndex(0,!0,!0),this.list.update()):this.list.start()}},{key:'getIndex',value:function getIndex(e){return _get(o.prototype.__proto__||Object.getPrototypeOf(o.prototype),'getIndex',this).call(this,e.parent)}},{key:'removeAt',value:function removeAt(e){var s=this.list.realIndex,n=_get(o.prototype.__proto__||Object.getPrototypeOf(o.prototype),'removeAt',this).call(this,e);return s===e?(s===this.list.length&&s--,0<=s&&this.list.setIndex(s)):s>e&&this.list.setIndex(s-1),this.list._reloadVisibleElements=!0,n._children.get()[0]}},{key:'get',value:function get(){return _get(o.prototype.__proto__||Object.getPrototypeOf(o.prototype),'get',this).call(this).map(function(e){return e._children.get()[0]})}},{key:'clear',value:function clear(){_get(o.prototype.__proto__||Object.getPrototypeOf(o.prototype),'clear',this).call(this),this.list._reloadVisibleElements=!0,this.list._index=0}}]),o}(ViewChildList))(this._wrapper,this)}},{key:'start',value:function start(){var e=this;this._wrapper.transition(this.property,this._scrollTransitionSettings),this._scrollTransition=this._wrapper.transition(this.property),this._scrollTransition.on('progress',function(){return e.update()}),this.setIndex(0,!0,!0),this.update(),this._started=!0}},{key:'setIndex',value:function setIndex(e){var n=1<arguments.length&&void 0!==arguments[1]&&arguments[1],d=2<arguments.length&&void 0!==arguments[2]&&arguments[2],_=this.length;if(_){if(this.emit('unfocus',this.getElement(this.realIndex),this._index,this.realIndex),d){var x=Utils.getModuloIndex(e,_),h=Utils.getModuloIndex(this.index,_),o=x-h;o>0.5*_?o-=_:o<-0.5*_&&(o+=_),this._index+=o}else this._index=e;(this._roll||this.viewportSize>this._itemSize*_)&&(this._index=Utils.getModuloIndex(this._index,_));var u=this._horizontal^this._invertDirection?-1:1,c=u*this._index*this._itemSize;if(this._roll){var y,f,T;if(1==u)f=(_-1)*this._itemSize,T=this._viewportScrollOffset*this.viewportSize-this._itemScrollOffset*this._itemSize,f-=T,y=this.viewportSize-(this._itemSize+T),this._rollMin&&(y-=this._rollMin),this._rollMax&&(f+=this._rollMax),c=s(l(c,f),y);else{f=_*this._itemSize-this.viewportSize,T=this._viewportScrollOffset*this.viewportSize-this._itemScrollOffset*this._itemSize,f+=T;var S=T;this._rollMin&&(S-=this._rollMin),this._rollMax&&(f+=this._rollMax),c=l(s(-f,c),-S)}}this._scrollTransition.start(c),n&&this._scrollTransition.finish(),this.emit('focus',this.getElement(this.realIndex),this._index,this.realIndex)}}},{key:'update',value:function update(){if(this._started){var o=this.length;if(o){var l=this._horizontal^this._invertDirection?-1:1,_=this._horizontal?this._wrapper.x:this._wrapper.y,u=this.viewportSize,c=this._viewportScrollOffset*u-this._itemScrollOffset*this._itemSize;_+=c;var x,s,e,h;-1==l?(x=n(-_/this._itemSize),e=1-(-_/this._itemSize-x),s=n((u-_)/this._itemSize),h=(u-_)/this._itemSize-s):(x=d(_/this._itemSize),e=1+_/this._itemSize-x,s=d((_-u)/this._itemSize),h=s-(_-u)/this._itemSize),(this._roll||u>this._itemSize*o)&&(s>=o&&(s=o-1,h=1),x>=o&&(x=o-1,e=1),-1>=s&&(s=0,h=1),-1>=x&&(x=0,e=1));for(var f=-l*x*this._itemSize,T=void 0,S=x;-1==l?S<=s:S>=s;-1==l?S++:S--){var C=Utils.getModuloIndex(S,o),k=this.getElement(C);T=k.parent,this._visibleItems.delete(T),this._horizontal?T.x=f+c:T.y=f+c;var w=T.visible;if(T.visible=!0,(!w||this._reloadVisibleElements)&&this.emit('visible',S,C),this._progressAnimation){var R=1;S==x?R=e:S==s&&(R=h),this._progressAnimation.apply(k,R)}f+=this._itemSize}var y=this;this._visibleItems.forEach(function(e){e.visible=!1,y._visibleItems.delete(e)});for(var E,P=x;-1==l?P<=s:P>=s;-1==l?P++:P--)E=Utils.getModuloIndex(P,o),this._visibleItems.add(this.getWrapper(E));this._reloadVisibleElements=!1}}}},{key:'setPrevious',value:function setPrevious(){this.setIndex(this._index-1)}},{key:'setNext',value:function setNext(){this.setIndex(this._index+1)}},{key:'getWrapper',value:function getWrapper(e){return this._wrapper.children[e]}},{key:'getElement',value:function getElement(o){var s=this._wrapper.children[o];return s?s.children[0]:null}},{key:'reload',value:function reload(){this._reloadVisibleElements=!0,this.update()}},{key:'element',get:function get(){var o=this._wrapper.children[this.realIndex];return o?o.children[0]:null}},{key:'length',get:function get(){return this._wrapper.children.length}},{key:'property',get:function get(){return this._horizontal?'x':'y'}},{key:'viewportSize',get:function get(){return this._horizontal?this.w:this.h}},{key:'index',get:function get(){return this._index}},{key:'realIndex',get:function get(){return Utils.getModuloIndex(this._index,this.length)}},{key:'itemSize',get:function get(){return this._itemSize},set:function set(e){this._itemSize=e,this.update()}},{key:'viewportScrollOffset',get:function get(){return this._viewportScrollOffset},set:function set(e){this._viewportScrollOffset=e,this.update()}},{key:'itemScrollOffset',get:function get(){return this._itemScrollOffset},set:function set(e){this._itemScrollOffset=e,this.update()}},{key:'scrollTransitionSettings',get:function get(){return this._scrollTransitionSettings},set:function set(e){this._scrollTransitionSettings.setSettings(e)}},{key:'scrollTransition',set:function set(e){this._scrollTransitionSettings.setSettings(e)},get:function get(){return this._scrollTransition}},{key:'progressAnimation',get:function get(){return this._progressAnimation},set:function set(e){this._progressAnimation=Utils.isObjectLiteral(e)?this.stage.animations.createSettings(e):e,this.update()}},{key:'roll',get:function get(){return this._roll},set:function set(e){this._roll=e,this.update()}},{key:'rollMin',get:function get(){return this._rollMin},set:function set(e){this._rollMin=e,this.update()}},{key:'rollMax',get:function get(){return this._rollMax},set:function set(e){this._rollMax=e,this.update()}},{key:'invertDirection',get:function get(){return this._invertDirection},set:function set(e){this._started||(this._invertDirection=e)}},{key:'horizontal',get:function get(){return this._horizontal},set:function set(e){e===this._horizontal||this._started||(this._horizontal=e)}}]),o}(View);ListView.NUMBER_PROPERTIES=new Set(['viewportScrollOffset','itemScrollOffset']);var BorderView=function(e){function o(e){_classCallCheck(this,o);var s=_possibleConstructorReturn(this,(o.__proto__||Object.getPrototypeOf(o)).call(this,e));return s._wrapper=_get(o.prototype.__proto__||Object.getPrototypeOf(o.prototype),'_children',s).a({}),s._borderTop=_get(o.prototype.__proto__||Object.getPrototypeOf(o.prototype),'_children',s).a({rect:!0,visible:!1,mountY:1}),s._borderRight=_get(o.prototype.__proto__||Object.getPrototypeOf(o.prototype),'_children',s).a({rect:!0,visible:!1}),s._borderBottom=_get(o.prototype.__proto__||Object.getPrototypeOf(o.prototype),'_children',s).a({rect:!0,visible:!1}),s._borderLeft=_get(o.prototype.__proto__||Object.getPrototypeOf(o.prototype),'_children',s).a({rect:!0,visible:!1,mountX:1}),s._updateLayout=!1,s.visitExit=function(e,o){var s=1===e.children.length,n=s&&2&e.children[0]._core._recalc||o||e._updateLayout;if(n){1===e.children.length&&(e.w=e.children[0].renderWidth,e.h=e.children[0].renderHeight);var l=e.renderWidth,d=e.renderHeight;e._borderTop.w=l,e._borderBottom.y=d,e._borderBottom.w=l,e._borderLeft.h=d+e._borderTop.h+e._borderBottom.h,e._borderLeft.y=-e._borderTop.h,e._borderRight.x=l,e._borderRight.h=d+e._borderTop.h+e._borderBottom.h,e._borderRight.y=-e._borderTop.h,e._wrapper.w=l,e._wrapper.h=d,e._updateLayout=!1}},s}return _inherits(o,e),_createClass(o,[{key:'_getExposedChildList',value:function _getExposedChildList(){return this._wrapper._children}},{key:'borderWidth',get:function get(){return this.borderWidthTop},set:function set(e){this.borderWidthTop=e,this.borderWidthRight=e,this.borderWidthBottom=e,this.borderWidthLeft=e}},{key:'borderWidthTop',get:function get(){return this._borderTop.h},set:function set(e){this._borderTop.h=e,this._borderTop.visible=0<e,this._updateLayout=!0}},{key:'borderWidthRight',get:function get(){return this._borderRight.w},set:function set(e){this._borderRight.w=e,this._borderRight.visible=0<e,this._updateLayout=!0}},{key:'borderWidthBottom',get:function get(){return this._borderBottom.h},set:function set(e){this._borderBottom.h=e,this._borderBottom.visible=0<e,this._updateLayout=!0}},{key:'borderWidthLeft',get:function get(){return this._borderLeft.w},set:function set(e){this._borderLeft.w=e,this._borderLeft.visible=0<e,this._updateLayout=!0}},{key:'borderColor',get:function get(){return this.borderColorTop},set:function set(e){this.borderColorTop=e,this.borderColorRight=e,this.borderColorBottom=e,this.borderColorLeft=e}},{key:'borderColorTop',get:function get(){return this._borderTop.color},set:function set(e){this._borderTop.color=e}},{key:'borderColorRight',get:function get(){return this._borderRight.color},set:function set(e){this._borderRight.color=e}},{key:'borderColorBottom',get:function get(){return this._borderBottom.color},set:function set(e){this._borderBottom.color=e}},{key:'borderColorLeft',get:function get(){return this._borderLeft.color},set:function set(e){this._borderLeft.color=e}},{key:'borderTop',get:function get(){return this._borderTop},set:function set(e){this.borderTop.setSettings(e)}},{key:'borderRight',get:function get(){return this._borderRight},set:function set(e){this.borderRight.setSettings(e)}},{key:'borderBottom',get:function get(){return this._borderBottom},set:function set(e){this.borderBottom.setSettings(e)}},{key:'borderLeft',get:function get(){return this._borderLeft},set:function set(e){this.borderLeft.setSettings(e)}},{key:'borders',set:function set(e){this.borderTop=e,this.borderLeft=e,this.borderBottom=e,this.borderRight=e}},{key:'clipping',get:function get(){return this._wrapper.clipping},set:function set(e){this._wrapper.clipping=e}}]),o}(View);BorderView.NUMBER_PROPERTIES=new Set(['borderWidth','borderWidthTop','borderWidthRight','borderWidthBottom','borderWidthLeft']),BorderView.COLOR_PROPERTIES=new Set(['borderColor','borderColorTop','borderColorRight','borderColorBottom','borderColorLeft']);var FastBlurView=function(e){function o(e){_classCallCheck(this,o);var s=_possibleConstructorReturn(this,(o.__proto__||Object.getPrototypeOf(o)).call(this,e)),n=o.getFastBoxBlurShader(e.ctx),l=s._children;l.a([{renderToTexture:!1,hideResultTexture:!0,children:[{}]},{children:[{renderToTexture:!0,hideResultTexture:!0,visible:!1,children:[{shader:n}]},{renderToTexture:!0,hideResultTexture:!0,visible:!1,children:[{shader:n}]},{renderToTexture:!0,hideResultTexture:!0,visible:!1,children:[{shader:n}]},{renderToTexture:!0,hideResultTexture:!0,visible:!1,children:[{shader:n}]}]},{shader:{type:FastBlurOutputShader},visible:!1}]),s._textwrap=l.get()[0],s._wrapper=s._textwrap.children[0],s._layers=l.get()[1].children,s._output=l.get()[2],s.getLayerContents(0).texture=s._textwrap.getResultTextureSource(),s.getLayerContents(1).texture=s.getLayer(0).getResultTextureSource(),s.getLayerContents(2).texture=s.getLayer(1).getResultTextureSource(),s.getLayerContents(3).texture=s.getLayer(2).getResultTextureSource();var d=o.getLinearBlurFilters(e.ctx);return s.getLayer(1).filters=[d[0],d[1]],s.getLayer(2).filters=[d[2],d[3],d[0],d[1]],s.getLayer(3).filters=[d[2],d[3],d[0],d[1]],s._amount=0,s._paddingX=0,s._paddingY=0,s}return _inherits(o,e),_createClass(o,[{key:'_getExposedChildList',value:function _getExposedChildList(){return this._wrapper._children}},{key:'getLayer',value:function getLayer(e){return this._layers[e]}},{key:'getLayerContents',value:function getLayerContents(e){return this.getLayer(e).children[0]}},{key:'_updateDimensions',value:function _updateDimensions(){_get(o.prototype.__proto__||Object.getPrototypeOf(o.prototype),'_updateDimensions',this).call(this)&&this._updateBlurSize()}},{key:'_updateBlurSize',value:function _updateBlurSize(){var e=this.renderWidth,o=this.renderHeight,s=this._paddingX,n=this._paddingY,l=e+2*s,d=o+2*n;this._textwrap.w=l,this._wrapper.x=s,this.getLayer(0).w=this.getLayerContents(0).w=l/2,this.getLayer(1).w=this.getLayerContents(1).w=l/4,this.getLayer(2).w=this.getLayerContents(2).w=l/8,this.getLayer(3).w=this.getLayerContents(3).w=l/16,this._output.x=-s,this._textwrap.x=-s,this._output.w=l,this._textwrap.h=d,this._wrapper.y=n,this.getLayer(0).h=this.getLayerContents(0).h=d/2,this.getLayer(1).h=this.getLayerContents(1).h=d/4,this.getLayer(2).h=this.getLayerContents(2).h=d/8,this.getLayer(3).h=this.getLayerContents(3).h=d/16,this._output.y=-n,this._textwrap.y=-n,this._output.h=d,this.w=e,this.h=o}},{key:'_update',value:function _update(){var e=Math.min(4,Math.max(0,this._amount));0===e?(this._textwrap.renderToTexture=!1,this._output.shader.otherTextureSource=null,this._output.visible=!1):(this._textwrap.renderToTexture=!0,this._output.visible=!0,this.getLayer(0).visible=0<e,this.getLayer(1).visible=1<e,this.getLayer(2).visible=2<e,this.getLayer(3).visible=3<e,1>=e?(this._output.texture=this._textwrap.getResultTextureSource(),this._output.shader.otherTextureSource=this.getLayer(0).getResultTextureSource(),this._output.shader.a=e):2>=e?(this._output.texture=this.getLayer(0).getResultTextureSource(),this._output.shader.otherTextureSource=this.getLayer(1).getResultTextureSource(),this._output.shader.a=e-1):3>=e?(this._output.texture=this.getLayer(1).getResultTextureSource(),this._output.shader.otherTextureSource=this.getLayer(2).getResultTextureSource(),this._output.shader.a=e-2):4>=e&&(this._output.texture=this.getLayer(2).getResultTextureSource(),this._output.shader.otherTextureSource=this.getLayer(3).getResultTextureSource(),this._output.shader.a=e-3))}},{key:'padding',set:function set(e){this._paddingX=e,this._paddingY=e,this._updateBlurSize()}},{key:'paddingX',set:function set(e){this.paddingX=e,this._updateBlurSize()}},{key:'paddingY',set:function set(e){this.paddingY=e,this._updateBlurSize()}},{key:'amount',set:function set(e){this._amount=e,this._update()},get:function get(){return this._amount}}],[{key:'getFastBoxBlurShader',value:function getFastBoxBlurShader(e){return o.fastBoxBlurShader||(o.fastBoxBlurShader=new FastBoxBlurShader(e)),o.fastBoxBlurShader}},{key:'getLinearBlurFilters',value:function getLinearBlurFilters(e){if(!o.linearBlurFilters){o.linearBlurFilters=[];var s=new LinearBlurFilter(e);s.x=1,s.y=0,s.kernelRadius=1,o.linearBlurFilters.push(s),s=new LinearBlurFilter(e),s.x=0,s.y=1,s.kernelRadius=1,o.linearBlurFilters.push(s),s=new LinearBlurFilter(e),s.x=1.5,s.y=0,s.kernelRadius=1,o.linearBlurFilters.push(s),s=new LinearBlurFilter(e),s.x=0,s.y=1.5,s.kernelRadius=1,o.linearBlurFilters.push(s)}return o.linearBlurFilters}}]),o}(View);FastBlurView.NUMBER_PROPERTIES=new Set(['amount']);var FastBoxBlurShader=function(e){function o(e){return _classCallCheck(this,o),_possibleConstructorReturn(this,(o.__proto__||Object.getPrototypeOf(o)).call(this,e))}return _inherits(o,e),_createClass(o,[{key:'getVertexShaderSource',value:function getVertexShaderSource(){return o.vertexShaderSource}},{key:'getFragmentShaderSource',value:function getFragmentShaderSource(){return o.fragmentShaderSource}},{key:'setupUniforms',value:function setupUniforms(e){_get(o.prototype.__proto__||Object.getPrototypeOf(o.prototype),'setupUniforms',this).call(this,e);var s=1/e.getTextureWidth(0),n=1/e.getTextureHeight(0);this._setUniform('stepTextureCoord',new Float32Array([s,n]),this.gl.uniform2fv)}}]),o}(Shader);FastBoxBlurShader.vertexShaderSource='\n    #ifdef GL_ES\n    precision lowp float;\n    #endif\n    uniform vec2 stepTextureCoord;\n    attribute vec2 aVertexPosition;\n    attribute vec2 aTextureCoord;\n    attribute vec4 aColor;\n    uniform vec2 projection;\n    varying vec4 vColor;\n    varying vec2 vTextureCoordUl;\n    varying vec2 vTextureCoordUr;\n    varying vec2 vTextureCoordBl;\n    varying vec2 vTextureCoordBr;\n    void main(void){\n        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);\n        vTextureCoordUl = aTextureCoord - stepTextureCoord;\n        vTextureCoordBr = aTextureCoord + stepTextureCoord;\n        vTextureCoordUr = vec2(vTextureCoordBr.x, vTextureCoordUl.y);\n        vTextureCoordBl = vec2(vTextureCoordUl.x, vTextureCoordBr.y);\n        vColor = aColor;\n        gl_Position.y = -sign(projection.y) * gl_Position.y;\n    }\n',FastBoxBlurShader.fragmentShaderSource='\n    #ifdef GL_ES\n    precision lowp float;\n    #endif\n    varying vec2 vTextureCoordUl;\n    varying vec2 vTextureCoordUr;\n    varying vec2 vTextureCoordBl;\n    varying vec2 vTextureCoordBr;\n    varying vec4 vColor;\n    uniform sampler2D uSampler;\n    void main(void){\n        vec4 color = 0.25 * (texture2D(uSampler, vTextureCoordUl) + texture2D(uSampler, vTextureCoordUr) + texture2D(uSampler, vTextureCoordBl) + texture2D(uSampler, vTextureCoordBr));\n        gl_FragColor = color * vColor;\n    }\n';var FastBlurOutputShader=function(e){function o(e){_classCallCheck(this,o);var s=_possibleConstructorReturn(this,(o.__proto__||Object.getPrototypeOf(o)).call(this,e));return s._a=0,s._otherTextureSource=null,s}return _inherits(o,e),_createClass(o,[{key:'getFragmentShaderSource',value:function getFragmentShaderSource(){return o.fragmentShaderSource}},{key:'setupUniforms',value:function setupUniforms(e){_get(o.prototype.__proto__||Object.getPrototypeOf(o.prototype),'setupUniforms',this).call(this,e),this._setUniform('a',this._a,this.gl.uniform1f),this._setUniform('uSampler2',1,this.gl.uniform1i)}},{key:'beforeDraw',value:function beforeDraw(){var e=this._otherTextureSource?this._otherTextureSource.glTexture:null,o=this.gl;o.activeTexture(o.TEXTURE1),o.bindTexture(o.TEXTURE_2D,e),o.activeTexture(o.TEXTURE0)}},{key:'isMergable',value:function isMergable(e){return _get(o.prototype.__proto__||Object.getPrototypeOf(o.prototype),'isMergable',this).call(this,e)&&e._otherTextureSource===this._otherTextureSource}},{key:'a',get:function get(){return this._a},set:function set(e){this._a=e,this.redraw()}},{key:'otherTextureSource',set:function set(e){this._otherTextureSource=e,this.redraw()}}]),o}(Shader);FastBlurOutputShader.fragmentShaderSource='\n    #ifdef GL_ES\n    precision lowp float;\n    #endif\n    varying vec2 vTextureCoord;\n    varying vec4 vColor;\n    uniform sampler2D uSampler;\n    uniform sampler2D uSampler2;\n    uniform float a;\n    void main(void){\n        if (a == 1.0) {\n            gl_FragColor = texture2D(uSampler2, vTextureCoord) * vColor;\n        } else {\n            gl_FragColor = ((1.0 - a) * texture2D(uSampler, vTextureCoord) + (a * texture2D(uSampler2, vTextureCoord))) * vColor;\n        }\n    }\n';var Light3dShader=function(e){function o(e){_classCallCheck(this,o);var s=_possibleConstructorReturn(this,(o.__proto__||Object.getPrototypeOf(o)).call(this,e));return s._strength=0.5,s._ambient=0.5,s._fudge=0.4,s._rx=0,s._ry=0,s._z=0,s}return _inherits(o,e),_createClass(o,[{key:'getVertexShaderSource',value:function getVertexShaderSource(){return o.vertexShaderSource}},{key:'getFragmentShaderSource',value:function getFragmentShaderSource(){return o.fragmentShaderSource}},{key:'supportsTextureAtlas',value:function supportsTextureAtlas(){return!0}},{key:'supportsMerging',value:function supportsMerging(){return!1}},{key:'setupUniforms',value:function setupUniforms(e){_get(o.prototype.__proto__||Object.getPrototypeOf(o.prototype),'setupUniforms',this).call(this,e);var s=e.shaderOwner,n=s.view,l=s.getRenderTextureCoords(n.pivotX*s.rw,n.pivotY*s.rh),d=-Math.atan2(s._renderContext.tc,s._renderContext.ta),_=this.gl;this._setUniform('pivot',new Float32Array([l[0],l[1],this._z]),_.uniform3fv),this._setUniform('rot',new Float32Array([this._rx,this._ry,d]),_.uniform3fv),this._setUniform('strength',this._strength,_.uniform1f),this._setUniform('ambient',this._ambient,_.uniform1f),this._setUniform('fudge',this._fudge,_.uniform1f)}},{key:'strength',set:function set(e){this._strength=e,this.redraw()},get:function get(){return this._strength}},{key:'ambient',set:function set(e){this._ambient=e,this.redraw()},get:function get(){return this._ambient}},{key:'fudge',set:function set(e){this._fudge=e,this.redraw()},get:function get(){return this._fudge}},{key:'rx',get:function get(){return this._rx},set:function set(e){this._rx=e,this.redraw()}},{key:'ry',get:function get(){return this._ry},set:function set(e){this._ry=e,this.redraw()}},{key:'z',get:function get(){return this._z},set:function set(e){this._z=e,this.redraw()}}]),o}(Shader);Light3dShader.vertexShaderSource='\n    #ifdef GL_ES\n    precision lowp float;\n    #endif\n    attribute vec2 aVertexPosition;\n    attribute vec2 aTextureCoord;\n    attribute vec4 aColor;\n    uniform vec2 projection;\n    varying vec2 vTextureCoord;\n    varying vec4 vColor;\n\n    uniform float fudge;\n    uniform float strength;\n    uniform float ambient;\n    uniform vec3 pivot;\n    uniform vec3 rot;\n    varying float light;\n\n    void main(void) {\n        vec3 pos = vec3(aVertexPosition.xy, pivot.z);\n        \n        pos -= pivot;\n\n        /* Undo XY rotation */\n        mat2 iRotXy = mat2( cos(rot.z), sin(rot.z), \n                           -sin(rot.z), cos(rot.z));\n        pos.xy = iRotXy * pos.xy;\n        \n        /* Perform 3d rotations */\n        gl_Position.x = cos(rot.x) * pos.x - sin(rot.x) * pos.z;\n        gl_Position.y = pos.y;\n        gl_Position.z = sin(rot.x) * pos.x + cos(rot.x) * pos.z;\n        \n        pos.y = cos(rot.y) * gl_Position.y - sin(rot.y) * gl_Position.z;\n        gl_Position.z = sin(rot.y) * gl_Position.y + cos(rot.y) * gl_Position.z;\n        gl_Position.y = pos.y;\n        \n        /* Redo XY rotation */\n        iRotXy[0][1] = -iRotXy[0][1];\n        iRotXy[1][0] = -iRotXy[1][0];\n        gl_Position.xy = iRotXy * gl_Position.xy; \n\n        /* Undo translate to pivot position */\n        gl_Position.xyz += pivot;\n        \n        /* Set depth perspective */\n        float perspective = 1.0 + fudge * gl_Position.z * projection.x;\n\n        /* Map coords to gl coordinate space. */\n        gl_Position = vec4(gl_Position.x * projection.x - 1.0, gl_Position.y * -abs(projection.y) + 1.0, 0.0, perspective);\n        \n        /* Set z to 0 because we don\'t want to perform z-clipping */\n        gl_Position.z = 0.0;\n\n        /* Use texture normal to calculate light strength */ \n        light = ambient + strength * abs(cos(rot.y) * cos(rot.x));\n        \n        vTextureCoord = aTextureCoord;\n        vColor = aColor;\n        \n        gl_Position.y = -sign(projection.y) * gl_Position.y;\n    }\n',Light3dShader.fragmentShaderSource='\n    #ifdef GL_ES\n    precision lowp float;\n    #endif\n    varying vec2 vTextureCoord;\n    varying vec4 vColor;\n    varying float light;\n    uniform sampler2D uSampler;\n    void main(void){\n        vec4 rgba = texture2D(uSampler, vTextureCoord);\n        rgba.rgb = rgba.rgb * light;\n        gl_FragColor = rgba * vColor;\n    }\n';var PixelateShader=function(e){function o(e){_classCallCheck(this,o);var s=_possibleConstructorReturn(this,(o.__proto__||Object.getPrototypeOf(o)).call(this,e));return s._size=new Float32Array([4,4]),s}return _inherits(o,e),_createClass(o,[{key:'getVertexShaderSource',value:function getVertexShaderSource(){return o.vertexShaderSource}},{key:'getFragmentShaderSource',value:function getFragmentShaderSource(){return o.fragmentShaderSource}},{key:'setupUniforms',value:function setupUniforms(e){_get(o.prototype.__proto__||Object.getPrototypeOf(o.prototype),'setupUniforms',this).call(this,e);var s=this.gl;this._setUniform('size',new Float32Array(this._size),s.uniform2fv)}},{key:'getExtraAttribBytesPerVertex',value:function getExtraAttribBytesPerVertex(){return 8}},{key:'enableAttribs',value:function enableAttribs(){_get(o.prototype.__proto__||Object.getPrototypeOf(o.prototype),'enableAttribs',this).call(this),this.gl.enableVertexAttribArray(this._attrib('aTextureRes'))}},{key:'disableAttribs',value:function disableAttribs(){_get(o.prototype.__proto__||Object.getPrototypeOf(o.prototype),'disableAttribs',this).call(this),this.gl.disableVertexAttribArray(this._attrib('aTextureRes'))}},{key:'setExtraAttribsInBuffer',value:function setExtraAttribsInBuffer(e){for(var o=e.extraAttribsDataByteOffset/4,s=e.quads.floats,n=e.length,l=0;l<n;l++){var d=e.quads.getTextureWidth(e.index+l),_=e.quads.getTextureHeight(e.index+l);s[o]=d,s[o+1]=_,s[o+2]=d,s[o+3]=_,s[o+4]=d,s[o+5]=_,s[o+6]=d,s[o+7]=_,o+=8}}},{key:'beforeDraw',value:function beforeDraw(e){var o=this.gl;o.vertexAttribPointer(this._attrib('aTextureRes'),2,o.FLOAT,!1,this.getExtraAttribBytesPerVertex(),this.getVertexAttribPointerOffset(e))}},{key:'useDefault',value:function useDefault(){return 0===this._size[0]&&0===this._size[1]}},{key:'x',get:function get(){return this._size[0]},set:function set(e){this._size[0]=e,this.redraw()}},{key:'y',get:function get(){return this._size[1]},set:function set(e){this._size[1]=e,this.redraw()}},{key:'size',get:function get(){return this._size[0]},set:function set(e){this._size[0]=e,this._size[1]=e,this.redraw()}}]),o}(Shader);PixelateShader.vertexShaderSource='\n    #ifdef GL_ES\n    precision lowp float;\n    #endif\n    attribute vec2 aVertexPosition;\n    attribute vec2 aTextureCoord;\n    attribute vec4 aColor;\n    attribute vec2 aTextureRes;\n    uniform vec2 projection;\n    varying vec2 vTextureCoord;\n    varying vec4 vColor;\n    varying vec2 vTextureRes;\n    void main(void){\n        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);\n        vTextureCoord = aTextureCoord;\n        vColor = aColor;\n        vTextureRes = aTextureRes;\n        gl_Position.y = -sign(projection.y) * gl_Position.y;\n    }\n',PixelateShader.fragmentShaderSource='\n    #ifdef GL_ES\n    precision lowp float;\n    #endif\n    varying vec2 vTextureCoord;\n    varying vec4 vColor;\n    varying vec2 vTextureRes;\n\n    uniform vec2 size;\n    uniform sampler2D uSampler;\n    \n    vec2 mapCoord( vec2 coord )\n    {\n        coord *= vTextureRes.xy;\n        return coord;\n    }\n    \n    vec2 unmapCoord( vec2 coord )\n    {\n        coord /= vTextureRes.xy;\n        return coord;\n    }\n    \n    vec2 pixelate(vec2 coord, vec2 size)\n    {\n        return floor( coord / size ) * size;\n    }\n    \n    void main(void)\n    {\n        vec2 coord = mapCoord(vTextureCoord);\n        coord = pixelate(coord, size);\n        coord = unmapCoord(coord);\n        gl_FragColor = texture2D(uSampler, coord) * vColor;\n    }\n';var InversionShader=function(e){function o(){return _classCallCheck(this,o),_possibleConstructorReturn(this,(o.__proto__||Object.getPrototypeOf(o)).apply(this,arguments))}return _inherits(o,e),_createClass(o,[{key:'getFragmentShaderSource',value:function getFragmentShaderSource(){return o.fragmentShaderSource}}]),o}(Shader);InversionShader.fragmentShaderSource='\n    #ifdef GL_ES\n    precision lowp float;\n    #endif\n    varying vec2 vTextureCoord;\n    varying vec4 vColor;\n    uniform sampler2D uSampler;\n    void main(void){\n        vec4 color = texture2D(uSampler, vTextureCoord);\n        color.rgb = 1.0 - color.rgb; \n        gl_FragColor = color * vColor;\n    }\n';var FxaaFilter=function(e){function o(e){return _classCallCheck(this,o),_possibleConstructorReturn(this,(o.__proto__||Object.getPrototypeOf(o)).call(this,e))}return _inherits(o,e),_createClass(o,[{key:'getVertexShaderSource',value:function getVertexShaderSource(){return Filter.vertexShaderSource}},{key:'getFragmentShaderSource',value:function getFragmentShaderSource(){return o.fragmentShaderSource}}]),o}(Filter);FxaaFilter.fxaa='\n    #ifndef FXAA_REDUCE_MIN\n        #define FXAA_REDUCE_MIN   (1.0/ 128.0)\n    #endif\n    #ifndef FXAA_REDUCE_MUL\n        #define FXAA_REDUCE_MUL   (1.0 / 8.0)\n    #endif\n    #ifndef FXAA_SPAN_MAX\n        #define FXAA_SPAN_MAX     8.0\n    #endif\n    \n    //optimized version for mobile, where dependent \n    //texture reads can be a bottleneck\n    vec4 fxaa(sampler2D tex, vec2 fragCoord, vec2 resolution,\n            vec2 v_rgbNW, vec2 v_rgbNE, \n            vec2 v_rgbSW, vec2 v_rgbSE, \n            vec2 v_rgbM) {\n            \n        vec4 color;\n        vec2 inverseVP = vec2(1.0 / resolution.x, 1.0 / resolution.y);\n        vec3 rgbNW = texture2D(tex, v_rgbNW).xyz;\n        vec3 rgbNE = texture2D(tex, v_rgbNE).xyz;\n        vec3 rgbSW = texture2D(tex, v_rgbSW).xyz;\n        vec3 rgbSE = texture2D(tex, v_rgbSE).xyz;\n        vec4 texColor = texture2D(tex, v_rgbM);\n        vec3 rgbM  = texColor.xyz;\n        vec3 luma = vec3(0.299, 0.587, 0.114);\n        float lumaNW = dot(rgbNW, luma);\n        float lumaNE = dot(rgbNE, luma);\n        float lumaSW = dot(rgbSW, luma);\n        float lumaSE = dot(rgbSE, luma);\n        float lumaM  = dot(rgbM,  luma);\n        float lumaMin = min(lumaM, min(min(lumaNW, lumaNE), min(lumaSW, lumaSE)));\n        float lumaMax = max(lumaM, max(max(lumaNW, lumaNE), max(lumaSW, lumaSE)));\n        \n        vec2 dir;\n        dir.x = -((lumaNW + lumaNE) - (lumaSW + lumaSE));\n        dir.y =  ((lumaNW + lumaSW) - (lumaNE + lumaSE));\n        \n        float dirReduce = max((lumaNW + lumaNE + lumaSW + lumaSE) *\n                              (0.25 * FXAA_REDUCE_MUL), FXAA_REDUCE_MIN);\n        \n        float rcpDirMin = 1.0 / (min(abs(dir.x), abs(dir.y)) + dirReduce);\n        dir = min(vec2(FXAA_SPAN_MAX, FXAA_SPAN_MAX),\n                  max(vec2(-FXAA_SPAN_MAX, -FXAA_SPAN_MAX),\n                  dir * rcpDirMin)) * inverseVP;\n        \n        vec3 rgbA = 0.5 * (\n            texture2D(tex, fragCoord * inverseVP + dir * (1.0 / 3.0 - 0.5)).xyz +\n            texture2D(tex, fragCoord * inverseVP + dir * (2.0 / 3.0 - 0.5)).xyz);\n        vec3 rgbB = rgbA * 0.5 + 0.25 * (\n            texture2D(tex, fragCoord * inverseVP + dir * -0.5).xyz +\n            texture2D(tex, fragCoord * inverseVP + dir * 0.5).xyz);\n    \n        float lumaB = dot(rgbB, luma);\n        if ((lumaB < lumaMin) || (lumaB > lumaMax))\n            color = vec4(rgbA, texColor.a);\n        else\n            color = vec4(rgbB, texColor.a);\n        return color;\n    }\n    \n    void texcoords(vec2 fragCoord, vec2 resolution,\n            out vec2 v_rgbNW, out vec2 v_rgbNE,\n            out vec2 v_rgbSW, out vec2 v_rgbSE,\n            out vec2 v_rgbM) {\n        \n        vec2 inverseVP = 1.0 / resolution.xy;\n        v_rgbNW = (fragCoord + vec2(-1.0, -1.0)) * inverseVP;\n        v_rgbNE = (fragCoord + vec2(1.0, -1.0)) * inverseVP;\n        v_rgbSW = (fragCoord + vec2(-1.0, 1.0)) * inverseVP;\n        v_rgbSE = (fragCoord + vec2(1.0, 1.0)) * inverseVP;\n        v_rgbM = vec2(fragCoord * inverseVP);\n    }\n    vec4 apply(sampler2D tex, vec2 fragCoord, vec2 resolution) {\n        vec2 v_rgbNW;\n        vec2 v_rgbNE;\n        vec2 v_rgbSW;\n        vec2 v_rgbSE;\n        vec2 v_rgbM;\n    \n        //compute the texture coords\n        texcoords(fragCoord, resolution, v_rgbNW, v_rgbNE, v_rgbSW, v_rgbSE, v_rgbM);\n        \n        //compute FXAA\n        return fxaa(tex, fragCoord, resolution, v_rgbNW, v_rgbNE, v_rgbSW, v_rgbSE, v_rgbM);\n    }    \n',FxaaFilter.fragmentShaderSource='\n    #ifdef GL_ES\n    precision lowp float;\n    #endif\n    \n    '+FxaaFilter.fxaa+'\n    \n    uniform vec2 resolution;\n    uniform sampler2D uSampler;\n    void main(void){\n        gl_FragColor = apply(uSampler, gl_FragCoord.xy, resolution);\n    }\n    \n';var InversionFilter=function(e){function o(e){return _classCallCheck(this,o),_possibleConstructorReturn(this,(o.__proto__||Object.getPrototypeOf(o)).call(this,e))}return _inherits(o,e),_createClass(o,[{key:'getFragmentShaderSource',value:function getFragmentShaderSource(){return o.fragmentShaderSource}}]),o}(Filter);InversionFilter.fragmentShaderSource='\n    #ifdef GL_ES\n    precision lowp float;\n    #endif\n    varying vec2 vTextureCoord;\n    uniform sampler2D uSampler;\n    void main(void){\n        vec4 color = texture2D(uSampler, vTextureCoord);\n        color.rgb = 1.0 - color.rgb; \n        gl_FragColor = color;\n    }\n';var BlurFilter=function(e){function o(e){_classCallCheck(this,o);var s=_possibleConstructorReturn(this,(o.__proto__||Object.getPrototypeOf(o)).call(this,e));return s.ctx=e,s._kernelRadius=1,s._steps=[],s.steps=1,s}return _inherits(o,e),_createClass(o,[{key:'useDefault',value:function useDefault(){return 0===this._size||0===this._kernelRadius}},{key:'getFilters',value:function getFilters(){return this._steps}},{key:'kernelRadius',get:function get(){return this._kernelRadius},set:function set(e){this._kernelRadius=e,this._steps.forEach(function(o){return o._kernelRadius=e}),this.redraw()}},{key:'steps',get:function get(){return this._size},set:function set(e){this._size=Math.round(e);var o=this._steps.length/2;if(o<this._size){for(var s,n=[],l=o+1;l<=this._size;l++)s=new LinearBlurFilter(this.ctx),s._direction[0]=l,s._kernelRadius=this._kernelRadius,n.push(s),s=new LinearBlurFilter(this.ctx),s._kernelRadius=this._kernelRadius,s._direction[1]=l,n.push(s);this._steps=this._steps.concat(add),this.redraw()}else if(o>this._size){var d=o-this._size;this._steps.splice(2*-d),this.redraw()}}}]),o}(Filter),LinearBlurFilter=function(e){function o(e){_classCallCheck(this,o);var s=_possibleConstructorReturn(this,(o.__proto__||Object.getPrototypeOf(o)).call(this,e));return s._direction=new Float32Array([0,0]),s._kernelRadius=1,s}return _inherits(o,e),_createClass(o,[{key:'getFragmentShaderSource',value:function getFragmentShaderSource(){return o.fragmentShaderSource}},{key:'setupUniforms',value:function setupUniforms(e){_get(o.prototype.__proto__||Object.getPrototypeOf(o.prototype),'setupUniforms',this).call(this,e),this._setUniform('direction',this._direction,this.gl.uniform2fv),this._setUniform('kernelRadius',this._kernelRadius,this.gl.uniform1i)}},{key:'x',get:function get(){return this._direction[0]},set:function set(e){this._direction[0]=e,this.redraw()}},{key:'y',get:function get(){return this._direction[1]},set:function set(e){this._direction[1]=e,this.redraw()}},{key:'kernelRadius',get:function get(){return this._kernelRadius},set:function set(e){this._kernelRadius=e,this.redraw()}}]),o}(Filter);LinearBlurFilter.fragmentShaderSource='\n    #ifdef GL_ES\n    precision lowp float;\n    #endif\n    uniform vec2 resolution;\n    varying vec2 vTextureCoord;\n    uniform sampler2D uSampler;\n    uniform vec2 direction;\n    uniform int kernelRadius;\n    \n    vec4 blur1(sampler2D image, vec2 uv, vec2 resolution, vec2 direction) {\n        vec4 color = vec4(0.0);\n        vec2 off1 = vec2(1.3333333333333333) * direction;\n        color += texture2D(image, uv) * 0.29411764705882354;\n        color += texture2D(image, uv + (off1 / resolution)) * 0.35294117647058826;\n        color += texture2D(image, uv - (off1 / resolution)) * 0.35294117647058826;\n        return color; \n    }\n    \n    vec4 blur2(sampler2D image, vec2 uv, vec2 resolution, vec2 direction) {\n        vec4 color = vec4(0.0);\n        vec2 off1 = vec2(1.3846153846) * direction;\n        vec2 off2 = vec2(3.2307692308) * direction;\n        color += texture2D(image, uv) * 0.2270270270;\n        color += texture2D(image, uv + (off1 / resolution)) * 0.3162162162;\n        color += texture2D(image, uv - (off1 / resolution)) * 0.3162162162;\n        color += texture2D(image, uv + (off2 / resolution)) * 0.0702702703;\n        color += texture2D(image, uv - (off2 / resolution)) * 0.0702702703;\n        return color;\n    }\n    \n    vec4 blur3(sampler2D image, vec2 uv, vec2 resolution, vec2 direction) {\n        vec4 color = vec4(0.0);\n        vec2 off1 = vec2(1.411764705882353) * direction;\n        vec2 off2 = vec2(3.2941176470588234) * direction;\n        vec2 off3 = vec2(5.176470588235294) * direction;\n        color += texture2D(image, uv) * 0.1964825501511404;\n        color += texture2D(image, uv + (off1 / resolution)) * 0.2969069646728344;\n        color += texture2D(image, uv - (off1 / resolution)) * 0.2969069646728344;\n        color += texture2D(image, uv + (off2 / resolution)) * 0.09447039785044732;\n        color += texture2D(image, uv - (off2 / resolution)) * 0.09447039785044732;\n        color += texture2D(image, uv + (off3 / resolution)) * 0.010381362401148057;\n        color += texture2D(image, uv - (off3 / resolution)) * 0.010381362401148057;\n        return color;\n    }    \n\n    void main(void){\n        if (kernelRadius == 0) {\n            gl_FragColor = texture2D(uSampler, vTextureCoord);\n        } else if (kernelRadius == 1) {\n            gl_FragColor = blur1(uSampler, vTextureCoord, resolution, direction);\n        } else if (kernelRadius == 2) {\n            gl_FragColor = blur2(uSampler, vTextureCoord, resolution, direction);\n        } else {\n            gl_FragColor = blur3(uSampler, vTextureCoord, resolution, direction);\n        }\n    }\n';
+'use strict';
+
+var _get = function get(object, property, receiver) { if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { return get(parent, property, receiver); } } else if ("value" in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } };
+
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var has = Object.prototype.hasOwnProperty;
+var prefix = '~';
+
+function Events() {}
+
+if (Object.create) {
+    Events.prototype = Object.create(null);
+
+    if (!new Events().__proto__) prefix = false;
+}
+
+function EE(fn, context, once) {
+    this.fn = fn;
+    this.context = context;
+    this.once = once || false;
+}
+
+function EventEmitter() {
+    this._events = new Events();
+    this._eventsCount = 0;
+}
+
+EventEmitter.prototype.eventNames = function eventNames() {
+    var names = [],
+        events,
+        name;
+
+    if (this._eventsCount === 0) return names;
+
+    for (name in events = this._events) {
+        if (has.call(events, name)) names.push(prefix ? name.slice(1) : name);
+    }
+
+    if (Object.getOwnPropertySymbols) {
+        return names.concat(Object.getOwnPropertySymbols(events));
+    }
+
+    return names;
+};
+
+EventEmitter.prototype.listeners = function listeners(event, exists) {
+    var evt = prefix ? prefix + event : event,
+        available = this._events[evt];
+
+    if (exists) return !!available;
+    if (!available) return [];
+    if (available.fn) return [available.fn];
+
+    for (var i = 0, l = available.length, ee = new Array(l); i < l; i++) {
+        ee[i] = available[i].fn;
+    }
+
+    return ee;
+};
+
+EventEmitter.prototype.emit = function emit(event, a1, a2, a3, a4, a5) {
+    var evt = prefix ? prefix + event : event;
+
+    if (!this._events[evt]) return false;
+
+    var listeners = this._events[evt],
+        len = arguments.length,
+        args,
+        i;
+
+    if (listeners.fn) {
+        if (listeners.once) this.removeListener(event, listeners.fn, undefined, true);
+
+        switch (len) {
+            case 1:
+                return listeners.fn.call(listeners.context), true;
+            case 2:
+                return listeners.fn.call(listeners.context, a1), true;
+            case 3:
+                return listeners.fn.call(listeners.context, a1, a2), true;
+            case 4:
+                return listeners.fn.call(listeners.context, a1, a2, a3), true;
+            case 5:
+                return listeners.fn.call(listeners.context, a1, a2, a3, a4), true;
+            case 6:
+                return listeners.fn.call(listeners.context, a1, a2, a3, a4, a5), true;
+        }
+
+        for (i = 1, args = new Array(len - 1); i < len; i++) {
+            args[i - 1] = arguments[i];
+        }
+
+        listeners.fn.apply(listeners.context, args);
+    } else {
+        var length = listeners.length,
+            j;
+
+        for (i = 0; i < length; i++) {
+            if (listeners[i].once) this.removeListener(event, listeners[i].fn, undefined, true);
+
+            switch (len) {
+                case 1:
+                    listeners[i].fn.call(listeners[i].context);break;
+                case 2:
+                    listeners[i].fn.call(listeners[i].context, a1);break;
+                case 3:
+                    listeners[i].fn.call(listeners[i].context, a1, a2);break;
+                case 4:
+                    listeners[i].fn.call(listeners[i].context, a1, a2, a3);break;
+                default:
+                    if (!args) for (j = 1, args = new Array(len - 1); j < len; j++) {
+                        args[j - 1] = arguments[j];
+                    }
+
+                    listeners[i].fn.apply(listeners[i].context, args);
+            }
+        }
+    }
+
+    return true;
+};
+
+EventEmitter.prototype.on = function on(event, fn, context) {
+    var listener = new EE(fn, context || this),
+        evt = prefix ? prefix + event : event;
+
+    if (!this._events[evt]) this._events[evt] = listener, this._eventsCount++;else if (!this._events[evt].fn) this._events[evt].push(listener);else this._events[evt] = [this._events[evt], listener];
+
+    return this;
+};
+
+EventEmitter.prototype.once = function once(event, fn, context) {
+    var listener = new EE(fn, context || this, true),
+        evt = prefix ? prefix + event : event;
+
+    if (!this._events[evt]) this._events[evt] = listener, this._eventsCount++;else if (!this._events[evt].fn) this._events[evt].push(listener);else this._events[evt] = [this._events[evt], listener];
+
+    return this;
+};
+
+EventEmitter.prototype.removeListener = function removeListener(event, fn, context, once) {
+    var evt = prefix ? prefix + event : event;
+
+    if (!this._events[evt]) return this;
+    if (!fn) {
+        if (--this._eventsCount === 0) this._events = new Events();else delete this._events[evt];
+        return this;
+    }
+
+    var listeners = this._events[evt];
+
+    if (listeners.fn) {
+        if (listeners.fn === fn && (!once || listeners.once) && (!context || listeners.context === context)) {
+            if (--this._eventsCount === 0) this._events = new Events();else delete this._events[evt];
+        }
+    } else {
+        for (var i = 0, events = [], length = listeners.length; i < length; i++) {
+            if (listeners[i].fn !== fn || once && !listeners[i].once || context && listeners[i].context !== context) {
+                events.push(listeners[i]);
+            }
+        }
+
+        if (events.length) this._events[evt] = events.length === 1 ? events[0] : events;else if (--this._eventsCount === 0) this._events = new Events();else delete this._events[evt];
+    }
+
+    return this;
+};
+
+EventEmitter.prototype.removeAllListeners = function removeAllListeners(event) {
+    var evt;
+
+    if (event) {
+        evt = prefix ? prefix + event : event;
+        if (this._events[evt]) {
+            if (--this._eventsCount === 0) this._events = new Events();else delete this._events[evt];
+        }
+    } else {
+        this._events = new Events();
+        this._eventsCount = 0;
+    }
+
+    return this;
+};
+
+EventEmitter.prototype.off = EventEmitter.prototype.removeListener;
+EventEmitter.prototype.addListener = EventEmitter.prototype.on;
+
+EventEmitter.prototype.setMaxListeners = function setMaxListeners() {
+    return this;
+};
+
+EventEmitter.prefixed = prefix;
+
+EventEmitter.EventEmitter = EventEmitter;
+
+if ('undefined' !== typeof module) {}
+
+var WebAdapter = function () {
+    function WebAdapter() {
+        _classCallCheck(this, WebAdapter);
+    }
+
+    _createClass(WebAdapter, [{
+        key: 'init',
+        value: function init(stage) {
+            this.stage = stage;
+            this.canvas = null;
+            this._looping = false;
+            this._awaitingLoop = false;
+        }
+    }, {
+        key: 'startLoop',
+        value: function startLoop() {
+            this._looping = true;
+            if (!this._awaitingLoop) {
+                this.loop();
+            }
+        }
+    }, {
+        key: 'stopLoop',
+        value: function stopLoop() {
+            this._looping = false;
+        }
+    }, {
+        key: 'loop',
+        value: function loop() {
+            var self = this;
+            var lp = function lp() {
+                self._awaitingLoop = false;
+                if (self._looping) {
+                    self.stage.drawFrame();
+                    requestAnimationFrame(lp);
+                    self._awaitingLoop = true;
+                }
+            };
+            lp();
+        }
+    }, {
+        key: 'uploadGlTexture',
+        value: function uploadGlTexture(gl, textureSource, source, hasAlpha) {
+            var format = hasAlpha ? gl.RGBA : gl.RGB;
+
+            if (source instanceof ImageData || source instanceof HTMLImageElement || source instanceof HTMLCanvasElement || source instanceof HTMLVideoElement || window.ImageBitmap && source instanceof ImageBitmap) {
+                gl.texImage2D(gl.TEXTURE_2D, 0, format, format, gl.UNSIGNED_BYTE, source);
+            } else {
+                gl.texImage2D(gl.TEXTURE_2D, 0, format, textureSource.w, textureSource.h, 0, format, gl.UNSIGNED_BYTE, source);
+            }
+        }
+    }, {
+        key: 'loadSrcTexture',
+        value: function loadSrcTexture(src, ts, sync, cb) {
+            var isPng = src.indexOf(".png") >= 0;
+            if (window.OffthreadImage && OffthreadImage.available) {
+                var element = document.createElement('DIV');
+                element.setAttribute('alt', '.');
+                var image = new OffthreadImage(element);
+                element.addEventListener('painted', function () {
+                    var canvas = element.childNodes[0];
+
+                    cb(null, canvas, { renderInfo: { src: src }, hasAlpha: true, premultiplyAlpha: true });
+                });
+                image.src = src;
+            } else {
+                var _image = new Image();
+                if (!(src.substr(0, 5) == "data:")) {
+                    _image.crossOrigin = "Anonymous";
+                }
+                _image.onerror = function (err) {
+                    return cb("Image load error");
+                };
+                _image.onload = function () {
+                    cb(null, _image, { renderInfo: { src: src }, hasAlpha: isPng });
+                };
+                _image.src = src;
+            }
+        }
+    }, {
+        key: 'loadTextTexture',
+        value: function loadTextTexture(settings, ts, sync, cb) {
+            var tr = new TextRenderer(this.getDrawingCanvas(), settings);
+            var rval = tr.draw();
+            var renderInfo = rval.renderInfo;
+
+            var options = { renderInfo: renderInfo, precision: rval.renderInfo.precision };
+            var data = rval.canvas;
+            cb(null, data, options);
+        }
+    }, {
+        key: 'createWebGLContext',
+        value: function createWebGLContext(w, h) {
+            var canvas = this.stage.options.canvas || document.createElement('canvas');
+
+            canvas.width = w;
+            canvas.height = h;
+
+            var opts = {
+                alpha: true,
+                antialias: false,
+                premultipliedAlpha: true,
+                stencil: true,
+                preserveDrawingBuffer: false
+            };
+
+            var gl = canvas.getContext('webgl', opts) || canvas.getContext('experimental-webgl', opts);
+            if (!gl) {
+                throw new Error('This browser does not support webGL.');
+            }
+
+            this.canvas = canvas;
+
+            return gl;
+        }
+    }, {
+        key: 'getWebGLCanvas',
+        value: function getWebGLCanvas() {
+            return this.canvas;
+        }
+    }, {
+        key: 'getHrTime',
+        value: function getHrTime() {
+            return window.performance ? window.performance.now() : new Date().getTime();
+        }
+    }, {
+        key: 'getDrawingCanvas',
+        value: function getDrawingCanvas() {
+            return document.createElement('canvas');
+        }
+    }, {
+        key: 'nextFrame',
+        value: function nextFrame(changes) {}
+    }]);
+
+    return WebAdapter;
+}();
+
+var Base = function () {
+    function Base() {
+        _classCallCheck(this, Base);
+
+        var proto = Object.getPrototypeOf(this);
+        if (!Base.protoReady.has(proto)) {
+            Base.initPrototype(proto);
+        }
+    }
+
+    _createClass(Base, [{
+        key: '_properties',
+        value: function _properties() {}
+    }, {
+        key: 'setSettings',
+        value: function setSettings(settings) {
+            Base.setObjectSettings(this, settings);
+        }
+    }], [{
+        key: 'initPrototype',
+        value: function initPrototype(proto) {
+            if (!Base.protoReady.has(proto)) {
+                var stack = [];
+
+                while (proto) {
+                    if (!Base.protoReady.has(proto)) {
+                        stack.push(proto);
+                    }
+                    Base.protoReady.add(proto);
+                    proto = Object.getPrototypeOf(proto);
+                }
+
+                for (var _i = stack.length - 1; _i >= 0; _i--) {
+                    proto = stack[_i];
+
+                    if (proto.hasOwnProperty('_properties')) {
+                        proto._properties();
+                    }
+                }
+            }
+        }
+    }, {
+        key: 'mixinEs5',
+        value: function mixinEs5(superclass, extra) {
+            var proto = extra.prototype;
+
+            var props = Object.getOwnPropertyNames(proto);
+            for (var _i2 = 0; _i2 < props.length; _i2++) {
+                var key = props[_i2];
+                var desc = Object.getOwnPropertyDescriptor(proto, key);
+                if (key !== 'constructor' && desc.configurable) {
+                    if (superclass.prototype[key]) {
+                        console.warn('Mixin overwrites ' + key);
+                    } else {
+                        Object.defineProperty(superclass.prototype, key, desc);
+                    }
+                }
+            }
+
+            return superclass;
+        }
+    }, {
+        key: 'setObjectSettings',
+        value: function setObjectSettings(obj, settings) {
+            for (var name in settings) {
+                if (settings.hasOwnProperty(name) && name != 'type') {
+                    var _v = settings[name];
+                    if (Utils.isObjectLiteral(_v) && Utils.isObject(obj[name])) {
+                        var p = obj[name];
+                        if (p.setSettings) {
+                            p.setSettings(_v);
+                        } else {
+                            Base.setObjectSettings(p, _v);
+                        }
+                    } else {
+                        obj[name] = _v;
+                    }
+                }
+            }
+        }
+    }]);
+
+    return Base;
+}();
+
+Base.protoReady = new WeakSet();
+
+var Utils = function () {
+    function Utils() {
+        _classCallCheck(this, Utils);
+    }
+
+    _createClass(Utils, null, [{
+        key: 'isFunction',
+        value: function isFunction(value) {
+            return typeof value === 'function';
+        }
+    }, {
+        key: 'isNumber',
+        value: function isNumber(value) {
+            return typeof value === 'number';
+        }
+    }, {
+        key: 'isInteger',
+        value: function isInteger(value) {
+            return typeof value === 'number' && value % 1 === 0;
+        }
+    }, {
+        key: 'isBoolean',
+        value: function isBoolean(value) {
+            return value === true || value === false;
+        }
+    }, {
+        key: 'isString',
+        value: function isString(value) {
+            return typeof value == 'string';
+        }
+    }, {
+        key: 'cloneObj',
+        value: function cloneObj(obj) {
+            var keys = Object.keys(obj);
+            var clone = {};
+            for (var _i3 = 0; _i3 < keys.length; _i3++) {
+                clone[keys[_i3]] = obj[keys[_i3]];
+            }
+            return clone;
+        }
+    }, {
+        key: 'merge',
+        value: function merge(obj1, obj2) {
+            var keys = Object.keys(obj2);
+            for (var _i4 = 0; _i4 < keys.length; _i4++) {
+                obj1[keys[_i4]] = obj2[keys[_i4]];
+            }
+            return obj1;
+        }
+    }, {
+        key: 'isObject',
+        value: function isObject(value) {
+            var type = typeof value === 'undefined' ? 'undefined' : _typeof(value);
+            return !!value && (type == 'object' || type == 'function');
+        }
+    }, {
+        key: 'isPlainObject',
+        value: function isPlainObject(value) {
+            var type = typeof value === 'undefined' ? 'undefined' : _typeof(value);
+            return !!value && type == 'object';
+        }
+    }, {
+        key: 'isObjectLiteral',
+        value: function isObjectLiteral(value) {
+            return (typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object' && value && value.constructor === Object;
+        }
+    }, {
+        key: 'getArrayIndex',
+        value: function getArrayIndex(index, arr) {
+            return Utils.getModuloIndex(index, arr.length);
+        }
+    }, {
+        key: 'getModuloIndex',
+        value: function getModuloIndex(index, len) {
+            if (len == 0) return index;
+            while (index < 0) {
+                index += Math.ceil(-index / len) * len;
+            }
+            index = index % len;
+            return index;
+        }
+    }, {
+        key: 'getDeepClone',
+        value: function getDeepClone(obj) {
+            var i = void 0,
+                c = void 0;
+            if (Utils.isFunction(obj)) {
+                return obj;
+            }
+            if (Utils.isArray(obj)) {
+                c = [];
+                var keys = Object.keys(obj);
+                for (i = 0; i < keys.length; i++) {
+                    c[keys[i]] = Utils.getDeepClone(obj[keys[i]]);
+                }
+                return c;
+            } else if (Utils.isObject(obj)) {
+                c = {};
+                var _keys = Object.keys(obj);
+                for (i = 0; i < _keys.length; i++) {
+                    c[_keys[i]] = Utils.getDeepClone(obj[_keys[i]]);
+                }
+                return c;
+            } else {
+                return obj;
+            }
+        }
+    }, {
+        key: 'setToArray',
+        value: function setToArray(s) {
+            var result = [];
+            s.forEach(function (value) {
+                result.push(value);
+            });
+            return result;
+        }
+    }, {
+        key: 'iteratorToArray',
+        value: function iteratorToArray(iterator) {
+            var result = [];
+            var iteratorResult = iterator.next();
+            while (!iteratorResult.done) {
+                result.push(iteratorResult.value);
+                iteratorResult = iterator.next();
+            }
+            return result;
+        }
+    }]);
+
+    return Utils;
+}();
+
+Utils.isNode = typeof window === "undefined";
+
+var StageUtils = function () {
+    function StageUtils() {
+        _classCallCheck(this, StageUtils);
+    }
+
+    _createClass(StageUtils, null, [{
+        key: 'mergeNumbers',
+        value: function mergeNumbers(v1, v2, p) {
+            return v1 * p + v2 * (1 - p);
+        }
+    }, {
+        key: 'rgb',
+        value: function rgb(r, g, b) {
+            return (r << 16) + (g << 8) + b + 255 * 16777216;
+        }
+    }, {
+        key: 'rgba',
+        value: function rgba(r, g, b, a) {
+            return (r << 16) + (g << 8) + b + (a * 255 | 0) * 16777216;
+        }
+    }, {
+        key: 'getRgbaString',
+        value: function getRgbaString(color) {
+            var r = (color / 65536 | 0) % 256;
+            var g = (color / 256 | 0) % 256;
+            var b = color % 256;
+            var a = (color / 16777216 | 0) / 255;
+            return 'rgba(' + r + ',' + g + ',' + b + ',' + a.toFixed(4) + ')';
+        }
+    }, {
+        key: 'getRgbaComponentsNormalized',
+        value: function getRgbaComponentsNormalized(argb) {
+            var r = (argb / 65536 | 0) % 256;
+            var g = (argb / 256 | 0) % 256;
+            var b = argb % 256;
+            var a = argb / 16777216 | 0;
+            return [r / 255, g / 255, b / 255, a / 255];
+        }
+    }, {
+        key: 'getRgbaComponents',
+        value: function getRgbaComponents(argb) {
+            var r = (argb / 65536 | 0) % 256;
+            var g = (argb / 256 | 0) % 256;
+            var b = argb % 256;
+            var a = argb / 16777216 | 0;
+            return [r, g, b, a];
+        }
+    }, {
+        key: 'getArgbNumber',
+        value: function getArgbNumber(rgba) {
+            rgba[0] = Math.max(0, Math.min(255, rgba[0]));
+            rgba[1] = Math.max(0, Math.min(255, rgba[1]));
+            rgba[2] = Math.max(0, Math.min(255, rgba[2]));
+            rgba[3] = Math.max(0, Math.min(255, rgba[3]));
+            var v = ((rgba[3] | 0) << 24) + ((rgba[0] | 0) << 16) + ((rgba[1] | 0) << 8) + (rgba[2] | 0);
+            if (v < 0) {
+                v = 0xFFFFFFFF + v + 1;
+            }
+            return v;
+        }
+    }, {
+        key: 'mergeColors',
+        value: function mergeColors(c1, c2, p) {
+            var r1 = (c1 / 65536 | 0) % 256;
+            var g1 = (c1 / 256 | 0) % 256;
+            var b1 = c1 % 256;
+            var a1 = c1 / 16777216 | 0;
+
+            var r2 = (c2 / 65536 | 0) % 256;
+            var g2 = (c2 / 256 | 0) % 256;
+            var b2 = c2 % 256;
+            var a2 = c2 / 16777216 | 0;
+
+            var r = r1 * p + r2 * (1 - p) | 0;
+            var g = g1 * p + g2 * (1 - p) | 0;
+            var b = b1 * p + b2 * (1 - p) | 0;
+            var a = a1 * p + a2 * (1 - p) | 0;
+
+            return a * 16777216 + r * 65536 + g * 256 + b;
+        }
+    }, {
+        key: 'mergeMultiColors',
+        value: function mergeMultiColors(c, p) {
+            var r = 0,
+                g = 0,
+                b = 0,
+                a = 0,
+                t = 0;
+            var n = c.length;
+            for (var _i5 = 0; _i5 < n; _i5++) {
+                var r1 = (c[_i5] / 65536 | 0) % 256;
+                var g1 = (c[_i5] / 256 | 0) % 256;
+                var b1 = c[_i5] % 256;
+                var a1 = c[_i5] / 16777216 | 0;
+                r += r1 * p[_i5];
+                g += g1 * p[_i5];
+                b += b1 * p[_i5];
+                a += a1 * p[_i5];
+                t += p[_i5];
+            }
+
+            t = 1 / t;
+            return (a * t | 0) * 16777216 + (r * t | 0) * 65536 + (g * t | 0) * 256 + (b * t | 0);
+        }
+    }, {
+        key: 'mergeMultiColorsEqual',
+        value: function mergeMultiColorsEqual(c) {
+            var r = 0,
+                g = 0,
+                b = 0,
+                a = 0,
+                t = 0;
+            var n = c.length;
+            for (var _i6 = 0; _i6 < n; _i6++) {
+                var r1 = (c[_i6] / 65536 | 0) % 256;
+                var g1 = (c[_i6] / 256 | 0) % 256;
+                var b1 = c[_i6] % 256;
+                var a1 = c[_i6] / 16777216 | 0;
+                r += r1;
+                g += g1;
+                b += b1;
+                a += a1;
+                t += 1.0;
+            }
+
+            t = 1 / t;
+            return (a * t | 0) * 16777216 + (r * t | 0) * 65536 + (g * t | 0) * 256 + (b * t | 0);
+        }
+    }, {
+        key: 'rad',
+        value: function rad(deg) {
+            return deg * (Math.PI / 180);
+        }
+    }, {
+        key: 'getTimingBezier',
+        value: function getTimingBezier(a, b, c, d) {
+            var xc = 3.0 * a;
+            var xb = 3.0 * (c - a) - xc;
+            var xa = 1.0 - xc - xb;
+            var yc = 3.0 * b;
+            var yb = 3.0 * (d - b) - yc;
+            var ya = 1.0 - yc - yb;
+
+            return function (time) {
+                if (time >= 1.0) {
+                    return 1;
+                }
+                if (time <= 0) {
+                    return 0;
+                }
+
+                var t = 0.5,
+                    cbx = void 0,
+                    cbxd = void 0,
+                    dx = void 0;
+
+                for (var _it = 0; _it < 20; _it++) {
+                    cbx = t * (t * (t * xa + xb) + xc);
+                    dx = time - cbx;
+                    if (dx > -1e-8 && dx < 1e-8) {
+                        return t * (t * (t * ya + yb) + yc);
+                    }
+
+                    cbxd = t * (t * (3 * xa) + 2 * xb) + xc;
+
+                    if (cbxd > 1e-10 && cbxd < 1e-10) {
+                        break;
+                    }
+
+                    t += dx / cbxd;
+                }
+
+                var minT = 0;
+                var maxT = 1;
+                for (it = 0; it < 20; it++) {
+                    t = 0.5 * (minT + maxT);
+
+                    cbx = t * (t * (t * xa + xb) + xc);
+
+                    dx = time - cbx;
+                    if (dx > -1e-8 && dx < 1e-8) {
+                        return t * (t * (t * ya + yb) + yc);
+                    }
+
+                    if (dx < 0) {
+                        maxT = t;
+                    } else {
+                        minT = t;
+                    }
+                }
+            };
+        }
+    }, {
+        key: 'getTimingFunction',
+        value: function getTimingFunction(str) {
+            switch (str) {
+                case "linear":
+                    return function (time) {
+                        return time;
+                    };
+                case "ease":
+                    return StageUtils.getTimingBezier(0.25, 0.1, 0.25, 1.0);
+                case "ease-in":
+                    return StageUtils.getTimingBezier(0.42, 0, 1.0, 1.0);
+                case "ease-out":
+                    return StageUtils.getTimingBezier(0, 0, 0.58, 1.0);
+                case "ease-in-out":
+                    return StageUtils.getTimingBezier(0.42, 0, 0.58, 1.0);
+                case "step-start":
+                    return function () {
+                        return 1;
+                    };
+                case "step-end":
+                    return function (time) {
+                        return time === 1 ? 1 : 0;
+                    };
+                default:
+                    var s = "cubic-bezier(";
+                    if (str && str.indexOf(s) === 0) {
+                        var parts = str.substr(s.length, str.length - s.length - 1).split(",");
+                        if (parts.length !== 4) {
+                            console.warn("Unknown timing function: " + str);
+
+                            return function (time) {
+                                return time;
+                            };
+                        }
+                        var a = parseFloat(parts[0]);
+                        var b = parseFloat(parts[1]);
+                        var c = parseFloat(parts[2]);
+                        var d = parseFloat(parts[3]);
+                        if (isNaN(a) || isNaN(b) || isNaN(c) || isNaN(d)) {
+                            console.warn("Unknown timing function: " + str);
+
+                            return function (time) {
+                                return time;
+                            };
+                        }
+
+                        return StageUtils.getTimingBezier(a, b, c, d);
+                    } else {
+                        console.warn("Unknown timing function: " + str);
+
+                        return function (time) {
+                            return time;
+                        };
+                    }
+            }
+        }
+    }, {
+        key: 'getSplineValueFunction',
+        value: function getSplineValueFunction(v1, v2, p1, p2, o1, i2, s1, s2) {
+            var dp = p2 - p1;
+            s1 *= dp;
+            s2 *= dp;
+
+            var helpers = StageUtils.getSplineHelpers(v1, v2, o1, i2, s1, s2);
+            if (!helpers) {
+                return function (p) {
+                    if (p == 0) return v1;
+                    if (p == 1) return v2;
+
+                    return v2 * p + v1 * (1 - p);
+                };
+            } else {
+                return function (p) {
+                    if (p == 0) return v1;
+                    if (p == 1) return v2;
+                    return StageUtils.calculateSpline(helpers, p);
+                };
+            }
+        }
+    }, {
+        key: 'getSplineRgbaValueFunction',
+        value: function getSplineRgbaValueFunction(v1, v2, p1, p2, o1, i2, s1, s2) {
+            var dp = p2 - p1;
+            s1[0] *= dp;
+            s1[1] *= dp;
+            s1[2] *= dp;
+            s1[3] *= dp;
+            s2[0] *= dp;
+            s2[1] *= dp;
+            s2[2] *= dp;
+            s2[3] *= dp;
+
+            var cv1 = StageUtils.getRgbaComponents(v1);
+            var cv2 = StageUtils.getRgbaComponents(v2);
+
+            var helpers = [StageUtils.getSplineHelpers(cv1[0], cv2[0], o1, i2, s1[0], s2[0]), StageUtils.getSplineHelpers(cv1[1], cv2[1], o1, i2, s1[1], s2[1]), StageUtils.getSplineHelpers(cv1[2], cv2[2], o1, i2, s1[2], s2[2]), StageUtils.getSplineHelpers(cv1[3], cv2[3], o1, i2, s1[3], s2[3])];
+
+            if (!helpers[0]) {
+                return function (p) {
+                    if (p == 0) return v1;
+                    if (p == 1) return v2;
+
+                    return StageUtils.mergeColors(v2, v1, p);
+                };
+            } else {
+                return function (p) {
+                    if (p == 0) return v1;
+                    if (p == 1) return v2;
+
+                    return StageUtils.getArgbNumber([Math.min(255, StageUtils.calculateSpline(helpers[0], p)), Math.min(255, StageUtils.calculateSpline(helpers[1], p)), Math.min(255, StageUtils.calculateSpline(helpers[2], p)), Math.min(255, StageUtils.calculateSpline(helpers[3], p))]);
+                };
+            }
+        }
+    }, {
+        key: 'getSplineHelpers',
+        value: function getSplineHelpers(v1, v2, o1, i2, s1, s2) {
+            if (!o1 && !i2) {
+                return null;
+            }
+
+            var csx = o1;
+            var csy = v1 + s1 * o1;
+            var cex = 1 - i2;
+            var cey = v2 - s2 * i2;
+
+            var xa = 3 * csx - 3 * cex + 1;
+            var xb = -6 * csx + 3 * cex;
+            var xc = 3 * csx;
+
+            var ya = 3 * csy - 3 * cey + v2 - v1;
+            var yb = 3 * (cey + v1) - 6 * csy;
+            var yc = 3 * (csy - v1);
+            var yd = v1;
+
+            return [xa, xb, xc, ya, yb, yc, yd];
+        }
+    }, {
+        key: 'calculateSpline',
+        value: function calculateSpline(helpers, p) {
+            var xa = helpers[0];
+            var xb = helpers[1];
+            var xc = helpers[2];
+            var ya = helpers[3];
+            var yb = helpers[4];
+            var yc = helpers[5];
+            var yd = helpers[6];
+
+            if (xa == -2 && ya == -2 && xc == 0 && yc == 0) {
+                return p;
+            }
+
+            var t = 0.5,
+                cbx = void 0,
+                dx = void 0;
+
+            for (var _it2 = 0; _it2 < 20; _it2++) {
+                cbx = t * (t * (t * xa + xb) + xc);
+
+                dx = p - cbx;
+                if (dx > -1e-8 && dx < 1e-8) {
+                    return t * (t * (t * ya + yb) + yc) + yd;
+                }
+
+                var cbxd = t * (t * (3 * xa) + 2 * xb) + xc;
+
+                if (cbxd > 1e-10 && cbxd < 1e-10) {
+                    break;
+                }
+
+                t += dx / cbxd;
+            }
+
+            var minT = 0;
+            var maxT = 1;
+            for (it = 0; it < 20; it++) {
+                t = 0.5 * (minT + maxT);
+
+                cbx = t * (t * (t * xa + xb) + xc);
+
+                dx = p - cbx;
+                if (dx > -1e-8 && dx < 1e-8) {
+                    return t * (t * (t * ya + yb) + yc) + yd;
+                }
+
+                if (dx < 0) {
+                    maxT = t;
+                } else {
+                    minT = t;
+                }
+            }
+
+            return t;
+        }
+    }]);
+
+    return StageUtils;
+}();
+
+var Stage = function (_Base) {
+    _inherits(Stage, _Base);
+
+    function Stage(options) {
+        _classCallCheck(this, Stage);
+
+        var _this = _possibleConstructorReturn(this, (Stage.__proto__ || Object.getPrototypeOf(Stage)).call(this));
+
+        EventEmitter.call(_this);
+
+        _this.setOptions(options);
+
+        _this.init();
+        return _this;
+    }
+
+    _createClass(Stage, [{
+        key: 'setOptions',
+        value: function setOptions(o) {
+            var _this2 = this;
+
+            this.options = o;
+
+            var opt = function opt(name, def) {
+                var value = o[name];
+
+                if (value === undefined) {
+                    _this2.options[name] = def;
+                } else {
+                    _this2.options[name] = value;
+                }
+            };
+
+            opt('w', 1280);
+            opt('h', 720);
+            opt('canvas', this.options.canvas);
+            opt('renderWidth', this.options.w);
+            opt('renderHeight', this.options.h);
+            opt('srcBasePath', null);
+            opt('textureMemory', 12e6);
+            opt('renderTexturePoolPixels', 12e6);
+            opt('glClearColor', [0, 0, 0, 0]);
+            opt('defaultFontFace', 'Sans-Serif');
+            opt('defaultPrecision', this.options.h / this.options.renderHeight);
+            opt('fixedDt', 0);
+            opt('useTextureAtlas', false);
+            opt('debugTextureAtlas', false);
+        }
+    }, {
+        key: 'init',
+        value: function init() {
+            this.adapter = new WebAdapter();
+
+            if (this.adapter.init) {
+                this.adapter.init(this);
+            }
+
+            this.gl = this.adapter.createWebGLContext(this.options.w, this.options.h);
+
+            this.setGlClearColor(this.options.glClearColor);
+
+            this.frameCounter = 0;
+
+            this.transitions = new TransitionManager(this);
+            this.animations = new AnimationManager(this);
+
+            this.textureManager = new TextureManager(this);
+
+            if (this.options.useTextureAtlas) {
+                this.textureAtlas = new TextureAtlas(this);
+            }
+
+            this.ctx = new CoreContext(this);
+
+            this.root = new View(this);
+            this.root.w = this.options.w;
+            this.root.h = this.options.h;
+
+            this.root.setAsRoot();
+
+            this.startTime = 0;
+            this.currentTime = 0;
+            this.dt = 0;
+
+            this._destroyed = false;
+
+            var self = this;
+
+            this.rectangleTexture = this.texture(function (cb) {
+                var whitePixel = new Uint8Array([255, 255, 255, 255]);
+                return cb(null, whitePixel, { w: 1, h: 1 });
+            }, { id: '__whitepix' });
+
+            var source = this.rectangleTexture.source;
+            this.rectangleTexture.source.load(true);
+
+            source.permanent = true;
+            if (self.textureAtlas) {
+                self.textureAtlas.add(source);
+            }
+
+            self.adapter.startLoop();
+        }
+    }, {
+        key: 'destroy',
+        value: function destroy() {
+            this.adapter.stopLoop();
+            if (this.textureAtlas) {
+                this.textureAtlas.destroy();
+            }
+            this.ctx.destroy();
+            this.textureManager.destroy();
+            this._destroyed = true;
+        }
+    }, {
+        key: 'stop',
+        value: function stop() {
+            this.adapter.stopLoop();
+        }
+    }, {
+        key: 'resume',
+        value: function resume() {
+            if (this._destroyed) {
+                throw new Error("Already destroyed");
+            }
+            this.adapter.startLoop();
+        }
+    }, {
+        key: 'getCanvas',
+        value: function getCanvas() {
+            return this.adapter.getWebGLCanvas();
+        }
+    }, {
+        key: 'drawFrame',
+        value: function drawFrame() {
+            if (this.options.fixedDt) {
+                this.dt = this.options.fixedDt;
+            } else {
+                this.dt = !this.startTime ? .02 : .001 * (this.currentTime - this.startTime);
+            }
+            this.startTime = this.currentTime;
+            this.currentTime = new Date().getTime();
+
+            this.emit('frameStart');
+
+            if (this.textureManager.isFull()) {
+                console.log('clean up');
+                this.textureManager.freeUnusedTextureSources();
+            }
+
+            this.emit('update');
+
+            if (this.textureAtlas) {
+                this.textureAtlas.flush();
+            }
+
+            var changes = this.ctx.frame();
+
+            this.adapter.nextFrame(changes);
+
+            this.frameCounter++;
+        }
+    }, {
+        key: 'setGlClearColor',
+        value: function setGlClearColor(clearColor) {
+            if (Array.isArray(clearColor)) {
+                this.options.glClearColor = clearColor;
+            } else {
+                this.options.glClearColor = StageUtils.getRgbaComponentsNormalized(clearColor);
+            }
+        }
+    }, {
+        key: 'createView',
+        value: function createView() {
+            return new View(this);
+        }
+    }, {
+        key: 'view',
+        value: function view(settings) {
+            if (settings.isView) return settings;
+
+            var view = void 0;
+            if (settings.type) {
+                view = new settings.type(this);
+            } else {
+                view = new View(this);
+            }
+            view.setSettings(settings);
+            return view;
+        }
+    }, {
+        key: 'c',
+        value: function c(settings) {
+            return this.view(settings);
+        }
+    }, {
+        key: 'texture',
+        value: function texture(source, options) {
+            return this.textureManager.getTexture(source, options);
+        }
+    }, {
+        key: 'w',
+        get: function get() {
+            return this.options.w;
+        }
+    }, {
+        key: 'h',
+        get: function get() {
+            return this.options.h;
+        }
+    }, {
+        key: 'rw',
+        get: function get() {
+            return this.options.renderWidth;
+        }
+    }, {
+        key: 'rh',
+        get: function get() {
+            return this.options.renderHeight;
+        }
+    }]);
+
+    return Stage;
+}(Base);
+
+Base.mixinEs5(Stage, EventEmitter);
+
+var ShaderProgram = function () {
+    function ShaderProgram(vertexShaderSource, fragmentShaderSource) {
+        _classCallCheck(this, ShaderProgram);
+
+        this.vertexShaderSource = vertexShaderSource;
+        this.fragmentShaderSource = fragmentShaderSource;
+
+        this._program = null;
+
+        this._uniformLocations = new Map();
+        this._attributeLocations = new Map();
+
+        this._currentUniformValues = {};
+
+        this._pendingUniformValues = {};
+        this._pendingUniformFunctions = {};
+        this._pendingUniformCount = 0;
+    }
+
+    _createClass(ShaderProgram, [{
+        key: 'compile',
+        value: function compile(gl) {
+            if (this._program) return;
+
+            this.gl = gl;
+
+            this._program = gl.createProgram();
+
+            var glVertShader = this._glCompile(gl.VERTEX_SHADER, this.vertexShaderSource);
+            var glFragShader = this._glCompile(gl.FRAGMENT_SHADER, this.fragmentShaderSource);
+
+            gl.attachShader(this._program, glVertShader);
+            gl.attachShader(this._program, glFragShader);
+            gl.linkProgram(this._program);
+
+            if (!gl.getProgramParameter(this._program, gl.LINK_STATUS)) {
+                console.error('Error: Could not initialize shader.');
+                console.error('gl.VALIDATE_STATUS', gl.getProgramParameter(this._program, gl.VALIDATE_STATUS));
+                console.error('gl.getError()', gl.getError());
+
+                if (gl.getProgramInfoLog(this._program) !== '') {
+                    console.warn('Warning: gl.getProgramInfoLog()', gl.getProgramInfoLog(this._program));
+                }
+
+                gl.deleteProgram(this._program);
+                this._program = null;
+            }
+
+            gl.deleteShader(glVertShader);
+            gl.deleteShader(glFragShader);
+        }
+    }, {
+        key: '_glCompile',
+        value: function _glCompile(type, src) {
+            var shader = this.gl.createShader(type);
+
+            this.gl.shaderSource(shader, src);
+            this.gl.compileShader(shader);
+
+            if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
+                console.log(this.constructor.name, 'Type: ' + (type === this.gl.VERTEX_SHADER ? 'vertex shader' : 'fragment shader'));
+                console.log(this.gl.getShaderInfoLog(shader));
+                var idx = 0;
+                console.log("========== source ==========\n" + src.split("\n").map(function (line) {
+                    return "" + ++idx + ": " + line;
+                }).join("\n"));
+                return null;
+            }
+
+            return shader;
+        }
+    }, {
+        key: 'getUniformLocation',
+        value: function getUniformLocation(name) {
+            var location = this._uniformLocations.get(name);
+            if (location === undefined) {
+                location = this.gl.getUniformLocation(this._program, name);
+                this._uniformLocations.set(name, location);
+            }
+
+            return location;
+        }
+    }, {
+        key: 'getAttribLocation',
+        value: function getAttribLocation(name) {
+            var location = this._attributeLocations.get(name);
+            if (location === undefined) {
+                location = this.gl.getAttribLocation(this._program, name);
+                this._attributeLocations.set(name, location);
+            }
+
+            return location;
+        }
+    }, {
+        key: 'destroy',
+        value: function destroy() {
+            if (this._program) {
+                this.gl.deleteProgram(this._program);
+                this._program = null;
+            }
+        }
+    }, {
+        key: '_valueEquals',
+        value: function _valueEquals(v1, v2) {
+            if (v1.length && v2.length) {
+                for (var _i7 = 0, n = v1.length; _i7 < n; _i7++) {
+                    if (v1[_i7] !== v2[_i7]) return false;
+                }
+                return true;
+            } else {
+                return v1 === v2;
+            }
+        }
+    }, {
+        key: '_valueClone',
+        value: function _valueClone(v) {
+            if (v.length) {
+                return v.slice(0);
+            } else {
+                return v;
+            }
+        }
+    }, {
+        key: 'setUniformValue',
+        value: function setUniformValue(name, value, glFunction) {
+            var v = this._currentUniformValues[name];
+            if (v === undefined || !this._valueEquals(v, value)) {
+                this._pendingUniformValues[name] = this._valueClone(value);
+                this._pendingUniformFunctions[name] = glFunction;
+                this._pendingUniformCount++;
+            } else {
+                if (v !== undefined) {
+                    if (this._pendingUniformValues[name]) {
+                        delete this._pendingUniformValues[name];
+                        delete this._pendingUniformFunctions[name];
+                        this._pendingUniformCount--;
+                    }
+                }
+            }
+        }
+    }, {
+        key: 'hasUniformUpdates',
+        value: function hasUniformUpdates() {
+            return this._pendingUniformCount > 0;
+        }
+    }, {
+        key: 'commitUniformUpdates',
+        value: function commitUniformUpdates() {
+            var _this3 = this;
+
+            var names = Object.keys(this._pendingUniformValues);
+            names.forEach(function (name) {
+                _this3._currentUniformValues[name] = _this3._pendingUniformValues[name];
+
+                var loc = _this3.getUniformLocation(name);
+                if (loc) {
+                    var matrix = _this3._pendingUniformFunctions[name] === _this3.gl.uniformMatrix2fv || _this3._pendingUniformFunctions[name] === _this3.gl.uniformMatrix3fv || _this3._pendingUniformFunctions[name] === _this3.gl.uniformMatrix4fv;
+                    if (matrix) {
+                        _this3._pendingUniformFunctions[name].call(_this3.gl, loc, false, _this3._pendingUniformValues[name]);
+                    } else {
+                        _this3._pendingUniformFunctions[name].call(_this3.gl, loc, _this3._pendingUniformValues[name]);
+                    }
+                }
+            });
+            this._pendingUniformValues = {};
+            this._pendingUniformFunctions = {};
+            this._pendingUniformCount = 0;
+        }
+    }, {
+        key: 'glProgram',
+        get: function get() {
+            return this._program;
+        }
+    }, {
+        key: 'compiled',
+        get: function get() {
+            return !!this._program;
+        }
+    }]);
+
+    return ShaderProgram;
+}();
+
+var ShaderBase = function (_Base2) {
+    _inherits(ShaderBase, _Base2);
+
+    function ShaderBase(coreContext) {
+        _classCallCheck(this, ShaderBase);
+
+        var _this4 = _possibleConstructorReturn(this, (ShaderBase.__proto__ || Object.getPrototypeOf(ShaderBase)).call(this));
+
+        _this4._program = coreContext.shaderPrograms.get(_this4.constructor);
+        if (!_this4._program) {
+            _this4._program = new ShaderProgram(_this4.getVertexShaderSource(), _this4.getFragmentShaderSource());
+
+            coreContext.shaderPrograms.set(_this4.constructor, _this4._program);
+        }
+        _this4._initialized = false;
+
+        _this4.ctx = coreContext;
+
+        _this4.gl = _this4.ctx.gl;
+
+        _this4._views = new Set();
+        return _this4;
+    }
+
+    _createClass(ShaderBase, [{
+        key: 'getVertexShaderSource',
+        value: function getVertexShaderSource() {
+            return "";
+        }
+    }, {
+        key: 'getFragmentShaderSource',
+        value: function getFragmentShaderSource() {
+            return "";
+        }
+    }, {
+        key: '_init',
+        value: function _init() {
+            if (!this._initialized) {
+                this._program.compile(this.ctx.gl);
+                this._initialized = true;
+            }
+        }
+    }, {
+        key: '_uniform',
+        value: function _uniform(name) {
+            return this._program.getUniformLocation(name);
+        }
+    }, {
+        key: '_attrib',
+        value: function _attrib(name) {
+            return this._program.getAttribLocation(name);
+        }
+    }, {
+        key: '_setUniform',
+        value: function _setUniform(name, value, glFunction) {
+            this._program.setUniformValue(name, value, glFunction);
+        }
+    }, {
+        key: 'useProgram',
+        value: function useProgram() {
+            this._init();
+            this.ctx.gl.useProgram(this.glProgram);
+            this.beforeUsage();
+            this.enableAttribs();
+        }
+    }, {
+        key: 'stopProgram',
+        value: function stopProgram() {
+            this.afterUsage();
+            this.disableAttribs();
+        }
+    }, {
+        key: 'hasSameProgram',
+        value: function hasSameProgram(other) {
+            return other && (other === this || other._program === this._program);
+        }
+    }, {
+        key: 'beforeUsage',
+        value: function beforeUsage() {}
+    }, {
+        key: 'afterUsage',
+        value: function afterUsage() {}
+    }, {
+        key: 'hasUniformUpdates',
+        value: function hasUniformUpdates() {
+            return this._program.hasUniformUpdates();
+        }
+    }, {
+        key: 'commitUniformUpdates',
+        value: function commitUniformUpdates() {
+            this._program.commitUniformUpdates();
+        }
+    }, {
+        key: 'addView',
+        value: function addView(viewCore) {
+            this._views.add(viewCore);
+        }
+    }, {
+        key: 'removeView',
+        value: function removeView(viewCore) {
+            this._views.delete(viewCore);
+        }
+    }, {
+        key: 'redraw',
+        value: function redraw() {
+            this._views.forEach(function (viewCore) {
+                viewCore.setHasRenderUpdates(2);
+            });
+        }
+    }, {
+        key: 'initialized',
+        get: function get() {
+            return this._initialized;
+        }
+    }, {
+        key: 'glProgram',
+        get: function get() {
+            return this._program.glProgram;
+        }
+    }]);
+
+    return ShaderBase;
+}(Base);
+
+var Shader = function (_ShaderBase) {
+    _inherits(Shader, _ShaderBase);
+
+    function Shader(coreContext) {
+        _classCallCheck(this, Shader);
+
+        var _this5 = _possibleConstructorReturn(this, (Shader.__proto__ || Object.getPrototypeOf(Shader)).call(this, coreContext));
+
+        _this5.isDefault = _this5.constructor === Shader;
+        return _this5;
+    }
+
+    _createClass(Shader, [{
+        key: 'getVertexShaderSource',
+        value: function getVertexShaderSource() {
+            return Shader.vertexShaderSource;
+        }
+    }, {
+        key: 'getFragmentShaderSource',
+        value: function getFragmentShaderSource() {
+            return Shader.fragmentShaderSource;
+        }
+    }, {
+        key: 'supportsTextureAtlas',
+        value: function supportsTextureAtlas() {
+            return this.isDefault;
+        }
+    }, {
+        key: 'enableAttribs',
+        value: function enableAttribs() {
+            var gl = this.ctx.gl;
+            gl.vertexAttribPointer(this._attrib("aVertexPosition"), 2, gl.FLOAT, false, 16, 0);
+            gl.enableVertexAttribArray(this._attrib("aVertexPosition"));
+
+            if (this._attrib("aTextureCoord") !== -1) {
+                gl.vertexAttribPointer(this._attrib("aTextureCoord"), 2, gl.UNSIGNED_SHORT, true, 16, 2 * 4);
+                gl.enableVertexAttribArray(this._attrib("aTextureCoord"));
+            }
+
+            if (this._attrib("aColor") !== -1) {
+                gl.vertexAttribPointer(this._attrib("aColor"), 4, gl.UNSIGNED_BYTE, true, 16, 3 * 4);
+                gl.enableVertexAttribArray(this._attrib("aColor"));
+            }
+        }
+    }, {
+        key: 'disableAttribs',
+        value: function disableAttribs() {
+            var gl = this.ctx.gl;
+            gl.disableVertexAttribArray(this._attrib("aVertexPosition"));
+
+            if (this._attrib("aTextureCoord") !== -1) {
+                gl.disableVertexAttribArray(this._attrib("aTextureCoord"));
+            }
+
+            if (this._attrib("aColor") !== -1) {
+                gl.disableVertexAttribArray(this._attrib("aColor"));
+            }
+        }
+    }, {
+        key: 'getExtraAttribBytesPerVertex',
+        value: function getExtraAttribBytesPerVertex() {
+            return 0;
+        }
+    }, {
+        key: 'getVertexAttribPointerOffset',
+        value: function getVertexAttribPointerOffset(operation) {
+            return operation.extraAttribsDataByteOffset - (operation.index + 1) * 4 * this.getExtraAttribBytesPerVertex();
+        }
+    }, {
+        key: 'useDefault',
+        value: function useDefault() {
+            return false;
+        }
+    }, {
+        key: 'supportsMerging',
+        value: function supportsMerging() {
+            return true;
+        }
+    }, {
+        key: 'addEmpty',
+        value: function addEmpty() {
+            return false;
+        }
+    }, {
+        key: 'setExtraAttribsInBuffer',
+        value: function setExtraAttribsInBuffer(operation) {}
+    }, {
+        key: 'setupUniforms',
+        value: function setupUniforms(operation) {
+            this._setUniform("projection", this._getProjection(operation), this.ctx.gl.uniform2fv, false);
+        }
+    }, {
+        key: 'isMergable',
+        value: function isMergable(shader) {
+            return this.hasUniformUpdates();
+        }
+    }, {
+        key: '_getProjection',
+        value: function _getProjection(operation) {
+            return operation.getProjection();
+        }
+    }, {
+        key: 'getFlipY',
+        value: function getFlipY(operation) {
+            return this._getProjection()[1] < 0;
+        }
+    }, {
+        key: 'beforeDraw',
+        value: function beforeDraw(operation) {}
+    }, {
+        key: 'draw',
+        value: function draw(operation) {
+            var gl = this.ctx.gl;
+
+            var length = operation.length;
+
+            if (length) {
+                var glTexture = operation.getTexture(0);
+                var pos = 0;
+                for (var _i8 = 0; _i8 < length; _i8++) {
+                    var tx = operation.getTexture(_i8);
+                    if (glTexture !== tx) {
+                        gl.bindTexture(gl.TEXTURE_2D, glTexture);
+                        gl.drawElements(gl.TRIANGLES, 6 * (_i8 - pos), gl.UNSIGNED_SHORT, (pos + operation.index + 1) * 6 * 2);
+                        glTexture = tx;
+                        pos = _i8;
+                    }
+                }
+                if (pos < length) {
+                    gl.bindTexture(gl.TEXTURE_2D, glTexture);
+                    gl.drawElements(gl.TRIANGLES, 6 * (length - pos), gl.UNSIGNED_SHORT, (pos + operation.index + 1) * 6 * 2);
+                }
+            }
+        }
+    }, {
+        key: 'afterDraw',
+        value: function afterDraw(operation) {}
+    }]);
+
+    return Shader;
+}(ShaderBase);
+
+Shader.vertexShaderSource = '\n    #ifdef GL_ES\n    precision lowp float;\n    #endif\n    attribute vec2 aVertexPosition;\n    attribute vec2 aTextureCoord;\n    attribute vec4 aColor;\n    uniform vec2 projection;\n    varying vec2 vTextureCoord;\n    varying vec4 vColor;\n    void main(void){\n        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);\n        vTextureCoord = aTextureCoord;\n        vColor = aColor;\n        gl_Position.y = -sign(projection.y) * gl_Position.y;\n    }\n';
+
+Shader.fragmentShaderSource = '\n    #ifdef GL_ES\n    precision lowp float;\n    #endif\n    varying vec2 vTextureCoord;\n    varying vec4 vColor;\n    uniform sampler2D uSampler;\n    void main(void){\n        gl_FragColor = texture2D(uSampler, vTextureCoord) * vColor;\n    }\n';
+
+Shader.prototype.isShader = true;
+
+var Filter = function (_ShaderBase2) {
+    _inherits(Filter, _ShaderBase2);
+
+    function Filter(coreContext) {
+        _classCallCheck(this, Filter);
+
+        return _possibleConstructorReturn(this, (Filter.__proto__ || Object.getPrototypeOf(Filter)).call(this, coreContext));
+    }
+
+    _createClass(Filter, [{
+        key: 'getVertexShaderSource',
+        value: function getVertexShaderSource() {
+            return Filter.vertexShaderSource;
+        }
+    }, {
+        key: 'getFragmentShaderSource',
+        value: function getFragmentShaderSource() {
+            return Filter.fragmentShaderSource;
+        }
+    }, {
+        key: 'useDefault',
+        value: function useDefault() {
+            return false;
+        }
+    }, {
+        key: 'enableAttribs',
+        value: function enableAttribs() {
+            var gl = this.ctx.gl;
+            gl.vertexAttribPointer(this._attrib("aVertexPosition"), 2, gl.FLOAT, false, 16, 0);
+            gl.enableVertexAttribArray(this._attrib("aVertexPosition"));
+
+            if (this._attrib("aTextureCoord") !== -1) {
+                gl.vertexAttribPointer(this._attrib("aTextureCoord"), 2, gl.UNSIGNED_SHORT, true, 16, 2 * 4);
+                gl.enableVertexAttribArray(this._attrib("aTextureCoord"));
+            }
+        }
+    }, {
+        key: 'disableAttribs',
+        value: function disableAttribs() {
+            var gl = this.ctx.gl;
+            gl.disableVertexAttribArray(this._attrib("aVertexPosition"));
+            if (this._attrib("aTextureCoord") !== -1) {
+                gl.disableVertexAttribArray(this._attrib("aTextureCoord"));
+            }
+        }
+    }, {
+        key: 'setupUniforms',
+        value: function setupUniforms(operation) {
+            this._setUniform("resolution", new Float32Array([operation.getRenderWidth(), operation.getRenderHeight()]), this.gl.uniform2fv);
+        }
+    }, {
+        key: 'beforeDraw',
+        value: function beforeDraw(operation) {}
+    }, {
+        key: 'afterDraw',
+        value: function afterDraw(operation) {}
+    }, {
+        key: 'draw',
+        value: function draw(operation) {
+            var gl = this.gl;
+            gl.bindTexture(gl.TEXTURE_2D, operation.source);
+            gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+        }
+    }, {
+        key: 'redraw',
+        value: function redraw() {
+            this._views.forEach(function (viewCore) {
+                viewCore.setHasRenderUpdates(2);
+
+                viewCore._setRecalc(1 + 2 + 4 + 8);
+            });
+        }
+    }]);
+
+    return Filter;
+}(ShaderBase);
+
+Filter.prototype.isFilter = true;
+
+Filter.vertexShaderSource = '\n    #ifdef GL_ES\n    precision lowp float;\n    #endif\n    attribute vec2 aVertexPosition;\n    attribute vec2 aTextureCoord;\n    varying vec2 vTextureCoord;\n    void main(void){\n        gl_Position = vec4(aVertexPosition, 0.0, 1.0);\n        vTextureCoord = aTextureCoord;\n    }\n';
+
+Filter.fragmentShaderSource = '\n    #ifdef GL_ES\n    precision lowp float;\n    #endif\n    varying vec2 vTextureCoord;\n    uniform sampler2D uSampler;\n    void main(void){\n        gl_FragColor = texture2D(uSampler, vTextureCoord);\n    }\n';
+
+Filter.prototype.isFilter = true;
+
+var TextureManager = function () {
+    function TextureManager(stage) {
+        _classCallCheck(this, TextureManager);
+
+        this.stage = stage;
+
+        this.gl = this.stage.gl;
+
+        this._usedTextureMemory = 0;
+
+        this._uploadedTextureSources = [];
+
+        this.textureSourceHashmap = new Map();
+    }
+
+    _createClass(TextureManager, [{
+        key: 'destroy',
+        value: function destroy() {
+            for (var _i9 = 0, n = this._uploadedTextureSources.length; _i9 < n; _i9++) {
+                var ts = this._uploadedTextureSources[_i9];
+                this.gl.deleteTexture(ts.glTexture);
+            }
+        }
+    }, {
+        key: 'loadSrcTexture',
+        value: function loadSrcTexture(src, ts, sync, cb) {
+            if (this.stage.options.srcBasePath) {
+                var fc = src.charCodeAt(0);
+                if (src.indexOf("//") === -1 && (fc >= 65 && fc <= 90 || fc >= 97 && fc <= 122 || fc == 46)) {
+                    src = this.stage.options.srcBasePath + src;
+                }
+            }
+            this.stage.adapter.loadSrcTexture(src, ts, sync, cb);
+        }
+    }, {
+        key: 'loadTextTexture',
+        value: function loadTextTexture(settings, ts, sync, cb) {
+            if (this.stage.options.text2pngEndpoint && !sync) {
+                var src = this.stage.options.text2pngEndpoint + "?q=" + encodeURIComponent(JSON.stringify(settings.getNonDefaults()));
+                this.loadSrcTexture(src, ts, sync, cb);
+            } else {
+                this.stage.adapter.loadTextTexture(settings, ts, sync, cb);
+            }
+        }
+    }, {
+        key: 'getTexture',
+        value: function getTexture(source, options) {
+            var id = options && options.id || null;
+
+            var texture = void 0,
+                textureSource = void 0;
+            if (Utils.isString(source)) {
+                id = id || source;
+
+                textureSource = this.textureSourceHashmap.get(id);
+                if (!textureSource) {
+                    var self = this;
+                    var func = function func(cb, ts, sync) {
+                        self.loadSrcTexture(source, ts, sync, cb);
+                    };
+                    textureSource = this.getTextureSource(func, id);
+                    if (!textureSource.renderInfo) {
+                        textureSource.renderInfo = { src: source };
+                    }
+                }
+            } else if (source instanceof TextureSource) {
+                textureSource = source;
+            } else {
+                textureSource = this.getTextureSource(source, id);
+            }
+
+            texture = new Texture(this, textureSource);
+            texture.x = options && options.x || 0;
+            texture.y = options && options.y || 0;
+            texture.w = options && options.w || 0;
+            texture.h = options && options.h || 0;
+            texture.clipping = !!(texture.x || texture.y || texture.w || texture.h);
+            texture.precision = options && options.precision || 1;
+            return texture;
+        }
+    }, {
+        key: 'getTextureSource',
+        value: function getTextureSource(func, id) {
+            var textureSource = id ? this.textureSourceHashmap.get(id) : null;
+            if (!textureSource) {
+                textureSource = new TextureSource(this, func);
+
+                if (id) {
+                    textureSource.lookupId = id;
+                    this.textureSourceHashmap.set(id, textureSource);
+                }
+            }
+
+            return textureSource;
+        }
+    }, {
+        key: 'uploadTextureSource',
+        value: function uploadTextureSource(textureSource, source, format) {
+            if (textureSource.glTexture) return;
+
+            var gl = this.gl;
+            var sourceTexture = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
+
+            gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, format.premultiplyAlpha);
+
+            if (Utils.isNode) {
+                gl.pixelStorei(gl.UNPACK_FLIP_BLUE_RED, !!format.flipBlueRed);
+            }
+
+            this.stage.adapter.uploadGlTexture(gl, textureSource, source, format.hasAlpha);
+
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+            textureSource.glTexture = sourceTexture;
+
+            sourceTexture.w = textureSource.w;
+            sourceTexture.h = textureSource.h;
+
+            this._usedTextureMemory += textureSource.w * textureSource.h;
+
+            this._uploadedTextureSources.push(textureSource);
+        }
+    }, {
+        key: 'isFull',
+        value: function isFull() {
+            return this._usedTextureMemory >= this.stage.options.textureMemory;
+        }
+    }, {
+        key: 'freeUnusedTextureSources',
+        value: function freeUnusedTextureSources() {
+            var remainingTextureSources = [];
+            var usedTextureMemoryBefore = this._usedTextureMemory;
+            for (var _i10 = 0, n = this._uploadedTextureSources.length; _i10 < n; _i10++) {
+                var ts = this._uploadedTextureSources[_i10];
+                if (!ts.permanent && ts.views.size === 0) {
+                    this.freeTextureSource(ts);
+                } else {
+                    remainingTextureSources.push(ts);
+                }
+            }
+
+            var self = this;
+            this.textureSourceHashmap.forEach(function (textureSource) {
+                if (textureSource.views.size === 0) {
+                    self.freeTextureSource(textureSource);
+                }
+            });
+
+            this._uploadedTextureSources = remainingTextureSources;
+            console.log('freed ' + ((usedTextureMemoryBefore - this._usedTextureMemory) / 1e6).toFixed(2) + 'M texture pixels from GPU memory. Remaining: ' + this._usedTextureMemory);
+        }
+    }, {
+        key: 'freeTextureSource',
+        value: function freeTextureSource(textureSource) {
+            if (!textureSource.isLoadedByCore()) {
+                if (textureSource.glTexture) {
+                    this._usedTextureMemory -= textureSource.w * textureSource.h;
+                    this.gl.deleteTexture(textureSource.glTexture);
+                    textureSource.glTexture = null;
+                }
+
+                textureSource.loadingSince = null;
+
+                if (textureSource.lookupId) {
+                    this.textureSourceHashmap.delete(textureSource.lookupId);
+                }
+            }
+        }
+    }]);
+
+    return TextureManager;
+}();
+
+var Texture = function () {
+    function Texture(manager, source) {
+        _classCallCheck(this, Texture);
+
+        this.manager = manager;
+
+        this.id = Texture.id++;
+
+        this.source = source;
+    }
+
+    _createClass(Texture, [{
+        key: '_properties',
+        value: function _properties() {
+            this._x = 0;
+
+            this._y = 0;
+
+            this._w = 0;
+
+            this._h = 0;
+
+            this._precision = 1;
+
+            this.clipping = false;
+        }
+    }, {
+        key: 'enableClipping',
+        value: function enableClipping(x, y, w, h) {
+            if (this._x !== x || this._y !== y || this._w !== w || this._h !== h) {
+                this._x = x;
+                this._y = y;
+                this._w = w;
+                this._h = h;
+
+                this.updateClipping(true);
+            }
+        }
+    }, {
+        key: 'disableClipping',
+        value: function disableClipping() {
+            if (this._x || this._y || this._w || this._h) {
+                this._x = 0;
+                this._y = 0;
+                this._w = 0;
+                this._h = 0;
+
+                this.updateClipping(false);
+            }
+        }
+    }, {
+        key: 'updateClipping',
+        value: function updateClipping(overrule) {
+            if (overrule === true || overrule === false) {
+                this.clipping = overrule;
+            } else {
+                this.clipping = !!(this._x || this._y || this._w || this._h);
+            }
+
+            var self = this;
+            this.source.views.forEach(function (view) {
+                if (view.displayedTexture === self) {
+                    view.onDisplayedTextureClippingChanged();
+                }
+            });
+        }
+    }, {
+        key: 'updatePrecision',
+        value: function updatePrecision() {
+            var self = this;
+            this.source.views.forEach(function (view) {
+                if (view.displayedTexture === self) {
+                    view.onPrecisionChanged();
+                }
+            });
+        }
+    }, {
+        key: 'replaceTextureSource',
+        value: function replaceTextureSource(newSource) {
+            var _this7 = this;
+
+            var oldSource = this.source;
+
+            this.source = newSource;
+
+            oldSource.views.forEach(function (view) {
+                if (view.texture === _this7 || view.displayedTexture === _this7) {
+                    var keep = view.displayedTexture && view.displayedTexture !== _this7 && view.displayedTexture.source === oldSource;
+                    keep = keep || view.texture && view.texture !== _this7 && view.texture.source === oldSource;
+
+                    if (!keep) {
+                        oldSource.removeView(view);
+                    }
+
+                    newSource.addView(view);
+
+                    if (newSource.glTexture) {
+                        view.displayedTexture = _this7;
+                    }
+                }
+            });
+        }
+    }, {
+        key: 'getNonDefaults',
+        value: function getNonDefaults() {
+            var nonDefaults = {};
+            if (this.x !== 0) nonDefaults['x'] = this.x;
+            if (this.y !== 0) nonDefaults['y'] = this.y;
+            if (this.w !== 0) nonDefaults['w'] = this.w;
+            if (this.h !== 0) nonDefaults['h'] = this.h;
+            if (this.precision !== 1) nonDefaults['precision'] = this.precision;
+            return nonDefaults;
+        }
+    }, {
+        key: 'x',
+        get: function get() {
+            return this._x;
+        },
+        set: function set(v) {
+            if (this._x !== v) {
+                this._x = v;
+                this.updateClipping();
+            }
+        }
+    }, {
+        key: 'y',
+        get: function get() {
+            return this._y;
+        },
+        set: function set(v) {
+            if (this._y !== v) {
+                this._y = v;
+                this.updateClipping();
+            }
+        }
+    }, {
+        key: 'w',
+        get: function get() {
+            return this._w;
+        },
+        set: function set(v) {
+            if (this._w !== v) {
+                this._w = v;
+                this.updateClipping();
+            }
+        }
+    }, {
+        key: 'h',
+        get: function get() {
+            return this._h;
+        },
+        set: function set(v) {
+            if (this._h !== v) {
+                this._h = v;
+                this.updateClipping();
+            }
+        }
+    }, {
+        key: 'precision',
+        get: function get() {
+            return this._precision;
+        },
+        set: function set(v) {
+            if (this._precision !== v) {
+                this._precision = v;
+                this.updatePrecision();
+            }
+        }
+    }]);
+
+    return Texture;
+}();
+
+Texture.id = 0;
+
+var TextureSource = function (_Base3) {
+    _inherits(TextureSource, _Base3);
+
+    function TextureSource(manager, loadCb) {
+        _classCallCheck(this, TextureSource);
+
+        var _this8 = _possibleConstructorReturn(this, (TextureSource.__proto__ || Object.getPrototypeOf(TextureSource)).call(this));
+
+        _this8.id = TextureSource.id++;
+
+        _this8.manager = manager;
+
+        _this8.stage = manager.stage;
+
+        _this8.id = TextureSource.id++;
+
+        _this8.loadCb = loadCb;
+
+        _this8.views = new Set();
+
+        return _this8;
+    }
+
+    _createClass(TextureSource, [{
+        key: '_properties',
+        value: function _properties() {
+            this.lookupId = null;
+
+            this.cancelCb = null;
+
+            this.loadingSince = 0;
+
+            this.inTextureAtlas = false;
+
+            this.textureAtlasX = 0;
+
+            this.textureAtlasY = 0;
+
+            this.w = 0;
+            this.h = 0;
+
+            this.glTexture = null;
+
+            this.permanent = false;
+
+            this.noTextureAtlas = false;
+
+            this.renderInfo = null;
+        }
+    }, {
+        key: 'getRenderWidth',
+        value: function getRenderWidth() {
+            return this.w;
+        }
+    }, {
+        key: 'getRenderHeight',
+        value: function getRenderHeight() {
+            return this.h;
+        }
+    }, {
+        key: 'isLoadedByCore',
+        value: function isLoadedByCore() {
+            return !this.loadCb;
+        }
+    }, {
+        key: 'addView',
+        value: function addView(v) {
+            if (!this.views.has(v)) {
+                this.views.add(v);
+
+                if (this.glTexture) {
+                    if (this.stage.textureAtlas && !this.noTextureAtlas) {
+                        this.stage.textureAtlas.addActiveTextureSource(this);
+                    }
+                }
+
+                if (this.views.size === 1) {
+                    if (this.lookupId) {
+                        if (!this.manager.textureSourceHashmap.has(this.lookupId)) {
+                            this.manager.textureSourceHashmap.set(this.lookupId, this);
+                        }
+                    }
+
+                    this.becomesVisible();
+                }
+            }
+        }
+    }, {
+        key: 'removeView',
+        value: function removeView(v) {
+            if (this.views.delete(v)) {
+                if (!this.views.size) {
+                    if (this.stage.textureAtlas) {
+                        this.stage.textureAtlas.removeActiveTextureSource(this);
+                    }
+
+                    this.becomesInvisible();
+                }
+            }
+        }
+    }, {
+        key: 'becomesVisible',
+        value: function becomesVisible() {
+            this.load(false);
+        }
+    }, {
+        key: 'becomesInvisible',
+        value: function becomesInvisible() {
+            if (this.isLoading()) {
+                if (this.cancelCb) {
+                    this.cancelCb(this);
+                }
+            }
+        }
+    }, {
+        key: 'load',
+        value: function load(sync) {
+            if (this.isLoadedByCore()) {
+                return;
+            }
+
+            if (this.isLoading() && sync) {
+                if (this.cancelCb) {
+                    this.cancelCb(this);
+                }
+                this.loadingSince = 0;
+            }
+
+            if (!this.glTexture && !this.isLoading()) {
+                var self = this;
+                this.loadingSince = new Date().getTime();
+                this.loadCb(function (err, source, options) {
+                    if (self.manager.stage.destroyed) {
+                        return;
+                    }
+                    self.loadingSince = 0;
+                    if (err) {
+                        self.onError(err);
+                    } else if (source) {
+                        self.setSource(source, options);
+                    }
+                }, this, !!sync);
+            }
+        }
+    }, {
+        key: 'isLoading',
+        value: function isLoading() {
+            return this.loadingSince > 0;
+        }
+    }, {
+        key: 'setSource',
+        value: function setSource(source, options) {
+            this.w = source.width || options && options.w || 0;
+            this.h = source.height || options && options.h || 0;
+
+            if (this.w > 2048 || this.h > 2048) {
+                console.error('Texture size too large: ' + source.width + 'x' + source.height + ' (max allowed is 2048x2048)');
+                return;
+            }
+
+            if (options && options.renderInfo) {
+                this.renderInfo = options.renderInfo;
+            }
+
+            var format = {
+                premultiplyAlpha: true,
+                hasAlpha: true
+            };
+
+            if (options && options.hasOwnProperty('premultiplyAlpha')) {
+                format.premultiplyAlpha = options.premultiplyAlpha;
+            }
+
+            if (options && options.hasOwnProperty('flipBlueRed')) {
+                format.flipBlueRed = options.flipBlueRed;
+            }
+
+            if (options && options.hasOwnProperty('hasAlpha')) {
+                format.hasAlpha = options.hasAlpha;
+            }
+
+            if (!format.hasAlpha) {
+                format.premultiplyAlpha = false;
+            }
+
+            this.manager.uploadTextureSource(this, source, format);
+
+            this.onLoad();
+        }
+    }, {
+        key: 'isVisible',
+        value: function isVisible() {
+            return this.views.size > 0;
+        }
+    }, {
+        key: 'onLoad',
+        value: function onLoad() {
+            if (this.isVisible() && this.stage.textureAtlas && !this.noTextureAtlas) {
+                this.stage.textureAtlas.addActiveTextureSource(this);
+            }
+
+            this.views.forEach(function (view) {
+                view.onTextureSourceLoaded();
+            });
+        }
+    }, {
+        key: '_changeGlTexture',
+        value: function _changeGlTexture(glTexture, w, h) {
+            var prevGlTexture = this.glTexture;
+
+            this.glTexture = glTexture;
+            this.w = w;
+            this.h = h;
+
+            if (!prevGlTexture && this.glTexture) {
+                this.views.forEach(function (view) {
+                    return view.onTextureSourceLoaded();
+                });
+            }
+
+            if (!this.glTexture) {
+                this.views.forEach(function (view) {
+                    view.displayedTexture = null;
+                });
+            }
+
+            this.views.forEach(function (view) {
+                return view._updateDimensions();
+            });
+        }
+    }, {
+        key: 'onError',
+        value: function onError(e) {
+            console.error('texture load error', e, this.id);
+            this.views.forEach(function (view) {
+                view.onTextureSourceLoadError(e);
+            });
+        }
+    }, {
+        key: 'onAddedToTextureAtlas',
+        value: function onAddedToTextureAtlas(x, y) {
+            this.inTextureAtlas = true;
+            this.textureAtlasX = x;
+            this.textureAtlasY = y;
+
+            this.views.forEach(function (view) {
+                view.onTextureSourceAddedToTextureAtlas();
+            });
+        }
+    }, {
+        key: 'onRemovedFromTextureAtlas',
+        value: function onRemovedFromTextureAtlas() {
+            this.inTextureAtlas = false;
+            this.views.forEach(function (view) {
+                view.onTextureSourceRemovedFromTextureAtlas();
+            });
+        }
+    }, {
+        key: 'free',
+        value: function free() {
+            this.manager.freeTextureSource(this);
+        }
+    }]);
+
+    return TextureSource;
+}(Base);
+
+TextureSource.id = 1;
+
+var TextureAtlas = function () {
+    function TextureAtlas(stage) {
+        _classCallCheck(this, TextureAtlas);
+
+        var vertexShaderSrc = '\n            #ifdef GL_ES\n            precision lowp float;\n            #endif\n            attribute vec2 aVertexPosition;\n            attribute vec2 aTextureCoord;\n            uniform mat4 projectionMatrix;\n            varying vec2 vTextureCoord;\n            void main(void){\n                gl_Position = projectionMatrix * vec4(aVertexPosition, 0.0, 1.0);\n                vTextureCoord = aTextureCoord;\n            }\n        ';
+
+        var fragmentShaderSrc = '\n            #ifdef GL_ES\n            precision lowp float;\n            #endif\n            varying vec2 vTextureCoord;\n            uniform sampler2D uSampler;\n            void main(void){\n                gl_FragColor = texture2D(uSampler, vTextureCoord);\n            }\n        ';
+
+        this._program = new ShaderProgram(vertexShaderSrc, fragmentShaderSrc);
+        this._program.compile(stage.gl);
+
+        this.stage = stage;
+
+        this.w = 2048;
+        this.h = 2048;
+
+        this._activeTree = new TextureAtlasTree(this.w, this.h);
+
+        this._activeTextureSources = new Set();
+
+        this._addedTextureSources = new Set();
+
+        this._wastedPixels = 0;
+
+        this._lastDefragFrame = 0;
+
+        this._pixelsLimit = this.w * this.h / 16;
+
+        this._minWastedPixels = this.w * this.h / 8;
+
+        this._defragNeeded = false;
+
+        this._uploads = [];
+
+        this._init();
+    }
+
+    _createClass(TextureAtlas, [{
+        key: '_init',
+        value: function _init() {
+            var gl = this.gl;
+
+            gl.useProgram(this.glProgram);
+
+            this._vertexPositionAttribute = gl.getAttribLocation(this.glProgram, "aVertexPosition");
+            this._textureCoordAttribute = gl.getAttribLocation(this.glProgram, "aTextureCoord");
+
+            this._paramsBuffer = new ArrayBuffer(16 * 4 * 9 * 1000);
+            this._allCoords = new Float32Array(this._paramsBuffer);
+            this._allTexCoords = new Float32Array(this._paramsBuffer);
+
+            this._allIndices = new Uint16Array(6 * 9 * 1000);
+
+            for (var _i11 = 0, j = 0; _i11 < 1000 * 6 * 9; _i11 += 6, j += 4) {
+                this._allIndices[_i11] = j;
+                this._allIndices[_i11 + 1] = j + 1;
+                this._allIndices[_i11 + 2] = j + 2;
+                this._allIndices[_i11 + 3] = j;
+                this._allIndices[_i11 + 4] = j + 2;
+                this._allIndices[_i11 + 5] = j + 3;
+            }
+
+            this._indicesGlBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._indicesGlBuffer);
+            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this._allIndices, gl.STATIC_DRAW);
+
+            this._projectionMatrix = new Float32Array([2 / this.w, 0, 0, 0, 0, 2 / this.h, 0, 0, 0, 0, 1, 0, -1, -1, 0, 1]);
+
+            var projectionMatrixAttribute = gl.getUniformLocation(this.glProgram, "projectionMatrix");
+            gl.uniformMatrix4fv(projectionMatrixAttribute, false, this._projectionMatrix);
+
+            this.texture = this.gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, this.texture);
+
+            this.texture.w = this.w;
+            this.texture.h = this.h;
+
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.w, this.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.bindTexture(gl.TEXTURE_2D, null);
+
+            this.framebuffer = gl.createFramebuffer();
+            gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.texture, 0);
+            if (gl.getError() != gl.NO_ERROR) {
+                throw "Some WebGL error occurred while trying to create framebuffer.";
+            }
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        }
+    }, {
+        key: 'destroy',
+        value: function destroy() {
+            this.gl.deleteTexture(this.texture);
+            this.gl.deleteFramebuffer(this.framebuffer);
+            this.gl.deleteBuffer(this.paramsGlBuffer);
+            this.gl.deleteBuffer(this._indicesGlBuffer);
+            this._program.destroy();
+        }
+    }, {
+        key: 'uploadTextureSources',
+        value: function uploadTextureSources(textureSources) {
+            var i = void 0;
+
+            var n = textureSources.length;
+            if (n > 1000) {
+                n = 1000;
+            }
+            for (i = 0; i < n; i++) {
+
+                var w = textureSources[i].w;
+                var h = textureSources[i].h;
+
+                var x = textureSources[i].textureAtlasX;
+                var y = textureSources[i].textureAtlasY;
+
+                var divW = 1 / w;
+                var divH = 1 / h;
+
+                var offset = i * 16 * 9;
+
+                this._allCoords[offset + 0] = x;
+                this._allCoords[offset + 1] = y;
+                this._allCoords[offset + 4] = x + w;
+                this._allCoords[offset + 5] = y;
+                this._allCoords[offset + 8] = x + w;
+                this._allCoords[offset + 9] = y + h;
+                this._allCoords[offset + 12] = x;
+                this._allCoords[offset + 13] = y + h;
+
+                this._allCoords[offset + 16] = x;
+                this._allCoords[offset + 17] = y - 1;
+                this._allCoords[offset + 20] = x + w;
+                this._allCoords[offset + 21] = y - 1;
+                this._allCoords[offset + 24] = x + w;
+                this._allCoords[offset + 25] = y;
+                this._allCoords[offset + 28] = x;
+                this._allCoords[offset + 29] = y;
+
+                this._allCoords[offset + 32] = x;
+                this._allCoords[offset + 33] = y + h;
+                this._allCoords[offset + 36] = x + w;
+                this._allCoords[offset + 37] = y + h;
+                this._allCoords[offset + 40] = x + w;
+                this._allCoords[offset + 41] = y + h + 1;
+                this._allCoords[offset + 44] = x;
+                this._allCoords[offset + 45] = y + h + 1;
+
+                this._allCoords[offset + 48] = x - 1;
+                this._allCoords[offset + 49] = y;
+                this._allCoords[offset + 52] = x;
+                this._allCoords[offset + 53] = y;
+                this._allCoords[offset + 56] = x;
+                this._allCoords[offset + 57] = y + h;
+                this._allCoords[offset + 60] = x - 1;
+                this._allCoords[offset + 61] = y + h;
+
+                this._allCoords[offset + 64] = x + w;
+                this._allCoords[offset + 65] = y;
+                this._allCoords[offset + 68] = x + w + 1;
+                this._allCoords[offset + 69] = y;
+                this._allCoords[offset + 72] = x + w + 1;
+                this._allCoords[offset + 73] = y + h;
+                this._allCoords[offset + 76] = x + w;
+                this._allCoords[offset + 77] = y + h;
+
+                this._allCoords[offset + 80] = x - 1;
+                this._allCoords[offset + 81] = y - 1;
+                this._allCoords[offset + 84] = x;
+                this._allCoords[offset + 85] = y - 1;
+                this._allCoords[offset + 88] = x;
+                this._allCoords[offset + 89] = y;
+                this._allCoords[offset + 92] = x - 1;
+                this._allCoords[offset + 93] = y;
+
+                this._allCoords[offset + 96] = x + w;
+                this._allCoords[offset + 97] = y - 1;
+                this._allCoords[offset + 100] = x + w + 1;
+                this._allCoords[offset + 101] = y - 1;
+                this._allCoords[offset + 104] = x + w + 1;
+                this._allCoords[offset + 105] = y;
+                this._allCoords[offset + 108] = x + w;
+                this._allCoords[offset + 109] = y;
+
+                this._allCoords[offset + 112] = x + w;
+                this._allCoords[offset + 113] = y + h;
+                this._allCoords[offset + 116] = x + w + 1;
+                this._allCoords[offset + 117] = y + h;
+                this._allCoords[offset + 120] = x + w + 1;
+                this._allCoords[offset + 121] = y + h + 1;
+                this._allCoords[offset + 124] = x + w;
+                this._allCoords[offset + 125] = y + h + 1;
+
+                this._allCoords[offset + 128] = x - 1;
+                this._allCoords[offset + 129] = y + h;
+                this._allCoords[offset + 132] = x;
+                this._allCoords[offset + 133] = y + h;
+                this._allCoords[offset + 136] = x;
+                this._allCoords[offset + 137] = y + h + 1;
+                this._allCoords[offset + 140] = x - 1;
+                this._allCoords[offset + 141] = y + h + 1;
+
+                this._allTexCoords[offset + 2] = 0;
+                this._allTexCoords[offset + 3] = 0;
+                this._allTexCoords[offset + 6] = 1;
+                this._allTexCoords[offset + 7] = 0;
+                this._allTexCoords[offset + 10] = 1;
+                this._allTexCoords[offset + 11] = 1;
+                this._allTexCoords[offset + 14] = 0;
+                this._allTexCoords[offset + 15] = 1;
+
+                this._allTexCoords[offset + 18] = 0;
+                this._allTexCoords[offset + 19] = 0;
+                this._allTexCoords[offset + 22] = 1;
+                this._allTexCoords[offset + 23] = 0;
+                this._allTexCoords[offset + 26] = 1;
+                this._allTexCoords[offset + 27] = divH;
+                this._allTexCoords[offset + 30] = 0;
+                this._allTexCoords[offset + 31] = divH;
+
+                this._allTexCoords[offset + 34] = 0;
+                this._allTexCoords[offset + 35] = 1 - divH;
+                this._allTexCoords[offset + 38] = 1;
+                this._allTexCoords[offset + 39] = 1 - divH;
+                this._allTexCoords[offset + 42] = 1;
+                this._allTexCoords[offset + 43] = 1;
+                this._allTexCoords[offset + 46] = 0;
+                this._allTexCoords[offset + 47] = 1;
+
+                this._allTexCoords[offset + 50] = 0;
+                this._allTexCoords[offset + 51] = 0;
+                this._allTexCoords[offset + 54] = divW;
+                this._allTexCoords[offset + 55] = 0;
+                this._allTexCoords[offset + 58] = divW;
+                this._allTexCoords[offset + 59] = 1;
+                this._allTexCoords[offset + 62] = 0;
+                this._allTexCoords[offset + 63] = 1;
+
+                this._allTexCoords[offset + 66] = 1 - divW;
+                this._allTexCoords[offset + 67] = 0;
+                this._allTexCoords[offset + 70] = 1;
+                this._allTexCoords[offset + 71] = 0;
+                this._allTexCoords[offset + 74] = 1;
+                this._allTexCoords[offset + 75] = 1;
+                this._allTexCoords[offset + 78] = 1 - divW;
+                this._allTexCoords[offset + 79] = 1;
+
+                this._allTexCoords[offset + 82] = 0;
+                this._allTexCoords[offset + 83] = 0;
+                this._allTexCoords[offset + 86] = divW;
+                this._allTexCoords[offset + 87] = 0;
+                this._allTexCoords[offset + 90] = divW;
+                this._allTexCoords[offset + 91] = divH;
+                this._allTexCoords[offset + 94] = 0;
+                this._allTexCoords[offset + 95] = divH;
+
+                this._allTexCoords[offset + 98] = 1 - divW;
+                this._allTexCoords[offset + 99] = 0;
+                this._allTexCoords[offset + 102] = 1;
+                this._allTexCoords[offset + 103] = 0;
+                this._allTexCoords[offset + 106] = 1;
+                this._allTexCoords[offset + 107] = divH;
+                this._allTexCoords[offset + 110] = 1 - divW;
+                this._allTexCoords[offset + 111] = divH;
+
+                this._allTexCoords[offset + 114] = 1 - divW;
+                this._allTexCoords[offset + 115] = 1 - divH;
+                this._allTexCoords[offset + 118] = 1;
+                this._allTexCoords[offset + 119] = 1 - divH;
+                this._allTexCoords[offset + 122] = 1;
+                this._allTexCoords[offset + 123] = 1;
+                this._allTexCoords[offset + 126] = 1 - divW;
+                this._allTexCoords[offset + 127] = 1;
+
+                this._allTexCoords[offset + 130] = 0;
+                this._allTexCoords[offset + 131] = 1 - divH;
+                this._allTexCoords[offset + 134] = divW;
+                this._allTexCoords[offset + 135] = 1 - divH;
+                this._allTexCoords[offset + 138] = divW;
+                this._allTexCoords[offset + 139] = 1;
+                this._allTexCoords[offset + 142] = 0;
+                this._allTexCoords[offset + 143] = 1;
+            }
+
+            var gl = this.gl;
+            gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
+            gl.useProgram(this.glProgram);
+            gl.viewport(0, 0, this.w, this.h);
+            gl.blendFunc(gl.ONE, gl.ZERO);
+            gl.enable(gl.BLEND);
+            gl.disable(gl.DEPTH_TEST);
+
+            this.paramsGlBuffer = this.paramsGlBuffer || gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.paramsGlBuffer);
+
+            var view = new DataView(this._paramsBuffer, 0, 16 * 9 * 4 * n);
+            gl.bufferData(gl.ARRAY_BUFFER, view, gl.DYNAMIC_DRAW);
+
+            gl.vertexAttribPointer(this._vertexPositionAttribute, 2, gl.FLOAT, false, 16, 0);
+            gl.vertexAttribPointer(this._textureCoordAttribute, 2, gl.FLOAT, false, 16, 2 * 4);
+
+            gl.enableVertexAttribArray(this._vertexPositionAttribute);
+            gl.enableVertexAttribArray(this._textureCoordAttribute);
+
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._indicesGlBuffer);
+
+            for (i = 0; i < n; i++) {
+                gl.bindTexture(gl.TEXTURE_2D, textureSources[i].glTexture);
+                gl.drawElements(gl.TRIANGLES, 6 * 9, gl.UNSIGNED_SHORT, i * 6 * 9 * 2);
+            }
+
+            gl.disableVertexAttribArray(this._vertexPositionAttribute);
+            gl.disableVertexAttribArray(this._textureCoordAttribute);
+        }
+    }, {
+        key: 'allocate',
+        value: function allocate(texture) {
+            return this._activeTree.add(texture);
+        }
+    }, {
+        key: 'addActiveTextureSource',
+        value: function addActiveTextureSource(textureSource) {
+            if (textureSource.id === 1) {} else {
+                if (textureSource.w * textureSource.h < this._pixelsLimit) {
+                    if (!this._activeTextureSources.has(textureSource)) {
+                        this._activeTextureSources.add(textureSource);
+
+                        if (!this._addedTextureSources.has(textureSource)) {
+                            this.add(textureSource);
+                        }
+                    }
+                }
+            }
+        }
+    }, {
+        key: 'removeActiveTextureSource',
+        value: function removeActiveTextureSource(textureSource) {
+            if (this._activeTextureSources.has(textureSource)) {
+                this._activeTextureSources.delete(textureSource);
+
+                var uploadsIndex = this._uploads.indexOf(textureSource);
+                if (uploadsIndex >= 0) {
+                    this._uploads.splice(uploadsIndex, 1);
+
+                    textureSource.onRemovedFromTextureAtlas();
+
+                    this._addedTextureSources.delete(textureSource);
+                }
+
+                if (this._addedTextureSources.has(textureSource)) {
+                    this._wastedPixels += textureSource.w * textureSource.h;
+                }
+            }
+        }
+    }, {
+        key: 'add',
+        value: function add(textureSource) {
+            var position = this.allocate(textureSource);
+            if (position) {
+                this._addedTextureSources.add(textureSource);
+
+                textureSource.onAddedToTextureAtlas(position.x + 1, position.y + 1);
+
+                this._uploads.push(textureSource);
+            } else {
+                this._defragNeeded = true;
+
+                return false;
+            }
+
+            return true;
+        }
+    }, {
+        key: 'defragment',
+        value: function defragment() {
+            console.log('defragment texture atlas');
+
+            var gl = this.gl;
+            gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
+            gl.viewport(0, 0, this.w, this.h);
+            gl.clearColor(0, 0, 0, 0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+
+            this._activeTree.reset();
+            this._uploads = [];
+            this._wastedPixels = 0;
+            this._lastDefragFrame = this.stage.frameCounter;
+            this._defragNeeded = false;
+
+            this._addedTextureSources.forEach(function (textureSource) {
+                textureSource.onRemovedFromTextureAtlas();
+            });
+
+            this._addedTextureSources.clear();
+
+            this.add(this.stage.rectangleTexture.source);
+
+            var self = this;
+            this._activeTextureSources.forEach(function (textureSource) {
+                self.add(textureSource);
+            });
+        }
+    }, {
+        key: 'flush',
+        value: function flush() {
+            if (this._defragNeeded) {
+                if (this._wastedPixels >= this._minWastedPixels) {
+                    if (this._lastDefragFrame < this.stage.frameCounter - 300) {
+                        this.defragment();
+                    }
+                }
+            }
+
+            if (this._uploads.length) {
+                this.uploadTextureSources(this._uploads);
+                this._uploads = [];
+            }
+        }
+    }, {
+        key: 'glProgram',
+        get: function get() {
+            return this._program.glProgram;
+        }
+    }, {
+        key: 'gl',
+        get: function get() {
+            return this._program.gl;
+        }
+    }]);
+
+    return TextureAtlas;
+}();
+
+var TextureAtlasTree = function () {
+    function TextureAtlasTree(w, h) {
+        _classCallCheck(this, TextureAtlasTree);
+
+        this.w = w;
+        this.h = h;
+
+        this.reset();
+    }
+
+    _createClass(TextureAtlasTree, [{
+        key: 'reset',
+        value: function reset() {
+            this.root = { x: 0, y: 0, w: this.w, h: this.h };
+            this.spaces = new Set([this.root]);
+            this.maxH = this.h;
+        }
+    }, {
+        key: 'add',
+        value: function add(texture) {
+            var w = texture.w + 2;
+            var h = texture.h + 2;
+
+            if (h > this.maxH) {
+                return false;
+            }
+
+            var mp = 0;
+            var found = null;
+            var maxH = 0;
+            this.spaces.forEach(function (n) {
+                if (n.h > maxH) {
+                    maxH = n.h;
+                }
+                if (n.w >= w && n.h >= h) {
+                    if (!mp || mp > w * h) {
+                        mp = w * h;
+                        found = n;
+                    }
+                }
+            });
+            this.maxH = maxH;
+
+            if (!found) {
+                return false;
+            }
+
+            this.useNode(found, texture);
+            return found;
+        }
+    }, {
+        key: 'findNode',
+        value: function findNode(node, w, h) {
+            if (!node) return null;
+            if (!node.o) {
+                if (w <= node.w && h <= node.h) {
+                    return node;
+                } else {
+                    return null;
+                }
+            } else {
+                return this.findNode(node.r, w, h) || this.findNode(node.d, w, h);
+            }
+        }
+    }, {
+        key: 'useNode',
+        value: function useNode(node, texture) {
+            var w = texture.w + 2,
+                h = texture.h + 2;
+            if (node.w > w) {
+                node.r = { x: node.x + w, y: node.y, w: node.w - w, h: h };
+                this.spaces.add(node.r);
+            }
+            if (node.h > h) {
+                node.d = { x: node.x, y: node.y + h, w: node.w, h: node.h - h };
+                this.spaces.add(node.d);
+            }
+            this.spaces.delete(node);
+            node.o = texture;
+        }
+    }, {
+        key: 'getTextures',
+        value: function getTextures() {
+            var n = [this.root];
+
+            var textures = [];
+            var c = 1;
+            while (c) {
+                var item = n.pop();
+                c--;
+
+                if (item.o) {
+                    textures.push(item.o);
+                    if (item.r) {
+                        n.push(item.r);
+                        c++;
+                    }
+                    if (item.d) {
+                        n.push(item.d);
+                        c++;
+                    }
+                }
+            }
+
+            return textures;
+        }
+    }]);
+
+    return TextureAtlasTree;
+}();
+
+var View = function () {
+    function View(stage) {
+        _classCallCheck(this, View);
+
+        EventEmitter.call(this);
+
+        this.id = View.id++;
+
+        this.stage = stage;
+
+        this._core = new ViewCore(this);
+
+        this._texturizer = null;
+
+        this._active = false;
+
+        this._attached = false;
+
+        this._parent = null;
+
+        this._texture = null;
+
+        this._displayedTexture = null;
+
+        this._tags = null;
+
+        this._treeTags = null;
+
+        this._tagsCache = null;
+
+        this._tagToComplex = null;
+
+        this._tagRoot = false;
+
+        this._x = 0;
+        this._y = 0;
+        this._w = 0;
+        this._h = 0;
+        this._scaleX = 1;
+        this._scaleY = 1;
+        this._pivotX = 0.5;
+        this._pivotY = 0.5;
+        this._mountX = 0;
+        this._mountY = 0;
+        this._alpha = 1;
+        this._rotation = 0;
+        this._visible = true;
+
+        this._viewText = null;
+
+        this._childList = null;
+
+        this._exposedChildList = null;
+    }
+
+    _createClass(View, [{
+        key: 'setAsRoot',
+        value: function setAsRoot() {
+            this._updateActiveFlag();
+            this._updateAttachedFlag();
+            this._core.setAsRoot();
+        }
+    }, {
+        key: '_setParent',
+        value: function _setParent(parent) {
+            if (this._parent === parent) return;
+
+            if (this._parent) {
+                this._unsetTagsParent();
+            }
+
+            this._parent = parent;
+
+            if (parent) {
+                this._setTagsParent();
+            }
+
+            this._updateActiveFlag();
+
+            this._updateAttachedFlag();
+        }
+    }, {
+        key: 'getDepth',
+        value: function getDepth() {
+            var depth = 0;
+
+            var p = this;
+            do {
+                depth++;
+                p = p._parent;
+            } while (p);
+
+            return depth;
+        }
+    }, {
+        key: 'getAncestor',
+        value: function getAncestor(l) {
+            var p = this;
+            while (l > 0 && p._parent) {
+                p = p._parent;
+                l--;
+            }
+            return p;
+        }
+    }, {
+        key: 'getAncestorAtDepth',
+        value: function getAncestorAtDepth(depth) {
+            var levels = this.getDepth() - depth;
+            if (levels < 0) {
+                return null;
+            }
+            return this.getAncestor(levels);
+        }
+    }, {
+        key: 'isAncestorOf',
+        value: function isAncestorOf(c) {
+            var p = c;
+            while (p = p.parent) {
+                if (this === p) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }, {
+        key: 'getSharedAncestor',
+        value: function getSharedAncestor(c) {
+            var o1 = this;
+            var o2 = c;
+            var l1 = o1.getDepth();
+            var l2 = o2.getDepth();
+            if (l1 > l2) {
+                o1 = o1.getAncestor(l1 - l2);
+            } else if (l2 > l1) {
+                o2 = o2.getAncestor(l2 - l1);
+            }
+
+            do {
+                if (o1 === o2) {
+                    return o1;
+                }
+
+                o1 = o1._parent;
+                o2 = o2._parent;
+            } while (o1 && o2);
+
+            return null;
+        }
+    }, {
+        key: 'isActive',
+        value: function isActive() {
+            return this._visible && this._alpha > 0 && (this._parent ? this._parent._active : this.stage.root === this);
+        }
+    }, {
+        key: 'isAttached',
+        value: function isAttached() {
+            return this._parent ? this._parent._attached : this.stage.root === this;
+        }
+    }, {
+        key: '_updateActiveFlag',
+        value: function _updateActiveFlag() {
+            var newActive = this.isActive();
+            if (this._active !== newActive) {
+                if (newActive) {
+                    this._setActiveFlag();
+                } else {
+                    this._unsetActiveFlag();
+                }
+
+                var children = this._children.get();
+                if (children) {
+                    var m = children.length;
+                    if (m > 0) {
+                        for (var _i12 = 0; _i12 < m; _i12++) {
+                            children[_i12]._updateActiveFlag();
+                        }
+                    }
+                }
+
+                if (this._eventsCount) {
+                    this.emit('active', newActive);
+                }
+            }
+        }
+    }, {
+        key: '_setActiveFlag',
+        value: function _setActiveFlag() {
+            var dt = null;
+            if (this._texture && this._texture.source.glTexture) {
+                dt = this._texture;
+                this._texture.source.addView(this);
+            } else if (this._displayedTexture && this._displayedTexture.source.glTexture) {
+                dt = this._displayedTexture;
+            }
+
+            this.displayedTexture = dt;
+
+            this._updateDimensions();
+            this._updateTextureCoords();
+
+            this._active = true;
+
+            if (this._texture) {
+                this._texture.source.addView(this);
+            }
+
+            if (this._displayedTexture && this._displayedTexture !== this._texture) {
+                this._displayedTexture.source.addView(this);
+            }
+        }
+    }, {
+        key: '_unsetActiveFlag',
+        value: function _unsetActiveFlag() {
+            if (this._texture) {
+                this._texture.source.removeView(this);
+            }
+
+            if (this._displayedTexture) {
+                this._displayedTexture.source.removeView(this);
+            }
+
+            if (this._texturizer) {
+                this._texturizer.deactivate();
+            }
+
+            this._active = false;
+        }
+    }, {
+        key: '_updateAttachedFlag',
+        value: function _updateAttachedFlag() {
+            var newAttached = this.isAttached();
+            if (this._attached !== newAttached) {
+                this._attached = newAttached;
+
+                var children = this._children.get();
+                if (children) {
+                    var m = children.length;
+                    if (m > 0) {
+                        for (var _i13 = 0; _i13 < m; _i13++) {
+                            children[_i13]._updateAttachedFlag();
+                        }
+                    }
+                }
+            }
+        }
+    }, {
+        key: '_getRenderWidth',
+        value: function _getRenderWidth() {
+            if (this._w) {
+                return this._w;
+            } else if (this._texture && this._texture.source.glTexture) {
+                return this._texture.w || this._texture.source.w / this._texture.precision;
+            } else if (this._displayedTexture) {
+                return this._displayedTexture.w || this._displayedTexture.source.w / this._displayedTexture.precision;
+            } else {
+                return 0;
+            }
+        }
+    }, {
+        key: '_getRenderHeight',
+        value: function _getRenderHeight() {
+            if (this._h) {
+                return this._h;
+            } else if (this._texture && this._texture.source.glTexture) {
+                return (this._texture.h || this._texture.source.h) / this._texture.precision;
+            } else if (this._displayedTexture) {
+                return (this._displayedTexture.h || this._displayedTexture.source.h) / this._displayedTexture.precision;
+            } else {
+                return 0;
+            }
+        }
+    }, {
+        key: 'textureIsLoaded',
+        value: function textureIsLoaded() {
+            return this.texture ? !!this.texture.source.glTexture : false;
+        }
+    }, {
+        key: 'loadTexture',
+        value: function loadTexture(sync) {
+            if (this.texture) {
+                this.texture.source.load(sync);
+            }
+        }
+    }, {
+        key: 'onTextureSourceLoaded',
+        value: function onTextureSourceLoaded() {
+            this.displayedTexture = this._texture;
+        }
+    }, {
+        key: 'onTextureSourceLoadError',
+        value: function onTextureSourceLoadError(e) {
+            if (this._eventsCount) {
+                this.emit('txError', e, this._texture.source);
+            }
+        }
+    }, {
+        key: 'onTextureSourceAddedToTextureAtlas',
+        value: function onTextureSourceAddedToTextureAtlas() {
+            this._updateTextureCoords();
+        }
+    }, {
+        key: 'onTextureSourceRemovedFromTextureAtlas',
+        value: function onTextureSourceRemovedFromTextureAtlas() {
+            this._updateTextureCoords();
+        }
+    }, {
+        key: 'onDisplayedTextureClippingChanged',
+        value: function onDisplayedTextureClippingChanged() {
+            this._updateDimensions();
+            this._updateTextureCoords();
+        }
+    }, {
+        key: 'onPrecisionChanged',
+        value: function onPrecisionChanged() {
+            this._updateDimensions();
+        }
+    }, {
+        key: '_updateDimensions',
+        value: function _updateDimensions() {
+            var beforeW = this._core.rw;
+            var beforeH = this._core.rh;
+            var rw = this._getRenderWidth();
+            var rh = this._getRenderHeight();
+            if (beforeW !== rw || beforeH !== rh) {
+                this._core.setDimensions(this._getRenderWidth(), this._getRenderHeight());
+                this._updateLocalTranslate();
+                return true;
+            }
+            return false;
+        }
+    }, {
+        key: '_updateLocalTransform',
+        value: function _updateLocalTransform() {
+            if (this._rotation !== 0 && this._rotation % (2 * Math.PI)) {
+                var _sr = Math.sin(this._rotation);
+                var _cr = Math.cos(this._rotation);
+
+                this._core.setLocalTransform(_cr * this._scaleX, -_sr * this._scaleY, _sr * this._scaleX, _cr * this._scaleY);
+            } else {
+                this._core.setLocalTransform(this._scaleX, 0, 0, this._scaleY);
+            }
+            this._updateLocalTranslate();
+        }
+    }, {
+        key: '_updateLocalTranslate',
+        value: function _updateLocalTranslate() {
+            var pivotXMul = this._pivotX * this._core.rw;
+            var pivotYMul = this._pivotY * this._core.rh;
+            var px = this._x - (pivotXMul * this._core.localTa + pivotYMul * this._core.localTb) + pivotXMul;
+            var py = this._y - (pivotXMul * this._core.localTc + pivotYMul * this._core.localTd) + pivotYMul;
+            px -= this._mountX * this.renderWidth;
+            py -= this._mountY * this.renderHeight;
+            this._core.setLocalTranslate(px, py);
+        }
+    }, {
+        key: '_updateLocalTranslateDelta',
+        value: function _updateLocalTranslateDelta(dx, dy) {
+            this._core.addLocalTranslate(dx, dy);
+        }
+    }, {
+        key: '_updateLocalAlpha',
+        value: function _updateLocalAlpha() {
+            this._core.setLocalAlpha(this._visible ? this._alpha : 0);
+        }
+    }, {
+        key: '_updateTextureCoords',
+        value: function _updateTextureCoords() {
+            if (this.displayedTexture && this.displayedTexture.source) {
+                var displayedTexture = this.displayedTexture;
+                var displayedTextureSource = this.displayedTexture.source;
+
+                var tx1 = 0,
+                    ty1 = 0,
+                    tx2 = 1.0,
+                    ty2 = 1.0;
+                if (displayedTexture.clipping) {
+                    var w = displayedTextureSource.getRenderWidth();
+                    var h = displayedTextureSource.getRenderHeight();
+                    var iw = void 0,
+                        ih = void 0,
+                        rw = void 0,
+                        rh = void 0;
+                    iw = 1 / w;
+                    ih = 1 / h;
+
+                    if (displayedTexture.w) {
+                        rw = displayedTexture.w * iw;
+                    } else {
+                        rw = (w - displayedTexture.x) * iw;
+                    }
+
+                    if (displayedTexture.h) {
+                        rh = displayedTexture.h * ih;
+                    } else {
+                        rh = (h - displayedTexture.y) * ih;
+                    }
+
+                    iw *= displayedTexture.x;
+                    ih *= displayedTexture.y;
+
+                    tx1 = Math.min(1.0, Math.max(0, iw));
+                    ty1 = Math.min(1.0, Math.max(ih));
+                    tx2 = Math.min(1.0, Math.max(tx2 * rw + iw));
+                    ty2 = Math.min(1.0, Math.max(ty2 * rh + ih));
+                }
+
+                var inTextureAtlas = this._core.allowTextureAtlas() && displayedTextureSource.inTextureAtlas;
+                if (inTextureAtlas) {
+                    var textureAtlasI = 0.000488281;
+
+                    var tax = displayedTextureSource.textureAtlasX * textureAtlasI;
+                    var tay = displayedTextureSource.textureAtlasY * textureAtlasI;
+                    var dax = displayedTextureSource.w * textureAtlasI;
+                    var day = displayedTextureSource.h * textureAtlasI;
+
+                    tx1 = tx1 * dax + tax;
+                    ty1 = ty1 * dax + tay;
+
+                    tx2 = tx2 * dax + tax;
+                    ty2 = ty2 * day + tay;
+                }
+
+                this._core.setTextureCoords(tx1, ty1, tx2, ty2);
+                this._core.setInTextureAtlas(inTextureAtlas);
+            }
+        }
+    }, {
+        key: 'getCornerPoints',
+        value: function getCornerPoints() {
+            return this._core.getCornerPoints();
+        }
+    }, {
+        key: '_clearTagsCache',
+        value: function _clearTagsCache(tag) {
+            if (this._tagsCache) {
+                this._tagsCache.delete(tag);
+
+                if (this._tagToComplex) {
+                    var s = this._tagToComplex.get(tag);
+                    if (s) {
+                        for (var _i14 = 0, n = s.length; _i14 < n; _i14++) {
+                            this._tagsCache.delete(s[_i14]);
+                        }
+                        this._tagToComplex.delete(tag);
+                    }
+                }
+            }
+        }
+    }, {
+        key: '_unsetTagsParent',
+        value: function _unsetTagsParent() {
+            var tags = null;
+            var n = 0;
+            if (!this._tagRoot && this._treeTags) {
+                tags = Utils.iteratorToArray(this._treeTags.keys());
+                n = tags.length;
+
+                if (n > 0) {
+                    for (var _i15 = 0; _i15 < n; _i15++) {
+                        var tagSet = this._treeTags.get(tags[_i15]);
+
+                        var _p = this;
+
+                        var _loop = function _loop() {
+                            var parentTreeTags = _p._treeTags.get(tags[_i15]);
+
+                            tagSet.forEach(function (comp) {
+                                parentTreeTags.delete(comp);
+                            });
+
+                            _p._clearTagsCache(tags[_i15]);
+                        };
+
+                        while ((_p = _p._parent) && !_p._tagRoot) {
+                            _loop();
+                        }
+                    }
+                }
+            }
+        }
+    }, {
+        key: '_setTagsParent',
+        value: function _setTagsParent() {
+            if (!this._tagRoot && this._treeTags && this._treeTags.size) {
+                var self = this;
+                this._treeTags.forEach(function (tagSet, tag) {
+                    var p = self;
+
+                    var _loop2 = function _loop2() {
+                        if (!p._treeTags) {
+                            p._treeTags = new Map();
+                        }
+
+                        var s = p._treeTags.get(tag);
+                        if (!s) {
+                            s = new Set();
+                            p._treeTags.set(tag, s);
+                        }
+
+                        tagSet.forEach(function (comp) {
+                            s.add(comp);
+                        });
+
+                        p._clearTagsCache(tag);
+                    };
+
+                    while ((p = p._parent) && !p._tagRoot) {
+                        _loop2();
+                    }
+                });
+            }
+        }
+    }, {
+        key: '_getByTag',
+        value: function _getByTag(tag) {
+            if (!this._treeTags) {
+                return [];
+            }
+            var t = this._treeTags.get(tag);
+            return t ? Utils.setToArray(t) : [];
+        }
+    }, {
+        key: 'getTags',
+        value: function getTags() {
+            return this._tags ? this._tags : [];
+        }
+    }, {
+        key: 'setTags',
+        value: function setTags(tags) {
+            var i = void 0,
+                n = tags.length;
+            var removes = [];
+            var adds = [];
+            for (i = 0; i < n; i++) {
+                if (!this.hasTag(tags[i])) {
+                    adds.push(tags[i]);
+                }
+            }
+
+            var currentTags = this.tags || [];
+            n = currentTags.length;
+            for (i = 0; i < n; i++) {
+                if (tags.indexOf(currentTags[i]) == -1) {
+                    removes.push(currentTags[i]);
+                }
+            }
+
+            for (i = 0; i < removes.length; i++) {
+                this.removeTag(removes[i]);
+            }
+
+            for (i = 0; i < adds.length; i++) {
+                this.addTag(adds[i]);
+            }
+        }
+    }, {
+        key: 'addTag',
+        value: function addTag(tag) {
+            if (!this._tags) {
+                this._tags = [];
+            }
+            if (this._tags.indexOf(tag) === -1) {
+                this._tags.push(tag);
+
+                var _p2 = this;
+                do {
+                    if (!_p2._treeTags) {
+                        _p2._treeTags = new Map();
+                    }
+
+                    var _s = _p2._treeTags.get(tag);
+                    if (!_s) {
+                        _s = new Set();
+                        _p2._treeTags.set(tag, _s);
+                    }
+
+                    _s.add(this);
+
+                    _p2._clearTagsCache(tag);
+                } while (_p2 = _p2._parent);
+            }
+        }
+    }, {
+        key: 'removeTag',
+        value: function removeTag(tag) {
+            var i = this._tags.indexOf(tag);
+            if (i !== -1) {
+                this._tags.splice(i, 1);
+
+                var _p3 = this;
+                do {
+                    var list = _p3._treeTags.get(tag);
+                    if (list) {
+                        list.delete(this);
+
+                        _p3._clearTagsCache(tag);
+                    }
+                } while (_p3 = _p3._parent);
+            }
+        }
+    }, {
+        key: 'hasTag',
+        value: function hasTag(tag) {
+            return this._tags && this._tags.indexOf(tag) !== -1;
+        }
+    }, {
+        key: '_tag',
+        value: function _tag(tag) {
+            var res = this.mtag(tag);
+            return res[0];
+        }
+    }, {
+        key: 'mtag',
+        value: function mtag(tag) {
+            var res = null;
+            if (this._tagsCache) {
+                res = this._tagsCache.get(tag);
+            }
+
+            if (!res) {
+                var idx = tag.indexOf(".");
+                if (idx >= 0) {
+                    var parts = tag.split('.');
+                    res = this._getByTag(parts[0]);
+                    var level = 1;
+                    var c = parts.length;
+                    while (res.length && level < c) {
+                        var resn = [];
+                        for (var j = 0, n = res.length; j < n; j++) {
+                            resn = resn.concat(res[j]._getByTag(parts[level]));
+                        }
+
+                        res = resn;
+                        level++;
+                    }
+                } else {
+                    res = this._getByTag(tag);
+                }
+
+                if (!this._tagsCache) {
+                    this._tagsCache = new Map();
+                }
+
+                this._tagsCache.set(tag, res);
+            }
+            return res;
+        }
+    }, {
+        key: 'stag',
+        value: function stag(tag, settings) {
+            var t = this.mtag(tag);
+            var n = t.length;
+            for (var _i16 = 0; _i16 < n; _i16++) {
+                t[_i16].setSettings(settings);
+            }
+        }
+    }, {
+        key: 'getLocationString',
+        value: function getLocationString() {
+            var i = void 0;
+            if (this._parent) {
+                i = this._parent._children.getIndex(this);
+                if (i >= 0) {
+                    var localTags = this.getTags();
+                    return this._parent.getLocationString() + ":" + i + "[" + this.id + "]" + (localTags.length ? "(" + localTags.join(",") + ")" : "");
+                }
+            }
+            return "";
+        }
+    }, {
+        key: 'toString',
+        value: function toString() {
+            var obj = this.getSettings();
+            return View.getPrettyString(obj, "");
+        }
+    }, {
+        key: 'getSettings',
+        value: function getSettings() {
+            var settings = this.getNonDefaults();
+
+            var children = this._children.get();
+            if (children) {
+                var n = children.length;
+                settings.children = [];
+                for (var _i17 = 0; _i17 < n; _i17++) {
+                    settings.children.push(children[_i17].getSettings());
+                }
+            }
+
+            return settings;
+        }
+    }, {
+        key: 'getNonDefaults',
+        value: function getNonDefaults() {
+            var settings = {};
+
+            if (this._tags && this._tags.length) {
+                settings.tags = this._tags;
+            }
+
+            if (this._x !== 0) settings.x = this._x;
+            if (this._y !== 0) settings.y = this._y;
+            if (this._w !== 0) settings.w = this._w;
+            if (this._h !== 0) settings.h = this._h;
+
+            if (this._scaleX === this._scaleY) {
+                if (this._scaleX !== 1) settings.scale = this._scaleX;
+            } else {
+                if (this._scaleX !== 1) settings.scaleX = this._scaleX;
+                if (this._scaleY !== 1) settings.scaleY = this._scaleY;
+            }
+
+            if (this._pivotX === this._pivotY) {
+                if (this._pivotX !== 0.5) settings.pivot = this._pivotX;
+            } else {
+                if (this._pivotX !== 0.5) settings.pivotX = this._pivotX;
+                if (this._pivotY !== 0.5) settings.pivotY = this._pivotY;
+            }
+
+            if (this._mountX === this._mountY) {
+                if (this._mountX !== 0) settings.mount = this._mountX;
+            } else {
+                if (this._mountX !== 0) settings.mountX = this._mountX;
+                if (this._mountY !== 0) settings.mountY = this._mountY;
+            }
+
+            if (this._alpha !== 1) settings.alpha = this._alpha;
+
+            if (this._rotation !== 0) settings.rotation = this._rotation;
+
+            if (this._core.colorUl === this._core.colorUr && this._core.colorBl === this._core.colorBr && this._core.colorUl === this._core.colorBl) {
+                if (this._core.colorUl !== 0xFFFFFFFF) settings.color = 0xFFFFFFFF;
+            } else {
+                if (this._core.colorUl !== 0xFFFFFFFF) settings.colorUl = 0xFFFFFFFF;
+                if (this._core.colorUr !== 0xFFFFFFFF) settings.colorUr = 0xFFFFFFFF;
+                if (this._core.colorBl !== 0xFFFFFFFF) settings.colorBl = 0xFFFFFFFF;
+                if (this._core.colorBr !== 0xFFFFFFFF) settings.colorBr = 0xFFFFFFFF;
+            }
+
+            if (!this._visible) settings.visible = false;
+
+            if (this._core.zIndex) settings.zIndex = this._core.zIndex;
+
+            if (this._core.forceZIndexContext) settings.forceZIndexContext = true;
+
+            if (this._core.clipping) settings.clipping = this._core.clipping;
+
+            if (this.rect) {
+                settings.rect = true;
+            } else if (this.src) {
+                settings.src = this.src;
+            } else if (this.texture && this._viewText) {
+                settings.text = this._viewText.settings.getNonDefaults();
+            }
+
+            if (this._texture) {
+                var tnd = this._texture.getNonDefaults();
+                if (Object.keys(tnd).length) {
+                    settings.texture = tnd;
+                }
+            }
+
+            if (this._texturizer) {
+                if (this._texturizer.enabled) {
+                    settings.renderToTexture = this._texturizer.enabled;
+                }
+                if (this._texturizer.lazy) {
+                    settings.renderToTextureLazy = this._texturizer.lazy;
+                }
+                if (this._texturizer.colorize) {
+                    settings.colorizeResultTexture = this._texturizer.colorize;
+                }
+                if (this._texturizer.hideResult) {
+                    settings.hideResultTexture = this._texturizer.hideResult;
+                }
+            }
+
+            return settings;
+        }
+    }, {
+        key: 'setSettings',
+        value: function setSettings(settings) {
+            Base.setObjectSettings(this, settings);
+        }
+    }, {
+        key: '_getExposedChildList',
+        value: function _getExposedChildList() {
+            return this._children;
+        }
+    }, {
+        key: 'getChildren',
+        value: function getChildren() {
+            return this.childList.get();
+        }
+    }, {
+        key: 'addChild',
+        value: function addChild(child) {
+            return this.childList.add(child);
+        }
+    }, {
+        key: 'addChildAt',
+        value: function addChildAt(child, index) {
+            return this.childList.addAt(child, index);
+        }
+    }, {
+        key: 'getChildIndex',
+        value: function getChildIndex(child) {
+            return this.childList.getIndex(child);
+        }
+    }, {
+        key: 'removeChild',
+        value: function removeChild(child) {
+            return this.childList.remove(child);
+        }
+    }, {
+        key: 'removeChildAt',
+        value: function removeChildAt(index) {
+            return this.childList.removeAt(index);
+        }
+    }, {
+        key: 'removeChildren',
+        value: function removeChildren() {
+            return this.childList.clear();
+        }
+    }, {
+        key: 'add',
+        value: function add(o) {
+            return this.childList.a(o);
+        }
+    }, {
+        key: 'getResultTextureSource',
+        value: function getResultTextureSource() {
+            return this.texturizer.getResultTextureSource();
+        }
+    }, {
+        key: 'animation',
+        value: function animation(settings) {
+            return this.stage.animations.createAnimation(this, settings);
+        }
+    }, {
+        key: 'transition',
+        value: function transition(property, settings) {
+            if (settings === undefined) {
+                return this._getTransition(property);
+            } else {
+                this._setTransition(property, settings);
+                return null;
+            }
+        }
+    }, {
+        key: 'fastForward',
+        value: function fastForward(property) {
+            if (this._transitions) {
+                var t = this._transitions[property];
+                if (t && t.isTransition) {
+                    t.finish();
+                }
+            }
+        }
+    }, {
+        key: '_getTransition',
+        value: function _getTransition(property) {
+            if (!this._transitions) {
+                this._transitions = {};
+            }
+            var t = this._transitions[property];
+            if (!t) {
+                t = new Transition(this.stage.transitions, this.stage.transitions.defaultTransitionSettings, this, property);
+            } else if (t.isTransitionSettings) {
+                t = new Transition(this.stage.transitions, t, this, property);
+            }
+            this._transitions[property] = t;
+            return t;
+        }
+    }, {
+        key: '_setTransition',
+        value: function _setTransition(property, settings) {
+            if (!settings) {
+                this._removeTransition(property);
+            }
+            if (Utils.isObjectLiteral(settings)) {
+                settings = this.stage.transitions.createSettings(settings);
+            }
+
+            if (!this._transitions) {
+                this._transitions = {};
+            }
+
+            var current = this._transitions[property];
+            if (current && current.isTransition) {
+                current.settings = settings;
+                return current;
+            } else {
+                this._transitions[property] = settings;
+            }
+        }
+    }, {
+        key: '_removeTransition',
+        value: function _removeTransition(property) {
+            if (this._transitions) {
+                delete this._transitions[property];
+            }
+        }
+    }, {
+        key: 'getSmooth',
+        value: function getSmooth(property, v) {
+            var t = this._getTransition(property);
+            if (t && t.isActive()) {
+                return t.targetValue;
+            } else {
+                return v;
+            }
+        }
+    }, {
+        key: 'setSmooth',
+        value: function setSmooth(property, v, settings) {
+            if (settings) {
+                this._setTransition(property, settings);
+            }
+            var t = this._getTransition(property);
+            t.start(v);
+            return t;
+        }
+    }, {
+        key: 'isNumberProperty',
+        value: function isNumberProperty(property) {
+            return View.isNumberProperty(property, this.constructor);
+        }
+    }, {
+        key: 'isColorProperty',
+        value: function isColorProperty(property) {
+            return View.isColorProperty(property, this.constructor);
+        }
+    }, {
+        key: 'active',
+        get: function get() {
+            return this._active;
+        }
+    }, {
+        key: 'attached',
+        get: function get() {
+            return this._attached;
+        }
+    }, {
+        key: 'renderWidth',
+        get: function get() {
+            if (this._active) {
+                return this._core._rw;
+            } else {
+                return this._getRenderWidth();
+            }
+        }
+    }, {
+        key: 'renderHeight',
+        get: function get() {
+            if (this._active) {
+                return this._core._rh;
+            } else {
+                return this._getRenderHeight();
+            }
+        }
+    }, {
+        key: 'texture',
+        get: function get() {
+            return this._texture;
+        },
+        set: function set(v) {
+            if (v && Utils.isObjectLiteral(v)) {
+                if (this.texture) {
+                    Base.setObjectSettings(this.texture, v);
+                } else {
+                    console.warn('Trying to set texture properties, but there is no texture.');
+                }
+                return;
+            }
+
+            var prevValue = this._texture;
+            if (v !== prevValue) {
+                if (v !== null) {
+                    if (v instanceof TextureSource) {
+                        v = this.stage.texture(v);
+                    } else if (!v instanceof Texture) {
+                        console.error('incorrect value for texture');
+                        return;
+                    }
+                }
+
+                this._texture = v;
+
+                if (this._active && prevValue && this.displayedTexture !== prevValue) {
+                    if ((!v || prevValue.source !== v.source) && (!this.displayedTexture || this.displayedTexture.source !== prevValue.source)) {
+                        prevValue.source.removeView(this);
+                    }
+                }
+
+                if (v) {
+                    if (this._active) {
+                        v.source.addView(this);
+                    }
+
+                    if (v.source.glTexture) {
+                        this.displayedTexture = v;
+                    }
+                } else {
+                    this.displayedTexture = null;
+                }
+            }
+        }
+    }, {
+        key: 'displayedTexture',
+        get: function get() {
+            return this._displayedTexture;
+        },
+        set: function set(v) {
+            var prevValue = this._displayedTexture;
+            if (v !== prevValue) {
+                if (this._active && prevValue) {
+
+                    if (prevValue !== this._texture) {
+                        if (!v || prevValue.source !== v.source) {
+                            prevValue.source.removeView(this);
+                        }
+                    }
+                }
+
+                this._displayedTexture = v;
+
+                this._updateDimensions();
+
+                if (v) {
+                    if (this._eventsCount) {
+                        this.emit('txLoaded', v);
+                    }
+
+                    this._updateTextureCoords();
+                    this._core.setDisplayedTextureSource(v.source);
+                } else {
+                    if (this._eventsCount) {
+                        this.emit('txUnloaded', v);
+                    }
+
+                    this._core.setDisplayedTextureSource(null);
+                }
+            }
+        }
+    }, {
+        key: 'tag',
+        get: function get() {
+            return this._tag;
+        },
+        set: function set(t) {
+            this.tags = t;
+        }
+    }, {
+        key: 'tagRoot',
+        get: function get() {
+            return this._tagRoot;
+        },
+        set: function set(v) {
+            if (this._tagRoot !== v) {
+                if (!v) {
+                    this._setTagsParent();
+                } else {
+                    this._unsetTagsParent();
+                }
+
+                this._tagRoot = v;
+            }
+        }
+    }, {
+        key: 'x',
+        get: function get() {
+            return this._x;
+        },
+        set: function set(v) {
+            if (this._x !== v) {
+                this._updateLocalTranslateDelta(v - this._x, 0);
+                this._x = v;
+            }
+        }
+    }, {
+        key: 'y',
+        get: function get() {
+            return this._y;
+        },
+        set: function set(v) {
+            if (this._y !== v) {
+                this._updateLocalTranslateDelta(0, v - this._y);
+                this._y = v;
+            }
+        }
+    }, {
+        key: 'w',
+        get: function get() {
+            return this._w;
+        },
+        set: function set(v) {
+            if (this._w !== v) {
+                this._w = v;
+                this._updateDimensions();
+            }
+        }
+    }, {
+        key: 'h',
+        get: function get() {
+            return this._h;
+        },
+        set: function set(v) {
+            if (this._h !== v) {
+                this._h = v;
+                this._updateDimensions();
+            }
+        }
+    }, {
+        key: 'scaleX',
+        get: function get() {
+            return this._scaleX;
+        },
+        set: function set(v) {
+            if (this._scaleX !== v) {
+                this._scaleX = v;
+                this._updateLocalTransform();
+            }
+        }
+    }, {
+        key: 'scaleY',
+        get: function get() {
+            return this._scaleY;
+        },
+        set: function set(v) {
+            if (this._scaleY !== v) {
+                this._scaleY = v;
+                this._updateLocalTransform();
+            }
+        }
+    }, {
+        key: 'scale',
+        get: function get() {
+            return this._scaleX;
+        },
+        set: function set(v) {
+            if (this._scaleX !== v || this._scaleY !== v) {
+                this._scaleX = v;
+                this._scaleY = v;
+                this._updateLocalTransform();
+            }
+        }
+    }, {
+        key: 'pivotX',
+        get: function get() {
+            return this._pivotX;
+        },
+        set: function set(v) {
+            if (this._pivotX !== v) {
+                this._pivotX = v;
+                this._updateLocalTranslate();
+            }
+        }
+    }, {
+        key: 'pivotY',
+        get: function get() {
+            return this._pivotY;
+        },
+        set: function set(v) {
+            if (this._pivotY !== v) {
+                this._pivotY = v;
+                this._updateLocalTranslate();
+            }
+        }
+    }, {
+        key: 'pivot',
+        get: function get() {
+            return this._pivotX;
+        },
+        set: function set(v) {
+            if (this._pivotX !== v || this._pivotY !== v) {
+                this._pivotX = v;
+                this._pivotY = v;
+                this._updateLocalTranslate();
+            }
+        }
+    }, {
+        key: 'mountX',
+        get: function get() {
+            return this._mountX;
+        },
+        set: function set(v) {
+            if (this._mountX !== v) {
+                this._mountX = v;
+                this._updateLocalTranslate();
+            }
+        }
+    }, {
+        key: 'mountY',
+        get: function get() {
+            return this._mountY;
+        },
+        set: function set(v) {
+            if (this._mountY !== v) {
+                this._mountY = v;
+                this._updateLocalTranslate();
+            }
+        }
+    }, {
+        key: 'mount',
+        get: function get() {
+            return this._mountX;
+        },
+        set: function set(v) {
+            if (this._mountX !== v || this._mountY !== v) {
+                this._mountX = v;
+                this._mountY = v;
+                this._updateLocalTranslate();
+            }
+        }
+    }, {
+        key: 'alpha',
+        get: function get() {
+            return this._alpha;
+        },
+        set: function set(v) {
+            v = v > 1 ? 1 : v < 1e-14 ? 0 : v;
+            if (this._alpha !== v) {
+                var prev = this._alpha;
+                this._alpha = v;
+                this._updateLocalAlpha();
+                if (prev === 0 !== (v === 0)) this._updateActiveFlag();
+            }
+        }
+    }, {
+        key: 'rotation',
+        get: function get() {
+            return this._rotation;
+        },
+        set: function set(v) {
+            if (this._rotation !== v) {
+                this._rotation = v;
+                this._updateLocalTransform();
+            }
+        }
+    }, {
+        key: 'colorUl',
+        get: function get() {
+            return this._core.colorUl;
+        },
+        set: function set(v) {
+            this._core.colorUl = v;
+        }
+    }, {
+        key: 'colorUr',
+        get: function get() {
+            return this._core.colorUr;
+        },
+        set: function set(v) {
+            this._core.colorUr = v;
+        }
+    }, {
+        key: 'colorBl',
+        get: function get() {
+            return this._core.colorBl;
+        },
+        set: function set(v) {
+            this._core.colorBl = v;
+        }
+    }, {
+        key: 'colorBr',
+        get: function get() {
+            return this._core.colorBr;
+        },
+        set: function set(v) {
+            this._core.colorBr = v;
+        }
+    }, {
+        key: 'color',
+        get: function get() {
+            return this._core.colorUl;
+        },
+        set: function set(v) {
+            if (this.colorUl !== v || this.colorUr !== v || this.colorBl !== v || this.colorBr !== v) {
+                this.colorUl = v;
+                this.colorUr = v;
+                this.colorBl = v;
+                this.colorBr = v;
+            }
+        }
+    }, {
+        key: 'colorTop',
+        get: function get() {
+            return this.colorUl;
+        },
+        set: function set(v) {
+            if (this.colorUl !== v || this.colorUr !== v) {
+                this.colorUl = v;
+                this.colorUr = v;
+            }
+        }
+    }, {
+        key: 'colorBottom',
+        get: function get() {
+            return this.colorBl;
+        },
+        set: function set(v) {
+            if (this.colorBl !== v || this.colorBr !== v) {
+                this.colorBl = v;
+                this.colorBr = v;
+            }
+        }
+    }, {
+        key: 'colorLeft',
+        get: function get() {
+            return this.colorUl;
+        },
+        set: function set(v) {
+            if (this.colorUl !== v || this.colorBl !== v) {
+                this.colorUl = v;
+                this.colorBl = v;
+            }
+        }
+    }, {
+        key: 'colorRight',
+        get: function get() {
+            return this.colorUr;
+        },
+        set: function set(v) {
+            if (this.colorUr !== v || this.colorBr !== v) {
+                this.colorUr = v;
+                this.colorBr = v;
+            }
+        }
+    }, {
+        key: 'visible',
+        get: function get() {
+            return this._visible;
+        },
+        set: function set(v) {
+            if (this._visible !== v) {
+                this._visible = v;
+                this._updateLocalAlpha();
+                this._updateActiveFlag();
+            }
+        }
+    }, {
+        key: 'zIndex',
+        get: function get() {
+            return this._core.zIndex;
+        },
+        set: function set(v) {
+            var prev = this._core.zIndex;
+            this._core.zIndex = v;
+        }
+    }, {
+        key: 'forceZIndexContext',
+        get: function get() {
+            return this._core.forceZIndexContext;
+        },
+        set: function set(v) {
+            this._core.forceZIndexContext = v;
+        }
+    }, {
+        key: 'clipping',
+        get: function get() {
+            return this._core.clipping;
+        },
+        set: function set(v) {
+            this._core.clipping = v;
+        }
+    }, {
+        key: 'tags',
+        get: function get() {
+            return this.getTags();
+        },
+        set: function set(v) {
+            if (!Array.isArray(v)) v = [v];
+            this.setTags(v);
+        }
+    }, {
+        key: 't',
+        set: function set(v) {
+            this.tags = v;
+        }
+    }, {
+        key: '_children',
+        get: function get() {
+            if (!this._childList) {
+                this._childList = new ViewChildList(this, false);
+            }
+            return this._childList;
+        }
+    }, {
+        key: '_lchildren',
+        get: function get() {
+            return this._childList.get();
+        }
+    }, {
+        key: 'childList',
+        get: function get() {
+            if (!this._exposedChildList) {
+                this._exposedChildList = this._getExposedChildList();
+            }
+            return this._exposedChildList;
+        }
+    }, {
+        key: 'children',
+        get: function get() {
+            return this.childList.get();
+        },
+        set: function set(children) {
+            this.childList.set(children);
+        }
+    }, {
+        key: 'parent',
+        get: function get() {
+            return this._parent;
+        }
+    }, {
+        key: 'src',
+        get: function get() {
+            if (this.texture && this.texture.source && this.texture.source.renderInfo && this.texture.source.renderInfo.src) {
+                return this.texture.source.renderInfo.src;
+            } else {
+                return null;
+            }
+        },
+        set: function set(v) {
+            if (!v) {
+                this.texture = null;
+            } else if (!this.texture || !this.texture.source.renderInfo || this.texture.source.renderInfo.src !== v) {
+                this.texture = this.stage.textureManager.getTexture(v);
+            }
+        }
+    }, {
+        key: 'rect',
+        get: function get() {
+            return this.texture === this.stage.rectangleTexture;
+        },
+        set: function set(v) {
+            if (v) {
+                this.texture = this.stage.rectangleTexture;
+            } else {
+                this.texture = null;
+            }
+        }
+    }, {
+        key: 'text',
+        get: function get() {
+            if (!this._viewText) {
+                this._viewText = new ViewText(this);
+            }
+
+            return this._viewText.settings;
+        },
+        set: function set(v) {
+            if (!this._viewText) {
+                this._viewText = new ViewText(this);
+            }
+            if (Utils.isString(v)) {
+                this._viewText.settings.text = v;
+            } else {
+                this._viewText.settings.setSettings(v);
+            }
+        }
+    }, {
+        key: 'visitEntry',
+        set: function set(f) {
+            this._core.visitEntry = f;
+        }
+    }, {
+        key: 'visitExit',
+        set: function set(f) {
+            this._core.visitExit = f;
+        }
+    }, {
+        key: 'shader',
+        get: function get() {
+            return this._core.shader;
+        },
+        set: function set(v) {
+            var shader = void 0;
+            if (Utils.isObjectLiteral(v)) {
+                if (v.type) {
+                    shader = new v.type(this.stage.ctx);
+                } else {
+                    shader = this.shader;
+                }
+
+                if (shader) {
+                    shader.setSettings(v);
+                }
+            } else if (v === null) {
+                shader = this.stage.ctx.renderState.defaultShader;
+            } else {
+                if (v.isShader) {
+                    shader = v;
+                } else {
+                    console.error("Please specify a shader type.");
+                    return;
+                }
+            }
+            this._core.shader = shader;
+        }
+    }, {
+        key: 'renderToTexture',
+        get: function get() {
+            return this._texturizer && this.texturizer.enabled;
+        },
+        set: function set(v) {
+            this.texturizer.enabled = v;
+        }
+    }, {
+        key: 'renderToTextureLazy',
+        get: function get() {
+            return this._texturizer && this.texturizer.lazy;
+        },
+        set: function set(v) {
+            this.texturizer.lazy = v;
+        }
+    }, {
+        key: 'hideResultTexture',
+        get: function get() {
+            return this._texturizer && this.texturizer.hideResult;
+        },
+        set: function set(v) {
+            this.texturizer.hideResult = v;
+        }
+    }, {
+        key: 'colorizeResultTexture',
+        get: function get() {
+            return this._texturizer && this.texturizer.colorize;
+        },
+        set: function set(v) {
+            this.texturizer.colorize = v;
+        }
+    }, {
+        key: 'filters',
+        get: function get() {
+            return this.texturizer.filters;
+        },
+        set: function set(v) {
+            this.texturizer.filters = v;
+        }
+    }, {
+        key: 'texturizer',
+        get: function get() {
+            return this._core.texturizer;
+        }
+    }, {
+        key: 'transitions',
+        set: function set(object) {
+            var _this9 = this;
+
+            var keys = Object.keys(object);
+            keys.forEach(function (property) {
+                _this9.transition(property, object[property]);
+            });
+        }
+    }, {
+        key: 'X',
+        get: function get() {
+            return this.getSmooth('x', this.x);
+        },
+        set: function set(v) {
+            this.setSmooth('x', v);
+        }
+    }, {
+        key: 'Y',
+        get: function get() {
+            return this.getSmooth('y', this.y);
+        },
+        set: function set(v) {
+            this.setSmooth('y', v);
+        }
+    }, {
+        key: 'W',
+        get: function get() {
+            return this.getSmooth('w', this.w);
+        },
+        set: function set(v) {
+            return this.setSmooth('w', v);
+        }
+    }, {
+        key: 'H',
+        get: function get() {
+            return this.getSmooth('h', this.h);
+        },
+        set: function set(v) {
+            this.setSmooth('h', v);
+        }
+    }, {
+        key: 'SCALE',
+        get: function get() {
+            return this.getSmooth('scale', this.scale);
+        },
+        set: function set(v) {
+            this.setSmooth('scale', v);
+        }
+    }, {
+        key: 'SCALEX',
+        get: function get() {
+            return this.getSmooth('scaleX', this.scaleX);
+        },
+        set: function set(v) {
+            this.setSmooth('scaleX', v);
+        }
+    }, {
+        key: 'PIVOT',
+        get: function get() {
+            return this.getSmooth('pivot', this.pivot);
+        },
+        set: function set(v) {
+            this.setSmooth('pivot', v);
+        }
+    }, {
+        key: 'PIVOTX',
+        get: function get() {
+            return this.getSmooth('pivotX', this.pivotX);
+        },
+        set: function set(v) {
+            this.setSmooth('pivotX', v);
+        }
+    }, {
+        key: 'MOUNT',
+        get: function get() {
+            return this.getSmooth('mount', this.mount);
+        },
+        set: function set(v) {
+            this.setSmooth('mount', v);
+        }
+    }, {
+        key: 'MOUNTX',
+        get: function get() {
+            return this.getSmooth('mountX', this.mountX);
+        },
+        set: function set(v) {
+            this.setSmooth('mountX', v);
+        }
+    }, {
+        key: 'ALPHA',
+        get: function get() {
+            return this.getSmooth('alpha', this.alpha);
+        },
+        set: function set(v) {
+            this.setSmooth('alpha', v);
+        }
+    }, {
+        key: 'ROTATION',
+        get: function get() {
+            return this.getSmooth('rotation', this.rotation);
+        },
+        set: function set(v) {
+            this.setSmooth('rotation', v);
+        }
+    }, {
+        key: 'COLOR',
+        get: function get() {
+            return this.getSmooth('color', this.color);
+        },
+        set: function set(v) {
+            this.setSmooth('color', v);
+        }
+    }, {
+        key: 'COLORTOP',
+        set: function set(v) {
+            this.setSmooth('colorTop', v);
+        }
+    }, {
+        key: 'COLORBOTTOM',
+        set: function set(v) {
+            this.setSmooth('colorBottom', v);
+        }
+    }, {
+        key: 'COLORLEFT',
+        set: function set(v) {
+            this.setSmooth('colorLeft', v);
+        }
+    }, {
+        key: 'COLORRIGHT',
+        set: function set(v) {
+            this.setSmooth('colorRight', v);
+        }
+    }, {
+        key: 'COLORUL',
+        get: function get() {
+            return this.getSmooth('colorUl', this.colorUl);
+        },
+        set: function set(v) {
+            this.setSmooth('colorUl', v);
+        }
+    }, {
+        key: 'COLORUR',
+        get: function get() {
+            return this.getSmooth('colorUr', this.colorUr);
+        },
+        set: function set(v) {
+            this.setSmooth('colorUr', v);
+        }
+    }, {
+        key: 'COLORBL',
+        get: function get() {
+            return this.getSmooth('colorBl', this.colorBl);
+        },
+        set: function set(v) {
+            this.setSmooth('colorBl', v);
+        }
+    }, {
+        key: 'COLORBR',
+        get: function get() {
+            return this.getSmooth('colorBr', this.colorBr);
+        },
+        set: function set(v) {
+            this.setSmooth('colorBr', v);
+        }
+    }], [{
+        key: 'getPrettyString',
+        value: function getPrettyString(obj, indent) {
+            var children = obj.children;
+            delete obj.children;
+
+            var colorKeys = ["color", "colorUl", "colorUr", "colorBl", "colorBr"];
+            var str = JSON.stringify(obj, function (k, v) {
+                if (colorKeys.indexOf(k) !== -1) {
+                    return "COLOR[" + v.toString(16) + "]";
+                }
+                return v;
+            });
+            str = str.replace(/"COLOR\[([a-f0-9]{1,8})\]"/g, "0x$1");
+
+            if (children && children.length) {
+                var isEmpty = str === "{}";
+                str = str.substr(0, str.length - 1) + (isEmpty ? "" : ",") + "\"children\":[\n";
+                var n = children.length;
+                for (var _i18 = 0; _i18 < n; _i18++) {
+                    str += View.getPrettyString(children[_i18], indent + "  ") + (_i18 < n - 1 ? "," : "") + "\n";
+                }
+                str += indent + "]}";
+            }
+
+            return indent + str;
+        }
+    }, {
+        key: 'getGetter',
+        value: function getGetter(propertyPath) {
+            var getter = View.PROP_GETTERS.get(propertyPath);
+            if (!getter) {
+                getter = new Function('obj', 'return obj.' + propertyPath);
+                View.PROP_GETTERS.set(propertyPath, getter);
+            }
+            return getter;
+        }
+    }, {
+        key: 'getSetter',
+        value: function getSetter(propertyPath) {
+            var setter = View.PROP_SETTERS.get(propertyPath);
+            if (!setter) {
+                setter = new Function('obj', 'v', 'obj.' + propertyPath + ' = v');
+                View.PROP_SETTERS.set(propertyPath, setter);
+            }
+            return setter;
+        }
+    }]);
+
+    return View;
+}();
+
+View.isNumberProperty = function (property) {
+    var type = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : View;
+
+    do {
+        if (type.NUMBER_PROPERTIES && type.NUMBER_PROPERTIES.has(property)) {
+            return true;
+        }
+    } while (type !== View && (type = Object.getPrototypeOf(type)));
+
+    return false;
+};
+
+View.isColorProperty = function (property) {
+    var type = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : View;
+
+    do {
+        if (type.COLOR_PROPERTIES && type.COLOR_PROPERTIES.has(property)) {
+            return true;
+        }
+    } while (type !== View && (type = Object.getPrototypeOf(type)));
+
+    return false;
+};
+
+View.getMerger = function (property) {
+    var type = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : View;
+
+    if (View.isNumberProperty(property, type)) {
+        return StageUtils.mergeNumbers;
+    } else if (View.isColorProperty(property, type)) {
+        return StageUtils.mergeColors;
+    } else {
+        return undefined;
+    }
+};
+
+View.NUMBER_PROPERTIES = new Set(['x', 'y', 'w', 'h', 'scale', 'scaleX', 'scaleY', 'pivot', 'pivotX', 'pivotY', 'mount', 'mountX', 'mountY', 'alpha', 'rotation', 'texture.x', 'texture.y', 'texture.w', 'texture.h']);
+View.COLOR_PROPERTIES = new Set(['color', 'colorTop', 'colorBottom', 'colorLeft', 'colorRight', 'colorUl', 'colorUr', 'colorBl', 'colorBr']);
+
+View.prototype.isView = 1;
+
+View.id = 1;
+
+View.PROP_GETTERS = new Map();
+
+View.PROP_SETTERS = new Map();
+
+Base.mixinEs5(View, EventEmitter);
+
+var ViewChildList = function () {
+    function ViewChildList(view) {
+        var isProxy = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
+
+        _classCallCheck(this, ViewChildList);
+
+        this._view = view;
+
+        this._children = isProxy ? this._view._children._children : [];
+    }
+
+    _createClass(ViewChildList, [{
+        key: 'get',
+        value: function get() {
+            return this._children;
+        }
+    }, {
+        key: 'add',
+        value: function add(view) {
+            if (view._parent === this && this._children.indexOf(view) >= 0) {
+                return view;
+            }
+            this.addAt(view, this._children.length);
+        }
+    }, {
+        key: 'addAt',
+        value: function addAt(view, index) {
+            if (view === this._view) {
+                return;
+            }
+
+            if (index >= 0 && index <= this._children.length) {
+                if (view._parent === this._view && this._children.indexOf(view) === index) {} else {
+                    if (view._parent) {
+                        var _p4 = view._parent;
+                        _p4._children.remove(view);
+                    }
+
+                    view._setParent(this._view);
+                    this._children.splice(index, 0, view);
+
+                    this._view._core.addChildAt(index, view._core);
+                }
+
+                return;
+            } else {
+                throw new Error(view + 'addChildAt: The index ' + index + ' supplied is out of bounds ' + this._children.length);
+            }
+        }
+    }, {
+        key: 'getIndex',
+        value: function getIndex(view) {
+            return this._children.indexOf(view);
+        }
+    }, {
+        key: 'remove',
+        value: function remove(view) {
+            var index = this.getIndex(view);
+
+            if (index !== -1) {
+                this.removeAt(index);
+            }
+        }
+    }, {
+        key: 'removeAt',
+        value: function removeAt(index) {
+            var view = this._children[index];
+
+            view._setParent(null);
+            this._children.splice(index, 1);
+
+            this._view._core.removeChildAt(index);
+
+            return view;
+        }
+    }, {
+        key: 'clear',
+        value: function clear() {
+            var n = this._children.length;
+            if (n) {
+                for (var _i19 = 0; _i19 < n; _i19++) {
+                    var view = this._children[_i19];
+                    view._setParent(null);
+                }
+                this._children.splice(0, n);
+
+                this._view._core.removeChildren();
+            }
+        }
+    }, {
+        key: 'a',
+        value: function a(o) {
+            if (Utils.isObjectLiteral(o)) {
+                var c = void 0;
+                if (o.type) {
+                    c = new o.type(this._view.stage);
+                } else {
+                    c = this._view.stage.createView();
+                }
+                this.add(c);
+                c.setSettings(o);
+                return c;
+            } else if (Array.isArray(o)) {
+                for (var _i20 = 0, n = o.length; _i20 < n; _i20++) {
+                    this.a(o[_i20]);
+                }
+                return null;
+            } else if (o.isView) {
+                this.add(o);
+                return o;
+            }
+        }
+    }, {
+        key: 'set',
+        value: function set(views) {
+            this.clear();
+            for (var _i21 = 0, n = views.length; _i21 < n; _i21++) {
+                var o = views[_i21];
+                if (Utils.isObjectLiteral(o)) {
+                    var c = void 0;
+                    if (o.type) {
+                        c = new o.type(this._view.stage);
+                    } else {
+                        c = this._view.stage.createView();
+                    }
+                    this.add(c);
+                    c.setSettings(o);
+                } else if (o.isView) {
+                    this.add(o);
+                }
+            }
+        }
+    }, {
+        key: 'length',
+        get: function get() {
+            return this._children.length;
+        }
+    }]);
+
+    return ViewChildList;
+}();
+
+var ViewTexturizer = function () {
+    function ViewTexturizer(viewCore) {
+        _classCallCheck(this, ViewTexturizer);
+
+        this._view = viewCore.view;
+        this._core = viewCore;
+
+        this.ctx = this._core.ctx;
+
+        this._enabled = false;
+        this.lazy = false;
+        this._colorize = false;
+
+        this._filters = [];
+
+        this._renderTexture = null;
+
+        this._renderTextureReused = false;
+
+        this._resultTexture = null;
+
+        this._resultTextureSource = null;
+
+        this._renderToTextureEnabled = false;
+
+        this._hideResult = false;
+
+        this.filterResultCached = false;
+    }
+
+    _createClass(ViewTexturizer, [{
+        key: '_clearFilters',
+        value: function _clearFilters() {
+            var _this10 = this;
+
+            this._filters.forEach(function (filter) {
+                return filter.removeView(_this10._core);
+            });
+            this._filters = [];
+            this.filterResultCached = false;
+        }
+    }, {
+        key: '_addFilter',
+        value: function _addFilter(filter) {
+            filter.addView(this._core);
+            this._filters.push(filter);
+        }
+    }, {
+        key: '_hasFilters',
+        value: function _hasFilters() {
+            return this._filters.length > 0;
+        }
+    }, {
+        key: '_hasActiveFilters',
+        value: function _hasActiveFilters() {
+            for (var _i22 = 0, n = this._filters.length; _i22 < n; _i22++) {
+                if (!this._filters[_i22].useDefault()) return true;
+            }
+            return false;
+        }
+    }, {
+        key: 'getActiveFilters',
+        value: function getActiveFilters() {
+            var activeFilters = [];
+            this._filters.forEach(function (filter) {
+                if (!filter.useDefault()) {
+                    if (filter.getFilters) {
+                        filter.getFilters().forEach(function (f) {
+                            return activeFilters.push(f);
+                        });
+                    } else {
+                        activeFilters.push(filter);
+                    }
+                }
+            });
+            return activeFilters;
+        }
+    }, {
+        key: 'getResultTextureSource',
+        value: function getResultTextureSource() {
+            if (!this._resultTextureSource) {
+                this._resultTextureSource = new TextureSource(this._view.stage.textureManager, null);
+
+                this.updateResultTexture();
+            }
+            return this._resultTextureSource;
+        }
+    }, {
+        key: 'updateResultTexture',
+        value: function updateResultTexture() {
+            var resultTexture = this.getResultTexture();
+            if (this._resultTextureSource) {
+                if (this._resultTextureSource.glTexture !== resultTexture) {
+                    var w = resultTexture ? resultTexture.w : 0;
+                    var h = resultTexture ? resultTexture.h : 0;
+                    this._resultTextureSource._changeGlTexture(resultTexture, w, h);
+                }
+
+                this._resultTextureSource.views.forEach(function (view) {
+                    return view._core.setHasRenderUpdates(3);
+                });
+            }
+        }
+    }, {
+        key: 'mustRenderToTexture',
+        value: function mustRenderToTexture() {
+            if (this._enabled && !this.lazy) {
+                return true;
+            } else if (this._enabled && this.lazy && this._hasRenderUpdates < 3) {
+                return true;
+            } else if (this._hasActiveFilters()) {
+                return true;
+            }
+            return false;
+        }
+    }, {
+        key: 'deactivate',
+        value: function deactivate() {
+            this.releaseRenderTexture();
+            this.releaseFilterTexture();
+        }
+    }, {
+        key: 'releaseRenderTexture',
+        value: function releaseRenderTexture() {
+            if (this._renderTexture) {
+                if (!this._renderTextureReused) {
+                    this.ctx.releaseRenderTexture(this._renderTexture);
+                }
+                this._renderTexture = null;
+                this._renderTextureReused = false;
+                this.updateResultTexture();
+            }
+        }
+    }, {
+        key: 'reuseTextureAsRenderTexture',
+        value: function reuseTextureAsRenderTexture(glTexture) {
+            if (this._renderTexture !== glTexture) {
+                this.releaseRenderTexture();
+                this._renderTexture = glTexture;
+                this._renderTextureReused = true;
+            }
+        }
+    }, {
+        key: 'hasRenderTexture',
+        value: function hasRenderTexture() {
+            return !!this._renderTexture;
+        }
+    }, {
+        key: 'getRenderTexture',
+        value: function getRenderTexture() {
+            if (!this._renderTexture) {
+                this._renderTexture = this.ctx.allocateRenderTexture(Math.min(2048, this._core._rw), Math.min(2048, this._core._rh));
+                this._renderTextureReused = false;
+            }
+            return this._renderTexture;
+        }
+    }, {
+        key: 'getFilterTexture',
+        value: function getFilterTexture() {
+            if (!this._resultTexture) {
+                this._resultTexture = this.ctx.allocateRenderTexture(Math.min(2048, this._core._rw), Math.min(2048, this._core._rh));
+            }
+            return this._resultTexture;
+        }
+    }, {
+        key: 'releaseFilterTexture',
+        value: function releaseFilterTexture() {
+            if (this._resultTexture) {
+                this.ctx.releaseRenderTexture(this._resultTexture);
+                this._resultTexture = null;
+                this.filterResultCached = false;
+                this.updateResultTexture();
+            }
+        }
+    }, {
+        key: 'getResultTexture',
+        value: function getResultTexture() {
+            return this._hasActiveFilters() ? this._resultTexture : this._renderTexture;
+        }
+    }, {
+        key: 'enabled',
+        get: function get() {
+            return this._enabled;
+        },
+        set: function set(v) {
+            this._enabled = v;
+            this._core.updateRenderToTextureEnabled();
+        }
+    }, {
+        key: 'hideResult',
+        get: function get() {
+            return this._hideResult;
+        },
+        set: function set(v) {
+            this._hideResult = v;
+            this._core.setHasRenderUpdates(1);
+        }
+    }, {
+        key: 'colorize',
+        get: function get() {
+            return this._colorize;
+        },
+        set: function set(v) {
+            if (this._colorize !== v) {
+                this._colorize = v;
+
+                this._core.setHasRenderUpdates(1);
+            }
+        }
+    }, {
+        key: 'filters',
+        get: function get() {
+            return this._filters;
+        },
+        set: function set(v) {
+            var _this11 = this;
+
+            this._clearFilters();
+            v.forEach(function (filter) {
+                if (Utils.isObjectLiteral(filter) && filter.type) {
+                    var _s2 = new filter.type(_this11.ctx);
+                    _s2.setSettings(filter);
+                    filter = _s2;
+                }
+
+                if (filter.isFilter) {
+                    _this11._addFilter(filter);
+                } else {
+                    console.error("Please specify a filter type.");
+                }
+            });
+
+            this._core.updateRenderToTextureEnabled();
+            this._core.setHasRenderUpdates(2);
+        }
+    }, {
+        key: 'renderTextureReused',
+        get: function get() {
+            return this._renderTextureReused;
+        }
+    }]);
+
+    return ViewTexturizer;
+}();
+
+var ViewCore = function () {
+    function ViewCore(view) {
+        _classCallCheck(this, ViewCore);
+
+        this._view = view;
+
+        this.ctx = view.stage.ctx;
+
+        this.renderState = this.ctx.renderState;
+
+        this._parent = null;
+
+        this._hasUpdates = false;
+
+        this._hasRenderUpdates = 0;
+
+        this._visitEntry = null;
+
+        this._visitExit = null;
+
+        this._recalc = 0;
+
+        this._updateTreeOrder = 0;
+
+        this._worldContext = new ViewCoreContext();
+
+        this._renderContext = this._worldContext;
+
+        this._localPx = 0;
+        this._localPy = 0;
+
+        this._localTa = 1;
+        this._localTb = 0;
+        this._localTc = 0;
+        this._localTd = 1;
+
+        this._isComplex = false;
+
+        this._localAlpha = 1;
+
+        this._rw = 0;
+        this._rh = 0;
+
+        this._clipping = false;
+
+        this._displayedTextureSource = null;
+
+        this.inTextureAtlas = false;
+
+        this._colorUl = this._colorUr = this._colorBl = this._colorBr = 0xFFFFFFFF;
+
+        this._txCoordsUl = 0x00000000;
+        this._txCoordsUr = 0x0000FFFF;
+        this._txCoordsBr = 0xFFFFFFFF;
+        this._txCoordsBl = 0xFFFF0000;
+
+        this._ulx = 0;
+        this._uly = 0;
+        this._brx = 1;
+        this._bry = 1;
+
+        this._zIndex = 0;
+        this._forceZIndexContext = false;
+        this._zContextUsage = 0;
+        this._zParent = null;
+        this._zSort = false;
+
+        this._isRoot = false;
+
+        this._children = null;
+
+        this._zIndexedChildren = null;
+
+        this._shader = null;
+
+        this._shaderOwner = null;
+
+        this._renderToTextureEnabled = false;
+
+        this._texturizer = null;
+
+        this._useRenderToTexture = false;
+
+        this._useViewportClipping = false;
+
+        this.render = this._renderSimple;
+    }
+
+    _createClass(ViewCore, [{
+        key: 'setHasRenderUpdates',
+        value: function setHasRenderUpdates(type) {
+            var force = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+
+            if (this._worldContext.alpha || force) {
+                var _p5 = this;
+                _p5._hasRenderUpdates = Math.max(type, _p5._hasRenderUpdates);
+                while ((_p5 = _p5._parent) && _p5._hasRenderUpdates != 3) {
+                    _p5._hasRenderUpdates = 3;
+                }
+            }
+        }
+    }, {
+        key: '_setRecalc',
+        value: function _setRecalc(type) {
+            this._recalc |= type;
+
+            if (this._worldContext.alpha) {
+                var _p6 = this;
+                do {
+                    _p6._hasUpdates = true;
+                } while ((_p6 = _p6._parent) && !_p6._hasUpdates);
+
+                if (this._parent) this._parent.setHasRenderUpdates(3);
+            } else {
+                this._hasUpdates = true;
+            }
+        }
+    }, {
+        key: '_setRecalcForced',
+        value: function _setRecalcForced(type) {
+            this._recalc |= type;
+
+            var p = this;
+            do {
+                p._hasUpdates = true;
+            } while ((p = p._parent) && !p._hasUpdates);
+
+            if (this._parent) {
+                this._parent.setHasRenderUpdates(3);
+            }
+        }
+    }, {
+        key: 'setParent',
+        value: function setParent(parent) {
+            if (parent !== this._parent) {
+                var prevIsZContext = this.isZContext();
+                var prevParent = this._parent;
+                this._parent = parent;
+
+                this._setRecalc(1 + 2 + 4);
+
+                if (this._zIndex === 0) {
+                    this.setZParent(parent);
+                } else {
+                    this.setZParent(parent ? parent.findZContext() : null);
+                }
+
+                if (prevIsZContext !== this.isZContext()) {
+                    if (!this.isZContext()) {
+                        this.disableZContext();
+                    } else {
+                        this.enableZContext(prevParent.findZContext());
+                    }
+                }
+
+                if (!this._shader) {
+                    var newShaderOwner = parent ? parent._shaderOwner : null;
+                    if (newShaderOwner !== this._shaderOwner) {
+                        this.setHasRenderUpdates(1);
+                        this._setShaderOwnerRecursive(newShaderOwner);
+                    }
+                }
+            }
+        }
+    }, {
+        key: 'addChildAt',
+        value: function addChildAt(index, child) {
+            if (!this._children) this._children = [];
+            this._children.splice(index, 0, child);
+            child.setParent(this);
+        }
+    }, {
+        key: 'removeChildAt',
+        value: function removeChildAt(index) {
+            var child = this._children[index];
+            this._children.splice(index, 1);
+            child.setParent(null);
+        }
+    }, {
+        key: 'removeChildren',
+        value: function removeChildren() {
+            if (this._children) {
+                for (var _i23 = 0, n = this._children.length; _i23 < n; _i23++) {
+                    this._children[_i23].setParent(null);
+                }
+
+                this._children.splice(0);
+
+                if (this._zIndexedChildren) {
+                    this._zIndexedChildren.splice(0);
+                }
+            }
+        }
+    }, {
+        key: 'setLocalTransform',
+        value: function setLocalTransform(a, b, c, d) {
+            this._setRecalc(4);
+            this._localTa = a;
+            this._localTb = b;
+            this._localTc = c;
+            this._localTd = d;
+            this._isComplex = b != 0 || c != 0;
+        }
+    }, {
+        key: 'setLocalTranslate',
+        value: function setLocalTranslate(x, y) {
+            this._setRecalc(2);
+            this._localPx = x;
+            this._localPy = y;
+        }
+    }, {
+        key: 'addLocalTranslate',
+        value: function addLocalTranslate(dx, dy) {
+            this.setLocalTranslate(this._localPx + dx, this._localPy + dy);
+        }
+    }, {
+        key: 'setLocalAlpha',
+        value: function setLocalAlpha(a) {
+            if (!this._worldContext.alpha && this._parent && this._parent._worldContext.alpha && a) {
+                this._setRecalcForced(1 + 128);
+
+                this.setHasRenderUpdates(3, true);
+            } else {
+                this._setRecalc(1);
+            }
+
+            if (a < 1e-14) {
+                a = 0;
+            }
+
+            this._localAlpha = a;
+        }
+    }, {
+        key: 'setDimensions',
+        value: function setDimensions(w, h) {
+            this._rw = w;
+            this._rh = h;
+            this._setRecalc(2);
+            if (this._texturizer) {
+                this._texturizer.releaseRenderTexture();
+                this._texturizer.releaseFilterTexture();
+                this._texturizer.updateResultTexture();
+            }
+        }
+    }, {
+        key: 'setTextureCoords',
+        value: function setTextureCoords(ulx, uly, brx, bry) {
+            this.setHasRenderUpdates(3);
+
+            this._ulx = ulx;
+            this._uly = uly;
+            this._brx = brx;
+            this._bry = bry;
+
+            this._txCoordsUl = (ulx * 65535 + 0.5 | 0) + (uly * 65535 + 0.5 | 0) * 65536;
+            this._txCoordsUr = (brx * 65535 + 0.5 | 0) + (uly * 65535 + 0.5 | 0) * 65536;
+            this._txCoordsBl = (ulx * 65535 + 0.5 | 0) + (bry * 65535 + 0.5 | 0) * 65536;
+            this._txCoordsBr = (brx * 65535 + 0.5 | 0) + (bry * 65535 + 0.5 | 0) * 65536;
+        }
+    }, {
+        key: 'setDisplayedTextureSource',
+        value: function setDisplayedTextureSource(textureSource) {
+            this.setHasRenderUpdates(3);
+            this._displayedTextureSource = textureSource;
+        }
+    }, {
+        key: 'allowTextureAtlas',
+        value: function allowTextureAtlas() {
+            return this.activeShader.supportsTextureAtlas();
+        }
+    }, {
+        key: 'setInTextureAtlas',
+        value: function setInTextureAtlas(inTextureAtlas) {
+            this.inTextureAtlas = inTextureAtlas;
+        }
+    }, {
+        key: 'setAsRoot',
+        value: function setAsRoot() {
+            this._parent = new ViewCore(this._view);
+
+            this._isRoot = true;
+
+            this.ctx.root = this;
+        }
+    }, {
+        key: 'isAncestorOf',
+        value: function isAncestorOf(c) {
+            var p = c;
+            while (p = p._parent) {
+                if (this === p) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }, {
+        key: 'isZContext',
+        value: function isZContext() {
+            return this._forceZIndexContext || this._renderToTextureEnabled || this._zIndex !== 0 || this._isRoot || !this._parent;
+        }
+    }, {
+        key: 'findZContext',
+        value: function findZContext() {
+            if (this.isZContext()) {
+                return this;
+            } else {
+                return this._parent.findZContext();
+            }
+        }
+    }, {
+        key: 'setZParent',
+        value: function setZParent(newZParent) {
+            if (this._zParent !== newZParent) {
+                if (this._zParent !== null) {
+                    if (this._zIndex !== 0) {
+                        this._zParent.decZContextUsage();
+                    }
+
+                    if (this._zParent._zContextUsage > 0) {
+                        var index = this._zParent._zIndexedChildren.indexOf(this);
+                        this._zParent._zIndexedChildren.splice(index, 1);
+                    }
+                }
+
+                if (newZParent !== null) {
+                    var hadZContextUsage = newZParent._zContextUsage > 0;
+
+                    if (this._zIndex !== 0) {
+                        newZParent.incZContextUsage();
+                    }
+
+                    if (newZParent._zContextUsage > 0) {
+                        if (!hadZContextUsage && this._parent === newZParent) {} else {
+                            newZParent._zIndexedChildren.push(this);
+                        }
+                        newZParent._zSort = true;
+                    }
+                }
+
+                this._zParent = newZParent;
+            }
+        }
+    }, {
+        key: 'incZContextUsage',
+        value: function incZContextUsage() {
+            this._zContextUsage++;
+            if (this._zContextUsage === 1) {
+                if (!this._zIndexedChildren) {
+                    this._zIndexedChildren = [];
+                }
+                if (this._children) {
+                    for (var _i24 = 0, n = this._children.length; _i24 < n; _i24++) {
+                        this._zIndexedChildren.push(this._children[_i24]);
+                    }
+                }
+            }
+        }
+    }, {
+        key: 'decZContextUsage',
+        value: function decZContextUsage() {
+            this._zContextUsage--;
+            if (this._zContextUsage === 0) {
+                this._zSort = false;
+                this._zIndexedChildren.splice(0);
+            }
+        }
+    }, {
+        key: 'enableZContext',
+        value: function enableZContext(prevZContext) {
+            if (prevZContext && prevZContext._zContextUsage > 0) {
+                var self = this;
+
+                prevZContext._zIndexedChildren.slice().forEach(function (c) {
+                    if (self.isAncestorOf(c) && c._zIndex !== 0) {
+                        c.setZParent(self);
+                    }
+                });
+            }
+        }
+    }, {
+        key: 'disableZContext',
+        value: function disableZContext() {
+            if (this._zContextUsage > 0) {
+                var newZParent = this._parent.findZContext();
+
+                this._zIndexedChildren.slice().forEach(function (c) {
+                    if (c._zIndex !== 0) {
+                        c.setZParent(newZParent);
+                    }
+                });
+            }
+        }
+    }, {
+        key: '_setShaderOwnerRecursive',
+        value: function _setShaderOwnerRecursive(viewCore) {
+            var support = this.activeShader.supportsTextureAtlas();
+            this._shaderOwner = viewCore;
+            if (support !== this.activeShader.supportsTextureAtlas()) {
+                this._view._updateTextureCoords();
+            }
+
+            if (this._children && !this._renderToTextureEnabled) {
+                for (var _i25 = 0, n = this._children.length; _i25 < n; _i25++) {
+                    var c = this._children[_i25];
+                    if (!c._shader) {
+                        c._setShaderOwnerRecursive(viewCore);
+                        c._hasRenderUpdates = 3;
+                    }
+                }
+            }
+        }
+    }, {
+        key: '_setShaderOwnerChildrenRecursive',
+        value: function _setShaderOwnerChildrenRecursive(viewCore) {
+            if (this._children) {
+                for (var _i26 = 0, n = this._children.length; _i26 < n; _i26++) {
+                    var c = this._children[_i26];
+                    if (!c._shader) {
+                        c._setShaderOwnerRecursive(viewCore);
+                        c._hasRenderUpdates = 3;
+                    }
+                }
+            }
+        }
+    }, {
+        key: '_hasRenderContext',
+        value: function _hasRenderContext() {
+            return this._renderContext !== this._worldContext;
+        }
+    }, {
+        key: 'updateRenderToTextureEnabled',
+        value: function updateRenderToTextureEnabled() {
+            var v = this.texturizer._hasFilters() || this.texturizer._enabled || this._clipping;
+
+            if (v) {
+                this._enableRenderToTexture();
+            } else {
+                this._disableRenderToTexture();
+                this._texturizer.releaseRenderTexture();
+            }
+        }
+    }, {
+        key: '_enableRenderToTexture',
+        value: function _enableRenderToTexture() {
+            if (!this._renderToTextureEnabled) {
+                var prevIsZContext = this.isZContext();
+
+                this._renderToTextureEnabled = true;
+
+                this._renderContext = new ViewCoreContext();
+
+                this._setShaderOwnerChildrenRecursive(null);
+
+                if (!prevIsZContext) {
+                    this.enableZContext(this._parent ? this._parent.findZContext() : null);
+                }
+
+                this.setHasRenderUpdates(3);
+
+                this._setRecalc(7);
+
+                this.render = this._renderAdvanced;
+            }
+        }
+    }, {
+        key: '_disableRenderToTexture',
+        value: function _disableRenderToTexture() {
+            if (this._renderToTextureEnabled) {
+                this._renderToTextureEnabled = false;
+
+                this._setShaderOwnerChildrenRecursive(this._shaderOwner);
+
+                this._renderContext = this._worldContext;
+
+                if (!this.isZContext()) {
+                    this.disableZContext();
+                }
+
+                this._setRecalc(7);
+
+                this.setHasRenderUpdates(3);
+
+                this.render = this._renderSimple;
+            }
+        }
+    }, {
+        key: '_stashTexCoords',
+        value: function _stashTexCoords() {
+            this._stashedTexCoords = [this._txCoordsUl, this._txCoordsUr, this._txCoordsBr, this._txCoordsBl, this._ulx, this._uly, this._brx, this._bry];
+            this._txCoordsUl = 0x00000000;
+            this._txCoordsUr = 0x0000FFFF;
+            this._txCoordsBr = 0xFFFFFFFF;
+            this._txCoordsBl = 0xFFFF0000;
+            this._ulx = 0;
+            this._uly = 0;
+            this._brx = 1;
+            this._bry = 1;
+        }
+    }, {
+        key: '_unstashTexCoords',
+        value: function _unstashTexCoords() {
+            this._txCoordsUl = this._stashedTexCoords[0];
+            this._txCoordsUr = this._stashedTexCoords[1];
+            this._txCoordsBr = this._stashedTexCoords[2];
+            this._txCoordsBl = this._stashedTexCoords[3];
+            this._ulx = this._stashedTexCoords[4];
+            this._uly = this._stashedTexCoords[5];
+            this._brx = this._stashedTexCoords[6];
+            this._bry = this._stashedTexCoords[7];
+            this._stashedTexCoords = null;
+        }
+    }, {
+        key: '_stashColors',
+        value: function _stashColors() {
+            this._stashedColors = [this._colorUl, this._colorUr, this._colorBr, this._colorBl];
+            this._colorUl = 0xFFFFFFFF;
+            this._colorUr = 0xFFFFFFFF;
+            this._colorBr = 0xFFFFFFFF;
+            this._colorBl = 0xFFFFFFFF;
+        }
+    }, {
+        key: '_unstashColors',
+        value: function _unstashColors() {
+            this._colorUl = this._stashedColors[0];
+            this._colorUr = this._stashedColors[1];
+            this._colorBr = this._stashedColors[2];
+            this._colorBl = this._stashedColors[3];
+            this._stashedColors = null;
+        }
+    }, {
+        key: 'isVisible',
+        value: function isVisible() {
+            return this._localAlpha > 1e-14;
+        }
+    }, {
+        key: 'visit',
+        value: function visit() {
+            if (this.isVisible()) {
+                var changed = this._recalc > 0 || this._hasRenderUpdates > 0 || this._hasUpdates;
+
+                if (changed) {
+                    if (this._visitEntry) {
+                        this._visitEntry(this._view);
+                    }
+
+                    if (this._children) {
+                        var recalc = this._recalc;
+
+                        this._recalc |= this._parent._recalc & 6;
+
+                        for (var _i27 = 0, n = this._children.length; _i27 < n; _i27++) {
+                            this._children[_i27].visit();
+                        }
+
+                        this._recalc = recalc;
+                    }
+
+                    if (this._visitExit) {
+                        this._visitExit(this._view);
+                    }
+                }
+            }
+        }
+    }, {
+        key: 'update',
+        value: function update() {
+            this._recalc |= this._parent._recalc;
+
+            var pw = this._parent._worldContext;
+            var w = this._worldContext;
+
+            var visible = pw.alpha && this._localAlpha;
+            var forceUpdate = w.alpha && !visible;
+
+            if (visible || forceUpdate) {
+                if (this._zSort) {
+                    this.ctx.updateTreeOrderForceUpdate++;
+                }
+
+                var recalc = this._recalc;
+
+                if (recalc & 1) {
+                    w.alpha = pw.alpha * this._localAlpha;
+
+                    if (w.alpha < 1e-14) {
+                        w.alpha = 0;
+                    }
+                }
+
+                if (recalc & 6) {
+                    w.px = pw.px + this._localPx * pw.ta;
+                    w.py = pw.py + this._localPy * pw.td;
+                    if (pw.tb !== 0) w.px += this._localPy * pw.tb;
+                    if (pw.tc !== 0) w.py += this._localPx * pw.tc;
+                }
+
+                if (recalc & 4) {
+                    w.ta = this._localTa * pw.ta;
+                    w.tb = this._localTd * pw.tb;
+                    w.tc = this._localTa * pw.tc;
+                    w.td = this._localTd * pw.td;
+
+                    if (this._isComplex) {
+                        w.ta += this._localTc * pw.tb;
+                        w.tb += this._localTb * pw.ta;
+                        w.tc += this._localTc * pw.td;
+                        w.td += this._localTb * pw.tc;
+                    }
+                }
+
+                if (this._parent._hasRenderContext()) {
+                    if (this._renderContext === this._worldContext) {
+                        this._renderContext = new ViewCoreContext();
+                    }
+
+                    var _r = this._renderContext;
+
+                    var pr = this._parent._renderContext;
+
+                    if (recalc & 1) {
+                        _r.alpha = pr.alpha * this._localAlpha;
+
+                        if (_r.alpha < 1e-14) {
+                            _r.alpha = 0;
+                        }
+                    }
+
+                    if (recalc & 6) {
+                        _r.px = pr.px + this._localPx * pr.ta;
+                        _r.py = pr.py + this._localPy * pr.td;
+                        if (pr.tb !== 0) _r.px += this._localPy * pr.tb;
+                        if (pr.tc !== 0) _r.py += this._localPx * pr.tc;
+                    }
+
+                    if (recalc & 4) {
+                        _r.ta = this._localTa * pr.ta;
+                        _r.tb = this._localTd * pr.tb;
+                        _r.tc = this._localTa * pr.tc;
+                        _r.td = this._localTd * pr.td;
+
+                        if (this._isComplex) {
+                            _r.ta += this._localTc * pr.tb;
+                            _r.tb += this._localTb * pr.ta;
+                            _r.tc += this._localTc * pr.td;
+                            _r.td += this._localTb * pr.tc;
+                        }
+                    }
+                } else {
+                    this._renderContext = this._worldContext;
+                }
+
+                this._updateTreeOrder = this.ctx.updateTreeOrder++;
+
+                this._recalc = this._recalc & 135;
+
+                this._useRenderToTexture = this._renderToTextureEnabled && this._texturizer.mustRenderToTexture();
+
+                this._useViewportClipping = false;
+                if (!this._useRenderToTexture && this._clipping) {
+                    if (this._renderContext.isSquare()) {
+                        this._useViewportClipping = true;
+                    } else {
+                        this._useRenderToTexture = true;
+                    }
+                }
+
+                var r = void 0;
+                if (this._useRenderToTexture) {
+                    r = this._renderContext;
+
+                    if (this._worldContext.isIdentity()) {
+                        this._renderContext = this._worldContext;
+                    } else {
+                        this._renderContext = ViewCoreContext.IDENTITY;
+                    }
+                }
+
+                if (this._children) {
+                    for (var _i28 = 0, n = this._children.length; _i28 < n; _i28++) {
+                        if (this._recalc || this._children[_i28]._hasUpdates) {
+                            this._children[_i28].update();
+                        } else if (this.ctx.updateTreeOrderForceUpdate > 0) {
+                            this._children[_i28].updateTreeOrder();
+                        }
+                    }
+                }
+
+                if (this._useRenderToTexture) {
+                    this._renderContext = r;
+                }
+
+                this._recalc = 0;
+
+                this._hasUpdates = false;
+
+                if (this._zSort) {
+                    this.ctx.updateTreeOrderForceUpdate--;
+                }
+            } else if (this.ctx.updateTreeOrderForceUpdate > 0) {
+                this.updateTreeOrder();
+            }
+        }
+    }, {
+        key: 'updateTreeOrder',
+        value: function updateTreeOrder() {
+            if (this._zSort) {
+                this.ctx.updateTreeOrderForceUpdate++;
+            }
+
+            this._updateTreeOrder = this.ctx.updateTreeOrder++;
+
+            if (this._children) {
+                for (var _i29 = 0, n = this._children.length; _i29 < n; _i29++) {
+                    var hasZSort = this._children[_i29]._zSort;
+                    if (hasZSort) {
+                        this.ctx.updateTreeOrderForceUpdate--;
+                    }
+
+                    this._children[_i29].updateTreeOrder();
+
+                    if (hasZSort) {
+                        this.ctx.updateTreeOrderForceUpdate--;
+                    }
+                }
+            }
+
+            if (this._zSort) {
+                this.ctx.updateTreeOrderForceUpdate--;
+            }
+        }
+    }, {
+        key: '_renderSimple',
+        value: function _renderSimple() {
+            if (this._zSort) {
+                this.sortZIndexedChildren();
+                this._zSort = false;
+            }
+
+            if (this._renderContext.alpha) {
+                var renderState = this.renderState;
+
+                renderState.setShader(this.activeShader, this._shaderOwner);
+
+                if (this._displayedTextureSource) {
+                    this.addQuads();
+                }
+
+                if (this._children) {
+                    if (this._zContextUsage) {
+                        for (var _i30 = 0, n = this._zIndexedChildren.length; _i30 < n; _i30++) {
+                            this._zIndexedChildren[_i30].render();
+                        }
+                    } else {
+                        for (var _i31 = 0, _n = this._children.length; _i31 < _n; _i31++) {
+                            if (this._children[_i31]._zIndex === 0) {
+                                this._children[_i31].render();
+                            }
+                        }
+                    }
+                }
+
+                this._hasRenderUpdates = 0;
+            }
+        }
+    }, {
+        key: '_renderAdvanced',
+        value: function _renderAdvanced() {
+            if (this._zSort) {
+                this.sortZIndexedChildren();
+                this._zSort = false;
+            }
+
+            if (this._renderContext.alpha) {
+                var renderState = this.renderState;
+
+                renderState.setShader(this.activeShader, this._shaderOwner);
+
+                var mustRenderChildren = true;
+                var renderTextureInfo = void 0;
+                var prevRenderTextureInfo = void 0;
+                var prevScissor = void 0;
+                if (this._useRenderToTexture) {
+                    if (this._rw === 0 || this._rh === 0) {
+                        this._hasRenderUpdates = 0;
+                        return;
+                    } else if (!this._texturizer.hasRenderTexture() || this._hasRenderUpdates >= 3) {
+                        renderState.setShader(renderState.defaultShader, this);
+
+                        prevRenderTextureInfo = renderState.renderTextureInfo;
+
+                        renderTextureInfo = {
+                            glTexture: null,
+                            offset: 0,
+                            w: this._rw,
+                            h: this._rh,
+                            empty: true,
+                            cleared: false,
+                            ignore: false
+                        };
+
+                        renderState.setRenderTextureInfo(renderTextureInfo);
+
+                        if (this._displayedTextureSource) {
+                            var r = this._renderContext;
+
+                            this._renderContext = ViewCoreContext.IDENTITY;
+
+                            this.addQuads();
+
+                            this._renderContext = r;
+                        }
+                    } else {
+                        mustRenderChildren = false;
+                    }
+                } else {
+                    if (this._useViewportClipping) {
+                        var x = Math.round(this._renderContext.px);
+                        var y = Math.round(this._renderContext.py);
+                        var w = Math.round(this._renderContext.ta * this._rw);
+                        var h = Math.round(this._renderContext.td * this._rh);
+                        prevScissor = renderState.getScissor();
+                        renderState.setScissor([x, y, w, h]);
+                    }
+
+                    if (this._displayedTextureSource) {
+                        this.addQuads();
+                    }
+                }
+
+                if (mustRenderChildren && this._children) {
+                    if (this._zContextUsage) {
+                        for (var _i32 = 0, n = this._zIndexedChildren.length; _i32 < n; _i32++) {
+                            this._zIndexedChildren[_i32].render();
+                        }
+                    } else {
+                        for (var _i33 = 0, _n2 = this._children.length; _i33 < _n2; _i33++) {
+                            if (this._children[_i33]._zIndex === 0) {
+                                this._children[_i33].render();
+                            }
+                        }
+                    }
+                }
+
+                if (this._useRenderToTexture) {
+                    var updateResultTexture = false;
+                    if (mustRenderChildren) {
+                        if (renderTextureInfo.glTexture) {
+                            var floats = renderState.quads.floats;
+                            var uints = renderState.quads.uints;
+                            var offset = renderTextureInfo.offset / 4;
+                            var reuse = floats[offset] === 0 && floats[offset + 1] === 0 && uints[offset + 2] === 0x00000000 && uints[offset + 3] === 0xFFFFFFFF && floats[offset + 4] === renderTextureInfo.w && floats[offset + 5] === 0 && uints[offset + 6] === 0x0000FFFF && uints[offset + 7] === 0xFFFFFFFF && floats[offset + 8] === renderTextureInfo.w && floats[offset + 9] === renderTextureInfo.h && uints[offset + 10] === 0xFFFFFFFF && uints[offset + 11] === 0xFFFFFFFF && floats[offset + 12] === 0 && floats[offset + 13] === renderTextureInfo.h && uints[offset + 14] === 0xFFFF0000 && uints[offset + 15] === 0xFFFFFFFF;
+                            if (!reuse) {
+                                renderTextureInfo.glTexture = null;
+                            }
+                        }
+
+                        if (renderTextureInfo.empty) {} else if (renderTextureInfo.glTexture) {
+                            this._texturizer.reuseTextureAsRenderTexture(renderTextureInfo.glTexture);
+
+                            renderTextureInfo.ignore = true;
+                        } else {
+                            if (this._texturizer.renderTextureReused) {
+                                this._texturizer.releaseRenderTexture();
+                            }
+
+                            renderTextureInfo.glTexture = this._texturizer.getRenderTexture();
+                        }
+
+                        renderState.setRenderTextureInfo(prevRenderTextureInfo);
+
+                        updateResultTexture = true;
+                    }
+
+                    var hasFilters = this._texturizer._hasActiveFilters();
+
+                    if (hasFilters) {
+                        if (this._hasRenderUpdates >= 2 || !this._texturizer.filterResultCached) {
+                            this.applyFilters();
+                            updateResultTexture = true;
+                        }
+                    }
+
+                    var resultTexture = this._texturizer.getResultTexture();
+                    if (updateResultTexture) {
+                        this._texturizer.updateResultTexture();
+                    }
+
+                    if ((!mustRenderChildren || !renderTextureInfo.empty) && !this._texturizer.hideResult) {
+                        renderState.setShader(this.activeShader, this._shaderOwner);
+
+                        renderState.setOverrideQuadTexture(resultTexture);
+                        this._stashTexCoords();
+                        if (!this._texturizer.colorize) this._stashColors();
+                        this.addQuads();
+                        if (!this._texturizer.colorize) this._unstashColors();
+                        this._unstashTexCoords();
+                        renderState.setOverrideQuadTexture(null);
+                    }
+                } else if (this._useViewportClipping) {
+                    renderState.setScissor(prevScissor);
+                }
+
+                this._hasRenderUpdates = 0;
+            }
+        }
+    }, {
+        key: 'applyFilters',
+        value: function applyFilters() {
+            var sourceTexture = this._texturizer.getRenderTexture();
+
+            var renderState = this.renderState;
+            var activeFilters = this._texturizer.getActiveFilters();
+
+            var textureRenders = activeFilters.length;
+
+            this._texturizer.filterResultCached = false;
+
+            if (textureRenders === 0) {
+                return sourceTexture;
+            } else if (textureRenders === 1) {
+                var targetTexture = this._texturizer.getFilterTexture();
+
+                renderState.addFilter(activeFilters[0], this, sourceTexture, targetTexture);
+                this._texturizer.filterResultCached = true;
+            } else {
+                var _targetTexture = this._texturizer.getFilterTexture();
+                var intermediate = this.ctx.allocateRenderTexture(Math.min(2048, this._rw), Math.min(2048, this._rh));
+                var source = intermediate;
+                var target = _targetTexture;
+
+                var even = textureRenders % 2 === 0;
+
+                for (var _i34 = 0; _i34 < textureRenders; _i34++) {
+                    if (_i34 !== 0 || even) {
+                        var tmp = source;
+                        source = target;
+                        target = tmp;
+                    }
+
+                    renderState.addFilter(activeFilters[_i34], this, _i34 === 0 ? sourceTexture : source, target);
+                }
+
+                this.ctx.releaseRenderTexture(intermediate);
+
+                this._texturizer.filterResultCached = true;
+            }
+        }
+    }, {
+        key: 'sortZIndexedChildren',
+        value: function sortZIndexedChildren() {
+            for (var _i35 = 1, n = this._zIndexedChildren.length; _i35 < n; _i35++) {
+                var a = this._zIndexedChildren[_i35];
+                var j = _i35 - 1;
+                while (j >= 0) {
+                    var b = this._zIndexedChildren[j];
+                    if (!(a._zIndex === b._zIndex ? a._updateTreeOrder < b._updateTreeOrder : a._zIndex < b._zIndex)) {
+                        break;
+                    }
+
+                    this._zIndexedChildren[j + 1] = this._zIndexedChildren[j];
+                    j--;
+                }
+
+                this._zIndexedChildren[j + 1] = a;
+            }
+        }
+    }, {
+        key: 'addQuads',
+        value: function addQuads() {
+            var r = this._renderContext;
+
+            var floats = this.renderState.quads.floats;
+            var uints = this.renderState.quads.uints;
+
+            if (r.tb !== 0 || this.tb !== 0) {
+                var offset = this.renderState.addQuad(this) / 4;
+                floats[offset++] = r.px;
+                floats[offset++] = r.py;
+                uints[offset++] = this._txCoordsUl;
+                uints[offset++] = getColorInt(this._colorUl, r.alpha);
+                floats[offset++] = r.px + this._rw * r.ta;
+                floats[offset++] = r.py + this._rw * r.tc;
+                uints[offset++] = this._txCoordsUr;
+                uints[offset++] = getColorInt(this._colorUr, r.alpha);
+                floats[offset++] = r.px + this._rw * r.ta + this._rh * r.tb;
+                floats[offset++] = r.py + this._rw * r.tc + this._rh * r.td;
+                uints[offset++] = this._txCoordsBr;
+                uints[offset++] = getColorInt(this._colorBr, r.alpha);
+                floats[offset++] = r.px + this._rh * r.tb;
+                floats[offset++] = r.py + this._rh * r.td;
+                uints[offset++] = this._txCoordsBl;
+                uints[offset] = getColorInt(this._colorBl, r.alpha);
+            } else {
+                var cx = r.px + this._rw * r.ta;
+                var cy = r.py + this._rh * r.td;
+
+                var _offset = this.renderState.addQuad(this) / 4;
+                floats[_offset++] = r.px;
+                floats[_offset++] = r.py;
+                uints[_offset++] = this._txCoordsUl;
+                uints[_offset++] = getColorInt(this._colorUl, r.alpha);
+                floats[_offset++] = cx;
+                floats[_offset++] = r.py;
+                uints[_offset++] = this._txCoordsUr;
+                uints[_offset++] = getColorInt(this._colorUr, r.alpha);
+                floats[_offset++] = cx;
+                floats[_offset++] = cy;
+                uints[_offset++] = this._txCoordsBr;
+                uints[_offset++] = getColorInt(this._colorBr, r.alpha);
+                floats[_offset++] = r.px;
+                floats[_offset++] = cy;
+                uints[_offset++] = this._txCoordsBl;
+                uints[_offset] = getColorInt(this._colorBl, r.alpha);
+            }
+        }
+    }, {
+        key: 'getCornerPoints',
+        value: function getCornerPoints() {
+            var w = this._worldContext;
+
+            return [w.px, w.py, w.px + this._rw * w.ta, w.py + this._rw * w.tc, w.px + this._rw * w.ta + this._rh * this.tb, w.py + this._rw * w.tc + this._rh * this.td, w.px + this._rh * this.tb, w.py + this._rh * this.td];
+        }
+    }, {
+        key: 'getRenderTextureCoords',
+        value: function getRenderTextureCoords(relX, relY) {
+            var r = this._renderContext;
+            return [r.px + r.ta * relX + r.tb * relY, r.py + r.tc * relX + r.td * relY];
+        }
+    }, {
+        key: 'getAbsoluteCoords',
+        value: function getAbsoluteCoords(relX, relY) {
+            var w = this._renderContext;
+            return [w.px + w.ta * relX + w.tb * relY, w.py + w.tc * relX + w.td * relY];
+        }
+    }, {
+        key: 'zIndex',
+        get: function get() {
+            return this._zIndex;
+        },
+        set: function set(zIndex) {
+            if (this._zIndex !== zIndex) {
+                this.setHasRenderUpdates(1);
+
+                var newZParent = this._zParent;
+
+                var prevIsZContext = this.isZContext();
+                if (zIndex === 0 && this._zIndex !== 0) {
+                    if (this._parent === this._zParent) {
+                        this._zParent.decZContextUsage();
+                    } else {
+                        newZParent = this._parent;
+                    }
+                } else if (zIndex !== 0 && this._zIndex === 0) {
+                    newZParent = this._parent ? this._parent.findZContext() : null;
+                    if (newZParent === this._zParent) {
+                        if (this._zParent) {
+                            this._zParent.incZContextUsage();
+                            this._zParent._zSort = true;
+                        }
+                    }
+                } else if (zIndex !== this._zIndex) {
+                    this._zParent._zSort = true;
+                }
+
+                if (newZParent !== this._zParent) {
+                    this.setZParent(null);
+                }
+
+                this._zIndex = zIndex;
+
+                if (newZParent !== this._zParent) {
+                    this.setZParent(newZParent);
+                }
+
+                if (prevIsZContext !== this.isZContext()) {
+                    if (!this.isZContext()) {
+                        this.disableZContext();
+                    } else {
+                        this.enableZContext(this._parent.findZContext());
+                    }
+                }
+            }
+        }
+    }, {
+        key: 'forceZIndexContext',
+        get: function get() {
+            return this._forceZIndexContext;
+        },
+        set: function set(v) {
+            this.setHasRenderUpdates(1);
+
+            var prevIsZContext = this.isZContext();
+            this._forceZIndexContext = v;
+
+            if (prevIsZContext !== this.isZContext()) {
+                if (!this.isZContext()) {
+                    this.disableZContext();
+                } else {
+                    this.enableZContext(this._parent.findZContext());
+                }
+            }
+        }
+    }, {
+        key: 'colorUl',
+        get: function get() {
+            return this._colorUl;
+        },
+        set: function set(color) {
+            if (this._colorUl !== color) {
+                this.setHasRenderUpdates(this._displayedTextureSource ? 3 : 1);
+                this._colorUl = color;
+            }
+        }
+    }, {
+        key: 'colorUr',
+        get: function get() {
+            return this._colorUr;
+        },
+        set: function set(color) {
+            if (this._colorUr !== color) {
+                this.setHasRenderUpdates(this._displayedTextureSource ? 3 : 1);
+                this._colorUr = color;
+            }
+        }
+    }, {
+        key: 'colorBl',
+        get: function get() {
+            return this._colorBl;
+        },
+        set: function set(color) {
+            if (this._colorBl !== color) {
+                this.setHasRenderUpdates(this._displayedTextureSource ? 3 : 1);
+                this._colorBl = color;
+            }
+        }
+    }, {
+        key: 'colorBr',
+        get: function get() {
+            return this._colorBr;
+        },
+        set: function set(color) {
+            if (this._colorBr !== color) {
+                this.setHasRenderUpdates(this._displayedTextureSource ? 3 : 1);
+                this._colorBr = color;
+            }
+        }
+    }, {
+        key: 'visitEntry',
+        set: function set(f) {
+            this._visitEntry = f;
+        }
+    }, {
+        key: 'visitExit',
+        set: function set(f) {
+            this._visitExit = f;
+        }
+    }, {
+        key: 'shader',
+        get: function get() {
+            return this._shader;
+        },
+        set: function set(v) {
+            this.setHasRenderUpdates(1);
+
+            var prevShader = this._shader;
+            this._shader = v;
+            if (!v && prevShader) {
+                var newShaderOwner = this._parent && !this._parent._renderToTextureEnabled ? this._parent._shaderOwner : null;
+                this._setShaderOwnerRecursive(newShaderOwner);
+            } else {
+                this._setShaderOwnerRecursive(this);
+            }
+
+            if (prevShader) {
+                prevShader.removeView(this);
+            }
+
+            if (this._shader) {
+                this._shader.addView(this);
+            }
+        }
+    }, {
+        key: 'activeShader',
+        get: function get() {
+            return this._shaderOwner ? this._shaderOwner.shader : this.renderState.defaultShader;
+        }
+    }, {
+        key: 'activeShaderOwner',
+        get: function get() {
+            return this._shaderOwner;
+        }
+    }, {
+        key: 'clipping',
+        get: function get() {
+            return this._clipping;
+        },
+        set: function set(v) {
+            this._clipping = v;
+            this.updateRenderToTextureEnabled();
+        }
+    }, {
+        key: 'localTa',
+        get: function get() {
+            return this._localTa;
+        }
+    }, {
+        key: 'localTb',
+        get: function get() {
+            return this._localTb;
+        }
+    }, {
+        key: 'localTc',
+        get: function get() {
+            return this._localTc;
+        }
+    }, {
+        key: 'localTd',
+        get: function get() {
+            return this._localTd;
+        }
+    }, {
+        key: 'rw',
+        get: function get() {
+            return this._rw;
+        }
+    }, {
+        key: 'rh',
+        get: function get() {
+            return this._rh;
+        }
+    }, {
+        key: 'view',
+        get: function get() {
+            return this._view;
+        }
+    }, {
+        key: 'renderUpdates',
+        get: function get() {
+            return this._hasRenderUpdates;
+        }
+    }, {
+        key: 'texturizer',
+        get: function get() {
+            if (!this._texturizer) {
+                this._texturizer = new ViewTexturizer(this);
+            }
+            return this._texturizer;
+        }
+    }]);
+
+    return ViewCore;
+}();
+
+var getColorInt = function getColorInt(c, alpha) {
+    var a = (c / 16777216 | 0) * alpha | 0;
+    return ((c >> 16 & 0xff) * a / 255 & 0xff) + ((c & 0xff00) * a / 255 & 0xff00) + (((c & 0xff) << 16) * a / 255 & 0xff0000) + (a << 24);
+};
+
+var ViewCoreContext = function () {
+    function ViewCoreContext() {
+        _classCallCheck(this, ViewCoreContext);
+
+        this.alpha = 1;
+
+        this.px = 0;
+        this.py = 0;
+
+        this.ta = 1;
+        this.tb = 0;
+        this.tc = 0;
+        this.td = 1;
+    }
+
+    _createClass(ViewCoreContext, [{
+        key: 'isIdentity',
+        value: function isIdentity() {
+            return this.alpha === 1 && this.px === 0 && this.py === 0 && this.ta === 1 && this.tb === 0 && this.tc === 0 && this.td === 1;
+        }
+    }, {
+        key: 'isSquare',
+        value: function isSquare() {
+            return this.tb === 0 && this.tc === 0;
+        }
+    }]);
+
+    return ViewCoreContext;
+}();
+
+ViewCoreContext.IDENTITY = new ViewCoreContext();
+
+var CoreContext = function () {
+    function CoreContext(stage) {
+        _classCallCheck(this, CoreContext);
+
+        this.stage = stage;
+
+        this.gl = stage.gl;
+
+        this.root = null;
+
+        this.updateTreeOrder = 0;
+        this.updateTreeOrderForceUpdate = 0;
+
+        this.shaderPrograms = new Map();
+
+        this.renderState = new CoreRenderState(this);
+
+        this.renderExec = new CoreRenderExecutor(this);
+        this.renderExec.init();
+
+        this._renderTexturePool = [];
+        this._renderTexturePoolPixels = 0;
+
+        this._renderTextureId = 1;
+    }
+
+    _createClass(CoreContext, [{
+        key: 'destroy',
+        value: function destroy() {
+            var _this12 = this;
+
+            this.shaderPrograms.forEach(function (shaderProgram) {
+                return shaderProgram.destroy();
+            });
+            this._renderTexturePool.forEach(function (texture) {
+                return _this12._freeRenderTexture(texture);
+            });
+        }
+    }, {
+        key: 'visit',
+        value: function visit() {
+            this.root.visit();
+        }
+    }, {
+        key: 'frame',
+        value: function frame() {
+            if (!this.root._parent._hasRenderUpdates) {
+                return false;
+            }
+
+            this.visit();
+
+            this.update();
+
+            this.render();
+
+            this.root._parent._hasRenderUpdates = false;
+
+            this._freeUnusedRenderTextures(6000);
+
+            return true;
+        }
+    }, {
+        key: 'update',
+        value: function update() {
+            this.updateTreeOrderForceUpdate = 0;
+            this.updateTreeOrder = 0;
+
+            this.root.update();
+        }
+    }, {
+        key: 'render',
+        value: function render() {
+            this.renderState.reset();
+            this.root.render();
+            this.renderState.finish();
+
+            this.renderExec.execute();
+        }
+    }, {
+        key: 'allocateRenderTexture',
+        value: function allocateRenderTexture(w, h) {
+            w = Math.round(w);
+            h = Math.round(h);
+            for (var _i36 = 0, n = this._renderTexturePool.length; _i36 < n; _i36++) {
+                var _texture = this._renderTexturePool[_i36];
+                if (_texture.w === w && _texture.h === h) {
+                    _texture.f = this.stage.frameCounter;
+                    this._renderTexturePool.splice(_i36, 1);
+                    return _texture;
+                }
+            }
+            var texture = this._createRenderTexture(w, h);
+            texture.f = this.stage.frameCounter;
+
+            return texture;
+        }
+    }, {
+        key: 'releaseRenderTexture',
+        value: function releaseRenderTexture(texture) {
+            this._renderTexturePool.push(texture);
+        }
+    }, {
+        key: '_freeUnusedRenderTextures',
+        value: function _freeUnusedRenderTextures() {
+            var _this13 = this;
+
+            var maxAge = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 60;
+
+            var limit = this.stage.frameCounter - maxAge;
+
+            this._renderTexturePool = this._renderTexturePool.filter(function (texture) {
+                if (texture.f < limit) {
+                    _this13._freeRenderTexture(texture);
+                    _this13._renderTexturePoolPixels -= texture.w * texture.h;
+                    return false;
+                }
+                return true;
+            });
+        }
+    }, {
+        key: '_createRenderTexture',
+        value: function _createRenderTexture(w, h) {
+            if (this._renderTexturePoolPixels > this.stage.options.renderTexturePoolPixels) {
+                this._freeUnusedRenderTextures();
+                if (this._renderTexturePoolPixels > this.stage.options.renderTexturePoolPixels) {
+                    console.warn("Render texture pool overflow: " + this._renderTexturePoolPixels + "px");
+                }
+            }
+
+            var gl = this.gl;
+            var sourceTexture = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
+
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+            sourceTexture.framebuffer = gl.createFramebuffer();
+            sourceTexture.w = w;
+            sourceTexture.h = h;
+            sourceTexture.id = this._renderTextureId++;
+            sourceTexture.projection = new Float32Array([2 / w, 2 / h]);
+
+            gl.bindFramebuffer(gl.FRAMEBUFFER, sourceTexture.framebuffer);
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, sourceTexture, 0);
+
+            return sourceTexture;
+        }
+    }, {
+        key: '_freeRenderTexture',
+        value: function _freeRenderTexture(glTexture) {
+            var gl = this.stage.gl;
+            this._renderTexturePoolPixels -= glTexture.w * glTexture.h;
+            gl.deleteFramebuffer(glTexture.framebuffer);
+            gl.deleteTexture(glTexture);
+        }
+    }]);
+
+    return CoreContext;
+}();
+
+var CoreRenderState = function () {
+    function CoreRenderState(ctx) {
+        _classCallCheck(this, CoreRenderState);
+
+        this.ctx = ctx;
+
+        this.stage = ctx.stage;
+
+        this.textureAtlasGlTexture = this.stage.textureAtlas ? this.stage.textureAtlas.texture : null;
+
+        this.quads = new CoreQuadList(ctx, 8e6);
+
+        this.defaultShader = new Shader(this.ctx);
+    }
+
+    _createClass(CoreRenderState, [{
+        key: 'reset',
+        value: function reset() {
+            this._renderTextureInfo = null;
+
+            this._scissor = null;
+
+            this._shader = null;
+
+            this._shaderOwner = null;
+
+            this._realShader = null;
+
+            this._check = false;
+
+            this.quadOperations = [];
+            this.filterOperations = [];
+
+            this._overrideQuadTexture = null;
+
+            this._quadOperation = null;
+
+            this.quads.reset();
+        }
+    }, {
+        key: 'setShader',
+        value: function setShader(shader, owner) {
+            if (this._shaderOwner !== owner || this._realShader !== shader) {
+
+                this._realShader = shader;
+
+                if (shader.useDefault()) {
+                    shader = this.defaultShader;
+                }
+                if (this._shader !== shader || this._shaderOwner !== owner) {
+                    this._shader = shader;
+                    this._shaderOwner = owner;
+                    this._check = true;
+                }
+            }
+        }
+    }, {
+        key: 'setScissor',
+        value: function setScissor(area) {
+            if (area) {
+                if (this._scissor) {
+                    var sx = Math.max(area[0], this._scissor[0]);
+                    var sy = Math.max(area[1], this._scissor[1]);
+                    var ex = Math.min(area[0] + area[2], this._scissor[0] + this._scissor[2]);
+                    var ey = Math.min(area[1] + area[3], this._scissor[1] + this._scissor[3]);
+                    this._scissor = [sx, sy, ex - sx, ey - sy];
+                } else {
+                    this._scissor = area;
+                }
+            } else {
+                this._scissor = null;
+            }
+            this._check = true;
+        }
+    }, {
+        key: 'getScissor',
+        value: function getScissor() {
+            return this._scissor;
+        }
+    }, {
+        key: 'setRenderTextureInfo',
+        value: function setRenderTextureInfo(renderTextureInfo) {
+            if (this._renderTextureInfo !== renderTextureInfo) {
+                this._renderTextureInfo = renderTextureInfo;
+                this._scissor = null;
+                this._check = true;
+            }
+        }
+    }, {
+        key: 'setOverrideQuadTexture',
+        value: function setOverrideQuadTexture(texture) {
+            this._overrideQuadTexture = texture;
+        }
+    }, {
+        key: 'addQuad',
+        value: function addQuad(viewCore) {
+            if (!this._quadOperation) {
+                this._createQuadOperation();
+            } else if (this._check && this._hasChanges()) {
+                this._addQuadOperation();
+                this._check = false;
+            }
+
+            var glTexture = this._overrideQuadTexture;
+            if (!glTexture) {
+                if (viewCore.inTextureAtlas) {
+                    glTexture = this.textureAtlasGlTexture;
+                } else {
+                    glTexture = viewCore._displayedTextureSource.glTexture;
+                }
+            }
+
+            var offset = this.length * 64 + 64;
+
+            if (this._renderTextureInfo) {
+                if (this._shader === this.defaultShader && this._renderTextureInfo.empty && this._renderTextureInfo.w === glTexture.w && this._renderTextureInfo.h === glTexture.h) {
+                    this._renderTextureInfo.glTexture = glTexture;
+                    this._renderTextureInfo.offset = offset;
+                } else {
+                    this._renderTextureInfo.glTexture = null;
+                }
+                this._renderTextureInfo.empty = false;
+            }
+
+            this.quads.quadTextures.push(glTexture);
+            this.quads.quadViews.push(viewCore);
+
+            this._quadOperation.length++;
+
+            return offset;
+        }
+    }, {
+        key: '_hasChanges',
+        value: function _hasChanges() {
+            var q = this._quadOperation;
+            if (this._shader !== q.shader) return true;
+            if (this._shaderOwner !== q.shaderOwner) return true;
+            if (this._renderTextureInfo !== q.renderTextureInfo) return true;
+            if (this._scissor !== q.scissor) return true;
+
+            return false;
+        }
+    }, {
+        key: '_addQuadOperation',
+        value: function _addQuadOperation() {
+            var create = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : true;
+
+            if (this._quadOperation) {
+                if (this._quadOperation.length || this._shader.addEmpty()) {
+                    this.quadOperations.push(this._quadOperation);
+                }
+
+                this._quadOperation = null;
+            }
+
+            if (create) {
+                this._createQuadOperation();
+            }
+        }
+    }, {
+        key: '_createQuadOperation',
+        value: function _createQuadOperation() {
+            this._quadOperation = new CoreQuadOperation(this.ctx, this._shader, this._shaderOwner, this._renderTextureInfo, this._scissor, this.length);
+            this._check = false;
+        }
+    }, {
+        key: 'addFilter',
+        value: function addFilter(filter, owner, source, target) {
+            this._addQuadOperation(false);
+
+            this.filterOperations.push(new CoreFilterOperation(this.ctx, filter, owner, source, target, this.quadOperations.length));
+        }
+    }, {
+        key: 'finish',
+        value: function finish() {
+            if (this.ctx.stage.textureAtlas && this.ctx.stage.options.debugTextureAtlas) {
+                this._renderDebugTextureAtlas();
+            }
+
+            if (this._quadOperation) {
+                this._addQuadOperation(false);
+            }
+
+            this._setExtraShaderAttribs();
+        }
+    }, {
+        key: '_renderDebugTextureAtlas',
+        value: function _renderDebugTextureAtlas() {
+            this.setShader(this.defaultShader, this.ctx.root);
+            this.setRenderTextureInfo(null);
+            this.setOverrideQuadTexture(this.textureAtlasGlTexture);
+
+            var size = Math.min(this.ctx.stage.w, this.ctx.stage.h);
+
+            var offset = this.addQuad(this.ctx.root) / 4;
+            var f = this.quads.floats;
+            var u = this.quads.uints;
+            f[offset++] = 0;
+            f[offset++] = 0;
+            u[offset++] = 0x00000000;
+            u[offset++] = 0xFFFFFFFF;
+            f[offset++] = size;
+            f[offset++] = 0;
+            u[offset++] = 0x0000FFFF;
+            u[offset++] = 0xFFFFFFFF;
+            f[offset++] = size;
+            f[offset++] = size;
+            u[offset++] = 0xFFFFFFFF;
+            u[offset++] = 0xFFFFFFFF;
+            f[offset++] = 0;
+            f[offset++] = size;
+            u[offset++] = 0xFFFF0000;
+            u[offset] = 0xFFFFFFFF;
+
+            this.setOverrideQuadTexture(null);
+        }
+    }, {
+        key: '_setExtraShaderAttribs',
+        value: function _setExtraShaderAttribs() {
+            var offset = this.length * 64 + 64;
+            for (var _i37 = 0, n = this.quadOperations.length; _i37 < n; _i37++) {
+                this.quadOperations[_i37].extraAttribsDataByteOffset = offset;
+                var extra = this.quadOperations[_i37].shader.getExtraAttribBytesPerVertex() * 4 * this.quadOperations[_i37].length;
+                offset += extra;
+                if (extra) {
+                    this.quadOperations[_i37].shader.setExtraAttribsInBuffer(this.quadOperations[_i37], this.quads);
+                }
+            }
+            this.quads.dataLength = offset;
+        }
+    }, {
+        key: 'length',
+        get: function get() {
+            return this.quads.quadTextures.length;
+        }
+    }, {
+        key: 'renderTextureInfo',
+        get: function get() {
+            return this._renderTextureInfo;
+        }
+    }]);
+
+    return CoreRenderState;
+}();
+
+var CoreQuadList = function () {
+    function CoreQuadList(ctx, byteSize) {
+        _classCallCheck(this, CoreQuadList);
+
+        this.ctx = ctx;
+
+        this.textureAtlasGlTexture = this.ctx.textureAtlas ? this.ctx.textureAtlas.texture : null;
+
+        this.dataLength = 0;
+
+        this.data = new ArrayBuffer(byteSize);
+        this.floats = new Float32Array(this.data);
+        this.uints = new Uint32Array(this.data);
+
+        this.quadTextures = [];
+
+        this.quadViews = [];
+
+        var f = this.floats;
+        var u = this.uints;
+        f[0] = -1;
+        f[1] = -1;
+        u[2] = 0x00000000;
+        u[3] = 0xFFFFFFFF;
+        f[4] = 1;
+        f[5] = -1;
+        u[6] = 0x0000FFFF;
+        u[7] = 0xFFFFFFFF;
+        f[8] = 1;
+        f[9] = 1;
+        u[10] = 0xFFFFFFFF;
+        u[11] = 0xFFFFFFFF;
+        f[12] = -1;
+        f[13] = 1;
+        u[14] = 0xFFFF0000;
+        u[15] = 0xFFFFFFFF;
+    }
+
+    _createClass(CoreQuadList, [{
+        key: 'reset',
+        value: function reset() {
+            this.quadTextures = [];
+            this.quadViews = [];
+            this.dataLength = 0;
+        }
+    }, {
+        key: 'getView',
+        value: function getView(index) {
+            return this.quadViews[index]._view;
+        }
+    }, {
+        key: 'getViewCore',
+        value: function getViewCore(index) {
+            return this.quadViews[index];
+        }
+    }, {
+        key: 'getTexture',
+        value: function getTexture(index) {
+            return this.quadTextures[index];
+        }
+    }, {
+        key: 'getTextureWidth',
+        value: function getTextureWidth(index) {
+            var glTexture = this.quadTextures[index];
+            if (glTexture.w) {
+                return glTexture.w;
+            } else if (glTexture === this.textureAtlasGlTexture) {
+                return 2048;
+            } else {
+                return this.quadViews[index]._displayedTextureSource.w;
+            }
+        }
+    }, {
+        key: 'getTextureHeight',
+        value: function getTextureHeight(index) {
+            var glTexture = this.quadTextures[index];
+            if (glTexture.h) {
+                return glTexture.h;
+            } else if (glTexture === this.textureAtlasGlTexture) {
+                return 2048;
+            } else {
+                return this.quadViews[index]._displayedTextureSource.h;
+            }
+        }
+    }, {
+        key: 'getQuadContents',
+        value: function getQuadContents() {
+            var floats = this.floats;
+            var uints = this.uints;
+            var lines = [];
+            for (var _i38 = 1; _i38 <= this.length; _i38++) {
+                var str = 'entry ' + _i38 + ': ';
+                for (var j = 0; j < 4; j++) {
+                    var b = _i38 * 16 + j * 4;
+                    str += floats[b] + ',' + floats[b + 1] + ':' + uints[b + 2].toString(16) + '[' + uints[b + 3].toString(16) + '] ';
+                }
+                lines.push(str);
+            }
+
+            return lines;
+        }
+    }, {
+        key: 'length',
+        get: function get() {
+            return this.quadTextures.length;
+        }
+    }]);
+
+    return CoreQuadList;
+}();
+
+var CoreQuadOperation = function () {
+    function CoreQuadOperation(ctx, shader, shaderOwner, renderTextureInfo, scissor, index) {
+        _classCallCheck(this, CoreQuadOperation);
+
+        this.ctx = ctx;
+        this.shader = shader;
+        this.shaderOwner = shaderOwner;
+        this.renderTextureInfo = renderTextureInfo;
+        this.scissor = scissor;
+        this.index = index;
+        this.length = 0;
+        this.extraAttribsDataByteOffset = 0;
+    }
+
+    _createClass(CoreQuadOperation, [{
+        key: 'getTexture',
+        value: function getTexture(index) {
+            return this.quads.getTexture(this.index + index);
+        }
+    }, {
+        key: 'getViewCore',
+        value: function getViewCore(index) {
+            return this.quads.getViewCore(this.index + index);
+        }
+    }, {
+        key: 'getView',
+        value: function getView(index) {
+            return this.quads.getView(this.index + index);
+        }
+    }, {
+        key: 'getTextureWidth',
+        value: function getTextureWidth(index) {
+            return this.quads.getTextureWidth(this.index + index);
+        }
+    }, {
+        key: 'getTextureHeight',
+        value: function getTextureHeight(index) {
+            return this.quads.getTextureHeight(this.index + index);
+        }
+    }, {
+        key: 'getNormalRenderTextureCoords',
+        value: function getNormalRenderTextureCoords(x, y) {
+            var coords = this.shaderOwner.getRenderTextureCoords(x, y);
+            coords[0] /= this.getRenderWidth();
+            coords[1] /= this.getRenderHeight();
+            coords[0] = coords[0] * 2 - 1;
+            coords[1] = 1 - coords[1] * 2;
+            return coords;
+        }
+    }, {
+        key: 'getRenderWidth',
+        value: function getRenderWidth() {
+            if (this.renderTexture) {
+                return this.renderTexture.w;
+            } else {
+                return this.ctx.stage.w;
+            }
+        }
+    }, {
+        key: 'getRenderHeight',
+        value: function getRenderHeight() {
+            if (this.renderTexture) {
+                return this.renderTexture.h;
+            } else {
+                return this.ctx.stage.h;
+            }
+        }
+    }, {
+        key: 'getProjection',
+        value: function getProjection() {
+            if (this.renderTextureInfo === null) {
+                return this.ctx.renderExec._projection;
+            } else {
+                return this.renderTextureInfo.glTexture.projection;
+            }
+        }
+    }, {
+        key: 'quads',
+        get: function get() {
+            return this.ctx.renderState.quads;
+        }
+    }]);
+
+    return CoreQuadOperation;
+}();
+
+var CoreFilterOperation = function () {
+    function CoreFilterOperation(ctx, filter, owner, source, renderTexture, beforeQuadOperation) {
+        _classCallCheck(this, CoreFilterOperation);
+
+        this.ctx = ctx;
+        this.filter = filter;
+        this.owner = owner;
+        this.source = source;
+        this.renderTexture = renderTexture;
+        this.beforeQuadOperation = beforeQuadOperation;
+    }
+
+    _createClass(CoreFilterOperation, [{
+        key: 'getRenderWidth',
+        value: function getRenderWidth() {
+            if (this.renderTexture) {
+                return this.renderTexture.w;
+            } else {
+                return this.ctx.stage.w;
+            }
+        }
+    }, {
+        key: 'getRenderHeight',
+        value: function getRenderHeight() {
+            if (this.renderTexture) {
+                return this.renderTexture.h;
+            } else {
+                return this.ctx.stage.h;
+            }
+        }
+    }]);
+
+    return CoreFilterOperation;
+}();
+
+var CoreRenderExecutor = function () {
+    function CoreRenderExecutor(ctx) {
+        _classCallCheck(this, CoreRenderExecutor);
+
+        this.ctx = ctx;
+
+        this.renderState = ctx.renderState;
+
+        this.gl = this.ctx.stage.gl;
+
+        this.init();
+    }
+
+    _createClass(CoreRenderExecutor, [{
+        key: 'init',
+        value: function init() {
+            var gl = this.gl;
+
+            this._attribsBuffer = gl.createBuffer();
+
+            var maxQuads = Math.floor(this.renderState.quads.data.byteLength / 64);
+
+            var allIndices = new Uint16Array(maxQuads * 6);
+
+            for (var _i39 = 0, j = 0; _i39 < maxQuads; _i39 += 6, j += 4) {
+                allIndices[_i39] = j;
+                allIndices[_i39 + 1] = j + 1;
+                allIndices[_i39 + 2] = j + 2;
+                allIndices[_i39 + 3] = j;
+                allIndices[_i39 + 4] = j + 2;
+                allIndices[_i39 + 5] = j + 3;
+            }
+
+            this._quadsBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._quadsBuffer);
+            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, allIndices, gl.STATIC_DRAW);
+
+            this._projection = new Float32Array([2 / this.ctx.stage.rw, -2 / this.ctx.stage.rh]);
+        }
+    }, {
+        key: 'destroy',
+        value: function destroy() {
+            this.gl.deleteBuffer(this._attribsBuffer);
+            this.gl.deleteBuffer(this._quadsBuffer);
+        }
+    }, {
+        key: '_reset',
+        value: function _reset() {
+            this._bindRenderTexture(null);
+            this._setScissor(null);
+            this._clearRenderTexture();
+
+            var gl = this.gl;
+            gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+            gl.enable(gl.BLEND);
+            gl.disable(gl.DEPTH_TEST);
+
+            this._quadOperation = null;
+            this._currentShaderProgramOwner = null;
+        }
+    }, {
+        key: '_setupBuffers',
+        value: function _setupBuffers() {
+            var gl = this.gl;
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._quadsBuffer);
+            var view = new DataView(this.renderState.quads.data, 0, this.renderState.quads.dataLength);
+            gl.bindBuffer(gl.ARRAY_BUFFER, this._attribsBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, view, gl.DYNAMIC_DRAW);
+        }
+    }, {
+        key: 'execute',
+        value: function execute() {
+            this._reset();
+            this._setupBuffers();
+
+            var qops = this.renderState.quadOperations;
+            var fops = this.renderState.filterOperations;
+
+            var i = 0,
+                j = 0,
+                n = qops.length,
+                m = fops.length;
+            while (i < n) {
+                while (j < m && i === fops[j].beforeQuadOperation) {
+                    if (this._quadOperation) {
+                        this._execQuadOperation(this._quadOperation);
+                    }
+                    this._execFilterOperation(fops[j]);
+                    j++;
+                }
+
+                this._processQuadOperation(qops[i]);
+                i++;
+            }
+
+            if (this._quadOperation) {
+                this._execQuadOperation();
+            }
+
+            while (j < m) {
+                this._execFilterOperation(fops[j]);
+                j++;
+            }
+
+            this._stopShaderProgram();
+        }
+    }, {
+        key: 'getQuadContents',
+        value: function getQuadContents() {
+            return this.renderState.quads.getQuadContents();
+        }
+    }, {
+        key: '_mergeQuadOperation',
+        value: function _mergeQuadOperation(quadOperation) {
+            if (this._quadOperation) {
+                this._quadOperation.length += quadOperation.length;
+
+                this._quadOperation.shaderOwner = null;
+            }
+        }
+    }, {
+        key: '_processQuadOperation',
+        value: function _processQuadOperation(quadOperation) {
+            if (quadOperation.renderTextureInfo && quadOperation.renderTextureInfo.ignore) {
+                return;
+            }
+
+            var shader = quadOperation.shader;
+
+            var merged = false;
+            if (this._quadOperation && this._quadOperation.renderTextureInfo === quadOperation.renderTextureInfo && this._quadOperation.scissor === quadOperation.scissor && this._quadOperation.shader.supportsMerging() && quadOperation.shader.supportsMerging()) {
+                if (this._quadOperation.shader === shader) {
+                    this._mergeQuadOperation(quadOperation);
+                    merged = true;
+                } else if (shader.hasSameProgram(this._quadOperation.shader)) {
+                    shader.setupUniforms(quadOperation);
+                    if (shader.isMergable(this._quadOperation.shader)) {
+                        this._mergeQuadOperation(quadOperation);
+                        merged = true;
+                    }
+                }
+            }
+
+            if (!merged) {
+                if (this._quadOperation) {
+                    this._execQuadOperation();
+                }
+
+                shader.setupUniforms(quadOperation);
+                this._quadOperation = quadOperation;
+            }
+        }
+    }, {
+        key: '_execQuadOperation',
+        value: function _execQuadOperation() {
+            var op = this._quadOperation;
+
+            var shader = op.shader;
+
+            if (op.length || shader.addEmpty()) {
+                var glTexture = op.renderTextureInfo ? op.renderTextureInfo.glTexture : null;
+                if (this._renderTexture !== glTexture) {
+                    this._bindRenderTexture(glTexture);
+                }
+
+                this._setScissor(op.scissor);
+
+                if (op.renderTextureInfo && !op.renderTextureInfo.cleared) {
+                    this._clearRenderTexture();
+                    op.renderTextureInfo.cleared = true;
+                }
+
+                this._useShaderProgram(shader);
+
+                shader.commitUniformUpdates();
+
+                shader.beforeDraw(op);
+                shader.draw(op);
+                shader.afterDraw(op);
+            }
+
+            this._quadOperation = null;
+        }
+    }, {
+        key: '_execFilterOperation',
+        value: function _execFilterOperation(filterOperation) {
+            var filter = filterOperation.filter;
+            this._useShaderProgram(filter);
+            filter.setupUniforms(filterOperation);
+            filter.commitUniformUpdates();
+            filter.beforeDraw(filterOperation);
+            this._bindRenderTexture(filterOperation.renderTexture);
+            this._clearRenderTexture();
+            this._setScissor(null);
+            filter.draw(filterOperation);
+            filter.afterDraw(filterOperation);
+        }
+    }, {
+        key: '_useShaderProgram',
+        value: function _useShaderProgram(owner) {
+            if (!owner.hasSameProgram(this._currentShaderProgramOwner)) {
+                if (this._currentShaderProgramOwner) {
+                    this._currentShaderProgramOwner.stopProgram();
+                }
+                owner.useProgram();
+                this._currentShaderProgramOwner = owner;
+            }
+        }
+    }, {
+        key: '_stopShaderProgram',
+        value: function _stopShaderProgram() {
+            if (this._currentShaderProgramOwner) {
+                this._currentShaderProgramOwner.stopProgram();
+                this._currentShaderProgramOwner = null;
+            }
+        }
+    }, {
+        key: '_bindRenderTexture',
+        value: function _bindRenderTexture(renderTexture) {
+            this._renderTexture = renderTexture;
+
+            var gl = this.gl;
+            if (!this._renderTexture) {
+                gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+                gl.viewport(0, 0, this.ctx.stage.w, this.ctx.stage.h);
+            } else {
+                gl.bindFramebuffer(gl.FRAMEBUFFER, this._renderTexture.framebuffer);
+                gl.viewport(0, 0, this._renderTexture.w, this._renderTexture.h);
+            }
+        }
+    }, {
+        key: '_clearRenderTexture',
+        value: function _clearRenderTexture() {
+            var gl = this.gl;
+            if (!this._renderTexture) {
+                var glClearColor = this.ctx.stage.options.glClearColor;
+                gl.clearColor(glClearColor[0], glClearColor[1], glClearColor[2], glClearColor[3]);
+                gl.clear(gl.COLOR_BUFFER_BIT);
+            } else {
+                gl.clearColor(0, 0, 0, 0);
+                gl.clear(gl.COLOR_BUFFER_BIT);
+            }
+        }
+    }, {
+        key: '_setScissor',
+        value: function _setScissor(area) {
+            if (this._scissor !== area) {
+                var gl = this.gl;
+                if (!area) {
+                    gl.disable(gl.SCISSOR_TEST);
+                } else {
+                    gl.enable(gl.SCISSOR_TEST);
+                    if (this._renderTexture === null) {
+                        area[1] = this.ctx.stage.h - (area[1] + area[3]);
+                    }
+                    gl.scissor(area[0], area[1], area[2], area[3]);
+                }
+                this._scissor = area;
+            }
+        }
+    }]);
+
+    return CoreRenderExecutor;
+}();
+
+var ViewText = function (_Base4) {
+    _inherits(ViewText, _Base4);
+
+    function ViewText(view) {
+        _classCallCheck(this, ViewText);
+
+        var _this14 = _possibleConstructorReturn(this, (ViewText.__proto__ || Object.getPrototypeOf(ViewText)).call(this));
+
+        _this14.view = view;
+
+        _this14.settings = new TextRendererSettings();
+        _this14.settings.on('change', function () {
+            _this14.updateTexture();
+        });
+        return _this14;
+    }
+
+    _createClass(ViewText, [{
+        key: '_properties',
+        value: function _properties() {
+            this.updatingTexture = null;
+        }
+    }, {
+        key: 'updateTexture',
+        value: function updateTexture() {
+            var _this15 = this;
+
+            if (this.settings.text == "") {
+                this.view.texture = null;
+                return;
+            }
+
+            if (this.updatingTexture) return;
+
+            this.updatingTexture = true;
+
+            this.view.texture = this.view.stage.texture(function (cb, ts, sync) {
+                _this15.updatingTexture = false;
+
+                cb(null, null);
+
+                var settings = _this15.getFinalizedSettings();
+                var source = _this15.createTextureSource(settings);
+
+                _this15.view.texture.precision = settings.precision;
+
+                source.load(sync || settings.sync);
+
+                _this15.view.texture.replaceTextureSource(source);
+            });
+        }
+    }, {
+        key: 'getFinalizedSettings',
+        value: function getFinalizedSettings() {
+            var settings = this.settings.clone();
+            settings.finalize(this.view);
+            return settings;
+        }
+    }, {
+        key: 'createTextureSource',
+        value: function createTextureSource(settings) {
+            var m = this.view.stage.textureManager;
+
+            var loadCb = function loadCb(cb, ts, sync) {
+                m.loadTextTexture(settings, ts, sync, cb);
+            };
+
+            return this.view.stage.textureManager.getTextureSource(loadCb, settings.getTextureId());
+        }
+    }]);
+
+    return ViewText;
+}(Base);
+
+var TextRenderer = function () {
+    function TextRenderer(canvas, settings) {
+        _classCallCheck(this, TextRenderer);
+
+        this._canvas = canvas;
+        this._context = this._canvas.getContext('2d');
+        this._settings = settings;
+    }
+
+    _createClass(TextRenderer, [{
+        key: 'getPrecision',
+        value: function getPrecision() {
+            return this._settings.precision;
+        }
+    }, {
+        key: 'setFontProperties',
+        value: function setFontProperties(withPrecision) {
+            var ff = this._settings.fontFace;
+            var fonts = '"' + (Array.isArray(ff) ? this._settings.fontFace.join('","') : ff) + '"';
+            var precision = withPrecision ? this.getPrecision() : 1;
+            this._context.font = this._settings.fontStyle + " " + this._settings.fontSize * precision + "px " + fonts;
+            this._context.textBaseline = this._settings.textBaseline;
+        }
+    }, {
+        key: 'draw',
+        value: function draw() {
+            var noDraw = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
+
+            var renderInfo = {};
+
+            this.setFontProperties(false);
+
+            var width = this._settings.w || 2048 / this.getPrecision();
+
+            var innerWidth = width - (this._settings.paddingLeft + this._settings.paddingRight);
+            if (innerWidth < 10) {
+                width += 10 - innerWidth;
+                innerWidth += 10 - innerWidth;
+            }
+
+            var wordWrapWidth = this._settings.wordWrapWidth || innerWidth;
+
+            var linesInfo = void 0;
+            if (this._settings.wordWrap) {
+                linesInfo = this.wrapText(this._settings.text, wordWrapWidth);
+            } else {
+                linesInfo = { l: this._settings.text.split(/(?:\r\n|\r|\n)/), n: [] };
+                var _i40 = void 0,
+                    n = linesInfo.l.length;
+                for (var _i41 = 0; _i41 < n - 1; _i41++) {
+                    linesInfo.n.push(_i41);
+                }
+            }
+            var lines = linesInfo.l;
+
+            if (this._settings.maxLines && lines.length > this._settings.maxLines) {
+                var usedLines = lines.slice(0, this._settings.maxLines);
+
+                var otherLines = null;
+                if (this._settings.maxLinesSuffix) {
+                    var al = this.wrapText(usedLines[usedLines.length - 1] + this._settings.maxLinesSuffix, wordWrapWidth);
+                    usedLines[usedLines.length - 1] = al.l[0];
+                    otherLines = [al.l.length > 1 ? al.l[1] : ''];
+                } else {
+                    otherLines = [''];
+                }
+
+                var _i42 = void 0,
+                    _n3 = lines.length;
+                var j = 0;
+                var m = linesInfo.n.length;
+                for (_i42 = this._settings.maxLines; _i42 < _n3; _i42++) {
+                    otherLines[j] += (otherLines[j] ? " " : "") + lines[_i42];
+                    if (_i42 + 1 < m && linesInfo.n[_i42 + 1]) {
+                        j++;
+                    }
+                }
+
+                renderInfo.remainingText = otherLines.join("\n");
+
+                renderInfo.moreTextLines = true;
+
+                lines = usedLines;
+            } else {
+                renderInfo.moreTextLines = false;
+                renderInfo.remainingText = "";
+            }
+
+            var maxLineWidth = 0;
+            var lineWidths = [];
+            for (var _i43 = 0; _i43 < lines.length; _i43++) {
+                var lineWidth = this._context.measureText(lines[_i43]).width;
+                lineWidths.push(lineWidth);
+                maxLineWidth = Math.max(maxLineWidth, lineWidth);
+            }
+
+            renderInfo.lineWidths = lineWidths;
+
+            if (!this._settings.w) {
+                width = maxLineWidth + this._settings.paddingLeft + this._settings.paddingRight;
+                innerWidth = maxLineWidth;
+            }
+
+            var lineHeight = this._settings.lineHeight || this._settings.fontSize;
+
+            var height = void 0;
+            if (this._settings.h) {
+                height = this._settings.h;
+            } else {
+                height = lineHeight * (lines.length - 1) + 0.5 * this._settings.fontSize + Math.max(lineHeight, this._settings.fontSize) + this._settings.offsetY;
+            }
+
+            var offsetY = this._settings.offsetY === null ? this._settings.fontSize : this._settings.offsetY;
+
+            var precision = this.getPrecision();
+
+            renderInfo.w = width * precision;
+            renderInfo.h = height * precision;
+            renderInfo.lines = lines;
+            renderInfo.precision = precision;
+
+            if (!noDraw) {
+                if (!width) {
+                    width = 1;
+                }
+
+                if (!height) {
+                    height = 1;
+                }
+
+                if (this._settings.cutSx || this._settings.cutEx) {
+                    width = Math.min(width, this._settings.cutEx - this._settings.cutSx);
+                }
+
+                if (this._settings.cutSy || this._settings.cutEy) {
+                    height = Math.min(height, this._settings.cutEy - this._settings.cutSy);
+                }
+
+                this._canvas.width = Math.ceil(width * precision);
+                this._canvas.height = Math.ceil(height * precision);
+
+                this.setFontProperties(true);
+
+                if (this._settings.cutSx || this._settings.cutSy) {
+                    this._context.translate(-(this._settings.cutSx * precision), -(this._settings.cutSy * precision));
+                }
+
+                var linePositionX = void 0;
+                var linePositionY = void 0;
+
+                var drawLines = [];
+
+                for (var _i44 = 0, _n4 = lines.length; _i44 < _n4; _i44++) {
+                    linePositionX = 0;
+                    linePositionY = _i44 * lineHeight + offsetY;
+
+                    if (this._settings.textAlign === 'right') {
+                        linePositionX += innerWidth - lineWidths[_i44];
+                    } else if (this._settings.textAlign === 'center') {
+                        linePositionX += (innerWidth - lineWidths[_i44]) / 2;
+                    }
+                    linePositionX += this._settings.paddingLeft;
+
+                    drawLines.push({ text: lines[_i44], x: linePositionX * precision, y: linePositionY * precision, w: lineWidths[_i44] * precision });
+                }
+
+                if (this._settings.highlight) {
+                    var color = this._settings.highlightColor || 0x00000000;
+                    var hlHeight = this._settings.highlightHeight || this._settings.fontSize * 1.5;
+                    var offset = this._settings.highlightOffset !== null ? this._settings.highlightOffset : -0.5 * this._settings.fontSize;
+                    var paddingLeft = this._settings.highlightPaddingLeft !== null ? this._settings.highlightPaddingLeft : this._settings.paddingLeft;
+                    var paddingRight = this._settings.highlightPaddingRight !== null ? this._settings.highlightPaddingRight : this._settings.paddingRight;
+
+                    this._context.fillStyle = StageUtils.getRgbaString(color);
+                    for (i = 0; i < drawLines.length; i++) {
+                        var drawLine = drawLines[i];
+                        this._context.fillRect((drawLine.x - paddingLeft) * precision, (drawLine.y + offset) * precision, (drawLine.w + paddingRight + paddingLeft) * precision, hlHeight * precision);
+                    }
+                }
+
+                var prevShadowSettings = null;
+                if (this._settings.shadow) {
+                    prevShadowSettings = [this._context.shadowColor, this._context.shadowOffsetX, this._context.shadowOffsetY, this._context.shadowBlur];
+
+                    this._context.shadowColor = StageUtils.getRgbaString(this._settings.shadowColor);
+                    this._context.shadowOffsetX = this._settings.shadowOffsetX * precision;
+                    this._context.shadowOffsetY = this._settings.shadowOffsetY * precision;
+                    this._context.shadowBlur = this._settings.shadowBlur * precision;
+                }
+
+                this._context.fillStyle = StageUtils.getRgbaString(this._settings.textColor);
+                for (var _i45 = 0, _n5 = drawLines.length; _i45 < _n5; _i45++) {
+                    var _drawLine = drawLines[_i45];
+                    this._context.fillText(_drawLine.text, _drawLine.x, _drawLine.y);
+                }
+
+                if (prevShadowSettings) {
+                    this._context.shadowColor = prevShadowSettings[0];
+                    this._context.shadowOffsetX = prevShadowSettings[1];
+                    this._context.shadowOffsetY = prevShadowSettings[2];
+                    this._context.shadowBlur = prevShadowSettings[3];
+                }
+
+                if (this._settings.cutSx || this._settings.cutSy) {
+                    this._context.translate(this._settings.cutSx, this._settings.cutSy);
+                }
+            }
+
+            var canvas = this._canvas;
+            return { renderInfo: renderInfo, canvas: canvas };
+        }
+    }, {
+        key: 'wrapText',
+        value: function wrapText(text, wordWrapWidth) {
+            var lines = text.split(/\r?\n/g);
+            var allLines = [];
+            var realNewlines = [];
+            for (var _i46 = 0; _i46 < lines.length; _i46++) {
+                var resultLines = [];
+                var result = '';
+                var spaceLeft = wordWrapWidth;
+                var words = lines[_i46].split(' ');
+                for (var j = 0; j < words.length; j++) {
+                    var wordWidth = this._context.measureText(words[j]).width;
+                    var wordWidthWithSpace = wordWidth + this._context.measureText(' ').width;
+                    if (j === 0 || wordWidthWithSpace > spaceLeft) {
+                        if (j > 0) {
+                            resultLines.push(result);
+                            result = '';
+                        }
+                        result += words[j];
+                        spaceLeft = wordWrapWidth - wordWidth;
+                    } else {
+                        spaceLeft -= wordWidthWithSpace;
+                        result += ' ' + words[j];
+                    }
+                }
+
+                if (result) {
+                    resultLines.push(result);
+                    result = '';
+                }
+
+                allLines = allLines.concat(resultLines);
+
+                if (_i46 < lines.length - 1) {
+                    realNewlines.push(allLines.length);
+                }
+            }
+
+            return { l: allLines, n: realNewlines };
+        }
+    }]);
+
+    return TextRenderer;
+}();
+
+var TextRendererSettings = function (_Base5) {
+    _inherits(TextRendererSettings, _Base5);
+
+    function TextRendererSettings() {
+        _classCallCheck(this, TextRendererSettings);
+
+        var _this16 = _possibleConstructorReturn(this, (TextRendererSettings.__proto__ || Object.getPrototypeOf(TextRendererSettings)).call(this));
+
+        EventEmitter.call(_this16);
+        return _this16;
+    }
+
+    _createClass(TextRendererSettings, [{
+        key: '_properties',
+        value: function _properties() {
+            this._text = "";
+            this._w = 0;
+            this._h = 0;
+            this._fontStyle = "normal";
+            this._fontSize = 40;
+            this._fontFace = null;
+            this._wordWrap = true;
+            this._wordWrapWidth = 0;
+            this._lineHeight = null;
+            this._textBaseline = "alphabetic";
+            this._textAlign = "left";
+            this._offsetY = null;
+            this._maxLines = 0;
+            this._maxLinesSuffix = "..";
+            this._precision = null;
+            this._textColor = 0xFFFFFFFF;
+            this._paddingLeft = 0;
+            this._paddingRight = 0;
+            this._shadow = false;
+            this._shadowColor = 0xFF000000;
+            this._shadowOffsetX = 0;
+            this._shadowOffsetY = 0;
+            this._shadowBlur = 5;
+            this._highlight = false;
+            this._highlightHeight = 0;
+            this._highlightColor = 0xFF000000;
+            this._highlightOffset = 0;
+            this._highlightPaddingLeft = 0;
+            this._highlightPaddingRight = 0;
+            this._cutSx = 0;
+            this._cutEx = 0;
+            this._cutSy = 0;
+            this._cutEy = 0;
+
+            this.sync = false;
+        }
+    }, {
+        key: 'finalize',
+        value: function finalize(view) {
+            if (!this.w && view.w) {
+                this.w = view.w;
+            }
+
+            if (!this.h && view.h) {
+                this.h = view.h;
+            }
+
+            if (this.fontFace === null) {
+                this.fontFace = view.stage.options.defaultFontFace;
+            }
+
+            if (this.precision === null) {
+                this.precision = view.stage.options.defaultPrecision;
+            }
+        }
+    }, {
+        key: 'getTextureId',
+        value: function getTextureId() {
+            var parts = [];
+
+            if (this.w !== 0) parts.push("w " + this.w);
+            if (this.h !== 0) parts.push("h " + this.h);
+            if (this.fontStyle !== "normal") parts.push("fS" + this.fontStyle);
+            if (this.fontSize !== 40) parts.push("fs" + this.fontSize);
+            if (this.fontFace !== null) parts.push("ff" + (Array.isArray(this.fontFace) ? this.fontFace.join(",") : this.fontFace));
+            if (this.wordWrap !== true) parts.push("wr" + (this.wordWrap ? 1 : 0));
+            if (this.wordWrapWidth !== 0) parts.push("ww" + this.wordWrapWidth);
+            if (this.lineHeight !== null) parts.push("lh" + this.lineHeight);
+            if (this.textBaseline !== "alphabetic") parts.push("tb" + this.textBaseline);
+            if (this.textAlign !== "left") parts.push("ta" + this.textAlign);
+            if (this.offsetY !== null) parts.push("oy" + this.offsetY);
+            if (this.maxLines !== 0) parts.push("ml" + this.maxLines);
+            if (this.maxLinesSuffix !== "..") parts.push("ms" + this.maxLinesSuffix);
+            if (this.precision !== null) parts.push("pc" + this.precision);
+            if (this.textColor !== 0xffffffff) parts.push("co" + this.textColor.toString(16));
+            if (this.paddingLeft !== 0) parts.push("pl" + this.paddingLeft);
+            if (this.paddingRight !== 0) parts.push("pr" + this.paddingRight);
+            if (this.shadow !== false) parts.push("sh" + (this.shadow ? 1 : 0));
+            if (this.shadowColor !== 0xff000000) parts.push("sc" + this.shadowColor.toString(16));
+            if (this.shadowOffsetX !== 0) parts.push("sx" + this.shadowOffsetX);
+            if (this.shadowOffsetY !== 0) parts.push("sy" + this.shadowOffsetY);
+            if (this.shadowBlur !== 5) parts.push("sb" + this.shadowBlur);
+            if (this.highlight !== false) parts.push("hL" + (this.highlight ? 1 : 0));
+            if (this.highlightHeight !== 0) parts.push("hh" + this.highlightHeight);
+            if (this.highlightColor !== 0xff000000) parts.push("hc" + this.highlightColor.toString(16));
+            if (this.highlightOffset !== null) parts.push("ho" + this.highlightOffset);
+            if (this.highlightPaddingLeft !== null) parts.push("hl" + this.highlightPaddingLeft);
+            if (this.highlightPaddingRight !== null) parts.push("hr" + this.highlightPaddingRight);
+
+            if (this.cutSx) parts.push("csx" + this.cutSx);
+            if (this.cutEx) parts.push("cex" + this.cutEx);
+            if (this.cutSy) parts.push("csy" + this.cutSy);
+            if (this.cutEy) parts.push("cey" + this.cutEy);
+
+            if (this.sync) parts.push("sync");
+
+            var id = "TX$" + parts.join("|") + ":" + this.text;
+            return id;
+        }
+    }, {
+        key: 'getNonDefaults',
+        value: function getNonDefaults() {
+            var nonDefaults = {};
+
+            if (this.text !== "") nonDefaults['text'] = this.text;
+            if (this.w !== 0) nonDefaults['w'] = this.w;
+            if (this.h !== 0) nonDefaults['h'] = this.h;
+            if (this.fontStyle !== "normal") nonDefaults['fontStyle'] = this.fontStyle;
+            if (this.fontSize !== 40) nonDefaults["fontSize"] = this.fontSize;
+            if (this.fontFace !== null) nonDefaults["fontFace"] = this.fontFace;
+            if (this.wordWrap !== true) nonDefaults["wordWrap"] = this.wordWrap;
+            if (this.wordWrapWidth !== 0) nonDefaults["wordWrapWidth"] = this.wordWrapWidth;
+            if (this.lineHeight !== null) nonDefaults["lineHeight"] = this.lineHeight;
+            if (this.textBaseline !== "alphabetic") nonDefaults["textBaseline"] = this.textBaseline;
+            if (this.textAlign !== "left") nonDefaults["textAlign"] = this.textAlign;
+            if (this.offsetY !== null) nonDefaults["offsetY"] = this.offsetY;
+            if (this.maxLines !== 0) nonDefaults["maxLines"] = this.maxLines;
+            if (this.maxLinesSuffix !== "..") nonDefaults["maxLinesSuffix"] = this.maxLinesSuffix;
+            if (this.precision !== null) nonDefaults["precision"] = this.precision;
+            if (this.textColor !== 0xffffffff) nonDefaults["textColor"] = this.textColor;
+            if (this.paddingLeft !== 0) nonDefaults["paddingLeft"] = this.paddingLeft;
+            if (this.paddingRight !== 0) nonDefaults["paddingRight"] = this.paddingRight;
+            if (this.shadow !== false) nonDefaults["shadow"] = this.shadow;
+            if (this.shadowColor !== 0xff000000) nonDefaults["shadowColor"] = this.shadowColor;
+            if (this.shadowOffsetX !== 0) nonDefaults["shadowOffsetX"] = this.shadowOffsetX;
+            if (this.shadowOffsetY !== 0) nonDefaults["shadowOffsetY"] = this.shadowOffsetY;
+            if (this.shadowBlur !== 5) nonDefaults["shadowBlur"] = this.shadowBlur;
+            if (this.highlight !== false) nonDefaults["highlight"] = this.highlight;
+            if (this.highlightHeight !== 0) nonDefaults["highlightHeight"] = this.highlightHeight;
+            if (this.highlightColor !== 0xff000000) nonDefaults["highlightColor"] = this.highlightColor;
+            if (this.highlightOffset !== null) nonDefaults["highlightOffset"] = this.highlightOffset;
+            if (this.highlightPaddingLeft !== null) nonDefaults["highlightPaddingLeft"] = this.highlightPaddingLeft;
+            if (this.highlightPaddingRight !== null) nonDefaults["highlightPaddingRight"] = this.highlightPaddingRight;
+
+            if (this.cutSx) nonDefaults["cutSx"] = this.cutSx;
+            if (this.cutEx) nonDefaults["cutEx"] = this.cutEx;
+            if (this.cutSy) nonDefaults["cutSy"] = this.cutSy;
+            if (this.cutEy) nonDefaults["cutEy"] = this.cutEy;
+
+            if (this.sync) nonDefaults["sync"] = this.sync;
+
+            return nonDefaults;
+        }
+    }, {
+        key: 'clone',
+        value: function clone() {
+            var obj = new TextRendererSettings();
+            obj._text = this._text;
+            obj._w = this._w;
+            obj._h = this._h;
+            obj._fontStyle = this._fontStyle;
+            obj._fontSize = this._fontSize;
+            obj._fontFace = this._fontFace;
+            obj._wordWrap = this._wordWrap;
+            obj._wordWrapWidth = this._wordWrapWidth;
+            obj._lineHeight = this._lineHeight;
+            obj._textBaseline = this._textBaseline;
+            obj._textAlign = this._textAlign;
+            obj._offsetY = this._offsetY;
+            obj._maxLines = this._maxLines;
+            obj._maxLinesSuffix = this._maxLinesSuffix;
+            obj._precision = this._precision;
+            obj._textColor = this._textColor;
+            obj._paddingLeft = this._paddingLeft;
+            obj._paddingRight = this._paddingRight;
+            obj._shadow = this._shadow;
+            obj._shadowColor = this._shadowColor;
+            obj._shadowOffsetX = this._shadowOffsetX;
+            obj._shadowOffsetY = this._shadowOffsetY;
+            obj._shadowBlur = this._shadowBlur;
+            obj._highlight = this._highlight;
+            obj._highlightHeight = this._highlightHeight;
+            obj._highlightColor = this._highlightColor;
+            obj._highlightOffset = this._highlightOffset;
+            obj._highlightPaddingLeft = this._highlightPaddingLeft;
+            obj._highlightPaddingRight = this._highlightPaddingRight;
+            obj._cutSx = this._cutSx;
+            obj._cutEx = this._cutEx;
+            obj._cutSy = this._cutSy;
+            obj._cutEy = this._cutEy;
+            obj.sync = this.sync;
+            return obj;
+        }
+    }, {
+        key: 'text',
+        get: function get() {
+            return this._text;
+        },
+        set: function set(v) {
+            if (this._text !== v) {
+                this._text = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'w',
+        get: function get() {
+            return this._w;
+        },
+        set: function set(v) {
+            if (this._w !== v) {
+                this._w = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'h',
+        get: function get() {
+            return this._h;
+        },
+        set: function set(v) {
+            if (this._h !== v) {
+                this._h = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'fontStyle',
+        get: function get() {
+            return this._fontStyle;
+        },
+        set: function set(v) {
+            if (this._fontStyle !== v) {
+                this._fontStyle = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'fontSize',
+        get: function get() {
+            return this._fontSize;
+        },
+        set: function set(v) {
+            if (this._fontSize !== v) {
+                this._fontSize = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'fontFace',
+        get: function get() {
+            return this._fontFace;
+        },
+        set: function set(v) {
+            if (this._fontFace !== v) {
+                this._fontFace = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'wordWrap',
+        get: function get() {
+            return this._wordWrap;
+        },
+        set: function set(v) {
+            if (this._wordWrap !== v) {
+                this._wordWrap = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'wordWrapWidth',
+        get: function get() {
+            return this._wordWrapWidth;
+        },
+        set: function set(v) {
+            if (this._wordWrapWidth !== v) {
+                this._wordWrapWidth = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'lineHeight',
+        get: function get() {
+            return this._lineHeight;
+        },
+        set: function set(v) {
+            if (this._lineHeight !== v) {
+                this._lineHeight = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'textBaseline',
+        get: function get() {
+            return this._textBaseline;
+        },
+        set: function set(v) {
+            if (this._textBaseline !== v) {
+                this._textBaseline = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'textAlign',
+        get: function get() {
+            return this._textAlign;
+        },
+        set: function set(v) {
+            if (this._textAlign !== v) {
+                this._textAlign = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'offsetY',
+        get: function get() {
+            return this._offsetY;
+        },
+        set: function set(v) {
+            if (this._offsetY !== v) {
+                this._offsetY = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'maxLines',
+        get: function get() {
+            return this._maxLines;
+        },
+        set: function set(v) {
+            if (this._maxLines !== v) {
+                this._maxLines = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'maxLinesSuffix',
+        get: function get() {
+            return this._maxLinesSuffix;
+        },
+        set: function set(v) {
+            if (this._maxLinesSuffix !== v) {
+                this._maxLinesSuffix = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'precision',
+        get: function get() {
+            return this._precision;
+        },
+        set: function set(v) {
+            if (this._precision !== v) {
+                this._precision = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'textColor',
+        get: function get() {
+            return this._textColor;
+        },
+        set: function set(v) {
+            if (this._textColor !== v) {
+                this._textColor = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'paddingLeft',
+        get: function get() {
+            return this._paddingLeft;
+        },
+        set: function set(v) {
+            if (this._paddingLeft !== v) {
+                this._paddingLeft = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'paddingRight',
+        get: function get() {
+            return this._paddingRight;
+        },
+        set: function set(v) {
+            if (this._paddingRight !== v) {
+                this._paddingRight = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'shadow',
+        get: function get() {
+            return this._shadow;
+        },
+        set: function set(v) {
+            if (this._shadow !== v) {
+                this._shadow = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'shadowColor',
+        get: function get() {
+            return this._shadowColor;
+        },
+        set: function set(v) {
+            if (this._shadowColor !== v) {
+                this._shadowColor = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'shadowOffsetX',
+        get: function get() {
+            return this._shadowOffsetX;
+        },
+        set: function set(v) {
+            if (this._shadowOffsetX !== v) {
+                this._shadowOffsetX = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'shadowOffsetY',
+        get: function get() {
+            return this._shadowOffsetY;
+        },
+        set: function set(v) {
+            if (this._shadowOffsetY !== v) {
+                this._shadowOffsetY = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'shadowBlur',
+        get: function get() {
+            return this._shadowBlur;
+        },
+        set: function set(v) {
+            if (this._shadowBlur !== v) {
+                this._shadowBlur = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'highlight',
+        get: function get() {
+            return this._highlight;
+        },
+        set: function set(v) {
+            if (this._highlight !== v) {
+                this._highlight = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'highlightHeight',
+        get: function get() {
+            return this._highlightHeight;
+        },
+        set: function set(v) {
+            if (this._highlightHeight !== v) {
+                this._highlightHeight = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'highlightColor',
+        get: function get() {
+            return this._highlightColor;
+        },
+        set: function set(v) {
+            if (this._highlightColor !== v) {
+                this._highlightColor = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'highlightOffset',
+        get: function get() {
+            return this._highlightOffset;
+        },
+        set: function set(v) {
+            if (this._highlightOffset !== v) {
+                this._highlightOffset = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'highlightPaddingLeft',
+        get: function get() {
+            return this._highlightPaddingLeft;
+        },
+        set: function set(v) {
+            if (this._highlightPaddingLeft !== v) {
+                this._highlightPaddingLeft = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'highlightPaddingRight',
+        get: function get() {
+            return this._highlightPaddingRight;
+        },
+        set: function set(v) {
+            if (this._highlightPaddingRight !== v) {
+                this._highlightPaddingRight = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'cutSx',
+        get: function get() {
+            return this._cutSx;
+        },
+        set: function set(v) {
+            if (this._cutSx !== v) {
+                this._cutSx = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'cutEx',
+        get: function get() {
+            return this._cutEx;
+        },
+        set: function set(v) {
+            if (this._cutEx !== v) {
+                this._cutEx = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'cutSy',
+        get: function get() {
+            return this._cutSy;
+        },
+        set: function set(v) {
+            if (this._cutSy !== v) {
+                this._cutSy = v;
+                this.emit('change');
+            }
+        }
+    }, {
+        key: 'cutEy',
+        get: function get() {
+            return this._cutEy;
+        },
+        set: function set(v) {
+            if (this._cutEy !== v) {
+                this._cutEy = v;
+                this.emit('change');
+            }
+        }
+    }]);
+
+    return TextRendererSettings;
+}(Base);
+
+Base.mixinEs5(TextRendererSettings, EventEmitter);
+
+var TransitionManager = function () {
+    function TransitionManager(stage) {
+        var _this17 = this;
+
+        _classCallCheck(this, TransitionManager);
+
+        this.stage = stage;
+
+        this.stage.on('frameStart', function () {
+            return _this17.progress();
+        });
+
+        this.active = new Set();
+
+        this.defaultTransitionSettings = new TransitionSettings();
+    }
+
+    _createClass(TransitionManager, [{
+        key: 'progress',
+        value: function progress() {
+            if (this.active.size) {
+                var dt = this.stage.dt;
+
+                var filter = false;
+                this.active.forEach(function (a) {
+                    if (a.isActive()) {
+                        a.progress(dt);
+                    } else {
+                        filter = true;
+                    }
+                });
+
+                if (filter) {
+                    this.active = new Set([].concat(_toConsumableArray(this.active)).filter(function (t) {
+                        return t.isActive();
+                    }));
+                }
+            }
+        }
+    }, {
+        key: 'createSettings',
+        value: function createSettings(settings) {
+            var transitionSettings = new TransitionSettings();
+            Base.setObjectSettings(transitionSettings, settings);
+            return transitionSettings;
+        }
+    }, {
+        key: 'addActive',
+        value: function addActive(transition) {
+            this.active.add(transition);
+        }
+    }]);
+
+    return TransitionManager;
+}();
+
+var TransitionSettings = function (_Base6) {
+    _inherits(TransitionSettings, _Base6);
+
+    function TransitionSettings() {
+        _classCallCheck(this, TransitionSettings);
+
+        return _possibleConstructorReturn(this, (TransitionSettings.__proto__ || Object.getPrototypeOf(TransitionSettings)).call(this));
+    }
+
+    _createClass(TransitionSettings, [{
+        key: '_properties',
+        value: function _properties() {
+            this._timingFunction = 'ease';
+            this._timingFunctionImpl = StageUtils.getTimingFunction(this._timingFunction);
+            this.delay = 0;
+            this.duration = 0.2;
+            this.isTransitionSettings = true;
+            this.merger = null;
+        }
+    }, {
+        key: 'timingFunction',
+        get: function get() {
+            return this._timingFunction;
+        },
+        set: function set(v) {
+            this._timingFunction = v;
+            this._timingFunctionImpl = StageUtils.getTimingFunction(v);
+        }
+    }, {
+        key: 'timingFunctionImpl',
+        get: function get() {
+            return this._timingFunctionImpl;
+        }
+    }]);
+
+    return TransitionSettings;
+}(Base);
+
+var Transition = function (_Base7) {
+    _inherits(Transition, _Base7);
+
+    function Transition(manager, settings, view, property) {
+        _classCallCheck(this, Transition);
+
+        var _this19 = _possibleConstructorReturn(this, (Transition.__proto__ || Object.getPrototypeOf(Transition)).call(this));
+
+        EventEmitter.call(_this19);
+
+        _this19.manager = manager;
+
+        _this19._settings = settings;
+
+        if (!View) {
+            View = require('../core/View');
+        }
+        _this19._view = view;
+        _this19._getter = View.getGetter(property);
+        _this19._setter = View.getSetter(property);
+
+        _this19._merger = settings.merger;
+
+        if (!_this19._merger) {
+            if (view.isColorProperty(property)) {
+                _this19._merger = StageUtils.mergeColors;
+            } else {
+                _this19._merger = StageUtils.mergeNumbers;
+            }
+        }
+
+        _this19._startValue = _this19._getter(_this19._view);
+        _this19._targetValue = _this19._startValue;
+
+        _this19._p = 1;
+        _this19._delayLeft = 0;
+        return _this19;
+    }
+
+    _createClass(Transition, [{
+        key: '_properties',
+        value: function _properties() {
+            this.isTransition = true;
+        }
+    }, {
+        key: 'stop',
+        value: function stop() {
+            if (this.isActive()) {
+                this._setter(this.targetValue);
+                this._p = 1;
+            }
+        }
+    }, {
+        key: 'reset',
+        value: function reset(targetValue, p) {
+            this._startValue = this._getter(this._view);
+            this._targetValue = targetValue;
+            this._p = p;
+
+            if (p < 1) {
+                this.checkActive();
+            } else if (p === 1) {
+                this._setter(targetValue);
+
+                this.invokeListeners();
+            }
+        }
+    }, {
+        key: 'start',
+        value: function start(targetValue) {
+            this._startValue = this._getter(this._view);
+
+            if (targetValue === this._startValue) {
+                this.reset(this._startValue, targetValue, 1);
+            } else {
+                this._targetValue = targetValue;
+                this._p = 0;
+                this._delayLeft = this._settings.delay;
+                if (this._eventsCount) this.emit('start');
+                this.checkActive();
+
+                if (!this._view.isAttached()) {
+                    this.finish();
+                }
+            }
+        }
+    }, {
+        key: 'finish',
+        value: function finish() {
+            if (this._p < 1) {
+                this._p = 1;
+
+                this._setter(this._view, this.targetValue);
+
+                if (this._eventsCount) {
+                    this.invokeListeners();
+                }
+            }
+        }
+    }, {
+        key: 'checkActive',
+        value: function checkActive() {
+            if (this.isActive()) {
+                this.manager.addActive(this);
+            }
+        }
+    }, {
+        key: 'isActive',
+        value: function isActive() {
+            return this._p < 1.0 && this._view.isAttached();
+        }
+    }, {
+        key: 'progress',
+        value: function progress(dt) {
+            if (this.p < 1) {
+                if (this.delayLeft > 0) {
+                    this._delayLeft -= dt;
+
+                    if (this.delayLeft < 0) {
+                        dt = -this.delayLeft;
+                        this._delayLeft = 0;
+
+                        if (this._eventsCount) this.emit('delayEnd');
+                    } else {
+                        return;
+                    }
+                }
+
+                if (this._settings.duration == 0) {
+                    this._p = 1;
+                } else {
+                    this._p += dt / this._settings.duration;
+                }
+                if (this._p >= 1) {
+                    this._p = 1;
+                }
+            }
+
+            this._setter(this._view, this.getDrawValue());
+
+            if (this._eventsCount) {
+                this.invokeListeners();
+            }
+        }
+    }, {
+        key: 'invokeListeners',
+        value: function invokeListeners() {
+            this.emit('progress', this.p);
+            if (this.p === 1) {
+                this.emit('finish');
+            }
+        }
+    }, {
+        key: 'setValuesDynamic',
+        value: function setValuesDynamic(targetValue) {
+            var t = this._settings.timingFunctionImpl(this.p);
+            if (t === 1) {
+                this._targetValue = targetValue;
+            } else if (t === 0) {
+                this._startValue = this._targetValue;
+                this._targetValue = targetValue;
+            } else {
+                this._startValue = targetValue - (targetValue - this._targetValue) / (1 - v);
+                this._targetValue = targetValue;
+            }
+        }
+    }, {
+        key: 'getDrawValue',
+        value: function getDrawValue() {
+            if (this.p >= 1) {
+                return this.targetValue;
+            } else {
+                var _v2 = this._settings._timingFunctionImpl(this.p);
+                return this._merger(this.targetValue, this.startValue, _v2);
+            }
+        }
+    }, {
+        key: 'skipDelay',
+        value: function skipDelay() {
+            this._delayLeft = 0;
+        }
+    }, {
+        key: 'startValue',
+        get: function get() {
+            return this._startValue;
+        }
+    }, {
+        key: 'targetValue',
+        get: function get() {
+            return this._targetValue;
+        }
+    }, {
+        key: 'p',
+        get: function get() {
+            return this._p;
+        }
+    }, {
+        key: 'delayLeft',
+        get: function get() {
+            return this._delayLeft;
+        }
+    }, {
+        key: 'view',
+        get: function get() {
+            return this._view;
+        }
+    }, {
+        key: 'settings',
+        get: function get() {
+            return this._settings;
+        },
+        set: function set(v) {
+            this._settings = v;
+        }
+    }]);
+
+    return Transition;
+}(Base);
+
+Base.mixinEs5(Transition, EventEmitter);
+
+var AnimationManager = function () {
+    function AnimationManager(stage) {
+        var _this20 = this;
+
+        _classCallCheck(this, AnimationManager);
+
+        this.stage = stage;
+
+        this.stage.on('frameStart', function () {
+            return _this20.progress();
+        });
+
+        this.active = new Set();
+    }
+
+    _createClass(AnimationManager, [{
+        key: 'progress',
+        value: function progress() {
+            if (this.active.size) {
+                var dt = this.stage.dt;
+
+                var filter = false;
+                this.active.forEach(function (a) {
+                    if (a.isActive()) {
+                        a.progress(dt);
+                    } else {
+                        filter = true;
+                    }
+                });
+
+                if (filter) {
+                    this.active = new Set([].concat(_toConsumableArray(this.active)).filter(function (t) {
+                        return t.isActive();
+                    }));
+                }
+            }
+        }
+    }, {
+        key: 'createAnimation',
+        value: function createAnimation(view, settings) {
+            if (Utils.isObjectLiteral(settings)) {
+                settings = this.createSettings(settings);
+            }
+
+            return new Animation(this, settings, view);
+        }
+    }, {
+        key: 'createSettings',
+        value: function createSettings(settings) {
+            var animationSettings = new AnimationSettings();
+            Base.setObjectSettings(animationSettings, settings);
+            return animationSettings;
+        }
+    }, {
+        key: 'addActive',
+        value: function addActive(transition) {
+            this.active.add(transition);
+        }
+    }]);
+
+    return AnimationManager;
+}();
+
+var AnimationSettings = function (_Base8) {
+    _inherits(AnimationSettings, _Base8);
+
+    function AnimationSettings() {
+        _classCallCheck(this, AnimationSettings);
+
+        var _this21 = _possibleConstructorReturn(this, (AnimationSettings.__proto__ || Object.getPrototypeOf(AnimationSettings)).call(this));
+
+        _this21._actions = [];
+        return _this21;
+    }
+
+    _createClass(AnimationSettings, [{
+        key: '_properties',
+        value: function _properties() {
+            this.delay = 0;
+            this.duration = 1;
+
+            this.repeat = 0;
+            this.repeatOffset = 0;
+            this.repeatDelay = 0;
+
+            this.autostop = false;
+
+            this.stopMethod = AnimationSettings.STOP_METHODS.FADE;
+            this._stopTimingFunction = 'ease';
+            this._stopTimingFunctionImpl = StageUtils.getTimingFunction(this._stopTimingFunction);
+            this.stopDuration = 0;
+            this.stopDelay = 0;
+        }
+    }, {
+        key: 'apply',
+        value: function apply(view, p) {
+            var factor = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 1;
+
+            this._actions.forEach(function (action) {
+                action.apply(view, p, factor);
+            });
+        }
+    }, {
+        key: 'reset',
+        value: function reset(view) {
+            this._actions.forEach(function (action) {
+                action.reset(view);
+            });
+        }
+    }, {
+        key: 'actions',
+        get: function get() {
+            return this._actions;
+        },
+        set: function set(v) {
+            this._actions = [];
+            for (var _i47 = 0, n = v.length; _i47 < n; _i47++) {
+                var e = v[_i47];
+                if (!e.isAnimationActionSettings) {
+                    var aas = new AnimationActionSettings(this);
+                    aas.setSettings(e);
+                    this._actions.push(aas);
+                } else {
+                    this._actions.push(e);
+                }
+            }
+        }
+    }, {
+        key: 'stopTimingFunction',
+        get: function get() {
+            return this._stopTimingFunction;
+        },
+        set: function set(v) {
+            this._stopTimingFunction = v;
+            this._stopTimingFunctionImpl = StageUtils.getTimingFunction(v);
+        }
+    }, {
+        key: 'stopTimingFunctionImpl',
+        get: function get() {
+            return this._stopTimingFunctionImpl;
+        }
+    }]);
+
+    return AnimationSettings;
+}(Base);
+
+AnimationSettings.STOP_METHODS = {
+    FADE: 'fade',
+    REVERSE: 'reverse',
+    FORWARD: 'forward',
+    IMMEDIATE: 'immediate',
+    ONETOTWO: 'onetotwo'
+};
+
+var AnimationActionSettings = function (_Base9) {
+    _inherits(AnimationActionSettings, _Base9);
+
+    function AnimationActionSettings() {
+        _classCallCheck(this, AnimationActionSettings);
+
+        var _this22 = _possibleConstructorReturn(this, (AnimationActionSettings.__proto__ || Object.getPrototypeOf(AnimationActionSettings)).call(this));
+
+        _this22._tags = null;
+
+        _this22._items = new AnimationActionItems(_this22);
+
+        _this22._props = [];
+
+        _this22._propSetters = [];
+
+        _this22._merger = undefined;
+        return _this22;
+    }
+
+    _createClass(AnimationActionSettings, [{
+        key: '_properties',
+        value: function _properties() {
+            this._resetValue = undefined;
+            this._hasResetValue = false;
+
+            this.isAnimationActionSettings = true;
+        }
+    }, {
+        key: 'getResetValue',
+        value: function getResetValue() {
+            if (this._hasResetValue) {
+                return this._resetValue;
+            } else {
+                return this._items.getValue(0);
+            }
+            return 0;
+        }
+    }, {
+        key: 'apply',
+        value: function apply(view, p, factor) {
+            var views = this.getAnimatedViews(view);
+
+            var v = this._items.getValue(p);
+
+            if (v === undefined || !views.length) {
+                return;
+            }
+
+            if (factor !== 1) {
+                var sv = this.getResetValue();
+                if (this._merger) {
+                    v = this._merger(v, sv, factor);
+                }
+            }
+
+            var n = this._propSetters.length;
+
+            var m = views.length;
+            for (var j = 0; j < m; j++) {
+                for (var _i48 = 0; _i48 < n; _i48++) {
+                    this._propSetters[_i48](views[j], v);
+                }
+            }
+        }
+    }, {
+        key: 'getAnimatedViews',
+        value: function getAnimatedViews(view) {
+            if (!this._tags) {
+                return [view];
+            }
+
+            var n = this._tags.length;
+
+            if (n === 1) {
+                if (this._tags[0] == '') {
+                    return [view];
+                } else {
+                    return view.mtag(this._tags[0]);
+                }
+            } else {
+                var views = [];
+                for (var _i49 = 0; _i49 < n; _i49++) {
+                    if (this._tags[_i49] === '') {
+                        views.push(view);
+                    } else {
+                        var vs = view.mtag(this._tags[_i49]);
+                        views = views.concat(vs);
+                    }
+                }
+                return views;
+            }
+        }
+    }, {
+        key: 'reset',
+        value: function reset(view) {
+            var views = this.getAnimatedViews(view);
+
+            var v = this.getResetValue();
+
+            if (v === undefined || !views.length) {
+                return;
+            }
+
+            var n = this._propSetters.length;
+
+            var m = views.length;
+            for (var j = 0; j < m; j++) {
+                for (var _i50 = 0; _i50 < n; _i50++) {
+                    this._propSetters[_i50](views[j], v);
+                }
+            }
+        }
+    }, {
+        key: 'tags',
+        get: function get() {
+            return this._tags;
+        },
+        set: function set(v) {
+            if (!Array.isArray(v)) {
+                v = [v];
+            }
+            this._tags = v;
+        }
+    }, {
+        key: 't',
+        set: function set(v) {
+            this.tags = v;
+        }
+    }, {
+        key: 'resetValue',
+        get: function get() {
+            return this._resetValue;
+        },
+        set: function set(v) {
+            this._resetValue = v;
+            this._hasResetValue = v !== undefined;
+        }
+    }, {
+        key: 'rv',
+        set: function set(v) {
+            this.resetValue = v;
+        }
+    }, {
+        key: 'value',
+        set: function set(v) {
+            this._items.parse(v);
+        }
+    }, {
+        key: 'v',
+        set: function set(v) {
+            this.value = v;
+        }
+    }, {
+        key: 'properties',
+        set: function set(v) {
+            var _this23 = this;
+
+            if (!Array.isArray(v)) {
+                v = [v];
+            }
+
+            this._props = [];
+
+            var detectMerger = this._merger === undefined;
+
+            var first = true;
+            v.forEach(function (prop) {
+                _this23._props.push(prop);
+                _this23._propSetters.push(View.getSetter(prop));
+
+                if (detectMerger) {
+                    var merger = View.getMerger(prop);
+                    if (first) {
+                        _this23._merger = merger;
+                        first = false;
+                    } else {
+                        if (_this23._merger !== merger) {
+                            console.warn('Merger conflicts for animation action properties: ' + v.join(','));
+                            _this23._merger = undefined;
+                        }
+                    }
+                }
+            });
+        }
+    }, {
+        key: 'property',
+        set: function set(v) {
+            this.properties = v;
+        }
+    }, {
+        key: 'p',
+        set: function set(v) {
+            this.properties = v;
+        }
+    }, {
+        key: 'merger',
+        set: function set(f) {
+            if (this._items.length) {
+                console.trace('You should specify the merger before the values');
+            }
+
+            if (f === 'numbers') {
+                f = StageUtils.mergeNumbers;
+            } else if (f === 'colors') {
+                f = StageUtils.mergeColors;
+            }
+
+            this._merger = f;
+        }
+    }]);
+
+    return AnimationActionSettings;
+}(Base);
+
+var AnimationActionItems = function (_Base10) {
+    _inherits(AnimationActionItems, _Base10);
+
+    function AnimationActionItems(action) {
+        _classCallCheck(this, AnimationActionItems);
+
+        var _this24 = _possibleConstructorReturn(this, (AnimationActionItems.__proto__ || Object.getPrototypeOf(AnimationActionItems)).call(this));
+
+        _this24._action = action;
+
+        _this24._clear();
+        return _this24;
+    }
+
+    _createClass(AnimationActionItems, [{
+        key: '_clear',
+        value: function _clear() {
+            this._p = [];
+            this._pe = [];
+            this._idp = [];
+            this._f = [];
+            this._v = [];
+            this._lv = [];
+            this._sm = [];
+            this._s = [];
+            this._ve = [];
+            this._sme = [];
+            this._se = [];
+
+            this._length = 0;
+        }
+    }, {
+        key: 'parse',
+        value: function parse(def) {
+            var i = void 0,
+                n = void 0;
+            if (!Utils.isObjectLiteral(def)) {
+                def = { 0: def };
+            }
+
+            var items = [];
+            for (var key in def) {
+                if (def.hasOwnProperty(key)) {
+                    var obj = def[key];
+                    if (!Utils.isObjectLiteral(obj)) {
+                        obj = { v: obj };
+                    }
+
+                    var _p7 = parseFloat(key);
+                    if (!isNaN(_p7) && _p7 >= 0 && _p7 <= 2) {
+                        obj.p = _p7;
+
+                        obj.f = Utils.isFunction(obj.v);
+                        obj.lv = obj.f ? obj.v(0, 0) : obj.v;
+
+                        items.push(obj);
+                    }
+                }
+            }
+
+            items = items.sort(function (a, b) {
+                return a.p - b.p;
+            });
+
+            n = items.length;
+
+            for (i = 0; i < n; i++) {
+                var last = i == n - 1;
+                if (!items[i].hasOwnProperty('pe')) {
+                    items[i].pe = last ? items[i].p <= 1 ? 1 : 2 : items[i + 1].p;
+                } else {
+                    var max = i < n - 1 ? items[i + 1].p : 1;
+                    if (items[i].pe > max) {
+                        items[i].pe = max;
+                    }
+                }
+                if (items[i].pe === items[i].p) {
+                    items[i].idp = 0;
+                } else {
+                    items[i].idp = 1 / (items[i].pe - items[i].p);
+                }
+            }
+
+            if (this._action._merger) {
+                var rgba = this._action._merger === StageUtils.mergeColors;
+
+                for (i = 0; i < n; i++) {
+                    if (!items[i].hasOwnProperty('sm')) {
+                        items[i].sm = 0.5;
+                    }
+                    if (!items[i].hasOwnProperty('s')) {
+                        if (i === 0 || i === n - 1 || items[i].p === 1) {
+                            items[i].s = rgba ? [0, 0, 0, 0] : 0;
+                        } else {
+                            var pi = items[i - 1];
+                            var ni = items[i + 1];
+                            if (pi.p === ni.p) {
+                                items[i].s = rgba ? [0, 0, 0, 0] : 0;
+                            } else {
+                                if (rgba) {
+                                    var nc = StageUtils.getRgbaComponents(ni.lv);
+                                    var pc = StageUtils.getRgbaComponents(pi.lv);
+                                    var d = 1 / (ni.p - pi.p);
+                                    items[i].s = [d * (nc[0] - pc[0]), d * (nc[1] - pc[1]), d * (nc[2] - pc[2]), d * (nc[3] - pc[3])];
+                                } else {
+                                    items[i].s = (ni.lv - pi.lv) / (ni.p - pi.p);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                for (i = 0; i < n - 1; i++) {
+                    if (!items[i].f) {
+                        var _last = i === n - 1;
+                        if (!items[i].hasOwnProperty('sme')) {
+                            items[i].sme = _last ? 0.5 : items[i + 1].sm;
+                        }
+                        if (!items[i].hasOwnProperty('se')) {
+                            items[i].se = _last ? rgba ? [0, 0, 0, 0] : 0 : items[i + 1].s;
+                        }
+                        if (!items[i].hasOwnProperty('ve')) {
+                            items[i].ve = _last ? items[i].lv : items[i + 1].lv;
+                        }
+
+                        if (rgba) {
+                            items[i].v = StageUtils.getSplineRgbaValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
+                        } else {
+                            items[i].v = StageUtils.getSplineValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
+                        }
+
+                        items[i].f = true;
+                    }
+                }
+            }
+
+            if (this.length) {
+                this._clear();
+            }
+
+            for (i = 0, n = items.length; i < n; i++) {
+                this._add(items[i]);
+            }
+        }
+    }, {
+        key: '_add',
+        value: function _add(item) {
+            this._p.push(item.p || 0);
+            this._pe.push(item.pe || 0);
+            this._idp.push(item.idp || 0);
+            this._f.push(item.f || false);
+            this._v.push(item.hasOwnProperty('v') ? item.v : 0);
+            this._lv.push(item.lv || 0);
+            this._sm.push(item.sm || 0);
+            this._s.push(item.s || 0);
+            this._ve.push(item.ve || 0);
+            this._sme.push(item.sme || 0);
+            this._se.push(item.se || 0);
+            this._length++;
+        }
+    }, {
+        key: '_getItem',
+        value: function _getItem(p) {
+            var n = this._length;
+            if (!n) {
+                return -1;
+            }
+
+            if (p < this._p[0]) {
+                return -1;
+            }
+
+            for (var _i51 = 0; _i51 < n; _i51++) {
+                if (this._p[_i51] <= p && p < this._pe[_i51]) {
+                    return _i51;
+                }
+            }
+
+            return n - 1;
+        }
+    }, {
+        key: 'getValue',
+        value: function getValue(p) {
+            var i = this._getItem(p);
+            if (i == -1) {
+                return undefined;
+            } else {
+                if (this._f[i]) {
+                    var o = (p - this._p[i]) * this._idp[i];
+                    return this._v[i](o);
+                } else {
+                    return this._v[i];
+                }
+            }
+        }
+    }, {
+        key: 'length',
+        get: function get() {
+            return this._length;
+        }
+    }]);
+
+    return AnimationActionItems;
+}(Base);
+
+var Animation = function (_Base11) {
+    _inherits(Animation, _Base11);
+
+    function Animation(manager, settings, view) {
+        _classCallCheck(this, Animation);
+
+        var _this25 = _possibleConstructorReturn(this, (Animation.__proto__ || Object.getPrototypeOf(Animation)).call(this));
+
+        EventEmitter.call(_this25);
+
+        _this25.manager = manager;
+
+        _this25._settings = settings;
+
+        _this25._view = view;
+
+        _this25._state = Animation.STATES.IDLE;
+        return _this25;
+    }
+
+    _createClass(Animation, [{
+        key: '_properties',
+        value: function _properties() {
+            this._p = 0;
+            this._delayLeft = 0;
+            this._repeatsLeft = 0;
+
+            this._stopDelayLeft = 0;
+            this._stopP = 0;
+        }
+    }, {
+        key: 'start',
+        value: function start() {
+            if (this._view && this._view.isAttached()) {
+                this._p = 0;
+                this._delayLeft = this.settings.delay;
+                this._repeatsLeft = this.settings.repeat;
+                this._state = Animation.STATES.PLAYING;
+                if (this._eventsCount) this.emit('start');
+                this.checkActive();
+            } else {
+                console.warn("View must be attached before starting animation");
+            }
+        }
+    }, {
+        key: 'play',
+        value: function play() {
+            if (this._state == Animation.STATES.STOPPING && this.settings.stopMethod == AnimationSettings.STOP_METHODS.REVERSE) {
+                this._state = Animation.STATES.PLAYING;
+                if (this._eventsCount) this.emit('stopContinue');
+            } else if (this._state != Animation.STATES.PLAYING && this._state != Animation.STATES.FINISHED) {
+                this.start();
+            }
+        }
+    }, {
+        key: 'replay',
+        value: function replay() {
+            if (this._state == Animation.STATES.FINISHED) {
+                this.start();
+            } else {
+                this.play();
+            }
+        }
+    }, {
+        key: 'skipDelay',
+        value: function skipDelay() {
+            this._delayLeft = 0;
+            this._stopDelayLeft = 0;
+        }
+    }, {
+        key: 'finish',
+        value: function finish() {
+            if (this._state === Animation.STATES.PLAYING) {
+                this._delayLeft = 0;
+                this._p = 1;
+            } else if (this._state === Animation.STATES.STOPPING) {
+                this._stopDelayLeft = 0;
+                this._p = 0;
+            }
+        }
+    }, {
+        key: 'stop',
+        value: function stop() {
+            if (this._state === Animation.STATES.STOPPED || this._state === Animation.STATES.IDLE) return;
+
+            this._stopDelayLeft = this.settings.stopDelay || 0;
+
+            if (this.settings.stopMethod === AnimationSettings.STOP_METHODS.IMMEDIATE && !this._stopDelayLeft || this._delayLeft > 0) {
+                this._state = Animation.STATES.STOPPING;
+                if (this._eventsCount) this.emit('stop');
+            } else {
+                if (this.settings.stopMethod === AnimationSettings.STOP_METHODS.FADE) {
+                    this._stopP = 0;
+                }
+
+                this._state = Animation.STATES.STOPPING;
+                if (this._eventsCount) this.emit('stop');
+            }
+
+            this.checkActive();
+        }
+    }, {
+        key: 'stopNow',
+        value: function stopNow() {
+            if (this._state !== Animation.STATES.STOPPED || this._state !== Animation.STATES.IDLE) {
+                this._state = Animation.STATES.STOPPING;
+                this._p = 0;
+                if (this._eventsCount) this.emit('stop');
+                this.reset();
+                this._state = Animation.STATES.STOPPED;
+                if (this._eventsCount) this.emit('stopFinish');
+            }
+        }
+    }, {
+        key: 'isPlaying',
+        value: function isPlaying() {
+            return this._state === Animation.STATES.PLAYING;
+        }
+    }, {
+        key: 'isStopping',
+        value: function isStopping() {
+            return this._state === Animation.STATES.STOPPING;
+        }
+    }, {
+        key: 'checkActive',
+        value: function checkActive() {
+            if (this.isActive()) {
+                this.manager.addActive(this);
+            }
+        }
+    }, {
+        key: 'isActive',
+        value: function isActive() {
+            return (this._state == Animation.STATES.PLAYING || this._state == Animation.STATES.STOPPING) && this._view && this._view.isAttached();
+        }
+    }, {
+        key: 'progress',
+        value: function progress(dt) {
+            if (!this._view) return;
+            this._progress(dt);
+            this.apply();
+        }
+    }, {
+        key: '_progress',
+        value: function _progress(dt) {
+            if (this._state == Animation.STATES.STOPPING) {
+                this._stopProgress(dt);
+                return;
+            }
+
+            if (this._state != Animation.STATES.PLAYING) {
+                return;
+            }
+
+            if (this._delayLeft > 0) {
+                this._delayLeft -= dt;
+
+                if (this._delayLeft < 0) {
+                    dt = -this._delayLeft;
+                    this._delayLeft = 0;
+
+                    if (this._eventsCount) this.emit('delayEnd');
+                } else {
+                    return;
+                }
+            }
+
+            if (this.settings.duration === 0) {
+                this._p = 1;
+            } else if (this.settings.duration > 0) {
+                this._p += dt / this.settings.duration;
+            }
+            if (this._p >= 1) {
+                if (this.settings.repeat == -1 || this._repeatsLeft > 0) {
+                    if (this._repeatsLeft > 0) {
+                        this._repeatsLeft--;
+                    }
+                    this._p = this.settings.repeatOffset;
+
+                    if (this.settings.repeatDelay) {
+                        this._delayLeft = this.settings.repeatDelay;
+                    }
+
+                    if (this._eventsCount) this.emit('repeat', this._repeatsLeft);
+                } else {
+                    this._p = 1;
+                    this._state = Animation.STATES.FINISHED;
+                    if (this._eventsCount) this.emit('finish');
+                    if (this.settings.autostop) {
+                        this.stop();
+                    }
+                }
+            } else {
+                if (this._eventsCount) this.emit('progress', this._p);
+            }
+        }
+    }, {
+        key: '_stopProgress',
+        value: function _stopProgress(dt) {
+            var duration = this._getStopDuration();
+
+            if (this._stopDelayLeft > 0) {
+                this._state = Animation.STATES.STOPPED;
+                if (this._eventsCount) this.emit('stopFinish');
+            }
+
+            if (this._stopDelayLeft > 0) {
+                this._stopDelayLeft -= dt;
+
+                if (this._stopDelayLeft < 0) {
+                    dt = -this._stopDelayLeft;
+                    this._stopDelayLeft = 0;
+
+                    if (this._eventsCount) this.emit('stopDelayEnd');
+                } else {
+                    return;
+                }
+            }
+            if (this.settings.stopMethod == AnimationSettings.STOP_METHODS.IMMEDIATE) {
+                this._state = Animation.STATES.STOPPED;
+                if (this._eventsCount) this.emit('stop');
+                if (this._eventsCount) this.emit('stopFinish');
+            } else if (this.settings.stopMethod == AnimationSettings.STOP_METHODS.REVERSE) {
+                if (duration === 0) {
+                    this._p = 0;
+                } else if (duration > 0) {
+                    this._p -= dt / duration;
+                }
+
+                if (this._p <= 0) {
+                    this._p = 0;
+                    this._state = Animation.STATES.STOPPED;
+                    if (this._eventsCount) this.emit('stopFinish');
+                }
+            } else if (this.settings.stopMethod == AnimationSettings.STOP_METHODS.FADE) {
+                this._progressStopTransition(dt);
+                if (this._stopP >= 1) {
+                    this._p = 0;
+                    this._state = Animation.STATES.STOPPED;
+                    if (this._eventsCount) this.emit('stopFinish');
+                }
+            } else if (this.settings.stopMethod == AnimationSettings.STOP_METHODS.ONETOTWO) {
+                if (this._p < 2) {
+                    if (duration === 0) {
+                        this._p = 2;
+                    } else if (duration > 0) {
+                        if (this._p < 1) {
+                            this._p += dt / this.settings.duration;
+                        } else {
+                            this._p += dt / duration;
+                        }
+                    }
+                    if (this._p >= 2) {
+                        this._p = 2;
+                        this._state = Animation.STATES.STOPPED;
+                        if (this._eventsCount) this.emit('stopFinish');
+                    } else {
+                        if (this._eventsCount) this.emit('progress', this._p);
+                    }
+                }
+            } else if (this.settings.stopMethod == AnimationSettings.STOP_METHODS.FORWARD) {
+                if (this._p < 1) {
+                    if (this.settings.duration == 0) {
+                        this._p = 1;
+                    } else {
+                        this._p += dt / this.settings.duration;
+                    }
+                    if (this._p >= 1) {
+                        if (this.settings.stopMethod == AnimationSettings.STOP_METHODS.FORWARD) {
+                            this._p = 1;
+                            this._state = Animation.STATES.STOPPED;
+                            if (this._eventsCount) this.emit('stopFinish');
+                        } else {
+                            if (this._repeatsLeft > 0) {
+                                this._repeatsLeft--;
+                                this._p = 0;
+                                if (this._eventsCount) this.emit('repeat', this._repeatsLeft);
+                            } else {
+                                this._p = 1;
+                                this._state = Animation.STATES.STOPPED;
+                                if (this._eventsCount) this.emit('stopFinish');
+                            }
+                        }
+                    } else {
+                        if (this._eventsCount) this.emit('progress', this._p);
+                    }
+                }
+            }
+        }
+    }, {
+        key: '_progressStopTransition',
+        value: function _progressStopTransition(dt) {
+            if (this._stopP < 1) {
+                if (this._stopDelayLeft > 0) {
+                    this._stopDelayLeft -= dt;
+
+                    if (this._stopDelayLeft < 0) {
+                        dt = -this._stopDelayLeft;
+                        this._stopDelayLeft = 0;
+
+                        if (this._eventsCount) this.emit('delayEnd');
+                    } else {
+                        return;
+                    }
+                }
+
+                var duration = this._getStopDuration();
+
+                if (duration == 0) {
+                    this._stopP = 1;
+                } else {
+                    this._stopP += dt / duration;
+                }
+                if (this._stopP >= 1) {
+                    this._stopP = 1;
+                }
+            }
+        }
+    }, {
+        key: '_getStopDuration',
+        value: function _getStopDuration() {
+            return this.settings.stopDuration || this.settings.duration;
+        }
+    }, {
+        key: 'apply',
+        value: function apply() {
+            if (this._state == Animation.STATES.STOPPED) {
+                this.reset();
+            } else {
+                var factor = 1;
+                if (this._state === Animation.STATES.STOPPING && this.settings.stopMethod === AnimationSettings.STOP_METHODS.FADE) {
+                    factor = 1 - this.settings.stopTimingFunctionImpl(this._stopP);
+                }
+                this._settings.apply(this._view, this._p, factor);
+            }
+        }
+    }, {
+        key: 'reset',
+        value: function reset() {
+            this._settings.reset(this._view);
+        }
+    }, {
+        key: 'state',
+        get: function get() {
+            return this._state;
+        }
+    }, {
+        key: 'p',
+        get: function get() {
+            return this._p;
+        }
+    }, {
+        key: 'delayLeft',
+        get: function get() {
+            return this._delayLeft;
+        }
+    }, {
+        key: 'view',
+        get: function get() {
+            return this._view;
+        }
+    }, {
+        key: 'frame',
+        get: function get() {
+            return Math.round(p * this._settings.duration * 60);
+        }
+    }, {
+        key: 'settings',
+        get: function get() {
+            return this._settings;
+        }
+    }]);
+
+    return Animation;
+}(Base);
+
+Base.mixinEs5(Animation, EventEmitter);
+
+Animation.STATES = {
+    IDLE: 0,
+    PLAYING: 1,
+    STOPPING: 2,
+    STOPPED: 3,
+    FINISHED: 4
+};
+
+var Tools = function () {
+    function Tools() {
+        _classCallCheck(this, Tools);
+    }
+
+    _createClass(Tools, null, [{
+        key: 'getCanvasTexture',
+        value: function getCanvasTexture(stage, canvas) {
+            var texOptions = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+            var options = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
+
+            return stage.texture(function (cb) {
+                var data = canvas;
+                var options = {};
+                if (Utils.isNode) {
+                    data = canvas.toBuffer('raw');
+                    options.w = canvas.width;
+                    options.h = canvas.height;
+                    options.premultiplyAlpha = false;
+                    options.flipBlueRed = true;
+                }
+                cb(null, data, options);
+            }, texOptions);
+        }
+    }, {
+        key: 'getRoundRect',
+        value: function getRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor) {
+            var canvas = this.createRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor);
+            var id = 'rect' + [w, h, radius, strokeWidth, strokeColor, fill ? 1 : 0, fillColor].join(",");
+            return Tools.getCanvasTexture(stage, canvas, { id: id });
+        }
+    }, {
+        key: 'createRoundRect',
+        value: function createRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor) {
+            if (fill === undefined) fill = true;
+            if (strokeWidth === undefined) strokeWidth = 0;
+
+            var canvas = stage.adapter.getDrawingCanvas();
+            var ctx = canvas.getContext('2d');
+            ctx.imageSmoothingEnabled = true;
+
+            var id = 'rect' + [w, h, radius, strokeWidth, strokeColor, fill ? 1 : 0, fillColor].join(",");
+            canvas.width = w + strokeWidth + 2;
+            canvas.height = h + strokeWidth + 2;
+
+            ctx.beginPath();
+            var x = 0.5 * strokeWidth + 1,
+                y = 0.5 * strokeWidth + 1;
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + w - radius, y);
+            ctx.arcTo(x + w, y, x + w, y + radius, radius);
+            ctx.lineTo(x + w, y + h - radius);
+            ctx.arcTo(x + w, y + h, x + w - radius, y + h, radius);
+            ctx.lineTo(x + radius, y + h);
+            ctx.arcTo(x, y + h, x, y + h - radius, radius);
+            ctx.lineTo(x, y + radius);
+            ctx.arcTo(x, y, x + radius, y, radius);
+
+            if (fill) {
+                if (Utils.isNumber(fillColor)) {
+                    ctx.fillStyle = StageUtils.getRgbaString(fillColor);
+                } else {
+                    ctx.fillStyle = "white";
+                }
+                ctx.fill();
+            }
+
+            if (strokeWidth) {
+                if (Utils.isNumber(strokeColor)) {
+                    ctx.strokeStyle = StageUtils.getRgbaString(strokeColor);
+                } else {
+                    ctx.strokeStyle = "white";
+                }
+                ctx.lineWidth = strokeWidth;
+                ctx.stroke();
+            }
+
+            return canvas;
+        }
+    }]);
+
+    return Tools;
+}();
+
+var ListView = function (_View) {
+    _inherits(ListView, _View);
+
+    function ListView(stage) {
+        _classCallCheck(this, ListView);
+
+        var _this26 = _possibleConstructorReturn(this, (ListView.__proto__ || Object.getPrototypeOf(ListView)).call(this, stage));
+
+        _this26._wrapper = _get(ListView.prototype.__proto__ || Object.getPrototypeOf(ListView.prototype), '_children', _this26).a({});
+
+        _this26._reloadVisibleElements = false;
+
+        _this26._visibleItems = new Set();
+
+        _this26._index = 0;
+
+        _this26._started = false;
+
+        _this26._scrollTransitionSettings = _this26.stage.transitions.createSettings({});
+
+        _this26._itemSize = 100;
+
+        _this26._viewportScrollOffset = 0;
+
+        _this26._itemScrollOffset = 0;
+
+        _this26._roll = false;
+
+        _this26._rollMin = 0;
+
+        _this26._rollMax = 0;
+
+        _this26._progressAnimation = null;
+
+        _this26._invertDirection = false;
+
+        _this26._horizontal = true;
+
+        return _this26;
+    }
+
+    _createClass(ListView, [{
+        key: '_getExposedChildList',
+        value: function _getExposedChildList() {
+            return new (function (_ViewChildList) {
+                _inherits(_class, _ViewChildList);
+
+                function _class(view, list) {
+                    _classCallCheck(this, _class);
+
+                    var _this27 = _possibleConstructorReturn(this, (_class.__proto__ || Object.getPrototypeOf(_class)).call(this, view));
+
+                    _this27.list = list;
+                    return _this27;
+                }
+
+                _createClass(_class, [{
+                    key: 'addAt',
+                    value: function addAt(view, index) {
+                        var encaps = view.stage.createView();
+                        encaps.add(view);
+                        encaps.visible = false;
+                        _get(_class.prototype.__proto__ || Object.getPrototypeOf(_class.prototype), 'addAt', this).call(this, encaps, index);
+
+                        this.list._reloadVisibleElements = true;
+                        if (!this.list._started) {
+                            this.list.start();
+                        } else {
+                            if (this.list.length === 1) {
+                                this.list.setIndex(0, true, true);
+                            }
+                            this.list.update();
+                        }
+                    }
+                }, {
+                    key: 'getIndex',
+                    value: function getIndex(view) {
+                        return _get(_class.prototype.__proto__ || Object.getPrototypeOf(_class.prototype), 'getIndex', this).call(this, view.parent);
+                    }
+                }, {
+                    key: 'removeAt',
+                    value: function removeAt(index) {
+                        var ri = this.list.realIndex;
+
+                        var view = _get(_class.prototype.__proto__ || Object.getPrototypeOf(_class.prototype), 'removeAt', this).call(this, index);
+
+                        if (ri === index) {
+                            if (ri === this.list.length) {
+                                ri--;
+                            }
+                            if (ri >= 0) {
+                                this.list.setIndex(ri);
+                            }
+                        } else if (ri > index) {
+                            this.list.setIndex(ri - 1);
+                        }
+
+                        this.list._reloadVisibleElements = true;
+
+                        return view._children.get()[0];
+                    }
+                }, {
+                    key: 'get',
+                    value: function get() {
+                        return _get(_class.prototype.__proto__ || Object.getPrototypeOf(_class.prototype), 'get', this).call(this).map(function (view) {
+                            return view._children.get()[0];
+                        });
+                    }
+                }, {
+                    key: 'clear',
+                    value: function clear() {
+                        _get(_class.prototype.__proto__ || Object.getPrototypeOf(_class.prototype), 'clear', this).call(this);
+                        this.list._reloadVisibleElements = true;
+                        this.list._index = 0;
+                    }
+                }]);
+
+                return _class;
+            }(ViewChildList))(this._wrapper, this);
+        }
+    }, {
+        key: 'start',
+        value: function start() {
+            var _this28 = this;
+
+            this._wrapper.transition(this.property, this._scrollTransitionSettings);
+            this._scrollTransition = this._wrapper.transition(this.property);
+            this._scrollTransition.on('progress', function (p) {
+                return _this28.update();
+            });
+
+            this.setIndex(0, true, true);
+            this.update();
+
+            this._started = true;
+        }
+    }, {
+        key: 'setIndex',
+        value: function setIndex(index) {
+            var immediate = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+            var closest = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
+
+            var nElements = this.length;
+            if (!nElements) return;
+
+            this.emit('unfocus', this.getElement(this.realIndex), this._index, this.realIndex);
+
+            if (closest) {
+                var offset = Utils.getModuloIndex(index, nElements);
+                var o = Utils.getModuloIndex(this.index, nElements);
+                var diff = offset - o;
+                if (diff > 0.5 * nElements) {
+                    diff -= nElements;
+                } else if (diff < -0.5 * nElements) {
+                    diff += nElements;
+                }
+                this._index += diff;
+            } else {
+                this._index = index;
+            }
+
+            if (this._roll || this.viewportSize > this._itemSize * nElements) {
+                this._index = Utils.getModuloIndex(this._index, nElements);
+            }
+
+            var direction = this._horizontal ^ this._invertDirection ? -1 : 1;
+            var value = direction * this._index * this._itemSize;
+
+            if (this._roll) {
+                var min = void 0,
+                    max = void 0,
+                    scrollDelta = void 0;
+                if (direction == 1) {
+                    max = (nElements - 1) * this._itemSize;
+                    scrollDelta = this._viewportScrollOffset * this.viewportSize - this._itemScrollOffset * this._itemSize;
+
+                    max -= scrollDelta;
+
+                    min = this.viewportSize - (this._itemSize + scrollDelta);
+
+                    if (this._rollMin) min -= this._rollMin;
+                    if (this._rollMax) max += this._rollMax;
+
+                    value = Math.max(Math.min(value, max), min);
+                } else {
+                    max = nElements * this._itemSize - this.viewportSize;
+                    scrollDelta = this._viewportScrollOffset * this.viewportSize - this._itemScrollOffset * this._itemSize;
+
+                    max += scrollDelta;
+
+                    var _min = scrollDelta;
+
+                    if (this._rollMin) _min -= this._rollMin;
+                    if (this._rollMax) max += this._rollMax;
+
+                    value = Math.min(Math.max(-max, value), -_min);
+                }
+            }
+
+            this._scrollTransition.start(value);
+
+            if (immediate) {
+                this._scrollTransition.finish();
+            }
+
+            this.emit('focus', this.getElement(this.realIndex), this._index, this.realIndex);
+        }
+    }, {
+        key: 'update',
+        value: function update() {
+            if (!this._started) return;
+
+            var nElements = this.length;
+            if (!nElements) return;
+
+            var direction = this._horizontal ^ this._invertDirection ? -1 : 1;
+
+            var v = this._horizontal ? this._wrapper.x : this._wrapper.y;
+
+            var viewportSize = this.viewportSize;
+            var scrollDelta = this._viewportScrollOffset * viewportSize - this._itemScrollOffset * this._itemSize;
+            v += scrollDelta;
+
+            var s = void 0,
+                e = void 0,
+                ps = void 0,
+                pe = void 0;
+            if (direction == -1) {
+                s = Math.floor(-v / this._itemSize);
+                ps = 1 - (-v / this._itemSize - s);
+                e = Math.floor((viewportSize - v) / this._itemSize);
+                pe = (viewportSize - v) / this._itemSize - e;
+            } else {
+                s = Math.ceil(v / this._itemSize);
+                ps = 1 + v / this._itemSize - s;
+                e = Math.ceil((v - viewportSize) / this._itemSize);
+                pe = e - (v - viewportSize) / this._itemSize;
+            }
+            if (this._roll || viewportSize > this._itemSize * nElements) {
+                if (e >= nElements) {
+                    e = nElements - 1;
+                    pe = 1;
+                }
+                if (s >= nElements) {
+                    s = nElements - 1;
+                    ps = 1;
+                }
+                if (e <= -1) {
+                    e = 0;
+                    pe = 1;
+                }
+                if (s <= -1) {
+                    s = 0;
+                    ps = 1;
+                }
+            }
+
+            var offset = -direction * s * this._itemSize;
+
+            var item = void 0;
+            for (var index = s; direction == -1 ? index <= e : index >= e; direction == -1 ? index++ : index--) {
+                var realIndex = Utils.getModuloIndex(index, nElements);
+
+                var element = this.getElement(realIndex);
+                item = element.parent;
+                this._visibleItems.delete(item);
+                if (this._horizontal) {
+                    item.x = offset + scrollDelta;
+                } else {
+                    item.y = offset + scrollDelta;
+                }
+
+                var wasVisible = item.visible;
+                item.visible = true;
+
+                if (!wasVisible || this._reloadVisibleElements) {
+                    this.emit('visible', index, realIndex);
+                }
+
+                if (this._progressAnimation) {
+                    var _p8 = 1;
+                    if (index == s) {
+                        _p8 = ps;
+                    } else if (index == e) {
+                        _p8 = pe;
+                    }
+
+                    this._progressAnimation.apply(element, _p8);
+                }
+
+                offset += this._itemSize;
+            }
+
+            var self = this;
+            this._visibleItems.forEach(function (invisibleItem) {
+                invisibleItem.visible = false;
+                self._visibleItems.delete(invisibleItem);
+            });
+
+            for (var _index = s; direction == -1 ? _index <= e : _index >= e; direction == -1 ? _index++ : _index--) {
+                var _realIndex = Utils.getModuloIndex(_index, nElements);
+                this._visibleItems.add(this.getWrapper(_realIndex));
+            }
+
+            this._reloadVisibleElements = false;
+        }
+    }, {
+        key: 'setPrevious',
+        value: function setPrevious() {
+            this.setIndex(this._index - 1);
+        }
+    }, {
+        key: 'setNext',
+        value: function setNext() {
+            this.setIndex(this._index + 1);
+        }
+    }, {
+        key: 'getWrapper',
+        value: function getWrapper(index) {
+            return this._wrapper.children[index];
+        }
+    }, {
+        key: 'getElement',
+        value: function getElement(index) {
+            var e = this._wrapper.children[index];
+            return e ? e.children[0] : null;
+        }
+    }, {
+        key: 'reload',
+        value: function reload() {
+            this._reloadVisibleElements = true;
+            this.update();
+        }
+    }, {
+        key: 'element',
+        get: function get() {
+            var e = this._wrapper.children[this.realIndex];
+            return e ? e.children[0] : null;
+        }
+    }, {
+        key: 'length',
+        get: function get() {
+            return this._wrapper.children.length;
+        }
+    }, {
+        key: 'property',
+        get: function get() {
+            return this._horizontal ? 'x' : 'y';
+        }
+    }, {
+        key: 'viewportSize',
+        get: function get() {
+            return this._horizontal ? this.w : this.h;
+        }
+    }, {
+        key: 'index',
+        get: function get() {
+            return this._index;
+        }
+    }, {
+        key: 'realIndex',
+        get: function get() {
+            return Utils.getModuloIndex(this._index, this.length);
+        }
+    }, {
+        key: 'itemSize',
+        get: function get() {
+            return this._itemSize;
+        },
+        set: function set(v) {
+            this._itemSize = v;
+            this.update();
+        }
+    }, {
+        key: 'viewportScrollOffset',
+        get: function get() {
+            return this._viewportScrollOffset;
+        },
+        set: function set(v) {
+            this._viewportScrollOffset = v;
+            this.update();
+        }
+    }, {
+        key: 'itemScrollOffset',
+        get: function get() {
+            return this._itemScrollOffset;
+        },
+        set: function set(v) {
+            this._itemScrollOffset = v;
+            this.update();
+        }
+    }, {
+        key: 'scrollTransitionSettings',
+        get: function get() {
+            return this._scrollTransitionSettings;
+        },
+        set: function set(v) {
+            this._scrollTransitionSettings.setSettings(v);
+        }
+    }, {
+        key: 'scrollTransition',
+        set: function set(v) {
+            this._scrollTransitionSettings.setSettings(v);
+        },
+        get: function get() {
+            return this._scrollTransition;
+        }
+    }, {
+        key: 'progressAnimation',
+        get: function get() {
+            return this._progressAnimation;
+        },
+        set: function set(v) {
+            if (Utils.isObjectLiteral(v)) {
+                this._progressAnimation = this.stage.animations.createSettings(v);
+            } else {
+                this._progressAnimation = v;
+            }
+            this.update();
+        }
+    }, {
+        key: 'roll',
+        get: function get() {
+            return this._roll;
+        },
+        set: function set(v) {
+            this._roll = v;
+            this.update();
+        }
+    }, {
+        key: 'rollMin',
+        get: function get() {
+            return this._rollMin;
+        },
+        set: function set(v) {
+            this._rollMin = v;
+            this.update();
+        }
+    }, {
+        key: 'rollMax',
+        get: function get() {
+            return this._rollMax;
+        },
+        set: function set(v) {
+            this._rollMax = v;
+            this.update();
+        }
+    }, {
+        key: 'invertDirection',
+        get: function get() {
+            return this._invertDirection;
+        },
+        set: function set(v) {
+            if (!this._started) {
+                this._invertDirection = v;
+            }
+        }
+    }, {
+        key: 'horizontal',
+        get: function get() {
+            return this._horizontal;
+        },
+        set: function set(v) {
+            if (v !== this._horizontal) {
+                if (!this._started) {
+                    this._horizontal = v;
+                }
+            }
+        }
+    }]);
+
+    return ListView;
+}(View);
+
+ListView.NUMBER_PROPERTIES = new Set(['viewportScrollOffset', 'itemScrollOffset']);
+
+var BorderView = function (_View2) {
+    _inherits(BorderView, _View2);
+
+    function BorderView(stage) {
+        _classCallCheck(this, BorderView);
+
+        var _this29 = _possibleConstructorReturn(this, (BorderView.__proto__ || Object.getPrototypeOf(BorderView)).call(this, stage));
+
+        _this29._wrapper = _get(BorderView.prototype.__proto__ || Object.getPrototypeOf(BorderView.prototype), '_children', _this29).a({});
+
+        _this29._borderTop = _get(BorderView.prototype.__proto__ || Object.getPrototypeOf(BorderView.prototype), '_children', _this29).a({ rect: true, visible: false, mountY: 1 });
+        _this29._borderRight = _get(BorderView.prototype.__proto__ || Object.getPrototypeOf(BorderView.prototype), '_children', _this29).a({ rect: true, visible: false });
+        _this29._borderBottom = _get(BorderView.prototype.__proto__ || Object.getPrototypeOf(BorderView.prototype), '_children', _this29).a({ rect: true, visible: false });
+        _this29._borderLeft = _get(BorderView.prototype.__proto__ || Object.getPrototypeOf(BorderView.prototype), '_children', _this29).a({ rect: true, visible: false, mountX: 1 });
+
+        _this29._updateLayout = false;
+
+        _this29.visitExit = function (view, recalc) {
+            var hasSingleChild = view.children.length === 1;
+            var refresh = hasSingleChild && view.children[0]._core._recalc & 2 || recalc || view._updateLayout;
+            if (refresh) {
+                if (view.children.length === 1) {
+                    view.w = view.children[0].renderWidth;
+                    view.h = view.children[0].renderHeight;
+                }
+                var rw = view.renderWidth;
+                var rh = view.renderHeight;
+                view._borderTop.w = rw;
+                view._borderBottom.y = rh;
+                view._borderBottom.w = rw;
+                view._borderLeft.h = rh + view._borderTop.h + view._borderBottom.h;
+                view._borderLeft.y = -view._borderTop.h;
+                view._borderRight.x = rw;
+                view._borderRight.h = rh + view._borderTop.h + view._borderBottom.h;
+                view._borderRight.y = -view._borderTop.h;
+                view._wrapper.w = rw;
+                view._wrapper.h = rh;
+                view._updateLayout = false;
+            }
+        };
+        return _this29;
+    }
+
+    _createClass(BorderView, [{
+        key: '_getExposedChildList',
+        value: function _getExposedChildList() {
+            return this._wrapper._children;
+        }
+    }, {
+        key: 'borderWidth',
+        get: function get() {
+            return this.borderWidthTop;
+        },
+        set: function set(v) {
+            this.borderWidthTop = v;
+            this.borderWidthRight = v;
+            this.borderWidthBottom = v;
+            this.borderWidthLeft = v;
+        }
+    }, {
+        key: 'borderWidthTop',
+        get: function get() {
+            return this._borderTop.h;
+        },
+        set: function set(v) {
+            this._borderTop.h = v;
+            this._borderTop.visible = v > 0;
+            this._updateLayout = true;
+        }
+    }, {
+        key: 'borderWidthRight',
+        get: function get() {
+            return this._borderRight.w;
+        },
+        set: function set(v) {
+            this._borderRight.w = v;
+            this._borderRight.visible = v > 0;
+            this._updateLayout = true;
+        }
+    }, {
+        key: 'borderWidthBottom',
+        get: function get() {
+            return this._borderBottom.h;
+        },
+        set: function set(v) {
+            this._borderBottom.h = v;
+            this._borderBottom.visible = v > 0;
+            this._updateLayout = true;
+        }
+    }, {
+        key: 'borderWidthLeft',
+        get: function get() {
+            return this._borderLeft.w;
+        },
+        set: function set(v) {
+            this._borderLeft.w = v;
+            this._borderLeft.visible = v > 0;
+            this._updateLayout = true;
+        }
+    }, {
+        key: 'borderColor',
+        get: function get() {
+            return this.borderColorTop;
+        },
+        set: function set(v) {
+            this.borderColorTop = v;
+            this.borderColorRight = v;
+            this.borderColorBottom = v;
+            this.borderColorLeft = v;
+        }
+    }, {
+        key: 'borderColorTop',
+        get: function get() {
+            return this._borderTop.color;
+        },
+        set: function set(v) {
+            this._borderTop.color = v;
+        }
+    }, {
+        key: 'borderColorRight',
+        get: function get() {
+            return this._borderRight.color;
+        },
+        set: function set(v) {
+            this._borderRight.color = v;
+        }
+    }, {
+        key: 'borderColorBottom',
+        get: function get() {
+            return this._borderBottom.color;
+        },
+        set: function set(v) {
+            this._borderBottom.color = v;
+        }
+    }, {
+        key: 'borderColorLeft',
+        get: function get() {
+            return this._borderLeft.color;
+        },
+        set: function set(v) {
+            this._borderLeft.color = v;
+        }
+    }, {
+        key: 'borderTop',
+        get: function get() {
+            return this._borderTop;
+        },
+        set: function set(settings) {
+            this.borderTop.setSettings(settings);
+        }
+    }, {
+        key: 'borderRight',
+        get: function get() {
+            return this._borderRight;
+        },
+        set: function set(settings) {
+            this.borderRight.setSettings(settings);
+        }
+    }, {
+        key: 'borderBottom',
+        get: function get() {
+            return this._borderBottom;
+        },
+        set: function set(settings) {
+            this.borderBottom.setSettings(settings);
+        }
+    }, {
+        key: 'borderLeft',
+        get: function get() {
+            return this._borderLeft;
+        },
+        set: function set(settings) {
+            this.borderLeft.setSettings(settings);
+        }
+    }, {
+        key: 'borders',
+        set: function set(settings) {
+            this.borderTop = settings;
+            this.borderLeft = settings;
+            this.borderBottom = settings;
+            this.borderRight = settings;
+        }
+    }, {
+        key: 'clipping',
+        get: function get() {
+            return this._wrapper.clipping;
+        },
+        set: function set(v) {
+            this._wrapper.clipping = v;
+        }
+    }]);
+
+    return BorderView;
+}(View);
+
+BorderView.NUMBER_PROPERTIES = new Set(['borderWidth', 'borderWidthTop', 'borderWidthRight', 'borderWidthBottom', 'borderWidthLeft']);
+BorderView.COLOR_PROPERTIES = new Set(['borderColor', 'borderColorTop', 'borderColorRight', 'borderColorBottom', 'borderColorLeft']);
+
+var FastBlurView = function (_View3) {
+    _inherits(FastBlurView, _View3);
+
+    function FastBlurView(stage) {
+        _classCallCheck(this, FastBlurView);
+
+        var _this30 = _possibleConstructorReturn(this, (FastBlurView.__proto__ || Object.getPrototypeOf(FastBlurView)).call(this, stage));
+
+        var fastBoxBlurShader = FastBlurView.getFastBoxBlurShader(stage.ctx);
+
+        var c = _this30._children;
+        c.a([{ renderToTexture: false, hideResultTexture: true, children: [{}] }, { children: [{ renderToTexture: true, hideResultTexture: true, visible: false, children: [{ shader: fastBoxBlurShader }] }, { renderToTexture: true, hideResultTexture: true, visible: false, children: [{ shader: fastBoxBlurShader }] }, { renderToTexture: true, hideResultTexture: true, visible: false, children: [{ shader: fastBoxBlurShader }] }, { renderToTexture: true, hideResultTexture: true, visible: false, children: [{ shader: fastBoxBlurShader }] }] }, { shader: { type: FastBlurOutputShader }, visible: false }]);
+
+        _this30._textwrap = c.get()[0];
+        _this30._wrapper = _this30._textwrap.children[0];
+        _this30._layers = c.get()[1].children;
+        _this30._output = c.get()[2];
+
+        _this30.getLayerContents(0).texture = _this30._textwrap.getResultTextureSource();
+        _this30.getLayerContents(1).texture = _this30.getLayer(0).getResultTextureSource();
+        _this30.getLayerContents(2).texture = _this30.getLayer(1).getResultTextureSource();
+        _this30.getLayerContents(3).texture = _this30.getLayer(2).getResultTextureSource();
+
+        var filters = FastBlurView.getLinearBlurFilters(stage.ctx);
+        _this30.getLayer(1).filters = [filters[0], filters[1]];
+        _this30.getLayer(2).filters = [filters[2], filters[3], filters[0], filters[1]];
+        _this30.getLayer(3).filters = [filters[2], filters[3], filters[0], filters[1]];
+
+        _this30._amount = 0;
+        _this30._paddingX = 0;
+        _this30._paddingY = 0;
+        return _this30;
+    }
+
+    _createClass(FastBlurView, [{
+        key: '_getExposedChildList',
+        value: function _getExposedChildList() {
+            return this._wrapper._children;
+        }
+    }, {
+        key: 'getLayer',
+        value: function getLayer(i) {
+            return this._layers[i];
+        }
+    }, {
+        key: 'getLayerContents',
+        value: function getLayerContents(i) {
+            return this.getLayer(i).children[0];
+        }
+    }, {
+        key: '_updateDimensions',
+        value: function _updateDimensions() {
+            if (_get(FastBlurView.prototype.__proto__ || Object.getPrototypeOf(FastBlurView.prototype), '_updateDimensions', this).call(this)) {
+                this._updateBlurSize();
+            }
+        }
+    }, {
+        key: '_updateBlurSize',
+        value: function _updateBlurSize() {
+            var w = this.renderWidth;
+            var h = this.renderHeight;
+
+            var paddingX = this._paddingX;
+            var paddingY = this._paddingY;
+
+            var fw = w + paddingX * 2;
+            var fh = h + paddingY * 2;
+            this._textwrap.w = fw;
+            this._wrapper.x = paddingX;
+            this.getLayer(0).w = this.getLayerContents(0).w = fw / 2;
+            this.getLayer(1).w = this.getLayerContents(1).w = fw / 4;
+            this.getLayer(2).w = this.getLayerContents(2).w = fw / 8;
+            this.getLayer(3).w = this.getLayerContents(3).w = fw / 16;
+            this._output.x = -paddingX;
+            this._textwrap.x = -paddingX;
+            this._output.w = fw;
+
+            this._textwrap.h = fh;
+            this._wrapper.y = paddingY;
+            this.getLayer(0).h = this.getLayerContents(0).h = fh / 2;
+            this.getLayer(1).h = this.getLayerContents(1).h = fh / 4;
+            this.getLayer(2).h = this.getLayerContents(2).h = fh / 8;
+            this.getLayer(3).h = this.getLayerContents(3).h = fh / 16;
+            this._output.y = -paddingY;
+            this._textwrap.y = -paddingY;
+            this._output.h = fh;
+
+            this.w = w;
+            this.h = h;
+        }
+    }, {
+        key: '_update',
+        value: function _update() {
+            var v = Math.min(4, Math.max(0, this._amount));
+            if (v === 0) {
+                this._textwrap.renderToTexture = false;
+                this._output.shader.otherTextureSource = null;
+                this._output.visible = false;
+            } else {
+                this._textwrap.renderToTexture = true;
+                this._output.visible = true;
+
+                this.getLayer(0).visible = v > 0;
+                this.getLayer(1).visible = v > 1;
+                this.getLayer(2).visible = v > 2;
+                this.getLayer(3).visible = v > 3;
+
+                if (v <= 1) {
+                    this._output.texture = this._textwrap.getResultTextureSource();
+                    this._output.shader.otherTextureSource = this.getLayer(0).getResultTextureSource();
+                    this._output.shader.a = v;
+                } else if (v <= 2) {
+                    this._output.texture = this.getLayer(0).getResultTextureSource();
+                    this._output.shader.otherTextureSource = this.getLayer(1).getResultTextureSource();
+                    this._output.shader.a = v - 1;
+                } else if (v <= 3) {
+                    this._output.texture = this.getLayer(1).getResultTextureSource();
+                    this._output.shader.otherTextureSource = this.getLayer(2).getResultTextureSource();
+                    this._output.shader.a = v - 2;
+                } else if (v <= 4) {
+                    this._output.texture = this.getLayer(2).getResultTextureSource();
+                    this._output.shader.otherTextureSource = this.getLayer(3).getResultTextureSource();
+                    this._output.shader.a = v - 3;
+                }
+            }
+        }
+    }, {
+        key: 'padding',
+        set: function set(v) {
+            this._paddingX = v;
+            this._paddingY = v;
+            this._updateBlurSize();
+        }
+    }, {
+        key: 'paddingX',
+        set: function set(v) {
+            this.paddingX = v;
+            this._updateBlurSize();
+        }
+    }, {
+        key: 'paddingY',
+        set: function set(v) {
+            this.paddingY = v;
+            this._updateBlurSize();
+        }
+    }, {
+        key: 'amount',
+        set: function set(v) {
+            this._amount = v;
+            this._update();
+        },
+        get: function get() {
+            return this._amount;
+        }
+    }], [{
+        key: 'getFastBoxBlurShader',
+        value: function getFastBoxBlurShader(ctx) {
+            if (!ctx.fastBoxBlurShader) {
+                ctx.fastBoxBlurShader = new FastBoxBlurShader(ctx);
+            }
+            return ctx.fastBoxBlurShader;
+        }
+    }, {
+        key: 'getLinearBlurFilters',
+        value: function getLinearBlurFilters(ctx) {
+            if (!ctx.linearBlurFilters) {
+                ctx.linearBlurFilters = [];
+
+                var lbf = new LinearBlurFilter(ctx);
+                lbf.x = 1;
+                lbf.y = 0;
+                lbf.kernelRadius = 1;
+                ctx.linearBlurFilters.push(lbf);
+
+                lbf = new LinearBlurFilter(ctx);
+                lbf.x = 0;
+                lbf.y = 1;
+                lbf.kernelRadius = 1;
+                ctx.linearBlurFilters.push(lbf);
+
+                lbf = new LinearBlurFilter(ctx);
+                lbf.x = 1.5;
+                lbf.y = 0;
+                lbf.kernelRadius = 1;
+                ctx.linearBlurFilters.push(lbf);
+
+                lbf = new LinearBlurFilter(ctx);
+                lbf.x = 0;
+                lbf.y = 1.5;
+                lbf.kernelRadius = 1;
+                ctx.linearBlurFilters.push(lbf);
+            }
+            return ctx.linearBlurFilters;
+        }
+    }]);
+
+    return FastBlurView;
+}(View);
+
+FastBlurView.NUMBER_PROPERTIES = new Set(['amount']);
+
+var FastBoxBlurShader = function (_Shader) {
+    _inherits(FastBoxBlurShader, _Shader);
+
+    function FastBoxBlurShader(ctx) {
+        _classCallCheck(this, FastBoxBlurShader);
+
+        return _possibleConstructorReturn(this, (FastBoxBlurShader.__proto__ || Object.getPrototypeOf(FastBoxBlurShader)).call(this, ctx));
+    }
+
+    _createClass(FastBoxBlurShader, [{
+        key: 'getVertexShaderSource',
+        value: function getVertexShaderSource() {
+            return FastBoxBlurShader.vertexShaderSource;
+        }
+    }, {
+        key: 'getFragmentShaderSource',
+        value: function getFragmentShaderSource() {
+            return FastBoxBlurShader.fragmentShaderSource;
+        }
+    }, {
+        key: 'setupUniforms',
+        value: function setupUniforms(operation) {
+            _get(FastBoxBlurShader.prototype.__proto__ || Object.getPrototypeOf(FastBoxBlurShader.prototype), 'setupUniforms', this).call(this, operation);
+            var dx = 1.0 / operation.getTextureWidth(0);
+            var dy = 1.0 / operation.getTextureHeight(0);
+            this._setUniform("stepTextureCoord", new Float32Array([dx, dy]), this.gl.uniform2fv);
+        }
+    }]);
+
+    return FastBoxBlurShader;
+}(Shader);
+
+FastBoxBlurShader.vertexShaderSource = '\n    #ifdef GL_ES\n    precision lowp float;\n    #endif\n    uniform vec2 stepTextureCoord;\n    attribute vec2 aVertexPosition;\n    attribute vec2 aTextureCoord;\n    attribute vec4 aColor;\n    uniform vec2 projection;\n    varying vec4 vColor;\n    varying vec2 vTextureCoordUl;\n    varying vec2 vTextureCoordUr;\n    varying vec2 vTextureCoordBl;\n    varying vec2 vTextureCoordBr;\n    void main(void){\n        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);\n        vTextureCoordUl = aTextureCoord - stepTextureCoord;\n        vTextureCoordBr = aTextureCoord + stepTextureCoord;\n        vTextureCoordUr = vec2(vTextureCoordBr.x, vTextureCoordUl.y);\n        vTextureCoordBl = vec2(vTextureCoordUl.x, vTextureCoordBr.y);\n        vColor = aColor;\n        gl_Position.y = -sign(projection.y) * gl_Position.y;\n    }\n';
+
+FastBoxBlurShader.fragmentShaderSource = '\n    #ifdef GL_ES\n    precision lowp float;\n    #endif\n    varying vec2 vTextureCoordUl;\n    varying vec2 vTextureCoordUr;\n    varying vec2 vTextureCoordBl;\n    varying vec2 vTextureCoordBr;\n    varying vec4 vColor;\n    uniform sampler2D uSampler;\n    void main(void){\n        vec4 color = 0.25 * (texture2D(uSampler, vTextureCoordUl) + texture2D(uSampler, vTextureCoordUr) + texture2D(uSampler, vTextureCoordBl) + texture2D(uSampler, vTextureCoordBr));\n        gl_FragColor = color * vColor;\n    }\n';
+
+var FastBlurOutputShader = function (_Shader2) {
+    _inherits(FastBlurOutputShader, _Shader2);
+
+    function FastBlurOutputShader(ctx) {
+        _classCallCheck(this, FastBlurOutputShader);
+
+        var _this32 = _possibleConstructorReturn(this, (FastBlurOutputShader.__proto__ || Object.getPrototypeOf(FastBlurOutputShader)).call(this, ctx));
+
+        _this32._a = 0;
+        _this32._otherTextureSource = null;
+        return _this32;
+    }
+
+    _createClass(FastBlurOutputShader, [{
+        key: 'getFragmentShaderSource',
+        value: function getFragmentShaderSource() {
+            return FastBlurOutputShader.fragmentShaderSource;
+        }
+    }, {
+        key: 'setupUniforms',
+        value: function setupUniforms(operation) {
+            _get(FastBlurOutputShader.prototype.__proto__ || Object.getPrototypeOf(FastBlurOutputShader.prototype), 'setupUniforms', this).call(this, operation);
+            this._setUniform("a", this._a, this.gl.uniform1f);
+            this._setUniform("uSampler2", 1, this.gl.uniform1i);
+        }
+    }, {
+        key: 'beforeDraw',
+        value: function beforeDraw(operation) {
+            var glTexture = this._otherTextureSource ? this._otherTextureSource.glTexture : null;
+
+            var gl = this.gl;
+            gl.activeTexture(gl.TEXTURE1);
+            gl.bindTexture(gl.TEXTURE_2D, glTexture);
+            gl.activeTexture(gl.TEXTURE0);
+        }
+    }, {
+        key: 'isMergable',
+        value: function isMergable(shader) {
+            return _get(FastBlurOutputShader.prototype.__proto__ || Object.getPrototypeOf(FastBlurOutputShader.prototype), 'isMergable', this).call(this, shader) && shader._otherTextureSource === this._otherTextureSource;
+        }
+    }, {
+        key: 'a',
+        get: function get() {
+            return this._a;
+        },
+        set: function set(v) {
+            this._a = v;
+            this.redraw();
+        }
+    }, {
+        key: 'otherTextureSource',
+        set: function set(v) {
+            this._otherTextureSource = v;
+            this.redraw();
+        }
+    }]);
+
+    return FastBlurOutputShader;
+}(Shader);
+
+FastBlurOutputShader.fragmentShaderSource = '\n    #ifdef GL_ES\n    precision lowp float;\n    #endif\n    varying vec2 vTextureCoord;\n    varying vec4 vColor;\n    uniform sampler2D uSampler;\n    uniform sampler2D uSampler2;\n    uniform float a;\n    void main(void){\n        if (a == 1.0) {\n            gl_FragColor = texture2D(uSampler2, vTextureCoord) * vColor;\n        } else {\n            gl_FragColor = ((1.0 - a) * texture2D(uSampler, vTextureCoord) + (a * texture2D(uSampler2, vTextureCoord))) * vColor;\n        }\n    }\n';
+
+var Light3dShader = function (_Shader3) {
+    _inherits(Light3dShader, _Shader3);
+
+    function Light3dShader(ctx) {
+        _classCallCheck(this, Light3dShader);
+
+        var _this33 = _possibleConstructorReturn(this, (Light3dShader.__proto__ || Object.getPrototypeOf(Light3dShader)).call(this, ctx));
+
+        _this33._strength = 0.5;
+        _this33._ambient = 0.5;
+        _this33._fudge = 0.4;
+
+        _this33._rx = 0;
+        _this33._ry = 0;
+
+        _this33._z = 0;
+        return _this33;
+    }
+
+    _createClass(Light3dShader, [{
+        key: 'getVertexShaderSource',
+        value: function getVertexShaderSource() {
+            return Light3dShader.vertexShaderSource;
+        }
+    }, {
+        key: 'getFragmentShaderSource',
+        value: function getFragmentShaderSource() {
+            return Light3dShader.fragmentShaderSource;
+        }
+    }, {
+        key: 'supportsTextureAtlas',
+        value: function supportsTextureAtlas() {
+            return true;
+        }
+    }, {
+        key: 'supportsMerging',
+        value: function supportsMerging() {
+            return false;
+        }
+    }, {
+        key: 'setupUniforms',
+        value: function setupUniforms(operation) {
+            _get(Light3dShader.prototype.__proto__ || Object.getPrototypeOf(Light3dShader.prototype), 'setupUniforms', this).call(this, operation);
+
+            var vr = operation.shaderOwner;
+            var view = vr.view;
+
+            var coords = vr.getRenderTextureCoords(view.pivotX * vr.rw, view.pivotY * vr.rh);
+
+            var rz = -Math.atan2(vr._renderContext.tc, vr._renderContext.ta);
+
+            var gl = this.gl;
+            this._setUniform("pivot", new Float32Array([coords[0], coords[1], this._z]), gl.uniform3fv);
+            this._setUniform("rot", new Float32Array([this._rx, this._ry, rz]), gl.uniform3fv);
+
+            this._setUniform("strength", this._strength, gl.uniform1f);
+            this._setUniform("ambient", this._ambient, gl.uniform1f);
+            this._setUniform("fudge", this._fudge, gl.uniform1f);
+        }
+    }, {
+        key: 'strength',
+        set: function set(v) {
+            this._strength = v;
+            this.redraw();
+        },
+        get: function get() {
+            return this._strength;
+        }
+    }, {
+        key: 'ambient',
+        set: function set(v) {
+            this._ambient = v;
+            this.redraw();
+        },
+        get: function get() {
+            return this._ambient;
+        }
+    }, {
+        key: 'fudge',
+        set: function set(v) {
+            this._fudge = v;
+            this.redraw();
+        },
+        get: function get() {
+            return this._fudge;
+        }
+    }, {
+        key: 'rx',
+        get: function get() {
+            return this._rx;
+        },
+        set: function set(v) {
+            this._rx = v;
+            this.redraw();
+        }
+    }, {
+        key: 'ry',
+        get: function get() {
+            return this._ry;
+        },
+        set: function set(v) {
+            this._ry = v;
+            this.redraw();
+        }
+    }, {
+        key: 'z',
+        get: function get() {
+            return this._z;
+        },
+        set: function set(v) {
+            this._z = v;
+            this.redraw();
+        }
+    }]);
+
+    return Light3dShader;
+}(Shader);
+
+Light3dShader.vertexShaderSource = '\n    #ifdef GL_ES\n    precision lowp float;\n    #endif\n    attribute vec2 aVertexPosition;\n    attribute vec2 aTextureCoord;\n    attribute vec4 aColor;\n    uniform vec2 projection;\n    varying vec2 vTextureCoord;\n    varying vec4 vColor;\n\n    uniform float fudge;\n    uniform float strength;\n    uniform float ambient;\n    uniform vec3 pivot;\n    uniform vec3 rot;\n    varying float light;\n\n    void main(void) {\n        vec3 pos = vec3(aVertexPosition.xy, pivot.z);\n        \n        pos -= pivot;\n\n        /* Undo XY rotation */\n        mat2 iRotXy = mat2( cos(rot.z), sin(rot.z), \n                           -sin(rot.z), cos(rot.z));\n        pos.xy = iRotXy * pos.xy;\n        \n        /* Perform 3d rotations */\n        gl_Position.x = cos(rot.x) * pos.x - sin(rot.x) * pos.z;\n        gl_Position.y = pos.y;\n        gl_Position.z = sin(rot.x) * pos.x + cos(rot.x) * pos.z;\n        \n        pos.y = cos(rot.y) * gl_Position.y - sin(rot.y) * gl_Position.z;\n        gl_Position.z = sin(rot.y) * gl_Position.y + cos(rot.y) * gl_Position.z;\n        gl_Position.y = pos.y;\n        \n        /* Redo XY rotation */\n        iRotXy[0][1] = -iRotXy[0][1];\n        iRotXy[1][0] = -iRotXy[1][0];\n        gl_Position.xy = iRotXy * gl_Position.xy; \n\n        /* Undo translate to pivot position */\n        gl_Position.xyz += pivot;\n        \n        /* Set depth perspective */\n        float perspective = 1.0 + fudge * gl_Position.z * projection.x;\n\n        /* Map coords to gl coordinate space. */\n        gl_Position = vec4(gl_Position.x * projection.x - 1.0, gl_Position.y * -abs(projection.y) + 1.0, 0.0, perspective);\n        \n        /* Set z to 0 because we don\'t want to perform z-clipping */\n        gl_Position.z = 0.0;\n\n        /* Use texture normal to calculate light strength */ \n        light = ambient + strength * abs(cos(rot.y) * cos(rot.x));\n        \n        vTextureCoord = aTextureCoord;\n        vColor = aColor;\n        \n        gl_Position.y = -sign(projection.y) * gl_Position.y;\n    }\n';
+
+Light3dShader.fragmentShaderSource = '\n    #ifdef GL_ES\n    precision lowp float;\n    #endif\n    varying vec2 vTextureCoord;\n    varying vec4 vColor;\n    varying float light;\n    uniform sampler2D uSampler;\n    void main(void){\n        vec4 rgba = texture2D(uSampler, vTextureCoord);\n        rgba.rgb = rgba.rgb * light;\n        gl_FragColor = rgba * vColor;\n    }\n';
+
+var PixelateShader = function (_Shader4) {
+    _inherits(PixelateShader, _Shader4);
+
+    function PixelateShader(ctx) {
+        _classCallCheck(this, PixelateShader);
+
+        var _this34 = _possibleConstructorReturn(this, (PixelateShader.__proto__ || Object.getPrototypeOf(PixelateShader)).call(this, ctx));
+
+        _this34._size = new Float32Array([4, 4]);
+        return _this34;
+    }
+
+    _createClass(PixelateShader, [{
+        key: 'getVertexShaderSource',
+        value: function getVertexShaderSource() {
+            return PixelateShader.vertexShaderSource;
+        }
+    }, {
+        key: 'getFragmentShaderSource',
+        value: function getFragmentShaderSource() {
+            return PixelateShader.fragmentShaderSource;
+        }
+    }, {
+        key: 'setupUniforms',
+        value: function setupUniforms(operation) {
+            _get(PixelateShader.prototype.__proto__ || Object.getPrototypeOf(PixelateShader.prototype), 'setupUniforms', this).call(this, operation);
+            var gl = this.gl;
+            this._setUniform("size", new Float32Array(this._size), gl.uniform2fv);
+        }
+    }, {
+        key: 'getExtraAttribBytesPerVertex',
+        value: function getExtraAttribBytesPerVertex() {
+            return 8;
+        }
+    }, {
+        key: 'enableAttribs',
+        value: function enableAttribs() {
+            _get(PixelateShader.prototype.__proto__ || Object.getPrototypeOf(PixelateShader.prototype), 'enableAttribs', this).call(this);
+            this.gl.enableVertexAttribArray(this._attrib("aTextureRes"));
+        }
+    }, {
+        key: 'disableAttribs',
+        value: function disableAttribs() {
+            _get(PixelateShader.prototype.__proto__ || Object.getPrototypeOf(PixelateShader.prototype), 'disableAttribs', this).call(this);
+            this.gl.disableVertexAttribArray(this._attrib("aTextureRes"));
+        }
+    }, {
+        key: 'setExtraAttribsInBuffer',
+        value: function setExtraAttribsInBuffer(operation) {
+            var offset = operation.extraAttribsDataByteOffset / 4;
+            var floats = operation.quads.floats;
+
+            var length = operation.length;
+            for (var _i52 = 0; _i52 < length; _i52++) {
+                var w = operation.quads.getTextureWidth(operation.index + _i52);
+                var h = operation.quads.getTextureHeight(operation.index + _i52);
+
+                floats[offset] = w;
+                floats[offset + 1] = h;
+                floats[offset + 2] = w;
+                floats[offset + 3] = h;
+                floats[offset + 4] = w;
+                floats[offset + 5] = h;
+                floats[offset + 6] = w;
+                floats[offset + 7] = h;
+
+                offset += 8;
+            }
+        }
+    }, {
+        key: 'beforeDraw',
+        value: function beforeDraw(operation) {
+            var gl = this.gl;
+            gl.vertexAttribPointer(this._attrib("aTextureRes"), 2, gl.FLOAT, false, this.getExtraAttribBytesPerVertex(), this.getVertexAttribPointerOffset(operation));
+        }
+    }, {
+        key: 'useDefault',
+        value: function useDefault() {
+            return this._size[0] === 0 && this._size[1] === 0;
+        }
+    }, {
+        key: 'x',
+        get: function get() {
+            return this._size[0];
+        },
+        set: function set(v) {
+            this._size[0] = v;
+            this.redraw();
+        }
+    }, {
+        key: 'y',
+        get: function get() {
+            return this._size[1];
+        },
+        set: function set(v) {
+            this._size[1] = v;
+            this.redraw();
+        }
+    }, {
+        key: 'size',
+        get: function get() {
+            return this._size[0];
+        },
+        set: function set(v) {
+            this._size[0] = v;
+            this._size[1] = v;
+            this.redraw();
+        }
+    }]);
+
+    return PixelateShader;
+}(Shader);
+
+PixelateShader.vertexShaderSource = '\n    #ifdef GL_ES\n    precision lowp float;\n    #endif\n    attribute vec2 aVertexPosition;\n    attribute vec2 aTextureCoord;\n    attribute vec4 aColor;\n    attribute vec2 aTextureRes;\n    uniform vec2 projection;\n    varying vec2 vTextureCoord;\n    varying vec4 vColor;\n    varying vec2 vTextureRes;\n    void main(void){\n        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);\n        vTextureCoord = aTextureCoord;\n        vColor = aColor;\n        vTextureRes = aTextureRes;\n        gl_Position.y = -sign(projection.y) * gl_Position.y;\n    }\n';
+
+PixelateShader.fragmentShaderSource = '\n    #ifdef GL_ES\n    precision lowp float;\n    #endif\n    varying vec2 vTextureCoord;\n    varying vec4 vColor;\n    varying vec2 vTextureRes;\n\n    uniform vec2 size;\n    uniform sampler2D uSampler;\n    \n    vec2 mapCoord( vec2 coord )\n    {\n        coord *= vTextureRes.xy;\n        return coord;\n    }\n    \n    vec2 unmapCoord( vec2 coord )\n    {\n        coord /= vTextureRes.xy;\n        return coord;\n    }\n    \n    vec2 pixelate(vec2 coord, vec2 size)\n    {\n        return floor( coord / size ) * size;\n    }\n    \n    void main(void)\n    {\n        vec2 coord = mapCoord(vTextureCoord);\n        coord = pixelate(coord, size);\n        coord = unmapCoord(coord);\n        gl_FragColor = texture2D(uSampler, coord) * vColor;\n    }\n';
+
+var InversionShader = function (_Shader5) {
+    _inherits(InversionShader, _Shader5);
+
+    function InversionShader() {
+        _classCallCheck(this, InversionShader);
+
+        return _possibleConstructorReturn(this, (InversionShader.__proto__ || Object.getPrototypeOf(InversionShader)).apply(this, arguments));
+    }
+
+    _createClass(InversionShader, [{
+        key: 'getFragmentShaderSource',
+        value: function getFragmentShaderSource() {
+            return InversionShader.fragmentShaderSource;
+        }
+    }]);
+
+    return InversionShader;
+}(Shader);
+
+InversionShader.fragmentShaderSource = '\n    #ifdef GL_ES\n    precision lowp float;\n    #endif\n    varying vec2 vTextureCoord;\n    varying vec4 vColor;\n    uniform sampler2D uSampler;\n    void main(void){\n        vec4 color = texture2D(uSampler, vTextureCoord);\n        color.rgb = 1.0 - color.rgb; \n        gl_FragColor = color * vColor;\n    }\n';
+
+var FxaaFilter = function (_Filter) {
+    _inherits(FxaaFilter, _Filter);
+
+    function FxaaFilter(ctx) {
+        _classCallCheck(this, FxaaFilter);
+
+        return _possibleConstructorReturn(this, (FxaaFilter.__proto__ || Object.getPrototypeOf(FxaaFilter)).call(this, ctx));
+    }
+
+    _createClass(FxaaFilter, [{
+        key: 'getVertexShaderSource',
+        value: function getVertexShaderSource() {
+            return Filter.vertexShaderSource;
+        }
+    }, {
+        key: 'getFragmentShaderSource',
+        value: function getFragmentShaderSource() {
+            return FxaaFilter.fragmentShaderSource;
+        }
+    }]);
+
+    return FxaaFilter;
+}(Filter);
+
+FxaaFilter.fxaa = '\n    #ifndef FXAA_REDUCE_MIN\n        #define FXAA_REDUCE_MIN   (1.0/ 128.0)\n    #endif\n    #ifndef FXAA_REDUCE_MUL\n        #define FXAA_REDUCE_MUL   (1.0 / 8.0)\n    #endif\n    #ifndef FXAA_SPAN_MAX\n        #define FXAA_SPAN_MAX     8.0\n    #endif\n    \n    //optimized version for mobile, where dependent \n    //texture reads can be a bottleneck\n    vec4 fxaa(sampler2D tex, vec2 fragCoord, vec2 resolution,\n            vec2 v_rgbNW, vec2 v_rgbNE, \n            vec2 v_rgbSW, vec2 v_rgbSE, \n            vec2 v_rgbM) {\n            \n        vec4 color;\n        vec2 inverseVP = vec2(1.0 / resolution.x, 1.0 / resolution.y);\n        vec3 rgbNW = texture2D(tex, v_rgbNW).xyz;\n        vec3 rgbNE = texture2D(tex, v_rgbNE).xyz;\n        vec3 rgbSW = texture2D(tex, v_rgbSW).xyz;\n        vec3 rgbSE = texture2D(tex, v_rgbSE).xyz;\n        vec4 texColor = texture2D(tex, v_rgbM);\n        vec3 rgbM  = texColor.xyz;\n        vec3 luma = vec3(0.299, 0.587, 0.114);\n        float lumaNW = dot(rgbNW, luma);\n        float lumaNE = dot(rgbNE, luma);\n        float lumaSW = dot(rgbSW, luma);\n        float lumaSE = dot(rgbSE, luma);\n        float lumaM  = dot(rgbM,  luma);\n        float lumaMin = min(lumaM, min(min(lumaNW, lumaNE), min(lumaSW, lumaSE)));\n        float lumaMax = max(lumaM, max(max(lumaNW, lumaNE), max(lumaSW, lumaSE)));\n        \n        vec2 dir;\n        dir.x = -((lumaNW + lumaNE) - (lumaSW + lumaSE));\n        dir.y =  ((lumaNW + lumaSW) - (lumaNE + lumaSE));\n        \n        float dirReduce = max((lumaNW + lumaNE + lumaSW + lumaSE) *\n                              (0.25 * FXAA_REDUCE_MUL), FXAA_REDUCE_MIN);\n        \n        float rcpDirMin = 1.0 / (min(abs(dir.x), abs(dir.y)) + dirReduce);\n        dir = min(vec2(FXAA_SPAN_MAX, FXAA_SPAN_MAX),\n                  max(vec2(-FXAA_SPAN_MAX, -FXAA_SPAN_MAX),\n                  dir * rcpDirMin)) * inverseVP;\n        \n        vec3 rgbA = 0.5 * (\n            texture2D(tex, fragCoord * inverseVP + dir * (1.0 / 3.0 - 0.5)).xyz +\n            texture2D(tex, fragCoord * inverseVP + dir * (2.0 / 3.0 - 0.5)).xyz);\n        vec3 rgbB = rgbA * 0.5 + 0.25 * (\n            texture2D(tex, fragCoord * inverseVP + dir * -0.5).xyz +\n            texture2D(tex, fragCoord * inverseVP + dir * 0.5).xyz);\n    \n        float lumaB = dot(rgbB, luma);\n        if ((lumaB < lumaMin) || (lumaB > lumaMax))\n            color = vec4(rgbA, texColor.a);\n        else\n            color = vec4(rgbB, texColor.a);\n        return color;\n    }\n    \n    void texcoords(vec2 fragCoord, vec2 resolution,\n            out vec2 v_rgbNW, out vec2 v_rgbNE,\n            out vec2 v_rgbSW, out vec2 v_rgbSE,\n            out vec2 v_rgbM) {\n        \n        vec2 inverseVP = 1.0 / resolution.xy;\n        v_rgbNW = (fragCoord + vec2(-1.0, -1.0)) * inverseVP;\n        v_rgbNE = (fragCoord + vec2(1.0, -1.0)) * inverseVP;\n        v_rgbSW = (fragCoord + vec2(-1.0, 1.0)) * inverseVP;\n        v_rgbSE = (fragCoord + vec2(1.0, 1.0)) * inverseVP;\n        v_rgbM = vec2(fragCoord * inverseVP);\n    }\n    vec4 apply(sampler2D tex, vec2 fragCoord, vec2 resolution) {\n        vec2 v_rgbNW;\n        vec2 v_rgbNE;\n        vec2 v_rgbSW;\n        vec2 v_rgbSE;\n        vec2 v_rgbM;\n    \n        //compute the texture coords\n        texcoords(fragCoord, resolution, v_rgbNW, v_rgbNE, v_rgbSW, v_rgbSE, v_rgbM);\n        \n        //compute FXAA\n        return fxaa(tex, fragCoord, resolution, v_rgbNW, v_rgbNE, v_rgbSW, v_rgbSE, v_rgbM);\n    }    \n';
+
+FxaaFilter.fragmentShaderSource = '\n    #ifdef GL_ES\n    precision lowp float;\n    #endif\n    \n    ' + FxaaFilter.fxaa + '\n    \n    uniform vec2 resolution;\n    uniform sampler2D uSampler;\n    void main(void){\n        gl_FragColor = apply(uSampler, gl_FragCoord.xy, resolution);\n    }\n    \n';
+
+var InversionFilter = function (_Filter2) {
+    _inherits(InversionFilter, _Filter2);
+
+    function InversionFilter(ctx) {
+        _classCallCheck(this, InversionFilter);
+
+        return _possibleConstructorReturn(this, (InversionFilter.__proto__ || Object.getPrototypeOf(InversionFilter)).call(this, ctx));
+    }
+
+    _createClass(InversionFilter, [{
+        key: 'getFragmentShaderSource',
+        value: function getFragmentShaderSource() {
+            return InversionFilter.fragmentShaderSource;
+        }
+    }]);
+
+    return InversionFilter;
+}(Filter);
+
+InversionFilter.fragmentShaderSource = '\n    #ifdef GL_ES\n    precision lowp float;\n    #endif\n    varying vec2 vTextureCoord;\n    uniform sampler2D uSampler;\n    void main(void){\n        vec4 color = texture2D(uSampler, vTextureCoord);\n        color.rgb = 1.0 - color.rgb; \n        gl_FragColor = color;\n    }\n';
+
+var BlurFilter = function (_Filter3) {
+    _inherits(BlurFilter, _Filter3);
+
+    function BlurFilter(ctx) {
+        _classCallCheck(this, BlurFilter);
+
+        var _this38 = _possibleConstructorReturn(this, (BlurFilter.__proto__ || Object.getPrototypeOf(BlurFilter)).call(this, ctx));
+
+        _this38.ctx = ctx;
+
+        _this38._kernelRadius = 1;
+
+        _this38._steps = [];
+
+        _this38.steps = 1;
+        return _this38;
+    }
+
+    _createClass(BlurFilter, [{
+        key: 'useDefault',
+        value: function useDefault() {
+            return this._size === 0 || this._kernelRadius === 0;
+        }
+    }, {
+        key: 'getFilters',
+        value: function getFilters() {
+            return this._steps;
+        }
+    }, {
+        key: 'kernelRadius',
+        get: function get() {
+            return this._kernelRadius;
+        },
+        set: function set(v) {
+            this._kernelRadius = v;
+            this._steps.forEach(function (step) {
+                return step._kernelRadius = v;
+            });
+            this.redraw();
+        }
+    }, {
+        key: 'steps',
+        get: function get() {
+            return this._size;
+        },
+        set: function set(v) {
+            this._size = Math.round(v);
+
+            var currentSteps = this._steps.length / 2;
+
+            if (currentSteps < this._size) {
+                var add = [];
+                for (var _i53 = currentSteps + 1; _i53 <= this._size; _i53++) {
+                    var lbf = new LinearBlurFilter(this.ctx);
+                    lbf._direction[0] = _i53;
+                    lbf._kernelRadius = this._kernelRadius;
+                    add.push(lbf);
+
+                    lbf = new LinearBlurFilter(this.ctx);
+                    lbf._kernelRadius = this._kernelRadius;
+                    lbf._direction[1] = _i53;
+                    add.push(lbf);
+                }
+                this._steps = this._steps.concat(add);
+                this.redraw();
+            } else if (currentSteps > this._size) {
+                var r = currentSteps - this._size;
+                this._steps.splice(-r * 2);
+                this.redraw();
+            }
+        }
+    }]);
+
+    return BlurFilter;
+}(Filter);
+
+var LinearBlurFilter = function (_Filter4) {
+    _inherits(LinearBlurFilter, _Filter4);
+
+    function LinearBlurFilter(ctx) {
+        _classCallCheck(this, LinearBlurFilter);
+
+        var _this39 = _possibleConstructorReturn(this, (LinearBlurFilter.__proto__ || Object.getPrototypeOf(LinearBlurFilter)).call(this, ctx));
+
+        _this39._direction = new Float32Array([0, 0]);
+        _this39._kernelRadius = 1;
+        return _this39;
+    }
+
+    _createClass(LinearBlurFilter, [{
+        key: 'getFragmentShaderSource',
+        value: function getFragmentShaderSource() {
+            return LinearBlurFilter.fragmentShaderSource;
+        }
+    }, {
+        key: 'setupUniforms',
+        value: function setupUniforms(operation) {
+            _get(LinearBlurFilter.prototype.__proto__ || Object.getPrototypeOf(LinearBlurFilter.prototype), 'setupUniforms', this).call(this, operation);
+            this._setUniform("direction", this._direction, this.gl.uniform2fv);
+            this._setUniform("kernelRadius", this._kernelRadius, this.gl.uniform1i);
+        }
+    }, {
+        key: 'x',
+        get: function get() {
+            return this._direction[0];
+        },
+        set: function set(v) {
+            this._direction[0] = v;
+            this.redraw();
+        }
+    }, {
+        key: 'y',
+        get: function get() {
+            return this._direction[1];
+        },
+        set: function set(v) {
+            this._direction[1] = v;
+            this.redraw();
+        }
+    }, {
+        key: 'kernelRadius',
+        get: function get() {
+            return this._kernelRadius;
+        },
+        set: function set(v) {
+            this._kernelRadius = v;
+            this.redraw();
+        }
+    }]);
+
+    return LinearBlurFilter;
+}(Filter);
+
+LinearBlurFilter.fragmentShaderSource = '\n    #ifdef GL_ES\n    precision lowp float;\n    #endif\n    uniform vec2 resolution;\n    varying vec2 vTextureCoord;\n    uniform sampler2D uSampler;\n    uniform vec2 direction;\n    uniform int kernelRadius;\n    \n    vec4 blur1(sampler2D image, vec2 uv, vec2 resolution, vec2 direction) {\n        vec4 color = vec4(0.0);\n        vec2 off1 = vec2(1.3333333333333333) * direction;\n        color += texture2D(image, uv) * 0.29411764705882354;\n        color += texture2D(image, uv + (off1 / resolution)) * 0.35294117647058826;\n        color += texture2D(image, uv - (off1 / resolution)) * 0.35294117647058826;\n        return color; \n    }\n    \n    vec4 blur2(sampler2D image, vec2 uv, vec2 resolution, vec2 direction) {\n        vec4 color = vec4(0.0);\n        vec2 off1 = vec2(1.3846153846) * direction;\n        vec2 off2 = vec2(3.2307692308) * direction;\n        color += texture2D(image, uv) * 0.2270270270;\n        color += texture2D(image, uv + (off1 / resolution)) * 0.3162162162;\n        color += texture2D(image, uv - (off1 / resolution)) * 0.3162162162;\n        color += texture2D(image, uv + (off2 / resolution)) * 0.0702702703;\n        color += texture2D(image, uv - (off2 / resolution)) * 0.0702702703;\n        return color;\n    }\n    \n    vec4 blur3(sampler2D image, vec2 uv, vec2 resolution, vec2 direction) {\n        vec4 color = vec4(0.0);\n        vec2 off1 = vec2(1.411764705882353) * direction;\n        vec2 off2 = vec2(3.2941176470588234) * direction;\n        vec2 off3 = vec2(5.176470588235294) * direction;\n        color += texture2D(image, uv) * 0.1964825501511404;\n        color += texture2D(image, uv + (off1 / resolution)) * 0.2969069646728344;\n        color += texture2D(image, uv - (off1 / resolution)) * 0.2969069646728344;\n        color += texture2D(image, uv + (off2 / resolution)) * 0.09447039785044732;\n        color += texture2D(image, uv - (off2 / resolution)) * 0.09447039785044732;\n        color += texture2D(image, uv + (off3 / resolution)) * 0.010381362401148057;\n        color += texture2D(image, uv - (off3 / resolution)) * 0.010381362401148057;\n        return color;\n    }    \n\n    void main(void){\n        if (kernelRadius == 0) {\n            gl_FragColor = texture2D(uSampler, vTextureCoord);\n        } else if (kernelRadius == 1) {\n            gl_FragColor = blur1(uSampler, vTextureCoord, resolution, direction);\n        } else if (kernelRadius == 2) {\n            gl_FragColor = blur2(uSampler, vTextureCoord, resolution, direction);\n        } else {\n            gl_FragColor = blur3(uSampler, vTextureCoord, resolution, direction);\n        }\n    }\n';
