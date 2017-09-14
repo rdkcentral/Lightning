@@ -1,14 +1,16 @@
 /**
  *
  */
+var stage;
+var w;
 var start = function(wpe) {
-
+    w = wpe
     wpe = wpe || {};
 
     with(wpe) {
         var options = {w: 1280, h: 720, glClearColor: 0xFF000000, useTextureAtlas: false, debugTextureAtlas: false};
 
-        var stage = new Stage(options);
+        stage = new Stage(options);
 
         if (!Utils.isNode) {
             document.body.appendChild(stage.getCanvas());
@@ -36,13 +38,21 @@ var start = function(wpe) {
 
 //        r.setSmooth('x', 300, {duration: 10})
 
-        if (!Utils.isNode)
+        if (!Utils.isNode) {
             window.stage = stage
-
+        }
     }
 };
 
 if (typeof window === "undefined") {
     // Nodejs: start.
     start(require('../../wpe'));
+
 }
+
+// setInterval(function() {
+//     // Memory leak test.
+//     stage.destroy();
+//     stage = null
+//     start(w)
+// }, 3000)

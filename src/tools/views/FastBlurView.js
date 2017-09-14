@@ -163,41 +163,41 @@ class FastBlurView extends View {
     }
 
     static getFastBoxBlurShader(ctx) {
-        if (!FastBlurView.fastBoxBlurShader) {
-            FastBlurView.fastBoxBlurShader = new FastBoxBlurShader(ctx)
+        if (!ctx.fastBoxBlurShader) {
+            ctx.fastBoxBlurShader = new FastBoxBlurShader(ctx)
         }
-        return FastBlurView.fastBoxBlurShader
+        return ctx.fastBoxBlurShader
     }
 
     static getLinearBlurFilters(ctx) {
-        if (!FastBlurView.linearBlurFilters) {
-            FastBlurView.linearBlurFilters = []
+        if (!ctx.linearBlurFilters) {
+            ctx.linearBlurFilters = []
 
             let lbf = new LinearBlurFilter(ctx)
             lbf.x = 1
             lbf.y = 0
             lbf.kernelRadius = 1
-            FastBlurView.linearBlurFilters.push(lbf)
+            ctx.linearBlurFilters.push(lbf)
 
             lbf = new LinearBlurFilter(ctx)
             lbf.x = 0
             lbf.y = 1
             lbf.kernelRadius = 1
-            FastBlurView.linearBlurFilters.push(lbf)
+            ctx.linearBlurFilters.push(lbf)
 
             lbf = new LinearBlurFilter(ctx)
             lbf.x = 1.5
             lbf.y = 0
             lbf.kernelRadius = 1
-            FastBlurView.linearBlurFilters.push(lbf)
+            ctx.linearBlurFilters.push(lbf)
 
             lbf = new LinearBlurFilter(ctx)
             lbf.x = 0
             lbf.y = 1.5
             lbf.kernelRadius = 1
-            FastBlurView.linearBlurFilters.push(lbf)
+            ctx.linearBlurFilters.push(lbf)
         }
-        return FastBlurView.linearBlurFilters
+        return ctx.linearBlurFilters
     }
 
 
