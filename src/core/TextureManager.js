@@ -36,6 +36,13 @@ class TextureManager {
     }
 
     loadSrcTexture(src, ts, sync, cb) {
+        if (this.stage.options.srcBasePath) {
+            var fc = src.charCodeAt(0)
+            if ((src.indexOf("//") === -1) && ((fc >= 65 && fc <= 90) || (fc >= 97 && fc <= 122) || fc == 46)) {
+                // Alphabetical or dot: prepend base path.
+                src = this.stage.options.srcBasePath + src
+            }
+        }
         this.stage.adapter.loadSrcTexture(src, ts, sync, cb);
     }
 

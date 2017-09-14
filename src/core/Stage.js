@@ -60,6 +60,7 @@ class Stage extends Base {
         opt('canvas', this.options.canvas);
         opt('renderWidth', this.options.w);
         opt('renderHeight', this.options.h);
+        opt('srcBasePath', null);
         opt('textureMemory', 12e6);
         opt('renderTexturePoolPixels', 12e6);
         opt('glClearColor', [0, 0, 0, 0]);
