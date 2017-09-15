@@ -160,6 +160,11 @@ class ViewCore {
             let prevParent = this._parent;
             this._parent = parent;
 
+            if (prevParent) {
+                // When views are deleted, the render texture must be re-rendered.
+                prevParent.setHasRenderUpdates(3);
+            }
+
             this._setRecalc(1 + 2 + 4);
 
             if (this._zIndex === 0) {

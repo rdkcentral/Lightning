@@ -18,12 +18,12 @@ var start = function(wpe) {
 
         if (!Utils.isNode) {
             document.body.appendChild(stage.getCanvas());
+            window.stage = stage;
         }
 
         stage.root.add([{rect: true, renderToTexture: true, w: 900, h: 900, colorLeft: 0xFF000000, colorRight: 0xFF0000FF, children: [
             {rect: true, color: 0xFFFF0000, w: 450, h: 300, x: 300, y: 300}
         ]}])
-
     }
 };
 

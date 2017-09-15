@@ -953,12 +953,12 @@ class View {
         if (this._rotation !== 0) settings.rotation = this._rotation;
 
         if (this._core.colorUl === this._core.colorUr && this._core.colorBl === this._core.colorBr && this._core.colorUl === this._core.colorBl) {
-            if (this._core.colorUl !== 0xFFFFFFFF) settings.color = 0xFFFFFFFF;
+            if (this._core.colorUl !== 0xFFFFFFFF) settings.color = this._core.colorUl.toString(16);
         } else {
-            if (this._core.colorUl !== 0xFFFFFFFF) settings.colorUl = 0xFFFFFFFF;
-            if (this._core.colorUr !== 0xFFFFFFFF) settings.colorUr = 0xFFFFFFFF;
-            if (this._core.colorBl !== 0xFFFFFFFF) settings.colorBl = 0xFFFFFFFF;
-            if (this._core.colorBr !== 0xFFFFFFFF) settings.colorBr = 0xFFFFFFFF;
+            if (this._core.colorUl !== 0xFFFFFFFF) settings.colorUl = this._core.colorUl.toString(16);
+            if (this._core.colorUr !== 0xFFFFFFFF) settings.colorUr = this._core.colorUr.toString(16);
+            if (this._core.colorBl !== 0xFFFFFFFF) settings.colorBl = this._core.colorBl.toString(16);
+            if (this._core.colorBr !== 0xFFFFFFFF) settings.colorBr = this._core.colorBr.toString(16);
         }
 
         if (!this._visible) settings.visible = false;
