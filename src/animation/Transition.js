@@ -69,7 +69,7 @@ class Transition extends Base {
         this._startValue = this._getter(this._view);
 
         if (targetValue === this._startValue) {
-            this.reset(this._startValue, targetValue, 1);
+            this.reset(targetValue, 1);
         } else {
             this._targetValue = targetValue;
             this._p = 0;
