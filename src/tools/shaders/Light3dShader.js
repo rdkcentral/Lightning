@@ -136,12 +136,12 @@ Light3dShader.vertexShaderSource = `
         
         pos -= pivot;
 
-        /* Undo XY rotation */
+        // Undo XY rotation
         mat2 iRotXy = mat2( cos(rot.z), sin(rot.z), 
                            -sin(rot.z), cos(rot.z));
         pos.xy = iRotXy * pos.xy;
         
-        /* Perform 3d rotations */
+        // Perform 3d rotations
         gl_Position.x = cos(rot.x) * pos.x - sin(rot.x) * pos.z;
         gl_Position.y = pos.y;
         gl_Position.z = sin(rot.x) * pos.x + cos(rot.x) * pos.z;
@@ -150,24 +150,24 @@ Light3dShader.vertexShaderSource = `
         gl_Position.z = sin(rot.y) * gl_Position.y + cos(rot.y) * gl_Position.z;
         gl_Position.y = pos.y;
         
-        /* Redo XY rotation */
+        // Redo XY rotation
         iRotXy[0][1] = -iRotXy[0][1];
         iRotXy[1][0] = -iRotXy[1][0];
         gl_Position.xy = iRotXy * gl_Position.xy; 
 
-        /* Undo translate to pivot position */
+        // Undo translate to pivot position
         gl_Position.xyz += pivot;
         
-        /* Set depth perspective */
+        // Set depth perspective
         float perspective = 1.0 + fudge * gl_Position.z * projection.x;
 
-        /* Map coords to gl coordinate space. */
+        // Map coords to gl coordinate space.
         gl_Position = vec4(gl_Position.x * projection.x - 1.0, gl_Position.y * -abs(projection.y) + 1.0, 0.0, perspective);
         
-        /* Set z to 0 because we don't want to perform z-clipping */
+        // Set z to 0 because we don't want to perform z-clipping
         gl_Position.z = 0.0;
 
-        /* Use texture normal to calculate light strength */ 
+        // Use texture normal to calculate light strength 
         light = ambient + strength * abs(cos(rot.y) * cos(rot.x));
         
         vTextureCoord = aTextureCoord;

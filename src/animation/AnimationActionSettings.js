@@ -54,7 +54,6 @@ class AnimationActionSettings extends Base {
         } else {
             return this._items.getValue(0);
         }
-        return 0;
     }
 
     apply(view, p, factor) {

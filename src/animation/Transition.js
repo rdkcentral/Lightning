@@ -14,9 +14,12 @@ class Transition extends Base {
 
         this._settings = settings;
 
+/*M¬*/
         if (!View) {
             View = require('../core/View');
         }
+/*¬M*/
+
         this._view = view
         this._getter = View.getGetter(property)
         this._setter = View.getSetter(property)

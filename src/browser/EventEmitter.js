@@ -326,9 +326,11 @@ EventEmitter.prefixed = prefix;
 //
 EventEmitter.EventEmitter = EventEmitter;
 
+/*M¬*/
 //
 // Expose the module.
 //
 if ('undefined' !== typeof module) {
     module.exports = EventEmitter;
 }
+/*¬M*/

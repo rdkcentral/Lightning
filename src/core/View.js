@@ -392,7 +392,7 @@ class View {
             if (v !== null) {
                 if (v instanceof TextureSource) {
                     v = this.stage.texture(v);
-                } else if (!v instanceof Texture) {
+                } else if (!(v instanceof Texture)) {
                     console.error('incorrect value for texture');
                     return;
                 }
