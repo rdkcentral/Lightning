@@ -1478,7 +1478,7 @@ class View {
     }
 
     get renderToTexture() {
-        return this._texturizer && this.texturizer.enabled
+        return this._core._texturizer && this.texturizer.enabled
     }
 
     set renderToTexture(v) {
@@ -1486,7 +1486,7 @@ class View {
     }
 
     get renderToTextureLazy() {
-        return this._texturizer && this.texturizer.lazy
+        return this._core._texturizer && this.texturizer.lazy
     }
 
     set renderToTextureLazy(v) {
@@ -1494,7 +1494,7 @@ class View {
     }
 
     get hideResultTexture() {
-        return this._texturizer && this.texturizer.hideResult
+        return this._core._texturizer && this.texturizer.hideResult
     }
 
     set hideResultTexture(v) {

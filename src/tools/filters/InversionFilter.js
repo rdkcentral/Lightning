@@ -4,9 +4,6 @@
 
 let Filter = require('../../core/Filter');
 
-/**
- * @see https://github.com/mattdesl/glsl-fxaa
- */
 class InversionFilter extends Filter {
     constructor(ctx) {
         super(ctx);
