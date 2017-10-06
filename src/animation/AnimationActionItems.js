@@ -175,7 +175,7 @@ class AnimationActionItems extends Base {
         }
 
         if (p < this._p[0]) {
-            return -1;
+            return 0;
         }
 
         for (let i = 0; i < n; i++) {
@@ -193,12 +193,12 @@ class AnimationActionItems extends Base {
             return undefined;
         } else {
             if (this._f[i]) {
-                let o = (p - this._p[i]) * this._idp[i];
+                let o = Math.min(1, Math.max(0, (p - this._p[i]) * this._idp[i]));
                 return this._v[i](o);
             } else {
                 return this._v[i];
             }
-        }        
+        }
     }
 
     get length() {

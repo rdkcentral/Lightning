@@ -15,6 +15,7 @@ let Base = require('./Base');
  * - VAOs
  * - try to investigate/improve performance when creating and adding new views
  * - optimize new render performance
+ * - animation action merger: simplify usage (type: 'numbers', 'colors', 'discrete'). Auto-detect if only number values are used.
  *
  * - change documentation
  *   - text2pngEndpoint
