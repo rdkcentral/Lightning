@@ -1125,7 +1125,7 @@ class ViewCore {
                     renderState.setOverrideQuadTexture(null);
                 }
             } else if (this._useViewportClipping) {
-                renderState.setScissor(prevScissor)
+                renderState.resetScissor(prevScissor)
             }
 
             this._hasRenderUpdates = 0;

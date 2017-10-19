@@ -365,6 +365,7 @@ class TextureAtlas {
         gl.viewport(0,0,this.w,this.h);
         gl.blendFunc(gl.ONE, gl.ZERO);
         gl.enable(gl.BLEND);
+        gl.disable(gl.SCISSOR_TEST);
         gl.disable(gl.DEPTH_TEST);
 
         // Upload data.

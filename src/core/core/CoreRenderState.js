@@ -93,6 +93,11 @@ class CoreRenderState {
         this._check = true
     }
 
+    resetScissor(area) {
+        this._scissor = area
+        this._check = true
+    }
+
     getScissor() {
         return this._scissor
     }
@@ -161,7 +166,10 @@ class CoreRenderState {
     _addQuadOperation(create = true) {
         if (this._quadOperation) {
             if (this._quadOperation.length || this._shader.addEmpty()) {
-                this.quadOperations.push(this._quadOperation)
+                if (!this._quadOperation.scissor || ((this._quadOperation.scissor[2] > 0) && (this._quadOperation.scissor[3] > 0))) {
+                    // Ignore empty clipping regions.
+                    this.quadOperations.push(this._quadOperation)
+                }
             }
 
             this._quadOperation = null
