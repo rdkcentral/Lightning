@@ -101,6 +101,4 @@ Filter.fragmentShaderSource = `
     }
 `;
 
-Filter.prototype.isFilter = true
-
 module.exports = Filter
