@@ -332,9 +332,9 @@ EventEmitter.EventEmitter = EventEmitter;
 if ('undefined' !== typeof module) {
     module.exports = EventEmitter;
 }
-var TextureProcess = function(options) {
+var TextureProcess = function(workerPath) {
 
-    this.options = options;
+    this.workerPath = workerPath;
 
     /**
      * Queued texture source loads, along with their load callbacks.
@@ -346,13 +346,15 @@ var TextureProcess = function(options) {
 
 };
 
-TextureProcess.prototype.init = function(cb) {
+TextureProcess.prototype.init = function(options, cb) {
+    this.options = options;
+
     if (!window.Worker) {
         return cb(new Error("Browser does not have Worker support."));
     }
 
     try {
-        var workerUrl = this.options.workerPath + "wpe-texture-worker.js";
+        var workerUrl = this.workerPath + "wpe-texture-worker.js";
         this.worker = new Worker(workerUrl);
     } catch(e) {
         console.error('Error starting web worker', e);
@@ -744,13 +746,18 @@ function Stage(options, cb) {
     this.measureInnerFrameDistribution = !!options.measureInnerFrameDistribution;
     this.measureLongFrames = !!options.measureLongFrames;
 
-    this.textureProcessWorkerPath = options.textureProcessWorkerPath || "";
+    this.textureProcessOptions = options.textureProcessOptions || {};
 
-    this.textureProcessTextServer = options.textureProcessTextServer || "";
+    this.useTextureProcessImageFetching = (options.useTextureProcessImageFetching !== false);
+
+    this.useTextureProcessTextGeneration = (options.useTextureProcessTextGeneration !== false);
 
     this.useTextureProcess = !!options.useTextureProcess && !!this.adapter.getTextureProcess;
     if (this.useTextureProcess) {
         this.textureProcess = this.adapter.getTextureProcess();
+        if (!this.textureProcess) {
+            console.warn('Texture process not supported');
+        }
     }
 
     // Measurement stuff.
@@ -872,7 +879,9 @@ Stage.prototype.init = function(cb) {
         }
 
         if (self.useTextureProcess) {
-            self.textureProcess.init(function(err) {
+            console.log('Texture process config (text:' + (self.useTextureProcessTextGeneration ? 'yes' : 'no') + ', image:'  + (self.useTextureProcessImageFetching ? 'yes' : 'no') + ').');
+
+            self.textureProcess.init(self.textureProcessOptions, function(err) {
                 if (err) {
                     console.warn('Error connecting to texture process. Textures will be loaded on the main thread.');
                 }
@@ -956,6 +965,10 @@ Stage.prototype.drawFrame = function() {
         console.log('clean up');
         // Clean up all textures instead of those in the last frame.
         this.textureManager.freeUnusedTextureSources();
+    }
+
+    if (this.textureProcess && this.textureProcess.process) {
+        this.textureProcess.process();
     }
 
     this.measureDetails && this.timeStart('perform updates');
@@ -1841,13 +1854,13 @@ TextureManager.prototype.destroy = function() {
  * Loads a texture source from a source reference (.src property).
  */
 TextureManager.prototype.loadTextureSourceString = function(src, ts, sync, cb) {
-    if (!sync && this.stage.useTextureProcess && this.stage.textureProcess.isConnected() && this.stage.textureProcess.loadTextureSourceString) {
+    if (!sync && this.stage.useTextureProcess && this.stage.textureProcess.isConnected() && this.stage.useTextureProcessImageFetching) {
         if (!this.stage.textureProcess.loadTextureSourceString(src, ts, cb)) {
             // Cannot be loaded remotely. Fallback: load sync.
-            this.stage.adapter.loadTextureSourceString(src, cb);
+            this.stage.adapter.loadTextureSourceString(src, ts, cb);
         }
     } else {
-        this.stage.adapter.loadTextureSourceString(src, cb);
+        this.stage.adapter.loadTextureSourceString(src, ts, cb);
     }
 };
 
@@ -1855,13 +1868,13 @@ TextureManager.prototype.loadTextureSourceString = function(src, ts, sync, cb) {
  * Loads a text from the finalized text settings.
  */
 TextureManager.prototype.loadText = function(settings, ts, sync, cb) {
-    if (!sync && this.stage.useTextureProcess && this.stage.textureProcess.isConnected() && this.stage.textureProcess.loadText) {
+    if (!sync && this.stage.useTextureProcess && this.stage.textureProcess.isConnected() && this.stage.useTextureProcessTextGeneration) {
         if (!this.stage.textureProcess.loadText(settings, ts, cb)) {
             // Cannot be loaded remotely. Fallback: load sync.
-            this.stage.adapter.loadText(settings, cb);
+            this.stage.adapter.loadText(settings, ts, cb);
         }
     } else {
-        this.stage.adapter.loadText(settings, cb);
+        this.stage.adapter.loadText(settings, ts, cb);
     }
 };
 
@@ -2068,49 +2081,49 @@ function Texture(manager, source) {
     this.source = source;
 
     /**
-     * The texture clipping x-offset.
-     * @type {number}
-     */
-    this._x = 0;
-
-    /**
-     * The texture clipping y-offset.
-     * @type {number}
-     */
-    this._y = 0;
-
-    /**
-     * The texture clipping width. If 0 then full width.
-     * @type {number}
-     */
-    this._w = 0;
-
-    /**
-     * The texture clipping height. If 0 then full height.
-     * @type {number}
-     */
-    this._h = 0;
-
-    /**
-     * Render precision (0.5 = fuzzy, 1 = normal, 2 = sharp even when scaled twice, etc.).
-     * @type {number}
-     * @private
-     */
-    this._precision = 1;
-
-    /**
-     * Indicates if this texture uses clipping.
-     * @type {boolean}
-     */
-    this.clipping = false;
-
-    /**
      * All active Components that are using this texture (either as texture or displayedTexture, or both).
      * @type {Set<Component>}
      */
     this.components = new Set();
 
 }
+
+/**
+ * The texture clipping x-offset.
+ * @type {number}
+ */
+Texture.prototype._x = 0;
+
+/**
+ * The texture clipping y-offset.
+ * @type {number}
+ */
+Texture.prototype._y = 0;
+
+/**
+ * The texture clipping width. If 0 then full width.
+ * @type {number}
+ */
+Texture.prototype._w = 0;
+
+/**
+ * The texture clipping height. If 0 then full height.
+ * @type {number}
+ */
+Texture.prototype._h = 0;
+
+/**
+ * Render precision (0.5 = fuzzy, 1 = normal, 2 = sharp even when scaled twice, etc.).
+ * @type {number}
+ * @private
+ */
+Texture.prototype._precision = 1;
+
+/**
+ * Indicates if Texture.prototype.texture uses clipping.
+ * @type {boolean}
+ */
+Texture.prototype.clipping = false;
 
 Texture.prototype.addComponent = function(c) {
     this.components.add(c);
@@ -2329,59 +2342,10 @@ var TextureSource = function(manager, loadCb) {
     this.id = ++TextureSource.id;
 
     /**
-     * Identifier for reusing this texture.
-     * @type {String}
-     */
-    this.lookupId = null;
-
-    /**
      * The factory for the source of this texture.
      * @type {Function}
      */
     this.loadCb = loadCb;
-
-    /**
-     * If set, this is called when the texture source is no longer displayed (this.components.size becomes 0).
-     * @type {Function}
-     */
-    this.cancelCb = null;
-
-    /**
-     * Loading since timestamp in millis.
-     * @type {number}
-     */
-    this.loadingSince = 0;
-
-    /**
-     * Flag that indicates if this texture source was stored in the texture atlas.
-     * @type {boolean}
-     */
-    this.inTextureAtlas = false;
-
-    /**
-     * The x coordinate in the texture atlas.
-     * @type {number}
-     */
-    this.textureAtlasX = 0;
-
-    /**
-     * The y coordinate in the texture atlas.
-     * @type {number}
-     */
-    this.textureAtlasY = 0;
-
-    // Source dimensions, after loading.
-    this.w = 0;
-    this.h = 0;
-
-    // The WebGL loaded texture.
-    this.glTexture = null;
-
-    /**
-     * If true, then this texture source is never freed from memory during garbage collection.
-     * @type {boolean}
-     */
-    this.permanent = false;
 
     /**
      * All active Components that are using this texture source via a texture (either as texture or displayedTexture, or both).
@@ -2389,16 +2353,65 @@ var TextureSource = function(manager, loadCb) {
      */
     this.components = new Set();
 
-    this.onload = null;
-
-    /**
-     * Sub-object with texture-specific rendering information.
-     * For images, this contains the src property, for texts, this contains handy rendering information.
-     * @type {Object}
-     */
-    this.renderInfo = null;
-
 };
+
+/**
+ * Identifier for reusing TextureSource.prototype.texture.
+ * @type {String}
+ */
+TextureSource.prototype.lookupId = null;
+
+/**
+ * If set, TextureSource.prototype.is called when the texture source is no longer displayed (TextureSource.prototype.components.size becomes 0).
+ * @type {Function}
+ */
+TextureSource.prototype.cancelCb = null;
+
+/**
+ * Loading since timestamp in millis.
+ * @type {number}
+ */
+TextureSource.prototype.loadingSince = 0;
+
+/**
+ * Flag that indicates if TextureSource.prototype.texture source was stored in the texture atlas.
+ * @type {boolean}
+ */
+TextureSource.prototype.inTextureAtlas = false;
+
+/**
+ * The x coordinate in the texture atlas.
+ * @type {number}
+ */
+TextureSource.prototype.textureAtlasX = 0;
+
+/**
+ * The y coordinate in the texture atlas.
+ * @type {number}
+ */
+TextureSource.prototype.textureAtlasY = 0;
+
+// Source dimensions, after loading.
+TextureSource.prototype.w = 0;
+TextureSource.prototype.h = 0;
+
+// The WebGL loaded texture.
+TextureSource.prototype.glTexture = null;
+
+/**
+ * If true, then TextureSource.prototype.texture source is never freed from memory during garbage collection.
+ * @type {boolean}
+ */
+TextureSource.prototype.permanent = false;
+
+TextureSource.prototype.onload = null;
+
+/**
+ * Sub-object with texture-specific rendering information.
+ * For images, TextureSource.prototype.contains the src property, for texts, TextureSource.prototype.contains handy rendering information.
+ * @type {Object}
+ */
+TextureSource.prototype.renderInfo = null;
 
 TextureSource.prototype.getRenderWidth = function() {
     return this.w
@@ -3302,74 +3315,10 @@ var Component = function(stage) {
     this.stage = stage;
 
     /**
-     * A component is active if it is a descendant of the stage root, and if it is visible.
-     * @type {boolean}
-     */
-    this.active = false;
-
-    /**
-     * A component is active if it is a descendant of the stage root.
-     * @type {boolean}
-     */
-    this.attached = false;
-
-    /**
-     * @type {Component}
-     */
-    this.parent = null;
-
-    /**
-     * Flag to quickly check if this component has children.
-     * @type {boolean}
-     */
-    this.hasChildren = false;
-
-    this._clipping = false;
-
-    this._displayedTexture = null;
-
-    // Cache width & height, only maintained when component is active.
-    this._renderWidth = 0;
-    this._renderHeight = 0;
-
-    /**
-     * Flag that indicates if this component has borders at all.
-     * @type {boolean}
-     */
-    this.hasBorders = false;
-
-    /**
      * 'Normal' children.
      * @type {Component[]}
      */
     this._children = [];
-
-    /**
-     * Color tint of this sprite.
-     * @type {number}
-     */
-    this._colorTopLeft = 0xffffffff;
-    this._colorTopRight = 0xffffffff;
-    this._colorBottomLeft = 0xffffffff;
-    this._colorBottomRight = 0xffffffff;
-
-    /**
-     * The transitions (indexed by property index, null if not used).
-     * @type {Transition[]}
-     */
-    this.transitions = null;
-
-    /**
-     * All transitions, for quick looping.
-     * @type {Set<Transition>}
-     */
-    this.transitionSet = null;
-
-    /**
-     * All animations that have this component has subject.
-     * @type {Set<Animation>}
-     */
-    this.animationSet = null;
 
     /**
      * Manages the tags for this component.
@@ -3377,97 +3326,177 @@ var Component = function(stage) {
      */
     this._tags = new ComponentTags(this);
     
-    this._x = 0;
-    this._y = 0;
-    this._w = 0;
-    this._h = 0;
-    this._scaleX = 1;
-    this._scaleY = 1;
-    this._pivotX = 0.5;
-    this._pivotY = 0.5;
-    this._mountX = 0;
-    this._mountY = 0;
-    this._alpha = 1;
-    this._rotation = 0;
-    this._borderWidthTop = 0;
-    this._borderWidthBottom = 0;
-    this._borderWidthLeft = 0;
-    this._borderWidthRight = 0;
-    this._borderColorTop = 0xffffffff;
-    this._borderColorBottom = 0xffffffff;
-    this._borderColorLeft = 0xffffffff;
-    this._borderColorRight = 0xffffffff;
-    this._visible = true;
-
-    /**
-     * Manages text rendering for this component. Lazy loaded.
-     * @type {ComponentText}
-     */
-    this.textRenderer = null;
-
-    /**
-     * The texture that is currently set.
-     * This is changed when changing the src and should never be changed manually.
-     * @type {Texture}
-     */
-    this._texture = null;
-
-    /**
-     * The currently displayed texture. While this.texture is loading, this one may be different.
-     * @type {Texture}
-     */
-    this.displayedTexture = this._displayedTexture = null;
-
-    /**
-     * Image source, if set.
-     * @type {String}
-     * @private
-     */
-    this._src = null;
-
-    /**
-     * If true, this component is being 'clipped' around the edges. For non-sprite components, the width and height
-     * must be explicitly set.
-     * @type {boolean}
-     */
-    this.clipping = false;
-
-    /**
-     * The z-index, which determines the rendering order (in the same way as in HTML). 0 = no z-index.
-     * @type {number}
-     */
-    this._zIndex = 0;
-
-    /**
-     * If true, this component always behaves as a z-index context. Z-indexed descendants will never be rendered
-     * outside of this context.
-     * @type {boolean}
-     */
-    this._forceZIndexContext = false;
-
-    /**
-     * This function is called when this component becomes active.
-     * @type {Function}
-     */
-    this.notifyActivate = null;
-
-    /**
-     * This function is called when this component becomes inactive.
-     * @type {Function}
-     */
-    this.notifyDeactivate = null;
-
-    /**
-     * The cached rotation value (because cos and sin are slow).
-     * @type {number}
-     */
-    this.rotationCache = 0;
-    this._sr = 0;
-    this._cr = 1;
-
 };
 
 Utils.extendClass(Component, EventEmitter);
+
+/**
+ * A component is active if it is a descendant of the stage root, and if it is visible.
+ * @type {boolean}
+ */
+Component.prototype.active = false;
+
+/**
+ * A component is active if it is a descendant of the stage root.
+ * @type {boolean}
+ */
+Component.prototype.attached = false;
+
+/**
+ * @type {Component}
+ */
+Component.prototype.parent = null;
+
+/**
+ * Flag to quickly check if this component has children.
+ * @type {boolean}
+ */
+Component.prototype.hasChildren = false;
+
+Component.prototype._clipping = false;
+
+Component.prototype._displayedTexture = null;
+
+// Cache width & height, only maintained when component is active.
+Component.prototype._renderWidth = 0;
+Component.prototype._renderHeight = 0;
+
+/**
+ * Flag that indicates if this component has borders at all.
+ * @type {boolean}
+ */
+Component.prototype.hasBorders = false;
+
+/**
+ * Color tint of this sprite.
+ * @type {number}
+ */
+Component.prototype._colorTopLeft = 0xffffffff;
+Component.prototype._colorTopRight = 0xffffffff;
+Component.prototype._colorBottomLeft = 0xffffffff;
+Component.prototype._colorBottomRight = 0xffffffff;
+
+/**
+ * The transitions (indexed by property index, null if not used).
+ * @type {Transition[]}
+ */
+Component.prototype.transitions = null;
+
+/**
+ * All transitions, for quick looping.
+ * @type {Set<Transition>}
+ */
+Component.prototype.transitionSet = null;
+
+/**
+ * All animations that have this component has subject.
+ * @type {Set<Animation>}
+ */
+Component.prototype.animationSet = null;
+
+Component.prototype._x = 0;
+Component.prototype._y = 0;
+Component.prototype._w = 0;
+Component.prototype._h = 0;
+Component.prototype._scaleX = 1;
+Component.prototype._scaleY = 1;
+Component.prototype._pivotX = 0.5;
+Component.prototype._pivotY = 0.5;
+Component.prototype._mountX = 0;
+Component.prototype._mountY = 0;
+Component.prototype._alpha = 1;
+Component.prototype._rotation = 0;
+Component.prototype._borderWidthTop = 0;
+Component.prototype._borderWidthBottom = 0;
+Component.prototype._borderWidthLeft = 0;
+Component.prototype._borderWidthRight = 0;
+Component.prototype._borderColorTop = 0xffffffff;
+Component.prototype._borderColorBottom = 0xffffffff;
+Component.prototype._borderColorLeft = 0xffffffff;
+Component.prototype._borderColorRight = 0xffffffff;
+Component.prototype._visible = true;
+
+/**
+ * Manages text rendering for this component. Lazy loaded.
+ * @type {ComponentText}
+ */
+Component.prototype.textRenderer = null;
+
+/**
+ * The texture that is currently set.
+ * This is changed when changing the src and should never be changed manually.
+ * @type {Texture}
+ */
+Component.prototype._texture = null;
+
+/**
+ * The currently displayed texture. While Component.prototype.texture is loading, this one may be different.
+ * @type {Texture}
+ */
+Component.prototype._displayedTexture = null;
+
+/**
+ * Image source, if set.
+ * @type {String}
+ * @private
+ */
+Component.prototype._src = null;
+
+/**
+ * If true, this component is being 'clipped' around the edges. For non-sprite components, the width and height
+ * must be explicitly set.
+ * @type {boolean}
+ */
+Component.prototype.clipping = false;
+
+/**
+ * The z-index, which determines the rendering order (in the same way as in HTML). 0 = no z-index.
+ * @type {number}
+ */
+Component.prototype._zIndex = 0;
+
+/**
+ * If true, this component always behaves as a z-index context. Z-indexed descendants will never be rendered
+ * outside of this context.
+ * @type {boolean}
+ */
+Component.prototype._forceZIndexContext = false;
+
+/**
+ * A custom function which is called with a turtle to allow custom positioning.
+ * @type {Function}
+ */
+Component.prototype._turtler = null;
+
+/**
+ * In case that this component is no longer visible, should it still be turtled?
+ * This is roughly equivalent to setting hidden:false instead of display:none in CSS.
+ * It can be used to still take space while not actually showing anything.
+ * @type {boolean}
+ * @private
+ */
+Component.prototype._turtleInvisible = false;
+
+/**
+ * This function is called when this component becomes active.
+ * @type {Function}
+ */
+Component.prototype.notifyActivate = null;
+
+/**
+ * This function is called when this component becomes inactive.
+ * @type {Function}
+ */
+Component.prototype.notifyDeactivate = null;
+
+/**
+ * The cached rotation value (because cos and sin are slow).
+ * @type {number}
+ */
+Component.prototype.rotationCache = 0;
+Component.prototype._sr = 0;
+Component.prototype._cr = 1;
+
 
 Component.prototype.setAsRoot = function() {
     this.updateActiveFlag();
@@ -3488,8 +3517,6 @@ Component.prototype.setParent = function(parent) {
 
     if (parent) {
         // Alpha, transform, translate.
-        this.uComponent.recalc = true;
-
         parent.hasChildren = true;
 
         this._tags.setParent(parent._tags);
@@ -4550,7 +4577,7 @@ Object.defineProperty(Component.prototype, 'ALPHA', {
             v = 0;
         }
 
-        if (v < 1e-14 && v > -1e-14) {
+        if (v < 1e-14) {
             // Tiny rounding errors may cause failing visibility tests.
             v = 0;
         }
@@ -5274,6 +5301,32 @@ Object.defineProperty(Component.prototype, 'children', {
     }
 });
 
+Object.defineProperty(Component.prototype, 'turtler', {
+    get: function () {
+        return this._turtler;
+    },
+    set: function(v) {
+        var pv = this._turtler;
+        if (pv !== v) {
+            this._turtler = v;
+            this.uComponent.setHasTurtler(!!v);
+        }
+    }
+});
+
+Object.defineProperty(Component.prototype, 'turtleInvisible', {
+    get: function () {
+        return this._turtleInvisible;
+    },
+    set: function(v) {
+        var pv = this._turtleInvisible;
+        if (pv !== v) {
+            this._turtleInvisible = v;
+            this.uComponent.setTurtleInvisible(!!v);
+        }
+    }
+});
+
 Component.prototype.setTransitionTargetValue = function(transition, targetValue, currentValue) {
     transition.updateTargetValue(targetValue, currentValue);
 };
@@ -5439,7 +5492,9 @@ Component.SETTINGS = {
     'texture': {s: function(obj, value) {obj.texture = value}, g: function(obj) {return obj.src}, m: null},
     'tag': {s: function(obj, value) {obj.tags = value}, g: function(obj) {return obj.tags}, m: null},
     'tags': {s: function(obj, value) {obj.tags = value}, g: function(obj) {return obj.tags}, m: null},
-    'children': {s: function(obj, value) {obj.children = value}, g: function(obj) {return obj.children;}, m: null}
+    'children': {s: function(obj, value) {obj.children = value}, g: function(obj) {return obj.children;}, m: null},
+    'turtler': {s: function(obj, value) {obj.turtler = value}, g: function(obj) {return obj.turtler;}, m: null},
+    'turtleInvisible': {s: function(obj, value) {obj.turtleInvisible = value}, g: function(obj) {return obj.turtleInvisible}, m: null}
 };
 
 Component.FINAL_SETTINGS = {};
@@ -5457,40 +5512,40 @@ var ComponentTags = function(component) {
 
     this.component = component;
 
-    /**
-     * Parent component's tag manager.
-     * @type {ComponentTags}
-     */
-    this.parent = null;
-
-    /**
-     * Tags that can be used to identify/search for a specific component.
-     * @type {String[]}
-     */
-    this.tags = null;
-
-    /**
-     * The tree's tags mapping.
-     * This contains all components for all known tags, at all times.
-     * @type {Map}
-     * @private
-     */
-    this.treeTags = null;
-
-    /**
-     * Cache for the tag/mtag methods.
-     * @type {Map<String,Component[]>}
-     */
-    this.cache = null;
-
-    /**
-     * Tag-to-complex cache (all tags that are part of the complex caches).
-     * This maps tags to cached complex tags in the cache.
-     * @type {Map<String,String[]>}
-     */
-    this.tagToComplex = null;
-
 };
+
+/**
+ * Parent component's tag manager.
+ * @type {ComponentTags}
+ */
+ComponentTags.prototype.parent = null;
+
+/**
+ * Tags that can be used to identify/search for a specific component.
+ * @type {String[]}
+ */
+ComponentTags.prototype.tags = null;
+
+/**
+ * The tree's tags mapping.
+ * This contains all components for all known tags, at all times.
+ * @type {Map}
+ * @private
+ */
+ComponentTags.prototype.treeTags = null;
+
+/**
+ * Cache for the tag/mtag methods.
+ * @type {Map<String,Component[]>}
+ */
+ComponentTags.prototype.cache = null;
+
+/**
+ * Tag-to-complex cache (all tags that are part of the complex caches).
+ * This maps tags to cached complex tags in the cache.
+ * @type {Map<String,String[]>}
+ */
+ComponentTags.prototype.tagToComplex = null;
 
 /**
  * Clears the cache(s) for the specified tag.
@@ -5544,37 +5599,29 @@ ComponentTags.prototype.unsetParent = function() {
 ComponentTags.prototype.setParent = function(parent) {
     this.parent = parent;
 
-    var tags = null;
-    var n = 0;
-    if (this.treeTags) {
-        tags = Utils.iteratorToArray(this.treeTags.keys());
-        n = tags.length;
-
-        if (n > 0) {
-            for (var i = 0; i < n; i++) {
-                var tagSet = this.treeTags.get(tags[i]);
-
-                // Add to treeTags.
-                var p = this;
-                while (p = p.parent) {
-                    if (!p.treeTags) {
-                        p.treeTags = new Map();
-                    }
-
-                    var s = p.treeTags.get(tags[i]);
-                    if (!s) {
-                        s = new Set();
-                        p.treeTags.set(tags[i], s);
-                    }
-
-                    tagSet.forEach(function(comp) {
-                        s.add(comp);
-                    });
-
-                    p.clearCache(tags[i]);
+    if (this.treeTags && this.treeTags.size) {
+        var self = this;
+        this.treeTags.forEach(function(tagSet, tag) {
+            // Add to treeTags.
+            var p = self;
+            while (p = p.parent) {
+                if (!p.treeTags) {
+                    p.treeTags = new Map();
                 }
+
+                var s = p.treeTags.get(tag);
+                if (!s) {
+                    s = new Set();
+                    p.treeTags.set(tag, s);
+                }
+
+                tagSet.forEach(function(comp) {
+                    s.add(comp);
+                });
+
+                p.clearCache(tag);
             }
-        }
+        });
     }
 };
 
@@ -5734,14 +5781,14 @@ function ComponentText(component) {
 
     this.component = component;
 
-    this.updatingTexture = false;
-
     this.settings = new TextRendererSettings();
-
-    this.texture = null;
 
     this.updateTexture();
 }
+
+ComponentText.prototype.updatingTexture = false;
+
+ComponentText.prototype.texture = null;
 
 ComponentText.prototype.set = function(settings) {
     this.settings.set(settings);
@@ -6457,49 +6504,51 @@ TextRenderer.prototype.wrapText = function(text, wordWrapWidth) {
 
 var TextRendererSettings = function() {
 
-    // The default text options.
-    this.text = this._text = "";
-    this.w = this._w = 0;
-    this.h = this._h = 0;
-    this.fontStyle = this._fontStyle = "normal";
-    this.fontSize = this._fontSize = 40;
-    this.fontFace = this._fontFace = null;
-    this.wordWrap = this._wordWrap = true;
-    this.wordWrapWidth = this._wordWrapWidth = 0;
-    this.lineHeight = this._lineHeight = null;
-    this.textBaseline = this._textBaseline = "alphabetic";
-    this.textAlign = this._textAlign = "left";
-    this.offsetY = this._offsetY = null;
-    this.maxLines = this._maxLines = 0;
-    this.maxLinesSuffix = this._maxLinesSuffix = "..";
-    this.precision = this._precision = null;
-    this.textColor = this._textColor = 0xffffffff;
-    this.paddingLeft = this._paddingLeft = 0;
-    this.paddingRight = this._paddingRight = 0;
-    this.shadow = this._shadow = false;
-    this.shadowColor = this._shadowColor = 0xff000000;
-    this.shadowOffsetX = this._shadowOffsetX = 0;
-    this.shadowOffsetY = this._shadowOffsetY = 0;
-    this.shadowBlur = this._shadowBlur = 5;
-    this.highlight = this._highlight = false;
-    this.highlightHeight = this._highlightHeight = 0;
-    this.highlightColor = this._highlightColor = 0xff000000;
-    this.highlightOffset = this._highlightOffset = null;
-    this.highlightPaddingLeft = this._highlightPaddingLeft = null;
-    this.highlightPaddingRight = this._highlightPaddingRight = null;
-
-    // Cut the canvas.
-    this.cutSx = this._cutSx = 0;
-    this.cutEx = this._cutEx = 0;
-    this.cutSy = this._cutSy = 0;
-    this.cutEy = this._cutEy = 0;
-
-    // If true, then texture loads are performed on the main thread (blocking the next frame until fully loaded).
-    this.sync = this._sync = false;
-
-    // Flag that indicates if any property has changed.
-    this.hasUpdates = false;
 };
+
+
+// The default text options.
+TextRendererSettings.prototype._text = "";
+TextRendererSettings.prototype._w = 0;
+TextRendererSettings.prototype._h = 0;
+TextRendererSettings.prototype._fontStyle = "normal";
+TextRendererSettings.prototype._fontSize = 40;
+TextRendererSettings.prototype._fontFace = null;
+TextRendererSettings.prototype._wordWrap = true;
+TextRendererSettings.prototype._wordWrapWidth = 0;
+TextRendererSettings.prototype._lineHeight = null;
+TextRendererSettings.prototype._textBaseline = "alphabetic";
+TextRendererSettings.prototype._textAlign = "left";
+TextRendererSettings.prototype._offsetY = null;
+TextRendererSettings.prototype._maxLines = 0;
+TextRendererSettings.prototype._maxLinesSuffix = "..";
+TextRendererSettings.prototype._precision = null;
+TextRendererSettings.prototype._textColor = 0xffffffff;
+TextRendererSettings.prototype._paddingLeft = 0;
+TextRendererSettings.prototype._paddingRight = 0;
+TextRendererSettings.prototype._shadow = false;
+TextRendererSettings.prototype._shadowColor = 0xff000000;
+TextRendererSettings.prototype._shadowOffsetX = 0;
+TextRendererSettings.prototype._shadowOffsetY = 0;
+TextRendererSettings.prototype._shadowBlur = 5;
+TextRendererSettings.prototype._highlight = false;
+TextRendererSettings.prototype._highlightHeight = 0;
+TextRendererSettings.prototype._highlightColor = 0xff000000;
+TextRendererSettings.prototype._highlightOffset = null;
+TextRendererSettings.prototype._highlightPaddingLeft = null;
+TextRendererSettings.prototype._highlightPaddingRight = null;
+
+// Cut the canvas.
+TextRendererSettings.prototype._cutSx = 0;
+TextRendererSettings.prototype._cutEx = 0;
+TextRendererSettings.prototype._cutSy = 0;
+TextRendererSettings.prototype._cutEy = 0;
+
+// If true, then texture loads are performed on the main thread (blocking the next frame until fully loaded).
+TextRendererSettings.prototype._sync = false;
+
+// Flag that indicates if any property has changed.
+TextRendererSettings.prototype.hasUpdates = false;
 
 TextRendererSettings.prototype.set = function(obj) {
     var keys = Object.keys(obj);
@@ -7133,20 +7182,6 @@ TextRendererSettings.SETTINGS = {
 function GenericTransition(v) {
     EventEmitter.call(this);
 
-    this._delay = 0;
-    this._duration = 1;
-    this.timingFunction = 'ease';
-
-    /**
-     * @access private
-     */
-    this.delayLeft = 0;
-
-    /**
-     * @access private
-     */
-    this.p = 1;
-
     /**
      * @access private
      */
@@ -7157,9 +7192,24 @@ function GenericTransition(v) {
      */
     this.targetValue = this.startValue;
 
+    this.timingFunction = 'ease';
+
 }
 
 Utils.extendClass(GenericTransition, EventEmitter);
+
+GenericTransition.prototype._delay = 0;
+GenericTransition.prototype._duration = 1;
+
+/**
+ * @access private
+ */
+GenericTransition.prototype.delayLeft = 0;
+
+/**
+ * @access private
+ */
+GenericTransition.prototype.p = 1;
 
 GenericTransition.prototype.reset = function(startValue, targetValue, p) {
     this.startValue = startValue;
@@ -7385,25 +7435,25 @@ function GenericAnimation(stage) {
 
     this.stage = stage;
 
-    /**
-     * @type {Component}
-     */
-    this._subject = null;
-
     this.actions = [];
 
-    /**
-     * @access private
-     */
-    this.p = 0;
-
-    /**
-     * Dummy for getFrameForProgress. Causes frame to be 0 when this is not a timed animation.
-     * @type {number}
-     */
-    this.duration = 0;
-
 }
+
+/**
+ * @type {Component}
+ */
+GenericAnimation.prototype._subject = null;
+
+/**
+ * @access private
+ */
+GenericAnimation.prototype.p = 0;
+
+/**
+ * Dummy for getFrameForProgress. Causes frame to be 0 when this is not a timed animation.
+ * @type {number}
+ */
+GenericAnimation.prototype.duration = 0;
 
 GenericAnimation.prototype.set = function(settings) {
     var propNames = Object.keys(settings);
@@ -7506,26 +7556,26 @@ function AnimationAction(animation) {
      */
     this._properties = [];
 
-    /**
-     * The value to reset to when stopping the timed animation.
-     * @type {*}
-     * @private
-     */
-    this._resetValue = null;
-
-    this.hasResetValue = false;
-
-    /**
-     * Mergable function for values.
-     * @type {Function}
-     * @private
-     */
-    this.mergeFunction = null;
-
-    // Default.
-    this.tags = '';
-
 }
+
+/**
+ * The value to reset to when stopping the timed animation.
+ * @type {*}
+ * @private
+ */
+AnimationAction.prototype._resetValue = null;
+
+AnimationAction.prototype.hasResetValue = false;
+
+/**
+ * Mergable function for values.
+ * @type {Function}
+ * @private
+ */
+AnimationAction.prototype.mergeFunction = null;
+
+// Default.
+AnimationAction.prototype.tags = '';
 
 /**
  * Returns the components to be animated.
@@ -8056,40 +8106,6 @@ var Animation = function(stage) {
     GenericAnimation.call(this, stage);
     EventEmitter.call(this);
 
-    this._delay = 0;
-
-    /**
-     * The duration of the animation, in seconds. If -1, the progress value should be set manually.
-     * @type {number}
-     */
-    this._duration = 1;
-
-    this._repeat = 0;
-    this._repeatOffset = 0;
-    this._repeatDelay = 0;
-
-    /**
-     * @access private
-     */
-    this.delayLeft = 0;
-
-    /**
-     * @access private
-     */
-    this.repeatsLeft = 0;
-
-    /**
-     * Automatically calls stop after finish.
-     * @type {boolean}
-     */
-    this._autostop = false;
-
-    /**
-     * The way that the animation 'stops'.
-     * @type {number}
-     */
-    this._stopMethod = Animation.STOP_METHODS.FADE;
-
     /**
      * Advanced options regarding the stop method, such as:
      * - {number} duration
@@ -8102,17 +8118,67 @@ var Animation = function(stage) {
      */
     this._stopMethodOptions = {};
 
-    this.stopDelayLeft = 0;
-
-    this.state = Animation.STATES.IDLE;
-
     this.stoppingProgressTransition = new GenericTransition(0);
 
 };
 
 Utils.extendClass(Animation, GenericAnimation);
-
 Animation.prototype = Object.assign(Animation.prototype, EventEmitter.prototype);
+
+
+Animation.STATES = {
+    IDLE: 0,
+    PLAYING: 1,
+    STOPPING: 2,
+    STOPPED: 3,
+    FINISHED: 4
+};
+
+Animation.STOP_METHODS = {
+    FADE: 'fade',
+    REVERSE: 'reverse',
+    FORWARD: 'forward',
+    IMMEDIATE: 'immediate',
+    ONETOTWO: 'onetotwo'
+};
+
+Animation.prototype._delay = 0;
+
+/**
+ * The duration of the animation, in seconds. If -1, the progress value should be set manually.
+ * @type {number}
+ */
+Animation.prototype._duration = 1;
+
+Animation.prototype._repeat = 0;
+Animation.prototype._repeatOffset = 0;
+Animation.prototype._repeatDelay = 0;
+
+/**
+ * @access private
+ */
+Animation.prototype.delayLeft = 0;
+
+/**
+ * @access private
+ */
+Animation.prototype.repeatsLeft = 0;
+
+/**
+ * Automatically calls stop after finish.
+ * @type {boolean}
+ */
+Animation.prototype._autostop = false;
+
+/**
+ * The way that the animation 'stops'.
+ * @type {number}
+ */
+Animation.prototype._stopMethod = Animation.STOP_METHODS.FADE;
+
+Animation.prototype.stopDelayLeft = 0;
+
+Animation.prototype.state = Animation.STATES.IDLE;
 
 Animation.prototype.isActive = function() {
     return this.subject && (this.state == Animation.STATES.PLAYING || this.state == Animation.STATES.STOPPING);
@@ -8485,21 +8551,6 @@ Object.defineProperty(Animation.prototype, 'subject', {
     }
 });
 
-Animation.STATES = {
-    IDLE: 0,
-    PLAYING: 1,
-    STOPPING: 2,
-    STOPPED: 3,
-    FINISHED: 4
-};
-
-Animation.STOP_METHODS = {
-    FADE: 'fade',
-    REVERSE: 'reverse',
-    FORWARD: 'forward',
-    IMMEDIATE: 'immediate',
-    ONETOTWO: 'onetotwo'
-};
 
 
 /**
@@ -8745,109 +8796,118 @@ Renderer.MAX_QUADS = (65536 / 4)|0;
 
 
 var UComponent = function(ctx) {
+
     this.ctx = ctx;
-
-    this.parent = null;
-
-    this.hasUpdates = false;
-
-    this.recalc = 0;
-
-    this.worldAlpha = 1;
-
-    this.updateTreeOrder = 0;
-
-    this.hasBorders = false;
-
-    this.hasChildren = false;
-
-    // All local translation/transform updates: directly propagated from x/y/w/h/scale/whatever.
-    this.worldPx = this.localPx = 0;
-    this.worldPy = this.localPy = 0;
-
-    this.worldTa = this.localTa = 1;
-    this.worldTb = this.localTb = 0;
-    this.worldTc = this.localTc = 0;
-    this.worldTd = this.localTd = 1;
-
-    this.isComplex = false;
-
-    this.localAlpha = 1;
 
     this.children = [];
 
-    this.w = 0;
-    this.h = 0;
-
-    this.clipping = false;
-    this.clippingParent = null;
-
-    /**
-     * In case of clipping, this flag indicates if we're dealing with a square-shaped clipping area.
-     * @type {boolean}
-     */
-    this.clippingSquare = false;
-
-    this.clippingSquareMinX = 0;
-    this.clippingSquareMaxX = 0;
-    this.clippingSquareMinY = 0;
-    this.clippingSquareMaxY = 0;
-
-    /**
-     * Flag that indicates that clipping area is empty.
-     * @type {boolean}
-     */
-    this.clippingEmpty = false;
-
-    /**
-     * Flag that indicates that the clipping area are the corner points.
-     * @type {boolean}
-     */
-    this.clippingNoEffect = false;
-
-    /**
-     * In case of complex clipping, the corner points of the clipping area.
-     * @type {number[]}
-     */
-    this.clippingArea = null;
-
-    /**
-     * The texture source to be displayed.
-     * @type {TextureSource}
-     */
-    this.displayedTextureSource = null;
-
-    this.colorUl = this.colorUr = this.colorBl = this.colorBr = 0xFFFFFFFF;
-
-    this.txCoordsUl = 0x00000000;
-    this.txCoordsUr = 0x0000FFFF;
-    this.txCoordsBr = 0xFFFFFFFF;
-    this.txCoordsBl = 0xFFFF0000;
-
-    this.ulx = 0;
-    this.uly = 0;
-    this.brx = 1;
-    this.bry = 1;
-
-    this.inTextureAtlas = false;
-
-    this.zIndex = 0;
-    this.forceZIndexContext = false;
-    this.zContextUsage = 0;
-    this.zParent = null;
     this.zIndexedChildren = [];
-    this.zSort = false;
-
-    this.borderTop = null;
-    this.borderBottom = null;
-    this.borderLeft = null;
-    this.borderRight = null;
-
-    this.isBorder = false;
-
-    this.isRoot = false;
 
 };
+
+UComponent.prototype.component = null;
+
+UComponent.prototype.hasTurtler = false;
+
+UComponent.prototype.branchHasTurtlers = false;
+
+UComponent.prototype.parent = null;
+
+UComponent.prototype.hasUpdates = false;
+
+UComponent.prototype.recalc = 0;
+
+UComponent.prototype.worldAlpha = 1;
+
+UComponent.prototype.updateTreeOrder = 0;
+
+UComponent.prototype.hasBorders = false;
+
+UComponent.prototype.hasChildren = false;
+
+// All local translation/transform updates: directly propagated from x/y/w/h/scale/whatever.
+UComponent.prototype.worldPx = UComponent.prototype.localPx = 0;
+UComponent.prototype.worldPy = UComponent.prototype.localPy = 0;
+
+UComponent.prototype.worldTa = UComponent.prototype.localTa = 1;
+UComponent.prototype.worldTb = UComponent.prototype.localTb = 0;
+UComponent.prototype.worldTc = UComponent.prototype.localTc = 0;
+UComponent.prototype.worldTd = UComponent.prototype.localTd = 1;
+
+UComponent.prototype.isComplex = false;
+
+UComponent.prototype.localAlpha = 1;
+
+UComponent.prototype.w = 0;
+UComponent.prototype.h = 0;
+
+UComponent.prototype.clipping = false;
+UComponent.prototype.clippingParent = null;
+
+/**
+ * In case of clipping, this flag indicates if we're dealing with a square-shaped clipping area.
+ * @type {boolean}
+ */
+UComponent.prototype.clippingSquare = false;
+
+UComponent.prototype.clippingSquareMinX = 0;
+UComponent.prototype.clippingSquareMaxX = 0;
+UComponent.prototype.clippingSquareMinY = 0;
+UComponent.prototype.clippingSquareMaxY = 0;
+
+/**
+ * Flag that indicates that clipping area is empty.
+ * @type {boolean}
+ */
+UComponent.prototype.clippingEmpty = false;
+
+/**
+ * Flag that indicates that the clipping area are the corner points.
+ * @type {boolean}
+ */
+UComponent.prototype.clippingNoEffect = false;
+
+/**
+ * In case of complex clipping, the corner points of the clipping area.
+ * @type {number[]}
+ */
+UComponent.prototype.clippingArea = null;
+
+/**
+ * The texture source to be displayed.
+ * @type {TextureSource}
+ */
+UComponent.prototype.displayedTextureSource = null;
+
+UComponent.prototype.colorUl = UComponent.prototype.colorUr = UComponent.prototype.colorBl = UComponent.prototype.colorBr = 0xFFFFFFFF;
+
+UComponent.prototype.txCoordsUl = 0x00000000;
+UComponent.prototype.txCoordsUr = 0x0000FFFF;
+UComponent.prototype.txCoordsBr = 0xFFFFFFFF;
+UComponent.prototype.txCoordsBl = 0xFFFF0000;
+
+UComponent.prototype.ulx = 0;
+UComponent.prototype.uly = 0;
+UComponent.prototype.brx = 1;
+UComponent.prototype.bry = 1;
+
+UComponent.prototype.inTextureAtlas = false;
+
+UComponent.prototype.zIndex = 0;
+UComponent.prototype.forceZIndexContext = false;
+UComponent.prototype.zContextUsage = 0;
+UComponent.prototype.zParent = null;
+UComponent.prototype.zSort = false;
+
+UComponent.prototype.borderTop = null;
+UComponent.prototype.borderBottom = null;
+UComponent.prototype.borderLeft = null;
+UComponent.prototype.borderRight = null;
+
+UComponent.prototype.isBorder = false;
+
+UComponent.prototype.isRoot = false;
+
 
 /**
  * @param {Number} type
@@ -8889,6 +8949,7 @@ UComponent.prototype.setParent = function(parent) {
         var prevIsZContext = this.isZContext();
         var prevParent = this.parent;
         this.parent = parent;
+        
         this.setRecalc(1 + 2 + 4);
 
         if (this.zIndex === 0) {
@@ -8913,6 +8974,15 @@ UComponent.prototype.setParent = function(parent) {
 
         if (newClippingParent !== this.clippingParent) {
             this.setClippingParent(newClippingParent);
+        }
+
+        if (this.branchHasTurtlers) {
+            if (parent) {
+                parent.setBranchHasTurtlers();
+            }
+            if (prevParent) {
+                prevParent.checkBranchHasTurtlers();
+            }
         }
     }
 };
@@ -8952,20 +9022,27 @@ UComponent.prototype.setLocalTransform = function(a, b, c, d) {
 
 UComponent.prototype.setLocalTranslate = function(x, y) {
     this.setRecalc(2);
+    if (this.turtle) {
+        if (this.localPx !== x) {
+            this.turtle.x = x;
+        }
+        if (this.localPy !== y) {
+            this.turtle.y = y;
+        }
+    }
+
     this.localPx = x;
     this.localPy = y;
 };
 
 UComponent.prototype.addLocalTranslate = function(x, y) {
-    this.setRecalc(2);
-    this.localPx += x;
-    this.localPy += y;
+    this.setLocalTranslate(this.localPx + x, this.localPy + y);
 };
 
 UComponent.prototype.setLocalAlpha = function(a) {
     this.setRecalcForced(1, (this.parent && this.parent.worldAlpha) && a);
 
-    if (a < 1e-14 && a > -1e-14) {
+    if (a < 1e-14) {
         // Tiny rounding errors may cause failing visibility tests.
         a = 0;
     }
@@ -8973,7 +9050,32 @@ UComponent.prototype.setLocalAlpha = function(a) {
     this.localAlpha = a;
 };
 
+UComponent.prototype.setTurtleInvisible = function(v) {
+    // Specifies whether to run turtle on this component + branch, even when this component is invisible.
+    if (!this.parent || this.parent.shouldRunTurtle()) {
+        var prev = this.shouldRunTurtle();
+        this.turtleInvisible = v;
+        if (this.shouldRunTurtle() !== prev) {
+            // Force re-rendering because the turtles may cause a different positioning.
+            // We need to force a re-render so that the turtle will be checked.
+            this.ctx.staticStage = false;
+        }
+    } else {
+        this.turtleInvisible = v;
+    }
+
+};
+
 UComponent.prototype.setDimensions = function(w, h) {
+    if (this.turtle) {
+        if (this.w !== w) {
+            this.turtle.w = w;
+        }
+        if (this.h !== h) {
+            this.turtle.h = h;
+        }
+    }
+
     this.w = w;
     this.h = h;
     this.setRecalc(2);
@@ -8984,27 +9086,30 @@ UComponent.prototype.setDimensions = function(w, h) {
 };
 
 UComponent.prototype.updateBorderDimensions = function() {
+    var w = this.w;
+    var h = this.h;
+
     var blw = 0, brw = 0;
     if (this.borderLeft !== null) {
-        this.borderLeft.setDimensions(this.borderLeft.w, this.h);
+        this.borderLeft.setDimensions(this.borderLeft.w, h);
         this.borderLeft.setLocalTranslate(-this.borderLeft.w, 0);
         blw = this.borderLeft.w;
     }
 
     if (this.borderRight !== null) {
-        this.borderRight.setDimensions(this.borderRight.w, this.h);
-        this.borderRight.setLocalTranslate(this.w, 0);
+        this.borderRight.setDimensions(this.borderRight.w, h);
+        this.borderRight.setLocalTranslate(w, 0);
         brw = this.borderRight.w;
     }
 
     if (this.borderTop !== null) {
-        this.borderTop.setDimensions(this.w + blw + brw, this.borderTop.h);
+        this.borderTop.setDimensions(w + blw + brw, this.borderTop.h);
         this.borderTop.setLocalTranslate(0 - blw, -this.borderTop.h);
     }
 
     if (this.borderBottom !== null) {
-        this.borderBottom.setDimensions(this.w + blw + brw, this.borderBottom.h);
-        this.borderBottom.setLocalTranslate(0 - blw, this.h);
+        this.borderBottom.setDimensions(w + blw + brw, this.borderBottom.h);
+        this.borderBottom.setLocalTranslate(0 - blw, h);
     }
 };
 
@@ -9352,6 +9457,58 @@ UComponent.prototype.updateHasBorders = function() {
         || (this.borderRight !== null && this.borderRight.w)
 };
 
+/**
+ * Returns an object that can be used to customize the positioning.
+ */
+UComponent.prototype.getTurtle = function() {
+    if (!this.turtle) {
+        this.turtle = new Turtle(this);
+    }
+    return this.turtle;
+};
+
+UComponent.prototype.isVisible = function() {
+    return (this.localAlpha > 1e-14);
+};
+
+UComponent.prototype.shouldRunTurtle = function() {
+    return this.isVisible() || this.turtleInvisible;
+};
+
+
+UComponent.prototype.runTurtles = function() {
+    if (this.shouldRunTurtle()) {
+        if (this.turtle) {
+            this.turtle.fresh = false;
+        }
+
+        if (this.hasTurtler) {
+            // Custom positioning function.
+            // Warning: do not add/remove children on already visited components because of the recursiveness.
+            var turtle = this.getTurtle();
+            if (turtle.altered) {
+                // This can happen if the component with an altered turtle became invisible during a previous runTurtles.
+                turtle.update();
+                turtle.altered = false;
+            }
+            this.component.turtler(turtle);
+            if (turtle.altered) {
+                // Dimensions and/or position have been changed.
+                // Make sure that the component is re-calculated.
+                this.setRecalc(2);
+            }
+        }
+
+        if (this.hasChildren) {
+            for (var i = 0, n = this.children.length; i < n; i++) {
+                if (this.children[i].branchHasTurtlers) {
+                    this.children[i].runTurtles();
+                }
+            }
+        }
+    }
+};
+
 UComponent.prototype.update = function() {
     this.recalc |= this.parent.recalc;
 
@@ -9367,13 +9524,17 @@ UComponent.prototype.update = function() {
 
         this.worldAlpha = this.parent.worldAlpha * this.localAlpha;
 
-        if (this.worldAlpha < 1e-14 && this.worldAlpha > -1e-14) {
+        if (this.worldAlpha < 1e-14) {
             // Tiny rounding errors may cause failing visibility tests.
             this.worldAlpha = 0;
         }
     }
 
     if (this.worldAlpha || forceUpdate) {
+        if (this.turtle && this.turtle.altered) {
+            this.turtle.swapRealValues();
+        }
+
         if (this.recalc & 6) {
             this.worldPx = this.parent.worldPx + this.localPx * this.parent.worldTa;
             this.worldPy = this.parent.worldPy + this.localPy * this.parent.worldTd;
@@ -9509,12 +9670,14 @@ UComponent.prototype.update = function() {
             this.updateTreeOrder = this.ctx.updateTreeOrder++;
         }
 
-        // Clear before calling children, to allow them to reset the hasUpdates flags in case of texture atlas failure.
-        this.hasUpdates = false;
-
         this.recalc = (this.recalc & 7); /* 1+2+4 */
 
         if (this.hasBorders) {
+            if (this.turtle && this.turtle.altered) {
+                // Turtle has modified dimensions: we should update border dimensions.
+                this.updateBorderDimensions();
+            }
+
             if (this.borderTop !== null && this.borderTop.h) {
                 this.borderTop.update();
             }
@@ -9532,6 +9695,13 @@ UComponent.prototype.update = function() {
             }
         }
 
+        if (!this.ctx.useZIndexing) {
+            // When using z-indexing, restore is done in fillVbo().
+            if (this.turtle && this.turtle.altered) {
+                this.turtle.restoreRealValues();
+            }
+        }
+
         if (this.hasChildren) {
             for (var i = 0, n = this.children.length; i < n; i++) {
                 if ((this.ctx.updateTreeOrderForceUpdate > 0) || this.recalc || this.children[i].hasUpdates) {
@@ -9543,6 +9713,9 @@ UComponent.prototype.update = function() {
         }
 
         this.recalc = 0;
+
+        this.hasUpdates = false;
+
     }
 
     if (this.zSort) {
@@ -9800,6 +9973,10 @@ UComponent.prototype.fillVbo = function() {
             }
         }
 
+        if (this.turtle && this.turtle.altered) {
+            this.turtle.restoreRealValues();
+        }
+
         if (this.hasChildren) {
             if (this.zContextUsage) {
                 for (var i = 0, n = this.zIndexedChildren.length; i < n; i++) {
@@ -9846,6 +10023,38 @@ UComponent.prototype.getCornerPoints = function() {
     ];
 };
 
+UComponent.prototype.setHasTurtler = function(v) {
+    this.hasTurtler = v;
+
+    // Turtler has changed, so we need to recalc the translation vector.
+    this.setRecalc(2);
+    
+    if (this.hasTurtler) {
+        this.setBranchHasTurtlers();
+    } else {
+        // Check if any child has turtlers.
+        this.checkBranchHasTurtlers();
+    }
+};
+
+UComponent.prototype.setBranchHasTurtlers = function() {
+    var p = this;
+    do {
+        p.branchHasTurtlers = true;
+    } while((p = p.parent) && !p.branchHasTurtlers);
+};
+
+UComponent.prototype.checkBranchHasTurtlers = function() {
+    var branchHasTurtlers = false;
+    for (var i = 0, n = this.children.length; i < n; i++) {
+        branchHasTurtlers = branchHasTurtlers || this.children[i].branchHasTurtlers;
+    }
+    if (branchHasTurtlers) {
+        this.setBranchHasTurtlers();
+    } else {
+        this.branchHasTurtlers = false;
+    }
+};
 
 var getColorInt = function(c, alpha) {
     var a = ((c / 16777216 | 0) * alpha) | 0;
@@ -9902,7 +10111,9 @@ UComponentContext.prototype.setStage = function(stage) {
 };
 
 UComponentContext.prototype.createUComponentForComponent = function(component) {
-    return new UComponent(this);
+    var uc = new UComponent(this);
+    uc.component = component;
+    return uc;
 };
 
 UComponentContext.prototype.createUComponent = function() {
@@ -9968,6 +10179,11 @@ UComponentContext.prototype.updateAndFillVbo = function(useZIndexing) {
         this.useZIndexing = useZIndexing;
 
         this.reset();
+
+        if (this.root.branchHasTurtlers) {
+            this.root.runTurtles();
+        }
+
         this.root.update();
 
         if (this.useZIndexing) {
@@ -9991,6 +10207,209 @@ Object.defineProperty(UComponentContext.prototype, 'staticStage', {
     },
     set: function(v) {
         this._staticStage = v;
+    }
+});
+
+var isNode = !!(((typeof module !== "undefined") && module.exports));
+
+/**
+ * A turtle can be used to customize positioning/dimensions of a rendered object.
+ * @param {UComponent} c
+ * @constructor
+ */
+var Turtle = function(c) {
+    this.c = c;
+    this.update();
+};
+
+
+// Upper-left corner position (relative to container).
+Turtle.prototype._x = 0;
+Turtle.prototype._y = 0;
+
+// Width and height (relative to container).
+Turtle.prototype._w = 0;
+Turtle.prototype._h = 0;
+
+Turtle.prototype.altered = false;
+
+Turtle.prototype.swapRealValues = function() {
+    var t;
+
+    t = this.c.localPx;
+    this.c.localPx = this._x;
+    this._x = t;
+
+    t = this.c.localPy;
+    this.c.localPy = this._y;
+    this._y = t;
+
+    t = this.c.w;
+    this.c.w = this._w;
+    this._w = t;
+
+    t = this.c.h;
+    this.c.h = this._h;
+    this._h = t;
+};
+
+Turtle.prototype.restoreRealValues = function() {
+    this.c.localPx = this._x;
+    this.c.localPy = this._y;
+    this.c.w = this._w;
+    this.c.h = this._h;
+};
+
+Turtle.prototype.update = function() {
+    this._x = this.c.localPx;
+    this._y = this.c.localPy;
+
+    this._w = this.c.w;
+    this._h = this.c.h;
+};
+
+Object.defineProperty(Turtle.prototype, 'x', {
+    get: function () {
+        return this._x;
+    },
+    set: function(x) {
+        if (this._x !== x) {
+            this.altered = true;
+            this._x = x;
+        }
+    }
+});
+
+Object.defineProperty(Turtle.prototype, 'y', {
+    get: function () {
+        return this._y;
+    },
+    set: function(y) {
+        if (this._y !== y) {
+            this.altered = true;
+            this._y = y;
+        }
+    }
+});
+
+
+Object.defineProperty(Turtle.prototype, 'w', {
+    get: function () {
+        return this._w;
+    },
+    set: function(w) {
+        if (this._w !== w) {
+            this.altered = true;
+            this._w = w;
+        }
+    }
+});
+
+Object.defineProperty(Turtle.prototype, 'h', {
+    get: function () {
+        return this._h;
+    },
+    set: function(h) {
+        if (this._h !== h) {
+            this.altered = true;
+            this._h = h;
+        }
+    }
+});
+
+Object.defineProperty(Turtle.prototype, 'parent', {
+    get: function () {
+        if (this.c.parent) {
+            return this.c.parent.getTurtle();
+        }
+    }
+});
+
+Object.defineProperty(Turtle.prototype, 'sw', {
+    get: function () {
+        return this.c.component.stage.w;
+    }
+});
+
+Object.defineProperty(Turtle.prototype, 'sh', {
+    get: function () {
+        return this.c.component.stage.h;
+    }
+});
+
+Object.defineProperty(Turtle.prototype, 'index', {
+    get: function() {
+        return this.c.parent.children.indexOf(this.c);
+    }
+});
+
+Object.defineProperty(Turtle.prototype, 'visible', {
+    get: function() {
+        return this.c.isVisible();
+    }
+});
+
+Object.defineProperty(Turtle.prototype, 'last', {
+    get: function() {
+        if (!this.c.parent) return true;
+
+        var children = this.c.parent.children;
+        var i = children.length - 1;
+        do {
+            if (children[i] === this.c) {
+                return true;
+            } else if (children[i].shouldRunTurtle()) {
+                return false;
+            }
+        } while(--i > 0);
+        return true;
+    }
+});
+
+Object.defineProperty(Turtle.prototype, 'prev', {
+    get: function () {
+        if (this.c.parent) {
+            var i = this.index;
+            if (i > 0) {
+                while(--i >= 0) {
+                    if (this.c.parent.children[i].shouldRunTurtle()) {
+                        return this.c.parent.children[i].getTurtle();
+                    }
+                }
+            }
+        }
+        return null;
+    }
+});
+
+Object.defineProperty(Turtle.prototype, 'prevs', {
+    get: function () {
+        if (this.c.parent) {
+            var i = this.c.parent.children.indexOf(this.c);
+            if (i > 0) {
+                var arr = [];
+                while(i-- >= 0) {
+                    var s = this.c.parent.children[i];
+                    if (s.shouldRunTurtle()) {
+                        arr.push(s.getTurtle());
+                    }
+                }
+                return arr;
+            } else {
+                return [];
+            }
+        } else {
+            return [];
+        }
+    }
+});
+
+/**
+ * Warning: do not add/remove children on already visited components.
+ */
+Object.defineProperty(Turtle.prototype, 'component', {
+    get: function() {
+        return this.c.component;
     }
 });
 
@@ -10090,7 +10509,7 @@ WebAdapter.prototype.uploadGlTexture = function(gl, textureSource, source) {
     }
 };
 
-WebAdapter.prototype.loadTextureSourceString = function(source, cb) {
+WebAdapter.prototype.loadTextureSourceString = function(source, ts, cb) {
     var image = new Image();
     if (!(source.substr(0,5) == "data:")) {
         // Base64.
@@ -10105,7 +10524,7 @@ WebAdapter.prototype.loadTextureSourceString = function(source, cb) {
     image.src = source;
 };
 
-WebAdapter.prototype.loadText = function(settings, cb) {
+WebAdapter.prototype.loadText = function(settings, ts, cb) {
     // Generate the image.
     var tr = new TextRenderer(this.stage.drawingCanvasFactory, settings);
     var rval = tr.draw();
@@ -10183,5 +10602,5 @@ WebAdapter.prototype.getTextureProcess = function() {
         }
     }
 
-    return new TextureProcess({workerPath: workerPath, textServer: this.stage.textureProcessTextServer});
+    return new TextureProcess(workerPath);
 };
