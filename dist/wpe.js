@@ -326,11 +326,8 @@ EventEmitter.prefixed = prefix;
 //
 EventEmitter.EventEmitter = EventEmitter;
 
-//
-// Expose the module.
-//
-if ('undefined' !== typeof module) {
-}
+
+
 /**
  * Platform-specific functionality.
  * Copyright Metrological, 2017
@@ -1107,6 +1104,7 @@ class StageUtils {
  * - VAOs
  * - try to investigate/improve performance when creating and adding new views
  * - optimize new render performance
+ * - animation action merger: simplify usage (type: 'numbers', 'colors', 'discrete'). Auto-detect if only number values are used.
  *
  * - change documentation
  *   - text2pngEndpoint
@@ -1909,8 +1907,6 @@ Filter.fragmentShaderSource = `
         gl_FragColor = texture2D(uSampler, vTextureCoord);
     }
 `;
-
-Filter.prototype.isFilter = true
 
 /**
  * Copyright Metrological, 2017
@@ -2949,6 +2945,7 @@ class TextureAtlas {
         gl.viewport(0,0,this.w,this.h);
         gl.blendFunc(gl.ONE, gl.ZERO);
         gl.enable(gl.BLEND);
+        gl.disable(gl.SCISSOR_TEST);
         gl.disable(gl.DEPTH_TEST);
 
         // Upload data.
@@ -3612,7 +3609,7 @@ class View {
             if (v !== null) {
                 if (v instanceof TextureSource) {
                     v = this.stage.texture(v);
-                } else if (!v instanceof Texture) {
+                } else if (!(v instanceof Texture)) {
                     console.error('incorrect value for texture');
                     return;
                 }
@@ -4698,7 +4695,7 @@ class View {
     }
 
     get renderToTexture() {
-        return this._texturizer && this.texturizer.enabled
+        return this._core._texturizer && this.texturizer.enabled
     }
 
     set renderToTexture(v) {
@@ -4706,7 +4703,7 @@ class View {
     }
 
     get renderToTextureLazy() {
-        return this._texturizer && this.texturizer.lazy
+        return this._core._texturizer && this.texturizer.lazy
     }
 
     set renderToTextureLazy(v) {
@@ -4714,7 +4711,7 @@ class View {
     }
 
     get hideResultTexture() {
-        return this._texturizer && this.texturizer.hideResult
+        return this._core._texturizer && this.texturizer.hideResult
     }
 
     set hideResultTexture(v) {
@@ -6556,7 +6553,7 @@ class ViewCore {
                     renderState.setOverrideQuadTexture(null);
                 }
             } else if (this._useViewportClipping) {
-                renderState.setScissor(prevScissor)
+                renderState.resetScissor(prevScissor)
             }
 
             this._hasRenderUpdates = 0;
@@ -7035,6 +7032,11 @@ class CoreRenderState {
         this._check = true
     }
 
+    resetScissor(area) {
+        this._scissor = area
+        this._check = true
+    }
+
     getScissor() {
         return this._scissor
     }
@@ -7103,7 +7105,10 @@ class CoreRenderState {
     _addQuadOperation(create = true) {
         if (this._quadOperation) {
             if (this._quadOperation.length || this._shader.addEmpty()) {
-                this.quadOperations.push(this._quadOperation)
+                if (!this._quadOperation.scissor || ((this._quadOperation.scissor[2] > 0) && (this._quadOperation.scissor[3] > 0))) {
+                    // Ignore empty clipping regions.
+                    this.quadOperations.push(this._quadOperation)
+                }
             }
 
             this._quadOperation = null
@@ -9108,7 +9113,6 @@ class AnimationActionSettings extends Base {
         } else {
             return this._items.getValue(0);
         }
-        return 0;
     }
 
     apply(view, p, factor) {
@@ -9454,7 +9458,7 @@ class AnimationActionItems extends Base {
         }
 
         if (p < this._p[0]) {
-            return -1;
+            return 0;
         }
 
         for (let i = 0; i < n; i++) {
@@ -9472,12 +9476,12 @@ class AnimationActionItems extends Base {
             return undefined;
         } else {
             if (this._f[i]) {
-                let o = (p - this._p[i]) * this._idp[i];
+                let o = Math.min(1, Math.max(0, (p - this._p[i]) * this._idp[i]));
                 return this._v[i](o);
             } else {
                 return this._v[i];
             }
-        }        
+        }
     }
 
     get length() {
@@ -10943,6 +10947,201 @@ FastBlurOutputShader.fragmentShaderSource = `
  */
 
 
+class Light3dShader extends Shader {
+
+    constructor(ctx) {
+        super(ctx)
+
+        this._strength = 0.5
+        this._ambient = 0.5
+        this._fudge = 0.4
+
+        this._rx = 0
+        this._ry = 0
+
+        this._z = 0
+    }
+
+    getVertexShaderSource() {
+        return Light3dShader.vertexShaderSource
+    }
+
+    getFragmentShaderSource() {
+        return Light3dShader.fragmentShaderSource
+    }
+
+    supportsTextureAtlas() {
+        return true
+    }
+
+    supportsMerging() {
+        // As we need the shader owner, we do not support merging.
+        return false
+    }
+
+    setupUniforms(operation) {
+        super.setupUniforms(operation)
+
+        let vr = operation.shaderOwner;
+        let view = vr.view;
+
+        let coords = vr.getRenderTextureCoords(view.pivotX * vr.rw, view.pivotY * vr.rh)
+
+        // Counter normal rotation.
+
+        let rz = -Math.atan2(vr._renderContext.tc, vr._renderContext.ta)
+
+        let gl = this.gl
+        this._setUniform("pivot", new Float32Array([coords[0], coords[1], this._z]), gl.uniform3fv)
+        this._setUniform("rot", new Float32Array([this._rx, this._ry, rz]), gl.uniform3fv)
+
+        this._setUniform("strength", this._strength, gl.uniform1f)
+        this._setUniform("ambient", this._ambient, gl.uniform1f)
+        this._setUniform("fudge", this._fudge, gl.uniform1f)
+    }
+
+    set strength(v) {
+        this._strength = v;
+        this.redraw();
+    }
+
+    get strength() {
+        return this._strength;
+    }
+
+    set ambient(v) {
+        this._ambient = v;
+        this.redraw();
+    }
+
+    get ambient() {
+        return this._ambient;
+    }
+
+    set fudge(v) {
+        this._fudge = v;
+        this.redraw();
+    }
+
+    get fudge() {
+        return this._fudge;
+    }
+
+    get rx() {
+        return this._rx;
+    }
+
+    set rx(v) {
+        this._rx = v;
+        this.redraw();
+    }
+
+    get ry() {
+        return this._ry;
+    }
+
+    set ry(v) {
+        this._ry = v;
+        this.redraw();
+    }
+
+    get z() {
+        return this._z;
+    }
+
+    set z(v) {
+        this._z = v;
+        this.redraw();
+    }
+
+}
+
+Light3dShader.vertexShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    attribute vec2 aVertexPosition;
+    attribute vec2 aTextureCoord;
+    attribute vec4 aColor;
+    uniform vec2 projection;
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+
+    uniform float fudge;
+    uniform float strength;
+    uniform float ambient;
+    uniform vec3 pivot;
+    uniform vec3 rot;
+    varying float light;
+
+    void main(void) {
+        vec3 pos = vec3(aVertexPosition.xy, pivot.z);
+        
+        pos -= pivot;
+
+        // Undo XY rotation
+        mat2 iRotXy = mat2( cos(rot.z), sin(rot.z), 
+                           -sin(rot.z), cos(rot.z));
+        pos.xy = iRotXy * pos.xy;
+        
+        // Perform 3d rotations
+        gl_Position.x = cos(rot.x) * pos.x - sin(rot.x) * pos.z;
+        gl_Position.y = pos.y;
+        gl_Position.z = sin(rot.x) * pos.x + cos(rot.x) * pos.z;
+        
+        pos.y = cos(rot.y) * gl_Position.y - sin(rot.y) * gl_Position.z;
+        gl_Position.z = sin(rot.y) * gl_Position.y + cos(rot.y) * gl_Position.z;
+        gl_Position.y = pos.y;
+        
+        // Redo XY rotation
+        iRotXy[0][1] = -iRotXy[0][1];
+        iRotXy[1][0] = -iRotXy[1][0];
+        gl_Position.xy = iRotXy * gl_Position.xy; 
+
+        // Undo translate to pivot position
+        gl_Position.xyz += pivot;
+        
+        // Set depth perspective
+        float perspective = 1.0 + fudge * gl_Position.z * projection.x;
+
+        // Map coords to gl coordinate space.
+        gl_Position = vec4(gl_Position.x * projection.x - 1.0, gl_Position.y * -abs(projection.y) + 1.0, 0.0, perspective);
+        
+        // Set z to 0 because we don't want to perform z-clipping
+        gl_Position.z = 0.0;
+
+        // Use texture normal to calculate light strength 
+        light = ambient + strength * abs(cos(rot.y) * cos(rot.x));
+        
+        vTextureCoord = aTextureCoord;
+        vColor = aColor;
+        
+        gl_Position.y = -sign(projection.y) * gl_Position.y;
+    }
+`;
+
+Light3dShader.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    varying float light;
+    uniform sampler2D uSampler;
+    void main(void){
+        vec4 rgba = texture2D(uSampler, vTextureCoord);
+        rgba.rgb = rgba.rgb * light;
+        gl_FragColor = rgba * vColor;
+    }
+`;
+
+
+
+/**
+ * Copyright Metrological, 2017
+ */
+
+
 /**
  * @see https://github.com/pixijs/pixi-filters/tree/master/filters/pixelate/src
  */
@@ -11134,6 +11333,131 @@ InversionShader.fragmentShaderSource = `
 /**
  * @see https://github.com/mattdesl/glsl-fxaa
  */
+class FxaaFilter extends Filter {
+    constructor(ctx) {
+        super(ctx);
+    }
+
+    getVertexShaderSource() {
+        return Filter.vertexShaderSource
+    }
+
+    getFragmentShaderSource() {
+        return FxaaFilter.fragmentShaderSource
+    }
+
+}
+
+FxaaFilter.fxaa = `
+    #ifndef FXAA_REDUCE_MIN
+        #define FXAA_REDUCE_MIN   (1.0/ 128.0)
+    #endif
+    #ifndef FXAA_REDUCE_MUL
+        #define FXAA_REDUCE_MUL   (1.0 / 8.0)
+    #endif
+    #ifndef FXAA_SPAN_MAX
+        #define FXAA_SPAN_MAX     8.0
+    #endif
+    
+    //optimized version for mobile, where dependent 
+    //texture reads can be a bottleneck
+    vec4 fxaa(sampler2D tex, vec2 fragCoord, vec2 resolution,
+            vec2 v_rgbNW, vec2 v_rgbNE, 
+            vec2 v_rgbSW, vec2 v_rgbSE, 
+            vec2 v_rgbM) {
+            
+        vec4 color;
+        vec2 inverseVP = vec2(1.0 / resolution.x, 1.0 / resolution.y);
+        vec3 rgbNW = texture2D(tex, v_rgbNW).xyz;
+        vec3 rgbNE = texture2D(tex, v_rgbNE).xyz;
+        vec3 rgbSW = texture2D(tex, v_rgbSW).xyz;
+        vec3 rgbSE = texture2D(tex, v_rgbSE).xyz;
+        vec4 texColor = texture2D(tex, v_rgbM);
+        vec3 rgbM  = texColor.xyz;
+        vec3 luma = vec3(0.299, 0.587, 0.114);
+        float lumaNW = dot(rgbNW, luma);
+        float lumaNE = dot(rgbNE, luma);
+        float lumaSW = dot(rgbSW, luma);
+        float lumaSE = dot(rgbSE, luma);
+        float lumaM  = dot(rgbM,  luma);
+        float lumaMin = min(lumaM, min(min(lumaNW, lumaNE), min(lumaSW, lumaSE)));
+        float lumaMax = max(lumaM, max(max(lumaNW, lumaNE), max(lumaSW, lumaSE)));
+        
+        vec2 dir;
+        dir.x = -((lumaNW + lumaNE) - (lumaSW + lumaSE));
+        dir.y =  ((lumaNW + lumaSW) - (lumaNE + lumaSE));
+        
+        float dirReduce = max((lumaNW + lumaNE + lumaSW + lumaSE) *
+                              (0.25 * FXAA_REDUCE_MUL), FXAA_REDUCE_MIN);
+        
+        float rcpDirMin = 1.0 / (min(abs(dir.x), abs(dir.y)) + dirReduce);
+        dir = min(vec2(FXAA_SPAN_MAX, FXAA_SPAN_MAX),
+                  max(vec2(-FXAA_SPAN_MAX, -FXAA_SPAN_MAX),
+                  dir * rcpDirMin)) * inverseVP;
+        
+        vec3 rgbA = 0.5 * (
+            texture2D(tex, fragCoord * inverseVP + dir * (1.0 / 3.0 - 0.5)).xyz +
+            texture2D(tex, fragCoord * inverseVP + dir * (2.0 / 3.0 - 0.5)).xyz);
+        vec3 rgbB = rgbA * 0.5 + 0.25 * (
+            texture2D(tex, fragCoord * inverseVP + dir * -0.5).xyz +
+            texture2D(tex, fragCoord * inverseVP + dir * 0.5).xyz);
+    
+        float lumaB = dot(rgbB, luma);
+        if ((lumaB < lumaMin) || (lumaB > lumaMax))
+            color = vec4(rgbA, texColor.a);
+        else
+            color = vec4(rgbB, texColor.a);
+        return color;
+    }
+    
+    void texcoords(vec2 fragCoord, vec2 resolution,
+            out vec2 v_rgbNW, out vec2 v_rgbNE,
+            out vec2 v_rgbSW, out vec2 v_rgbSE,
+            out vec2 v_rgbM) {
+        
+        vec2 inverseVP = 1.0 / resolution.xy;
+        v_rgbNW = (fragCoord + vec2(-1.0, -1.0)) * inverseVP;
+        v_rgbNE = (fragCoord + vec2(1.0, -1.0)) * inverseVP;
+        v_rgbSW = (fragCoord + vec2(-1.0, 1.0)) * inverseVP;
+        v_rgbSE = (fragCoord + vec2(1.0, 1.0)) * inverseVP;
+        v_rgbM = vec2(fragCoord * inverseVP);
+    }
+    vec4 apply(sampler2D tex, vec2 fragCoord, vec2 resolution) {
+        vec2 v_rgbNW;
+        vec2 v_rgbNE;
+        vec2 v_rgbSW;
+        vec2 v_rgbSE;
+        vec2 v_rgbM;
+    
+        //compute the texture coords
+        texcoords(fragCoord, resolution, v_rgbNW, v_rgbNE, v_rgbSW, v_rgbSE, v_rgbM);
+        
+        //compute FXAA
+        return fxaa(tex, fragCoord, resolution, v_rgbNW, v_rgbNE, v_rgbSW, v_rgbSE, v_rgbM);
+    }    
+`
+
+FxaaFilter.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    
+    ${FxaaFilter.fxaa}
+    
+    uniform vec2 resolution;
+    uniform sampler2D uSampler;
+    void main(void){
+        gl_FragColor = apply(uSampler, gl_FragCoord.xy, resolution);
+    }
+    
+`;
+
+
+/**
+ * Copyright Metrological, 2017
+ */
+
+
 class InversionFilter extends Filter {
     constructor(ctx) {
         super(ctx);
