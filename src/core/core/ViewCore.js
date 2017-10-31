@@ -543,7 +543,7 @@ class ViewCore {
             // Disabled shader.
             let newShaderOwner = (this._parent && !this._parent._renderToTextureEnabled ? this._parent._shaderOwner : null);
             this._setShaderOwnerRecursive(newShaderOwner);
-        } else {
+        } else if (v) {
             // Enabled shader.
             this._setShaderOwnerRecursive(this);
         }
@@ -575,7 +575,7 @@ class ViewCore {
     }
 
     _setShaderOwnerRecursive(viewCore) {
-        let support = this.activeShader.supportsTextureAtlas()
+        let support = this.activeShader && this.activeShader.supportsTextureAtlas()
         this._shaderOwner = viewCore;
         if (support !== this.activeShader.supportsTextureAtlas()) {
             this._view._updateTextureCoords()

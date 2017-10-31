@@ -5,6 +5,7 @@ module.exports = function(grunt) {
                 src : [
                     'src/browser/EventEmitter.js',
                     'src/browser/WebAdapter.js',
+                    'src/browser/WpeImageParser.js',
                     'src/core/Base.js',
                     'src/core/Utils.js',
                     'src/core/StageUtils.js',
@@ -38,6 +39,7 @@ module.exports = function(grunt) {
                 src : [
                     'src/browser/EventEmitter.js',
                     'src/browser/WebAdapter.js',
+                    'src/browser/WpeImageParser.js',
                     'src/core/Base.js',
                     'src/core/Utils.js',
                     'src/core/StageUtils.js',

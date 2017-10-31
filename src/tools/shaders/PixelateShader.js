@@ -15,14 +15,6 @@ class PixelateShader extends Shader {
         this._size = new Float32Array([4, 4]);
     }
 
-    getVertexShaderSource() {
-        return PixelateShader.vertexShaderSource
-    }
-
-    getFragmentShaderSource() {
-        return PixelateShader.fragmentShaderSource
-    }
-
     get x() {
         return this._size[0];
     }

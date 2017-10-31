@@ -11,14 +11,6 @@ class Shader extends ShaderBase {
         this.isDefault = this.constructor === Shader;
     }
 
-    getVertexShaderSource() {
-        return Shader.vertexShaderSource
-    }
-
-    getFragmentShaderSource() {
-        return Shader.fragmentShaderSource
-    }
-
     supportsTextureAtlas() {
         // Most shaders that are performing out-of-bounds texture reads will produce artifacts when using texture atlas.
         return this.isDefault
@@ -96,7 +88,7 @@ class Shader extends ShaderBase {
 
     isMergable(shader) {
         // This must be overruled if the
-        return this.hasUniformUpdates();
+        return !this.hasUniformUpdates();
     }
 
     _getProjection(operation) {

@@ -31,6 +31,13 @@ class StageUtils {
         return [r / 255, g / 255, b / 255, a / 255];
     };
 
+    static getRgbComponentsNormalized(argb) {
+        let r = ((argb / 65536) | 0) % 256;
+        let g = ((argb / 256) | 0) % 256;
+        let b = argb % 256;
+        return [r / 255, g / 255, b / 255];
+    };
+
     static getRgbaComponents(argb) {
         let r = ((argb / 65536) | 0) % 256;
         let g = ((argb / 256) | 0) % 256;

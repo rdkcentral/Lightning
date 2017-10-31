@@ -1466,6 +1466,8 @@ class View {
             }
         } else if (v === null) {
             shader = this.stage.ctx.renderState.defaultShader;
+        } else if (v === undefined) {
+            shader = null;
         } else {
             if (v.isShader) {
                 shader = v;

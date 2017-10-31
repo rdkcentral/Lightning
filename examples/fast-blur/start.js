@@ -31,7 +31,7 @@ var start = function(wpe) {
         // ]}).start();
 
 
-        r.tag('blur').setSmooth('amount', 4, {delay: 2, duration: 3, timingFunction: 'ease'})
+        r.tag('blur').setSmooth('amount', 2, {delay: 2, duration: 3, timingFunction: 'ease'})
         // r.animation({duration: 3, repeat: -1, actions: [
         //     {t: 'blur', p: 'amount', merger: 'numbers', v: {0:0.0, 0.5:5, 1: 0.0}}
         // ]}).start();

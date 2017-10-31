@@ -15,21 +15,6 @@ var start = function(wpe) {
         stage.root.add([
             {tags: 'main-wrap', w: 1280, h: 720, scale: 1/*, filters: [{type: FxaaFilter}]*/, children: [
                 {tags: 'main', shader: {type: PhongShader}, rect: true, w: 1280, h: 720},
-                // {tags: 'main', shader: {type: PhongShader}, rect: true, w: 1280, h: 720},
-                // {tags: 'main', shader: {type: PhongShader}, rect: true, w: 1280, h: 720},
-                // {tags: 'main', shader: {type: PhongShader}, rect: true, w: 1280, h: 720},
-                // {tags: 'main', shader: {type: PhongShader}, rect: true, w: 1280, h: 720},
-                // {tags: 'main', shader: {type: PhongShader}, rect: true, w: 1280, h: 720},
-                // {tags: 'main', shader: {type: PhongShader}, rect: true, w: 1280, h: 720},
-                // {tags: 'main', shader: {type: PhongShader}, rect: true, w: 1280, h: 720},
-                // {tags: 'main', shader: {type: PhongShader}, rect: true, w: 1280, h: 720},
-                // {tags: 'main', shader: {type: PhongShader}, rect: true, w: 1280, h: 720},
-                // {tags: 'main', shader: {type: PhongShader}, rect: true, w: 1280, h: 720},
-                // {tags: 'main', shader: {type: PhongShader}, rect: true, w: 1280, h: 720},
-                // {tags: 'main', shader: {type: PhongShader}, rect: true, w: 1280, h: 720},
-                // {tags: 'main', shader: {type: PhongShader}, rect: true, w: 1280, h: 720},
-                // {tags: 'main', shader: {type: PhongShader}, rect: true, w: 1280, h: 720},
-                // {tags: 'main', shader: {type: PhongShader}, rect: true, w: 1280, h: 720},
             ]}
         ]);
 

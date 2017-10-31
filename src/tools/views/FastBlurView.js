@@ -214,14 +214,6 @@ class FastBoxBlurShader extends Shader {
         super(ctx)
     }
 
-    getVertexShaderSource() {
-        return FastBoxBlurShader.vertexShaderSource
-    }
-
-    getFragmentShaderSource() {
-        return FastBoxBlurShader.fragmentShaderSource
-    }
-
     setupUniforms(operation) {
         super.setupUniforms(operation)
         var dx = 1.0 / operation.getTextureWidth(0);

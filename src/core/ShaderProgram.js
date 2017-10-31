@@ -18,7 +18,7 @@ class ShaderProgram {
 
         this._pendingUniformValues = {};
         this._pendingUniformFunctions = {};
-        this._pendingUniformCount = 0
+        this._hasUniformUpdates = false
     }
 
     compile(gl) {
@@ -132,20 +132,12 @@ class ShaderProgram {
         if (v === undefined || !this._valueEquals(v, value)) {
             this._pendingUniformValues[name] = this._valueClone(value)
             this._pendingUniformFunctions[name] = glFunction
-            this._pendingUniformCount++
-        } else {
-            if (v !== undefined) {
-                if (this._pendingUniformValues[name]) {
-                    delete this._pendingUniformValues[name]
-                    delete this._pendingUniformFunctions[name]
-                    this._pendingUniformCount--
-                }
-            }
+            this._hasUniformUpdates = true
         }
     }
 
     hasUniformUpdates() {
-        return (this._pendingUniformCount > 0)
+        return this._hasUniformUpdates
     }
 
     commitUniformUpdates() {
@@ -165,7 +157,7 @@ class ShaderProgram {
         })
         this._pendingUniformValues = {}
         this._pendingUniformFunctions = {}
-        this._pendingUniformCount = 0
+        this._hasUniformUpdates = false
     }
 
 }

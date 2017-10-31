@@ -12,14 +12,6 @@ class FxaaFilter extends Filter {
         super(ctx);
     }
 
-    getVertexShaderSource() {
-        return Filter.vertexShaderSource
-    }
-
-    getFragmentShaderSource() {
-        return FxaaFilter.fragmentShaderSource
-    }
-
 }
 
 FxaaFilter.fxaa = `

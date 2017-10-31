@@ -9,6 +9,12 @@ class WebAdapter {
         this.canvas = null;
         this._looping = false;
         this._awaitingLoop = false;
+        if (window.imageparser) {
+            let WpeImageParser = require('./WpeImageParser');
+            this.wpeImageParser = new WpeImageParser();
+        } else {
+            this.wpeImageParser = null;
+        }
     }
 
     startLoop() {
@@ -37,7 +43,6 @@ class WebAdapter {
 
     uploadGlTexture(gl, textureSource, source, hasAlpha) {
         let format = hasAlpha ? gl.RGBA : gl.RGB;
-
         if (source instanceof ImageData || source instanceof HTMLImageElement || source instanceof HTMLCanvasElement || source instanceof HTMLVideoElement || (window.ImageBitmap && source instanceof ImageBitmap)) {
             // Web-specific data types.
             gl.texImage2D(gl.TEXTURE_2D, 0, format, format, gl.UNSIGNED_BYTE, source);
@@ -48,7 +53,18 @@ class WebAdapter {
 
     loadSrcTexture(src, ts, sync, cb) {
         let isPng = (src.indexOf(".png") >= 0)
-        if (window.OffthreadImage && OffthreadImage.available) {
+        if (this.wpeImageParser) {
+            // WPE-specific image parser.
+            var oReq = this.wpeImageParser.add(src, function(err, width, height, memory, offset, length) {
+                if (err) return cb(err);
+
+                var options = {w: width, h: height, premultiplyAlpha: false, flipBlueRed: false, hasAlpha: true};
+                cb(null, new Uint8Array(memory, offset, length), options);
+            });
+            ts.cancelCb = function() {
+                oReq.abort();
+            }
+        } else if (window.OffthreadImage && OffthreadImage.available) {
             // For offthread support: simply include https://github.com/GoogleChrome/offthread-image/blob/master/dist/offthread-img.js
             // Possible optimisation: do not paint on canvas, but directly pass ImageData to texImage2d.
             let element = document.createElement('DIV');

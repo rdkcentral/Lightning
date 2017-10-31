@@ -32,6 +32,7 @@ var loadWpe, loadBulk;
         var sourceFiles = {
             "EventEmitter":"./browser/EventEmitter.js",
             "WebAdapter":"./browser/WebAdapter.js",
+            "WpeImageParser":"./browser/WpeImageParser.js",
             "Base":"./core/Base.js",
             "Utils":"./core/Utils.js",
             "StageUtils":"./core/StageUtils.js",

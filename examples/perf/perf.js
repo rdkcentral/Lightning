@@ -70,6 +70,12 @@ var start = function(wpe) {
                         var delta = (new Date()).getTime() - s;
                         var frames = Math.round((delta / 0.016666667) / 1000);
                         console.log('frame misses (60fps): ' + (frames - f));
+                        var h1 = document.createElement('h1');
+                        h1.style.position="absolute";
+                        h1.style.top="0";
+                        h1.style.color="white";
+                        h1.innerText = 'frame misses (60fps): ' + (frames - f) + '[' + f + ' out of ' + frames + ']';
+                        document.body.appendChild(h1);
                     }
                 }
             }

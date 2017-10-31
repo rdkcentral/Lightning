@@ -19,14 +19,6 @@ class Light3dShader extends Shader {
         this._z = 0
     }
 
-    getVertexShaderSource() {
-        return Light3dShader.vertexShaderSource
-    }
-
-    getFragmentShaderSource() {
-        return Light3dShader.fragmentShaderSource
-    }
-
     supportsTextureAtlas() {
         return true
     }

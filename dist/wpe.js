@@ -339,6 +339,11 @@ class WebAdapter {
         this.canvas = null;
         this._looping = false;
         this._awaitingLoop = false;
+        if (window.imageparser) {
+            this.wpeImageParser = new WpeImageParser();
+        } else {
+            this.wpeImageParser = null;
+        }
     }
 
     startLoop() {
@@ -367,7 +372,6 @@ class WebAdapter {
 
     uploadGlTexture(gl, textureSource, source, hasAlpha) {
         let format = hasAlpha ? gl.RGBA : gl.RGB;
-
         if (source instanceof ImageData || source instanceof HTMLImageElement || source instanceof HTMLCanvasElement || source instanceof HTMLVideoElement || (window.ImageBitmap && source instanceof ImageBitmap)) {
             // Web-specific data types.
             gl.texImage2D(gl.TEXTURE_2D, 0, format, format, gl.UNSIGNED_BYTE, source);
@@ -378,7 +382,18 @@ class WebAdapter {
 
     loadSrcTexture(src, ts, sync, cb) {
         let isPng = (src.indexOf(".png") >= 0)
-        if (window.OffthreadImage && OffthreadImage.available) {
+        if (this.wpeImageParser) {
+            // WPE-specific image parser.
+            var oReq = this.wpeImageParser.add(src, function(err, width, height, memory, offset, length) {
+                if (err) return cb(err);
+
+                var options = {w: width, h: height, premultiplyAlpha: false, flipBlueRed: false, hasAlpha: true};
+                cb(null, new Uint8Array(memory, offset, length), options);
+            });
+            ts.cancelCb = function() {
+                oReq.abort();
+            }
+        } else if (window.OffthreadImage && OffthreadImage.available) {
             // For offthread support: simply include https://github.com/GoogleChrome/offthread-image/blob/master/dist/offthread-img.js
             // Possible optimisation: do not paint on canvas, but directly pass ImageData to texImage2d.
             let element = document.createElement('DIV');
@@ -460,6 +475,102 @@ class WebAdapter {
 
 }
 
+
+
+class WpeImageParser {
+    constructor(memory = 16777216) {
+        this.memory = new ArrayBuffer(memory);
+
+        this.init();
+    }
+
+    init() {
+        this.pending = {};
+        this.pendingCount = 0;
+        this.session = imageparser.Init(this.memory);
+        console.log('SESSION: ' + this.session);
+        this.oReqs = new Set();
+
+        this.start();
+    }
+
+    start() {
+        if (this.pendingCount && !this.timeout) {
+            this.timeout = setTimeout(() => {
+                this.timeout = 0;
+                this.process();
+                this.start();
+            }, 50)
+        }
+    }
+
+    cleanup() {
+        if (this.timeout) {
+            clearTimeout(this.timeout);
+            this.timeout = null;
+        }
+
+        this.oReqs.forEach(function(oReq) {
+            oReq.abort();
+        });
+
+        imageparser.Cleanup(this.session);
+
+        this.oReqs = null;
+        this.session = null;
+        this.pending = null;
+        this.pendingCount = 0;
+    }
+
+    process() {
+        imageparser.ProcessResults(this.session, (id, error, width, height, offset) => {
+            this.pendingCount--;
+            this.pending[id].cb(error, width, height, this.memory, offset, width * height * 4);
+            this.pending[id] = null;
+        })
+    }
+
+    add(url, cb) {
+        var oReq = new XMLHttpRequest();
+        oReq.open("GET", url, true);
+        oReq.responseType = "arraybuffer";
+
+        oReq.onload = oEvent => {
+            this.oReqs.delete(oReq);
+            var buffer = oReq.response;
+
+            var contentTypeHeader = oReq.getResponseHeader('content-type');
+            var contentType = -1;
+            if (contentTypeHeader == "image/jpeg" || contentTypeHeader == "image/jpg") {
+                contentType = 0;
+            } else if (contentTypeHeader == "image/png") {
+                contentType = 1;
+            }
+
+            if (contentType >= 0) {
+                var id = imageparser.Add(this.session, contentType, buffer);
+                this.pending[id] = {buffer: buffer, cb: cb}
+                this.pendingCount++;
+
+                this.start();
+            } else {
+                cb("Unsupported content type: " + contentTypeHeader);
+            }
+        };
+
+        this.oReqs.add(oReq);
+
+        oReq.onerror = oEvent => {
+            this.oReqs.delete(oReq);
+            cb(oEvent);
+        };
+
+        oReq.send(null);
+
+        // By calling oReq.abort, the image parsing can be aborted.
+        return oReq;
+    }
+}
 
 /**
  * Copyright Metrological, 2017
@@ -703,6 +814,13 @@ class StageUtils {
         let b = argb % 256;
         let a = ((argb / 16777216) | 0);
         return [r / 255, g / 255, b / 255, a / 255];
+    };
+
+    static getRgbComponentsNormalized(argb) {
+        let r = ((argb / 65536) | 0) % 256;
+        let g = ((argb / 256) | 0) % 256;
+        let b = argb % 256;
+        return [r / 255, g / 255, b / 255];
     };
 
     static getRgbaComponents(argb) {
@@ -1369,7 +1487,7 @@ class ShaderProgram {
 
         this._pendingUniformValues = {};
         this._pendingUniformFunctions = {};
-        this._pendingUniformCount = 0
+        this._hasUniformUpdates = false
     }
 
     compile(gl) {
@@ -1483,20 +1601,12 @@ class ShaderProgram {
         if (v === undefined || !this._valueEquals(v, value)) {
             this._pendingUniformValues[name] = this._valueClone(value)
             this._pendingUniformFunctions[name] = glFunction
-            this._pendingUniformCount++
-        } else {
-            if (v !== undefined) {
-                if (this._pendingUniformValues[name]) {
-                    delete this._pendingUniformValues[name]
-                    delete this._pendingUniformFunctions[name]
-                    this._pendingUniformCount--
-                }
-            }
+            this._hasUniformUpdates = true
         }
     }
 
     hasUniformUpdates() {
-        return (this._pendingUniformCount > 0)
+        return this._hasUniformUpdates
     }
 
     commitUniformUpdates() {
@@ -1516,7 +1626,7 @@ class ShaderProgram {
         })
         this._pendingUniformValues = {}
         this._pendingUniformFunctions = {}
-        this._pendingUniformCount = 0
+        this._hasUniformUpdates = false
     }
 
 }
@@ -1533,7 +1643,7 @@ class ShaderBase extends Base {
 
         this._program = coreContext.shaderPrograms.get(this.constructor);
         if (!this._program) {
-            this._program = new ShaderProgram(this.getVertexShaderSource(), this.getFragmentShaderSource());
+            this._program = new ShaderProgram(this.constructor.vertexShaderSource, this.constructor.fragmentShaderSource);
 
             // Let the vbo context perform garbage collection.
             coreContext.shaderPrograms.set(this.constructor, this._program);
@@ -1549,14 +1659,6 @@ class ShaderBase extends Base {
          * @type {Set<ViewCore>}
          */
         this._views = new Set();
-    }
-
-    getVertexShaderSource() {
-        return ""
-    }
-
-    getFragmentShaderSource() {
-        return ""
     }
 
     _init() {
@@ -1647,14 +1749,6 @@ class Shader extends ShaderBase {
         this.isDefault = this.constructor === Shader;
     }
 
-    getVertexShaderSource() {
-        return Shader.vertexShaderSource
-    }
-
-    getFragmentShaderSource() {
-        return Shader.fragmentShaderSource
-    }
-
     supportsTextureAtlas() {
         // Most shaders that are performing out-of-bounds texture reads will produce artifacts when using texture atlas.
         return this.isDefault
@@ -1732,7 +1826,7 @@ class Shader extends ShaderBase {
 
     isMergable(shader) {
         // This must be overruled if the
-        return this.hasUniformUpdates();
+        return !this.hasUniformUpdates();
     }
 
     _getProjection(operation) {
@@ -1816,14 +1910,6 @@ class Filter extends ShaderBase {
 
     constructor(coreContext) {
         super(coreContext);
-    }
-
-    getVertexShaderSource() {
-        return Filter.vertexShaderSource
-    }
-
-    getFragmentShaderSource() {
-        return Filter.fragmentShaderSource
     }
 
     useDefault() {
@@ -7555,12 +7641,14 @@ class CoreRenderExecutor {
         let shader = quadOperation.shader
 
         let merged = false
+        let setup = false
         if (this._quadOperation && (this._quadOperation.renderTextureInfo === quadOperation.renderTextureInfo) && (this._quadOperation.scissor === quadOperation.scissor) && this._quadOperation.shader.supportsMerging() && quadOperation.shader.supportsMerging()) {
             if (this._quadOperation.shader === shader) {
                 this._mergeQuadOperation(quadOperation)
                 merged = true
             } else if (shader.hasSameProgram(this._quadOperation.shader)) {
                 shader.setupUniforms(quadOperation)
+                setup = true
                 if (shader.isMergable(this._quadOperation.shader)) {
                     this._mergeQuadOperation(quadOperation)
                     merged = true
@@ -7573,7 +7661,14 @@ class CoreRenderExecutor {
                 this._execQuadOperation()
             }
 
-            shader.setupUniforms(quadOperation)
+            if (!setup) {
+                shader.setupUniforms(quadOperation)
+            }
+
+            // We immediately commit the uniform updates to compare with other shaders of the same type when merging.
+            this._useShaderProgram(shader)
+            shader.commitUniformUpdates();
+
             this._quadOperation = quadOperation
         }
     }
@@ -7590,17 +7685,14 @@ class CoreRenderExecutor {
                 this._bindRenderTexture(glTexture)
             }
 
-            this._setScissor(op.scissor)
+            if (this._scissor !== op.scissor) {
+                this._setScissor(op.scissor)
+            }
 
             if (op.renderTextureInfo && !op.renderTextureInfo.cleared) {
                 this._clearRenderTexture()
                 op.renderTextureInfo.cleared = true
             }
-
-            this._useShaderProgram(shader)
-
-            // Set the prepared updates.
-            shader.commitUniformUpdates()
 
             shader.beforeDraw(op)
             shader.draw(op)
@@ -7618,7 +7710,9 @@ class CoreRenderExecutor {
         filter.beforeDraw(filterOperation)
         this._bindRenderTexture(filterOperation.renderTexture)
         this._clearRenderTexture()
-        this._setScissor(null)
+        if (this._scissor) {
+            this._setScissor(null)
+        }
         filter.draw(filterOperation)
         filter.afterDraw(filterOperation)
     }
@@ -7671,20 +7765,18 @@ class CoreRenderExecutor {
     }
 
     _setScissor(area) {
-        if (this._scissor !== area) {
-            let gl = this.gl
-            if (!area) {
-                gl.disable(gl.SCISSOR_TEST);
-            } else {
-                gl.enable(gl.SCISSOR_TEST);
-                if (this._renderTexture === null) {
-                    // Flip.
-                    area[1] = this.ctx.stage.h - (area[1] + area[3])
-                }
-                gl.scissor(area[0], area[1], area[2], area[3]);
+        let gl = this.gl
+        if (!area) {
+            gl.disable(gl.SCISSOR_TEST);
+        } else {
+            gl.enable(gl.SCISSOR_TEST);
+            if (this._renderTexture === null) {
+                // Flip.
+                area[1] = this.ctx.stage.h - (area[1] + area[3])
             }
-            this._scissor = area
+            gl.scissor(area[0], area[1], area[2], area[3]);
         }
+        this._scissor = area
     }
 
 
@@ -10813,14 +10905,6 @@ class FastBoxBlurShader extends Shader {
         super(ctx)
     }
 
-    getVertexShaderSource() {
-        return FastBoxBlurShader.vertexShaderSource
-    }
-
-    getFragmentShaderSource() {
-        return FastBoxBlurShader.fragmentShaderSource
-    }
-
     setupUniforms(operation) {
         super.setupUniforms(operation)
         var dx = 1.0 / operation.getTextureWidth(0);
@@ -10960,14 +11044,6 @@ class Light3dShader extends Shader {
         this._ry = 0
 
         this._z = 0
-    }
-
-    getVertexShaderSource() {
-        return Light3dShader.vertexShaderSource
-    }
-
-    getFragmentShaderSource() {
-        return Light3dShader.fragmentShaderSource
     }
 
     supportsTextureAtlas() {
@@ -11153,14 +11229,6 @@ class PixelateShader extends Shader {
         this._size = new Float32Array([4, 4]);
     }
 
-    getVertexShaderSource() {
-        return PixelateShader.vertexShaderSource
-    }
-
-    getFragmentShaderSource() {
-        return PixelateShader.fragmentShaderSource
-    }
-
     get x() {
         return this._size[0];
     }
@@ -11336,14 +11404,6 @@ InversionShader.fragmentShaderSource = `
 class FxaaFilter extends Filter {
     constructor(ctx) {
         super(ctx);
-    }
-
-    getVertexShaderSource() {
-        return Filter.vertexShaderSource
-    }
-
-    getFragmentShaderSource() {
-        return FxaaFilter.fragmentShaderSource
     }
 
 }

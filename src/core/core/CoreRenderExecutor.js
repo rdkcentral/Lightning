@@ -129,12 +129,14 @@ class CoreRenderExecutor {
         let shader = quadOperation.shader
 
         let merged = false
+        let setup = false
         if (this._quadOperation && (this._quadOperation.renderTextureInfo === quadOperation.renderTextureInfo) && (this._quadOperation.scissor === quadOperation.scissor) && this._quadOperation.shader.supportsMerging() && quadOperation.shader.supportsMerging()) {
             if (this._quadOperation.shader === shader) {
                 this._mergeQuadOperation(quadOperation)
                 merged = true
             } else if (shader.hasSameProgram(this._quadOperation.shader)) {
                 shader.setupUniforms(quadOperation)
+                setup = true
                 if (shader.isMergable(this._quadOperation.shader)) {
                     this._mergeQuadOperation(quadOperation)
                     merged = true
@@ -147,7 +149,14 @@ class CoreRenderExecutor {
                 this._execQuadOperation()
             }
 
-            shader.setupUniforms(quadOperation)
+            if (!setup) {
+                shader.setupUniforms(quadOperation)
+            }
+
+            // We immediately commit the uniform updates to compare with other shaders of the same type when merging.
+            this._useShaderProgram(shader)
+            shader.commitUniformUpdates();
+
             this._quadOperation = quadOperation
         }
     }
@@ -164,17 +173,14 @@ class CoreRenderExecutor {
                 this._bindRenderTexture(glTexture)
             }
 
-            this._setScissor(op.scissor)
+            if (this._scissor !== op.scissor) {
+                this._setScissor(op.scissor)
+            }
 
             if (op.renderTextureInfo && !op.renderTextureInfo.cleared) {
                 this._clearRenderTexture()
                 op.renderTextureInfo.cleared = true
             }
-
-            this._useShaderProgram(shader)
-
-            // Set the prepared updates.
-            shader.commitUniformUpdates()
 
             shader.beforeDraw(op)
             shader.draw(op)
@@ -192,7 +198,9 @@ class CoreRenderExecutor {
         filter.beforeDraw(filterOperation)
         this._bindRenderTexture(filterOperation.renderTexture)
         this._clearRenderTexture()
-        this._setScissor(null)
+        if (this._scissor) {
+            this._setScissor(null)
+        }
         filter.draw(filterOperation)
         filter.afterDraw(filterOperation)
     }
@@ -245,20 +253,18 @@ class CoreRenderExecutor {
     }
 
     _setScissor(area) {
-        if (this._scissor !== area) {
-            let gl = this.gl
-            if (!area) {
-                gl.disable(gl.SCISSOR_TEST);
-            } else {
-                gl.enable(gl.SCISSOR_TEST);
-                if (this._renderTexture === null) {
-                    // Flip.
-                    area[1] = this.ctx.stage.h - (area[1] + area[3])
-                }
-                gl.scissor(area[0], area[1], area[2], area[3]);
+        let gl = this.gl
+        if (!area) {
+            gl.disable(gl.SCISSOR_TEST);
+        } else {
+            gl.enable(gl.SCISSOR_TEST);
+            if (this._renderTexture === null) {
+                // Flip.
+                area[1] = this.ctx.stage.h - (area[1] + area[3])
             }
-            this._scissor = area
+            gl.scissor(area[0], area[1], area[2], area[3]);
         }
+        this._scissor = area
     }
 
 

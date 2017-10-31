@@ -11,14 +11,6 @@ class Filter extends ShaderBase {
         super(coreContext);
     }
 
-    getVertexShaderSource() {
-        return Filter.vertexShaderSource
-    }
-
-    getFragmentShaderSource() {
-        return Filter.fragmentShaderSource
-    }
-
     useDefault() {
         // Should return true if this filter is configured (using it's properties) to not have any effect.
         // This may allow the render engine to avoid unnecessary shader program switches or even texture copies.

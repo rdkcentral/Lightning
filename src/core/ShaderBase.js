@@ -12,7 +12,7 @@ class ShaderBase extends Base {
 
         this._program = coreContext.shaderPrograms.get(this.constructor);
         if (!this._program) {
-            this._program = new ShaderProgram(this.getVertexShaderSource(), this.getFragmentShaderSource());
+            this._program = new ShaderProgram(this.constructor.vertexShaderSource, this.constructor.fragmentShaderSource);
 
             // Let the vbo context perform garbage collection.
             coreContext.shaderPrograms.set(this.constructor, this._program);
@@ -28,14 +28,6 @@ class ShaderBase extends Base {
          * @type {Set<ViewCore>}
          */
         this._views = new Set();
-    }
-
-    getVertexShaderSource() {
-        return ""
-    }
-
-    getFragmentShaderSource() {
-        return ""
     }
 
     _init() {
