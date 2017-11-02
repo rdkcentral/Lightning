@@ -15,10 +15,6 @@ class ShaderProgram {
         this._attributeLocations = new Map();
 
         this._currentUniformValues = {};
-
-        this._pendingUniformValues = {};
-        this._pendingUniformFunctions = {};
-        this._hasUniformUpdates = false
     }
 
     compile(gl) {
@@ -130,34 +126,19 @@ class ShaderProgram {
     setUniformValue(name, value, glFunction) {
         let v = this._currentUniformValues[name];
         if (v === undefined || !this._valueEquals(v, value)) {
-            this._pendingUniformValues[name] = this._valueClone(value)
-            this._pendingUniformFunctions[name] = glFunction
-            this._hasUniformUpdates = true
-        }
-    }
-
-    hasUniformUpdates() {
-        return this._hasUniformUpdates
-    }
-
-    commitUniformUpdates() {
-        let names = Object.keys(this._pendingUniformValues)
-        names.forEach(name => {
-            this._currentUniformValues[name] = this._pendingUniformValues[name]
+            let clonedValue = this._valueClone(value)
+            this._currentUniformValues[name] = clonedValue
 
             let loc = this.getUniformLocation(name)
             if (loc) {
-                let matrix = (this._pendingUniformFunctions[name] === this.gl.uniformMatrix2fv || this._pendingUniformFunctions[name] === this.gl.uniformMatrix3fv || this._pendingUniformFunctions[name] === this.gl.uniformMatrix4fv)
-                if (matrix) {
-                    this._pendingUniformFunctions[name].call(this.gl, loc, false, this._pendingUniformValues[name])
+                let isMatrix = (glFunction === this.gl.uniformMatrix2fv || glFunction === this.gl.uniformMatrix3fv || glFunction === this.gl.uniformMatrix4fv)
+                if (isMatrix) {
+                    glFunction.call(this.gl, loc, false, clonedValue)
                 } else {
-                    this._pendingUniformFunctions[name].call(this.gl, loc, this._pendingUniformValues[name])
+                    glFunction.call(this.gl, loc, clonedValue)
                 }
             }
-        })
-        this._pendingUniformValues = {}
-        this._pendingUniformFunctions = {}
-        this._hasUniformUpdates = false
+        }
     }
 
 }

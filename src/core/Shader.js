@@ -87,8 +87,6 @@ class Shader extends ShaderBase {
     }
 
     isMergable(shader) {
-        // This must be overruled if the
-        return !this.hasUniformUpdates();
     }
 
     _getProjection(operation) {

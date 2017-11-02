@@ -74,14 +74,6 @@ class ShaderBase extends Base {
         // All settings changed in beforeUsage should be reset here.
     }
 
-    hasUniformUpdates() {
-        return this._program.hasUniformUpdates()
-    }
-
-    commitUniformUpdates() {
-        this._program.commitUniformUpdates()
-    }
-
     get initialized() {
         return this._initialized;
     }

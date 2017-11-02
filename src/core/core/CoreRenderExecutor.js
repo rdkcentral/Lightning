@@ -110,55 +110,21 @@ class CoreRenderExecutor {
         return this.renderState.quads.getQuadContents()
     }
 
-    _mergeQuadOperation(quadOperation) {
-        if (this._quadOperation) {
-            this._quadOperation.length += quadOperation.length
-
-            // We remove the shader owner, because the shader should not rely on it.
-            this._quadOperation.shaderOwner = null
-        }
-    }
-
     _processQuadOperation(quadOperation) {
         if (quadOperation.renderTextureInfo && quadOperation.renderTextureInfo.ignore) {
             // Ignore quad operations when we are 're-using' another texture as the render texture result.
             return
         }
 
-        // Check if quad operation can be merged; uniforms are set lazily in the process.
+        if (this._quadOperation) {
+            this._execQuadOperation()
+        }
+
         let shader = quadOperation.shader
+        this._useShaderProgram(shader)
+        shader.setupUniforms(quadOperation)
 
-        let merged = false
-        let setup = false
-        if (this._quadOperation && (this._quadOperation.renderTextureInfo === quadOperation.renderTextureInfo) && (this._quadOperation.scissor === quadOperation.scissor) && this._quadOperation.shader.supportsMerging() && quadOperation.shader.supportsMerging()) {
-            if (this._quadOperation.shader === shader) {
-                this._mergeQuadOperation(quadOperation)
-                merged = true
-            } else if (shader.hasSameProgram(this._quadOperation.shader)) {
-                shader.setupUniforms(quadOperation)
-                setup = true
-                if (shader.isMergable(this._quadOperation.shader)) {
-                    this._mergeQuadOperation(quadOperation)
-                    merged = true
-                }
-            }
-        }
-
-        if (!merged) {
-            if (this._quadOperation) {
-                this._execQuadOperation()
-            }
-
-            if (!setup) {
-                shader.setupUniforms(quadOperation)
-            }
-
-            // We immediately commit the uniform updates to compare with other shaders of the same type when merging.
-            this._useShaderProgram(shader)
-            shader.commitUniformUpdates();
-
-            this._quadOperation = quadOperation
-        }
+        this._quadOperation = quadOperation
     }
 
     _execQuadOperation() {
@@ -194,7 +160,6 @@ class CoreRenderExecutor {
         let filter = filterOperation.filter
         this._useShaderProgram(filter)
         filter.setupUniforms(filterOperation)
-        filter.commitUniformUpdates()
         filter.beforeDraw(filterOperation)
         this._bindRenderTexture(filterOperation.renderTexture)
         this._clearRenderTexture()
