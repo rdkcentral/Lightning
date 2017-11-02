@@ -264,6 +264,8 @@ var attachInspector = function(wpe) {
                     root.style.top = bcr.top + 'px';
                     root.style.width = bcr.width + 'px';
                     root.style.height = bcr.height + 'px';
+                    root.style.transformOrigin = '0 0 0';
+                    root.style.transform = 'scale(' + self.stage.getRenderPrecision() + ',' + self.stage.getRenderPrecision() + ')';
                 }, 1000);
 
                 root.style.position = 'absolute';
