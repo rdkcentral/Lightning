@@ -182,7 +182,7 @@ class ViewCore {
             }
 
             if (!this._shader) {
-                let newShaderOwner = parent ? parent._shaderOwner : null;
+                let newShaderOwner = parent && !parent._renderToTextureEnabled ? parent._shaderOwner : null;
                 if (newShaderOwner !== this._shaderOwner) {
                     this.setHasRenderUpdates(1);
                     this._setShaderOwnerRecursive(newShaderOwner);

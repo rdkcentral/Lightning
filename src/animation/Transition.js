@@ -48,7 +48,7 @@ class Transition extends Base {
 
     stop() {
         if (this.isActive()) {
-            this._setter(this.targetValue);
+            this._setter(this._view, this.targetValue);
             this._p = 1;
         }
     }
@@ -61,7 +61,7 @@ class Transition extends Base {
         if (p < 1) {
             this.checkActive();
         } else if (p === 1) {
-            this._setter(targetValue);
+            this._setter(this._view, targetValue);
 
             // Immediately invoke onFinish event.
             this.invokeListeners();
