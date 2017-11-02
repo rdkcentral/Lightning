@@ -564,20 +564,22 @@ class View {
                 iw = 1 / w;
                 ih = 1 / h;
 
+                let prec = displayedTexture.precision;
+
                 if (displayedTexture.w) {
-                    rw = displayedTexture.w * iw;
+                    rw = (displayedTexture.w * prec) * iw;
                 } else {
-                    rw = (w - displayedTexture.x) * iw;
+                    rw = (w - (displayedTexture.x * prec)) * iw;
                 }
 
                 if (displayedTexture.h) {
-                    rh = displayedTexture.h * ih;
+                    rh = (displayedTexture.h * prec) * ih;
                 } else {
-                    rh = (h - displayedTexture.y) * ih;
+                    rh = (h - (displayedTexture.y * prec)) * ih;
                 }
 
-                iw *= displayedTexture.x;
-                ih *= displayedTexture.y;
+                iw *= (displayedTexture.x * prec);
+                ih *= (displayedTexture.y * prec);
 
                 tx1 = Math.min(1.0, Math.max(0, iw));
                 ty1 = Math.min(1.0, Math.max(ih));
@@ -1519,8 +1521,8 @@ class View {
         this.texturizer.filters = v
     }
 
-    getResultTextureSource() {
-        return this.texturizer.getResultTextureSource()
+    getTexture() {
+        return this.texturizer._getTextureSource()
     }
 
     get texturizer() {

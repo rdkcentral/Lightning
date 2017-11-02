@@ -123,7 +123,11 @@ class ViewTexturizer {
         return activeFilters
     }
 
-    getResultTextureSource() {
+    getTexture() {
+        return this.ctx.stage.texture(this._getTextureSource(), {precision: this._getTextureSource().precision});
+    }
+
+    _getTextureSource() {
         if (!this._resultTextureSource) {
             this._resultTextureSource = new TextureSource(this._view.stage.textureManager, null);
 
@@ -136,8 +140,8 @@ class ViewTexturizer {
         let resultTexture = this.getResultTexture()
         if (this._resultTextureSource) {
             if (this._resultTextureSource.glTexture !== resultTexture) {
-                let w = resultTexture ? resultTexture.w : 0
-                let h = resultTexture ? resultTexture.h : 0
+                let w = resultTexture ? resultTexture.rw : 0
+                let h = resultTexture ? resultTexture.rh : 0
                 this._resultTextureSource._changeGlTexture(resultTexture, w, h)
             }
 
@@ -195,7 +199,7 @@ class ViewTexturizer {
 
     getRenderTexture() {
         if (!this._renderTexture) {
-            this._renderTexture = this.ctx.allocateRenderTexture(Math.min(2048, this._core._rw), Math.min(2048, this._core._rh));
+            this._renderTexture = this.ctx.allocateRenderTexture(this._core._rw, this._core._rh);
             this._renderTextureReused = false
         }
         return this._renderTexture;
@@ -203,7 +207,7 @@ class ViewTexturizer {
 
     getFilterTexture() {
         if (!this._resultTexture) {
-            this._resultTexture = this.ctx.allocateRenderTexture(Math.min(2048, this._core._rw), Math.min(2048, this._core._rh));
+            this._resultTexture = this.ctx.allocateRenderTexture(this._core._rw, this._core._rh);
         }
         return this._resultTexture;
     }

@@ -66,7 +66,7 @@ class TextRendererSettings extends Base {
         }
 
         if (this.precision === null) {
-            this.precision = view.stage.options.defaultPrecision;
+            this.precision = view.stage.getRenderPrecision();
         }
     };
 

@@ -74,18 +74,24 @@ class CoreContext {
     }
 
     allocateRenderTexture(w, h) {
-        w = Math.round(w)
-        h = Math.round(h)
+        let prec = this.stage.getRenderPrecision()
+        let aw = Math.min(2048, Math.round(w * prec))
+        let ah = Math.min(2048, Math.round(h * prec))
+
         for (let i = 0, n = this._renderTexturePool.length; i < n; i++) {
             let texture = this._renderTexturePool[i];
-            if (texture.w === w && texture.h === h) {
+            if (texture.w === aw && texture.h === ah) {
                 texture.f = this.stage.frameCounter;
                 this._renderTexturePool.splice(i, 1);
                 return texture;
             }
         }
-        let texture = this._createRenderTexture(w, h);
+
+        let texture = this._createRenderTexture(aw, ah);
+
         texture.f = this.stage.frameCounter;
+        texture.precision = prec;
+        texture.projection = new Float32Array([2/w, 2/h])
 
         return texture;
     }
@@ -134,7 +140,6 @@ class CoreContext {
         sourceTexture.w = w;
         sourceTexture.h = h;
         sourceTexture.id = this._renderTextureId++
-        sourceTexture.projection = new Float32Array([2/w, 2/h])
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, sourceTexture.framebuffer)
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, sourceTexture, 0);

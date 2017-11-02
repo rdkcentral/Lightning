@@ -59,17 +59,19 @@ class Stage extends Base {
         opt('w', 1280);
         opt('h', 720);
         opt('canvas', this.options.canvas);
-        opt('renderWidth', this.options.w);
-        opt('renderHeight', this.options.h);
         opt('srcBasePath', null);
         opt('textureMemory', 12e6);
         opt('renderTexturePoolPixels', 12e6);
         opt('glClearColor', [0, 0, 0, 0]);
         opt('defaultFontFace', 'Sans-Serif');
-        opt('defaultPrecision', (this.options.h / this.options.renderHeight));
         opt('fixedDt', 0);
         opt('useTextureAtlas', false);
         opt('debugTextureAtlas', false);
+        opt('precision', 1);
+    }
+
+    getRenderPrecision() {
+        return this.options.precision;
     }
 
     init() {
@@ -245,11 +247,11 @@ class Stage extends Base {
     }
 
     get rw() {
-        return this.options.renderWidth
+        return this.w / this.options.precision
     }
 
     get rh() {
-        return this.options.renderHeight
+        return this.h / this.options.precision
     }
 
 }

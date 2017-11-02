@@ -1153,7 +1153,7 @@ class ViewCore {
             this._texturizer.filterResultCached = true;
         } else {
             let targetTexture = this._texturizer.getFilterTexture();
-            let intermediate = this.ctx.allocateRenderTexture(Math.min(2048, this._rw), Math.min(2048, this._rh));
+            let intermediate = this.ctx.allocateRenderTexture(this._rw, this._rh);
             let source = intermediate;
             let target = targetTexture;
 

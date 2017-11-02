@@ -30,10 +30,10 @@ class FastBlurView extends View {
         this._layers = c.get()[1].children
         this._output = c.get()[2]
 
-        this.getLayerContents(0).texture = this._textwrap.getResultTextureSource()
-        this.getLayerContents(1).texture = this.getLayer(0).getResultTextureSource()
-        this.getLayerContents(2).texture = this.getLayer(1).getResultTextureSource()
-        this.getLayerContents(3).texture = this.getLayer(2).getResultTextureSource()
+        this.getLayerContents(0).texture = this._textwrap.getTexture()
+        this.getLayerContents(1).texture = this.getLayer(0).getTexture()
+        this.getLayerContents(2).texture = this.getLayer(1).getTexture()
+        this.getLayerContents(3).texture = this.getLayer(2).getTexture()
 
         let filters = FastBlurView.getLinearBlurFilters(stage.ctx)
         this.getLayer(1).filters = [filters[0], filters[1]]
@@ -83,7 +83,7 @@ class FastBlurView extends View {
     _updateBlurSize() {
         let w = this.renderWidth
         let h = this.renderHeight
-        
+
         let paddingX = this._paddingX
         let paddingY = this._paddingY
 
@@ -143,20 +143,20 @@ class FastBlurView extends View {
             this.getLayer(3).visible = (v > 3);
 
             if (v <= 1) {
-                this._output.texture = this._textwrap.getResultTextureSource()
-                this._output.shader.otherTextureSource = this.getLayer(0).getResultTextureSource()
+                this._output.texture = this._textwrap.getTexture()
+                this._output.shader.otherTextureSource = this.getLayer(0).getTexture()
                 this._output.shader.a = v
             } else if (v <= 2) {
-                this._output.texture = this.getLayer(0).getResultTextureSource()
-                this._output.shader.otherTextureSource = this.getLayer(1).getResultTextureSource()
+                this._output.texture = this.getLayer(0).getTexture()
+                this._output.shader.otherTextureSource = this.getLayer(1).getTexture()
                 this._output.shader.a = v - 1
             } else if (v <= 3) {
-                this._output.texture = this.getLayer(1).getResultTextureSource()
-                this._output.shader.otherTextureSource = this.getLayer(2).getResultTextureSource()
+                this._output.texture = this.getLayer(1).getTexture()
+                this._output.shader.otherTextureSource = this.getLayer(2).getTexture()
                 this._output.shader.a = v - 2
             } else if (v <= 4) {
-                this._output.texture = this.getLayer(2).getResultTextureSource()
-                this._output.shader.otherTextureSource = this.getLayer(3).getResultTextureSource()
+                this._output.texture = this.getLayer(2).getTexture()
+                this._output.shader.otherTextureSource = this.getLayer(3).getTexture()
                 this._output.shader.a = v - 3
             }
         }
