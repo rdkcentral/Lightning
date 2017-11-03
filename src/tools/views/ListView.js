@@ -91,6 +91,10 @@ class ListView extends View {
                 } else {
                     if (this.list.length === 1) {
                         this.list.setIndex(0, true, true);
+                    } else {
+                        if (index <= this.list._index) {
+                            this.list.setIndex(this.list._index + 1);
+                        }
                     }
                     this.list.update();
                 }
@@ -208,6 +212,15 @@ class ListView extends View {
         }
 
         this.emit('focus', this.getElement(this.realIndex), this._index, this.realIndex);
+    }
+
+    getAxisPosition() {
+        let target = -this._scrollTransition._targetValue;
+
+        let direction = (this._horizontal ^ this._invertDirection ? -1 : 1);
+        let value = -direction * this._index * this._itemSize;
+
+        return this._viewportScrollOffset * this.viewportSize + (value - target);
     }
 
     update() {

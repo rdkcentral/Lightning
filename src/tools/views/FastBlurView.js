@@ -290,10 +290,6 @@ class FastBlurOutputShader extends Shader {
         this.redraw()
     }
 
-    getFragmentShaderSource() {
-        return FastBlurOutputShader.fragmentShaderSource
-    }
-
     setupUniforms(operation) {
         super.setupUniforms(operation)
         this._setUniform("a", this._a, this.gl.uniform1f)

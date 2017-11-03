@@ -223,11 +223,12 @@ class CoreRenderExecutor {
             gl.disable(gl.SCISSOR_TEST);
         } else {
             gl.enable(gl.SCISSOR_TEST);
+            let precision = this.ctx.stage.getRenderPrecision()
             if (this._renderTexture === null) {
                 // Flip.
-                area[1] = this.ctx.stage.h - (area[1] + area[3])
+                area[1] = (this.ctx.stage.h / precision - (area[1] + area[3]))
             }
-            gl.scissor(area[0], area[1], area[2], area[3]);
+            gl.scissor(Math.round(area[0] * precision), Math.round(area[1] * precision), Math.round(area[2] * precision), Math.round(area[3] * precision));
         }
         this._scissor = area
     }

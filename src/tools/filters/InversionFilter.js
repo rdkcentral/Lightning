@@ -5,14 +5,6 @@
 let Filter = require('../../core/Filter');
 
 class InversionFilter extends Filter {
-    constructor(ctx) {
-        super(ctx);
-    }
-
-    getFragmentShaderSource() {
-        return InversionFilter.fragmentShaderSource
-    }
-
 }
 
 InversionFilter.fragmentShaderSource = `

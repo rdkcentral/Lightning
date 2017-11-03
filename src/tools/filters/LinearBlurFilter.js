@@ -40,10 +40,6 @@ class LinearBlurFilter extends Filter {
         this.redraw()
     }
 
-    getFragmentShaderSource() {
-        return LinearBlurFilter.fragmentShaderSource
-    }
-
     setupUniforms(operation) {
         super.setupUniforms(operation)
         this._setUniform("direction", this._direction, this.gl.uniform2fv)

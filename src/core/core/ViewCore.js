@@ -1015,10 +1015,10 @@ class ViewCore {
             } else {
                 if (this._useViewportClipping) {
                     // Calculate and set clipping area on render texture.
-                    let x = Math.round(this._renderContext.px)
-                    let y = Math.round(this._renderContext.py)
-                    let w = Math.round(this._renderContext.ta * this._rw)
-                    let h = Math.round(this._renderContext.td * this._rh)
+                    let x = this._renderContext.px
+                    let y = this._renderContext.py
+                    let w = this._renderContext.ta * this._rw
+                    let h = this._renderContext.td * this._rh
                     prevScissor = renderState.getScissor()
                     renderState.setScissor([x, y, w, h])
                 }

@@ -5,9 +5,6 @@
 let Shader = require('../../core/Shader');
 
 class InversionShader extends Shader {
-    getFragmentShaderSource() {
-        return InversionShader.fragmentShaderSource
-    }
 }
 
 InversionShader.fragmentShaderSource = `
