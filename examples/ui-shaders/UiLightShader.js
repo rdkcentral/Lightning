@@ -18,6 +18,7 @@ class UiLightShader extends Shader {
         this._amount = 0.5
         this._shadowBlur = 0.3
         this._shadowScale = 1
+        this._shaderUniformsCache = new WeakMap();
     }
 
     getExtraAttribBytesPerVertex() {
@@ -141,8 +142,42 @@ class UiLightShader extends Shader {
         return false
     }
 
+    getShadowView(view, info) {
+        if (view.zIndex > info.maxZ) {
+            info.maxZ = view.zIndex
+            info.shadowView = view
+        }
+
+        let children = view._children.get()
+        for (let i = 0, n = children.length; i < n; i++) {
+            if (children[i]._core._shaderOwner === info.shaderOwner) {
+                this.getShadowView(children[i], info)
+            }
+        }
+    }
+
     setupUniforms(operation) {
         super.setupUniforms(operation)
+
+        let info = this._shaderUniformsCache.get(operation.shaderOwner)
+        if (!info || info.frame !== this.ctx.stage.frameCounter) {
+            info = {frame: this.ctx.stage.frameCounter, maxZ: 0, shaderOwner: operation.shaderOwner, shadowView: null}
+
+            this.getShadowView(operation.shaderOwner.view, info)
+
+            let shadowView = info.shadowView
+            if (shadowView) {
+                let coords = shadowView._core.getRenderTextureCoords(0, 0);
+                info.s = new Float32Array([coords[0], coords[1]])
+                coords = shadowView._core.getRenderTextureCoords(shadowView.renderWidth, shadowView.renderHeight);
+                info.e = new Float32Array([coords[0], coords[1]])
+            } else {
+                info.s = new Float32Array([0, 0])
+                info.e = new Float32Array([0, 0])
+            }
+            this._shaderUniformsCache.set(operation.shaderOwner, info)
+        }
+
         this._setUniform("light", new Float32Array([this._x, this._y, this._z]), this.gl.uniform3fv)
         let col = StageUtils.getRgbComponentsNormalized(this._color);
         col = col.map(v => this._intensity * v);
@@ -152,32 +187,9 @@ class UiLightShader extends Shader {
         this._setUniform("shadowBlur", this._shadowBlur, this.gl.uniform1f)
 
         // Get shadow view from operation.
-        let length = operation.length
-        let maxZ = 0
-        let shadowView = null
-        for (let i = 0; i < length; i++) {
-            let z = operation.getView(i).zIndex
-            if (z > maxZ) {
-                maxZ = z
-                shadowView = operation.getView(i)
-            }
-        }
-
-        //@todo: get shadow view from operation (max zIndex entries).
-        if (shadowView) {
-            let coords = shadowView._core.getRenderTextureCoords(0, 0);
-            let sx = coords[0];
-            let sy = coords[1];
-            coords = shadowView._core.getRenderTextureCoords(shadowView.renderWidth, shadowView.renderHeight);
-            let ex = coords[0];
-            let ey = coords[1];
-
-            this._setUniform("s", new Float32Array([sx, sy]), this.gl.uniform2fv)
-            this._setUniform("e", new Float32Array([ex, ey]), this.gl.uniform2fv)
-            this._setUniform("shadowZ", shadowView.zIndex, this.gl.uniform1f)
-        } else {
-            this._setUniform("shadowZ", 0, this.gl.uniform1f)
-        }
+        this._setUniform("s", info.s, this.gl.uniform2fv)
+        this._setUniform("e", info.e, this.gl.uniform2fv)
+        this._setUniform("shadowZ", info.maxZ, this.gl.uniform1f)
 
     }
 
