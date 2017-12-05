@@ -2,7 +2,7 @@ let wpe = require('../../wpe');
 let stage = new wpe.Stage({w: 1000, h: 800, glClearColor: 0xFF000000, useTextureAtlas: true, debugTextureAtlas: false})
 
 stage.root.add({type: wpe.BorderView, shader: {type: wpe.Light3dShader}, borderWidth: 1, x: 200, w: 300, h: 400, children: [
-    {type: wpe.ListView, tag: 'list', w: 300, h: 400, clipping: false, itemSize: 100, scrollTransition: {duration: 0.5}, invertDirection: false, roll: true, viewportScrollOffset: 0.5, itemScrollOffset: 0.5, children: [
+    {type: wpe.ListView, tag: 'list', w: 300, h: 400, clipping: false, itemSize: 100, scrollTransition: {duration: 0.5}, invertDirection: false, roll: true, viewportScrollOffset: 0.5, itemScrollOffset: 0.5, items: [
         {tag: 'item', x: 5, w: 90, y: 0, h: 400},
         {tag: 'item', x: 5, w: 90, y: 10, h: 380},
         {tag: 'item', x: 5, w: 90, y: 20, h: 360},
@@ -20,7 +20,7 @@ stage.root.stag('list.item', {rect: true, color: 0xFFFF0000, transitions: {scale
 
 let list = stage.root.tag('list');
 
-list.add({tag: 'item', x: 5, w: 90, y: 80, h: 240, rect: true, color: 0xFFFF0000});
+list.itemList.a({tag: 'item', x: 5, w: 90, y: 80, h: 240, rect: true, color: 0xFFFF0000});
 list.progressAnimation = {duration: 0.3, actions: [
     {t: '', p: 'alpha', v: {0: 0.5, 1: 1.2}}
 ]};
@@ -28,13 +28,11 @@ list.progressAnimation = {duration: 0.3, actions: [
 list.on('focus', function(v) {
     v.SCALE = 1.2;
     v.COLOR = 0xFF00FF00;
-    v.shaderSettings.rx = 1;
 });
 
 list.on('unfocus', function(v) {
     v.SCALE = 1;
     v.COLOR = 0xFFFF0000;
-    v.shaderSettings.rx = 0;
 });
 
 var c = 30;

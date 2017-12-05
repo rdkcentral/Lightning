@@ -19,11 +19,12 @@ var start = function(wpe) {
 
         var guide = new Guide(stage);
         guide.init();
-        stage.root.addChild(guide.ctr);
+        stage.root.childList.add(guide.ctr);
         guide.show();
 
         var s;
         stage.on('frameStart', function() {
+
             if (stage.frameCounter >= 60) {
                 var f = stage.frameCounter - 60;
                 if (f == 0) {

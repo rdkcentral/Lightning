@@ -4,20 +4,16 @@
 
 let Base = require('./Base');
 
-class ViewText extends Base {
+class ViewText {
 
     constructor(view) {
-        super();
-
         this.view = view;
 
         this.settings = new TextRendererSettings();
         this.settings.on('change', () => {
             this.updateTexture();
         });
-    }
 
-    _properties() {
         this.updatingTexture = null;
     }
 

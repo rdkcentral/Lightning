@@ -67,7 +67,7 @@ Guide.prototype.getProgramsInRange = function(channel, start, end, cb) {
 
     var arr = [];
     for (var i = s; i <= e; i++) {
-        var title = channel.name + " " + start.toISOString();
+        var title = channel.name + " " + new Date(i).toISOString();
         var o = {start: new Date(i * duration), end: new Date((i + 1) * duration - 1), title: title, video: {synopsis: "Lorem ipsum dolor set amet. Lorem ipsum dolor set amet. Lorem ipsum dolor set amet. Lorem ipsum dolor set amet. Lorem ipsum dolor set amet. Lorem ipsum dolor set amet. Lorem ipsum dolor set amet." + Math.random(), imageLink: {href: "fakeguide-program.jpg?v=" + Math.floor(Math.random() * 100)}}};
         arr.push(o);
     }
@@ -89,8 +89,8 @@ Guide.prototype.init = function() {
         gc.ctr.Y = i * Guide.CHANNEL_HEIGHT;
         gc.ctr.fastForward('y');
         this.channels.push(gc);
-        channelsCtr.addChild(gc.labelCtr);
-        this.area.addChild(gc.ctr);
+        channelsCtr.childList.add(gc.labelCtr);
+        this.area.childList.add(gc.ctr);
     }
 };
 
@@ -99,7 +99,7 @@ Guide.prototype.build = function() {
 
     // Create component structure and add transition listeners.
     this.ctr = s.c({tag: 'guide', x: 0, y: 0, h: 720, w: 1280, rect: true, color: Ui.COLORS.SOLID, visible: false, children: [
-        {tag: 'guide-time-line', visible: true, x: 240, y: 50, w: 1280 - 240, h: 30, clipping: true, children: [
+        {tag: 'guide-time-line', visible: true, x: 240, y: 50, w: 1280 - 240, h: 30, clipping: false, children: [
             {tag: 'guide-time-lines'}
         ]},
         {tag: 'guide-date-background', colorLeft: 0x00000000, colorRight: 0xff000000, w: 300, h: 90, x: 980, rect: true, children: [
@@ -156,7 +156,7 @@ Guide.prototype.build = function() {
         var ctr = s.c({x: x - 2 /* to align with inter-program spacing */, w: 2, h: 20, color: 0xff303030, rect: true, children: [
             s.c({x: 8, y: -2, color: 0xff999999, text: {fontSize: 20, text: t}})
         ]});
-        timelineCtr.addChild(ctr);
+        timelineCtr.childList.add(ctr);
     }
 
     var self = this;
@@ -928,7 +928,7 @@ GuideChannel.prototype.getTimeWindow = function(date) {
     var ts = date.getTime() / 1000;
     if (!this.timeWindows.has(ts)) {
         var tw = new TimeWindow(this, new Date(date.getTime()));
-        this.twContainer.addChild(tw.ctr);
+        this.twContainer.childList.add(tw.ctr);
         this.timeWindows.set(ts, tw);
         return tw;
     } else {
@@ -1003,7 +1003,7 @@ GuideChannel.prototype.getProgramRunningAt = function(date) {
 };
 
 GuideChannel.prototype.resetTimeWindows = function() {
-    this.twContainer.removeChildren();
+    this.twContainer.childList.clear();
     this.timeWindows.clear();
     this.leftProgram = null;
 };
@@ -1037,10 +1037,10 @@ TimeWindow.id = 0;
 TimeWindow.prototype.showRange = function(minDate, maxDate) {
     var n = this.programs.length;
     if (n > 0 && this.programs[0].overlaps) {
-        this.ctr.addChild(this.programs[0].ctr, 0);
+        this.ctr.childList.add(this.programs[0].ctr, 0);
     }
     if (n > 1 && this.programs[n - 1].overlaps) {
-        this.ctr.addChild(this.programs[n - 1].ctr, 0);
+        this.ctr.childList.add(this.programs[n - 1].ctr, 0);
     }
 
     for (var i = 0; i < n; i++) {
@@ -1075,7 +1075,7 @@ TimeWindow.prototype.load = function() {
             var dummyProgram = new Program(self, {title: 'no information available', start: start, end: end, video: {synopsis: ''}});
             dummyProgram.dummy = true;
             self.programs = [dummyProgram];
-            self.ctr.addChild(dummyProgram.ctr);
+            self.ctr.childList.add(dummyProgram.ctr);
         } else {
             var i, n = programs.length;
             for (i = 0; i < n; i++) {
@@ -1109,7 +1109,7 @@ TimeWindow.prototype.load = function() {
                 p = new Program(self, programs[i]);
                 p.overlaps = overlaps;
                 self.programs.push(p);
-                self.ctr.addChild(p.ctr);
+                self.ctr.childList.add(p.ctr);
             }
         }
 

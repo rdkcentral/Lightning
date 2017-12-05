@@ -7,16 +7,25 @@ let StageUtils = require('./StageUtils');
 let ViewCore = require('./core/ViewCore');
 let Base = require('./Base');
 
-class View {
+let Utils = require('./Utils');
+/*M¬*/let EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
+
+class View extends EventEmitter {
 
     constructor(stage) {
-        EventEmitter.call(this);
+        super()
 
         this.id = View.id++;
 
         this.stage = stage;
 
         this._core = new ViewCore(this);
+
+        /**
+         * A reference that can be used while merging trees.
+         * @type {string}
+         */
+        this.ref = null;
 
         /**
          * Lazy-loaded texturization module.
@@ -380,7 +389,7 @@ class View {
     set texture(v) {
         if (v && Utils.isObjectLiteral(v)) {
             if (this.texture) {
-                Base.setObjectSettings(this.texture, v);
+                this.texture.patch(v);
             } else {
                 console.warn('Trying to set texture properties, but there is no texture.');
             }
@@ -838,7 +847,7 @@ class View {
         let t = this.mtag(tag);
         let n = t.length;
         for (let i = 0; i < n; i++) {
-            t[i].setSettings(settings);
+            Base.patchObject(t[i], settings)
         }
     }
 
@@ -864,7 +873,7 @@ class View {
             i = this._parent._children.getIndex(this);
             if (i >= 0) {
                 let localTags = this.getTags();
-                return this._parent.getLocationString() + ":" + i + "[" + this.id + "]" + (localTags.length ? "(" + localTags.join(",") + ")" : "");
+                return this._parent.getLocationString() + ":" + i + "[" + this.id + "]" + (this.ref ? this.ref : "") + (localTags.length ? "(" + localTags.join(",") + ")" : "");
             }
         }
         return "";
@@ -913,6 +922,8 @@ class View {
                 settings.children.push(children[i].getSettings());
             }
         }
+
+        settings.id = this.id;
 
         return settings;
     }
@@ -1003,10 +1014,6 @@ class View {
 
         return settings;
     };
-
-    setSettings(settings) {
-        Base.setObjectSettings(this, settings);
-    }
 
     static getGetter(propertyPath) {
         let getter = View.PROP_GETTERS.get(propertyPath);
@@ -1335,19 +1342,15 @@ class View {
         return this._childList
     }
 
-    get _lchildren() {
-        return this._childList.get()
-    }
-
     get childList() {
-        if (!this._exposedChildList) {
-            this._exposedChildList = this._getExposedChildList()
+        if (!this._allowChildrenAccess()) {
+            throw new Error("Direct access to children is not allowed in " + this.getLocationString())
         }
-        return this._exposedChildList
+        return this._children
     }
 
-    _getExposedChildList() {
-        return this._children
+    _allowChildrenAccess() {
+        return true
     }
 
     get children() {
@@ -1355,35 +1358,7 @@ class View {
     }
 
     set children(children) {
-        this.childList.set(children)
-    }
-
-    getChildren() {
-        return this.childList.get();
-    }
-
-    addChild(child) {
-        return this.childList.add(child);
-    }
-
-    addChildAt(child, index) {
-        return this.childList.addAt(child, index);
-    }
-
-    getChildIndex(child) {
-        return this.childList.getIndex(child);
-    }
-
-    removeChild(child) {
-        return this.childList.remove(child);
-    }
-
-    removeChildAt(index) {
-        return this.childList.removeAt(index);
-    }
-
-    removeChildren() {
-        return this.childList.clear();
+        this.childList.patch(children)
     }
 
     add(o) {
@@ -1438,7 +1413,7 @@ class View {
         if (Utils.isString(v)) {
             this._viewText.settings.text = v;
         } else {
-            this._viewText.settings.setSettings(v);
+            this._viewText.settings.patch(v);
         }
     }
 
@@ -1464,7 +1439,7 @@ class View {
             }
 
             if (shader) {
-                shader.setSettings(v);
+                Base.patchObject(shader, v)
             }
         } else if (v === null) {
             shader = this.stage.ctx.renderState.defaultShader;
@@ -1527,6 +1502,10 @@ class View {
 
     get texturizer() {
         return this._core.texturizer
+    }
+
+    patch(settings) {
+        Base.patchObject(this, settings)
     }
 
     /*A¬*/
@@ -1833,11 +1812,6 @@ View.PROP_GETTERS = new Map();
 
 // Setters reused when referencing view (subobject) properties by a property path, as used in a transition or animation ('x', 'texture.x', etc).
 View.PROP_SETTERS = new Map();
-
-let Utils = require('./Utils');
-/*M¬*/let EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
-
-Base.mixinEs5(View, EventEmitter);
 
 module.exports = View;
 

@@ -24,7 +24,7 @@ var start = function(wpe) {
 
         let r = stage.root
 
-        let rst = r.tag('fg').getResultTextureSource();
+        let rst = r.tag('fg').getTexture();
         r.tag('bg').texture = rst;
 
         setInterval(function() {

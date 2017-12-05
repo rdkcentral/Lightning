@@ -2,7 +2,6 @@
  * Copyright Metrological, 2017
  */
 let View = require('../../core/View');
-let ViewChildList = require('../../core/ViewChildList');
 
 class ListView extends View {
 
@@ -69,72 +68,19 @@ class ListView extends View {
          */
         this._horizontal = true;
 
+        this.itemList = new ListItems(this)
     }
 
-    _getExposedChildList() {
-        // Proxy children to wrapper and encapsulate for positioning purposes.
-        return new (class extends ViewChildList {
-            constructor(view, list) {
-                super(view);
-                this.list = list;
-            }
+    _allowChildrenAccess() {
+        return false
+    }
 
-            addAt(view, index) {
-                let encaps = view.stage.createView();
-                encaps.add(view);
-                encaps.visible = false;
-                super.addAt(encaps, index);
+    get items() {
+        return this.itemList.get()
+    }
 
-                this.list._reloadVisibleElements = true;
-                if (!this.list._started) {
-                    this.list.start();
-                } else {
-                    if (this.list.length === 1) {
-                        this.list.setIndex(0, true, true);
-                    } else {
-                        if (index <= this.list._index) {
-                            this.list.setIndex(this.list._index + 1);
-                        }
-                    }
-                    this.list.update();
-                }
-            }
-
-            getIndex(view) {
-                return super.getIndex(view.parent);
-            }
-
-            removeAt(index) {
-                let ri = this.list.realIndex;
-
-                let view = super.removeAt(index);
-
-                if (ri === index) {
-                    if (ri === this.list.length) {
-                        ri--;
-                    }
-                    if (ri >= 0) {
-                        this.list.setIndex(ri);
-                    }
-                } else if (ri > index) {
-                    this.list.setIndex(ri - 1);
-                }
-
-                this.list._reloadVisibleElements = true;
-
-                return view._children.get()[0];
-            }
-
-            get() {
-                return super.get().map(function(view) {return view._children.get()[0]})
-            }
-
-            clear() {
-                super.clear();
-                this.list._reloadVisibleElements = true;
-                this.list._index = 0;
-            }
-        })(this._wrapper, this);
+    set items(children) {
+        this.itemList.patch(children)
     }
 
     start() {
@@ -143,9 +89,10 @@ class ListView extends View {
         this._scrollTransition.on('progress', p => this.update());
 
         this.setIndex(0, true, true);
-        this.update();
 
         this._started = true;
+
+        this.update();
     }
 
     setIndex(index, immediate = false, closest = false) {
@@ -404,11 +351,11 @@ class ListView extends View {
     }
 
     set scrollTransitionSettings(v) {
-        this._scrollTransitionSettings.setSettings(v);
+        this._scrollTransitionSettings.patch(v);
     }
 
     set scrollTransition(v) {
-        this._scrollTransitionSettings.setSettings(v);
+        this._scrollTransitionSettings.patch(v);
     }
 
     get scrollTransition() {
@@ -480,6 +427,70 @@ class ListView extends View {
 }
 
 ListView.NUMBER_PROPERTIES = new Set(['viewportScrollOffset', 'itemScrollOffset'])
+
+const ObjectListWrapper = require('../misc/ObjectListWrapper')
+class ListItems extends ObjectListWrapper {
+    constructor(list) {
+        let wrap = (item => {
+            let parent = item.stage.createView()
+            parent.add(item)
+            parent.visible = false
+            return parent
+        })
+
+        super(list._wrapper._children, wrap);
+        this.list = list;
+    }
+
+    onAdd(item, index) {
+        super.onAdd(item, index)
+        this.checkStarted(index)
+    }
+
+    checkStarted(index) {
+        this.list._reloadVisibleElements = true;
+        if (!this.list._started) {
+            this.list.start();
+        } else {
+            if (this.list.length === 1) {
+                this.list.setIndex(0, true, true);
+            } else {
+                if (index <= this.list._index) {
+                    this.list.setIndex(this.list._index + 1);
+                }
+            }
+            this.list.update();
+        }
+    }
+
+    onRemove(item, index) {
+        super.onRemove(item, index)
+        let ri = this.list.realIndex;
+        if (ri === index) {
+            if (ri === this.list.length) {
+                ri--;
+            }
+            if (ri >= 0) {
+                this.list.setIndex(ri);
+            }
+        } else if (ri > index) {
+            this.list.setIndex(ri - 1);
+        }
+
+        this.list._reloadVisibleElements = true;
+    }
+
+    onSet(item, index) {
+        super.onSet(item, index)
+        this.checkStarted(index)
+    }
+
+    onSync(removed, added, order) {
+        super.onSync(removed, added, order)
+        this.checkStarted(0)
+    }
+
+}
 
 let Utils = require('../../core/Utils');
 /*M¬*/let EventEmitter = require(Utils.isNode ? 'events' : '../../browser/EventEmitter');/*¬M*/

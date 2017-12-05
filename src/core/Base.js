@@ -2,42 +2,6 @@
  * Copyright Metrological, 2017
  */
 class Base {
-    constructor() {
-        let proto = Object.getPrototypeOf(this);
-        if (!Base.protoReady.has(proto)) {
-            Base.initPrototype(proto);
-        }
-    }
-
-    /**
-     * @protected
-     */
-    _properties() {
-    }
-
-    static initPrototype(proto) {
-        if (!Base.protoReady.has(proto)) {
-            let stack = [];
-
-            // run prototype functions
-            while(proto){
-                if(!Base.protoReady.has(proto)) {
-                    stack.push(proto);
-                }
-                Base.protoReady.add(proto);
-                proto = Object.getPrototypeOf(proto);
-            }
-
-            for(let i = stack.length - 1; i >= 0; i--) {
-                proto = stack[i];
-
-                 // Initialize properties.
-                if (proto.hasOwnProperty('_properties')) {
-                    proto._properties();
-                }
-            }
-        }
-    }
 
     /**
      * Mixes an ES5 class and the specified superclass.
@@ -65,34 +29,37 @@ class Base {
         return superclass;
     };
 
-    setSettings(settings) {
-        Base.setObjectSettings(this, settings);
+    static defaultSetter(obj, name, value) {
+        obj[name] = value
     }
 
-    static setObjectSettings(obj, settings) {
-        for (let name in settings) {
+    static patchObject(obj, settings) {
+        let setter = obj.setSetting || Base.defaultSetter;
+
+        let names = Object.keys(settings)
+        for (let i = 0, n = names.length; i < n; i++) {
+            let name = names[i]
+
             // Type is a reserved keyword to specify the class type on creation.
-            if (settings.hasOwnProperty(name) && name != 'type') {
+            if (name.substr(0, 2) !== "__" && name !== "type") {
                 let v = settings[name];
-                if (Utils.isObjectLiteral(v) && Utils.isObject(obj[name])) {
-                    // Sub object.
-                    var p = obj[name];
-                    if (p.setSettings) {
-                        // Custom setSettings method.
-                        p.setSettings(v);
-                    } else {
-                        Base.setObjectSettings(p, v);
-                    }
-                } else {
-                    obj[name] = v;
+
+                if (Utils.isFunction(v) && v.__local) {
+                    // Local function (Base.local(s => s.something))
+                    v = v.__local(obj)
                 }
+
+                setter(obj, name, v)
             }
         }
     }
 
-}
+    static local(func) {
+        // This function can be used as an object setting, which is called with the target object.
+        func.__local = true
+    }
 
-Base.protoReady = new WeakSet();
+}
 
 let Utils = require('./Utils');
 

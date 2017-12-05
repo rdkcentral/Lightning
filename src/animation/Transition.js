@@ -3,12 +3,13 @@
  */
 let Base = require('../core/Base');
 
-class Transition extends Base {
+let Utils = require('../core/Utils');
+/*M¬*/let EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
+
+class Transition extends EventEmitter {
 
     constructor(manager, settings, view, property) {
-        super();
-
-        EventEmitter.call(this);
+        super()
         
         this.manager = manager;
 
@@ -40,10 +41,6 @@ class Transition extends Base {
 
         this._p = 1;
         this._delayLeft = 0;
-    }
-
-    _properties() {
-        this.isTransition = true;
     }
 
     stop() {
@@ -204,10 +201,7 @@ class Transition extends Base {
 
 }
 
-let Utils = require('../core/Utils');
-/*M¬*/let EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
-
-Base.mixinEs5(Transition, EventEmitter);
+Transition.prototype.isTransition = true;
 
 module.exports = Transition;
 

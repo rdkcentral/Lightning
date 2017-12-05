@@ -3,13 +3,13 @@
  * Copyright Metrological, 2017
  */
 
-let Base = require('./Base');
+let Utils = require('./Utils');
+/*M¬*/let EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
 
 /**
  * @todo:
  * - optimize renderState.setShader(this.activeShader, this._shaderOwner);
  * - add generic 'enabled' option for filter, to be able to disable them temporarily
- * - set shader sources as static properties
  * - allow multiple visitEntry, visitExit hooks:
  *   - view.addVisitEntry, view.removeVisitEntry. If only one: direct. If multiple: set view.visitEntryHooks array and use View.visitEntryMultiple.
  * - VAOs
@@ -32,11 +32,9 @@ let Base = require('./Base');
  *   - shaders
  * - merge es6 to master
  */
-class Stage extends Base {
+class Stage extends EventEmitter {
     constructor(options) {
-        super();
-
-        EventEmitter.call(this);
+        super()
 
         this.setOptions(options);
 
@@ -208,7 +206,9 @@ class Stage extends Base {
         } else {
             view = new View(this);
         }
-        view.setSettings(settings);
+
+        view.patch(settings)
+
         return view;
     }
 
@@ -255,11 +255,6 @@ class Stage extends Base {
     }
 
 }
-
-let Utils = require('./Utils');
-
-/*M¬*/let EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
-Base.mixinEs5(Stage, EventEmitter);
 
 let View = require('./View');
 let StageUtils = require('./StageUtils');

@@ -1,23 +1,18 @@
 /**
  * Copyright Metrological, 2017
  */
-let Base = require('../core/Base');
 
-class AnimationSettings extends Base {
+class AnimationSettings {
     constructor() {
-        super();
-
         /**
          * @type {AnimationActionSettings[]}
          * @private
          */
         this._actions = [];
-    }
 
-    _properties() {
         this.delay = 0;
         this.duration = 1;
-        
+
         this.repeat = 0;
         this.repeatOffset = 0;
         this.repeatDelay = 0;
@@ -41,7 +36,7 @@ class AnimationSettings extends Base {
             let e = v[i];
             if (!e.isAnimationActionSettings) {
                 let aas = new AnimationActionSettings(this);
-                aas.setSettings(e);
+                aas.patch(e);
                 this._actions.push(aas);
             } else {
                 this._actions.push(e);
@@ -84,6 +79,9 @@ class AnimationSettings extends Base {
         return this._stopTimingFunctionImpl;
     }
 
+    patch(settings) {
+        Base.patchObject(this, settings)
+    }
 }
 
 AnimationSettings.STOP_METHODS = {
@@ -96,5 +94,6 @@ AnimationSettings.STOP_METHODS = {
 
 module.exports = AnimationSettings;
 
+let Base = require('../core/Base')
 let StageUtils = require('../core/StageUtils');
 let AnimationActionSettings = require('./AnimationActionSettings');

@@ -19,10 +19,6 @@ class Texture {
          */
         this.source = source;
 
-    }
-
-    _properties() {
-
         /**
          * The texture clipping x-offset.
          * @type {number}
@@ -173,8 +169,14 @@ class Texture {
         this._precision = v;
         this.updatePrecision();
     }}
-    
+
+    patch(settings) {
+        Base.patchObject(this, settings)
+    }
+
 }
+
+let Base = require('./Base')
 
 Texture.id = 0;
 

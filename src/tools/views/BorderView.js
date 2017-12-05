@@ -147,7 +147,7 @@ class BorderView extends View {
     }
 
     set borderTop(settings) {
-        this.borderTop.setSettings(settings);
+        this.borderTop.patch(settings);
     }
 
     get borderRight() {
@@ -155,7 +155,7 @@ class BorderView extends View {
     }
 
     set borderRight(settings) {
-        this.borderRight.setSettings(settings);
+        this.borderRight.patch(settings);
     }
 
     get borderBottom() {
@@ -163,7 +163,7 @@ class BorderView extends View {
     }
 
     set borderBottom(settings) {
-        this.borderBottom.setSettings(settings);
+        this.borderBottom.patch(settings);
     }
 
     get borderLeft() {
@@ -171,7 +171,7 @@ class BorderView extends View {
     }
 
     set borderLeft(settings) {
-        this.borderLeft.setSettings(settings);
+        this.borderLeft.patch(settings);
     }    
 
     set borders(settings) {

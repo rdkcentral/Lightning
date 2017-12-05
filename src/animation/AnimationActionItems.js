@@ -1,13 +1,9 @@
 /**
  * Copyright Metrological, 2017
  */
-let Base = require('../core/Base');
-
-class AnimationActionItems extends Base {
+class AnimationActionItems {
     
     constructor(action) {
-        super();
-        
         this._action = action;
         
         this._clear();

@@ -2,13 +2,9 @@
  * Copyright Metrological, 2017
  */
 
-let Base = require('./Base')
-
-class TextureSource extends Base {
+class TextureSource {
 
     constructor(manager, loadCb) {
-        super()
-
         this.id = TextureSource.id++;
 
         this.manager = manager;
@@ -29,10 +25,6 @@ class TextureSource extends Base {
          */
         this.views = new Set();
 
-    }
-
-    _properties() {
-        
         /**
          * Identifier for reuse.
          * @type {String}
@@ -91,9 +83,10 @@ class TextureSource extends Base {
          * For images, contains the src property, for texts, contains handy rendering information.
          * @type {Object}
          */
-        this.renderInfo = null;        
+        this.renderInfo = null;
+
     }
-    
+
     getRenderWidth() {
         return this.w;
     }

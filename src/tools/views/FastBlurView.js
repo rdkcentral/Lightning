@@ -43,6 +43,20 @@ class FastBlurView extends View {
         this._amount = 0
         this._paddingX = 0
         this._paddingY = 0
+
+        this.itemList = new ViewChildList(this._wrapper)
+    }
+
+    _allowChildrenAccess() {
+        return false
+    }
+
+    get items() {
+        return this.itemList.get()
+    }
+
+    set items(children) {
+        this.itemList.patch(children)
     }
 
     set padding(v) {
@@ -59,11 +73,6 @@ class FastBlurView extends View {
     set paddingY(v) {
         this.paddingY = v
         this._updateBlurSize()
-    }
-
-    _getExposedChildList() {
-        // Proxy children to wrapper.
-        return this._wrapper._children;
     }
 
     getLayer(i) {
@@ -329,7 +338,8 @@ FastBlurOutputShader.fragmentShaderSource = `
     }
 `;
 
-let Utils = require('../../core/Utils');
-/*M¬*/let EventEmitter = require(Utils.isNode ? 'events' : '../../browser/EventEmitter');/*¬M*/
+const Utils = require('../../core/Utils');
+/*M¬*/const EventEmitter = require(Utils.isNode ? 'events' : '../../browser/EventEmitter');/*¬M*/
+const ViewChildList = require('../../core/ViewChildList')
 
 module.exports = FastBlurView

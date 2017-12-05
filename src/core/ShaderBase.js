@@ -2,14 +2,11 @@
  * Copyright Metrological, 2017
  */
 
-let Base = require('./Base')
 let ShaderProgram = require('./ShaderProgram')
 
-class ShaderBase extends Base {
+class ShaderBase {
 
     constructor(coreContext) {
-        super();
-
         this._program = coreContext.shaderPrograms.get(this.constructor);
         if (!this._program) {
             this._program = new ShaderProgram(this.constructor.vertexShaderSource, this.constructor.fragmentShaderSource);
@@ -96,6 +93,12 @@ class ShaderBase extends Base {
         })
     }
 
+    patch(settings) {
+        Base.patchObject(this, settings)
+    }
+
 }
+
+let Base = require('./Base')
 
 module.exports = ShaderBase

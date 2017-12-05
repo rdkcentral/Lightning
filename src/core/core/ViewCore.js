@@ -197,6 +197,13 @@ class ViewCore {
         child.setParent(this);
     };
 
+    setChildAt(index, child) {
+        if (!this._children) this._children = [];
+        this._children[index].setParent(null)
+        this._children[index] = child
+        child.setParent(this)
+    }
+
     removeChildAt(index) {
         let child = this._children[index];
         this._children.splice(index, 1);
@@ -216,6 +223,22 @@ class ViewCore {
             }
         }
     };
+
+    syncChildren(removed, added, order) {
+        this._children = order
+        for (let i = 0, n = removed.length; i < n; i++) {
+            removed[i].setParent(null)
+        }
+        for (let i = 0, n = added.length; i < n; i++) {
+            added[i].setParent(this)
+        }
+    }
+
+    moveChild(fromIndex, toIndex) {
+        let c = this._children[fromIndex]
+        this._children.splice(fromIndex, 1);
+        this._children.splice(toIndex, 0, c);
+    }
 
     setLocalTransform(a, b, c, d) {
         this._setRecalc(4);

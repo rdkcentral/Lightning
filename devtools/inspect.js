@@ -37,8 +37,6 @@ var attachInspector = function(wpe) {
         };
 
 // _properties must have been called already to prevent init mayhem.
-        Base.initPrototype(ViewText.prototype);
-
         window.mutationCounter = 0;
         window.mutatingChildren = false;
         var observer = new MutationObserver(function(mutations) {
@@ -53,22 +51,6 @@ var attachInspector = function(wpe) {
 
                     var node = mutation.target;
                     var c = mutation.target.view;
-
-                    if (c.__ignore_child_list_changes === window.mutationCounter) {
-                        // Ignore child node changes that were caused by actual value modifications by js.
-                        return;
-                    }
-
-                    window.mutatingChildren = true;
-
-                    var removedNodes = mutation.removedNodes;
-                    for (var i = 0, n = removedNodes.length; i < n; i++) {
-                        if (removedNodes[i].view) {
-                            c._children.remove(removedNodes[i].view);
-                        }
-                    }
-
-                    window.mutatingChildren = false;
                 }
 
                 if (mutation.type == 'attributes' && mutation.attributeName !== 'style' && mutation.attributeName !== 'class') {
@@ -251,7 +233,7 @@ var attachInspector = function(wpe) {
                 this.debugElement.style.position = 'absolute';
 
                 this.debugElement.id = "" + this.id;
-                observer.observe(this.debugElement, {attributes: true, childList: true});
+                observer.observe(this.debugElement, {attributes: true});
             }
             if (this.stage.root === this && !this.dhtml_root) {
                 // Root element.
@@ -283,13 +265,11 @@ var attachInspector = function(wpe) {
         var oSetParent = oView.prototype._setParent;
         View.prototype._setParent = function(parent) {
             var prevParent = this.parent;
-
             oSetParent.apply(this, arguments);
 
             if (!window.mutatingChildren) {
                 if (parent) {
                     var index = parent._children.getIndex(this);
-                    parent.__ignore_child_list_changes = window.mutationCounter;
                     if (index == parent._children.get().length - 1) {
                         parent.dhtml().appendChild(this.dhtml());
                     } else {
@@ -297,7 +277,6 @@ var attachInspector = function(wpe) {
                     }
                 } else {
                     if (prevParent) {
-                        prevParent.__ignore_child_list_changes = window.mutationCounter;
                         prevParent.dhtml().removeChild(this.dhtml());
                     }
                 }

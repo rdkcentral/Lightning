@@ -1,52 +1,10 @@
-let Base = require('./Base');
-
 /**
  * Copyright Metrological, 2017
  */
-class TextRendererSettings extends Base {
-    constructor() {
-        super();
+let Utils = require('./Utils');
+/*M¬*/let EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
 
-        EventEmitter.call(this);
-    }
-
-    _properties() {
-        this._text = "";
-        this._w = 0;
-        this._h = 0;
-        this._fontStyle = "normal";
-        this._fontSize = 40;
-        this._fontFace = null;
-        this._wordWrap = true;
-        this._wordWrapWidth = 0;
-        this._lineHeight = null;
-        this._textBaseline = "alphabetic";
-        this._textAlign = "left";
-        this._offsetY = null;
-        this._maxLines = 0;
-        this._maxLinesSuffix = "..";
-        this._precision = null;
-        this._textColor = 0xFFFFFFFF;
-        this._paddingLeft = 0;
-        this._paddingRight = 0;
-        this._shadow = false;
-        this._shadowColor = 0xFF000000;
-        this._shadowOffsetX = 0;
-        this._shadowOffsetY = 0;
-        this._shadowBlur = 5;
-        this._highlight = false;
-        this._highlightHeight = 0;
-        this._highlightColor = 0xFF000000;
-        this._highlightOffset = 0;
-        this._highlightPaddingLeft = 0;
-        this._highlightPaddingRight = 0;
-        this._cutSx = 0;
-        this._cutEx = 0;
-        this._cutSy = 0;
-        this._cutEy = 0;
-
-        this.sync = false;
-    }
+class TextRendererSettings extends EventEmitter {
 
     /**
      * Finalize this settings object so that it is no longer dependent on possibly changing defaults.
@@ -193,6 +151,10 @@ class TextRendererSettings extends Base {
         obj._cutEy = this._cutEy;
         obj.sync = this.sync;
         return obj;
+    }
+
+    patch(settings) {
+        Base.patchObject(this, settings)
     }
 
     get text() {
@@ -559,9 +521,44 @@ class TextRendererSettings extends Base {
     }
 }
 
-let Utils = require('../core/Utils');
-/*M¬*/let EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
-
-Base.mixinEs5(TextRendererSettings, EventEmitter);
+// Because there are so many properties, we prefer to use the prototype for default values.
+// This causes a decrease in performance, but also a decrease in memory usage.
+let proto = TextRendererSettings.prototype
+proto._text = "";
+proto._w = 0;
+proto._h = 0;
+proto._fontStyle = "normal";
+proto._fontSize = 40;
+proto._fontFace = null;
+proto._wordWrap = true;
+proto._wordWrapWidth = 0;
+proto._lineHeight = null;
+proto._textBaseline = "alphabetic";
+proto._textAlign = "left";
+proto._offsetY = null;
+proto._maxLines = 0;
+proto._maxLinesSuffix = "..";
+proto._precision = null;
+proto._textColor = 0xFFFFFFFF;
+proto._paddingLeft = 0;
+proto._paddingRight = 0;
+proto._shadow = false;
+proto._shadowColor = 0xFF000000;
+proto._shadowOffsetX = 0;
+proto._shadowOffsetY = 0;
+proto._shadowBlur = 5;
+proto._highlight = false;
+proto._highlightHeight = 0;
+proto._highlightColor = 0xFF000000;
+proto._highlightOffset = 0;
+proto._highlightPaddingLeft = 0;
+proto._highlightPaddingRight = 0;
+proto._cutSx = 0;
+proto._cutEx = 0;
+proto._cutSy = 0;
+proto._cutEy = 0;
+proto.sync = false;
 
 module.exports = TextRendererSettings;
+
+let Base = require('./Base')

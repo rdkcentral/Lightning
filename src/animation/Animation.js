@@ -1,14 +1,14 @@
 /**
  * Copyright Metrological, 2017
  */
-let Base = require('../core/Base');
 
-class Animation extends Base {
+let Utils = require('../core/Utils');
+/*M¬*/let EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
+
+class Animation extends EventEmitter {
 
     constructor(manager, settings, view) {
-        super();
-
-        EventEmitter.call(this);
+        super()
 
         this.manager = manager;
 
@@ -17,13 +17,11 @@ class Animation extends Base {
         this._view = view;
 
         this._state = Animation.STATES.IDLE;
-    }
 
-    _properties() {
         this._p = 0;
         this._delayLeft = 0;
         this._repeatsLeft = 0;
-        
+
         this._stopDelayLeft = 0;
         this._stopP = 0;
     }
@@ -353,11 +351,6 @@ class Animation extends Base {
     }
 
 }
-
-let Utils = require('../core/Utils');
-/*M¬*/let EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
-
-Base.mixinEs5(Animation, EventEmitter);
 
 Animation.STATES = {
     IDLE: 0,

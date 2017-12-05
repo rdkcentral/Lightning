@@ -49,7 +49,7 @@ class AnimationManager {
 
     createSettings(settings) {
         let animationSettings = new AnimationSettings();
-        Base.setObjectSettings(animationSettings, settings);
+        Base.patchObject(animationSettings, settings);
         return animationSettings;
     }
 

@@ -20,7 +20,7 @@ var start = function(wpe) {
             {tag: 'blur', type: FastBlurView, amount: 0, w: 1280, h: 720, padding: 0}
         ]);
 
-        stage.root.tag('blur').children = [{tag: 'mountains', src: './boat.png', alpha: 1, w: 1280, h: 720}]
+        stage.root.tag('blur').items = [{tag: 'mountains', src: './boat.png', alpha: 1, w: 1280, h: 720}]
 
         let r = stage.root
         //r.setSmooth('rotation', 8, {duration : 10})
@@ -31,7 +31,7 @@ var start = function(wpe) {
         // ]}).start();
 
 
-        r.tag('blur').setSmooth('amount', 2, {delay: 2, duration: 3, timingFunction: 'ease'})
+       r.tag('blur').setSmooth('amount', 3, {delay: 2, duration: 3, timingFunction: 'ease'})
         // r.animation({duration: 3, repeat: -1, actions: [
         //     {t: 'blur', p: 'amount', merger: 'numbers', v: {0:0.0, 0.5:5, 1: 0.0}}
         // ]}).start();

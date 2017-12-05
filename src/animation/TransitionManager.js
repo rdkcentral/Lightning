@@ -38,7 +38,7 @@ class TransitionManager {
 
     createSettings(settings) {
         let transitionSettings = new TransitionSettings();
-        Base.setObjectSettings(transitionSettings, settings);
+        Base.patchObject(transitionSettings, settings);
         return transitionSettings;
     }
 

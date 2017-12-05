@@ -72,7 +72,7 @@ class ViewTexturizer {
         v.forEach(filter => {
             if (Utils.isObjectLiteral(filter) && filter.type) {
                 let s = new filter.type(this.ctx)
-                s.setSettings(filter)
+                s.patch(filter)
                 filter = s
             }
 

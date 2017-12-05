@@ -576,42 +576,6 @@ class WpeImageParser {
  * Copyright Metrological, 2017
  */
 class Base {
-    constructor() {
-        let proto = Object.getPrototypeOf(this);
-        if (!Base.protoReady.has(proto)) {
-            Base.initPrototype(proto);
-        }
-    }
-
-    /**
-     * @protected
-     */
-    _properties() {
-    }
-
-    static initPrototype(proto) {
-        if (!Base.protoReady.has(proto)) {
-            let stack = [];
-
-            // run prototype functions
-            while(proto){
-                if(!Base.protoReady.has(proto)) {
-                    stack.push(proto);
-                }
-                Base.protoReady.add(proto);
-                proto = Object.getPrototypeOf(proto);
-            }
-
-            for(let i = stack.length - 1; i >= 0; i--) {
-                proto = stack[i];
-
-                 // Initialize properties.
-                if (proto.hasOwnProperty('_properties')) {
-                    proto._properties();
-                }
-            }
-        }
-    }
 
     /**
      * Mixes an ES5 class and the specified superclass.
@@ -639,34 +603,37 @@ class Base {
         return superclass;
     };
 
-    setSettings(settings) {
-        Base.setObjectSettings(this, settings);
+    static defaultSetter(obj, name, value) {
+        obj[name] = value
     }
 
-    static setObjectSettings(obj, settings) {
-        for (let name in settings) {
+    static patchObject(obj, settings) {
+        let setter = obj.setSetting || Base.defaultSetter;
+
+        let names = Object.keys(settings)
+        for (let i = 0, n = names.length; i < n; i++) {
+            let name = names[i]
+
             // Type is a reserved keyword to specify the class type on creation.
-            if (settings.hasOwnProperty(name) && name != 'type') {
+            if (name.substr(0, 2) !== "__" && name !== "type") {
                 let v = settings[name];
-                if (Utils.isObjectLiteral(v) && Utils.isObject(obj[name])) {
-                    // Sub object.
-                    var p = obj[name];
-                    if (p.setSettings) {
-                        // Custom setSettings method.
-                        p.setSettings(v);
-                    } else {
-                        Base.setObjectSettings(p, v);
-                    }
-                } else {
-                    obj[name] = v;
+
+                if (Utils.isFunction(v) && v.__local) {
+                    // Local function (Base.local(s => s.something))
+                    v = v.__local(obj)
                 }
+
+                setter(obj, name, v)
             }
         }
     }
 
-}
+    static local(func) {
+        // This function can be used as an object setting, which is called with the target object.
+        func.__local = true
+    }
 
-Base.protoReady = new WeakSet();
+}
 
 
 /**
@@ -1212,11 +1179,11 @@ class StageUtils {
  */
 
 
+
 /**
  * @todo:
  * - optimize renderState.setShader(this.activeShader, this._shaderOwner);
  * - add generic 'enabled' option for filter, to be able to disable them temporarily
- * - set shader sources as static properties
  * - allow multiple visitEntry, visitExit hooks:
  *   - view.addVisitEntry, view.removeVisitEntry. If only one: direct. If multiple: set view.visitEntryHooks array and use View.visitEntryMultiple.
  * - VAOs
@@ -1239,11 +1206,9 @@ class StageUtils {
  *   - shaders
  * - merge es6 to master
  */
-class Stage extends Base {
+class Stage extends EventEmitter {
     constructor(options) {
-        super();
-
-        EventEmitter.call(this);
+        super()
 
         this.setOptions(options);
 
@@ -1266,17 +1231,19 @@ class Stage extends Base {
         opt('w', 1280);
         opt('h', 720);
         opt('canvas', this.options.canvas);
-        opt('renderWidth', this.options.w);
-        opt('renderHeight', this.options.h);
         opt('srcBasePath', null);
         opt('textureMemory', 12e6);
         opt('renderTexturePoolPixels', 12e6);
         opt('glClearColor', [0, 0, 0, 0]);
         opt('defaultFontFace', 'Sans-Serif');
-        opt('defaultPrecision', (this.options.h / this.options.renderHeight));
         opt('fixedDt', 0);
         opt('useTextureAtlas', false);
         opt('debugTextureAtlas', false);
+        opt('precision', 1);
+    }
+
+    getRenderPrecision() {
+        return this.options.precision;
     }
 
     init() {
@@ -1412,7 +1379,9 @@ class Stage extends Base {
         } else {
             view = new View(this);
         }
-        view.setSettings(settings);
+
+        view.patch(settings)
+
         return view;
     }
 
@@ -1451,18 +1420,14 @@ class Stage extends Base {
     }
 
     get rw() {
-        return this.options.renderWidth
+        return this.w / this.options.precision
     }
 
     get rh() {
-        return this.options.renderHeight
+        return this.h / this.options.precision
     }
 
 }
-
-
-
-Base.mixinEs5(Stage, EventEmitter);
 
 
 
@@ -1484,10 +1449,6 @@ class ShaderProgram {
         this._attributeLocations = new Map();
 
         this._currentUniformValues = {};
-
-        this._pendingUniformValues = {};
-        this._pendingUniformFunctions = {};
-        this._hasUniformUpdates = false
     }
 
     compile(gl) {
@@ -1599,34 +1560,19 @@ class ShaderProgram {
     setUniformValue(name, value, glFunction) {
         let v = this._currentUniformValues[name];
         if (v === undefined || !this._valueEquals(v, value)) {
-            this._pendingUniformValues[name] = this._valueClone(value)
-            this._pendingUniformFunctions[name] = glFunction
-            this._hasUniformUpdates = true
-        }
-    }
-
-    hasUniformUpdates() {
-        return this._hasUniformUpdates
-    }
-
-    commitUniformUpdates() {
-        let names = Object.keys(this._pendingUniformValues)
-        names.forEach(name => {
-            this._currentUniformValues[name] = this._pendingUniformValues[name]
+            let clonedValue = this._valueClone(value)
+            this._currentUniformValues[name] = clonedValue
 
             let loc = this.getUniformLocation(name)
             if (loc) {
-                let matrix = (this._pendingUniformFunctions[name] === this.gl.uniformMatrix2fv || this._pendingUniformFunctions[name] === this.gl.uniformMatrix3fv || this._pendingUniformFunctions[name] === this.gl.uniformMatrix4fv)
-                if (matrix) {
-                    this._pendingUniformFunctions[name].call(this.gl, loc, false, this._pendingUniformValues[name])
+                let isMatrix = (glFunction === this.gl.uniformMatrix2fv || glFunction === this.gl.uniformMatrix3fv || glFunction === this.gl.uniformMatrix4fv)
+                if (isMatrix) {
+                    glFunction.call(this.gl, loc, false, clonedValue)
                 } else {
-                    this._pendingUniformFunctions[name].call(this.gl, loc, this._pendingUniformValues[name])
+                    glFunction.call(this.gl, loc, clonedValue)
                 }
             }
-        })
-        this._pendingUniformValues = {}
-        this._pendingUniformFunctions = {}
-        this._hasUniformUpdates = false
+        }
     }
 
 }
@@ -1636,11 +1582,9 @@ class ShaderProgram {
  */
 
 
-class ShaderBase extends Base {
+class ShaderBase {
 
     constructor(coreContext) {
-        super();
-
         this._program = coreContext.shaderPrograms.get(this.constructor);
         if (!this._program) {
             this._program = new ShaderProgram(this.constructor.vertexShaderSource, this.constructor.fragmentShaderSource);
@@ -1705,14 +1649,6 @@ class ShaderBase extends Base {
         // All settings changed in beforeUsage should be reset here.
     }
 
-    hasUniformUpdates() {
-        return this._program.hasUniformUpdates()
-    }
-
-    commitUniformUpdates() {
-        this._program.commitUniformUpdates()
-    }
-
     get initialized() {
         return this._initialized;
     }
@@ -1735,7 +1671,12 @@ class ShaderBase extends Base {
         })
     }
 
+    patch(settings) {
+        Base.patchObject(this, settings)
+    }
+
 }
+
 
 /**
  * Copyright Metrological, 2017
@@ -1825,8 +1766,6 @@ class Shader extends ShaderBase {
     }
 
     isMergable(shader) {
-        // This must be overruled if the
-        return !this.hasUniformUpdates();
     }
 
     _getProjection(operation) {
@@ -1834,7 +1773,7 @@ class Shader extends ShaderBase {
     }
 
     getFlipY(operation) {
-        return this._getProjection()[1] < 0
+        return this._getProjection(operation)[1] < 0
     }
 
     beforeDraw(operation) {
@@ -2209,10 +2148,6 @@ class Texture {
          */
         this.source = source;
 
-    }
-
-    _properties() {
-
         /**
          * The texture clipping x-offset.
          * @type {number}
@@ -2363,8 +2298,13 @@ class Texture {
         this._precision = v;
         this.updatePrecision();
     }}
-    
+
+    patch(settings) {
+        Base.patchObject(this, settings)
+    }
+
 }
+
 
 Texture.id = 0;
 
@@ -2373,12 +2313,9 @@ Texture.id = 0;
  * Copyright Metrological, 2017
  */
 
-
-class TextureSource extends Base {
+class TextureSource {
 
     constructor(manager, loadCb) {
-        super()
-
         this.id = TextureSource.id++;
 
         this.manager = manager;
@@ -2399,10 +2336,6 @@ class TextureSource extends Base {
          */
         this.views = new Set();
 
-    }
-
-    _properties() {
-        
         /**
          * Identifier for reuse.
          * @type {String}
@@ -2461,9 +2394,10 @@ class TextureSource extends Base {
          * For images, contains the src property, for texts, contains handy rendering information.
          * @type {Object}
          */
-        this.renderInfo = null;        
+        this.renderInfo = null;
+
     }
-    
+
     getRenderWidth() {
         return this.w;
     }
@@ -3310,16 +3244,24 @@ class TextureAtlasTree {
  */
 
 
-class View {
+
+
+class View extends EventEmitter {
 
     constructor(stage) {
-        EventEmitter.call(this);
+        super()
 
         this.id = View.id++;
 
         this.stage = stage;
 
         this._core = new ViewCore(this);
+
+        /**
+         * A reference that can be used while merging trees.
+         * @type {string}
+         */
+        this.ref = null;
 
         /**
          * Lazy-loaded texturization module.
@@ -3683,7 +3625,7 @@ class View {
     set texture(v) {
         if (v && Utils.isObjectLiteral(v)) {
             if (this.texture) {
-                Base.setObjectSettings(this.texture, v);
+                this.texture.patch(v);
             } else {
                 console.warn('Trying to set texture properties, but there is no texture.');
             }
@@ -3867,20 +3809,22 @@ class View {
                 iw = 1 / w;
                 ih = 1 / h;
 
+                let prec = displayedTexture.precision;
+
                 if (displayedTexture.w) {
-                    rw = displayedTexture.w * iw;
+                    rw = (displayedTexture.w * prec) * iw;
                 } else {
-                    rw = (w - displayedTexture.x) * iw;
+                    rw = (w - (displayedTexture.x * prec)) * iw;
                 }
 
                 if (displayedTexture.h) {
-                    rh = displayedTexture.h * ih;
+                    rh = (displayedTexture.h * prec) * ih;
                 } else {
-                    rh = (h - displayedTexture.y) * ih;
+                    rh = (h - (displayedTexture.y * prec)) * ih;
                 }
 
-                iw *= displayedTexture.x;
-                ih *= displayedTexture.y;
+                iw *= (displayedTexture.x * prec);
+                ih *= (displayedTexture.y * prec);
 
                 tx1 = Math.min(1.0, Math.max(0, iw));
                 ty1 = Math.min(1.0, Math.max(ih));
@@ -4139,7 +4083,7 @@ class View {
         let t = this.mtag(tag);
         let n = t.length;
         for (let i = 0; i < n; i++) {
-            t[i].setSettings(settings);
+            Base.patchObject(t[i], settings)
         }
     }
 
@@ -4165,7 +4109,7 @@ class View {
             i = this._parent._children.getIndex(this);
             if (i >= 0) {
                 let localTags = this.getTags();
-                return this._parent.getLocationString() + ":" + i + "[" + this.id + "]" + (localTags.length ? "(" + localTags.join(",") + ")" : "");
+                return this._parent.getLocationString() + ":" + i + "[" + this.id + "]" + (this.ref ? this.ref : "") + (localTags.length ? "(" + localTags.join(",") + ")" : "");
             }
         }
         return "";
@@ -4304,10 +4248,6 @@ class View {
 
         return settings;
     };
-
-    setSettings(settings) {
-        Base.setObjectSettings(this, settings);
-    }
 
     static getGetter(propertyPath) {
         let getter = View.PROP_GETTERS.get(propertyPath);
@@ -4656,7 +4596,7 @@ class View {
     }
 
     set children(children) {
-        this.childList.set(children)
+        this.childList.patch(children)
     }
 
     getChildren() {
@@ -4739,7 +4679,7 @@ class View {
         if (Utils.isString(v)) {
             this._viewText.settings.text = v;
         } else {
-            this._viewText.settings.setSettings(v);
+            this._viewText.settings.patch(v);
         }
     }
 
@@ -4765,10 +4705,12 @@ class View {
             }
 
             if (shader) {
-                shader.setSettings(v);
+                Base.patchObject(shader, v)
             }
         } else if (v === null) {
             shader = this.stage.ctx.renderState.defaultShader;
+        } else if (v === undefined) {
+            shader = null;
         } else {
             if (v.isShader) {
                 shader = v;
@@ -4820,12 +4762,16 @@ class View {
         this.texturizer.filters = v
     }
 
-    getResultTextureSource() {
-        return this.texturizer.getResultTextureSource()
+    getTexture() {
+        return this.texturizer._getTextureSource()
     }
 
     get texturizer() {
         return this._core.texturizer
+    }
+
+    patch(settings) {
+        Base.patchObject(this, settings)
     }
 
     
@@ -5135,10 +5081,6 @@ View.PROP_SETTERS = new Map();
 
 
 
-Base.mixinEs5(View, EventEmitter);
-
-
-
 /**
  * Manages the list of children for a view.
  */
@@ -5155,6 +5097,7 @@ class ViewChildList {
         this._view = view;
 
         /**
+         * @const
          * @type {View[]}
          */
         this._children = isProxy ? this._view._children._children : [];
@@ -5183,8 +5126,7 @@ class ViewChildList {
                 // Ignore.
             } else {
                 if (view._parent) {
-                    let p = view._parent;
-                    p._children.remove(view);
+                    view._parent._children.remove(view);
                 }
 
                 view._setParent(this._view);
@@ -5199,6 +5141,19 @@ class ViewChildList {
             throw new Error(view + 'addChildAt: The index ' + index + ' supplied is out of bounds ' + this._children.length);
         }
     };
+
+    setAt(view, index) {
+        if (index >= 0 && index <= this._children.length) {
+            if (this._children[index] !== view) {
+                if (view._parent) {
+                    view._parent._children.remove(view);
+                }
+
+                this._children[index]._setParent(null)
+                view._setParent(this._view);
+            }
+        }
+    }
 
     getIndex(view) {
         return this._children.indexOf(view);
@@ -5247,7 +5202,7 @@ class ViewChildList {
                 c = this._view.stage.createView();
             }
             this.add(c);
-            c.setSettings(o);
+            c.patch(o);
             return c;
         } else if (Array.isArray(o)) {
             for (let i = 0, n = o.length; i < n; i++) {
@@ -5259,29 +5214,120 @@ class ViewChildList {
             return o;
         }
     };
-    
-    set(views) {
-        this.clear();
-        for (let i = 0, n = views.length; i < n; i++) {
-            let o = views[i];
-            if (Utils.isObjectLiteral(o)) {
-                let c;
-                if (o.type) {
-                    c = new o.type(this._view.stage);
-                } else {
-                    c = this._view.stage.createView();
-                }
-                this.add(c);
-                c.setSettings(o);
-            } else if (o.isView) {
-                this.add(o);
-            }
-        }
-    }
 
     get length() {
         return this._children.length;
     }
+
+    _getRefs() {
+        let refs = {}
+        for (let i = 0, n = this._children.length; i < n; i++) {
+            let ref = this._children[i].ref
+            if (ref) {
+                refs[ref] = this._children[i]
+            }
+        }
+        return refs
+    }
+
+    patch(settings) {
+        if (Utils.isObjectLiteral(settings)) {
+            this._setByObject(settings)
+        } else if (Array.isArray(settings)) {
+            this._setByArray(settings)
+        }
+    }
+
+    _setByObject(settings) {
+        // Overrule settings of known referenced views.
+        // If no view exists, add it automatically if __create is set, otherwise ignore.
+        let refs = this._getRefs()
+        let crefs = Object.keys(settings)
+        for (let i = 0, n = crefs.length; i < n; i++) {
+            let cref = crefs[i]
+            let s = settings[cref]
+
+            let c = refs[cref]
+            if (!c && s.__create) {
+                // Create new item.
+                let c;
+                if (s.type) {
+                    c = new s.type(this._view.stage);
+                } else {
+                    c = this._view.stage.createView();
+                }
+                this.add(c)
+            }
+            if (c) {
+                if (s.isView) {
+                    // Replace previous view
+                    let idx = this.getIndex(c)
+                    this.setAt(s, idx)
+                } else {
+                    c.patch(s)
+                }
+            }
+        }
+    }
+
+    _setByArray(array) {
+        for (let i = 0, n = this._children; i < n; i++) {
+            this._children[i].marker = true
+        }
+
+        let refs
+        let newItems = []
+        for (let i = 0, n = array.length; i < n; i++) {
+            let s = array[i]
+            if (s.isView) {
+                s._setParent(this._view)
+                newItems.push(s)
+            } else {
+                let cref = s.ref
+                let c
+                if (cref) {
+                    if (!refs) refs = this._view._getRefs()
+                    c = refs[cref]
+                }
+
+                if (c) {
+                    c._parent = this._view
+                } else {
+                    // Create new item.
+                    if (s.type) {
+                        c = new s.type(this._view.stage);
+                    } else {
+                        c = this._view.stage.createView();
+                    }
+                    c._setParent(this._view)
+                }
+
+                c.patch(s)
+                newItems.push(c)
+            }
+        }
+
+        for (let i = 0, n = this._children; i < n; i++) {
+            if (this._children[i].marker) {
+                this._children[i]._setParent(null)
+            }
+
+            // Clean up the (now unused) marker.
+            delete this._children[i].marker
+        }
+
+        // Reuse children array so that the reference stays the same.
+        for (let i = 0, n = newItems.length; i < n; i++) {
+            this._children[i] = newItems[i]
+        }
+        if (this._children.length > newItems.length) {
+            this._children.splice(0, newItems.length);
+        }
+
+        // Sync cores.
+        this._view._core.setChildren(newItems.map(i => i._core));
+    }
+
 }
 
 
@@ -5360,7 +5406,7 @@ class ViewTexturizer {
         v.forEach(filter => {
             if (Utils.isObjectLiteral(filter) && filter.type) {
                 let s = new filter.type(this.ctx)
-                s.setSettings(filter)
+                s.patch(filter)
                 filter = s
             }
 
@@ -5411,7 +5457,11 @@ class ViewTexturizer {
         return activeFilters
     }
 
-    getResultTextureSource() {
+    getTexture() {
+        return this.ctx.stage.texture(this._getTextureSource(), {precision: this._getTextureSource().precision});
+    }
+
+    _getTextureSource() {
         if (!this._resultTextureSource) {
             this._resultTextureSource = new TextureSource(this._view.stage.textureManager, null);
 
@@ -5424,8 +5474,8 @@ class ViewTexturizer {
         let resultTexture = this.getResultTexture()
         if (this._resultTextureSource) {
             if (this._resultTextureSource.glTexture !== resultTexture) {
-                let w = resultTexture ? resultTexture.w : 0
-                let h = resultTexture ? resultTexture.h : 0
+                let w = resultTexture ? resultTexture.rw : 0
+                let h = resultTexture ? resultTexture.rh : 0
                 this._resultTextureSource._changeGlTexture(resultTexture, w, h)
             }
 
@@ -5483,7 +5533,7 @@ class ViewTexturizer {
 
     getRenderTexture() {
         if (!this._renderTexture) {
-            this._renderTexture = this.ctx.allocateRenderTexture(Math.min(2048, this._core._rw), Math.min(2048, this._core._rh));
+            this._renderTexture = this.ctx.allocateRenderTexture(this._core._rw, this._core._rh);
             this._renderTextureReused = false
         }
         return this._renderTexture;
@@ -5491,7 +5541,7 @@ class ViewTexturizer {
 
     getFilterTexture() {
         if (!this._resultTexture) {
-            this._resultTexture = this.ctx.allocateRenderTexture(Math.min(2048, this._core._rw), Math.min(2048, this._core._rh));
+            this._resultTexture = this.ctx.allocateRenderTexture(this._core._rw, this._core._rh);
         }
         return this._resultTexture;
     }
@@ -5637,6 +5687,7 @@ class ViewCore {
      *   2: translate
      *   4: transform
      * 128: becomes visible
+     * 512: reserved temporary marker flag (should not used)
      */
     _setRecalc(type) {
         this._recalc |= type;
@@ -5696,7 +5747,7 @@ class ViewCore {
             }
 
             if (!this._shader) {
-                let newShaderOwner = parent ? parent._shaderOwner : null;
+                let newShaderOwner = parent && !parent._renderToTextureEnabled ? parent._shaderOwner : null;
                 if (newShaderOwner !== this._shaderOwner) {
                     this.setHasRenderUpdates(1);
                     this._setShaderOwnerRecursive(newShaderOwner);
@@ -5730,6 +5781,30 @@ class ViewCore {
             }
         }
     };
+
+    setChildren(children) {
+        let nChildren = this._children ? this._children.length : 0
+
+        // Set marker flags to detect which views must be removed.
+        for (let i = 0; i < nChildren; i++) {
+            this._children[i]._recalc |= 512
+        }
+
+        for (let i = 0, n = children.length; i < n; i++) {
+            children[i].setParent(this)
+            if ((children[i]._recalc & 512)) {
+                children[i]._recalc -= 512
+            }
+        }
+
+        for (let i = 0; i < nChildren; i++) {
+            if ((this._children[i] & 512)) {
+                this._children[i].setParent(null)
+            }
+        }
+
+        this._children = children
+    }
 
     setLocalTransform(a, b, c, d) {
         this._setRecalc(4);
@@ -6057,7 +6132,7 @@ class ViewCore {
             // Disabled shader.
             let newShaderOwner = (this._parent && !this._parent._renderToTextureEnabled ? this._parent._shaderOwner : null);
             this._setShaderOwnerRecursive(newShaderOwner);
-        } else {
+        } else if (v) {
             // Enabled shader.
             this._setShaderOwnerRecursive(this);
         }
@@ -6089,7 +6164,7 @@ class ViewCore {
     }
 
     _setShaderOwnerRecursive(viewCore) {
-        let support = this.activeShader.supportsTextureAtlas()
+        let support = this.activeShader && this.activeShader.supportsTextureAtlas()
         this._shaderOwner = viewCore;
         if (support !== this.activeShader.supportsTextureAtlas()) {
             this._view._updateTextureCoords()
@@ -6529,10 +6604,10 @@ class ViewCore {
             } else {
                 if (this._useViewportClipping) {
                     // Calculate and set clipping area on render texture.
-                    let x = Math.round(this._renderContext.px)
-                    let y = Math.round(this._renderContext.py)
-                    let w = Math.round(this._renderContext.ta * this._rw)
-                    let h = Math.round(this._renderContext.td * this._rh)
+                    let x = this._renderContext.px
+                    let y = this._renderContext.py
+                    let w = this._renderContext.ta * this._rw
+                    let h = this._renderContext.td * this._rh
                     prevScissor = renderState.getScissor()
                     renderState.setScissor([x, y, w, h])
                 }
@@ -6667,7 +6742,7 @@ class ViewCore {
             this._texturizer.filterResultCached = true;
         } else {
             let targetTexture = this._texturizer.getFilterTexture();
-            let intermediate = this.ctx.allocateRenderTexture(Math.min(2048, this._rw), Math.min(2048, this._rh));
+            let intermediate = this.ctx.allocateRenderTexture(this._rw, this._rh);
             let source = intermediate;
             let target = targetTexture;
 
@@ -6946,18 +7021,24 @@ class CoreContext {
     }
 
     allocateRenderTexture(w, h) {
-        w = Math.round(w)
-        h = Math.round(h)
+        let prec = this.stage.getRenderPrecision()
+        let aw = Math.min(2048, Math.round(w * prec))
+        let ah = Math.min(2048, Math.round(h * prec))
+
         for (let i = 0, n = this._renderTexturePool.length; i < n; i++) {
             let texture = this._renderTexturePool[i];
-            if (texture.w === w && texture.h === h) {
+            if (texture.w === aw && texture.h === ah) {
                 texture.f = this.stage.frameCounter;
                 this._renderTexturePool.splice(i, 1);
                 return texture;
             }
         }
-        let texture = this._createRenderTexture(w, h);
+
+        let texture = this._createRenderTexture(aw, ah);
+
         texture.f = this.stage.frameCounter;
+        texture.precision = prec;
+        texture.projection = new Float32Array([2/w, 2/h])
 
         return texture;
     }
@@ -7006,7 +7087,6 @@ class CoreContext {
         sourceTexture.w = w;
         sourceTexture.h = h;
         sourceTexture.id = this._renderTextureId++
-        sourceTexture.projection = new Float32Array([2/w, 2/h])
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, sourceTexture.framebuffer)
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, sourceTexture, 0);
@@ -7622,55 +7702,21 @@ class CoreRenderExecutor {
         return this.renderState.quads.getQuadContents()
     }
 
-    _mergeQuadOperation(quadOperation) {
-        if (this._quadOperation) {
-            this._quadOperation.length += quadOperation.length
-
-            // We remove the shader owner, because the shader should not rely on it.
-            this._quadOperation.shaderOwner = null
-        }
-    }
-
     _processQuadOperation(quadOperation) {
         if (quadOperation.renderTextureInfo && quadOperation.renderTextureInfo.ignore) {
             // Ignore quad operations when we are 're-using' another texture as the render texture result.
             return
         }
 
-        // Check if quad operation can be merged; uniforms are set lazily in the process.
+        if (this._quadOperation) {
+            this._execQuadOperation()
+        }
+
         let shader = quadOperation.shader
+        this._useShaderProgram(shader)
+        shader.setupUniforms(quadOperation)
 
-        let merged = false
-        let setup = false
-        if (this._quadOperation && (this._quadOperation.renderTextureInfo === quadOperation.renderTextureInfo) && (this._quadOperation.scissor === quadOperation.scissor) && this._quadOperation.shader.supportsMerging() && quadOperation.shader.supportsMerging()) {
-            if (this._quadOperation.shader === shader) {
-                this._mergeQuadOperation(quadOperation)
-                merged = true
-            } else if (shader.hasSameProgram(this._quadOperation.shader)) {
-                shader.setupUniforms(quadOperation)
-                setup = true
-                if (shader.isMergable(this._quadOperation.shader)) {
-                    this._mergeQuadOperation(quadOperation)
-                    merged = true
-                }
-            }
-        }
-
-        if (!merged) {
-            if (this._quadOperation) {
-                this._execQuadOperation()
-            }
-
-            if (!setup) {
-                shader.setupUniforms(quadOperation)
-            }
-
-            // We immediately commit the uniform updates to compare with other shaders of the same type when merging.
-            this._useShaderProgram(shader)
-            shader.commitUniformUpdates();
-
-            this._quadOperation = quadOperation
-        }
+        this._quadOperation = quadOperation
     }
 
     _execQuadOperation() {
@@ -7706,7 +7752,6 @@ class CoreRenderExecutor {
         let filter = filterOperation.filter
         this._useShaderProgram(filter)
         filter.setupUniforms(filterOperation)
-        filter.commitUniformUpdates()
         filter.beforeDraw(filterOperation)
         this._bindRenderTexture(filterOperation.renderTexture)
         this._clearRenderTexture()
@@ -7770,11 +7815,12 @@ class CoreRenderExecutor {
             gl.disable(gl.SCISSOR_TEST);
         } else {
             gl.enable(gl.SCISSOR_TEST);
+            let precision = this.ctx.stage.getRenderPrecision()
             if (this._renderTexture === null) {
                 // Flip.
-                area[1] = this.ctx.stage.h - (area[1] + area[3])
+                area[1] = (this.ctx.stage.h / precision - (area[1] + area[3]))
             }
-            gl.scissor(area[0], area[1], area[2], area[3]);
+            gl.scissor(Math.round(area[0] * precision), Math.round(area[1] * precision), Math.round(area[2] * precision), Math.round(area[3] * precision));
         }
         this._scissor = area
     }
@@ -7788,20 +7834,16 @@ class CoreRenderExecutor {
  */
 
 
-class ViewText extends Base {
+class ViewText {
 
     constructor(view) {
-        super();
-
         this.view = view;
 
         this.settings = new TextRendererSettings();
         this.settings.on('change', () => {
             this.updateTexture();
         });
-    }
 
-    _properties() {
         this.updatingTexture = null;
     }
 
@@ -8132,54 +8174,12 @@ class TextRenderer {
 }
 
 
-
 /**
  * Copyright Metrological, 2017
  */
-class TextRendererSettings extends Base {
-    constructor() {
-        super();
 
-        EventEmitter.call(this);
-    }
 
-    _properties() {
-        this._text = "";
-        this._w = 0;
-        this._h = 0;
-        this._fontStyle = "normal";
-        this._fontSize = 40;
-        this._fontFace = null;
-        this._wordWrap = true;
-        this._wordWrapWidth = 0;
-        this._lineHeight = null;
-        this._textBaseline = "alphabetic";
-        this._textAlign = "left";
-        this._offsetY = null;
-        this._maxLines = 0;
-        this._maxLinesSuffix = "..";
-        this._precision = null;
-        this._textColor = 0xFFFFFFFF;
-        this._paddingLeft = 0;
-        this._paddingRight = 0;
-        this._shadow = false;
-        this._shadowColor = 0xFF000000;
-        this._shadowOffsetX = 0;
-        this._shadowOffsetY = 0;
-        this._shadowBlur = 5;
-        this._highlight = false;
-        this._highlightHeight = 0;
-        this._highlightColor = 0xFF000000;
-        this._highlightOffset = 0;
-        this._highlightPaddingLeft = 0;
-        this._highlightPaddingRight = 0;
-        this._cutSx = 0;
-        this._cutEx = 0;
-        this._cutSy = 0;
-        this._cutEy = 0;
-
-        this.sync = false;
-    }
+class TextRendererSettings extends EventEmitter {
 
     /**
      * Finalize this settings object so that it is no longer dependent on possibly changing defaults.
@@ -8199,7 +8199,7 @@ class TextRendererSettings extends Base {
         }
 
         if (this.precision === null) {
-            this.precision = view.stage.options.defaultPrecision;
+            this.precision = view.stage.getRenderPrecision();
         }
     };
 
@@ -8326,6 +8326,10 @@ class TextRendererSettings extends Base {
         obj._cutEy = this._cutEy;
         obj.sync = this.sync;
         return obj;
+    }
+
+    patch(settings) {
+        Base.patchObject(this, settings)
     }
 
     get text() {
@@ -8692,9 +8696,44 @@ class TextRendererSettings extends Base {
     }
 }
 
+// Because there are so many properties, we prefer to use the prototype for default values.
+// This causes a decrease in performance, but also a decrease in memory usage.
+let proto = TextRendererSettings.prototype
+proto._text = "";
+proto._w = 0;
+proto._h = 0;
+proto._fontStyle = "normal";
+proto._fontSize = 40;
+proto._fontFace = null;
+proto._wordWrap = true;
+proto._wordWrapWidth = 0;
+proto._lineHeight = null;
+proto._textBaseline = "alphabetic";
+proto._textAlign = "left";
+proto._offsetY = null;
+proto._maxLines = 0;
+proto._maxLinesSuffix = "..";
+proto._precision = null;
+proto._textColor = 0xFFFFFFFF;
+proto._paddingLeft = 0;
+proto._paddingRight = 0;
+proto._shadow = false;
+proto._shadowColor = 0xFF000000;
+proto._shadowOffsetX = 0;
+proto._shadowOffsetY = 0;
+proto._shadowBlur = 5;
+proto._highlight = false;
+proto._highlightHeight = 0;
+proto._highlightColor = 0xFF000000;
+proto._highlightOffset = 0;
+proto._highlightPaddingLeft = 0;
+proto._highlightPaddingRight = 0;
+proto._cutSx = 0;
+proto._cutEx = 0;
+proto._cutSy = 0;
+proto._cutEy = 0;
+proto.sync = false;
 
-
-Base.mixinEs5(TextRendererSettings, EventEmitter);
 
 
 /**
@@ -8737,7 +8776,7 @@ class TransitionManager {
 
     createSettings(settings) {
         let transitionSettings = new TransitionSettings();
-        Base.setObjectSettings(transitionSettings, settings);
+        Base.patchObject(transitionSettings, settings);
         return transitionSettings;
     }
 
@@ -8752,17 +8791,12 @@ class TransitionManager {
  * Copyright Metrological, 2017
  */
 
-class TransitionSettings extends Base {
+class TransitionSettings {
     constructor() {
-        super();
-    }
-
-    _properties() {
         this._timingFunction = 'ease';
         this._timingFunctionImpl = StageUtils.getTimingFunction(this._timingFunction);
         this.delay = 0;
         this.duration = 0.2;
-        this.isTransitionSettings = true;
         this.merger = null;
     }
 
@@ -8779,7 +8813,12 @@ class TransitionSettings extends Base {
         return this._timingFunctionImpl;
     }
 
+    patch(settings) {
+        Base.patchObject(this, settings)
+    }
 }
+
+TransitionSettings.prototype.isTransitionSettings = true;
 
 
 
@@ -8787,12 +8826,12 @@ class TransitionSettings extends Base {
  * Copyright Metrological, 2017
  */
 
-class Transition extends Base {
+
+
+class Transition extends EventEmitter {
 
     constructor(manager, settings, view, property) {
-        super();
-
-        EventEmitter.call(this);
+        super()
         
         this.manager = manager;
 
@@ -8822,13 +8861,9 @@ class Transition extends Base {
         this._delayLeft = 0;
     }
 
-    _properties() {
-        this.isTransition = true;
-    }
-
     stop() {
         if (this.isActive()) {
-            this._setter(this.targetValue);
+            this._setter(this._view, this.targetValue);
             this._p = 1;
         }
     }
@@ -8841,7 +8876,7 @@ class Transition extends Base {
         if (p < 1) {
             this.checkActive();
         } else if (p === 1) {
-            this._setter(targetValue);
+            this._setter(this._view, targetValue);
 
             // Immediately invoke onFinish event.
             this.invokeListeners();
@@ -8984,9 +9019,7 @@ class Transition extends Base {
 
 }
 
-
-
-Base.mixinEs5(Transition, EventEmitter);
+Transition.prototype.isTransition = true;
 
 
 
@@ -9042,7 +9075,7 @@ class AnimationManager {
 
     createSettings(settings) {
         let animationSettings = new AnimationSettings();
-        Base.setObjectSettings(animationSettings, settings);
+        Base.patchObject(animationSettings, settings);
         return animationSettings;
     }
 
@@ -9057,21 +9090,17 @@ class AnimationManager {
  * Copyright Metrological, 2017
  */
 
-class AnimationSettings extends Base {
+class AnimationSettings {
     constructor() {
-        super();
-
         /**
          * @type {AnimationActionSettings[]}
          * @private
          */
         this._actions = [];
-    }
 
-    _properties() {
         this.delay = 0;
         this.duration = 1;
-        
+
         this.repeat = 0;
         this.repeatOffset = 0;
         this.repeatDelay = 0;
@@ -9095,7 +9124,7 @@ class AnimationSettings extends Base {
             let e = v[i];
             if (!e.isAnimationActionSettings) {
                 let aas = new AnimationActionSettings(this);
-                aas.setSettings(e);
+                aas.patch(e);
                 this._actions.push(aas);
             } else {
                 this._actions.push(e);
@@ -9138,6 +9167,9 @@ class AnimationSettings extends Base {
         return this._stopTimingFunctionImpl;
     }
 
+    patch(settings) {
+        Base.patchObject(this, settings)
+    }
 }
 
 AnimationSettings.STOP_METHODS = {
@@ -9154,11 +9186,9 @@ AnimationSettings.STOP_METHODS = {
  * Copyright Metrological, 2017
  */
 
-class AnimationActionSettings extends Base {
+class AnimationActionSettings {
 
     constructor() {
-        super();
-
         /**
          * The tags to which this transformation applies.
          * @type {string[]}
@@ -9190,13 +9220,10 @@ class AnimationActionSettings extends Base {
          * @private
          */
         this._merger = undefined;
-    }
 
-    _properties() {
         this._resetValue = undefined;
         this._hasResetValue = false;
 
-        this.isAnimationActionSettings = true;
     }
 
     getResetValue() {
@@ -9370,19 +9397,21 @@ class AnimationActionSettings extends Base {
         this._merger = f;
     }
 
+    patch(settings) {
+        Base.patchObject(this, settings)
+    }
 }
+
+AnimationActionSettings.prototype.isAnimationActionSettings = true;
 
 
 
 /**
  * Copyright Metrological, 2017
  */
-
-class AnimationActionItems extends Base {
+class AnimationActionItems {
     
     constructor(action) {
-        super();
-        
         this._action = action;
         
         this._clear();
@@ -9588,12 +9617,12 @@ class AnimationActionItems extends Base {
  * Copyright Metrological, 2017
  */
 
-class Animation extends Base {
+
+
+class Animation extends EventEmitter {
 
     constructor(manager, settings, view) {
-        super();
-
-        EventEmitter.call(this);
+        super()
 
         this.manager = manager;
 
@@ -9602,13 +9631,11 @@ class Animation extends Base {
         this._view = view;
 
         this._state = Animation.STATES.IDLE;
-    }
 
-    _properties() {
         this._p = 0;
         this._delayLeft = 0;
         this._repeatsLeft = 0;
-        
+
         this._stopDelayLeft = 0;
         this._stopP = 0;
     }
@@ -9939,10 +9966,6 @@ class Animation extends Base {
 
 }
 
-
-
-Base.mixinEs5(Animation, EventEmitter);
-
 Animation.STATES = {
     IDLE: 0,
     PLAYING: 1,
@@ -10118,6 +10141,10 @@ class ListView extends View {
                 } else {
                     if (this.list.length === 1) {
                         this.list.setIndex(0, true, true);
+                    } else {
+                        if (index <= this.list._index) {
+                            this.list.setIndex(this.list._index + 1);
+                        }
                     }
                     this.list.update();
                 }
@@ -10235,6 +10262,15 @@ class ListView extends View {
         }
 
         this.emit('focus', this.getElement(this.realIndex), this._index, this.realIndex);
+    }
+
+    getAxisPosition() {
+        let target = -this._scrollTransition._targetValue;
+
+        let direction = (this._horizontal ^ this._invertDirection ? -1 : 1);
+        let value = -direction * this._index * this._itemSize;
+
+        return this._viewportScrollOffset * this.viewportSize + (value - target);
     }
 
     update() {
@@ -10418,11 +10454,11 @@ class ListView extends View {
     }
 
     set scrollTransitionSettings(v) {
-        this._scrollTransitionSettings.setSettings(v);
+        this._scrollTransitionSettings.patch(v);
     }
 
     set scrollTransition(v) {
-        this._scrollTransitionSettings.setSettings(v);
+        this._scrollTransitionSettings.patch(v);
     }
 
     get scrollTransition() {
@@ -10644,7 +10680,7 @@ class BorderView extends View {
     }
 
     set borderTop(settings) {
-        this.borderTop.setSettings(settings);
+        this.borderTop.patch(settings);
     }
 
     get borderRight() {
@@ -10652,7 +10688,7 @@ class BorderView extends View {
     }
 
     set borderRight(settings) {
-        this.borderRight.setSettings(settings);
+        this.borderRight.patch(settings);
     }
 
     get borderBottom() {
@@ -10660,7 +10696,7 @@ class BorderView extends View {
     }
 
     set borderBottom(settings) {
-        this.borderBottom.setSettings(settings);
+        this.borderBottom.patch(settings);
     }
 
     get borderLeft() {
@@ -10668,7 +10704,7 @@ class BorderView extends View {
     }
 
     set borderLeft(settings) {
-        this.borderLeft.setSettings(settings);
+        this.borderLeft.patch(settings);
     }    
 
     set borders(settings) {
@@ -10721,10 +10757,10 @@ class FastBlurView extends View {
         this._layers = c.get()[1].children
         this._output = c.get()[2]
 
-        this.getLayerContents(0).texture = this._textwrap.getResultTextureSource()
-        this.getLayerContents(1).texture = this.getLayer(0).getResultTextureSource()
-        this.getLayerContents(2).texture = this.getLayer(1).getResultTextureSource()
-        this.getLayerContents(3).texture = this.getLayer(2).getResultTextureSource()
+        this.getLayerContents(0).texture = this._textwrap.getTexture()
+        this.getLayerContents(1).texture = this.getLayer(0).getTexture()
+        this.getLayerContents(2).texture = this.getLayer(1).getTexture()
+        this.getLayerContents(3).texture = this.getLayer(2).getTexture()
 
         let filters = FastBlurView.getLinearBlurFilters(stage.ctx)
         this.getLayer(1).filters = [filters[0], filters[1]]
@@ -10774,7 +10810,7 @@ class FastBlurView extends View {
     _updateBlurSize() {
         let w = this.renderWidth
         let h = this.renderHeight
-        
+
         let paddingX = this._paddingX
         let paddingY = this._paddingY
 
@@ -10834,20 +10870,20 @@ class FastBlurView extends View {
             this.getLayer(3).visible = (v > 3);
 
             if (v <= 1) {
-                this._output.texture = this._textwrap.getResultTextureSource()
-                this._output.shader.otherTextureSource = this.getLayer(0).getResultTextureSource()
+                this._output.texture = this._textwrap.getTexture()
+                this._output.shader.otherTextureSource = this.getLayer(0).getTexture()
                 this._output.shader.a = v
             } else if (v <= 2) {
-                this._output.texture = this.getLayer(0).getResultTextureSource()
-                this._output.shader.otherTextureSource = this.getLayer(1).getResultTextureSource()
+                this._output.texture = this.getLayer(0).getTexture()
+                this._output.shader.otherTextureSource = this.getLayer(1).getTexture()
                 this._output.shader.a = v - 1
             } else if (v <= 3) {
-                this._output.texture = this.getLayer(1).getResultTextureSource()
-                this._output.shader.otherTextureSource = this.getLayer(2).getResultTextureSource()
+                this._output.texture = this.getLayer(1).getTexture()
+                this._output.shader.otherTextureSource = this.getLayer(2).getTexture()
                 this._output.shader.a = v - 2
             } else if (v <= 4) {
-                this._output.texture = this.getLayer(2).getResultTextureSource()
-                this._output.shader.otherTextureSource = this.getLayer(3).getResultTextureSource()
+                this._output.texture = this.getLayer(2).getTexture()
+                this._output.shader.otherTextureSource = this.getLayer(3).getTexture()
                 this._output.shader.a = v - 3
             }
         }
@@ -10979,10 +11015,6 @@ class FastBlurOutputShader extends Shader {
     set otherTextureSource(v) {
         this._otherTextureSource = v
         this.redraw()
-    }
-
-    getFragmentShaderSource() {
-        return FastBlurOutputShader.fragmentShaderSource
     }
 
     setupUniforms(operation) {
@@ -11374,9 +11406,6 @@ PixelateShader.fragmentShaderSource = `
 
 
 class InversionShader extends Shader {
-    getFragmentShaderSource() {
-        return InversionShader.fragmentShaderSource
-    }
 }
 
 InversionShader.fragmentShaderSource = `
@@ -11519,14 +11548,6 @@ FxaaFilter.fragmentShaderSource = `
 
 
 class InversionFilter extends Filter {
-    constructor(ctx) {
-        super(ctx);
-    }
-
-    getFragmentShaderSource() {
-        return InversionFilter.fragmentShaderSource
-    }
-
 }
 
 InversionFilter.fragmentShaderSource = `
@@ -11655,10 +11676,6 @@ class LinearBlurFilter extends Filter {
     set kernelRadius(v) {
         this._kernelRadius = v
         this.redraw()
-    }
-
-    getFragmentShaderSource() {
-        return LinearBlurFilter.fragmentShaderSource
     }
 
     setupUniforms(operation) {

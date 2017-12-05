@@ -1,19 +1,13 @@
 /**
  * Copyright Metrological, 2017
  */
-let Base = require('../core/Base');
 
-class TransitionSettings extends Base {
+class TransitionSettings {
     constructor() {
-        super();
-    }
-
-    _properties() {
         this._timingFunction = 'ease';
         this._timingFunctionImpl = StageUtils.getTimingFunction(this._timingFunction);
         this.delay = 0;
         this.duration = 0.2;
-        this.isTransitionSettings = true;
         this.merger = null;
     }
 
@@ -30,8 +24,14 @@ class TransitionSettings extends Base {
         return this._timingFunctionImpl;
     }
 
+    patch(settings) {
+        Base.patchObject(this, settings)
+    }
 }
+
+TransitionSettings.prototype.isTransitionSettings = true;
 
 module.exports = TransitionSettings;
 
+let Base = require('../core/Base')
 let StageUtils = require('../core/StageUtils');

@@ -1,13 +1,10 @@
 /**
  * Copyright Metrological, 2017
  */
-let Base = require('../core/Base');
 
-class AnimationActionSettings extends Base {
+class AnimationActionSettings {
 
     constructor() {
-        super();
-
         /**
          * The tags to which this transformation applies.
          * @type {string[]}
@@ -39,13 +36,10 @@ class AnimationActionSettings extends Base {
          * @private
          */
         this._merger = undefined;
-    }
 
-    _properties() {
         this._resetValue = undefined;
         this._hasResetValue = false;
 
-        this.isAnimationActionSettings = true;
     }
 
     getResetValue() {
@@ -219,10 +213,16 @@ class AnimationActionSettings extends Base {
         this._merger = f;
     }
 
+    patch(settings) {
+        Base.patchObject(this, settings)
+    }
 }
+
+AnimationActionSettings.prototype.isAnimationActionSettings = true;
 
 module.exports = AnimationActionSettings;
 
+let Base = require('../core/Base')
 let AnimationActionItems = require('./AnimationActionItems');
 let View = require('../core/View');
 let StageUtils = require('../core/StageUtils');
