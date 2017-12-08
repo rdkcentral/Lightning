@@ -103,7 +103,7 @@ module.exports = function(grunt) {
             "wpe-browser": {
                 src: 'dist/wpe.js',
                 options: {
-                    patterns: [/\/\*M¬\*\/(.|\n)+?\/\*¬M\*\//g, /\/\*(.¬|¬.)\*\//g, / *(let|var)[^=]+=\s*require[^)]+\);?\n?/g, / *module\.exports[^;\n]*;?\n?/g]
+                    patterns: [/\/\*M¬\*\/(.|\n)+?\/\*¬M\*\//g, /\/\*(.¬|¬.)\*\//g, / *(let|var|const)[^=]+=\s*require[^)]+\);?\n?/g, / *module\.exports[^;\n]*;?\n?/g]
                 }
             }
         }

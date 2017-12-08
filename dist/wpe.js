@@ -3261,7 +3261,7 @@ class View extends EventEmitter {
          * A reference that can be used while merging trees.
          * @type {string}
          */
-        this.ref = null;
+        this._ref = null;
 
         /**
          * Lazy-loaded texturization module.
@@ -3368,9 +3368,23 @@ class View extends EventEmitter {
 
     }
 
+    set ref(ref) {
+        if (this._ref !== ref) {
+            if (this._ref !== null) {
+                this.removeTag(this._ref)
+            }
+            this._ref = ref
+            this.addTag(this._ref)
+        }
+    }
+
+    get ref() {
+        return this._ref
+    }
+
     setAsRoot() {
-        this._updateActiveFlag();
         this._updateAttachedFlag();
+        this._updateActiveFlag();
         this._core.setAsRoot();
     }
 
@@ -3387,19 +3401,18 @@ class View extends EventEmitter {
             this._setTagsParent();
         }
 
-        this._updateActiveFlag();
-
         this._updateAttachedFlag();
+        this._updateActiveFlag();
     };
 
     getDepth() {
         let depth = 0;
 
-        let p = this;
-        do {
+        let p = this._parent;
+        while(p) {
             depth++;
             p = p._parent;
-        } while (p);
+        }
 
         return depth;
     };
@@ -3495,8 +3508,13 @@ class View extends EventEmitter {
 
             // Run this after all _children because we'd like to see (de)activating a branch as an 'atomic' operation.
             if (this._eventsCount) {
-                this.emit('active', newActive);
+                this.emit('active');
             }
+
+            if (this._eventsCount) {
+                this.emit('inactive');
+            }
+
         }
     };
 
@@ -3561,6 +3579,14 @@ class View extends EventEmitter {
                         children[i]._updateAttachedFlag();
                     }
                 }
+            }
+
+            if (this._eventsCount) {
+                this.emit('attach');
+            }
+
+            if (this._eventsCount) {
+                this.emit('detach');
             }
         }
     };
@@ -3907,31 +3933,61 @@ class View extends EventEmitter {
     };
 
     _setTagsParent() {
-        if (!this._tagRoot && this._treeTags && this._treeTags.size) {
-            let self = this;
-            this._treeTags.forEach(function (tagSet, tag) {
-                // Add to treeTags.
-                let p = self;
-                while ((p = p._parent) && !p._tagRoot) {
-                    if (!p._treeTags) {
-                        p._treeTags = new Map();
-                    }
+        if (this._treeTags && this._treeTags.size) {
+            if (this._tagRoot) {
+                // Just copy over the 'local' tags.
+                if (this._tags) {
+                    this._tags.forEach((tag) => {
+                        let p = this
+                        while (p = p._parent) {
+                            if (!p._treeTags) {
+                                p._treeTags = new Map();
+                            }
 
-                    let s = p._treeTags.get(tag);
-                    if (!s) {
-                        s = new Set();
-                        p._treeTags.set(tag, s);
-                    }
+                            let s = p._treeTags.get(tag);
+                            if (!s) {
+                                s = new Set();
+                                p._treeTags.set(tag, s);
+                            }
 
-                    tagSet.forEach(function (comp) {
-                        s.add(comp);
+                            s.add(this);
+
+                            p._clearTagsCache(tag);
+
+                            if (p._tagRoot) {
+                                break
+                            }
+                        }
                     });
-
-                    p._clearTagsCache(tag);
                 }
-            });
+            } else {
+                this._treeTags.forEach((tagSet, tag) => {
+                    let p = this
+                    while (!p._tagRoot && (p = p._parent)) {
+                        if (p._tagRoot) {
+                            // Do not copy all subs.
+                        }
+                        if (!p._treeTags) {
+                            p._treeTags = new Map();
+                        }
+
+                        let s = p._treeTags.get(tag);
+                        if (!s) {
+                            s = new Set();
+                            p._treeTags.set(tag, s);
+                        }
+
+                        tagSet.forEach(function (comp) {
+                            s.add(comp);
+                        });
+
+                        p._clearTagsCache(tag);
+                    }
+                });
+            }
         }
     };
+
 
     _getByTag(tag) {
         if (!this._treeTags) {
@@ -3946,6 +4002,10 @@ class View extends EventEmitter {
     };
 
     setTags(tags) {
+        if (this._ref) {
+            tags = tags.concat(this._ref)
+        }
+
         let i, n = tags.length;
         let removes = [];
         let adds = [];
@@ -4153,17 +4213,23 @@ class View extends EventEmitter {
         let children = this._children.get();
         if (children) {
             let n = children.length;
-            settings.children = [];
+            settings.sub = [];
             for (let i = 0; i < n; i++) {
-                settings.children.push(children[i].getSettings());
+                settings.sub.push(children[i].getSettings());
             }
         }
+
+        settings.id = this.id;
 
         return settings;
     }
 
     getNonDefaults() {
         let settings = {};
+
+        if (this._ref) {
+            settings.ref = this._ref
+        }
 
         if (this._tags && this._tags.length) {
             settings.tags = this._tags;
@@ -4576,19 +4642,15 @@ class View extends EventEmitter {
         return this._childList
     }
 
-    get _lchildren() {
-        return this._childList.get()
-    }
-
     get childList() {
-        if (!this._exposedChildList) {
-            this._exposedChildList = this._getExposedChildList()
+        if (!this._allowChildrenAccess()) {
+            throw new Error("Direct access to children is not allowed in " + this.getLocationString())
         }
-        return this._exposedChildList
+        return this._children
     }
 
-    _getExposedChildList() {
-        return this._children
+    _allowChildrenAccess() {
+        return true
     }
 
     get children() {
@@ -4599,32 +4661,8 @@ class View extends EventEmitter {
         this.childList.patch(children)
     }
 
-    getChildren() {
-        return this.childList.get();
-    }
-
-    addChild(child) {
-        return this.childList.add(child);
-    }
-
-    addChildAt(child, index) {
-        return this.childList.addAt(child, index);
-    }
-
-    getChildIndex(child) {
-        return this.childList.getIndex(child);
-    }
-
-    removeChild(child) {
-        return this.childList.remove(child);
-    }
-
-    removeChildAt(index) {
-        return this.childList.removeAt(index);
-    }
-
-    removeChildren() {
-        return this.childList.clear();
+    set sub(children) {
+        this.children = children
     }
 
     add(o) {
@@ -4792,6 +4830,18 @@ class View extends EventEmitter {
         let keys = Object.keys(object);
         keys.forEach(property => {
             this.transition(property, object[property]);
+        });
+    }
+
+    set smooth(object) {
+        let keys = Object.keys(object);
+        keys.forEach(property => {
+            let value = object[property]
+            if (Array.isArray(value)) {
+                this.setSmooth(property, value[0], value[1])
+            } else {
+                this.setSmooth(property, value)
+            }
         });
     }
 
@@ -5082,149 +5132,136 @@ View.PROP_SETTERS = new Map();
 
 
 /**
- * Manages the list of children for a view.
+ * Manages a list of objects.
+ * Objects may be patched. Then, they can be referenced using the 'ref' (string) property.
  */
-class ViewChildList {
+class ObjectList {
 
-    /**
-     * @param view
-     * @param isProxy
-     *   A proxy mutates the children of another view. It is not used in core but is handy for extensions that extend
-     *   the View class and wish to provide an alternative children implementation or other view collections.
-     */
-    constructor(view, isProxy = true) {
-
-        this._view = view;
-
-        /**
-         * @const
-         * @type {View[]}
-         */
-        this._children = isProxy ? this._view._children._children : [];
-
+    constructor() {
+        this._items = []
     }
 
     get() {
-        return this._children;
+        return this._items
     }
 
-    add(view) {
-        if (view._parent === this && this._children.indexOf(view) >= 0) {
-            return view;
-        }
-        this.addAt(view, this._children.length);
-    };
+    get first() {
+        return this._items[0]
+    }
 
-    addAt(view, index) {
-        // prevent adding self as view
-        if (view === this._view) {
-            return
-        }
+    get last() {
+        return this._items.length ? this._items[this._items.length - 1] : undefined
+    }
 
-        if (index >= 0 && index <= this._children.length) {
-            if (view._parent === this._view && this._children.indexOf(view) === index) {
-                // Ignore.
+    add(item) {
+        this.addAt(item, this._items.length);
+    }
+
+    addAt(item, index) {
+        if (index >= 0 && index <= this._items.length) {
+            let currentIndex = this._items.indexOf(item)
+            if (currentIndex === index) {
+                return item;
+            }
+
+            if (currentIndex != -1) {
+                this.setAt(item, index)
             } else {
-                if (view._parent) {
-                    view._parent._children.remove(view);
-                }
-
-                view._setParent(this._view);
-                this._children.splice(index, 0, view);
-
-                // Sync.
-                this._view._core.addChildAt(index, view._core);
+                this._items.splice(index, 0, item);
+                this.onAdd(item, index)
             }
-
-            return;
         } else {
-            throw new Error(view + 'addChildAt: The index ' + index + ' supplied is out of bounds ' + this._children.length);
-        }
-    };
-
-    setAt(view, index) {
-        if (index >= 0 && index <= this._children.length) {
-            if (this._children[index] !== view) {
-                if (view._parent) {
-                    view._parent._children.remove(view);
-                }
-
-                this._children[index]._setParent(null)
-                view._setParent(this._view);
-            }
+            throw new Error('addAt: The index ' + index + ' is out of bounds ' + this._items.length);
         }
     }
 
-    getIndex(view) {
-        return this._children.indexOf(view);
-    };
+    setAt(item, index) {
+        if (index >= 0 && index <= this._items.length) {
+            let currentIndex = this._items.indexOf(item)
+            if (currentIndex != -1) {
+                if (currentIndex !== index) {
+                    const fromIndex = currentIndex
+                    if (fromIndex <= index) {
+                        index--
+                    }
+                    if (fromIndex !== index) {
+                        this._items.splice(fromIndex, 1)
+                        this._items.splice(index, 0, item)
+                        this.onMove(item, fromIndex, index)
+                    }
+                }
+            } else {
+                // Doesn't exist yet: overwrite current.
+                this._items[index] = item
+                this.onSet(item, index)
+            }
+        } else {
+            throw new Error('setAt: The index ' + index + ' is out of bounds ' + this._items.length);
+        }
+    }
 
-    remove(view) {
-        let index = this.getIndex(view);
+    getAt(index) {
+        return this._items[index]
+    }
+
+    getIndex(item) {
+        return this._items.indexOf(item)
+    }
+
+    remove(item) {
+        let index = this._items.indexOf(item)
 
         if (index !== -1) {
-            this.removeAt(index);
+            this.removeAt(index)
         }
     };
 
     removeAt(index) {
-        let view = this._children[index];
+        let item = this._items[index]
 
-        view._setParent(null);
-        this._children.splice(index, 1);
+        this._items.splice(index, 1);
 
-        // Sync.
-        this._view._core.removeChildAt(index);
+        this.onRemove(item, index)
 
-        return view;
+        return item;
     };
 
     clear() {
-        let n = this._children.length;
+        let n = this._items.length
         if (n) {
-            for (let i = 0; i < n; i++) {
-                let view = this._children[i];
-                view._setParent(null);
-            }
-            this._children.splice(0, n);
-
-            // Sync.
-            this._view._core.removeChildren();
+            let prev = this._items
+            this._items = []
+            this.onSync(prev, [], [])
         }
     };
 
     a(o) {
         if (Utils.isObjectLiteral(o)) {
-            let c;
-            if (o.type) {
-                c = new o.type(this._view.stage);
-            } else {
-                c = this._view.stage.createView();
-            }
-            this.add(c);
+            let c = this.createItem(o);
             c.patch(o);
+            this.add(c);
             return c;
         } else if (Array.isArray(o)) {
             for (let i = 0, n = o.length; i < n; i++) {
                 this.a(o[i]);
             }
             return null;
-        } else if (o.isView) {
+        } else if (this.isItem(o)) {
             this.add(o);
             return o;
         }
     };
 
     get length() {
-        return this._children.length;
+        return this._items.length;
     }
 
     _getRefs() {
         let refs = {}
-        for (let i = 0, n = this._children.length; i < n; i++) {
-            let ref = this._children[i].ref
+        for (let i = 0, n = this._items.length; i < n; i++) {
+            let ref = this._items[i].ref
             if (ref) {
-                refs[ref] = this._children[i]
+                refs[ref] = this._items[i]
             }
         }
         return refs
@@ -5239,8 +5276,8 @@ class ViewChildList {
     }
 
     _setByObject(settings) {
-        // Overrule settings of known referenced views.
-        // If no view exists, add it automatically if __create is set, otherwise ignore.
+        // Overrule settings of known referenced items.
+        // If no item exists, add it automatically if __create is set, otherwise ignore.
         let refs = this._getRefs()
         let crefs = Object.keys(settings)
         for (let i = 0, n = crefs.length; i < n; i++) {
@@ -5248,19 +5285,21 @@ class ViewChildList {
             let s = settings[cref]
 
             let c = refs[cref]
-            if (!c && s.__create) {
-                // Create new item.
-                let c;
-                if (s.type) {
-                    c = new s.type(this._view.stage);
+            if (!c) {
+                if (this.isItem(s)) {
+                    // Replace previous item
+                    s.ref = cref
+                    this.add(s)
                 } else {
-                    c = this._view.stage.createView();
+                    // Create new item.
+                    c = this.createItem(s)
+                    c.ref = cref
+                    c.patch(s)
+                    this.add(c)
                 }
-                this.add(c)
-            }
-            if (c) {
-                if (s.isView) {
-                    // Replace previous view
+            } else {
+                if (this.isItem(s)) {
+                    // Replace previous item
                     let idx = this.getIndex(c)
                     this.setAt(s, idx)
                 } else {
@@ -5270,36 +5309,47 @@ class ViewChildList {
         }
     }
 
+
+    _equalsArray(array) {
+        let same = true
+        if (array.length === this._items.length) {
+            for (let i = 0, n = this._items.length; (i < n) && same; i++) {
+                same = same && (this._items[i] === array[i])
+            }
+        } else {
+            same = false
+        }
+        return same
+    }
+
     _setByArray(array) {
-        for (let i = 0, n = this._children; i < n; i++) {
-            this._children[i].marker = true
+        // For performance reasons, first check if the arrays match exactly and bail out if they do.
+        if (this._equalsArray(array)) {
+            return
+        }
+
+        for (let i = 0, n = this._items.length; i < n; i++) {
+            this._items[i].marker = true
         }
 
         let refs
         let newItems = []
         for (let i = 0, n = array.length; i < n; i++) {
             let s = array[i]
-            if (s.isView) {
-                s._setParent(this._view)
+            if (this.isItem(s)) {
                 newItems.push(s)
             } else {
                 let cref = s.ref
                 let c
                 if (cref) {
-                    if (!refs) refs = this._view._getRefs()
+                    if (!refs) refs = this._getRefs()
                     c = refs[cref]
+                    c.marker = false
                 }
 
-                if (c) {
-                    c._parent = this._view
-                } else {
+                if (!c) {
                     // Create new item.
-                    if (s.type) {
-                        c = new s.type(this._view.stage);
-                    } else {
-                        c = this._view.stage.createView();
-                    }
-                    c._setParent(this._view)
+                    c = this.createItem(s)
                 }
 
                 c.patch(s)
@@ -5307,25 +5357,108 @@ class ViewChildList {
             }
         }
 
-        for (let i = 0, n = this._children; i < n; i++) {
-            if (this._children[i].marker) {
-                this._children[i]._setParent(null)
-            }
+        this._setItems(newItems)
+    }
 
-            // Clean up the (now unused) marker.
-            delete this._children[i].marker
-        }
+    _setItems(newItems) {
+        let prevItems = this._items
+        this._items = newItems
 
-        // Reuse children array so that the reference stays the same.
-        for (let i = 0, n = newItems.length; i < n; i++) {
-            this._children[i] = newItems[i]
-        }
-        if (this._children.length > newItems.length) {
-            this._children.splice(0, newItems.length);
-        }
+        // Remove the items.
+        let removed = prevItems.filter(item => {let m = item.marker; delete item.marker; return m})
+        let added = newItems.filter(item => !item.marker)
 
-        // Sync cores.
-        this._view._core.setChildren(newItems.map(i => i._core));
+        this.onSync(removed, added, newItems)
+    }
+
+    onAdd(item, index) {
+    }
+
+    onRemove(item, index) {
+    }
+
+    onSync(removed, added, order) {
+    }
+
+    onSet(item, index) {
+    }
+
+    onMove(item, fromIndex, toIndex) {
+    }
+
+    createItem(object) {
+        throw new Error("ObjectList.createItem must create and return a new object")
+    }
+
+    isItem(object) {
+        return false
+    }
+
+}
+
+
+
+/**
+ * Manages the list of children for a view.
+ */
+
+
+class ViewChildList extends ObjectList {
+
+    constructor(view) {
+        super()
+        this._view = view
+    }
+
+    _detachParent(item) {
+        if (item.parent && item.parent !== this._view) {
+            item.parent.childList.remove(item)
+        }
+    }
+
+    onAdd(item, index) {
+        this._detachParent(item)
+        item._setParent(this._view)
+        this._view._core.addChildAt(index, item._core)
+    }
+
+    onRemove(item, index) {
+        item._setParent(null)
+        this._view._core.removeChildAt(index)
+    }
+
+    onSync(removed, added, order) {
+        for (let i = 0, n = removed.length; i < n; i++) {
+            removed[i]._setParent(null)
+        }
+        for (let i = 0, n = added.length; i < n; i++) {
+            this._detachParent(added[i])
+            added[i]._setParent(this._view)
+        }
+        let gc = i => i._core
+        this._view._core.syncChildren(removed.map(gc), added.map(gc), order.map(gc))
+    }
+
+    onSet(item, index) {
+        this._detachParent(item)
+        item._setParent(this._view)
+        this._view._core.setChildAt(index, item._core)
+    }
+
+    onMove(item, fromIndex, toIndex) {
+        this._view._core.moveChild(fromIndex, toIndex)
+    }
+
+    createItem(object) {
+        if (object.type) {
+            return new object.type(this._view.stage)
+        } else {
+            return this._view.stage.createView()
+        }
+    }
+
+    isItem(object) {
+        return object.isView
     }
 
 }
@@ -5687,7 +5820,6 @@ class ViewCore {
      *   2: translate
      *   4: transform
      * 128: becomes visible
-     * 512: reserved temporary marker flag (should not used)
      */
     _setRecalc(type) {
         this._recalc |= type;
@@ -5762,6 +5894,13 @@ class ViewCore {
         child.setParent(this);
     };
 
+    setChildAt(index, child) {
+        if (!this._children) this._children = [];
+        this._children[index].setParent(null)
+        this._children[index] = child
+        child.setParent(this)
+    }
+
     removeChildAt(index) {
         let child = this._children[index];
         this._children.splice(index, 1);
@@ -5782,28 +5921,20 @@ class ViewCore {
         }
     };
 
-    setChildren(children) {
-        let nChildren = this._children ? this._children.length : 0
-
-        // Set marker flags to detect which views must be removed.
-        for (let i = 0; i < nChildren; i++) {
-            this._children[i]._recalc |= 512
+    syncChildren(removed, added, order) {
+        this._children = order
+        for (let i = 0, n = removed.length; i < n; i++) {
+            removed[i].setParent(null)
         }
-
-        for (let i = 0, n = children.length; i < n; i++) {
-            children[i].setParent(this)
-            if ((children[i]._recalc & 512)) {
-                children[i]._recalc -= 512
-            }
+        for (let i = 0, n = added.length; i < n; i++) {
+            added[i].setParent(this)
         }
+    }
 
-        for (let i = 0; i < nChildren; i++) {
-            if ((this._children[i] & 512)) {
-                this._children[i].setParent(null)
-            }
-        }
-
-        this._children = children
+    moveChild(fromIndex, toIndex) {
+        let c = this._children[fromIndex]
+        this._children.splice(fromIndex, 1);
+        this._children.splice(toIndex, 0, c);
     }
 
     setLocalTransform(a, b, c, d) {
@@ -7022,8 +7153,8 @@ class CoreContext {
 
     allocateRenderTexture(w, h) {
         let prec = this.stage.getRenderPrecision()
-        let aw = Math.min(2048, Math.round(w * prec))
-        let ah = Math.min(2048, Math.round(h * prec))
+        let aw = Math.max(1, Math.min(2048, Math.round(w * prec)))
+        let ah = Math.max(1, Math.min(2048, Math.round(h * prec)))
 
         for (let i = 0, n = this._renderTexturePool.length; i < n; i++) {
             let texture = this._renderTexturePool[i];
@@ -8971,7 +9102,7 @@ class Transition extends EventEmitter {
             this._startValue = this._targetValue;
             this._targetValue = targetValue;
         } else {
-            this._startValue = targetValue - ((targetValue - this._targetValue) / (1 - v));
+            this._startValue = targetValue - ((targetValue - this._targetValue) / (1 - t));
             this._targetValue = targetValue;
         }
     }
@@ -9981,7 +10112,7 @@ Animation.STATES = {
 
 class Tools {
 
-    static getCanvasTexture(stage, canvas, texOptions = {}, options = {}) {
+    static getCanvasTexture(stage, canvas, texOptions = {}) {
         return stage.texture(function(cb) {
             let data = canvas;
             let options = {};
@@ -10048,6 +10179,96 @@ class Tools {
         return canvas;
     }
 }
+
+
+/**
+ * Manages the list of children for a view.
+ */
+
+
+class ObjectListProxy extends ObjectList {
+
+    constructor(target) {
+        super()
+        this._target = target
+    }
+
+    onAdd(item, index) {
+        this._target.addAt(item, index)
+    }
+
+    onRemove(item, index) {
+        this._target.removeAt(index)
+    }
+
+    onSync(removed, added, order) {
+        this._target._setByArray(order)
+    }
+
+    onSet(item, index) {
+        this._target.setAt(item, index)
+    }
+
+    onMove(item, fromIndex, toIndex) {
+        this._target.setAt(item, toIndex)
+    }
+
+    createItem(object) {
+        return this._target.createItem(object)
+    }
+
+    isItem(object) {
+        return this._target.isItem(object)
+    }
+
+}
+
+
+
+/**
+ * Manages the list of children for a view.
+ */
+
+
+class ObjectListWrapper extends ObjectListProxy {
+
+    constructor(target, wrap) {
+        super(target)
+        this._wrap = wrap
+    }
+
+    wrap(item) {
+        let wrapper = this._wrap(item)
+        item._wrapper = wrapper
+        return wrapper
+    }
+
+    onAdd(item, index) {
+        item = this.wrap(item)
+        super.onAdd(item, index)
+    }
+
+    onRemove(item, index) {
+        super.onRemove(item, index)
+    }
+
+    onSync(removed, added, order) {
+        added.forEach(a => this.wrap(a))
+        order = order.map(a => a._wrapper)
+        super.onSync(removed, added, order)
+    }
+
+    onSet(item, index) {
+        item = this.wrap(item)
+        super.onSet(item, index)
+    }
+
+    onMove(item, fromIndex, toIndex) {
+        super.onMove(item, fromIndex, toIndex)
+    }
+
+}
+
 
 
 /**
@@ -10119,72 +10340,19 @@ class ListView extends View {
          */
         this._horizontal = true;
 
+        this.itemList = new ListItems(this)
     }
 
-    _getExposedChildList() {
-        // Proxy children to wrapper and encapsulate for positioning purposes.
-        return new (class extends ViewChildList {
-            constructor(view, list) {
-                super(view);
-                this.list = list;
-            }
+    _allowChildrenAccess() {
+        return false
+    }
 
-            addAt(view, index) {
-                let encaps = view.stage.createView();
-                encaps.add(view);
-                encaps.visible = false;
-                super.addAt(encaps, index);
+    get items() {
+        return this.itemList.get()
+    }
 
-                this.list._reloadVisibleElements = true;
-                if (!this.list._started) {
-                    this.list.start();
-                } else {
-                    if (this.list.length === 1) {
-                        this.list.setIndex(0, true, true);
-                    } else {
-                        if (index <= this.list._index) {
-                            this.list.setIndex(this.list._index + 1);
-                        }
-                    }
-                    this.list.update();
-                }
-            }
-
-            getIndex(view) {
-                return super.getIndex(view.parent);
-            }
-
-            removeAt(index) {
-                let ri = this.list.realIndex;
-
-                let view = super.removeAt(index);
-
-                if (ri === index) {
-                    if (ri === this.list.length) {
-                        ri--;
-                    }
-                    if (ri >= 0) {
-                        this.list.setIndex(ri);
-                    }
-                } else if (ri > index) {
-                    this.list.setIndex(ri - 1);
-                }
-
-                this.list._reloadVisibleElements = true;
-
-                return view._children.get()[0];
-            }
-
-            get() {
-                return super.get().map(function(view) {return view._children.get()[0]})
-            }
-
-            clear() {
-                super.clear();
-                this.list._reloadVisibleElements = true;
-                this.list._index = 0;
-            }
-        })(this._wrapper, this);
+    set items(children) {
+        this.itemList.patch(children)
     }
 
     start() {
@@ -10193,9 +10361,10 @@ class ListView extends View {
         this._scrollTransition.on('progress', p => this.update());
 
         this.setIndex(0, true, true);
-        this.update();
 
         this._started = true;
+
+        this.update();
     }
 
     setIndex(index, immediate = false, closest = false) {
@@ -10531,6 +10700,69 @@ class ListView extends View {
 
 ListView.NUMBER_PROPERTIES = new Set(['viewportScrollOffset', 'itemScrollOffset'])
 
+class ListItems extends ObjectListWrapper {
+    constructor(list) {
+        let wrap = (item => {
+            let parent = item.stage.createView()
+            parent.add(item)
+            parent.visible = false
+            return parent
+        })
+
+        super(list._wrapper._children, wrap);
+        this.list = list;
+    }
+
+    onAdd(item, index) {
+        super.onAdd(item, index)
+        this.checkStarted(index)
+    }
+
+    checkStarted(index) {
+        this.list._reloadVisibleElements = true;
+        if (!this.list._started) {
+            this.list.start();
+        } else {
+            if (this.list.length === 1) {
+                this.list.setIndex(0, true, true);
+            } else {
+                if (index <= this.list._index) {
+                    this.list.setIndex(this.list._index + 1);
+                }
+            }
+            this.list.update();
+        }
+    }
+
+    onRemove(item, index) {
+        super.onRemove(item, index)
+        let ri = this.list.realIndex;
+        if (ri === index) {
+            if (ri === this.list.length) {
+                ri--;
+            }
+            if (ri >= 0) {
+                this.list.setIndex(ri);
+            }
+        } else if (ri > index) {
+            this.list.setIndex(ri - 1);
+        }
+
+        this.list._reloadVisibleElements = true;
+    }
+
+    onSet(item, index) {
+        super.onSet(item, index)
+        this.checkStarted(index)
+    }
+
+    onSync(removed, added, order) {
+        super.onSync(removed, added, order)
+        this.checkStarted(0)
+    }
+
+}
+
 
 
 /**
@@ -10770,6 +11002,20 @@ class FastBlurView extends View {
         this._amount = 0
         this._paddingX = 0
         this._paddingY = 0
+
+        this.itemList = new ViewChildList(this._wrapper)
+    }
+
+    _allowChildrenAccess() {
+        return false
+    }
+
+    get items() {
+        return this.itemList.get()
+    }
+
+    set items(children) {
+        this.itemList.patch(children)
     }
 
     set padding(v) {
@@ -10786,11 +11032,6 @@ class FastBlurView extends View {
     set paddingY(v) {
         this.paddingY = v
         this._updateBlurSize()
-    }
-
-    _getExposedChildList() {
-        // Proxy children to wrapper.
-        return this._wrapper._children;
     }
 
     getLayer(i) {

@@ -302,7 +302,7 @@ var attachInspector = function(wpe) {
 
         var oRemoveTag = oView.prototype.removeTag;
         View.prototype.removeTag = function(tag) {
-            oRemoveTag(this, arguments);
+            oRemoveTag.apply(this, arguments);
 
             if (tag) {
                 this.view.dhtml().classList.remove(tag);

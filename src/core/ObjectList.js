@@ -12,6 +12,14 @@ class ObjectList {
         return this._items
     }
 
+    get first() {
+        return this._items[0]
+    }
+
+    get last() {
+        return this._items.length ? this._items[this._items.length - 1] : undefined
+    }
+
     add(item) {
         this.addAt(item, this._items.length);
     }
@@ -144,13 +152,19 @@ class ObjectList {
             let s = settings[cref]
 
             let c = refs[cref]
-            if (!c && s.__create) {
-                // Create new item.
-                let c = this.createItem(s)
-                c.ref = cref
-                this.add(c)
-            }
-            if (c) {
+            if (!c) {
+                if (this.isItem(s)) {
+                    // Replace previous item
+                    s.ref = cref
+                    this.add(s)
+                } else {
+                    // Create new item.
+                    c = this.createItem(s)
+                    c.ref = cref
+                    c.patch(s)
+                    this.add(c)
+                }
+            } else {
                 if (this.isItem(s)) {
                     // Replace previous item
                     let idx = this.getIndex(c)
@@ -161,6 +175,7 @@ class ObjectList {
             }
         }
     }
+
 
     _equalsArray(array) {
         let same = true

@@ -25,7 +25,7 @@ class View extends EventEmitter {
          * A reference that can be used while merging trees.
          * @type {string}
          */
-        this.ref = null;
+        this._ref = null;
 
         /**
          * Lazy-loaded texturization module.
@@ -132,9 +132,23 @@ class View extends EventEmitter {
 
     }
 
+    set ref(ref) {
+        if (this._ref !== ref) {
+            if (this._ref !== null) {
+                this.removeTag(this._ref)
+            }
+            this._ref = ref
+            this.addTag(this._ref)
+        }
+    }
+
+    get ref() {
+        return this._ref
+    }
+
     setAsRoot() {
-        this._updateActiveFlag();
         this._updateAttachedFlag();
+        this._updateActiveFlag();
         this._core.setAsRoot();
     }
 
@@ -151,19 +165,18 @@ class View extends EventEmitter {
             this._setTagsParent();
         }
 
-        this._updateActiveFlag();
-
         this._updateAttachedFlag();
+        this._updateActiveFlag();
     };
 
     getDepth() {
         let depth = 0;
 
-        let p = this;
-        do {
+        let p = this._parent;
+        while(p) {
             depth++;
             p = p._parent;
-        } while (p);
+        }
 
         return depth;
     };
@@ -259,8 +272,13 @@ class View extends EventEmitter {
 
             // Run this after all _children because we'd like to see (de)activating a branch as an 'atomic' operation.
             if (this._eventsCount) {
-                this.emit('active', newActive);
+                this.emit('active');
             }
+
+            if (this._eventsCount) {
+                this.emit('inactive');
+            }
+
         }
     };
 
@@ -325,6 +343,14 @@ class View extends EventEmitter {
                         children[i]._updateAttachedFlag();
                     }
                 }
+            }
+
+            if (this._eventsCount) {
+                this.emit('attach');
+            }
+
+            if (this._eventsCount) {
+                this.emit('detach');
             }
         }
     };
@@ -671,31 +697,61 @@ class View extends EventEmitter {
     };
 
     _setTagsParent() {
-        if (!this._tagRoot && this._treeTags && this._treeTags.size) {
-            let self = this;
-            this._treeTags.forEach(function (tagSet, tag) {
-                // Add to treeTags.
-                let p = self;
-                while ((p = p._parent) && !p._tagRoot) {
-                    if (!p._treeTags) {
-                        p._treeTags = new Map();
-                    }
+        if (this._treeTags && this._treeTags.size) {
+            if (this._tagRoot) {
+                // Just copy over the 'local' tags.
+                if (this._tags) {
+                    this._tags.forEach((tag) => {
+                        let p = this
+                        while (p = p._parent) {
+                            if (!p._treeTags) {
+                                p._treeTags = new Map();
+                            }
 
-                    let s = p._treeTags.get(tag);
-                    if (!s) {
-                        s = new Set();
-                        p._treeTags.set(tag, s);
-                    }
+                            let s = p._treeTags.get(tag);
+                            if (!s) {
+                                s = new Set();
+                                p._treeTags.set(tag, s);
+                            }
 
-                    tagSet.forEach(function (comp) {
-                        s.add(comp);
+                            s.add(this);
+
+                            p._clearTagsCache(tag);
+
+                            if (p._tagRoot) {
+                                break
+                            }
+                        }
                     });
-
-                    p._clearTagsCache(tag);
                 }
-            });
+            } else {
+                this._treeTags.forEach((tagSet, tag) => {
+                    let p = this
+                    while (!p._tagRoot && (p = p._parent)) {
+                        if (p._tagRoot) {
+                            // Do not copy all subs.
+                        }
+                        if (!p._treeTags) {
+                            p._treeTags = new Map();
+                        }
+
+                        let s = p._treeTags.get(tag);
+                        if (!s) {
+                            s = new Set();
+                            p._treeTags.set(tag, s);
+                        }
+
+                        tagSet.forEach(function (comp) {
+                            s.add(comp);
+                        });
+
+                        p._clearTagsCache(tag);
+                    }
+                });
+            }
         }
     };
+
 
     _getByTag(tag) {
         if (!this._treeTags) {
@@ -710,6 +766,10 @@ class View extends EventEmitter {
     };
 
     setTags(tags) {
+        if (this._ref) {
+            tags = tags.concat(this._ref)
+        }
+
         let i, n = tags.length;
         let removes = [];
         let adds = [];
@@ -917,9 +977,9 @@ class View extends EventEmitter {
         let children = this._children.get();
         if (children) {
             let n = children.length;
-            settings.children = [];
+            settings.sub = [];
             for (let i = 0; i < n; i++) {
-                settings.children.push(children[i].getSettings());
+                settings.sub.push(children[i].getSettings());
             }
         }
 
@@ -930,6 +990,10 @@ class View extends EventEmitter {
 
     getNonDefaults() {
         let settings = {};
+
+        if (this._ref) {
+            settings.ref = this._ref
+        }
 
         if (this._tags && this._tags.length) {
             settings.tags = this._tags;
@@ -1361,6 +1425,10 @@ class View extends EventEmitter {
         this.childList.patch(children)
     }
 
+    set sub(children) {
+        this.children = children
+    }
+
     add(o) {
         return this.childList.a(o);
     }
@@ -1526,6 +1594,18 @@ class View extends EventEmitter {
         let keys = Object.keys(object);
         keys.forEach(property => {
             this.transition(property, object[property]);
+        });
+    }
+
+    set smooth(object) {
+        let keys = Object.keys(object);
+        keys.forEach(property => {
+            let value = object[property]
+            if (Array.isArray(value)) {
+                this.setSmooth(property, value[0], value[1])
+            } else {
+                this.setSmooth(property, value)
+            }
         });
     }
 

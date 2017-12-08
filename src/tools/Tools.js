@@ -6,7 +6,7 @@ let StageUtils = require('../core/StageUtils');
 
 class Tools {
 
-    static getCanvasTexture(stage, canvas, texOptions = {}, options = {}) {
+    static getCanvasTexture(stage, canvas, texOptions = {}) {
         return stage.texture(function(cb) {
             let data = canvas;
             let options = {};

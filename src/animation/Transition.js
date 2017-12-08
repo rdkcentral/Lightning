@@ -153,7 +153,7 @@ class Transition extends EventEmitter {
             this._startValue = this._targetValue;
             this._targetValue = targetValue;
         } else {
-            this._startValue = targetValue - ((targetValue - this._targetValue) / (1 - v));
+            this._startValue = targetValue - ((targetValue - this._targetValue) / (1 - t));
             this._targetValue = targetValue;
         }
     }
