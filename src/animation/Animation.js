@@ -32,7 +32,7 @@ class Animation extends EventEmitter {
             this._delayLeft = this.settings.delay;
             this._repeatsLeft = this.settings.repeat;
             this._state = Animation.STATES.PLAYING;
-            if (this._eventsCount) this.emit('start');
+            this.emit('start');
             this.checkActive();
         } else {
             console.warn("View must be attached before starting animation")
@@ -43,7 +43,7 @@ class Animation extends EventEmitter {
         if (this._state == Animation.STATES.STOPPING && this.settings.stopMethod == AnimationSettings.STOP_METHODS.REVERSE) {
             // Continue.
             this._state = Animation.STATES.PLAYING;
-            if (this._eventsCount) this.emit('stopContinue');
+            this.emit('stopContinue');
         } else if (this._state != Animation.STATES.PLAYING && this._state != Animation.STATES.FINISHED) {
             // Restart.
             this.start();
@@ -81,14 +81,14 @@ class Animation extends EventEmitter {
         if (((this.settings.stopMethod === AnimationSettings.STOP_METHODS.IMMEDIATE) && !this._stopDelayLeft) || this._delayLeft > 0) {
             // Stop upon next progress.
             this._state = Animation.STATES.STOPPING;
-            if (this._eventsCount) this.emit('stop');
+            this.emit('stop');
         } else {
             if (this.settings.stopMethod === AnimationSettings.STOP_METHODS.FADE) {
                 this._stopP = 0;
             }
 
             this._state = Animation.STATES.STOPPING;
-            if (this._eventsCount) this.emit('stop');
+            this.emit('stop');
         }
 
         this.checkActive();
@@ -98,10 +98,10 @@ class Animation extends EventEmitter {
         if (this._state !== Animation.STATES.STOPPED || this._state !== Animation.STATES.IDLE) {
             this._state = Animation.STATES.STOPPING;
             this._p = 0;
-            if (this._eventsCount) this.emit('stop');
+            this.emit('stop');
             this.reset();
             this._state = Animation.STATES.STOPPED;
-            if (this._eventsCount) this.emit('stopFinish');
+            this.emit('stopFinish');
         }
     }
 
@@ -146,7 +146,7 @@ class Animation extends EventEmitter {
                 dt = -this._delayLeft;
                 this._delayLeft = 0;
 
-                if (this._eventsCount) this.emit('delayEnd');
+                this.emit('delayEnd');
             } else {
                 return;
             }
@@ -169,17 +169,17 @@ class Animation extends EventEmitter {
                     this._delayLeft = this.settings.repeatDelay;
                 }
 
-                if (this._eventsCount) this.emit('repeat', this._repeatsLeft);
+                this.emit('repeat', this._repeatsLeft);
             } else {
                 this._p = 1;
                 this._state = Animation.STATES.FINISHED;
-                if (this._eventsCount) this.emit('finish');
+                this.emit('finish');
                 if (this.settings.autostop) {
                     this.stop();
                 }
             }
         } else {
-            if (this._eventsCount) this.emit('progress', this._p);
+            this.emit('progress', this._p);
         }
     }
     
@@ -189,7 +189,7 @@ class Animation extends EventEmitter {
         if (this._stopDelayLeft > 0) {
             // Animation wasn't even started yet: directly finish!
             this._state = Animation.STATES.STOPPED;
-            if (this._eventsCount) this.emit('stopFinish');
+            this.emit('stopFinish');
         }
 
         if (this._stopDelayLeft > 0) {
@@ -199,15 +199,15 @@ class Animation extends EventEmitter {
                 dt = -this._stopDelayLeft;
                 this._stopDelayLeft = 0;
 
-                if (this._eventsCount) this.emit('stopDelayEnd');
+                this.emit('stopDelayEnd');
             } else {
                 return;
             }
         }
         if (this.settings.stopMethod == AnimationSettings.STOP_METHODS.IMMEDIATE) {
             this._state = Animation.STATES.STOPPED;
-            if (this._eventsCount) this.emit('stop');
-            if (this._eventsCount) this.emit('stopFinish');
+            this.emit('stop');
+            this.emit('stopFinish');
         } else if (this.settings.stopMethod == AnimationSettings.STOP_METHODS.REVERSE) {
             if (duration === 0) {
                 this._p = 0;
@@ -218,14 +218,14 @@ class Animation extends EventEmitter {
             if (this._p <= 0) {
                 this._p = 0;
                 this._state = Animation.STATES.STOPPED;
-                if (this._eventsCount) this.emit('stopFinish');
+                this.emit('stopFinish');
             }
         } else if (this.settings.stopMethod == AnimationSettings.STOP_METHODS.FADE) {
             this._progressStopTransition(dt);
             if (this._stopP >= 1) {
                 this._p = 0;
                 this._state = Animation.STATES.STOPPED;
-                if (this._eventsCount) this.emit('stopFinish');
+                this.emit('stopFinish');
             }
         } else if (this.settings.stopMethod == AnimationSettings.STOP_METHODS.ONETOTWO) {
             if (this._p < 2) {
@@ -241,9 +241,9 @@ class Animation extends EventEmitter {
                 if (this._p >= 2) {
                     this._p = 2;
                     this._state = Animation.STATES.STOPPED;
-                    if (this._eventsCount) this.emit('stopFinish');
+                    this.emit('stopFinish');
                 } else {
-                    if (this._eventsCount) this.emit('progress', this._p);
+                    this.emit('progress', this._p);
                 }
             }
         } else if (this.settings.stopMethod == AnimationSettings.STOP_METHODS.FORWARD) {
@@ -257,20 +257,20 @@ class Animation extends EventEmitter {
                     if (this.settings.stopMethod == AnimationSettings.STOP_METHODS.FORWARD) {
                         this._p = 1;
                         this._state = Animation.STATES.STOPPED;
-                        if (this._eventsCount) this.emit('stopFinish');
+                        this.emit('stopFinish');
                     } else {
                         if (this._repeatsLeft > 0) {
                             this._repeatsLeft--;
                             this._p = 0;
-                            if (this._eventsCount) this.emit('repeat', this._repeatsLeft);
+                            this.emit('repeat', this._repeatsLeft);
                         } else {
                             this._p = 1;
                             this._state = Animation.STATES.STOPPED;
-                            if (this._eventsCount) this.emit('stopFinish');
+                            this.emit('stopFinish');
                         }
                     }
                 } else {
-                    if (this._eventsCount) this.emit('progress', this._p);
+                    this.emit('progress', this._p);
                 }
             }
         }
@@ -286,7 +286,7 @@ class Animation extends EventEmitter {
                     dt = -this._stopDelayLeft;
                     this._stopDelayLeft = 0;
 
-                    if (this._eventsCount) this.emit('delayEnd');
+                    this.emit('delayEnd');
                 } else {
                     return;
                 }

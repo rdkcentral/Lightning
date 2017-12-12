@@ -25,7 +25,6 @@ class Transition extends EventEmitter {
         this._getter = View.getGetter(property)
         this._setter = View.getSetter(property)
 
-
         this._merger = settings.merger
 
         if (!this._merger) {
@@ -74,7 +73,7 @@ class Transition extends EventEmitter {
             this._targetValue = targetValue;
             this._p = 0;
             this._delayLeft = this._settings.delay;
-            if (this._eventsCount) this.emit('start');
+            this.emit('start');
             this.checkActive();
 
             if (!this._view.isAttached()) {
@@ -89,9 +88,7 @@ class Transition extends EventEmitter {
 
             this._setter(this._view, this.targetValue);
 
-            if (this._eventsCount) {
-                this.invokeListeners();
-            }
+            this.invokeListeners();
         }
     }
 
@@ -114,7 +111,7 @@ class Transition extends EventEmitter {
                     dt = -this.delayLeft;
                     this._delayLeft = 0;
 
-                    if (this._eventsCount) this.emit('delayEnd');
+                    this.emit('delayEnd');
                 } else {
                     return;
                 }
@@ -133,9 +130,7 @@ class Transition extends EventEmitter {
 
         this._setter(this._view, this.getDrawValue());
 
-        if (this._eventsCount) {
-            this.invokeListeners();
-        }
+        this.invokeListeners();
     }
 
     invokeListeners() {

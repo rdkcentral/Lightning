@@ -271,14 +271,11 @@ class View extends EventEmitter {
             }
 
             // Run this after all _children because we'd like to see (de)activating a branch as an 'atomic' operation.
-            if (this._eventsCount) {
+            if (newActive) {
                 this.emit('active');
-            }
-
-            if (this._eventsCount) {
+            } else {
                 this.emit('inactive');
             }
-
         }
     };
 
@@ -345,11 +342,9 @@ class View extends EventEmitter {
                 }
             }
 
-            if (this._eventsCount) {
+            if (newAttached) {
                 this.emit('attach');
-            }
-
-            if (this._eventsCount) {
+            } else {
                 this.emit('detach');
             }
         }
@@ -482,17 +477,13 @@ class View extends EventEmitter {
             this._updateDimensions();
 
             if (v) {
-                if (this._eventsCount) {
-                    this.emit('txLoaded', v);
-                }
+                this.emit('txLoaded', v);
 
                 // We don't need to reference the displayed texture because it was already referenced (this.texture === this.displayedTexture).
                 this._updateTextureCoords();
                 this._core.setDisplayedTextureSource(v.source);
             } else {
-                if (this._eventsCount) {
-                    this.emit('txUnloaded', v);
-                }
+                this.emit('txUnloaded', v);
 
                 this._core.setDisplayedTextureSource(null);
             }
@@ -505,9 +496,7 @@ class View extends EventEmitter {
     };
 
     onTextureSourceLoadError(e) {
-        if (this._eventsCount) {
-            this.emit('txError', e, this._texture.source);
-        }
+        this.emit('txError', e, this._texture.source);
     };
 
     onTextureSourceAddedToTextureAtlas() {
