@@ -204,6 +204,7 @@ class ObjectList {
         for (let i = 0, n = array.length; i < n; i++) {
             let s = array[i]
             if (this.isItem(s)) {
+                s.marker = false
                 newItems.push(s)
             } else {
                 let cref = s.ref
@@ -233,7 +234,7 @@ class ObjectList {
 
         // Remove the items.
         let removed = prevItems.filter(item => {let m = item.marker; delete item.marker; return m})
-        let added = newItems.filter(item => !item.marker)
+        let added = newItems.filter(item => (prevItems.indexOf(item) === -1))
 
         this.onSync(removed, added, newItems)
     }
