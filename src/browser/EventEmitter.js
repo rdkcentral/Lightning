@@ -25,6 +25,7 @@ class EventEmitter {
         } else {
             if (this._eventFunction[name] !== EventEmitter.combiner) {
                 this._eventListeners[name] = [this._eventFunction[name], listener]
+                this._eventFunction[name] = EventEmitter.combiner
             } else {
                 this._eventListeners[name].push(listener)
             }
@@ -57,7 +58,7 @@ class EventEmitter {
             const func = this._eventFunction[name]
             if (func) {
                 if (func === EventEmitter.combiner) {
-                    func(name, arg1, arg2, arg3)
+                    func(this, name, arg1, arg2, arg3)
                 } else {
                     func(arg1, arg2, arg3)
                 }
@@ -67,8 +68,8 @@ class EventEmitter {
 
 }
 
-EventEmitter.combiner = function(name, arg1, arg2, arg3) {
-    const listeners = this._eventListeners[name]
+EventEmitter.combiner = function(object, name, arg1, arg2, arg3) {
+    const listeners = object._eventListeners[name]
     if (listeners) {
         for (let i = 0, n = listeners.length; i < n; i++) {
             listeners[i](name, arg1, arg2, arg3)
