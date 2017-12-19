@@ -244,8 +244,8 @@ var attachInspector = function(wpe) {
                     var bcr = self.stage.adapter.canvas.getBoundingClientRect();
                     root.style.left = bcr.left + 'px';
                     root.style.top = bcr.top + 'px';
-                    root.style.width = bcr.width + 'px';
-                    root.style.height = bcr.height + 'px';
+                    root.style.width = Math.ceil(bcr.width / self.stage.getRenderPrecision()) + 'px';
+                    root.style.height = Math.ceil(bcr.height / self.stage.getRenderPrecision()) + 'px';
                     root.style.transformOrigin = '0 0 0';
                     root.style.transform = 'scale(' + self.stage.getRenderPrecision() + ',' + self.stage.getRenderPrecision() + ')';
                 }, 1000);
@@ -331,6 +331,21 @@ var attachInspector = function(wpe) {
             this.__ignore_attrib_changes = window.mutationCounter;
             this.dhtml().setAttribute.apply(this.dhtml(), arguments);
         };
+
+        if (typeof Component !== "undefined") {
+            Component.prototype.___state = Component.prototype.__state;
+            Object.defineProperty(View.prototype, '__state', {
+                get: function() {
+                    return this.___state;
+                },
+                set: function(v) {
+                    if (this.___state !== v) {
+                        val(this, 'state', v, "");
+                        this.___state = v;
+                    }
+                }
+            });
+        }
 
         View.prototype.__x = View.prototype._x;
         Object.defineProperty(View.prototype, '_x', {

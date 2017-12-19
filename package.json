@@ -9,7 +9,6 @@
     "wpe-webgl": "^0.0.4"
   },
   "devDependencies": {
-    "babel-preset-babili": "^0.1.4",
     "grunt": "^1.0.1",
     "grunt-contrib-concat": "*",
     "grunt-strip-code": "*"
