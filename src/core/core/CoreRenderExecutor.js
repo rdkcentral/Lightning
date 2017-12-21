@@ -140,11 +140,11 @@ class CoreRenderExecutor {
             }
 
             if (op.renderTextureInfo && !op.renderTextureInfo.cleared) {
+                this._setScissor(null)
                 this._clearRenderTexture()
                 op.renderTextureInfo.cleared = true
-            }
-
-            if (this._scissor !== op.scissor) {
+                this._setScissor(op.scissor)
+            } else if (this._scissor !== op.scissor) {
                 this._setScissor(op.scissor)
             }
 
@@ -162,10 +162,10 @@ class CoreRenderExecutor {
         filter.setupUniforms(filterOperation)
         filter.beforeDraw(filterOperation)
         this._bindRenderTexture(filterOperation.renderTexture)
-        this._clearRenderTexture()
         if (this._scissor) {
             this._setScissor(null)
         }
+        this._clearRenderTexture()
         filter.draw(filterOperation)
         filter.afterDraw(filterOperation)
     }

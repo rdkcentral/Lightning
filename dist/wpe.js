@@ -4662,158 +4662,6 @@ class View extends EventEmitter {
         t.start(v);
         return t
     }
-
-    get X() {
-        return this.getSmooth('x', this.x);
-    }
-
-    set X(v) {
-        this.setSmooth('x', v)
-    }
-
-    get Y() {
-        return this.getSmooth('y', this.y);
-    }
-
-    set Y(v) {
-        this.setSmooth('y', v)
-    }
-
-    get W() {
-        return this.getSmooth('w', this.w);
-    }
-
-    set W(v) {
-        return this.setSmooth('w', v);
-    }
-
-    get H() {
-        return this.getSmooth('h', this.h);
-    }
-
-    set H(v) {
-        this.setSmooth('h', v)
-    }
-
-    get SCALE() {
-        return this.getSmooth('scale', this.scale);
-    }
-
-    set SCALE(v) {
-        this.setSmooth('scale', v)
-    }
-
-    get SCALEX() {
-        return this.getSmooth('scaleX', this.scaleX);
-    }
-
-    set SCALEX(v) {
-        this.setSmooth('scaleX', v)
-    }
-
-    get PIVOT() {
-        return this.getSmooth('pivot', this.pivot);
-    }
-
-    set PIVOT(v) {
-        this.setSmooth('pivot', v)
-    }
-
-    get PIVOTX() {
-        return this.getSmooth('pivotX', this.pivotX);
-    }
-
-    set PIVOTX(v) {
-        this.setSmooth('pivotX', v)
-    }
-
-    get MOUNT() {
-        return this.getSmooth('mount', this.mount);
-    }
-
-    set MOUNT(v) {
-        this.setSmooth('mount', v)
-    }
-
-    get MOUNTX() {
-        return this.getSmooth('mountX', this.mountX);
-    }
-
-    set MOUNTX(v) {
-        this.setSmooth('mountX', v)
-    }
-
-    get ALPHA() {
-        return this.getSmooth('alpha', this.alpha);
-    }
-
-    set ALPHA(v) {
-        this.setSmooth('alpha', v)
-    }
-
-    get ROTATION() {
-        return this.getSmooth('rotation', this.rotation);
-    }
-
-    set ROTATION(v) {
-        this.setSmooth('rotation', v)
-    }
-
-    get COLOR() {
-        return this.getSmooth('color', this.color);
-    }
-
-    set COLOR(v) {
-        this.setSmooth('color', v)
-    }
-
-    set COLORTOP(v) {
-        this.setSmooth('colorTop', v)
-    }
-
-    set COLORBOTTOM(v) {
-        this.setSmooth('colorBottom', v)
-    }
-
-    set COLORLEFT(v) {
-        this.setSmooth('colorLeft', v)
-    }
-
-    set COLORRIGHT(v) {
-        this.setSmooth('colorRight', v)
-    }
-
-    get COLORUL() {
-        return this.getSmooth('colorUl', this.colorUl);
-    }
-
-    set COLORUL(v) {
-        this.setSmooth('colorUl', v)
-    }
-
-    get COLORUR() {
-        return this.getSmooth('colorUr', this.colorUr);
-    }
-
-    set COLORUR(v) {
-        this.setSmooth('colorUr', v)
-    }
-
-    get COLORBL() {
-        return this.getSmooth('colorBl', this.colorBl);
-    }
-
-    set COLORBL(v) {
-        this.setSmooth('colorBl', v)
-    }
-
-    get COLORBR() {
-        return this.getSmooth('colorBr', this.colorBr);
-    }
-
-    set COLORBR(v) {
-        this.setSmooth('colorBr', v)
-    }
     
 
     isNumberProperty(property) {
@@ -5077,6 +4925,7 @@ class ObjectList {
         for (let i = 0, n = array.length; i < n; i++) {
             let s = array[i]
             if (this.isItem(s)) {
+                s.marker = false
                 newItems.push(s)
             } else {
                 let cref = s.ref
@@ -5106,7 +4955,7 @@ class ObjectList {
 
         // Remove the items.
         let removed = prevItems.filter(item => {let m = item.marker; delete item.marker; return m})
-        let added = newItems.filter(item => !item.marker)
+        let added = newItems.filter(item => (prevItems.indexOf(item) === -1))
 
         this.onSync(removed, added, newItems)
     }
@@ -6172,6 +6021,8 @@ class ViewCore {
 
     visit() {
         if (this.isVisible()) {
+            this._recalc |= (this._parent._recalc & 6)
+
             let changed = (this._recalc > 0) || (this._hasRenderUpdates > 0) || this._hasUpdates
 
             if (changed) {
@@ -6182,8 +6033,6 @@ class ViewCore {
                 if (this._children) {
                     // Positioning changes are propagated downwards.
                     let recalc = this._recalc
-
-                    this._recalc |= (this._parent._recalc & 6)
 
                     for (let i = 0, n = this._children.length; i < n; i++) {
                         this._children[i].visit()
@@ -6444,6 +6293,7 @@ class ViewCore {
                     // Switch to default shader for building up the render texture.
                     renderState.setShader(renderState.defaultShader, this)
 
+                    prevScissor = renderState.getScissor()
                     prevRenderTextureInfo = renderState.renderTextureInfo
 
                     renderTextureInfo = {
@@ -6551,8 +6401,9 @@ class ViewCore {
                         renderTextureInfo.glTexture = this._texturizer.getRenderTexture()
                     }
 
-                    // Restore the parent's render texture.
+                    // Restore the parent's render texture and active scissor.
                     renderState.setRenderTextureInfo(prevRenderTextureInfo)
+                    renderState.setScissor(prevScissor)
 
                     updateResultTexture = true
                 }
@@ -7602,13 +7453,13 @@ class CoreRenderExecutor {
                 this._bindRenderTexture(glTexture)
             }
 
-            if (this._scissor !== op.scissor) {
-                this._setScissor(op.scissor)
-            }
-
             if (op.renderTextureInfo && !op.renderTextureInfo.cleared) {
+                this._setScissor(null)
                 this._clearRenderTexture()
                 op.renderTextureInfo.cleared = true
+                this._setScissor(op.scissor)
+            } else if (this._scissor !== op.scissor) {
+                this._setScissor(op.scissor)
             }
 
             shader.beforeDraw(op)
@@ -7625,10 +7476,10 @@ class CoreRenderExecutor {
         filter.setupUniforms(filterOperation)
         filter.beforeDraw(filterOperation)
         this._bindRenderTexture(filterOperation.renderTexture)
-        this._clearRenderTexture()
         if (this._scissor) {
             this._setScissor(null)
         }
+        this._clearRenderTexture()
         filter.draw(filterOperation)
         filter.afterDraw(filterOperation)
     }
@@ -11052,6 +10903,7 @@ class Light3dShader extends Shader {
         this._ry = 0
 
         this._z = 0
+        this._pivotZ = 0
     }
 
     supportsTextureAtlas() {
@@ -11076,9 +10928,10 @@ class Light3dShader extends Shader {
         let rz = -Math.atan2(vr._renderContext.tc, vr._renderContext.ta)
 
         let gl = this.gl
-        this._setUniform("pivot", new Float32Array([coords[0], coords[1], this._z]), gl.uniform3fv)
+        this._setUniform("pivot", new Float32Array([coords[0], coords[1], this._pivotZ]), gl.uniform3fv)
         this._setUniform("rot", new Float32Array([this._rx, this._ry, rz]), gl.uniform3fv)
 
+        this._setUniform("z", this._z, gl.uniform1f)
         this._setUniform("strength", this._strength, gl.uniform1f)
         this._setUniform("ambient", this._ambient, gl.uniform1f)
         this._setUniform("fudge", this._fudge, gl.uniform1f)
@@ -11138,6 +10991,15 @@ class Light3dShader extends Shader {
         this.redraw();
     }
 
+    get pivotZ() {
+        return this._pivotZ;
+    }
+
+    set pivotZ(v) {
+        this._pivotZ = v;
+        this.redraw();
+    }
+
 }
 
 Light3dShader.vertexShaderSource = `
@@ -11154,15 +11016,16 @@ Light3dShader.vertexShaderSource = `
     uniform float fudge;
     uniform float strength;
     uniform float ambient;
+    uniform float z;
     uniform vec3 pivot;
     uniform vec3 rot;
     varying float light;
 
     void main(void) {
-        vec3 pos = vec3(aVertexPosition.xy, pivot.z);
+        vec3 pos = vec3(aVertexPosition.xy, z);
         
         pos -= pivot;
-
+        
         // Undo XY rotation
         mat2 iRotXy = mat2( cos(rot.z), sin(rot.z), 
                            -sin(rot.z), cos(rot.z));
@@ -11184,6 +11047,7 @@ Light3dShader.vertexShaderSource = `
 
         // Undo translate to pivot position
         gl_Position.xyz += pivot;
+        
         
         // Set depth perspective
         float perspective = 1.0 + fudge * gl_Position.z * projection.x;
