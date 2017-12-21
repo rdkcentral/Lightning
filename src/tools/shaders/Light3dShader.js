@@ -17,6 +17,7 @@ class Light3dShader extends Shader {
         this._ry = 0
 
         this._z = 0
+        this._pivotZ = 0
     }
 
     supportsTextureAtlas() {
@@ -41,9 +42,10 @@ class Light3dShader extends Shader {
         let rz = -Math.atan2(vr._renderContext.tc, vr._renderContext.ta)
 
         let gl = this.gl
-        this._setUniform("pivot", new Float32Array([coords[0], coords[1], this._z]), gl.uniform3fv)
+        this._setUniform("pivot", new Float32Array([coords[0], coords[1], this._pivotZ]), gl.uniform3fv)
         this._setUniform("rot", new Float32Array([this._rx, this._ry, rz]), gl.uniform3fv)
 
+        this._setUniform("z", this._z, gl.uniform1f)
         this._setUniform("strength", this._strength, gl.uniform1f)
         this._setUniform("ambient", this._ambient, gl.uniform1f)
         this._setUniform("fudge", this._fudge, gl.uniform1f)
@@ -103,6 +105,15 @@ class Light3dShader extends Shader {
         this.redraw();
     }
 
+    get pivotZ() {
+        return this._pivotZ;
+    }
+
+    set pivotZ(v) {
+        this._pivotZ = v;
+        this.redraw();
+    }
+
 }
 
 Light3dShader.vertexShaderSource = `
@@ -119,15 +130,16 @@ Light3dShader.vertexShaderSource = `
     uniform float fudge;
     uniform float strength;
     uniform float ambient;
+    uniform float z;
     uniform vec3 pivot;
     uniform vec3 rot;
     varying float light;
 
     void main(void) {
-        vec3 pos = vec3(aVertexPosition.xy, pivot.z);
+        vec3 pos = vec3(aVertexPosition.xy, z);
         
         pos -= pivot;
-
+        
         // Undo XY rotation
         mat2 iRotXy = mat2( cos(rot.z), sin(rot.z), 
                            -sin(rot.z), cos(rot.z));
@@ -149,6 +161,7 @@ Light3dShader.vertexShaderSource = `
 
         // Undo translate to pivot position
         gl_Position.xyz += pivot;
+        
         
         // Set depth perspective
         float perspective = 1.0 + fudge * gl_Position.z * projection.x;

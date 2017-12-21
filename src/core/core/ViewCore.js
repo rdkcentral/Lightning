@@ -735,6 +735,8 @@ class ViewCore {
 
     visit() {
         if (this.isVisible()) {
+            this._recalc |= (this._parent._recalc & 6)
+
             let changed = (this._recalc > 0) || (this._hasRenderUpdates > 0) || this._hasUpdates
 
             if (changed) {
@@ -745,8 +747,6 @@ class ViewCore {
                 if (this._children) {
                     // Positioning changes are propagated downwards.
                     let recalc = this._recalc
-
-                    this._recalc |= (this._parent._recalc & 6)
 
                     for (let i = 0, n = this._children.length; i < n; i++) {
                         this._children[i].visit()
@@ -1007,6 +1007,7 @@ class ViewCore {
                     // Switch to default shader for building up the render texture.
                     renderState.setShader(renderState.defaultShader, this)
 
+                    prevScissor = renderState.getScissor()
                     prevRenderTextureInfo = renderState.renderTextureInfo
 
                     renderTextureInfo = {
@@ -1114,8 +1115,9 @@ class ViewCore {
                         renderTextureInfo.glTexture = this._texturizer.getRenderTexture()
                     }
 
-                    // Restore the parent's render texture.
+                    // Restore the parent's render texture and active scissor.
                     renderState.setRenderTextureInfo(prevRenderTextureInfo)
+                    renderState.setScissor(prevScissor)
 
                     updateResultTexture = true
                 }

@@ -139,13 +139,13 @@ class CoreRenderExecutor {
                 this._bindRenderTexture(glTexture)
             }
 
-            if (this._scissor !== op.scissor) {
-                this._setScissor(op.scissor)
-            }
-
             if (op.renderTextureInfo && !op.renderTextureInfo.cleared) {
                 this._clearRenderTexture()
                 op.renderTextureInfo.cleared = true
+            }
+
+            if (this._scissor !== op.scissor) {
+                this._setScissor(op.scissor)
             }
 
             shader.beforeDraw(op)
