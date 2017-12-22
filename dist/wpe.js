@@ -32,6 +32,22 @@ class EventEmitter {
         }
     }
 
+    has(name, listener) {
+        if (this._hasEventListeners) {
+            const current = this._eventFunction[name]
+            if (current) {
+                if (current === EventEmitter.combiner) {
+                    const listeners = this._eventListeners
+                    let index = listeners.indexOf(listener)
+                    return (index >= 0)
+                } else if (this._eventFunction[name] === listener) {
+                    return true
+                }
+            }
+        }
+        return false;
+    }
+
     off(name, listener) {
         if (this._hasEventListeners) {
             const current = this._eventFunction[name]
@@ -46,7 +62,7 @@ class EventEmitter {
                         this._eventFunction[name] = listeners[0]
                         this._eventListeners[name] = undefined
                     }
-                } else {
+                } else if (this._eventFunction[name] === listener) {
                     this._eventFunction[name] = undefined
                 }
             }

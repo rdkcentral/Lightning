@@ -32,21 +32,37 @@ class EventEmitter {
         }
     }
 
+    has(name, listener) {
+        if (this._hasEventListeners) {
+            const current = this._eventFunction[name]
+            if (current) {
+                if (current === EventEmitter.combiner) {
+                    const listeners = this._eventListeners[name]
+                    let index = listeners.indexOf(listener)
+                    return (index >= 0)
+                } else if (this._eventFunction[name] === listener) {
+                    return true
+                }
+            }
+        }
+        return false;
+    }
+
     off(name, listener) {
         if (this._hasEventListeners) {
             const current = this._eventFunction[name]
             if (current) {
                 if (current === EventEmitter.combiner) {
-                    const listeners = this._eventListeners
+                    const listeners = this._eventListeners[name]
                     let index = listeners.indexOf(listener)
                     if (index >= 0) {
-                        listeners.slice(index, 1)
+                        listeners.splice(index, 1)
                     }
                     if (listeners.length === 1) {
                         this._eventFunction[name] = listeners[0]
                         this._eventListeners[name] = undefined
                     }
-                } else {
+                } else if (this._eventFunction[name] === listener) {
                     this._eventFunction[name] = undefined
                 }
             }
@@ -71,9 +87,10 @@ class EventEmitter {
 EventEmitter.combiner = function(object, name, arg1, arg2, arg3) {
     const listeners = object._eventListeners[name]
     if (listeners) {
-        for (let i = 0, n = listeners.length; i < n; i++) {
-            listeners[i](name, arg1, arg2, arg3)
-        }
+        // Because listener may detach itself while being invoked, we use a forEach instead of for loop.
+        listeners.forEach((listener) => {
+            listener(name, arg1, arg2, arg3)
+        })
     }
 }
 
