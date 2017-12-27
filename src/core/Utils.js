@@ -108,6 +108,10 @@ class Utils {
         }
         return result;
     }
+
+    static isUcChar(charcode) {
+        return charcode >= 65 && charcode <= 90
+    }
 }
 
 Utils.isNode = (typeof window === "undefined");

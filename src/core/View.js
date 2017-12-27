@@ -134,11 +134,15 @@ class View extends EventEmitter {
 
     set ref(ref) {
         if (this._ref !== ref) {
+            const charcode = ref.charCodeAt(0)
+            if (!Utils.isUcChar(charcode)) {
+                this._throwError("Ref must start with an upper case character.")
+            }
             if (this._ref !== null) {
                 this.removeTag(this._ref)
             }
             this._ref = ref
-            this.addTag(this._ref)
+            this._addTag(this._ref)
         }
     }
 
@@ -783,9 +787,18 @@ class View extends EventEmitter {
         for (i = 0; i < adds.length; i++) {
             this.addTag(adds[i]);
         }
-    };
+    }
 
     addTag(tag) {
+        const charcode = tag.charCodeAt(0)
+        if (Utils.isUcChar(charcode)) {
+            this._throwError("Tag may not start with an upper case character.")
+        }
+
+        this._addTag(tag)
+    }
+
+    _addTag(tag) {
         if (!this._tags) {
             this._tags = [];
         }
@@ -810,7 +823,7 @@ class View extends EventEmitter {
                 p._clearTagsCache(tag);
             } while (p = p._parent);
         }
-    };
+    }
 
     removeTag(tag) {
         let i = this._tags.indexOf(tag);
@@ -828,11 +841,11 @@ class View extends EventEmitter {
                 }
             } while (p = p._parent);
         }
-    };
+    }
 
     hasTag(tag) {
         return (this._tags && (this._tags.indexOf(tag) !== -1));
-    };
+    }
 
     /**
      * Returns one of the views from the subtree that have this tag.
@@ -916,16 +929,134 @@ class View extends EventEmitter {
         }
     }
 
-    getLocationString() {
-        let i;
-        if (this._parent) {
-            i = this._parent._children.getIndex(this);
-            if (i >= 0) {
-                let localTags = this.getTags();
-                return this._parent.getLocationString() + ":" + i + "[" + this.id + "]" + (this.ref ? this.ref : "") + (localTags.length ? "(" + localTags.join(",") + ")" : "");
+    sel(path) {
+        const results = this.select(path)
+        if (results.length) {
+            return results[0]
+        } else {
+            return undefined
+        }
+    }
+
+    select(path) {
+        if (path === "") return [this]
+        let pointIdx = path.indexOf(".")
+        let arrowIdx = path.indexOf(">")
+        if (pointIdx === -1 && arrowIdx === -1) {
+            // Quick case.
+            const firstChar = path.charAt(0)
+            if (Utils.isUcChar(firstChar)) {
+                const ref = this.getByRef(path)
+                return ref ? [ref] : []
+            } else {
+                return this.mtag(path)
             }
         }
-        return "";
+
+        // Detect by first char.
+        let isChild
+        if (arrowIdx === 0) {
+            isChild = true
+            path = path.substr(1)
+        } else if (pointIdx === 0) {
+            isChild = false
+            path = path.substr(1)
+        } else {
+            const firstCharcode = path.charCodeAt(0)
+            isChild = Utils.isUcChar(firstCharcode)
+        }
+
+        if (isChild) {
+            // ">"
+            return this._selectChilds(path)
+        } else {
+            // "."
+            return this._selectDescs(path)
+        }
+    }
+
+    _selectChilds(path) {
+        const pointIdx = path.indexOf(".")
+        const arrowIdx = path.indexOf(">")
+
+        let isRef = Utils.isUcChar(path.charCodeAt(0))
+
+        if (pointIdx === -1 && arrowIdx === -1) {
+            if (isRef) {
+                const ref = this.getByRef(path)
+                return ref ? [ref] : []
+            } else {
+                return this.mtag(path)
+            }
+        }
+
+        if ((arrowIdx === -1) || (pointIdx !== -1 && pointIdx < arrowIdx)) {
+            let next
+            const str = path.substr(0, pointIdx - 1)
+            if (isRef) {
+                next = [this.getByRef(str)]
+            } else {
+                next = this.mtag(str)
+            }
+            let total = []
+            const subPath = path.substr(pointIdx + 1)
+            for (let i = 0, n = next.length; i < n; i++) {
+                total = total.concat(next[i]._selectDescs(subPath))
+            }
+            return total
+        } else {
+            let next
+            const str = path.substr(0, arrowIdx)
+            if (isRef) {
+                const ref = this.getByRef(str)
+                next = ref ? [ref] : []
+            } else {
+                next = this.mtag(str)
+            }
+            let total = []
+            const subPath = path.substr(arrowIdx + 1)
+            for (let i = 0, n = next.length; i < n; i++) {
+                total = total.concat(next[i]._selectChilds(subPath))
+            }
+            return total
+        }
+    }
+
+    _selectDescs(path) {
+        const arrowIdx = path.indexOf(">")
+        if (arrowIdx === -1) {
+            // Use multi-tag path directly.
+            return this.mtag(path)
+        } else {
+            const str = path.substr(0, arrowIdx - 1)
+            let next = this.mtag(str)
+
+            let total = []
+            const subPath = path.substr(arrowIdx + 1)
+            for (let i = 0, n = next.length; i < n; i++) {
+                total = total.concat(next[i]._selectChilds(subPath))
+            }
+            return total
+        }
+    }
+
+    getByRef(ref) {
+        return this.childList.getByRef(ref)
+    }
+
+    getLocationString() {
+        let i;
+        i = this._parent ? this._parent._children.getIndex(this) : "R";
+        let localTags = this.getTags();
+        let str = this._parent ? this._parent.getLocationString(): ""
+        if (this.ref) {
+            str += ":[" + i + "]" + this.ref
+        } else if (localTags.length) {
+            str += ":[" + i + "]" + localTags.join(",")
+        } else {
+            str += ":[" + i + "]#" + this.id
+        }
+        return str
     }
 
     toString() {
@@ -937,6 +1068,7 @@ class View extends EventEmitter {
         let children = obj.children;
         delete obj.children;
 
+
         // Convert singular json settings object.
         let colorKeys = ["color", "colorUl", "colorUr", "colorBl", "colorBr"]
         let str = JSON.stringify(obj, function (k, v) {
@@ -947,17 +1079,31 @@ class View extends EventEmitter {
         });
         str = str.replace(/"COLOR\[([a-f0-9]{1,8})\]"/g, "0x$1");
 
-        if (children && children.length) {
-            let isEmpty = (str === "{}");
-            str = str.substr(0, str.length - 1) + (isEmpty ? "" : ",") + "\"children\":[\n";
-            let n = children.length;
-            for (let i = 0; i < n; i++) {
-                str += View.getPrettyString(children[i], indent + "  ") + (i < n - 1 ? "," : "") + "\n";
+        if (children) {
+            let childStr = ""
+            if (Utils.isObjectLiteral(children)) {
+                let refs = Object.keys(children)
+                childStr = ""
+                for (let i = 0, n = refs.length; i < n; i++) {
+                    childStr += `\n${indent}  "${refs[i]}":`
+                    delete children[refs[i]].ref
+                    childStr += View.getPrettyString(children[refs[i]], indent + "  ") + (i < n - 1 ? "," : "")
+                }
+                let isEmpty = (str === "{}");
+                str = str.substr(0, str.length - 1) + (isEmpty ? "" : ",") + childStr + "\n" + indent + "}"
+            } else {
+                let n = children.length;
+                for (let i = 0; i < n; i++) {
+                    childStr += View.getPrettyString(children[i], indent + "  ") + (i < n - 1 ? "," : "") + "\n"
+                }
+                childStr += indent + "]}";
+                let isEmpty = (str === "{}");
+                str = str.substr(0, str.length - 1) + (isEmpty ? "" : ",") + "\"sub\":" + childStr + "}"
             }
-            str += indent + "]}";
+
         }
 
-        return indent + str;
+        return str;
     }
 
     getSettings() {
@@ -966,9 +1112,22 @@ class View extends EventEmitter {
         let children = this._children.get();
         if (children) {
             let n = children.length;
-            settings.sub = [];
-            for (let i = 0; i < n; i++) {
-                settings.sub.push(children[i].getSettings());
+            if (n) {
+                const childArray = [];
+                let missing = false
+                for (let i = 0; i < n; i++) {
+                    childArray.push(children[i].getSettings());
+                    missing = missing || !children[i].ref
+                }
+
+                if (!missing) {
+                    settings.children = {}
+                    childArray.forEach(child => {
+                        settings.children[child.ref] = child
+                    })
+                } else {
+                    settings.children = childArray
+                }
             }
         }
 
@@ -1397,7 +1556,7 @@ class View extends EventEmitter {
 
     get childList() {
         if (!this._allowChildrenAccess()) {
-            throw new Error("Direct access to children is not allowed in " + this.getLocationString())
+            this._throwError("Direct access to children is not allowed in " + this.getLocationString())
         }
         return this._children
     }
@@ -1561,9 +1720,93 @@ class View extends EventEmitter {
         return this._core.texturizer
     }
 
-    patch(settings) {
-        Base.patchObject(this, settings)
+    patch(settings, createMode = false) {
+        let paths = Object.keys(settings)
+
+        if (settings.hasOwnProperty("__create")) {
+            createMode = settings["__create"]
+        }
+
+        for (let i = 0, n = paths.length; i < n; i++) {
+            let path = paths[i]
+            const v = settings[path]
+
+            let pointIdx = path.indexOf(".")
+            let arrowIdx = path.indexOf(">")
+            if (arrowIdx === -1 && pointIdx === -1) {
+                const firstCharCode = path.charCodeAt(0)
+                if (Utils.isUcChar(firstCharCode)) {
+                    // Ref.
+                    const child = this.getByRef(path)
+                    if (!child) {
+                        let subCreateMode = createMode
+                        if (Utils.isObjectLiteral(v)) {
+                            if (v.hasOwnProperty("__create")) {
+                                subCreateMode = v.__create
+                            }
+                        }
+
+                        if (subCreateMode === null) {
+                            // Ignore.
+                        } else if (subCreateMode === true) {
+                            // Add to list immediately.
+                            let c
+                            if (Utils.isObjectLiteral(v)) {
+                                // Catch this case to capture createMode flag.
+                                c = this.childList.createItem(v);
+                                c.patch(v, subCreateMode);
+                            } else {
+                                c = v
+                            }
+                            if (c.isView) {
+                                c.ref = path
+                            }
+
+                            this.childList.a(c)
+                        } else {
+                            this._throwError("Can't find path: " + path)
+                        }
+                    } else {
+                        if (v === undefined) {
+                            if (child.parent) {
+                                child.parent.childList.remove(child)
+                            }
+                        } else if (Utils.isObjectLiteral(v)) {
+                            child.patch(v, createMode)
+                        } else if (v.isView) {
+                        } else {
+                            this._throwError("Unexpected value for path: " + path)
+                        }
+                    }
+                } else {
+                    // Property.
+                    Base.patchObjectProperty(this, path, v)
+                }
+            } else {
+                // Select path.
+                const views = this.select(path)
+                if (v === undefined) {
+                    for (let i = 0, n = views.length; i < n; i++) {
+                        if (views[i].parent) {
+                            views[i].parent.childList.remove(views[i])
+                        }
+                    }
+                } else if (Utils.isObjectLiteral(v)) {
+                    // Recursive path.
+                    for (let i = 0, n = views.length; i < n; i++) {
+                        views[i].patch(v, createMode)
+                    }
+                } else {
+                    this._throwError("Unexpected value for path: " + path)
+                }
+            }
+        }
     }
+
+    _throwError(message) {
+        throw new Error(this.constructor.name + " (" + this.getLocationString() + "): " + message)
+    }
+
 
     /*A¬*/
     animation(settings) {

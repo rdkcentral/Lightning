@@ -347,6 +347,19 @@ var attachInspector = function(wpe) {
             });
         }
 
+        View.prototype.__ref = View.prototype._ref;
+        Object.defineProperty(View.prototype, '_ref', {
+            get: function() {
+                return this.__ref;
+            },
+            set: function(v) {
+                if (this.__ref !== v) {
+                    val(this, 'ref', v, null);
+                    this.__ref = v;
+                }
+            }
+        });
+
         View.prototype.__x = View.prototype._x;
         Object.defineProperty(View.prototype, '_x', {
             get: function() {

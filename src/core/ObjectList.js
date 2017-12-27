@@ -6,6 +6,7 @@ class ObjectList {
 
     constructor() {
         this._items = []
+        this._refs = {}
     }
 
     get() {
@@ -34,6 +35,9 @@ class ObjectList {
             if (currentIndex != -1) {
                 this.setAt(item, index)
             } else {
+                if (item.ref) {
+                    this._refs[item.ref] = item
+                }
                 this._items.splice(index, 0, item);
                 this.onAdd(item, index)
             }
@@ -58,8 +62,19 @@ class ObjectList {
                     }
                 }
             } else {
+                if (index < this._items.length) {
+                    if (this._items[index].ref) {
+                        this._refs[this._items[index].ref] = undefined
+                    }
+                }
+
                 // Doesn't exist yet: overwrite current.
                 this._items[index] = item
+
+                if (item.ref) {
+                    this._refs[item.ref] = item
+                }
+
                 this.onSet(item, index)
             }
         } else {
@@ -86,6 +101,10 @@ class ObjectList {
     removeAt(index) {
         let item = this._items[index]
 
+        if (item.ref) {
+            this._refs[item.ref] = undefined
+        }
+
         this._items.splice(index, 1);
 
         this.onRemove(item, index)
@@ -98,6 +117,7 @@ class ObjectList {
         if (n) {
             let prev = this._items
             this._items = []
+            this._refs = {}
             this.onSync(prev, [], [])
         }
     };
@@ -124,14 +144,11 @@ class ObjectList {
     }
 
     _getRefs() {
-        let refs = {}
-        for (let i = 0, n = this._items.length; i < n; i++) {
-            let ref = this._items[i].ref
-            if (ref) {
-                refs[ref] = this._items[i]
-            }
-        }
-        return refs
+        return this._refs
+    }
+
+    getByRef(ref) {
+        return this._refs[ref]
     }
 
     patch(settings) {
@@ -144,7 +161,6 @@ class ObjectList {
 
     _setByObject(settings) {
         // Overrule settings of known referenced items.
-        // If no item exists, add it automatically if __create is set, otherwise ignore.
         let refs = this._getRefs()
         let crefs = Object.keys(settings)
         for (let i = 0, n = crefs.length; i < n; i++) {
@@ -166,16 +182,17 @@ class ObjectList {
                 }
             } else {
                 if (this.isItem(s)) {
-                    // Replace previous item
-                    let idx = this.getIndex(c)
-                    this.setAt(s, idx)
+                    if (c !== s) {
+                        // Replace previous item
+                        let idx = this.getIndex(c)
+                        this.setAt(s, idx)
+                    }
                 } else {
                     c.patch(s)
                 }
             }
         }
     }
-
 
     _equalsArray(array) {
         let same = true
@@ -235,6 +252,17 @@ class ObjectList {
         // Remove the items.
         let removed = prevItems.filter(item => {let m = item.marker; delete item.marker; return m})
         let added = newItems.filter(item => (prevItems.indexOf(item) === -1))
+
+        if (removed.length || added.length) {
+            // Recalculate refs.
+            this._refs = {}
+            for (let i = 0, n = this._items.length; i < n; i++) {
+                let ref = this._items[i].ref
+                if (ref) {
+                    this._refs[ref] = this._items[i]
+                }
+            }
+        }
 
         this.onSync(removed, added, newItems)
     }

@@ -207,7 +207,7 @@ class Stage extends EventEmitter {
             view = new View(this);
         }
 
-        view.patch(settings)
+        view.patch(settings, true)
 
         return view;
     }

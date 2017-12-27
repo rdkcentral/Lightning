@@ -21,9 +21,33 @@ var start = function(wpe) {
             window.stage = stage;
         }
 
-        stage.root.add([{src: "../fast-blur/boat.png", renderToTexture: true, w: 900, h: 900, colorLeft: 0xFF000000, colorRight: 0xFF0000FF, children: [
-            {rect: true, color: 0xFFFF0000, w: 450, h: 300, x: 300, y: 300}
-        ]}])
+        const template = {
+            Primary: {
+                Guide: {rect: true, w: 1920, h: 1080, color: 0xFFFFAAAA, alpha: 0},
+                Main: {src: "../fast-blur/boat.png", renderToTexture: true, w: 900, h: 900, colorLeft: 0xFF000000, colorRight: 0xFF0000FF,
+                    Rect: {rect: true, color: 0xFFFF0000, w: 450, h: 300, x: 300, y: 300}
+                },
+                App: {alpha: 0},
+                x: 10
+            },
+            Overlay: {}
+        }
+
+        stage.root.patch(template, true)
+
+        stage.root.patch({
+            Primary: {
+                y: 11,
+                Guide: {
+                    w: 1000,
+                    __create: true,
+                    Test: {x: 10, y: 10}
+                }
+            }
+        })
+
+        let str = stage.root.toString()
+        console.log(str)
     }
 };
 
