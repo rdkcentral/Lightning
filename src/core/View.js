@@ -939,6 +939,19 @@ class View extends EventEmitter {
     }
 
     select(path) {
+        if (path.indexOf(",") !== -1) {
+            let selectors = path.split(',')
+            let res = []
+            for (let i = 0; i < selectors.length; i++) {
+                res = res.concat(this._select(selectors[i]))
+            }
+            return res
+        } else {
+            return this._select(path)
+        }
+    }
+
+    _select(path) {
         if (path === "") return [this]
         let pointIdx = path.indexOf(".")
         let arrowIdx = path.indexOf(">")

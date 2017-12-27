@@ -6,10 +6,10 @@ class AnimationActionSettings {
 
     constructor() {
         /**
-         * The tags to which this transformation applies.
-         * @type {string[]}
+         * The selector that selects the views.
+         * @type {string}
          */
-        this._tags = null;
+        this._selector = "";
 
         /**
          * The value items, ordered by progress offset.
@@ -79,30 +79,7 @@ class AnimationActionSettings {
     }
     
     getAnimatedViews(view) {
-        if (!this._tags) {
-            return [view];
-        }
-
-        let n = this._tags.length;
-
-        if (n === 1) {
-            if (this._tags[0] == '') {
-                return [view];
-            } else {
-                return view.mtag(this._tags[0]);
-            }
-        } else {
-            let views = [];
-            for (let i = 0; i < n; i++) {
-                if (this._tags[i] === '') {
-                    views.push(view);
-                } else {
-                    let vs = view.mtag(this._tags[i]);
-                    views = views.concat(vs);
-                }
-            }
-            return views;
-        }        
+        return view.select(this._selector)
     }
 
     reset(view) {
@@ -125,19 +102,12 @@ class AnimationActionSettings {
         }
     }
     
-    get tags() {
-        return this._tags;
-    }
-
-    set tags(v) {
-        if (!Array.isArray(v)) {
-            v = [v];
-        }
-        this._tags = v;
+    set selector(v) {
+        this._selector = v;
     }
 
     set t(v) {
-        this.tags = v;
+        this.selector = v;
     }
 
     get resetValue() {
