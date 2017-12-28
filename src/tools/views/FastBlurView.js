@@ -13,22 +13,23 @@ class FastBlurView extends View {
 
         let fastBoxBlurShader = FastBlurView.getFastBoxBlurShader(stage.ctx)
 
-        let c = this._children
-        c.a([
-            {renderToTexture: false, hideResultTexture: true, children: [{}]},
-            {children: [
-                {renderToTexture: true, hideResultTexture: true, visible: false, children: [{shader: fastBoxBlurShader}]},
-                {renderToTexture: true, hideResultTexture: true, visible: false, children: [{shader: fastBoxBlurShader}]},
-                {renderToTexture: true, hideResultTexture: true, visible: false, children: [{shader: fastBoxBlurShader}]},
-                {renderToTexture: true, hideResultTexture: true, visible: false, children: [{shader: fastBoxBlurShader}]},
-            ]},
-            {shader: {type: FastBlurOutputShader}, visible: false}
-        ])
+        this.tagRoot = true
 
-        this._textwrap = c.get()[0]
-        this._wrapper = this._textwrap.children[0]
-        this._layers = c.get()[1].children
-        this._output = c.get()[2]
+        this.patch({
+            "Textwrap": {renderToTexture: false, hideResultTexture: true, "Content": {}},
+            "Layers": {
+                "L0": {renderToTexture: true, hideResultTexture: true, visible: false, "Content": {shader: fastBoxBlurShader}},
+                "L1": {renderToTexture: true, hideResultTexture: true, visible: false, "Content": {shader: fastBoxBlurShader}},
+                "L2": {renderToTexture: true, hideResultTexture: true, visible: false, "Content": {shader: fastBoxBlurShader}},
+                "L3": {renderToTexture: true, hideResultTexture: true, visible: false, "Content": {shader: fastBoxBlurShader}},
+            },
+            "Result": {shader: {type: FastBlurOutputShader}, visible: false}
+        }, true)
+
+        this._textwrap = this.sel("Textwrap")
+        this._wrapper = this.sel("Textwrap>Content")
+        this._layers = this.sel("Layers")
+        this._output = this.sel("Result")
 
         this.getLayerContents(0).texture = this._textwrap.getTexture()
         this.getLayerContents(1).texture = this.getLayer(0).getTexture()
@@ -43,20 +44,10 @@ class FastBlurView extends View {
         this._amount = 0
         this._paddingX = 0
         this._paddingY = 0
-
-        this.itemList = new ViewChildList(this._wrapper)
     }
 
-    _allowChildrenAccess() {
-        return false
-    }
-
-    get items() {
-        return this.itemList.get()
-    }
-
-    set items(children) {
-        this.itemList.patch(children)
+    set content(v) {
+        this.sel('Textwrap>Content').patch(v, true)
     }
 
     set padding(v) {
@@ -76,11 +67,11 @@ class FastBlurView extends View {
     }
 
     getLayer(i) {
-        return this._layers[i]
+        return this._layers.sel("L" + i)
     }
 
     getLayerContents(i) {
-        return this.getLayer(i).children[0]
+        return this.getLayer(i).sel("Content")
     }
 
     _updateDimensions() {

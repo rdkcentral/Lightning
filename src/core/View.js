@@ -1005,9 +1005,10 @@ class View extends EventEmitter {
 
         if ((arrowIdx === -1) || (pointIdx !== -1 && pointIdx < arrowIdx)) {
             let next
-            const str = path.substr(0, pointIdx - 1)
+            const str = path.substr(0, pointIdx)
             if (isRef) {
-                next = [this.getByRef(str)]
+                const ref = this.getByRef(str)
+                next = ref ? [ref] : []
             } else {
                 next = this.mtag(str)
             }
@@ -1041,7 +1042,7 @@ class View extends EventEmitter {
             // Use multi-tag path directly.
             return this.mtag(path)
         } else {
-            const str = path.substr(0, arrowIdx - 1)
+            const str = path.substr(0, arrowIdx)
             let next = this.mtag(str)
 
             let total = []
