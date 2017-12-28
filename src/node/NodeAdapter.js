@@ -119,7 +119,7 @@ class NodeAdapter {
         let Canvas = require('canvas');
         let img = new Canvas.Image();
         img.src = data;
-        let buf = img.getRawData();
+        let buf = img.rawData;
         cb(null, buf, {w: img.width, h: img.height, premultiplyAlpha: false, flipBlueRed: true});
     }
 

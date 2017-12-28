@@ -6,7 +6,7 @@
   "license": "apache",
   "dependencies": {
     "canvas": "https://github.com/basvanmeurs/node-canvas.git",
-    "wpe-webgl": "^0.0.4"
+    "wpe-webgl": "https://github.com/WebPlatformForEmbedded/node-wpe-webgl.git"
   },
   "devDependencies": {
     "grunt": "^1.0.1",

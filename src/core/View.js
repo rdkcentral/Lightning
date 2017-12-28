@@ -136,7 +136,7 @@ class View extends EventEmitter {
         if (this._ref !== ref) {
             const charcode = ref.charCodeAt(0)
             if (!Utils.isUcChar(charcode)) {
-                this._throwError("Ref must start with an upper case character.")
+                this._throwError("Ref must start with an upper case character: " + ref)
             }
             if (this._ref !== null) {
                 this.removeTag(this._ref)
