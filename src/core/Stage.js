@@ -187,7 +187,9 @@ class Stage extends EventEmitter {
 
     forceRenderUpdate() {
         // Enfore re-rendering.
-        this.root._core._parent._hasRenderUpdates = true
+        if (this.root) {
+            this.root._core._parent._hasRenderUpdates = true
+        }
     }
 
     setGlClearColor(clearColor) {
