@@ -186,6 +186,9 @@ class Stage extends EventEmitter {
     }
 
     setGlClearColor(clearColor) {
+        // Enfore re-rendering.
+        this.root._parent._hasRenderUpdates = true
+
         if (Array.isArray(clearColor)) {
             this.options.glClearColor = clearColor;
         } else {
