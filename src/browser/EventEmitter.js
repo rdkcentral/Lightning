@@ -69,6 +69,10 @@ class EventEmitter {
         }
     }
 
+    removeListener(name, listener) {
+        this.off(name, listener)
+    }
+
     emit(name, arg1, arg2, arg3) {
         if (this._hasEventListeners) {
             const func = this._eventFunction[name]

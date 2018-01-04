@@ -69,6 +69,10 @@ class EventEmitter {
         }
     }
 
+    removeListener(name, listener) {
+        this.off(name, listener)
+    }
+
     emit(name, arg1, arg2, arg3) {
         if (this._hasEventListeners) {
             const func = this._eventFunction[name]
@@ -1132,10 +1136,15 @@ class Stage extends EventEmitter {
         this.frameCounter++;
     }
 
-    setGlClearColor(clearColor) {
+    forceRenderUpdate() {
         // Enfore re-rendering.
-        this.root._parent._hasRenderUpdates = true
+        if (this.root) {
+            this.root._core._parent._hasRenderUpdates = true
+        }
+    }
 
+    setGlClearColor(clearColor) {
+        this.forceRenderUpdate()
         if (Array.isArray(clearColor)) {
             this.options.glClearColor = clearColor;
         } else {
