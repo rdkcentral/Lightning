@@ -93,7 +93,7 @@ EventEmitter.combiner = function(object, name, arg1, arg2, arg3) {
     if (listeners) {
         // Because listener may detach itself while being invoked, we use a forEach instead of for loop.
         listeners.forEach((listener) => {
-            listener(name, arg1, arg2, arg3)
+            listener(arg1, arg2, arg3)
         })
     }
 }
@@ -4129,6 +4129,7 @@ class View extends EventEmitter {
                 str = str.substr(0, str.length - 1) + (isEmpty ? "" : ",") + childStr + "\n" + indent + "}"
             } else {
                 let n = children.length;
+                childStr = "["
                 for (let i = 0; i < n; i++) {
                     childStr += View.getPrettyString(children[i], indent + "  ") + (i < n - 1 ? "," : "") + "\n"
                 }
@@ -4775,32 +4776,34 @@ class View extends EventEmitter {
                     // Ref.
                     const child = this.getByRef(path)
                     if (!child) {
-                        let subCreateMode = createMode
-                        if (Utils.isObjectLiteral(v)) {
-                            if (v.hasOwnProperty("__create")) {
-                                subCreateMode = v.__create
-                            }
-                        }
-
-                        if (subCreateMode === null) {
-                            // Ignore.
-                        } else if (subCreateMode === true) {
-                            // Add to list immediately.
-                            let c
+                        if (v !== undefined) {
+                            let subCreateMode = createMode
                             if (Utils.isObjectLiteral(v)) {
-                                // Catch this case to capture createMode flag.
-                                c = this.childList.createItem(v);
-                                c.patch(v, subCreateMode);
-                            } else {
-                                c = v
-                            }
-                            if (c.isView) {
-                                c.ref = path
+                                if (v.hasOwnProperty("__create")) {
+                                    subCreateMode = v.__create
+                                }
                             }
 
-                            this.childList.a(c)
-                        } else {
-                            this._throwError("Can't find path: " + path)
+                            if (subCreateMode === null) {
+                                // Ignore.
+                            } else if (subCreateMode === true) {
+                                // Add to list immediately.
+                                let c
+                                if (Utils.isObjectLiteral(v)) {
+                                    // Catch this case to capture createMode flag.
+                                    c = this.childList.createItem(v);
+                                    c.patch(v, subCreateMode);
+                                } else if (Utils.isObject(v)) {
+                                    c = v
+                                }
+                                if (c.isView) {
+                                    c.ref = path
+                                }
+
+                                this.childList.a(c)
+                            } else {
+                                this._throwError("Can't find path: " + path)
+                            }
                         }
                     } else {
                         if (v === undefined) {
@@ -6373,20 +6376,23 @@ class ViewCore {
     update() {
         this._recalc |= this._parent._recalc
 
-        let pw = this._parent._worldContext
+        const pw = this._parent._worldContext
         let w = this._worldContext
+        const visible = (pw.alpha && this._localAlpha);
 
-        // In case of becoming invisible, we must update the children because they may be z-indexed.
-        let visible = (pw.alpha && this._localAlpha);
-        let forceUpdate = w.alpha && !visible;
-
-        if (visible || forceUpdate) {
+        /**
+         * We must update if:
+         * - branch contains updates (even when invisible because it may contain z-indexed descendants)
+         * - there are (inherited) updates and this branch is visible
+         * - this branch becomes invisible (descs may be z-indexed so we must update all alpha values)
+         */
+        if (this._hasUpdates || (this._recalc && visible) || (w.alpha && !visible)) {
             if (this._zSort) {
                 // Make sure that all descendants are updated so that the updateTreeOrder flags are correctly set.
                 this.ctx.updateTreeOrderForceUpdate++;
             }
 
-            let recalc = this._recalc
+            const recalc = this._recalc
 
             // Update world coords/alpha.
             if (recalc & 1) {
@@ -6499,12 +6505,7 @@ class ViewCore {
 
             if (this._children) {
                 for (let i = 0, n = this._children.length; i < n; i++) {
-                    if (this._recalc || this._children[i]._hasUpdates) {
-                        this._children[i].update();
-                    } else if (this.ctx.updateTreeOrderForceUpdate > 0) {
-                        // No more changes in branch, but still we want to update the tree order.
-                        this._children[i].updateTreeOrder();
-                    }
+                    this._children[i].update();
                 }
             }
 
@@ -6523,7 +6524,7 @@ class ViewCore {
             // Branch is invisible, but still we want to update the tree order.
             this.updateTreeOrder();
         }
-    };
+    }
 
     updateTreeOrder() {
         if (this._zSort) {

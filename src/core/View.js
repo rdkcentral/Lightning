@@ -1754,32 +1754,34 @@ class View extends EventEmitter {
                     // Ref.
                     const child = this.getByRef(path)
                     if (!child) {
-                        let subCreateMode = createMode
-                        if (Utils.isObjectLiteral(v)) {
-                            if (v.hasOwnProperty("__create")) {
-                                subCreateMode = v.__create
-                            }
-                        }
-
-                        if (subCreateMode === null) {
-                            // Ignore.
-                        } else if (subCreateMode === true) {
-                            // Add to list immediately.
-                            let c
+                        if (v !== undefined) {
+                            let subCreateMode = createMode
                             if (Utils.isObjectLiteral(v)) {
-                                // Catch this case to capture createMode flag.
-                                c = this.childList.createItem(v);
-                                c.patch(v, subCreateMode);
-                            } else {
-                                c = v
-                            }
-                            if (c.isView) {
-                                c.ref = path
+                                if (v.hasOwnProperty("__create")) {
+                                    subCreateMode = v.__create
+                                }
                             }
 
-                            this.childList.a(c)
-                        } else {
-                            this._throwError("Can't find path: " + path)
+                            if (subCreateMode === null) {
+                                // Ignore.
+                            } else if (subCreateMode === true) {
+                                // Add to list immediately.
+                                let c
+                                if (Utils.isObjectLiteral(v)) {
+                                    // Catch this case to capture createMode flag.
+                                    c = this.childList.createItem(v);
+                                    c.patch(v, subCreateMode);
+                                } else if (Utils.isObject(v)) {
+                                    c = v
+                                }
+                                if (c.isView) {
+                                    c.ref = path
+                                }
+
+                                this.childList.a(c)
+                            } else {
+                                this._throwError("Can't find path: " + path)
+                            }
                         }
                     } else {
                         if (v === undefined) {
