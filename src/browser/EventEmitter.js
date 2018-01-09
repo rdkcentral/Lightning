@@ -93,7 +93,7 @@ EventEmitter.combiner = function(object, name, arg1, arg2, arg3) {
     if (listeners) {
         // Because listener may detach itself while being invoked, we use a forEach instead of for loop.
         listeners.forEach((listener) => {
-            listener(name, arg1, arg2, arg3)
+            listener(arg1, arg2, arg3)
         })
     }
 }

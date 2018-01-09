@@ -1107,6 +1107,7 @@ class View extends EventEmitter {
                 str = str.substr(0, str.length - 1) + (isEmpty ? "" : ",") + childStr + "\n" + indent + "}"
             } else {
                 let n = children.length;
+                childStr = "["
                 for (let i = 0; i < n; i++) {
                     childStr += View.getPrettyString(children[i], indent + "  ") + (i < n - 1 ? "," : "") + "\n"
                 }
