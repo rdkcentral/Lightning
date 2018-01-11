@@ -97,6 +97,7 @@ class CoreContext {
     }
 
     releaseRenderTexture(texture) {
+        this._renderTexturePoolPixels += texture.w * texture.h
         this._renderTexturePool.push(texture);
     }
 
@@ -108,8 +109,8 @@ class CoreContext {
 
         this._renderTexturePool = this._renderTexturePool.filter(texture => {
             if (texture.f < limit) {
-                this._freeRenderTexture(texture);
                 this._renderTexturePoolPixels -= texture.w * texture.h
+                this._freeRenderTexture(texture);
                 return false;
             }
             return true;
@@ -118,10 +119,9 @@ class CoreContext {
 
     _createRenderTexture(w, h) {
         if (this._renderTexturePoolPixels > this.stage.options.renderTexturePoolPixels) {
+            const prevMem = this._renderTexturePoolPixels
             this._freeUnusedRenderTextures()
-            if (this._renderTexturePoolPixels > this.stage.options.renderTexturePoolPixels) {
-                console.warn("Render texture pool overflow: " + this._renderTexturePoolPixels + "px")
-            }
+            console.warn("GC render texture pool: " + prevMem + "px > " + this._renderTexturePoolPixels + "px")
         }
 
         let gl = this.gl;
@@ -149,7 +149,6 @@ class CoreContext {
 
     _freeRenderTexture(glTexture) {
         let gl = this.stage.gl;
-        this._renderTexturePoolPixels -= glTexture.w * glTexture.h
         gl.deleteFramebuffer(glTexture.framebuffer);
         gl.deleteTexture(glTexture);
     }

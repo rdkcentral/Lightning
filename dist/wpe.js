@@ -1011,7 +1011,7 @@ class Stage extends EventEmitter {
         opt('canvas', this.options.canvas);
         opt('srcBasePath', null);
         opt('textureMemory', 12e6);
-        opt('renderTexturePoolPixels', 12e6);
+        opt('renderTexturePoolPixels', 6e6);
         opt('glClearColor', [0, 0, 0, 0]);
         opt('defaultFontFace', 'Sans-Serif');
         opt('fixedDt', 0);
@@ -3050,12 +3050,6 @@ class View extends EventEmitter {
         this._ref = null;
 
         /**
-         * Lazy-loaded texturization module.
-         * @type {ViewTexturizer}
-         */
-        this._texturizer = null;
-
-        /**
          * A view is active if it is a descendant of the stage root and it is visible (worldAlpha > 0).
          * @type {boolean}
          */
@@ -3342,8 +3336,8 @@ class View extends EventEmitter {
             this._displayedTexture.source.removeView(this);
         }
 
-        if (this._texturizer) {
-            this._texturizer.deactivate();
+        if (this._hasTexturizer()) {
+            this.texturizer.deactivate();
         }
 
         this._active = false;
@@ -4247,10 +4241,10 @@ class View extends EventEmitter {
         }
 
         if (this._texturizer) {
-            if (this._texturizer.enabled) {
-                settings.renderToTexture = this._texturizer.enabled
+            if (this.texturizer.enabled) {
+                settings.renderToTexture = this.texturizer.enabled
             }
-            if (this._texturizer.lazy) {
+            if (this.texturizer.lazy) {
                 settings.renderToTextureLazy = this._texturizer.lazy
             }
             if (this._texturizer.colorize) {
@@ -4709,8 +4703,12 @@ class View extends EventEmitter {
         this._core.shader = shader;
     }
 
+    _hasTexturizer() {
+        return !!this._core._texturizer
+    }
+
     get renderToTexture() {
-        return this._core._texturizer && this.texturizer.enabled
+        return this._hasTexturizer() && this.texturizer.enabled
     }
 
     set renderToTexture(v) {
@@ -4718,7 +4716,7 @@ class View extends EventEmitter {
     }
 
     get renderToTextureLazy() {
-        return this._core._texturizer && this.texturizer.lazy
+        return this._hasTexturizer() && this.texturizer.lazy
     }
 
     set renderToTextureLazy(v) {
@@ -4726,7 +4724,7 @@ class View extends EventEmitter {
     }
 
     get hideResultTexture() {
-        return this._core._texturizer && this.texturizer.hideResult
+        return this._hasTexturizer() && this.texturizer.hideResult
     }
 
     set hideResultTexture(v) {
@@ -4734,7 +4732,7 @@ class View extends EventEmitter {
     }
 
     get colorizeResultTexture() {
-        return this._texturizer && this.texturizer.colorize
+        return this._hasTexturizer() && this.texturizer.colorize
     }
 
     set colorizeResultTexture(v) {
@@ -4742,7 +4740,7 @@ class View extends EventEmitter {
     }
 
     get filters() {
-        return this.texturizer.filters
+        return this._hasTexturizer().filters
     }
 
     set filters(v) {
@@ -7064,6 +7062,7 @@ class CoreContext {
     }
 
     releaseRenderTexture(texture) {
+        this._renderTexturePoolPixels += texture.w * texture.h
         this._renderTexturePool.push(texture);
     }
 
@@ -7075,8 +7074,8 @@ class CoreContext {
 
         this._renderTexturePool = this._renderTexturePool.filter(texture => {
             if (texture.f < limit) {
-                this._freeRenderTexture(texture);
                 this._renderTexturePoolPixels -= texture.w * texture.h
+                this._freeRenderTexture(texture);
                 return false;
             }
             return true;
@@ -7085,10 +7084,9 @@ class CoreContext {
 
     _createRenderTexture(w, h) {
         if (this._renderTexturePoolPixels > this.stage.options.renderTexturePoolPixels) {
+            const prevMem = this._renderTexturePoolPixels
             this._freeUnusedRenderTextures()
-            if (this._renderTexturePoolPixels > this.stage.options.renderTexturePoolPixels) {
-                console.warn("Render texture pool overflow: " + this._renderTexturePoolPixels + "px")
-            }
+            console.warn("GC render texture pool: " + prevMem + "px > " + this._renderTexturePoolPixels + "px")
         }
 
         let gl = this.gl;
@@ -7116,7 +7114,6 @@ class CoreContext {
 
     _freeRenderTexture(glTexture) {
         let gl = this.stage.gl;
-        this._renderTexturePoolPixels -= glTexture.w * glTexture.h
         gl.deleteFramebuffer(glTexture.framebuffer);
         gl.deleteTexture(glTexture);
     }
@@ -7980,8 +7977,9 @@ class TextRenderer {
             let otherLines = null;
             if (this._settings.maxLinesSuffix) {
                 // Wrap again with max lines suffix enabled.
-                let al = this.wrapText(usedLines[usedLines.length - 1] + this._settings.maxLinesSuffix, wordWrapWidth);
-                usedLines[usedLines.length - 1] = al.l[0];
+                let w = this._settings.maxLinesSuffix ? this._context.measureText(this._settings.maxLinesSuffix).width : 0
+                let al = this.wrapText(usedLines[usedLines.length - 1], wordWrapWidth - w);
+                usedLines[usedLines.length - 1] = al.l[0] + this._settings.maxLinesSuffix;
                 otherLines = [al.l.length > 1 ? al.l[1] : ''];
             } else {
                 otherLines = ['']
