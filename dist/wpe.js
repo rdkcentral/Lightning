@@ -5716,13 +5716,11 @@ class ViewCore {
      * 2: re-invoke filter
      * 3: re-create render texture and re-invoke shader and filter
      */
-    setHasRenderUpdates(type, force = false) {
-        if (this._worldContext.alpha || force) {
-            let p = this;
-            p._hasRenderUpdates = Math.max(type, p._hasRenderUpdates);
-            while ((p = p._parent) && (p._hasRenderUpdates != 3)) {
-                p._hasRenderUpdates = 3;
-            }
+    setHasRenderUpdates(type) {
+        let p = this;
+        p._hasRenderUpdates = Math.max(type, p._hasRenderUpdates);
+        while ((p = p._parent) && (p._hasRenderUpdates != 3)) {
+            p._hasRenderUpdates = 3;
         }
     }
 
@@ -5736,32 +5734,14 @@ class ViewCore {
     _setRecalc(type) {
         this._recalc |= type;
 
-        if (this._worldContext.alpha) {
-            let p = this;
-            do {
-                p._hasUpdates = true;
-            } while ((p = p._parent) && !p._hasUpdates);
-
-            // Any changes in descendants should trigger texture updates.
-            if (this._parent) this._parent.setHasRenderUpdates(3);
-        } else {
-            this._hasUpdates = true;
-        }
-    };
-
-    _setRecalcForced(type) {
-        this._recalc |= type;
-
         let p = this;
         do {
             p._hasUpdates = true;
         } while ((p = p._parent) && !p._hasUpdates);
 
         // Any changes in descendants should trigger texture updates.
-        if (this._parent) {
-            this._parent.setHasRenderUpdates(3);
-        }
-    };
+        if (this._parent) this._parent.setHasRenderUpdates(3);
+    }
 
     setParent(parent) {
         if (parent !== this._parent) {
@@ -5871,10 +5851,7 @@ class ViewCore {
     setLocalAlpha(a) {
         if (!this._worldContext.alpha && ((this._parent && this._parent._worldContext.alpha) && a)) {
             // View is becoming visible.
-            this._setRecalcForced(1 + 128);
-
-            // View's rendering properties may have changed while being invisible.
-            this.setHasRenderUpdates(3, true);
+            this._setRecalc(1 + 128);
         } else {
             this._setRecalc(1);
         }
