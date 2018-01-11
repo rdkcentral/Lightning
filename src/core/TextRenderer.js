@@ -59,8 +59,9 @@ class TextRenderer {
             let otherLines = null;
             if (this._settings.maxLinesSuffix) {
                 // Wrap again with max lines suffix enabled.
-                let al = this.wrapText(usedLines[usedLines.length - 1] + this._settings.maxLinesSuffix, wordWrapWidth);
-                usedLines[usedLines.length - 1] = al.l[0];
+                let w = this._settings.maxLinesSuffix ? this._context.measureText(this._settings.maxLinesSuffix).width : 0
+                let al = this.wrapText(usedLines[usedLines.length - 1], wordWrapWidth - w);
+                usedLines[usedLines.length - 1] = al.l[0] + this._settings.maxLinesSuffix;
                 otherLines = [al.l.length > 1 ? al.l[1] : ''];
             } else {
                 otherLines = ['']
