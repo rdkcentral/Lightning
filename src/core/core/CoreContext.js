@@ -21,8 +21,8 @@ class CoreContext {
         this.renderExec = new CoreRenderExecutor(this)
         this.renderExec.init()
 
+        this._renderTexturePixels = 0
         this._renderTexturePool = []
-        this._renderTexturePoolPixels = 0
 
         this._renderTextureId = 1
     }
@@ -97,7 +97,6 @@ class CoreContext {
     }
 
     releaseRenderTexture(texture) {
-        this._renderTexturePoolPixels += texture.w * texture.h
         this._renderTexturePool.push(texture);
     }
 
@@ -108,8 +107,7 @@ class CoreContext {
         let limit = this.stage.frameCounter - maxAge;
 
         this._renderTexturePool = this._renderTexturePool.filter(texture => {
-            if (texture.f < limit) {
-                this._renderTexturePoolPixels -= texture.w * texture.h
+            if (texture.f <= limit) {
                 this._freeRenderTexture(texture);
                 return false;
             }
@@ -118,12 +116,6 @@ class CoreContext {
     }
 
     _createRenderTexture(w, h) {
-        if (this._renderTexturePoolPixels > this.stage.options.renderTexturePoolPixels) {
-            const prevMem = this._renderTexturePoolPixels
-            this._freeUnusedRenderTextures()
-            console.warn("GC render texture pool: " + prevMem + "px > " + this._renderTexturePoolPixels + "px")
-        }
-
         let gl = this.gl;
         let sourceTexture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
@@ -141,6 +133,20 @@ class CoreContext {
         sourceTexture.h = h;
         sourceTexture.id = this._renderTextureId++
 
+        this._renderTexturePixels += w * h
+
+        if (this._renderTexturePixels > this.stage.options.renderTextureMemory) {
+            const prevMem = this._renderTexturePixels
+            this._freeUnusedRenderTextures()
+
+            if (this._renderTexturePixels > this.stage.options.renderTextureMemory) {
+                this._freeUnusedRenderTextures(0)
+                console.warn("GC render texture memory (aggressive): " + prevMem + "px > " + this._renderTexturePixels + "px")
+            } else {
+                console.warn("GC render texture memory: " + prevMem + "px > " + this._renderTexturePixels + "px")
+            }
+        }
+
         gl.bindFramebuffer(gl.FRAMEBUFFER, sourceTexture.framebuffer)
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, sourceTexture, 0);
 
@@ -151,6 +157,8 @@ class CoreContext {
         let gl = this.stage.gl;
         gl.deleteFramebuffer(glTexture.framebuffer);
         gl.deleteTexture(glTexture);
+
+        this._renderTexturePixels -= glTexture.w * glTexture.h
     }
 
 }

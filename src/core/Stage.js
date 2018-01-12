@@ -58,8 +58,8 @@ class Stage extends EventEmitter {
         opt('h', 720);
         opt('canvas', this.options.canvas);
         opt('srcBasePath', null);
-        opt('textureMemory', 12e6);
-        opt('renderTexturePoolPixels', 6e6);
+        opt('textureMemory', 18e6);
+        opt('renderTextureMemory', 12e6);
         opt('glClearColor', [0, 0, 0, 0]);
         opt('defaultFontFace', 'Sans-Serif');
         opt('fixedDt', 0);
