@@ -6,18 +6,46 @@ let StageUtils = require('../core/StageUtils');
 
 class Tools {
 
+    static getSvgTexture(stage, url, w, h, texOptions = {}) {
+        texOptions.id = texOptions.id || 'svg' + [w, h, url].join(",");
+
+        return stage.texture(function(cb) {
+            let canvas = stage.adapter.getDrawingCanvas();
+            let ctx = canvas.getContext('2d');
+            ctx.imageSmoothingEnabled = true;
+
+            let img = new Image()
+            img.onload = () => {
+                canvas.width = w
+                canvas.height = h
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                let info = Tools.convertCanvas(canvas)
+                cb(null, info.data, info.options)
+            }
+            img.onError = (err) => {
+                cb(err)
+            }
+            img.src = url
+        }, texOptions)
+    }
+
+    static convertCanvas(canvas) {
+        let data = canvas
+        let options = {}
+        if (Utils.isNode) {
+            data = canvas.toBuffer('raw');
+            options.w = canvas.width;
+            options.h = canvas.height;
+            options.premultiplyAlpha = false;
+            options.flipBlueRed = true;
+        }
+        return {data: data, options: options}
+    }
+
     static getCanvasTexture(stage, canvas, texOptions = {}) {
         return stage.texture(function(cb) {
-            let data = canvas;
-            let options = {};
-            if (Utils.isNode) {
-                data = canvas.toBuffer('raw');
-                options.w = canvas.width;
-                options.h = canvas.height;
-                options.premultiplyAlpha = false;
-                options.flipBlueRed = true;
-            }
-            cb(null, data, options);
+            const info = Tools.convertCanvas(canvas)
+            cb(null, info.data, info.options);
         }, texOptions);
     }
 

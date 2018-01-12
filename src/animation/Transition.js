@@ -10,16 +10,12 @@ class Transition extends EventEmitter {
 
     constructor(manager, settings, view, property) {
         super()
-        
+
         this.manager = manager;
 
         this._settings = settings;
 
-/*M¬*/
-        if (!View) {
-            View = require('../core/View');
-        }
-/*¬M*/
+
 
         this._view = view
         this._getter = View.getGetter(property)
@@ -67,7 +63,7 @@ class Transition extends EventEmitter {
     start(targetValue) {
         this._startValue = this._getter(this._view);
 
-        if (targetValue === this._startValue) {
+        if (targetValue === this._startValue || !this._view.isAttached()) {
             this.reset(targetValue, 1);
         } else {
             this._targetValue = targetValue;
@@ -75,10 +71,6 @@ class Transition extends EventEmitter {
             this._delayLeft = this._settings.delay;
             this.emit('start');
             this.checkActive();
-
-            if (!this._view.isAttached()) {
-                this.finish()
-            }
         }
     }
 
@@ -134,9 +126,11 @@ class Transition extends EventEmitter {
     }
 
     invokeListeners() {
-        this.emit('progress', this.p);
-        if (this.p === 1) {
-            this.emit('finish');
+        if (this._view.isAttached()) {
+            this.emit('progress', this.p);
+            if (this.p === 1) {
+                this.emit('finish');
+            }
         }
     }
 
