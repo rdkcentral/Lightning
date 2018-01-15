@@ -140,13 +140,16 @@ class ViewTexturizer {
         let resultTexture = this.getResultTexture()
         if (this._resultTextureSource) {
             if (this._resultTextureSource.glTexture !== resultTexture) {
-                let w = resultTexture ? resultTexture.rw : 0
-                let h = resultTexture ? resultTexture.rh : 0
+                let w = resultTexture ? resultTexture.w : 0
+                let h = resultTexture ? resultTexture.h : 0
                 this._resultTextureSource._changeGlTexture(resultTexture, w, h)
             }
 
             // Texture will be updated: all views using the source need to be updated as well.
-            this._resultTextureSource.views.forEach(view => view._core.setHasRenderUpdates(3))
+            this._resultTextureSource.views.forEach(view => {
+                view._updateDimensions()
+                view._core.setHasRenderUpdates(3)
+            })
         }
     }
 
