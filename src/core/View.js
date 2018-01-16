@@ -1744,7 +1744,7 @@ class View extends EventEmitter {
     }
 
     get filters() {
-        return this._hasTexturizer().filters
+        return this._hasTexturizer() && this.texturizer.filters
     }
 
     set filters(v) {

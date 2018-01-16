@@ -46,6 +46,10 @@ class FastBlurView extends View {
         this._paddingY = 0
     }
 
+    get content() {
+        return this.sel('Textwrap>Content')
+    }
+
     set content(v) {
         this.sel('Textwrap>Content').patch(v, true)
     }
