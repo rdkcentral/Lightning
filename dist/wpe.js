@@ -1133,6 +1133,8 @@ class Stage extends EventEmitter {
 
         this.adapter.nextFrame(changes);
 
+        this.emit('frameEnd');
+
         this.frameCounter++;
     }
 
@@ -2285,11 +2287,6 @@ class TextureSource {
         this.w = source.width || (options && options.w) || 0;
         this.h = source.height || (options && options.h) || 0;
 
-        if (this.w > 2048 || this.h > 2048) {
-            console.error('Texture size too large: ' + source.width + 'x' + source.height + ' (max allowed is 2048x2048)');
-            return;
-        }
-
         if (options && options.renderInfo) {
             // Assign to id in cache so that it can be reused.
             this.renderInfo = options.renderInfo;
@@ -3325,6 +3322,15 @@ class View extends EventEmitter {
         if (this._displayedTexture && this._displayedTexture !== this._texture) {
             this._displayedTexture.source.addView(this);
         }
+
+        if (this._core.shader) {
+            this._core.shader.addView(this._core);
+        }
+
+        if (this._texturizer) {
+            this.texturizer.filters.forEach(filter => filter.addView(this._core))
+        }
+
     }
 
     _unsetActiveFlag() {
@@ -3338,6 +3344,14 @@ class View extends EventEmitter {
 
         if (this._hasTexturizer()) {
             this.texturizer.deactivate();
+        }
+
+        if (this._core.shader) {
+            this._core.shader.removeView(this._core);
+        }
+
+        if (this._texturizer) {
+            this.texturizer.filters.forEach(filter => filter.removeView(this._core))
         }
 
         this._active = false;
@@ -4700,7 +4714,16 @@ class View extends EventEmitter {
                 return
             }
         }
+
+        if (this._active && this._core.shader) {
+            this._core.shader.removeView(this);
+        }
+
         this._core.shader = shader;
+
+        if (this._active && this._core.shader) {
+            this._core.shader.addView(this);
+        }
     }
 
     _hasTexturizer() {
@@ -4744,7 +4767,15 @@ class View extends EventEmitter {
     }
 
     set filters(v) {
+        if (this._active) {
+            this.texturizer.filters.forEach(filter => filter.removeView(this._core))
+        }
+
         this.texturizer.filters = v
+
+        if (this._active) {
+            this.texturizer.filters.forEach(filter => filter.addView(this._core))
+        }
     }
 
     getTexture() {
@@ -5465,13 +5496,11 @@ class ViewTexturizer {
     }
 
     _clearFilters() {
-        this._filters.forEach(filter => filter.removeView(this._core))
         this._filters = []
         this.filterResultCached = false
     }
 
     _addFilter(filter) {
-        filter.addView(this._core)
         this._filters.push(filter);
     }
 
@@ -5517,13 +5546,16 @@ class ViewTexturizer {
         let resultTexture = this.getResultTexture()
         if (this._resultTextureSource) {
             if (this._resultTextureSource.glTexture !== resultTexture) {
-                let w = resultTexture ? resultTexture.rw : 0
-                let h = resultTexture ? resultTexture.rh : 0
+                let w = resultTexture ? resultTexture.w : 0
+                let h = resultTexture ? resultTexture.h : 0
                 this._resultTextureSource._changeGlTexture(resultTexture, w, h)
             }
 
             // Texture will be updated: all views using the source need to be updated as well.
-            this._resultTextureSource.views.forEach(view => view._core.setHasRenderUpdates(3))
+            this._resultTextureSource.views.forEach(view => {
+                view._updateDimensions()
+                view._core.setHasRenderUpdates(3)
+            })
         }
     }
 
@@ -6154,14 +6186,6 @@ class ViewCore {
             // Enabled shader.
             this._setShaderOwnerRecursive(this);
         }
-
-        if (prevShader) {
-            prevShader.removeView(this);
-        }
-
-        if (this._shader) {
-            this._shader.addView(this);
-        }
     }
 
     get activeShader() {
@@ -6715,6 +6739,7 @@ class ViewCore {
 
                 let resultTexture = this._texturizer.getResultTexture();
                 if (updateResultTexture) {
+                    resultTexture.update = renderState.stage.frameCounter
                     this._texturizer.updateResultTexture();
                 }
 
@@ -7040,8 +7065,8 @@ class CoreContext {
 
     allocateRenderTexture(w, h) {
         let prec = this.stage.getRenderPrecision()
-        let aw = Math.max(1, Math.min(2048, Math.round(w * prec)))
-        let ah = Math.max(1, Math.min(2048, Math.round(h * prec)))
+        let aw = Math.max(1, Math.round(w * prec))
+        let ah = Math.max(1, Math.round(h * prec))
 
         for (let i = 0, n = this._renderTexturePool.length; i < n; i++) {
             let texture = this._renderTexturePool[i];
@@ -8858,7 +8883,7 @@ class Transition extends EventEmitter {
 
     constructor(manager, settings, view, property) {
         super()
-        
+
         this.manager = manager;
 
         this._settings = settings;
@@ -8911,7 +8936,7 @@ class Transition extends EventEmitter {
     start(targetValue) {
         this._startValue = this._getter(this._view);
 
-        if (targetValue === this._startValue) {
+        if (targetValue === this._startValue || !this._view.isAttached()) {
             this.reset(targetValue, 1);
         } else {
             this._targetValue = targetValue;
@@ -8919,10 +8944,6 @@ class Transition extends EventEmitter {
             this._delayLeft = this._settings.delay;
             this.emit('start');
             this.checkActive();
-
-            if (!this._view.isAttached()) {
-                this.finish()
-            }
         }
     }
 
@@ -8978,9 +8999,11 @@ class Transition extends EventEmitter {
     }
 
     invokeListeners() {
-        this.emit('progress', this.p);
-        if (this.p === 1) {
-            this.emit('finish');
+        if (this._view.isAttached()) {
+            this.emit('progress', this.p);
+            if (this.p === 1) {
+                this.emit('finish');
+            }
         }
     }
 
@@ -9972,18 +9995,46 @@ Animation.STATES = {
 
 class Tools {
 
+    static getSvgTexture(stage, url, w, h, texOptions = {}) {
+        texOptions.id = texOptions.id || 'svg' + [w, h, url].join(",");
+
+        return stage.texture(function(cb) {
+            let canvas = stage.adapter.getDrawingCanvas();
+            let ctx = canvas.getContext('2d');
+            ctx.imageSmoothingEnabled = true;
+
+            let img = new Image()
+            img.onload = () => {
+                canvas.width = w
+                canvas.height = h
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                let info = Tools.convertCanvas(canvas)
+                cb(null, info.data, info.options)
+            }
+            img.onError = (err) => {
+                cb(err)
+            }
+            img.src = url
+        }, texOptions)
+    }
+
+    static convertCanvas(canvas) {
+        let data = canvas
+        let options = {}
+        if (Utils.isNode) {
+            data = canvas.toBuffer('raw');
+            options.w = canvas.width;
+            options.h = canvas.height;
+            options.premultiplyAlpha = false;
+            options.flipBlueRed = true;
+        }
+        return {data: data, options: options}
+    }
+
     static getCanvasTexture(stage, canvas, texOptions = {}) {
         return stage.texture(function(cb) {
-            let data = canvas;
-            let options = {};
-            if (Utils.isNode) {
-                data = canvas.toBuffer('raw');
-                options.w = canvas.width;
-                options.h = canvas.height;
-                options.premultiplyAlpha = false;
-                options.flipBlueRed = true;
-            }
-            cb(null, data, options);
+            const info = Tools.convertCanvas(canvas)
+            cb(null, info.data, info.options);
         }, texOptions);
     }
 

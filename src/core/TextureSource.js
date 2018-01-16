@@ -188,11 +188,6 @@ class TextureSource {
         this.w = source.width || (options && options.w) || 0;
         this.h = source.height || (options && options.h) || 0;
 
-        if (this.w > 2048 || this.h > 2048) {
-            console.error('Texture size too large: ' + source.width + 'x' + source.height + ' (max allowed is 2048x2048)');
-            return;
-        }
-
         if (options && options.renderInfo) {
             // Assign to id in cache so that it can be reused.
             this.renderInfo = options.renderInfo;

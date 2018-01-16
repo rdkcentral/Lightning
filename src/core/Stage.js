@@ -182,6 +182,8 @@ class Stage extends EventEmitter {
 
         this.adapter.nextFrame(changes);
 
+        this.emit('frameEnd');
+
         this.frameCounter++;
     }
 

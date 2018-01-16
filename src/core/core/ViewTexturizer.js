@@ -88,13 +88,11 @@ class ViewTexturizer {
     }
 
     _clearFilters() {
-        this._filters.forEach(filter => filter.removeView(this._core))
         this._filters = []
         this.filterResultCached = false
     }
 
     _addFilter(filter) {
-        filter.addView(this._core)
         this._filters.push(filter);
     }
 

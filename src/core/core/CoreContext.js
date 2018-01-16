@@ -75,8 +75,8 @@ class CoreContext {
 
     allocateRenderTexture(w, h) {
         let prec = this.stage.getRenderPrecision()
-        let aw = Math.max(1, Math.min(2048, Math.round(w * prec)))
-        let ah = Math.max(1, Math.min(2048, Math.round(h * prec)))
+        let aw = Math.max(1, Math.round(w * prec))
+        let ah = Math.max(1, Math.round(h * prec))
 
         for (let i = 0, n = this._renderTexturePool.length; i < n; i++) {
             let texture = this._renderTexturePool[i];

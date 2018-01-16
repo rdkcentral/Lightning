@@ -547,14 +547,6 @@ class ViewCore {
             // Enabled shader.
             this._setShaderOwnerRecursive(this);
         }
-
-        if (prevShader) {
-            prevShader.removeView(this);
-        }
-
-        if (this._shader) {
-            this._shader.addView(this);
-        }
     }
 
     get activeShader() {
@@ -1108,6 +1100,10 @@ class ViewCore {
 
                 let resultTexture = this._texturizer.getResultTexture();
                 if (updateResultTexture) {
+                    if (resultTexture) {
+                        // Logging the update frame can be handy for userland.
+                        resultTexture.update = renderState.stage.frameCounter
+                    }
                     this._texturizer.updateResultTexture();
                 }
 

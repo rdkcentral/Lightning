@@ -303,6 +303,15 @@ class View extends EventEmitter {
         if (this._displayedTexture && this._displayedTexture !== this._texture) {
             this._displayedTexture.source.addView(this);
         }
+
+        if (this._core.shader) {
+            this._core.shader.addView(this._core);
+        }
+
+        if (this._texturizer) {
+            this.texturizer.filters.forEach(filter => filter.addView(this._core))
+        }
+
     }
 
     _unsetActiveFlag() {
@@ -316,6 +325,14 @@ class View extends EventEmitter {
 
         if (this._hasTexturizer()) {
             this.texturizer.deactivate();
+        }
+
+        if (this._core.shader) {
+            this._core.shader.removeView(this._core);
+        }
+
+        if (this._texturizer) {
+            this.texturizer.filters.forEach(filter => filter.removeView(this._core))
         }
 
         this._active = false;
@@ -1678,7 +1695,16 @@ class View extends EventEmitter {
                 return
             }
         }
+
+        if (this._active && this._core.shader) {
+            this._core.shader.removeView(this);
+        }
+
         this._core.shader = shader;
+
+        if (this._active && this._core.shader) {
+            this._core.shader.addView(this);
+        }
     }
 
     _hasTexturizer() {
@@ -1722,7 +1748,15 @@ class View extends EventEmitter {
     }
 
     set filters(v) {
+        if (this._active) {
+            this.texturizer.filters.forEach(filter => filter.removeView(this._core))
+        }
+
         this.texturizer.filters = v
+
+        if (this._active) {
+            this.texturizer.filters.forEach(filter => filter.addView(this._core))
+        }
     }
 
     getTexture() {
