@@ -6739,7 +6739,10 @@ class ViewCore {
 
                 let resultTexture = this._texturizer.getResultTexture();
                 if (updateResultTexture) {
-                    resultTexture.update = renderState.stage.frameCounter
+                    if (resultTexture) {
+                        // Logging the update frame can be handy for userland.
+                        resultTexture.update = renderState.stage.frameCounter
+                    }
                     this._texturizer.updateResultTexture();
                 }
 
