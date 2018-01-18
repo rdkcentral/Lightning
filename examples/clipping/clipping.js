@@ -1,69 +1,37 @@
-var isNode = !!(((typeof module !== "undefined") && module.exports));
-if (isNode) {
-    var Stage = require('../../wpe');
+/**
+ *
+ */
+var start = function(wpe) {
+
+    wpe = wpe || {};
+
+    with(wpe) {
+        var options = {w: 900, h: 900, glClearColor: 0xFF000000, useTextureAtlas: false, debugTextureAtlas: false};
+
+        // Nodejs-specific options.
+        if (Utils.isNode) {
+            options.window = {title: "Usage example", fullscreen: false};
+            options.supercharger = {localImagePath: __dirname};
+        }
+
+        var stage = new Stage(options);
+
+        if (!Utils.isNode) {
+            document.body.appendChild(stage.getCanvas());
+        }
+
+        stage.root.add([
+            {rect: true, clipping: true, x: 200, y: 200, w: 500, h: 500, colorLeft: 0xFFAA0000, colorRight: 0xFF0000FF, children: [
+                {tag: 't', rect: true, color: 0xFFFF0000, w: 300, h: 300, x: -100, y: 300, clipping: true, children: [
+                    {rect: true, color: 0xFF00FF00, w: 200, h: 100, x: -50, y: -50}
+                ]}
+            ]}
+        ])
+
+    }
+};
+
+if (typeof window === "undefined") {
+    // Nodejs: start.
+    start(require('../../wpe'));
 }
-
-var options = {w: 1280, h: 720, rw: 1280, rh: 720, precision: 1, measureDetails: false, useTextureProcess: false, textureProcessOptions: {allowFiles: true}, useTextureAtlas:false, glClearColor: [0, 0, 0, 1], window: {title: "Clipping demo", fullscreen: false}};
-var stage = new Stage(options);
-
-if (!isNode) {
-    document.body.appendChild(stage.getCanvas());
-}
-
-stage.root.x = 100;
-stage.root.y = 100;
-stage.root.w = 1080;
-stage.root.h = 500;
-stage.root.clipping = true;
-stage.root.borderWidth = 5;
-stage.root.rect = true;
-stage.root.color = 0xff00ff00;
-stage.root.borderColor = 0xff000000;
-
-var bunny = stage.root.add({x: 200, y: 200, rotation: 0.2, tag: 'bunny'});
-bunny.on('txLoaded', function(textureSource) {
-    console.log('loaded');
-});
-
-bunny.on('txError', function(err, textureSource) {
-    console.log('error');
-});
-
-bunny.t('x',{duration: 10, delay: 2});
-// bunny.x = 1050;
-bunny.rotation = 4;
-bunny.scale = 1;
-bunny.t('rotation',{duration: 5, delay: 2, timingFunction: 'cubic-bezier(0,1,2.3,1.2)'});
-bunny.t('scale',{duration: 5, delay: 2});
-// bunny.rotation = 11;
-// bunny.scale = 30;
-
-var a = stage.root.tag('bunny').animation({duration: 3, autostop: true, stopMethodOptions: {timingFunction: 'linear', duration: 3}, actions: [
-    {property: ['y'], value: {0:0,1:400}},
-    {property: ['color'], value: {0:0xFFFFFFFF,1:0xFFFF0000}},
-
-    // {property: ['texture.w'], value: {0.5:26, 1: 0.001}}
-]});
-
-// a.start();
-
-setTimeout(function() {
-    bunny.text = "hello";
-    //bunny.src = "remote.jpg";
-
-    // setTimeout(function() {
-    //     bunny.src = "remote.png";
-    //     //bunny.visible = false;
-    //     setTimeout(function() {
-    //         //bunny.visible = true;
-    //     }, 3000);
-    // }, 3000);
-}, 1000);
-
-
-if (isNode) {
-    setTimeout(function() {
-        stage.destroy();
-    }, 3000);
-}
-
