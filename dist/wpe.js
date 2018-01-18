@@ -1118,7 +1118,6 @@ class Stage extends EventEmitter {
         this.emit('frameStart');
 
         if (this.textureManager.isFull()) {
-            console.log('clean up');
             this.textureManager.freeUnusedTextureSources();
         }
 
@@ -4763,7 +4762,7 @@ class View extends EventEmitter {
     }
 
     get filters() {
-        return this._hasTexturizer().filters
+        return this._hasTexturizer() && this.texturizer.filters
     }
 
     set filters(v) {
@@ -5734,7 +5733,7 @@ class ViewCore {
 
         this._useRenderToTexture = false
 
-        this._useViewportClipping = false
+        this._scissor = undefined
 
         this.render = this._renderSimple
     }
@@ -6201,8 +6200,13 @@ class ViewCore {
     }
 
     set clipping(v) {
-        this._clipping = v
-        this.updateRenderToTextureEnabled()
+        if (this._clipping !== v) {
+            this._clipping = v
+
+            // Force update of scissor by updating translate.
+            // Alpha must also be updated because the scissor area may have been empty.
+            this._setRecalc(1 + 2)
+        }
     }
 
     _setShaderOwnerRecursive(viewCore) {
@@ -6241,7 +6245,7 @@ class ViewCore {
 
     updateRenderToTextureEnabled() {
         // Enforce texturizer initialisation.
-        let v = (this.texturizer._hasFilters() || this.texturizer._enabled) || this._clipping
+        let v = (this.texturizer._hasFilters() || this.texturizer._enabled)
 
         if (v) {
             this._enableRenderToTexture()
@@ -6476,14 +6480,34 @@ class ViewCore {
             this._useRenderToTexture = this._renderToTextureEnabled && this._texturizer.mustRenderToTexture()
 
             // Determine whether we must 'clip'.
-            this._useViewportClipping = false
-            if (!this._useRenderToTexture && this._clipping) {
-                if (this._renderContext.isSquare()) {
-                    this._useViewportClipping = true
+            if (this._clipping && this._renderContext.isSquare()) {
+                // We must clip.
+                const x = this._renderContext.px
+                const y = this._renderContext.py
+                const w = this._renderContext.ta * this._rw
+                const h = this._renderContext.td * this._rh
+
+                // If the parent renders to a texture, parent scissor is undefined.
+                const area = this._parent._useRenderToTexture ? undefined : this._parent._scissor
+                if (area) {
+                    // Merge scissor areas.
+                    let sx = Math.max(area[0], x)
+                    let sy = Math.max(area[1], y)
+                    let ex = Math.min(area[0] + area[2], x + w)
+                    let ey = Math.min(area[1] + area[3], y + h)
+                    this._scissor = [sx, sy, ex - sx, ey - sy]
+
+                    // Optimization: if scissor area is empty: worldAlpha is set to 0 to prevent rendering the
+                    // full branch.
+                    if (this._scissor[2] <= 0 || this._scissor[3] <= 0) {
+                        this._renderContext.alpha = 0
+                    }
                 } else {
-                    // Use a render texture to clip.
-                    this._useRenderToTexture = true
+                    this._scissor = [x, y, w, h]
                 }
+            } else {
+                // No clipping: reuse parent scissor.
+                this._scissor = this._parent._useRenderToTexture ? undefined : this._parent._scissor
             }
 
             let r
@@ -6562,8 +6586,9 @@ class ViewCore {
         if (this._renderContext.alpha) {
             let renderState = this.renderState;
 
-            //@todo: need to optimize this.
             renderState.setShader(this.activeShader, this._shaderOwner);
+
+            renderState.setScissor(this._scissor)
 
             if (this._displayedTextureSource) {
                 this.addQuads()
@@ -6598,12 +6623,9 @@ class ViewCore {
         if (this._renderContext.alpha) {
             let renderState = this.renderState;
 
-            renderState.setShader(this.activeShader, this._shaderOwner);
-
             let mustRenderChildren = true
             let renderTextureInfo
             let prevRenderTextureInfo
-            let prevScissor
             if (this._useRenderToTexture) {
                 if (this._rw === 0 || this._rh === 0) {
                     // Ignore this branch and don't draw anything.
@@ -6613,7 +6635,6 @@ class ViewCore {
                     // Switch to default shader for building up the render texture.
                     renderState.setShader(renderState.defaultShader, this)
 
-                    prevScissor = renderState.getScissor()
                     prevRenderTextureInfo = renderState.renderTextureInfo
 
                     renderTextureInfo = {
@@ -6627,6 +6648,7 @@ class ViewCore {
                     }
 
                     renderState.setRenderTextureInfo(renderTextureInfo);
+                    renderState.setScissor(undefined)
 
                     if (this._displayedTextureSource) {
                         let r = this._renderContext
@@ -6643,17 +6665,9 @@ class ViewCore {
                     mustRenderChildren = false;
                 }
             } else {
-                if (this._useViewportClipping) {
-                    // Calculate and set clipping area on render texture.
-                    let x = this._renderContext.px
-                    let y = this._renderContext.py
-                    let w = this._renderContext.ta * this._rw
-                    let h = this._renderContext.td * this._rh
-                    prevScissor = renderState.getScissor()
-                    renderState.setScissor([x, y, w, h])
-                }
-
                 if (this._displayedTextureSource) {
+                    renderState.setShader(this.activeShader, this._shaderOwner);
+                    renderState.setScissor(this._scissor)
                     this.addQuads()
                 }
             }
@@ -6723,7 +6737,6 @@ class ViewCore {
 
                     // Restore the parent's render texture and active scissor.
                     renderState.setRenderTextureInfo(prevRenderTextureInfo)
-                    renderState.setScissor(prevScissor)
 
                     updateResultTexture = true
                 }
@@ -6750,6 +6763,7 @@ class ViewCore {
                 if ((!mustRenderChildren || !renderTextureInfo.empty) && !this._texturizer.hideResult) {
                     // Render result texture to the actual render target.
                     renderState.setShader(this.activeShader, this._shaderOwner);
+                    renderState.setScissor(this._scissor)
 
                     renderState.setOverrideQuadTexture(resultTexture);
                     this._stashTexCoords();
@@ -6759,8 +6773,6 @@ class ViewCore {
                     this._unstashTexCoords();
                     renderState.setOverrideQuadTexture(null);
                 }
-            } else if (this._useViewportClipping) {
-                renderState.resetScissor(prevScissor)
             }
 
             this._hasRenderUpdates = 0;
@@ -7234,26 +7246,14 @@ class CoreRenderState {
     }
 
     setScissor(area) {
-        if (area) {
-            if (this._scissor) {
-                // Merge scissor areas.
-                let sx = Math.max(area[0], this._scissor[0])
-                let sy = Math.max(area[1], this._scissor[1])
-                let ex = Math.min(area[0] + area[2], this._scissor[0] + this._scissor[2])
-                let ey = Math.min(area[1] + area[3], this._scissor[1] + this._scissor[3])
-                this._scissor = [sx, sy, ex - sx, ey - sy]
-            } else {
+        if (this._scissor !== area) {
+            if (area) {
                 this._scissor = area
+            } else {
+                this._scissor = null
             }
-        } else {
-            this._scissor = null
+            this._check = true
         }
-        this._check = true
-    }
-
-    resetScissor(area) {
-        this._scissor = area
-        this._check = true
     }
 
     getScissor() {
@@ -7869,15 +7869,15 @@ class CoreRenderExecutor {
         } else {
             gl.enable(gl.SCISSOR_TEST);
             let precision = this.ctx.stage.getRenderPrecision()
+            let y = area[1]
             if (this._renderTexture === null) {
                 // Flip.
-                area[1] = (this.ctx.stage.h / precision - (area[1] + area[3]))
+                y = (this.ctx.stage.h / precision - (area[1] + area[3]))
             }
-            gl.scissor(Math.round(area[0] * precision), Math.round(area[1] * precision), Math.round(area[2] * precision), Math.round(area[3] * precision));
+            gl.scissor(Math.round(area[0] * precision), Math.round(y * precision), Math.round(area[2] * precision), Math.round(area[3] * precision));
         }
         this._scissor = area
     }
-
 
 }
 
@@ -10917,6 +10917,10 @@ class FastBlurView extends View {
         this._amount = 0
         this._paddingX = 0
         this._paddingY = 0
+    }
+
+    get content() {
+        return this.sel('Textwrap>Content')
     }
 
     set content(v) {

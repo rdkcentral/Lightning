@@ -195,4 +195,4 @@ Transition.prototype.isTransition = true;
 module.exports = Transition;
 
 let StageUtils = require('../core/StageUtils');
-/*M¬*/let View = null;/*¬M*/
+/*M¬*/let View = require('../core/View');/*¬M*/

@@ -167,7 +167,6 @@ class Stage extends EventEmitter {
         this.emit('frameStart');
 
         if (this.textureManager.isFull()) {
-            console.log('clean up');
             this.textureManager.freeUnusedTextureSources();
         }
 
