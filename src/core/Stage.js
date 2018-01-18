@@ -146,13 +146,17 @@ class Stage extends EventEmitter {
 
     resume() {
         if (this._destroyed) {
-            throw new Error("Already destroyed");
+            throw new Error("Already destroyed")
         }
         this.adapter.startLoop();
     }
 
     getCanvas() {
-        return this.adapter.getWebGLCanvas();
+        return this.adapter.getWebGLCanvas()
+    }
+
+    getDrawingCanvas() {
+        return this.adapter.getDrawingCanvas()
     }
 
     drawFrame() {

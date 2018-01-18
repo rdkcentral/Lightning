@@ -4,6 +4,8 @@
 [![npm](https://img.shields.io/npm/dt/wpe-uiframework.svg)]()
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=55UJZHTXW8VTE)
 
+**WARNING! This documentation is out of date with the master branch. It will be updated next February.**
+
 WPE UI Framework is a javascript 2d graphics rendering and animation library using (Web)GL. It's geared towards developing animated User Interfaces that run nicely on low-performance (embedded) devices. The framework has been optimized for high performance and low CPU/memory usage, and has been carefully tested for memory leaks.
 
 The framework provides a **rendering tree** that can be modified using a very *simple* API. The rendering tree consists of **components** that have properties that define where and how it is rendered (x, y, rotation, alpha, etc). An image or rendered text can be attached to a component, which is then rendered immediately on the screen.
