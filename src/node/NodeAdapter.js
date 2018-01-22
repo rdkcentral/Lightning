@@ -63,7 +63,7 @@ class NodeAdapter {
                 self._awaitingLoop = true;
             }
         }
-        lp();
+        setTimeout(lp, 16)
     }
 
     uploadGlTexture(gl, textureSource, source, hasAlpha) {

@@ -38,7 +38,7 @@ class WebAdapter {
                 self._awaitingLoop = true;
             }
         }
-        lp();
+        requestAnimationFrame(lp);
     }
 
     uploadGlTexture(gl, textureSource, source, hasAlpha) {
