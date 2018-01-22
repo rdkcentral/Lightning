@@ -77,6 +77,10 @@ class TextureManager {
             }
         } else if (source instanceof TextureSource) {
             textureSource = source;
+        } else if (!Utils.isNode && source instanceof WebGLTexture) {
+            textureSource = this.getTextureSource((cb) => {
+
+            }, id);
         } else {
             // Create new texture source.
             textureSource = this.getTextureSource(source, id);

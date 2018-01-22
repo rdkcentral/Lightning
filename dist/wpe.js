@@ -139,7 +139,7 @@ class WebAdapter {
                 self._awaitingLoop = true;
             }
         }
-        lp();
+        requestAnimationFrame(lp);
     }
 
     uploadGlTexture(gl, textureSource, source, hasAlpha) {
@@ -1097,13 +1097,17 @@ class Stage extends EventEmitter {
 
     resume() {
         if (this._destroyed) {
-            throw new Error("Already destroyed");
+            throw new Error("Already destroyed")
         }
         this.adapter.startLoop();
     }
 
     getCanvas() {
-        return this.adapter.getWebGLCanvas();
+        return this.adapter.getWebGLCanvas()
+    }
+
+    getDrawingCanvas() {
+        return this.adapter.getDrawingCanvas()
     }
 
     drawFrame() {
@@ -1799,6 +1803,10 @@ class TextureManager {
             }
         } else if (source instanceof TextureSource) {
             textureSource = source;
+        } else if (!Utils.isNode && source instanceof WebGLTexture) {
+            textureSource = this.getTextureSource((cb) => {
+
+            }, id);
         } else {
             // Create new texture source.
             textureSource = this.getTextureSource(source, id);
@@ -2291,28 +2299,37 @@ class TextureSource {
             this.renderInfo = options.renderInfo;
         }
 
-        var format = {
-            premultiplyAlpha: true,
-            hasAlpha: true
-        };
+        if (!Utils.isNode && source instanceof WebGLTexture) {
+            // Texture managed by caller.
+            this.glTexture = source;
 
-        if (options && options.hasOwnProperty('premultiplyAlpha')) {
-            format.premultiplyAlpha = options.premultiplyAlpha;
+            // Used by CoreRenderState for optimizations.
+            source.w = this.w
+            source.h = this.h
+        } else {
+            var format = {
+                premultiplyAlpha: true,
+                hasAlpha: true
+            };
+
+            if (options && options.hasOwnProperty('premultiplyAlpha')) {
+                format.premultiplyAlpha = options.premultiplyAlpha;
+            }
+
+            if (options && options.hasOwnProperty('flipBlueRed')) {
+                format.flipBlueRed = options.flipBlueRed;
+            }
+
+            if (options && options.hasOwnProperty('hasAlpha')) {
+                format.hasAlpha = options.hasAlpha;
+            }
+
+            if (!format.hasAlpha) {
+                format.premultiplyAlpha = false;
+            }
+
+            this.manager.uploadTextureSource(this, source, format);
         }
-
-        if (options && options.hasOwnProperty('flipBlueRed')) {
-            format.flipBlueRed = options.flipBlueRed;
-        }
-
-        if (options && options.hasOwnProperty('hasAlpha')) {
-            format.hasAlpha = options.hasAlpha;
-        }
-
-        if (!format.hasAlpha) {
-            format.premultiplyAlpha = false;
-        }
-
-        this.manager.uploadTextureSource(this, source, format);
 
         this.onLoad();
     }
@@ -2379,6 +2396,7 @@ class TextureSource {
 }
 
 TextureSource.id = 1;
+
 
 
 /**

@@ -193,28 +193,37 @@ class TextureSource {
             this.renderInfo = options.renderInfo;
         }
 
-        var format = {
-            premultiplyAlpha: true,
-            hasAlpha: true
-        };
+        if (!Utils.isNode && source instanceof WebGLTexture) {
+            // Texture managed by caller.
+            this.glTexture = source;
 
-        if (options && options.hasOwnProperty('premultiplyAlpha')) {
-            format.premultiplyAlpha = options.premultiplyAlpha;
+            // Used by CoreRenderState for optimizations.
+            source.w = this.w
+            source.h = this.h
+        } else {
+            var format = {
+                premultiplyAlpha: true,
+                hasAlpha: true
+            };
+
+            if (options && options.hasOwnProperty('premultiplyAlpha')) {
+                format.premultiplyAlpha = options.premultiplyAlpha;
+            }
+
+            if (options && options.hasOwnProperty('flipBlueRed')) {
+                format.flipBlueRed = options.flipBlueRed;
+            }
+
+            if (options && options.hasOwnProperty('hasAlpha')) {
+                format.hasAlpha = options.hasAlpha;
+            }
+
+            if (!format.hasAlpha) {
+                format.premultiplyAlpha = false;
+            }
+
+            this.manager.uploadTextureSource(this, source, format);
         }
-
-        if (options && options.hasOwnProperty('flipBlueRed')) {
-            format.flipBlueRed = options.flipBlueRed;
-        }
-
-        if (options && options.hasOwnProperty('hasAlpha')) {
-            format.hasAlpha = options.hasAlpha;
-        }
-
-        if (!format.hasAlpha) {
-            format.premultiplyAlpha = false;
-        }
-
-        this.manager.uploadTextureSource(this, source, format);
 
         this.onLoad();
     }
@@ -283,3 +292,5 @@ class TextureSource {
 TextureSource.id = 1;
 
 module.exports = TextureSource;
+
+const Utils = require('./Utils')
