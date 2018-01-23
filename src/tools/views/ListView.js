@@ -426,8 +426,6 @@ class ListView extends View {
 
 }
 
-ListView.NUMBER_PROPERTIES = new Set(['viewportScrollOffset', 'itemScrollOffset'])
-
 const ObjectListWrapper = require('../misc/ObjectListWrapper')
 class ListItems extends ObjectListWrapper {
     constructor(list) {

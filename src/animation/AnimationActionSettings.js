@@ -30,16 +30,10 @@ class AnimationActionSettings {
          */
         this._propSetters = [];
 
-        /**
-         * The way that values should be interpolated.
-         * @type {Function}
-         * @private
-         */
-        this._merger = undefined;
-
         this._resetValue = undefined;
         this._hasResetValue = false;
 
+        this._hasColorProperty = undefined
     }
 
     getResetValue() {
@@ -62,8 +56,13 @@ class AnimationActionSettings {
         if (factor !== 1) {
             // Stop factor.
             let sv = this.getResetValue();
-            if (this._merger) {
-                v = this._merger(v, sv, factor);
+
+            if (Utils.isNumber(v) && Utils.isNumber(sv)) {
+                if (this.hasColorProperty()) {
+                    v = StageUtils.mergeColors(v, sv, factor)
+                } else {
+                    v = StageUtils.mergeNumbers(v, sv, factor)
+                }
             }
         }
 
@@ -138,30 +137,14 @@ class AnimationActionSettings {
 
         this._props = [];
 
-        let detectMerger = (this._merger === undefined);
-
-        let first = true;
         v.forEach((prop) => {
             this._props.push(prop);
             this._propSetters.push(View.getSetter(prop));
-
-            if (detectMerger) {
-                let merger = View.getMerger(prop);
-                if (first) {
-                    this._merger = merger;
-                    first = false;
-                } else {
-                    if (this._merger !== merger) {
-                        // Do not use a merger in case of merger conflicts.
-                        console.warn('Merger conflicts for animation action properties: ' + v.join(','));
-                        this._merger = undefined;
-                    }
-                }
-            }
         });
     }
 
     set property(v) {
+        this._hasColorProperty = undefined
         this.properties = v;
     }
 
@@ -169,22 +152,15 @@ class AnimationActionSettings {
         this.properties = v;
     }
 
-    set merger(f) {
-        if (this._items.length) {
-            console.trace('You should specify the merger before the values');
-        }
-
-        if (f === 'numbers') {
-            f = StageUtils.mergeNumbers
-        } else if (f === 'colors') {
-            f = StageUtils.mergeColors
-        }
-
-        this._merger = f;
-    }
-
     patch(settings) {
         Base.patchObject(this, settings)
+    }
+
+    hasColorProperty() {
+        if (this._hasColorProperty === undefined) {
+            this._hasColorProperty = this._props.length ? View.isColorProperty(this._props[0]) : false
+        }
+        return this._hasColorProperty
     }
 }
 
@@ -196,3 +172,4 @@ let Base = require('../core/Base')
 let AnimationActionItems = require('./AnimationActionItems');
 let View = require('../core/View');
 let StageUtils = require('../core/StageUtils');
+let Utils = require('../core/Utils');

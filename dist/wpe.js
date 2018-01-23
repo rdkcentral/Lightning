@@ -5005,48 +5005,19 @@ class View extends EventEmitter {
     }
     
 
-    isNumberProperty(property) {
-        return View.isNumberProperty(property, this.constructor);
-    }
-
-    isColorProperty(property) {
-        return View.isColorProperty(property, this.constructor);
-    }
-
 }
 
-View.isNumberProperty = function(property, type = View) {
-    do {
-        if (type.NUMBER_PROPERTIES && type.NUMBER_PROPERTIES.has(property)) {
-            return true
-        }
-    } while((type !== View) && (type = Object.getPrototypeOf(type)));
-
-    return false
+View.isColorProperty = function(property) {
+    return property.startsWith("color")
 }
 
-View.isColorProperty = function(property, type = View) {
-    do {
-        if (type.COLOR_PROPERTIES && type.COLOR_PROPERTIES.has(property)) {
-            return true
-        }
-    } while((type !== View) && (type = Object.getPrototypeOf(type)));
-
-    return false
-}
-
-View.getMerger = function(property, type = View) {
-    if (View.isNumberProperty(property, type)) {
-        return StageUtils.mergeNumbers
-    } else if (View.isColorProperty(property, type)) {
+View.getMerger = function(property) {
+    if (View.isColorProperty(property)) {
         return StageUtils.mergeColors
     } else {
-        return undefined
+        return StageUtils.mergeNumbers
     }
 }
-
-View.NUMBER_PROPERTIES = new Set(['x', 'y', 'w', 'h', 'scale', 'scaleX', 'scaleY', 'pivot', 'pivotX', 'pivotY', 'mount', 'mountX', 'mountY', 'alpha', 'rotation', 'texture.x', 'texture.y', 'texture.w', 'texture.h'])
-View.COLOR_PROPERTIES = new Set(['color', 'colorTop', 'colorBottom', 'colorLeft', 'colorRight', 'colorUl', 'colorUr', 'colorBl', 'colorBr'])
 
 View.prototype.isView = 1;
 
@@ -8918,11 +8889,7 @@ class Transition extends EventEmitter {
         this._merger = settings.merger
 
         if (!this._merger) {
-            if (view.isColorProperty(property)) {
-                this._merger = StageUtils.mergeColors
-            } else {
-                this._merger = StageUtils.mergeNumbers
-            }
+            this._merger = View.getMerger(property)
         }
 
         this._startValue = this._getter(this._view);
@@ -9279,16 +9246,10 @@ class AnimationActionSettings {
          */
         this._propSetters = [];
 
-        /**
-         * The way that values should be interpolated.
-         * @type {Function}
-         * @private
-         */
-        this._merger = undefined;
-
         this._resetValue = undefined;
         this._hasResetValue = false;
 
+        this._hasColorProperty = undefined
     }
 
     getResetValue() {
@@ -9311,8 +9272,13 @@ class AnimationActionSettings {
         if (factor !== 1) {
             // Stop factor.
             let sv = this.getResetValue();
-            if (this._merger) {
-                v = this._merger(v, sv, factor);
+
+            if (Utils.isNumber(v) && Utils.isNumber(sv)) {
+                if (this.hasColorProperty()) {
+                    v = StageUtils.mergeColors(v, sv, factor)
+                } else {
+                    v = StageUtils.mergeNumbers(v, sv, factor)
+                }
             }
         }
 
@@ -9387,30 +9353,14 @@ class AnimationActionSettings {
 
         this._props = [];
 
-        let detectMerger = (this._merger === undefined);
-
-        let first = true;
         v.forEach((prop) => {
             this._props.push(prop);
             this._propSetters.push(View.getSetter(prop));
-
-            if (detectMerger) {
-                let merger = View.getMerger(prop);
-                if (first) {
-                    this._merger = merger;
-                    first = false;
-                } else {
-                    if (this._merger !== merger) {
-                        // Do not use a merger in case of merger conflicts.
-                        console.warn('Merger conflicts for animation action properties: ' + v.join(','));
-                        this._merger = undefined;
-                    }
-                }
-            }
         });
     }
 
     set property(v) {
+        this._hasColorProperty = undefined
         this.properties = v;
     }
 
@@ -9418,22 +9368,15 @@ class AnimationActionSettings {
         this.properties = v;
     }
 
-    set merger(f) {
-        if (this._items.length) {
-            console.trace('You should specify the merger before the values');
-        }
-
-        if (f === 'numbers') {
-            f = StageUtils.mergeNumbers
-        } else if (f === 'colors') {
-            f = StageUtils.mergeColors
-        }
-
-        this._merger = f;
-    }
-
     patch(settings) {
         Base.patchObject(this, settings)
+    }
+
+    hasColorProperty() {
+        if (this._hasColorProperty === undefined) {
+            this._hasColorProperty = this._props.length ? View.isColorProperty(this._props[0]) : false
+        }
+        return this._hasColorProperty
     }
 }
 
@@ -9518,68 +9461,66 @@ class AnimationActionItems {
             }
         }
 
-        if (this._action._merger) {
-            // Color merger: we need to split/combine RGBA components.
-            let rgba = (this._action._merger === StageUtils.mergeColors);
+        // Color merger: we need to split/combine RGBA components.
+        let rgba = (this._action.hasColorProperty());
 
-            // Calculate bezier helper values.
-            for (i = 0; i < n; i++) {
-                if (!items[i].hasOwnProperty('sm')) {
-                    // Smoothness.
-                    items[i].sm = 0.5;
-                }
-                if (!items[i].hasOwnProperty('s')) {
-                    // Slope.
-                    if (i === 0 || i === n - 1 || (items[i].p === 1 /* for onetotwo */)) {
-                        // Horizontal slope at start and end.
+        // Calculate bezier helper values.
+        for (i = 0; i < n; i++) {
+            if (!items[i].hasOwnProperty('sm')) {
+                // Smoothness.
+                items[i].sm = 0.5;
+            }
+            if (!items[i].hasOwnProperty('s')) {
+                // Slope.
+                if (i === 0 || i === n - 1 || (items[i].p === 1 /* for onetotwo */)) {
+                    // Horizontal slope at start and end.
+                    items[i].s = rgba ? [0, 0, 0, 0] : 0;
+                } else {
+                    let pi = items[i - 1];
+                    let ni = items[i + 1];
+                    if (pi.p === ni.p) {
                         items[i].s = rgba ? [0, 0, 0, 0] : 0;
                     } else {
-                        let pi = items[i - 1];
-                        let ni = items[i + 1];
-                        if (pi.p === ni.p) {
-                            items[i].s = rgba ? [0, 0, 0, 0] : 0;
+                        if (rgba) {
+                            let nc = StageUtils.getRgbaComponents(ni.lv);
+                            let pc = StageUtils.getRgbaComponents(pi.lv);
+                            let d = 1 / (ni.p - pi.p);
+                            items[i].s = [
+                                d * (nc[0] - pc[0]),
+                                d * (nc[1] - pc[1]),
+                                d * (nc[2] - pc[2]),
+                                d * (nc[3] - pc[3])
+                            ];
                         } else {
-                            if (rgba) {
-                                let nc = StageUtils.getRgbaComponents(ni.lv);
-                                let pc = StageUtils.getRgbaComponents(pi.lv);
-                                let d = 1 / (ni.p - pi.p);
-                                items[i].s = [
-                                    d * (nc[0] - pc[0]),
-                                    d * (nc[1] - pc[1]),
-                                    d * (nc[2] - pc[2]),
-                                    d * (nc[3] - pc[3])
-                                ];
-                            } else {
-                                items[i].s = (ni.lv - pi.lv) / (ni.p - pi.p);
-                            }
+                            items[i].s = (ni.lv - pi.lv) / (ni.p - pi.p);
                         }
                     }
                 }
             }
+        }
 
-            for (i = 0; i < n - 1; i++) {
-                // Calculate value function.
-                if (!items[i].f) {
-                    let last = (i === n - 1);
-                    if (!items[i].hasOwnProperty('sme')) {
-                        items[i].sme = last ? 0.5 : items[i + 1].sm;
-                    }
-                    if (!items[i].hasOwnProperty('se')) {
-                        items[i].se = last ? (rgba ? [0, 0, 0, 0] : 0) : items[i + 1].s;
-                    }
-                    if (!items[i].hasOwnProperty('ve')) {
-                        items[i].ve = last ? items[i].lv : items[i + 1].lv;
-                    }
-
-                    // Generate spline.
-                    if (rgba) {
-                        items[i].v = StageUtils.getSplineRgbaValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
-                    } else {
-                        items[i].v = StageUtils.getSplineValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
-                    }
-
-                    items[i].f = true;
+        for (i = 0; i < n - 1; i++) {
+            // Calculate value function.
+            if (!items[i].f) {
+                let last = (i === n - 1);
+                if (!items[i].hasOwnProperty('sme')) {
+                    items[i].sme = last ? 0.5 : items[i + 1].sm;
                 }
+                if (!items[i].hasOwnProperty('se')) {
+                    items[i].se = last ? (rgba ? [0, 0, 0, 0] : 0) : items[i + 1].s;
+                }
+                if (!items[i].hasOwnProperty('ve')) {
+                    items[i].ve = last ? items[i].lv : items[i + 1].lv;
+                }
+
+                // Generate spline.
+                if (rgba) {
+                    items[i].v = StageUtils.getSplineRgbaValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
+                } else {
+                    items[i].v = StageUtils.getSplineValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
+                }
+
+                items[i].f = true;
             }
         }
 
@@ -10630,8 +10571,6 @@ class ListView extends View {
 
 }
 
-ListView.NUMBER_PROPERTIES = new Set(['viewportScrollOffset', 'itemScrollOffset'])
-
 class ListItems extends ObjectListWrapper {
     constructor(list) {
         let wrap = (item => {
@@ -10796,46 +10735,46 @@ class BorderView extends View {
         this._updateLayout = true;
     }
 
-    get borderColor() {
-        return this.borderColorTop;
+    get colorBorder() {
+        return this.colorBorderTop;
     }
 
-    get borderColorTop() {
+    get colorBorderTop() {
         return this._borderTop.color;
     }
 
-    get borderColorRight() {
+    get colorBorderRight() {
         return this._borderRight.color;
     }
 
-    get borderColorBottom() {
+    get colorBorderBottom() {
         return this._borderBottom.color;
     }
 
-    get borderColorLeft() {
+    get colorBorderLeft() {
         return this._borderLeft.color;
     }
     
-    set borderColor(v) {
-        this.borderColorTop = v;
-        this.borderColorRight = v;
-        this.borderColorBottom = v;
-        this.borderColorLeft = v;
+    set colorBorder(v) {
+        this.colorBorderTop = v;
+        this.colorBorderRight = v;
+        this.colorBorderBottom = v;
+        this.colorBorderLeft = v;
     }
 
-    set borderColorTop(v) {
+    set colorBorderTop(v) {
         this._borderTop.color = v;
     }
 
-    set borderColorRight(v) {
+    set colorBorderRight(v) {
         this._borderRight.color = v;
     }
 
-    set borderColorBottom(v) {
+    set colorBorderBottom(v) {
         this._borderBottom.color = v;
     }
 
-    set borderColorLeft(v) {
+    set colorBorderLeft(v) {
         this._borderLeft.color = v;
     }
 
@@ -10887,10 +10826,6 @@ class BorderView extends View {
     }
 
 }
-
-BorderView.NUMBER_PROPERTIES = new Set(['borderWidth', 'borderWidthTop', 'borderWidthRight', 'borderWidthBottom', 'borderWidthLeft'])
-BorderView.COLOR_PROPERTIES = new Set(['borderColor', 'borderColorTop', 'borderColorRight', 'borderColorBottom', 'borderColorLeft'])
-
 
 /**
  * Copyright Metrological, 2017
@@ -11097,8 +11032,6 @@ class FastBlurView extends View {
 
 
 }
-
-FastBlurView.NUMBER_PROPERTIES = new Set(['amount'])
 
 /**
  * 4x4 box blur shader which works in conjunction with a 50% rescale.

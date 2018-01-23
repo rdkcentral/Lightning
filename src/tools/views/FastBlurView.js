@@ -207,8 +207,6 @@ class FastBlurView extends View {
 
 }
 
-FastBlurView.NUMBER_PROPERTIES = new Set(['amount'])
-
 /**
  * 4x4 box blur shader which works in conjunction with a 50% rescale.
  */

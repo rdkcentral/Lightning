@@ -1969,48 +1969,19 @@ class View extends EventEmitter {
     }
     /*¬A*/
 
-    isNumberProperty(property) {
-        return View.isNumberProperty(property, this.constructor);
-    }
-
-    isColorProperty(property) {
-        return View.isColorProperty(property, this.constructor);
-    }
-
 }
 
-View.isNumberProperty = function(property, type = View) {
-    do {
-        if (type.NUMBER_PROPERTIES && type.NUMBER_PROPERTIES.has(property)) {
-            return true
-        }
-    } while((type !== View) && (type = Object.getPrototypeOf(type)));
-
-    return false
+View.isColorProperty = function(property) {
+    return property.startsWith("color")
 }
 
-View.isColorProperty = function(property, type = View) {
-    do {
-        if (type.COLOR_PROPERTIES && type.COLOR_PROPERTIES.has(property)) {
-            return true
-        }
-    } while((type !== View) && (type = Object.getPrototypeOf(type)));
-
-    return false
-}
-
-View.getMerger = function(property, type = View) {
-    if (View.isNumberProperty(property, type)) {
-        return StageUtils.mergeNumbers
-    } else if (View.isColorProperty(property, type)) {
+View.getMerger = function(property) {
+    if (View.isColorProperty(property)) {
         return StageUtils.mergeColors
     } else {
-        return undefined
+        return StageUtils.mergeNumbers
     }
 }
-
-View.NUMBER_PROPERTIES = new Set(['x', 'y', 'w', 'h', 'scale', 'scaleX', 'scaleY', 'pivot', 'pivotX', 'pivotY', 'mount', 'mountX', 'mountY', 'alpha', 'rotation', 'texture.x', 'texture.y', 'texture.w', 'texture.h'])
-View.COLOR_PROPERTIES = new Set(['color', 'colorTop', 'colorBottom', 'colorLeft', 'colorRight', 'colorUl', 'colorUr', 'colorBl', 'colorBr'])
 
 View.prototype.isView = 1;
 

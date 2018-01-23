@@ -75,68 +75,66 @@ class AnimationActionItems {
             }
         }
 
-        if (this._action._merger) {
-            // Color merger: we need to split/combine RGBA components.
-            let rgba = (this._action._merger === StageUtils.mergeColors);
+        // Color merger: we need to split/combine RGBA components.
+        let rgba = (this._action.hasColorProperty());
 
-            // Calculate bezier helper values.
-            for (i = 0; i < n; i++) {
-                if (!items[i].hasOwnProperty('sm')) {
-                    // Smoothness.
-                    items[i].sm = 0.5;
-                }
-                if (!items[i].hasOwnProperty('s')) {
-                    // Slope.
-                    if (i === 0 || i === n - 1 || (items[i].p === 1 /* for onetotwo */)) {
-                        // Horizontal slope at start and end.
+        // Calculate bezier helper values.
+        for (i = 0; i < n; i++) {
+            if (!items[i].hasOwnProperty('sm')) {
+                // Smoothness.
+                items[i].sm = 0.5;
+            }
+            if (!items[i].hasOwnProperty('s')) {
+                // Slope.
+                if (i === 0 || i === n - 1 || (items[i].p === 1 /* for onetotwo */)) {
+                    // Horizontal slope at start and end.
+                    items[i].s = rgba ? [0, 0, 0, 0] : 0;
+                } else {
+                    let pi = items[i - 1];
+                    let ni = items[i + 1];
+                    if (pi.p === ni.p) {
                         items[i].s = rgba ? [0, 0, 0, 0] : 0;
                     } else {
-                        let pi = items[i - 1];
-                        let ni = items[i + 1];
-                        if (pi.p === ni.p) {
-                            items[i].s = rgba ? [0, 0, 0, 0] : 0;
+                        if (rgba) {
+                            let nc = StageUtils.getRgbaComponents(ni.lv);
+                            let pc = StageUtils.getRgbaComponents(pi.lv);
+                            let d = 1 / (ni.p - pi.p);
+                            items[i].s = [
+                                d * (nc[0] - pc[0]),
+                                d * (nc[1] - pc[1]),
+                                d * (nc[2] - pc[2]),
+                                d * (nc[3] - pc[3])
+                            ];
                         } else {
-                            if (rgba) {
-                                let nc = StageUtils.getRgbaComponents(ni.lv);
-                                let pc = StageUtils.getRgbaComponents(pi.lv);
-                                let d = 1 / (ni.p - pi.p);
-                                items[i].s = [
-                                    d * (nc[0] - pc[0]),
-                                    d * (nc[1] - pc[1]),
-                                    d * (nc[2] - pc[2]),
-                                    d * (nc[3] - pc[3])
-                                ];
-                            } else {
-                                items[i].s = (ni.lv - pi.lv) / (ni.p - pi.p);
-                            }
+                            items[i].s = (ni.lv - pi.lv) / (ni.p - pi.p);
                         }
                     }
                 }
             }
+        }
 
-            for (i = 0; i < n - 1; i++) {
-                // Calculate value function.
-                if (!items[i].f) {
-                    let last = (i === n - 1);
-                    if (!items[i].hasOwnProperty('sme')) {
-                        items[i].sme = last ? 0.5 : items[i + 1].sm;
-                    }
-                    if (!items[i].hasOwnProperty('se')) {
-                        items[i].se = last ? (rgba ? [0, 0, 0, 0] : 0) : items[i + 1].s;
-                    }
-                    if (!items[i].hasOwnProperty('ve')) {
-                        items[i].ve = last ? items[i].lv : items[i + 1].lv;
-                    }
-
-                    // Generate spline.
-                    if (rgba) {
-                        items[i].v = StageUtils.getSplineRgbaValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
-                    } else {
-                        items[i].v = StageUtils.getSplineValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
-                    }
-
-                    items[i].f = true;
+        for (i = 0; i < n - 1; i++) {
+            // Calculate value function.
+            if (!items[i].f) {
+                let last = (i === n - 1);
+                if (!items[i].hasOwnProperty('sme')) {
+                    items[i].sme = last ? 0.5 : items[i + 1].sm;
                 }
+                if (!items[i].hasOwnProperty('se')) {
+                    items[i].se = last ? (rgba ? [0, 0, 0, 0] : 0) : items[i + 1].s;
+                }
+                if (!items[i].hasOwnProperty('ve')) {
+                    items[i].ve = last ? items[i].lv : items[i + 1].lv;
+                }
+
+                // Generate spline.
+                if (rgba) {
+                    items[i].v = StageUtils.getSplineRgbaValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
+                } else {
+                    items[i].v = StageUtils.getSplineValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
+                }
+
+                items[i].f = true;
             }
         }
 

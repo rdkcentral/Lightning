@@ -24,11 +24,7 @@ class Transition extends EventEmitter {
         this._merger = settings.merger
 
         if (!this._merger) {
-            if (view.isColorProperty(property)) {
-                this._merger = StageUtils.mergeColors
-            } else {
-                this._merger = StageUtils.mergeNumbers
-            }
+            this._merger = View.getMerger(property)
         }
 
         this._startValue = this._getter(this._view);

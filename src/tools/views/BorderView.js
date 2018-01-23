@@ -2,7 +2,6 @@
  * Copyright Metrological, 2017
  */
 let View = require('../../core/View');
-let ViewChildList = require('../../core/ViewChildList');
 
 class BorderView extends View {
 
@@ -99,46 +98,46 @@ class BorderView extends View {
         this._updateLayout = true;
     }
 
-    get borderColor() {
-        return this.borderColorTop;
+    get colorBorder() {
+        return this.colorBorderTop;
     }
 
-    get borderColorTop() {
+    get colorBorderTop() {
         return this._borderTop.color;
     }
 
-    get borderColorRight() {
+    get colorBorderRight() {
         return this._borderRight.color;
     }
 
-    get borderColorBottom() {
+    get colorBorderBottom() {
         return this._borderBottom.color;
     }
 
-    get borderColorLeft() {
+    get colorBorderLeft() {
         return this._borderLeft.color;
     }
     
-    set borderColor(v) {
-        this.borderColorTop = v;
-        this.borderColorRight = v;
-        this.borderColorBottom = v;
-        this.borderColorLeft = v;
+    set colorBorder(v) {
+        this.colorBorderTop = v;
+        this.colorBorderRight = v;
+        this.colorBorderBottom = v;
+        this.colorBorderLeft = v;
     }
 
-    set borderColorTop(v) {
+    set colorBorderTop(v) {
         this._borderTop.color = v;
     }
 
-    set borderColorRight(v) {
+    set colorBorderRight(v) {
         this._borderRight.color = v;
     }
 
-    set borderColorBottom(v) {
+    set colorBorderBottom(v) {
         this._borderBottom.color = v;
     }
 
-    set borderColorLeft(v) {
+    set colorBorderLeft(v) {
         this._borderLeft.color = v;
     }
 
@@ -190,9 +189,5 @@ class BorderView extends View {
     }
 
 }
-
-BorderView.NUMBER_PROPERTIES = new Set(['borderWidth', 'borderWidthTop', 'borderWidthRight', 'borderWidthBottom', 'borderWidthLeft'])
-BorderView.COLOR_PROPERTIES = new Set(['borderColor', 'borderColorTop', 'borderColorRight', 'borderColorBottom', 'borderColorLeft'])
-
 
 module.exports = BorderView;
