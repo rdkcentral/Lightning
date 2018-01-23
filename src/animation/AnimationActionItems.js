@@ -116,25 +116,30 @@ class AnimationActionItems {
         for (i = 0; i < n - 1; i++) {
             // Calculate value function.
             if (!items[i].f) {
+
                 let last = (i === n - 1);
-                if (!items[i].hasOwnProperty('sme')) {
-                    items[i].sme = last ? 0.5 : items[i + 1].sm;
-                }
-                if (!items[i].hasOwnProperty('se')) {
-                    items[i].se = last ? (rgba ? [0, 0, 0, 0] : 0) : items[i + 1].s;
-                }
                 if (!items[i].hasOwnProperty('ve')) {
                     items[i].ve = last ? items[i].lv : items[i + 1].lv;
                 }
 
-                // Generate spline.
-                if (rgba) {
-                    items[i].v = StageUtils.getSplineRgbaValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
-                } else {
-                    items[i].v = StageUtils.getSplineValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
-                }
+                // We can only interpolate on numeric values. Non-numeric values are set literally when reached time.
+                if (Utils.isNumber(items[i].v) && Utils.isNumber(items[i].lv)) {
+                    if (!items[i].hasOwnProperty('sme')) {
+                        items[i].sme = last ? 0.5 : items[i + 1].sm;
+                    }
+                    if (!items[i].hasOwnProperty('se')) {
+                        items[i].se = last ? (rgba ? [0, 0, 0, 0] : 0) : items[i + 1].s;
+                    }
 
-                items[i].f = true;
+                    // Generate spline.
+                    if (rgba) {
+                        items[i].v = StageUtils.getSplineRgbaValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
+                    } else {
+                        items[i].v = StageUtils.getSplineValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
+                    }
+
+                    items[i].f = true;
+                }
             }
         }
 
