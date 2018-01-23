@@ -85,10 +85,12 @@ module.exports = function(grunt) {
                     "src/tools/shaders/Light3dShader.js",
                     "src/tools/shaders/PixelateShader.js",
                     "src/tools/shaders/InversionShader.js",
+                    "src/tools/shaders/GrayscaleShader.js",
                     "src/tools/filters/FxaaFilter.js",
                     "src/tools/filters/InversionFilter.js",
                     "src/tools/filters/BlurFilter.js",
-                    "src/tools/filters/LinearBlurFilter.js"
+                    "src/tools/filters/LinearBlurFilter.js",
+                    "src/tools/filters/GrayscaleFilter.js",
                 ],
                 dest : 'dist/wpe.js'
             }

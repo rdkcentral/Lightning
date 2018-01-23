@@ -146,6 +146,13 @@ class TextureSource {
         }
     }
 
+    reload(sync) {
+        this.free()
+        if (this.views.size) {
+            this.load(sync)
+        }
+    }
+
     load(sync) {
         if (this.isLoadedByCore()) {
             // Core texture source (View resultGlTexture), for which the loading is managed by the core.
@@ -240,6 +247,13 @@ class TextureSource {
         this.views.forEach(function(view) {
             view.onTextureSourceLoaded();
         });
+    }
+
+    forceRenderUpdate() {
+        // Call this method after manually changing updating the glTexture.
+        this.views.forEach(view => {
+            view.forceRenderUpdate()
+        })
     }
 
     _changeGlTexture(glTexture, w, h) {

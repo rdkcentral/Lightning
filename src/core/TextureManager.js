@@ -162,13 +162,6 @@ class TextureManager {
             }
         }
 
-        let self = this;
-        this.textureSourceHashmap.forEach(function(textureSource) {
-            if (textureSource.views.size === 0) {
-                self.freeTextureSource(textureSource);
-            }
-        });
-
         this._uploadedTextureSources = remainingTextureSources;
         console.log('freed ' + ((usedTextureMemoryBefore - this._usedTextureMemory) / 1e6).toFixed(2) + 'M texture pixels from GPU memory. Remaining: ' + this._usedTextureMemory);
     }

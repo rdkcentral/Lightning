@@ -124,7 +124,10 @@ class Texture {
                 newSource.addView(view);
 
                 if (newSource.glTexture) {
-                    view.displayedTexture = this;
+                    // We may update the source within the same texture as previous, so we need to force update.
+                    view._setDisplayedTexture(this, true)
+                } else {
+                    view._setDisplayedTexture(null, true)
                 }
             }
         });

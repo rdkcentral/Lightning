@@ -28,27 +28,29 @@ class ViewText {
 
         this.updatingTexture = true;
 
-        // Create a dummy texture that loads the actual texture.
-        this.view.texture = this.view.stage.texture((cb, ts, sync) => {
-            // Create 'real' texture and set it.
-            this.updatingTexture = false;
+        if (this.view.texture !== this.texture) {
+            this.view.texture = this.texture = this.createTexture()
+        } else {
+            // Reload.
+            this.texture.replaceTextureSource(this.createTextureSource())
+        }
+    };
 
+    createTexture() {
+        return this.view.stage.texture((cb, ts, sync) => {
             // Ignore this texture source load.
             cb(null, null);
 
             // Replace with the newly generated texture source.
-            let settings = this.getFinalizedSettings();
+            const settings = this.getFinalizedSettings()
             let source = this.createTextureSource(settings);
-
-            // Inherit texture precision from text settings.
-            this.view.texture.precision = settings.precision;
 
             // Make sure that the new texture source is loaded.
             source.load(sync || settings.sync);
 
             this.view.texture.replaceTextureSource(source);
         });
-    };
+    }
 
     getFinalizedSettings() {
         let settings = this.settings.clone();
@@ -56,10 +58,16 @@ class ViewText {
         return settings;
     };
 
-    createTextureSource(settings) {
+    createTextureSource(settings = this.getFinalizedSettings()) {
+        // Create 'real' texture and set it.
+        this.updatingTexture = false;
+
         let m = this.view.stage.textureManager;
 
-        let loadCb = function(cb, ts, sync) {
+        // Inherit texture precision from text settings.
+        this.view.texture.precision = settings.precision;
+
+        let loadCb = (cb, ts, sync) => {
             m.loadTextTexture(settings, ts, sync, cb);
         };
 

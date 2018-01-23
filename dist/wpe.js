@@ -1888,13 +1888,6 @@ class TextureManager {
             }
         }
 
-        let self = this;
-        this.textureSourceHashmap.forEach(function(textureSource) {
-            if (textureSource.views.size === 0) {
-                self.freeTextureSource(textureSource);
-            }
-        });
-
         this._uploadedTextureSources = remainingTextureSources;
         console.log('freed ' + ((usedTextureMemoryBefore - this._usedTextureMemory) / 1e6).toFixed(2) + 'M texture pixels from GPU memory. Remaining: ' + this._usedTextureMemory);
     }
@@ -2048,7 +2041,10 @@ class Texture {
                 newSource.addView(view);
 
                 if (newSource.glTexture) {
-                    view.displayedTexture = this;
+                    // We may update the source within the same texture as previous, so we need to force update.
+                    view._setDisplayedTexture(this, true)
+                } else {
+                    view._setDisplayedTexture(null, true)
                 }
             }
         });
@@ -2252,6 +2248,13 @@ class TextureSource {
         }
     }
 
+    reload(sync) {
+        this.free()
+        if (this.views.size) {
+            this.load(sync)
+        }
+    }
+
     load(sync) {
         if (this.isLoadedByCore()) {
             // Core texture source (View resultGlTexture), for which the loading is managed by the core.
@@ -2346,6 +2349,13 @@ class TextureSource {
         this.views.forEach(function(view) {
             view.onTextureSourceLoaded();
         });
+    }
+
+    forceRenderUpdate() {
+        // Call this method after manually changing updating the glTexture.
+        this.views.forEach(view => {
+            view.forceRenderUpdate()
+        })
     }
 
     _changeGlTexture(glTexture, w, h) {
@@ -3323,7 +3333,8 @@ class View extends EventEmitter {
             dt = this._displayedTexture;
         }
 
-        this.displayedTexture = dt;
+        // We must force because the texture source may have been replaced while being invisible.
+        this._setDisplayedTexture(dt, true)
 
         // Force re-check of texture because dimensions might have changed (cutting).
         this._updateDimensions();
@@ -3510,8 +3521,12 @@ class View extends EventEmitter {
     }
 
     set displayedTexture(v) {
+        this._setDisplayedTexture(v, false)
+    }
+
+    _setDisplayedTexture(v, force = false) {
         let prevValue = this._displayedTexture;
-        if (v !== prevValue) {
+        if (v !== prevValue || force || (v && prevValue && v.source !== prevValue.source)) {
             if (this._active && prevValue) {
                 // We can assume that this._texture === this._displayedTexture.
 
@@ -3542,13 +3557,17 @@ class View extends EventEmitter {
     }
 
     onTextureSourceLoaded() {
-        // Now we can start showing this texture.
-        this.displayedTexture = this._texture;
+        // We may be dealing with a texture reloading, so we must force update.
+        this._setDisplayedTexture(this._texture, true);
     };
 
     onTextureSourceLoadError(e) {
         this.emit('txError', e, this._texture.source);
     };
+
+    forceRenderUpdate() {
+        this._core.setHasRenderUpdates(3)
+    }
 
     onTextureSourceAddedToTextureAtlas() {
         this._updateTextureCoords();
@@ -7291,7 +7310,6 @@ class CoreRenderState {
             }
             this._renderTextureInfo.empty = false
         }
-
         this.quads.quadTextures.push(glTexture)
         this.quads.quadViews.push(viewCore)
 
@@ -7900,27 +7918,29 @@ class ViewText {
 
         this.updatingTexture = true;
 
-        // Create a dummy texture that loads the actual texture.
-        this.view.texture = this.view.stage.texture((cb, ts, sync) => {
-            // Create 'real' texture and set it.
-            this.updatingTexture = false;
+        if (this.view.texture !== this.texture) {
+            this.view.texture = this.texture = this.createTexture()
+        } else {
+            // Reload.
+            this.texture.replaceTextureSource(this.createTextureSource())
+        }
+    };
 
+    createTexture() {
+        return this.view.stage.texture((cb, ts, sync) => {
             // Ignore this texture source load.
             cb(null, null);
 
             // Replace with the newly generated texture source.
-            let settings = this.getFinalizedSettings();
+            const settings = this.getFinalizedSettings()
             let source = this.createTextureSource(settings);
-
-            // Inherit texture precision from text settings.
-            this.view.texture.precision = settings.precision;
 
             // Make sure that the new texture source is loaded.
             source.load(sync || settings.sync);
 
             this.view.texture.replaceTextureSource(source);
         });
-    };
+    }
 
     getFinalizedSettings() {
         let settings = this.settings.clone();
@@ -7928,10 +7948,16 @@ class ViewText {
         return settings;
     };
 
-    createTextureSource(settings) {
+    createTextureSource(settings = this.getFinalizedSettings()) {
+        // Create 'real' texture and set it.
+        this.updatingTexture = false;
+
         let m = this.view.stage.textureManager;
 
-        let loadCb = function(cb, ts, sync) {
+        // Inherit texture precision from text settings.
+        this.view.texture.precision = settings.precision;
+
+        let loadCb = (cb, ts, sync) => {
             m.loadTextTexture(settings, ts, sync, cb);
         };
 
@@ -9502,25 +9528,30 @@ class AnimationActionItems {
         for (i = 0; i < n - 1; i++) {
             // Calculate value function.
             if (!items[i].f) {
+
                 let last = (i === n - 1);
-                if (!items[i].hasOwnProperty('sme')) {
-                    items[i].sme = last ? 0.5 : items[i + 1].sm;
-                }
-                if (!items[i].hasOwnProperty('se')) {
-                    items[i].se = last ? (rgba ? [0, 0, 0, 0] : 0) : items[i + 1].s;
-                }
                 if (!items[i].hasOwnProperty('ve')) {
                     items[i].ve = last ? items[i].lv : items[i + 1].lv;
                 }
 
-                // Generate spline.
-                if (rgba) {
-                    items[i].v = StageUtils.getSplineRgbaValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
-                } else {
-                    items[i].v = StageUtils.getSplineValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
-                }
+                // We can only interpolate on numeric values. Non-numeric values are set literally when reached time.
+                if (Utils.isNumber(items[i].v) && Utils.isNumber(items[i].lv)) {
+                    if (!items[i].hasOwnProperty('sme')) {
+                        items[i].sme = last ? 0.5 : items[i + 1].sm;
+                    }
+                    if (!items[i].hasOwnProperty('se')) {
+                        items[i].se = last ? (rgba ? [0, 0, 0, 0] : 0) : items[i + 1].s;
+                    }
 
-                items[i].f = true;
+                    // Generate spline.
+                    if (rgba) {
+                        items[i].v = StageUtils.getSplineRgbaValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
+                    } else {
+                        items[i].v = StageUtils.getSplineValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
+                    }
+
+                    items[i].f = true;
+                }
             }
         }
 
@@ -11536,6 +11567,47 @@ InversionShader.fragmentShaderSource = `
     }
 `;
 
+class GrayscaleShader extends Shader {
+    constructor(context) {
+        super(context)
+        this._amount = 0
+    }
+
+    set amount(v) {
+        this._amount = v
+        this.redraw()
+    }
+
+    get amount() {
+        return this._amount
+    }
+
+    setupUniforms(operation) {
+        super.setupUniforms(operation)
+        this._setUniform("amount", this._amount, this.gl.uniform1f)
+    }
+
+    useDefault() {
+        return this._amount === 0
+    }
+
+}
+
+GrayscaleShader.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    uniform sampler2D uSampler;
+    uniform float amount;
+    void main(void){
+        vec4 color = texture2D(uSampler, vTextureCoord);
+        float grayness = 0.2 * color.r + 0.6 * color.g + 0.2 * color.b;
+        gl_FragColor = (amount * vec4(grayness, grayness, grayness, 1.0) + (1.0 - amount) * color) * vColor;
+    }
+`;
+
 /**
  * Copyright Metrological, 2017
  */
@@ -11859,3 +11931,43 @@ LinearBlurFilter.fragmentShaderSource = `
     }
 `;
 
+
+class GrayscaleFilter extends Filter {
+    constructor(context) {
+        super(context)
+        this._amount = 0
+    }
+
+    set amount(v) {
+        this._amount = v
+        this.redraw()
+    }
+
+    get amount() {
+        return this._amount
+    }
+
+    setupUniforms(operation) {
+        super.setupUniforms(operation)
+        this._setUniform("amount", this._amount, this.gl.uniform1f)
+    }
+
+    useDefault() {
+        return this._amount === 0
+    }
+
+}
+
+GrayscaleFilter.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoord;
+    uniform sampler2D uSampler;
+    uniform float amount;
+    void main(void){
+        vec4 color = texture2D(uSampler, vTextureCoord);
+        float grayness = 0.2 * color.r + 0.6 * color.g + 0.2 * color.b;
+        gl_FragColor = (amount * vec4(grayness, grayness, grayness, 1.0) + (1.0 - amount) * color);
+    }
+`;

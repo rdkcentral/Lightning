@@ -287,7 +287,8 @@ class View extends EventEmitter {
             dt = this._displayedTexture;
         }
 
-        this.displayedTexture = dt;
+        // We must force because the texture source may have been replaced while being invisible.
+        this._setDisplayedTexture(dt, true)
 
         // Force re-check of texture because dimensions might have changed (cutting).
         this._updateDimensions();
@@ -474,8 +475,12 @@ class View extends EventEmitter {
     }
 
     set displayedTexture(v) {
+        this._setDisplayedTexture(v, false)
+    }
+
+    _setDisplayedTexture(v, force = false) {
         let prevValue = this._displayedTexture;
-        if (v !== prevValue) {
+        if (v !== prevValue || force || (v && prevValue && v.source !== prevValue.source)) {
             if (this._active && prevValue) {
                 // We can assume that this._texture === this._displayedTexture.
 
@@ -506,13 +511,17 @@ class View extends EventEmitter {
     }
 
     onTextureSourceLoaded() {
-        // Now we can start showing this texture.
-        this.displayedTexture = this._texture;
+        // We may be dealing with a texture reloading, so we must force update.
+        this._setDisplayedTexture(this._texture, true);
     };
 
     onTextureSourceLoadError(e) {
         this.emit('txError', e, this._texture.source);
     };
+
+    forceRenderUpdate() {
+        this._core.setHasRenderUpdates(3)
+    }
 
     onTextureSourceAddedToTextureAtlas() {
         this._updateTextureCoords();
