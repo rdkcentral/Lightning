@@ -47,12 +47,7 @@ class TextureManager {
     }
 
     loadTextTexture(settings, ts, sync, cb) {
-        if (this.stage.options.text2pngEndpoint && !sync) {
-            var src = this.stage.options.text2pngEndpoint + "?q=" + encodeURIComponent(JSON.stringify(settings.getNonDefaults()));
-            this.loadSrcTexture(src, ts, sync, cb);
-        } else {
-            this.stage.adapter.loadTextTexture(settings, ts, sync, cb);
-        }
+        this.stage.adapter.loadTextTexture(settings, ts, sync, cb);
     }
 
     getTexture(source, options) {

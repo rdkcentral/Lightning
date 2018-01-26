@@ -6,32 +6,6 @@
 let Utils = require('./Utils');
 /*M¬*/let EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
 
-/**
- * @todo:
- * - optimize renderState.setShader(this.activeShader, this._shaderOwner);
- * - add generic 'enabled' option for filter, to be able to disable them temporarily
- * - allow multiple visitEntry, visitExit hooks:
- *   - view.addVisitEntry, view.removeVisitEntry. If only one: direct. If multiple: set view.visitEntryHooks array and use View.visitEntryMultiple.
- * - VAOs
- * - try to investigate/improve performance when creating and adding new views
- * - optimize new render performance
- * - animation action merger: simplify usage (type: 'numbers', 'colors', 'discrete'). Auto-detect if only number values are used.
- *
- * - change documentation
- *   - text2pngEndpoint
- *   - supercharger?
- *   - transition changes
- *   - transition merger
- *   - animation mergers: native vs non-native
- *   - type extensions
- *   - complex view types
- *   - visit
- *   - getRenderWidth
- *   - quick clone
- *   - offthread-image for better image loading performance
- *   - shaders
- * - merge es6 to master
- */
 class Stage extends EventEmitter {
     constructor(options) {
         super()
