@@ -151,6 +151,11 @@ class Stage extends EventEmitter {
         this.adapter.startLoop();
     }
 
+    gc() {
+        this.textureManager.freeUnusedTextureSources()
+        this.ctx.freeUnusedRenderTextures(0)
+    }
+
     getCanvas() {
         return this.adapter.getWebGLCanvas()
     }

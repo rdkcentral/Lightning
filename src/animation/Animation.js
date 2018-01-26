@@ -343,7 +343,7 @@ class Animation extends EventEmitter {
     }
 
     get frame() {
-        return Math.round(p * this._settings.duration * 60);
+        return Math.round(this._p * this._settings.duration * 60);
     }
 
     get settings() {
