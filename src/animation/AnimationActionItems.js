@@ -31,6 +31,8 @@ class AnimationActionItems {
             def = {0: def};
         }
 
+        let defaultSmoothness = 0.5
+
         let items = [];
         for (let key in def) {
             if (def.hasOwnProperty(key)) {
@@ -40,7 +42,10 @@ class AnimationActionItems {
                 }
 
                 let p = parseFloat(key);
-                if (!isNaN(p) && p >= 0 && p <= 2) {
+
+                if (key == "sm") {
+                    defaultSmoothness = obj.v
+                } else if (!isNaN(p) && p >= 0 && p <= 2) {
                     obj.p = p;
 
                     obj.f = Utils.isFunction(obj.v);
@@ -82,7 +87,7 @@ class AnimationActionItems {
         for (i = 0; i < n; i++) {
             if (!items[i].hasOwnProperty('sm')) {
                 // Smoothness.
-                items[i].sm = 0.5;
+                items[i].sm = defaultSmoothness;
             }
             if (!items[i].hasOwnProperty('s')) {
                 // Slope.
@@ -125,7 +130,7 @@ class AnimationActionItems {
                 // We can only interpolate on numeric values. Non-numeric values are set literally when reached time.
                 if (Utils.isNumber(items[i].v) && Utils.isNumber(items[i].lv)) {
                     if (!items[i].hasOwnProperty('sme')) {
-                        items[i].sme = last ? 0.5 : items[i + 1].sm;
+                        items[i].sme = last ? defaultSmoothness : items[i + 1].sm;
                     }
                     if (!items[i].hasOwnProperty('se')) {
                         items[i].se = last ? (rgba ? [0, 0, 0, 0] : 0) : items[i + 1].s;
