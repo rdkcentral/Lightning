@@ -44,12 +44,6 @@ class TextureSource {
         this.loadingSince = 0;
 
         /**
-         * Flag that indicates if this.texture source was stored in the texture atlas.
-         * @type {boolean}
-         */
-        this.inTextureAtlas = false;
-
-        /**
          * The x coordinate in the texture atlas.
          * @type {number}
          */
@@ -71,12 +65,6 @@ class TextureSource {
          * @type {boolean}
          */
         this.permanent = false;
-
-        /**
-         * If this texture source should ever be added to the texture atlas.
-         * @type {boolean}
-         */
-        this.noTextureAtlas = false;
 
         /**
          * Sub-object with texture-specific rendering information.
@@ -102,13 +90,6 @@ class TextureSource {
     addView(v) {
         if (!this.views.has(v)) {
             this.views.add(v);
-
-            if (this.glTexture) {
-                // If not yet loaded, wait until it is loaded until adding it to the texture atlas.
-                if (this.stage.textureAtlas && !this.noTextureAtlas) {
-                    this.stage.textureAtlas.addActiveTextureSource(this);
-                }
-            }
 
             if (this.views.size === 1) {
                 if (this.lookupId) {
@@ -240,10 +221,6 @@ class TextureSource {
     }
 
     onLoad() {
-        if (this.isVisible() && this.stage.textureAtlas && !this.noTextureAtlas) {
-            this.stage.textureAtlas.addActiveTextureSource(this);
-        }
-
         this.views.forEach(function(view) {
             view.onTextureSourceLoaded();
         });
@@ -278,23 +255,6 @@ class TextureSource {
         console.error('texture load error', e, this.id);
         this.views.forEach(function(view) {
             view.onTextureSourceLoadError(e);
-        });
-    }
-
-    onAddedToTextureAtlas(x, y) {
-        this.inTextureAtlas = true;
-        this.textureAtlasX = x;
-        this.textureAtlasY = y;
-
-        this.views.forEach(function(view) {
-            view.onTextureSourceAddedToTextureAtlas();
-        });
-    }
-
-    onRemovedFromTextureAtlas() {
-        this.inTextureAtlas = false;
-        this.views.forEach(function(view) {
-            view.onTextureSourceRemovedFromTextureAtlas();
         });
     }
 

@@ -53,12 +53,6 @@ class ViewCore {
          */
         this._displayedTextureSource = null;
 
-        /**
-         * If the current coordinates are stored for the texture atlas.
-         * @type {boolean}
-         */
-        this.inTextureAtlas = false
-
         this._colorUl = this._colorUr = this._colorBl = this._colorBr = 0xFFFFFFFF;
 
         this._txCoordsUl = 0x00000000;
@@ -283,14 +277,6 @@ class ViewCore {
     setDisplayedTextureSource(textureSource) {
         this.setHasRenderUpdates(3);
         this._displayedTextureSource = textureSource;
-    };
-
-    allowTextureAtlas() {
-        return this.activeShader.supportsTextureAtlas()
-    }
-
-    setInTextureAtlas(inTextureAtlas) {
-        this.inTextureAtlas = inTextureAtlas;
     };
 
     setAsRoot() {
@@ -572,11 +558,7 @@ class ViewCore {
     }
 
     _setShaderOwnerRecursive(viewCore) {
-        let support = this.activeShader && this.activeShader.supportsTextureAtlas()
         this._shaderOwner = viewCore;
-        if (support !== this.activeShader.supportsTextureAtlas()) {
-            this._view._updateTextureCoords()
-        }
 
         if (this._children && !this._renderToTextureEnabled) {
             for (let i = 0, n = this._children.length; i < n; i++) {

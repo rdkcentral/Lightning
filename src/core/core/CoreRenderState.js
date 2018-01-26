@@ -112,11 +112,7 @@ class CoreRenderState {
 
         let glTexture = this._overrideQuadTexture;
         if (!glTexture) {
-            if (viewCore.inTextureAtlas) {
-                glTexture = this.textureAtlasGlTexture
-            } else {
-                glTexture = viewCore._displayedTextureSource.glTexture
-            }
+            glTexture = viewCore._displayedTextureSource.glTexture
         }
 
         let offset = this.length * 64 + 64 // Skip the identity filter quad.
@@ -188,46 +184,12 @@ class CoreRenderState {
     }
 
     finish() {
-        if (this.ctx.stage.textureAtlas && this.ctx.stage.options.debugTextureAtlas) {
-            this._renderDebugTextureAtlas()
-        }
-
         if (this._quadOperation) {
             // Add remaining.
             this._addQuadOperation(false)
         }
 
         this._setExtraShaderAttribs()
-    }
-    
-    _renderDebugTextureAtlas() {
-        this.setShader(this.defaultShader, this.ctx.root)
-        this.setRenderTextureInfo(null)
-        this.setOverrideQuadTexture(this.textureAtlasGlTexture)
-
-        let size = Math.min(this.ctx.stage.w, this.ctx.stage.h)
-
-        let offset = this.addQuad(this.ctx.root) / 4
-        let f = this.quads.floats
-        let u = this.quads.uints
-        f[offset++] = 0;
-        f[offset++] = 0;
-        u[offset++] = 0x00000000;
-        u[offset++] = 0xFFFFFFFF;
-        f[offset++] = size;
-        f[offset++] = 0;
-        u[offset++] = 0x0000FFFF;
-        u[offset++] = 0xFFFFFFFF;
-        f[offset++] = size;
-        f[offset++] = size;
-        u[offset++] = 0xFFFFFFFF;
-        u[offset++] = 0xFFFFFFFF;
-        f[offset++] = 0;
-        f[offset++] = size;
-        u[offset++] = 0xFFFF0000;
-        u[offset] = 0xFFFFFFFF;
-
-        this.setOverrideQuadTexture(null)
     }
     
     _setExtraShaderAttribs() {

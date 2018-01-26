@@ -958,32 +958,6 @@ class StageUtils {
 
 
 
-/**
- * @todo:
- * - optimize renderState.setShader(this.activeShader, this._shaderOwner);
- * - add generic 'enabled' option for filter, to be able to disable them temporarily
- * - allow multiple visitEntry, visitExit hooks:
- *   - view.addVisitEntry, view.removeVisitEntry. If only one: direct. If multiple: set view.visitEntryHooks array and use View.visitEntryMultiple.
- * - VAOs
- * - try to investigate/improve performance when creating and adding new views
- * - optimize new render performance
- * - animation action merger: simplify usage (type: 'numbers', 'colors', 'discrete'). Auto-detect if only number values are used.
- *
- * - change documentation
- *   - text2pngEndpoint
- *   - supercharger?
- *   - transition changes
- *   - transition merger
- *   - animation mergers: native vs non-native
- *   - type extensions
- *   - complex view types
- *   - visit
- *   - getRenderWidth
- *   - quick clone
- *   - offthread-image for better image loading performance
- *   - shaders
- * - merge es6 to master
- */
 class Stage extends EventEmitter {
     constructor(options) {
         super()
@@ -1043,10 +1017,6 @@ class Stage extends EventEmitter {
         
 
         this.textureManager = new TextureManager(this);
-
-        if (this.options.useTextureAtlas) {
-            this.textureAtlas = new TextureAtlas(this);
-        }
 
         this.ctx = new CoreContext(this);
 
@@ -1505,11 +1475,6 @@ class Shader extends ShaderBase {
         this.isDefault = this.constructor === Shader;
     }
 
-    supportsTextureAtlas() {
-        // Most shaders that are performing out-of-bounds texture reads will produce artifacts when using texture atlas.
-        return this.isDefault
-    }
-
     enableAttribs() {
         // Enables the attribs in the shader program.
         let gl = this.ctx.gl
@@ -1797,12 +1762,7 @@ class TextureManager {
     }
 
     loadTextTexture(settings, ts, sync, cb) {
-        if (this.stage.options.text2pngEndpoint && !sync) {
-            var src = this.stage.options.text2pngEndpoint + "?q=" + encodeURIComponent(JSON.stringify(settings.getNonDefaults()));
-            this.loadSrcTexture(src, ts, sync, cb);
-        } else {
-            this.stage.adapter.loadTextTexture(settings, ts, sync, cb);
-        }
+        this.stage.adapter.loadTextTexture(settings, ts, sync, cb);
     }
 
     getTexture(source, options) {
@@ -2170,12 +2130,6 @@ class TextureSource {
         this.loadingSince = 0;
 
         /**
-         * Flag that indicates if this.texture source was stored in the texture atlas.
-         * @type {boolean}
-         */
-        this.inTextureAtlas = false;
-
-        /**
          * The x coordinate in the texture atlas.
          * @type {number}
          */
@@ -2197,12 +2151,6 @@ class TextureSource {
          * @type {boolean}
          */
         this.permanent = false;
-
-        /**
-         * If this texture source should ever be added to the texture atlas.
-         * @type {boolean}
-         */
-        this.noTextureAtlas = false;
 
         /**
          * Sub-object with texture-specific rendering information.
@@ -2228,13 +2176,6 @@ class TextureSource {
     addView(v) {
         if (!this.views.has(v)) {
             this.views.add(v);
-
-            if (this.glTexture) {
-                // If not yet loaded, wait until it is loaded until adding it to the texture atlas.
-                if (this.stage.textureAtlas && !this.noTextureAtlas) {
-                    this.stage.textureAtlas.addActiveTextureSource(this);
-                }
-            }
 
             if (this.views.size === 1) {
                 if (this.lookupId) {
@@ -2366,10 +2307,6 @@ class TextureSource {
     }
 
     onLoad() {
-        if (this.isVisible() && this.stage.textureAtlas && !this.noTextureAtlas) {
-            this.stage.textureAtlas.addActiveTextureSource(this);
-        }
-
         this.views.forEach(function(view) {
             view.onTextureSourceLoaded();
         });
@@ -2404,23 +2341,6 @@ class TextureSource {
         console.error('texture load error', e, this.id);
         this.views.forEach(function(view) {
             view.onTextureSourceLoadError(e);
-        });
-    }
-
-    onAddedToTextureAtlas(x, y) {
-        this.inTextureAtlas = true;
-        this.textureAtlasX = x;
-        this.textureAtlasY = y;
-
-        this.views.forEach(function(view) {
-            view.onTextureSourceAddedToTextureAtlas();
-        });
-    }
-
-    onRemovedFromTextureAtlas() {
-        this.inTextureAtlas = false;
-        this.views.forEach(function(view) {
-            view.onTextureSourceRemovedFromTextureAtlas();
         });
     }
 
@@ -3593,14 +3513,6 @@ class View extends EventEmitter {
         this._core.setHasRenderUpdates(3)
     }
 
-    onTextureSourceAddedToTextureAtlas() {
-        this._updateTextureCoords();
-    };
-
-    onTextureSourceRemovedFromTextureAtlas() {
-        this._updateTextureCoords();
-    };
-
     onDisplayedTextureClippingChanged() {
         this._updateDimensions();
         this._updateTextureCoords();
@@ -3705,25 +3617,7 @@ class View extends EventEmitter {
                 ty2 = Math.min(1.0, Math.max(ty2 * rh + ih));
             }
 
-            let inTextureAtlas = this._core.allowTextureAtlas() && displayedTextureSource.inTextureAtlas
-            if (inTextureAtlas) {
-                // Calculate texture atlas texture coordinates.
-                let textureAtlasI = 0.000488281;    // 1/2048.
-
-                let tax = (displayedTextureSource.textureAtlasX * textureAtlasI);
-                let tay = (displayedTextureSource.textureAtlasY * textureAtlasI);
-                let dax = (displayedTextureSource.w * textureAtlasI);
-                let day = (displayedTextureSource.h * textureAtlasI);
-
-                tx1 = tx1 * dax + tax;
-                ty1 = ty1 * dax + tay;
-
-                tx2 = tx2 * dax + tax;
-                ty2 = ty2 * day + tay;
-            }
-
             this._core.setTextureCoords(tx1, ty1, tx2, ty2);
-            this._core.setInTextureAtlas(inTextureAtlas);
         }
     }
 
@@ -5723,12 +5617,6 @@ class ViewCore {
          */
         this._displayedTextureSource = null;
 
-        /**
-         * If the current coordinates are stored for the texture atlas.
-         * @type {boolean}
-         */
-        this.inTextureAtlas = false
-
         this._colorUl = this._colorUr = this._colorBl = this._colorBr = 0xFFFFFFFF;
 
         this._txCoordsUl = 0x00000000;
@@ -5953,14 +5841,6 @@ class ViewCore {
     setDisplayedTextureSource(textureSource) {
         this.setHasRenderUpdates(3);
         this._displayedTextureSource = textureSource;
-    };
-
-    allowTextureAtlas() {
-        return this.activeShader.supportsTextureAtlas()
-    }
-
-    setInTextureAtlas(inTextureAtlas) {
-        this.inTextureAtlas = inTextureAtlas;
     };
 
     setAsRoot() {
@@ -6242,11 +6122,7 @@ class ViewCore {
     }
 
     _setShaderOwnerRecursive(viewCore) {
-        let support = this.activeShader && this.activeShader.supportsTextureAtlas()
         this._shaderOwner = viewCore;
-        if (support !== this.activeShader.supportsTextureAtlas()) {
-            this._view._updateTextureCoords()
-        }
 
         if (this._children && !this._renderToTextureEnabled) {
             for (let i = 0, n = this._children.length; i < n; i++) {
@@ -7312,11 +7188,7 @@ class CoreRenderState {
 
         let glTexture = this._overrideQuadTexture;
         if (!glTexture) {
-            if (viewCore.inTextureAtlas) {
-                glTexture = this.textureAtlasGlTexture
-            } else {
-                glTexture = viewCore._displayedTextureSource.glTexture
-            }
+            glTexture = viewCore._displayedTextureSource.glTexture
         }
 
         let offset = this.length * 64 + 64 // Skip the identity filter quad.
@@ -7388,46 +7260,12 @@ class CoreRenderState {
     }
 
     finish() {
-        if (this.ctx.stage.textureAtlas && this.ctx.stage.options.debugTextureAtlas) {
-            this._renderDebugTextureAtlas()
-        }
-
         if (this._quadOperation) {
             // Add remaining.
             this._addQuadOperation(false)
         }
 
         this._setExtraShaderAttribs()
-    }
-    
-    _renderDebugTextureAtlas() {
-        this.setShader(this.defaultShader, this.ctx.root)
-        this.setRenderTextureInfo(null)
-        this.setOverrideQuadTexture(this.textureAtlasGlTexture)
-
-        let size = Math.min(this.ctx.stage.w, this.ctx.stage.h)
-
-        let offset = this.addQuad(this.ctx.root) / 4
-        let f = this.quads.floats
-        let u = this.quads.uints
-        f[offset++] = 0;
-        f[offset++] = 0;
-        u[offset++] = 0x00000000;
-        u[offset++] = 0xFFFFFFFF;
-        f[offset++] = size;
-        f[offset++] = 0;
-        u[offset++] = 0x0000FFFF;
-        u[offset++] = 0xFFFFFFFF;
-        f[offset++] = size;
-        f[offset++] = size;
-        u[offset++] = 0xFFFFFFFF;
-        u[offset++] = 0xFFFFFFFF;
-        f[offset++] = 0;
-        f[offset++] = size;
-        u[offset++] = 0xFFFF0000;
-        u[offset] = 0xFFFFFFFF;
-
-        this.setOverrideQuadTexture(null)
     }
     
     _setExtraShaderAttribs() {
@@ -9478,9 +9316,9 @@ class AnimationActionItems {
 
                 let p = parseFloat(key);
 
-                if (p == "sm") {
+                if (key == "sm") {
                     defaultSmoothness = obj.v
-                } else if (p >= 0 && p <= 2) {
+                } else if (!isNaN(p) && p >= 0 && p <= 2) {
                     obj.p = p;
 
                     obj.f = Utils.isFunction(obj.v);
@@ -11237,10 +11075,6 @@ class Light3dShader extends Shader {
 
         this._z = 0
         this._pivotZ = 0
-    }
-
-    supportsTextureAtlas() {
-        return true
     }
 
     supportsMerging() {

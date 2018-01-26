@@ -6,7 +6,7 @@ var start = function(wpe) {
     wpe = wpe || {};
 
     with(wpe) {
-        var options = {w: 900, h: 900, glClearColor: 0xFF000000, useTextureAtlas: false, debugTextureAtlas: false};
+        var options = {w: 900, h: 900, glClearColor: 0xFF000000};
 
         // Nodejs-specific options.
         if (Utils.isNode) {

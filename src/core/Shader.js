@@ -11,11 +11,6 @@ class Shader extends ShaderBase {
         this.isDefault = this.constructor === Shader;
     }
 
-    supportsTextureAtlas() {
-        // Most shaders that are performing out-of-bounds texture reads will produce artifacts when using texture atlas.
-        return this.isDefault
-    }
-
     enableAttribs() {
         // Enables the attribs in the shader program.
         let gl = this.ctx.gl

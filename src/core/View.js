@@ -523,14 +523,6 @@ class View extends EventEmitter {
         this._core.setHasRenderUpdates(3)
     }
 
-    onTextureSourceAddedToTextureAtlas() {
-        this._updateTextureCoords();
-    };
-
-    onTextureSourceRemovedFromTextureAtlas() {
-        this._updateTextureCoords();
-    };
-
     onDisplayedTextureClippingChanged() {
         this._updateDimensions();
         this._updateTextureCoords();
@@ -635,25 +627,7 @@ class View extends EventEmitter {
                 ty2 = Math.min(1.0, Math.max(ty2 * rh + ih));
             }
 
-            let inTextureAtlas = this._core.allowTextureAtlas() && displayedTextureSource.inTextureAtlas
-            if (inTextureAtlas) {
-                // Calculate texture atlas texture coordinates.
-                let textureAtlasI = 0.000488281;    // 1/2048.
-
-                let tax = (displayedTextureSource.textureAtlasX * textureAtlasI);
-                let tay = (displayedTextureSource.textureAtlasY * textureAtlasI);
-                let dax = (displayedTextureSource.w * textureAtlasI);
-                let day = (displayedTextureSource.h * textureAtlasI);
-
-                tx1 = tx1 * dax + tax;
-                ty1 = ty1 * dax + tay;
-
-                tx2 = tx2 * dax + tax;
-                ty2 = ty2 * day + tay;
-            }
-
             this._core.setTextureCoords(tx1, ty1, tx2, ty2);
-            this._core.setInTextureAtlas(inTextureAtlas);
         }
     }
 

@@ -67,10 +67,6 @@ class Stage extends EventEmitter {
 
         this.textureManager = new TextureManager(this);
 
-        if (this.options.useTextureAtlas) {
-            this.textureAtlas = new TextureAtlas(this);
-        }
-
         this.ctx = new CoreContext(this);
 
         this.root = new View(this);
@@ -270,7 +266,6 @@ class Stage extends EventEmitter {
 let View = require('./View');
 let StageUtils = require('./StageUtils');
 let TextureManager = require('./TextureManager');
-let TextureAtlas = require('./TextureAtlas');
 let CoreContext = require('./core/CoreContext');
 /*A¬*/
 let TransitionManager = require('../animation/TransitionManager');

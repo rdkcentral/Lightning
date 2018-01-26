@@ -20,10 +20,6 @@ class Light3dShader extends Shader {
         this._pivotZ = 0
     }
 
-    supportsTextureAtlas() {
-        return true
-    }
-
     supportsMerging() {
         // As we need the shader owner, we do not support merging.
         return false
