@@ -1102,6 +1102,30 @@ class Stage extends EventEmitter {
         this.adapter.startLoop();
     }
 
+    gcTextureMemory(aggressive = false) {
+        console.log("GC texture memory" + (aggressive ? " (aggressive)" : ""))
+        if (aggressive && this.ctx.root.visible) {
+            // Make sure that ALL textures are cleaned
+            this.ctx.root.visible = false
+            this.textureManager.freeUnusedTextureSources()
+            this.ctx.root.visible = true
+        } else {
+            this.textureManager.freeUnusedTextureSources()
+        }
+    }
+
+    gcRenderTextureMemory(aggressive = false) {
+        console.log("GC texture render memory" + (aggressive ? " (aggressive)" : ""))
+        if (aggressive && this.root.visible) {
+            // Make sure that ALL render textures are cleaned
+            this.root.visible = false
+            this.ctx.freeUnusedRenderTextures(0)
+            this.root.visible = true
+        } else {
+            this.ctx.freeUnusedRenderTextures(0)
+        }
+    }
+
     getCanvas() {
         return this.adapter.getWebGLCanvas()
     }
@@ -7064,8 +7088,6 @@ class CoreContext {
         // Clear flag to identify if anything changes before the next frame.
         this.root._parent._hasRenderUpdates = false
 
-        this._freeUnusedRenderTextures(6000)
-
         return true
     }
 
@@ -7113,7 +7135,9 @@ class CoreContext {
         this._renderTexturePool.push(texture);
     }
 
-    _freeUnusedRenderTextures(maxAge = 60) {
+    freeUnusedRenderTextures(maxAge = 60) {
+        const prevMem = this._renderTexturePixels
+
         // Clean up all textures that are no longer used.
         // This cache is short-lived because it is really just meant to supply running shaders and filters that are
         // updated during a number of frames.
@@ -7126,6 +7150,8 @@ class CoreContext {
             }
             return true;
         });
+
+        console.warn("GC render texture memory" + (maxAge ? "" : " (aggressive)") + ": " + prevMem + "px > " + this._renderTexturePixels + "px")
     }
 
     _createRenderTexture(w, h) {
@@ -7149,14 +7175,10 @@ class CoreContext {
         this._renderTexturePixels += w * h
 
         if (this._renderTexturePixels > this.stage.options.renderTextureMemory) {
-            const prevMem = this._renderTexturePixels
-            this._freeUnusedRenderTextures()
+            this.freeUnusedRenderTextures()
 
             if (this._renderTexturePixels > this.stage.options.renderTextureMemory) {
-                this._freeUnusedRenderTextures(0)
-                console.warn("GC render texture memory (aggressive): " + prevMem + "px > " + this._renderTexturePixels + "px")
-            } else {
-                console.warn("GC render texture memory: " + prevMem + "px > " + this._renderTexturePixels + "px")
+                this.freeUnusedRenderTextures(0)
             }
         }
 
@@ -7310,6 +7332,7 @@ class CoreRenderState {
             }
             this._renderTextureInfo.empty = false
         }
+
         this.quads.quadTextures.push(glTexture)
         this.quads.quadViews.push(viewCore)
 
@@ -9964,7 +9987,7 @@ class Animation extends EventEmitter {
     }
 
     get frame() {
-        return Math.round(p * this._settings.duration * 60);
+        return Math.round(this._p * this._settings.duration * 60);
     }
 
     get settings() {

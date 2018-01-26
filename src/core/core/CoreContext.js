@@ -51,8 +51,6 @@ class CoreContext {
         // Clear flag to identify if anything changes before the next frame.
         this.root._parent._hasRenderUpdates = false
 
-        this.freeUnusedRenderTextures(6000)
-
         return true
     }
 
@@ -101,6 +99,8 @@ class CoreContext {
     }
 
     freeUnusedRenderTextures(maxAge = 60) {
+        const prevMem = this._renderTexturePixels
+
         // Clean up all textures that are no longer used.
         // This cache is short-lived because it is really just meant to supply running shaders and filters that are
         // updated during a number of frames.
@@ -113,6 +113,8 @@ class CoreContext {
             }
             return true;
         });
+
+        console.warn("GC render texture memory" + (maxAge ? "" : " (aggressive)") + ": " + prevMem + "px > " + this._renderTexturePixels + "px")
     }
 
     _createRenderTexture(w, h) {
@@ -136,14 +138,10 @@ class CoreContext {
         this._renderTexturePixels += w * h
 
         if (this._renderTexturePixels > this.stage.options.renderTextureMemory) {
-            const prevMem = this._renderTexturePixels
             this.freeUnusedRenderTextures()
 
             if (this._renderTexturePixels > this.stage.options.renderTextureMemory) {
                 this.freeUnusedRenderTextures(0)
-                console.warn("GC render texture memory (aggressive): " + prevMem + "px > " + this._renderTexturePixels + "px")
-            } else {
-                console.warn("GC render texture memory: " + prevMem + "px > " + this._renderTexturePixels + "px")
             }
         }
 

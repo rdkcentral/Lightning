@@ -151,9 +151,28 @@ class Stage extends EventEmitter {
         this.adapter.startLoop();
     }
 
-    gc() {
-        this.textureManager.freeUnusedTextureSources()
-        this.ctx.freeUnusedRenderTextures(0)
+    gcTextureMemory(aggressive = false) {
+        console.log("GC texture memory" + (aggressive ? " (aggressive)" : ""))
+        if (aggressive && this.ctx.root.visible) {
+            // Make sure that ALL textures are cleaned
+            this.ctx.root.visible = false
+            this.textureManager.freeUnusedTextureSources()
+            this.ctx.root.visible = true
+        } else {
+            this.textureManager.freeUnusedTextureSources()
+        }
+    }
+
+    gcRenderTextureMemory(aggressive = false) {
+        console.log("GC texture render memory" + (aggressive ? " (aggressive)" : ""))
+        if (aggressive && this.root.visible) {
+            // Make sure that ALL render textures are cleaned
+            this.root.visible = false
+            this.ctx.freeUnusedRenderTextures(0)
+            this.root.visible = true
+        } else {
+            this.ctx.freeUnusedRenderTextures(0)
+        }
     }
 
     getCanvas() {
