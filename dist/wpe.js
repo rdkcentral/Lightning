@@ -4840,6 +4840,7 @@ class View extends EventEmitter {
             return this._getTransition(property);
         } else {
             this._setTransition(property, settings);
+            // We do not create/return the transition, because it would undo the 'lazy transition creation' optimization.
             return null;
         }
     }
@@ -8677,7 +8678,8 @@ class TransitionManager {
         this.stage.on('frameStart', () => this.progress());
 
         /**
-         * All transitions that are running and have
+         * All transitions that are running and attached.
+         * (we don't support transitions on un-attached views to prevent memory leaks)
          * @type {Set<Transition>}
          */
         this.active = new Set();
@@ -8691,15 +8693,14 @@ class TransitionManager {
 
             let filter = false;
             this.active.forEach(function(a) {
-                if (a.isActive()) {
-                    a.progress(dt);
-                } else {
+                a.progress(dt);
+                if (!a.isRunning()) {
                     filter = true;
                 }
             });
 
             if (filter) {
-                this.active = new Set([...this.active].filter(t => (t.isActive())));
+                this.active = new Set([...this.active].filter(t => (t.isRunning())));
             }
         }
     }
@@ -8713,6 +8714,10 @@ class TransitionManager {
     addActive(transition) {
         this.active.add(transition);
     }
+
+    removeActive(transition) {
+        this.active.delete(transition);
+    }
 }
 
 
@@ -8723,24 +8728,24 @@ class TransitionManager {
 
 class TransitionSettings {
     constructor() {
-        this._timingFunction = 'ease';
-        this._timingFunctionImpl = StageUtils.getTimingFunction(this._timingFunction);
-        this.delay = 0;
-        this.duration = 0.2;
-        this.merger = null;
+        this._timingFunction = 'ease'
+        this._timingFunctionImpl = StageUtils.getTimingFunction(this._timingFunction)
+        this.delay = 0
+        this.duration = 0.2
+        this.merger = null
     }
 
     get timingFunction() {
-        return this._timingFunction;
+        return this._timingFunction
     }
 
     set timingFunction(v) {
-        this._timingFunction = v;
-        this._timingFunctionImpl = StageUtils.getTimingFunction(v);
+        this._timingFunction = v
+        this._timingFunctionImpl = StageUtils.getTimingFunction(v)
     }
 
     get timingFunctionImpl() {
-        return this._timingFunctionImpl;
+        return this._timingFunctionImpl
     }
 
     patch(settings) {
@@ -8748,7 +8753,7 @@ class TransitionSettings {
     }
 }
 
-TransitionSettings.prototype.isTransitionSettings = true;
+TransitionSettings.prototype.isTransitionSettings = true
 
 
 
@@ -8767,8 +8772,6 @@ class Transition extends EventEmitter {
 
         this._settings = settings;
 
-
-
         this._view = view
         this._getter = View.getGetter(property)
         this._setter = View.getSetter(property)
@@ -8779,157 +8782,168 @@ class Transition extends EventEmitter {
             this._merger = View.getMerger(property)
         }
 
-        this._startValue = this._getter(this._view);
-        this._targetValue = this._startValue;
+        this._startValue = this._getter(this._view)
+        this._targetValue = this._startValue
 
-        this._p = 1;
-        this._delayLeft = 0;
-    }
-
-    stop() {
-        if (this.isActive()) {
-            this._setter(this._view, this.targetValue);
-            this._p = 1;
-        }
-    }
-
-    reset(targetValue, p) {
-        this._startValue = this._getter(this._view);
-        this._targetValue = targetValue;
-        this._p = p;
-
-        if (p < 1) {
-            this.checkActive();
-        } else if (p === 1) {
-            this._setter(this._view, targetValue);
-
-            // Immediately invoke onFinish event.
-            this.invokeListeners();
-        }
+        this._p = 1
+        this._delayLeft = 0
     }
 
     start(targetValue) {
-        this._startValue = this._getter(this._view);
+        this._startValue = this._getter(this._view)
 
-        if (targetValue === this._startValue || !this._view.isAttached()) {
-            this.reset(targetValue, 1);
+        if (!this.isAttached()) {
+            // We don't support transitions on non-attached views. Just set value without invoking listeners.
+            this._targetValue = targetValue
+            this._p = 1;
+            this._updateDrawValue()
         } else {
-            this._targetValue = targetValue;
-            this._p = 0;
-            this._delayLeft = this._settings.delay;
-            this.emit('start');
-            this.checkActive();
+            if (targetValue === this._startValue) {
+                this.reset(targetValue, 1)
+            } else {
+                this._targetValue = targetValue
+                this._p = 0
+                this._delayLeft = this._settings.delay
+                this.emit('start')
+                this.add()
+            }
         }
     }
 
     finish() {
         if (this._p < 1) {
-            this._p = 1;
-
-            this._setter(this._view, this.targetValue);
-
-            this.invokeListeners();
+            // Value setting and will must be invoked (async) upon next transition cycle.
+            this._p = 1
         }
     }
 
-    checkActive() {
-        if (this.isActive()) {
-            this.manager.addActive(this);
+    stop() {
+        // Just stop where the transition is at.
+        this.manager.removeActive(this)
+    }
+
+    reset(targetValue, p) {
+        if (!this.isAttached()) {
+            // We don't support transitions on non-attached views. Just set value without invoking listeners.
+            this._startValue = this._getter(this._view)
+            this._targetValue = targetValue
+            this._p = 1
+            this._updateDrawValue()
+        } else {
+            this._startValue = this._getter(this._view)
+            this._targetValue = targetValue
+            this._p = p
+            this.add()
         }
     }
 
-    isActive() {
-        return (this._p < 1.0) && this._view.isAttached();
+    _updateDrawValue() {
+        this._setter(this._view, this.getDrawValue())
+    }
+
+    add() {
+        this.manager.addActive(this)
+    }
+
+    isAttached() {
+        return this._view.isAttached()
+    }
+
+    isRunning() {
+        return (this._p < 1.0)
     }
 
     progress(dt) {
+        if (!this.isAttached()) {
+            // Skip to end of transition so that it is removed.
+            this._p = 1
+        }
+
         if (this.p < 1) {
             if (this.delayLeft > 0) {
-                this._delayLeft -= dt;
+                this._delayLeft -= dt
 
                 if (this.delayLeft < 0) {
-                    dt = -this.delayLeft;
-                    this._delayLeft = 0;
+                    dt = -this.delayLeft
+                    this._delayLeft = 0
 
-                    this.emit('delayEnd');
+                    this.emit('delayEnd')
                 } else {
-                    return;
+                    return
                 }
             }
 
             if (this._settings.duration == 0) {
-                this._p = 1;
+                this._p = 1
             } else {
-                this._p += dt / this._settings.duration;
+                this._p += dt / this._settings.duration
             }
             if (this._p >= 1) {
                 // Finished!
-                this._p = 1;
+                this._p = 1
             }
         }
 
-        this._setter(this._view, this.getDrawValue());
+        this._updateDrawValue()
 
-        this.invokeListeners();
+        this.invokeListeners()
     }
 
     invokeListeners() {
-        if (this._view.isAttached()) {
-            this.emit('progress', this.p);
-            if (this.p === 1) {
-                this.emit('finish');
-            }
+        this.emit('progress', this.p)
+        if (this.p === 1) {
+            this.emit('finish')
         }
     }
 
-    setValuesDynamic(targetValue) {
-        let t = this._settings.timingFunctionImpl(this.p);
+    updateTargetValue(targetValue) {
+        let t = this._settings.timingFunctionImpl(this.p)
         if (t === 1) {
-            this._targetValue = targetValue;
+            this._targetValue = targetValue
         } else if (t === 0) {
-            this._startValue = this._targetValue;
-            this._targetValue = targetValue;
+            this._startValue = this._targetValue
+            this._targetValue = targetValue
         } else {
-            this._startValue = targetValue - ((targetValue - this._targetValue) / (1 - t));
-            this._targetValue = targetValue;
+            this._startValue = targetValue - ((targetValue - this._targetValue) / (1 - t))
+            this._targetValue = targetValue
         }
     }
 
     getDrawValue() {
         if (this.p >= 1) {
-            return this.targetValue;
+            return this.targetValue
         } else {
-            let v = this._settings._timingFunctionImpl(this.p);
-            return this._merger(this.targetValue, this.startValue, v);
+            let v = this._settings._timingFunctionImpl(this.p)
+            return this._merger(this.targetValue, this.startValue, v)
         }
     }
 
     skipDelay() {
-        this._delayLeft = 0;
+        this._delayLeft = 0
     }
 
     get startValue() {
-        return this._startValue;
+        return this._startValue
     }
 
     get targetValue() {
-        return this._targetValue;
+        return this._targetValue
     }
 
     get p() {
-        return this._p;
+        return this._p
     }
 
     get delayLeft() {
-        return this._delayLeft;
+        return this._delayLeft
     }
 
     get view() {
-        return this._view;
+        return this._view
     }
 
     get settings() {
-        return this._settings;
+        return this._settings
     }
 
     set settings(v) {
@@ -8938,7 +8952,7 @@ class Transition extends EventEmitter {
 
 }
 
-Transition.prototype.isTransition = true;
+Transition.prototype.isTransition = true
 
 
 
@@ -8949,32 +8963,32 @@ Transition.prototype.isTransition = true;
 class AnimationManager {
 
     constructor(stage) {
-        this.stage = stage;
+        this.stage = stage
 
-        this.stage.on('frameStart', () => this.progress());
+        this.stage.on('frameStart', () => this.progress())
 
         /**
          * All transitions that are running and have
          * @type {Set<Transition>}
          */
-        this.active = new Set();
+        this.active = new Set()
     }
 
     progress() {
         if (this.active.size) {
-            let dt = this.stage.dt;
+            let dt = this.stage.dt
 
-            let filter = false;
+            let filter = false
             this.active.forEach(function(a) {
                 if (a.isActive()) {
-                    a.progress(dt);
+                    a.progress(dt)
                 } else {
-                    filter = true;
+                    filter = true
                 }
-            });
+            })
 
             if (filter) {
-                this.active = new Set([...this.active].filter(t => t.isActive()));
+                this.active = new Set([...this.active].filter(t => t.isActive()))
             }
         }
     }
@@ -8982,24 +8996,24 @@ class AnimationManager {
     createAnimation(view, settings) {
         if (Utils.isObjectLiteral(settings)) {
             // Convert plain object to proper settings object.
-            settings = this.createSettings(settings);
+            settings = this.createSettings(settings)
         }
 
         return new Animation(
             this,
             settings,
             view
-        );
+        )
     }
 
     createSettings(settings) {
-        let animationSettings = new AnimationSettings();
-        Base.patchObject(animationSettings, settings);
-        return animationSettings;
+        const animationSettings = new AnimationSettings()
+        Base.patchObject(animationSettings, settings)
+        return animationSettings
     }
 
     addActive(transition) {
-        this.active.add(transition);
+        this.active.add(transition)
     }
 }
 
@@ -9015,38 +9029,38 @@ class AnimationSettings {
          * @type {AnimationActionSettings[]}
          * @private
          */
-        this._actions = [];
+        this._actions = []
 
-        this.delay = 0;
-        this.duration = 1;
+        this.delay = 0
+        this.duration = 1
 
-        this.repeat = 0;
-        this.repeatOffset = 0;
-        this.repeatDelay = 0;
+        this.repeat = 0
+        this.repeatOffset = 0
+        this.repeatDelay = 0
 
-        this.autostop = false;
+        this.autostop = false
 
-        this.stopMethod = AnimationSettings.STOP_METHODS.FADE;
-        this._stopTimingFunction = 'ease';
-        this._stopTimingFunctionImpl = StageUtils.getTimingFunction(this._stopTimingFunction);
-        this.stopDuration = 0;
-        this.stopDelay = 0;
+        this.stopMethod = AnimationSettings.STOP_METHODS.FADE
+        this._stopTimingFunction = 'ease'
+        this._stopTimingFunctionImpl = StageUtils.getTimingFunction(this._stopTimingFunction)
+        this.stopDuration = 0
+        this.stopDelay = 0
     }
 
     get actions() {
-        return this._actions;
+        return this._actions
     }
 
     set actions(v) {
-        this._actions = [];
+        this._actions = []
         for (let i = 0, n = v.length; i < n; i++) {
-            let e = v[i];
+            const e = v[i]
             if (!e.isAnimationActionSettings) {
-                let aas = new AnimationActionSettings(this);
-                aas.patch(e);
-                this._actions.push(aas);
+                const aas = new AnimationActionSettings(this)
+                aas.patch(e)
+                this._actions.push(aas)
             } else {
-                this._actions.push(e);
+                this._actions.push(e)
             }
         }
     }
@@ -9059,8 +9073,8 @@ class AnimationSettings {
      */
     apply(view, p, factor = 1) {
         this._actions.forEach(function(action) {
-            action.apply(view, p, factor);
-        });
+            action.apply(view, p, factor)
+        })
     }
 
     /**
@@ -9069,21 +9083,21 @@ class AnimationSettings {
      */
     reset(view) {
         this._actions.forEach(function(action) {
-            action.reset(view);
-        });
+            action.reset(view)
+        })
     }
 
     get stopTimingFunction() {
-        return this._stopTimingFunction;
+        return this._stopTimingFunction
     }
 
     set stopTimingFunction(v) {
-        this._stopTimingFunction = v;
-        this._stopTimingFunctionImpl = StageUtils.getTimingFunction(v);
+        this._stopTimingFunction = v
+        this._stopTimingFunctionImpl = StageUtils.getTimingFunction(v)
     }
 
     get stopTimingFunctionImpl() {
-        return this._stopTimingFunctionImpl;
+        return this._stopTimingFunctionImpl
     }
 
     patch(settings) {
@@ -9097,7 +9111,7 @@ AnimationSettings.STOP_METHODS = {
     FORWARD: 'forward',
     IMMEDIATE: 'immediate',
     ONETOTWO: 'onetotwo'
-};
+}
 
 
 
@@ -9112,53 +9126,53 @@ class AnimationActionSettings {
          * The selector that selects the views.
          * @type {string}
          */
-        this._selector = "";
+        this._selector = ""
 
         /**
          * The value items, ordered by progress offset.
          * @type {AnimationActionItems}
          * @private
          */
-        this._items = new AnimationActionItems(this);
+        this._items = new AnimationActionItems(this)
 
         /**
          * The affected properties (paths).
          * @private
          */
-        this._props = [];
+        this._props = []
 
         /**
          * Property setters, indexed according to props.
          * @private
          */
-        this._propSetters = [];
+        this._propSetters = []
 
-        this._resetValue = undefined;
-        this._hasResetValue = false;
+        this._resetValue = undefined
+        this._hasResetValue = false
 
         this._hasColorProperty = undefined
     }
 
     getResetValue() {
         if (this._hasResetValue) {
-            return this._resetValue;
+            return this._resetValue
         } else {
-            return this._items.getValue(0);
+            return this._items.getValue(0)
         }
     }
 
     apply(view, p, factor) {
-        let views = this.getAnimatedViews(view);
+        const views = this.getAnimatedViews(view)
 
-        let v = this._items.getValue(p);
+        let v = this._items.getValue(p)
 
         if (v === undefined || !views.length) {
-            return;
+            return
         }
 
         if (factor !== 1) {
             // Stop factor.
-            let sv = this.getResetValue();
+            let sv = this.getResetValue()
 
             if (Utils.isNumber(v) && Utils.isNumber(sv)) {
                 if (this.hasColorProperty()) {
@@ -9170,12 +9184,12 @@ class AnimationActionSettings {
         }
 
         // Apply transformation to all components.
-        let n = this._propSetters.length;
+        const n = this._propSetters.length
 
-        let m = views.length;
+        const m = views.length
         for (let j = 0; j < m; j++) {
             for (let i = 0; i < n; i++) {
-                this._propSetters[i](views[j], v);
+                this._propSetters[i](views[j], v)
             }
         }
     }
@@ -9185,74 +9199,74 @@ class AnimationActionSettings {
     }
 
     reset(view) {
-        let views = this.getAnimatedViews(view);
+        const views = this.getAnimatedViews(view)
 
-        let v = this.getResetValue();
+        let v = this.getResetValue()
 
         if (v === undefined || !views.length) {
-            return;
+            return
         }
 
         // Apply transformation to all components.
-        let n = this._propSetters.length;
+        const n = this._propSetters.length
 
-        let m = views.length;
+        const m = views.length
         for (let j = 0; j < m; j++) {
             for (let i = 0; i < n; i++) {
-                this._propSetters[i](views[j], v);
+                this._propSetters[i](views[j], v)
             }
         }
     }
     
     set selector(v) {
-        this._selector = v;
+        this._selector = v
     }
 
     set t(v) {
-        this.selector = v;
+        this.selector = v
     }
 
     get resetValue() {
-        return this._resetValue;
+        return this._resetValue
     }
     
     set resetValue(v) {
-        this._resetValue = v;
-        this._hasResetValue = (v !== undefined);
+        this._resetValue = v
+        this._hasResetValue = (v !== undefined)
     }
 
     set rv(v) {
-        this.resetValue = v;
+        this.resetValue = v
     }
 
     set value(v) {
-        this._items.parse(v);
+        this._items.parse(v)
     }
 
     set v(v) {
-        this.value = v;
+        this.value = v
     }
 
     set properties(v) {
         if (!Array.isArray(v)) {
-            v = [v];
+            v = [v]
         }
 
-        this._props = [];
+        this._props = []
 
         v.forEach((prop) => {
-            this._props.push(prop);
-            this._propSetters.push(View.getSetter(prop));
-        });
+            this._props.push(prop)
+            this._propSetters.push(View.getSetter(prop))
+        })
     }
 
     set property(v) {
         this._hasColorProperty = undefined
-        this.properties = v;
+        this.properties = v
     }
 
     set p(v) {
-        this.properties = v;
+        this.properties = v
     }
 
     patch(settings) {
@@ -9267,7 +9281,7 @@ class AnimationActionSettings {
     }
 }
 
-AnimationActionSettings.prototype.isAnimationActionSettings = true;
+AnimationActionSettings.prototype.isAnimationActionSettings = true
 
 
 
@@ -9277,114 +9291,114 @@ AnimationActionSettings.prototype.isAnimationActionSettings = true;
 class AnimationActionItems {
     
     constructor(action) {
-        this._action = action;
+        this._action = action
         
-        this._clear();
+        this._clear()
     }
 
     _clear() {
-        this._p = [];
-        this._pe = [];
-        this._idp = [];
-        this._f = [];
-        this._v = [];
-        this._lv = [];
-        this._sm = [];
-        this._s = [];
-        this._ve = [];
-        this._sme = [];
-        this._se = [];
+        this._p = []
+        this._pe = []
+        this._idp = []
+        this._f = []
+        this._v = []
+        this._lv = []
+        this._sm = []
+        this._s = []
+        this._ve = []
+        this._sme = []
+        this._se = []
 
-        this._length = 0;
+        this._length = 0
     }
     
     parse(def) {
-        let i, n;
+        let i, n
         if (!Utils.isObjectLiteral(def)) {
-            def = {0: def};
+            def = {0: def}
         }
 
         let defaultSmoothness = 0.5
 
-        let items = [];
+        let items = []
         for (let key in def) {
             if (def.hasOwnProperty(key)) {
-                let obj = def[key];
+                let obj = def[key]
                 if (!Utils.isObjectLiteral(obj)) {
-                    obj = {v: obj};
+                    obj = {v: obj}
                 }
 
-                let p = parseFloat(key);
+                let p = parseFloat(key)
 
                 if (key == "sm") {
                     defaultSmoothness = obj.v
                 } else if (!isNaN(p) && p >= 0 && p <= 2) {
-                    obj.p = p;
+                    obj.p = p
 
-                    obj.f = Utils.isFunction(obj.v);
-                    obj.lv = obj.f ? obj.v(0, 0) : obj.v;
+                    obj.f = Utils.isFunction(obj.v)
+                    obj.lv = obj.f ? obj.v(0, 0) : obj.v
 
-                    items.push(obj);
+                    items.push(obj)
                 }
             }
         }
 
         // Sort by progress value.
-        items = items.sort(function(a, b) {return a.p - b.p});
+        items = items.sort(function(a, b) {return a.p - b.p})
 
-        n = items.length;
+        n = items.length
 
         for (i = 0; i < n; i++) {
-            let last = (i == n - 1);
+            let last = (i == n - 1)
             if (!items[i].hasOwnProperty('pe')) {
                 // Progress.
-                items[i].pe = last ? (items[i].p <= 1 ? 1 : 2 /* support onetotwo stop */) : items[i + 1].p;
+                items[i].pe = last ? (items[i].p <= 1 ? 1 : 2 /* support onetotwo stop */) : items[i + 1].p
             } else {
                 // Prevent multiple items at the same time.
-                let max = i < n - 1 ? items[i + 1].p : 1;
+                const max = i < n - 1 ? items[i + 1].p : 1
                 if (items[i].pe > max) {
-                    items[i].pe = max;
+                    items[i].pe = max
                 }
             }
             if (items[i].pe === items[i].p) {
-                items[i].idp = 0;
+                items[i].idp = 0
             } else {
-                items[i].idp = 1 / (items[i].pe - items[i].p);
+                items[i].idp = 1 / (items[i].pe - items[i].p)
             }
         }
 
         // Color merger: we need to split/combine RGBA components.
-        let rgba = (this._action.hasColorProperty());
+        const rgba = (this._action.hasColorProperty())
 
         // Calculate bezier helper values.
         for (i = 0; i < n; i++) {
             if (!items[i].hasOwnProperty('sm')) {
                 // Smoothness.
-                items[i].sm = defaultSmoothness;
+                items[i].sm = defaultSmoothness
             }
             if (!items[i].hasOwnProperty('s')) {
                 // Slope.
                 if (i === 0 || i === n - 1 || (items[i].p === 1 /* for onetotwo */)) {
                     // Horizontal slope at start and end.
-                    items[i].s = rgba ? [0, 0, 0, 0] : 0;
+                    items[i].s = rgba ? [0, 0, 0, 0] : 0
                 } else {
-                    let pi = items[i - 1];
-                    let ni = items[i + 1];
+                    const pi = items[i - 1]
+                    const ni = items[i + 1]
                     if (pi.p === ni.p) {
-                        items[i].s = rgba ? [0, 0, 0, 0] : 0;
+                        items[i].s = rgba ? [0, 0, 0, 0] : 0
                     } else {
                         if (rgba) {
-                            let nc = StageUtils.getRgbaComponents(ni.lv);
-                            let pc = StageUtils.getRgbaComponents(pi.lv);
-                            let d = 1 / (ni.p - pi.p);
+                            const nc = StageUtils.getRgbaComponents(ni.lv)
+                            const pc = StageUtils.getRgbaComponents(pi.lv)
+                            const d = 1 / (ni.p - pi.p)
                             items[i].s = [
                                 d * (nc[0] - pc[0]),
                                 d * (nc[1] - pc[1]),
                                 d * (nc[2] - pc[2]),
                                 d * (nc[3] - pc[3])
-                            ];
+                            ]
                         } else {
-                            items[i].s = (ni.lv - pi.lv) / (ni.p - pi.p);
+                            items[i].s = (ni.lv - pi.lv) / (ni.p - pi.p)
                         }
                     }
                 }
@@ -9395,69 +9409,69 @@ class AnimationActionItems {
             // Calculate value function.
             if (!items[i].f) {
 
-                let last = (i === n - 1);
+                let last = (i === n - 1)
                 if (!items[i].hasOwnProperty('ve')) {
-                    items[i].ve = last ? items[i].lv : items[i + 1].lv;
+                    items[i].ve = last ? items[i].lv : items[i + 1].lv
                 }
 
                 // We can only interpolate on numeric values. Non-numeric values are set literally when reached time.
                 if (Utils.isNumber(items[i].v) && Utils.isNumber(items[i].lv)) {
                     if (!items[i].hasOwnProperty('sme')) {
-                        items[i].sme = last ? defaultSmoothness : items[i + 1].sm;
+                        items[i].sme = last ? defaultSmoothness : items[i + 1].sm
                     }
                     if (!items[i].hasOwnProperty('se')) {
-                        items[i].se = last ? (rgba ? [0, 0, 0, 0] : 0) : items[i + 1].s;
+                        items[i].se = last ? (rgba ? [0, 0, 0, 0] : 0) : items[i + 1].s
                     }
 
                     // Generate spline.
                     if (rgba) {
-                        items[i].v = StageUtils.getSplineRgbaValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
+                        items[i].v = StageUtils.getSplineRgbaValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se)
                     } else {
-                        items[i].v = StageUtils.getSplineValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
+                        items[i].v = StageUtils.getSplineValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se)
                     }
 
-                    items[i].f = true;
+                    items[i].f = true
                 }
             }
         }
 
         if (this.length) {
-            this._clear();
+            this._clear()
         }
 
         for (i = 0, n = items.length; i < n; i++) {
-            this._add(items[i]);
+            this._add(items[i])
         }        
     }
 
     _add(item) {
-        this._p.push(item.p || 0);
-        this._pe.push(item.pe || 0);
-        this._idp.push(item.idp || 0);
-        this._f.push(item.f || false);
-        this._v.push(item.hasOwnProperty('v') ? item.v : 0 /* v might be false or null */ );
-        this._lv.push(item.lv || 0);
-        this._sm.push(item.sm || 0);
-        this._s.push(item.s || 0);
-        this._ve.push(item.ve || 0);
-        this._sme.push(item.sme || 0);
-        this._se.push(item.se || 0);
-        this._length++;
+        this._p.push(item.p || 0)
+        this._pe.push(item.pe || 0)
+        this._idp.push(item.idp || 0)
+        this._f.push(item.f || false)
+        this._v.push(item.hasOwnProperty('v') ? item.v : 0 /* v might be false or null */ )
+        this._lv.push(item.lv || 0)
+        this._sm.push(item.sm || 0)
+        this._s.push(item.s || 0)
+        this._ve.push(item.ve || 0)
+        this._sme.push(item.sme || 0)
+        this._se.push(item.se || 0)
+        this._length++
     }
     
     _getItem(p) {
-        let n = this._length;
+        const n = this._length
         if (!n) {
-            return -1;
+            return -1
         }
 
         if (p < this._p[0]) {
-            return 0;
+            return 0
         }
 
         for (let i = 0; i < n; i++) {
             if (this._p[i] <= p && p < this._pe[i]) {
-                return i;
+                return i
             }
         }
 
@@ -9465,21 +9479,21 @@ class AnimationActionItems {
     }
 
     getValue(p) {
-        let i = this._getItem(p);
+        const i = this._getItem(p)
         if (i == -1) {
-            return undefined;
+            return undefined
         } else {
             if (this._f[i]) {
-                let o = Math.min(1, Math.max(0, (p - this._p[i]) * this._idp[i]));
-                return this._v[i](o);
+                const o = Math.min(1, Math.max(0, (p - this._p[i]) * this._idp[i]))
+                return this._v[i](o)
             } else {
-                return this._v[i];
+                return this._v[i]
             }
         }
     }
 
     get length() {
-        return this._length;
+        return this._length
     }
 
 }
@@ -9497,30 +9511,30 @@ class Animation extends EventEmitter {
     constructor(manager, settings, view) {
         super()
 
-        this.manager = manager;
+        this.manager = manager
 
-        this._settings = settings;
+        this._settings = settings
 
-        this._view = view;
+        this._view = view
 
-        this._state = Animation.STATES.IDLE;
+        this._state = Animation.STATES.IDLE
 
-        this._p = 0;
-        this._delayLeft = 0;
-        this._repeatsLeft = 0;
+        this._p = 0
+        this._delayLeft = 0
+        this._repeatsLeft = 0
 
-        this._stopDelayLeft = 0;
-        this._stopP = 0;
+        this._stopDelayLeft = 0
+        this._stopP = 0
     }
 
     start() {
         if (this._view && this._view.isAttached()) {
-            this._p = 0;
-            this._delayLeft = this.settings.delay;
-            this._repeatsLeft = this.settings.repeat;
-            this._state = Animation.STATES.PLAYING;
-            this.emit('start');
-            this.checkActive();
+            this._p = 0
+            this._delayLeft = this.settings.delay
+            this._repeatsLeft = this.settings.repeat
+            this._state = Animation.STATES.PLAYING
+            this.emit('start')
+            this.checkActive()
         } else {
             console.warn("View must be attached before starting animation")
         }
@@ -9529,235 +9543,235 @@ class Animation extends EventEmitter {
     play() {
         if (this._state == Animation.STATES.STOPPING && this.settings.stopMethod == AnimationSettings.STOP_METHODS.REVERSE) {
             // Continue.
-            this._state = Animation.STATES.PLAYING;
-            this.emit('stopContinue');
+            this._state = Animation.STATES.PLAYING
+            this.emit('stopContinue')
         } else if (this._state != Animation.STATES.PLAYING && this._state != Animation.STATES.FINISHED) {
             // Restart.
-            this.start();
+            this.start()
         }
     }
 
     replay() {
         if (this._state == Animation.STATES.FINISHED) {
-            this.start();
+            this.start()
         } else {
-            this.play();
+            this.play()
         }
     }
 
     skipDelay() {
-        this._delayLeft = 0;
-        this._stopDelayLeft = 0;
+        this._delayLeft = 0
+        this._stopDelayLeft = 0
     }
 
     finish() {
         if (this._state === Animation.STATES.PLAYING) {
-            this._delayLeft = 0;
-            this._p = 1;
+            this._delayLeft = 0
+            this._p = 1
         } else if (this._state === Animation.STATES.STOPPING) {
-            this._stopDelayLeft = 0;
-            this._p = 0;
+            this._stopDelayLeft = 0
+            this._p = 0
         }
     }
 
     stop() {
-        if (this._state === Animation.STATES.STOPPED || this._state === Animation.STATES.IDLE) return;
+        if (this._state === Animation.STATES.STOPPED || this._state === Animation.STATES.IDLE) return
 
-        this._stopDelayLeft = this.settings.stopDelay || 0;
+        this._stopDelayLeft = this.settings.stopDelay || 0
 
         if (((this.settings.stopMethod === AnimationSettings.STOP_METHODS.IMMEDIATE) && !this._stopDelayLeft) || this._delayLeft > 0) {
             // Stop upon next progress.
-            this._state = Animation.STATES.STOPPING;
-            this.emit('stop');
+            this._state = Animation.STATES.STOPPING
+            this.emit('stop')
         } else {
             if (this.settings.stopMethod === AnimationSettings.STOP_METHODS.FADE) {
-                this._stopP = 0;
+                this._stopP = 0
             }
 
-            this._state = Animation.STATES.STOPPING;
-            this.emit('stop');
+            this._state = Animation.STATES.STOPPING
+            this.emit('stop')
         }
 
-        this.checkActive();
+        this.checkActive()
     }
 
     stopNow() {
         if (this._state !== Animation.STATES.STOPPED || this._state !== Animation.STATES.IDLE) {
-            this._state = Animation.STATES.STOPPING;
-            this._p = 0;
-            this.emit('stop');
-            this.reset();
-            this._state = Animation.STATES.STOPPED;
-            this.emit('stopFinish');
+            this._state = Animation.STATES.STOPPING
+            this._p = 0
+            this.emit('stop')
+            this.reset()
+            this._state = Animation.STATES.STOPPED
+            this.emit('stopFinish')
         }
     }
 
     isPlaying() {
-        return this._state === Animation.STATES.PLAYING;
+        return this._state === Animation.STATES.PLAYING
     }
 
     isStopping() {
-        return this._state === Animation.STATES.STOPPING;
+        return this._state === Animation.STATES.STOPPING
     }
 
     checkActive() {
         if (this.isActive()) {
-            this.manager.addActive(this);
+            this.manager.addActive(this)
         }
     }
 
     isActive() {
-        return (this._state == Animation.STATES.PLAYING || this._state == Animation.STATES.STOPPING) && this._view && this._view.isAttached();
+        return (this._state == Animation.STATES.PLAYING || this._state == Animation.STATES.STOPPING) && this._view && this._view.isAttached()
     }
 
     progress(dt) {
-        if (!this._view) return;
-        this._progress(dt);
-        this.apply();
+        if (!this._view) return
+        this._progress(dt)
+        this.apply()
     }
 
     _progress(dt) {
         if (this._state == Animation.STATES.STOPPING) {
-            this._stopProgress(dt);
-            return;
+            this._stopProgress(dt)
+            return
         }
 
         if (this._state != Animation.STATES.PLAYING) {
-            return;
+            return
         }
 
         if (this._delayLeft > 0) {
-            this._delayLeft -= dt;
+            this._delayLeft -= dt
 
             if (this._delayLeft < 0) {
-                dt = -this._delayLeft;
-                this._delayLeft = 0;
+                dt = -this._delayLeft
+                this._delayLeft = 0
 
-                this.emit('delayEnd');
+                this.emit('delayEnd')
             } else {
-                return;
+                return
             }
         }
 
         if (this.settings.duration === 0) {
-            this._p = 1;
+            this._p = 1
         } else if (this.settings.duration > 0) {
-            this._p += dt / this.settings.duration;
+            this._p += dt / this.settings.duration
         }
         if (this._p >= 1) {
             // Finished!
             if (this.settings.repeat == -1 || this._repeatsLeft > 0) {
                 if (this._repeatsLeft > 0) {
-                    this._repeatsLeft--;
+                    this._repeatsLeft--
                 }
-                this._p = this.settings.repeatOffset;
+                this._p = this.settings.repeatOffset
 
                 if (this.settings.repeatDelay) {
-                    this._delayLeft = this.settings.repeatDelay;
+                    this._delayLeft = this.settings.repeatDelay
                 }
 
-                this.emit('repeat', this._repeatsLeft);
+                this.emit('repeat', this._repeatsLeft)
             } else {
-                this._p = 1;
-                this._state = Animation.STATES.FINISHED;
-                this.emit('finish');
+                this._p = 1
+                this._state = Animation.STATES.FINISHED
+                this.emit('finish')
                 if (this.settings.autostop) {
-                    this.stop();
+                    this.stop()
                 }
             }
         } else {
-            this.emit('progress', this._p);
+            this.emit('progress', this._p)
         }
     }
     
     _stopProgress(dt) {
-        let duration = this._getStopDuration();
+        let duration = this._getStopDuration()
 
         if (this._stopDelayLeft > 0) {
             // Animation wasn't even started yet: directly finish!
-            this._state = Animation.STATES.STOPPED;
-            this.emit('stopFinish');
+            this._state = Animation.STATES.STOPPED
+            this.emit('stopFinish')
         }
 
         if (this._stopDelayLeft > 0) {
-            this._stopDelayLeft -= dt;
+            this._stopDelayLeft -= dt
 
             if (this._stopDelayLeft < 0) {
-                dt = -this._stopDelayLeft;
-                this._stopDelayLeft = 0;
+                dt = -this._stopDelayLeft
+                this._stopDelayLeft = 0
 
-                this.emit('stopDelayEnd');
+                this.emit('stopDelayEnd')
             } else {
-                return;
+                return
             }
         }
         if (this.settings.stopMethod == AnimationSettings.STOP_METHODS.IMMEDIATE) {
-            this._state = Animation.STATES.STOPPED;
-            this.emit('stop');
-            this.emit('stopFinish');
+            this._state = Animation.STATES.STOPPED
+            this.emit('stop')
+            this.emit('stopFinish')
         } else if (this.settings.stopMethod == AnimationSettings.STOP_METHODS.REVERSE) {
             if (duration === 0) {
-                this._p = 0;
+                this._p = 0
             } else if (duration > 0) {
-                this._p -= dt / duration;
+                this._p -= dt / duration
             }
 
             if (this._p <= 0) {
-                this._p = 0;
-                this._state = Animation.STATES.STOPPED;
-                this.emit('stopFinish');
+                this._p = 0
+                this._state = Animation.STATES.STOPPED
+                this.emit('stopFinish')
             }
         } else if (this.settings.stopMethod == AnimationSettings.STOP_METHODS.FADE) {
-            this._progressStopTransition(dt);
+            this._progressStopTransition(dt)
             if (this._stopP >= 1) {
-                this._p = 0;
-                this._state = Animation.STATES.STOPPED;
-                this.emit('stopFinish');
+                this._p = 0
+                this._state = Animation.STATES.STOPPED
+                this.emit('stopFinish')
             }
         } else if (this.settings.stopMethod == AnimationSettings.STOP_METHODS.ONETOTWO) {
             if (this._p < 2) {
                 if (duration === 0) {
-                    this._p = 2;
+                    this._p = 2
                 } else if (duration > 0) {
                     if (this._p < 1) {
-                        this._p += dt / this.settings.duration;
+                        this._p += dt / this.settings.duration
                     } else {
-                        this._p += dt / duration;
+                        this._p += dt / duration
                     }
                 }
                 if (this._p >= 2) {
-                    this._p = 2;
-                    this._state = Animation.STATES.STOPPED;
-                    this.emit('stopFinish');
+                    this._p = 2
+                    this._state = Animation.STATES.STOPPED
+                    this.emit('stopFinish')
                 } else {
-                    this.emit('progress', this._p);
+                    this.emit('progress', this._p)
                 }
             }
         } else if (this.settings.stopMethod == AnimationSettings.STOP_METHODS.FORWARD) {
             if (this._p < 1) {
                 if (this.settings.duration == 0) {
-                    this._p = 1;
+                    this._p = 1
                 } else {
-                    this._p += dt / this.settings.duration;
+                    this._p += dt / this.settings.duration
                 }
                 if (this._p >= 1) {
                     if (this.settings.stopMethod == AnimationSettings.STOP_METHODS.FORWARD) {
-                        this._p = 1;
-                        this._state = Animation.STATES.STOPPED;
-                        this.emit('stopFinish');
+                        this._p = 1
+                        this._state = Animation.STATES.STOPPED
+                        this.emit('stopFinish')
                     } else {
                         if (this._repeatsLeft > 0) {
-                            this._repeatsLeft--;
-                            this._p = 0;
-                            this.emit('repeat', this._repeatsLeft);
+                            this._repeatsLeft--
+                            this._p = 0
+                            this.emit('repeat', this._repeatsLeft)
                         } else {
-                            this._p = 1;
-                            this._state = Animation.STATES.STOPPED;
-                            this.emit('stopFinish');
+                            this._p = 1
+                            this._state = Animation.STATES.STOPPED
+                            this.emit('stopFinish')
                         }
                     }
                 } else {
-                    this.emit('progress', this._p);
+                    this.emit('progress', this._p)
                 }
             }
         }
@@ -9767,74 +9781,74 @@ class Animation extends EventEmitter {
     _progressStopTransition(dt) {
         if (this._stopP < 1) {
             if (this._stopDelayLeft > 0) {
-                this._stopDelayLeft -= dt;
+                this._stopDelayLeft -= dt
 
                 if (this._stopDelayLeft < 0) {
-                    dt = -this._stopDelayLeft;
-                    this._stopDelayLeft = 0;
+                    dt = -this._stopDelayLeft
+                    this._stopDelayLeft = 0
 
-                    this.emit('delayEnd');
+                    this.emit('delayEnd')
                 } else {
-                    return;
+                    return
                 }
             }
             
-            let duration = this._getStopDuration();
+            const duration = this._getStopDuration()
 
             if (duration == 0) {
-                this._stopP = 1;
+                this._stopP = 1
             } else {
-                this._stopP += dt / duration;
+                this._stopP += dt / duration
             }
             if (this._stopP >= 1) {
                 // Finished!
-                this._stopP = 1;
+                this._stopP = 1
             }
         }
     }
 
     _getStopDuration() {
-        return this.settings.stopDuration || this.settings.duration;
+        return this.settings.stopDuration || this.settings.duration
     }
 
     apply() {
         if (this._state == Animation.STATES.STOPPED) {
-            this.reset();
+            this.reset()
         } else {
-            let factor = 1;
+            let factor = 1
             if (this._state === Animation.STATES.STOPPING && this.settings.stopMethod === AnimationSettings.STOP_METHODS.FADE) {
-                factor = (1 - this.settings.stopTimingFunctionImpl(this._stopP));
+                factor = (1 - this.settings.stopTimingFunctionImpl(this._stopP))
             }
-            this._settings.apply(this._view, this._p, factor);
+            this._settings.apply(this._view, this._p, factor)
         }
     }
 
     reset() {
-        this._settings.reset(this._view);
+        this._settings.reset(this._view)
     }
 
     get state() {
-        return this._state;
+        return this._state
     }
 
     get p() {
-        return this._p;
+        return this._p
     }
 
     get delayLeft() {
-        return this._delayLeft;
+        return this._delayLeft
     }
 
     get view() {
-        return this._view;
+        return this._view
     }
 
     get frame() {
-        return Math.round(this._p * this._settings.duration * 60);
+        return Math.round(this._p * this._settings.duration * 60)
     }
 
     get settings() {
-        return this._settings;
+        return this._settings
     }
 
 }
@@ -9845,7 +9859,7 @@ Animation.STATES = {
     STOPPING: 2,
     STOPPED: 3,
     FINISHED: 4
-};
+}
 
 
 /**

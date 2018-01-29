@@ -9,7 +9,8 @@ class TransitionManager {
         this.stage.on('frameStart', () => this.progress());
 
         /**
-         * All transitions that are running and have
+         * All transitions that are running and attached.
+         * (we don't support transitions on un-attached views to prevent memory leaks)
          * @type {Set<Transition>}
          */
         this.active = new Set();
@@ -23,15 +24,14 @@ class TransitionManager {
 
             let filter = false;
             this.active.forEach(function(a) {
-                if (a.isActive()) {
-                    a.progress(dt);
-                } else {
+                a.progress(dt);
+                if (!a.isRunning()) {
                     filter = true;
                 }
             });
 
             if (filter) {
-                this.active = new Set([...this.active].filter(t => (t.isActive())));
+                this.active = new Set([...this.active].filter(t => (t.isRunning())));
             }
         }
     }
@@ -44,6 +44,10 @@ class TransitionManager {
 
     addActive(transition) {
         this.active.add(transition);
+    }
+
+    removeActive(transition) {
+        this.active.delete(transition);
     }
 }
 

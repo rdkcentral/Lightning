@@ -4,24 +4,24 @@
 
 class TransitionSettings {
     constructor() {
-        this._timingFunction = 'ease';
-        this._timingFunctionImpl = StageUtils.getTimingFunction(this._timingFunction);
-        this.delay = 0;
-        this.duration = 0.2;
-        this.merger = null;
+        this._timingFunction = 'ease'
+        this._timingFunctionImpl = StageUtils.getTimingFunction(this._timingFunction)
+        this.delay = 0
+        this.duration = 0.2
+        this.merger = null
     }
 
     get timingFunction() {
-        return this._timingFunction;
+        return this._timingFunction
     }
 
     set timingFunction(v) {
-        this._timingFunction = v;
-        this._timingFunctionImpl = StageUtils.getTimingFunction(v);
+        this._timingFunction = v
+        this._timingFunctionImpl = StageUtils.getTimingFunction(v)
     }
 
     get timingFunctionImpl() {
-        return this._timingFunctionImpl;
+        return this._timingFunctionImpl
     }
 
     patch(settings) {
@@ -29,9 +29,9 @@ class TransitionSettings {
     }
 }
 
-TransitionSettings.prototype.isTransitionSettings = true;
+TransitionSettings.prototype.isTransitionSettings = true
 
-module.exports = TransitionSettings;
+module.exports = TransitionSettings
 
-let Base = require('../core/Base')
-let StageUtils = require('../core/StageUtils');
+const Base = require('../core/Base')
+const StageUtils = require('../core/StageUtils')

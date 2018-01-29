@@ -1850,6 +1850,7 @@ class View extends EventEmitter {
             return this._getTransition(property);
         } else {
             this._setTransition(property, settings);
+            // We do not create/return the transition, because it would undo the 'lazy transition creation' optimization.
             return null;
         }
     }

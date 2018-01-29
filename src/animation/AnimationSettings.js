@@ -8,38 +8,38 @@ class AnimationSettings {
          * @type {AnimationActionSettings[]}
          * @private
          */
-        this._actions = [];
+        this._actions = []
 
-        this.delay = 0;
-        this.duration = 1;
+        this.delay = 0
+        this.duration = 1
 
-        this.repeat = 0;
-        this.repeatOffset = 0;
-        this.repeatDelay = 0;
+        this.repeat = 0
+        this.repeatOffset = 0
+        this.repeatDelay = 0
 
-        this.autostop = false;
+        this.autostop = false
 
-        this.stopMethod = AnimationSettings.STOP_METHODS.FADE;
-        this._stopTimingFunction = 'ease';
-        this._stopTimingFunctionImpl = StageUtils.getTimingFunction(this._stopTimingFunction);
-        this.stopDuration = 0;
-        this.stopDelay = 0;
+        this.stopMethod = AnimationSettings.STOP_METHODS.FADE
+        this._stopTimingFunction = 'ease'
+        this._stopTimingFunctionImpl = StageUtils.getTimingFunction(this._stopTimingFunction)
+        this.stopDuration = 0
+        this.stopDelay = 0
     }
 
     get actions() {
-        return this._actions;
+        return this._actions
     }
 
     set actions(v) {
-        this._actions = [];
+        this._actions = []
         for (let i = 0, n = v.length; i < n; i++) {
-            let e = v[i];
+            const e = v[i]
             if (!e.isAnimationActionSettings) {
-                let aas = new AnimationActionSettings(this);
-                aas.patch(e);
-                this._actions.push(aas);
+                const aas = new AnimationActionSettings(this)
+                aas.patch(e)
+                this._actions.push(aas)
             } else {
-                this._actions.push(e);
+                this._actions.push(e)
             }
         }
     }
@@ -52,8 +52,8 @@ class AnimationSettings {
      */
     apply(view, p, factor = 1) {
         this._actions.forEach(function(action) {
-            action.apply(view, p, factor);
-        });
+            action.apply(view, p, factor)
+        })
     }
 
     /**
@@ -62,21 +62,21 @@ class AnimationSettings {
      */
     reset(view) {
         this._actions.forEach(function(action) {
-            action.reset(view);
-        });
+            action.reset(view)
+        })
     }
 
     get stopTimingFunction() {
-        return this._stopTimingFunction;
+        return this._stopTimingFunction
     }
 
     set stopTimingFunction(v) {
-        this._stopTimingFunction = v;
-        this._stopTimingFunctionImpl = StageUtils.getTimingFunction(v);
+        this._stopTimingFunction = v
+        this._stopTimingFunctionImpl = StageUtils.getTimingFunction(v)
     }
 
     get stopTimingFunctionImpl() {
-        return this._stopTimingFunctionImpl;
+        return this._stopTimingFunctionImpl
     }
 
     patch(settings) {
@@ -90,10 +90,10 @@ AnimationSettings.STOP_METHODS = {
     FORWARD: 'forward',
     IMMEDIATE: 'immediate',
     ONETOTWO: 'onetotwo'
-};
+}
 
-module.exports = AnimationSettings;
+module.exports = AnimationSettings
 
-let Base = require('../core/Base')
-let StageUtils = require('../core/StageUtils');
-let AnimationActionSettings = require('./AnimationActionSettings');
+const Base = require('../core/Base')
+const StageUtils = require('../core/StageUtils')
+const AnimationActionSettings = require('./AnimationActionSettings')

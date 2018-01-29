@@ -1,10 +1,10 @@
 /**
  * Copyright Metrological, 2017
  */
-let Base = require('../core/Base');
+const Base = require('../core/Base')
 
-let Utils = require('../core/Utils');
-/*M¬*/let EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
+const Utils = require('../core/Utils')
+/*M¬*/const EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter')/*¬M*/
 
 class Transition extends EventEmitter {
 
@@ -14,8 +14,6 @@ class Transition extends EventEmitter {
         this.manager = manager;
 
         this._settings = settings;
-
-
 
         this._view = view
         this._getter = View.getGetter(property)
@@ -27,157 +25,168 @@ class Transition extends EventEmitter {
             this._merger = View.getMerger(property)
         }
 
-        this._startValue = this._getter(this._view);
-        this._targetValue = this._startValue;
+        this._startValue = this._getter(this._view)
+        this._targetValue = this._startValue
 
-        this._p = 1;
-        this._delayLeft = 0;
-    }
-
-    stop() {
-        if (this.isActive()) {
-            this._setter(this._view, this.targetValue);
-            this._p = 1;
-        }
-    }
-
-    reset(targetValue, p) {
-        this._startValue = this._getter(this._view);
-        this._targetValue = targetValue;
-        this._p = p;
-
-        if (p < 1) {
-            this.checkActive();
-        } else if (p === 1) {
-            this._setter(this._view, targetValue);
-
-            // Immediately invoke onFinish event.
-            this.invokeListeners();
-        }
+        this._p = 1
+        this._delayLeft = 0
     }
 
     start(targetValue) {
-        this._startValue = this._getter(this._view);
+        this._startValue = this._getter(this._view)
 
-        if (targetValue === this._startValue || !this._view.isAttached()) {
-            this.reset(targetValue, 1);
+        if (!this.isAttached()) {
+            // We don't support transitions on non-attached views. Just set value without invoking listeners.
+            this._targetValue = targetValue
+            this._p = 1;
+            this._updateDrawValue()
         } else {
-            this._targetValue = targetValue;
-            this._p = 0;
-            this._delayLeft = this._settings.delay;
-            this.emit('start');
-            this.checkActive();
+            if (targetValue === this._startValue) {
+                this.reset(targetValue, 1)
+            } else {
+                this._targetValue = targetValue
+                this._p = 0
+                this._delayLeft = this._settings.delay
+                this.emit('start')
+                this.add()
+            }
         }
     }
 
     finish() {
         if (this._p < 1) {
-            this._p = 1;
-
-            this._setter(this._view, this.targetValue);
-
-            this.invokeListeners();
+            // Value setting and will must be invoked (async) upon next transition cycle.
+            this._p = 1
         }
     }
 
-    checkActive() {
-        if (this.isActive()) {
-            this.manager.addActive(this);
+    stop() {
+        // Just stop where the transition is at.
+        this.manager.removeActive(this)
+    }
+
+    reset(targetValue, p) {
+        if (!this.isAttached()) {
+            // We don't support transitions on non-attached views. Just set value without invoking listeners.
+            this._startValue = this._getter(this._view)
+            this._targetValue = targetValue
+            this._p = 1
+            this._updateDrawValue()
+        } else {
+            this._startValue = this._getter(this._view)
+            this._targetValue = targetValue
+            this._p = p
+            this.add()
         }
     }
 
-    isActive() {
-        return (this._p < 1.0) && this._view.isAttached();
+    _updateDrawValue() {
+        this._setter(this._view, this.getDrawValue())
+    }
+
+    add() {
+        this.manager.addActive(this)
+    }
+
+    isAttached() {
+        return this._view.isAttached()
+    }
+
+    isRunning() {
+        return (this._p < 1.0)
     }
 
     progress(dt) {
+        if (!this.isAttached()) {
+            // Skip to end of transition so that it is removed.
+            this._p = 1
+        }
+
         if (this.p < 1) {
             if (this.delayLeft > 0) {
-                this._delayLeft -= dt;
+                this._delayLeft -= dt
 
                 if (this.delayLeft < 0) {
-                    dt = -this.delayLeft;
-                    this._delayLeft = 0;
+                    dt = -this.delayLeft
+                    this._delayLeft = 0
 
-                    this.emit('delayEnd');
+                    this.emit('delayEnd')
                 } else {
-                    return;
+                    return
                 }
             }
 
             if (this._settings.duration == 0) {
-                this._p = 1;
+                this._p = 1
             } else {
-                this._p += dt / this._settings.duration;
+                this._p += dt / this._settings.duration
             }
             if (this._p >= 1) {
                 // Finished!
-                this._p = 1;
+                this._p = 1
             }
         }
 
-        this._setter(this._view, this.getDrawValue());
+        this._updateDrawValue()
 
-        this.invokeListeners();
+        this.invokeListeners()
     }
 
     invokeListeners() {
-        if (this._view.isAttached()) {
-            this.emit('progress', this.p);
-            if (this.p === 1) {
-                this.emit('finish');
-            }
+        this.emit('progress', this.p)
+        if (this.p === 1) {
+            this.emit('finish')
         }
     }
 
-    setValuesDynamic(targetValue) {
-        let t = this._settings.timingFunctionImpl(this.p);
+    updateTargetValue(targetValue) {
+        let t = this._settings.timingFunctionImpl(this.p)
         if (t === 1) {
-            this._targetValue = targetValue;
+            this._targetValue = targetValue
         } else if (t === 0) {
-            this._startValue = this._targetValue;
-            this._targetValue = targetValue;
+            this._startValue = this._targetValue
+            this._targetValue = targetValue
         } else {
-            this._startValue = targetValue - ((targetValue - this._targetValue) / (1 - t));
-            this._targetValue = targetValue;
+            this._startValue = targetValue - ((targetValue - this._targetValue) / (1 - t))
+            this._targetValue = targetValue
         }
     }
 
     getDrawValue() {
         if (this.p >= 1) {
-            return this.targetValue;
+            return this.targetValue
         } else {
-            let v = this._settings._timingFunctionImpl(this.p);
-            return this._merger(this.targetValue, this.startValue, v);
+            let v = this._settings._timingFunctionImpl(this.p)
+            return this._merger(this.targetValue, this.startValue, v)
         }
     }
 
     skipDelay() {
-        this._delayLeft = 0;
+        this._delayLeft = 0
     }
 
     get startValue() {
-        return this._startValue;
+        return this._startValue
     }
 
     get targetValue() {
-        return this._targetValue;
+        return this._targetValue
     }
 
     get p() {
-        return this._p;
+        return this._p
     }
 
     get delayLeft() {
-        return this._delayLeft;
+        return this._delayLeft
     }
 
     get view() {
-        return this._view;
+        return this._view
     }
 
     get settings() {
-        return this._settings;
+        return this._settings
     }
 
     set settings(v) {
@@ -186,9 +195,9 @@ class Transition extends EventEmitter {
 
 }
 
-Transition.prototype.isTransition = true;
+Transition.prototype.isTransition = true
 
-module.exports = Transition;
+module.exports = Transition
 
-let StageUtils = require('../core/StageUtils');
-/*M¬*/let View = require('../core/View');/*¬M*/
+const StageUtils = require('../core/StageUtils')
+/*M¬*/const View = require('../core/View')/*¬M*/
