@@ -114,6 +114,7 @@ class ViewCore {
      *   1: alpha
      *   2: translate
      *   4: transform
+     *  64: temporary flag (used in update function when using the flag)
      * 128: becomes visible
      */
     _setRecalc(type) {
@@ -845,6 +846,8 @@ class ViewCore {
                     // full branch.
                     if (this._scissor[2] <= 0 || this._scissor[3] <= 0) {
                         this._renderContext.alpha = 0
+                        // Enable the recalc alpha flag.
+                        this._recalc |= 64
                     }
                 } else {
                     this._scissor = [x, y, w, h]
@@ -880,7 +883,8 @@ class ViewCore {
                 this._renderContext = r
             }
 
-            this._recalc = 0
+            // Update alpha next time if clipping optimization works.
+            this._recalc = ((this._recalc & 64) ? 1 : 0)
 
             this._hasUpdates = false;
 
