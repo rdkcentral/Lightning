@@ -30,6 +30,8 @@ class ViewTexturizer {
         this._hideResult = false
 
         this.filterResultCached = false
+
+        this.empty = false
     }
 
     get enabled() {

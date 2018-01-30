@@ -1063,8 +1063,16 @@ class ViewCore {
                         }
                     }
 
+                    // If nothing was rendered, we store a flag in the texturizer and prevent unnecessary
+                    //  render-to-texture and filtering.
+                    this._texturizer.empty = renderTextureInfo.empty
+
                     if (renderTextureInfo.empty) {
                         // We ignore empty render textures and do not draw the final quad.
+
+                        // The following cleans up memory and enforces that the result texture is also cleared.
+                        this._texturizer.releaseFilterTexture()
+                        this._texturizer.releaseRenderTexture()
                     } else if (renderTextureInfo.glTexture) {
                         // If glTexture is set, we can reuse that directly instead of creating a new render texture.
                         this._texturizer.reuseTextureAsRenderTexture(renderTextureInfo.glTexture)
@@ -1085,37 +1093,38 @@ class ViewCore {
                     updateResultTexture = true
                 }
 
-                let hasFilters = this._texturizer._hasActiveFilters();
+                if (!this._texturizer.empty) {
+                    let hasFilters = this._texturizer._hasActiveFilters();
 
-                if (hasFilters) {
-                    if ((this._hasRenderUpdates >= 2 || !this._texturizer.filterResultCached)) {
-                        this.applyFilters();
-                        updateResultTexture = true
+                    if (hasFilters) {
+                        if ((this._hasRenderUpdates >= 2 || !this._texturizer.filterResultCached)) {
+                            this.applyFilters();
+                            updateResultTexture = true
+                        }
                     }
-                }
 
-                let resultTexture = this._texturizer.getResultTexture();
-                if (updateResultTexture) {
-                    if (resultTexture) {
-                        // Logging the update frame can be handy for userland.
-                        resultTexture.update = renderState.stage.frameCounter
+                    let resultTexture = this._texturizer.getResultTexture();
+                    if (updateResultTexture) {
+                        if (resultTexture) {
+                            // Logging the update frame can be handy for userland.
+                            resultTexture.update = renderState.stage.frameCounter
+                        }
+                        this._texturizer.updateResultTexture();
                     }
-                    this._texturizer.updateResultTexture();
-                }
 
-                // Do not draw textures that do not have any contents.
-                if ((!mustRenderChildren || !renderTextureInfo.empty) && !this._texturizer.hideResult) {
-                    // Render result texture to the actual render target.
-                    renderState.setShader(this.activeShader, this._shaderOwner);
-                    renderState.setScissor(this._scissor)
+                    if (!this._texturizer.hideResult) {
+                        // Render result texture to the actual render target.
+                        renderState.setShader(this.activeShader, this._shaderOwner);
+                        renderState.setScissor(this._scissor)
 
-                    renderState.setOverrideQuadTexture(resultTexture);
-                    this._stashTexCoords();
-                    if (!this._texturizer.colorize) this._stashColors()
-                    this.addQuads();
-                    if (!this._texturizer.colorize) this._unstashColors();
-                    this._unstashTexCoords();
-                    renderState.setOverrideQuadTexture(null);
+                        renderState.setOverrideQuadTexture(resultTexture);
+                        this._stashTexCoords();
+                        if (!this._texturizer.colorize) this._stashColors()
+                        this.addQuads();
+                        if (!this._texturizer.colorize) this._unstashColors();
+                        this._unstashTexCoords();
+                        renderState.setOverrideQuadTexture(null);
+                    }
                 }
             }
 
