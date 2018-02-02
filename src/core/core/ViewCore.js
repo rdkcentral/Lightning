@@ -8,7 +8,7 @@ class ViewCore {
         this._view = view;
 
         this.ctx = view.stage.ctx;
-        
+
         this.renderState = this.ctx.renderState;
 
         this._parent = null;
@@ -282,12 +282,12 @@ class ViewCore {
 
     setAsRoot() {
         // Use parent dummy.
-        this._parent = new ViewCore(this._view);
+        this._parent = new ViewCore(this._view)
 
         // Root is, and will always be, the primary zContext.
-        this._isRoot = true;
+        this._isRoot = true
 
-        this.ctx.root = this;
+        this.ctx.root = this
     };
 
     isAncestorOf(c) {
@@ -1205,8 +1205,8 @@ class ViewCore {
         let floats = this.renderState.quads.floats;
         let uints = this.renderState.quads.uints;
 
-        if (r.tb !== 0 || this.tb !== 0) {
-            let offset = this.renderState.addQuad(this) / 4;
+        if (r.tb !== 0 || r.tc !== 0) {
+            let offset = this.renderState.getQuadOffset() / 4;
             floats[offset++] = r.px;
             floats[offset++] = r.py;
             uints[offset++] = this._txCoordsUl; // Texture.
@@ -1223,12 +1223,15 @@ class ViewCore {
             floats[offset++] = r.py + this._rh * r.td;
             uints[offset++] = this._txCoordsBl;
             uints[offset] = getColorInt(this._colorBl, r.alpha);
+            if (this.renderState.quadInVisibleBoundsComplex()) {
+                this.renderState.addQuad(this);
+            }
         } else {
             // Simple.
             let cx = r.px + this._rw * r.ta;
             let cy = r.py + this._rh * r.td;
 
-            let offset = this.renderState.addQuad(this) / 4;
+            let offset = this.renderState.getQuadOffset() / 4;
             floats[offset++] = r.px;
             floats[offset++] = r.py
             uints[offset++] = this._txCoordsUl; // Texture.
@@ -1245,6 +1248,10 @@ class ViewCore {
             floats[offset++] = cy;
             uints[offset++] = this._txCoordsBl;
             uints[offset] = getColorInt(this._colorBl, r.alpha);
+
+            if (this.renderState.quadInVisibleBoundsSimple()) {
+                this.renderState.addQuad(this);
+            }
         }
     };
 
@@ -1328,7 +1335,7 @@ let getColorInt = function (c, alpha) {
 };
 
 class ViewCoreContext {
-    
+
     constructor() {
         this.alpha = 1;
 

@@ -5575,7 +5575,7 @@ class ViewCore {
         this._view = view;
 
         this.ctx = view.stage.ctx;
-        
+
         this.renderState = this.ctx.renderState;
 
         this._parent = null;
@@ -5681,6 +5681,7 @@ class ViewCore {
      *   1: alpha
      *   2: translate
      *   4: transform
+     *  64: temporary flag (used in update function when using the flag)
      * 128: becomes visible
      */
     _setRecalc(type) {
@@ -5848,12 +5849,12 @@ class ViewCore {
 
     setAsRoot() {
         // Use parent dummy.
-        this._parent = new ViewCore(this._view);
+        this._parent = new ViewCore(this._view)
 
         // Root is, and will always be, the primary zContext.
-        this._isRoot = true;
+        this._isRoot = true
 
-        this.ctx.root = this;
+        this.ctx.root = this
     };
 
     isAncestorOf(c) {
@@ -6412,6 +6413,8 @@ class ViewCore {
                     // full branch.
                     if (this._scissor[2] <= 0 || this._scissor[3] <= 0) {
                         this._renderContext.alpha = 0
+                        // Enable the recalc alpha flag.
+                        this._recalc |= 64
                     }
                 } else {
                     this._scissor = [x, y, w, h]
@@ -6447,7 +6450,8 @@ class ViewCore {
                 this._renderContext = r
             }
 
-            this._recalc = 0
+            // Update alpha next time if clipping optimization works.
+            this._recalc = ((this._recalc & 64) ? 1 : 0)
 
             this._hasUpdates = false;
 
@@ -6768,8 +6772,8 @@ class ViewCore {
         let floats = this.renderState.quads.floats;
         let uints = this.renderState.quads.uints;
 
-        if (r.tb !== 0 || this.tb !== 0) {
-            let offset = this.renderState.addQuad(this) / 4;
+        if (r.tb !== 0 || r.tc !== 0) {
+            let offset = this.renderState.getQuadOffset() / 4;
             floats[offset++] = r.px;
             floats[offset++] = r.py;
             uints[offset++] = this._txCoordsUl; // Texture.
@@ -6786,12 +6790,15 @@ class ViewCore {
             floats[offset++] = r.py + this._rh * r.td;
             uints[offset++] = this._txCoordsBl;
             uints[offset] = getColorInt(this._colorBl, r.alpha);
+            if (this.renderState.quadInVisibleBoundsComplex()) {
+                this.renderState.addQuad(this);
+            }
         } else {
             // Simple.
             let cx = r.px + this._rw * r.ta;
             let cy = r.py + this._rh * r.td;
 
-            let offset = this.renderState.addQuad(this) / 4;
+            let offset = this.renderState.getQuadOffset() / 4;
             floats[offset++] = r.px;
             floats[offset++] = r.py
             uints[offset++] = this._txCoordsUl; // Texture.
@@ -6808,6 +6815,10 @@ class ViewCore {
             floats[offset++] = cy;
             uints[offset++] = this._txCoordsBl;
             uints[offset] = getColorInt(this._colorBl, r.alpha);
+
+            if (this.renderState.quadInVisibleBoundsSimple()) {
+                this.renderState.addQuad(this);
+            }
         }
     };
 
@@ -6891,7 +6902,7 @@ let getColorInt = function (c, alpha) {
 };
 
 class ViewCoreContext {
-    
+
     constructor() {
         this.alpha = 1;
 
@@ -7098,6 +7109,9 @@ class CoreRenderState {
 
         this.stage = ctx.stage
 
+        this._w = this.stage.w
+        this._h = this.stage.h
+
         this.textureAtlasGlTexture = this.stage.textureAtlas ? this.stage.textureAtlas.texture : null;
 
         // Allocate a fairly big chunk of memory that should be enough to support ~100000 (default) quads.
@@ -7118,7 +7132,7 @@ class CoreRenderState {
          * @type {Shader}
          */
         this._shader = null
-        
+
         this._shaderOwner = null
 
         this._realShader = null
@@ -7190,6 +7204,133 @@ class CoreRenderState {
         this._overrideQuadTexture = texture
     }
 
+    getQuadOffset() {
+        // Skip the identity filter quad.
+        return this.length * 64 + 64
+    }
+
+    quadInVisibleBoundsSimple() {
+        const floats = this.quads.floats
+        const o = this.getQuadOffset() / 4
+
+        if (this._scissor) {
+            const x1 = this._scissor[0]
+            if (floats[o] < x1 && floats[o+4] < x1) {
+                return false
+            }
+
+            const x2 = this._scissor[0] + this._scissor[2]
+            if (floats[o] > x2 && floats[o+4] > x2) {
+                return false
+            }
+
+            const y1 = this._scissor[1]
+            if (floats[o+1] < y1 && floats[o+9] < y1) {
+                return false
+            }
+
+            const y2 = this._scissor[1] + this._scissor[3]
+            if (floats[o+1] > y2 && floats[o+9] > y2) {
+                return false
+            }
+        } else if (this._renderTextureInfo) {
+            if (floats[o] < 0 && floats[o+4] < 0) {
+                return false
+            }
+
+            if (floats[o] > this._renderTextureInfo.w && floats[o+4] > this._renderTextureInfo.w) {
+                return false
+            }
+
+            if (floats[o+1] < 0 && floats[o+9] < 0) {
+                return false
+            }
+
+            if (floats[o+1] > this._renderTextureInfo.h && floats[o+9] > this._renderTextureInfo.h) {
+                return false
+            }
+
+        } else {
+            if (floats[o] < 0 && floats[o+4] < 0) {
+                return false
+            }
+
+            if (floats[o] > this._w && floats[o+4] > this._w) {
+                return false
+            }
+
+            if (floats[o+1] < 0 && floats[o+9] < 0) {
+                return false
+            }
+
+            if (floats[o+1] > this._h && floats[o+9] > this._h) {
+                return false
+            }
+        }
+
+        return true
+    }
+
+    quadInVisibleBoundsComplex() {
+        const floats = this.quads.floats
+        const o = this.getQuadOffset() / 4
+
+        if (this._scissor) {
+            const x1 = this._scissor[0]
+            if (floats[o] < x1 && floats[o+4] < x1 && floats[o+8] < x1 && floats[o+12] < x1) {
+                return false
+            }
+            const x2 = this._scissor[0] + this._scissor[2]
+            if (floats[o] > x2 && floats[o+4] > x2 && floats[o+8] > x2 && floats[o+12] > x2) {
+                return false
+            }
+
+            const y1 = this._scissor[1]
+            if (floats[o+1] < y1 && floats[o+5] < y1 && floats[o+9] < y1 && floats[o+13] < y1) {
+                return false
+            }
+            const y2 = this._scissor[1] + this._scissor[3]
+            if (floats[o+1] > y2 && floats[o+5] > y2 && floats[o+9] > y2 && floats[o+13] > y2) {
+                return false
+            }
+        } else if (this._renderTextureInfo) {
+            if (floats[o] < 0 && floats[o+4] < 0 && floats[o+8] < 0 && floats[o+12] < 0) {
+                return false
+            }
+
+            if (floats[o] > this._renderTextureInfo.w && floats[o+4] > this._renderTextureInfo.w && floats[o+8] > this._renderTextureInfo.w && floats[o+12] > this._renderTextureInfo.w) {
+                return false
+            }
+
+            if (floats[o+1] < 0 && floats[o+5] < 0 && floats[o+9] < 0 && floats[o+13] < 0) {
+                return false
+            }
+
+            if (floats[o+1] > this._renderTextureInfo.h && floats[o+5] > this._renderTextureInfo.h && floats[o+9] > this._renderTextureInfo.h && floats[o+13] > this._renderTextureInfo.h) {
+                return false
+            }
+        } else {
+            if (floats[o] < 0 && floats[o+4] < 0 && floats[o+8] < 0 && floats[o+12] < 0) {
+                return false
+            }
+
+            if (floats[o] > this._w && floats[o+4] > this._w && floats[o+8] > this._w && floats[o+12] > this._w) {
+                return false
+            }
+
+            if (floats[o+1] < 0 && floats[o+5] < 0 && floats[o+9] < 0 && floats[o+13] < 0) {
+                return false
+            }
+
+            if (floats[o+1] > this._h && floats[o+5] > this._h && floats[o+9] > this._h && floats[o+13] > this._h) {
+                return false
+            }
+
+        }
+
+        return true
+    }
+
     addQuad(viewCore) {
         if (!this._quadOperation) {
             this._createQuadOperation()
@@ -7203,7 +7344,7 @@ class CoreRenderState {
             glTexture = viewCore._displayedTextureSource.glTexture
         }
 
-        let offset = this.length * 64 + 64 // Skip the identity filter quad.
+        let offset = this.getQuadOffset()
 
         if (this._renderTextureInfo) {
             if (this._shader === this.defaultShader && this._renderTextureInfo.empty && (this._renderTextureInfo.w === glTexture.w && this._renderTextureInfo.h === glTexture.h)) {
@@ -7234,7 +7375,7 @@ class CoreRenderState {
 
         return false
     }
-    
+
     _addQuadOperation(create = true) {
         if (this._quadOperation) {
             if (this._quadOperation.length || this._shader.addEmpty()) {
@@ -7279,7 +7420,7 @@ class CoreRenderState {
 
         this._setExtraShaderAttribs()
     }
-    
+
     _setExtraShaderAttribs() {
         let offset = this.length * 64 + 64
         for (let i = 0, n = this.quadOperations.length; i < n; i++) {
@@ -7294,7 +7435,6 @@ class CoreRenderState {
     }
 
 }
-
 
 
 /**
@@ -10911,6 +11051,13 @@ class FastBlurView extends View {
                 this._output.shader.otherTextureSource = this.getLayer(3).getTexture()
                 this._output.shader.a = v - 3
             }
+        }
+    }
+
+    set shader(s) {
+        super.shader = s
+        if (!this.renderToTexture) {
+            console.warn("FastBlurView: please enable renderToTexture to use with a shader.")
         }
     }
 

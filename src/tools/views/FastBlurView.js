@@ -166,6 +166,13 @@ class FastBlurView extends View {
         }
     }
 
+    set shader(s) {
+        super.shader = s
+        if (!this.renderToTexture) {
+            console.warn("FastBlurView: please enable renderToTexture to use with a shader.")
+        }
+    }
+
     static getFastBoxBlurShader(ctx) {
         if (!ctx.fastBoxBlurShader) {
             ctx.fastBoxBlurShader = new FastBoxBlurShader(ctx)
