@@ -2192,10 +2192,6 @@ class TextureSource {
     removeView(v) {
         if (this.views.delete(v)) {
             if (!this.views.size) {
-                if (this.stage.textureAtlas) {
-                    this.stage.textureAtlas.removeActiveTextureSource(this);
-                }
-
                 this.becomesInvisible();
             }
         }        
@@ -4246,6 +4242,10 @@ class View extends EventEmitter {
         return setter;
     }
 
+    get outOfBounds() {
+        return this._core._outOfBounds
+    }
+    
     get x() {
         return this._x
     }
@@ -5498,7 +5498,7 @@ class ViewTexturizer {
         // Check if we must really render as texture.
         if (this._enabled && !this.lazy) {
             return true
-        } else if (this._enabled && this.lazy && this._hasRenderUpdates < 3) {
+        } else if (this._enabled && this.lazy && this._core._hasRenderUpdates < 3) {
             // Static-only: if renderToTexture did not need to update during last drawn frame, generate it as a cache.
             return true
         } else if (this._hasActiveFilters()) {
@@ -5509,12 +5509,16 @@ class ViewTexturizer {
     }
 
     deactivate() {
-        this.releaseRenderTexture()
-        this.releaseFilterTexture()
+        this.release()
     }
 
     get renderTextureReused() {
         return this._renderTextureReused
+    }
+
+    release() {
+        this.releaseRenderTexture()
+        this.releaseFilterTexture()
     }
 
     releaseRenderTexture() {
@@ -5694,6 +5698,7 @@ class ViewCore {
      *   1: alpha
      *   2: translate
      *   4: transform
+     * 128: becomes visible
      */
     _setRecalc(type) {
         this._recalc |= type;
@@ -5813,7 +5818,12 @@ class ViewCore {
     }
 
     setLocalAlpha(a) {
-        this._setRecalc(1);
+        if (!this._worldContext.alpha && ((this._parent && this._parent._worldContext.alpha) && a)) {
+            // View is becoming visible. We need to force update.
+            this._setRecalc(1 + 128);
+        } else {
+            this._setRecalc(1);
+        }
 
         if (a < 1e-14) {
             // Tiny rounding errors may cause failing visibility tests.
@@ -6407,7 +6417,17 @@ class ViewCore {
             this._updateTreeOrder = this.ctx.updateTreeOrder++;
 
             // Determine whether we must use a 'renderTexture'.
-            this._useRenderToTexture = this._renderToTextureEnabled && this._texturizer.mustRenderToTexture()
+            const useRenderToTexture = this._renderToTextureEnabled && this._texturizer.mustRenderToTexture()
+            if (this._useRenderToTexture !== useRenderToTexture) {
+                // Coords must be changed.
+                this._recalc |= 2 + 4
+
+                if (!this._useRenderToTexture) {
+                    // We must release the texture.
+                    this._texturizer.release()
+                }
+            }
+            this._useRenderToTexture = useRenderToTexture
 
             // Determine whether we must 'clip'.
             if (this._clipping && this._renderContext.isSquare()) {
@@ -6479,7 +6499,7 @@ class ViewCore {
             }
 
             // Filter out bits that should not be copied to the children (currently all are).
-            this._recalc = (this._recalc & 7);
+            this._recalc = (this._recalc & 135);
 
             if (this._outOfBounds < 2) {
                 // Do not update children if parent is out of bounds.
@@ -11575,7 +11595,7 @@ GrayscaleShader.fragmentShaderSource = `
     void main(void){
         vec4 color = texture2D(uSampler, vTextureCoord);
         float grayness = 0.2 * color.r + 0.6 * color.g + 0.2 * color.b;
-        gl_FragColor = (amount * vec4(grayness, grayness, grayness, 1.0) + (1.0 - amount) * color) * vColor;
+        gl_FragColor = vec4(amount * vec3(grayness, grayness, grayness) + (1.0 - amount) * color, color.a) * vColor;
     }
 `;
 

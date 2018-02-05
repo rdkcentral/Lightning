@@ -120,6 +120,7 @@ class ViewCore {
      *   1: alpha
      *   2: translate
      *   4: transform
+     * 128: becomes visible
      */
     _setRecalc(type) {
         this._recalc |= type;
@@ -239,7 +240,12 @@ class ViewCore {
     }
 
     setLocalAlpha(a) {
-        this._setRecalc(1);
+        if (!this._worldContext.alpha && ((this._parent && this._parent._worldContext.alpha) && a)) {
+            // View is becoming visible. We need to force update.
+            this._setRecalc(1 + 128);
+        } else {
+            this._setRecalc(1);
+        }
 
         if (a < 1e-14) {
             // Tiny rounding errors may cause failing visibility tests.
@@ -833,7 +839,17 @@ class ViewCore {
             this._updateTreeOrder = this.ctx.updateTreeOrder++;
 
             // Determine whether we must use a 'renderTexture'.
-            this._useRenderToTexture = this._renderToTextureEnabled && this._texturizer.mustRenderToTexture()
+            const useRenderToTexture = this._renderToTextureEnabled && this._texturizer.mustRenderToTexture()
+            if (this._useRenderToTexture !== useRenderToTexture) {
+                // Coords must be changed.
+                this._recalc |= 2 + 4
+
+                if (!this._useRenderToTexture) {
+                    // We must release the texture.
+                    this._texturizer.release()
+                }
+            }
+            this._useRenderToTexture = useRenderToTexture
 
             // Determine whether we must 'clip'.
             if (this._clipping && this._renderContext.isSquare()) {
@@ -905,7 +921,7 @@ class ViewCore {
             }
 
             // Filter out bits that should not be copied to the children (currently all are).
-            this._recalc = (this._recalc & 7);
+            this._recalc = (this._recalc & 135);
 
             if (this._outOfBounds < 2) {
                 // Do not update children if parent is out of bounds.

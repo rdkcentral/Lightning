@@ -1256,6 +1256,10 @@ class View extends EventEmitter {
         return setter;
     }
 
+    get outOfBounds() {
+        return this._core._outOfBounds
+    }
+    
     get x() {
         return this._x
     }

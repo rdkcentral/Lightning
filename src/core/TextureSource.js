@@ -106,10 +106,6 @@ class TextureSource {
     removeView(v) {
         if (this.views.delete(v)) {
             if (!this.views.size) {
-                if (this.stage.textureAtlas) {
-                    this.stage.textureAtlas.removeActiveTextureSource(this);
-                }
-
                 this.becomesInvisible();
             }
         }        

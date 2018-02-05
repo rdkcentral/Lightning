@@ -157,7 +157,7 @@ class ViewTexturizer {
         // Check if we must really render as texture.
         if (this._enabled && !this.lazy) {
             return true
-        } else if (this._enabled && this.lazy && this._hasRenderUpdates < 3) {
+        } else if (this._enabled && this.lazy && this._core._hasRenderUpdates < 3) {
             // Static-only: if renderToTexture did not need to update during last drawn frame, generate it as a cache.
             return true
         } else if (this._hasActiveFilters()) {
@@ -168,12 +168,16 @@ class ViewTexturizer {
     }
 
     deactivate() {
-        this.releaseRenderTexture()
-        this.releaseFilterTexture()
+        this.release()
     }
 
     get renderTextureReused() {
         return this._renderTextureReused
+    }
+
+    release() {
+        this.releaseRenderTexture()
+        this.releaseFilterTexture()
     }
 
     releaseRenderTexture() {

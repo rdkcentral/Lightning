@@ -35,6 +35,6 @@ GrayscaleShader.fragmentShaderSource = `
     void main(void){
         vec4 color = texture2D(uSampler, vTextureCoord);
         float grayness = 0.2 * color.r + 0.6 * color.g + 0.2 * color.b;
-        gl_FragColor = (amount * vec4(grayness, grayness, grayness, 1.0) + (1.0 - amount) * color) * vColor;
+        gl_FragColor = vec4(amount * vec3(grayness, grayness, grayness) + (1.0 - amount) * color.rgb, color.a) * vColor;
     }
 `;
