@@ -91,6 +91,10 @@ class ViewCore {
 
         this._outOfBounds = 0
 
+        this._prevOutOfBounds = -1
+
+        this._boundsVisibility = false
+
         this._scissor = undefined
 
         this._viewport = undefined
@@ -741,6 +745,17 @@ class ViewCore {
         }
     }
 
+    get outOfBounds() {
+        return this._outOfBounds
+    }
+
+    set boundsVisibility(v) {
+        this._boundsVisibility = v
+
+        // We automatically set visible to false because we don't want the texture to be automatically loaded before the first update.
+        this.visible = !this._boundsVisibility
+    }
+
     update() {
         this._recalc |= this._parent._recalc
 
@@ -753,8 +768,9 @@ class ViewCore {
          * - branch contains updates (even when invisible because it may contain z-indexed descendants)
          * - there are (inherited) updates and this branch is visible
          * - this branch becomes invisible (descs may be z-indexed so we must update all alpha values)
+         * - the item has boundsVisibility turned on, and out-of-bounds might change due to new positioning
          */
-        if (this._hasUpdates || (this._recalc && visible) || (w.alpha && !visible)) {
+        if (this._hasUpdates || (this._recalc && visible) || (w.alpha && !visible) || (this._boundsVisibility && (this._recalc & 6))) {
             if (this._zSort) {
                 // Make sure that all descendants are updated so that the updateTreeOrder flags are correctly set.
                 this.ctx.updateTreeOrderForceUpdate++;
@@ -907,6 +923,10 @@ class ViewCore {
                             this._outOfBounds = 2
                         }
                     }
+                }
+                if (this._boundsVisibility && this._prevOutOfBounds !== this._outOfBounds) {
+                    this.ctx.boundsChanged.push(this)
+                    this._prevOutOfBounds = this._outOfBounds
                 }
             }
 

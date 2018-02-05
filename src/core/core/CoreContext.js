@@ -44,7 +44,16 @@ class CoreContext {
 
         this.visit()
 
+        this.boundsChanged = []
         this.update()
+        if (this.boundsChanged.length) {
+            for (let i = 0, n = this.boundsChanged.length; i < n; i++) {
+                this.boundsChanged[i].view.visible = (this.boundsChanged[i]._outOfBounds === 0)
+            }
+
+            // This may trigger texture loading and other changes. Re-process the updates.
+            this.update()
+        }
 
         this.render()
 

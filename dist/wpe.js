@@ -4243,9 +4243,17 @@ class View extends EventEmitter {
     }
 
     get outOfBounds() {
-        return this._core._outOfBounds
+        return this._core.outOfBounds
     }
-    
+
+    set boundsVisibility(v) {
+        this._core.boundsVisibility = v
+    }
+
+    get boundsVisibility() {
+        return this._core.boundsVisibility
+    }
+
     get x() {
         return this._x
     }
@@ -5669,6 +5677,10 @@ class ViewCore {
 
         this._outOfBounds = 0
 
+        this._prevOutOfBounds = -1
+
+        this._boundsVisibility = false
+
         this._scissor = undefined
 
         this._viewport = undefined
@@ -6319,6 +6331,17 @@ class ViewCore {
         }
     }
 
+    get outOfBounds() {
+        return this._outOfBounds
+    }
+
+    set boundsVisibility(v) {
+        this._boundsVisibility = v
+
+        // We automatically set visible to false because we don't want the texture to be automatically loaded before the first update.
+        this.visible = !this._boundsVisibility
+    }
+
     update() {
         this._recalc |= this._parent._recalc
 
@@ -6331,8 +6354,9 @@ class ViewCore {
          * - branch contains updates (even when invisible because it may contain z-indexed descendants)
          * - there are (inherited) updates and this branch is visible
          * - this branch becomes invisible (descs may be z-indexed so we must update all alpha values)
+         * - the item has boundsVisibility turned on, and out-of-bounds might change due to new positioning
          */
-        if (this._hasUpdates || (this._recalc && visible) || (w.alpha && !visible)) {
+        if (this._hasUpdates || (this._recalc && visible) || (w.alpha && !visible) || (this._boundsVisibility && (this._recalc & 6))) {
             if (this._zSort) {
                 // Make sure that all descendants are updated so that the updateTreeOrder flags are correctly set.
                 this.ctx.updateTreeOrderForceUpdate++;
@@ -6485,6 +6509,10 @@ class ViewCore {
                             this._outOfBounds = 2
                         }
                     }
+                }
+                if (this._boundsVisibility && this._prevOutOfBounds !== this._outOfBounds) {
+                    this.ctx.boundsChanged.push(this)
+                    this._prevOutOfBounds = this._outOfBounds
                 }
             }
 
@@ -7067,7 +7095,16 @@ class CoreContext {
 
         this.visit()
 
+        this.boundsChanged = []
         this.update()
+        if (this.boundsChanged.length) {
+            for (let i = 0, n = this.boundsChanged.length; i < n; i++) {
+                this.boundsChanged[i].view.visible = (this.boundsChanged[i]._outOfBounds === 0)
+            }
+
+            // This may trigger texture loading and other changes. Re-process the updates.
+            this.update()
+        }
 
         this.render()
 
@@ -11595,7 +11632,7 @@ GrayscaleShader.fragmentShaderSource = `
     void main(void){
         vec4 color = texture2D(uSampler, vTextureCoord);
         float grayness = 0.2 * color.r + 0.6 * color.g + 0.2 * color.b;
-        gl_FragColor = vec4(amount * vec3(grayness, grayness, grayness) + (1.0 - amount) * color, color.a) * vColor;
+        gl_FragColor = vec4(amount * vec3(grayness, grayness, grayness) + (1.0 - amount) * color.rgb, color.a) * vColor;
     }
 `;
 

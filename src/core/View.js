@@ -1257,9 +1257,17 @@ class View extends EventEmitter {
     }
 
     get outOfBounds() {
-        return this._core._outOfBounds
+        return this._core.outOfBounds
     }
-    
+
+    set boundsVisibility(v) {
+        this._core.boundsVisibility = v
+    }
+
+    get boundsVisibility() {
+        return this._core.boundsVisibility
+    }
+
     get x() {
         return this._x
     }
