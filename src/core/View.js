@@ -1203,6 +1203,8 @@ class View extends EventEmitter {
 
         if (this._core.clipping) settings.clipping = this._core.clipping;
 
+        if (this._core.clipbox) settings.clipbox = this._core.clipbox;
+
         if (this.rect) {
             settings.rect = true;
         } else if (this.src) {
@@ -1541,6 +1543,11 @@ class View extends EventEmitter {
     get clipping() {return this._core.clipping}
     set clipping(v) {
         this._core.clipping = v;
+    }
+
+    get clipbox() {return this._core.clipbox}
+    set clipbox(v) {
+        this._core.clipbox = v;
     }
 
     get tags() {

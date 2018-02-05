@@ -9,9 +9,6 @@ class CoreRenderState {
 
         this.stage = ctx.stage
 
-        this._w = this.stage.w
-        this._h = this.stage.h
-
         this.textureAtlasGlTexture = this.stage.textureAtlas ? this.stage.textureAtlas.texture : null;
 
         // Allocate a fairly big chunk of memory that should be enough to support ~100000 (default) quads.
@@ -105,133 +102,6 @@ class CoreRenderState {
         this._overrideQuadTexture = texture
     }
 
-    getQuadOffset() {
-        // Skip the identity filter quad.
-        return this.length * 64 + 64
-    }
-
-    quadInVisibleBoundsSimple() {
-        const floats = this.quads.floats
-        const o = this.getQuadOffset() / 4
-
-        if (this._scissor) {
-            const x1 = this._scissor[0]
-            if (floats[o] < x1 && floats[o+4] < x1) {
-                return false
-            }
-
-            const x2 = this._scissor[0] + this._scissor[2]
-            if (floats[o] > x2 && floats[o+4] > x2) {
-                return false
-            }
-
-            const y1 = this._scissor[1]
-            if (floats[o+1] < y1 && floats[o+9] < y1) {
-                return false
-            }
-
-            const y2 = this._scissor[1] + this._scissor[3]
-            if (floats[o+1] > y2 && floats[o+9] > y2) {
-                return false
-            }
-        } else if (this._renderTextureInfo) {
-            if (floats[o] < 0 && floats[o+4] < 0) {
-                return false
-            }
-
-            if (floats[o] > this._renderTextureInfo.w && floats[o+4] > this._renderTextureInfo.w) {
-                return false
-            }
-
-            if (floats[o+1] < 0 && floats[o+9] < 0) {
-                return false
-            }
-
-            if (floats[o+1] > this._renderTextureInfo.h && floats[o+9] > this._renderTextureInfo.h) {
-                return false
-            }
-
-        } else {
-            if (floats[o] < 0 && floats[o+4] < 0) {
-                return false
-            }
-
-            if (floats[o] > this._w && floats[o+4] > this._w) {
-                return false
-            }
-
-            if (floats[o+1] < 0 && floats[o+9] < 0) {
-                return false
-            }
-
-            if (floats[o+1] > this._h && floats[o+9] > this._h) {
-                return false
-            }
-        }
-
-        return true
-    }
-
-    quadInVisibleBoundsComplex() {
-        const floats = this.quads.floats
-        const o = this.getQuadOffset() / 4
-
-        if (this._scissor) {
-            const x1 = this._scissor[0]
-            if (floats[o] < x1 && floats[o+4] < x1 && floats[o+8] < x1 && floats[o+12] < x1) {
-                return false
-            }
-            const x2 = this._scissor[0] + this._scissor[2]
-            if (floats[o] > x2 && floats[o+4] > x2 && floats[o+8] > x2 && floats[o+12] > x2) {
-                return false
-            }
-
-            const y1 = this._scissor[1]
-            if (floats[o+1] < y1 && floats[o+5] < y1 && floats[o+9] < y1 && floats[o+13] < y1) {
-                return false
-            }
-            const y2 = this._scissor[1] + this._scissor[3]
-            if (floats[o+1] > y2 && floats[o+5] > y2 && floats[o+9] > y2 && floats[o+13] > y2) {
-                return false
-            }
-        } else if (this._renderTextureInfo) {
-            if (floats[o] < 0 && floats[o+4] < 0 && floats[o+8] < 0 && floats[o+12] < 0) {
-                return false
-            }
-
-            if (floats[o] > this._renderTextureInfo.w && floats[o+4] > this._renderTextureInfo.w && floats[o+8] > this._renderTextureInfo.w && floats[o+12] > this._renderTextureInfo.w) {
-                return false
-            }
-
-            if (floats[o+1] < 0 && floats[o+5] < 0 && floats[o+9] < 0 && floats[o+13] < 0) {
-                return false
-            }
-
-            if (floats[o+1] > this._renderTextureInfo.h && floats[o+5] > this._renderTextureInfo.h && floats[o+9] > this._renderTextureInfo.h && floats[o+13] > this._renderTextureInfo.h) {
-                return false
-            }
-        } else {
-            if (floats[o] < 0 && floats[o+4] < 0 && floats[o+8] < 0 && floats[o+12] < 0) {
-                return false
-            }
-
-            if (floats[o] > this._w && floats[o+4] > this._w && floats[o+8] > this._w && floats[o+12] > this._w) {
-                return false
-            }
-
-            if (floats[o+1] < 0 && floats[o+5] < 0 && floats[o+9] < 0 && floats[o+13] < 0) {
-                return false
-            }
-
-            if (floats[o+1] > this._h && floats[o+5] > this._h && floats[o+9] > this._h && floats[o+13] > this._h) {
-                return false
-            }
-
-        }
-
-        return true
-    }
-
     addQuad(viewCore) {
         if (!this._quadOperation) {
             this._createQuadOperation()
@@ -245,7 +115,7 @@ class CoreRenderState {
             glTexture = viewCore._displayedTextureSource.glTexture
         }
 
-        let offset = this.getQuadOffset()
+        let offset = this.length * 64 + 64 // Skip the identity filter quad.
 
         if (this._renderTextureInfo) {
             if (this._shader === this.defaultShader && this._renderTextureInfo.empty && (this._renderTextureInfo.w === glTexture.w && this._renderTextureInfo.h === glTexture.h)) {

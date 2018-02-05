@@ -46,12 +46,6 @@ var start = function(wpe) {
             }
         })
 
-        const trans = stage.root.tag("Rect").transition('w', {duration: 10})
-        trans.start(400)
-        setTimeout(() => {
-            trans.reset(200, 1)
-        }, 4000)
-
         let str = stage.root.toString()
         console.log(str)
     }

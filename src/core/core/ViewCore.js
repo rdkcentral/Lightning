@@ -89,7 +89,13 @@ class ViewCore {
 
         this._useRenderToTexture = false
 
+        this._outOfBounds = 0
+
         this._scissor = undefined
+
+        this._viewport = undefined
+
+        this._clipbox = false
 
         this.render = this._renderSimple
     }
@@ -114,8 +120,6 @@ class ViewCore {
      *   1: alpha
      *   2: translate
      *   4: transform
-     *  64: temporary flag (used in update function when using the flag)
-     * 128: becomes visible
      */
     _setRecalc(type) {
         this._recalc |= type;
@@ -235,12 +239,7 @@ class ViewCore {
     }
 
     setLocalAlpha(a) {
-        if (!this._worldContext.alpha && ((this._parent && this._parent._worldContext.alpha) && a)) {
-            // View is becoming visible.
-            this._setRecalc(1 + 128);
-        } else {
-            this._setRecalc(1);
-        }
+        this._setRecalc(1);
 
         if (a < 1e-14) {
             // Tiny rounding errors may cause failing visibility tests.
@@ -288,6 +287,10 @@ class ViewCore {
         this._isRoot = true
 
         this.ctx.root = this
+
+        // Set scissor area of 'fake parent' to stage's viewport.
+        this._parent._viewport = [0, 0, this.ctx.stage.rw, this.ctx.stage.rh]
+        this._parent._scissor = this._parent._viewport
     };
 
     isAncestorOf(c) {
@@ -558,6 +561,17 @@ class ViewCore {
         }
     }
 
+    get clipbox() {
+        return this._clipbox
+    }
+
+    set clipbox(v) {
+        // In case of out-of-bounds view, all children will also be ignored.
+        // It will save us from executing the update/render loops for those.
+        // The optimization will be used immediately during the next frame.
+        this._clipbox = v
+    }
+
     _setShaderOwnerRecursive(viewCore) {
         this._shaderOwner = viewCore;
 
@@ -818,9 +832,6 @@ class ViewCore {
 
             this._updateTreeOrder = this.ctx.updateTreeOrder++;
 
-            this._recalc = (this._recalc & 135);
-            /* 1+2+4+128 */
-
             // Determine whether we must use a 'renderTexture'.
             this._useRenderToTexture = this._renderToTextureEnabled && this._texturizer.mustRenderToTexture()
 
@@ -832,8 +843,8 @@ class ViewCore {
                 const w = this._renderContext.ta * this._rw
                 const h = this._renderContext.td * this._rh
 
-                // If the parent renders to a texture, parent scissor is undefined.
-                const area = this._parent._useRenderToTexture ? undefined : this._parent._scissor
+                // If the parent renders to a texture, it's scissor should be ignored
+                const area = this._parent._useRenderToTexture ? this._parent._viewport : this._parent._scissor
                 if (area) {
                     // Merge scissor areas.
                     let sx = Math.max(area[0], x)
@@ -841,50 +852,99 @@ class ViewCore {
                     let ex = Math.min(area[0] + area[2], x + w)
                     let ey = Math.min(area[1] + area[3], y + h)
                     this._scissor = [sx, sy, ex - sx, ey - sy]
-
-                    // Optimization: if scissor area is empty: worldAlpha is set to 0 to prevent rendering the
-                    // full branch.
-                    if (this._scissor[2] <= 0 || this._scissor[3] <= 0) {
-                        this._renderContext.alpha = 0
-                        // Enable the recalc alpha flag.
-                        this._recalc |= 64
-                    }
                 } else {
                     this._scissor = [x, y, w, h]
                 }
             } else {
                 // No clipping: reuse parent scissor.
-                this._scissor = this._parent._useRenderToTexture ? undefined : this._parent._scissor
+                this._scissor = this._parent._useRenderToTexture ? this._parent._viewport : this._parent._scissor
             }
 
-            let r
-            if (this._useRenderToTexture) {
-                r = this._renderContext
+            const r = this._renderContext
 
-                if (this._worldContext.isIdentity()) {
-                    // Optimization.
-                    // The world context is already identity: use the world context as render context to prevents the
-                    // ancestors from having to update the render context.
-                    this._renderContext = this._worldContext
+            if (recalc & 6) {
+                // Recheck if view is out-of-bounds (all settings that affect this should enable recalc bit 2 or 4).
+                this._outOfBounds = 0
+                if (this._scissor && (this._scissor[2] <= 0 || this._scissor[3] <= 0)) {
+                    // Empty scissor area.
+                    this._outOfBounds = 2
                 } else {
-                    // Temporarily replace the render coord attribs by the identity matrix.
-                    // This allows the children to calculate the render context.
-                    this._renderContext = ViewCoreContext.IDENTITY
-                }
-            }
-
-            if (this._children) {
-                for (let i = 0, n = this._children.length; i < n; i++) {
-                    this._children[i].update();
+                    if (this._isComplex) {
+                        if ((Math.max(0, this._rw * r.ta, this._rw * r.ta + this._rh * r.tb, this._rh * r.tb) < this._scissor[0] - r.px) ||
+                            (Math.max(0, this._rw * r.tc, this._rw * r.tc + this._rh * r.td, this._rh * r.td) < this._scissor[1] - r.py) ||
+                            (Math.min(0, this._rw * r.ta, this._rw * r.ta + this._rh * r.tb, this._rh * r.tb) > this._scissor[0] + this._scissor[2] - r.px) ||
+                            (Math.min(0, this._rw * r.tc, this._rw * r.tc + this._rh * r.td, this._rh * r.td) > this._scissor[1] + this._scissor[3] - r.py)) {
+                            this._outOfBounds = 1
+                        }
+                    } else {
+                        const sx = r.px + r.ta * this._rw
+                        const sy = r.py + r.td * this._rh
+                        if ((r.px < this._scissor[0] && sx < this._scissor[0]) ||
+                            (r.py < this._scissor[1] && sy < this._scissor[1]) ||
+                            ((r.px > (this._scissor[0] + this._scissor[2])) && (sx > (this._scissor[0] + this._scissor[2]))) ||
+                            ((r.py > (this._scissor[1] + this._scissor[3])) && (sy > (this._scissor[1] + this._scissor[3])))) {
+                            this._outOfBounds = 1
+                        }
+                    }
+                    if (this._outOfBounds) {
+                        if (this._clipping || this._useRenderToTexture || this._clipbox) {
+                            this._outOfBounds = 2
+                        }
+                    }
                 }
             }
 
             if (this._useRenderToTexture) {
-                this._renderContext = r
+                // Set viewport necessary for children scissor calculation.
+                if (this._viewport) {
+                    this._viewport[2] = this._rw
+                    this._viewport[3] = this._rh
+                } else {
+                    this._viewport = [0, 0, this._rw, this._rh]
+                }
             }
 
-            // Update alpha next time if clipping optimization works.
-            this._recalc = ((this._recalc & 64) ? 1 : 0)
+            // Filter out bits that should not be copied to the children (currently all are).
+            this._recalc = (this._recalc & 7);
+
+            if (this._outOfBounds < 2) {
+                // Do not update children if parent is out of bounds.
+
+                if (this._useRenderToTexture) {
+                    if (this._worldContext.isIdentity()) {
+                        // Optimization.
+                        // The world context is already identity: use the world context as render context to prevents the
+                        // ancestors from having to update the render context.
+                        this._renderContext = this._worldContext
+                    } else {
+                        // Temporarily replace the render coord attribs by the identity matrix.
+                        // This allows the children to calculate the render context.
+                        this._renderContext = ViewCoreContext.IDENTITY
+                    }
+                }
+
+                if (this._children) {
+                    for (let i = 0, n = this._children.length; i < n; i++) {
+                        this._children[i].update();
+                    }
+                }
+
+                if (this._useRenderToTexture) {
+                    this._renderContext = r
+                }
+            } else {
+                if (this._children) {
+                    for (let i = 0, n = this._children.length; i < n; i++) {
+                        // Make sure we don't lose the 'inherited' updates.
+                        this._children[i]._recalc |= this._recalc
+                    }
+
+                    // Propagate outOfBounds flag to descendants (necessary because of z-indexing).
+                    this.updateOutOfBounds()
+                }
+            }
+
+            this._recalc = 0
 
             this._hasUpdates = false;
 
@@ -894,6 +954,15 @@ class ViewCore {
         } else if (this.ctx.updateTreeOrderForceUpdate > 0) {
             // Branch is invisible, but still we want to update the tree order.
             this.updateTreeOrder();
+        }
+    }
+
+    updateOutOfBounds() {
+        this._outOfBounds = 2
+        if (this._children) {
+            for (let i = 0, n = this._children.length; i < n; i++) {
+                this._children[i].updateOutOfBounds();
+            }
         }
     }
 
@@ -931,14 +1000,12 @@ class ViewCore {
             this._zSort = false;
         }
 
-        if (this._renderContext.alpha) {
+        if (this._outOfBounds < 2 && this._renderContext.alpha) {
             let renderState = this.renderState;
 
-            renderState.setShader(this.activeShader, this._shaderOwner);
-
-            renderState.setScissor(this._scissor)
-
-            if (this._displayedTextureSource) {
+            if ((this._outOfBounds === 0) && this._displayedTextureSource) {
+                renderState.setShader(this.activeShader, this._shaderOwner);
+                renderState.setScissor(this._scissor)
                 this.addQuads()
             }
 
@@ -968,7 +1035,7 @@ class ViewCore {
             this._zSort = false;
         }
 
-        if (this._renderContext.alpha) {
+        if (this._outOfBounds < 2 && this._renderContext.alpha) {
             let renderState = this.renderState;
 
             let mustRenderChildren = true
@@ -1013,7 +1080,7 @@ class ViewCore {
                     mustRenderChildren = false;
                 }
             } else {
-                if (this._displayedTextureSource) {
+                if ((this._outOfBounds === 0) && this._displayedTextureSource) {
                     renderState.setShader(this.activeShader, this._shaderOwner);
                     renderState.setScissor(this._scissor)
                     this.addQuads()
@@ -1206,7 +1273,7 @@ class ViewCore {
         let uints = this.renderState.quads.uints;
 
         if (r.tb !== 0 || r.tc !== 0) {
-            let offset = this.renderState.getQuadOffset() / 4;
+            let offset = this.renderState.addQuad(this) / 4;
             floats[offset++] = r.px;
             floats[offset++] = r.py;
             uints[offset++] = this._txCoordsUl; // Texture.
@@ -1223,15 +1290,12 @@ class ViewCore {
             floats[offset++] = r.py + this._rh * r.td;
             uints[offset++] = this._txCoordsBl;
             uints[offset] = getColorInt(this._colorBl, r.alpha);
-            if (this.renderState.quadInVisibleBoundsComplex()) {
-                this.renderState.addQuad(this);
-            }
         } else {
             // Simple.
             let cx = r.px + this._rw * r.ta;
             let cy = r.py + this._rh * r.td;
 
-            let offset = this.renderState.getQuadOffset() / 4;
+            let offset = this.renderState.addQuad(this) / 4;
             floats[offset++] = r.px;
             floats[offset++] = r.py
             uints[offset++] = this._txCoordsUl; // Texture.
@@ -1248,10 +1312,6 @@ class ViewCore {
             floats[offset++] = cy;
             uints[offset++] = this._txCoordsBl;
             uints[offset] = getColorInt(this._colorBl, r.alpha);
-
-            if (this.renderState.quadInVisibleBoundsSimple()) {
-                this.renderState.addQuad(this);
-            }
         }
     };
 
