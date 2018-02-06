@@ -229,12 +229,13 @@ class ObjectList {
                 if (cref) {
                     if (!refs) refs = this._getRefs()
                     c = refs[cref]
-                    c.marker = false
                 }
 
                 if (!c) {
                     // Create new item.
                     c = this.createItem(s)
+                } else {
+                    c.marker = false
                 }
 
                 c.patch(s)
