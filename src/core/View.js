@@ -1262,6 +1262,9 @@ class View extends EventEmitter {
 
     set boundsVisibility(v) {
         this._core.boundsVisibility = v
+
+        // Initially set visibility to false until detected otherwise, to prevent texture loading.
+        this.visible = false
     }
 
     get boundsVisibility() {

@@ -43,15 +43,12 @@ class CoreContext {
         }
 
         this.visit()
-
-        this.boundsChanged = []
         this.update()
-        if (this.boundsChanged.length) {
-            for (let i = 0, n = this.boundsChanged.length; i < n; i++) {
-                this.boundsChanged[i].view.visible = (this.boundsChanged[i]._outOfBounds === 0)
-            }
 
-            // This may trigger texture loading and other changes. Re-process the updates.
+        // Due to the boundsVisibility flag feature, it is possible that other views were changed during the update
+        // loop (for example due to the txLoaded event). We process these changes immediately (but not recursively
+        // to prevent infinite loops).
+        if (this.root._hasUpdates) {
             this.update()
         }
 

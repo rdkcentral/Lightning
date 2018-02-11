@@ -4248,6 +4248,9 @@ class View extends EventEmitter {
 
     set boundsVisibility(v) {
         this._core.boundsVisibility = v
+
+        // Initially set visibility to false until detected otherwise, to prevent texture loading.
+        this.visible = false
     }
 
     get boundsVisibility() {
@@ -5215,12 +5218,13 @@ class ObjectList {
                 if (cref) {
                     if (!refs) refs = this._getRefs()
                     c = refs[cref]
-                    c.marker = false
                 }
 
                 if (!c) {
                     // Create new item.
                     c = this.createItem(s)
+                } else {
+                    c.marker = false
                 }
 
                 c.patch(s)
@@ -5609,6 +5613,8 @@ class ViewCore {
 
         this._recalc = 0;
 
+        this._pRecalc = 0;
+
         this._updateTreeOrder = 0;
 
         this._worldContext = new ViewCoreContext()
@@ -5676,8 +5682,6 @@ class ViewCore {
         this._useRenderToTexture = false
 
         this._outOfBounds = 0
-
-        this._prevOutOfBounds = -1
 
         this._boundsVisibility = false
 
@@ -6343,7 +6347,7 @@ class ViewCore {
     }
 
     update() {
-        this._recalc |= this._parent._recalc
+        this._recalc |= this._parent._pRecalc
 
         const pw = this._parent._worldContext
         let w = this._worldContext
@@ -6510,9 +6514,25 @@ class ViewCore {
                         }
                     }
                 }
-                if (this._boundsVisibility && this._prevOutOfBounds !== this._outOfBounds) {
-                    this.ctx.boundsChanged.push(this)
-                    this._prevOutOfBounds = this._outOfBounds
+                if (this._boundsVisibility && (this.view.visible !== (this._outOfBounds === 0))) {
+                    this.view.visible = (this._outOfBounds === 0)
+
+                    // Bounds have changed: update view visibility.
+                    // This may update things (txLoaded events) in the view itself, but also in descendants and ancestors.
+
+                    // Changes in ancestors should be executed during the next call of the stage update. But we must
+                    // take care that the _recalc and _hasUpdates flags are properly registered. That's why we clear
+                    // both before entering the children, and use _pRecalc to transfer inherited updates instead of
+                    // _recalc directly.
+
+                    // Changes in descendants are automatically executed within the current update loop, though we must
+                    // take care to not update the hasUpdates flag unnecessarily in ancestors. We achieve this by making
+                    // sure that the hasUpdates flag of this view is turned on, which blocks it for ancestors.
+                    this._hasUpdates = true
+
+                    // This view needs to be re-updated now, because we want the alpha to be updated so that the
+                    // children may be updated, and hierarchical 'out of bounds' updates are possible.
+                    return this.update()
                 }
             }
 
@@ -6527,7 +6547,11 @@ class ViewCore {
             }
 
             // Filter out bits that should not be copied to the children (currently all are).
-            this._recalc = (this._recalc & 135);
+            this._pRecalc = (this._recalc & 135);
+
+            // Clear flags so that future updates are properly detected.
+            this._recalc = 0
+            this._hasUpdates = false;
 
             if (this._outOfBounds < 2) {
                 // Do not update children if parent is out of bounds.
@@ -6558,17 +6582,13 @@ class ViewCore {
                 if (this._children) {
                     for (let i = 0, n = this._children.length; i < n; i++) {
                         // Make sure we don't lose the 'inherited' updates.
-                        this._children[i]._recalc |= this._recalc
+                        this._children[i]._recalc |= this._pRecalc
                     }
 
                     // Propagate outOfBounds flag to descendants (necessary because of z-indexing).
                     this.updateOutOfBounds()
                 }
             }
-
-            this._recalc = 0
-
-            this._hasUpdates = false;
 
             if (this._zSort) {
                 this.ctx.updateTreeOrderForceUpdate--;
@@ -7094,15 +7114,12 @@ class CoreContext {
         }
 
         this.visit()
-
-        this.boundsChanged = []
         this.update()
-        if (this.boundsChanged.length) {
-            for (let i = 0, n = this.boundsChanged.length; i < n; i++) {
-                this.boundsChanged[i].view.visible = (this.boundsChanged[i]._outOfBounds === 0)
-            }
 
-            // This may trigger texture loading and other changes. Re-process the updates.
+        // Due to the boundsVisibility flag feature, it is possible that other views were changed during the update
+        // loop (for example due to the txLoaded event). We process these changes immediately (but not recursively
+        // to prevent infinite loops).
+        if (this.root._hasUpdates) {
             this.update()
         }
 
@@ -7867,7 +7884,7 @@ class CoreRenderExecutor {
         let gl = this.gl
         if (!this._renderTexture) {
             let glClearColor = this.ctx.stage.options.glClearColor;
-            gl.clearColor(glClearColor[0], glClearColor[1], glClearColor[2], glClearColor[3]);
+            gl.clearColor(glClearColor[0] * glClearColor[3], glClearColor[1] * glClearColor[3], glClearColor[2] * glClearColor[3], glClearColor[3]);
             gl.clear(gl.COLOR_BUFFER_BIT);
         } else {
             // Clear texture.
