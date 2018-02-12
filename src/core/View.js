@@ -117,13 +117,6 @@ class View extends EventEmitter {
          */
         this._childList = null;
 
-        /**
-         * (Lazy-initialised) exposed (public) list of children for this view.
-         * This is normally the same as _childList except for complex views such as Lists.
-         * @type {ViewChildList}
-         */
-        this._exposedChildList = null;
-
     }
 
     set ref(ref) {
