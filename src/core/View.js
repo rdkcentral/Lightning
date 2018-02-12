@@ -1271,6 +1271,17 @@ class View extends EventEmitter {
         return this._core.boundsVisibility
     }
 
+    set boundsMargin(v) {
+        if (!Array.isArray(v) && v !== null && v !== undefined) {
+            throw new Error("boundsMargin should be an array of top-right-bottom-left values, null (no margin) or undefined (inherit margin)")
+        }
+        this._core.boundsMargin = v
+    }
+
+    get boundsMargin() {
+        return this._core.boundsMargin
+    }
+
     get x() {
         return this._x
     }
