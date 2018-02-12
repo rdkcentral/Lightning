@@ -1010,10 +1010,13 @@ class ViewCore {
     }
 
     updateOutOfBounds() {
-        this._outOfBounds = 2
-        if (this._children) {
-            for (let i = 0, n = this._children.length; i < n; i++) {
-                this._children[i].updateOutOfBounds();
+        if (this._renderContext.alpha > 0) {
+            // Invisible views are not drawn anyway. When alpha is updated, so will _outOfBounds.
+            this._outOfBounds = 2
+            if (this._children) {
+                for (let i = 0, n = this._children.length; i < n; i++) {
+                    this._children[i].updateOutOfBounds();
+                }
             }
         }
     }
