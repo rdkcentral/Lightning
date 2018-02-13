@@ -638,6 +638,19 @@ var attachInspector = function(wpe) {
             }
         });
 
+        ViewCore.prototype.__withinBoundsMargin = false;
+        Object.defineProperty(ViewCore.prototype, '_withinBoundsMargin', {
+            get: function() {
+                return this.__withinBoundsMargin;
+            },
+            set: function(v) {
+                if (this.__withinBoundsMargin !== v) {
+                    val(this, 'withinBoundsMargin', v, false);
+                    this.__withinBoundsMargin = v;
+                }
+            }
+        });
+
         ViewCore.prototype.__colorUl = 0xFFFFFFFF;
         Object.defineProperty(ViewCore.prototype, '_colorUl', {
             get: function() {
