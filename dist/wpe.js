@@ -5622,7 +5622,7 @@ class ViewCore {
 
         this._parent = null;
 
-        this._hasUpdates = 0;
+        this._hasUpdates = false
 
         this._hasRenderUpdates = 0;
 
@@ -5743,15 +5743,14 @@ class ViewCore {
     _setRecalc(type) {
         this._recalc |= type;
 
-        if (this._hasUpdates !== 2) {
-            let p = this;
-            do {
-                p._hasUpdates = 1;
-            } while ((p = p._parent) && !p._hasUpdates);
-
-            // Any changes in descendants should trigger texture updates.
-            if (this._parent) this._parent.setHasRenderUpdates(3);
+        let p = this
+        while(p && !p._hasUpdates) {
+            p._hasUpdates = true
+            p = p._parent
         }
+
+        // Any changes in descendants should trigger texture updates.
+        if (this._parent) this._parent.setHasRenderUpdates(3);
     }
 
     setParent(parent) {
@@ -6621,7 +6620,7 @@ class ViewCore {
                     // Changes in descendants are automatically executed within the current update loop, though we must
                     // take care to not update the hasUpdates flag unnecessarily in ancestors. We achieve this by making
                     // sure that the hasUpdates flag of this view is turned on, which blocks it for ancestors.
-                    this._hasUpdates = 2
+                    this._hasUpdates = true
 
                     this.view._updateWithinBoundsMargin()
 
@@ -6646,7 +6645,7 @@ class ViewCore {
 
             // Clear flags so that future updates are properly detected.
             this._recalc = 0
-            this._hasUpdates = 0;
+            this._hasUpdates = false;
 
             if (this._outOfBounds < 2) {
                 // Do not update children if parent is out of bounds.
