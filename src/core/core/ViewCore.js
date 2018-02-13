@@ -13,7 +13,7 @@ class ViewCore {
 
         this._parent = null;
 
-        this._hasUpdates = false;
+        this._hasUpdates = 0;
 
         this._hasRenderUpdates = 0;
 
@@ -134,13 +134,15 @@ class ViewCore {
     _setRecalc(type) {
         this._recalc |= type;
 
-        let p = this;
-        do {
-            p._hasUpdates = true;
-        } while ((p = p._parent) && !p._hasUpdates);
+        if (this._hasUpdates !== 2) {
+            let p = this;
+            do {
+                p._hasUpdates = 1;
+            } while ((p = p._parent) && !p._hasUpdates);
 
-        // Any changes in descendants should trigger texture updates.
-        if (this._parent) this._parent.setHasRenderUpdates(3);
+            // Any changes in descendants should trigger texture updates.
+            if (this._parent) this._parent.setHasRenderUpdates(3);
+        }
     }
 
     setParent(parent) {
@@ -920,7 +922,7 @@ class ViewCore {
             const r = this._renderContext
 
             if (recalc & 6) {
-                // In case of unknown/unspecified width/height, we test for infinity in order to not to-be-loaded 
+                // In case of unknown/unspecified width/height, we test for infinity in order to not to-be-loaded
                 // textures with unspecified dimensions.
                 const rw = this._rw || Number.POSITIVE_INFINITY
                 const rh = this._rh || Number.POSITIVE_INFINITY
@@ -1001,7 +1003,6 @@ class ViewCore {
                     this._withinBoundsMargin = withinMargin
 
                     // This may update things (txLoaded events) in the view itself, but also in descendants and ancestors.
-                    this.view._updateWithinBoundsMargin()
 
                     // Changes in ancestors should be executed during the next call of the stage update. But we must
                     // take care that the _recalc and _hasUpdates flags are properly registered. That's why we clear
@@ -1011,7 +1012,9 @@ class ViewCore {
                     // Changes in descendants are automatically executed within the current update loop, though we must
                     // take care to not update the hasUpdates flag unnecessarily in ancestors. We achieve this by making
                     // sure that the hasUpdates flag of this view is turned on, which blocks it for ancestors.
-                    this._hasUpdates = true
+                    this._hasUpdates = 2
+
+                    this.view._updateWithinBoundsMargin()
 
                     // This view needs to be re-updated now, because we want the alpha to be updated so that the
                     // children may be updated, and hierarchical 'out of bounds' updates are possible.
@@ -1034,7 +1037,7 @@ class ViewCore {
 
             // Clear flags so that future updates are properly detected.
             this._recalc = 0
-            this._hasUpdates = false;
+            this._hasUpdates = 0;
 
             if (this._outOfBounds < 2) {
                 // Do not update children if parent is out of bounds.
@@ -1064,12 +1067,14 @@ class ViewCore {
             } else {
                 if (this._children) {
                     for (let i = 0, n = this._children.length; i < n; i++) {
-                        // Make sure we don't lose the 'inherited' updates.
-                        this._children[i]._recalc |= this._pRecalc
+                        if (this._children[i]._hasUpdates) {
+                            this._children[i].update()
+                        } else {
+                            // Make sure we don't lose the 'inherited' updates.
+                            this._children[i]._recalc |= this._pRecalc
+                            this._children[i].updateOutOfBounds()
+                        }
                     }
-
-                    // Propagate outOfBounds flag to descendants (necessary because of z-indexing).
-                    this.updateOutOfBounds()
                 }
             }
 
@@ -1083,7 +1088,8 @@ class ViewCore {
     }
 
     updateOutOfBounds() {
-        if (this._renderContext.alpha > 0) {
+        // Propagate outOfBounds flag to descendants (necessary because of z-indexing).
+        if (this._outOfBounds !== 2 && this._renderContext.alpha > 0) {
             // Invisible views are not drawn anyway. When alpha is updated, so will _outOfBounds.
             this._outOfBounds = 2
             if (this._children) {
