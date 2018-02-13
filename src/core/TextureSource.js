@@ -20,7 +20,7 @@ class TextureSource {
         this.loadCb = loadCb;
 
         /**
-         * All active views that are using this texture source via a texture (either as texture or displayedTexture, or both).
+         * All active (and within bounds) views that are using this texture source via a texture (either as texture or displayedTexture, or both).
          * @type {Set<View>}
          */
         this.views = new Set();

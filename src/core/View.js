@@ -271,32 +271,13 @@ class View extends EventEmitter {
     };
 
     _setActiveFlag() {
-        // Detect texture changes.
-        let dt = null;
-        if (this._texture && this._texture.source.glTexture) {
-            dt = this._texture;
-            this._texture.source.addView(this);
-        } else if (this._displayedTexture && this._displayedTexture.source.glTexture) {
-            dt = this._displayedTexture;
-        }
-
-        // We must force because the texture source may have been replaced while being invisible.
-        this._setDisplayedTexture(dt, true)
-
         // Force re-check of texture because dimensions might have changed (cutting).
         this._updateDimensions();
         this._updateTextureCoords();
 
         this._active = true;
 
-        if (this._texture) {
-            // It is important to add the source listener before the texture listener because that may trigger a load.
-            this._texture.source.addView(this);
-        }
-
-        if (this._displayedTexture && this._displayedTexture !== this._texture) {
-            this._displayedTexture.source.addView(this);
-        }
+        this._updateActiveTexture()
 
         if (this._core.shader) {
             this._core.shader.addView(this._core);
@@ -309,13 +290,7 @@ class View extends EventEmitter {
     }
 
     _unsetActiveFlag() {
-        if (this._texture) {
-            this._texture.source.removeView(this);
-        }
-
-        if (this._displayedTexture) {
-            this._displayedTexture.source.removeView(this);
-        }
+        this._disableTexture()
 
         if (this._hasTexturizer()) {
             this.texturizer.deactivate();
@@ -402,10 +377,6 @@ class View extends EventEmitter {
         }
     }
 
-    get texture() {
-        return this._texture;
-    }
-
     textureIsLoaded() {
         return this.texture ? !!this.texture.source.glTexture : false;
     }
@@ -414,6 +385,53 @@ class View extends EventEmitter {
         if (this.texture) {
             this.texture.source.load(sync);
         }
+    }
+
+    _shouldLoadTexture() {
+        return this._active && this.withinBoundsMargin
+    }
+
+    _updateActiveTexture() {
+        if (this._shouldLoadTexture()) {
+            this._enableTexture()
+        } else {
+            this._disableTexture()
+        }
+    }
+
+    _enableTexture() {
+        // Detect texture changes.
+        let dt = null;
+        if (this._texture && this._texture.source.glTexture) {
+            dt = this._texture;
+        } else if (this._displayedTexture && this._displayedTexture.source.glTexture) {
+            dt = this._displayedTexture;
+        }
+
+        // We must force because the texture source may have been replaced while being invisible.
+        this._setDisplayedTexture(dt, true)
+
+        if (this._texture) {
+            this._texture.source.addView(this);
+        }
+
+        if (this._displayedTexture && this._displayedTexture !== this._texture) {
+            this._displayedTexture.source.addView(this);
+        }
+    }
+
+    _disableTexture() {
+        if (this._texture) {
+            this._texture.source.removeView(this);
+        }
+
+        if (this._displayedTexture) {
+            this._displayedTexture.source.removeView(this);
+        }
+    }
+
+    get texture() {
+        return this._texture;
     }
 
     set texture(v) {
@@ -439,7 +457,7 @@ class View extends EventEmitter {
 
             this._texture = v;
 
-            if (this._active && prevValue && this.displayedTexture !== prevValue) {
+            if (this._shouldLoadTexture() && prevValue && this.displayedTexture !== prevValue) {
                 // Keep reference to view for texture source
                 if ((!v || prevValue.source !== v.source) && (!this.displayedTexture || (this.displayedTexture.source !== prevValue.source))) {
                     prevValue.source.removeView(this);
@@ -447,7 +465,7 @@ class View extends EventEmitter {
             }
 
             if (v) {
-                if (this._active) {
+                if (this._shouldLoadTexture()) {
                     // When the texture is changed, maintain the texture's sprite registry.
                     // While the displayed texture is different from the texture (not yet loaded), two textures are referenced.
                     v.source.addView(this);
@@ -474,7 +492,7 @@ class View extends EventEmitter {
     _setDisplayedTexture(v, force = false) {
         let prevValue = this._displayedTexture;
         if (v !== prevValue || force || (v && prevValue && v.source !== prevValue.source)) {
-            if (this._active && prevValue) {
+            if (this._shouldLoadTexture() && prevValue) {
                 // We can assume that this._texture === this._displayedTexture.
 
                 if (prevValue !== this._texture) {
@@ -1253,15 +1271,12 @@ class View extends EventEmitter {
         return this._core.outOfBounds
     }
 
-    set boundsVisibility(v) {
-        this._core.boundsVisibility = v
-
-        // Initially set visibility to false until detected otherwise, to prevent texture loading.
-        this.visible = false
+    get withinBoundsMargin() {
+        return this._core._withinBoundsMargin
     }
 
-    get boundsVisibility() {
-        return this._core.boundsVisibility
+    _updateWithinBoundsMargin() {
+        this._updateActiveTexture()
     }
 
     set boundsMargin(v) {

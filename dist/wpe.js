@@ -2106,7 +2106,7 @@ class TextureSource {
         this.loadCb = loadCb;
 
         /**
-         * All active views that are using this texture source via a texture (either as texture or displayedTexture, or both).
+         * All active (and within bounds) views that are using this texture source via a texture (either as texture or displayedTexture, or both).
          * @type {Set<View>}
          */
         this.views = new Set();
@@ -3103,13 +3103,6 @@ class View extends EventEmitter {
          */
         this._childList = null;
 
-        /**
-         * (Lazy-initialised) exposed (public) list of children for this view.
-         * This is normally the same as _childList except for complex views such as Lists.
-         * @type {ViewChildList}
-         */
-        this._exposedChildList = null;
-
     }
 
     set ref(ref) {
@@ -3264,32 +3257,13 @@ class View extends EventEmitter {
     };
 
     _setActiveFlag() {
-        // Detect texture changes.
-        let dt = null;
-        if (this._texture && this._texture.source.glTexture) {
-            dt = this._texture;
-            this._texture.source.addView(this);
-        } else if (this._displayedTexture && this._displayedTexture.source.glTexture) {
-            dt = this._displayedTexture;
-        }
-
-        // We must force because the texture source may have been replaced while being invisible.
-        this._setDisplayedTexture(dt, true)
-
         // Force re-check of texture because dimensions might have changed (cutting).
         this._updateDimensions();
         this._updateTextureCoords();
 
         this._active = true;
 
-        if (this._texture) {
-            // It is important to add the source listener before the texture listener because that may trigger a load.
-            this._texture.source.addView(this);
-        }
-
-        if (this._displayedTexture && this._displayedTexture !== this._texture) {
-            this._displayedTexture.source.addView(this);
-        }
+        this._updateActiveTexture()
 
         if (this._core.shader) {
             this._core.shader.addView(this._core);
@@ -3302,13 +3276,7 @@ class View extends EventEmitter {
     }
 
     _unsetActiveFlag() {
-        if (this._texture) {
-            this._texture.source.removeView(this);
-        }
-
-        if (this._displayedTexture) {
-            this._displayedTexture.source.removeView(this);
-        }
+        this._disableTexture()
 
         if (this._hasTexturizer()) {
             this.texturizer.deactivate();
@@ -3395,10 +3363,6 @@ class View extends EventEmitter {
         }
     }
 
-    get texture() {
-        return this._texture;
-    }
-
     textureIsLoaded() {
         return this.texture ? !!this.texture.source.glTexture : false;
     }
@@ -3407,6 +3371,53 @@ class View extends EventEmitter {
         if (this.texture) {
             this.texture.source.load(sync);
         }
+    }
+
+    _shouldLoadTexture() {
+        return this._active && this.withinBoundsMargin
+    }
+
+    _updateActiveTexture() {
+        if (this._shouldLoadTexture()) {
+            this._enableTexture()
+        } else {
+            this._disableTexture()
+        }
+    }
+
+    _enableTexture() {
+        // Detect texture changes.
+        let dt = null;
+        if (this._texture && this._texture.source.glTexture) {
+            dt = this._texture;
+        } else if (this._displayedTexture && this._displayedTexture.source.glTexture) {
+            dt = this._displayedTexture;
+        }
+
+        // We must force because the texture source may have been replaced while being invisible.
+        this._setDisplayedTexture(dt, true)
+
+        if (this._texture) {
+            this._texture.source.addView(this);
+        }
+
+        if (this._displayedTexture && this._displayedTexture !== this._texture) {
+            this._displayedTexture.source.addView(this);
+        }
+    }
+
+    _disableTexture() {
+        if (this._texture) {
+            this._texture.source.removeView(this);
+        }
+
+        if (this._displayedTexture) {
+            this._displayedTexture.source.removeView(this);
+        }
+    }
+
+    get texture() {
+        return this._texture;
     }
 
     set texture(v) {
@@ -3432,7 +3443,7 @@ class View extends EventEmitter {
 
             this._texture = v;
 
-            if (this._active && prevValue && this.displayedTexture !== prevValue) {
+            if (this._shouldLoadTexture() && prevValue && this.displayedTexture !== prevValue) {
                 // Keep reference to view for texture source
                 if ((!v || prevValue.source !== v.source) && (!this.displayedTexture || (this.displayedTexture.source !== prevValue.source))) {
                     prevValue.source.removeView(this);
@@ -3440,7 +3451,7 @@ class View extends EventEmitter {
             }
 
             if (v) {
-                if (this._active) {
+                if (this._shouldLoadTexture()) {
                     // When the texture is changed, maintain the texture's sprite registry.
                     // While the displayed texture is different from the texture (not yet loaded), two textures are referenced.
                     v.source.addView(this);
@@ -3467,7 +3478,7 @@ class View extends EventEmitter {
     _setDisplayedTexture(v, force = false) {
         let prevValue = this._displayedTexture;
         if (v !== prevValue || force || (v && prevValue && v.source !== prevValue.source)) {
-            if (this._active && prevValue) {
+            if (this._shouldLoadTexture() && prevValue) {
                 // We can assume that this._texture === this._displayedTexture.
 
                 if (prevValue !== this._texture) {
@@ -4246,15 +4257,12 @@ class View extends EventEmitter {
         return this._core.outOfBounds
     }
 
-    set boundsVisibility(v) {
-        this._core.boundsVisibility = v
-
-        // Initially set visibility to false until detected otherwise, to prevent texture loading.
-        this.visible = false
+    get withinBoundsMargin() {
+        return this._core._withinBoundsMargin
     }
 
-    get boundsVisibility() {
-        return this._core.boundsVisibility
+    _updateWithinBoundsMargin() {
+        this._updateActiveTexture()
     }
 
     set boundsMargin(v) {
@@ -5698,7 +5706,7 @@ class ViewCore {
 
         this._recBoundsMargin = undefined
 
-        this._boundsVisibility = false
+        this._withinBoundsMargin = false
 
         this._scissor = undefined
 
@@ -6358,16 +6366,6 @@ class ViewCore {
         return this._outOfBounds
     }
 
-    set boundsVisibility(v) {
-        this._boundsVisibility = v
-
-        // We automatically set visible to false because we don't want the texture to be automatically loaded before the first update.
-        this.visible = !this._boundsVisibility
-    }
-
-    /**
-     * Sets an additional margin for 'boundsVisibility' views (view is also visible when within margin).
-     */
     set boundsMargin(v) {
 
         /**
@@ -6397,9 +6395,8 @@ class ViewCore {
          * - branch contains updates (even when invisible because it may contain z-indexed descendants)
          * - there are (inherited) updates and this branch is visible
          * - this branch becomes invisible (descs may be z-indexed so we must update all alpha values)
-         * - the item has boundsVisibility turned on, and out-of-bounds might change due to new positioning
          */
-        if (this._hasUpdates || (this._recalc && visible) || (w.alpha && !visible) || (this._boundsVisibility && (this._recalc & 6))) {
+        if (this._hasUpdates || (this._recalc && visible) || (w.alpha && !visible)) {
             if (this._zSort) {
                 // Make sure that all descendants are updated so that the updateTreeOrder flags are correctly set.
                 this.ctx.updateTreeOrderForceUpdate++;
@@ -6532,6 +6529,11 @@ class ViewCore {
             const r = this._renderContext
 
             if (recalc & 6) {
+                // In case of unknown/unspecified width/height, we test for infinity in order to not to-be-loaded 
+                // textures with unspecified dimensions.
+                const rw = this._rw || Number.POSITIVE_INFINITY
+                const rh = this._rh || Number.POSITIVE_INFINITY
+
                 // Recheck if view is out-of-bounds (all settings that affect this should enable recalc bit 2 or 4).
                 let maxDistance = 0
                 this._outOfBounds = 0
@@ -6542,18 +6544,18 @@ class ViewCore {
                     if (this._isComplex) {
                         maxDistance = Math.max(
                             0,
-                            this._scissor[0] - (Math.max(0, this._rw * r.ta, this._rw * r.ta + this._rh * r.tb, this._rh * r.tb) + r.px),
-                            this._scissor[1] - (Math.max(0, this._rw * r.tc, this._rw * r.tc + this._rh * r.td, this._rh * r.td) + r.py),
-                            (Math.min(0, this._rw * r.ta, this._rw * r.ta + this._rh * r.tb, this._rh * r.tb) + r.px) - (this._scissor[0] + this._scissor[2]),
-                            (Math.min(0, this._rw * r.tc, this._rw * r.tc + this._rh * r.td, this._rh * r.td) + r.py) - (this._scissor[1] + this._scissor[3])
+                            this._scissor[0] - (Math.max(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) + r.px),
+                            this._scissor[1] - (Math.max(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) + r.py),
+                            (Math.min(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) + r.px) - (this._scissor[0] + this._scissor[2]),
+                            (Math.min(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) + r.py) - (this._scissor[1] + this._scissor[3])
                         )
 
                         if (maxDistance > 0) {
                             this._outOfBounds = 1
                         }
                     } else {
-                        const sx = r.px + r.ta * this._rw
-                        const sy = r.py + r.td * this._rh
+                        const sx = r.px + r.ta * rw
+                        const sy = r.py + r.td * rh
 
                         maxDistance = Math.max(
                             0,
@@ -6575,20 +6577,20 @@ class ViewCore {
                 }
 
                 let withinMargin = (this._outOfBounds === 0)
-                if (!withinMargin && this._recBoundsMargin && (this._outOfBounds === 2 || this._boundsVisibility)) {
+                if (!withinMargin && this._recBoundsMargin) {
                     // Start with a quick retest.
                     if (this._recBoundsMargin[0] > maxDistance || this._recBoundsMargin[1] > maxDistance || this._recBoundsMargin[2] > maxDistance || this._recBoundsMargin[3] > maxDistance) {
                         // Re-test, now with bounds.
                         if (this._isComplex) {
-                            if ((Math.max(0, this._rw * r.ta, this._rw * r.ta + this._rh * r.tb, this._rh * r.tb) < this._scissor[0] - r.px + this._recBoundsMargin[0]) ||
-                                (Math.max(0, this._rw * r.tc, this._rw * r.tc + this._rh * r.td, this._rh * r.td) < this._scissor[1] - r.py + this._recBoundsMargin[1]) ||
-                                (Math.min(0, this._rw * r.ta, this._rw * r.ta + this._rh * r.tb, this._rh * r.tb) > this._scissor[0] + this._scissor[2] - r.px - this._recBoundsMargin[2]) ||
-                                (Math.min(0, this._rw * r.tc, this._rw * r.tc + this._rh * r.td, this._rh * r.td) > this._scissor[1] + this._scissor[3] - r.py - this._recBoundsMargin[3])) {
+                            if ((Math.max(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) < this._scissor[0] - r.px + this._recBoundsMargin[0]) ||
+                                (Math.max(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) < this._scissor[1] - r.py + this._recBoundsMargin[1]) ||
+                                (Math.min(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) > this._scissor[0] + this._scissor[2] - r.px - this._recBoundsMargin[2]) ||
+                                (Math.min(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) > this._scissor[1] + this._scissor[3] - r.py - this._recBoundsMargin[3])) {
                                 withinMargin = true
                             }
                         } else {
-                            const sx = r.px + r.ta * this._rw
-                            const sy = r.py + r.td * this._rh
+                            const sx = r.px + r.ta * rw
+                            const sy = r.py + r.td * rh
                             if ((r.px < this._scissor[0] && sx < this._scissor[0] + this._recBoundsMargin[0]) ||
                                 (r.py < this._scissor[1] && sy < this._scissor[1] + this._recBoundsMargin[1]) ||
                                 ((r.px > (this._scissor[0] + this._scissor[2])) && (sx > (this._scissor[0] + this._scissor[2])) - this._recBoundsMargin[2]) ||
@@ -6604,27 +6606,25 @@ class ViewCore {
                     }
                 }
 
-                if (this._boundsVisibility) {
-                    if (this.view.visible !== withinMargin) {
-                        this.view.visible = withinMargin
+                if (this._withinBoundsMargin !== withinMargin) {
+                    this._withinBoundsMargin = withinMargin
 
-                        // Bounds have changed: update view visibility.
-                        // This may update things (txLoaded events) in the view itself, but also in descendants and ancestors.
+                    // This may update things (txLoaded events) in the view itself, but also in descendants and ancestors.
+                    this.view._updateWithinBoundsMargin()
 
-                        // Changes in ancestors should be executed during the next call of the stage update. But we must
-                        // take care that the _recalc and _hasUpdates flags are properly registered. That's why we clear
-                        // both before entering the children, and use _pRecalc to transfer inherited updates instead of
-                        // _recalc directly.
+                    // Changes in ancestors should be executed during the next call of the stage update. But we must
+                    // take care that the _recalc and _hasUpdates flags are properly registered. That's why we clear
+                    // both before entering the children, and use _pRecalc to transfer inherited updates instead of
+                    // _recalc directly.
 
-                        // Changes in descendants are automatically executed within the current update loop, though we must
-                        // take care to not update the hasUpdates flag unnecessarily in ancestors. We achieve this by making
-                        // sure that the hasUpdates flag of this view is turned on, which blocks it for ancestors.
-                        this._hasUpdates = true
+                    // Changes in descendants are automatically executed within the current update loop, though we must
+                    // take care to not update the hasUpdates flag unnecessarily in ancestors. We achieve this by making
+                    // sure that the hasUpdates flag of this view is turned on, which blocks it for ancestors.
+                    this._hasUpdates = true
 
-                        // This view needs to be re-updated now, because we want the alpha to be updated so that the
-                        // children may be updated, and hierarchical 'out of bounds' updates are possible.
-                        return this.update()
-                    }
+                    // This view needs to be re-updated now, because we want the alpha to be updated so that the
+                    // children may be updated, and hierarchical 'out of bounds' updates are possible.
+                    return this.update()
                 }
             }
 
