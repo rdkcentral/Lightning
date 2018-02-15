@@ -18,12 +18,6 @@ class ViewText {
     }
 
     updateTexture() {
-        if (this.settings.text == "") {
-            // Clear current displayed texture (when changing text back to empty).
-            this.view.texture = null;
-            return;
-        }
-
         if (this.updatingTexture) return;
 
         this.updatingTexture = true;

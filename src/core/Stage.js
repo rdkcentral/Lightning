@@ -237,6 +237,10 @@ class Stage extends EventEmitter {
      *     Clipping offset w.
      *   - h: number
      *     Clipping offset h.
+     *   - mw: number
+     *     Max width (for within bounds texture loading)
+     *   - mh: number
+     *     Max height (for within bounds texture loading)
      *   - precision: number
      *     Render precision (0.5 = fuzzy, 1 = normal, 2 = sharp even when scaled twice, etc.).
      * @returns {Texture}

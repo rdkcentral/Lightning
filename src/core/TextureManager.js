@@ -89,6 +89,11 @@ class TextureManager {
         texture.h = options && options.h || 0;
         texture.clipping = !!(texture.x || texture.y || texture.w || texture.h);
         texture.precision = options && options.precision || 1;
+
+        // Use 2048 as max texture size fallback.
+        textureSource.mw = options && options.mw || 2048
+        textureSource.mh = options && options.mh || 2048
+
         return texture;
     }
 
@@ -150,7 +155,7 @@ class TextureManager {
         let usedTextureMemoryBefore = this._usedTextureMemory;
         for (let i = 0, n = this._uploadedTextureSources.length; i < n; i++) {
             let ts = this._uploadedTextureSources[i];
-            if (!ts.permanent && (ts.views.size === 0)) {
+            if (ts.allowCleanup()) {
                 this.freeTextureSource(ts);
             } else {
                 remainingTextureSources.push(ts);

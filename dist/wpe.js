@@ -1188,6 +1188,10 @@ class Stage extends EventEmitter {
      *     Clipping offset w.
      *   - h: number
      *     Clipping offset h.
+     *   - mw: number
+     *     Max width (for within bounds texture loading)
+     *   - mh: number
+     *     Max height (for within bounds texture loading)
      *   - precision: number
      *     Render precision (0.5 = fuzzy, 1 = normal, 2 = sharp even when scaled twice, etc.).
      * @returns {Texture}
@@ -1804,6 +1808,11 @@ class TextureManager {
         texture.h = options && options.h || 0;
         texture.clipping = !!(texture.x || texture.y || texture.w || texture.h);
         texture.precision = options && options.precision || 1;
+
+        // Use 2048 as max texture size fallback.
+        textureSource.mw = options && options.mw || 2048
+        textureSource.mh = options && options.mh || 2048
+
         return texture;
     }
 
@@ -1865,7 +1874,7 @@ class TextureManager {
         let usedTextureMemoryBefore = this._usedTextureMemory;
         for (let i = 0, n = this._uploadedTextureSources.length; i < n; i++) {
             let ts = this._uploadedTextureSources[i];
-            if (!ts.permanent && (ts.views.size === 0)) {
+            if (ts.allowCleanup()) {
                 this.freeTextureSource(ts);
             } else {
                 remainingTextureSources.push(ts);
@@ -2074,6 +2083,14 @@ class Texture {
         this.updatePrecision();
     }}
 
+    getRenderWidth() {
+        return this._w || this.source.getRenderWidth()
+    }
+
+    getRenderHeight() {
+        return this._h || this.source.getRenderHeight()
+    }
+
     patch(settings) {
         Base.patchObject(this, settings)
     }
@@ -2106,10 +2123,16 @@ class TextureSource {
         this.loadCb = loadCb;
 
         /**
-         * All active (and within bounds) views that are using this texture source via a texture (either as texture or displayedTexture, or both).
+         * All active views that are using this texture source via a texture (either as texture or displayedTexture, or both).
          * @type {Set<View>}
          */
         this.views = new Set();
+
+        /**
+         * The number of active views that are 'within bounds'.
+         * @type {number}
+         */
+        this._withinBoundsCount = 0
 
         /**
          * Identifier for reuse.
@@ -2144,6 +2167,17 @@ class TextureSource {
         this.w = 0;
         this.h = 0;
 
+        /**
+         * Maximum width (used for determining when view that has texture is within bounds)
+         * We use the maximum texture size initially.
+         */
+        this._mw = 2048
+
+        /**
+         * Maximum height
+         */
+        this._mh = 2048
+
         this.glTexture = null;
 
         /**
@@ -2161,12 +2195,42 @@ class TextureSource {
 
     }
 
+    get mw() {
+        return this._mw
+    }
+
+    set mw(v) {
+        // In case multiple views set a mw, mh, we use the value which minimizes the chance of a load.
+        const prev = this._mw
+        this._mw = Math.min(this._mw, v)
+        if (prev !== this._mw) {
+            this.views.forEach((view) => {
+                view._updateDimensions()
+            })
+        }
+    }
+
+    get mh() {
+        return this._mh
+    }
+
+    set mh(v) {
+        const prev = this._mh
+        this._mh = Math.min(this._mh, v)
+        if (prev !== this._mh) {
+            this.views.forEach((view) => {
+                view._updateDimensions()
+            })
+        }
+    }
+
     getRenderWidth() {
-        return this.w;
+        // If dimensions are unknown (texture not yet loaded), use maximum width as a fallback as render width to allow proper bounds checking.
+        return this.w || this._mw;
     }
 
     getRenderHeight() {
-        return this.h;
+        return this.h || this._mh;
     }
 
     isLoadedByCore() {
@@ -2177,24 +2241,44 @@ class TextureSource {
         if (!this.views.has(v)) {
             this.views.add(v);
 
-            if (this.views.size === 1) {
-                if (this.lookupId) {
-                    if (!this.manager.textureSourceHashmap.has(this.lookupId)) {
-                        this.manager.textureSourceHashmap.set(this.lookupId, this);
-                    }
-                }
-
-                this.becomesVisible();
+            if (v.withinBoundsMargin) {
+                this.incWithinBoundsCount()
             }
-        }        
+        }
     }
     
     removeView(v) {
         if (this.views.delete(v)) {
-            if (!this.views.size) {
-                this.becomesInvisible();
+            if (v.withinBoundsMargin) {
+                this.decWithinBoundsCount()
             }
-        }        
+        }
+    }
+
+    incWithinBoundsCount() {
+        this._withinBoundsCount++
+
+        if (this._withinBoundsCount === 1) {
+            if (this.lookupId) {
+                if (!this.manager.textureSourceHashmap.has(this.lookupId)) {
+                    this.manager.textureSourceHashmap.set(this.lookupId, this);
+                }
+            }
+
+            this.becomesVisible();
+        }
+    }
+
+    decWithinBoundsCount() {
+        this._withinBoundsCount--
+
+        if (!this._withinBoundsCount) {
+            this.becomesInvisible();
+        }
+    }
+
+    allowCleanup() {
+        return !this.permanent && (this._withinBoundsCount === 0)
     }
 
     becomesVisible() {
@@ -2327,7 +2411,7 @@ class TextureSource {
         }
 
         if (!this.glTexture) {
-            this.views.forEach(view => {view.displayedTexture = null});
+            this.views.forEach(view => {view._setDisplayedTexture(null)});
         }
 
         this.views.forEach(view => view._updateDimensions());
@@ -3263,7 +3347,14 @@ class View extends EventEmitter {
 
         this._active = true;
 
-        this._updateActiveTexture()
+        if (this._texture) {
+            // It is important to add the source listener before the texture listener because that may trigger a load.
+            this._texture.source.addView(this)
+        }
+
+        if (this.withinBoundsMargin) {
+            this._enableTexture()
+        }
 
         if (this._core.shader) {
             this._core.shader.addView(this._core);
@@ -3276,6 +3367,10 @@ class View extends EventEmitter {
     }
 
     _unsetActiveFlag() {
+        if (this._texture) {
+            this._texture.source.removeView(this)
+        }
+
         this._disableTexture()
 
         if (this._hasTexturizer()) {
@@ -3323,11 +3418,11 @@ class View extends EventEmitter {
     _getRenderWidth() {
         if (this._w) {
             return this._w;
-        } else if (this._texture && this._texture.source.glTexture) {
-            // Texture already loaded, but not yet updated (probably because it's not active).
-            return (this._texture.w || (this._texture.source.w / this._texture.precision));
         } else if (this._displayedTexture) {
-            return (this._displayedTexture.w || (this._displayedTexture.source.w / this._displayedTexture.precision));
+            return this._displayedTexture.getRenderWidth() / this._displayedTexture.precision;
+        } else if (this._texture) {
+            // Texture already loaded, but not yet updated (probably because it's not active).
+            return this._texture.getRenderWidth() / this._texture.precision;
         } else {
             return 0;
         }
@@ -3336,11 +3431,11 @@ class View extends EventEmitter {
     _getRenderHeight() {
         if (this._h) {
             return this._h;
-        } else if (this._texture && this._texture.source.glTexture) {
-            // Texture already loaded, but not yet updated (probably because it's not active).
-            return (this._texture.h || this._texture.source.h) / this._texture.precision;
         } else if (this._displayedTexture) {
-            return (this._displayedTexture.h || this._displayedTexture.source.h) / this._displayedTexture.precision;
+            return this._displayedTexture.getRenderHeight() / this._displayedTexture.precision;
+        } else if (this._texture) {
+            // Texture already loaded, but not yet updated (probably because it's not active).
+            return this._texture.getRenderHeight() / this._texture.precision;
         } else {
             return 0;
         }
@@ -3373,47 +3468,21 @@ class View extends EventEmitter {
         }
     }
 
-    _shouldLoadTexture() {
-        return this._active && this.withinBoundsMargin
-    }
-
-    _updateActiveTexture() {
-        if (this._shouldLoadTexture()) {
-            this._enableTexture()
-        } else {
-            this._disableTexture()
-        }
-    }
-
     _enableTexture() {
         // Detect texture changes.
         let dt = null;
         if (this._texture && this._texture.source.glTexture) {
             dt = this._texture;
-        } else if (this._displayedTexture && this._displayedTexture.source.glTexture) {
-            dt = this._displayedTexture;
         }
 
         // We must force because the texture source may have been replaced while being invisible.
-        this._setDisplayedTexture(dt, true)
-
-        if (this._texture) {
-            this._texture.source.addView(this);
-        }
-
-        if (this._displayedTexture && this._displayedTexture !== this._texture) {
-            this._displayedTexture.source.addView(this);
-        }
+        this._setDisplayedTexture(dt)
     }
 
     _disableTexture() {
-        if (this._texture) {
-            this._texture.source.removeView(this);
-        }
-
-        if (this._displayedTexture) {
-            this._displayedTexture.source.removeView(this);
-        }
+        // We disable the displayed texture because, when the texture changes while invisible, we should use that w, h,
+        // mw, mh for checking within bounds.
+        this._setDisplayedTexture(null)
     }
 
     get texture() {
@@ -3443,27 +3512,29 @@ class View extends EventEmitter {
 
             this._texture = v;
 
-            if (this._shouldLoadTexture() && prevValue && this.displayedTexture !== prevValue) {
-                // Keep reference to view for texture source
-                if ((!v || prevValue.source !== v.source) && (!this.displayedTexture || (this.displayedTexture.source !== prevValue.source))) {
+            if (this._active) {
+                if (prevValue && (!v || prevValue.source !== v.source) && (!this.displayedTexture || (this.displayedTexture.source !== prevValue.source))) {
                     prevValue.source.removeView(this);
                 }
-            }
 
-            if (v) {
-                if (this._shouldLoadTexture()) {
+                if (v) {
                     // When the texture is changed, maintain the texture's sprite registry.
                     // While the displayed texture is different from the texture (not yet loaded), two textures are referenced.
                     v.source.addView(this);
                 }
+            }
 
-                if (v.source.glTexture) {
-                    this.displayedTexture = v;
+            if (v) {
+                if (v.source.glTexture && this._active && this.withinBoundsMargin) {
+                    this._setDisplayedTexture(v);
                 }
             } else {
                 // Make sure that current texture is cleared when the texture is explicitly set to null.
-                this.displayedTexture = null;
+                // This also makes sure that dimensions are updated.
+                this._setDisplayedTexture(null);
             }
+
+            this._updateDimensions()
         }
     }
 
@@ -3471,45 +3542,47 @@ class View extends EventEmitter {
         return this._displayedTexture;
     }
 
-    set displayedTexture(v) {
-        this._setDisplayedTexture(v, false)
-    }
-
-    _setDisplayedTexture(v, force = false) {
+    _setDisplayedTexture(v) {
         let prevValue = this._displayedTexture;
-        if (v !== prevValue || force || (v && prevValue && v.source !== prevValue.source)) {
-            if (this._shouldLoadTexture() && prevValue) {
-                // We can assume that this._texture === this._displayedTexture.
 
-                if (prevValue !== this._texture) {
-                    // The old displayed texture is deprecated.
-                    if (!v || (prevValue.source !== v.source)) {
-                        prevValue.source.removeView(this);
-                    }
-                }
+        const changed = (v !== prevValue || (v && v.source !== prevValue.source))
+
+        if (prevValue && (prevValue !== this._texture)) {
+            if (!v || (prevValue.source !== v.source)) {
+                // The old displayed texture is deprecated.
+                prevValue.source.removeView(this);
             }
+        }
 
-            this._displayedTexture = v;
+        this._displayedTexture = v;
 
-            this._updateDimensions();
+        if (this._displayedTexture) {
+            // We can manage views here because we know for sure that the view is both visible and within bounds.
+            this._displayedTexture.source.addView(this)
+        }
 
+        this._updateDimensions();
+
+        if (v) {
+            // We don't need to reference the displayed texture because it was already referenced (this.texture === this.displayedTexture).
+            this._updateTextureCoords();
+            this._core.setDisplayedTextureSource(v.source);
+        } else {
+            this._core.setDisplayedTextureSource(null);
+        }
+
+        if (changed) {
             if (v) {
                 this.emit('txLoaded', v);
-
-                // We don't need to reference the displayed texture because it was already referenced (this.texture === this.displayedTexture).
-                this._updateTextureCoords();
-                this._core.setDisplayedTextureSource(v.source);
             } else {
                 this.emit('txUnloaded', v);
-
-                this._core.setDisplayedTextureSource(null);
             }
         }
     }
 
     onTextureSourceLoaded() {
         // We may be dealing with a texture reloading, so we must force update.
-        this._setDisplayedTexture(this._texture, true);
+        this._setDisplayedTexture(this._texture);
     };
 
     onTextureSourceLoadError(e) {
@@ -3536,8 +3609,10 @@ class View extends EventEmitter {
         let rh = this._getRenderHeight();
         if (beforeW !== rw || beforeH !== rh) {
             // Due to width/height change: update the translation vector and borders.
-            this._core.setDimensions(this._getRenderWidth(), this._getRenderHeight());
+            this._core.setDimensions(rw, rh);
             this._updateLocalTranslate();
+
+            // Returning whether there was an update is handy for extending classes.
             return true
         }
         return false
@@ -4253,16 +4328,26 @@ class View extends EventEmitter {
         return setter;
     }
 
-    get outOfBounds() {
-        return this._core.outOfBounds
-    }
-
     get withinBoundsMargin() {
         return this._core._withinBoundsMargin
     }
 
-    _updateWithinBoundsMargin() {
-        this._updateActiveTexture()
+    _enableWithinBoundsMargin() {
+        if (this._active) {
+            if (this._texture) {
+                this._texture.source.incWithinBoundsCount()
+                this._enableTexture()
+            }
+        }
+    }
+
+    _disableWithinBoundsMargin() {
+        if (this._active) {
+            if (this._texture) {
+                this._texture.source.decWithinBoundsCount()
+                this._disableTexture()
+            }
+        }
     }
 
     set boundsMargin(v) {
@@ -4634,6 +4719,22 @@ class View extends EventEmitter {
             this.texture = null;
         } else if (!this.texture || !this.texture.source.renderInfo || this.texture.source.renderInfo.src !== v) {
             this.texture = this.stage.textureManager.getTexture(v);
+        }
+    }
+
+    set mw(v) {
+        if (this.texture) {
+            this.texture.source.mw = v
+        } else {
+            this._throwError('Please set mw after setting a texture.')
+        }
+    }
+
+    set mh(v) {
+        if (this.texture) {
+            this.texture.source.mh = v
+        } else {
+            this._throwError('Please set mh after setting a texture.')
         }
     }
 
@@ -5743,14 +5844,18 @@ class ViewCore {
     _setRecalc(type) {
         this._recalc |= type;
 
+        this._setHasUpdates()
+
+        // Any changes in descendants should trigger texture updates.
+        if (this._parent) this._parent.setHasRenderUpdates(3);
+    }
+
+    _setHasUpdates() {
         let p = this
         while(p && !p._hasUpdates) {
             p._hasUpdates = true
             p = p._parent
         }
-
-        // Any changes in descendants should trigger texture updates.
-        if (this._parent) this._parent.setHasRenderUpdates(3);
     }
 
     setParent(parent) {
@@ -5765,6 +5870,11 @@ class ViewCore {
             }
 
             this._setRecalc(1 + 2 + 4);
+
+            if (this._parent) {
+                // Force parent to propagate hasUpdates flag.
+                this._parent._setHasUpdates()
+            }
 
             if (this._zIndex === 0) {
                 this.setZParent(parent);
@@ -6529,104 +6639,118 @@ class ViewCore {
 
             const r = this._renderContext
 
-            if (recalc & 6) {
-                // In case of unknown/unspecified width/height, we test for infinity in order to not to-be-loaded
-                // textures with unspecified dimensions.
-                const rw = this._rw || Number.POSITIVE_INFINITY
-                const rh = this._rh || Number.POSITIVE_INFINITY
+            if (this._parent._outOfBounds === 2) {
+                // Inherit parent out of boundsness.
+                this._outOfBounds = 2
 
-                // Recheck if view is out-of-bounds (all settings that affect this should enable recalc bit 2 or 4).
-                let maxDistance = 0
-                this._outOfBounds = 0
-                if (this._scissor && (this._scissor[2] <= 0 || this._scissor[3] <= 0)) {
-                    // Empty scissor area.
-                    this._outOfBounds = 2
-                } else {
-                    if (this._isComplex) {
-                        maxDistance = Math.max(
-                            0,
-                            this._scissor[0] - (Math.max(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) + r.px),
-                            this._scissor[1] - (Math.max(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) + r.py),
-                            (Math.min(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) + r.px) - (this._scissor[0] + this._scissor[2]),
-                            (Math.min(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) + r.py) - (this._scissor[1] + this._scissor[3])
-                        )
-
-                        if (maxDistance > 0) {
-                            this._outOfBounds = 1
-                        }
-                    } else {
-                        const sx = r.px + r.ta * rw
-                        const sy = r.py + r.td * rh
-
-                        maxDistance = Math.max(
-                            0,
-                            this._scissor[0] - Math.max(r.px, sx),
-                            this._scissor[1] - Math.max(r.py, sy),
-                            Math.min(r.px, sx) - (this._scissor[0] + this._scissor[2]),
-                            Math.min(r.py, sy) - (this._scissor[1] + this._scissor[3])
-                        )
-
-                        if (maxDistance > 0) {
-                            this._outOfBounds = 1
-                        }
-                    }
-                    if (this._outOfBounds) {
-                        if (this._clipping || this._useRenderToTexture || this._clipbox) {
-                            this._outOfBounds = 2
-                        }
-                    }
+                if (this._withinBoundsMargin) {
+                    this._withinBoundsMargin = false
+                    this.view._disableWithinBoundsMargin()
                 }
+            } else {
+                if (recalc & 6) {
+                    const rw = this._rw
+                    const rh = this._rh
 
-                let withinMargin = (this._outOfBounds === 0)
-                if (!withinMargin && this._recBoundsMargin) {
-                    // Start with a quick retest.
-                    if (this._recBoundsMargin[0] > maxDistance || this._recBoundsMargin[1] > maxDistance || this._recBoundsMargin[2] > maxDistance || this._recBoundsMargin[3] > maxDistance) {
-                        // Re-test, now with bounds.
+                    // Recheck if view is out-of-bounds (all settings that affect this should enable recalc bit 2 or 4).
+                    let maxDistance = 0
+                    this._outOfBounds = 0
+                    if (this._scissor && (this._scissor[2] <= 0 || this._scissor[3] <= 0)) {
+                        // Empty scissor area.
+                        this._outOfBounds = 2
+                    } else {
                         if (this._isComplex) {
-                            if ((Math.max(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) < this._scissor[0] - r.px + this._recBoundsMargin[0]) ||
-                                (Math.max(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) < this._scissor[1] - r.py + this._recBoundsMargin[1]) ||
-                                (Math.min(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) > this._scissor[0] + this._scissor[2] - r.px - this._recBoundsMargin[2]) ||
-                                (Math.min(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) > this._scissor[1] + this._scissor[3] - r.py - this._recBoundsMargin[3])) {
-                                withinMargin = true
+                            maxDistance = Math.max(
+                                0,
+                                this._scissor[0] - (Math.max(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) + r.px),
+                                this._scissor[1] - (Math.max(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) + r.py),
+                                (Math.min(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) + r.px) - (this._scissor[0] + this._scissor[2]),
+                                (Math.min(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) + r.py) - (this._scissor[1] + this._scissor[3])
+                            )
+
+                            if (maxDistance > 0) {
+                                this._outOfBounds = 1
                             }
                         } else {
                             const sx = r.px + r.ta * rw
                             const sy = r.py + r.td * rh
-                            if ((r.px < this._scissor[0] && sx < this._scissor[0] + this._recBoundsMargin[0]) ||
-                                (r.py < this._scissor[1] && sy < this._scissor[1] + this._recBoundsMargin[1]) ||
-                                ((r.px > (this._scissor[0] + this._scissor[2])) && (sx > (this._scissor[0] + this._scissor[2])) - this._recBoundsMargin[2]) ||
-                                ((r.py > (this._scissor[1] + this._scissor[3])) && (sy > (this._scissor[1] + this._scissor[3]))) - this._recBoundsMargin[3]) {
-                                withinMargin = true
+
+                            maxDistance = Math.max(
+                                0,
+                                this._scissor[0] - Math.max(r.px, sx),
+                                this._scissor[1] - Math.max(r.py, sy),
+                                Math.min(r.px, sx) - (this._scissor[0] + this._scissor[2]),
+                                Math.min(r.py, sy) - (this._scissor[1] + this._scissor[3])
+                            )
+
+                            if (maxDistance > 0) {
+                                this._outOfBounds = 1
                             }
                         }
-
-                        if (withinMargin && this._outOfBounds === 2) {
-                            // Children must be visited because they may contain views that are within margin, so must be visible.
-                            this._outOfBounds = 1
+                        if (this._outOfBounds) {
+                            if (this._clipping || this._useRenderToTexture || this._clipbox) {
+                                this._outOfBounds = 2
+                            }
                         }
                     }
-                }
 
-                if (this._withinBoundsMargin !== withinMargin) {
-                    this._withinBoundsMargin = withinMargin
+                    let withinMargin = (this._outOfBounds === 0)
+                    if (!withinMargin && !!this._recBoundsMargin) {
+                        // Start with a quick retest.
+                        if (this._recBoundsMargin[0] > maxDistance || this._recBoundsMargin[1] > maxDistance || this._recBoundsMargin[2] > maxDistance || this._recBoundsMargin[3] > maxDistance) {
+                            // Re-test, now with bounds.
+                            if (this._isComplex) {
+                                withinMargin = !((Math.max(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) < this._scissor[0] - r.px - this._recBoundsMargin[0]) ||
+                                (Math.max(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) < this._scissor[1] - r.py - this._recBoundsMargin[1]) ||
+                                (Math.min(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) > this._scissor[0] + this._scissor[2] - r.px + this._recBoundsMargin[2]) ||
+                                (Math.min(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) > this._scissor[1] + this._scissor[3] - r.py + this._recBoundsMargin[3]))
+                            } else {
+                                const sx = r.px + r.ta * rw
+                                const sy = r.py + r.td * rh
 
-                    // This may update things (txLoaded events) in the view itself, but also in descendants and ancestors.
+                                withinMargin = !((r.px < this._scissor[0] && sx < this._scissor[0] - this._recBoundsMargin[0]) ||
+                                (r.py < this._scissor[1] && sy < this._scissor[1] - this._recBoundsMargin[1]) ||
+                                ((r.px > (this._scissor[0] + this._scissor[2] + this._recBoundsMargin[2])) && (sx > (this._scissor[0] + this._scissor[2] + this._recBoundsMargin[2]))) ||
+                                ((r.py > (this._scissor[1] + this._scissor[3] + this._recBoundsMargin[3])) && (sy > (this._scissor[1] + this._scissor[3] + this._recBoundsMargin[3]))))
+                            }
 
-                    // Changes in ancestors should be executed during the next call of the stage update. But we must
-                    // take care that the _recalc and _hasUpdates flags are properly registered. That's why we clear
-                    // both before entering the children, and use _pRecalc to transfer inherited updates instead of
-                    // _recalc directly.
+                            if (withinMargin && this._outOfBounds === 2) {
+                                // Children must be visited because they may contain views that are within margin, so must be visible.
+                                this._outOfBounds = 1
+                            }
+                        }
+                    }
 
-                    // Changes in descendants are automatically executed within the current update loop, though we must
-                    // take care to not update the hasUpdates flag unnecessarily in ancestors. We achieve this by making
-                    // sure that the hasUpdates flag of this view is turned on, which blocks it for ancestors.
-                    this._hasUpdates = true
+                    if (this._withinBoundsMargin !== withinMargin) {
+                        this._withinBoundsMargin = withinMargin
 
-                    this.view._updateWithinBoundsMargin()
+                        if (this._withinBoundsMargin) {
+                            // This may update things (txLoaded events) in the view itself, but also in descendants and ancestors.
 
-                    // This view needs to be re-updated now, because we want the alpha to be updated so that the
-                    // children may be updated, and hierarchical 'out of bounds' updates are possible.
-                    return this.update()
+                            // Changes in ancestors should be executed during the next call of the stage update. But we must
+                            // take care that the _recalc and _hasUpdates flags are properly registered. That's why we clear
+                            // both before entering the children, and use _pRecalc to transfer inherited updates instead of
+                            // _recalc directly.
+
+                            // Changes in descendants are automatically executed within the current update loop, though we must
+                            // take care to not update the hasUpdates flag unnecessarily in ancestors. We achieve this by making
+                            // sure that the hasUpdates flag of this view is turned on, which blocks it for ancestors.
+                            this._hasUpdates = true
+
+                            const recalc = this._recalc
+                            this._recalc = 0
+                            this.view._enableWithinBoundsMargin()
+
+                            if (this._recalc) {
+                                // This view needs to be re-updated now, because we want the dimensions (and other changes) to be updated.
+                                return this.update()
+                            }
+
+                            this._recalc = recalc
+                        } else {
+                            this.view._disableWithinBoundsMargin()
+                        }
+                    }
                 }
             }
 
@@ -6648,8 +6772,6 @@ class ViewCore {
             this._hasUpdates = false;
 
             if (this._outOfBounds < 2) {
-                // Do not update children if parent is out of bounds.
-
                 if (this._useRenderToTexture) {
                     if (this._worldContext.isIdentity()) {
                         // Optimization.
@@ -6697,9 +6819,17 @@ class ViewCore {
 
     updateOutOfBounds() {
         // Propagate outOfBounds flag to descendants (necessary because of z-indexing).
+        // Invisible views are not drawn anyway. When alpha is updated, so will _outOfBounds.
         if (this._outOfBounds !== 2 && this._renderContext.alpha > 0) {
-            // Invisible views are not drawn anyway. When alpha is updated, so will _outOfBounds.
+
+            // Inherit parent out of boundsness.
             this._outOfBounds = 2
+
+            if (this._withinBoundsMargin) {
+                this._withinBoundsMargin = false
+                this.view._disableWithinBoundsMargin()
+            }
+
             if (this._children) {
                 for (let i = 0, n = this._children.length; i < n; i++) {
                     this._children[i].updateOutOfBounds();
@@ -8032,12 +8162,6 @@ class ViewText {
     }
 
     updateTexture() {
-        if (this.settings.text == "") {
-            // Clear current displayed texture (when changing text back to empty).
-            this.view.texture = null;
-            return;
-        }
-
         if (this.updatingTexture) return;
 
         this.updatingTexture = true;

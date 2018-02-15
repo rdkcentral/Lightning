@@ -134,14 +134,18 @@ class ViewCore {
     _setRecalc(type) {
         this._recalc |= type;
 
+        this._setHasUpdates()
+
+        // Any changes in descendants should trigger texture updates.
+        if (this._parent) this._parent.setHasRenderUpdates(3);
+    }
+
+    _setHasUpdates() {
         let p = this
         while(p && !p._hasUpdates) {
             p._hasUpdates = true
             p = p._parent
         }
-
-        // Any changes in descendants should trigger texture updates.
-        if (this._parent) this._parent.setHasRenderUpdates(3);
     }
 
     setParent(parent) {
@@ -156,6 +160,11 @@ class ViewCore {
             }
 
             this._setRecalc(1 + 2 + 4);
+
+            if (this._parent) {
+                // Force parent to propagate hasUpdates flag.
+                this._parent._setHasUpdates()
+            }
 
             if (this._zIndex === 0) {
                 this.setZParent(parent);
@@ -920,104 +929,118 @@ class ViewCore {
 
             const r = this._renderContext
 
-            if (recalc & 6) {
-                // In case of unknown/unspecified width/height, we test for infinity in order to not to-be-loaded
-                // textures with unspecified dimensions.
-                const rw = this._rw || Number.POSITIVE_INFINITY
-                const rh = this._rh || Number.POSITIVE_INFINITY
+            if (this._parent._outOfBounds === 2) {
+                // Inherit parent out of boundsness.
+                this._outOfBounds = 2
 
-                // Recheck if view is out-of-bounds (all settings that affect this should enable recalc bit 2 or 4).
-                let maxDistance = 0
-                this._outOfBounds = 0
-                if (this._scissor && (this._scissor[2] <= 0 || this._scissor[3] <= 0)) {
-                    // Empty scissor area.
-                    this._outOfBounds = 2
-                } else {
-                    if (this._isComplex) {
-                        maxDistance = Math.max(
-                            0,
-                            this._scissor[0] - (Math.max(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) + r.px),
-                            this._scissor[1] - (Math.max(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) + r.py),
-                            (Math.min(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) + r.px) - (this._scissor[0] + this._scissor[2]),
-                            (Math.min(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) + r.py) - (this._scissor[1] + this._scissor[3])
-                        )
-
-                        if (maxDistance > 0) {
-                            this._outOfBounds = 1
-                        }
-                    } else {
-                        const sx = r.px + r.ta * rw
-                        const sy = r.py + r.td * rh
-
-                        maxDistance = Math.max(
-                            0,
-                            this._scissor[0] - Math.max(r.px, sx),
-                            this._scissor[1] - Math.max(r.py, sy),
-                            Math.min(r.px, sx) - (this._scissor[0] + this._scissor[2]),
-                            Math.min(r.py, sy) - (this._scissor[1] + this._scissor[3])
-                        )
-
-                        if (maxDistance > 0) {
-                            this._outOfBounds = 1
-                        }
-                    }
-                    if (this._outOfBounds) {
-                        if (this._clipping || this._useRenderToTexture || this._clipbox) {
-                            this._outOfBounds = 2
-                        }
-                    }
+                if (this._withinBoundsMargin) {
+                    this._withinBoundsMargin = false
+                    this.view._disableWithinBoundsMargin()
                 }
+            } else {
+                if (recalc & 6) {
+                    const rw = this._rw
+                    const rh = this._rh
 
-                let withinMargin = (this._outOfBounds === 0)
-                if (!withinMargin && this._recBoundsMargin) {
-                    // Start with a quick retest.
-                    if (this._recBoundsMargin[0] > maxDistance || this._recBoundsMargin[1] > maxDistance || this._recBoundsMargin[2] > maxDistance || this._recBoundsMargin[3] > maxDistance) {
-                        // Re-test, now with bounds.
+                    // Recheck if view is out-of-bounds (all settings that affect this should enable recalc bit 2 or 4).
+                    let maxDistance = 0
+                    this._outOfBounds = 0
+                    if (this._scissor && (this._scissor[2] <= 0 || this._scissor[3] <= 0)) {
+                        // Empty scissor area.
+                        this._outOfBounds = 2
+                    } else {
                         if (this._isComplex) {
-                            if ((Math.max(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) < this._scissor[0] - r.px + this._recBoundsMargin[0]) ||
-                                (Math.max(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) < this._scissor[1] - r.py + this._recBoundsMargin[1]) ||
-                                (Math.min(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) > this._scissor[0] + this._scissor[2] - r.px - this._recBoundsMargin[2]) ||
-                                (Math.min(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) > this._scissor[1] + this._scissor[3] - r.py - this._recBoundsMargin[3])) {
-                                withinMargin = true
+                            maxDistance = Math.max(
+                                0,
+                                this._scissor[0] - (Math.max(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) + r.px),
+                                this._scissor[1] - (Math.max(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) + r.py),
+                                (Math.min(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) + r.px) - (this._scissor[0] + this._scissor[2]),
+                                (Math.min(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) + r.py) - (this._scissor[1] + this._scissor[3])
+                            )
+
+                            if (maxDistance > 0) {
+                                this._outOfBounds = 1
                             }
                         } else {
                             const sx = r.px + r.ta * rw
                             const sy = r.py + r.td * rh
-                            if ((r.px < this._scissor[0] && sx < this._scissor[0] + this._recBoundsMargin[0]) ||
-                                (r.py < this._scissor[1] && sy < this._scissor[1] + this._recBoundsMargin[1]) ||
-                                ((r.px > (this._scissor[0] + this._scissor[2])) && (sx > (this._scissor[0] + this._scissor[2])) - this._recBoundsMargin[2]) ||
-                                ((r.py > (this._scissor[1] + this._scissor[3])) && (sy > (this._scissor[1] + this._scissor[3]))) - this._recBoundsMargin[3]) {
-                                withinMargin = true
+
+                            maxDistance = Math.max(
+                                0,
+                                this._scissor[0] - Math.max(r.px, sx),
+                                this._scissor[1] - Math.max(r.py, sy),
+                                Math.min(r.px, sx) - (this._scissor[0] + this._scissor[2]),
+                                Math.min(r.py, sy) - (this._scissor[1] + this._scissor[3])
+                            )
+
+                            if (maxDistance > 0) {
+                                this._outOfBounds = 1
                             }
                         }
-
-                        if (withinMargin && this._outOfBounds === 2) {
-                            // Children must be visited because they may contain views that are within margin, so must be visible.
-                            this._outOfBounds = 1
+                        if (this._outOfBounds) {
+                            if (this._clipping || this._useRenderToTexture || this._clipbox) {
+                                this._outOfBounds = 2
+                            }
                         }
                     }
-                }
 
-                if (this._withinBoundsMargin !== withinMargin) {
-                    this._withinBoundsMargin = withinMargin
+                    let withinMargin = (this._outOfBounds === 0)
+                    if (!withinMargin && !!this._recBoundsMargin) {
+                        // Start with a quick retest.
+                        if (this._recBoundsMargin[0] > maxDistance || this._recBoundsMargin[1] > maxDistance || this._recBoundsMargin[2] > maxDistance || this._recBoundsMargin[3] > maxDistance) {
+                            // Re-test, now with bounds.
+                            if (this._isComplex) {
+                                withinMargin = !((Math.max(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) < this._scissor[0] - r.px - this._recBoundsMargin[0]) ||
+                                (Math.max(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) < this._scissor[1] - r.py - this._recBoundsMargin[1]) ||
+                                (Math.min(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) > this._scissor[0] + this._scissor[2] - r.px + this._recBoundsMargin[2]) ||
+                                (Math.min(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) > this._scissor[1] + this._scissor[3] - r.py + this._recBoundsMargin[3]))
+                            } else {
+                                const sx = r.px + r.ta * rw
+                                const sy = r.py + r.td * rh
 
-                    // This may update things (txLoaded events) in the view itself, but also in descendants and ancestors.
+                                withinMargin = !((r.px < this._scissor[0] && sx < this._scissor[0] - this._recBoundsMargin[0]) ||
+                                (r.py < this._scissor[1] && sy < this._scissor[1] - this._recBoundsMargin[1]) ||
+                                ((r.px > (this._scissor[0] + this._scissor[2] + this._recBoundsMargin[2])) && (sx > (this._scissor[0] + this._scissor[2] + this._recBoundsMargin[2]))) ||
+                                ((r.py > (this._scissor[1] + this._scissor[3] + this._recBoundsMargin[3])) && (sy > (this._scissor[1] + this._scissor[3] + this._recBoundsMargin[3]))))
+                            }
 
-                    // Changes in ancestors should be executed during the next call of the stage update. But we must
-                    // take care that the _recalc and _hasUpdates flags are properly registered. That's why we clear
-                    // both before entering the children, and use _pRecalc to transfer inherited updates instead of
-                    // _recalc directly.
+                            if (withinMargin && this._outOfBounds === 2) {
+                                // Children must be visited because they may contain views that are within margin, so must be visible.
+                                this._outOfBounds = 1
+                            }
+                        }
+                    }
 
-                    // Changes in descendants are automatically executed within the current update loop, though we must
-                    // take care to not update the hasUpdates flag unnecessarily in ancestors. We achieve this by making
-                    // sure that the hasUpdates flag of this view is turned on, which blocks it for ancestors.
-                    this._hasUpdates = true
+                    if (this._withinBoundsMargin !== withinMargin) {
+                        this._withinBoundsMargin = withinMargin
 
-                    this.view._updateWithinBoundsMargin()
+                        if (this._withinBoundsMargin) {
+                            // This may update things (txLoaded events) in the view itself, but also in descendants and ancestors.
 
-                    // This view needs to be re-updated now, because we want the alpha to be updated so that the
-                    // children may be updated, and hierarchical 'out of bounds' updates are possible.
-                    return this.update()
+                            // Changes in ancestors should be executed during the next call of the stage update. But we must
+                            // take care that the _recalc and _hasUpdates flags are properly registered. That's why we clear
+                            // both before entering the children, and use _pRecalc to transfer inherited updates instead of
+                            // _recalc directly.
+
+                            // Changes in descendants are automatically executed within the current update loop, though we must
+                            // take care to not update the hasUpdates flag unnecessarily in ancestors. We achieve this by making
+                            // sure that the hasUpdates flag of this view is turned on, which blocks it for ancestors.
+                            this._hasUpdates = true
+
+                            const recalc = this._recalc
+                            this._recalc = 0
+                            this.view._enableWithinBoundsMargin()
+
+                            if (this._recalc) {
+                                // This view needs to be re-updated now, because we want the dimensions (and other changes) to be updated.
+                                return this.update()
+                            }
+
+                            this._recalc = recalc
+                        } else {
+                            this.view._disableWithinBoundsMargin()
+                        }
+                    }
                 }
             }
 
@@ -1039,8 +1062,6 @@ class ViewCore {
             this._hasUpdates = false;
 
             if (this._outOfBounds < 2) {
-                // Do not update children if parent is out of bounds.
-
                 if (this._useRenderToTexture) {
                     if (this._worldContext.isIdentity()) {
                         // Optimization.
@@ -1088,9 +1109,17 @@ class ViewCore {
 
     updateOutOfBounds() {
         // Propagate outOfBounds flag to descendants (necessary because of z-indexing).
+        // Invisible views are not drawn anyway. When alpha is updated, so will _outOfBounds.
         if (this._outOfBounds !== 2 && this._renderContext.alpha > 0) {
-            // Invisible views are not drawn anyway. When alpha is updated, so will _outOfBounds.
+
+            // Inherit parent out of boundsness.
             this._outOfBounds = 2
+
+            if (this._withinBoundsMargin) {
+                this._withinBoundsMargin = false
+                this.view._disableWithinBoundsMargin()
+            }
+
             if (this._children) {
                 for (let i = 0, n = this._children.length; i < n; i++) {
                     this._children[i].updateOutOfBounds();

@@ -20,10 +20,16 @@ class TextureSource {
         this.loadCb = loadCb;
 
         /**
-         * All active (and within bounds) views that are using this texture source via a texture (either as texture or displayedTexture, or both).
+         * All active views that are using this texture source via a texture (either as texture or displayedTexture, or both).
          * @type {Set<View>}
          */
         this.views = new Set();
+
+        /**
+         * The number of active views that are 'within bounds'.
+         * @type {number}
+         */
+        this._withinBoundsCount = 0
 
         /**
          * Identifier for reuse.
@@ -58,6 +64,17 @@ class TextureSource {
         this.w = 0;
         this.h = 0;
 
+        /**
+         * Maximum width (used for determining when view that has texture is within bounds)
+         * We use the maximum texture size initially.
+         */
+        this._mw = 2048
+
+        /**
+         * Maximum height
+         */
+        this._mh = 2048
+
         this.glTexture = null;
 
         /**
@@ -75,12 +92,42 @@ class TextureSource {
 
     }
 
+    get mw() {
+        return this._mw
+    }
+
+    set mw(v) {
+        // In case multiple views set a mw, mh, we use the value which minimizes the chance of a load.
+        const prev = this._mw
+        this._mw = Math.min(this._mw, v)
+        if (prev !== this._mw) {
+            this.views.forEach((view) => {
+                view._updateDimensions()
+            })
+        }
+    }
+
+    get mh() {
+        return this._mh
+    }
+
+    set mh(v) {
+        const prev = this._mh
+        this._mh = Math.min(this._mh, v)
+        if (prev !== this._mh) {
+            this.views.forEach((view) => {
+                view._updateDimensions()
+            })
+        }
+    }
+
     getRenderWidth() {
-        return this.w;
+        // If dimensions are unknown (texture not yet loaded), use maximum width as a fallback as render width to allow proper bounds checking.
+        return this.w || this._mw;
     }
 
     getRenderHeight() {
-        return this.h;
+        return this.h || this._mh;
     }
 
     isLoadedByCore() {
@@ -91,24 +138,44 @@ class TextureSource {
         if (!this.views.has(v)) {
             this.views.add(v);
 
-            if (this.views.size === 1) {
-                if (this.lookupId) {
-                    if (!this.manager.textureSourceHashmap.has(this.lookupId)) {
-                        this.manager.textureSourceHashmap.set(this.lookupId, this);
-                    }
-                }
-
-                this.becomesVisible();
+            if (v.withinBoundsMargin) {
+                this.incWithinBoundsCount()
             }
-        }        
+        }
     }
     
     removeView(v) {
         if (this.views.delete(v)) {
-            if (!this.views.size) {
-                this.becomesInvisible();
+            if (v.withinBoundsMargin) {
+                this.decWithinBoundsCount()
             }
-        }        
+        }
+    }
+
+    incWithinBoundsCount() {
+        this._withinBoundsCount++
+
+        if (this._withinBoundsCount === 1) {
+            if (this.lookupId) {
+                if (!this.manager.textureSourceHashmap.has(this.lookupId)) {
+                    this.manager.textureSourceHashmap.set(this.lookupId, this);
+                }
+            }
+
+            this.becomesVisible();
+        }
+    }
+
+    decWithinBoundsCount() {
+        this._withinBoundsCount--
+
+        if (!this._withinBoundsCount) {
+            this.becomesInvisible();
+        }
+    }
+
+    allowCleanup() {
+        return !this.permanent && (this._withinBoundsCount === 0)
     }
 
     becomesVisible() {
@@ -241,7 +308,7 @@ class TextureSource {
         }
 
         if (!this.glTexture) {
-            this.views.forEach(view => {view.displayedTexture = null});
+            this.views.forEach(view => {view._setDisplayedTexture(null)});
         }
 
         this.views.forEach(view => view._updateDimensions());

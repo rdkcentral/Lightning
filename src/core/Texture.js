@@ -173,6 +173,14 @@ class Texture {
         this.updatePrecision();
     }}
 
+    getRenderWidth() {
+        return this._w || this.source.getRenderWidth()
+    }
+
+    getRenderHeight() {
+        return this._h || this.source.getRenderHeight()
+    }
+
     patch(settings) {
         Base.patchObject(this, settings)
     }
