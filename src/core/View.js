@@ -667,10 +667,14 @@ class View extends EventEmitter {
                     this._tags.forEach((tag) => {
                         // Remove from treeTags.
                         let p = this;
-                        while ((p = p._parent) && !p._tagRoot) {
+                        while (p = p._parent) {
                             let parentTreeTags = p._treeTags.get(tag);
                             parentTreeTags.delete(this);
                             p._clearTagsCache(tag);
+
+                            if (p._tagRoot) {
+                                break
+                            }
                         }
                     });
                 }
