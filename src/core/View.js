@@ -660,25 +660,40 @@ class View extends EventEmitter {
     _unsetTagsParent() {
         let tags = null;
         let n = 0;
-        if (!this._tagRoot && this._treeTags) {
-            tags = Utils.iteratorToArray(this._treeTags.keys());
-            n = tags.length;
+        if (this._treeTags) {
+            if (this._tagRoot) {
+                // Just need to remove the 'local' tags.
+                if (this._tags) {
+                    this._tags.forEach((tag) => {
+                        // Remove from treeTags.
+                        let p = this;
+                        while ((p = p._parent) && !p._tagRoot) {
+                            let parentTreeTags = p._treeTags.get(tag);
+                            parentTreeTags.delete(this);
+                            p._clearTagsCache(tag);
+                        }
+                    });
+                }
+            } else {
+                tags = Utils.iteratorToArray(this._treeTags.keys());
+                n = tags.length;
 
-            if (n > 0) {
-                for (let i = 0; i < n; i++) {
-                    let tagSet = this._treeTags.get(tags[i]);
+                if (n > 0) {
+                    for (let i = 0; i < n; i++) {
+                        let tagSet = this._treeTags.get(tags[i]);
 
-                    // Remove from treeTags.
-                    let p = this;
-                    while ((p = p._parent) && !p._tagRoot) {
-                        let parentTreeTags = p._treeTags.get(tags[i]);
+                        // Remove from treeTags.
+                        let p = this;
+                        while ((p = p._parent) && !p._tagRoot) {
+                            let parentTreeTags = p._treeTags.get(tags[i]);
 
-                        tagSet.forEach(function (comp) {
-                            parentTreeTags.delete(comp);
-                        });
+                            tagSet.forEach(function (comp) {
+                                parentTreeTags.delete(comp);
+                            });
 
 
-                        p._clearTagsCache(tags[i]);
+                            p._clearTagsCache(tags[i]);
+                        }
                     }
                 }
             }
