@@ -9,8 +9,6 @@ class CoreRenderState {
 
         this.stage = ctx.stage
 
-        this.textureAtlasGlTexture = this.stage.textureAtlas ? this.stage.textureAtlas.texture : null;
-
         // Allocate a fairly big chunk of memory that should be enough to support ~100000 (default) quads.
         // We do not (want to) handle memory overflow.
 
