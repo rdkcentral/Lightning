@@ -9,8 +9,8 @@ class AnimationManager {
         this.stage.on('frameStart', () => this.progress())
 
         /**
-         * All transitions that are running and have
-         * @type {Set<Transition>}
+         * All running animations on attached subjects.
+         * @type {Set<Animation>}
          */
         this.active = new Set()
     }

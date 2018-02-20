@@ -28,16 +28,22 @@ class View extends EventEmitter {
         this._ref = null;
 
         /**
-         * A view is active if it is a descendant of the stage root and it is visible (worldAlpha > 0).
-         * @type {boolean}
-         */
-        this._active = false;
-
-        /**
-         * A view is active if it is a descendant of the stage root.
+         * A view is attached if it is a descendant of the stage root.
          * @type {boolean}
          */
         this._attached = false;
+
+        /**
+         * A view is enabled when it is attached and it is visible (worldAlpha > 0).
+         * @type {boolean}
+         */
+        this._enabled = false;
+
+        /**
+         * A view is active when it is enabled and it is within bounds.
+         * @type {boolean}
+         */
+        this._active = false;
 
         /**
          * @type {View}
@@ -139,7 +145,7 @@ class View extends EventEmitter {
 
     setAsRoot() {
         this._updateAttachedFlag();
-        this._updateActiveFlag();
+        this._updateEnabledFlag();
         this._core.setAsRoot();
     }
 
@@ -157,7 +163,7 @@ class View extends EventEmitter {
         }
 
         this._updateAttachedFlag();
-        this._updateActiveFlag();
+        this._updateEnabledFlag();
     };
 
     getDepth() {
@@ -222,107 +228,30 @@ class View extends EventEmitter {
         return null;
     };
 
-    get active() {
-        return this._active
+    get enabled() {
+        return this._enabled
     }
 
     get attached() {
         return this._attached
     }
 
-    isActive() {
-        return this._visible && (this._alpha > 0) && (this._parent ? this._parent._active : (this.stage.root === this));
+    isEnabled() {
+        return this._visible && (this._alpha > 0) && (this._parent ? this._parent._enabled : (this.stage.root === this));
     };
 
     isAttached() {
         return (this._parent ? this._parent._attached : (this.stage.root === this));
     };
 
-    /**
-     * Updates the 'active' flag for this branch.
-     */
-    _updateActiveFlag() {
-        // Calculate active flag.
-        let newActive = this.isActive();
-        if (this._active !== newActive) {
-            if (newActive) {
-                this._setActiveFlag();
-            } else {
-                this._unsetActiveFlag();
-            }
-
-            let children = this._children.get();
-            if (children) {
-                let m = children.length;
-                if (m > 0) {
-                    for (let i = 0; i < m; i++) {
-                        children[i]._updateActiveFlag();
-                    }
-                }
-            }
-
-            // Run this after all _children because we'd like to see (de)activating a branch as an 'atomic' operation.
-            if (newActive) {
-                this.emit('active');
-            } else {
-                this.emit('inactive');
-            }
-        }
+    isActive() {
+        return this.isEnabled() && this.withinBoundsMargin;
     };
-
-    _setActiveFlag() {
-        // Force re-check of texture because dimensions might have changed (cutting).
-        this._updateDimensions();
-        this._updateTextureCoords();
-
-        this._active = true;
-
-        if (this._texture) {
-            // It is important to add the source listener before the texture listener because that may trigger a load.
-            this._texture.source.addView(this)
-        }
-
-        if (this.withinBoundsMargin) {
-            this._enableTexture()
-        }
-
-        if (this._core.shader) {
-            this._core.shader.addView(this._core);
-        }
-
-        if (this._texturizer) {
-            this.texturizer.filters.forEach(filter => filter.addView(this._core))
-        }
-
-    }
-
-    _unsetActiveFlag() {
-        if (this._texture) {
-            this._texture.source.removeView(this)
-        }
-
-        this._disableTexture()
-
-        if (this._hasTexturizer()) {
-            this.texturizer.deactivate();
-        }
-
-        if (this._core.shader) {
-            this._core.shader.removeView(this._core);
-        }
-
-        if (this._texturizer) {
-            this.texturizer.filters.forEach(filter => filter.removeView(this._core))
-        }
-
-        this._active = false;
-    }
 
     /**
      * Updates the 'attached' flag for this branch.
      */
     _updateAttachedFlag() {
-        // Calculate active flag.
         let newAttached = this.isAttached();
         if (this._attached !== newAttached) {
             this._attached = newAttached;
@@ -345,13 +274,112 @@ class View extends EventEmitter {
         }
     };
 
+    /**
+     * Updates the 'enabled' flag for this branch.
+     */
+    _updateEnabledFlag() {
+        let newEnabled = this.isEnabled();
+        if (this._enabled !== newEnabled) {
+            if (newEnabled) {
+                this._setEnabledFlag();
+            } else {
+                this._unsetEnabledFlag();
+            }
+
+            let children = this._children.get();
+            if (children) {
+                let m = children.length;
+                if (m > 0) {
+                    for (let i = 0; i < m; i++) {
+                        children[i]._updateEnabledFlag();
+                    }
+                }
+            }
+
+            // Run this after all _children because we'd like to see (de)activating a branch as an 'atomic' operation.
+            if (newEnabled) {
+                this.emit('enabled');
+            } else {
+                this.emit('disabled');
+            }
+        }
+    };
+
+    _setEnabledFlag() {
+        // Force re-check of texture because dimensions might have changed (cutting).
+        this._updateDimensions();
+        this._updateTextureCoords();
+
+        this._enabled = true;
+
+        if (this._texture) {
+            // It is important to add the source listener before the texture listener because that may trigger a load.
+            this._texture.source.addView(this)
+        }
+
+        if (this.withinBoundsMargin) {
+            this._setActiveFlag()
+        }
+
+        if (this._core.shader) {
+            this._core.shader.addView(this._core);
+        }
+
+        if (this._texturizer) {
+            this.texturizer.filters.forEach(filter => filter.addView(this._core))
+        }
+
+    }
+
+    _unsetEnabledFlag() {
+        if (this._texture) {
+            this._texture.source.removeView(this)
+        }
+
+        if (this._active) {
+            this._unsetActiveFlag()
+        }
+
+        if (this._hasTexturizer()) {
+            this.texturizer.deactivate();
+        }
+
+        if (this._core.shader) {
+            this._core.shader.removeView(this._core);
+        }
+
+        if (this._texturizer) {
+            this.texturizer.filters.forEach(filter => filter.removeView(this._core))
+        }
+
+        this._enabled = false;
+    }
+
+    _setActiveFlag() {
+        this._active = true
+        if (this._texture) {
+            this._texture.source.incWithinBoundsCount()
+            this._enableTexture()
+        }
+        this.emit('active')
+    }
+
+    _unsetActiveFlag() {
+        this._active = false;
+        if (this._texture) {
+            this._texture.source.decWithinBoundsCount()
+            this._disableTexture()
+        }
+        this.emit('inactive')
+    }
+
     _getRenderWidth() {
         if (this._w) {
             return this._w;
         } else if (this._displayedTexture) {
             return this._displayedTexture.getRenderWidth() / this._displayedTexture.precision;
         } else if (this._texture) {
-            // Texture already loaded, but not yet updated (probably because it's not active).
+            // Texture already loaded, but not yet updated (probably because this view is not active).
             return this._texture.getRenderWidth() / this._texture.precision;
         } else {
             return 0;
@@ -364,7 +392,7 @@ class View extends EventEmitter {
         } else if (this._displayedTexture) {
             return this._displayedTexture.getRenderHeight() / this._displayedTexture.precision;
         } else if (this._texture) {
-            // Texture already loaded, but not yet updated (probably because it's not active).
+            // Texture already loaded, but not yet updated (probably because this view is not active).
             return this._texture.getRenderHeight() / this._texture.precision;
         } else {
             return 0;
@@ -372,8 +400,8 @@ class View extends EventEmitter {
     };
 
     get renderWidth() {
-        if (this._active) {
-            // Render width is only maintained if this view is active.
+        if (this._enabled) {
+            // Render width is only maintained if this view is enabled.
             return this._core._rw;
         } else {
             return this._getRenderWidth();
@@ -381,7 +409,7 @@ class View extends EventEmitter {
     }
 
     get renderHeight() {
-        if (this._active) {
+        if (this._enabled) {
             return this._core._rh;
         } else {
             return this._getRenderHeight();
@@ -442,7 +470,7 @@ class View extends EventEmitter {
 
             this._texture = v;
 
-            if (this._active) {
+            if (this._enabled) {
                 if (prevValue && (!v || prevValue.source !== v.source) && (!this.displayedTexture || (this.displayedTexture.source !== prevValue.source))) {
                     prevValue.source.removeView(this);
                 }
@@ -455,7 +483,7 @@ class View extends EventEmitter {
             }
 
             if (v) {
-                if (v.source.glTexture && this._active && this.withinBoundsMargin) {
+                if (v.source.glTexture && this._enabled && this.withinBoundsMargin) {
                     this._setDisplayedTexture(v);
                 }
             } else {
@@ -1282,20 +1310,16 @@ class View extends EventEmitter {
     }
 
     _enableWithinBoundsMargin() {
-        if (this._active) {
-            if (this._texture) {
-                this._texture.source.incWithinBoundsCount()
-                this._enableTexture()
-            }
+        // Iff enabled, this toggles the active flag.
+        if (this._enabled) {
+            this._setActiveFlag()
         }
     }
 
     _disableWithinBoundsMargin() {
+        // Iff active, this toggles the active flag.
         if (this._active) {
-            if (this._texture) {
-                this._texture.source.decWithinBoundsCount()
-                this._disableTexture()
-            }
+            this._unsetActiveFlag()
         }
     }
 
@@ -1467,7 +1491,9 @@ class View extends EventEmitter {
             let prev = this._alpha
             this._alpha = v
             this._updateLocalAlpha();
-            if ((prev === 0) !== (v === 0)) this._updateActiveFlag()
+            if ((prev === 0) !== (v === 0)) {
+                this._updateEnabledFlag()
+            }
         }
     }
 
@@ -1579,7 +1605,7 @@ class View extends EventEmitter {
         if (this._visible !== v) {
             this._visible = v
             this._updateLocalAlpha()
-            this._updateActiveFlag()
+            this._updateEnabledFlag()
         }
     }
 
@@ -1756,13 +1782,13 @@ class View extends EventEmitter {
             }
         }
 
-        if (this._active && this._core.shader) {
+        if (this._enabled && this._core.shader) {
             this._core.shader.removeView(this);
         }
 
         this._core.shader = shader;
 
-        if (this._active && this._core.shader) {
+        if (this._enabled && this._core.shader) {
             this._core.shader.addView(this);
         }
     }
@@ -1808,13 +1834,13 @@ class View extends EventEmitter {
     }
 
     set filters(v) {
-        if (this._active) {
+        if (this._enabled) {
             this.texturizer.filters.forEach(filter => filter.removeView(this._core))
         }
 
         this.texturizer.filters = v
 
-        if (this._active) {
+        if (this._enabled) {
             this.texturizer.filters.forEach(filter => filter.addView(this._core))
         }
     }
@@ -2013,7 +2039,7 @@ class View extends EventEmitter {
 
     getSmooth(property, v) {
         let t = this._getTransition(property);
-        if (t && t.isActive()) {
+        if (t && t.isAttached()) {
             return t.targetValue;
         } else {
             return v;

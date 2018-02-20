@@ -81,7 +81,7 @@ class ViewCore {
 
         this._shader = null;
 
-        // The ViewCore that owns the shader that's active in this branch. Null if none is active (default shader).
+        // The ancestor ViewCore that owns the inherited shader. Null if none is active (default shader).
         this._shaderOwner = null;
 
         // View is rendered on another texture.
