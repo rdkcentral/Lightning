@@ -3298,20 +3298,24 @@ class View extends EventEmitter {
         return null;
     };
 
-    get enabled() {
-        return this._enabled
-    }
-
     get attached() {
         return this._attached
     }
 
-    isEnabled() {
-        return this._visible && (this._alpha > 0) && (this._parent ? this._parent._enabled : (this.stage.root === this));
-    };
+    get enabled() {
+        return this._enabled
+    }
+
+    get active() {
+        return this._active
+    }
 
     isAttached() {
         return (this._parent ? this._parent._attached : (this.stage.root === this));
+    };
+
+    isEnabled() {
+        return this._visible && (this._alpha > 0) && (this._parent ? this._parent._enabled : (this.stage.root === this));
     };
 
     isActive() {
@@ -4737,10 +4741,6 @@ class View extends EventEmitter {
 
     set children(children) {
         this.childList.patch(children)
-    }
-
-    set sub(children) {
-        this.children = children
     }
 
     add(o) {

@@ -1673,10 +1673,6 @@ class View extends EventEmitter {
         this.childList.patch(children)
     }
 
-    set sub(children) {
-        this.children = children
-    }
-
     add(o) {
         return this.childList.a(o);
     }
