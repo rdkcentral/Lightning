@@ -93,9 +93,6 @@ class Stage extends EventEmitter {
         this.rectangleTexture.source.load(true);
 
         source.permanent = true;
-        if (self.textureAtlas) {
-            self.textureAtlas.add(source);
-        }
 
         self.adapter.startLoop();
     }
@@ -169,11 +166,6 @@ class Stage extends EventEmitter {
         }
 
         this.emit('update');
-
-        if (this.textureAtlas) {
-            // Add new texture sources to the texture atlas.
-            this.textureAtlas.flush();
-        }
 
         let changes = this.ctx.frame();
 
