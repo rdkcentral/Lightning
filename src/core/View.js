@@ -2056,19 +2056,19 @@ class View extends EventEmitter {
     }
     /*¬A*/
 
-}
+    static isColorProperty(property) {
+        return property.startsWith("color")
+    }
 
-View.isColorProperty = function(property) {
-    return property.startsWith("color")
-}
-
-View.getMerger = function(property) {
-    if (View.isColorProperty(property)) {
-        return StageUtils.mergeColors
-    } else {
-        return StageUtils.mergeNumbers
+    static getMerger(property) {
+        if (View.isColorProperty(property)) {
+            return StageUtils.mergeColors
+        } else {
+            return StageUtils.mergeNumbers
+        }
     }
 }
+
 
 View.prototype.isView = 1;
 
