@@ -3868,8 +3868,12 @@ class View extends EventEmitter {
     };
 
     setTags(tags) {
+        tags = tags.reduce((acc, tag) => {
+            return acc.concat(tag.split(' '))
+        }, [])
+
         if (this._ref) {
-            tags = tags.concat(this._ref)
+            tags.push(this._ref)
         }
 
         let i, n = tags.length;
@@ -3899,12 +3903,24 @@ class View extends EventEmitter {
     }
 
     addTag(tag) {
-        const charcode = tag.charCodeAt(0)
-        if (Utils.isUcChar(charcode)) {
-            this._throwError("Tag may not start with an upper case character.")
-        }
+        if (tag.indexOf(' ') === -1) {
+            if (Utils.isUcChar(tag.charCodeAt(0))) {
+                this._throwError("Tag may not start with an upper case character.")
+            }
 
-        this._addTag(tag)
+            this._addTag(tag)
+        } else {
+            const tags = tag.split(' ')
+            for (let i = 0, m = tags.length; i < m; i++) {
+                const tag = tags[i]
+
+                if (Utils.isUcChar(tag.charCodeAt(0))) {
+                    this._throwError("Tag may not start with an upper case character.")
+                }
+
+                this._addTag(tag)
+            }
+        }
     }
 
     _addTag(tag) {
