@@ -32,22 +32,17 @@ class CoreContext {
         this._renderTexturePool.forEach(texture => this._freeRenderTexture(texture));
     }
 
-    visit() {
-        this.root.visit()
-    }
-
     frame() {
         //if (this.stage.frameCounter % 100 != 99) return
         if (!this.root._parent._hasRenderUpdates) {
             return false
         }
 
-        this.visit()
         this.update()
 
-        // Due to the boundsVisibility flag feature, it is possible that other views were changed during the update
-        // loop (for example due to the txLoaded event). We process these changes immediately (but not recursively
-        // to prevent infinite loops).
+        // Due to the boundsVisibility flag feature (and onAfterUpdate hook), it is possible that other views were
+        // changed during the update loop (for example due to the txLoaded event). We process these changes immediately
+        // (but not recursively to prevent infinite loops).
         if (this.root._hasUpdates) {
             this.update()
         }

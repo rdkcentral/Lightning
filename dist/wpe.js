@@ -1044,9 +1044,6 @@ class Stage extends EventEmitter {
         this.rectangleTexture.source.load(true);
 
         source.permanent = true;
-        if (self.textureAtlas) {
-            self.textureAtlas.add(source);
-        }
 
         self.adapter.startLoop();
     }
@@ -1120,11 +1117,6 @@ class Stage extends EventEmitter {
         }
 
         this.emit('update');
-
-        if (this.textureAtlas) {
-            // Add new texture sources to the texture atlas.
-            this.textureAtlas.flush();
-        }
 
         let changes = this.ctx.frame();
 
@@ -4815,12 +4807,12 @@ class View extends EventEmitter {
         }
     }
 
-    set visitEntry(f) {
-        this._core.visitEntry = f;
+    set onUpdate(f) {
+        this._core.onUpdate = f;
     }
 
-    set visitExit(f) {
-        this._core.visitExit = f;
+    set onAfterUpdate(f) {
+        this._core.onAfterUpdate = f;
     }
 
     get shader() {
@@ -5126,19 +5118,19 @@ class View extends EventEmitter {
     }
     
 
-}
+    static isColorProperty(property) {
+        return property.startsWith("color")
+    }
 
-View.isColorProperty = function(property) {
-    return property.startsWith("color")
-}
-
-View.getMerger = function(property) {
-    if (View.isColorProperty(property)) {
-        return StageUtils.mergeColors
-    } else {
-        return StageUtils.mergeNumbers
+    static getMerger(property) {
+        if (View.isColorProperty(property)) {
+            return StageUtils.mergeColors
+        } else {
+            return StageUtils.mergeNumbers
+        }
     }
 }
+
 
 View.prototype.isView = 1;
 
@@ -5772,9 +5764,9 @@ class ViewCore {
 
         this._hasRenderUpdates = 0;
 
-        this._visitEntry = null;
+        this._onUpdate = null;
 
-        this._visitExit = null;
+        this._onAfterUpdate = null;
 
         this._recalc = 0;
 
@@ -6295,12 +6287,12 @@ class ViewCore {
     };
 
 
-    set visitEntry(f) {
-        this._visitEntry = f;
+    set onUpdate(f) {
+        this._onUpdate = f;
     }
 
-    set visitExit(f) {
-        this._visitExit = f;
+    set onAfterUpdate(f) {
+        this._onAfterUpdate = f;
     }
 
     get shader() {
@@ -6487,37 +6479,6 @@ class ViewCore {
         return (this._localAlpha > 1e-14);
     };
 
-    visit() {
-        if (this.isVisible()) {
-            this._recalc |= (this._parent._recalc & 6)
-
-            let changed = (this._recalc > 0) || (this._hasRenderUpdates > 0) || this._hasUpdates
-
-            if (changed) {
-                if (this._visitEntry) {
-                    this._visitEntry(this._view);
-                }
-
-                if (this._children) {
-                    // Positioning changes are propagated downwards.
-                    let recalc = this._recalc
-
-                    for (let i = 0, n = this._children.length; i < n; i++) {
-                        this._children[i].visit()
-                    }
-
-                    // Reset recalc so that visitExit is able to distinguish between a local positioning change and a
-                    // positioning changed forced by the ancestor.
-                    this._recalc = recalc
-                }
-
-                if (this._visitExit) {
-                    this._visitExit(this._view);
-                }
-            }
-        }
-    }
-
     get outOfBounds() {
         return this._outOfBounds
     }
@@ -6541,6 +6502,12 @@ class ViewCore {
 
     update() {
         this._recalc |= this._parent._pRecalc
+
+        if (this._onUpdate) {
+            // Block all 'upwards' updates when changing things in this branch.
+            this._hasUpdates = true
+            this._onUpdate(this.view)
+        }
 
         const pw = this._parent._worldContext
         let w = this._worldContext
@@ -6851,6 +6818,10 @@ class ViewCore {
                         }
                     }
                 }
+            }
+
+            if (this._onAfterUpdate) {
+                this._onAfterUpdate(this.view)
             }
 
             if (this._zSort) {
@@ -7378,22 +7349,17 @@ class CoreContext {
         this._renderTexturePool.forEach(texture => this._freeRenderTexture(texture));
     }
 
-    visit() {
-        this.root.visit()
-    }
-
     frame() {
         //if (this.stage.frameCounter % 100 != 99) return
         if (!this.root._parent._hasRenderUpdates) {
             return false
         }
 
-        this.visit()
         this.update()
 
-        // Due to the boundsVisibility flag feature, it is possible that other views were changed during the update
-        // loop (for example due to the txLoaded event). We process these changes immediately (but not recursively
-        // to prevent infinite loops).
+        // Due to the boundsVisibility flag feature (and onAfterUpdate hook), it is possible that other views were
+        // changed during the update loop (for example due to the txLoaded event). We process these changes immediately
+        // (but not recursively to prevent infinite loops).
         if (this.root._hasUpdates) {
             this.update()
         }
@@ -10994,7 +10960,7 @@ class BorderView extends View {
 
         this._updateLayout = false;
 
-        this.visitExit = function (view, recalc) {
+        this.onAfterUpdate = function (view, recalc) {
             let hasSingleChild = view.children.length === 1;
             let refresh = (hasSingleChild && (view.children[0]._core._recalc & 2)) || recalc || view._updateLayout;
             if (refresh) {

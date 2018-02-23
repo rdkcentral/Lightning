@@ -17,7 +17,7 @@ class BorderView extends View {
 
         this._updateLayout = false;
 
-        this.visitExit = function (view, recalc) {
+        this.onAfterUpdate = function (view, recalc) {
             let hasSingleChild = view.children.length === 1;
             let refresh = (hasSingleChild && (view.children[0]._core._recalc & 2)) || recalc || view._updateLayout;
             if (refresh) {

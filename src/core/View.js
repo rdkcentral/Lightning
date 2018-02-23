@@ -1745,12 +1745,12 @@ class View extends EventEmitter {
         }
     }
 
-    set visitEntry(f) {
-        this._core.visitEntry = f;
+    set onUpdate(f) {
+        this._core.onUpdate = f;
     }
 
-    set visitExit(f) {
-        this._core.visitExit = f;
+    set onAfterUpdate(f) {
+        this._core.onAfterUpdate = f;
     }
 
     get shader() {
