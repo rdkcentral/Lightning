@@ -2026,24 +2026,25 @@ class View extends EventEmitter {
     _setTransition(property, settings) {
         if (!settings) {
             this._removeTransition(property);
-        }
-        if (Utils.isObjectLiteral(settings)) {
-            // Convert plain object to proper settings object.
-            settings = this.stage.transitions.createSettings(settings);
-        }
-
-        if (!this._transitions) {
-            this._transitions = {};
-        }
-
-        let current = this._transitions[property];
-        if (current && current.isTransition) {
-            // Runtime settings change.
-            current.settings = settings;
-            return current;
         } else {
-            // Initially, only set the settings and upgrade to a 'real' transition when it is used.
-            this._transitions[property] = settings;
+            if (Utils.isObjectLiteral(settings)) {
+                // Convert plain object to proper settings object.
+                settings = this.stage.transitions.createSettings(settings);
+            }
+
+            if (!this._transitions) {
+                this._transitions = {};
+            }
+
+            let current = this._transitions[property];
+            if (current && current.isTransition) {
+                // Runtime settings change.
+                current.settings = settings;
+                return current;
+            } else {
+                // Initially, only set the settings and upgrade to a 'real' transition when it is used.
+                this._transitions[property] = settings;
+            }
         }
     }
 
