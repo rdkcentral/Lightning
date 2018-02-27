@@ -42,17 +42,19 @@ class Tools {
         return {data: data, options: options}
     }
 
-    static getCanvasTexture(stage, canvas, texOptions = {}) {
+    static getCanvasTexture(stage, canvasFactory, texOptions = {}) {
         return stage.texture(function(cb) {
-            const info = Tools.convertCanvas(canvas)
+            const info = Tools.convertCanvas(canvasFactory())
             cb(null, info.data, info.options);
         }, texOptions);
     }
 
     static getRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor) {
-        let canvas = this.createRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor)
+        let factory = () => {
+            return this.createRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor)
+        }
         let id = 'rect' + [w, h, radius, strokeWidth, strokeColor, fill ? 1 : 0, fillColor].join(",");
-        return Tools.getCanvasTexture(stage, canvas, {id: id});
+        return Tools.getCanvasTexture(stage, factory, {id: id});
     }
 
     static createRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor) {
