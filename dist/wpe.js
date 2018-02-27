@@ -5088,24 +5088,25 @@ class View extends EventEmitter {
     _setTransition(property, settings) {
         if (!settings) {
             this._removeTransition(property);
-        }
-        if (Utils.isObjectLiteral(settings)) {
-            // Convert plain object to proper settings object.
-            settings = this.stage.transitions.createSettings(settings);
-        }
-
-        if (!this._transitions) {
-            this._transitions = {};
-        }
-
-        let current = this._transitions[property];
-        if (current && current.isTransition) {
-            // Runtime settings change.
-            current.settings = settings;
-            return current;
         } else {
-            // Initially, only set the settings and upgrade to a 'real' transition when it is used.
-            this._transitions[property] = settings;
+            if (Utils.isObjectLiteral(settings)) {
+                // Convert plain object to proper settings object.
+                settings = this.stage.transitions.createSettings(settings);
+            }
+
+            if (!this._transitions) {
+                this._transitions = {};
+            }
+
+            let current = this._transitions[property];
+            if (current && current.isTransition) {
+                // Runtime settings change.
+                current.settings = settings;
+                return current;
+            } else {
+                // Initially, only set the settings and upgrade to a 'real' transition when it is used.
+                this._transitions[property] = settings;
+            }
         }
     }
 
@@ -10315,17 +10316,19 @@ class Tools {
         return {data: data, options: options}
     }
 
-    static getCanvasTexture(stage, canvas, texOptions = {}) {
+    static getCanvasTexture(stage, canvasFactory, texOptions = {}) {
         return stage.texture(function(cb) {
-            const info = Tools.convertCanvas(canvas)
+            const info = Tools.convertCanvas(canvasFactory())
             cb(null, info.data, info.options);
         }, texOptions);
     }
 
     static getRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor) {
-        let canvas = this.createRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor)
+        let factory = () => {
+            return this.createRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor)
+        }
         let id = 'rect' + [w, h, radius, strokeWidth, strokeColor, fill ? 1 : 0, fillColor].join(",");
-        return Tools.getCanvasTexture(stage, canvas, {id: id});
+        return Tools.getCanvasTexture(stage, factory, {id: id});
     }
 
     static createRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor) {
