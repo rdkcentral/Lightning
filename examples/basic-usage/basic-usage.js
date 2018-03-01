@@ -27,6 +27,11 @@ var start = function(wpe) {
                 Main: {rect: true, renderToTexture: true, w: 900, h: 900, colorLeft: 0xFF000000, colorRight: 0xFF0000FF,
                     Rect: {rect: true, color: 0xFFFF0000, w: 150, h: 300, x: 300, y: 300}
                 },
+                Shadow: {
+                    texture: Tools.getShadowRect(stage, 100, 100, 15, 10),
+                    color: 0xAA000000,
+                    x: 400 - 20, y: 400 - 20
+                },
                 App: {alpha: 0},
                 x: 10
             },

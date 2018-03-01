@@ -102,15 +102,15 @@ class Tools {
         return canvas;
     }
 
-    static getShadowRect(stage, w, h, blur = 5, margin = blur * 2) {
+    static getShadowRect(stage, w, h, radius = 0, blur = 5, margin = blur * 2) {
         let factory = () => {
-            return this.createShadowRect(stage, w, h, blur, margin)
+            return this.createShadowRect(stage, w, h, radius, blur, margin)
         }
-        let id = 'rect' + [w, h, blur, margin].join(",");
+        let id = 'shadow' + [w, h, radius, blur, margin].join(",");
         return Tools.getCanvasTexture(stage, factory, {id: id});
     }
 
-    static createShadowRect(stage, w, h, blur, margin) {
+    static createShadowRect(stage, w, h, radius, blur, margin) {
         let canvas = stage.adapter.getDrawingCanvas();
         let ctx = canvas.getContext('2d');
         ctx.imageSmoothingEnabled = true;
@@ -123,7 +123,20 @@ class Tools {
         ctx.shadowBlur = blur
         ctx.shadowOffsetX = (w + 10) + margin
         ctx.shadowOffsetY = margin
-        ctx.fillRect(-(w + 10), 0, w, h)
+
+        ctx.beginPath();
+        const x = -(w + 10)
+        const y = 0
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + w - radius, y);
+        ctx.arcTo(x + w, y, x + w, y + radius, radius);
+        ctx.lineTo(x + w, y + h - radius);
+        ctx.arcTo(x + w, y + h, x + w - radius, y + h, radius);
+        ctx.lineTo(x + radius, y + h);
+        ctx.arcTo(x, y + h, x, y + h - radius, radius);
+        ctx.lineTo(x, y + radius);
+        ctx.arcTo(x, y, x + radius, y, radius);
+        ctx.fill()
 
         return canvas;
     }
