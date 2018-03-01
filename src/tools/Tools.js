@@ -65,7 +65,6 @@ class Tools {
         let ctx = canvas.getContext('2d');
         ctx.imageSmoothingEnabled = true;
 
-        let id = 'rect' + [w, h, radius, strokeWidth, strokeColor, fill ? 1 : 0, fillColor].join(",");
         canvas.width = w + strokeWidth + 2;
         canvas.height = h + strokeWidth + 2;
 
@@ -102,6 +101,33 @@ class Tools {
 
         return canvas;
     }
+
+    static getShadowRect(stage, w, h, blur = 5, margin = blur * 2) {
+        let factory = () => {
+            return this.createShadowRect(stage, w, h, blur, margin)
+        }
+        let id = 'rect' + [w, h, blur, margin].join(",");
+        return Tools.getCanvasTexture(stage, factory, {id: id});
+    }
+
+    static createShadowRect(stage, w, h, blur, margin) {
+        let canvas = stage.adapter.getDrawingCanvas();
+        let ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+
+        canvas.width = w + margin * 2;
+        canvas.height = h + margin * 2;
+
+        ctx.shadowColor = StageUtils.getRgbaString(0xFFFFFFFF)
+        ctx.fillStyle = StageUtils.getRgbaString(0xFFFFFFFF)
+        ctx.shadowBlur = blur
+        ctx.shadowOffsetX = (w + 10) + margin
+        ctx.shadowOffsetY = margin
+        ctx.fillRect(-(w + 10), 0, w, h)
+
+        return canvas;
+    }
+
 }
 
 module.exports = Tools;
