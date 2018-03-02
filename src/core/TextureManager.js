@@ -155,7 +155,7 @@ class TextureManager {
         let usedTextureMemoryBefore = this._usedTextureMemory;
         for (let i = 0, n = this._uploadedTextureSources.length; i < n; i++) {
             let ts = this._uploadedTextureSources[i];
-            if (ts.allowCleanup()) {
+            if (ts.allowCleanup() && !ts.isLoadedByCore()) {
                 this.freeTextureSource(ts);
             } else {
                 remainingTextureSources.push(ts);

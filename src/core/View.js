@@ -338,7 +338,9 @@ class View extends EventEmitter {
     _unsetEnabledFlag() {
         if (this._active) {
             this._unsetActiveFlag()
-        } else if (this._texture) {
+        }
+
+        if (this._texture) {
             this._texture.source.removeView(this)
         }
 
@@ -360,7 +362,6 @@ class View extends EventEmitter {
     _setActiveFlag() {
         this._active = true
         if (this._texture) {
-            this._texture.source.incWithinBoundsCount()
             this._enableTexture()
         }
         this.emit('active')
@@ -369,7 +370,6 @@ class View extends EventEmitter {
     _unsetActiveFlag() {
         this._active = false;
         if (this._texture) {
-            this._texture.source.decWithinBoundsCount()
             this._disableTexture()
         }
         this.emit('inactive')
@@ -1331,6 +1331,10 @@ class View extends EventEmitter {
         // Iff enabled, this toggles the active flag.
         if (this._enabled) {
             this._setActiveFlag()
+
+            if (this._texture) {
+                this._texture.source.incWithinBoundsCount()
+            }
         }
     }
 
@@ -1338,6 +1342,10 @@ class View extends EventEmitter {
         // Iff active, this toggles the active flag.
         if (this._active) {
             this._unsetActiveFlag()
+
+            if (this._texture) {
+                this._texture.source.decWithinBoundsCount()
+            }
         }
     }
 
