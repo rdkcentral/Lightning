@@ -336,12 +336,10 @@ class View extends EventEmitter {
     }
 
     _unsetEnabledFlag() {
-        if (this._texture) {
-            this._texture.source.removeView(this)
-        }
-
         if (this._active) {
             this._unsetActiveFlag()
+        } else if (this._texture) {
+            this._texture.source.removeView(this)
         }
 
         if (this._hasTexturizer()) {
