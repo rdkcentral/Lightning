@@ -45,8 +45,11 @@ class Base {
     static patchObjectProperty(obj, name, value) {
         let setter = obj.setSetting || Base.defaultSetter;
 
-        // Type is a reserved keyword to specify the class type on creation.
-        if (name.substr(0, 2) !== "__" && name !== "type") {
+        if (name.substr(0, 1) !== "_") {
+            // Disallow patching private variables.
+            console.error("Patch of private property '" + name + "' is not allowed")
+        } else if (name !== "type") {
+            // Type is a reserved keyword to specify the class type on creation.
             if (Utils.isFunction(value) && value.__local) {
                 // Local function (Base.local(s => s.something))
                 value = value.__local(obj)
