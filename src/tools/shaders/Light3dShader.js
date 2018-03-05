@@ -186,7 +186,7 @@ Light3dShader.fragmentShaderSource = `
     varying vec4 vColor;
     varying float light;
     uniform sampler2D uSampler;
-    void main(void){
+    void main(void) {
         vec4 rgba = texture2D(uSampler, vTextureCoord);
         rgba.rgb = rgba.rgb * light;
         gl_FragColor = rgba * vColor;

@@ -395,7 +395,7 @@ class Base {
     static patchObjectProperty(obj, name, value) {
         let setter = obj.setSetting || Base.defaultSetter;
 
-        if (name.substr(0, 1) !== "_") {
+        if (name.substr(0, 1) === "_") {
             // Disallow patching private variables.
             console.error("Patch of private property '" + name + "' is not allowed")
         } else if (name !== "type") {
@@ -11731,7 +11731,7 @@ Light3dShader.fragmentShaderSource = `
     varying vec4 vColor;
     varying float light;
     uniform sampler2D uSampler;
-    void main(void){
+    void main(void) {
         vec4 rgba = texture2D(uSampler, vTextureCoord);
         rgba.rgb = rgba.rgb * light;
         gl_FragColor = rgba * vColor;

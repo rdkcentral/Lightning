@@ -43,6 +43,7 @@ module.exports = {
     'Light3dShader': require('./src/tools/shaders/Light3dShader'),
     'PixelateShader': require('./src/tools/shaders/PixelateShader'),
     'InversionShader': require('./src/tools/shaders/InversionShader'),
+    'OutlineShader': require('./src/tools/shaders/OutlineShader'),
     'FxaaFilter': require('./src/tools/filters/FxaaFilter'),
     'InversionFilter': require('./src/tools/filters/InversionFilter'),
     'BlurFilter': require('./src/tools/filters/BlurFilter'),
