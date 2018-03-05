@@ -8,17 +8,17 @@ class OutlineShader extends Shader {
 
     constructor(ctx) {
         super(ctx)
-        this._borderWidth = 5
-        this._borderColor = 0xFF0000FF
+        this._width = 5
+        this._color = 0xFFFFFFFF
     }
 
-    set borderWidth(v) {
-        this._borderWidth = v
+    set width(v) {
+        this._width = v
         this.redraw()
     }
 
-    set borderColor(v) {
-        this._borderColor = v
+    set color(v) {
+        this._color = v
         this.redraw()
     }
 
@@ -26,7 +26,7 @@ class OutlineShader extends Shader {
         super.setupUniforms(operation)
         let gl = this.gl
 
-        this._setUniform("borderColor", new Float32Array(StageUtils.getRgbaComponents(this._borderColor)), gl.uniform4fv)
+        this._setUniform("color", new Float32Array(StageUtils.getRgbaComponents(this._color)), gl.uniform4fv)
     }
 
     enableAttribs() {
@@ -50,9 +50,9 @@ class OutlineShader extends Shader {
             const viewCore = operation.getViewCore(i)
 
             // We are setting attributes such that if the value is < 0 or > 1, a border should be drawn.
-            const ddw = this._borderWidth / viewCore.rw
+            const ddw = this._width / viewCore.rw
             const dw = ddw / (1 - 2 * ddw)
-            const ddh = this._borderWidth / viewCore.rh
+            const ddh = this._width / viewCore.rh
             const dh = ddh / (1 - 2 * ddh)
 
             // Specify all corner points.
@@ -82,7 +82,7 @@ class OutlineShader extends Shader {
     }
 
     useDefault() {
-        return (this._borderWidth === 0)
+        return (this._width === 0)
     }
 }
 
@@ -114,12 +114,12 @@ OutlineShader.fragmentShaderSource = `
     varying vec2 vTextureCoord;
     varying vec4 vColor;
     varying vec2 vCorner;
-    uniform vec4 borderColor;
+    uniform vec4 color;
     uniform sampler2D uSampler;
     void main(void){
         vec2 m = min(vCorner, 1.0 - vCorner);
         float value = step(0.0, min(m.x, m.y));
-        gl_FragColor = mix(borderColor, texture2D(uSampler, vTextureCoord) * vColor, value);
+        gl_FragColor = mix(color, texture2D(uSampler, vTextureCoord) * vColor, value);
     }
 `;
 

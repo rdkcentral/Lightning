@@ -23,7 +23,7 @@ var start = function(wpe) {
 
         const template = {
             Primary: {
-                Rect: {rect: true, rotation: 1, w: 300, h: 500, x: 400, y: 200, color: 0xFFFF0000, shader: {type: OutlineShader, borderWidth: 5},
+                Rect: {rect: true, rotation: 1, w: 300, h: 500, x: 400, y: 200, color: 0xFFFF0000, shader: {type: OutlineShader, width: 5, color: 0xFF0000FF},
                     Inner: {shader: null, text: {text: "hello world"}}
                 }
             },
