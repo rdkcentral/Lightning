@@ -185,6 +185,7 @@ class ObjectList {
                     if (c !== s) {
                         // Replace previous item
                         let idx = this.getIndex(c)
+                        s.ref = cref
                         this.setAt(s, idx)
                     }
                 } else {
