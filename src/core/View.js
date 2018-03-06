@@ -1215,6 +1215,10 @@ class View extends EventEmitter {
     getNonDefaults() {
         let settings = {};
 
+        if (this.constructor !== View) {
+            settings.type = this.constructor.name
+        }
+
         if (this._ref) {
             settings.ref = this._ref
         }
