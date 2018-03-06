@@ -5000,6 +5000,9 @@ class View extends EventEmitter {
                         } else if (Utils.isObjectLiteral(v)) {
                             child.patch(v, createMode)
                         } else if (v.isView) {
+                            // Replace view by new view.
+                            v.ref = path
+                            this.childList.replace(v, child)
                         } else {
                             this._throwError("Unexpected value for path: " + path)
                         }
@@ -5222,6 +5225,14 @@ class ObjectList {
         }
     }
 
+    replace(item, prevItem) {
+        const index = this.getIndex(prevItem)
+        if (index === -1) {
+            throw new Error('replace: The previous item does not exist');
+        }
+        this.setAt(item, index)
+    }
+
     setAt(item, index) {
         if (index >= 0 && index <= this._items.length) {
             let currentIndex = this._items.indexOf(item)
@@ -5244,6 +5255,8 @@ class ObjectList {
                     }
                 }
 
+                const prevItem = this._items[index]
+
                 // Doesn't exist yet: overwrite current.
                 this._items[index] = item
 
@@ -5251,7 +5264,7 @@ class ObjectList {
                     this._refs[item.ref] = item
                 }
 
-                this.onSet(item, index)
+                this.onSet(item, index, prevItem)
             }
         } else {
             throw new Error('setAt: The index ' + index + ' is out of bounds ' + this._items.length);
@@ -5454,7 +5467,7 @@ class ObjectList {
     onSync(removed, added, order) {
     }
 
-    onSet(item, index) {
+    onSet(item, index, prevItem) {
     }
 
     onMove(item, fromIndex, toIndex) {
@@ -5513,7 +5526,9 @@ class ViewChildList extends ObjectList {
         this._view._core.syncChildren(removed.map(gc), added.map(gc), order.map(gc))
     }
 
-    onSet(item, index) {
+    onSet(item, index, prevItem) {
+        prevItem._setParent(null)
+
         this._detachParent(item)
         item._setParent(this._view)
         this._view._core.setChildAt(index, item._core)

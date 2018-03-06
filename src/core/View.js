@@ -1931,6 +1931,9 @@ class View extends EventEmitter {
                         } else if (Utils.isObjectLiteral(v)) {
                             child.patch(v, createMode)
                         } else if (v.isView) {
+                            // Replace view by new view.
+                            v.ref = path
+                            this.childList.replace(v, child)
                         } else {
                             this._throwError("Unexpected value for path: " + path)
                         }

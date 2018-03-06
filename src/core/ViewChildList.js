@@ -40,7 +40,9 @@ class ViewChildList extends ObjectList {
         this._view._core.syncChildren(removed.map(gc), added.map(gc), order.map(gc))
     }
 
-    onSet(item, index) {
+    onSet(item, index, prevItem) {
+        prevItem._setParent(null)
+
         this._detachParent(item)
         item._setParent(this._view)
         this._view._core.setChildAt(index, item._core)
