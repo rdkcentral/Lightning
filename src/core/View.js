@@ -1174,7 +1174,7 @@ class View extends EventEmitter {
                 }
                 childStr += indent + "]}";
                 let isEmpty = (str === "{}");
-                str = str.substr(0, str.length - 1) + (isEmpty ? "" : ",") + "\"sub\":" + childStr + "}"
+                str = str.substr(0, str.length - 1) + (isEmpty ? "" : ",") + "\"children\":" + childStr + "}"
             }
 
         }
