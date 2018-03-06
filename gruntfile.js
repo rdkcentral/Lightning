@@ -86,7 +86,7 @@ module.exports = function(grunt) {
                     "src/tools/shaders/PixelateShader.js",
                     "src/tools/shaders/InversionShader.js",
                     "src/tools/shaders/GrayscaleShader.js",
-                    "src/tools/shaders/BorderShader.js",
+                    "src/tools/shaders/OutlineShader.js",
                     "src/tools/filters/FxaaFilter.js",
                     "src/tools/filters/InversionFilter.js",
                     "src/tools/filters/BlurFilter.js",
