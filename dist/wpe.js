@@ -4243,7 +4243,7 @@ class View extends EventEmitter {
                 }
                 childStr += indent + "]}";
                 let isEmpty = (str === "{}");
-                str = str.substr(0, str.length - 1) + (isEmpty ? "" : ",") + "\"sub\":" + childStr + "}"
+                str = str.substr(0, str.length - 1) + (isEmpty ? "" : ",") + "\"children\":\n" + indent + childStr + "}"
             }
 
         }
@@ -4283,6 +4283,10 @@ class View extends EventEmitter {
 
     getNonDefaults() {
         let settings = {};
+
+        if (this.constructor !== View) {
+            settings.type = this.constructor.name
+        }
 
         if (this._ref) {
             settings.ref = this._ref
@@ -8647,9 +8651,9 @@ class TextRendererSettings extends EventEmitter {
         if (this.highlight !== false) nonDefaults["highlight"] = this.highlight;
         if (this.highlightHeight !== 0) nonDefaults["highlightHeight"] = this.highlightHeight;
         if (this.highlightColor !== 0xff000000) nonDefaults["highlightColor"] = this.highlightColor;
-        if (this.highlightOffset !== null) nonDefaults["highlightOffset"] = this.highlightOffset;
-        if (this.highlightPaddingLeft !== null) nonDefaults["highlightPaddingLeft"] = this.highlightPaddingLeft;
-        if (this.highlightPaddingRight !== null) nonDefaults["highlightPaddingRight"] = this.highlightPaddingRight;
+        if (this.highlightOffset !== 0) nonDefaults["highlightOffset"] = this.highlightOffset;
+        if (this.highlightPaddingLeft !== 0) nonDefaults["highlightPaddingLeft"] = this.highlightPaddingLeft;
+        if (this.highlightPaddingRight !== 0) nonDefaults["highlightPaddingRight"] = this.highlightPaddingRight;
 
         if (this.cutSx) nonDefaults["cutSx"] = this.cutSx;
         if (this.cutEx) nonDefaults["cutEx"] = this.cutEx;
