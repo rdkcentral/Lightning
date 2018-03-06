@@ -24,7 +24,7 @@ class ShaderBase {
          * The (active) views that use this shader.
          * @type {Set<ViewCore>}
          */
-        this._views = new Set();
+        this._views = new Set()
     }
 
     _init() {
@@ -85,6 +85,9 @@ class ShaderBase {
 
     removeView(viewCore) {
         this._views.delete(viewCore)
+        if (!this._views) {
+            this.cleanup()
+        }
     }
 
     redraw() {
@@ -95,6 +98,10 @@ class ShaderBase {
 
     patch(settings) {
         Base.patchObject(this, settings)
+    }
+
+    cleanup() {
+
     }
 
 }

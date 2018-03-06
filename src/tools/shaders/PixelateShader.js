@@ -1,8 +1,4 @@
-/**
- * Copyright Metrological, 2017
- */
-
-let Shader = require('../../core/Shader');
+const Shader = require('../../core/Shader');
 
 /**
  * @see https://github.com/pixijs/pixi-filters/tree/master/filters/pixelate/src

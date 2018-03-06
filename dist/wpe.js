@@ -1390,7 +1390,7 @@ class ShaderBase {
          * The (active) views that use this shader.
          * @type {Set<ViewCore>}
          */
-        this._views = new Set();
+        this._views = new Set()
     }
 
     _init() {
@@ -1451,6 +1451,9 @@ class ShaderBase {
 
     removeView(viewCore) {
         this._views.delete(viewCore)
+        if (!this._views) {
+            this.cleanup()
+        }
     }
 
     redraw() {
@@ -1461,6 +1464,10 @@ class ShaderBase {
 
     patch(settings) {
         Base.patchObject(this, settings)
+    }
+
+    cleanup() {
+
     }
 
 }
@@ -10133,12 +10140,6 @@ class Animation extends EventEmitter {
         let duration = this._getStopDuration()
 
         if (this._stopDelayLeft > 0) {
-            // Animation wasn't even started yet: directly finish!
-            this._state = Animation.STATES.STOPPED
-            this.emit('stopFinish')
-        }
-
-        if (this._stopDelayLeft > 0) {
             this._stopDelayLeft -= dt
 
             if (this._stopDelayLeft < 0) {
@@ -11563,206 +11564,6 @@ FastBlurOutputShader.fragmentShaderSource = `
 
 
 
-/**
- * Copyright Metrological, 2017
- */
-
-
-class Light3dShader extends Shader {
-
-    constructor(ctx) {
-        super(ctx)
-
-        this._strength = 0.5
-        this._ambient = 0.5
-        this._fudge = 0.4
-
-        this._rx = 0
-        this._ry = 0
-
-        this._z = 0
-        this._pivotZ = 0
-    }
-
-    supportsMerging() {
-        // As we need the shader owner, we do not support merging.
-        return false
-    }
-
-    setupUniforms(operation) {
-        super.setupUniforms(operation)
-
-        let vr = operation.shaderOwner;
-        let view = vr.view;
-
-        let coords = vr.getRenderTextureCoords(view.pivotX * vr.rw, view.pivotY * vr.rh)
-
-        // Counter normal rotation.
-
-        let rz = -Math.atan2(vr._renderContext.tc, vr._renderContext.ta)
-
-        let gl = this.gl
-        this._setUniform("pivot", new Float32Array([coords[0], coords[1], this._pivotZ]), gl.uniform3fv)
-        this._setUniform("rot", new Float32Array([this._rx, this._ry, rz]), gl.uniform3fv)
-
-        this._setUniform("z", this._z, gl.uniform1f)
-        this._setUniform("strength", this._strength, gl.uniform1f)
-        this._setUniform("ambient", this._ambient, gl.uniform1f)
-        this._setUniform("fudge", this._fudge, gl.uniform1f)
-    }
-
-    set strength(v) {
-        this._strength = v;
-        this.redraw();
-    }
-
-    get strength() {
-        return this._strength;
-    }
-
-    set ambient(v) {
-        this._ambient = v;
-        this.redraw();
-    }
-
-    get ambient() {
-        return this._ambient;
-    }
-
-    set fudge(v) {
-        this._fudge = v;
-        this.redraw();
-    }
-
-    get fudge() {
-        return this._fudge;
-    }
-
-    get rx() {
-        return this._rx;
-    }
-
-    set rx(v) {
-        this._rx = v;
-        this.redraw();
-    }
-
-    get ry() {
-        return this._ry;
-    }
-
-    set ry(v) {
-        this._ry = v;
-        this.redraw();
-    }
-
-    get z() {
-        return this._z;
-    }
-
-    set z(v) {
-        this._z = v;
-        this.redraw();
-    }
-
-    get pivotZ() {
-        return this._pivotZ;
-    }
-
-    set pivotZ(v) {
-        this._pivotZ = v;
-        this.redraw();
-    }
-
-}
-
-Light3dShader.vertexShaderSource = `
-    #ifdef GL_ES
-    precision lowp float;
-    #endif
-    attribute vec2 aVertexPosition;
-    attribute vec2 aTextureCoord;
-    attribute vec4 aColor;
-    uniform vec2 projection;
-    varying vec2 vTextureCoord;
-    varying vec4 vColor;
-
-    uniform float fudge;
-    uniform float strength;
-    uniform float ambient;
-    uniform float z;
-    uniform vec3 pivot;
-    uniform vec3 rot;
-    varying float light;
-
-    void main(void) {
-        vec3 pos = vec3(aVertexPosition.xy, z);
-        
-        pos -= pivot;
-        
-        // Undo XY rotation
-        mat2 iRotXy = mat2( cos(rot.z), sin(rot.z), 
-                           -sin(rot.z), cos(rot.z));
-        pos.xy = iRotXy * pos.xy;
-        
-        // Perform 3d rotations
-        gl_Position.x = cos(rot.x) * pos.x - sin(rot.x) * pos.z;
-        gl_Position.y = pos.y;
-        gl_Position.z = sin(rot.x) * pos.x + cos(rot.x) * pos.z;
-        
-        pos.y = cos(rot.y) * gl_Position.y - sin(rot.y) * gl_Position.z;
-        gl_Position.z = sin(rot.y) * gl_Position.y + cos(rot.y) * gl_Position.z;
-        gl_Position.y = pos.y;
-        
-        // Redo XY rotation
-        iRotXy[0][1] = -iRotXy[0][1];
-        iRotXy[1][0] = -iRotXy[1][0];
-        gl_Position.xy = iRotXy * gl_Position.xy; 
-
-        // Undo translate to pivot position
-        gl_Position.xyz += pivot;
-        
-        
-        // Set depth perspective
-        float perspective = 1.0 + fudge * gl_Position.z * projection.x;
-
-        // Map coords to gl coordinate space.
-        gl_Position = vec4(gl_Position.x * projection.x - 1.0, gl_Position.y * -abs(projection.y) + 1.0, 0.0, perspective);
-        
-        // Set z to 0 because we don't want to perform z-clipping
-        gl_Position.z = 0.0;
-
-        // Use texture normal to calculate light strength 
-        light = ambient + strength * abs(cos(rot.y) * cos(rot.x));
-        
-        vTextureCoord = aTextureCoord;
-        vColor = aColor;
-        
-        gl_Position.y = -sign(projection.y) * gl_Position.y;
-    }
-`;
-
-Light3dShader.fragmentShaderSource = `
-    #ifdef GL_ES
-    precision lowp float;
-    #endif
-    varying vec2 vTextureCoord;
-    varying vec4 vColor;
-    varying float light;
-    uniform sampler2D uSampler;
-    void main(void) {
-        vec4 rgba = texture2D(uSampler, vTextureCoord);
-        rgba.rgb = rgba.rgb * light;
-        gl_FragColor = rgba * vColor;
-    }
-`;
-
-
-
-/**
- * Copyright Metrological, 2017
- */
-
 
 /**
  * @see https://github.com/pixijs/pixi-filters/tree/master/filters/pixelate/src
@@ -11936,6 +11737,7 @@ InversionShader.fragmentShaderSource = `
     }
 `;
 
+
 class GrayscaleShader extends Shader {
     constructor(context) {
         super(context)
@@ -11977,9 +11779,6 @@ GrayscaleShader.fragmentShaderSource = `
     }
 `;
 
-/**
- * Copyright Metrological, 2017
- */
 
 
 class OutlineShader extends Shader {
@@ -12100,6 +11899,196 @@ OutlineShader.fragmentShaderSource = `
         gl_FragColor = mix(color, texture2D(uSampler, vTextureCoord) * vColor, value);
     }
 `;
+
+
+
+
+class CircularPushShader extends Shader {
+    constructor(context) {
+        super(context)
+
+        this._inputValue = 0
+
+        this._maxDerivative = 0.01
+
+        this._normalizedValue = 0
+
+        // The offset between buckets. A value between 0 and 1.
+        this._offset = 0
+
+        this._amount = 0.1
+
+        this.buckets = 100
+    }
+
+    set amount(v) {
+        this._amount = v
+        this.redraw()
+    }
+
+    get amount() {
+        return this._amount
+    }
+
+    set inputValue(v) {
+        this._inputValue = v
+    }
+
+    get inputValue() {
+        return this._inputValue
+    }
+
+    set maxDerivative(v) {
+        this._maxDerivative = v
+    }
+
+    get maxDerivative() {
+        return this._maxDerivative
+    }
+
+    set buckets(v) {
+        if (v > 100) {
+            console.warn("CircularPushShader: supports max 100 buckets")
+            v = 100
+        }
+
+        // This should be set before starting.
+        this._buckets = v
+
+        // Init values array in the correct length.
+        this._values = new Uint8Array(this._getValues(v))
+
+        this.redraw()
+    }
+
+    get buckets() {
+        return this._buckets
+    }
+
+    _getValues(n) {
+        const v = []
+        for (let i = 0; i < n; i++) {
+            v.push(this._inputValue)
+        }
+        return v
+    }
+
+    /**
+     * Progresses the shader with the specified (fractional) number of buckets.
+     * @param {number} o
+     *   A number from 0 to 1 (1 = all buckets).
+     */
+    progress(o) {
+        this._offset += o * this._buckets
+        const full = Math.floor(this._offset)
+        this._offset -= full
+        this._shiftBuckets(full)
+        this.redraw()
+    }
+
+    _shiftBuckets(n) {
+        for (let i = this._buckets - 1; i >= 0; i--) {
+            const targetIndex = i - n
+            if (targetIndex < 0) {
+                this._normalizedValue = Math.min(this._normalizedValue + this._maxDerivative, Math.max(this._normalizedValue - this._maxDerivative, this._inputValue))
+                this._values[i] = 255 * this._normalizedValue
+            } else {
+                this._values[i] = this._values[targetIndex]
+            }
+        }
+    }
+
+    set offset(v) {
+        this._offset = v
+        this.redraw()
+    }
+
+    setupUniforms(operation) {
+        super.setupUniforms(operation)
+        this._setUniform("amount", this._amount, this.gl.uniform1f)
+        this._setUniform("offset", this._offset, this.gl.uniform1f)
+        this._setUniform("buckets", this._buckets, this.gl.uniform1f)
+        this._setUniform("uValueSampler", 1, this.gl.uniform1i)
+    }
+
+    useDefault() {
+        return this._amount === 0
+    }
+
+    beforeDraw(operation) {
+        const gl = this.gl
+        gl.activeTexture(gl.TEXTURE1);
+        if (!this._valuesTexture) {
+            this._valuesTexture = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, this._valuesTexture);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            if (Utils.isNode) {
+                gl.pixelStorei(gl.UNPACK_FLIP_BLUE_RED, false);
+            }
+            gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+        } else {
+            gl.bindTexture(gl.TEXTURE_2D, this._valuesTexture);
+        }
+
+        // Upload new values.
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.ALPHA, this._buckets, 1, 0, gl.ALPHA, gl.UNSIGNED_BYTE, this._values);
+        gl.activeTexture(gl.TEXTURE0);
+    }
+
+    cleanup() {
+        if (this._valuesTexture) {
+            this.gl.deleteTexture(this._valuesTexture)
+        }
+    }
+
+
+}
+
+CircularPushShader.vertexShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    attribute vec2 aVertexPosition;
+    attribute vec2 aTextureCoord;
+    attribute vec4 aColor;
+    uniform vec2 projection;
+    varying vec2 vTextureCoord;
+    varying vec2 vPos;
+    varying vec4 vColor;
+    void main(void){
+        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);
+        vTextureCoord = aTextureCoord;
+        vPos = vTextureCoord * 2.0 - 1.0;
+        vColor = aColor;
+        gl_Position.y = -sign(projection.y) * gl_Position.y;
+    }
+`;
+
+CircularPushShader.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    varying vec2 vPos;
+    uniform float amount;
+    uniform float offset;
+    uniform float values[100];
+    uniform float buckets;
+    uniform sampler2D uSampler;
+    uniform sampler2D uValueSampler;
+    void main(void){
+        float l = length(vPos);
+        float m = (l * buckets * 0.678 - offset) / buckets;
+        float f = texture2D(uValueSampler, vec2(m, 0.0)).a * amount;
+        vec2 unit = vPos / l;
+        gl_FragColor = texture2D(uSampler, vTextureCoord - f * unit) * vColor;
+    }
+`;
+
 
 
 

@@ -1,8 +1,4 @@
-/**
- * Copyright Metrological, 2017
- */
-
-let Shader = require('../../core/Shader');
+const Shader = require('../../core/Shader');
 
 class OutlineShader extends Shader {
 

@@ -187,12 +187,6 @@ class Animation extends EventEmitter {
         let duration = this._getStopDuration()
 
         if (this._stopDelayLeft > 0) {
-            // Animation wasn't even started yet: directly finish!
-            this._state = Animation.STATES.STOPPED
-            this.emit('stopFinish')
-        }
-
-        if (this._stopDelayLeft > 0) {
             this._stopDelayLeft -= dt
 
             if (this._stopDelayLeft < 0) {

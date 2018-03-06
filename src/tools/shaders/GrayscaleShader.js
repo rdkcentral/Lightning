@@ -1,3 +1,5 @@
+const Shader = require('../../core/Shader');
+
 class GrayscaleShader extends Shader {
     constructor(context) {
         super(context)
@@ -38,3 +40,5 @@ GrayscaleShader.fragmentShaderSource = `
         gl_FragColor = vec4(amount * vec3(grayness, grayness, grayness) + (1.0 - amount) * color.rgb, color.a) * vColor;
     }
 `;
+
+module.exports = GrayscaleShader;
