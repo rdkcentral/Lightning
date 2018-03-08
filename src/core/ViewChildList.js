@@ -11,15 +11,30 @@ class ViewChildList extends ObjectList {
         this._view = view
     }
 
-    _detachParent(item) {
-        if (item.parent && item.parent !== this._view) {
-            item.parent.childList.remove(item)
+    _connectParent(item) {
+        const prevParent = item.parent
+        if (prevParent && prevParent !== this._view) {
+            // Cleanup in previous child list, without
+            const prevChildList = item.parent.childList
+            const index = prevChildList.getIndex(item)
+
+            if (item.ref) {
+                prevChildList._refs[item.ref] = undefined
+            }
+            prevChildList._items.splice(index, 1);
+
+            // Also clean up view core.
+            item.parent._view._core.removeChildAt(index)
+
         }
+
+        item._setParent(this._view)
+
+        // We are expecting the caller to sync it to the core.
     }
 
     onAdd(item, index) {
-        this._detachParent(item)
-        item._setParent(this._view)
+        this._connectParent(item)
         this._view._core.addChildAt(index, item._core)
     }
 
@@ -33,8 +48,7 @@ class ViewChildList extends ObjectList {
             removed[i]._setParent(null)
         }
         for (let i = 0, n = added.length; i < n; i++) {
-            this._detachParent(added[i])
-            added[i]._setParent(this._view)
+            this._connectParent(added[i])
         }
         let gc = i => i._core
         this._view._core.syncChildren(removed.map(gc), added.map(gc), order.map(gc))
@@ -43,8 +57,7 @@ class ViewChildList extends ObjectList {
     onSet(item, index, prevItem) {
         prevItem._setParent(null)
 
-        this._detachParent(item)
-        item._setParent(this._view)
+        this._connectParent(item)
         this._view._core.setChildAt(index, item._core)
     }
 
