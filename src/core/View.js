@@ -1018,8 +1018,7 @@ class View extends EventEmitter {
         let arrowIdx = path.indexOf(">")
         if (pointIdx === -1 && arrowIdx === -1) {
             // Quick case.
-            const firstChar = path.charAt(0)
-            if (Utils.isUcChar(firstChar)) {
+            if (Utils.isUcChar(path.charCodeAt(0))) {
                 const ref = this.getByRef(path)
                 return ref ? [ref] : []
             } else {
