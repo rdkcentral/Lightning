@@ -379,10 +379,10 @@ class View extends EventEmitter {
         if (this._w) {
             return this._w;
         } else if (this._displayedTexture) {
-            return this._displayedTexture.getRenderWidth() / this._displayedTexture.precision;
+            return this._displayedTexture.getRenderWidth()
         } else if (this._texture) {
             // Texture already loaded, but not yet updated (probably because this view is not active).
-            return this._texture.getRenderWidth() / this._texture.precision;
+            return this._texture.getRenderWidth()
         } else {
             return 0;
         }
@@ -392,10 +392,10 @@ class View extends EventEmitter {
         if (this._h) {
             return this._h;
         } else if (this._displayedTexture) {
-            return this._displayedTexture.getRenderHeight() / this._displayedTexture.precision;
+            return this._displayedTexture.getRenderHeight()
         } else if (this._texture) {
             // Texture already loaded, but not yet updated (probably because this view is not active).
-            return this._texture.getRenderHeight() / this._texture.precision;
+            return this._texture.getRenderHeight()
         } else {
             return 0;
         }
@@ -638,20 +638,20 @@ class View extends EventEmitter {
 
                 let prec = displayedTexture.precision;
 
-                if (displayedTexture.w) {
-                    rw = (displayedTexture.w * prec) * iw;
+                if (displayedTexture.pw) {
+                    rw = (displayedTexture.pw) * iw;
                 } else {
-                    rw = (w - (displayedTexture.x * prec)) * iw;
+                    rw = (w - displayedTexture.px) * iw;
                 }
 
-                if (displayedTexture.h) {
-                    rh = (displayedTexture.h * prec) * ih;
+                if (displayedTexture.ph) {
+                    rh = displayedTexture.ph * ih;
                 } else {
-                    rh = (h - (displayedTexture.y * prec)) * ih;
+                    rh = (h - displayedTexture.py) * ih;
                 }
 
-                iw *= (displayedTexture.x * prec);
-                ih *= (displayedTexture.y * prec);
+                iw *= (displayedTexture.px);
+                ih *= (displayedTexture.py);
 
                 tx1 = Math.min(1.0, Math.max(0, iw));
                 ty1 = Math.min(1.0, Math.max(ih));

@@ -59,6 +59,10 @@ class Texture {
     }
 
     enableClipping(x, y, w, h) {
+        x *= this._precision
+        y *= this._precision
+        w *= this._precision
+        h *= this._precision
         if (this._x !== x || this._y !== y || this._w !== w || this._h !== h) {
             this._x = x;
             this._y = y;
@@ -142,43 +146,86 @@ class Texture {
         if (this.precision !== 1) nonDefaults['precision'] = this.precision;
         return nonDefaults;        
     }
-    
-    get x() {return this._x}
-    set x(v) {if (this._x !== v) {
-        this._x = v;
-        this.updateClipping();
-    }}
 
-    get y() {return this._y}
-    set y(v) {if (this._y !== v) {
-        this._y = v;
-        this.updateClipping();
-    }}
+    get px() {
+        return this._x
+    }
 
-    get w() {return this._w}
-    set w(v) {if (this._w !== v) {
-        this._w = v;
-        this.updateClipping();
-    }}
+    get py() {
+        return this._y
+    }
 
-    get h() {return this._h}
-    set h(v) {if (this._h !== v) {
-        this._h = v;
-        this.updateClipping();
-    }}
+    get pw() {
+        return this._w
+    }
 
-    get precision() {return this._precision}
-    set precision(v) {if (this._precision !== v) {
-        this._precision = v;
-        this.updatePrecision();
-    }}
+    get ph() {
+        return this._h
+    }
+
+    get x() {
+        return this._x / this._precision
+    }
+    set x(v) {
+        v = v * this._precision
+        if (this._x !== v) {
+            this._x = v;
+            this.updateClipping();
+        }
+    }
+
+    get y() {
+        return this._y / this._precision
+    }
+    set y(v) {
+        v = v * this._precision
+        if (this._y !== v) {
+            this._y = v;
+            this.updateClipping();
+        }
+    }
+
+    get w() {
+        return this._w / this._precision
+    }
+
+    set w(v) {
+        v = v * this._precision
+        if (this._w !== v) {
+            this._w = v;
+            this.updateClipping();
+        }
+    }
+
+    get h() {
+        return this._h / this._precision
+    }
+
+    set h(v) {
+        v = v * this._precision
+        if (this._h !== v) {
+            this._h = v;
+            this.updateClipping();
+        }
+    }
+
+    get precision() {
+        return this._precision
+    }
+
+    set precision(v) {
+        if (this._precision !== v) {
+            this._precision = v;
+            this.updatePrecision();
+        }
+    }
 
     getRenderWidth() {
-        return this._w || this.source.getRenderWidth()
+        return (this._w || this.source.getRenderWidth()) / this._precision
     }
 
     getRenderHeight() {
-        return this._h || this.source.getRenderHeight()
+        return (this._h || this.source.getRenderHeight()) / this._precision
     }
 
     patch(settings) {
