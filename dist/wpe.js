@@ -5567,7 +5567,7 @@ class ViewChildList extends ObjectList {
             prevChildList._items.splice(index, 1);
 
             // Also clean up view core.
-            item.parent._view._core.removeChildAt(index)
+            prevParent._core.removeChildAt(index)
 
         }
 
@@ -11977,7 +11977,40 @@ class CircularPushShader extends Shader {
 
         this._amount = 0.1
 
+        this._aspectRatio = 1
+
+        this._offsetX = 0
+
+        this._offsetY = 0
+
         this.buckets = 100
+    }
+
+    get aspectRatio() {
+        return this._aspectRatio
+    }
+
+    set aspectRatio(v) {
+        this._aspectRatio = v
+        this.redraw()
+    }
+
+    get offsetX() {
+        return this._offsetX
+    }
+
+    set offsetX(v) {
+        this._offsetX = v
+        this.redraw()
+    }
+
+    get offsetY() {
+        return this._offsetY
+    }
+
+    set offsetY(v) {
+        this._offsetY = v
+        this.redraw()
     }
 
     set amount(v) {
@@ -12064,6 +12097,9 @@ class CircularPushShader extends Shader {
 
     setupUniforms(operation) {
         super.setupUniforms(operation)
+        this._setUniform("aspectRatio", this._aspectRatio, this.gl.uniform1f)
+        this._setUniform("offsetX", this._offsetX, this.gl.uniform1f)
+        this._setUniform("offsetY", this._offsetY, this.gl.uniform1f)
         this._setUniform("amount", this._amount, this.gl.uniform1f)
         this._setUniform("offset", this._offset, this.gl.uniform1f)
         this._setUniform("buckets", this._buckets, this.gl.uniform1f)
@@ -12114,6 +12150,9 @@ CircularPushShader.vertexShaderSource = `
     attribute vec2 aTextureCoord;
     attribute vec4 aColor;
     uniform vec2 projection;
+    uniform float offsetX;
+    uniform float offsetY;
+    uniform float aspectRatio;
     varying vec2 vTextureCoord;
     varying vec2 vPos;
     varying vec4 vColor;
@@ -12121,6 +12160,9 @@ CircularPushShader.vertexShaderSource = `
         gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);
         vTextureCoord = aTextureCoord;
         vPos = vTextureCoord * 2.0 - 1.0;
+        vPos.y = vPos.y * aspectRatio;
+        vPos.y = vPos.y + offsetY;
+        vPos.x = vPos.x + offsetX;
         vColor = aColor;
         gl_Position.y = -sign(projection.y) * gl_Position.y;
     }

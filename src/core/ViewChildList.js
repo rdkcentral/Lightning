@@ -24,7 +24,7 @@ class ViewChildList extends ObjectList {
             prevChildList._items.splice(index, 1);
 
             // Also clean up view core.
-            item.parent._view._core.removeChildAt(index)
+            prevParent._core.removeChildAt(index)
 
         }
 
