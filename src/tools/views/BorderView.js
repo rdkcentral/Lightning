@@ -8,43 +8,42 @@ class BorderView extends View {
     constructor(stage) {
         super(stage);
 
-        this._wrapper = super._children.a({});
-
-        this._borderTop = super._children.a({rect: true, visible: false, mountY: 1});
-        this._borderRight = super._children.a({rect: true, visible: false});
-        this._borderBottom = super._children.a({rect: true, visible: false});
-        this._borderLeft = super._children.a({rect: true, visible: false, mountX: 1});
-
-        this._updateLayout = false;
-
-        this.onAfterUpdate = function (view, recalc) {
-            let hasSingleChild = view.children.length === 1;
-            let refresh = (hasSingleChild && (view.children[0]._core._recalc & 2)) || recalc || view._updateLayout;
-            if (refresh) {
-                if (view.children.length === 1) {
-                    view.w = view.children[0].renderWidth;
-                    view.h = view.children[0].renderHeight;
-                }
-                let rw = view.renderWidth;
-                let rh = view.renderHeight;
-                view._borderTop.w = rw;
-                view._borderBottom.y = rh;
-                view._borderBottom.w = rw;
-                view._borderLeft.h = rh + view._borderTop.h + view._borderBottom.h;
-                view._borderLeft.y = -view._borderTop.h;
-                view._borderRight.x = rw;
-                view._borderRight.h = rh + view._borderTop.h + view._borderBottom.h;
-                view._borderRight.y = -view._borderTop.h;
-                view._wrapper.w = rw;
-                view._wrapper.h = rh;
-                view._updateLayout = false;
+        this.patch({
+            "Content": {},
+            "Borders": {
+                "Top": {rect: true, visible: false, mountY: 1},
+                "Right": {rect: true, visible: false},
+                "Bottom": {rect: true, visible: false},
+                "Left": {rect: true, visible: false, mountX: 1}
             }
+        }, true)
+
+        this._borderTop = this.tag("Top")
+        this._borderRight = this.tag("Right")
+        this._borderBottom = this.tag("Bottom")
+        this._borderLeft = this.tag("Left")
+
+        this.onAfterUpdate = function (view) {
+            const content = view.childList.first
+            let rw = content.renderWidth;
+            let rh = content.renderHeight;
+            view._borderTop.w = rw;
+            view._borderBottom.y = rh;
+            view._borderBottom.w = rw;
+            view._borderLeft.h = rh + view._borderTop.h + view._borderBottom.h;
+            view._borderLeft.y = -view._borderTop.h;
+            view._borderRight.x = rw;
+            view._borderRight.h = rh + view._borderTop.h + view._borderBottom.h;
+            view._borderRight.y = -view._borderTop.h;
         }
     }
 
-    _getExposedChildList() {
-        // Proxy children to wrapper.
-        return this._wrapper._children;
+    get content() {
+        return this.sel('Textwrap>Content')
+    }
+
+    set content(v) {
+        this.sel('Content').patch(v, true)
     }
 
     get borderWidth() {
@@ -178,14 +177,6 @@ class BorderView extends View {
         this.borderLeft = settings;
         this.borderBottom = settings;
         this.borderRight = settings;
-    }
-
-    get clipping() {
-        return this._wrapper.clipping;
-    }
-
-    set clipping(v) {
-        this._wrapper.clipping = v;
     }
 
 }
