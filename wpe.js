@@ -40,6 +40,7 @@ module.exports = {
     'ListView': require('./src/tools/views/ListView'),
     'BorderView': require('./src/tools/views/BorderView'),
     'FastBlurView': require('./src/tools/views/FastBlurView'),
+    'SmoothScaleView': require('./src/tools/views/SmoothScaleView'),
     'PixelateShader': require('./src/tools/shaders/PixelateShader'),
     'InversionShader': require('./src/tools/shaders/InversionShader'),
     'OutlineShader': require('./src/tools/shaders/OutlineShader'),

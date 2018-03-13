@@ -82,6 +82,7 @@ module.exports = function(grunt) {
                     'src/tools/views/ListView.js',
                     'src/tools/views/BorderView.js',
                     'src/tools/views/FastBlurView.js',
+                    'src/tools/views/SmoothScaleView.js',
                     "src/tools/shaders/PixelateShader.js",
                     "src/tools/shaders/InversionShader.js",
                     "src/tools/shaders/GrayscaleShader.js",
