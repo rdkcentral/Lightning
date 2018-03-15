@@ -99,9 +99,6 @@ class Stage extends EventEmitter {
 
     destroy() {
         this.adapter.stopLoop();
-        if (this.textureAtlas) {
-            this.textureAtlas.destroy();
-        }
         this.ctx.destroy();
         this.textureManager.destroy();
         this._destroyed = true;
