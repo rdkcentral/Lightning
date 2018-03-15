@@ -57,16 +57,16 @@ class CoreQuadOperation {
     }
 
     getRenderWidth() {
-        if (this.renderTexture) {
-            return this.renderTexture.w
+        if (this.renderTextureInfo) {
+            return this.renderTextureInfo.w
         } else {
             return this.ctx.stage.w
         }
     }
 
     getRenderHeight() {
-        if (this.renderTexture) {
-            return this.renderTexture.h
+        if (this.renderTextureInfo) {
+            return this.renderTextureInfo.h
         } else {
             return this.ctx.stage.h
         }
