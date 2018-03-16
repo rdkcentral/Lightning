@@ -10430,10 +10430,15 @@ class Tools {
     }
 
     static getRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor) {
+        if (!Array.isArray(radius)){
+            // upper-left, upper-right, bottom-right, bottom-left.
+            radius = [radius, radius, radius, radius]
+        }
+
         let factory = () => {
             return this.createRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor)
         }
-        let id = 'rect' + [w, h, radius, strokeWidth, strokeColor, fill ? 1 : 0, fillColor].join(",");
+        let id = 'rect' + [w, h, strokeWidth, strokeColor, fill ? 1 : 0, fillColor].concat(radius).join(",");
         return Tools.getCanvasTexture(stage, factory, {id: id});
     }
 
@@ -10450,15 +10455,16 @@ class Tools {
 
         ctx.beginPath();
         let x = 0.5 * strokeWidth + 1, y = 0.5 * strokeWidth + 1;
-        ctx.moveTo(x + radius, y);
-        ctx.lineTo(x + w - radius, y);
-        ctx.arcTo(x + w, y, x + w, y + radius, radius);
-        ctx.lineTo(x + w, y + h - radius);
-        ctx.arcTo(x + w, y + h, x + w - radius, y + h, radius);
-        ctx.lineTo(x + radius, y + h);
-        ctx.arcTo(x, y + h, x, y + h - radius, radius);
-        ctx.lineTo(x, y + radius);
-        ctx.arcTo(x, y, x + radius, y, radius);
+
+        ctx.moveTo(x + radius[0], y);
+        ctx.lineTo(x + w - radius[1], y);
+        ctx.arcTo(x + w, y, x + w, y + radius[1], radius[1]);
+        ctx.lineTo(x + w, y + h - radius[2]);
+        ctx.arcTo(x + w, y + h, x + w - radius[2], y + h, radius[2]);
+        ctx.lineTo(x + radius[3], y + h);
+        ctx.arcTo(x, y + h, x, y + h - radius[3], radius[3]);
+        ctx.lineTo(x, y + radius[0]);
+        ctx.arcTo(x, y, x + radius[0], y, radius[0]);
 
         if (fill) {
             if (Utils.isNumber(fillColor)) {
@@ -10483,10 +10489,15 @@ class Tools {
     }
 
     static getShadowRect(stage, w, h, radius = 0, blur = 5, margin = blur * 2) {
+        if (!Array.isArray(radius)){
+            // upper-left, upper-right, bottom-right, bottom-left.
+            radius = [radius, radius, radius, radius]
+        }
+
         let factory = () => {
             return this.createShadowRect(stage, w, h, radius, blur, margin)
         }
-        let id = 'shadow' + [w, h, radius, blur, margin].join(",");
+        let id = 'shadow' + [w, h, blur, margin].concat(radius).join(",");
         return Tools.getCanvasTexture(stage, factory, {id: id});
     }
 
@@ -10507,15 +10518,16 @@ class Tools {
         ctx.beginPath();
         const x = -(w + 10)
         const y = 0
-        ctx.moveTo(x + radius, y);
-        ctx.lineTo(x + w - radius, y);
-        ctx.arcTo(x + w, y, x + w, y + radius, radius);
-        ctx.lineTo(x + w, y + h - radius);
-        ctx.arcTo(x + w, y + h, x + w - radius, y + h, radius);
-        ctx.lineTo(x + radius, y + h);
-        ctx.arcTo(x, y + h, x, y + h - radius, radius);
-        ctx.lineTo(x, y + radius);
-        ctx.arcTo(x, y, x + radius, y, radius);
+
+        ctx.moveTo(x + radius[0], y);
+        ctx.lineTo(x + w - radius[1], y);
+        ctx.arcTo(x + w, y, x + w, y + radius[1], radius[1]);
+        ctx.lineTo(x + w, y + h - radius[2]);
+        ctx.arcTo(x + w, y + h, x + w - radius[2], y + h, radius[2]);
+        ctx.lineTo(x + radius[3], y + h);
+        ctx.arcTo(x, y + h, x, y + h - radius[3], radius[3]);
+        ctx.lineTo(x, y + radius[0]);
+        ctx.arcTo(x, y, x + radius[0], y, radius[0]);
         ctx.fill()
 
         return canvas;

@@ -23,9 +23,9 @@ var start = function(wpe) {
 
         const template = {
             Primary: {
-                Guide: {rect: true, w: 1920, h: 1080, color: 0xFFFFAAAA, alpha: 0},
+                Guide: {color: 0xFFFFAAAA, alpha: 1},
                 Main: {rect: true, renderToTexture: true, w: 900, h: 900, colorLeft: 0xFF000000, colorRight: 0xFF0000FF,
-                    Rect: {rect: true, color: 0xFFFF0000, w: 150, h: 300, x: 300, y: 300}
+                    Rect: {texture: Tools.getRoundRect(stage, 150, 300, [50, 70, 100, 50]), color: 0xFFFF0000, x: 300, y: 300}
                 },
                 Shadow: {
                     texture: Tools.getShadowRect(stage, 100, 100, 15, 10),
