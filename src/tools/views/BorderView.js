@@ -25,8 +25,8 @@ class BorderView extends View {
 
         this.onAfterUpdate = function (view) {
             const content = view.childList.first
-            let rw = content.renderWidth;
-            let rh = content.renderHeight;
+            let rw = view._core.rw || content.renderWidth;
+            let rh = view._core.rh || content.renderHeight;
             view._borderTop.w = rw;
             view._borderBottom.y = rh;
             view._borderBottom.w = rw;
@@ -39,7 +39,7 @@ class BorderView extends View {
     }
 
     get content() {
-        return this.sel('Textwrap>Content')
+        return this.sel('Content')
     }
 
     set content(v) {
