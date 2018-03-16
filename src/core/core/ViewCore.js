@@ -116,10 +116,13 @@ class ViewCore {
      * 3: re-create render texture and re-invoke shader and filter
      */
     setHasRenderUpdates(type) {
-        let p = this;
-        p._hasRenderUpdates = Math.max(type, p._hasRenderUpdates);
-        while ((p = p._parent) && (p._hasRenderUpdates != 3)) {
-            p._hasRenderUpdates = 3;
+        if (this._worldContext.alpha) {
+            // Ignore if 'world invisible'. Render updates will be reset to 3 for every view that becomes visible.
+            let p = this;
+            p._hasRenderUpdates = Math.max(type, p._hasRenderUpdates);
+            while ((p = p._parent) && (p._hasRenderUpdates != 3)) {
+                p._hasRenderUpdates = 3;
+            }
         }
     }
 
@@ -137,7 +140,9 @@ class ViewCore {
         this._setHasUpdates()
 
         // Any changes in descendants should trigger texture updates.
-        if (this._parent) this._parent.setHasRenderUpdates(3);
+        if (this._parent) {
+            this._parent.setHasRenderUpdates(3);
+        }
     }
 
     _setHasUpdates() {
@@ -782,6 +787,10 @@ class ViewCore {
 
             // Update world coords/alpha.
             if (recalc & 1) {
+                if (!w.alpha && visible) {
+                    // Becomes visible.
+                    this._hasRenderUpdates = 3
+                }
                 w.alpha = pw.alpha * this._localAlpha;
 
                 if (w.alpha < 1e-14) {
