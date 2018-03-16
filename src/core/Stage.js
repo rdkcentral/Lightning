@@ -164,13 +164,21 @@ class Stage extends EventEmitter {
 
         this.emit('update');
 
-        let changes = this.ctx.frame();
+        const changes = this.ctx.hasRenderUpdates()
+
+        if (changes) {
+            this.ctx.frame();
+        }
 
         this.adapter.nextFrame(changes);
 
         this.emit('frameEnd');
 
         this.frameCounter++;
+    }
+
+    renderFrame() {
+        this.ctx.frame()
     }
 
     forceRenderUpdate() {

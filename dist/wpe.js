@@ -1122,13 +1122,21 @@ class Stage extends EventEmitter {
 
         this.emit('update');
 
-        let changes = this.ctx.frame();
+        const changes = this.ctx.hasRenderUpdates()
+
+        if (changes) {
+            this.ctx.frame();
+        }
 
         this.adapter.nextFrame(changes);
 
         this.emit('frameEnd');
 
         this.frameCounter++;
+    }
+
+    renderFrame() {
+        this.ctx.frame()
     }
 
     forceRenderUpdate() {
@@ -5976,10 +5984,13 @@ class ViewCore {
      * 3: re-create render texture and re-invoke shader and filter
      */
     setHasRenderUpdates(type) {
-        let p = this;
-        p._hasRenderUpdates = Math.max(type, p._hasRenderUpdates);
-        while ((p = p._parent) && (p._hasRenderUpdates != 3)) {
-            p._hasRenderUpdates = 3;
+        if (this._worldContext.alpha) {
+            // Ignore if 'world invisible'. Render updates will be reset to 3 for every view that becomes visible.
+            let p = this;
+            p._hasRenderUpdates = Math.max(type, p._hasRenderUpdates);
+            while ((p = p._parent) && (p._hasRenderUpdates != 3)) {
+                p._hasRenderUpdates = 3;
+            }
         }
     }
 
@@ -5997,7 +6008,9 @@ class ViewCore {
         this._setHasUpdates()
 
         // Any changes in descendants should trigger texture updates.
-        if (this._parent) this._parent.setHasRenderUpdates(3);
+        if (this._parent) {
+            this._parent.setHasRenderUpdates(3);
+        }
     }
 
     _setHasUpdates() {
@@ -6642,6 +6655,10 @@ class ViewCore {
 
             // Update world coords/alpha.
             if (recalc & 1) {
+                if (!w.alpha && visible) {
+                    // Becomes visible.
+                    this._hasRenderUpdates = 3
+                }
                 w.alpha = pw.alpha * this._localAlpha;
 
                 if (w.alpha < 1e-14) {
@@ -7462,12 +7479,11 @@ class CoreContext {
         this._renderTexturePool.forEach(texture => this._freeRenderTexture(texture));
     }
 
-    frame() {
-        //if (this.stage.frameCounter % 100 != 99) return
-        if (!this.root._parent._hasRenderUpdates) {
-            return false
-        }
+    hasRenderUpdates() {
+        return !!this.root._parent._hasRenderUpdates
+    }
 
+    frame() {
         this.update()
 
         // Due to the boundsVisibility flag feature (and onAfterUpdate hook), it is possible that other views were
@@ -11116,8 +11132,8 @@ class BorderView extends View {
 
         this.onAfterUpdate = function (view) {
             const content = view.childList.first
-            let rw = content.renderWidth;
-            let rh = content.renderHeight;
+            let rw = view._core.rw || content.renderWidth;
+            let rh = view._core.rh || content.renderHeight;
             view._borderTop.w = rw;
             view._borderBottom.y = rh;
             view._borderBottom.w = rw;
@@ -11130,7 +11146,7 @@ class BorderView extends View {
     }
 
     get content() {
-        return this.sel('Textwrap>Content')
+        return this.sel('Content')
     }
 
     set content(v) {

@@ -32,12 +32,11 @@ class CoreContext {
         this._renderTexturePool.forEach(texture => this._freeRenderTexture(texture));
     }
 
-    frame() {
-        //if (this.stage.frameCounter % 100 != 99) return
-        if (!this.root._parent._hasRenderUpdates) {
-            return false
-        }
+    hasRenderUpdates() {
+        return !!this.root._parent._hasRenderUpdates
+    }
 
+    frame() {
         this.update()
 
         // Due to the boundsVisibility flag feature (and onAfterUpdate hook), it is possible that other views were
