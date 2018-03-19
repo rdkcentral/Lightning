@@ -6292,7 +6292,9 @@ class ViewCore {
             let prevIsZContext = this.isZContext();
             if (zIndex === 0 && this._zIndex !== 0) {
                 if (this._parent === this._zParent) {
-                    this._zParent.decZContextUsage();
+                    if (this._zParent) {
+                        this._zParent.decZContextUsage();
+                    }
                 } else {
                     newZParent = this._parent;
                 }
@@ -6305,7 +6307,9 @@ class ViewCore {
                     }
                 }
             } else if (zIndex !== this._zIndex) {
-                this._zParent._zSort = true;
+                if (this._zParent) {
+                    this._zParent._zSort = true;
+                }
             }
 
             if (newZParent !== this._zParent) {
