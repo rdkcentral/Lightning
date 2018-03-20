@@ -21,7 +21,7 @@ class ShaderBase {
         this.gl = this.ctx.gl
 
         /**
-         * The (active) views that use this shader.
+         * The (enabled) views that use this shader.
          * @type {Set<ViewCore>}
          */
         this._views = new Set()

@@ -1392,7 +1392,7 @@ class ShaderBase {
         this.gl = this.ctx.gl
 
         /**
-         * The (active) views that use this shader.
+         * The (enabled) views that use this shader.
          * @type {Set<ViewCore>}
          */
         this._views = new Set()
@@ -3472,10 +3472,6 @@ class View extends EventEmitter {
             this._texture.source.removeView(this)
         }
 
-        if (this._hasTexturizer()) {
-            this.texturizer.deactivate();
-        }
-
         if (this._core.shader) {
             this._core.shader.removeView(this._core);
         }
@@ -3500,6 +3496,11 @@ class View extends EventEmitter {
         if (this._texture) {
             this._disableTexture()
         }
+
+        if (this._hasTexturizer()) {
+            this.texturizer.deactivate();
+        }
+
         this.emit('inactive')
     }
 
