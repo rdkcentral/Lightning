@@ -309,9 +309,17 @@ class ViewCore {
         this._displayedTextureSource = textureSource;
     };
 
+    get isRoot() {
+        return this._isRoot
+    }
+
     setAsRoot() {
         // Use parent dummy.
         this._parent = new ViewCore(this._view)
+
+        // After setting root, make sure it's updated.
+        this._parent._hasRenderUpdates = 3
+        this._parent._hasUpdates = true
 
         // Root is, and will always be, the primary zContext.
         this._isRoot = true

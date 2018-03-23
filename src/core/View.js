@@ -149,6 +149,10 @@ class View extends EventEmitter {
         this._core.setAsRoot();
     }
 
+    get isRoot() {
+        return this._core.isRoot
+    }
+
     _setParent(parent) {
         if (this._parent === parent) return;
 
@@ -164,6 +168,10 @@ class View extends EventEmitter {
 
         this._updateAttachedFlag();
         this._updateEnabledFlag();
+
+        if (this.isRoot && parent) {
+            this._throwError("Root should not be added as a child! Results are unspecified!")
+        }
     };
 
     getDepth() {
@@ -1976,7 +1984,6 @@ class View extends EventEmitter {
     }
 
 
-    /*A¬*/
     animation(settings) {
         return this.stage.animations.createAnimation(this, settings);
     }
@@ -2088,7 +2095,6 @@ class View extends EventEmitter {
         t.start(v);
         return t
     }
-    /*¬A*/
 
     static isColorProperty(property) {
         return property.startsWith("color")
@@ -2119,6 +2125,6 @@ module.exports = View;
 let ViewText = require('./ViewText');
 let Texture = require('./Texture');
 let TextureSource = require('./TextureSource')
-/*A¬*/let Transition = require('../animation/Transition')
-let TransitionSettings = require('../animation/TransitionSettings')/*¬A*/
+let Transition = require('../animation/Transition')
+let TransitionSettings = require('../animation/TransitionSettings')
 let ViewChildList = require('./ViewChildList');

@@ -1,22 +1,56 @@
 /**
- * Maintains and renders a tree structure of views.
+ * Application render tree.
  * Copyright Metrological, 2017
  */
 
-let Utils = require('./Utils');
-/*M¬*/let EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
+const Utils = require('./Utils');
+/*M¬*/const EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
 
 class Stage extends EventEmitter {
     constructor(options) {
         super()
-
         this.setOptions(options);
 
-        this.init();
+        /*M¬*/if (!Utils.isNode) {/*¬M*/this.adapter = new WebAdapter();/*M¬*/}
+        if (Utils.isNode) {this.adapter = new NodeAdapter();}/*¬M*/
+
+        if (this.adapter.init) {
+            this.adapter.init(this);
+        }
+
+        this.gl = this.adapter.createWebGLContext(this.options.w, this.options.h);
+
+        this.setGlClearColor(this.options.glClearColor);
+
+        this.frameCounter = 0;
+
+        this.transitions = new TransitionManager(this);
+        this.animations = new AnimationManager(this);
+
+        this.textureManager = new TextureManager(this);
+
+        this.ctx = new CoreContext(this);
+
+        this._destroyed = false;
+
+        this.startTime = 0;
+        this.currentTime = 0;
+        this.dt = 0;
+
+        // Preload rectangle texture, so that we can skip some border checks for loading textures.
+        this.rectangleTexture = this.texture(function(cb) {
+            var whitePixel = new Uint8Array([255, 255, 255, 255]);
+            return cb(null, whitePixel, {w: 1, h: 1});
+        }, {id: '__whitepix'});
+
+        let source = this.rectangleTexture.source;
+        this.rectangleTexture.source.load(true);
+
+        source.permanent = true;
     }
 
     setOptions(o) {
-        this.options = o;
+        this.options = {};
 
         let opt = (name, def) => {
             let value = o[name];
@@ -42,59 +76,13 @@ class Stage extends EventEmitter {
         opt('precision', 1);
     }
 
-    getRenderPrecision() {
-        return this.options.precision;
+    setApplication(app) {
+        this.application = app
     }
 
     init() {
-        /*M¬*/if (!Utils.isNode) {/*¬M*/this.adapter = new WebAdapter();/*M¬*/}
-        if (Utils.isNode) {this.adapter = new NodeAdapter();}/*¬M*/
-
-        if (this.adapter.init) {
-            this.adapter.init(this);
-        }
-
-        this.gl = this.adapter.createWebGLContext(this.options.w, this.options.h);
-
-        this.setGlClearColor(this.options.glClearColor);
-
-        this.frameCounter = 0;
-
-        /*A¬*/
-        this.transitions = new TransitionManager(this);
-        this.animations = new AnimationManager(this);
-        /*¬A*/
-
-        this.textureManager = new TextureManager(this);
-
-        this.ctx = new CoreContext(this);
-
-        this.root = new View(this);
-        this.root.w = this.options.w
-        this.root.h = this.options.h
-
-        this.root.setAsRoot();
-
-        this.startTime = 0;
-        this.currentTime = 0;
-        this.dt = 0;
-
-        this._destroyed = false;
-
-        let self = this;
-
-        // Preload rectangle texture, so that we can skip some border checks for loading textures.
-        this.rectangleTexture = this.texture(function(cb) {
-            var whitePixel = new Uint8Array([255, 255, 255, 255]);
-            return cb(null, whitePixel, {w: 1, h: 1});
-        }, {id: '__whitepix'});
-
-        let source = this.rectangleTexture.source;
-        this.rectangleTexture.source.load(true);
-
-        source.permanent = true;
-
-        self.adapter.startLoop();
+        this.application.setAsRoot();
+        this.adapter.startLoop()
     }
 
     destroy() {
@@ -115,36 +103,16 @@ class Stage extends EventEmitter {
         this.adapter.startLoop();
     }
 
-    gcTextureMemory(aggressive = false) {
-        console.log("GC texture memory" + (aggressive ? " (aggressive)" : ""))
-        if (aggressive && this.ctx.root.visible) {
-            // Make sure that ALL textures are cleaned
-            this.ctx.root.visible = false
-            this.textureManager.freeUnusedTextureSources()
-            this.ctx.root.visible = true
-        } else {
-            this.textureManager.freeUnusedTextureSources()
-        }
-    }
-
-    gcRenderTextureMemory(aggressive = false) {
-        console.log("GC texture render memory" + (aggressive ? " (aggressive)" : ""))
-        if (aggressive && this.root.visible) {
-            // Make sure that ALL render textures are cleaned
-            this.root.visible = false
-            this.ctx.freeUnusedRenderTextures(0)
-            this.root.visible = true
-        } else {
-            this.ctx.freeUnusedRenderTextures(0)
-        }
+    get root() {
+        return this.application
     }
 
     getCanvas() {
         return this.adapter.getWebGLCanvas()
     }
 
-    getDrawingCanvas() {
-        return this.adapter.getDrawingCanvas()
+    getRenderPrecision() {
+        return this.options.precision;
     }
 
     drawFrame() {
@@ -262,17 +230,46 @@ class Stage extends EventEmitter {
         return this.h / this.options.precision
     }
 
+    gcTextureMemory(aggressive = false) {
+        console.log("GC texture memory" + (aggressive ? " (aggressive)" : ""))
+        if (aggressive && this.ctx.root.visible) {
+            // Make sure that ALL textures are cleaned
+            this.ctx.root.visible = false
+            this.textureManager.freeUnusedTextureSources()
+            this.ctx.root.visible = true
+        } else {
+            this.textureManager.freeUnusedTextureSources()
+        }
+    }
+
+    gcRenderTextureMemory(aggressive = false) {
+        console.log("GC texture render memory" + (aggressive ? " (aggressive)" : ""))
+        if (aggressive && this.root.visible) {
+            // Make sure that ALL render textures are cleaned
+            this.root.visible = false
+            this.ctx.freeUnusedRenderTextures(0)
+            this.root.visible = true
+        } else {
+            this.ctx.freeUnusedRenderTextures(0)
+        }
+    }
+
+    getDrawingCanvas() {
+        return this.adapter.getDrawingCanvas()
+    }
+
 }
 
-let View = require('./View');
-let StageUtils = require('./StageUtils');
-let TextureManager = require('./TextureManager');
-let CoreContext = require('./core/CoreContext');
-/*A¬*/
-let TransitionManager = require('../animation/TransitionManager');
-let AnimationManager = require('../animation/AnimationManager');
-/*¬A*//*M¬*/
-let WebAdapter = Utils.isNode ? undefined : require('../browser/WebAdapter');
-let NodeAdapter = Utils.isNode ? require('../node/NodeAdapter') : null;
-/*¬M*/
 module.exports = Stage;
+
+const View = require('./View');
+const StageUtils = require('./StageUtils');
+const TextureManager = require('./TextureManager');
+const CoreContext = require('./core/CoreContext');
+const TransitionManager = require('../animation/TransitionManager');
+const AnimationManager = require('../animation/AnimationManager');
+/*M¬*/
+const WebAdapter = Utils.isNode ? undefined : require('../browser/WebAdapter');
+const NodeAdapter = Utils.isNode ? require('../node/NodeAdapter') : null;
+/*¬M*/
+const Application = require('../application/Application')

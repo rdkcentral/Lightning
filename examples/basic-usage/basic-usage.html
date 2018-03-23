@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+
+    <script src="../../dist/wpe.js"></script>
+    <!--<script src="../../devtools/inspect.js"></script>-->
+</head>
+<body>
+    <script>
+        window.onload = function() {
+            class BasicUsageTest extends Application {
+                static _template() {
+                    return {
+                        Primary: {
+                            Guide: {color: 0xFFFFAAAA, alpha: 1},
+                            Main: {rect: true, renderToTexture: true, w: 900, h: 900, colorLeft: 0xFF000000, colorRight: 0xFF0000FF
+                            },
+                            App: {alpha: 0.5, rect: true, w: 100, h: 100},
+                        },
+                        Overlay: {}
+                    }
+                }
+            }
+
+            const test = new BasicUsageTest({w: 900, h: 900, glClearColor: 0xFF000000});
+
+            document.body.appendChild(test.stage.getCanvas());
+
+            let str = test.toString()
+            console.log(str)
+        }
+    </script>
+</body>
+</html>

@@ -959,7 +959,7 @@ class StageUtils {
 
 
 /**
- * Maintains and renders a tree structure of views.
+ * Application render tree.
  * Copyright Metrological, 2017
  */
 
@@ -968,14 +968,47 @@ class StageUtils {
 class Stage extends EventEmitter {
     constructor(options) {
         super()
-
         this.setOptions(options);
 
-        this.init();
+        this.adapter = new WebAdapter();
+
+        if (this.adapter.init) {
+            this.adapter.init(this);
+        }
+
+        this.gl = this.adapter.createWebGLContext(this.options.w, this.options.h);
+
+        this.setGlClearColor(this.options.glClearColor);
+
+        this.frameCounter = 0;
+
+        this.transitions = new TransitionManager(this);
+        this.animations = new AnimationManager(this);
+
+        this.textureManager = new TextureManager(this);
+
+        this.ctx = new CoreContext(this);
+
+        this._destroyed = false;
+
+        this.startTime = 0;
+        this.currentTime = 0;
+        this.dt = 0;
+
+        // Preload rectangle texture, so that we can skip some border checks for loading textures.
+        this.rectangleTexture = this.texture(function(cb) {
+            var whitePixel = new Uint8Array([255, 255, 255, 255]);
+            return cb(null, whitePixel, {w: 1, h: 1});
+        }, {id: '__whitepix'});
+
+        let source = this.rectangleTexture.source;
+        this.rectangleTexture.source.load(true);
+
+        source.permanent = true;
     }
 
     setOptions(o) {
-        this.options = o;
+        this.options = {};
 
         let opt = (name, def) => {
             let value = o[name];
@@ -1001,58 +1034,13 @@ class Stage extends EventEmitter {
         opt('precision', 1);
     }
 
-    getRenderPrecision() {
-        return this.options.precision;
+    setApplication(app) {
+        this.application = app
     }
 
     init() {
-        this.adapter = new WebAdapter();
-
-        if (this.adapter.init) {
-            this.adapter.init(this);
-        }
-
-        this.gl = this.adapter.createWebGLContext(this.options.w, this.options.h);
-
-        this.setGlClearColor(this.options.glClearColor);
-
-        this.frameCounter = 0;
-
-        
-        this.transitions = new TransitionManager(this);
-        this.animations = new AnimationManager(this);
-        
-
-        this.textureManager = new TextureManager(this);
-
-        this.ctx = new CoreContext(this);
-
-        this.root = new View(this);
-        this.root.w = this.options.w
-        this.root.h = this.options.h
-
-        this.root.setAsRoot();
-
-        this.startTime = 0;
-        this.currentTime = 0;
-        this.dt = 0;
-
-        this._destroyed = false;
-
-        let self = this;
-
-        // Preload rectangle texture, so that we can skip some border checks for loading textures.
-        this.rectangleTexture = this.texture(function(cb) {
-            var whitePixel = new Uint8Array([255, 255, 255, 255]);
-            return cb(null, whitePixel, {w: 1, h: 1});
-        }, {id: '__whitepix'});
-
-        let source = this.rectangleTexture.source;
-        this.rectangleTexture.source.load(true);
-
-        source.permanent = true;
-
-        self.adapter.startLoop();
+        this.application.setAsRoot();
+        this.adapter.startLoop()
     }
 
     destroy() {
@@ -1073,36 +1061,16 @@ class Stage extends EventEmitter {
         this.adapter.startLoop();
     }
 
-    gcTextureMemory(aggressive = false) {
-        console.log("GC texture memory" + (aggressive ? " (aggressive)" : ""))
-        if (aggressive && this.ctx.root.visible) {
-            // Make sure that ALL textures are cleaned
-            this.ctx.root.visible = false
-            this.textureManager.freeUnusedTextureSources()
-            this.ctx.root.visible = true
-        } else {
-            this.textureManager.freeUnusedTextureSources()
-        }
-    }
-
-    gcRenderTextureMemory(aggressive = false) {
-        console.log("GC texture render memory" + (aggressive ? " (aggressive)" : ""))
-        if (aggressive && this.root.visible) {
-            // Make sure that ALL render textures are cleaned
-            this.root.visible = false
-            this.ctx.freeUnusedRenderTextures(0)
-            this.root.visible = true
-        } else {
-            this.ctx.freeUnusedRenderTextures(0)
-        }
+    get root() {
+        return this.application
     }
 
     getCanvas() {
         return this.adapter.getWebGLCanvas()
     }
 
-    getDrawingCanvas() {
-        return this.adapter.getDrawingCanvas()
+    getRenderPrecision() {
+        return this.options.precision;
     }
 
     drawFrame() {
@@ -1218,6 +1186,34 @@ class Stage extends EventEmitter {
 
     get rh() {
         return this.h / this.options.precision
+    }
+
+    gcTextureMemory(aggressive = false) {
+        console.log("GC texture memory" + (aggressive ? " (aggressive)" : ""))
+        if (aggressive && this.ctx.root.visible) {
+            // Make sure that ALL textures are cleaned
+            this.ctx.root.visible = false
+            this.textureManager.freeUnusedTextureSources()
+            this.ctx.root.visible = true
+        } else {
+            this.textureManager.freeUnusedTextureSources()
+        }
+    }
+
+    gcRenderTextureMemory(aggressive = false) {
+        console.log("GC texture render memory" + (aggressive ? " (aggressive)" : ""))
+        if (aggressive && this.root.visible) {
+            // Make sure that ALL render textures are cleaned
+            this.root.visible = false
+            this.ctx.freeUnusedRenderTextures(0)
+            this.root.visible = true
+        } else {
+            this.ctx.freeUnusedRenderTextures(0)
+        }
+    }
+
+    getDrawingCanvas() {
+        return this.adapter.getDrawingCanvas()
     }
 
 }
@@ -3277,6 +3273,10 @@ class View extends EventEmitter {
         this._core.setAsRoot();
     }
 
+    get isRoot() {
+        return this._core.isRoot
+    }
+
     _setParent(parent) {
         if (this._parent === parent) return;
 
@@ -3292,6 +3292,10 @@ class View extends EventEmitter {
 
         this._updateAttachedFlag();
         this._updateEnabledFlag();
+
+        if (this.isRoot && parent) {
+            this._throwError("Root should not be added as a child! Results are unspecified!")
+        }
     };
 
     getDepth() {
@@ -5104,7 +5108,6 @@ class View extends EventEmitter {
     }
 
 
-    
     animation(settings) {
         return this.stage.animations.createAnimation(this, settings);
     }
@@ -5216,7 +5219,6 @@ class View extends EventEmitter {
         t.start(v);
         return t
     }
-    
 
     static isColorProperty(property) {
         return property.startsWith("color")
@@ -6182,9 +6184,17 @@ class ViewCore {
         this._displayedTextureSource = textureSource;
     };
 
+    get isRoot() {
+        return this._isRoot
+    }
+
     setAsRoot() {
         // Use parent dummy.
         this._parent = new ViewCore(this._view)
+
+        // After setting root, make sure it's updated.
+        this._parent._hasRenderUpdates = 3
+        this._parent._hasUpdates = true
 
         // Root is, and will always be, the primary zContext.
         this._isRoot = true
@@ -12759,3 +12769,818 @@ GrayscaleFilter.fragmentShaderSource = `
         gl_FragColor = (amount * vec4(grayness, grayness, grayness, 1.0) + (1.0 - amount) * color);
     }
 `;
+
+
+class Component extends View {
+
+    constructor(stage, properties) {
+        super(stage)
+
+        // Encapsulate tags to prevent leaking.
+        this.tagRoot = true;
+
+        if (Utils.isObjectLiteral(properties)) {
+            Object.assign(this, properties)
+        }
+
+        // Start with root state
+        this.__state = ""
+
+        this.__initialized = false
+        this.__firstActive = false
+        this.__firstEnable = false
+
+        this.__construct()
+
+        this.patch(this._getTemplate(), true)
+
+        this.on('attach', () => this.__attach())
+        this.on('detach', () => this.__detach())
+        this.on('active', () => this.__active())
+        this.on('inactive', () => this.__inactive())
+        this.on('enabled', () => this.__enable())
+        this.on('disable', () => this.__disable())
+
+        this._signals = undefined
+    }
+
+    get application() {
+        return this.stage.application
+    }
+
+    get state() {
+        return this.__state
+    }
+
+    __construct() {
+        this.fire('construct')
+    }
+
+    __attach() {
+        if (!this.__initialized) {
+            this.__init()
+            this.__initialized = true
+        }
+        
+        this.fire('attach')
+    }
+
+    __init() {
+        this.fire('init')
+    }
+
+    __detach() {
+        this.fire('detach')
+    }
+
+    __active() {
+        if (!this.__firstActive) {
+            this.fire('firstActive')
+            this.__firstActive = true
+        }
+
+        this.fire('active')
+    }
+
+    __inactive() {
+        this.fire('inactive')
+    }
+
+    __enable() {
+        if (!this.__firstEnable) {
+            this.fire('firstEnable')
+            this.__firstEnable = true
+        }
+
+        this.fire('enable')
+    }
+
+    __disable() {
+        this.fire('disable')
+    }
+
+    __focus(newTarget, prevTarget) {
+        this.fire('focus', {newTarget: newTarget, prevTarget: prevTarget})
+    }
+
+    __unfocus(newTarget) {
+        this.fire('unfocus', {newTarget: newTarget})
+    }
+
+    __focusBranch(target) {
+        this.fire('focusBranch', {target: target})
+    }
+
+    __unfocusBranch(target, newTarget) {
+        this.fire('focusBranch', {target:target, newTarget:newTarget})
+    }
+
+    __focusChange(target, newTarget) {
+        this.fire('focusChange', {target:target, newTarget:newTarget})
+    }
+
+    __captureKey(e) {
+        if (Component.KEYS_EVENTS_NAMES[e.keyCode]) {
+            return this.fire([{event: "capture" + Component.KEYS_EVENTS_NAMES[e.keyCode]}, {event: "captureKey", args: {keyCode: e.keyCode}}])
+        } else {
+            return this.fire('captureKey', {keyCode: e.keyCode})
+        }
+    }
+
+    __notifyKey(e) {
+        if (Component.KEYS_EVENTS_NAMES[e.keyCode]) {
+            return this.fire([{event: "notify" + Component.KEYS_EVENTS_NAMES[e.keyCode]}, {event: "notifyKey", args: {keyCode: e.keyCode}}])
+        } else {
+            return this.fire('notifyKey', {keyCode: e.keyCode})
+        }
+    }
+
+    __handleKey(e) {
+        if (Component.KEYS_EVENTS_NAMES[e.keyCode]) {
+            return this.fire([{event: "handle" + Component.KEYS_EVENTS_NAMES[e.keyCode]}, {event: "handleKey", args: {keyCode: e.keyCode}}])
+        } else {
+            return this.fire('handleKey', {keyCode: e.keyCode})
+        }
+    }
+
+    _getFocus() {
+        // Override to delegate focus to child components.
+        return this
+    }
+
+    _getStates() {
+        if (!this.constructor.__states) {
+            this.constructor.__states = this.constructor._states()
+            if (!Utils.isObjectLiteral(this.constructor.__states)) {
+                this._throwError("States object empty")
+            }
+        }
+        return this.constructor.__states
+    }
+
+    static _states() {
+        return {}
+    }
+
+    _getTemplate() {
+        if (!this.constructor.__template) {
+            this.constructor.__template = this.constructor._template()
+            if (!Utils.isObjectLiteral(this.constructor.__template)) {
+                this._throwError("Template object empty")
+            }
+        }
+        return this.constructor.__template
+    }
+
+    static _template() {
+        return {}
+    }
+
+    hasFocus() {
+        let path = this.application._focusPath
+        return path && path.length && path[path.length - 1] === this
+    }
+
+    hasFinalFocus() {
+        let path = this.application._focusPath
+        return path && (path.indexOf(this) >= 0)
+    }
+
+    get cparent() {
+        return Component.getParent(this)
+    }
+
+    getSharedAncestorComponent(view) {
+        let ancestor = this.getSharedAncestor(view)
+        while(ancestor && !ancestor.isComponent) {
+            ancestor = ancestor.parent
+        }
+        return ancestor
+    }
+
+    /**
+     * Fires the specified event on the state machine.
+     * @param event
+     * @param {object} args
+     * @return {boolean}
+     *   True iff the state machine could find and execute a handler for the event (event and condition matched).
+     */
+    fire(event, args = {}) {
+        if (!Utils.isObjectLiteral(args)) {
+            this._throwError("Fire: args must be object")
+        }
+        return this.application.stateManager.fire(this, event, args)
+    }
+
+    /**
+     * Signals the parent of the specified event.
+     * A parent/ancestor that wishes to handle the signal should set the 'signals' property on this component.
+     * @param {string} event
+     * @param {object} args
+     * @param {boolean} bubble
+     */
+    signal(event, args = {}, bubble = false) {
+        if (!Utils.isObjectLiteral(args)) {
+            this._throwError("Signal: args must be object")
+        }
+
+        if (!args._source) {
+            args = Object.assign({_source: this}, args)
+        }
+
+        if (this._signals && this.cparent) {
+            let fireEvent = this._signals[event]
+            if (fireEvent === false) {
+                // Ignore event, even when bubbling.
+                return
+            }
+            if (fireEvent) {
+                if (fireEvent === true) {
+                    fireEvent = event
+                }
+
+                const handled = this.cparent.fire(fireEvent, args)
+                if (handled) return
+            }
+        }
+        if (bubble && this.cparent) {
+            // Bubble up.
+            this.cparent.signal(event, args, bubble)
+        }
+    }
+
+    get signals() {
+        return this._signals
+    }
+
+    set signals(v) {
+        if (!Utils.isObjectLiteral(v)) {
+            this._throwError("Signals: specify an object with signal-to-fire mappings")
+        }
+        this._signals = Object.assign(this._signals || {}, v)
+    }
+
+    /**
+     * Fires the specified event downwards.
+     * A descendant that wishes to handle the signal should set the '_broadcasts' property on this component.
+     * @warn handling a broadcast will stop it from propagating; to continue propagation return false from the state
+     * event handler.
+     */
+    broadcast(event, args = {}) {
+        if (!Utils.isObjectLiteral(args)) {
+            this._throwError("Broadcast: args must be object")
+        }
+
+        if (!args._source) {
+            args = Object.assign({_source: this}, args)
+        }
+
+        if (this.__broadcasts) {
+            let fireEvent = this.__broadcasts[event]
+            if (fireEvent === false) {
+                return
+            }
+            if (fireEvent) {
+                if (fireEvent === true) {
+                    fireEvent = event
+                }
+
+                const handled = this.fire(fireEvent, args)
+                if (handled) {
+                    // Skip propagation
+                    return
+                }
+            }
+        }
+
+        // Propagate down.
+        const subs = []
+        Component.collectSubComponents(subs, this)
+        for (let i = 0, n = subs.length; i < n; i++) {
+            subs[i].broadcast(event, args)
+        }
+    }
+
+    static collectSubComponents(subs, view) {
+        if (view.hasChildren()) {
+            const childList = view._childList
+            for (let i = 0, n = childList.length; i < n; i++) {
+                const child = childList.getAt(i)
+                if (child.isComponent) {
+                    subs.push(child)
+                } else {
+                    Component.collectSubComponents(subs, child)
+                }
+            }
+        }
+    }
+
+    get _broadcasts() {
+        return this.__broadcasts
+    }
+
+    set _broadcasts(v) {
+        if (!Utils.isObjectLiteral(v)) {
+            this._throwError("Broadcasts: specify an object with broadcast-to-fire mappings")
+        }
+        this.__broadcasts = Object.assign(this.__broadcasts || {}, v)
+    }
+
+    static getComponent(view) {
+        let parent = view
+        while (parent && !parent.isComponent) {
+            parent = parent.parent
+        }
+        return parent
+    }
+
+    static getParent(view) {
+        return Component.getComponent(view.parent)
+    }
+
+}
+
+Component.prototype.isComponent = true
+
+Component.KEYS = {
+    UP: 38,
+    DOWN: 40,
+    LEFT: 37,
+    RIGHT: 39,
+    ENTER: 13,
+    // BACK: 27,
+    // RCBACK: 166,
+    KEY_S: 82
+};
+
+Component.KEYS_EVENTS_NAMES = {
+    38: "Up",
+    40: "Down",
+    37: "Left",
+    39: "Right",
+    13: "Enter",
+    // 27: "Back",
+    9: "Back",
+    8: "Back",
+    93: "Back",
+    174: "Back",
+    175: "Menu",
+    // 166: "Back",
+    83: "Search"
+};
+
+
+class Application extends Component {
+
+    constructor(stageOptions, properties) {
+        const stage = new Stage(stageOptions)
+        super(stage, properties)
+
+        // We must construct while the application is not yet attached.
+        // That's why we 'init' the stage later (which actually emits the attach event).
+        this.stage.init()
+    }
+
+    __construct() {
+        this.stage.setApplication(this)
+
+        // We must create the state manager before the first 'fire' ever: the 'construct' event.
+        this.stateManager = new StateManager()
+        this.stateManager.debug = this.debug
+
+        super.__construct()
+    }
+
+    __init() {
+        super.__init()
+        this.__updateFocus()
+    }
+
+    __updateFocus(maxRecursion = 100) {
+        const newFocusPath = this.__getFocusPath()
+        const newFocusedComponent = newFocusPath[newFocusPath.length - 1]
+        if (!this._focusPath) {
+            // First focus.
+            this._focusPath = newFocusPath
+
+            // Focus events.
+            for (let i = 0, n = this._focusPath.length; i < n; i++) {
+                this._focusPath[i].__focus(newFocusedComponent, undefined)
+            }
+        } else {
+            const focusedComponent = this._focusPath[this._focusPath.length - 1]
+
+            let m = Math.min(this._focusPath.length, newFocusPath.length)
+            let index
+            for (index = 0; index < m; index++) {
+                if (this._focusPath[index] !== newFocusPath[index]) {
+                    break
+                }
+            }
+
+            if (this._focusPath.length !== newFocusPath.length || index !== newFocusPath.length) {
+                if (this.debug) {
+                    console.log(this.stateManager._logPrefix + '* FOCUS ' + newFocusedComponent.getLocationString())
+                }
+                // Unfocus events.
+                for (let i = this._focusPath.length - 1; i >= index; i--) {
+                    this._focusPath[i].__unfocus(newFocusedComponent, focusedComponent)
+                }
+
+                this._focusPath = newFocusPath
+
+                // Focus events.
+                for (let i = index, n = this._focusPath.length; i < n; i++) {
+                    this._focusPath[i].__focus(newFocusedComponent, focusedComponent)
+                }
+
+                // Focus changed events.
+                for (let i = 0; i < index; i++) {
+                    this._focusPath[i].__focusChange(newFocusedComponent, focusedComponent)
+                }
+
+                // Focus events could trigger focus changes.
+                if (maxRecursion-- === 0) {
+                    throw new Error("Max recursion count reached in focus update")
+                }
+                this.__updateFocus(maxRecursion)
+            }
+
+        }
+    }
+
+    __getFocusPath() {
+        const path = [this]
+        let current = this
+        do {
+            const nextFocus = current._getFocus()
+            if (!nextFocus || (nextFocus === current)) {
+                // Found!
+                break
+            }
+
+
+            let ptr = nextFocus.cparent
+            if (ptr === current) {
+                path.push(nextFocus)
+            } else {
+                // Not an immediate child: include full path to descendant.
+                const newParts = [nextFocus]
+                do {
+                    newParts.push(ptr)
+                    ptr = ptr.cparent
+                    if (!ptr) {
+                        current._throwError("Return value for _getFocus must be an attached descendant component but its '" + nextFocus.getLocationString() + "'")
+                    }
+                } while (ptr !== current)
+
+                // Add them reversed.
+                for (let i = 0, n = newParts.length; i < n; i++) {
+                    path.push(newParts[n - i - 1])
+                }
+            }
+
+            current = nextFocus
+        } while(true)
+
+        return path
+    }
+
+    get focusPath() {
+        return this._focusPath
+    }
+
+    receiveKeydown(e) {
+        const path = this.focusPath
+        const n = path.length
+        for (let i = 0; i < n; i++) {
+            if (path[i].__captureKey(e)) {
+                return
+            }
+
+            path[i].__notifyKey(e)
+        }
+        for (let i = n - 1; i >= 0; i--) {
+            if (path[i].__handleKey(e)) {
+                return
+            }
+        }
+    }
+
+    get debug() {
+        return this._debug
+    }
+
+    set debug(v) {
+        this._debug = v
+        if (this.stateManager) {
+            this.stateManager.debug = true
+        }
+    }
+
+}
+
+Application.prototype.isApplication = true
+
+
+class StateManager {
+
+    constructor() {
+        this._fireLevel = 0
+        this._logPrefix = ""
+        this._debug = false
+    }
+
+    get debug() {
+        return this._debug
+    }
+
+    set debug(v) {
+        this._debug = v
+    }
+
+    /**
+     * Fires the specified event on the state machine.
+     * @param {Component} component
+     * @param {string|object[]} event
+     *   Either a single event, or an array of events ({event: 'name', args: *}.
+     *   In case of an array, the event is fired that had a match in the deepest state.
+     *   If multiple events match in the deepest state, the first specified one has priority.
+     * @param {*} args
+     * @return {boolean}
+     *   True iff the state machine could find and execute a handler for the event (event and condition matched).
+     */
+    fire(component, event, args) {
+        // After an event is fired (by external means), the action may cause other events to be triggered. We
+        // distinguish between primary and indirect events because we have to perform some operations after primary
+        // events only.
+
+        // Purely for logging.
+        const primaryEvent = (this._fireLevel === 0)
+        this._fireLevel++
+
+        if (this.debug) {
+            if (!primaryEvent) {
+                this._logPrefix += " "
+            } else {
+                this._logPrefix = ""
+            }
+        }
+
+        let found
+        if (Array.isArray(event)) {
+            found = this._mfire(component, event, args)
+        } else {
+            found = this._fire(component, event, args)
+        }
+
+        if (found && primaryEvent) {
+            // Update focus.
+            component.application.__updateFocus()
+        }
+
+        this._fireLevel--
+
+        if (this.debug) {
+            this._logPrefix = this._logPrefix.substr(0, this._logPrefix.length - 1)
+        }
+
+        return !!found
+    }
+
+    _fire(component, event, args) {
+        if (Utils.isUcChar(event.charCodeAt(0))) {
+            component._throwError("Event may not start with an upper case character: " + event)
+        }
+
+        const paths = this._getStatePaths(component, component.state)
+        for (let i = 0, n = paths.length; i < n; i++) {
+            const result = this._attemptFirePathEvent(component, paths[i], event, args)
+            if (result) {
+                return result
+            }
+        }
+    }
+
+    _mfire(component, events) {
+        const paths = this._getStatePaths(component, component.state)
+        for (let j = 0, m = paths.length; j < m; j++) {
+            for (let i = 0, n = events.length; i < n; i++) {
+                const result = this._attemptFirePathEvent(component, paths[j], events[i].event, events[i].args)
+                if (result) {
+                    return result
+                }
+            }
+        }
+    }
+
+    _attemptFirePathEvent(component, path, event, args) {
+        const result = StateManager._getStateAction(path, event)
+        if (result) {
+            let validAction = (result.s !== undefined)
+            let newState = result.s
+            if (result.a) {
+                try {
+                    if (this.debug) {
+                        console.log(`${this._logPrefix}${component.constructor.name} "${component.state}".${event} ${component.getLocationString()}`)
+                    }
+                    newState = result.a.call(component, args)
+                    validAction = (newState !== false)
+                    if (!validAction) {
+                        if (this.debug) {
+                            console.log(`${this._logPrefix}[PASS THROUGH]`)
+                        }
+                    }
+                } catch(e) {
+                    console.error(e)
+                }
+            }
+            if (validAction) {
+                result.event = event
+                result.args = args
+                result.s = newState
+                result.p = path
+
+                const prevState = component.state
+
+                if (newState && Utils.isString(newState)) {
+                    this._setState(component, StateManager._ucfirst(newState), {event: event, args: args, prevState: prevState, newState: newState})
+                }
+
+                return result
+            }
+        }
+    }
+
+    static _ucfirst(str) {
+        return str.charAt(0).toUpperCase() + str.substr(1)
+    }
+
+    _getStatePaths(component, state) {
+        const states = component._getStates()
+
+        if (state == "") return [states]
+        const parts = state.split(".")
+
+        let cursor = states
+        const path = [cursor]
+        for (let i = 0, n = parts.length; i < n; i++) {
+            const key = StateManager._ucfirst(parts[i])
+            if (!cursor.hasOwnProperty(key)) {
+                component._throwError("State path not found: '" + state + "'")
+            }
+            cursor = cursor[key]
+            path.push(cursor)
+        }
+        return path.reverse()
+    }
+
+    /**
+     * Returns the active's edge action and state.
+     * @param {string} state
+     * @param event
+     * @return {object}
+     * @private
+     */
+    static _getStateAction(state, event) {
+        if (!state.hasOwnProperty(event)) {
+            return null
+        }
+        const def = state[event]
+
+        if (Utils.isFunction(def)) {
+            // Action.
+            return {a: def, s: undefined}
+        } else if (Utils.isString(def)) {
+            // State.
+            return {a: undefined, s: def}
+        }
+
+        return null
+    }
+
+
+    _setState(component, newState, eargs) {
+        if (this.debug) {
+            console.log(`${this._logPrefix}╚>"${newState !== component.state ? newState : ""}"`)
+        }
+
+        if (newState !== component.state) {
+            this._fireLevel++
+            if (this.debug) {
+                this._logPrefix += " "
+            }
+
+            const paths = this._getStatePaths(component, component.state)
+
+            // Switch state to new state.
+            const newPaths = this._getStatePaths(component, newState)
+
+            const info = StateManager._compareStatePaths(paths, newPaths)
+            const exit = info.exit.reverse()
+            const enter = info.enter
+            for (let i = 0, n = exit.length; i < n; i++) {
+                const def = StateManager._getStateAction(exit[i], "_exit")
+                if (def) {
+                    if (this.debug) {
+                        console.log(`${this._logPrefix}${component.constructor.name} "${component.state}"._exit ${component.getLocationString()}`)
+                    }
+                    let stateSwitch = StateManager._executeAction(def, component, eargs)
+                    if (stateSwitch === false) {
+                        if (this.debug) {
+                            console.log(`${this._logPrefix}[CANCELED]`)
+                        }
+                    } else if (stateSwitch) {
+                        // We've already exited some states (so are, in fact, already in another state).
+                        component.__state = StateManager._getSuperState(component.state, i)
+
+                        const info = this._setState(
+                            component,
+                            stateSwitch,
+                            eargs
+                        )
+
+                        this._fireLevel--
+                        if (this.debug) {
+                            this._logPrefix = this._logPrefix.substr(0, this._logPrefix.length - 1)
+                        }
+
+                        return info
+                    }
+                }
+            }
+
+            component.__state = newState
+
+            for (let i = 0, n = enter.length; i < n; i++) {
+                const def = StateManager._getStateAction(enter[i], "_enter")
+                if (def) {
+                    if (this.debug) {
+                        console.log(`${this._logPrefix}${component.constructor.name} "${newState}"._enter ${component.getLocationString()}`)
+                    }
+                    let stateSwitch = StateManager._executeAction(def, component, eargs)
+                    if (stateSwitch === false) {
+                        if (this.debug) {
+                            console.log(`${this._logPrefix}[CANCELED]`)
+                        }
+                    } else if (stateSwitch) {
+                        // We've already exited some states (so are, in fact, in another state).
+                        component.__state = StateManager._getSuperState(newState, n - i)
+
+                        const info = this._setState(
+                            component,
+                            stateSwitch,
+                            eargs
+                        )
+
+                        this._fireLevel--
+                        if (this.debug) {
+                            this._logPrefix = this._logPrefix.substr(0, this._logPrefix.length - 1)
+                        }
+
+                        return info
+                    }
+                }
+            }
+
+            this._fireLevel--
+            if (this.debug) {
+                this._logPrefix = this._logPrefix.substr(0, this._logPrefix.length - 1)
+            }
+        }
+
+    }
+
+    static _executeAction(action, component, args) {
+        let newState
+        if (action.a) {
+            newState = action.a.call(component, args)
+        }
+        if (newState === undefined) {
+            newState = action.s
+        }
+        return newState
+    }
+
+    static _getSuperState(state, levels) {
+        return state.split(".").slice(0, -levels).join(".")
+    }
+
+    /**
+     * Returns the exit states and enter states when switching states (in natural branch order).
+     */
+    static _compareStatePaths(current, newPaths) {
+        current = current.reverse()
+        newPaths = newPaths.reverse()
+        const n = Math.min(current.length, newPaths.length)
+        let pos
+        for (pos = 0; pos < n; pos++) {
+            if (current[pos] !== newPaths[pos]) break
+        }
+
+        return {exit: current.slice(pos), enter: newPaths.slice(pos)}
+    }
+
+}
+
+
