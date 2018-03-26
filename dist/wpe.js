@@ -1,3 +1,4 @@
+window.wpe = (function() {
 /**
  * This is a partial (and more efficient) implementation of the event emitter.
  * It attempts to maintain a one-to-one mapping between events and listeners, skipping an array lookup.
@@ -11979,9 +11980,9 @@ GrayscaleShader.fragmentShaderSource = `
     uniform sampler2D uSampler;
     uniform float amount;
     void main(void){
-        vec4 color = texture2D(uSampler, vTextureCoord);
+        vec4 color = texture2D(uSampler, vTextureCoord) * vColor;
         float grayness = 0.2 * color.r + 0.6 * color.g + 0.2 * color.b;
-        gl_FragColor = vec4(amount * vec3(grayness, grayness, grayness) + (1.0 - amount) * color.rgb, color.a) * vColor;
+        gl_FragColor = vec4(amount * vec3(grayness, grayness, grayness) + (1.0 - amount) * color.rgb, color.a);
     }
 `;
 
@@ -12738,6 +12739,7 @@ LinearBlurFilter.fragmentShaderSource = `
         }
     }
 `;
+
 
 
 class GrayscaleFilter extends Filter {
@@ -13610,3 +13612,40 @@ class StateManager {
 }
 
 
+return {
+    Application: Application,
+    Component: Component,
+    Base: Base,
+    Utils: Utils,
+    StageUtils: StageUtils,
+    Shader: Shader,
+    Filter: Filter,
+    View: View,
+    Tools: Tools,
+    tools: {
+        ObjectListProxy: ObjectListProxy,
+        ObjectListWrapper: ObjectListWrapper
+    },
+    views: {
+        ListView: ListView,
+        BorderView: BorderView,
+        FastBlurView: FastBlurView,
+        SmoothScaleView: SmoothScaleView
+    },
+    shaders: {
+        PixelateShader: PixelateShader,
+        InversionShader: InversionShader,
+        GrayscaleShader: GrayscaleShader,
+        OutlineShader: OutlineShader,
+        CircularPushShader: CircularPushShader,
+        RadialFilterShader: RadialFilterShader
+    },
+    filters: {
+        FxaaFilter: FxaaFilter,
+        InversionFilter: InversionFilter,
+        BlurFilter: BlurFilter,
+        LinearBlurFilter: LinearBlurFilter,
+        GrayscaleFilter: GrayscaleFilter
+    }
+}
+})();

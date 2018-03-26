@@ -1,6 +1,47 @@
 module.exports = function(grunt) {
     grunt.initConfig({
         concat: {
+            options: {
+                banner: "window.wpe = (function() {\n",
+                footer: `
+return {
+    Application: Application,
+    Component: Component,
+    Base: Base,
+    Utils: Utils,
+    StageUtils: StageUtils,
+    Shader: Shader,
+    Filter: Filter,
+    View: View,
+    Tools: Tools,
+    tools: {
+        ObjectListProxy: ObjectListProxy,
+        ObjectListWrapper: ObjectListWrapper
+    },
+    views: {
+        ListView: ListView,
+        BorderView: BorderView,
+        FastBlurView: FastBlurView,
+        SmoothScaleView: SmoothScaleView
+    },
+    shaders: {
+        PixelateShader: PixelateShader,
+        InversionShader: InversionShader,
+        GrayscaleShader: GrayscaleShader,
+        OutlineShader: OutlineShader,
+        CircularPushShader: CircularPushShader,
+        RadialFilterShader: RadialFilterShader
+    },
+    filters: {
+        FxaaFilter: FxaaFilter,
+        InversionFilter: InversionFilter,
+        BlurFilter: BlurFilter,
+        LinearBlurFilter: LinearBlurFilter,
+        GrayscaleFilter: GrayscaleFilter
+    }
+}
+})();`
+            },
             'wpe-browser' : {
                 src : [
                     'src/browser/EventEmitter.js',

@@ -9,10 +9,10 @@
 <body>
     <script>
         window.onload = function() {
-            class SmoothScaleExample extends Application {
+            class SmoothScaleExample extends wpe.Application {
                 static _template() {
                     return {
-                        Scaler: {type: SmoothScaleView, content: {
+                        Scaler: {type: wpe.views.SmoothScaleView, content: {
                             text: {text: "hello", fontSize: 500}
                         }}
                     }

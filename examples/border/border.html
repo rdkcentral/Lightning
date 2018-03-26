@@ -9,11 +9,11 @@
 <body>
     <script>
         window.onload = function() {
-            class BorderExample extends Application {
+            class BorderExample extends wpe.Application {
                 static _template() {
                     return {
                         Primary: {
-                            Rect: {x: 50, y: 50, type: BorderView, borderWidth: 10, colorBorder: 0xFFFF0000, content: {
+                            Rect: {x: 50, y: 50, type: wpe.views.BorderView, borderWidth: 10, colorBorder: 0xFFFF0000, content: {
                                 text: {text: "hello world"}
                             }}
                         },

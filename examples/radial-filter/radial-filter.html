@@ -9,10 +9,10 @@
 <body>
     <script>
         window.onload = function() {
-            class RadialFilterExample extends Application {
+            class RadialFilterExample extends wpe.Application {
                 static _template() {
                     return {
-                        Test: {shader: {type: RadialFilterShader, radius: 400},
+                        Test: {shader: {type: wpe.shaders.RadialFilterShader, radius: 400},
                             Rect: {rect: true, w: 600, h: 600, color: 0xFFFF0000}
                         }
                     }
