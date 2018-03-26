@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+
+    <script src="../../dist/wpe.js"></script>
+    <!--<script src="../../devtools/inspect.js"></script>-->
+</head>
+<body>
+    <script>
+        window.onload = function() {
+            class OutlineExample extends Application {
+                static _template() {
+                    return {
+                        Primary: {
+                            Rect: {rect: true, rotation: 1, w: 300, h: 500, x: 400, y: 200, color: 0xFFFF0000, shader: {type: OutlineShader, width: 5, color: 0xFF0000FF},
+                                Inner: {shader: null, text: {text: "hello world"}}
+                            }
+                        },
+                        Overlay: {}
+                    }
+                }
+            }
+
+            const options = {stage: {w: 900, h: 900, glClearColor: 0xFF000000}}
+            const app = new OutlineExample(options);
+            document.body.appendChild(app.stage.getCanvas());
+
+        }
+    </script>
+</body>
+</html>

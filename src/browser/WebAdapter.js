@@ -104,7 +104,7 @@ class WebAdapter {
     }
 
     createWebGLContext(w, h) {
-        let canvas = this.stage.options.canvas || document.createElement('canvas');
+        let canvas = this.stage.getOption('canvas') || document.createElement('canvas');
 
         canvas.width = w;
         canvas.height = h;
@@ -142,6 +142,12 @@ class WebAdapter {
 
     nextFrame(changes) {
         /* WebGL blits automatically */
+    }
+
+    registerKeyHandler(keyhandler) {
+        window.addEventListener('keydown', e => {
+            keyhandler({keyCode: e.keyCode})
+        })
     }
 
 }

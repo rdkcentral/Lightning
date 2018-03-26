@@ -9,7 +9,7 @@
 <body>
     <script>
         window.onload = function() {
-            class BasicUsageTest extends Application {
+            class BasicUsageExample extends Application {
                 static _template() {
                     return {
                         Primary: {
@@ -21,14 +21,34 @@
                         Overlay: {}
                     }
                 }
+
+                static _states() {
+                    return {
+                        "handleRight": function() {
+                            console.log('hello right')
+                        }
+                    }
+                }
             }
 
-            const test = new BasicUsageTest({w: 900, h: 900, glClearColor: 0xFF000000});
+            const options = {stage: {w: 900, h: 900, glClearColor: 0xFF000000}}
+            options.keys = {
+                38: "Up",
+                40: "Down",
+                37: "Left",
+                39: "Right",
+                13: "Enter",
+                9: "Back",
+                8: "Back",
+                93: "Back",
+                174: "Back",
+                175: "Menu",
+                83: "Search"
+            };
 
-            document.body.appendChild(test.stage.getCanvas());
+            const app = new BasicUsageExample(options);
 
-            let str = test.toString()
-            console.log(str)
+            document.body.appendChild(app.stage.getCanvas());
         }
     </script>
 </body>

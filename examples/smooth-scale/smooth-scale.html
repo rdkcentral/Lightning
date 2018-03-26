@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+
+    <script src="../../dist/wpe.js"></script>
+    <!--<script src="../../devtools/inspect.js"></script>-->
+</head>
+<body>
+    <script>
+        window.onload = function() {
+            class SmoothScaleExample extends Application {
+                static _template() {
+                    return {
+                        Scaler: {type: SmoothScaleView, content: {
+                            text: {text: "hello", fontSize: 500}
+                        }}
+                    }
+                }
+            }
+
+            const options = {stage: {w: 900, h: 900, glClearColor: 0xFF000000}}
+            const app = new SmoothScaleExample(options);
+            document.body.appendChild(app.stage.getCanvas());
+
+            app.animation({duration: 6, repeat: -1, actions: [
+                {t: 'Scaler', p: 'smoothScale', v: {0: 1, 0.5: 0.05, 1.0: 1}}
+            ]}).start()
+
+        }
+    </script>
+</body>
+</html>

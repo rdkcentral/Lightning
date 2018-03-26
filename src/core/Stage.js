@@ -7,9 +7,9 @@ const Utils = require('./Utils');
 /*M¬*/const EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
 
 class Stage extends EventEmitter {
-    constructor(options) {
+    constructor(options = {}) {
         super()
-        this.setOptions(options);
+        this._setOptions(options);
 
         /*M¬*/if (!Utils.isNode) {/*¬M*/this.adapter = new WebAdapter();/*M¬*/}
         if (Utils.isNode) {this.adapter = new NodeAdapter();}/*¬M*/
@@ -18,9 +18,9 @@ class Stage extends EventEmitter {
             this.adapter.init(this);
         }
 
-        this.gl = this.adapter.createWebGLContext(this.options.w, this.options.h);
+        this.gl = this.adapter.createWebGLContext(this.getOption('w'), this.getOption('h'));
 
-        this.setGlClearColor(this.options.glClearColor);
+        this.setGlClearColor(this._options.glClearColor);
 
         this.frameCounter = 0;
 
@@ -49,22 +49,26 @@ class Stage extends EventEmitter {
         source.permanent = true;
     }
 
-    setOptions(o) {
-        this.options = {};
+    getOption(name) {
+        return this._options[name]
+    }
+    
+    _setOptions(o) {
+        this._options = {};
 
         let opt = (name, def) => {
             let value = o[name];
 
             if (value === undefined) {
-                this.options[name] = def;
+                this._options[name] = def;
             } else {
-                this.options[name] = value;
+                this._options[name] = value;
             }
         }
 
         opt('w', 1280);
         opt('h', 720);
-        opt('canvas', this.options.canvas);
+        opt('canvas', this._options.canvas);
         opt('srcBasePath', null);
         opt('textureMemory', 18e6);
         opt('renderTextureMemory', 12e6);
@@ -75,7 +79,7 @@ class Stage extends EventEmitter {
         opt('debugTextureAtlas', false);
         opt('precision', 1);
     }
-
+    
     setApplication(app) {
         this.application = app
     }
@@ -112,12 +116,12 @@ class Stage extends EventEmitter {
     }
 
     getRenderPrecision() {
-        return this.options.precision;
+        return this._options.precision;
     }
 
     drawFrame() {
-        if (this.options.fixedDt) {
-            this.dt = this.options.fixedDt;
+        if (this._options.fixedDt) {
+            this.dt = this._options.fixedDt;
         } else {
             this.dt = (!this.startTime) ? .02 : .001 * (this.currentTime - this.startTime);
         }
@@ -159,9 +163,9 @@ class Stage extends EventEmitter {
     setGlClearColor(clearColor) {
         this.forceRenderUpdate()
         if (Array.isArray(clearColor)) {
-            this.options.glClearColor = clearColor;
+            this._options.glClearColor = clearColor;
         } else {
-            this.options.glClearColor = StageUtils.getRgbaComponentsNormalized(clearColor);
+            this._options.glClearColor = StageUtils.getRgbaComponentsNormalized(clearColor);
         }
     }
 
@@ -215,19 +219,19 @@ class Stage extends EventEmitter {
     }
 
     get w() {
-        return this.options.w
+        return this._options.w
     }
 
     get h() {
-        return this.options.h
+        return this._options.h
     }
 
     get rw() {
-        return this.w / this.options.precision
+        return this.w / this._options.precision
     }
 
     get rh() {
-        return this.h / this.options.precision
+        return this.h / this._options.precision
     }
 
     gcTextureMemory(aggressive = false) {

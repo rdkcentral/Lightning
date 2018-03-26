@@ -205,7 +205,7 @@ class WebAdapter {
     }
 
     createWebGLContext(w, h) {
-        let canvas = this.stage.options.canvas || document.createElement('canvas');
+        let canvas = this.stage.getOption('canvas') || document.createElement('canvas');
 
         canvas.width = w;
         canvas.height = h;
@@ -243,6 +243,12 @@ class WebAdapter {
 
     nextFrame(changes) {
         /* WebGL blits automatically */
+    }
+
+    registerKeyHandler(keyhandler) {
+        window.addEventListener('keydown', e => {
+            keyhandler({keyCode: e.keyCode})
+        })
     }
 
 }
@@ -966,9 +972,9 @@ class StageUtils {
 
 
 class Stage extends EventEmitter {
-    constructor(options) {
+    constructor(options = {}) {
         super()
-        this.setOptions(options);
+        this._setOptions(options);
 
         this.adapter = new WebAdapter();
 
@@ -976,9 +982,9 @@ class Stage extends EventEmitter {
             this.adapter.init(this);
         }
 
-        this.gl = this.adapter.createWebGLContext(this.options.w, this.options.h);
+        this.gl = this.adapter.createWebGLContext(this.getOption('w'), this.getOption('h'));
 
-        this.setGlClearColor(this.options.glClearColor);
+        this.setGlClearColor(this._options.glClearColor);
 
         this.frameCounter = 0;
 
@@ -1007,22 +1013,26 @@ class Stage extends EventEmitter {
         source.permanent = true;
     }
 
-    setOptions(o) {
-        this.options = {};
+    getOption(name) {
+        return this._options[name]
+    }
+    
+    _setOptions(o) {
+        this._options = {};
 
         let opt = (name, def) => {
             let value = o[name];
 
             if (value === undefined) {
-                this.options[name] = def;
+                this._options[name] = def;
             } else {
-                this.options[name] = value;
+                this._options[name] = value;
             }
         }
 
         opt('w', 1280);
         opt('h', 720);
-        opt('canvas', this.options.canvas);
+        opt('canvas', this._options.canvas);
         opt('srcBasePath', null);
         opt('textureMemory', 18e6);
         opt('renderTextureMemory', 12e6);
@@ -1033,7 +1043,7 @@ class Stage extends EventEmitter {
         opt('debugTextureAtlas', false);
         opt('precision', 1);
     }
-
+    
     setApplication(app) {
         this.application = app
     }
@@ -1070,12 +1080,12 @@ class Stage extends EventEmitter {
     }
 
     getRenderPrecision() {
-        return this.options.precision;
+        return this._options.precision;
     }
 
     drawFrame() {
-        if (this.options.fixedDt) {
-            this.dt = this.options.fixedDt;
+        if (this._options.fixedDt) {
+            this.dt = this._options.fixedDt;
         } else {
             this.dt = (!this.startTime) ? .02 : .001 * (this.currentTime - this.startTime);
         }
@@ -1117,9 +1127,9 @@ class Stage extends EventEmitter {
     setGlClearColor(clearColor) {
         this.forceRenderUpdate()
         if (Array.isArray(clearColor)) {
-            this.options.glClearColor = clearColor;
+            this._options.glClearColor = clearColor;
         } else {
-            this.options.glClearColor = StageUtils.getRgbaComponentsNormalized(clearColor);
+            this._options.glClearColor = StageUtils.getRgbaComponentsNormalized(clearColor);
         }
     }
 
@@ -1173,19 +1183,19 @@ class Stage extends EventEmitter {
     }
 
     get w() {
-        return this.options.w
+        return this._options.w
     }
 
     get h() {
-        return this.options.h
+        return this._options.h
     }
 
     get rw() {
-        return this.w / this.options.precision
+        return this.w / this._options.precision
     }
 
     get rh() {
-        return this.h / this.options.precision
+        return this.h / this._options.precision
     }
 
     gcTextureMemory(aggressive = false) {
@@ -1762,11 +1772,11 @@ class TextureManager {
     }
 
     loadSrcTexture(src, ts, sync, cb) {
-        if (this.stage.options.srcBasePath) {
+        if (this.stage.getOption('srcBasePath')) {
             var fc = src.charCodeAt(0)
             if ((src.indexOf("//") === -1) && ((fc >= 65 && fc <= 90) || (fc >= 97 && fc <= 122) || fc == 46)) {
                 // Alphabetical or dot: prepend base path.
-                src = this.stage.options.srcBasePath + src
+                src = this.stage.getOption('srcBasePath') + src
             }
         }
         this.stage.adapter.loadSrcTexture(src, ts, sync, cb);
@@ -1873,7 +1883,7 @@ class TextureManager {
     }
 
     isFull() {
-        return this._usedTextureMemory >= this.stage.options.textureMemory;
+        return this._usedTextureMemory >= this.stage.getOption('textureMemory');
     }
 
     freeUnusedTextureSources() {
@@ -7603,10 +7613,10 @@ class CoreContext {
 
         this._renderTexturePixels += w * h
 
-        if (this._renderTexturePixels > this.stage.options.renderTextureMemory) {
+        if (this._renderTexturePixels > this.stage.getOption('renderTextureMemory')) {
             this.freeUnusedRenderTextures()
 
-            if (this._renderTexturePixels > this.stage.options.renderTextureMemory) {
+            if (this._renderTexturePixels > this.stage.getOption('renderTextureMemory')) {
                 this.freeUnusedRenderTextures(0)
             }
         }
@@ -8270,7 +8280,7 @@ class CoreRenderExecutor {
     _clearRenderTexture() {
         let gl = this.gl
         if (!this._renderTexture) {
-            let glClearColor = this.ctx.stage.options.glClearColor;
+            let glClearColor = this.ctx.stage.getOption('glClearColor');
             gl.clearColor(glClearColor[0] * glClearColor[3], glClearColor[1] * glClearColor[3], glClearColor[2] * glClearColor[3], glClearColor[3]);
             gl.clear(gl.COLOR_BUFFER_BIT);
         } else {
@@ -8669,7 +8679,7 @@ class TextRendererSettings extends EventEmitter {
         }
 
         if (this.fontFace === null) {
-            this.fontFace = view.stage.options.defaultFontFace;
+            this.fontFace = view.stage.getOption('defaultFontFace');
         }
 
         if (this.precision === null) {
@@ -12879,30 +12889,6 @@ class Component extends View {
         this.fire('focusChange', {target:target, newTarget:newTarget})
     }
 
-    __captureKey(e) {
-        if (Component.KEYS_EVENTS_NAMES[e.keyCode]) {
-            return this.fire([{event: "capture" + Component.KEYS_EVENTS_NAMES[e.keyCode]}, {event: "captureKey", args: {keyCode: e.keyCode}}])
-        } else {
-            return this.fire('captureKey', {keyCode: e.keyCode})
-        }
-    }
-
-    __notifyKey(e) {
-        if (Component.KEYS_EVENTS_NAMES[e.keyCode]) {
-            return this.fire([{event: "notify" + Component.KEYS_EVENTS_NAMES[e.keyCode]}, {event: "notifyKey", args: {keyCode: e.keyCode}}])
-        } else {
-            return this.fire('notifyKey', {keyCode: e.keyCode})
-        }
-    }
-
-    __handleKey(e) {
-        if (Component.KEYS_EVENTS_NAMES[e.keyCode]) {
-            return this.fire([{event: "handle" + Component.KEYS_EVENTS_NAMES[e.keyCode]}, {event: "handleKey", args: {keyCode: e.keyCode}}])
-        } else {
-            return this.fire('handleKey', {keyCode: e.keyCode})
-        }
-    }
-
     _getFocus() {
         // Override to delegate focus to child components.
         return this
@@ -13102,51 +13088,58 @@ class Component extends View {
 
 Component.prototype.isComponent = true
 
-Component.KEYS = {
-    UP: 38,
-    DOWN: 40,
-    LEFT: 37,
-    RIGHT: 39,
-    ENTER: 13,
-    // BACK: 27,
-    // RCBACK: 166,
-    KEY_S: 82
-};
-
-Component.KEYS_EVENTS_NAMES = {
-    38: "Up",
-    40: "Down",
-    37: "Left",
-    39: "Right",
-    13: "Enter",
-    // 27: "Back",
-    9: "Back",
-    8: "Back",
-    93: "Back",
-    174: "Back",
-    175: "Menu",
-    // 166: "Back",
-    83: "Search"
-};
-
 
 class Application extends Component {
 
-    constructor(stageOptions, properties) {
-        const stage = new Stage(stageOptions)
+    constructor(options = {}, properties) {
+        // Save options temporarily to avoid having to pass it through the constructor.
+        Application._temp_options = options
+
+        const stage = new Stage(options.stage)
         super(stage, properties)
 
         // We must construct while the application is not yet attached.
         // That's why we 'init' the stage later (which actually emits the attach event).
         this.stage.init()
+
+        this._keymap = this.getOption('keys')
+        if (this._keymap) {
+            this.stage.adapter.registerKeyHandler((e) => {
+                this._receiveKeydown(e)
+            })
+        }
+    }
+
+    getOption(name) {
+        return this._$options[name]
+    }
+
+    _setOptions(o) {
+        this._$options = {};
+
+        let opt = (name, def) => {
+            let value = o[name];
+
+            if (value === undefined) {
+                this._$options[name] = def;
+            } else {
+                this._$options[name] = value;
+            }
+        }
+
+        opt('debug', false);
+        opt('keys', false);
     }
 
     __construct() {
         this.stage.setApplication(this)
 
+        this._setOptions(Application._temp_options)
+        delete Application._temp_options
+
         // We must create the state manager before the first 'fire' ever: the 'construct' event.
         this.stateManager = new StateManager()
-        this.stateManager.debug = this.debug
+        this.stateManager.debug = this._$options.debug
 
         super.__construct()
     }
@@ -13250,31 +13243,64 @@ class Application extends Component {
         return this._focusPath
     }
 
-    receiveKeydown(e) {
+    /**
+     * Injects an event in the state machines, top-down from application to focused component.
+     */
+    focusTopDownEvent(event, args) {
         const path = this.focusPath
         const n = path.length
-        for (let i = 0; i < n; i++) {
-            if (path[i].__captureKey(e)) {
-                return
+        if (Array.isArray(event)) {
+            // Multiple events.
+            for (let i = 0; i < n; i++) {
+                if (this.fire(event)) {
+                    return true
+                }
             }
-
-            path[i].__notifyKey(e)
-        }
-        for (let i = n - 1; i >= 0; i--) {
-            if (path[i].__handleKey(e)) {
-                return
+        } else {
+            // Single event.
+            for (let i = 0; i < n; i++) {
+                if (this.fire(event, args)) {
+                    return true
+                }
             }
         }
+        return false
     }
 
-    get debug() {
-        return this._debug
+    /**
+     * Injects an event in the state machines, bottom-up from focused component to application.
+     */
+    focusBottomUpEvent(event, args) {
+        const path = this.focusPath
+        const n = path.length
+        if (Array.isArray(event)) {
+            // Multiple events.
+            for (let i = n - 1; i >= 0; i--) {
+                if (this.fire(event)) {
+                    return true
+                }
+            }
+        } else {
+            // Single event.
+            for (let i = n - 1; i >= 0; i--) {
+                if (this.fire(event, args)) {
+                    return true
+                }
+            }
+        }
+        return false
     }
 
-    set debug(v) {
-        this._debug = v
-        if (this.stateManager) {
-            this.stateManager.debug = true
+    _receiveKeydown(e) {
+        const obj = {keyCode: e.keyCode}
+        if (this._keymap[e.keyCode]) {
+            if (!this.stage.application.focusTopDownEvent([{event: "capture" + this._keymap[e.keyCode]}, {event: "captureKey", args: obj}])) {
+                this.stage.application.focusBottomUpEvent([{event: "handle" + this._keymap[e.keyCode]}, {event: "handleKey", args: obj}])
+            }
+        } else {
+            if (!this.stage.application.focusTopDownEvent("captureKey", obj)) {
+                this.stage.application.focusBottomUpEvent("handleKey", obj)
+            }
         }
     }
 

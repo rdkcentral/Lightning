@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+
+    <script src="../../dist/wpe.js"></script>
+    <!--<script src="../../devtools/inspect.js"></script>-->
+</head>
+<body>
+    <script>
+        window.onload = function() {
+            class BorderExample extends Application {
+                static _template() {
+                    return {
+                        Primary: {
+                            Rect: {x: 50, y: 50, type: BorderView, borderWidth: 10, colorBorder: 0xFFFF0000, content: {
+                                text: {text: "hello world"}
+                            }}
+                        },
+                        Overlay: {}
+                    }
+                }
+            }
+
+            const options = {stage: {w: 900, h: 900, glClearColor: 0xFF000000}}
+            const app = new BorderExample(options);
+            document.body.appendChild(app.stage.getCanvas());
+
+        }
+    </script>
+</body>
+</html>

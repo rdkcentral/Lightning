@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+
+    <script src="../../dist/wpe.js"></script>
+    <!--<script src="../../devtools/inspect.js"></script>-->
+</head>
+<body>
+    <script>
+        window.onload = function() {
+            class RadialFilterExample extends Application {
+                static _template() {
+                    return {
+                        Test: {shader: {type: RadialFilterShader, radius: 400},
+                            Rect: {rect: true, w: 600, h: 600, color: 0xFFFF0000}
+                        }
+                    }
+                }
+            }
+
+            const options = {stage: {w: 900, h: 900, glClearColor: 0xFF000000}}
+            const app = new RadialFilterExample(options);
+            document.body.appendChild(app.stage.getCanvas());
+
+            app.animation({duration: 5, repeat: -1, actions: [
+                {t: 'Test', p: 'shader.radius', v: {0: 400, 0.5: 10, 1: 400}}
+            ]}).start()
+
+        }
+    </script>
+</body>
+</html>

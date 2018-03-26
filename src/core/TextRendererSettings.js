@@ -20,7 +20,7 @@ class TextRendererSettings extends EventEmitter {
         }
 
         if (this.fontFace === null) {
-            this.fontFace = view.stage.options.defaultFontFace;
+            this.fontFace = view.stage.getOption('defaultFontFace');
         }
 
         if (this.precision === null) {

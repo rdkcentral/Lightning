@@ -36,11 +36,11 @@ class TextureManager {
     }
 
     loadSrcTexture(src, ts, sync, cb) {
-        if (this.stage.options.srcBasePath) {
+        if (this.stage.getOption('srcBasePath')) {
             var fc = src.charCodeAt(0)
             if ((src.indexOf("//") === -1) && ((fc >= 65 && fc <= 90) || (fc >= 97 && fc <= 122) || fc == 46)) {
                 // Alphabetical or dot: prepend base path.
-                src = this.stage.options.srcBasePath + src
+                src = this.stage.getOption('srcBasePath') + src
             }
         }
         this.stage.adapter.loadSrcTexture(src, ts, sync, cb);
@@ -147,7 +147,7 @@ class TextureManager {
     }
 
     isFull() {
-        return this._usedTextureMemory >= this.stage.options.textureMemory;
+        return this._usedTextureMemory >= this.stage.getOption('textureMemory');
     }
 
     freeUnusedTextureSources() {

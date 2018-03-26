@@ -109,30 +109,6 @@ class Component extends View {
         this.fire('focusChange', {target:target, newTarget:newTarget})
     }
 
-    __captureKey(e) {
-        if (Component.KEYS_EVENTS_NAMES[e.keyCode]) {
-            return this.fire([{event: "capture" + Component.KEYS_EVENTS_NAMES[e.keyCode]}, {event: "captureKey", args: {keyCode: e.keyCode}}])
-        } else {
-            return this.fire('captureKey', {keyCode: e.keyCode})
-        }
-    }
-
-    __notifyKey(e) {
-        if (Component.KEYS_EVENTS_NAMES[e.keyCode]) {
-            return this.fire([{event: "notify" + Component.KEYS_EVENTS_NAMES[e.keyCode]}, {event: "notifyKey", args: {keyCode: e.keyCode}}])
-        } else {
-            return this.fire('notifyKey', {keyCode: e.keyCode})
-        }
-    }
-
-    __handleKey(e) {
-        if (Component.KEYS_EVENTS_NAMES[e.keyCode]) {
-            return this.fire([{event: "handle" + Component.KEYS_EVENTS_NAMES[e.keyCode]}, {event: "handleKey", args: {keyCode: e.keyCode}}])
-        } else {
-            return this.fire('handleKey', {keyCode: e.keyCode})
-        }
-    }
-
     _getFocus() {
         // Override to delegate focus to child components.
         return this
@@ -331,32 +307,5 @@ class Component extends View {
 }
 
 Component.prototype.isComponent = true
-
-Component.KEYS = {
-    UP: 38,
-    DOWN: 40,
-    LEFT: 37,
-    RIGHT: 39,
-    ENTER: 13,
-    // BACK: 27,
-    // RCBACK: 166,
-    KEY_S: 82
-};
-
-Component.KEYS_EVENTS_NAMES = {
-    38: "Up",
-    40: "Down",
-    37: "Left",
-    39: "Right",
-    13: "Enter",
-    // 27: "Back",
-    9: "Back",
-    8: "Back",
-    93: "Back",
-    174: "Back",
-    175: "Menu",
-    // 166: "Back",
-    83: "Search"
-};
 
 module.exports = Component

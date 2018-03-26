@@ -1,7 +1,7 @@
 const Application = require('../../wpe').Application
 const Utils = require('../../wpe').Utils
 
-class BasicUsageTest extends Application {
+class BasicUsageExample extends Application {
     static _template() {
         return {
             Primary: {
@@ -15,12 +15,10 @@ class BasicUsageTest extends Application {
     }
 }
 
-const options = {w: 900, h: 900, glClearColor: 0xFF000000}
+const options = {stage: {w: 900, h: 900, glClearColor: 0xFF000000}}
 if (Utils.isNode) {
-    options.window = {title: "Border example", fullscreen: false};
-    options.supercharger = {localImagePath: __dirname};
+    options.stage.window = {title: "Border example", fullscreen: false};
+    options.stage.supercharger = {localImagePath: __dirname};
 }
-const test = new BasicUsageTest(options);
 
-let str = test.toString()
-console.log(str)
+const app = new BasicUsageExample(options);

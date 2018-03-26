@@ -207,7 +207,7 @@ class CoreRenderExecutor {
     _clearRenderTexture() {
         let gl = this.gl
         if (!this._renderTexture) {
-            let glClearColor = this.ctx.stage.options.glClearColor;
+            let glClearColor = this.ctx.stage.getOption('glClearColor');
             gl.clearColor(glClearColor[0] * glClearColor[3], glClearColor[1] * glClearColor[3], glClearColor[2] * glClearColor[3], glClearColor[3]);
             gl.clear(gl.COLOR_BUFFER_BIT);
         } else {

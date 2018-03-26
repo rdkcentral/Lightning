@@ -2,21 +2,55 @@ const Component = require('./Component');
 
 class Application extends Component {
 
-    constructor(stageOptions, properties) {
-        const stage = new Stage(stageOptions)
+    constructor(options = {}, properties) {
+        // Save options temporarily to avoid having to pass it through the constructor.
+        Application._temp_options = options
+
+        const stage = new Stage(options.stage)
         super(stage, properties)
 
         // We must construct while the application is not yet attached.
         // That's why we 'init' the stage later (which actually emits the attach event).
         this.stage.init()
+
+        this._keymap = this.getOption('keys')
+        if (this._keymap) {
+            this.stage.adapter.registerKeyHandler((e) => {
+                this._receiveKeydown(e)
+            })
+        }
+    }
+
+    getOption(name) {
+        return this._$options[name]
+    }
+
+    _setOptions(o) {
+        this._$options = {};
+
+        let opt = (name, def) => {
+            let value = o[name];
+
+            if (value === undefined) {
+                this._$options[name] = def;
+            } else {
+                this._$options[name] = value;
+            }
+        }
+
+        opt('debug', false);
+        opt('keys', false);
     }
 
     __construct() {
         this.stage.setApplication(this)
 
+        this._setOptions(Application._temp_options)
+        delete Application._temp_options
+
         // We must create the state manager before the first 'fire' ever: the 'construct' event.
         this.stateManager = new StateManager()
-        this.stateManager.debug = this.debug
+        this.stateManager.debug = this._$options.debug
 
         super.__construct()
     }
@@ -120,31 +154,64 @@ class Application extends Component {
         return this._focusPath
     }
 
-    receiveKeydown(e) {
+    /**
+     * Injects an event in the state machines, top-down from application to focused component.
+     */
+    focusTopDownEvent(event, args) {
         const path = this.focusPath
         const n = path.length
-        for (let i = 0; i < n; i++) {
-            if (path[i].__captureKey(e)) {
-                return
+        if (Array.isArray(event)) {
+            // Multiple events.
+            for (let i = 0; i < n; i++) {
+                if (this.fire(event)) {
+                    return true
+                }
             }
-
-            path[i].__notifyKey(e)
-        }
-        for (let i = n - 1; i >= 0; i--) {
-            if (path[i].__handleKey(e)) {
-                return
+        } else {
+            // Single event.
+            for (let i = 0; i < n; i++) {
+                if (this.fire(event, args)) {
+                    return true
+                }
             }
         }
+        return false
     }
 
-    get debug() {
-        return this._debug
+    /**
+     * Injects an event in the state machines, bottom-up from focused component to application.
+     */
+    focusBottomUpEvent(event, args) {
+        const path = this.focusPath
+        const n = path.length
+        if (Array.isArray(event)) {
+            // Multiple events.
+            for (let i = n - 1; i >= 0; i--) {
+                if (this.fire(event)) {
+                    return true
+                }
+            }
+        } else {
+            // Single event.
+            for (let i = n - 1; i >= 0; i--) {
+                if (this.fire(event, args)) {
+                    return true
+                }
+            }
+        }
+        return false
     }
 
-    set debug(v) {
-        this._debug = v
-        if (this.stateManager) {
-            this.stateManager.debug = true
+    _receiveKeydown(e) {
+        const obj = {keyCode: e.keyCode}
+        if (this._keymap[e.keyCode]) {
+            if (!this.stage.application.focusTopDownEvent([{event: "capture" + this._keymap[e.keyCode]}, {event: "captureKey", args: obj}])) {
+                this.stage.application.focusBottomUpEvent([{event: "handle" + this._keymap[e.keyCode]}, {event: "handleKey", args: obj}])
+            }
+        } else {
+            if (!this.stage.application.focusTopDownEvent("captureKey", obj)) {
+                this.stage.application.focusBottomUpEvent("handleKey", obj)
+            }
         }
     }
 
@@ -154,5 +221,6 @@ Application.prototype.isApplication = true
 
 module.exports = Application
 
+const Utils = require('../core/Utils');
 const Stage = require('../core/Stage');
 const StateManager = require('./StateManager');

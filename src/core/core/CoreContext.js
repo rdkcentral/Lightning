@@ -137,10 +137,10 @@ class CoreContext {
 
         this._renderTexturePixels += w * h
 
-        if (this._renderTexturePixels > this.stage.options.renderTextureMemory) {
+        if (this._renderTexturePixels > this.stage.getOption('renderTextureMemory')) {
             this.freeUnusedRenderTextures()
 
-            if (this._renderTexturePixels > this.stage.options.renderTextureMemory) {
+            if (this._renderTexturePixels > this.stage.getOption('renderTextureMemory')) {
                 this.freeUnusedRenderTextures(0)
             }
         }

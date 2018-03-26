@@ -12,7 +12,7 @@ class NodeAdapter {
         this._looping = false;
         this._awaitingLoop = false;
 
-        if (this.stage.options.supercharger) {
+        if (this.stage.getOption('supercharger')) {
             try {
                 // Images are downloaded, parsed and pre-processed off-thread.
                 this._supercharger = require('wpe-uiframework-supercharger');
@@ -22,7 +22,7 @@ class NodeAdapter {
             }
 
             if (this._supercharger) {
-                let localImagePath = this.stage.options.supercharger.localImagePath;
+                let localImagePath = this.stage.getOption('supercharger').localImagePath;
                 let options = {allowFiles: (!!localImagePath)};
                 if (localImagePath !== true) {
                     options.allowedFilePath = localImagePath;
@@ -142,8 +142,9 @@ class NodeAdapter {
 
     createWebGLContext(w, h) {
         let options = {width: w, height: h, title: "WebGL"};
-        if (this.stage.options.window) {
-            options = Object.assign(options, this.stage.options.window);
+        const windowOptions = this.stage.getOption('window')
+        if (windowOptions) {
+            options = Object.assign(options, windowOptions);
         }
         let gl = gles2.init(options);
         return gl;
@@ -166,6 +167,10 @@ class NodeAdapter {
     nextFrame(changes) {
         this.changes = changes;
         gles2.nextFrame(changes);
+    }
+
+    registerKeyHandler(keyhandler) {
+        console.warn("No support for key handling")
     }
 
 }
