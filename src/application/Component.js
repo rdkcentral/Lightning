@@ -36,37 +36,37 @@ class Component extends View {
                 this.__initialized = true
             }
 
-            this.fire('attach')
+            this.fire('_attach')
         })
 
         this.on('detach', () => {
-            this.fire('detach')
+            this.fire('_detach')
         })
 
         this.on('active', () => {
             if (!this.__firstActive) {
-                this.fire('firstActive')
+                this.fire('_firstActive')
                 this.__firstActive = true
             }
 
-            this.fire('active')
+            this.fire('_active')
         })
 
         this.on('inactive', () => {
-            this.fire('inactive')
+            this.fire('_inactive')
         })
 
         this.on('enabled', () => {
             if (!this.__firstEnable) {
-                this.fire('firstEnable')
+                this.fire('_firstEnable')
                 this.__firstEnable = true
             }
 
-            this.fire('enable')
+            this.fire('_enable')
         })
 
         this.on('disable', () => {
-            this.fire('disable')
+            this.fire('_disable')
         })
     }
 
@@ -79,31 +79,31 @@ class Component extends View {
     }
 
     __construct() {
-        this.fire('construct')
+        this.fire('_construct')
     }
 
     __init() {
-        this.fire('init')
+        this.fire('_init')
     }
 
     __focus(newTarget, prevTarget) {
-        this.fire('focus', {newTarget: newTarget, prevTarget: prevTarget})
+        this.fire('_focus', {newTarget: newTarget, prevTarget: prevTarget})
     }
 
     __unfocus(newTarget) {
-        this.fire('unfocus', {newTarget: newTarget})
+        this.fire('_unfocus', {newTarget: newTarget})
     }
 
     __focusBranch(target) {
-        this.fire('focusBranch', {target: target})
+        this.fire('_focusBranch', {target: target})
     }
 
     __unfocusBranch(target, newTarget) {
-        this.fire('focusBranch', {target:target, newTarget:newTarget})
+        this.fire('_focusBranch', {target:target, newTarget:newTarget})
     }
 
     __focusChange(target, newTarget) {
-        this.fire('focusChange', {target:target, newTarget:newTarget})
+        this.fire('_focusChange', {target:target, newTarget:newTarget})
     }
 
     _getFocus() {

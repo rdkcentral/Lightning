@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8" />
 
-    <script src="../../dist/wpe.js"></script>
+    <script src="../../dist/wuf.js"></script>
     <!--<script src="../../devtools/inspect.js"></script>-->
 </head>
 <body>
     <script>
         window.onload = function() {
-            class BasicUsageExample extends wpe.Application {
+            class BasicUsageExample extends wuf.Application {
                 static _template() {
                     return {
                         Primary: {
@@ -24,16 +24,16 @@
 
                 static _states() {
                     return {
-                        "handleLeft": function() {
+                        "_handleLeft": function() {
                             this.tag('Primary').setSmooth('x', this.tag('Primary').getSmooth('x') - 100)
                         },
-                        "handleRight": function() {
+                        "_handleRight": function() {
                             this.tag('Primary').setSmooth('x', this.tag('Primary').getSmooth('x') + 100)
                         },
-                        "handleUp": function() {
+                        "_handleUp": function() {
                             this.tag('Primary').setSmooth('y', this.tag('Primary').getSmooth('y') - 100)
                         },
-                        "handleDown": function() {
+                        "_handleDown": function() {
                             this.tag('Primary').setSmooth('y', this.tag('Primary').getSmooth('y') + 100)
                         }
                     }

@@ -2,7 +2,7 @@ module.exports = function(grunt) {
     grunt.initConfig({
         concat: {
             options: {
-                banner: "window.wpe = (function() {\n",
+                banner: "window.wuf = (function() {\n",
                 footer: `
 return {
     Application: Application,
@@ -49,7 +49,7 @@ return {
 }
 })();`
             },
-            'wpe-browser' : {
+            'wuf' : {
                 src : [
                     'src/browser/EventEmitter.js',
                     'src/browser/WebAdapter.js',
@@ -111,12 +111,12 @@ return {
                     'src/application/Application.js',
                     'src/application/StateManager.js',
                 ],
-                dest : 'dist/wpe.js'
+                dest : 'dist/wuf.js'
             }
         },
         strip_code: {
-            "wpe-browser": {
-                src: 'dist/wpe.js',
+            "wuf": {
+                src: 'dist/wuf.js',
                 options: {
                     patterns: [/\/\*M¬\*\/(.|\n)+?\/\*¬M\*\//g, /\/\*(.¬|¬.)\*\//g, / *(let|var|const)[^=]+=\s*require[^)]+\);?\n?/g, / *module\.exports[^;\n]*;?\n?/g]
                 }
@@ -128,6 +128,6 @@ return {
     grunt.loadNpmTasks('grunt-contrib-uglify');
     grunt.loadNpmTasks('grunt-strip-code');
     grunt.registerTask('wpe-core-browser', [ 'concat:wpe-core-browser', 'strip_code:wpe-core-browser' ]);
-    grunt.registerTask('wpe-browser', [ 'concat:wpe-browser', 'strip_code:wpe-browser' ]);
+    grunt.registerTask('wuf', [ 'concat:wuf', 'strip_code:wuf' ]);
 
 };

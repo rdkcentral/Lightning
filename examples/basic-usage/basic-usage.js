@@ -1,5 +1,5 @@
-const Application = require('../../wpe').Application
-const Utils = require('../../wpe').Utils
+const Application = require('../../wuf').Application
+const Utils = require('../../wuf').Utils
 
 class BasicUsageExample extends Application {
     static _template() {

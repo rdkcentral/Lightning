@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8" />
 
-    <script src="../../dist/wpe.js"></script>
+    <script src="../../dist/wuf.js"></script>
     <!--<script src="../../devtools/inspect.js"></script>-->
 </head>
 <body>
     <script>
         window.onload = function() {
-            class SmoothScaleExample extends wpe.Application {
+            class SmoothScaleExample extends wuf.Application {
                 static _template() {
                     return {
-                        Scaler: {type: wpe.views.SmoothScaleView, content: {
+                        Scaler: {type: wuf.views.SmoothScaleView, content: {
                             text: {text: "hello", fontSize: 500}
                         }}
                     }

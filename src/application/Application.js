@@ -205,12 +205,12 @@ class Application extends Component {
     _receiveKeydown(e) {
         const obj = {keyCode: e.keyCode}
         if (this.__keymap[e.keyCode]) {
-            if (!this.stage.application.focusTopDownEvent([{event: "capture" + this.__keymap[e.keyCode]}, {event: "captureKey", args: obj}])) {
-                this.stage.application.focusBottomUpEvent([{event: "handle" + this.__keymap[e.keyCode]}, {event: "handleKey", args: obj}])
+            if (!this.stage.application.focusTopDownEvent([{event: "_capture" + this.__keymap[e.keyCode]}, {event: "_captureKey", args: obj}])) {
+                this.stage.application.focusBottomUpEvent([{event: "_handle" + this.__keymap[e.keyCode]}, {event: "_handleKey", args: obj}])
             }
         } else {
-            if (!this.stage.application.focusTopDownEvent("captureKey", obj)) {
-                this.stage.application.focusBottomUpEvent("handleKey", obj)
+            if (!this.stage.application.focusTopDownEvent("_captureKey", obj)) {
+                this.stage.application.focusBottomUpEvent("_handleKey", obj)
             }
         }
     }

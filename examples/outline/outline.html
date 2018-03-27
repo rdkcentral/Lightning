@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8" />
 
-    <script src="../../dist/wpe.js"></script>
+    <script src="../../dist/wuf.js"></script>
     <!--<script src="../../devtools/inspect.js"></script>-->
 </head>
 <body>
     <script>
         window.onload = function() {
-            class OutlineExample extends wpe.Application {
+            class OutlineExample extends wuf.Application {
                 static _template() {
                     return {
                         Primary: {
-                            Rect: {rect: true, rotation: 1, w: 300, h: 500, x: 400, y: 200, color: 0xFFFF0000, shader: {type: wpe.shaders.OutlineShader, width: 5, color: 0xFF0000FF},
+                            Rect: {rect: true, rotation: 1, w: 300, h: 500, x: 400, y: 200, color: 0xFFFF0000, shader: {type: wuf.shaders.OutlineShader, width: 5, color: 0xFF0000FF},
                                 Inner: {shader: null, text: {text: "hello world"}}
                             }
                         },

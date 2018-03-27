@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8" />
 
-    <script src="../../dist/wpe.js"></script>
+    <script src="../../dist/wuf.js"></script>
     <!--<script src="../../devtools/inspect.js"></script>-->
 </head>
 <body>
     <script>
         window.onload = function() {
-            class BorderExample extends wpe.Application {
+            class BorderExample extends wuf.Application {
                 static _template() {
                     return {
                         Primary: {
-                            Rect: {x: 50, y: 50, type: wpe.views.BorderView, borderWidth: 10, colorBorder: 0xFFFF0000, content: {
+                            Rect: {x: 50, y: 50, type: wuf.views.BorderView, borderWidth: 10, colorBorder: 0xFFFF0000, content: {
                                 text: {text: "hello world"}
                             }}
                         },
