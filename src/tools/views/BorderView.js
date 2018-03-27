@@ -25,8 +25,8 @@ class BorderView extends View {
 
         this.onAfterUpdate = function (view) {
             const content = view.childList.first
-            let rw = view._core.rw || content.renderWidth;
-            let rh = view._core.rh || content.renderHeight;
+            let rw = view.core.rw || content.renderWidth;
+            let rh = view.core.rh || content.renderHeight;
             view._borderTop.w = rw;
             view._borderBottom.y = rh;
             view._borderBottom.w = rw;

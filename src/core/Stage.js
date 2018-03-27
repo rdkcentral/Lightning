@@ -156,7 +156,7 @@ class Stage extends EventEmitter {
     forceRenderUpdate() {
         // Enfore re-rendering.
         if (this.root) {
-            this.root._core._parent._hasRenderUpdates = true
+            this.root.core._parent._hasRenderUpdates = true
         }
     }
 

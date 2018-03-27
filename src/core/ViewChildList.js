@@ -24,7 +24,7 @@ class ViewChildList extends ObjectList {
             prevChildList._items.splice(index, 1);
 
             // Also clean up view core.
-            prevParent._core.removeChildAt(index)
+            prevParent.core.removeChildAt(index)
 
         }
 
@@ -35,12 +35,12 @@ class ViewChildList extends ObjectList {
 
     onAdd(item, index) {
         this._connectParent(item)
-        this._view._core.addChildAt(index, item._core)
+        this._view.core.addChildAt(index, item.core)
     }
 
     onRemove(item, index) {
         item._setParent(null)
-        this._view._core.removeChildAt(index)
+        this._view.core.removeChildAt(index)
     }
 
     onSync(removed, added, order) {
@@ -50,19 +50,19 @@ class ViewChildList extends ObjectList {
         for (let i = 0, n = added.length; i < n; i++) {
             this._connectParent(added[i])
         }
-        let gc = i => i._core
-        this._view._core.syncChildren(removed.map(gc), added.map(gc), order.map(gc))
+        let gc = i => i.core
+        this._view.core.syncChildren(removed.map(gc), added.map(gc), order.map(gc))
     }
 
     onSet(item, index, prevItem) {
         prevItem._setParent(null)
 
         this._connectParent(item)
-        this._view._core.setChildAt(index, item._core)
+        this._view.core.setChildAt(index, item.core)
     }
 
     onMove(item, fromIndex, toIndex) {
-        this._view._core.moveChild(fromIndex, toIndex)
+        this._view.core.moveChild(fromIndex, toIndex)
     }
 
     createItem(object) {

@@ -15,152 +15,160 @@ class View extends EventEmitter {
     constructor(stage) {
         super()
 
-        this.id = View.id++;
+        this.__id = View.id++;
 
         this.stage = stage;
 
-        this._core = new ViewCore(this);
+        this.__core = new ViewCore(this);
 
         /**
          * A reference that can be used while merging trees.
          * @type {string}
          */
-        this._ref = null;
+        this.__ref = null;
 
         /**
          * A view is attached if it is a descendant of the stage root.
          * @type {boolean}
          */
-        this._attached = false;
+        this.__attached = false;
 
         /**
          * A view is enabled when it is attached and it is visible (worldAlpha > 0).
          * @type {boolean}
          */
-        this._enabled = false;
+        this.__enabled = false;
 
         /**
          * A view is active when it is enabled and it is within bounds.
          * @type {boolean}
          */
-        this._active = false;
+        this.__active = false;
 
         /**
          * @type {View}
          */
-        this._parent = null;
+        this.__parent = null;
 
         /**
          * The texture that is currently set.
          * @type {Texture}
          * @protected
          */
-        this._texture = null;
+        this.__texture = null;
 
         /**
          * The currently displayed texture. While this.texture is loading, this one may be different.
          * @type {Texture}
          * @protected
          */
-        this._displayedTexture = null;
+        this.__displayedTexture = null;
 
         /**
          * Tags that can be used to identify/search for a specific view.
          * @type {String[]}
          */
-        this._tags = null;
+        this.__tags = null;
 
         /**
          * The tree's tags mapping.
          * This contains all views for all known tags, at all times.
          * @type {Map}
          */
-        this._treeTags = null;
+        this.__treeTags = null;
 
         /**
          * Cache for the tag/mtag methods.
          * @type {Map<String,View[]>}
          */
-        this._tagsCache = null;
+        this.__tagsCache = null;
 
         /**
          * Tag-to-complex cache (all tags that are part of the complex caches).
          * This maps tags to cached complex tags in the cache.
          * @type {Map<String,String[]>}
          */
-        this._tagToComplex = null;
+        this.__tagToComplex = null;
 
         /**
          * Creates a tag context: tagged views in this branch will not be reachable from ancestors of this view.
          * @type {boolean}
          * @private
          */
-        this._tagRoot = false;
+        this.__tagRoot = false;
 
-        this._x = 0;
-        this._y = 0;
-        this._w = 0;
-        this._h = 0;
-        this._scaleX = 1;
-        this._scaleY = 1;
-        this._pivotX = 0.5;
-        this._pivotY = 0.5;
-        this._mountX = 0;
-        this._mountY = 0;
-        this._alpha = 1;
-        this._rotation = 0;
-        this._visible = true;
+        this.__x = 0;
+        this.__y = 0;
+        this.__w = 0;
+        this.__h = 0;
+        this.__scaleX = 1;
+        this.__scaleY = 1;
+        this.__pivotX = 0.5;
+        this.__pivotY = 0.5;
+        this.__mountX = 0;
+        this.__mountY = 0;
+        this.__alpha = 1;
+        this.__rotation = 0;
+        this.__visible = true;
 
         /**
          * The text functionality in case this view is a text view.
          * @type {ViewText}
          */
-        this._viewText = null;
+        this.__viewText = null;
 
         /**
          * (Lazy-initialised) list of children owned by this view.
          * @type {ViewChildList}
          */
-        this._childList = null;
+        this.__childList = null;
 
+    }
+    
+    get id() {
+        return this.__id
     }
 
     set ref(ref) {
-        if (this._ref !== ref) {
+        if (this.__ref !== ref) {
             const charcode = ref.charCodeAt(0)
             if (!Utils.isUcChar(charcode)) {
                 this._throwError("Ref must start with an upper case character: " + ref)
             }
-            if (this._ref !== null) {
-                this.removeTag(this._ref)
+            if (this.__ref !== null) {
+                this.removeTag(this.__ref)
             }
-            this._ref = ref
-            this._addTag(this._ref)
+            this.__ref = ref
+            this._addTag(this.__ref)
         }
     }
 
     get ref() {
-        return this._ref
+        return this.__ref
+    }
+
+    get core() {
+        return this.__core
     }
 
     setAsRoot() {
         this._updateAttachedFlag();
         this._updateEnabledFlag();
-        this._core.setAsRoot();
+        this.__core.setAsRoot();
     }
 
     get isRoot() {
-        return this._core.isRoot
+        return this.__core.isRoot
     }
 
     _setParent(parent) {
-        if (this._parent === parent) return;
+        if (this.__parent === parent) return;
 
-        if (this._parent) {
+        if (this.__parent) {
             this._unsetTagsParent();
         }
 
-        this._parent = parent;
+        this.__parent = parent;
 
         if (parent) {
             this._setTagsParent();
@@ -177,10 +185,10 @@ class View extends EventEmitter {
     getDepth() {
         let depth = 0;
 
-        let p = this._parent;
+        let p = this.__parent;
         while(p) {
             depth++;
-            p = p._parent;
+            p = p.__parent;
         }
 
         return depth;
@@ -188,8 +196,8 @@ class View extends EventEmitter {
 
     getAncestor(l) {
         let p = this;
-        while (l > 0 && p._parent) {
-            p = p._parent;
+        while (l > 0 && p.__parent) {
+            p = p.__parent;
             l--;
         }
         return p;
@@ -229,31 +237,31 @@ class View extends EventEmitter {
                 return o1;
             }
 
-            o1 = o1._parent;
-            o2 = o2._parent;
+            o1 = o1.__parent;
+            o2 = o2.__parent;
         } while (o1 && o2);
 
         return null;
     };
 
     get attached() {
-        return this._attached
+        return this.__attached
     }
 
     get enabled() {
-        return this._enabled
+        return this.__enabled
     }
 
     get active() {
-        return this._active
+        return this.__active
     }
 
     isAttached() {
-        return (this._parent ? this._parent._attached : (this.stage.root === this));
+        return (this.__parent ? this.__parent.__attached : (this.stage.root === this));
     };
 
     isEnabled() {
-        return this._visible && (this._alpha > 0) && (this._parent ? this._parent._enabled : (this.stage.root === this));
+        return this.__visible && (this.__alpha > 0) && (this.__parent ? this.__parent.__enabled : (this.stage.root === this));
     };
 
     isActive() {
@@ -265,8 +273,8 @@ class View extends EventEmitter {
      */
     _updateAttachedFlag() {
         let newAttached = this.isAttached();
-        if (this._attached !== newAttached) {
-            this._attached = newAttached;
+        if (this.__attached !== newAttached) {
+            this.__attached = newAttached;
 
             let children = this._children.get();
             if (children) {
@@ -291,7 +299,7 @@ class View extends EventEmitter {
      */
     _updateEnabledFlag() {
         let newEnabled = this.isEnabled();
-        if (this._enabled !== newEnabled) {
+        if (this.__enabled !== newEnabled) {
             if (newEnabled) {
                 this._setEnabledFlag();
             } else {
@@ -322,58 +330,58 @@ class View extends EventEmitter {
         this._updateDimensions();
         this._updateTextureCoords();
 
-        this._enabled = true;
+        this.__enabled = true;
 
-        if (this._texture) {
+        if (this.__texture) {
             // It is important to add the source listener before the texture listener because that may trigger a load.
-            this._texture.source.addView(this)
+            this.__texture.source.addView(this)
         }
 
         if (this.withinBoundsMargin) {
             this._setActiveFlag()
         }
 
-        if (this._core.shader) {
-            this._core.shader.addView(this._core);
+        if (this.__core.shader) {
+            this.__core.shader.addView(this.__core);
         }
 
         if (this._texturizer) {
-            this.texturizer.filters.forEach(filter => filter.addView(this._core))
+            this.texturizer.filters.forEach(filter => filter.addView(this.__core))
         }
 
     }
 
     _unsetEnabledFlag() {
-        if (this._active) {
+        if (this.__active) {
             this._unsetActiveFlag()
         }
 
-        if (this._texture) {
-            this._texture.source.removeView(this)
+        if (this.__texture) {
+            this.__texture.source.removeView(this)
         }
 
-        if (this._core.shader) {
-            this._core.shader.removeView(this._core);
+        if (this.__core.shader) {
+            this.__core.shader.removeView(this.__core);
         }
 
         if (this._texturizer) {
-            this.texturizer.filters.forEach(filter => filter.removeView(this._core))
+            this.texturizer.filters.forEach(filter => filter.removeView(this.__core))
         }
 
-        this._enabled = false;
+        this.__enabled = false;
     }
 
     _setActiveFlag() {
-        this._active = true
-        if (this._texture) {
+        this.__active = true
+        if (this.__texture) {
             this._enableTexture()
         }
         this.emit('active')
     }
 
     _unsetActiveFlag() {
-        this._active = false;
-        if (this._texture) {
+        this.__active = false;
+        if (this.__texture) {
             this._disableTexture()
         }
 
@@ -385,43 +393,43 @@ class View extends EventEmitter {
     }
 
     _getRenderWidth() {
-        if (this._w) {
-            return this._w;
-        } else if (this._displayedTexture) {
-            return this._displayedTexture.getRenderWidth()
-        } else if (this._texture) {
+        if (this.__w) {
+            return this.__w;
+        } else if (this.__displayedTexture) {
+            return this.__displayedTexture.getRenderWidth()
+        } else if (this.__texture) {
             // Texture already loaded, but not yet updated (probably because this view is not active).
-            return this._texture.getRenderWidth()
+            return this.__texture.getRenderWidth()
         } else {
             return 0;
         }
     };
 
     _getRenderHeight() {
-        if (this._h) {
-            return this._h;
-        } else if (this._displayedTexture) {
-            return this._displayedTexture.getRenderHeight()
-        } else if (this._texture) {
+        if (this.__h) {
+            return this.__h;
+        } else if (this.__displayedTexture) {
+            return this.__displayedTexture.getRenderHeight()
+        } else if (this.__texture) {
             // Texture already loaded, but not yet updated (probably because this view is not active).
-            return this._texture.getRenderHeight()
+            return this.__texture.getRenderHeight()
         } else {
             return 0;
         }
     };
 
     get renderWidth() {
-        if (this._enabled) {
+        if (this.__enabled) {
             // Render width is only maintained if this view is enabled.
-            return this._core._rw;
+            return this.__core._rw;
         } else {
             return this._getRenderWidth();
         }
     }
 
     get renderHeight() {
-        if (this._enabled) {
-            return this._core._rh;
+        if (this.__enabled) {
+            return this.__core._rh;
         } else {
             return this._getRenderHeight();
         }
@@ -440,8 +448,8 @@ class View extends EventEmitter {
     _enableTexture() {
         // Detect texture changes.
         let dt = null;
-        if (this._texture && this._texture.source.glTexture) {
-            dt = this._texture;
+        if (this.__texture && this.__texture.source.glTexture) {
+            dt = this.__texture;
         }
 
         // We must force because the texture source may have been replaced while being invisible.
@@ -455,7 +463,7 @@ class View extends EventEmitter {
     }
 
     get texture() {
-        return this._texture;
+        return this.__texture;
     }
 
     set texture(v) {
@@ -468,7 +476,7 @@ class View extends EventEmitter {
             return;
         }
 
-        let prevValue = this._texture;
+        let prevValue = this.__texture;
         if (v !== prevValue) {
             if (v !== null) {
                 if (v instanceof TextureSource) {
@@ -479,9 +487,9 @@ class View extends EventEmitter {
                 }
             }
 
-            this._texture = v;
+            this.__texture = v;
 
-            if (this._enabled) {
+            if (this.__enabled) {
                 if (prevValue && (!v || prevValue.source !== v.source) && (!this.displayedTexture || (this.displayedTexture.source !== prevValue.source))) {
                     prevValue.source.removeView(this);
                 }
@@ -494,7 +502,7 @@ class View extends EventEmitter {
             }
 
             if (v) {
-                if (v.source.glTexture && this._enabled && this.withinBoundsMargin) {
+                if (v.source.glTexture && this.__enabled && this.withinBoundsMargin) {
                     this._setDisplayedTexture(v);
                 }
             } else {
@@ -508,26 +516,26 @@ class View extends EventEmitter {
     }
 
     get displayedTexture() {
-        return this._displayedTexture;
+        return this.__displayedTexture;
     }
 
     _setDisplayedTexture(v) {
-        let prevValue = this._displayedTexture;
+        let prevValue = this.__displayedTexture;
 
         const changed = (v !== prevValue || (v && v.source !== prevValue.source))
 
-        if (prevValue && (prevValue !== this._texture)) {
+        if (prevValue && (prevValue !== this.__texture)) {
             if (!v || (prevValue.source !== v.source)) {
                 // The old displayed texture is deprecated.
                 prevValue.source.removeView(this);
             }
         }
 
-        this._displayedTexture = v;
+        this.__displayedTexture = v;
 
-        if (this._displayedTexture) {
+        if (this.__displayedTexture) {
             // We can manage views here because we know for sure that the view is both visible and within bounds.
-            this._displayedTexture.source.addView(this)
+            this.__displayedTexture.source.addView(this)
         }
 
         this._updateDimensions();
@@ -535,9 +543,9 @@ class View extends EventEmitter {
         if (v) {
             // We don't need to reference the displayed texture because it was already referenced (this.texture === this.displayedTexture).
             this._updateTextureCoords();
-            this._core.setDisplayedTextureSource(v.source);
+            this.__core.setDisplayedTextureSource(v.source);
         } else {
-            this._core.setDisplayedTextureSource(null);
+            this.__core.setDisplayedTextureSource(null);
         }
 
         if (changed) {
@@ -551,15 +559,15 @@ class View extends EventEmitter {
 
     onTextureSourceLoaded() {
         // We may be dealing with a texture reloading, so we must force update.
-        this._setDisplayedTexture(this._texture);
+        this._setDisplayedTexture(this.__texture);
     };
 
     onTextureSourceLoadError(e) {
-        this.emit('txError', e, this._texture.source);
+        this.emit('txError', e, this.__texture.source);
     };
 
     forceRenderUpdate() {
-        this._core.setHasRenderUpdates(3)
+        this.__core.setHasRenderUpdates(3)
     }
 
     onDisplayedTextureClippingChanged() {
@@ -572,13 +580,13 @@ class View extends EventEmitter {
     };
 
     _updateDimensions() {
-        let beforeW = this._core.rw;
-        let beforeH = this._core.rh;
+        let beforeW = this.__core.rw;
+        let beforeH = this.__core.rh;
         let rw = this._getRenderWidth();
         let rh = this._getRenderHeight();
         if (beforeW !== rw || beforeH !== rh) {
             // Due to width/height change: update the translation vector and borders.
-            this._core.setDimensions(rw, rh);
+            this.__core.setDimensions(rw, rh);
             this._updateLocalTranslate();
 
             // Returning whether there was an update is handy for extending classes.
@@ -588,47 +596,47 @@ class View extends EventEmitter {
     }
 
     _updateLocalTransform() {
-        if (this._rotation !== 0 && this._rotation % (2 * Math.PI)) {
+        if (this.__rotation !== 0 && this.__rotation % (2 * Math.PI)) {
             // check to see if the rotation is the same as the previous render. This means we only need to use sin and cos when rotation actually changes
-            let _sr = Math.sin(this._rotation);
-            let _cr = Math.cos(this._rotation);
+            let _sr = Math.sin(this.__rotation);
+            let _cr = Math.cos(this.__rotation);
 
-            this._core.setLocalTransform(
-                _cr * this._scaleX,
-                -_sr * this._scaleY,
-                _sr * this._scaleX,
-                _cr * this._scaleY
+            this.__core.setLocalTransform(
+                _cr * this.__scaleX,
+                -_sr * this.__scaleY,
+                _sr * this.__scaleX,
+                _cr * this.__scaleY
             );
         } else {
-            this._core.setLocalTransform(
-                this._scaleX,
+            this.__core.setLocalTransform(
+                this.__scaleX,
                 0,
                 0,
-                this._scaleY
+                this.__scaleY
             );
         }
         this._updateLocalTranslate();
     };
 
     _updateLocalTranslate() {
-        let pivotXMul = this._pivotX * this._core.rw;
-        let pivotYMul = this._pivotY * this._core.rh;
-        let px = this._x - (pivotXMul * this._core.localTa + pivotYMul * this._core.localTb) + pivotXMul;
-        let py = this._y - (pivotXMul * this._core.localTc + pivotYMul * this._core.localTd) + pivotYMul;
-        px -= this._mountX * this.renderWidth;
-        py -= this._mountY * this.renderHeight;
-        this._core.setLocalTranslate(
+        let pivotXMul = this.__pivotX * this.__core.rw;
+        let pivotYMul = this.__pivotY * this.__core.rh;
+        let px = this.__x - (pivotXMul * this.__core.localTa + pivotYMul * this.__core.localTb) + pivotXMul;
+        let py = this.__y - (pivotXMul * this.__core.localTc + pivotYMul * this.__core.localTd) + pivotYMul;
+        px -= this.__mountX * this.renderWidth;
+        py -= this.__mountY * this.renderHeight;
+        this.__core.setLocalTranslate(
             px,
             py
         );
     };
 
     _updateLocalTranslateDelta(dx, dy) {
-        this._core.addLocalTranslate(dx, dy)
+        this.__core.addLocalTranslate(dx, dy)
     };
 
     _updateLocalAlpha() {
-        this._core.setLocalAlpha(this._visible ? this._alpha : 0);
+        this.__core.setLocalAlpha(this.__visible ? this.__alpha : 0);
     };
 
     _updateTextureCoords() {
@@ -668,12 +676,12 @@ class View extends EventEmitter {
                 ty2 = Math.min(1.0, Math.max(ty2 * rh + ih));
             }
 
-            this._core.setTextureCoords(tx1, ty1, tx2, ty2);
+            this.__core.setTextureCoords(tx1, ty1, tx2, ty2);
         }
     }
 
     getCornerPoints() {
-        return this._core.getCornerPoints();
+        return this.__core.getCornerPoints();
     }
 
     /**
@@ -681,16 +689,16 @@ class View extends EventEmitter {
      * @param {String} tag
      */
     _clearTagsCache(tag) {
-        if (this._tagsCache) {
-            this._tagsCache.delete(tag);
+        if (this.__tagsCache) {
+            this.__tagsCache.delete(tag);
 
-            if (this._tagToComplex) {
-                let s = this._tagToComplex.get(tag);
+            if (this.__tagToComplex) {
+                let s = this.__tagToComplex.get(tag);
                 if (s) {
                     for (let i = 0, n = s.length; i < n; i++) {
-                        this._tagsCache.delete(s[i]);
+                        this.__tagsCache.delete(s[i]);
                     }
-                    this._tagToComplex.delete(tag);
+                    this.__tagToComplex.delete(tag);
                 }
             }
         }
@@ -699,36 +707,36 @@ class View extends EventEmitter {
     _unsetTagsParent() {
         let tags = null;
         let n = 0;
-        if (this._treeTags) {
-            if (this._tagRoot) {
+        if (this.__treeTags) {
+            if (this.__tagRoot) {
                 // Just need to remove the 'local' tags.
-                if (this._tags) {
-                    this._tags.forEach((tag) => {
+                if (this.__tags) {
+                    this.__tags.forEach((tag) => {
                         // Remove from treeTags.
                         let p = this;
-                        while (p = p._parent) {
-                            let parentTreeTags = p._treeTags.get(tag);
+                        while (p = p.__parent) {
+                            let parentTreeTags = p.__treeTags.get(tag);
                             parentTreeTags.delete(this);
                             p._clearTagsCache(tag);
 
-                            if (p._tagRoot) {
+                            if (p.__tagRoot) {
                                 break
                             }
                         }
                     });
                 }
             } else {
-                tags = Utils.iteratorToArray(this._treeTags.keys());
+                tags = Utils.iteratorToArray(this.__treeTags.keys());
                 n = tags.length;
 
                 if (n > 0) {
                     for (let i = 0; i < n; i++) {
-                        let tagSet = this._treeTags.get(tags[i]);
+                        let tagSet = this.__treeTags.get(tags[i]);
 
                         // Remove from treeTags.
                         let p = this;
-                        while ((p = p._parent) && !p._tagRoot) {
-                            let parentTreeTags = p._treeTags.get(tags[i]);
+                        while ((p = p.__parent) && !p.__tagRoot) {
+                            let parentTreeTags = p.__treeTags.get(tags[i]);
 
                             tagSet.forEach(function (comp) {
                                 parentTreeTags.delete(comp);
@@ -744,48 +752,48 @@ class View extends EventEmitter {
     };
 
     _setTagsParent() {
-        if (this._treeTags && this._treeTags.size) {
-            if (this._tagRoot) {
+        if (this.__treeTags && this.__treeTags.size) {
+            if (this.__tagRoot) {
                 // Just copy over the 'local' tags.
-                if (this._tags) {
-                    this._tags.forEach((tag) => {
+                if (this.__tags) {
+                    this.__tags.forEach((tag) => {
                         let p = this
-                        while (p = p._parent) {
-                            if (!p._treeTags) {
-                                p._treeTags = new Map();
+                        while (p = p.__parent) {
+                            if (!p.__treeTags) {
+                                p.__treeTags = new Map();
                             }
 
-                            let s = p._treeTags.get(tag);
+                            let s = p.__treeTags.get(tag);
                             if (!s) {
                                 s = new Set();
-                                p._treeTags.set(tag, s);
+                                p.__treeTags.set(tag, s);
                             }
 
                             s.add(this);
 
                             p._clearTagsCache(tag);
 
-                            if (p._tagRoot) {
+                            if (p.__tagRoot) {
                                 break
                             }
                         }
                     });
                 }
             } else {
-                this._treeTags.forEach((tagSet, tag) => {
+                this.__treeTags.forEach((tagSet, tag) => {
                     let p = this
-                    while (!p._tagRoot && (p = p._parent)) {
-                        if (p._tagRoot) {
+                    while (!p.__tagRoot && (p = p.__parent)) {
+                        if (p.__tagRoot) {
                             // Do not copy all subs.
                         }
-                        if (!p._treeTags) {
-                            p._treeTags = new Map();
+                        if (!p.__treeTags) {
+                            p.__treeTags = new Map();
                         }
 
-                        let s = p._treeTags.get(tag);
+                        let s = p.__treeTags.get(tag);
                         if (!s) {
                             s = new Set();
-                            p._treeTags.set(tag, s);
+                            p.__treeTags.set(tag, s);
                         }
 
                         tagSet.forEach(function (comp) {
@@ -801,15 +809,15 @@ class View extends EventEmitter {
 
 
     _getByTag(tag) {
-        if (!this._treeTags) {
+        if (!this.__treeTags) {
             return [];
         }
-        let t = this._treeTags.get(tag);
+        let t = this.__treeTags.get(tag);
         return t ? Utils.setToArray(t) : [];
     };
 
     getTags() {
-        return this._tags ? this._tags : [];
+        return this.__tags ? this.__tags : [];
     };
 
     setTags(tags) {
@@ -817,8 +825,8 @@ class View extends EventEmitter {
             return acc.concat(tag.split(' '))
         }, [])
 
-        if (this._ref) {
-            tags.push(this._ref)
+        if (this.__ref) {
+            tags.push(this.__ref)
         }
 
         let i, n = tags.length;
@@ -869,52 +877,52 @@ class View extends EventEmitter {
     }
 
     _addTag(tag) {
-        if (!this._tags) {
-            this._tags = [];
+        if (!this.__tags) {
+            this.__tags = [];
         }
-        if (this._tags.indexOf(tag) === -1) {
-            this._tags.push(tag);
+        if (this.__tags.indexOf(tag) === -1) {
+            this.__tags.push(tag);
 
             // Add to treeTags hierarchy.
             let p = this;
             do {
-                if (!p._treeTags) {
-                    p._treeTags = new Map();
+                if (!p.__treeTags) {
+                    p.__treeTags = new Map();
                 }
 
-                let s = p._treeTags.get(tag);
+                let s = p.__treeTags.get(tag);
                 if (!s) {
                     s = new Set();
-                    p._treeTags.set(tag, s);
+                    p.__treeTags.set(tag, s);
                 }
 
                 s.add(this);
 
                 p._clearTagsCache(tag);
-            } while (p = p._parent);
+            } while (p = p.__parent);
         }
     }
 
     removeTag(tag) {
-        let i = this._tags.indexOf(tag);
+        let i = this.__tags.indexOf(tag);
         if (i !== -1) {
-            this._tags.splice(i, 1);
+            this.__tags.splice(i, 1);
 
             // Remove from treeTags hierarchy.
             let p = this;
             do {
-                let list = p._treeTags.get(tag);
+                let list = p.__treeTags.get(tag);
                 if (list) {
                     list.delete(this);
 
                     p._clearTagsCache(tag);
                 }
-            } while (p = p._parent);
+            } while (p = p.__parent);
         }
     }
 
     hasTag(tag) {
-        return (this._tags && (this._tags.indexOf(tag) !== -1));
+        return (this.__tags && (this.__tags.indexOf(tag) !== -1));
     }
 
     /**
@@ -942,8 +950,8 @@ class View extends EventEmitter {
      */
     mtag(tag) {
         let res = null;
-        if (this._tagsCache) {
-            res = this._tagsCache.get(tag);
+        if (this.__tagsCache) {
+            res = this.__tagsCache.get(tag);
         }
 
         if (!res) {
@@ -966,11 +974,11 @@ class View extends EventEmitter {
                 res = this._getByTag(tag);
             }
 
-            if (!this._tagsCache) {
-                this._tagsCache = new Map();
+            if (!this.__tagsCache) {
+                this.__tagsCache = new Map();
             }
 
-            this._tagsCache.set(tag, res);
+            this.__tagsCache.set(tag, res);
         }
         return res;
     };
@@ -984,18 +992,18 @@ class View extends EventEmitter {
     }
 
     get tagRoot() {
-        return this._tagRoot;
+        return this.__tagRoot;
     }
 
     set tagRoot(v) {
-        if (this._tagRoot !== v) {
+        if (this.__tagRoot !== v) {
             if (!v) {
                 this._setTagsParent();
             } else {
                 this._unsetTagsParent();
             }
 
-            this._tagRoot = v;
+            this.__tagRoot = v;
         }
     }
 
@@ -1129,9 +1137,9 @@ class View extends EventEmitter {
 
     getLocationString() {
         let i;
-        i = this._parent ? this._parent._children.getIndex(this) : "R";
+        i = this.__parent ? this.__parent._children.getIndex(this) : "R";
         let localTags = this.getTags();
-        let str = this._parent ? this._parent.getLocationString(): ""
+        let str = this.__parent ? this.__parent.getLocationString(): ""
         if (this.ref) {
             str += ":[" + i + "]" + this.ref
         } else if (localTags.length) {
@@ -1227,73 +1235,73 @@ class View extends EventEmitter {
             settings.type = this.constructor.name
         }
 
-        if (this._ref) {
-            settings.ref = this._ref
+        if (this.__ref) {
+            settings.ref = this.__ref
         }
 
-        if (this._tags && this._tags.length) {
-            settings.tags = this._tags;
+        if (this.__tags && this.__tags.length) {
+            settings.tags = this.__tags;
         }
 
-        if (this._x !== 0) settings.x = this._x;
-        if (this._y !== 0) settings.y = this._y;
-        if (this._w !== 0) settings.w = this._w;
-        if (this._h !== 0) settings.h = this._h;
+        if (this.__x !== 0) settings.x = this.__x;
+        if (this.__y !== 0) settings.y = this.__y;
+        if (this.__w !== 0) settings.w = this.__w;
+        if (this.__h !== 0) settings.h = this.__h;
 
-        if (this._scaleX === this._scaleY) {
-            if (this._scaleX !== 1) settings.scale = this._scaleX;
+        if (this.__scaleX === this.__scaleY) {
+            if (this.__scaleX !== 1) settings.scale = this.__scaleX;
         } else {
-            if (this._scaleX !== 1) settings.scaleX = this._scaleX;
-            if (this._scaleY !== 1) settings.scaleY = this._scaleY;
+            if (this.__scaleX !== 1) settings.scaleX = this.__scaleX;
+            if (this.__scaleY !== 1) settings.scaleY = this.__scaleY;
         }
 
-        if (this._pivotX === this._pivotY) {
-            if (this._pivotX !== 0.5) settings.pivot = this._pivotX;
+        if (this.__pivotX === this.__pivotY) {
+            if (this.__pivotX !== 0.5) settings.pivot = this.__pivotX;
         } else {
-            if (this._pivotX !== 0.5) settings.pivotX = this._pivotX;
-            if (this._pivotY !== 0.5) settings.pivotY = this._pivotY;
+            if (this.__pivotX !== 0.5) settings.pivotX = this.__pivotX;
+            if (this.__pivotY !== 0.5) settings.pivotY = this.__pivotY;
         }
 
-        if (this._mountX === this._mountY) {
-            if (this._mountX !== 0) settings.mount = this._mountX;
+        if (this.__mountX === this.__mountY) {
+            if (this.__mountX !== 0) settings.mount = this.__mountX;
         } else {
-            if (this._mountX !== 0) settings.mountX = this._mountX;
-            if (this._mountY !== 0) settings.mountY = this._mountY;
+            if (this.__mountX !== 0) settings.mountX = this.__mountX;
+            if (this.__mountY !== 0) settings.mountY = this.__mountY;
         }
 
-        if (this._alpha !== 1) settings.alpha = this._alpha;
+        if (this.__alpha !== 1) settings.alpha = this.__alpha;
 
-        if (this._rotation !== 0) settings.rotation = this._rotation;
+        if (this.__rotation !== 0) settings.rotation = this.__rotation;
 
-        if (this._core.colorUl === this._core.colorUr && this._core.colorBl === this._core.colorBr && this._core.colorUl === this._core.colorBl) {
-            if (this._core.colorUl !== 0xFFFFFFFF) settings.color = this._core.colorUl.toString(16);
+        if (this.__core.colorUl === this.__core.colorUr && this.__core.colorBl === this.__core.colorBr && this.__core.colorUl === this.__core.colorBl) {
+            if (this.__core.colorUl !== 0xFFFFFFFF) settings.color = this.__core.colorUl.toString(16);
         } else {
-            if (this._core.colorUl !== 0xFFFFFFFF) settings.colorUl = this._core.colorUl.toString(16);
-            if (this._core.colorUr !== 0xFFFFFFFF) settings.colorUr = this._core.colorUr.toString(16);
-            if (this._core.colorBl !== 0xFFFFFFFF) settings.colorBl = this._core.colorBl.toString(16);
-            if (this._core.colorBr !== 0xFFFFFFFF) settings.colorBr = this._core.colorBr.toString(16);
+            if (this.__core.colorUl !== 0xFFFFFFFF) settings.colorUl = this.__core.colorUl.toString(16);
+            if (this.__core.colorUr !== 0xFFFFFFFF) settings.colorUr = this.__core.colorUr.toString(16);
+            if (this.__core.colorBl !== 0xFFFFFFFF) settings.colorBl = this.__core.colorBl.toString(16);
+            if (this.__core.colorBr !== 0xFFFFFFFF) settings.colorBr = this.__core.colorBr.toString(16);
         }
 
-        if (!this._visible) settings.visible = false;
+        if (!this.__visible) settings.visible = false;
 
-        if (this._core.zIndex) settings.zIndex = this._core.zIndex;
+        if (this.__core.zIndex) settings.zIndex = this.__core.zIndex;
 
-        if (this._core.forceZIndexContext) settings.forceZIndexContext = true;
+        if (this.__core.forceZIndexContext) settings.forceZIndexContext = true;
 
-        if (this._core.clipping) settings.clipping = this._core.clipping;
+        if (this.__core.clipping) settings.clipping = this.__core.clipping;
 
-        if (this._core.clipbox) settings.clipbox = this._core.clipbox;
+        if (this.__core.clipbox) settings.clipbox = this.__core.clipbox;
 
         if (this.rect) {
             settings.rect = true;
         } else if (this.src) {
             settings.src = this.src;
-        } else if (this.texture && this._viewText) {
-            settings.text = this._viewText.settings.getNonDefaults();
+        } else if (this.texture && this.__viewText) {
+            settings.text = this.__viewText.settings.getNonDefaults();
         }
 
-        if (this._texture) {
-            let tnd = this._texture.getNonDefaults();
+        if (this.__texture) {
+            let tnd = this.__texture.getNonDefaults();
             if (Object.keys(tnd).length) {
                 settings.texture = tnd;
             }
@@ -1336,27 +1344,27 @@ class View extends EventEmitter {
     }
 
     get withinBoundsMargin() {
-        return this._core._withinBoundsMargin
+        return this.__core._withinBoundsMargin
     }
 
     _enableWithinBoundsMargin() {
         // Iff enabled, this toggles the active flag.
-        if (this._enabled) {
+        if (this.__enabled) {
             this._setActiveFlag()
 
-            if (this._texture) {
-                this._texture.source.incWithinBoundsCount()
+            if (this.__texture) {
+                this.__texture.source.incWithinBoundsCount()
             }
         }
     }
 
     _disableWithinBoundsMargin() {
         // Iff active, this toggles the active flag.
-        if (this._active) {
+        if (this.__active) {
             this._unsetActiveFlag()
 
-            if (this._texture) {
-                this._texture.source.decWithinBoundsCount()
+            if (this.__texture) {
+                this.__texture.source.decWithinBoundsCount()
             }
         }
     }
@@ -1365,169 +1373,169 @@ class View extends EventEmitter {
         if (!Array.isArray(v) && v !== null && v !== undefined) {
             throw new Error("boundsMargin should be an array of top-right-bottom-left values, null (no margin) or undefined (inherit margin)")
         }
-        this._core.boundsMargin = v
+        this.__core.boundsMargin = v
     }
 
     get boundsMargin() {
-        return this._core.boundsMargin
+        return this.__core.boundsMargin
     }
 
     get x() {
-        return this._x
+        return this.__x
     }
 
     set x(v) {
-        if (this._x !== v) {
-            this._updateLocalTranslateDelta(v - this._x, 0)
-            this._x = v
+        if (this.__x !== v) {
+            this._updateLocalTranslateDelta(v - this.__x, 0)
+            this.__x = v
         }
     }
 
     get y() {
-        return this._y
+        return this.__y
     }
 
     set y(v) {
-        if (this._y !== v) {
-            this._updateLocalTranslateDelta(0, v - this._y)
-            this._y = v
+        if (this.__y !== v) {
+            this._updateLocalTranslateDelta(0, v - this.__y)
+            this.__y = v
         }
     }
 
     get w() {
-        return this._w
+        return this.__w
     }
 
     set w(v) {
-        if (this._w !== v) {
-            this._w = v
+        if (this.__w !== v) {
+            this.__w = v
             this._updateDimensions()
         }
     }
 
     get h() {
-        return this._h
+        return this.__h
     }
 
     set h(v) {
-        if (this._h !== v) {
-            this._h = v
+        if (this.__h !== v) {
+            this.__h = v
             this._updateDimensions()
         }
     }
 
     get scaleX() {
-        return this._scaleX
+        return this.__scaleX
     }
 
     set scaleX(v) {
-        if (this._scaleX !== v) {
-            this._scaleX = v
+        if (this.__scaleX !== v) {
+            this.__scaleX = v
             this._updateLocalTransform()
         }
     }
 
     get scaleY() {
-        return this._scaleY
+        return this.__scaleY
     }
 
     set scaleY(v) {
-        if (this._scaleY !== v) {
-            this._scaleY = v
+        if (this.__scaleY !== v) {
+            this.__scaleY = v
             this._updateLocalTransform()
         }
     }
 
     get scale() {
-        return this._scaleX
+        return this.__scaleX
     }
 
     set scale(v) {
-        if (this._scaleX !== v || this._scaleY !== v) {
-            this._scaleX = v
-            this._scaleY = v
+        if (this.__scaleX !== v || this.__scaleY !== v) {
+            this.__scaleX = v
+            this.__scaleY = v
             this._updateLocalTransform()
         }
     }
 
     get pivotX() {
-        return this._pivotX
+        return this.__pivotX
     }
 
     set pivotX(v) {
-        if (this._pivotX !== v) {
-            this._pivotX = v
+        if (this.__pivotX !== v) {
+            this.__pivotX = v
             this._updateLocalTranslate()
         }
     }
 
     get pivotY() {
-        return this._pivotY
+        return this.__pivotY
     }
 
     set pivotY(v) {
-        if (this._pivotY !== v) {
-            this._pivotY = v
+        if (this.__pivotY !== v) {
+            this.__pivotY = v
             this._updateLocalTranslate()
         }
     }
 
     get pivot() {
-        return this._pivotX
+        return this.__pivotX
     }
 
     set pivot(v) {
-        if (this._pivotX !== v || this._pivotY !== v) {
-            this._pivotX = v;
-            this._pivotY = v;
+        if (this.__pivotX !== v || this.__pivotY !== v) {
+            this.__pivotX = v;
+            this.__pivotY = v;
             this._updateLocalTranslate()
         }
     }
 
     get mountX() {
-        return this._mountX
+        return this.__mountX
     }
 
     set mountX(v) {
-        if (this._mountX !== v) {
-            this._mountX = v
+        if (this.__mountX !== v) {
+            this.__mountX = v
             this._updateLocalTranslate()
         }
     }
 
     get mountY() {
-        return this._mountY
+        return this.__mountY
     }
 
     set mountY(v) {
-        if (this._mountY !== v) {
-            this._mountY = v
+        if (this.__mountY !== v) {
+            this.__mountY = v
             this._updateLocalTranslate()
         }
     }
 
     get mount() {
-        return this._mountX
+        return this.__mountX
     }
 
     set mount(v) {
-        if (this._mountX !== v || this._mountY !== v) {
-            this._mountX = v
-            this._mountY = v
+        if (this.__mountX !== v || this.__mountY !== v) {
+            this.__mountX = v
+            this.__mountY = v
             this._updateLocalTranslate()
         }
     }
 
     get alpha() {
-        return this._alpha
+        return this.__alpha
     }
 
     set alpha(v) {
         // Account for rounding errors.
         v = (v > 1 ? 1 : (v < 1e-14 ? 0 : v));
-        if (this._alpha !== v) {
-            let prev = this._alpha
-            this._alpha = v
+        if (this.__alpha !== v) {
+            let prev = this.__alpha
+            this.__alpha = v
             this._updateLocalAlpha();
             if ((prev === 0) !== (v === 0)) {
                 this._updateEnabledFlag()
@@ -1536,50 +1544,50 @@ class View extends EventEmitter {
     }
 
     get rotation() {
-        return this._rotation
+        return this.__rotation
     }
 
     set rotation(v) {
-        if (this._rotation !== v) {
-            this._rotation = v
+        if (this.__rotation !== v) {
+            this.__rotation = v
             this._updateLocalTransform()
         }
     }
 
     get colorUl() {
-        return this._core.colorUl
+        return this.__core.colorUl
     }
 
     set colorUl(v) {
-        this._core.colorUl = v;
+        this.__core.colorUl = v;
     }
 
     get colorUr() {
-        return this._core.colorUr
+        return this.__core.colorUr
     }
 
     set colorUr(v) {
-        this._core.colorUr = v;
+        this.__core.colorUr = v;
     }
 
     get colorBl() {
-        return this._core.colorBl
+        return this.__core.colorBl
     }
 
     set colorBl(v) {
-        this._core.colorBl = v;
+        this.__core.colorBl = v;
     }
 
     get colorBr() {
-        return this._core.colorBr
+        return this.__core.colorBr
     }
 
     set colorBr(v) {
-        this._core.colorBr = v;
+        this.__core.colorBr = v;
     }
 
     get color() {
-        return this._core.colorUl
+        return this.__core.colorUl
     }
 
     set color(v) {
@@ -1636,36 +1644,36 @@ class View extends EventEmitter {
     }
 
     get visible() {
-        return this._visible
+        return this.__visible
     }
 
     set visible(v) {
-        if (this._visible !== v) {
-            this._visible = v
+        if (this.__visible !== v) {
+            this.__visible = v
             this._updateLocalAlpha()
             this._updateEnabledFlag()
         }
     }
 
-    get zIndex() {return this._core.zIndex}
+    get zIndex() {return this.__core.zIndex}
     set zIndex(v) {
-        let prev = this._core.zIndex;
-        this._core.zIndex = v;
+        let prev = this.__core.zIndex;
+        this.__core.zIndex = v;
     }
 
-    get forceZIndexContext() {return this._core.forceZIndexContext}
+    get forceZIndexContext() {return this.__core.forceZIndexContext}
     set forceZIndexContext(v) {
-        this._core.forceZIndexContext = v;
+        this.__core.forceZIndexContext = v;
     }
 
-    get clipping() {return this._core.clipping}
+    get clipping() {return this.__core.clipping}
     set clipping(v) {
-        this._core.clipping = v;
+        this.__core.clipping = v;
     }
 
-    get clipbox() {return this._core.clipbox}
+    get clipbox() {return this.__core.clipbox}
     set clipbox(v) {
-        this._core.clipbox = v;
+        this.__core.clipbox = v;
     }
 
     get tags() {
@@ -1682,10 +1690,10 @@ class View extends EventEmitter {
     }
 
     get _children() {
-        if (!this._childList) {
-            this._childList = new ViewChildList(this, false)
+        if (!this.__childList) {
+            this.__childList = new ViewChildList(this, false)
         }
-        return this._childList
+        return this.__childList
     }
 
     get childList() {
@@ -1696,7 +1704,7 @@ class View extends EventEmitter {
     }
 
     hasChildren() {
-        return this._childList && (this._childList.length > 0)
+        return this.__childList && (this.__childList.length > 0)
     }
 
     _allowChildrenAccess() {
@@ -1716,7 +1724,7 @@ class View extends EventEmitter {
     }
 
     get parent() {
-        return this._parent;
+        return this.__parent;
     }
 
     get src() {
@@ -1764,35 +1772,35 @@ class View extends EventEmitter {
     }
 
     get text() {
-        if (!this._viewText) {
-            this._viewText = new ViewText(this);
+        if (!this.__viewText) {
+            this.__viewText = new ViewText(this);
         }
 
         // Give direct access to the settings.
-        return this._viewText.settings;
+        return this.__viewText.settings;
     }
 
     set text(v) {
-        if (!this._viewText) {
-            this._viewText = new ViewText(this);
+        if (!this.__viewText) {
+            this.__viewText = new ViewText(this);
         }
         if (Utils.isString(v)) {
-            this._viewText.settings.text = v;
+            this.__viewText.settings.text = v;
         } else {
-            this._viewText.settings.patch(v);
+            this.__viewText.settings.patch(v);
         }
     }
 
     set onUpdate(f) {
-        this._core.onUpdate = f;
+        this.__core.onUpdate = f;
     }
 
     set onAfterUpdate(f) {
-        this._core.onAfterUpdate = f;
+        this.__core.onAfterUpdate = f;
     }
 
     get shader() {
-        return this._core.shader;
+        return this.__core.shader;
     }
 
     set shader(v) {
@@ -1820,19 +1828,19 @@ class View extends EventEmitter {
             }
         }
 
-        if (this._enabled && this._core.shader) {
-            this._core.shader.removeView(this);
+        if (this.__enabled && this.__core.shader) {
+            this.__core.shader.removeView(this);
         }
 
-        this._core.shader = shader;
+        this.__core.shader = shader;
 
-        if (this._enabled && this._core.shader) {
-            this._core.shader.addView(this);
+        if (this.__enabled && this.__core.shader) {
+            this.__core.shader.addView(this);
         }
     }
 
     _hasTexturizer() {
-        return !!this._core._texturizer
+        return !!this.__core._texturizer
     }
 
     get renderToTexture() {
@@ -1872,14 +1880,14 @@ class View extends EventEmitter {
     }
 
     set filters(v) {
-        if (this._enabled) {
-            this.texturizer.filters.forEach(filter => filter.removeView(this._core))
+        if (this.__enabled) {
+            this.texturizer.filters.forEach(filter => filter.removeView(this.__core))
         }
 
         this.texturizer.filters = v
 
-        if (this._enabled) {
-            this.texturizer.filters.forEach(filter => filter.addView(this._core))
+        if (this.__enabled) {
+            this.texturizer.filters.forEach(filter => filter.addView(this.__core))
         }
     }
 
@@ -1888,7 +1896,7 @@ class View extends EventEmitter {
     }
 
     get texturizer() {
-        return this._core.texturizer
+        return this.__core.texturizer
     }
 
     patch(settings, createMode = false) {

@@ -38,6 +38,12 @@ return {
         BlurFilter: BlurFilter,
         LinearBlurFilter: LinearBlurFilter,
         GrayscaleFilter: GrayscaleFilter
+    },
+    _internal: {
+        Stage: Stage,
+        ViewCore: ViewCore,
+        ViewTexturizer: ViewTexturizer,
+        ViewText: ViewText
     }
 }
 })();`

@@ -13,8 +13,8 @@ class Application extends Component {
         // That's why we 'init' the stage later (which actually emits the attach event).
         this.stage.init()
 
-        this._keymap = this.getOption('keys')
-        if (this._keymap) {
+        this.__keymap = this.getOption('keys')
+        if (this.__keymap) {
             this.stage.adapter.registerKeyHandler((e) => {
                 this._receiveKeydown(e)
             })
@@ -22,19 +22,19 @@ class Application extends Component {
     }
 
     getOption(name) {
-        return this._$options[name]
+        return this.__options[name]
     }
 
     _setOptions(o) {
-        this._$options = {};
+        this.__options = {};
 
         let opt = (name, def) => {
             let value = o[name];
 
             if (value === undefined) {
-                this._$options[name] = def;
+                this.__options[name] = def;
             } else {
-                this._$options[name] = value;
+                this.__options[name] = value;
             }
         }
 
@@ -50,7 +50,7 @@ class Application extends Component {
 
         // We must create the state manager before the first 'fire' ever: the 'construct' event.
         this.stateManager = new StateManager()
-        this.stateManager.debug = this._$options.debug
+        this.stateManager.debug = this.__options.debug
 
         super.__construct()
     }
@@ -204,9 +204,9 @@ class Application extends Component {
 
     _receiveKeydown(e) {
         const obj = {keyCode: e.keyCode}
-        if (this._keymap[e.keyCode]) {
-            if (!this.stage.application.focusTopDownEvent([{event: "capture" + this._keymap[e.keyCode]}, {event: "captureKey", args: obj}])) {
-                this.stage.application.focusBottomUpEvent([{event: "handle" + this._keymap[e.keyCode]}, {event: "handleKey", args: obj}])
+        if (this.__keymap[e.keyCode]) {
+            if (!this.stage.application.focusTopDownEvent([{event: "capture" + this.__keymap[e.keyCode]}, {event: "captureKey", args: obj}])) {
+                this.stage.application.focusBottomUpEvent([{event: "handle" + this.__keymap[e.keyCode]}, {event: "handleKey", args: obj}])
             }
         } else {
             if (!this.stage.application.focusTopDownEvent("captureKey", obj)) {
@@ -216,8 +216,6 @@ class Application extends Component {
     }
 
 }
-
-Application.prototype.isApplication = true
 
 module.exports = Application
 

@@ -1,5 +1,10 @@
 var attachInspector = function(wpe) {
     with(wpe) {
+        const Stage = _internal.Stage
+        const ViewCore = _internal.ViewCore
+        const ViewTexturizer = _internal.ViewTexturizer
+        const ViewText = _internal.ViewText
+
         var defaultTextAttributes = {
             text: "",
             w: 0,
@@ -347,42 +352,42 @@ var attachInspector = function(wpe) {
             });
         }
 
-        View.prototype.__ref = View.prototype._ref;
-        Object.defineProperty(View.prototype, '_ref', {
+        View.prototype.$ref = View.prototype.__ref;
+        Object.defineProperty(View.prototype, '__ref', {
             get: function() {
-                return this.__ref;
+                return this.$ref;
             },
             set: function(v) {
-                if (this.__ref !== v) {
+                if (this.$ref !== v) {
                     val(this, 'ref', v, null);
-                    this.__ref = v;
+                    this.$ref = v;
                 }
             }
         });
 
-        View.prototype.__x = View.prototype._x;
-        Object.defineProperty(View.prototype, '_x', {
+        View.prototype.$x = View.prototype.__x;
+        Object.defineProperty(View.prototype, '__x', {
             get: function() {
-                return this.__x;
+                return this.$x;
             },
             set: function(v) {
-                if (this.__x !== v) {
+                if (this.$x !== v) {
                     val(this, 'x', v, 0);
-                    this.__x = v;
+                    this.$x = v;
                     this.updateLeft();
                 }
             }
         });
 
-        View.prototype.__y = View.prototype._y;
-        Object.defineProperty(View.prototype, '_y', {
+        View.prototype.$y = View.prototype.__y;
+        Object.defineProperty(View.prototype, '__y', {
             get: function() {
-                return this.__y;
+                return this.$y;
             },
             set: function(v) {
-                if (this.__y !== v) {
+                if (this.$y !== v) {
                     val(this, 'y', v, 0);
-                    this.__y = v;
+                    this.$y = v;
                     this.updateTop();
                 }
             }
@@ -416,13 +421,13 @@ var attachInspector = function(wpe) {
 
         View.prototype.updateLeft = function() {
             var mx = this.mountX * this.renderWidth;
-            var x = this._x - mx;
+            var x = this.__x - mx;
             this.dhtml().style.left = x + 'px';
         };
 
         View.prototype.updateTop = function() {
             var my = this.mountY * this.renderHeight;
-            var y = this._y - my;
+            var y = this.__y - my;
             this.dhtml().style.top = y + 'px';
         };
 
@@ -450,143 +455,143 @@ var attachInspector = function(wpe) {
             }
         });
 
-        View.prototype.__alpha = 1;
-        Object.defineProperty(View.prototype, '_alpha', {
+        View.prototype.$alpha = 1;
+        Object.defineProperty(View.prototype, '__alpha', {
             get: function() {
-                return this.__alpha;
+                return this.$alpha;
             },
             set: function(v) {
-                if (this.__alpha !== v) {
+                if (this.$alpha !== v) {
                     val(this, 'alpha', v, 1);
-                    this.__alpha = v;
+                    this.$alpha = v;
                     this.dhtml().style.opacity = v;
-                    this.dhtml().style.display = this.__visible && this.__alpha ? 'block' : 'none';
+                    this.dhtml().style.display = this.$visible && this.$alpha ? 'block' : 'none';
                 }
             }
         });
 
-        View.prototype.__visible = true;
-        Object.defineProperty(View.prototype, '_visible', {
+        View.prototype.$visible = true;
+        Object.defineProperty(View.prototype, '__visible', {
             get: function() {
-                return this.__visible;
+                return this.$visible;
             },
             set: function(v) {
-                if (this.__visible !== v) {
+                if (this.$visible !== v) {
                     val(this, 'visible', v, true);
-                    this.__visible = v;
+                    this.$visible = v;
                     this.dhtml().style.visibility = v ? 'visible' : 'hidden';
-                    this.dhtml().style.display = this.__visible && this.__alpha ? 'block' : 'none';
+                    this.dhtml().style.display = this.$visible && this.$alpha ? 'block' : 'none';
                 }
             }
         });
 
-        View.prototype.__texture = null;
-        Object.defineProperty(View.prototype, '_texture', {
+        View.prototype.$texture = null;
+        Object.defineProperty(View.prototype, '__texture', {
             get: function() {
-                return this.__texture;
+                return this.$texture;
             },
             set: function(v) {
-                this.__texture = v;
+                this.$texture = v;
 
                 val(this, 'rect', this.rect, false);
                 val(this, 'src', this.src, null);
             }
         });
 
-        View.prototype.__rotation = 0;
-        Object.defineProperty(View.prototype, '_rotation', {
+        View.prototype.$rotation = 0;
+        Object.defineProperty(View.prototype, '__rotation', {
             get: function() {
-                return this.__rotation;
+                return this.$rotation;
             },
             set: function(v) {
-                if (this.__rotation !== v) {
+                if (this.$rotation !== v) {
                     val(this, 'rotation', v, 0);
-                    this.__rotation = v;
+                    this.$rotation = v;
                     this.updateDebugTransforms();
                 }
             }
         });
 
 
-        View.prototype.__scaleX = 1;
-        Object.defineProperty(View.prototype, '_scaleX', {
+        View.prototype.$scaleX = 1;
+        Object.defineProperty(View.prototype, '__scaleX', {
             get: function() {
-                return this.__scaleX;
+                return this.$scaleX;
             },
             set: function(v) {
-                if (this.__scaleX !== v) {
+                if (this.$scaleX !== v) {
                     val(this, 'scaleX', v, 1);
-                    this.__scaleX = v;
+                    this.$scaleX = v;
                     this.updateDebugTransforms();
                 }
             }
         });
 
-        View.prototype.__scaleY = 1;
-        Object.defineProperty(View.prototype, '_scaleY', {
+        View.prototype.$scaleY = 1;
+        Object.defineProperty(View.prototype, '__scaleY', {
             get: function() {
-                return this.__scaleY;
+                return this.$scaleY;
             },
             set: function(v) {
-                if (this.__scaleY !== v) {
+                if (this.$scaleY !== v) {
                     val(this, 'scaleY', v, 1);
-                    this.__scaleY = v;
+                    this.$scaleY = v;
                     this.updateDebugTransforms();
                 }
             }
         });
 
-        View.prototype.__pivotX = 0.5;
-        Object.defineProperty(View.prototype, '_pivotX', {
+        View.prototype.$pivotX = 0.5;
+        Object.defineProperty(View.prototype, '__pivotX', {
             get: function() {
-                return this.__pivotX;
+                return this.$pivotX;
             },
             set: function(v) {
-                if (this.__pivotX !== v) {
+                if (this.$pivotX !== v) {
                     val(this, 'pivotX', v, 0.5);
-                    this.__pivotX = v;
+                    this.$pivotX = v;
                     this.updateDebugTransforms();
                 }
             }
         });
 
-        View.prototype.__pivotY = 0.5;
-        Object.defineProperty(View.prototype, '_pivotY', {
+        View.prototype.$pivotY = 0.5;
+        Object.defineProperty(View.prototype, '__pivotY', {
             get: function() {
-                return this.__pivotY;
+                return this.$pivotY;
             },
             set: function(v) {
-                if (this.__pivotY !== v) {
+                if (this.$pivotY !== v) {
                     val(this, 'pivotY', v, 0.5);
-                    this.__pivotY = v;
+                    this.$pivotY = v;
                     this.updateDebugTransforms();
                 }
             }
         });
 
-        View.prototype.__mountX = 0;
-        Object.defineProperty(View.prototype, '_mountX', {
+        View.prototype.$mountX = 0;
+        Object.defineProperty(View.prototype, '__mountX', {
             get: function() {
-                return this.__mountX;
+                return this.$mountX;
             },
             set: function(v) {
-                if (this.__mountX !== v) {
+                if (this.$mountX !== v) {
                     val(this, 'mountX', v, 0);
-                    this.__mountX = v;
+                    this.$mountX = v;
                     this.updateLeft();
                 }
             }
         });
 
-        View.prototype.__mountY = 0;
-        Object.defineProperty(View.prototype, '_mountY', {
+        View.prototype.$mountY = 0;
+        Object.defineProperty(View.prototype, '__mountY', {
             get: function() {
-                return this.__mountY;
+                return this.$mountY;
             },
             set: function(v) {
-                if (this.__mountY !== v) {
+                if (this.$mountY !== v) {
                     val(this, 'mountY', v, 0);
-                    this.__mountY = v;
+                    this.$mountY = v;
                     this.updateTop();
                 }
             }
@@ -835,15 +840,15 @@ var attachInspector = function(wpe) {
         };
 
         View.prototype.updateDebugTransforms = function() {
-            if (this._pivotX !== 0.5 || this._pivotY !== 0.5) {
-                this.dhtml().style.transformOrigin = (this._pivotX * 100) + '% '  + (this._pivotY * 100) + '%';
+            if (this.__pivotX !== 0.5 || this.__pivotY !== 0.5) {
+                this.dhtml().style.transformOrigin = (this.__pivotX * 100) + '% '  + (this.__pivotY * 100) + '%';
             } else if (this.dhtml().style.transformOrigin) {
                 this.dhtml().style.transformOrigin = '50% 50%';
             }
 
-            var r = this._rotation;
-            var sx = this._scaleX;
-            var sy = this._scaleY;
+            var r = this.__rotation;
+            var sx = this.__scaleX;
+            var sy = this.__scaleY;
 
             if ((sx !== undefined && sy !== undefined) && (this.id === 0)) {
                 // Root element: must be scaled.
@@ -861,7 +866,7 @@ var attachInspector = function(wpe) {
     }
 }
 
-if (typeof Stage !== "undefined") {
+if (typeof wpe !== "undefined") {
     // Sync loading. Auto attach immediately.
-    attachInspector({});
+    attachInspector(wpe);
 }

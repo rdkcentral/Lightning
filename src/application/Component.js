@@ -31,7 +31,7 @@ class Component extends View {
         this.on('enabled', () => this.__enable())
         this.on('disable', () => this.__disable())
 
-        this._signals = undefined
+        this.__signals = undefined
     }
 
     get application() {
@@ -194,8 +194,8 @@ class Component extends View {
             args = Object.assign({_source: this}, args)
         }
 
-        if (this._signals && this.cparent) {
-            let fireEvent = this._signals[event]
+        if (this.__signals && this.cparent) {
+            let fireEvent = this.__signals[event]
             if (fireEvent === false) {
                 // Ignore event, even when bubbling.
                 return
@@ -216,14 +216,14 @@ class Component extends View {
     }
 
     get signals() {
-        return this._signals
+        return this.__signals
     }
 
     set signals(v) {
         if (!Utils.isObjectLiteral(v)) {
             this._throwError("Signals: specify an object with signal-to-fire mappings")
         }
-        this._signals = Object.assign(this._signals || {}, v)
+        this.__signals = Object.assign(this.__signals || {}, v)
     }
 
     /**
