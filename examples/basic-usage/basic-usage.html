@@ -24,8 +24,17 @@
 
                 static _states() {
                     return {
+                        "handleLeft": function() {
+                            this.tag('Primary').setSmooth('x', this.tag('Primary').getSmooth('x') - 100)
+                        },
                         "handleRight": function() {
-                            console.log('hello right')
+                            this.tag('Primary').setSmooth('x', this.tag('Primary').getSmooth('x') + 100)
+                        },
+                        "handleUp": function() {
+                            this.tag('Primary').setSmooth('y', this.tag('Primary').getSmooth('y') - 100)
+                        },
+                        "handleDown": function() {
+                            this.tag('Primary').setSmooth('y', this.tag('Primary').getSmooth('y') + 100)
                         }
                     }
                 }

@@ -14,7 +14,7 @@ return {
     Filter: Filter,
     View: View,
     Tools: Tools,
-    tools: {
+    misc: {
         ObjectListProxy: ObjectListProxy,
         ObjectListWrapper: ObjectListWrapper
     },
@@ -44,7 +44,8 @@ return {
         ViewCore: ViewCore,
         ViewTexturizer: ViewTexturizer,
         ViewText: ViewText
-    }
+    },
+    EventEmitter: EventEmitter
 }
 })();`
             },

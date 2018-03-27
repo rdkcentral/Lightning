@@ -12814,14 +12814,50 @@ class Component extends View {
 
         this.patch(this._getTemplate(), true)
 
-        this.on('attach', () => this.__attach())
-        this.on('detach', () => this.__detach())
-        this.on('active', () => this.__active())
-        this.on('inactive', () => this.__inactive())
-        this.on('enabled', () => this.__enable())
-        this.on('disable', () => this.__disable())
+        this._registerLifecycleListeners()
 
         this.__signals = undefined
+    }
+
+    _registerLifecycleListeners() {
+        this.on('attach', () => {
+            if (!this.__initialized) {
+                this.__init()
+                this.__initialized = true
+            }
+
+            this.fire('attach')
+        })
+
+        this.on('detach', () => {
+            this.fire('detach')
+        })
+
+        this.on('active', () => {
+            if (!this.__firstActive) {
+                this.fire('firstActive')
+                this.__firstActive = true
+            }
+
+            this.fire('active')
+        })
+
+        this.on('inactive', () => {
+            this.fire('inactive')
+        })
+
+        this.on('enabled', () => {
+            if (!this.__firstEnable) {
+                this.fire('firstEnable')
+                this.__firstEnable = true
+            }
+
+            this.fire('enable')
+        })
+
+        this.on('disable', () => {
+            this.fire('disable')
+        })
     }
 
     get application() {
@@ -12836,47 +12872,8 @@ class Component extends View {
         this.fire('construct')
     }
 
-    __attach() {
-        if (!this.__initialized) {
-            this.__init()
-            this.__initialized = true
-        }
-        
-        this.fire('attach')
-    }
-
     __init() {
         this.fire('init')
-    }
-
-    __detach() {
-        this.fire('detach')
-    }
-
-    __active() {
-        if (!this.__firstActive) {
-            this.fire('firstActive')
-            this.__firstActive = true
-        }
-
-        this.fire('active')
-    }
-
-    __inactive() {
-        this.fire('inactive')
-    }
-
-    __enable() {
-        if (!this.__firstEnable) {
-            this.fire('firstEnable')
-            this.__firstEnable = true
-        }
-
-        this.fire('enable')
-    }
-
-    __disable() {
-        this.fire('disable')
     }
 
     __focus(newTarget, prevTarget) {
@@ -13059,7 +13056,8 @@ class Component extends View {
 
     static collectSubComponents(subs, view) {
         if (view.hasChildren()) {
-            const childList = view._childList
+            // We must use the private property because direct children access may be disallowed.
+            const childList = view.__childList
             for (let i = 0, n = childList.length; i < n; i++) {
                 const child = childList.getAt(i)
                 if (child.isComponent) {
@@ -13262,14 +13260,14 @@ class Application extends Component {
         if (Array.isArray(event)) {
             // Multiple events.
             for (let i = 0; i < n; i++) {
-                if (this.fire(event)) {
+                if (path[i].fire(event)) {
                     return true
                 }
             }
         } else {
             // Single event.
             for (let i = 0; i < n; i++) {
-                if (this.fire(event, args)) {
+                if (path[i].fire(event, args)) {
                     return true
                 }
             }
@@ -13286,14 +13284,14 @@ class Application extends Component {
         if (Array.isArray(event)) {
             // Multiple events.
             for (let i = n - 1; i >= 0; i--) {
-                if (this.fire(event)) {
+                if (path[i].fire(event)) {
                     return true
                 }
             }
         } else {
             // Single event.
             for (let i = n - 1; i >= 0; i--) {
-                if (this.fire(event, args)) {
+                if (path[i].fire(event, args)) {
                     return true
                 }
             }
@@ -13628,7 +13626,7 @@ return {
     Filter: Filter,
     View: View,
     Tools: Tools,
-    tools: {
+    misc: {
         ObjectListProxy: ObjectListProxy,
         ObjectListWrapper: ObjectListWrapper
     },
@@ -13658,6 +13656,7 @@ return {
         ViewCore: ViewCore,
         ViewTexturizer: ViewTexturizer,
         ViewText: ViewText
-    }
+    },
+    EventEmitter: EventEmitter
 }
 })();

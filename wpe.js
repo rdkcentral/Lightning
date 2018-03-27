@@ -8,7 +8,7 @@ module.exports = {
     Filter: require('./src/core/Filter'),
     View: require('./src/core/View'),
     Tools: require('./src/tools/Tools'),
-    tools: {
+    misc: {
         ObjectListProxy: require('./src/tools/misc/ObjectListProxy'),
         ObjectListWrapper: require('./src/tools/misc/ObjectListWrapper')
     },

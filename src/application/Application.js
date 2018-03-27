@@ -163,14 +163,14 @@ class Application extends Component {
         if (Array.isArray(event)) {
             // Multiple events.
             for (let i = 0; i < n; i++) {
-                if (this.fire(event)) {
+                if (path[i].fire(event)) {
                     return true
                 }
             }
         } else {
             // Single event.
             for (let i = 0; i < n; i++) {
-                if (this.fire(event, args)) {
+                if (path[i].fire(event, args)) {
                     return true
                 }
             }
@@ -187,14 +187,14 @@ class Application extends Component {
         if (Array.isArray(event)) {
             // Multiple events.
             for (let i = n - 1; i >= 0; i--) {
-                if (this.fire(event)) {
+                if (path[i].fire(event)) {
                     return true
                 }
             }
         } else {
             // Single event.
             for (let i = n - 1; i >= 0; i--) {
-                if (this.fire(event, args)) {
+                if (path[i].fire(event, args)) {
                     return true
                 }
             }
