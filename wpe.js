@@ -1,12 +1,12 @@
 module.exports = {
     Application: require('./src/application/Application'),
     Component: require('./src/application/Component'),
-    Base: require('./src/core/Base'),
-    Utils: require('./src/core/Utils'),
-    StageUtils: require('./src/core/StageUtils'),
-    Shader: require('./src/core/Shader'),
-    Filter: require('./src/core/Filter'),
-    View: require('./src/core/View'),
+    Base: require('./src/tree/Base'),
+    Utils: require('./src/tree/Utils'),
+    StageUtils: require('./src/tree/StageUtils'),
+    Shader: require('./src/tree/Shader'),
+    Filter: require('./src/tree/Filter'),
+    View: require('./src/tree/View'),
     Tools: require('./src/tools/Tools'),
     misc: {
         ObjectListProxy: require('./src/tools/misc/ObjectListProxy'),

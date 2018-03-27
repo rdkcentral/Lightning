@@ -175,6 +175,6 @@ class NodeAdapter {
 
 }
 
-let TextRenderer = require('../core/TextRenderer');
+let TextRenderer = require('../tree/TextRenderer');
 
 module.exports = NodeAdapter;

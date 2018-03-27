@@ -1,8 +1,8 @@
 /**
  * Copyright Metrological, 2017
  */
-let Utils = require('../core/Utils');
-let StageUtils = require('../core/StageUtils');
+let Utils = require('../tree/Utils');
+let StageUtils = require('../tree/StageUtils');
 
 class Tools {
 

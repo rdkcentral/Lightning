@@ -53,7 +53,7 @@ class TransitionManager {
 
 module.exports = TransitionManager;
 
-let Base = require('../core/Base');
-let Utils = require('../core/Utils');
+let Base = require('../tree/Base');
+let Utils = require('../tree/Utils');
 let TransitionSettings = require('./TransitionSettings');
 let Transition = require('./Transition');

@@ -1,4 +1,4 @@
-const Shader = require('../../core/Shader');
+const Shader = require('../../tree/Shader');
 
 class CircularPushShader extends Shader {
     constructor(context) {
@@ -230,5 +230,5 @@ CircularPushShader.fragmentShaderSource = `
 
 module.exports = CircularPushShader
 
-const Utils = require('../../core/Utils');
+const Utils = require('../../tree/Utils');
 

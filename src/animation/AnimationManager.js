@@ -60,7 +60,7 @@ class AnimationManager {
 
 module.exports = AnimationManager
 
-const Base = require('../core/Base')
-const Utils = require('../core/Utils')
+const Base = require('../tree/Base')
+const Utils = require('../tree/Utils')
 const AnimationSettings = require('./AnimationSettings')
 const Animation = require('./Animation')

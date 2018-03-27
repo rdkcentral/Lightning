@@ -2,7 +2,7 @@
  * Copyright Metrological, 2017
  */
 
-let Filter = require('../../core/Filter');
+let Filter = require('../../tree/Filter');
 
 class InversionFilter extends Filter {
 }

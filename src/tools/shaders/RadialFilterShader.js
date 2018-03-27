@@ -1,4 +1,4 @@
-const Shader = require('../../core/Shader');
+const Shader = require('../../tree/Shader');
 
 class RadialFilterShader extends Shader {
     constructor(context) {

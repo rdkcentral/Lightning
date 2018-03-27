@@ -1,7 +1,7 @@
 /**
  * Copyright Metrological, 2017
  */
-let View = require('../../core/View');
+let View = require('../../tree/View');
 
 class ListView extends View {
 
@@ -490,7 +490,7 @@ class ListItems extends ObjectListWrapper {
 
 }
 
-let Utils = require('../../core/Utils');
+let Utils = require('../../tree/Utils');
 /*M¬*/let EventEmitter = require(Utils.isNode ? 'events' : '../../browser/EventEmitter');/*¬M*/
 
 module.exports = ListView;

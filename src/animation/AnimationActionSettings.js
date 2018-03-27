@@ -168,8 +168,8 @@ AnimationActionSettings.prototype.isAnimationActionSettings = true
 
 module.exports = AnimationActionSettings
 
-const Base = require('../core/Base')
+const Base = require('../tree/Base')
 const AnimationActionItems = require('./AnimationActionItems')
-const View = require('../core/View')
-const StageUtils = require('../core/StageUtils')
-const Utils = require('../core/Utils')
+const View = require('../tree/View')
+const StageUtils = require('../tree/StageUtils')
+const Utils = require('../tree/Utils')

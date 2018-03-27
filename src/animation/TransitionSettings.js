@@ -33,5 +33,5 @@ TransitionSettings.prototype.isTransitionSettings = true
 
 module.exports = TransitionSettings
 
-const Base = require('../core/Base')
-const StageUtils = require('../core/StageUtils')
+const Base = require('../tree/Base')
+const StageUtils = require('../tree/StageUtils')

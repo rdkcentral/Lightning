@@ -1,7 +1,7 @@
 /**
  * Copyright Metrological, 2017
  */
-let View = require('../../core/View');
+let View = require('../../tree/View');
 
 class SmoothScaleView extends View {
 

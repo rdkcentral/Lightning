@@ -154,4 +154,4 @@ class WebAdapter {
 
 module.exports = WebAdapter;
 
-let TextRenderer = require('../core/TextRenderer');
+let TextRenderer = require('../tree/TextRenderer');

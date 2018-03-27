@@ -1,10 +1,10 @@
 /**
  * Copyright Metrological, 2017
  */
-let View = require('../../core/View');
+let View = require('../../tree/View');
 
 var LinearBlurFilter = require('../filters/LinearBlurFilter')
-let Shader = require('../../core/Shader')
+let Shader = require('../../tree/Shader')
 
 class FastBlurView extends View {
 
@@ -338,8 +338,8 @@ FastBlurOutputShader.fragmentShaderSource = `
     }
 `;
 
-const Utils = require('../../core/Utils');
+const Utils = require('../../tree/Utils');
 /*M¬*/const EventEmitter = require(Utils.isNode ? 'events' : '../../browser/EventEmitter');/*¬M*/
-const ViewChildList = require('../../core/ViewChildList')
+const ViewChildList = require('../../tree/ViewChildList')
 
 module.exports = FastBlurView

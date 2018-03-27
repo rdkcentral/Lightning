@@ -1,5 +1,5 @@
-const View = require('../core/View');
-const Utils = require('../core/Utils');
+const View = require('../tree/View');
+const Utils = require('../tree/Utils');
 
 class Component extends View {
 

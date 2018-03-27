@@ -219,6 +219,6 @@ class Application extends Component {
 
 module.exports = Application
 
-const Utils = require('../core/Utils');
-const Stage = require('../core/Stage');
+const Utils = require('../tree/Utils');
+const Stage = require('../tree/Stage');
 const StateManager = require('./StateManager');

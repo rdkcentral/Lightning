@@ -2,7 +2,7 @@
  * Copyright Metrological, 2017
  */
 
-const Shader = require('../../core/Shader');
+const Shader = require('../../tree/Shader');
 
 class InversionShader extends Shader {
 }

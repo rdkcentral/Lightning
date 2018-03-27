@@ -2,7 +2,7 @@
  * Manages the list of children for a view.
  */
 
-let ObjectList = require('../../core/ObjectList')
+let ObjectList = require('../../tree/ObjectList')
 
 class ObjectListProxy extends ObjectList {
 

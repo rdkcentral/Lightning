@@ -94,6 +94,6 @@ AnimationSettings.STOP_METHODS = {
 
 module.exports = AnimationSettings
 
-const Base = require('../core/Base')
-const StageUtils = require('../core/StageUtils')
+const Base = require('../tree/Base')
+const StageUtils = require('../tree/StageUtils')
 const AnimationActionSettings = require('./AnimationActionSettings')

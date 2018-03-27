@@ -1,4 +1,4 @@
-const Shader = require('../../core/Shader');
+const Shader = require('../../tree/Shader');
 
 class OutlineShader extends Shader {
 
@@ -121,4 +121,4 @@ OutlineShader.fragmentShaderSource = `
 
 module.exports = OutlineShader;
 
-const StageUtils = require('../../core/StageUtils');
+const StageUtils = require('../../tree/StageUtils');

@@ -1,9 +1,9 @@
 /**
  * Copyright Metrological, 2017
  */
-const Base = require('../core/Base')
+const Base = require('../tree/Base')
 
-const Utils = require('../core/Utils')
+const Utils = require('../tree/Utils')
 /*M¬*/const EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter')/*¬M*/
 
 class Transition extends EventEmitter {
@@ -199,5 +199,5 @@ Transition.prototype.isTransition = true
 
 module.exports = Transition
 
-const StageUtils = require('../core/StageUtils')
-/*M¬*/const View = require('../core/View')/*¬M*/
+const StageUtils = require('../tree/StageUtils')
+/*M¬*/const View = require('../tree/View')/*¬M*/

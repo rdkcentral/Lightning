@@ -2,7 +2,7 @@
  * Copyright Metrological, 2017
  */
 
-const Utils = require('../core/Utils')
+const Utils = require('../tree/Utils')
 /*M¬*/const EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter')/*¬M*/
 
 class Animation extends EventEmitter {

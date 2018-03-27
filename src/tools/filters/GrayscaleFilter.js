@@ -1,4 +1,4 @@
-let Filter = require('../../core/Filter');
+let Filter = require('../../tree/Filter');
 
 class GrayscaleFilter extends Filter {
     constructor(context) {

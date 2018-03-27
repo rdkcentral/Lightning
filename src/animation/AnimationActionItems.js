@@ -213,5 +213,5 @@ class AnimationActionItems {
 
 module.exports = AnimationActionItems
 
-const Utils = require('../core/Utils')
-const StageUtils = require('../core/StageUtils')
+const Utils = require('../tree/Utils')
+const StageUtils = require('../tree/StageUtils')
