@@ -393,28 +393,28 @@ var attachInspector = function(wuf) {
             }
         });
 
-        View.prototype.__w = View.prototype._w;
-        Object.defineProperty(View.prototype, '_w', {
+        View.prototype.$w = View.prototype.__w;
+        Object.defineProperty(View.prototype, '__w', {
             get: function() {
-                return this.__w;
+                return this.$w;
             },
             set: function(v) {
-                if (this.__w !== v) {
+                if (this.$w !== v) {
                     val(this, 'w', v, 0);
-                    this.__w = v;
+                    this.$w = v;
                 }
             }
         });
 
-        View.prototype.__h = View.prototype._h;
-        Object.defineProperty(View.prototype, '_h', {
+        View.prototype.$h = View.prototype.__h;
+        Object.defineProperty(View.prototype, '__h', {
             get: function() {
-                return this.__h;
+                return this.$h;
             },
             set: function(v) {
-                if (this.__h !== v) {
+                if (this.$h !== v) {
                     val(this, 'h', v, 0);
-                    this.__h = v;
+                    this.$h = v;
                 }
             }
         });
