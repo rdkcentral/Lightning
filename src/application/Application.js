@@ -117,7 +117,7 @@ class Application extends Component {
         const path = [this]
         let current = this
         do {
-            const nextFocus = current._getFocus()
+            const nextFocus = current._getFocused()
             if (!nextFocus || (nextFocus === current)) {
                 // Found!
                 break

@@ -106,7 +106,7 @@ class Component extends View {
         this.fire('_focusChange', {target:target, newTarget:newTarget})
     }
 
-    _getFocus() {
+    _getFocused() {
         // Override to delegate focus to child components.
         return this
     }
