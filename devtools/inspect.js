@@ -310,7 +310,7 @@ var attachInspector = function(wpe) {
             oRemoveTag.apply(this, arguments);
 
             if (tag) {
-                this.view.dhtml().classList.remove(tag);
+                this.dhtml().classList.remove(tag);
             }
         };
 
