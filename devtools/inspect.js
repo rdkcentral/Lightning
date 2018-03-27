@@ -1,5 +1,5 @@
-var attachInspector = function(wpe) {
-    with(wpe) {
+var attachInspector = function(wuf) {
+    with(wuf) {
         const Stage = _internal.Stage
         const ViewCore = _internal.ViewCore
         const ViewTexturizer = _internal.ViewTexturizer
@@ -866,7 +866,7 @@ var attachInspector = function(wpe) {
     }
 }
 
-if (typeof wpe !== "undefined") {
+if (typeof wuf !== "undefined") {
     // Sync loading. Auto attach immediately.
-    attachInspector(wpe);
+    attachInspector(wuf);
 }
