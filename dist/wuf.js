@@ -6224,6 +6224,9 @@ class ViewCore {
         this._parent._viewport = [0, 0, this.ctx.stage.rw, this.ctx.stage.rh]
         this._parent._scissor = this._parent._viewport
 
+        // We use a default of 100px bounds margin to detect images around the edges.
+        this._parent._recBoundsMargin = 100
+
         // Default: no bounds margin.
         this._parent._boundsMargin = null
     };
