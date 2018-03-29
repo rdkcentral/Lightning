@@ -83,7 +83,7 @@ class Application extends Component {
             }
 
             if (this._focusPath.length !== newFocusPath.length || index !== newFocusPath.length) {
-                if (this.debug) {
+                if (this.__options.debug) {
                     console.log(this.stateManager._logPrefix + '* FOCUS ' + newFocusedComponent.getLocationString())
                 }
                 // Unfocus events.
