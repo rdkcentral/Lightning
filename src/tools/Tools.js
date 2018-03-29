@@ -49,65 +49,6 @@ class Tools {
         }, texOptions);
     }
 
-    static getRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor) {
-        if (!Array.isArray(radius)){
-            // upper-left, upper-right, bottom-right, bottom-left.
-            radius = [radius, radius, radius, radius]
-        }
-
-        let factory = () => {
-            return this.createRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor)
-        }
-        let id = 'rect' + [w, h, strokeWidth, strokeColor, fill ? 1 : 0, fillColor].concat(radius).join(",");
-        return Tools.getCanvasTexture(stage, factory, {id: id});
-    }
-
-    static createRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor) {
-        if (fill === undefined) fill = true;
-        if (strokeWidth === undefined) strokeWidth = 0;
-
-        let canvas = stage.adapter.getDrawingCanvas();
-        let ctx = canvas.getContext('2d');
-        ctx.imageSmoothingEnabled = true;
-
-        canvas.width = w + strokeWidth + 2;
-        canvas.height = h + strokeWidth + 2;
-
-        ctx.beginPath();
-        let x = 0.5 * strokeWidth + 1, y = 0.5 * strokeWidth + 1;
-
-        ctx.moveTo(x + radius[0], y);
-        ctx.lineTo(x + w - radius[1], y);
-        ctx.arcTo(x + w, y, x + w, y + radius[1], radius[1]);
-        ctx.lineTo(x + w, y + h - radius[2]);
-        ctx.arcTo(x + w, y + h, x + w - radius[2], y + h, radius[2]);
-        ctx.lineTo(x + radius[3], y + h);
-        ctx.arcTo(x, y + h, x, y + h - radius[3], radius[3]);
-        ctx.lineTo(x, y + radius[0]);
-        ctx.arcTo(x, y, x + radius[0], y, radius[0]);
-
-        if (fill) {
-            if (Utils.isNumber(fillColor)) {
-                ctx.fillStyle = StageUtils.getRgbaString(fillColor);
-            } else {
-                ctx.fillStyle = "white";
-            }
-            ctx.fill();
-        }
-
-        if (strokeWidth) {
-            if (Utils.isNumber(strokeColor)) {
-                ctx.strokeStyle = StageUtils.getRgbaString(strokeColor);
-            } else {
-                ctx.strokeStyle = "white";
-            }
-            ctx.lineWidth = strokeWidth;
-            ctx.stroke();
-        }
-
-        return canvas;
-    }
-
     static getShadowRect(stage, w, h, radius = 0, blur = 5, margin = blur * 2) {
         if (!Array.isArray(radius)){
             // upper-left, upper-right, bottom-right, bottom-left.

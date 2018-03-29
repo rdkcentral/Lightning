@@ -14,6 +14,12 @@ return {
     Filter: Filter,
     View: View,
     Tools: Tools,
+    textures: {
+        RectangleTexture: RectangleTexture,
+        TextTexture: TextTexture,
+        ImageTexture: ImageTexture,
+        RoundRectTexture: RoundRectTexture
+    },
     misc: {
         ObjectListProxy: ObjectListProxy,
         ObjectListWrapper: ObjectListWrapper
@@ -42,8 +48,7 @@ return {
     _internal: {
         Stage: Stage,
         ViewCore: ViewCore,
-        ViewTexturizer: ViewTexturizer,
-        ViewText: ViewText
+        ViewTexturizer: ViewTexturizer
     },
     EventEmitter: EventEmitter
 }
@@ -78,9 +83,6 @@ return {
                     'src/tree/core/CoreQuadOperation.js',
                     'src/tree/core/CoreFilterOperation.js',
                     'src/tree/core/CoreRenderExecutor.js',
-                    'src/tree/ViewText.js',
-                    'src/tree/TextRenderer.js',
-                    'src/tree/TextRendererSettings.js',
                     'src/animation/TransitionManager.js',
                     'src/animation/TransitionSettings.js',
                     'src/animation/Transition.js',
@@ -89,6 +91,11 @@ return {
                     'src/animation/AnimationActionSettings.js',
                     'src/animation/AnimationActionItems.js',
                     'src/animation/Animation.js',
+                    'src/textures/ImageTexture.js',
+                    'src/textures/RectangleTexture.js',
+                    'src/textures/RoundRectTexture.js',
+                    'src/textures/TextTexture.js',
+                    'src/textures/TextTextureRenderer.js',
                     'src/tools/Tools.js',
                     'src/tools/misc/ObjectListProxy.js',
                     'src/tools/misc/ObjectListWrapper.js',

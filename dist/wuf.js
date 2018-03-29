@@ -153,17 +153,25 @@ class WebAdapter {
         }
     }
 
-    loadSrcTexture(src, ts, sync, cb) {
+    loadSrcTexture(src, cb) {
+        let cancelCb = undefined
         let isPng = (src.indexOf(".png") >= 0)
         if (this.wpeImageParser) {
             // WPE-specific image parser.
             var oReq = this.wpeImageParser.add(src, function(err, width, height, memory, offset, length) {
                 if (err) return cb(err);
 
-                var options = {w: width, h: height, premultiplyAlpha: false, flipBlueRed: false, hasAlpha: true};
-                cb(null, new Uint8Array(memory, offset, length), options);
+                var options = {
+                    source: new Uint8Array(memory, offset, length),
+                    w: width,
+                    h: height,
+                    premultiplyAlpha: false,
+                    flipBlueRed: false,
+                    hasAlpha: true
+                };
+                cb(null, options);
             });
-            ts.cancelCb = function() {
+            cancelCb = function() {
                 oReq.abort();
             }
         } else if (window.OffthreadImage && OffthreadImage.available) {
@@ -175,7 +183,12 @@ class WebAdapter {
             element.addEventListener('painted', function () {
                 let canvas = element.childNodes[0];
                 // Because a canvas stores all in RGBA alpha-premultiplied, GPU upload is fastest with those settings.
-                cb(null, canvas, {renderInfo: {src}, hasAlpha: true, premultiplyAlpha: true});
+                cb(null, {
+                    source: canvas,
+                    renderInfo: {src},
+                    hasAlpha: true,
+                    premultiplyAlpha: true
+                });
             });
             image.src = src;
         } else {
@@ -188,21 +201,16 @@ class WebAdapter {
                 return cb("Image load error");
             };
             image.onload = function() {
-                cb(null, image, {renderInfo: {src: src}, hasAlpha: isPng});
+                cb(null, {
+                    source: image,
+                    renderInfo: {src: src},
+                    hasAlpha: isPng
+                });
             };
             image.src = src;
         }
-    }
 
-    loadTextTexture(settings, ts, sync, cb) {
-        // Generate the image.
-        let tr = new TextRenderer(this.getDrawingCanvas(), settings);
-        let rval = tr.draw();
-        let renderInfo = rval.renderInfo;
-
-        let options = {renderInfo: renderInfo, precision: rval.renderInfo.precision};
-        let data = rval.canvas;
-        cb(null, data, options);
+        return cancelCb
     }
 
     createWebGLContext(w, h) {
@@ -240,6 +248,12 @@ class WebAdapter {
     getDrawingCanvas() {
         // We can't reuse this canvas because textures may load async.
         return document.createElement('canvas');
+    }
+
+    getTextureOptionsForDrawingCanvas(canvas) {
+        let options = {}
+        options.source = canvas
+        return options
     }
 
     nextFrame(changes) {
@@ -355,32 +369,6 @@ class WpeImageParser {
  * Copyright Metrological, 2017
  */
 class Base {
-
-    /**
-     * Mixes an ES5 class and the specified superclass.
-     * @param superclass
-     * @param extra
-     *   An ES5 class constructor.
-     */
-    static mixinEs5(superclass, extra) {
-        let proto = extra.prototype;
-
-        let props = Object.getOwnPropertyNames(proto);
-        for(let i = 0; i < props.length; i++) {
-            let key = props[i];
-            let desc = Object.getOwnPropertyDescriptor(proto, key);
-            if (key !== 'constructor' && desc.configurable) {
-                if (superclass.prototype[key]) {
-                    // Mixin may not overwrite prototype methods.
-                    console.warn('Mixin overwrites ' + key);
-                } else {
-                    Object.defineProperty(superclass.prototype, key, desc);
-                }
-            }
-        }
-
-        return superclass;
-    };
 
     static defaultSetter(obj, name, value) {
         obj[name] = value
@@ -1003,15 +991,11 @@ class Stage extends EventEmitter {
         this.dt = 0;
 
         // Preload rectangle texture, so that we can skip some border checks for loading textures.
-        this.rectangleTexture = this.texture(function(cb) {
-            var whitePixel = new Uint8Array([255, 255, 255, 255]);
-            return cb(null, whitePixel, {w: 1, h: 1});
-        }, {id: '__whitepix'});
+        this.rectangleTexture = new RectangleTexture(this)
+        this.rectangleTexture.load();
 
-        let source = this.rectangleTexture.source;
-        this.rectangleTexture.source.load(true);
-
-        source.permanent = true;
+        // Never clean up because we use it all the time.
+        this.rectangleTexture.source.permanent = true
     }
 
     getOption(name) {
@@ -1157,32 +1141,6 @@ class Stage extends EventEmitter {
         return this.view(settings);
     }
 
-    /**
-     * Returns the specified texture.
-     * @param {string|function} source
-     * @param {object} options
-     *   - id: number
-     *     Fixed id. Handy when using base64 strings or when using canvas textures.
-     *   - x: number
-     *     Clipping offset x.
-     *   - y: number
-     *     Clipping offset y.
-     *   - w: number
-     *     Clipping offset w.
-     *   - h: number
-     *     Clipping offset h.
-     *   - mw: number
-     *     Max width (for within bounds texture loading)
-     *   - mh: number
-     *     Max height (for within bounds texture loading)
-     *   - precision: number
-     *     Render precision (0.5 = fuzzy, 1 = normal, 2 = sharp even when scaled twice, etc.).
-     * @returns {Texture}
-     */
-    texture(source, options) {
-        return this.textureManager.getTexture(source, options);
-    }
-
     get w() {
         return this._options.w
     }
@@ -1228,7 +1186,6 @@ class Stage extends EventEmitter {
     }
 
 }
-
 
 
 
@@ -1772,66 +1729,8 @@ class TextureManager {
         }
     }
 
-    loadSrcTexture(src, ts, sync, cb) {
-        if (this.stage.getOption('srcBasePath')) {
-            var fc = src.charCodeAt(0)
-            if ((src.indexOf("//") === -1) && ((fc >= 65 && fc <= 90) || (fc >= 97 && fc <= 122) || fc == 46)) {
-                // Alphabetical or dot: prepend base path.
-                src = this.stage.getOption('srcBasePath') + src
-            }
-        }
-        this.stage.adapter.loadSrcTexture(src, ts, sync, cb);
-    }
-
-    loadTextTexture(settings, ts, sync, cb) {
-        this.stage.adapter.loadTextTexture(settings, ts, sync, cb);
-    }
-
-    getTexture(source, options) {
-        let id = options && options.id || null;
-
-        let texture, textureSource;
-        if (Utils.isString(source)) {
-            id = id || source;
-
-            // Check if texture source is already known.
-            textureSource = this.textureSourceHashmap.get(id);
-            if (!textureSource) {
-                // Create new texture source.
-                let self = this;
-                let func = function (cb, ts, sync) {
-                    self.loadSrcTexture(source, ts, sync, cb);
-                };
-                textureSource = this.getTextureSource(func, id);
-                if (!textureSource.renderInfo) {
-                    textureSource.renderInfo = {src: source};
-                }
-            }
-        } else if (source instanceof TextureSource) {
-            textureSource = source;
-        } else if (!Utils.isNode && source instanceof WebGLTexture) {
-            textureSource = this.getTextureSource((cb) => {
-
-            }, id);
-        } else {
-            // Create new texture source.
-            textureSource = this.getTextureSource(source, id);
-        }
-
-        // Create new texture object.
-        texture = new Texture(this, textureSource);
-        texture.x = options && options.x || 0;
-        texture.y = options && options.y || 0;
-        texture.w = options && options.w || 0;
-        texture.h = options && options.h || 0;
-        texture.clipping = !!(texture.x || texture.y || texture.w || texture.h);
-        texture.precision = options && options.precision || 1;
-
-        // Use 2048 as max texture size fallback.
-        textureSource.mw = options && options.mw || 2048
-        textureSource.mh = options && options.mh || 2048
-
-        return texture;
+    getReusableTextureSource(id) {
+        return this.textureSourceHashmap.get(id);
     }
 
     getTextureSource(func, id) {
@@ -1892,7 +1791,7 @@ class TextureManager {
         let usedTextureMemoryBefore = this._usedTextureMemory;
         for (let i = 0, n = this._uploadedTextureSources.length; i < n; i++) {
             let ts = this._uploadedTextureSources[i];
-            if (ts.allowCleanup() && !ts.isLoadedByCore()) {
+            if (ts.allowCleanup() && !ts.isResultTexture) {
                 this.freeTextureSource(ts);
             } else {
                 remainingTextureSources.push(ts);
@@ -1904,7 +1803,7 @@ class TextureManager {
     }
     
     freeTextureSource(textureSource) {
-        if (!textureSource.isLoadedByCore()) {
+        if (!textureSource.isResultTexture) {
             if (textureSource.glTexture) {
                 this._usedTextureMemory -= textureSource.w * textureSource.h;
                 this.gl.deleteTexture(textureSource.glTexture);
@@ -1932,20 +1831,33 @@ class TextureManager {
 class Texture {
 
     /**
-     * @param {TextureManager} manager
-     * @param {TextureSource} source
+     * @param {Stage} stage
      */
-    constructor(manager, source) {
-        this.manager = manager;
+    constructor(stage) {
+        this.stage = stage;
+
+        this.manager = this.stage.textureManager;
 
         this.id = Texture.id++;
+
+        /**
+         * All enabled views that use this texture object (either as texture or displayedTexture).
+         * @type {Set<View>}
+         */
+        this.views = new Set();
+
+        /**
+         * The number of enabled views that are 'within bounds'.
+         * @type {number}
+         */
+        this._withinBoundsCount = 0
 
         /**
          * The associated texture source.
          * Should not be changed.
          * @type {TextureSource}
          */
-        this.source = source;
+        this._source = undefined;
 
         /**
          * The texture clipping x-offset.
@@ -1979,11 +1891,185 @@ class Texture {
         this._precision = 1;
 
         /**
+         * The (maximum) expected texture source width. Used for within bounds determination while texture is not yet loaded.
+         * @type {number}
+         */
+        this.mw = 2048;
+
+        /**
+         * The (maximum) expected texture source height. Used for within bounds determination while texture is not yet loaded.
+         * @type {number}
+         */
+        this.mh = 2048;
+
+        /**
          * Indicates if Texture.prototype.texture uses clipping.
          * @type {boolean}
          */
         this.clipping = false;
 
+        /**
+         * Indicates whether this texture must update (when it becomes used again).
+         * @type {boolean}
+         * @private
+         */
+        this._mustUpdate = true
+
+    }
+
+    get source() {
+        return this._source
+    }
+
+    addView(v) {
+        if (!this.views.has(v)) {
+            this.views.add(v);
+
+            if (v.withinBoundsMargin) {
+                this.incWithinBoundsCount()
+            }
+        }
+    }
+
+    removeView(v) {
+        if (this.views.delete(v)) {
+            if (v.withinBoundsMargin) {
+                this.decWithinBoundsCount()
+            }
+        }
+    }
+
+    incWithinBoundsCount() {
+        this._withinBoundsCount++
+
+        if (this._withinBoundsCount === 1) {
+            this.becomesUsed();
+        }
+    }
+
+    decWithinBoundsCount() {
+        this._withinBoundsCount--
+
+        if (!this._withinBoundsCount) {
+            this.becomesUnused();
+        }
+    }
+
+    becomesUsed() {
+        if (this._mustUpdate) {
+            // Generate the source for this texture, setting the _source property.
+            this._updateSource()
+        }
+
+        if (this._source) {
+            this._source.addTexture(this)
+        }
+    }
+
+    becomesUnused() {
+        if (this._source) {
+            this._source.removeTexture(this)
+        }
+    }
+
+    isUsed() {
+        return this._withinBoundsCount > 0
+    }
+
+    /**
+     * Returns the lookup id for the current texture settings, to be able to reuse it.
+     * @returns {string|undefined}
+     */
+    _getLookupId() {
+        // Default: do not reuse texture.
+        return undefined
+    }
+
+    /**
+     * Generates a loader function that is able to generate the texture for the current settings of this texture.
+     * It should return a function that receives a single callback argument.
+     * That callback should be called with the following arguments:
+     *   - err
+     *   - options: object
+     *     - source: ArrayBuffer|WebGlTexture|ImageData|HTMLImageElement|HTMLCanvasElement|HTMLVideoElement|ImageBitmap
+     *     - w: Number
+     *     - h: Number
+     *     - hasAlpha: boolean
+     *     - permultiplyAlpha: boolean
+     *     - flipBlueRed: boolean
+     *     - renderInfo: object
+     * The loader itself may return a Function that is called when loading of the texture is cancelled. This can be used
+     * to stop fetching an image when it is no longer in view, for example.
+     */
+    _getSourceLoader() {
+        throw new Error("Texture.generate must be implemented.")
+    }
+
+    /**
+     * If texture is not 'valid', no source can be created for it.
+     * @returns {boolean}
+     */
+    _getIsValid() {
+        return true
+    }
+
+    /**
+     * This must be called when the texture source must be re-generated.
+     */
+    _changed() {
+        // If no view is actively using this texture, ignore it altogether.
+        if (this.isUsed()) {
+            this._updateSource()
+        } else {
+            this._mustUpdate = true
+        }
+    }
+
+    _updateSource() {
+        let source = undefined
+        if (this._getIsValid()) {
+            const lookupId = this._getLookupId()
+            if (lookupId) {
+                source = this.manager.getReusableTextureSource(lookupId)
+            }
+            if (!source) {
+                source = this.manager.getTextureSource(this._getSourceLoader(), lookupId)
+            }
+        }
+        this._setTextureSource(source)
+        this._mustUpdate = false
+    }
+
+    _setTextureSource(newSource = undefined) {
+        let oldSource = this._source;
+
+        this._source = newSource;
+
+        if (oldSource) {
+            oldSource.removeTexture(this)
+
+            this.views.forEach(view => {
+                // Already loaded: display immediately.
+                if (newSource && newSource.glTexture) {
+                    view._setDisplayedTexture(this)
+                }
+            })
+        }
+
+        if (newSource && this.isUsed()) {
+            newSource.addTexture(this)
+        }
+    }
+
+    load() {
+        this._updateSource()
+        if (this._source) {
+            this._source.load()
+        }
+    }
+
+    isLoaded() {
+        return this._source && this._source.isLoaded()
     }
 
     enableClipping(x, y, w, h) {
@@ -2020,7 +2106,7 @@ class Texture {
         }
 
         let self = this;
-        this.source.views.forEach(function(view) {
+        this.views.forEach(function(view) {
             // Ignore if not the currently displayed texture.
             if (view.displayedTexture === self) {
                 view.onDisplayedTextureClippingChanged();
@@ -2030,7 +2116,7 @@ class Texture {
 
     updatePrecision() {
         let self = this;
-        this.source.views.forEach(function(view) {
+        this.views.forEach(function(view) {
             // Ignore if not the currently displayed texture.
             if (view.displayedTexture === self) {
                 view.onPrecisionChanged();
@@ -2038,41 +2124,15 @@ class Texture {
         });
     }
 
-    replaceTextureSource(newSource) {
-        let oldSource = this.source;
-
-        this.source = newSource;
-
-        oldSource.views.forEach(view => {
-            if (view.texture === this || view.displayedTexture === this) {
-                // Remove links from previous source, but only if there is no reason for it any more.
-                let keep = (view.displayedTexture && view.displayedTexture !== this && view.displayedTexture.source === oldSource);
-                keep = keep || (view.texture && view.texture !== this && view.texture.source === oldSource);
-
-                if (!keep) {
-                    oldSource.removeView(view);
-                }
-
-                newSource.addView(view);
-
-                if (newSource.glTexture) {
-                    // We may update the source within the same texture as previous, so we need to force update.
-                    view._setDisplayedTexture(this, true)
-                } else {
-                    view._setDisplayedTexture(null, true)
-                }
-            }
-        });
-    }
-
     getNonDefaults() {
         let nonDefaults = {};
+        nonDefaults['type'] = this.constructor.name
         if (this.x !== 0) nonDefaults['x'] = this.x;
         if (this.y !== 0) nonDefaults['y'] = this.y;
         if (this.w !== 0) nonDefaults['w'] = this.w;
         if (this.h !== 0) nonDefaults['h'] = this.h;
         if (this.precision !== 1) nonDefaults['precision'] = this.precision;
-        return nonDefaults;        
+        return nonDefaults;
     }
 
     get px() {
@@ -2149,11 +2209,11 @@ class Texture {
     }
 
     getRenderWidth() {
-        return (this._w || this.source.getRenderWidth()) / this._precision
+        return (this._w || (this._source ? this._source.getRenderWidth() : 0) || this.mw) / this._precision
     }
 
     getRenderHeight() {
-        return (this._h || this.source.getRenderHeight()) / this._precision
+        return (this._h || (this._source ? this._source.getRenderHeight() : 0) || this.mh) / this._precision
     }
 
     patch(settings) {
@@ -2161,6 +2221,8 @@ class Texture {
     }
 
 }
+
+Texture.prototype.isTexture = true
 
 
 Texture.id = 0;
@@ -2172,32 +2234,24 @@ Texture.id = 0;
 
 class TextureSource {
 
-    constructor(manager, loadCb) {
+    constructor(manager, loader) {
         this.id = TextureSource.id++;
 
         this.manager = manager;
         
         this.stage = manager.stage;
 
-        this.id = TextureSource.id++;
+        /**
+         * All enabled textures (textures that are used by visible views).
+         * @type {Set<Texture>}
+         */
+        this.textures = new Set()
 
         /**
          * The factory for the source of this texture.
          * @type {Function}
          */
-        this.loadCb = loadCb;
-
-        /**
-         * All enabled views that are using this texture source via a texture (either as texture or displayedTexture, or both).
-         * @type {Set<View>}
-         */
-        this.views = new Set();
-
-        /**
-         * The number of enabled views that are 'within bounds'.
-         * @type {number}
-         */
-        this._withinBoundsCount = 0
+        this.loader = loader;
 
         /**
          * Identifier for reuse.
@@ -2209,7 +2263,7 @@ class TextureSource {
          * If set, this.is called when the texture source is no longer displayed (this.components.size becomes 0).
          * @type {Function}
          */
-        this.cancelCb = null;
+        this._cancelCb = null;
 
         /**
          * Loading since timestamp in millis.
@@ -2217,31 +2271,8 @@ class TextureSource {
          */
         this.loadingSince = 0;
 
-        /**
-         * The x coordinate in the texture atlas.
-         * @type {number}
-         */
-        this.textureAtlasX = 0;
-
-        /**
-         * The y coordinate in the texture atlas.
-         * @type {number}
-         */
-        this.textureAtlasY = 0;
-
         this.w = 0;
         this.h = 0;
-
-        /**
-         * Maximum width (used for determining when view that has texture is within bounds)
-         * We use the maximum texture size initially.
-         */
-        this._mw = 2048
-
-        /**
-         * Maximum height
-         */
-        this._mh = 2048
 
         this.glTexture = null;
 
@@ -2258,35 +2289,45 @@ class TextureSource {
          */
         this.renderInfo = null;
 
+        /**
+         * Generated for 'renderToTexture'.
+         * @type {boolean}
+         * @private
+         */
+        this._isResultTexture = false;
+
     }
 
-    get mw() {
-        return this._mw
-    }
+    addTexture(v) {
+        if (!this.textures.has(v)) {
+            this.textures.add(v);
 
-    set mw(v) {
-        // In case multiple views set a mw, mh, we use the value which minimizes the chance of a load.
-        const prev = this._mw
-        this._mw = Math.min(this._mw, v)
-        if (prev !== this._mw) {
-            this.views.forEach((view) => {
-                view._updateDimensions()
-            })
+            if (this.textures.size === 1) {
+                this.becomesUsed()
+            }
         }
     }
 
-    get mh() {
-        return this._mh
+    removeTexture(v) {
+        if (this.textures.delete(v)) {
+            if (this.textures.size === 0) {
+                this.becomesUnused()
+            }
+        }
     }
 
-    set mh(v) {
-        const prev = this._mh
-        this._mh = Math.min(this._mh, v)
-        if (prev !== this._mh) {
-            this.views.forEach((view) => {
-                view._updateDimensions()
-            })
-        }
+    get isResultTexture() {
+        return this._isResultTexture
+    }
+
+    set isResultTexture(v) {
+        this._isResultTexture = v
+    }
+
+    forEachView(cb) {
+        this.textures.forEach(texture => {
+            texture.views.forEach(cb)
+        })
     }
 
     getRenderWidth() {
@@ -2298,112 +2339,80 @@ class TextureSource {
         return this.h || this._mh;
     }
 
-    isLoadedByCore() {
-        return !this.loadCb;
-    }
-
-    addView(v) {
-        if (!this.views.has(v)) {
-            this.views.add(v);
-
-            if (v.withinBoundsMargin) {
-                this.incWithinBoundsCount()
-            }
-        }
-    }
-    
-    removeView(v) {
-        if (this.views.delete(v)) {
-            if (v.withinBoundsMargin) {
-                this.decWithinBoundsCount()
-            }
-        }
-    }
-
-    incWithinBoundsCount() {
-        this._withinBoundsCount++
-
-        if (this._withinBoundsCount === 1) {
-            if (this.lookupId) {
-                if (!this.manager.textureSourceHashmap.has(this.lookupId)) {
-                    this.manager.textureSourceHashmap.set(this.lookupId, this);
-                }
-            }
-
-            this.becomesVisible();
-        }
-    }
-
-    decWithinBoundsCount() {
-        this._withinBoundsCount--
-
-        if (!this._withinBoundsCount) {
-            this.becomesInvisible();
-        }
-    }
-
     allowCleanup() {
-        return !this.permanent && (this._withinBoundsCount === 0)
+        return !this.permanent && (!this.isUsed())
     }
 
-    becomesVisible() {
-        this.load(false);
+    becomesUsed() {
+        if (this.lookupId) {
+            if (!this.manager.textureSourceHashmap.has(this.lookupId)) {
+                this.manager.textureSourceHashmap.set(this.lookupId, this);
+            }
+        }
+
+        this.load();
     }
 
-    becomesInvisible() {
+    becomesUnused() {
         if (this.isLoading()) {
-            if (this.cancelCb) {
-                this.cancelCb(this);
+            if (this._cancelCb) {
+                this._cancelCb(this);
             }
         }
     }
 
-    reload(sync) {
-        this.free()
-        if (this.views.size) {
-            this.load(sync)
-        }
-    }
-
-    load(sync) {
-        if (this.isLoadedByCore()) {
-            // Core texture source (View resultGlTexture), for which the loading is managed by the core.
-            return;
-        }
-
-        if (this.isLoading() && sync) {
-            // We cancel the previous one.
-            if (this.cancelCb) {
-                // Allow the callback to cancel loading.
-                this.cancelCb(this);
-            }
-            this.loadingSince = 0;
-        }
-
-        if (!this.glTexture && !this.isLoading()) {
-            var self = this;
-            this.loadingSince = (new Date()).getTime();
-            this.loadCb(function(err, source, options) {
-                if (self.manager.stage.destroyed) {
-                    // Ignore async load when stage is destroyed.
-                    return;
-                }
-                self.loadingSince = 0;
-                if (err) {
-                    // Emit txError.
-                    self.onError(err);
-                } else if (source) {
-                    self.setSource(source, options);
-                }
-            }, this, !!sync);
-        }
+    isLoaded() {
+        return !!this.glTexture;
     }
 
     isLoading() {
         return this.loadingSince > 0;
     }
 
-    setSource(source, options) {
+    reload() {
+        this.free()
+        if (this.isUsed()) {
+            this.load()
+        }
+    }
+
+    load() {
+        if (this.isResultTexture) {
+            // Core texture source (View resultGlTexture), for which the loading is managed by the core.
+            return;
+        }
+
+        if (!this.glTexture && !this.isLoading()) {
+            this.loadingSince = (new Date()).getTime();
+            this._cancelCb = this.loader((err, options) => {
+                // Clear callback to avoid memory leaks.
+                this._cancelCb = undefined
+
+                if (this.manager.stage.destroyed) {
+                    // Ignore async load when stage is destroyed.
+                    return;
+                }
+                this.loadingSince = 0;
+                if (err) {
+                    // Emit txError.
+                    this.onError(err);
+                } else if (options && options.source) {
+                    this.setSource(options);
+                }
+            }, this);
+        }
+    }
+
+    onError(e) {
+        console.error('texture load error', e, this.id);
+        this.forEachView(function(view) {
+            view.onTextureSourceLoadError(e);
+        });
+    }
+
+    setSource(options) {
+        const source = options.source
+
         this.w = source.width || (options && options.w) || 0;
         this.h = source.height || (options && options.h) || 0;
 
@@ -2447,24 +2456,27 @@ class TextureSource {
         this.onLoad();
     }
 
-    isVisible() {
-        return (this.views.size > 0);
+    isUsed() {
+        return (this.textures.length);
     }
 
     onLoad() {
-        this.views.forEach(function(view) {
+        this.forEachView(function(view) {
             view.onTextureSourceLoaded();
         });
     }
 
     forceRenderUpdate() {
         // Call this method after manually changing updating the glTexture.
-        this.views.forEach(view => {
-            view.forceRenderUpdate()
-        })
+        this.forEachView(function(view) {
+            view.forceRenderUpdate();
+        });
     }
 
-    _changeGlTexture(glTexture, w, h) {
+    /**
+     * Used for result textures.
+     */
+    replaceGlTexture(glTexture, w, h) {
         let prevGlTexture = this.glTexture;
         // Loaded by core.
         this.glTexture = glTexture;
@@ -2472,27 +2484,28 @@ class TextureSource {
         this.h = h;
 
         if (!prevGlTexture && this.glTexture) {
-            this.views.forEach(view => view.onTextureSourceLoaded());
+            this.forEachView(view => view.onTextureSourceLoaded())
         }
 
         if (!this.glTexture) {
-            this.views.forEach(view => {view._setDisplayedTexture(null)});
+            this.forEachView(view => view._setDisplayedTexture(null))
         }
 
-        this.views.forEach(view => view._updateDimensions());
+        this.forEachView(view => view._updateDimensions());
     }
 
     onError(e) {
         console.error('texture load error', e, this.id);
-        this.views.forEach(function(view) {
-            view.onTextureSourceLoadError(e);
-        });
+        this.forEachView(view => view.onTextureSourceLoadError(e))
     }
 
     free() {
         this.manager.freeTextureSource(this);
     }
+
 }
+
+TextureSource.prototype.isTextureSource = true
 
 TextureSource.id = 1;
 
@@ -3247,12 +3260,6 @@ class View extends EventEmitter {
         this.__visible = true;
 
         /**
-         * The text functionality in case this view is a text view.
-         * @type {ViewText}
-         */
-        this.__viewText = null;
-
-        /**
          * (Lazy-initialised) list of children owned by this view.
          * @type {ViewChildList}
          */
@@ -3461,15 +3468,14 @@ class View extends EventEmitter {
     };
 
     _setEnabledFlag() {
+        this.__enabled = true;
+
         // Force re-check of texture because dimensions might have changed (cutting).
         this._updateDimensions();
         this._updateTextureCoords();
 
-        this.__enabled = true;
-
         if (this.__texture) {
-            // It is important to add the source listener before the texture listener because that may trigger a load.
-            this.__texture.source.addView(this)
+            this.__texture.addView(this)
         }
 
         if (this.withinBoundsMargin) {
@@ -3492,7 +3498,7 @@ class View extends EventEmitter {
         }
 
         if (this.__texture) {
-            this.__texture.source.removeView(this)
+            this.__texture.removeView(this)
         }
 
         if (this.__core.shader) {
@@ -3571,23 +3577,23 @@ class View extends EventEmitter {
     }
 
     textureIsLoaded() {
-        return this.texture ? !!this.texture.source.glTexture : false;
+        return this.__texture.isLoaded();
     }
 
-    loadTexture(sync) {
-        if (this.texture) {
-            this.texture.source.load(sync);
+    loadTexture() {
+        if (this.__texture) {
+            this.__texture.load();
         }
     }
 
     _enableTexture() {
         // Detect texture changes.
         let dt = null;
-        if (this.__texture && this.__texture.source.glTexture) {
+        if (this.__texture.isLoaded()) {
             dt = this.__texture;
         }
 
-        // We must force because the texture source may have been replaced while being invisible.
+        // Note that the texture source may have been replaced while being invisible.
         this._setDisplayedTexture(dt)
     }
 
@@ -3602,92 +3608,90 @@ class View extends EventEmitter {
     }
 
     set texture(v) {
-        if (v && Utils.isObjectLiteral(v)) {
-            if (this.texture) {
-                this.texture.patch(v);
+        let texture;
+        if (Utils.isObjectLiteral(v)) {
+            if (v.type) {
+                texture = new v.type(this.stage)
             } else {
-                console.warn('Trying to set texture properties, but there is no texture.');
+                texture = this.texture
             }
-            return;
+
+            if (texture) {
+                Base.patchObject(texture, v)
+            }
+        } else if (!v) {
+            texture = null;
+        } else {
+            if (v.isTexture) {
+                texture = v;
+            } else if (v.isTextureSource) {
+                //@todo: create wrapper texture (SourceTexture).
+                throw new Error("Not yet implemented")
+            } else {
+                console.error("Please specify a texture type.");
+                return
+            }
         }
 
-        let prevValue = this.__texture;
-        if (v !== prevValue) {
-            if (v !== null) {
-                if (v instanceof TextureSource) {
-                    v = this.stage.texture(v);
-                } else if (!(v instanceof Texture)) {
-                    console.error('incorrect value for texture');
-                    return;
-                }
-            }
-
-            this.__texture = v;
+        const prevTexture = this.__texture;
+        if (texture !== prevTexture) {
+            this.__texture = texture
 
             if (this.__enabled) {
-                if (prevValue && (!v || prevValue.source !== v.source) && (!this.displayedTexture || (this.displayedTexture.source !== prevValue.source))) {
-                    prevValue.source.removeView(this);
-                }
-
-                if (v) {
-                    // When the texture is changed, maintain the texture's sprite registry.
-                    // While the displayed texture is different from the texture (not yet loaded), two textures are referenced.
-                    v.source.addView(this);
-                }
+                this.__texture.addView(this)
             }
 
-            if (v) {
-                if (v.source.glTexture && this.__enabled && this.withinBoundsMargin) {
-                    this._setDisplayedTexture(v);
+            if (this.__texture) {
+                if (this.__texture.isLoaded() && this.__enabled && this.withinBoundsMargin) {
+                    this._setDisplayedTexture(this.__texture)
                 }
             } else {
                 // Make sure that current texture is cleared when the texture is explicitly set to null.
-                // This also makes sure that dimensions are updated.
                 this._setDisplayedTexture(null);
+            }
+
+            if (prevTexture !== this.__displayedTexture) {
+                prevTexture.removeView(this)
             }
 
             this._updateDimensions()
         }
     }
 
+
     get displayedTexture() {
         return this.__displayedTexture;
     }
 
     _setDisplayedTexture(v) {
-        let prevValue = this.__displayedTexture;
+        let prevTexture = this.__displayedTexture;
 
-        const changed = (v !== prevValue || (v && v.source !== prevValue.source))
-
-        if (prevValue && (prevValue !== this.__texture)) {
-            if (!v || (prevValue.source !== v.source)) {
-                // The old displayed texture is deprecated.
-                prevValue.source.removeView(this);
-            }
+        if (prevTexture && (v !== prevTexture)) {
+            // The old displayed texture is deprecated.
+            prevTexture.removeView(this);
         }
+
+        const prevSource = this.__core.displayedTextureSource ? this.__core.displayedTextureSource.source : undefined
+        const sourceChanged = (v ? v.source : undefined) !== prevSource
 
         this.__displayedTexture = v;
-
-        if (this.__displayedTexture) {
-            // We can manage views here because we know for sure that the view is both visible and within bounds.
-            this.__displayedTexture.source.addView(this)
-        }
-
         this._updateDimensions();
 
-        if (v) {
-            // We don't need to reference the displayed texture because it was already referenced (this.texture === this.displayedTexture).
-            this._updateTextureCoords();
-            this.__core.setDisplayedTextureSource(v.source);
+        if (this.__displayedTexture) {
+            if (sourceChanged) {
+                // We don't need to reference the displayed texture because it was already referenced (this.texture === this.displayedTexture).
+                this._updateTextureCoords();
+                this.__core.setDisplayedTextureSource(this.__displayedTexture.source);
+            }
         } else {
             this.__core.setDisplayedTextureSource(null);
         }
 
-        if (changed) {
-            if (v) {
-                this.emit('txLoaded', v);
+        if (sourceChanged) {
+            if (this.__displayedTexture) {
+                this.emit('txLoaded', this.__displayedTexture);
             } else {
-                this.emit('txUnloaded', v);
+                this.emit('txUnloaded', this.__displayedTexture);
             }
         }
     }
@@ -3787,8 +3791,6 @@ class View extends EventEmitter {
                 let iw, ih, rw, rh;
                 iw = 1 / w;
                 ih = 1 / h;
-
-                let prec = displayedTexture.precision;
 
                 if (displayedTexture.pw) {
                     rw = (displayedTexture.pw) * iw;
@@ -4427,14 +4429,6 @@ class View extends EventEmitter {
 
         if (this.__core.clipbox) settings.clipbox = this.__core.clipbox;
 
-        if (this.rect) {
-            settings.rect = true;
-        } else if (this.src) {
-            settings.src = this.src;
-        } else if (this.texture && this.__viewText) {
-            settings.text = this.__viewText.settings.getNonDefaults();
-        }
-
         if (this.__texture) {
             let tnd = this.__texture.getNonDefaults();
             if (Object.keys(tnd).length) {
@@ -4488,7 +4482,7 @@ class View extends EventEmitter {
             this._setActiveFlag()
 
             if (this.__texture) {
-                this.__texture.source.incWithinBoundsCount()
+                this.__texture.incWithinBoundsCount()
             }
         }
     }
@@ -4499,7 +4493,7 @@ class View extends EventEmitter {
             this._unsetActiveFlag()
 
             if (this.__texture) {
-                this.__texture.source.decWithinBoundsCount()
+                this.__texture.decWithinBoundsCount()
             }
         }
     }
@@ -4863,24 +4857,21 @@ class View extends EventEmitter {
     }
 
     get src() {
-        if (this.texture && this.texture.source && this.texture.source.renderInfo && this.texture.source.renderInfo.src) {
-            return this.texture.source.renderInfo.src;
+        if (this.texture && this.texture instanceof ImageTexture) {
+            return this.texture._src
         } else {
-            return null;
+            return undefined
         }
     }
 
     set src(v) {
-        if (!v) {
-            this.texture = null;
-        } else if (!this.texture || !this.texture.source.renderInfo || this.texture.source.renderInfo.src !== v) {
-            this.texture = this.stage.textureManager.getTexture(v);
-        }
+        this.texture = new ImageTexture(this.stage)
+        this.texture.src = v
     }
 
     set mw(v) {
         if (this.texture) {
-            this.texture.source.mw = v
+            this.texture.mw = v
         } else {
             this._throwError('Please set mw after setting a texture.')
         }
@@ -4888,7 +4879,7 @@ class View extends EventEmitter {
 
     set mh(v) {
         if (this.texture) {
-            this.texture.source.mh = v
+            this.texture.mh = v
         } else {
             this._throwError('Please set mh after setting a texture.')
         }
@@ -4907,22 +4898,21 @@ class View extends EventEmitter {
     }
 
     get text() {
-        if (!this.__viewText) {
-            this.__viewText = new ViewText(this);
+        if (this.texture && (this.texture instanceof TextTexture)) {
+            return this.texture
+        } else {
+            return undefined
         }
-
-        // Give direct access to the settings.
-        return this.__viewText.settings;
     }
 
     set text(v) {
-        if (!this.__viewText) {
-            this.__viewText = new ViewText(this);
+        if (!this.texture || !(this.texture instanceof TextTexture)) {
+            this.texture = new TextTexture(this.stage)
         }
         if (Utils.isString(v)) {
-            this.__viewText.settings.text = v;
+            this.texture.text = v
         } else {
-            this.__viewText.settings.patch(v);
+            this.texture.patch(v)
         }
     }
 
@@ -5799,7 +5789,7 @@ class ViewTexturizer {
             if (this._resultTextureSource.glTexture !== resultTexture) {
                 let w = resultTexture ? resultTexture.w : 0
                 let h = resultTexture ? resultTexture.h : 0
-                this._resultTextureSource._changeGlTexture(resultTexture, w, h)
+                this._resultTextureSource.replaceGlTexture(resultTexture, w, h)
             }
 
             // Texture will be updated: all views using the source need to be updated as well.
@@ -6197,6 +6187,10 @@ class ViewCore {
         this._txCoordsBl = ((ulx * 65535 + 0.5) | 0) + ((bry * 65535 + 0.5) | 0) * 65536;
         this._txCoordsBr = ((brx * 65535 + 0.5) | 0) + ((bry * 65535 + 0.5) | 0) * 65536;
     };
+
+    get displayedTextureSource() {
+        return this._displayedTextureSource
+    }
 
     setDisplayedTextureSource(textureSource) {
         this.setHasRenderUpdates(3);
@@ -8322,916 +8316,6 @@ class CoreRenderExecutor {
 /**
  * Copyright Metrological, 2017
  */
-
-
-class ViewText {
-
-    constructor(view) {
-        this.view = view;
-
-        this.settings = new TextRendererSettings();
-        this.settings.on('change', () => {
-            this.updateTexture();
-        });
-
-        this.updatingTexture = null;
-    }
-
-    updateTexture() {
-        if (this.updatingTexture) return;
-
-        this.updatingTexture = true;
-
-        if (this.view.texture !== this.texture) {
-            this.view.texture = this.texture = this.createTexture()
-        } else {
-            // Reload.
-            this.texture.replaceTextureSource(this.createTextureSource())
-        }
-    };
-
-    createTexture() {
-        return this.view.stage.texture((cb, ts, sync) => {
-            // Ignore this texture source load.
-            cb(null, null);
-
-            // Replace with the newly generated texture source.
-            const settings = this.getFinalizedSettings()
-            let source = this.createTextureSource(settings);
-
-            // Make sure that the new texture source is loaded.
-            source.load(sync || settings.sync);
-
-            this.view.texture.replaceTextureSource(source);
-        });
-    }
-
-    getFinalizedSettings() {
-        let settings = this.settings.clone();
-        settings.finalize(this.view);
-        return settings;
-    };
-
-    createTextureSource(settings = this.getFinalizedSettings()) {
-        // Create 'real' texture and set it.
-        this.updatingTexture = false;
-
-        let m = this.view.stage.textureManager;
-
-        // Inherit texture precision from text settings.
-        this.view.texture.precision = settings.precision;
-
-        let loadCb = (cb, ts, sync) => {
-            m.loadTextTexture(settings, ts, sync, cb);
-        };
-
-        return this.view.stage.textureManager.getTextureSource(loadCb, settings.getTextureId());
-    };
-
-}
-
-
-/**
- * Copyright Metrological, 2017
- */
-class TextRenderer {
-
-    constructor(canvas, settings) {
-        this._canvas = canvas;
-        this._context = this._canvas.getContext('2d');
-        this._settings = settings;
-    }
-
-    getPrecision() {
-        return this._settings.precision;
-    };
-
-    setFontProperties(withPrecision) {
-        let ff = this._settings.fontFace;
-        let fonts = '"' + (Array.isArray(ff) ? this._settings.fontFace.join('","') : ff) + '"';
-        let precision = (withPrecision ? this.getPrecision() : 1);
-        this._context.font = this._settings.fontStyle + " " + (this._settings.fontSize * precision) + "px " + fonts;
-        this._context.textBaseline = this._settings.textBaseline;
-    };
-
-    draw(noDraw = false) {
-        let renderInfo = {};
-
-        // Set font properties.
-        this.setFontProperties(false);
-
-        // Total width.
-        let width = this._settings.w || (2048 / this.getPrecision());
-
-        // Inner width.
-        let innerWidth = width - (this._settings.paddingLeft + this._settings.paddingRight);
-        if (innerWidth < 10) {
-            width += (10 - innerWidth);
-            innerWidth += (10 - innerWidth);
-        }
-
-        let wordWrapWidth = this._settings.wordWrapWidth || innerWidth;
-
-        // word wrap
-        // preserve original text
-        let linesInfo;
-        if (this._settings.wordWrap) {
-            linesInfo = this.wrapText(this._settings.text, wordWrapWidth);
-        } else {
-            linesInfo = {l: this._settings.text.split(/(?:\r\n|\r|\n)/), n: []};
-            let i, n = linesInfo.l.length;
-            for (let i = 0; i < n - 1; i++) {
-                linesInfo.n.push(i);
-            }
-        }
-        let lines = linesInfo.l;
-
-        if (this._settings.maxLines && lines.length > this._settings.maxLines) {
-            let usedLines = lines.slice(0, this._settings.maxLines);
-
-            let otherLines = null;
-            if (this._settings.maxLinesSuffix) {
-                // Wrap again with max lines suffix enabled.
-                let w = this._settings.maxLinesSuffix ? this._context.measureText(this._settings.maxLinesSuffix).width : 0
-                let al = this.wrapText(usedLines[usedLines.length - 1], wordWrapWidth - w);
-                usedLines[usedLines.length - 1] = al.l[0] + this._settings.maxLinesSuffix;
-                otherLines = [al.l.length > 1 ? al.l[1] : ''];
-            } else {
-                otherLines = ['']
-            }
-
-            // Re-assemble the remaining text.
-            let i, n = lines.length;
-            let j = 0;
-            let m = linesInfo.n.length;
-            for (i = this._settings.maxLines; i < n; i++) {
-                otherLines[j] += (otherLines[j] ? " " : "") + lines[i];
-                if (i + 1 < m && linesInfo.n[i + 1]) {
-                    j++;
-                }
-            }
-
-            renderInfo.remainingText = otherLines.join("\n");
-
-            renderInfo.moreTextLines = true;
-
-            lines = usedLines;
-        } else {
-            renderInfo.moreTextLines = false;
-            renderInfo.remainingText = "";
-        }
-
-        // calculate text width
-        let maxLineWidth = 0;
-        let lineWidths = [];
-        for (let i = 0; i < lines.length; i++) {
-            let lineWidth = this._context.measureText(lines[i]).width;
-            lineWidths.push(lineWidth);
-            maxLineWidth = Math.max(maxLineWidth, lineWidth);
-        }
-
-        renderInfo.lineWidths = lineWidths;
-
-        if (!this._settings.w) {
-            // Auto-set width to max text length.
-            width = maxLineWidth + this._settings.paddingLeft + this._settings.paddingRight;
-            innerWidth = maxLineWidth;
-        }
-
-        // calculate text height
-        let lineHeight = this._settings.lineHeight || (this._settings.fontSize);
-
-        let height;
-        if (this._settings.h) {
-            height = this._settings.h;
-        } else {
-            height = lineHeight * (lines.length - 1) + 0.5 * this._settings.fontSize + Math.max(lineHeight, this._settings.fontSize) + this._settings.offsetY;
-        }
-
-        let offsetY = this._settings.offsetY === null ? this._settings.fontSize : this._settings.offsetY;
-
-        let precision = this.getPrecision();
-
-        renderInfo.w = width * precision;
-        renderInfo.h = height * precision;
-        renderInfo.lines = lines;
-        renderInfo.precision = precision;
-
-        if (!noDraw) {
-            if (!width) {
-                // To prevent canvas errors.
-                width = 1;
-            }
-
-            if (!height) {
-                // To prevent canvas errors.
-                height = 1;
-            }
-
-            if (this._settings.cutSx || this._settings.cutEx) {
-                width = Math.min(width, this._settings.cutEx - this._settings.cutSx);
-            }
-
-            if (this._settings.cutSy || this._settings.cutEy) {
-                height = Math.min(height, this._settings.cutEy - this._settings.cutSy);
-            }
-
-            // Get corrected precision so that text
-            this._canvas.width = Math.ceil(width * precision);
-            this._canvas.height = Math.ceil(height * precision);
-
-            // After changing the canvas, we need to reset the properties.
-            this.setFontProperties(true);
-
-            if (this._settings.cutSx || this._settings.cutSy) {
-                this._context.translate(-(this._settings.cutSx * precision), -(this._settings.cutSy * precision));
-            }
-
-            let linePositionX;
-            let linePositionY;
-
-            let drawLines = [];
-
-            // Draw lines line by line.
-            for (let i = 0, n = lines.length; i < n; i++) {
-                linePositionX = 0;
-                linePositionY = (i * lineHeight) + offsetY;
-
-                if (this._settings.textAlign === 'right') {
-                    linePositionX += (innerWidth - lineWidths[i]);
-                } else if (this._settings.textAlign === 'center') {
-                    linePositionX += ((innerWidth - lineWidths[i]) / 2);
-                }
-                linePositionX += this._settings.paddingLeft;
-
-                drawLines.push({text: lines[i], x: linePositionX * precision, y: linePositionY * precision, w: lineWidths[i] * precision});
-            }
-
-            // Highlight.
-            if (this._settings.highlight) {
-                let color = this._settings.highlightColor || 0x00000000;
-                let hlHeight = (this._settings.highlightHeight || this._settings.fontSize * 1.5);
-                let offset = (this._settings.highlightOffset !== null ? this._settings.highlightOffset : -0.5 * this._settings.fontSize);
-                let paddingLeft = (this._settings.highlightPaddingLeft !== null ? this._settings.highlightPaddingLeft : this._settings.paddingLeft);
-                let paddingRight = (this._settings.highlightPaddingRight !== null ? this._settings.highlightPaddingRight : this._settings.paddingRight);
-
-                this._context.fillStyle = StageUtils.getRgbaString(color);
-                for (i = 0; i < drawLines.length; i++) {
-                    let drawLine = drawLines[i];
-                    this._context.fillRect((drawLine.x - paddingLeft) * precision, (drawLine.y + offset) * precision, (drawLine.w + paddingRight + paddingLeft) * precision, hlHeight * precision);
-                }
-            }
-
-            // Text shadow.
-            let prevShadowSettings = null;
-            if (this._settings.shadow) {
-                prevShadowSettings = [this._context.shadowColor, this._context.shadowOffsetX, this._context.shadowOffsetY, this._context.shadowBlur];
-
-                this._context.shadowColor = StageUtils.getRgbaString(this._settings.shadowColor);
-                this._context.shadowOffsetX = this._settings.shadowOffsetX * precision;
-                this._context.shadowOffsetY = this._settings.shadowOffsetY * precision;
-                this._context.shadowBlur = this._settings.shadowBlur * precision;
-            }
-
-            this._context.fillStyle = StageUtils.getRgbaString(this._settings.textColor);
-            for (let i = 0, n = drawLines.length; i < n; i++) {
-                let drawLine = drawLines[i];
-                this._context.fillText(drawLine.text, drawLine.x, drawLine.y);
-            }
-
-            if (prevShadowSettings) {
-                this._context.shadowColor = prevShadowSettings[0];
-                this._context.shadowOffsetX = prevShadowSettings[1];
-                this._context.shadowOffsetY = prevShadowSettings[2];
-                this._context.shadowBlur = prevShadowSettings[3];
-            }
-
-            if (this._settings.cutSx || this._settings.cutSy) {
-                this._context.translate(this._settings.cutSx, this._settings.cutSy);
-            }
-        }
-
-        let canvas = this._canvas;
-        return {renderInfo: renderInfo, canvas: canvas};
-    };
-
-    /**
-     * Applies newlines to a string to have it optimally fit into the horizontal
-     * bounds set by the Text object's wordWrapWidth property.
-     */
-    wrapText(text, wordWrapWidth) {
-        // Greedy wrapping algorithm that will wrap words as the line grows longer
-        // than its horizontal bounds.
-        let lines = text.split(/\r?\n/g);
-        let allLines = [];
-        let realNewlines = [];
-        for (let i = 0; i < lines.length; i++) {
-            let resultLines = [];
-            let result = '';
-            let spaceLeft = wordWrapWidth;
-            let words = lines[i].split(' ');
-            for (let j = 0; j < words.length; j++) {
-                let wordWidth = this._context.measureText(words[j]).width;
-                let wordWidthWithSpace = wordWidth + this._context.measureText(' ').width;
-                if (j === 0 || wordWidthWithSpace > spaceLeft) {
-                    // Skip printing the newline if it's the first word of the line that is
-                    // greater than the word wrap width.
-                    if (j > 0) {
-                        resultLines.push(result);
-                        result = '';
-                    }
-                    result += words[j];
-                    spaceLeft = wordWrapWidth - wordWidth;
-                }
-                else {
-                    spaceLeft -= wordWidthWithSpace;
-                    result += ' ' + words[j];
-                }
-            }
-
-            if (result) {
-                resultLines.push(result);
-                result = '';
-            }
-
-            allLines = allLines.concat(resultLines);
-
-            if (i < lines.length - 1) {
-                realNewlines.push(allLines.length);
-            }
-        }
-
-        return {l: allLines, n: realNewlines};
-    };
-    
-}
-
-
-/**
- * Copyright Metrological, 2017
- */
-
-
-class TextRendererSettings extends EventEmitter {
-
-    /**
-     * Finalize this settings object so that it is no longer dependent on possibly changing defaults.
-     */
-    finalize(view) {
-        // Inherit width and height from component.
-        if (!this.w && view.w) {
-            this.w = view.w;
-        }
-
-        if (!this.h && view.h) {
-            this.h = view.h;
-        }
-
-        if (this.fontFace === null) {
-            this.fontFace = view.stage.getOption('defaultFontFace');
-        }
-
-        if (this.precision === null) {
-            this.precision = view.stage.getRenderPrecision();
-        }
-    };
-
-    getTextureId() {
-        let parts = [];
-
-        if (this.w !== 0) parts.push("w " + this.w);
-        if (this.h !== 0) parts.push("h " + this.h);
-        if (this.fontStyle !== "normal") parts.push("fS" + this.fontStyle);
-        if (this.fontSize !== 40) parts.push("fs" + this.fontSize);
-        if (this.fontFace !== null) parts.push("ff" + (Array.isArray(this.fontFace) ? this.fontFace.join(",") : this.fontFace));
-        if (this.wordWrap !== true) parts.push("wr" + (this.wordWrap ? 1 : 0));
-        if (this.wordWrapWidth !== 0) parts.push("ww" + this.wordWrapWidth);
-        if (this.lineHeight !== null) parts.push("lh" + this.lineHeight);
-        if (this.textBaseline !== "alphabetic") parts.push("tb" + this.textBaseline);
-        if (this.textAlign !== "left") parts.push("ta" + this.textAlign);
-        if (this.offsetY !== null) parts.push("oy" + this.offsetY);
-        if (this.maxLines !== 0) parts.push("ml" + this.maxLines);
-        if (this.maxLinesSuffix !== "..") parts.push("ms" + this.maxLinesSuffix);
-        if (this.precision !== null) parts.push("pc" + this.precision);
-        if (this.textColor !== 0xffffffff) parts.push("co" + this.textColor.toString(16));
-        if (this.paddingLeft !== 0) parts.push("pl" + this.paddingLeft);
-        if (this.paddingRight !== 0) parts.push("pr" + this.paddingRight);
-        if (this.shadow !== false) parts.push("sh" + (this.shadow ? 1 : 0));
-        if (this.shadowColor !== 0xff000000) parts.push("sc" + this.shadowColor.toString(16));
-        if (this.shadowOffsetX !== 0) parts.push("sx" + this.shadowOffsetX);
-        if (this.shadowOffsetY !== 0) parts.push("sy" + this.shadowOffsetY);
-        if (this.shadowBlur !== 5) parts.push("sb" + this.shadowBlur);
-        if (this.highlight !== false) parts.push("hL" + (this.highlight ? 1 : 0));
-        if (this.highlightHeight !== 0) parts.push("hh" + this.highlightHeight);
-        if (this.highlightColor !== 0xff000000) parts.push("hc" + this.highlightColor.toString(16));
-        if (this.highlightOffset !== null) parts.push("ho" + this.highlightOffset);
-        if (this.highlightPaddingLeft !== null) parts.push("hl" + this.highlightPaddingLeft);
-        if (this.highlightPaddingRight !== null) parts.push("hr" + this.highlightPaddingRight);
-
-        if (this.cutSx) parts.push("csx" + this.cutSx);
-        if (this.cutEx) parts.push("cex" + this.cutEx);
-        if (this.cutSy) parts.push("csy" + this.cutSy);
-        if (this.cutEy) parts.push("cey" + this.cutEy);
-
-        if (this.sync) parts.push("sync");
-
-        let id = "TX$" + parts.join("|") + ":" + this.text;
-        return id;
-    }
-
-    getNonDefaults() {
-        var nonDefaults = {};
-
-        if (this.text !== "") nonDefaults['text'] = this.text;
-        if (this.w !== 0) nonDefaults['w'] = this.w;
-        if (this.h !== 0) nonDefaults['h'] = this.h;
-        if (this.fontStyle !== "normal") nonDefaults['fontStyle'] = this.fontStyle;
-        if (this.fontSize !== 40) nonDefaults["fontSize"] = this.fontSize;
-        if (this.fontFace !== null) nonDefaults["fontFace"] = this.fontFace;
-        if (this.wordWrap !== true) nonDefaults["wordWrap"] = this.wordWrap;
-        if (this.wordWrapWidth !== 0) nonDefaults["wordWrapWidth"] = this.wordWrapWidth;
-        if (this.lineHeight !== null) nonDefaults["lineHeight"] = this.lineHeight;
-        if (this.textBaseline !== "alphabetic") nonDefaults["textBaseline"] = this.textBaseline;
-        if (this.textAlign !== "left") nonDefaults["textAlign"] = this.textAlign;
-        if (this.offsetY !== null) nonDefaults["offsetY"] = this.offsetY;
-        if (this.maxLines !== 0) nonDefaults["maxLines"] = this.maxLines;
-        if (this.maxLinesSuffix !== "..") nonDefaults["maxLinesSuffix"] = this.maxLinesSuffix;
-        if (this.precision !== null) nonDefaults["precision"] = this.precision;
-        if (this.textColor !== 0xffffffff) nonDefaults["textColor"] = this.textColor;
-        if (this.paddingLeft !== 0) nonDefaults["paddingLeft"] = this.paddingLeft;
-        if (this.paddingRight !== 0) nonDefaults["paddingRight"] = this.paddingRight;
-        if (this.shadow !== false) nonDefaults["shadow"] = this.shadow;
-        if (this.shadowColor !== 0xff000000) nonDefaults["shadowColor"] = this.shadowColor;
-        if (this.shadowOffsetX !== 0) nonDefaults["shadowOffsetX"] = this.shadowOffsetX;
-        if (this.shadowOffsetY !== 0) nonDefaults["shadowOffsetY"] = this.shadowOffsetY;
-        if (this.shadowBlur !== 5) nonDefaults["shadowBlur"] = this.shadowBlur;
-        if (this.highlight !== false) nonDefaults["highlight"] = this.highlight;
-        if (this.highlightHeight !== 0) nonDefaults["highlightHeight"] = this.highlightHeight;
-        if (this.highlightColor !== 0xff000000) nonDefaults["highlightColor"] = this.highlightColor;
-        if (this.highlightOffset !== 0) nonDefaults["highlightOffset"] = this.highlightOffset;
-        if (this.highlightPaddingLeft !== 0) nonDefaults["highlightPaddingLeft"] = this.highlightPaddingLeft;
-        if (this.highlightPaddingRight !== 0) nonDefaults["highlightPaddingRight"] = this.highlightPaddingRight;
-
-        if (this.cutSx) nonDefaults["cutSx"] = this.cutSx;
-        if (this.cutEx) nonDefaults["cutEx"] = this.cutEx;
-        if (this.cutSy) nonDefaults["cutSy"] = this.cutSy;
-        if (this.cutEy) nonDefaults["cutEy"] = this.cutEy;
-
-        if (this.sync) nonDefaults["sync"] = this.sync;
-
-        return nonDefaults;
-    }
-
-    clone() {
-        let obj = new TextRendererSettings();
-        obj._text = this._text;
-        obj._w = this._w;
-        obj._h = this._h;
-        obj._fontStyle = this._fontStyle;
-        obj._fontSize = this._fontSize;
-        obj._fontFace = this._fontFace;
-        obj._wordWrap = this._wordWrap;
-        obj._wordWrapWidth = this._wordWrapWidth;
-        obj._lineHeight = this._lineHeight;
-        obj._textBaseline = this._textBaseline;
-        obj._textAlign = this._textAlign;
-        obj._offsetY = this._offsetY;
-        obj._maxLines = this._maxLines;
-        obj._maxLinesSuffix = this._maxLinesSuffix;
-        obj._precision = this._precision;
-        obj._textColor = this._textColor;
-        obj._paddingLeft = this._paddingLeft;
-        obj._paddingRight = this._paddingRight;
-        obj._shadow = this._shadow;
-        obj._shadowColor = this._shadowColor;
-        obj._shadowOffsetX = this._shadowOffsetX;
-        obj._shadowOffsetY = this._shadowOffsetY;
-        obj._shadowBlur = this._shadowBlur;
-        obj._highlight = this._highlight;
-        obj._highlightHeight = this._highlightHeight;
-        obj._highlightColor = this._highlightColor;
-        obj._highlightOffset = this._highlightOffset;
-        obj._highlightPaddingLeft = this._highlightPaddingLeft;
-        obj._highlightPaddingRight = this._highlightPaddingRight;
-        obj._cutSx = this._cutSx;
-        obj._cutEx = this._cutEx;
-        obj._cutSy = this._cutSy;
-        obj._cutEy = this._cutEy;
-        obj.sync = this.sync;
-        return obj;
-    }
-
-    patch(settings) {
-        Base.patchObject(this, settings)
-    }
-
-    get text() {
-        return this._text
-    }
-
-    set text(v) {
-        if (this._text !== v) {
-            this._text = v;
-            this.emit('change');
-        }
-    }
-
-    get w() {
-        return this._w
-    }
-
-    set w(v) {
-        if (this._w !== v) {
-            this._w = v;
-            this.emit('change');
-        }
-    }
-
-    get h() {
-        return this._h
-    }
-
-    set h(v) {
-        if (this._h !== v) {
-            this._h = v;
-            this.emit('change');
-        }
-    }
-
-    get fontStyle() {
-        return this._fontStyle
-    }
-
-    set fontStyle(v) {
-        if (this._fontStyle !== v) {
-            this._fontStyle = v;
-            this.emit('change');
-        }
-    }
-
-    get fontSize() {
-        return this._fontSize
-    }
-
-    set fontSize(v) {
-        if (this._fontSize !== v) {
-            this._fontSize = v;
-            this.emit('change');
-        }
-    }
-
-    get fontFace() {
-        return this._fontFace
-    }
-
-    set fontFace(v) {
-        if (this._fontFace !== v) {
-            this._fontFace = v;
-            this.emit('change');
-        }
-    }
-
-    get wordWrap() {
-        return this._wordWrap
-    }
-
-    set wordWrap(v) {
-        if (this._wordWrap !== v) {
-            this._wordWrap = v;
-            this.emit('change');
-        }
-    }
-
-    get wordWrapWidth() {
-        return this._wordWrapWidth
-    }
-
-    set wordWrapWidth(v) {
-        if (this._wordWrapWidth !== v) {
-            this._wordWrapWidth = v;
-            this.emit('change');
-        }
-    }
-
-    get lineHeight() {
-        return this._lineHeight
-    }
-
-    set lineHeight(v) {
-        if (this._lineHeight !== v) {
-            this._lineHeight = v;
-            this.emit('change');
-        }
-    }
-
-    get textBaseline() {
-        return this._textBaseline
-    }
-
-    set textBaseline(v) {
-        if (this._textBaseline !== v) {
-            this._textBaseline = v;
-            this.emit('change');
-        }
-    }
-
-    get textAlign() {
-        return this._textAlign
-    }
-
-    set textAlign(v) {
-        if (this._textAlign !== v) {
-            this._textAlign = v;
-            this.emit('change');
-        }
-    }
-
-    get offsetY() {
-        return this._offsetY
-    }
-
-    set offsetY(v) {
-        if (this._offsetY !== v) {
-            this._offsetY = v;
-            this.emit('change');
-        }
-    }
-
-    get maxLines() {
-        return this._maxLines
-    }
-
-    set maxLines(v) {
-        if (this._maxLines !== v) {
-            this._maxLines = v;
-            this.emit('change');
-        }
-    }
-
-    get maxLinesSuffix() {
-        return this._maxLinesSuffix
-    }
-
-    set maxLinesSuffix(v) {
-        if (this._maxLinesSuffix !== v) {
-            this._maxLinesSuffix = v;
-            this.emit('change');
-        }
-    }
-
-    get precision() {
-        return this._precision
-    }
-
-    set precision(v) {
-        if (this._precision !== v) {
-            this._precision = v;
-            this.emit('change');
-        }
-    }
-
-    get textColor() {
-        return this._textColor
-    }
-
-    set textColor(v) {
-        if (this._textColor !== v) {
-            this._textColor = v;
-            this.emit('change');
-        }
-    }
-
-    get paddingLeft() {
-        return this._paddingLeft
-    }
-
-    set paddingLeft(v) {
-        if (this._paddingLeft !== v) {
-            this._paddingLeft = v;
-            this.emit('change');
-        }
-    }
-
-    get paddingRight() {
-        return this._paddingRight
-    }
-
-    set paddingRight(v) {
-        if (this._paddingRight !== v) {
-            this._paddingRight = v;
-            this.emit('change');
-        }
-    }
-
-    get shadow() {
-        return this._shadow
-    }
-
-    set shadow(v) {
-        if (this._shadow !== v) {
-            this._shadow = v;
-            this.emit('change');
-        }
-    }
-
-    get shadowColor() {
-        return this._shadowColor
-    }
-
-    set shadowColor(v) {
-        if (this._shadowColor !== v) {
-            this._shadowColor = v;
-            this.emit('change');
-        }
-    }
-
-    get shadowOffsetX() {
-        return this._shadowOffsetX
-    }
-
-    set shadowOffsetX(v) {
-        if (this._shadowOffsetX !== v) {
-            this._shadowOffsetX = v;
-            this.emit('change');
-        }
-    }
-
-    get shadowOffsetY() {
-        return this._shadowOffsetY
-    }
-
-    set shadowOffsetY(v) {
-        if (this._shadowOffsetY !== v) {
-            this._shadowOffsetY = v;
-            this.emit('change');
-        }
-    }
-
-    get shadowBlur() {
-        return this._shadowBlur
-    }
-
-    set shadowBlur(v) {
-        if (this._shadowBlur !== v) {
-            this._shadowBlur = v;
-            this.emit('change');
-        }
-    }
-
-    get highlight() {
-        return this._highlight
-    }
-
-    set highlight(v) {
-        if (this._highlight !== v) {
-            this._highlight = v;
-            this.emit('change');
-        }
-    }
-
-    get highlightHeight() {
-        return this._highlightHeight
-    }
-
-    set highlightHeight(v) {
-        if (this._highlightHeight !== v) {
-            this._highlightHeight = v;
-            this.emit('change');
-        }
-    }
-
-    get highlightColor() {
-        return this._highlightColor
-    }
-
-    set highlightColor(v) {
-        if (this._highlightColor !== v) {
-            this._highlightColor = v;
-            this.emit('change');
-        }
-    }
-
-    get highlightOffset() {
-        return this._highlightOffset
-    }
-
-    set highlightOffset(v) {
-        if (this._highlightOffset !== v) {
-            this._highlightOffset = v;
-            this.emit('change');
-        }
-    }
-
-    get highlightPaddingLeft() {
-        return this._highlightPaddingLeft
-    }
-
-    set highlightPaddingLeft(v) {
-        if (this._highlightPaddingLeft !== v) {
-            this._highlightPaddingLeft = v;
-            this.emit('change');
-        }
-    }
-
-    get highlightPaddingRight() {
-        return this._highlightPaddingRight
-    }
-
-    set highlightPaddingRight(v) {
-        if (this._highlightPaddingRight !== v) {
-            this._highlightPaddingRight = v;
-            this.emit('change');
-        }
-    }
-
-    get cutSx() {
-        return this._cutSx
-    }
-
-    set cutSx(v) {
-        if (this._cutSx !== v) {
-            this._cutSx = v;
-            this.emit('change');
-        }
-    }
-
-    get cutEx() {
-        return this._cutEx
-    }
-
-    set cutEx(v) {
-        if (this._cutEx !== v) {
-            this._cutEx = v;
-            this.emit('change');
-        }
-    }
-
-    get cutSy() {
-        return this._cutSy
-    }
-
-    set cutSy(v) {
-        if (this._cutSy !== v) {
-            this._cutSy = v;
-            this.emit('change');
-        }
-    }
-
-    get cutEy() {
-        return this._cutEy
-    }
-
-    set cutEy(v) {
-        if (this._cutEy !== v) {
-            this._cutEy = v;
-            this.emit('change');
-        }
-    }
-}
-
-// Because there are so many properties, we prefer to use the prototype for default values.
-// This causes a decrease in performance, but also a decrease in memory usage.
-let proto = TextRendererSettings.prototype
-proto._text = "";
-proto._w = 0;
-proto._h = 0;
-proto._fontStyle = "normal";
-proto._fontSize = 40;
-proto._fontFace = null;
-proto._wordWrap = true;
-proto._wordWrapWidth = 0;
-proto._lineHeight = null;
-proto._textBaseline = "alphabetic";
-proto._textAlign = "left";
-proto._offsetY = null;
-proto._maxLines = 0;
-proto._maxLinesSuffix = "..";
-proto._precision = null;
-proto._textColor = 0xFFFFFFFF;
-proto._paddingLeft = 0;
-proto._paddingRight = 0;
-proto._shadow = false;
-proto._shadowColor = 0xFF000000;
-proto._shadowOffsetX = 0;
-proto._shadowOffsetY = 0;
-proto._shadowBlur = 5;
-proto._highlight = false;
-proto._highlightHeight = 0;
-proto._highlightColor = 0xFF000000;
-proto._highlightOffset = 0;
-proto._highlightPaddingLeft = 0;
-proto._highlightPaddingRight = 0;
-proto._cutSx = 0;
-proto._cutEx = 0;
-proto._cutSy = 0;
-proto._cutEy = 0;
-proto.sync = false;
-
-
-
-/**
- * Copyright Metrological, 2017
- */
 class TransitionManager {
 
     constructor(stage) {
@@ -10418,6 +9502,1060 @@ Animation.STATES = {
 }
 
 
+
+class ImageTexture extends Texture {
+
+    constructor(stage) {
+        super(stage)
+
+        this._src = undefined
+    }
+
+    set src(v) {
+        if (this._src !== v) {
+            this._src = v
+            this._changed()
+        }
+    }
+
+    _getIsValid() {
+        return !!this._src
+    }
+
+    _getLookupId() {
+        return this._src
+    }
+
+    _getSourceLoader() {
+        let src = this._src
+        if (this.stage.getOption('srcBasePath')) {
+            var fc = src.charCodeAt(0)
+            if ((src.indexOf("//") === -1) && ((fc >= 65 && fc <= 90) || (fc >= 97 && fc <= 122) || fc == 46)) {
+                // Alphabetical or dot: prepend base path.
+                src = this.stage.getOption('srcBasePath') + src
+            }
+        }
+
+        const adapter = this.stage.adapter
+        return function(cb) {
+            return adapter.loadSrcTexture(src, cb)
+        }
+    }
+
+    getNonDefaults() {
+        const obj = super.getNonDefaults()
+        if (this._src) {
+            obj.src = this._src
+        }
+        return obj
+    }
+
+}
+
+
+class RectangleTexture extends Texture {
+
+    _getLookupId() {
+        return '__whitepix'
+    }
+
+    _getSourceLoader() {
+        return function(cb) {
+            var whitePixel = new Uint8Array([255, 255, 255, 255]);
+            cb(null, {source: whitePixel, w: 1, h: 1});
+        }
+    }
+
+}
+
+
+class RoundRectTexture extends Texture {
+
+    constructor(stage) {
+        super(stage)
+
+        this._w = 100
+        this._h = 100
+        this._radius = [0, 0, 0, 0]
+        this._strokeWidth = 0
+        this._strokeColor = 0xFFFFFFFF
+        this._fill = true
+        this._fillColor = 0xFFFFFFFF
+    }
+
+    set w(v) {
+        if (this._w !== v) {
+            this._w = v
+            this._changed()
+        }
+    }
+
+    set h(v) {
+        if (this._h !== v) {
+            this._h = v
+            this._changed()
+        }
+    }
+
+    set radius(v) {
+        if (!Array.isArray(v)){
+            // upper-left, upper-right, bottom-right, bottom-left.
+            v = [v, v, v, v]
+        }
+        
+        this._radius = v
+        this._changed()
+    }
+
+    set strokeWidth(v) {
+        if (this._strokeWidth !== v) {
+            this._strokeWidth = v
+            this._changed()
+        }
+    }
+
+    set strokeColor(v) {
+        if (this._strokeColor !== v) {
+            this._strokeColor = v
+            this._changed()
+        }
+    }
+    
+    set fill(v) {
+        if (this._fill !== !!v) {
+            this._fill = !!v
+            this._changed()
+        }
+    }
+    
+    set fillColor(v) {
+        if (this._fillColor !== v) {
+            this._fillColor = v
+            this._changed()
+        }
+    }
+
+    _getIsValid() {
+        return true
+    }
+
+    _getLookupId() {
+        return 'rect' + [this._w, this._h, this._strokeWidth, this._strokeColor, this._fill ? 1 : 0, this._fillColor].concat(this._radius).join(",")
+    }
+
+    _getSourceLoader() {
+        const args = {
+            w: this._w,
+            h: this._h,
+            radius: this._radius.slice(),
+            strokeWidth: this._strokeWidth,
+            strokeColor: this._strokeColor,
+            fill: this._fill,
+            fillColor: this._fillColor
+        }
+
+        const canvasFactory = () => {
+            return RoundRectTexture.createRoundRect(this.stage, args)
+        }
+
+        return function(cb) {
+            cb(null, this.stage.adapter.getTextureOptionsForDrawingCanvas(canvasFactory()))
+        }
+    }
+
+    getNonDefaults() {
+        const obj = super.getNonDefaults()
+        if (this._w) {
+            obj.w = this.w
+        }
+        if (this._h) {
+            obj.h = this.h
+        }
+
+        //@todo: other properties
+        return obj
+    }
+
+
+    static createRoundRect(stage, args) {
+        const canvas = stage.adapter.getDrawingCanvas();
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+
+        const w = args.w, h = args.h;
+
+        canvas.width = w + args.strokeWidth + 2;
+        canvas.height = h + args.strokeWidth + 2;
+
+        ctx.beginPath();
+        let x = 0.5 * args.strokeWidth + 1, y = 0.5 * args.strokeWidth + 1;
+
+        ctx.moveTo(x + args.radius[0], y);
+        ctx.lineTo(x + w - args.radius[1], y);
+        ctx.arcTo(x + w, y, x + w, y + args.radius[1], args.radius[1]);
+        ctx.lineTo(x + w, y + h - args.radius[2]);
+        ctx.arcTo(x + w, y + h, x + w - args.radius[2], y + h, args.radius[2]);
+        ctx.lineTo(x + args.radius[3], y + h);
+        ctx.arcTo(x, y + h, x, y + h - args.radius[3], args.radius[3]);
+        ctx.lineTo(x, y + args.radius[0]);
+        ctx.arcTo(x, y, x + args.radius[0], y, args.radius[0]);
+
+        if (args.fill) {
+            if (Utils.isNumber(args.fillColor)) {
+                ctx.fillStyle = StageUtils.getRgbaString(args.fillColor);
+            } else {
+                ctx.fillStyle = "white";
+            }
+            ctx.fill();
+        }
+
+        if (args.strokeWidth) {
+            if (Utils.isNumber(args.strokeColor)) {
+                ctx.strokeStyle = StageUtils.getRgbaString(args.strokeColor);
+            } else {
+                ctx.strokeStyle = "white";
+            }
+            ctx.lineWidth = args.strokeWidth;
+            ctx.stroke();
+        }
+
+        return canvas;
+    }
+
+}
+
+
+
+class TextTexture extends Texture {
+
+    constructor(stage) {
+        super(stage)
+
+        // We use the stage precision as the default precision in case of a text texture.
+        this._precision = this.stage.getOption('precision')
+    }
+
+    get text() {
+        return this._text
+    }
+
+    set text(v) {
+        if (this._text !== v) {
+            this._text = v;
+            this._changed();
+        }
+    }
+
+    get w() {
+        return this._w
+    }
+
+    set w(v) {
+        if (this._w !== v) {
+            this._w = v;
+            this._changed();
+        }
+    }
+
+    get h() {
+        return this._h
+    }
+
+    set h(v) {
+        if (this._h !== v) {
+            this._h = v;
+            this._changed();
+        }
+    }
+
+    get fontStyle() {
+        return this._fontStyle
+    }
+
+    set fontStyle(v) {
+        if (this._fontStyle !== v) {
+            this._fontStyle = v;
+            this._changed();
+        }
+    }
+
+    get fontSize() {
+        return this._fontSize
+    }
+
+    set fontSize(v) {
+        if (this._fontSize !== v) {
+            this._fontSize = v;
+            this._changed();
+        }
+    }
+
+    get fontFace() {
+        return this._fontFace
+    }
+
+    set fontFace(v) {
+        if (this._fontFace !== v) {
+            this._fontFace = v;
+            this._changed();
+        }
+    }
+
+    get wordWrap() {
+        return this._wordWrap
+    }
+
+    set wordWrap(v) {
+        if (this._wordWrap !== v) {
+            this._wordWrap = v;
+            this._changed();
+        }
+    }
+
+    get wordWrapWidth() {
+        return this._wordWrapWidth
+    }
+
+    set wordWrapWidth(v) {
+        if (this._wordWrapWidth !== v) {
+            this._wordWrapWidth = v;
+            this._changed();
+        }
+    }
+
+    get lineHeight() {
+        return this._lineHeight
+    }
+
+    set lineHeight(v) {
+        if (this._lineHeight !== v) {
+            this._lineHeight = v;
+            this._changed();
+        }
+    }
+
+    get textBaseline() {
+        return this._textBaseline
+    }
+
+    set textBaseline(v) {
+        if (this._textBaseline !== v) {
+            this._textBaseline = v;
+            this._changed();
+        }
+    }
+
+    get textAlign() {
+        return this._textAlign
+    }
+
+    set textAlign(v) {
+        if (this._textAlign !== v) {
+            this._textAlign = v;
+            this._changed();
+        }
+    }
+
+    get offsetY() {
+        return this._offsetY
+    }
+
+    set offsetY(v) {
+        if (this._offsetY !== v) {
+            this._offsetY = v;
+            this._changed();
+        }
+    }
+
+    get maxLines() {
+        return this._maxLines
+    }
+
+    set maxLines(v) {
+        if (this._maxLines !== v) {
+            this._maxLines = v;
+            this._changed();
+        }
+    }
+
+    get maxLinesSuffix() {
+        return this._maxLinesSuffix
+    }
+
+    set maxLinesSuffix(v) {
+        if (this._maxLinesSuffix !== v) {
+            this._maxLinesSuffix = v;
+            this._changed();
+        }
+    }
+
+    get textColor() {
+        return this._textColor
+    }
+
+    set textColor(v) {
+        if (this._textColor !== v) {
+            this._textColor = v;
+            this._changed();
+        }
+    }
+
+    get paddingLeft() {
+        return this._paddingLeft
+    }
+
+    set paddingLeft(v) {
+        if (this._paddingLeft !== v) {
+            this._paddingLeft = v;
+            this._changed();
+        }
+    }
+
+    get paddingRight() {
+        return this._paddingRight
+    }
+
+    set paddingRight(v) {
+        if (this._paddingRight !== v) {
+            this._paddingRight = v;
+            this._changed();
+        }
+    }
+
+    get shadow() {
+        return this._shadow
+    }
+
+    set shadow(v) {
+        if (this._shadow !== v) {
+            this._shadow = v;
+            this._changed();
+        }
+    }
+
+    get shadowColor() {
+        return this._shadowColor
+    }
+
+    set shadowColor(v) {
+        if (this._shadowColor !== v) {
+            this._shadowColor = v;
+            this._changed();
+        }
+    }
+
+    get shadowOffsetX() {
+        return this._shadowOffsetX
+    }
+
+    set shadowOffsetX(v) {
+        if (this._shadowOffsetX !== v) {
+            this._shadowOffsetX = v;
+            this._changed();
+        }
+    }
+
+    get shadowOffsetY() {
+        return this._shadowOffsetY
+    }
+
+    set shadowOffsetY(v) {
+        if (this._shadowOffsetY !== v) {
+            this._shadowOffsetY = v;
+            this._changed();
+        }
+    }
+
+    get shadowBlur() {
+        return this._shadowBlur
+    }
+
+    set shadowBlur(v) {
+        if (this._shadowBlur !== v) {
+            this._shadowBlur = v;
+            this._changed();
+        }
+    }
+
+    get highlight() {
+        return this._highlight
+    }
+
+    set highlight(v) {
+        if (this._highlight !== v) {
+            this._highlight = v;
+            this._changed();
+        }
+    }
+
+    get highlightHeight() {
+        return this._highlightHeight
+    }
+
+    set highlightHeight(v) {
+        if (this._highlightHeight !== v) {
+            this._highlightHeight = v;
+            this._changed();
+        }
+    }
+
+    get highlightColor() {
+        return this._highlightColor
+    }
+
+    set highlightColor(v) {
+        if (this._highlightColor !== v) {
+            this._highlightColor = v;
+            this._changed();
+        }
+    }
+
+    get highlightOffset() {
+        return this._highlightOffset
+    }
+
+    set highlightOffset(v) {
+        if (this._highlightOffset !== v) {
+            this._highlightOffset = v;
+            this._changed();
+        }
+    }
+
+    get highlightPaddingLeft() {
+        return this._highlightPaddingLeft
+    }
+
+    set highlightPaddingLeft(v) {
+        if (this._highlightPaddingLeft !== v) {
+            this._highlightPaddingLeft = v;
+            this._changed();
+        }
+    }
+
+    get highlightPaddingRight() {
+        return this._highlightPaddingRight
+    }
+
+    set highlightPaddingRight(v) {
+        if (this._highlightPaddingRight !== v) {
+            this._highlightPaddingRight = v;
+            this._changed();
+        }
+    }
+
+    get cutSx() {
+        return this._cutSx
+    }
+
+    set cutSx(v) {
+        if (this._cutSx !== v) {
+            this._cutSx = v;
+            this._changed();
+        }
+    }
+
+    get cutEx() {
+        return this._cutEx
+    }
+
+    set cutEx(v) {
+        if (this._cutEx !== v) {
+            this._cutEx = v;
+            this._changed();
+        }
+    }
+
+    get cutSy() {
+        return this._cutSy
+    }
+
+    set cutSy(v) {
+        if (this._cutSy !== v) {
+            this._cutSy = v;
+            this._changed();
+        }
+    }
+
+    get cutEy() {
+        return this._cutEy
+    }
+
+    set cutEy(v) {
+        if (this._cutEy !== v) {
+            this._cutEy = v;
+            this._changed();
+        }
+    }
+
+    set precision(v) {
+        // We actually draw differently when the precision changes.
+        if (this.precision !== v) {
+            super.precision = v
+            this._changed()
+        }
+    }
+
+    _getIsValid() {
+        return true
+    }
+
+    _getLookupId() {
+        let parts = [];
+
+        if (this.w !== 0) parts.push("w " + this.w);
+        if (this.h !== 0) parts.push("h " + this.h);
+        if (this.fontStyle !== "normal") parts.push("fS" + this.fontStyle);
+        if (this.fontSize !== 40) parts.push("fs" + this.fontSize);
+        if (this.fontFace !== null) parts.push("ff" + (Array.isArray(this.fontFace) ? this.fontFace.join(",") : this.fontFace));
+        if (this.wordWrap !== true) parts.push("wr" + (this.wordWrap ? 1 : 0));
+        if (this.wordWrapWidth !== 0) parts.push("ww" + this.wordWrapWidth);
+        if (this.lineHeight !== null) parts.push("lh" + this.lineHeight);
+        if (this.textBaseline !== "alphabetic") parts.push("tb" + this.textBaseline);
+        if (this.textAlign !== "left") parts.push("ta" + this.textAlign);
+        if (this.offsetY !== null) parts.push("oy" + this.offsetY);
+        if (this.maxLines !== 0) parts.push("ml" + this.maxLines);
+        if (this.maxLinesSuffix !== "..") parts.push("ms" + this.maxLinesSuffix);
+        if (this.precision !== null) parts.push("pc" + this.precision);
+        if (this.textColor !== 0xffffffff) parts.push("co" + this.textColor.toString(16));
+        if (this.paddingLeft !== 0) parts.push("pl" + this.paddingLeft);
+        if (this.paddingRight !== 0) parts.push("pr" + this.paddingRight);
+        if (this.shadow !== false) parts.push("sh" + (this.shadow ? 1 : 0));
+        if (this.shadowColor !== 0xff000000) parts.push("sc" + this.shadowColor.toString(16));
+        if (this.shadowOffsetX !== 0) parts.push("sx" + this.shadowOffsetX);
+        if (this.shadowOffsetY !== 0) parts.push("sy" + this.shadowOffsetY);
+        if (this.shadowBlur !== 5) parts.push("sb" + this.shadowBlur);
+        if (this.highlight !== false) parts.push("hL" + (this.highlight ? 1 : 0));
+        if (this.highlightHeight !== 0) parts.push("hh" + this.highlightHeight);
+        if (this.highlightColor !== 0xff000000) parts.push("hc" + this.highlightColor.toString(16));
+        if (this.highlightOffset !== null) parts.push("ho" + this.highlightOffset);
+        if (this.highlightPaddingLeft !== null) parts.push("hl" + this.highlightPaddingLeft);
+        if (this.highlightPaddingRight !== null) parts.push("hr" + this.highlightPaddingRight);
+
+        if (this.cutSx) parts.push("csx" + this.cutSx);
+        if (this.cutEx) parts.push("cex" + this.cutEx);
+        if (this.cutSy) parts.push("csy" + this.cutSy);
+        if (this.cutEy) parts.push("cey" + this.cutEy);
+
+        let id = "TX$" + parts.join("|") + ":" + this.text;
+        return id;
+    }
+
+    _getSourceLoader() {
+        const args = this.cloneArgs()
+        if (this.views.size) {
+            // Inherit w and h from view.
+            const it = this.views.values();
+            const first = it.next().value;
+            args.w = args.w || first.w
+            args.h = args.h || first.h
+            if (args.fontFace === null) {
+                args.fontFace = this.stage.getOption('defaultFontFace');
+            }
+        }
+
+        const canvas = this.stage.adapter.getDrawingCanvas()
+        return function(cb) {
+            const renderer = new TextTextureRenderer(canvas, args)
+            renderer.draw()
+            cb(null, this.stage.adapter.getTextureOptionsForDrawingCanvas(canvas))
+        }
+    }
+
+    getNonDefaults() {
+        const nonDefaults = super.getNonDefaults()
+        if (this.text !== "") nonDefaults['text'] = this.text;
+        if (this.w !== 0) nonDefaults['w'] = this.w;
+        if (this.h !== 0) nonDefaults['h'] = this.h;
+        if (this.fontStyle !== "normal") nonDefaults['fontStyle'] = this.fontStyle;
+        if (this.fontSize !== 40) nonDefaults["fontSize"] = this.fontSize;
+        if (this.fontFace !== null) nonDefaults["fontFace"] = this.fontFace;
+        if (this.wordWrap !== true) nonDefaults["wordWrap"] = this.wordWrap;
+        if (this.wordWrapWidth !== 0) nonDefaults["wordWrapWidth"] = this.wordWrapWidth;
+        if (this.lineHeight !== null) nonDefaults["lineHeight"] = this.lineHeight;
+        if (this.textBaseline !== "alphabetic") nonDefaults["textBaseline"] = this.textBaseline;
+        if (this.textAlign !== "left") nonDefaults["textAlign"] = this.textAlign;
+        if (this.offsetY !== null) nonDefaults["offsetY"] = this.offsetY;
+        if (this.maxLines !== 0) nonDefaults["maxLines"] = this.maxLines;
+        if (this.maxLinesSuffix !== "..") nonDefaults["maxLinesSuffix"] = this.maxLinesSuffix;
+        if (this.precision !== null) nonDefaults["precision"] = this.precision;
+        if (this.textColor !== 0xffffffff) nonDefaults["textColor"] = this.textColor;
+        if (this.paddingLeft !== 0) nonDefaults["paddingLeft"] = this.paddingLeft;
+        if (this.paddingRight !== 0) nonDefaults["paddingRight"] = this.paddingRight;
+        if (this.shadow !== false) nonDefaults["shadow"] = this.shadow;
+        if (this.shadowColor !== 0xff000000) nonDefaults["shadowColor"] = this.shadowColor;
+        if (this.shadowOffsetX !== 0) nonDefaults["shadowOffsetX"] = this.shadowOffsetX;
+        if (this.shadowOffsetY !== 0) nonDefaults["shadowOffsetY"] = this.shadowOffsetY;
+        if (this.shadowBlur !== 5) nonDefaults["shadowBlur"] = this.shadowBlur;
+        if (this.highlight !== false) nonDefaults["highlight"] = this.highlight;
+        if (this.highlightHeight !== 0) nonDefaults["highlightHeight"] = this.highlightHeight;
+        if (this.highlightColor !== 0xff000000) nonDefaults["highlightColor"] = this.highlightColor;
+        if (this.highlightOffset !== 0) nonDefaults["highlightOffset"] = this.highlightOffset;
+        if (this.highlightPaddingLeft !== 0) nonDefaults["highlightPaddingLeft"] = this.highlightPaddingLeft;
+        if (this.highlightPaddingRight !== 0) nonDefaults["highlightPaddingRight"] = this.highlightPaddingRight;
+
+        if (this.cutSx) nonDefaults["cutSx"] = this.cutSx;
+        if (this.cutEx) nonDefaults["cutEx"] = this.cutEx;
+        if (this.cutSy) nonDefaults["cutSy"] = this.cutSy;
+        if (this.cutEy) nonDefaults["cutEy"] = this.cutEy;
+        return nonDefaults
+    }
+
+    cloneArgs() {
+        let obj = {};
+        obj.text = this._text;
+        obj.w = this._w;
+        obj.h = this._h;
+        obj.fontStyle = this._fontStyle;
+        obj.fontSize = this._fontSize;
+        obj.fontFace = this._fontFace;
+        obj.wordWrap = this._wordWrap;
+        obj.wordWrapWidth = this._wordWrapWidth;
+        obj.lineHeight = this._lineHeight;
+        obj.textBaseline = this._textBaseline;
+        obj.textAlign = this._textAlign;
+        obj.offsetY = this._offsetY;
+        obj.maxLines = this._maxLines;
+        obj.maxLinesSuffix = this._maxLinesSuffix;
+        obj.precision = this._precision;
+        obj.textColor = this._textColor;
+        obj.paddingLeft = this._paddingLeft;
+        obj.paddingRight = this._paddingRight;
+        obj.shadow = this._shadow;
+        obj.shadowColor = this._shadowColor;
+        obj.shadowOffsetX = this._shadowOffsetX;
+        obj.shadowOffsetY = this._shadowOffsetY;
+        obj.shadowBlur = this._shadowBlur;
+        obj.highlight = this._highlight;
+        obj.highlightHeight = this._highlightHeight;
+        obj.highlightColor = this._highlightColor;
+        obj.highlightOffset = this._highlightOffset;
+        obj.highlightPaddingLeft = this._highlightPaddingLeft;
+        obj.highlightPaddingRight = this._highlightPaddingRight;
+        obj.cutSx = this._cutSx;
+        obj.cutEx = this._cutEx;
+        obj.cutSy = this._cutSy;
+        obj.cutEy = this._cutEy;
+        return obj;
+    }
+
+
+}
+
+// Because there are so many properties, we prefer to use the prototype for default values.
+// This causes a decrease in performance, but also a decrease in memory usage.
+let proto = TextTexture.prototype
+proto._text = "";
+proto._w = 0;
+proto._h = 0;
+proto._fontStyle = "normal";
+proto._fontSize = 40;
+proto._fontFace = null;
+proto._wordWrap = true;
+proto._wordWrapWidth = 0;
+proto._lineHeight = null;
+proto._textBaseline = "alphabetic";
+proto._textAlign = "left";
+proto._offsetY = null;
+proto._maxLines = 0;
+proto._maxLinesSuffix = "..";
+proto._precision = null;
+proto._textColor = 0xFFFFFFFF;
+proto._paddingLeft = 0;
+proto._paddingRight = 0;
+proto._shadow = false;
+proto._shadowColor = 0xFF000000;
+proto._shadowOffsetX = 0;
+proto._shadowOffsetY = 0;
+proto._shadowBlur = 5;
+proto._highlight = false;
+proto._highlightHeight = 0;
+proto._highlightColor = 0xFF000000;
+proto._highlightOffset = 0;
+proto._highlightPaddingLeft = 0;
+proto._highlightPaddingRight = 0;
+proto._cutSx = 0;
+proto._cutEx = 0;
+proto._cutSy = 0;
+proto._cutEy = 0;
+
+
+
+/**
+ * Copyright Metrological, 2017
+ */
+class TextTextureRenderer {
+
+    constructor(canvas, settings) {
+        this._canvas = canvas;
+        this._context = this._canvas.getContext('2d');
+        this._settings = settings;
+    }
+
+    getPrecision() {
+        return this._settings.precision;
+    };
+
+    setFontProperties(withPrecision) {
+        let ff = this._settings.fontFace;
+        let fonts = '"' + (Array.isArray(ff) ? this._settings.fontFace.join('","') : ff) + '"';
+        let precision = (withPrecision ? this.getPrecision() : 1);
+        this._context.font = this._settings.fontStyle + " " + (this._settings.fontSize * precision) + "px " + fonts;
+        this._context.textBaseline = this._settings.textBaseline;
+    };
+
+    draw(noDraw = false) {
+        let renderInfo = {};
+
+        // Set font properties.
+        this.setFontProperties(false);
+
+        // Total width.
+        let width = this._settings.w || (2048 / this.getPrecision());
+
+        // Inner width.
+        let innerWidth = width - (this._settings.paddingLeft + this._settings.paddingRight);
+        if (innerWidth < 10) {
+            width += (10 - innerWidth);
+            innerWidth += (10 - innerWidth);
+        }
+
+        let wordWrapWidth = this._settings.wordWrapWidth || innerWidth;
+
+        // word wrap
+        // preserve original text
+        let linesInfo;
+        if (this._settings.wordWrap) {
+            linesInfo = this.wrapText(this._settings.text, wordWrapWidth);
+        } else {
+            linesInfo = {l: this._settings.text.split(/(?:\r\n|\r|\n)/), n: []};
+            let i, n = linesInfo.l.length;
+            for (let i = 0; i < n - 1; i++) {
+                linesInfo.n.push(i);
+            }
+        }
+        let lines = linesInfo.l;
+
+        if (this._settings.maxLines && lines.length > this._settings.maxLines) {
+            let usedLines = lines.slice(0, this._settings.maxLines);
+
+            let otherLines = null;
+            if (this._settings.maxLinesSuffix) {
+                // Wrap again with max lines suffix enabled.
+                let w = this._settings.maxLinesSuffix ? this._context.measureText(this._settings.maxLinesSuffix).width : 0
+                let al = this.wrapText(usedLines[usedLines.length - 1], wordWrapWidth - w);
+                usedLines[usedLines.length - 1] = al.l[0] + this._settings.maxLinesSuffix;
+                otherLines = [al.l.length > 1 ? al.l[1] : ''];
+            } else {
+                otherLines = ['']
+            }
+
+            // Re-assemble the remaining text.
+            let i, n = lines.length;
+            let j = 0;
+            let m = linesInfo.n.length;
+            for (i = this._settings.maxLines; i < n; i++) {
+                otherLines[j] += (otherLines[j] ? " " : "") + lines[i];
+                if (i + 1 < m && linesInfo.n[i + 1]) {
+                    j++;
+                }
+            }
+
+            renderInfo.remainingText = otherLines.join("\n");
+
+            renderInfo.moreTextLines = true;
+
+            lines = usedLines;
+        } else {
+            renderInfo.moreTextLines = false;
+            renderInfo.remainingText = "";
+        }
+
+        // calculate text width
+        let maxLineWidth = 0;
+        let lineWidths = [];
+        for (let i = 0; i < lines.length; i++) {
+            let lineWidth = this._context.measureText(lines[i]).width;
+            lineWidths.push(lineWidth);
+            maxLineWidth = Math.max(maxLineWidth, lineWidth);
+        }
+
+        renderInfo.lineWidths = lineWidths;
+
+        if (!this._settings.w) {
+            // Auto-set width to max text length.
+            width = maxLineWidth + this._settings.paddingLeft + this._settings.paddingRight;
+            innerWidth = maxLineWidth;
+        }
+
+        // calculate text height
+        let lineHeight = this._settings.lineHeight || (this._settings.fontSize);
+
+        let height;
+        if (this._settings.h) {
+            height = this._settings.h;
+        } else {
+            height = lineHeight * (lines.length - 1) + 0.5 * this._settings.fontSize + Math.max(lineHeight, this._settings.fontSize) + this._settings.offsetY;
+        }
+
+        let offsetY = this._settings.offsetY === null ? this._settings.fontSize : this._settings.offsetY;
+
+        let precision = this.getPrecision();
+
+        renderInfo.w = width * precision;
+        renderInfo.h = height * precision;
+        renderInfo.lines = lines;
+        renderInfo.precision = precision;
+
+        if (!noDraw) {
+            if (!width) {
+                // To prevent canvas errors.
+                width = 1;
+            }
+
+            if (!height) {
+                // To prevent canvas errors.
+                height = 1;
+            }
+
+            if (this._settings.cutSx || this._settings.cutEx) {
+                width = Math.min(width, this._settings.cutEx - this._settings.cutSx);
+            }
+
+            if (this._settings.cutSy || this._settings.cutEy) {
+                height = Math.min(height, this._settings.cutEy - this._settings.cutSy);
+            }
+
+            // Get corrected precision so that text
+            this._canvas.width = Math.ceil(width * precision);
+            this._canvas.height = Math.ceil(height * precision);
+
+            // After changing the canvas, we need to reset the properties.
+            this.setFontProperties(true);
+
+            if (this._settings.cutSx || this._settings.cutSy) {
+                this._context.translate(-(this._settings.cutSx * precision), -(this._settings.cutSy * precision));
+            }
+
+            let linePositionX;
+            let linePositionY;
+
+            let drawLines = [];
+
+            // Draw lines line by line.
+            for (let i = 0, n = lines.length; i < n; i++) {
+                linePositionX = 0;
+                linePositionY = (i * lineHeight) + offsetY;
+
+                if (this._settings.textAlign === 'right') {
+                    linePositionX += (innerWidth - lineWidths[i]);
+                } else if (this._settings.textAlign === 'center') {
+                    linePositionX += ((innerWidth - lineWidths[i]) / 2);
+                }
+                linePositionX += this._settings.paddingLeft;
+
+                drawLines.push({text: lines[i], x: linePositionX * precision, y: linePositionY * precision, w: lineWidths[i] * precision});
+            }
+
+            // Highlight.
+            if (this._settings.highlight) {
+                let color = this._settings.highlightColor || 0x00000000;
+                let hlHeight = (this._settings.highlightHeight || this._settings.fontSize * 1.5);
+                let offset = (this._settings.highlightOffset !== null ? this._settings.highlightOffset : -0.5 * this._settings.fontSize);
+                let paddingLeft = (this._settings.highlightPaddingLeft !== null ? this._settings.highlightPaddingLeft : this._settings.paddingLeft);
+                let paddingRight = (this._settings.highlightPaddingRight !== null ? this._settings.highlightPaddingRight : this._settings.paddingRight);
+
+                this._context.fillStyle = StageUtils.getRgbaString(color);
+                for (i = 0; i < drawLines.length; i++) {
+                    let drawLine = drawLines[i];
+                    this._context.fillRect((drawLine.x - paddingLeft) * precision, (drawLine.y + offset) * precision, (drawLine.w + paddingRight + paddingLeft) * precision, hlHeight * precision);
+                }
+            }
+
+            // Text shadow.
+            let prevShadowSettings = null;
+            if (this._settings.shadow) {
+                prevShadowSettings = [this._context.shadowColor, this._context.shadowOffsetX, this._context.shadowOffsetY, this._context.shadowBlur];
+
+                this._context.shadowColor = StageUtils.getRgbaString(this._settings.shadowColor);
+                this._context.shadowOffsetX = this._settings.shadowOffsetX * precision;
+                this._context.shadowOffsetY = this._settings.shadowOffsetY * precision;
+                this._context.shadowBlur = this._settings.shadowBlur * precision;
+            }
+
+            this._context.fillStyle = StageUtils.getRgbaString(this._settings.textColor);
+            for (let i = 0, n = drawLines.length; i < n; i++) {
+                let drawLine = drawLines[i];
+                this._context.fillText(drawLine.text, drawLine.x, drawLine.y);
+            }
+
+            if (prevShadowSettings) {
+                this._context.shadowColor = prevShadowSettings[0];
+                this._context.shadowOffsetX = prevShadowSettings[1];
+                this._context.shadowOffsetY = prevShadowSettings[2];
+                this._context.shadowBlur = prevShadowSettings[3];
+            }
+
+            if (this._settings.cutSx || this._settings.cutSy) {
+                this._context.translate(this._settings.cutSx, this._settings.cutSy);
+            }
+        }
+
+        let canvas = this._canvas;
+        return {renderInfo: renderInfo, canvas: canvas};
+    };
+
+    /**
+     * Applies newlines to a string to have it optimally fit into the horizontal
+     * bounds set by the Text object's wordWrapWidth property.
+     */
+    wrapText(text, wordWrapWidth) {
+        // Greedy wrapping algorithm that will wrap words as the line grows longer
+        // than its horizontal bounds.
+        let lines = text.split(/\r?\n/g);
+        let allLines = [];
+        let realNewlines = [];
+        for (let i = 0; i < lines.length; i++) {
+            let resultLines = [];
+            let result = '';
+            let spaceLeft = wordWrapWidth;
+            let words = lines[i].split(' ');
+            for (let j = 0; j < words.length; j++) {
+                let wordWidth = this._context.measureText(words[j]).width;
+                let wordWidthWithSpace = wordWidth + this._context.measureText(' ').width;
+                if (j === 0 || wordWidthWithSpace > spaceLeft) {
+                    // Skip printing the newline if it's the first word of the line that is
+                    // greater than the word wrap width.
+                    if (j > 0) {
+                        resultLines.push(result);
+                        result = '';
+                    }
+                    result += words[j];
+                    spaceLeft = wordWrapWidth - wordWidth;
+                }
+                else {
+                    spaceLeft -= wordWidthWithSpace;
+                    result += ' ' + words[j];
+                }
+            }
+
+            if (result) {
+                resultLines.push(result);
+                result = '';
+            }
+
+            allLines = allLines.concat(resultLines);
+
+            if (i < lines.length - 1) {
+                realNewlines.push(allLines.length);
+            }
+        }
+
+        return {l: allLines, n: realNewlines};
+    };
+    
+}
+
+
 /**
  * Copyright Metrological, 2017
  */
@@ -10465,65 +10603,6 @@ class Tools {
             const info = Tools.convertCanvas(canvasFactory())
             cb(null, info.data, info.options);
         }, texOptions);
-    }
-
-    static getRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor) {
-        if (!Array.isArray(radius)){
-            // upper-left, upper-right, bottom-right, bottom-left.
-            radius = [radius, radius, radius, radius]
-        }
-
-        let factory = () => {
-            return this.createRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor)
-        }
-        let id = 'rect' + [w, h, strokeWidth, strokeColor, fill ? 1 : 0, fillColor].concat(radius).join(",");
-        return Tools.getCanvasTexture(stage, factory, {id: id});
-    }
-
-    static createRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor) {
-        if (fill === undefined) fill = true;
-        if (strokeWidth === undefined) strokeWidth = 0;
-
-        let canvas = stage.adapter.getDrawingCanvas();
-        let ctx = canvas.getContext('2d');
-        ctx.imageSmoothingEnabled = true;
-
-        canvas.width = w + strokeWidth + 2;
-        canvas.height = h + strokeWidth + 2;
-
-        ctx.beginPath();
-        let x = 0.5 * strokeWidth + 1, y = 0.5 * strokeWidth + 1;
-
-        ctx.moveTo(x + radius[0], y);
-        ctx.lineTo(x + w - radius[1], y);
-        ctx.arcTo(x + w, y, x + w, y + radius[1], radius[1]);
-        ctx.lineTo(x + w, y + h - radius[2]);
-        ctx.arcTo(x + w, y + h, x + w - radius[2], y + h, radius[2]);
-        ctx.lineTo(x + radius[3], y + h);
-        ctx.arcTo(x, y + h, x, y + h - radius[3], radius[3]);
-        ctx.lineTo(x, y + radius[0]);
-        ctx.arcTo(x, y, x + radius[0], y, radius[0]);
-
-        if (fill) {
-            if (Utils.isNumber(fillColor)) {
-                ctx.fillStyle = StageUtils.getRgbaString(fillColor);
-            } else {
-                ctx.fillStyle = "white";
-            }
-            ctx.fill();
-        }
-
-        if (strokeWidth) {
-            if (Utils.isNumber(strokeColor)) {
-                ctx.strokeStyle = StageUtils.getRgbaString(strokeColor);
-            } else {
-                ctx.strokeStyle = "white";
-            }
-            ctx.lineWidth = strokeWidth;
-            ctx.stroke();
-        }
-
-        return canvas;
     }
 
     static getShadowRect(stage, w, h, radius = 0, blur = 5, margin = blur * 2) {
@@ -13626,6 +13705,12 @@ return {
     Filter: Filter,
     View: View,
     Tools: Tools,
+    textures: {
+        RectangleTexture: RectangleTexture,
+        TextTexture: TextTexture,
+        ImageTexture: ImageTexture,
+        RoundRectTexture: RoundRectTexture
+    },
     misc: {
         ObjectListProxy: ObjectListProxy,
         ObjectListWrapper: ObjectListWrapper
@@ -13654,8 +13739,7 @@ return {
     _internal: {
         Stage: Stage,
         ViewCore: ViewCore,
-        ViewTexturizer: ViewTexturizer,
-        ViewText: ViewText
+        ViewTexturizer: ViewTexturizer
     },
     EventEmitter: EventEmitter
 }

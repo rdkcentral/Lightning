@@ -112,12 +112,6 @@ class View extends EventEmitter {
         this.__visible = true;
 
         /**
-         * The text functionality in case this view is a text view.
-         * @type {ViewText}
-         */
-        this.__viewText = null;
-
-        /**
          * (Lazy-initialised) list of children owned by this view.
          * @type {ViewChildList}
          */
@@ -1287,14 +1281,6 @@ class View extends EventEmitter {
 
         if (this.__core.clipbox) settings.clipbox = this.__core.clipbox;
 
-        if (this.rect) {
-            settings.rect = true;
-        } else if (this.src) {
-            settings.src = this.src;
-        } else if (this.texture && this.__viewText) {
-            settings.text = this.__viewText.settings.getNonDefaults();
-        }
-
         if (this.__texture) {
             let tnd = this.__texture.getNonDefaults();
             if (Object.keys(tnd).length) {
@@ -1723,24 +1709,21 @@ class View extends EventEmitter {
     }
 
     get src() {
-        if (this.texture && this.texture.source && this.texture.source.renderInfo && this.texture.source.renderInfo.src) {
-            return this.texture.source.renderInfo.src;
+        if (this.texture && this.texture instanceof ImageTexture) {
+            return this.texture._src
         } else {
-            return null;
+            return undefined
         }
     }
 
     set src(v) {
-        if (!v) {
-            this.texture = null;
-        } else if (!this.texture || !this.texture.source.renderInfo || this.texture.source.renderInfo.src !== v) {
-            this.texture = this.stage.textureManager.getTexture(v);
-        }
+        this.texture = new ImageTexture(this.stage)
+        this.texture.src = v
     }
 
     set mw(v) {
         if (this.texture) {
-            this.texture.source.mw = v
+            this.texture.mw = v
         } else {
             this._throwError('Please set mw after setting a texture.')
         }
@@ -1748,7 +1731,7 @@ class View extends EventEmitter {
 
     set mh(v) {
         if (this.texture) {
-            this.texture.source.mh = v
+            this.texture.mh = v
         } else {
             this._throwError('Please set mh after setting a texture.')
         }
@@ -1767,22 +1750,21 @@ class View extends EventEmitter {
     }
 
     get text() {
-        if (!this.__viewText) {
-            this.__viewText = new ViewText(this);
+        if (this.texture && (this.texture instanceof TextTexture)) {
+            return this.texture
+        } else {
+            return undefined
         }
-
-        // Give direct access to the settings.
-        return this.__viewText.settings;
     }
 
     set text(v) {
-        if (!this.__viewText) {
-            this.__viewText = new ViewText(this);
+        if (!this.texture || !(this.texture instanceof TextTexture)) {
+            this.texture = new TextTexture(this.stage)
         }
         if (Utils.isString(v)) {
-            this.__viewText.settings.text = v;
+            this.texture.text = v
         } else {
-            this.__viewText.settings.patch(v);
+            this.texture.patch(v)
         }
     }
 
