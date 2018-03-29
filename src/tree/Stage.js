@@ -192,32 +192,6 @@ class Stage extends EventEmitter {
         return this.view(settings);
     }
 
-    /**
-     * Returns the specified texture.
-     * @param {string|function} source
-     * @param {object} options
-     *   - id: number
-     *     Fixed id. Handy when using base64 strings or when using canvas textures.
-     *   - x: number
-     *     Clipping offset x.
-     *   - y: number
-     *     Clipping offset y.
-     *   - w: number
-     *     Clipping offset w.
-     *   - h: number
-     *     Clipping offset h.
-     *   - mw: number
-     *     Max width (for within bounds texture loading)
-     *   - mh: number
-     *     Max height (for within bounds texture loading)
-     *   - precision: number
-     *     Render precision (0.5 = fuzzy, 1 = normal, 2 = sharp even when scaled twice, etc.).
-     * @returns {Texture}
-     */
-    texture(source, options) {
-        return this.textureManager.getTexture(source, options);
-    }
-
     get w() {
         return this._options.w
     }

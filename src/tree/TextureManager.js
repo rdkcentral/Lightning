@@ -35,66 +35,8 @@ class TextureManager {
         }
     }
 
-    loadSrcTexture(src, ts, sync, cb) {
-        if (this.stage.getOption('srcBasePath')) {
-            var fc = src.charCodeAt(0)
-            if ((src.indexOf("//") === -1) && ((fc >= 65 && fc <= 90) || (fc >= 97 && fc <= 122) || fc == 46)) {
-                // Alphabetical or dot: prepend base path.
-                src = this.stage.getOption('srcBasePath') + src
-            }
-        }
-        this.stage.adapter.loadSrcTexture(src, ts, sync, cb);
-    }
-
-    loadTextTexture(settings, ts, sync, cb) {
-        this.stage.adapter.loadTextTexture(settings, ts, sync, cb);
-    }
-
-    getTexture(source, options) {
-        let id = options && options.id || null;
-
-        let texture, textureSource;
-        if (Utils.isString(source)) {
-            id = id || source;
-
-            // Check if texture source is already known.
-            textureSource = this.textureSourceHashmap.get(id);
-            if (!textureSource) {
-                // Create new texture source.
-                let self = this;
-                let func = function (cb, ts, sync) {
-                    self.loadSrcTexture(source, ts, sync, cb);
-                };
-                textureSource = this.getTextureSource(func, id);
-                if (!textureSource.renderInfo) {
-                    textureSource.renderInfo = {src: source};
-                }
-            }
-        } else if (source instanceof TextureSource) {
-            textureSource = source;
-        } else if (!Utils.isNode && source instanceof WebGLTexture) {
-            textureSource = this.getTextureSource((cb) => {
-
-            }, id);
-        } else {
-            // Create new texture source.
-            textureSource = this.getTextureSource(source, id);
-        }
-
-        // Create new texture object.
-        texture = new Texture(this, textureSource);
-        texture.x = options && options.x || 0;
-        texture.y = options && options.y || 0;
-        texture.w = options && options.w || 0;
-        texture.h = options && options.h || 0;
-        texture.clipping = !!(texture.x || texture.y || texture.w || texture.h);
-        texture.precision = options && options.precision || 1;
-
-        // Use 2048 as max texture size fallback.
-        textureSource.mw = options && options.mw || 2048
-        textureSource.mh = options && options.mh || 2048
-
-        return texture;
+    getReusableTextureSource(id) {
+        return this.textureSourceHashmap.get(id);
     }
 
     getTextureSource(func, id) {
@@ -155,7 +97,7 @@ class TextureManager {
         let usedTextureMemoryBefore = this._usedTextureMemory;
         for (let i = 0, n = this._uploadedTextureSources.length; i < n; i++) {
             let ts = this._uploadedTextureSources[i];
-            if (ts.allowCleanup() && !ts.isLoadedByCore()) {
+            if (ts.allowCleanup() && !ts.isResultTexture) {
                 this.freeTextureSource(ts);
             } else {
                 remainingTextureSources.push(ts);
@@ -167,7 +109,7 @@ class TextureManager {
     }
     
     freeTextureSource(textureSource) {
-        if (!textureSource.isLoadedByCore()) {
+        if (!textureSource.isResultTexture) {
             if (textureSource.glTexture) {
                 this._usedTextureMemory -= textureSource.w * textureSource.h;
                 this.gl.deleteTexture(textureSource.glTexture);
@@ -190,5 +132,4 @@ class TextureManager {
 module.exports = TextureManager;
 
 let Utils = require('./Utils');
-let Texture = require('./Texture');
 let TextureSource = require('./TextureSource');

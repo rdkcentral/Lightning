@@ -4,7 +4,7 @@
 
 class TextureSource {
 
-    constructor(manager, loadCb) {
+    constructor(manager, loader) {
         this.id = TextureSource.id++;
 
         this.manager = manager;
@@ -14,22 +14,16 @@ class TextureSource {
         this.id = TextureSource.id++;
 
         /**
+         * All enabled textures (textures that are used by visible views).
+         * @type {Texture[]}
+         */
+        this.textures = []
+
+        /**
          * The factory for the source of this texture.
          * @type {Function}
          */
-        this.loadCb = loadCb;
-
-        /**
-         * All enabled views that are using this texture source via a texture (either as texture or displayedTexture, or both).
-         * @type {Set<View>}
-         */
-        this.views = new Set();
-
-        /**
-         * The number of enabled views that are 'within bounds'.
-         * @type {number}
-         */
-        this._withinBoundsCount = 0
+        this.loader = loader;
 
         /**
          * Identifier for reuse.
@@ -41,7 +35,7 @@ class TextureSource {
          * If set, this.is called when the texture source is no longer displayed (this.components.size becomes 0).
          * @type {Function}
          */
-        this.cancelCb = null;
+        this._cancelCb = null;
 
         /**
          * Loading since timestamp in millis.
@@ -49,31 +43,8 @@ class TextureSource {
          */
         this.loadingSince = 0;
 
-        /**
-         * The x coordinate in the texture atlas.
-         * @type {number}
-         */
-        this.textureAtlasX = 0;
-
-        /**
-         * The y coordinate in the texture atlas.
-         * @type {number}
-         */
-        this.textureAtlasY = 0;
-
         this.w = 0;
         this.h = 0;
-
-        /**
-         * Maximum width (used for determining when view that has texture is within bounds)
-         * We use the maximum texture size initially.
-         */
-        this._mw = 2048
-
-        /**
-         * Maximum height
-         */
-        this._mh = 2048
 
         this.glTexture = null;
 
@@ -90,35 +61,45 @@ class TextureSource {
          */
         this.renderInfo = null;
 
+        /**
+         * Generated for 'renderToTexture'.
+         * @type {boolean}
+         * @private
+         */
+        this._isResultTexture = false;
+
     }
 
-    get mw() {
-        return this._mw
-    }
+    addTexture(v) {
+        if (!this.textures.has(v)) {
+            this.textures.add(v);
 
-    set mw(v) {
-        // In case multiple views set a mw, mh, we use the value which minimizes the chance of a load.
-        const prev = this._mw
-        this._mw = Math.min(this._mw, v)
-        if (prev !== this._mw) {
-            this.views.forEach((view) => {
-                view._updateDimensions()
-            })
+            if (this.textures.size === 1) {
+                this.becomesUsed()
+            }
         }
     }
 
-    get mh() {
-        return this._mh
+    removeTexture(v) {
+        if (this.views.delete(v)) {
+            if (this.views.size === 0) {
+                this.becomesUnused()
+            }
+        }
     }
 
-    set mh(v) {
-        const prev = this._mh
-        this._mh = Math.min(this._mh, v)
-        if (prev !== this._mh) {
-            this.views.forEach((view) => {
-                view._updateDimensions()
-            })
-        }
+    get isResultTexture() {
+        return this._isResultTexture
+    }
+
+    set isResultTexture(v) {
+        this._isResultTexture = v
+    }
+
+    forEachView(cb) {
+        this.textures.forEach(texture => {
+            texture.views.forEach(cb)
+        })
     }
 
     getRenderWidth() {
@@ -130,112 +111,80 @@ class TextureSource {
         return this.h || this._mh;
     }
 
-    isLoadedByCore() {
-        return !this.loadCb;
-    }
-
-    addView(v) {
-        if (!this.views.has(v)) {
-            this.views.add(v);
-
-            if (v.withinBoundsMargin) {
-                this.incWithinBoundsCount()
-            }
-        }
-    }
-    
-    removeView(v) {
-        if (this.views.delete(v)) {
-            if (v.withinBoundsMargin) {
-                this.decWithinBoundsCount()
-            }
-        }
-    }
-
-    incWithinBoundsCount() {
-        this._withinBoundsCount++
-
-        if (this._withinBoundsCount === 1) {
-            if (this.lookupId) {
-                if (!this.manager.textureSourceHashmap.has(this.lookupId)) {
-                    this.manager.textureSourceHashmap.set(this.lookupId, this);
-                }
-            }
-
-            this.becomesVisible();
-        }
-    }
-
-    decWithinBoundsCount() {
-        this._withinBoundsCount--
-
-        if (!this._withinBoundsCount) {
-            this.becomesInvisible();
-        }
-    }
-
     allowCleanup() {
-        return !this.permanent && (this._withinBoundsCount === 0)
+        return !this.permanent && (!this.isUsed())
     }
 
-    becomesVisible() {
-        this.load(false);
+    becomesUsed() {
+        if (this.lookupId) {
+            if (!this.manager.textureSourceHashmap.has(this.lookupId)) {
+                this.manager.textureSourceHashmap.set(this.lookupId, this);
+            }
+        }
+
+        this.load();
     }
 
-    becomesInvisible() {
+    becomesUnused() {
         if (this.isLoading()) {
-            if (this.cancelCb) {
-                this.cancelCb(this);
+            if (this._cancelCb) {
+                this._cancelCb(this);
             }
         }
     }
 
-    reload(sync) {
-        this.free()
-        if (this.views.size) {
-            this.load(sync)
-        }
-    }
-
-    load(sync) {
-        if (this.isLoadedByCore()) {
-            // Core texture source (View resultGlTexture), for which the loading is managed by the core.
-            return;
-        }
-
-        if (this.isLoading() && sync) {
-            // We cancel the previous one.
-            if (this.cancelCb) {
-                // Allow the callback to cancel loading.
-                this.cancelCb(this);
-            }
-            this.loadingSince = 0;
-        }
-
-        if (!this.glTexture && !this.isLoading()) {
-            var self = this;
-            this.loadingSince = (new Date()).getTime();
-            this.loadCb(function(err, source, options) {
-                if (self.manager.stage.destroyed) {
-                    // Ignore async load when stage is destroyed.
-                    return;
-                }
-                self.loadingSince = 0;
-                if (err) {
-                    // Emit txError.
-                    self.onError(err);
-                } else if (source) {
-                    self.setSource(source, options);
-                }
-            }, this, !!sync);
-        }
+    isLoaded() {
+        return !!this.glTexture;
     }
 
     isLoading() {
         return this.loadingSince > 0;
     }
 
-    setSource(source, options) {
+    reload() {
+        this.free()
+        if (this.isUsed()) {
+            this.load()
+        }
+    }
+
+    load() {
+        if (this.isResultTexture) {
+            // Core texture source (View resultGlTexture), for which the loading is managed by the core.
+            return;
+        }
+
+        if (!this.glTexture && !this.isLoading()) {
+            this.loadingSince = (new Date()).getTime();
+            this._cancelCb = this.loader((err, options) => {
+                // Clear callback to avoid memory leaks.
+                this._cancelCb = undefined
+
+                if (this.manager.stage.destroyed) {
+                    // Ignore async load when stage is destroyed.
+                    return;
+                }
+                this.loadingSince = 0;
+                if (err) {
+                    // Emit txError.
+                    this.onError(err);
+                } else if (source) {
+                    this.setSource(options);
+                }
+            }, this);
+        }
+    }
+
+    onError(e) {
+        console.error('texture load error', e, this.id);
+        this.views.forEach(function(view) {
+            view.onTextureSourceLoadError(e);
+        });
+    }
+
+    setSource(options) {
+        const source = options.source
+
         this.w = source.width || (options && options.w) || 0;
         this.h = source.height || (options && options.h) || 0;
 
@@ -279,24 +228,27 @@ class TextureSource {
         this.onLoad();
     }
 
-    isVisible() {
-        return (this.views.size > 0);
+    isUsed() {
+        return (this.textures.length);
     }
 
     onLoad() {
-        this.views.forEach(function(view) {
+        this.forEachView(function(view) {
             view.onTextureSourceLoaded();
         });
     }
 
     forceRenderUpdate() {
         // Call this method after manually changing updating the glTexture.
-        this.views.forEach(view => {
-            view.forceRenderUpdate()
-        })
+        this.forEachView(function(view) {
+            view.forceRenderUpdate();
+        });
     }
 
-    _changeGlTexture(glTexture, w, h) {
+    /**
+     * Used for result textures.
+     */
+    replaceGlTexture(glTexture, w, h) {
         let prevGlTexture = this.glTexture;
         // Loaded by core.
         this.glTexture = glTexture;
@@ -304,27 +256,28 @@ class TextureSource {
         this.h = h;
 
         if (!prevGlTexture && this.glTexture) {
-            this.views.forEach(view => view.onTextureSourceLoaded());
+            this.forEachView(view => view.onTextureSourceLoaded())
         }
 
         if (!this.glTexture) {
-            this.views.forEach(view => {view._setDisplayedTexture(null)});
+            this.forEachView(view => view._setDisplayedTexture(null))
         }
 
-        this.views.forEach(view => view._updateDimensions());
+        this.forEachView(view => view._updateDimensions());
     }
 
     onError(e) {
         console.error('texture load error', e, this.id);
-        this.views.forEach(function(view) {
-            view.onTextureSourceLoadError(e);
-        });
+        this.forEachView(view => view.onTextureSourceLoadError(e))
     }
 
     free() {
         this.manager.freeTextureSource(this);
     }
+
 }
+
+TextureSource.prototype.isTextureSource = true
 
 TextureSource.id = 1;
 

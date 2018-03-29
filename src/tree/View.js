@@ -326,15 +326,14 @@ class View extends EventEmitter {
     };
 
     _setEnabledFlag() {
+        this.__enabled = true;
+
         // Force re-check of texture because dimensions might have changed (cutting).
         this._updateDimensions();
         this._updateTextureCoords();
 
-        this.__enabled = true;
-
         if (this.__texture) {
-            // It is important to add the source listener before the texture listener because that may trigger a load.
-            this.__texture.source.addView(this)
+            this.__texture.addView(this)
         }
 
         if (this.withinBoundsMargin) {
@@ -357,7 +356,7 @@ class View extends EventEmitter {
         }
 
         if (this.__texture) {
-            this.__texture.source.removeView(this)
+            this.__texture.removeView(this)
         }
 
         if (this.__core.shader) {
@@ -436,23 +435,23 @@ class View extends EventEmitter {
     }
 
     textureIsLoaded() {
-        return this.texture ? !!this.texture.source.glTexture : false;
+        return this.__texture.isLoaded();
     }
 
-    loadTexture(sync) {
-        if (this.texture) {
-            this.texture.source.load(sync);
+    loadTexture() {
+        if (this.__texture) {
+            this.__texture.load();
         }
     }
 
     _enableTexture() {
         // Detect texture changes.
         let dt = null;
-        if (this.__texture && this.__texture.source.glTexture) {
+        if (this.__texture.isLoaded()) {
             dt = this.__texture;
         }
 
-        // We must force because the texture source may have been replaced while being invisible.
+        // Note that the texture source may have been replaced while being invisible.
         this._setDisplayedTexture(dt)
     }
 
@@ -467,92 +466,87 @@ class View extends EventEmitter {
     }
 
     set texture(v) {
-        if (v && Utils.isObjectLiteral(v)) {
-            if (this.texture) {
-                this.texture.patch(v);
+        let texture;
+        if (Utils.isObjectLiteral(v)) {
+            if (v.type) {
+                texture = new v.type(this.stage)
             } else {
-                console.warn('Trying to set texture properties, but there is no texture.');
+                texture = this.texture
             }
-            return;
+
+            if (texture) {
+                Base.patchObject(texture, v)
+            }
+        } else if (!v) {
+            texture = null;
+        } else {
+            if (v.isTexture) {
+                texture = v;
+            } else if (v.isTextureSource) {
+                //@todo: create wrapper texture (SourceTexture).
+                throw new Error("Not yet implemented")
+            } else {
+                console.error("Please specify a texture type.");
+                return
+            }
         }
 
-        let prevValue = this.__texture;
-        if (v !== prevValue) {
-            if (v !== null) {
-                if (v instanceof TextureSource) {
-                    v = this.stage.texture(v);
-                } else if (!(v instanceof Texture)) {
-                    console.error('incorrect value for texture');
-                    return;
-                }
-            }
-
-            this.__texture = v;
+        const prevTexture = this.__texture;
+        if (texture !== prevTexture) {
+            this.__texture = texture
 
             if (this.__enabled) {
-                if (prevValue && (!v || prevValue.source !== v.source) && (!this.displayedTexture || (this.displayedTexture.source !== prevValue.source))) {
-                    prevValue.source.removeView(this);
-                }
-
-                if (v) {
-                    // When the texture is changed, maintain the texture's sprite registry.
-                    // While the displayed texture is different from the texture (not yet loaded), two textures are referenced.
-                    v.source.addView(this);
-                }
+                this.__texture.addView(this)
             }
 
-            if (v) {
-                if (v.source.glTexture && this.__enabled && this.withinBoundsMargin) {
-                    this._setDisplayedTexture(v);
+            if (this.__texture) {
+                if (this.__texture.isLoaded() && this.__enabled && this.withinBoundsMargin) {
+                    this._setDisplayedTexture(this.__texture)
                 }
             } else {
                 // Make sure that current texture is cleared when the texture is explicitly set to null.
-                // This also makes sure that dimensions are updated.
                 this._setDisplayedTexture(null);
+            }
+
+            if (prevTexture !== this.__displayedTexture) {
+                prevTexture.removeView(this)
             }
 
             this._updateDimensions()
         }
     }
 
+
     get displayedTexture() {
         return this.__displayedTexture;
     }
 
     _setDisplayedTexture(v) {
-        let prevValue = this.__displayedTexture;
+        let prevTexture = this.__displayedTexture;
 
-        const changed = (v !== prevValue || (v && v.source !== prevValue.source))
+        const changed = v !== prevTexture
 
-        if (prevValue && (prevValue !== this.__texture)) {
-            if (!v || (prevValue.source !== v.source)) {
-                // The old displayed texture is deprecated.
-                prevValue.source.removeView(this);
-            }
+        if (prevTexture && changed) {
+            // The old displayed texture is deprecated.
+            prevTexture.removeView(this);
         }
 
         this.__displayedTexture = v;
-
-        if (this.__displayedTexture) {
-            // We can manage views here because we know for sure that the view is both visible and within bounds.
-            this.__displayedTexture.source.addView(this)
-        }
-
         this._updateDimensions();
 
-        if (v) {
+        if (this.__displayedTexture) {
             // We don't need to reference the displayed texture because it was already referenced (this.texture === this.displayedTexture).
             this._updateTextureCoords();
-            this.__core.setDisplayedTextureSource(v.source);
+            this.__core.setDisplayedTextureSource(this.__displayedTexture.source);
         } else {
             this.__core.setDisplayedTextureSource(null);
         }
 
         if (changed) {
-            if (v) {
-                this.emit('txLoaded', v);
+            if (this.__displayedTexture) {
+                this.emit('txLoaded', this.__displayedTexture);
             } else {
-                this.emit('txUnloaded', v);
+                this.emit('txUnloaded', this.__displayedTexture);
             }
         }
     }
@@ -652,8 +646,6 @@ class View extends EventEmitter {
                 let iw, ih, rw, rh;
                 iw = 1 / w;
                 ih = 1 / h;
-
-                let prec = displayedTexture.precision;
 
                 if (displayedTexture.pw) {
                     rw = (displayedTexture.pw) * iw;

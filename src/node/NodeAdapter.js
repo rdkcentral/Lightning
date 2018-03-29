@@ -71,13 +71,13 @@ class NodeAdapter {
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, textureSource.w, textureSource.h, 0, format, gl.UNSIGNED_BYTE, source);
     }
 
-    loadSrcTexture(src, ts, sync, cb) {
-        if (this._supercharger && !sync) {
-            this._supercharger.loadSrcTexture(src, ts, cb)
-            return;
+    loadSrcTexture(src, cb) {
+        if (this._supercharger) {
+            //@todo: fix supercharger to new args/return value.
+            // this._supercharger.loadSrcTexture(src, cb)
+            // return;
         }
 
-        let self = this;
         if (/^https?:\/\//i.test(src)) {
             // URL. Download first.
             let mod = null;
@@ -93,26 +93,26 @@ class NodeAdapter {
                 }
 
                 let total = [];
-                res.on('data', function(d) {
+                res.on('data', (d) => {
                     total.push(d);
                 });
-                res.on('end', function() {
+                res.on('end', () => {
                     let buf = Buffer.concat(total);
-                    self.parseImage(buf, cb);
+                    this.parseImage(buf, cb);
                 });
             }).on('error', function(err) {
                 cb(err);
             });
         } else {
             // File system.
-            fs.readFile(src, function(err, res) {
+            fs.readFile(src, (err, res) => {
                 if (err) {
                     console.error('Error loading image', src, err);
                 } else {
-                    self.parseImage(res, cb);
+                    this.parseImage(res, cb);
                 }
             });
-        }        
+        }
     }
     
     parseImage(data, cb) {
@@ -120,24 +120,7 @@ class NodeAdapter {
         let img = new Canvas.Image();
         img.src = data;
         let buf = img.rawData;
-        cb(null, buf, {w: img.width, h: img.height, premultiplyAlpha: false, flipBlueRed: true});
-    }
-
-    loadTextTexture(settings, ts, sync, cb) {
-        // Generate the image.
-        let tr = new TextRenderer(this.getDrawingCanvas(), settings);
-        let rval = tr.draw();
-        let renderInfo = rval.renderInfo;
-
-        let options = {renderInfo: renderInfo, precision: rval.renderInfo.precision};
-
-        let data = rval.canvas.toBuffer('raw');
-        options.w = rval.canvas.width;
-        options.h = rval.canvas.height;
-        options.premultiplyAlpha = false;
-        options.flipBlueRed = true;
-
-        cb(null, data, options);
+        cb(null, {source: buf, w: img.width, h: img.height, premultiplyAlpha: false, flipBlueRed: true});
     }
 
     createWebGLContext(w, h) {
