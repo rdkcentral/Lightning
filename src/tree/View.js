@@ -3,12 +3,12 @@
  * Copyright Metrological, 2017
  */
 
-let StageUtils = require('./StageUtils');
-let ViewCore = require('./core/ViewCore');
-let Base = require('./Base');
+const StageUtils = require('./StageUtils');
+const ViewCore = require('./core/ViewCore');
+const Base = require('./Base');
 
-let Utils = require('./Utils');
-/*M¬*/let EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
+const Utils = require('./Utils');
+/*M¬*/const EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
 
 class View extends EventEmitter {
 
@@ -477,8 +477,8 @@ class View extends EventEmitter {
             if (v.isTexture) {
                 texture = v;
             } else if (v.isTextureSource) {
-                //@todo: create wrapper texture (SourceTexture).
-                throw new Error("Not yet implemented")
+                texture = new SourceTexture(this.stage)
+                texture.textureSource = v
             } else {
                 console.error("Please specify a texture type.");
                 return
@@ -2107,8 +2107,11 @@ View.PROP_SETTERS = new Map();
 
 module.exports = View;
 
-let Texture = require('./Texture');
-let TextureSource = require('./TextureSource')
-let Transition = require('../animation/Transition')
-let TransitionSettings = require('../animation/TransitionSettings')
-let ViewChildList = require('./ViewChildList');
+const Texture = require('./Texture');
+const ImageTexture = require('../textures/ImageTexture');
+const TextTexture = require('../textures/TextTexture');
+const SourceTexture = require('../textures/SourceTexture');
+const TextureSource = require('./TextureSource')
+const Transition = require('../animation/Transition')
+const TransitionSettings = require('../animation/TransitionSettings')
+const ViewChildList = require('./ViewChildList');

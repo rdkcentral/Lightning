@@ -15,6 +15,7 @@ return {
     View: View,
     Tools: Tools,
     textures: {
+        SourceTexture: SourceTexture,
         RectangleTexture: RectangleTexture,
         TextTexture: TextTexture,
         ImageTexture: ImageTexture,
@@ -91,8 +92,9 @@ return {
                     'src/animation/AnimationActionSettings.js',
                     'src/animation/AnimationActionItems.js',
                     'src/animation/Animation.js',
-                    'src/textures/ImageTexture.js',
                     'src/textures/RectangleTexture.js',
+                    'src/textures/ImageTexture.js',
+                    'src/textures/SourceTexture.js',
                     'src/textures/RoundRectTexture.js',
                     'src/textures/TextTexture.js',
                     'src/textures/TextTextureRenderer.js',

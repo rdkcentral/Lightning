@@ -4,7 +4,7 @@
 
 class TextureSource {
 
-    constructor(manager, loader) {
+    constructor(manager, loader = undefined) {
         this.id = TextureSource.id++;
 
         this.manager = manager;
@@ -64,7 +64,7 @@ class TextureSource {
          * @type {boolean}
          * @private
          */
-        this._isResultTexture = false;
+        this._isResultTexture = !this.loader;
 
     }
 
@@ -101,12 +101,11 @@ class TextureSource {
     }
 
     getRenderWidth() {
-        // If dimensions are unknown (texture not yet loaded), use maximum width as a fallback as render width to allow proper bounds checking.
-        return this.w || this._mw;
+        return this.w;
     }
 
     getRenderHeight() {
-        return this.h || this._mh;
+        return this.h;
     }
 
     allowCleanup() {

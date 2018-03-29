@@ -2026,7 +2026,13 @@ class Texture {
     }
 
     _updateSource() {
-        let source = undefined
+        let source = this._getTextureSource()
+        this._replaceTextureSource(source)
+        this._mustUpdate = false
+    }
+
+    _getTextureSource() {
+        let source
         if (this._getIsValid()) {
             const lookupId = this._getLookupId()
             if (lookupId) {
@@ -2036,28 +2042,29 @@ class Texture {
                 source = this.manager.getTextureSource(this._getSourceLoader(), lookupId)
             }
         }
-        this._setTextureSource(source)
-        this._mustUpdate = false
+        return source
     }
 
-    _setTextureSource(newSource = undefined) {
+    _replaceTextureSource(newSource = undefined) {
         let oldSource = this._source;
 
         this._source = newSource;
 
         if (oldSource) {
             oldSource.removeTexture(this)
-
-            this.views.forEach(view => {
-                // Already loaded: display immediately.
-                if (newSource && newSource.glTexture) {
-                    view._setDisplayedTexture(this)
-                }
-            })
         }
 
         if (newSource && this.isUsed()) {
             newSource.addTexture(this)
+
+            if (newSource && newSource.glTexture) {
+                this.views.forEach(view => {
+                    if (view.isActive()) {
+                        // Already loaded: display immediately.
+                        view._setDisplayedTexture(this)
+                    }
+                })
+            }
         }
     }
 
@@ -2209,6 +2216,7 @@ class Texture {
     }
 
     getRenderWidth() {
+        // If dimensions are unknown (texture not yet loaded), use maximum width as a fallback as render width to allow proper bounds checking.
         return (this._w || (this._source ? this._source.getRenderWidth() : 0) || this.mw) / this._precision
     }
 
@@ -2234,7 +2242,7 @@ Texture.id = 0;
 
 class TextureSource {
 
-    constructor(manager, loader) {
+    constructor(manager, loader = undefined) {
         this.id = TextureSource.id++;
 
         this.manager = manager;
@@ -2294,7 +2302,7 @@ class TextureSource {
          * @type {boolean}
          * @private
          */
-        this._isResultTexture = false;
+        this._isResultTexture = !this.loader;
 
     }
 
@@ -2331,12 +2339,11 @@ class TextureSource {
     }
 
     getRenderWidth() {
-        // If dimensions are unknown (texture not yet loaded), use maximum width as a fallback as render width to allow proper bounds checking.
-        return this.w || this._mw;
+        return this.w;
     }
 
     getRenderHeight() {
-        return this.h || this._mh;
+        return this.h;
     }
 
     allowCleanup() {
@@ -3625,8 +3632,8 @@ class View extends EventEmitter {
             if (v.isTexture) {
                 texture = v;
             } else if (v.isTextureSource) {
-                //@todo: create wrapper texture (SourceTexture).
-                throw new Error("Not yet implemented")
+                texture = new SourceTexture(this.stage)
+                texture.textureSource = v
             } else {
                 console.error("Please specify a texture type.");
                 return
@@ -5776,8 +5783,7 @@ class ViewTexturizer {
 
     _getTextureSource() {
         if (!this._resultTextureSource) {
-            this._resultTextureSource = new TextureSource(this._view.stage.textureManager, null);
-
+            this._resultTextureSource = new TextureSource(this._view.stage.textureManager);
             this.updateResultTexture()
         }
         return this._resultTextureSource
@@ -5793,7 +5799,7 @@ class ViewTexturizer {
             }
 
             // Texture will be updated: all views using the source need to be updated as well.
-            this._resultTextureSource.views.forEach(view => {
+            this._resultTextureSource.forEachView(view => {
                 view._updateDimensions()
                 view.core.setHasRenderUpdates(3)
             })
@@ -9503,6 +9509,22 @@ Animation.STATES = {
 
 
 
+class RectangleTexture extends Texture {
+
+    _getLookupId() {
+        return '__whitepix'
+    }
+
+    _getSourceLoader() {
+        return function(cb) {
+            var whitePixel = new Uint8Array([255, 255, 255, 255]);
+            cb(null, {source: whitePixel, w: 1, h: 1});
+        }
+    }
+
+}
+
+
 class ImageTexture extends Texture {
 
     constructor(stage) {
@@ -9553,17 +9575,27 @@ class ImageTexture extends Texture {
 }
 
 
-class RectangleTexture extends Texture {
+class SourceTexture extends Texture {
 
-    _getLookupId() {
-        return '__whitepix'
+    constructor(stage) {
+        super(stage)
+
+        this._textureSource = undefined
     }
 
-    _getSourceLoader() {
-        return function(cb) {
-            var whitePixel = new Uint8Array([255, 255, 255, 255]);
-            cb(null, {source: whitePixel, w: 1, h: 1});
+    get textureSource() {
+        return this._textureSource
+    }
+
+    set textureSource(v) {
+        if (v !== this._textureSource) {
+            this._textureSource = v
+            this._changed()
         }
+    }
+
+    _getTextureSource() {
+        return this._textureSource
     }
 
 }
@@ -13706,6 +13738,7 @@ return {
     View: View,
     Tools: Tools,
     textures: {
+        SourceTexture: SourceTexture,
         RectangleTexture: RectangleTexture,
         TextTexture: TextTexture,
         ImageTexture: ImageTexture,

@@ -129,8 +129,7 @@ class ViewTexturizer {
 
     _getTextureSource() {
         if (!this._resultTextureSource) {
-            this._resultTextureSource = new TextureSource(this._view.stage.textureManager, null);
-
+            this._resultTextureSource = new TextureSource(this._view.stage.textureManager);
             this.updateResultTexture()
         }
         return this._resultTextureSource
@@ -146,7 +145,7 @@ class ViewTexturizer {
             }
 
             // Texture will be updated: all views using the source need to be updated as well.
-            this._resultTextureSource.views.forEach(view => {
+            this._resultTextureSource.forEachView(view => {
                 view._updateDimensions()
                 view.core.setHasRenderUpdates(3)
             })

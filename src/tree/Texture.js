@@ -199,7 +199,13 @@ class Texture {
     }
 
     _updateSource() {
-        let source = undefined
+        let source = this._getTextureSource()
+        this._replaceTextureSource(source)
+        this._mustUpdate = false
+    }
+
+    _getTextureSource() {
+        let source
         if (this._getIsValid()) {
             const lookupId = this._getLookupId()
             if (lookupId) {
@@ -209,28 +215,29 @@ class Texture {
                 source = this.manager.getTextureSource(this._getSourceLoader(), lookupId)
             }
         }
-        this._setTextureSource(source)
-        this._mustUpdate = false
+        return source
     }
 
-    _setTextureSource(newSource = undefined) {
+    _replaceTextureSource(newSource = undefined) {
         let oldSource = this._source;
 
         this._source = newSource;
 
         if (oldSource) {
             oldSource.removeTexture(this)
-
-            this.views.forEach(view => {
-                // Already loaded: display immediately.
-                if (newSource && newSource.glTexture) {
-                    view._setDisplayedTexture(this)
-                }
-            })
         }
 
         if (newSource && this.isUsed()) {
             newSource.addTexture(this)
+
+            if (newSource && newSource.glTexture) {
+                this.views.forEach(view => {
+                    if (view.isActive()) {
+                        // Already loaded: display immediately.
+                        view._setDisplayedTexture(this)
+                    }
+                })
+            }
         }
     }
 
@@ -382,6 +389,7 @@ class Texture {
     }
 
     getRenderWidth() {
+        // If dimensions are unknown (texture not yet loaded), use maximum width as a fallback as render width to allow proper bounds checking.
         return (this._w || (this._source ? this._source.getRenderWidth() : 0) || this.mw) / this._precision
     }
 
