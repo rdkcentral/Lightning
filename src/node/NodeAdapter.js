@@ -137,6 +137,16 @@ class NodeAdapter {
         return;
     }
 
+    getTextureOptionsForDrawingCanvas(canvas) {
+        let options = {}
+        options.source = canvas.toBuffer('raw');
+        options.w = canvas.width;
+        options.h = canvas.height;
+        options.premultiplyAlpha = false;
+        options.flipBlueRed = true;
+        return options
+    }
+
     getHrTime() {
         let hrTime = process.hrtime();
         return 1e3 * hrTime[0] + (hrTime[1] / 1e6);
@@ -157,7 +167,5 @@ class NodeAdapter {
     }
 
 }
-
-let TextRenderer = require('../tree/TextRenderer');
 
 module.exports = NodeAdapter;

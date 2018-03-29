@@ -8,6 +8,12 @@ module.exports = {
     Filter: require('./src/tree/Filter'),
     View: require('./src/tree/View'),
     Tools: require('./src/tools/Tools'),
+    textures: {
+        RectangleTexture: require('./src/textures/RectangleTexture'),
+        TextTexture: require('./src/textures/TextTexture'),
+        ImageTexture: require('./src/textures/ImageTexture'),
+        RoundRectTexture: require('./src/textures/RoundRectTexture')
+    },
     misc: {
         ObjectListProxy: require('./src/tools/misc/ObjectListProxy'),
         ObjectListWrapper: require('./src/tools/misc/ObjectListWrapper')

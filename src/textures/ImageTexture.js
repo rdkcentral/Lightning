@@ -1,3 +1,5 @@
+const Texture = require('../tree/Texture');
+
 class ImageTexture extends Texture {
 
     constructor(stage) {
@@ -7,8 +9,14 @@ class ImageTexture extends Texture {
     }
 
     set src(v) {
-        this._src = v
-        this._changed()
+        if (this._src !== v) {
+            this._src = v
+            this._changed()
+        }
+    }
+
+    _getIsValid() {
+        return !!this._src
     }
 
     _getLookupId() {
@@ -36,6 +44,9 @@ class ImageTexture extends Texture {
         if (this._src) {
             obj.src = this._src
         }
+        return obj
     }
 
 }
+
+module.exports = ImageTexture

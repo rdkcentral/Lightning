@@ -524,25 +524,28 @@ class View extends EventEmitter {
     _setDisplayedTexture(v) {
         let prevTexture = this.__displayedTexture;
 
-        const changed = v !== prevTexture
-
-        if (prevTexture && changed) {
+        if (prevTexture && (v !== prevTexture)) {
             // The old displayed texture is deprecated.
             prevTexture.removeView(this);
         }
+
+        const prevSource = this.__core.displayedTextureSource ? this.__core.displayedTextureSource.source : undefined
+        const sourceChanged = (v ? v.source : undefined) !== prevSource
 
         this.__displayedTexture = v;
         this._updateDimensions();
 
         if (this.__displayedTexture) {
-            // We don't need to reference the displayed texture because it was already referenced (this.texture === this.displayedTexture).
-            this._updateTextureCoords();
-            this.__core.setDisplayedTextureSource(this.__displayedTexture.source);
+            if (sourceChanged) {
+                // We don't need to reference the displayed texture because it was already referenced (this.texture === this.displayedTexture).
+                this._updateTextureCoords();
+                this.__core.setDisplayedTextureSource(this.__displayedTexture.source);
+            }
         } else {
             this.__core.setDisplayedTextureSource(null);
         }
 
-        if (changed) {
+        if (sourceChanged) {
             if (this.__displayedTexture) {
                 this.emit('txLoaded', this.__displayedTexture);
             } else {
@@ -1345,7 +1348,7 @@ class View extends EventEmitter {
             this._setActiveFlag()
 
             if (this.__texture) {
-                this.__texture.source.incWithinBoundsCount()
+                this.__texture.incWithinBoundsCount()
             }
         }
     }
@@ -1356,7 +1359,7 @@ class View extends EventEmitter {
             this._unsetActiveFlag()
 
             if (this.__texture) {
-                this.__texture.source.decWithinBoundsCount()
+                this.__texture.decWithinBoundsCount()
             }
         }
     }
@@ -2122,7 +2125,6 @@ View.PROP_SETTERS = new Map();
 
 module.exports = View;
 
-let ViewText = require('./ViewText');
 let Texture = require('./Texture');
 let TextureSource = require('./TextureSource')
 let Transition = require('../animation/Transition')

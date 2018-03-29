@@ -38,15 +38,11 @@ class Stage extends EventEmitter {
         this.dt = 0;
 
         // Preload rectangle texture, so that we can skip some border checks for loading textures.
-        this.rectangleTexture = this.texture(function(cb) {
-            var whitePixel = new Uint8Array([255, 255, 255, 255]);
-            return cb(null, whitePixel, {w: 1, h: 1});
-        }, {id: '__whitepix'});
+        this.rectangleTexture = new RectangleTexture(this)
+        this.rectangleTexture.load();
 
-        let source = this.rectangleTexture.source;
-        this.rectangleTexture.source.load(true);
-
-        source.permanent = true;
+        // Never clean up because we use it all the time.
+        this.rectangleTexture.source.permanent = true
     }
 
     getOption(name) {
@@ -251,3 +247,4 @@ const WebAdapter = Utils.isNode ? undefined : require('../browser/WebAdapter');
 const NodeAdapter = Utils.isNode ? require('../node/NodeAdapter') : null;
 /*¬M*/
 const Application = require('../application/Application')
+const RectangleTexture = require('../textures/RectangleTexture')

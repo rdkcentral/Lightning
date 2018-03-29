@@ -183,7 +183,7 @@ class Texture {
      * @returns {boolean}
      */
     _getIsValid() {
-        return false
+        return true
     }
 
     /**
@@ -206,7 +206,7 @@ class Texture {
                 source = this.manager.getReusableTextureSource(lookupId)
             }
             if (!source) {
-                source = this.manager.getTextureSource(lookupId, this._getSourceLoader())
+                source = this.manager.getTextureSource(this._getSourceLoader(), lookupId)
             }
         }
         this._setTextureSource(source)
@@ -222,16 +222,14 @@ class Texture {
             oldSource.removeTexture(this)
 
             this.views.forEach(view => {
+                // Already loaded: display immediately.
                 if (newSource && newSource.glTexture) {
-                    // We may update the source within the same texture as previous, so we need to force update.
-                    view._setDisplayedTexture(this, true)
-                } else {
-                    view._setDisplayedTexture(null, true)
+                    view._setDisplayedTexture(this)
                 }
             })
         }
 
-        if (this.isUsed()) {
+        if (newSource && this.isUsed()) {
             newSource.addTexture(this)
         }
     }

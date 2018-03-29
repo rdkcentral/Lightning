@@ -304,6 +304,10 @@ class ViewCore {
         this._txCoordsBr = ((brx * 65535 + 0.5) | 0) + ((bry * 65535 + 0.5) | 0) * 65536;
     };
 
+    get displayedTextureSource() {
+        return this._displayedTextureSource
+    }
+
     setDisplayedTextureSource(textureSource) {
         this.setHasRenderUpdates(3);
         this._displayedTextureSource = textureSource;

@@ -11,13 +11,11 @@ class TextureSource {
         
         this.stage = manager.stage;
 
-        this.id = TextureSource.id++;
-
         /**
          * All enabled textures (textures that are used by visible views).
-         * @type {Texture[]}
+         * @type {Set<Texture>}
          */
-        this.textures = []
+        this.textures = new Set()
 
         /**
          * The factory for the source of this texture.
@@ -81,8 +79,8 @@ class TextureSource {
     }
 
     removeTexture(v) {
-        if (this.views.delete(v)) {
-            if (this.views.size === 0) {
+        if (this.textures.delete(v)) {
+            if (this.textures.size === 0) {
                 this.becomesUnused()
             }
         }
@@ -168,7 +166,7 @@ class TextureSource {
                 if (err) {
                     // Emit txError.
                     this.onError(err);
-                } else if (source) {
+                } else if (options && options.source) {
                     this.setSource(options);
                 }
             }, this);
@@ -177,7 +175,7 @@ class TextureSource {
 
     onError(e) {
         console.error('texture load error', e, this.id);
-        this.views.forEach(function(view) {
+        this.forEachView(function(view) {
             view.onTextureSourceLoadError(e);
         });
     }

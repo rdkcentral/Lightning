@@ -148,6 +148,12 @@ class WebAdapter {
         return document.createElement('canvas');
     }
 
+    getTextureOptionsForDrawingCanvas(canvas) {
+        let options = {}
+        options.source = canvas
+        return options
+    }
+
     nextFrame(changes) {
         /* WebGL blits automatically */
     }
