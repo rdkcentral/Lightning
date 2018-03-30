@@ -841,7 +841,10 @@ class ViewCore {
 
             // Update render coords/alpha.
             if (this._parent._hasRenderContext()) {
-                if (this._renderContext === this._worldContext) {
+                const init = this._renderContext === this._worldContext
+                if (init) {
+                    // First render context build: make sure that it is fully initialized correctly.
+                    // Otherwise, if we get into bounds later, the render context would not be initialized correctly.
                     this._renderContext = new ViewCoreContext()
                 }
 
@@ -850,7 +853,7 @@ class ViewCore {
                 let pr = this._parent._renderContext
 
                 // Update world coords/alpha.
-                if (recalc & 1) {
+                if (init || (recalc & 1)) {
                     r.alpha = pr.alpha * this._localAlpha;
 
                     if (r.alpha < 1e-14) {
@@ -858,14 +861,14 @@ class ViewCore {
                     }
                 }
 
-                if (recalc & 6) {
+                if (init || (recalc & 6)) {
                     r.px = pr.px + this._localPx * pr.ta
                     r.py = pr.py + this._localPy * pr.td
                     if (pr.tb !== 0) r.px += this._localPy * pr.tb;
                     if (pr.tc !== 0) r.py += this._localPx * pr.tc;
                 }
 
-                if (recalc & 4) {
+                if (init || (recalc & 4)) {
                     r.ta = this._localTa * pr.ta
                     r.tb = this._localTd * pr.tb
                     r.tc = this._localTa * pr.tc

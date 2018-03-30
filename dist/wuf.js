@@ -2055,16 +2055,16 @@ class Texture {
         }
 
         if (newSource && this.isUsed()) {
-            newSource.addTexture(this)
-
             if (newSource && newSource.glTexture) {
+                // Was already loaded: no display immediately.
                 this.views.forEach(view => {
                     if (view.isActive()) {
-                        // Already loaded: display immediately.
                         view._setDisplayedTexture(this)
                     }
                 })
             }
+
+            newSource.addTexture(this)
         }
     }
 
@@ -6739,7 +6739,10 @@ class ViewCore {
 
             // Update render coords/alpha.
             if (this._parent._hasRenderContext()) {
-                if (this._renderContext === this._worldContext) {
+                const init = this._renderContext === this._worldContext
+                if (init) {
+                    // First render context build: make sure that it is fully initialized correctly.
+                    // Otherwise, if we get into bounds later, the render context would not be initialized correctly.
                     this._renderContext = new ViewCoreContext()
                 }
 
@@ -6748,7 +6751,7 @@ class ViewCore {
                 let pr = this._parent._renderContext
 
                 // Update world coords/alpha.
-                if (recalc & 1) {
+                if (init || (recalc & 1)) {
                     r.alpha = pr.alpha * this._localAlpha;
 
                     if (r.alpha < 1e-14) {
@@ -6756,14 +6759,14 @@ class ViewCore {
                     }
                 }
 
-                if (recalc & 6) {
+                if (init || (recalc & 6)) {
                     r.px = pr.px + this._localPx * pr.ta
                     r.py = pr.py + this._localPy * pr.td
                     if (pr.tb !== 0) r.px += this._localPy * pr.tb;
                     if (pr.tc !== 0) r.py += this._localPx * pr.tc;
                 }
 
-                if (recalc & 4) {
+                if (init || (recalc & 4)) {
                     r.ta = this._localTa * pr.ta
                     r.tb = this._localTd * pr.tb
                     r.tc = this._localTa * pr.tc
@@ -9986,7 +9989,7 @@ class TextTexture extends Texture {
     }
 
     _getIsValid() {
-        return true
+        return !!this.text
     }
 
     _getLookupId() {
@@ -10449,9 +10452,9 @@ class StaticCanvasTexture extends Texture {
         this._lookupId = undefined
     }
 
-    set content({factory, id = undefined}) {
+    set content({factory, lookupId = undefined}) {
         this._factory = factory
-        this._lookupId = id
+        this._lookupId = lookupId
         this._changed()
     }
 
