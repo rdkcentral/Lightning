@@ -133,8 +133,7 @@ class Tools {
             canvas.width = w
             canvas.height = h
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            let info = Tools.convertCanvas(canvas)
-            cb(null, info)
+            cb(null, canvas)
         }
         img.onError = (err) => {
             cb(err)
