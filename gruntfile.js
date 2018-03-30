@@ -19,8 +19,7 @@ return {
         RectangleTexture: RectangleTexture,
         TextTexture: TextTexture,
         ImageTexture: ImageTexture,
-        StaticCanvasTexture: StaticCanvasTexture,
-        RoundRectTexture: RoundRectTexture
+        StaticCanvasTexture: StaticCanvasTexture
     },
     misc: {
         ObjectListProxy: ObjectListProxy,
@@ -96,7 +95,6 @@ return {
                     'src/textures/RectangleTexture.js',
                     'src/textures/ImageTexture.js',
                     'src/textures/SourceTexture.js',
-                    'src/textures/RoundRectTexture.js',
                     'src/textures/TextTexture.js',
                     'src/textures/TextTextureRenderer.js',
                     'src/textures/StaticCanvasTexture.js',

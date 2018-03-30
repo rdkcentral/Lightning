@@ -13669,8 +13669,7 @@ return {
         RectangleTexture: RectangleTexture,
         TextTexture: TextTexture,
         ImageTexture: ImageTexture,
-        StaticCanvasTexture: StaticCanvasTexture,
-        RoundRectTexture: RoundRectTexture
+        StaticCanvasTexture: StaticCanvasTexture
     },
     misc: {
         ObjectListProxy: ObjectListProxy,
