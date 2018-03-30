@@ -228,16 +228,16 @@ class Texture {
         }
 
         if (newSource && this.isUsed()) {
-            newSource.addTexture(this)
-
             if (newSource && newSource.glTexture) {
+                // Was already loaded: no display immediately.
                 this.views.forEach(view => {
                     if (view.isActive()) {
-                        // Already loaded: display immediately.
                         view._setDisplayedTexture(this)
                     }
                 })
             }
+
+            newSource.addTexture(this)
         }
     }
 
