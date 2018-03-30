@@ -8,9 +8,9 @@ class StaticCanvasTexture extends Texture {
         this._lookupId = undefined
     }
 
-    set content({factory, id = undefined}) {
+    set content({factory, lookupId = undefined}) {
         this._factory = factory
-        this._lookupId = id
+        this._lookupId = lookupId
         this._changed()
     }
 
