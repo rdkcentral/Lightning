@@ -435,6 +435,12 @@ class View extends EventEmitter {
     loadTexture() {
         if (this.__texture) {
             this.__texture.load();
+
+            if (!this.__texture.isUsed() || !this.isEnabled()) {
+                // Loading the texture will have no effect on the dimensions of this view.
+                // Manually update them, so that calcs can be performed immediately in userland.
+                this._updateDimensions();
+            }
         }
     }
 
@@ -489,11 +495,11 @@ class View extends EventEmitter {
         if (texture !== prevTexture) {
             this.__texture = texture
 
-            if (this.__enabled) {
-                this.__texture.addView(this)
-            }
-
             if (this.__texture) {
+                if (this.__enabled) {
+                    this.__texture.addView(this)
+                }
+
                 if (this.__texture.isLoaded() && this.__enabled && this.withinBoundsMargin) {
                     this._setDisplayedTexture(this.__texture)
                 }
@@ -502,7 +508,7 @@ class View extends EventEmitter {
                 this._setDisplayedTexture(null);
             }
 
-            if (prevTexture !== this.__displayedTexture) {
+            if (prevTexture && prevTexture !== this.__displayedTexture) {
                 prevTexture.removeView(this)
             }
 
@@ -614,8 +620,8 @@ class View extends EventEmitter {
         let pivotYMul = this.__pivotY * this.__core.rh;
         let px = this.__x - (pivotXMul * this.__core.localTa + pivotYMul * this.__core.localTb) + pivotXMul;
         let py = this.__y - (pivotXMul * this.__core.localTc + pivotYMul * this.__core.localTd) + pivotYMul;
-        px -= this.__mountX * this.renderWidth;
-        py -= this.__mountY * this.renderHeight;
+        px -= this.__mountX * this.__core.rw;
+        py -= this.__mountY * this.__core.rh;
         this.__core.setLocalTranslate(
             px,
             py
