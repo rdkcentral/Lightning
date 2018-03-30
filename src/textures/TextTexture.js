@@ -374,7 +374,7 @@ class TextTexture extends Texture {
     }
 
     _getIsValid() {
-        return true
+        return !!this.text
     }
 
     _getLookupId() {
