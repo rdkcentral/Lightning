@@ -2347,7 +2347,7 @@ class TextureSource {
     }
 
     allowCleanup() {
-        return !this.permanent && (!this.isUsed())
+        return !this.permanent && (!this.isUsed()) && !this.isResultTexture
     }
 
     becomesUsed() {
@@ -2466,7 +2466,7 @@ class TextureSource {
     }
 
     isUsed() {
-        return (this.textures.length);
+        return (this.textures.size > 0);
     }
 
     onLoad() {
