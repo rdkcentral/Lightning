@@ -1766,6 +1766,13 @@ class View extends EventEmitter {
     set text(v) {
         if (!this.texture || !(this.texture instanceof TextTexture)) {
             this.texture = new TextTexture(this.stage)
+
+            if (!this.texture.w && !this.texture.h) {
+                // Inherit dimensions from view.
+                // This allows userland to set dimensions of the View and then later specify the text.
+                this.texture.w = this.w
+                this.texture.h = this.h
+            }
         }
         if (Utils.isString(v)) {
             this.texture.text = v
