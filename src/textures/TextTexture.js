@@ -361,6 +361,10 @@ class TextTexture extends Texture {
         }
     }
 
+    get precision() {
+        return super.precision
+    }
+
     set precision(v) {
         // We actually draw differently when the precision changes.
         if (this.precision !== v) {
@@ -389,7 +393,7 @@ class TextTexture extends Texture {
         if (this.offsetY !== null) parts.push("oy" + this.offsetY);
         if (this.maxLines !== 0) parts.push("ml" + this.maxLines);
         if (this.maxLinesSuffix !== "..") parts.push("ms" + this.maxLinesSuffix);
-        if (this.precision !== null) parts.push("pc" + this.precision);
+        parts.push("pc" + this.precision);
         if (this.textColor !== 0xffffffff) parts.push("co" + this.textColor.toString(16));
         if (this.paddingLeft !== 0) parts.push("pl" + this.paddingLeft);
         if (this.paddingRight !== 0) parts.push("pr" + this.paddingRight);
@@ -446,7 +450,7 @@ class TextTexture extends Texture {
         if (this.offsetY !== null) nonDefaults["offsetY"] = this.offsetY;
         if (this.maxLines !== 0) nonDefaults["maxLines"] = this.maxLines;
         if (this.maxLinesSuffix !== "..") nonDefaults["maxLinesSuffix"] = this.maxLinesSuffix;
-        if (this.precision !== null) nonDefaults["precision"] = this.precision;
+        if (this.precision !== this.stage.getOption('precision')) nonDefaults["precision"] = this.precision;
         if (this.textColor !== 0xffffffff) nonDefaults["textColor"] = this.textColor;
         if (this.paddingLeft !== 0) nonDefaults["paddingLeft"] = this.paddingLeft;
         if (this.paddingRight !== 0) nonDefaults["paddingRight"] = this.paddingRight;
@@ -527,7 +531,6 @@ proto._textAlign = "left";
 proto._offsetY = null;
 proto._maxLines = 0;
 proto._maxLinesSuffix = "..";
-proto._precision = null;
 proto._textColor = 0xFFFFFFFF;
 proto._paddingLeft = 0;
 proto._paddingRight = 0;
