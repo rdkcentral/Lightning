@@ -19,7 +19,7 @@ return {
         RectangleTexture: RectangleTexture,
         TextTexture: TextTexture,
         ImageTexture: ImageTexture,
-        CanvasTexture: CanvasTexture,
+        StaticCanvasTexture: StaticCanvasTexture,
         RoundRectTexture: RoundRectTexture
     },
     misc: {
@@ -99,7 +99,7 @@ return {
                     'src/textures/RoundRectTexture.js',
                     'src/textures/TextTexture.js',
                     'src/textures/TextTextureRenderer.js',
-                    'src/textures/CanvasTexture.js',
+                    'src/textures/StaticCanvasTexture.js',
                     'src/tools/Tools.js',
                     'src/tools/misc/ObjectListProxy.js',
                     'src/tools/misc/ObjectListWrapper.js',

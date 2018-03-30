@@ -12,8 +12,7 @@ module.exports = {
         RectangleTexture: require('./src/textures/RectangleTexture'),
         TextTexture: require('./src/textures/TextTexture'),
         ImageTexture: require('./src/textures/ImageTexture'),
-        CanvasTexture: require('./src/textures/CanvasTexture'),
-        RoundRectTexture: require('./src/textures/RoundRectTexture')
+        StaticCanvasTexture: require('./src/textures/StaticCanvasTexture')
     },
     misc: {
         ObjectListProxy: require('./src/tools/misc/ObjectListProxy'),

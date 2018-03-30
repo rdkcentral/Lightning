@@ -126,6 +126,8 @@ class TextureSource {
         if (this.isLoading()) {
             if (this._cancelCb) {
                 this._cancelCb(this);
+
+                this.loadingSince = 0;
             }
         }
     }

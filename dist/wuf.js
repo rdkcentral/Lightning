@@ -2364,6 +2364,8 @@ class TextureSource {
         if (this.isLoading()) {
             if (this._cancelCb) {
                 this._cancelCb(this);
+
+                this.loadingSince = 0;
             }
         }
     }
@@ -9604,163 +9606,6 @@ class SourceTexture extends Texture {
 }
 
 
-class RoundRectTexture extends Texture {
-
-    constructor(stage) {
-        super(stage)
-
-        this._w = 100
-        this._h = 100
-        this._radius = [0, 0, 0, 0]
-        this._strokeWidth = 0
-        this._strokeColor = 0xFFFFFFFF
-        this._fill = true
-        this._fillColor = 0xFFFFFFFF
-    }
-
-    set w(v) {
-        if (this._w !== v) {
-            this._w = v
-            this._changed()
-        }
-    }
-
-    set h(v) {
-        if (this._h !== v) {
-            this._h = v
-            this._changed()
-        }
-    }
-
-    set radius(v) {
-        if (!Array.isArray(v)){
-            // upper-left, upper-right, bottom-right, bottom-left.
-            v = [v, v, v, v]
-        }
-        
-        this._radius = v
-        this._changed()
-    }
-
-    set strokeWidth(v) {
-        if (this._strokeWidth !== v) {
-            this._strokeWidth = v
-            this._changed()
-        }
-    }
-
-    set strokeColor(v) {
-        if (this._strokeColor !== v) {
-            this._strokeColor = v
-            this._changed()
-        }
-    }
-    
-    set fill(v) {
-        if (this._fill !== !!v) {
-            this._fill = !!v
-            this._changed()
-        }
-    }
-    
-    set fillColor(v) {
-        if (this._fillColor !== v) {
-            this._fillColor = v
-            this._changed()
-        }
-    }
-
-    _getIsValid() {
-        return true
-    }
-
-    _getLookupId() {
-        return 'rect' + [this._w, this._h, this._strokeWidth, this._strokeColor, this._fill ? 1 : 0, this._fillColor].concat(this._radius).join(",")
-    }
-
-    _getSourceLoader() {
-        const args = {
-            w: this._w,
-            h: this._h,
-            radius: this._radius.slice(),
-            strokeWidth: this._strokeWidth,
-            strokeColor: this._strokeColor,
-            fill: this._fill,
-            fillColor: this._fillColor
-        }
-
-        const canvasFactory = () => {
-            return RoundRectTexture.createRoundRect(this.stage, args)
-        }
-
-        return function(cb) {
-            cb(null, this.stage.adapter.getTextureOptionsForDrawingCanvas(canvasFactory()))
-        }
-    }
-
-    getNonDefaults() {
-        const obj = super.getNonDefaults()
-        if (this._w) {
-            obj.w = this.w
-        }
-        if (this._h) {
-            obj.h = this.h
-        }
-
-        //@todo: other properties
-        return obj
-    }
-
-
-    static createRoundRect(stage, args) {
-        const canvas = stage.adapter.getDrawingCanvas();
-        const ctx = canvas.getContext('2d');
-        ctx.imageSmoothingEnabled = true;
-
-        const w = args.w, h = args.h;
-
-        canvas.width = w + args.strokeWidth + 2;
-        canvas.height = h + args.strokeWidth + 2;
-
-        ctx.beginPath();
-        let x = 0.5 * args.strokeWidth + 1, y = 0.5 * args.strokeWidth + 1;
-
-        ctx.moveTo(x + args.radius[0], y);
-        ctx.lineTo(x + w - args.radius[1], y);
-        ctx.arcTo(x + w, y, x + w, y + args.radius[1], args.radius[1]);
-        ctx.lineTo(x + w, y + h - args.radius[2]);
-        ctx.arcTo(x + w, y + h, x + w - args.radius[2], y + h, args.radius[2]);
-        ctx.lineTo(x + args.radius[3], y + h);
-        ctx.arcTo(x, y + h, x, y + h - args.radius[3], args.radius[3]);
-        ctx.lineTo(x, y + args.radius[0]);
-        ctx.arcTo(x, y, x + args.radius[0], y, args.radius[0]);
-
-        if (args.fill) {
-            if (Utils.isNumber(args.fillColor)) {
-                ctx.fillStyle = StageUtils.getRgbaString(args.fillColor);
-            } else {
-                ctx.fillStyle = "white";
-            }
-            ctx.fill();
-        }
-
-        if (args.strokeWidth) {
-            if (Utils.isNumber(args.strokeColor)) {
-                ctx.strokeStyle = StageUtils.getRgbaString(args.strokeColor);
-            } else {
-                ctx.strokeStyle = "white";
-            }
-            ctx.lineWidth = args.strokeWidth;
-            ctx.stroke();
-        }
-
-        return canvas;
-    }
-
-}
-
-
-
 class TextTexture extends Texture {
 
     constructor(stage) {
@@ -10587,14 +10432,22 @@ class TextTextureRenderer {
 
 
 
-class CanvasTexture extends Texture {
+class StaticCanvasTexture extends Texture {
 
-    set lookupId(v) {
-        this._lookupId = v
+    constructor(stage) {
+        super(stage)
+        this._factory = undefined
+        this._lookupId = undefined
     }
 
-    set factory(v) {
-        this._factory = v
+    set content({factory, id = undefined}) {
+        this._factory = factory
+        this._lookupId = id
+        this._changed()
+    }
+
+    _getIsValid() {
+        return !!this._factory
     }
 
     _getLookupId() {
@@ -10604,8 +10457,12 @@ class CanvasTexture extends Texture {
     _getSourceLoader() {
         const f = this._factory
         return (cb) => {
-            const canvas = f(this.stage)
-            cb(null, this.stage.adapter.getTextureOptionsForDrawingCanvas(canvas))
+            return f((err, canvas) => {
+                if (err) {
+                    return cb(err)
+                }
+                cb(null, this.stage.adapter.getTextureOptionsForDrawingCanvas(canvas))
+            }, this.stage)
         }
     }
 
@@ -10617,49 +10474,67 @@ class CanvasTexture extends Texture {
 
 class Tools {
 
-    static getRoundRect(w, h, radius, strokeWidth, strokeColor, fill, fillColor) {
-        return {type: RoundRectTexture, w: w, h: h, radius: radius, strokeWidth: strokeWidth, strokeColor: strokeColor, fill: fill, fillColor: fillColor}
-    }
-
-    static getSvgTexture(stage, url, w, h) {
-        //@todo: replace
-        const id = 'svg' + [w, h, url].join(",");
-
-        return stage.texture(function(cb) {
-            let canvas = stage.adapter.getDrawingCanvas();
-            let ctx = canvas.getContext('2d');
-            ctx.imageSmoothingEnabled = true;
-
-            let img = new Image()
-            img.onload = () => {
-                canvas.width = w
-                canvas.height = h
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                let info = Tools.convertCanvas(canvas)
-                cb(null, info.data, info.options)
-            }
-            img.onError = (err) => {
-                cb(err)
-            }
-            img.src = url
-        })
-    }
-
-    static convertCanvas(canvas) {
-        let data = canvas
-        let options = {}
-        if (Utils.isNode) {
-            data = canvas.toBuffer('raw');
-            options.w = canvas.width;
-            options.h = canvas.height;
-            options.premultiplyAlpha = false;
-            options.flipBlueRed = true;
-        }
-        return {data: data, options: options}
-    }
-
     static getCanvasTexture(canvasFactory, lookupId) {
-        return {type: CanvasTexture, factory: canvasFactory, lookupId: lookupId}
+        return {type: StaticCanvasTexture, content: {factory: canvasFactory, lookupId: lookupId}}
+    }
+
+    static getRoundRect(w, h, radius, strokeWidth, strokeColor, fill, fillColor) {
+        if (!Array.isArray(radius)){
+            // upper-left, upper-right, bottom-right, bottom-left.
+            radius = [radius, radius, radius, radius]
+        }
+
+        let factory = (cb, stage) => {
+            cb(null, this.createRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor))
+        }
+        let id = 'rect' + [w, h, strokeWidth, strokeColor, fill ? 1 : 0, fillColor].concat(radius).join(",");
+        return Tools.getCanvasTexture(factory, id);
+    }
+
+    static createRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor) {
+        if (fill === undefined) fill = true;
+        if (strokeWidth === undefined) strokeWidth = 0;
+
+        let canvas = stage.adapter.getDrawingCanvas();
+        let ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+
+        canvas.width = w + strokeWidth + 2;
+        canvas.height = h + strokeWidth + 2;
+
+        ctx.beginPath();
+        let x = 0.5 * strokeWidth + 1, y = 0.5 * strokeWidth + 1;
+
+        ctx.moveTo(x + radius[0], y);
+        ctx.lineTo(x + w - radius[1], y);
+        ctx.arcTo(x + w, y, x + w, y + radius[1], radius[1]);
+        ctx.lineTo(x + w, y + h - radius[2]);
+        ctx.arcTo(x + w, y + h, x + w - radius[2], y + h, radius[2]);
+        ctx.lineTo(x + radius[3], y + h);
+        ctx.arcTo(x, y + h, x, y + h - radius[3], radius[3]);
+        ctx.lineTo(x, y + radius[0]);
+        ctx.arcTo(x, y, x + radius[0], y, radius[0]);
+
+        if (fill) {
+            if (Utils.isNumber(fillColor)) {
+                ctx.fillStyle = StageUtils.getRgbaString(fillColor);
+            } else {
+                ctx.fillStyle = "white";
+            }
+            ctx.fill();
+        }
+
+        if (strokeWidth) {
+            if (Utils.isNumber(strokeColor)) {
+                ctx.strokeStyle = StageUtils.getRgbaString(strokeColor);
+            } else {
+                ctx.strokeStyle = "white";
+            }
+            ctx.lineWidth = strokeWidth;
+            ctx.stroke();
+        }
+
+        return canvas;
     }
 
     static getShadowRect(w, h, radius = 0, blur = 5, margin = blur * 2) {
@@ -10668,8 +10543,8 @@ class Tools {
             radius = [radius, radius, radius, radius]
         }
 
-        let factory = (stage) => {
-            return this.createShadowRect(stage, w, h, radius, blur, margin)
+        let factory = (cb, stage) => {
+            cb(null, this.createShadowRect(stage, w, h, radius, blur, margin))
         }
         let id = 'shadow' + [w, h, blur, margin].concat(radius).join(",");
         return Tools.getCanvasTexture(factory, id);
@@ -10705,6 +10580,33 @@ class Tools {
         ctx.fill()
 
         return canvas;
+    }
+
+    static getSvgTexture(stage, url, w, h) {
+        let factory = (cb, stage) => {
+            this.createSvg(cb, stage, url, w, h)
+        }
+        let id = 'svg' + [w, h, url].join(",");
+        return Tools.getCanvasTexture(factory, id);
+    }
+
+    static createSvg(cb, stage, url, w, h) {
+        let canvas = stage.adapter.getDrawingCanvas();
+        let ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+
+        let img = new Image()
+        img.onload = () => {
+            canvas.width = w
+            canvas.height = h
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            let info = Tools.convertCanvas(canvas)
+            cb(null, info)
+        }
+        img.onError = (err) => {
+            cb(err)
+        }
+        img.src = url
     }
 
 }
@@ -13767,7 +13669,7 @@ return {
         RectangleTexture: RectangleTexture,
         TextTexture: TextTexture,
         ImageTexture: ImageTexture,
-        CanvasTexture: CanvasTexture,
+        StaticCanvasTexture: StaticCanvasTexture,
         RoundRectTexture: RoundRectTexture
     },
     misc: {
