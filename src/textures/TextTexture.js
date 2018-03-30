@@ -416,15 +416,10 @@ class TextTexture extends Texture {
 
     _getSourceLoader() {
         const args = this.cloneArgs()
-        if (this.views.size) {
-            // Inherit w and h from view.
-            const it = this.views.values();
-            const first = it.next().value;
-            args.w = args.w || first.w
-            args.h = args.h || first.h
-            if (args.fontFace === null) {
-                args.fontFace = this.stage.getOption('defaultFontFace');
-            }
+
+        // Inherit font face from stage.
+        if (args.fontFace === null) {
+            args.fontFace = this.stage.getOption('defaultFontFace');
         }
 
         const canvas = this.stage.adapter.getDrawingCanvas()

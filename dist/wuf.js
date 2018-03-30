@@ -10177,15 +10177,10 @@ class TextTexture extends Texture {
 
     _getSourceLoader() {
         const args = this.cloneArgs()
-        if (this.views.size) {
-            // Inherit w and h from view.
-            const it = this.views.values();
-            const first = it.next().value;
-            args.w = args.w || first.w
-            args.h = args.h || first.h
-            if (args.fontFace === null) {
-                args.fontFace = this.stage.getOption('defaultFontFace');
-            }
+
+        // Inherit font face from stage.
+        if (args.fontFace === null) {
+            args.fontFace = this.stage.getOption('defaultFontFace');
         }
 
         const canvas = this.stage.adapter.getDrawingCanvas()
@@ -10591,14 +10586,44 @@ class TextTextureRenderer {
 }
 
 
+
+class CanvasTexture extends Texture {
+
+    set lookupId(v) {
+        this._lookupId = v
+    }
+
+    set factory(v) {
+        this._factory = v
+    }
+
+    _getLookupId() {
+        return this._lookupId
+    }
+
+    _getSourceLoader() {
+        const f = this._factory
+        return (cb) => {
+            const canvas = f(this.stage)
+            cb(null, this.stage.adapter.getTextureOptionsForDrawingCanvas(canvas))
+        }
+    }
+
+}
+
 /**
  * Copyright Metrological, 2017
  */
 
 class Tools {
 
-    static getSvgTexture(stage, url, w, h, texOptions = {}) {
-        texOptions.id = texOptions.id || 'svg' + [w, h, url].join(",");
+    static getRoundRect(w, h, radius, strokeWidth, strokeColor, fill, fillColor) {
+        return {type: RoundRectTexture, w: w, h: h, radius: radius, strokeWidth: strokeWidth, strokeColor: strokeColor, fill: fill, fillColor: fillColor}
+    }
+
+    static getSvgTexture(stage, url, w, h) {
+        //@todo: replace
+        const id = 'svg' + [w, h, url].join(",");
 
         return stage.texture(function(cb) {
             let canvas = stage.adapter.getDrawingCanvas();
@@ -10617,7 +10642,7 @@ class Tools {
                 cb(err)
             }
             img.src = url
-        }, texOptions)
+        })
     }
 
     static convertCanvas(canvas) {
@@ -10633,24 +10658,21 @@ class Tools {
         return {data: data, options: options}
     }
 
-    static getCanvasTexture(stage, canvasFactory, texOptions = {}) {
-        return stage.texture(function(cb) {
-            const info = Tools.convertCanvas(canvasFactory())
-            cb(null, info.data, info.options);
-        }, texOptions);
+    static getCanvasTexture(canvasFactory, lookupId) {
+        return {type: CanvasTexture, factory: canvasFactory, lookupId: lookupId}
     }
 
-    static getShadowRect(stage, w, h, radius = 0, blur = 5, margin = blur * 2) {
+    static getShadowRect(w, h, radius = 0, blur = 5, margin = blur * 2) {
         if (!Array.isArray(radius)){
             // upper-left, upper-right, bottom-right, bottom-left.
             radius = [radius, radius, radius, radius]
         }
 
-        let factory = () => {
+        let factory = (stage) => {
             return this.createShadowRect(stage, w, h, radius, blur, margin)
         }
         let id = 'shadow' + [w, h, blur, margin].concat(radius).join(",");
-        return Tools.getCanvasTexture(stage, factory, {id: id});
+        return Tools.getCanvasTexture(factory, id);
     }
 
     static createShadowRect(stage, w, h, radius, blur, margin) {
@@ -13745,6 +13767,7 @@ return {
         RectangleTexture: RectangleTexture,
         TextTexture: TextTexture,
         ImageTexture: ImageTexture,
+        CanvasTexture: CanvasTexture,
         RoundRectTexture: RoundRectTexture
     },
     misc: {
