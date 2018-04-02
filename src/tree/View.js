@@ -525,8 +525,10 @@ class View extends EventEmitter {
         let prevTexture = this.__displayedTexture;
 
         if (prevTexture && (v !== prevTexture)) {
-            // The old displayed texture is deprecated.
-            prevTexture.removeView(this);
+            if (this.__texture !== prevTexture) {
+                // The old displayed texture is deprecated.
+                prevTexture.removeView(this);
+            }
         }
 
         const prevSource = this.__core.displayedTextureSource ? this.__core.displayedTextureSource.source : undefined
@@ -1337,11 +1339,12 @@ class View extends EventEmitter {
     _enableWithinBoundsMargin() {
         // Iff enabled, this toggles the active flag.
         if (this.__enabled) {
-            this._setActiveFlag()
-
+            // This must happen before enabling the texture, because it may already be loaded or load directly.
             if (this.__texture) {
                 this.__texture.incWithinBoundsCount()
             }
+
+            this._setActiveFlag()
         }
     }
 
