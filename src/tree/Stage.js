@@ -7,6 +7,7 @@ const Utils = require('./Utils');
 /*M¬*/const EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
 
 class Stage extends EventEmitter {
+
     constructor(options = {}) {
         super()
         this._setOptions(options);
@@ -43,6 +44,8 @@ class Stage extends EventEmitter {
 
         // Never clean up because we use it all the time.
         this.rectangleTexture.source.permanent = true
+
+        this._updateSourceTextures = new Set()
     }
 
     getOption(name) {
@@ -115,6 +118,14 @@ class Stage extends EventEmitter {
         return this._options.precision;
     }
 
+    /**
+     * Marks a texture for updating it's source upon the next drawFrame.
+     * @param texture
+     */
+    addUpdateSourceTexture(texture) {
+        this._updateSourceTextures.add(texture)
+    }
+
     drawFrame() {
         if (this._options.fixedDt) {
             this.dt = this._options.fixedDt;
@@ -128,6 +139,13 @@ class Stage extends EventEmitter {
 
         if (this.textureManager.isFull()) {
             this.textureManager.freeUnusedTextureSources();
+        }
+
+        if (this._updateSourceTextures.size) {
+            this._updateSourceTextures.forEach(texture => {
+                texture._performUpdateSource()
+            })
+            this._updateSourceTextures = new Set()
         }
 
         this.emit('update');

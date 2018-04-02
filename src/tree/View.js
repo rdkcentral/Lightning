@@ -429,7 +429,7 @@ class View extends EventEmitter {
     }
 
     textureIsLoaded() {
-        return this.__texture.isLoaded();
+        return this.__texture && this.__texture.isLoaded();
     }
 
     loadTexture() {

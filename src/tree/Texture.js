@@ -199,9 +199,20 @@ class Texture {
     }
 
     _updateSource() {
-        let source = this._getTextureSource()
-        this._replaceTextureSource(source)
-        this._mustUpdate = false
+        // We delay all updateSource calls to the next drawFrame, so that we can bundle them.
+        // Otherwise we may reload a texture more often than necessary, when, for example, patching multiple text
+        // properties.
+        this.stage.addUpdateSourceTexture(this)
+    }
+
+    _performUpdateSource(force = false) {
+        // If, in the meantime, the texture was no longer used, just remember that it must update until it becomes used
+        // again.
+        if (force || this.isUsed()) {
+            let source = this._getTextureSource()
+            this._replaceTextureSource(source)
+            this._mustUpdate = false
+        }
     }
 
     _getTextureSource() {
@@ -242,7 +253,7 @@ class Texture {
     }
 
     load() {
-        this._updateSource()
+        this._performUpdateSource(true)
         if (this._source) {
             this._source.load()
         }

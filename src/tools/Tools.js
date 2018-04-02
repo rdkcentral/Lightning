@@ -115,7 +115,7 @@ class Tools {
         return canvas;
     }
 
-    static getSvgTexture(stage, url, w, h) {
+    static getSvgTexture(url, w, h) {
         let factory = (cb, stage) => {
             this.createSvg(cb, stage, url, w, h)
         }
