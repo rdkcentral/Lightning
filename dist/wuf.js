@@ -1094,6 +1094,12 @@ class Stage extends EventEmitter {
         this._updateSourceTextures.add(texture)
     }
 
+    removeUpdateSourceTexture(texture) {
+        if (this._updateSourceTextures) {
+            this._updateSourceTextures.delete(texture)
+        }
+    }
+
     drawFrame() {
         if (this._options.fixedDt) {
             this.dt = this._options.fixedDt;
@@ -1825,7 +1831,7 @@ class TextureManager {
         for (let i = 0, n = this._uploadedTextureSources.length; i < n; i++) {
             let ts = this._uploadedTextureSources[i];
             if (ts.allowCleanup() && !ts.isResultTexture) {
-                this.freeTextureSource(ts);
+                this._freeManagedTextureSource(ts);
             } else {
                 remainingTextureSources.push(ts);
             }
@@ -1834,23 +1840,48 @@ class TextureManager {
         this._uploadedTextureSources = remainingTextureSources;
         console.log('freed ' + ((usedTextureMemoryBefore - this._usedTextureMemory) / 1e6).toFixed(2) + 'M texture pixels from GPU memory. Remaining: ' + this._usedTextureMemory);
     }
-    
+
+    _freeManagedTextureSource(textureSource) {
+        if (textureSource.glTexture) {
+            this._usedTextureMemory -= textureSource.w * textureSource.h;
+            this.gl.deleteTexture(textureSource.glTexture);
+            textureSource.glTexture = null;
+        }
+
+        // Should be reloaded.
+        textureSource.loadingSince = null;
+
+        if (textureSource.lookupId) {
+            // Delete it from the texture source hashmap to allow GC to collect it.
+            // If it is still referenced somewhere, we'll re-add it later.
+            this.textureSourceHashmap.delete(textureSource.lookupId);
+        }
+    }
+
+    /**
+     * Externally free texture source.
+     * @param textureSource
+     */
     freeTextureSource(textureSource) {
-        if (!textureSource.isResultTexture) {
-            if (textureSource.glTexture) {
+        const index = this._uploadedTextureSources.indexOf(textureSource)
+        const managed = (index !== -1)
+
+        if (textureSource.glTexture) {
+            if (managed) {
                 this._usedTextureMemory -= textureSource.w * textureSource.h;
-                this.gl.deleteTexture(textureSource.glTexture);
-                textureSource.glTexture = null;
+                this._uploadedTextureSources.splice(index, 1)
             }
+            this.gl.deleteTexture(textureSource.glTexture);
+            textureSource.glTexture = null;
+        }
 
-            // Should be reloaded.
-            textureSource.loadingSince = null;
+        // Should be reloaded.
+        textureSource.loadingSince = null;
 
-            if (textureSource.lookupId) {
-                // Delete it from the texture source hashmap to allow GC to collect it.
-                // If it is still referenced somewhere, we'll re-add it later.
-                this.textureSourceHashmap.delete(textureSource.lookupId);
-            }
+        if (textureSource.lookupId) {
+            // Delete it from the texture source hashmap to allow GC to collect it.
+            // If it is still referenced somewhere, we'll re-add it later.
+            this.textureSourceHashmap.delete(textureSource.lookupId);
         }
     }
 
@@ -1951,6 +1982,10 @@ class Texture {
     }
 
     get source() {
+        if (this._mustUpdate) {
+            this._performUpdateSource(true)
+            this.stage.removeUpdateSourceTexture(this)
+        }
         return this._source
     }
 
@@ -2027,6 +2062,7 @@ class Texture {
      *     - source: ArrayBuffer|WebGlTexture|ImageData|HTMLImageElement|HTMLCanvasElement|HTMLVideoElement|ImageBitmap
      *     - w: Number
      *     - h: Number
+     *     - permanent: Boolean
      *     - hasAlpha: boolean
      *     - permultiplyAlpha: boolean
      *     - flipBlueRed: boolean
@@ -2069,9 +2105,9 @@ class Texture {
         // If, in the meantime, the texture was no longer used, just remember that it must update until it becomes used
         // again.
         if (force || this.isUsed()) {
+            this._mustUpdate = false
             let source = this._getTextureSource()
             this._replaceTextureSource(source)
-            this._mustUpdate = false
         }
     }
 
@@ -2114,6 +2150,7 @@ class Texture {
 
     load() {
         this._performUpdateSource(true)
+        this.stage.removeUpdateSourceTexture(this)
         if (this._source) {
             this._source.load()
         }
@@ -2121,6 +2158,12 @@ class Texture {
 
     isLoaded() {
         return this._source && this._source.isLoaded()
+    }
+
+    free() {
+        if (this._source) {
+            this._source.free()
+        }
     }
 
     enableClipping(x, y, w, h) {
@@ -2474,6 +2517,8 @@ class TextureSource {
             this.renderInfo = options.renderInfo;
         }
 
+        this.permanent = !!options.permanent
+
         if (!Utils.isNode && source instanceof WebGLTexture) {
             // Texture managed by caller.
             this.glTexture = source;
@@ -2481,6 +2526,9 @@ class TextureSource {
             // Used by CoreRenderState for optimizations.
             source.w = this.w
             source.h = this.h
+
+            // WebGLTexture objects are by default
+            this.permanent = options.hasOwnProperty('permanent') ? options.permanent : true
         } else {
             var format = {
                 premultiplyAlpha: true,
@@ -3732,8 +3780,8 @@ class View extends EventEmitter {
             }
         }
 
-        const prevSource = this.__core.displayedTextureSource ? this.__core.displayedTextureSource.source : undefined
-        const sourceChanged = (v ? v.source : undefined) !== prevSource
+        const prevSource = this.__core.displayedTextureSource ? this.__core.displayedTextureSource._source : undefined
+        const sourceChanged = (v ? v._source : undefined) !== prevSource
 
         this.__displayedTexture = v;
         this._updateDimensions();
@@ -3742,7 +3790,7 @@ class View extends EventEmitter {
             if (sourceChanged) {
                 // We don't need to reference the displayed texture because it was already referenced (this.texture === this.displayedTexture).
                 this._updateTextureCoords();
-                this.__core.setDisplayedTextureSource(this.__displayedTexture.source);
+                this.__core.setDisplayedTextureSource(this.__displayedTexture._source);
             }
         } else {
             this.__core.setDisplayedTextureSource(null);
@@ -3763,7 +3811,7 @@ class View extends EventEmitter {
     };
 
     onTextureSourceLoadError(e) {
-        this.emit('txError', e, this.__texture.source);
+        this.emit('txError', e, this.__texture._source);
     };
 
     forceRenderUpdate() {
@@ -10534,6 +10582,34 @@ class StaticCanvasTexture extends Texture {
 
 }
 
+
+class StaticTexture extends Texture {
+
+    constructor(stage, options) {
+        super(stage)
+
+        this._options = options
+    }
+
+    set options(v) {
+        if (this._options !== v) {
+            this._options = v
+            this._changed()
+        }
+    }
+
+    _getIsValid() {
+        return !!this._options
+    }
+
+    _getSourceLoader() {
+        return (cb) => {
+            cb(null, this._options)
+        }
+    }
+
+}
+
 /**
  * Copyright Metrological, 2017
  */
@@ -13243,7 +13319,7 @@ class Application extends Component {
         }
 
         opt('debug', false);
-        opt('keys', false);
+        opt('keys', {});
     }
 
     __construct() {
@@ -13755,6 +13831,7 @@ return {
         RectangleTexture: RectangleTexture,
         TextTexture: TextTexture,
         ImageTexture: ImageTexture,
+        StaticTexture: StaticTexture,
         StaticCanvasTexture: StaticCanvasTexture
     },
     misc: {

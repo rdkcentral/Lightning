@@ -91,6 +91,10 @@ class Texture {
     }
 
     get source() {
+        if (this._mustUpdate) {
+            this._performUpdateSource(true)
+            this.stage.removeUpdateSourceTexture(this)
+        }
         return this._source
     }
 
@@ -167,6 +171,7 @@ class Texture {
      *     - source: ArrayBuffer|WebGlTexture|ImageData|HTMLImageElement|HTMLCanvasElement|HTMLVideoElement|ImageBitmap
      *     - w: Number
      *     - h: Number
+     *     - permanent: Boolean
      *     - hasAlpha: boolean
      *     - permultiplyAlpha: boolean
      *     - flipBlueRed: boolean
@@ -209,9 +214,9 @@ class Texture {
         // If, in the meantime, the texture was no longer used, just remember that it must update until it becomes used
         // again.
         if (force || this.isUsed()) {
+            this._mustUpdate = false
             let source = this._getTextureSource()
             this._replaceTextureSource(source)
-            this._mustUpdate = false
         }
     }
 
@@ -254,6 +259,7 @@ class Texture {
 
     load() {
         this._performUpdateSource(true)
+        this.stage.removeUpdateSourceTexture(this)
         if (this._source) {
             this._source.load()
         }
@@ -261,6 +267,12 @@ class Texture {
 
     isLoaded() {
         return this._source && this._source.isLoaded()
+    }
+
+    free() {
+        if (this._source) {
+            this._source.free()
+        }
     }
 
     enableClipping(x, y, w, h) {

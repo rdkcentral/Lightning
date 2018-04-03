@@ -192,6 +192,8 @@ class TextureSource {
             this.renderInfo = options.renderInfo;
         }
 
+        this.permanent = !!options.permanent
+
         if (!Utils.isNode && source instanceof WebGLTexture) {
             // Texture managed by caller.
             this.glTexture = source;
@@ -199,6 +201,9 @@ class TextureSource {
             // Used by CoreRenderState for optimizations.
             source.w = this.w
             source.h = this.h
+
+            // WebGLTexture objects are by default
+            this.permanent = options.hasOwnProperty('permanent') ? options.permanent : true
         } else {
             var format = {
                 premultiplyAlpha: true,

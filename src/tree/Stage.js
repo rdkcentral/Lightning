@@ -126,6 +126,12 @@ class Stage extends EventEmitter {
         this._updateSourceTextures.add(texture)
     }
 
+    removeUpdateSourceTexture(texture) {
+        if (this._updateSourceTextures) {
+            this._updateSourceTextures.delete(texture)
+        }
+    }
+
     drawFrame() {
         if (this._options.fixedDt) {
             this.dt = this._options.fixedDt;

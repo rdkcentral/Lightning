@@ -98,7 +98,7 @@ class TextureManager {
         for (let i = 0, n = this._uploadedTextureSources.length; i < n; i++) {
             let ts = this._uploadedTextureSources[i];
             if (ts.allowCleanup() && !ts.isResultTexture) {
-                this.freeTextureSource(ts);
+                this._freeManagedTextureSource(ts);
             } else {
                 remainingTextureSources.push(ts);
             }
@@ -107,23 +107,48 @@ class TextureManager {
         this._uploadedTextureSources = remainingTextureSources;
         console.log('freed ' + ((usedTextureMemoryBefore - this._usedTextureMemory) / 1e6).toFixed(2) + 'M texture pixels from GPU memory. Remaining: ' + this._usedTextureMemory);
     }
-    
+
+    _freeManagedTextureSource(textureSource) {
+        if (textureSource.glTexture) {
+            this._usedTextureMemory -= textureSource.w * textureSource.h;
+            this.gl.deleteTexture(textureSource.glTexture);
+            textureSource.glTexture = null;
+        }
+
+        // Should be reloaded.
+        textureSource.loadingSince = null;
+
+        if (textureSource.lookupId) {
+            // Delete it from the texture source hashmap to allow GC to collect it.
+            // If it is still referenced somewhere, we'll re-add it later.
+            this.textureSourceHashmap.delete(textureSource.lookupId);
+        }
+    }
+
+    /**
+     * Externally free texture source.
+     * @param textureSource
+     */
     freeTextureSource(textureSource) {
-        if (!textureSource.isResultTexture) {
-            if (textureSource.glTexture) {
+        const index = this._uploadedTextureSources.indexOf(textureSource)
+        const managed = (index !== -1)
+
+        if (textureSource.glTexture) {
+            if (managed) {
                 this._usedTextureMemory -= textureSource.w * textureSource.h;
-                this.gl.deleteTexture(textureSource.glTexture);
-                textureSource.glTexture = null;
+                this._uploadedTextureSources.splice(index, 1)
             }
+            this.gl.deleteTexture(textureSource.glTexture);
+            textureSource.glTexture = null;
+        }
 
-            // Should be reloaded.
-            textureSource.loadingSince = null;
+        // Should be reloaded.
+        textureSource.loadingSince = null;
 
-            if (textureSource.lookupId) {
-                // Delete it from the texture source hashmap to allow GC to collect it.
-                // If it is still referenced somewhere, we'll re-add it later.
-                this.textureSourceHashmap.delete(textureSource.lookupId);
-            }
+        if (textureSource.lookupId) {
+            // Delete it from the texture source hashmap to allow GC to collect it.
+            // If it is still referenced somewhere, we'll re-add it later.
+            this.textureSourceHashmap.delete(textureSource.lookupId);
         }
     }
 

@@ -12,6 +12,7 @@ module.exports = {
         RectangleTexture: require('./src/textures/RectangleTexture'),
         TextTexture: require('./src/textures/TextTexture'),
         ImageTexture: require('./src/textures/ImageTexture'),
+        StaticTexture: require('./src/textures/StaticTexture'),
         StaticCanvasTexture: require('./src/textures/StaticCanvasTexture')
     },
     misc: {

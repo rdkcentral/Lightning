@@ -531,8 +531,8 @@ class View extends EventEmitter {
             }
         }
 
-        const prevSource = this.__core.displayedTextureSource ? this.__core.displayedTextureSource.source : undefined
-        const sourceChanged = (v ? v.source : undefined) !== prevSource
+        const prevSource = this.__core.displayedTextureSource ? this.__core.displayedTextureSource._source : undefined
+        const sourceChanged = (v ? v._source : undefined) !== prevSource
 
         this.__displayedTexture = v;
         this._updateDimensions();
@@ -541,7 +541,7 @@ class View extends EventEmitter {
             if (sourceChanged) {
                 // We don't need to reference the displayed texture because it was already referenced (this.texture === this.displayedTexture).
                 this._updateTextureCoords();
-                this.__core.setDisplayedTextureSource(this.__displayedTexture.source);
+                this.__core.setDisplayedTextureSource(this.__displayedTexture._source);
             }
         } else {
             this.__core.setDisplayedTextureSource(null);
@@ -562,7 +562,7 @@ class View extends EventEmitter {
     };
 
     onTextureSourceLoadError(e) {
-        this.emit('txError', e, this.__texture.source);
+        this.emit('txError', e, this.__texture._source);
     };
 
     forceRenderUpdate() {
