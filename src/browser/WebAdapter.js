@@ -51,17 +51,25 @@ class WebAdapter {
         }
     }
 
-    loadSrcTexture(src, ts, sync, cb) {
+    loadSrcTexture(src, cb) {
+        let cancelCb = undefined
         let isPng = (src.indexOf(".png") >= 0)
         if (this.wpeImageParser) {
             // WPE-specific image parser.
             var oReq = this.wpeImageParser.add(src, function(err, width, height, memory, offset, length) {
                 if (err) return cb(err);
 
-                var options = {w: width, h: height, premultiplyAlpha: false, flipBlueRed: false, hasAlpha: true};
-                cb(null, new Uint8Array(memory, offset, length), options);
+                var options = {
+                    source: new Uint8Array(memory, offset, length),
+                    w: width,
+                    h: height,
+                    premultiplyAlpha: false,
+                    flipBlueRed: false,
+                    hasAlpha: true
+                };
+                cb(null, options);
             });
-            ts.cancelCb = function() {
+            cancelCb = function() {
                 oReq.abort();
             }
         } else if (window.OffthreadImage && OffthreadImage.available) {
@@ -73,7 +81,12 @@ class WebAdapter {
             element.addEventListener('painted', function () {
                 let canvas = element.childNodes[0];
                 // Because a canvas stores all in RGBA alpha-premultiplied, GPU upload is fastest with those settings.
-                cb(null, canvas, {renderInfo: {src}, hasAlpha: true, premultiplyAlpha: true});
+                cb(null, {
+                    source: canvas,
+                    renderInfo: {src},
+                    hasAlpha: true,
+                    premultiplyAlpha: true
+                });
             });
             image.src = src;
         } else {
@@ -86,21 +99,16 @@ class WebAdapter {
                 return cb("Image load error");
             };
             image.onload = function() {
-                cb(null, image, {renderInfo: {src: src}, hasAlpha: isPng});
+                cb(null, {
+                    source: image,
+                    renderInfo: {src: src},
+                    hasAlpha: isPng
+                });
             };
             image.src = src;
         }
-    }
 
-    loadTextTexture(settings, ts, sync, cb) {
-        // Generate the image.
-        let tr = new TextRenderer(this.getDrawingCanvas(), settings);
-        let rval = tr.draw();
-        let renderInfo = rval.renderInfo;
-
-        let options = {renderInfo: renderInfo, precision: rval.renderInfo.precision};
-        let data = rval.canvas;
-        cb(null, data, options);
+        return cancelCb
     }
 
     createWebGLContext(w, h) {
@@ -138,6 +146,12 @@ class WebAdapter {
     getDrawingCanvas() {
         // We can't reuse this canvas because textures may load async.
         return document.createElement('canvas');
+    }
+
+    getTextureOptionsForDrawingCanvas(canvas) {
+        let options = {}
+        options.source = canvas
+        return options
     }
 
     nextFrame(changes) {

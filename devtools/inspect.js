@@ -3,43 +3,6 @@ var attachInspector = function(wuf) {
         const Stage = _internal.Stage
         const ViewCore = _internal.ViewCore
         const ViewTexturizer = _internal.ViewTexturizer
-        const ViewText = _internal.ViewText
-
-        var defaultTextAttributes = {
-            text: "",
-            w: 0,
-            h: 0,
-            fontStyle: "normal",
-            fontSize: 40,
-            fontFace: null,
-            wordWrap: true,
-            wordWrapWidth: 0,
-            lineHeight: null,
-            textBaseline: "alphabetic",
-            textAlign: "left",
-            offsetY: null,
-            maxLines: 0,
-            maxLinesSuffix: "..",
-            precision: null,
-            textColor: 0xffffffff,
-            paddingLeft: 0,
-            paddingRight: 0,
-            shadow: false,
-            shadowColor: 0xff000000,
-            shadowOffsetX: 0,
-            shadowOffsetY: 0,
-            shadowBlur: 5,
-            highlight: false,
-            highlightHeight: 0,
-            highlightColor: 0xff000000,
-            highlightOffset: 0,
-            highlightPaddingLeft: 0,
-            highlightPaddingRight: 0,
-            cutSx: 0,
-            cutEx: 0,
-            cutSy: 0,
-            cutEy: 0
-        };
 
 // _properties must have been called already to prevent init mayhem.
         window.mutationCounter = 0;
@@ -171,54 +134,6 @@ var attachInspector = function(wuf) {
                             // Set final value, not the transitioned value.
                         } catch(e) {
                             console.error('Bad (ignored) attribute value', rn);
-                        }
-                    } else {
-                        if (mutation.attributeName.indexOf("text-") !== -1) {
-                            n = mutation.attributeName.substring(5);
-                            index = tac.indexOf(n);
-                            if (index == -1) {
-                                return;
-                            }
-                            var rn = ta[index];
-                            if (v === null) {
-                                // Deleted.
-                                pv = defaultTextAttributes[rn];
-                            } else {
-                                switch(rn) {
-                                    case "fontStyle":
-                                    case "textBaseline":
-                                    case "textAlign":
-                                    case "maxLinesSuffix":
-                                    case "text":
-                                        pv = v;
-                                        break;
-                                    case "wordWrap":
-                                    case "shadow":
-                                    case "highlight":
-                                        pv = (v === "true");
-                                        break;
-                                    case "textColor":
-                                    case "shadowColor":
-                                    case "highlightColor":
-                                        pv = parseInt(v, 16);
-                                        break;
-                                    case "fontFace":
-                                        if (v.indexOf(",") == -1) {
-                                            pv = v;
-                                        } else {
-                                            pv = v.split(",");
-                                        }
-                                        break;
-                                    default:
-                                        pv = parseFloat(v);
-                                }
-                            }
-
-                            try {
-                                c.text[rn] = pv;
-                            } catch(e) {
-                                console.error('Bad (ignored) text attribute value', rn, pv);
-                            }
                         }
                     }
                 }
@@ -789,55 +704,6 @@ var attachInspector = function(wuf) {
                 }
             }
         });
-
-        var dtaKeys = Object.keys(defaultTextAttributes);
-        var dtaValues = dtaKeys.map(function(k) {return defaultTextAttributes[k];});
-
-        var oOpdateTexture = ViewText.prototype.updateTexture;
-        ViewText.prototype.updateTexture = function(v) {
-            oOpdateTexture.apply(this, arguments);
-
-            var tr = this.settings;
-            var c = this.view;
-            var i, n = dtaKeys.length;
-            for (i = 0; i < n; i++) {
-                var key = dtaKeys[i];
-                var dvalue = dtaValues[i];
-                var value = tr[key];
-                var attKey = "text-" + key.toLowerCase();
-
-                if (dvalue === value) {
-                    c.dhtmlRemoveAttribute(attKey);
-                } else {
-                    var pv;
-                    switch(key) {
-                        case "fontStyle":
-                        case "textBaseline":
-                        case "textAlign":
-                        case "maxLinesSuffix":
-                            pv = value;
-                            break;
-                        case "wordWrap":
-                        case "shadow":
-                        case "highlight":
-                            pv = value ? "true" : "false";
-                            break;
-                        case "textColor":
-                        case "shadowColor":
-                        case "highlightColor":
-                            pv = "0x" + value.toString(16);
-                            break;
-                        case "fontFace":
-                            pv = Array.isArray(value) ? value.join(",") : value;
-                            break;
-                        default:
-                            pv = "" + value;
-                    }
-
-                    c.dhtmlSetAttribute(attKey, pv);
-                }
-            }
-        };
 
         View.prototype.updateDebugTransforms = function() {
             if (this.__pivotX !== 0.5 || this.__pivotY !== 0.5) {

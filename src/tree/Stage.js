@@ -7,6 +7,7 @@ const Utils = require('./Utils');
 /*M¬*/const EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
 
 class Stage extends EventEmitter {
+
     constructor(options = {}) {
         super()
         this._setOptions(options);
@@ -38,15 +39,13 @@ class Stage extends EventEmitter {
         this.dt = 0;
 
         // Preload rectangle texture, so that we can skip some border checks for loading textures.
-        this.rectangleTexture = this.texture(function(cb) {
-            var whitePixel = new Uint8Array([255, 255, 255, 255]);
-            return cb(null, whitePixel, {w: 1, h: 1});
-        }, {id: '__whitepix'});
+        this.rectangleTexture = new RectangleTexture(this)
+        this.rectangleTexture.load();
 
-        let source = this.rectangleTexture.source;
-        this.rectangleTexture.source.load(true);
+        // Never clean up because we use it all the time.
+        this.rectangleTexture.source.permanent = true
 
-        source.permanent = true;
+        this._updateSourceTextures = new Set()
     }
 
     getOption(name) {
@@ -119,6 +118,20 @@ class Stage extends EventEmitter {
         return this._options.precision;
     }
 
+    /**
+     * Marks a texture for updating it's source upon the next drawFrame.
+     * @param texture
+     */
+    addUpdateSourceTexture(texture) {
+        this._updateSourceTextures.add(texture)
+    }
+
+    removeUpdateSourceTexture(texture) {
+        if (this._updateSourceTextures) {
+            this._updateSourceTextures.delete(texture)
+        }
+    }
+
     drawFrame() {
         if (this._options.fixedDt) {
             this.dt = this._options.fixedDt;
@@ -132,6 +145,13 @@ class Stage extends EventEmitter {
 
         if (this.textureManager.isFull()) {
             this.textureManager.freeUnusedTextureSources();
+        }
+
+        if (this._updateSourceTextures.size) {
+            this._updateSourceTextures.forEach(texture => {
+                texture._performUpdateSource()
+            })
+            this._updateSourceTextures = new Set()
         }
 
         this.emit('update');
@@ -190,32 +210,6 @@ class Stage extends EventEmitter {
 
     c(settings) {
         return this.view(settings);
-    }
-
-    /**
-     * Returns the specified texture.
-     * @param {string|function} source
-     * @param {object} options
-     *   - id: number
-     *     Fixed id. Handy when using base64 strings or when using canvas textures.
-     *   - x: number
-     *     Clipping offset x.
-     *   - y: number
-     *     Clipping offset y.
-     *   - w: number
-     *     Clipping offset w.
-     *   - h: number
-     *     Clipping offset h.
-     *   - mw: number
-     *     Max width (for within bounds texture loading)
-     *   - mh: number
-     *     Max height (for within bounds texture loading)
-     *   - precision: number
-     *     Render precision (0.5 = fuzzy, 1 = normal, 2 = sharp even when scaled twice, etc.).
-     * @returns {Texture}
-     */
-    texture(source, options) {
-        return this.textureManager.getTexture(source, options);
     }
 
     get w() {
@@ -277,3 +271,4 @@ const WebAdapter = Utils.isNode ? undefined : require('../browser/WebAdapter');
 const NodeAdapter = Utils.isNode ? require('../node/NodeAdapter') : null;
 /*¬M*/
 const Application = require('../application/Application')
+const RectangleTexture = require('../textures/RectangleTexture')

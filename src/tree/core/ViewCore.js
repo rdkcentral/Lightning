@@ -304,6 +304,10 @@ class ViewCore {
         this._txCoordsBr = ((brx * 65535 + 0.5) | 0) + ((bry * 65535 + 0.5) | 0) * 65536;
     };
 
+    get displayedTextureSource() {
+        return this._displayedTextureSource
+    }
+
     setDisplayedTextureSource(textureSource) {
         this.setHasRenderUpdates(3);
         this._displayedTextureSource = textureSource;
@@ -329,6 +333,9 @@ class ViewCore {
         // Set scissor area of 'fake parent' to stage's viewport.
         this._parent._viewport = [0, 0, this.ctx.stage.rw, this.ctx.stage.rh]
         this._parent._scissor = this._parent._viewport
+
+        // We use a default of 100px bounds margin to detect images around the edges.
+        this._parent._recBoundsMargin = 100
 
         // Default: no bounds margin.
         this._parent._boundsMargin = null
@@ -834,7 +841,10 @@ class ViewCore {
 
             // Update render coords/alpha.
             if (this._parent._hasRenderContext()) {
-                if (this._renderContext === this._worldContext) {
+                const init = this._renderContext === this._worldContext
+                if (init) {
+                    // First render context build: make sure that it is fully initialized correctly.
+                    // Otherwise, if we get into bounds later, the render context would not be initialized correctly.
                     this._renderContext = new ViewCoreContext()
                 }
 
@@ -843,7 +853,7 @@ class ViewCore {
                 let pr = this._parent._renderContext
 
                 // Update world coords/alpha.
-                if (recalc & 1) {
+                if (init || (recalc & 1)) {
                     r.alpha = pr.alpha * this._localAlpha;
 
                     if (r.alpha < 1e-14) {
@@ -851,14 +861,14 @@ class ViewCore {
                     }
                 }
 
-                if (recalc & 6) {
+                if (init || (recalc & 6)) {
                     r.px = pr.px + this._localPx * pr.ta
                     r.py = pr.py + this._localPy * pr.td
                     if (pr.tb !== 0) r.px += this._localPy * pr.tb;
                     if (pr.tc !== 0) r.py += this._localPx * pr.tc;
                 }
 
-                if (recalc & 4) {
+                if (init || (recalc & 4)) {
                     r.ta = this._localTa * pr.ta
                     r.tb = this._localTd * pr.tb
                     r.tc = this._localTa * pr.tc

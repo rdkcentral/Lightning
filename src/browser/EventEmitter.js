@@ -86,6 +86,21 @@ class EventEmitter {
         }
     }
 
+    listenerCount(name) {
+        if (this._hasEventListeners) {
+            const func = this._eventFunction[name]
+            if (func) {
+                if (func === EventEmitter.combiner) {
+                    return this._eventListeners[name].length
+                } else {
+                    return 1
+                }
+            }
+        } else {
+            return 0
+        }
+    }
+
 }
 
 EventEmitter.combiner = function(object, name, arg1, arg2, arg3) {

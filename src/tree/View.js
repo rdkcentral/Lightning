@@ -3,12 +3,12 @@
  * Copyright Metrological, 2017
  */
 
-let StageUtils = require('./StageUtils');
-let ViewCore = require('./core/ViewCore');
-let Base = require('./Base');
+const StageUtils = require('./StageUtils');
+const ViewCore = require('./core/ViewCore');
+const Base = require('./Base');
 
-let Utils = require('./Utils');
-/*M¬*/let EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
+const Utils = require('./Utils');
+/*M¬*/const EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
 
 class View extends EventEmitter {
 
@@ -110,12 +110,6 @@ class View extends EventEmitter {
         this.__alpha = 1;
         this.__rotation = 0;
         this.__visible = true;
-
-        /**
-         * The text functionality in case this view is a text view.
-         * @type {ViewText}
-         */
-        this.__viewText = null;
 
         /**
          * (Lazy-initialised) list of children owned by this view.
@@ -326,15 +320,14 @@ class View extends EventEmitter {
     };
 
     _setEnabledFlag() {
+        this.__enabled = true;
+
         // Force re-check of texture because dimensions might have changed (cutting).
         this._updateDimensions();
         this._updateTextureCoords();
 
-        this.__enabled = true;
-
         if (this.__texture) {
-            // It is important to add the source listener before the texture listener because that may trigger a load.
-            this.__texture.source.addView(this)
+            this.__texture.addView(this)
         }
 
         if (this.withinBoundsMargin) {
@@ -357,7 +350,7 @@ class View extends EventEmitter {
         }
 
         if (this.__texture) {
-            this.__texture.source.removeView(this)
+            this.__texture.removeView(this)
         }
 
         if (this.__core.shader) {
@@ -436,23 +429,29 @@ class View extends EventEmitter {
     }
 
     textureIsLoaded() {
-        return this.texture ? !!this.texture.source.glTexture : false;
+        return this.__texture && this.__texture.isLoaded();
     }
 
-    loadTexture(sync) {
-        if (this.texture) {
-            this.texture.source.load(sync);
+    loadTexture() {
+        if (this.__texture) {
+            this.__texture.load();
+
+            if (!this.__texture.isUsed() || !this.isEnabled()) {
+                // Loading the texture will have no effect on the dimensions of this view.
+                // Manually update them, so that calcs can be performed immediately in userland.
+                this._updateDimensions();
+            }
         }
     }
 
     _enableTexture() {
         // Detect texture changes.
         let dt = null;
-        if (this.__texture && this.__texture.source.glTexture) {
+        if (this.__texture.isLoaded()) {
             dt = this.__texture;
         }
 
-        // We must force because the texture source may have been replaced while being invisible.
+        // Note that the texture source may have been replaced while being invisible.
         this._setDisplayedTexture(dt)
     }
 
@@ -467,92 +466,92 @@ class View extends EventEmitter {
     }
 
     set texture(v) {
-        if (v && Utils.isObjectLiteral(v)) {
-            if (this.texture) {
-                this.texture.patch(v);
+        let texture;
+        if (Utils.isObjectLiteral(v)) {
+            if (v.type) {
+                texture = new v.type(this.stage)
             } else {
-                console.warn('Trying to set texture properties, but there is no texture.');
+                texture = this.texture
             }
-            return;
+
+            if (texture) {
+                Base.patchObject(texture, v)
+            }
+        } else if (!v) {
+            texture = null;
+        } else {
+            if (v.isTexture) {
+                texture = v;
+            } else if (v.isTextureSource) {
+                texture = new SourceTexture(this.stage)
+                texture.textureSource = v
+            } else {
+                console.error("Please specify a texture type.");
+                return
+            }
         }
 
-        let prevValue = this.__texture;
-        if (v !== prevValue) {
-            if (v !== null) {
-                if (v instanceof TextureSource) {
-                    v = this.stage.texture(v);
-                } else if (!(v instanceof Texture)) {
-                    console.error('incorrect value for texture');
-                    return;
-                }
-            }
+        const prevTexture = this.__texture;
+        if (texture !== prevTexture) {
+            this.__texture = texture
 
-            this.__texture = v;
-
-            if (this.__enabled) {
-                if (prevValue && (!v || prevValue.source !== v.source) && (!this.displayedTexture || (this.displayedTexture.source !== prevValue.source))) {
-                    prevValue.source.removeView(this);
+            if (this.__texture) {
+                if (this.__enabled) {
+                    this.__texture.addView(this)
                 }
 
-                if (v) {
-                    // When the texture is changed, maintain the texture's sprite registry.
-                    // While the displayed texture is different from the texture (not yet loaded), two textures are referenced.
-                    v.source.addView(this);
-                }
-            }
-
-            if (v) {
-                if (v.source.glTexture && this.__enabled && this.withinBoundsMargin) {
-                    this._setDisplayedTexture(v);
+                if (this.__texture.isLoaded() && this.__enabled && this.withinBoundsMargin) {
+                    this._setDisplayedTexture(this.__texture)
                 }
             } else {
                 // Make sure that current texture is cleared when the texture is explicitly set to null.
-                // This also makes sure that dimensions are updated.
                 this._setDisplayedTexture(null);
+            }
+
+            if (prevTexture && prevTexture !== this.__displayedTexture) {
+                prevTexture.removeView(this)
             }
 
             this._updateDimensions()
         }
     }
 
+
     get displayedTexture() {
         return this.__displayedTexture;
     }
 
     _setDisplayedTexture(v) {
-        let prevValue = this.__displayedTexture;
+        let prevTexture = this.__displayedTexture;
 
-        const changed = (v !== prevValue || (v && v.source !== prevValue.source))
-
-        if (prevValue && (prevValue !== this.__texture)) {
-            if (!v || (prevValue.source !== v.source)) {
+        if (prevTexture && (v !== prevTexture)) {
+            if (this.__texture !== prevTexture) {
                 // The old displayed texture is deprecated.
-                prevValue.source.removeView(this);
+                prevTexture.removeView(this);
             }
         }
 
+        const prevSource = this.__core.displayedTextureSource ? this.__core.displayedTextureSource._source : undefined
+        const sourceChanged = (v ? v._source : undefined) !== prevSource
+
         this.__displayedTexture = v;
-
-        if (this.__displayedTexture) {
-            // We can manage views here because we know for sure that the view is both visible and within bounds.
-            this.__displayedTexture.source.addView(this)
-        }
-
         this._updateDimensions();
 
-        if (v) {
-            // We don't need to reference the displayed texture because it was already referenced (this.texture === this.displayedTexture).
-            this._updateTextureCoords();
-            this.__core.setDisplayedTextureSource(v.source);
+        if (this.__displayedTexture) {
+            if (sourceChanged) {
+                // We don't need to reference the displayed texture because it was already referenced (this.texture === this.displayedTexture).
+                this._updateTextureCoords();
+                this.__core.setDisplayedTextureSource(this.__displayedTexture._source);
+            }
         } else {
             this.__core.setDisplayedTextureSource(null);
         }
 
-        if (changed) {
-            if (v) {
-                this.emit('txLoaded', v);
+        if (sourceChanged) {
+            if (this.__displayedTexture) {
+                this.emit('txLoaded', this.__displayedTexture);
             } else {
-                this.emit('txUnloaded', v);
+                this.emit('txUnloaded', this.__displayedTexture);
             }
         }
     }
@@ -563,7 +562,7 @@ class View extends EventEmitter {
     };
 
     onTextureSourceLoadError(e) {
-        this.emit('txError', e, this.__texture.source);
+        this.emit('txError', e, this.__texture._source);
     };
 
     forceRenderUpdate() {
@@ -623,8 +622,8 @@ class View extends EventEmitter {
         let pivotYMul = this.__pivotY * this.__core.rh;
         let px = this.__x - (pivotXMul * this.__core.localTa + pivotYMul * this.__core.localTb) + pivotXMul;
         let py = this.__y - (pivotXMul * this.__core.localTc + pivotYMul * this.__core.localTd) + pivotYMul;
-        px -= this.__mountX * this.renderWidth;
-        py -= this.__mountY * this.renderHeight;
+        px -= this.__mountX * this.__core.rw;
+        py -= this.__mountY * this.__core.rh;
         this.__core.setLocalTranslate(
             px,
             py
@@ -652,8 +651,6 @@ class View extends EventEmitter {
                 let iw, ih, rw, rh;
                 iw = 1 / w;
                 ih = 1 / h;
-
-                let prec = displayedTexture.precision;
 
                 if (displayedTexture.pw) {
                     rw = (displayedTexture.pw) * iw;
@@ -1292,14 +1289,6 @@ class View extends EventEmitter {
 
         if (this.__core.clipbox) settings.clipbox = this.__core.clipbox;
 
-        if (this.rect) {
-            settings.rect = true;
-        } else if (this.src) {
-            settings.src = this.src;
-        } else if (this.texture && this.__viewText) {
-            settings.text = this.__viewText.settings.getNonDefaults();
-        }
-
         if (this.__texture) {
             let tnd = this.__texture.getNonDefaults();
             if (Object.keys(tnd).length) {
@@ -1350,11 +1339,12 @@ class View extends EventEmitter {
     _enableWithinBoundsMargin() {
         // Iff enabled, this toggles the active flag.
         if (this.__enabled) {
-            this._setActiveFlag()
-
+            // This must happen before enabling the texture, because it may already be loaded or load directly.
             if (this.__texture) {
-                this.__texture.source.incWithinBoundsCount()
+                this.__texture.incWithinBoundsCount()
             }
+
+            this._setActiveFlag()
         }
     }
 
@@ -1364,7 +1354,7 @@ class View extends EventEmitter {
             this._unsetActiveFlag()
 
             if (this.__texture) {
-                this.__texture.source.decWithinBoundsCount()
+                this.__texture.decWithinBoundsCount()
             }
         }
     }
@@ -1728,24 +1718,21 @@ class View extends EventEmitter {
     }
 
     get src() {
-        if (this.texture && this.texture.source && this.texture.source.renderInfo && this.texture.source.renderInfo.src) {
-            return this.texture.source.renderInfo.src;
+        if (this.texture && this.texture instanceof ImageTexture) {
+            return this.texture._src
         } else {
-            return null;
+            return undefined
         }
     }
 
     set src(v) {
-        if (!v) {
-            this.texture = null;
-        } else if (!this.texture || !this.texture.source.renderInfo || this.texture.source.renderInfo.src !== v) {
-            this.texture = this.stage.textureManager.getTexture(v);
-        }
+        this.texture = new ImageTexture(this.stage)
+        this.texture.src = v
     }
 
     set mw(v) {
         if (this.texture) {
-            this.texture.source.mw = v
+            this.texture.mw = v
         } else {
             this._throwError('Please set mw after setting a texture.')
         }
@@ -1753,7 +1740,7 @@ class View extends EventEmitter {
 
     set mh(v) {
         if (this.texture) {
-            this.texture.source.mh = v
+            this.texture.mh = v
         } else {
             this._throwError('Please set mh after setting a texture.')
         }
@@ -1772,22 +1759,28 @@ class View extends EventEmitter {
     }
 
     get text() {
-        if (!this.__viewText) {
-            this.__viewText = new ViewText(this);
+        if (this.texture && (this.texture instanceof TextTexture)) {
+            return this.texture
+        } else {
+            return undefined
         }
-
-        // Give direct access to the settings.
-        return this.__viewText.settings;
     }
 
     set text(v) {
-        if (!this.__viewText) {
-            this.__viewText = new ViewText(this);
+        if (!this.texture || !(this.texture instanceof TextTexture)) {
+            this.texture = new TextTexture(this.stage)
+
+            if (!this.texture.w && !this.texture.h) {
+                // Inherit dimensions from view.
+                // This allows userland to set dimensions of the View and then later specify the text.
+                this.texture.w = this.w
+                this.texture.h = this.h
+            }
         }
         if (Utils.isString(v)) {
-            this.__viewText.settings.text = v;
+            this.texture.text = v
         } else {
-            this.__viewText.settings.patch(v);
+            this.texture.patch(v)
         }
     }
 
@@ -2130,9 +2123,11 @@ View.PROP_SETTERS = new Map();
 
 module.exports = View;
 
-let ViewText = require('./ViewText');
-let Texture = require('./Texture');
-let TextureSource = require('./TextureSource')
-let Transition = require('../animation/Transition')
-let TransitionSettings = require('../animation/TransitionSettings')
-let ViewChildList = require('./ViewChildList');
+const Texture = require('./Texture');
+const ImageTexture = require('../textures/ImageTexture');
+const TextTexture = require('../textures/TextTexture');
+const SourceTexture = require('../textures/SourceTexture');
+const TextureSource = require('./TextureSource')
+const Transition = require('../animation/Transition')
+const TransitionSettings = require('../animation/TransitionSettings')
+const ViewChildList = require('./ViewChildList');

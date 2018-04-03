@@ -4,20 +4,33 @@
 class Texture {
 
     /**
-     * @param {TextureManager} manager
-     * @param {TextureSource} source
+     * @param {Stage} stage
      */
-    constructor(manager, source) {
-        this.manager = manager;
+    constructor(stage) {
+        this.stage = stage;
+
+        this.manager = this.stage.textureManager;
 
         this.id = Texture.id++;
+
+        /**
+         * All enabled views that use this texture object (either as texture or displayedTexture).
+         * @type {Set<View>}
+         */
+        this.views = new Set();
+
+        /**
+         * The number of enabled views that are 'within bounds'.
+         * @type {number}
+         */
+        this._withinBoundsCount = 0
 
         /**
          * The associated texture source.
          * Should not be changed.
          * @type {TextureSource}
          */
-        this.source = source;
+        this._source = undefined;
 
         /**
          * The texture clipping x-offset.
@@ -51,11 +64,215 @@ class Texture {
         this._precision = 1;
 
         /**
+         * The (maximum) expected texture source width. Used for within bounds determination while texture is not yet loaded.
+         * @type {number}
+         */
+        this.mw = 2048;
+
+        /**
+         * The (maximum) expected texture source height. Used for within bounds determination while texture is not yet loaded.
+         * @type {number}
+         */
+        this.mh = 2048;
+
+        /**
          * Indicates if Texture.prototype.texture uses clipping.
          * @type {boolean}
          */
         this.clipping = false;
 
+        /**
+         * Indicates whether this texture must update (when it becomes used again).
+         * @type {boolean}
+         * @private
+         */
+        this._mustUpdate = true
+
+    }
+
+    get source() {
+        if (this._mustUpdate) {
+            this._performUpdateSource(true)
+            this.stage.removeUpdateSourceTexture(this)
+        }
+        return this._source
+    }
+
+    addView(v) {
+        if (!this.views.has(v)) {
+            this.views.add(v);
+
+            if (v.withinBoundsMargin) {
+                this.incWithinBoundsCount()
+            }
+        }
+    }
+
+    removeView(v) {
+        if (this.views.delete(v)) {
+            if (v.withinBoundsMargin) {
+                this.decWithinBoundsCount()
+            }
+        }
+    }
+
+    incWithinBoundsCount() {
+        this._withinBoundsCount++
+
+        if (this._withinBoundsCount === 1) {
+            this.becomesUsed();
+        }
+    }
+
+    decWithinBoundsCount() {
+        this._withinBoundsCount--
+
+        if (!this._withinBoundsCount) {
+            this.becomesUnused();
+        }
+    }
+
+    becomesUsed() {
+        if (this._mustUpdate) {
+            // Generate the source for this texture, setting the _source property.
+            this._updateSource()
+        }
+
+        if (this._source) {
+            this._source.addTexture(this)
+        }
+    }
+
+    becomesUnused() {
+        if (this._source) {
+            this._source.removeTexture(this)
+        }
+    }
+
+    isUsed() {
+        return this._withinBoundsCount > 0
+    }
+
+    /**
+     * Returns the lookup id for the current texture settings, to be able to reuse it.
+     * @returns {string|undefined}
+     */
+    _getLookupId() {
+        // Default: do not reuse texture.
+        return undefined
+    }
+
+    /**
+     * Generates a loader function that is able to generate the texture for the current settings of this texture.
+     * It should return a function that receives a single callback argument.
+     * That callback should be called with the following arguments:
+     *   - err
+     *   - options: object
+     *     - source: ArrayBuffer|WebGlTexture|ImageData|HTMLImageElement|HTMLCanvasElement|HTMLVideoElement|ImageBitmap
+     *     - w: Number
+     *     - h: Number
+     *     - permanent: Boolean
+     *     - hasAlpha: boolean
+     *     - permultiplyAlpha: boolean
+     *     - flipBlueRed: boolean
+     *     - renderInfo: object
+     * The loader itself may return a Function that is called when loading of the texture is cancelled. This can be used
+     * to stop fetching an image when it is no longer in view, for example.
+     */
+    _getSourceLoader() {
+        throw new Error("Texture.generate must be implemented.")
+    }
+
+    /**
+     * If texture is not 'valid', no source can be created for it.
+     * @returns {boolean}
+     */
+    _getIsValid() {
+        return true
+    }
+
+    /**
+     * This must be called when the texture source must be re-generated.
+     */
+    _changed() {
+        // If no view is actively using this texture, ignore it altogether.
+        if (this.isUsed()) {
+            this._updateSource()
+        } else {
+            this._mustUpdate = true
+        }
+    }
+
+    _updateSource() {
+        // We delay all updateSource calls to the next drawFrame, so that we can bundle them.
+        // Otherwise we may reload a texture more often than necessary, when, for example, patching multiple text
+        // properties.
+        this.stage.addUpdateSourceTexture(this)
+    }
+
+    _performUpdateSource(force = false) {
+        // If, in the meantime, the texture was no longer used, just remember that it must update until it becomes used
+        // again.
+        if (force || this.isUsed()) {
+            this._mustUpdate = false
+            let source = this._getTextureSource()
+            this._replaceTextureSource(source)
+        }
+    }
+
+    _getTextureSource() {
+        let source
+        if (this._getIsValid()) {
+            const lookupId = this._getLookupId()
+            if (lookupId) {
+                source = this.manager.getReusableTextureSource(lookupId)
+            }
+            if (!source) {
+                source = this.manager.getTextureSource(this._getSourceLoader(), lookupId)
+            }
+        }
+        return source
+    }
+
+    _replaceTextureSource(newSource = undefined) {
+        let oldSource = this._source;
+
+        this._source = newSource;
+
+        if (oldSource) {
+            oldSource.removeTexture(this)
+        }
+
+        if (newSource && this.isUsed()) {
+            if (newSource && newSource.glTexture) {
+                // Was already loaded: no display immediately.
+                this.views.forEach(view => {
+                    if (view.isActive()) {
+                        view._setDisplayedTexture(this)
+                    }
+                })
+            }
+
+            newSource.addTexture(this)
+        }
+    }
+
+    load() {
+        this._performUpdateSource(true)
+        this.stage.removeUpdateSourceTexture(this)
+        if (this._source) {
+            this._source.load()
+        }
+    }
+
+    isLoaded() {
+        return this._source && this._source.isLoaded()
+    }
+
+    free() {
+        if (this._source) {
+            this._source.free()
+        }
     }
 
     enableClipping(x, y, w, h) {
@@ -92,7 +309,7 @@ class Texture {
         }
 
         let self = this;
-        this.source.views.forEach(function(view) {
+        this.views.forEach(function(view) {
             // Ignore if not the currently displayed texture.
             if (view.displayedTexture === self) {
                 view.onDisplayedTextureClippingChanged();
@@ -102,7 +319,7 @@ class Texture {
 
     updatePrecision() {
         let self = this;
-        this.source.views.forEach(function(view) {
+        this.views.forEach(function(view) {
             // Ignore if not the currently displayed texture.
             if (view.displayedTexture === self) {
                 view.onPrecisionChanged();
@@ -110,41 +327,15 @@ class Texture {
         });
     }
 
-    replaceTextureSource(newSource) {
-        let oldSource = this.source;
-
-        this.source = newSource;
-
-        oldSource.views.forEach(view => {
-            if (view.texture === this || view.displayedTexture === this) {
-                // Remove links from previous source, but only if there is no reason for it any more.
-                let keep = (view.displayedTexture && view.displayedTexture !== this && view.displayedTexture.source === oldSource);
-                keep = keep || (view.texture && view.texture !== this && view.texture.source === oldSource);
-
-                if (!keep) {
-                    oldSource.removeView(view);
-                }
-
-                newSource.addView(view);
-
-                if (newSource.glTexture) {
-                    // We may update the source within the same texture as previous, so we need to force update.
-                    view._setDisplayedTexture(this, true)
-                } else {
-                    view._setDisplayedTexture(null, true)
-                }
-            }
-        });
-    }
-
     getNonDefaults() {
         let nonDefaults = {};
+        nonDefaults['type'] = this.constructor.name
         if (this.x !== 0) nonDefaults['x'] = this.x;
         if (this.y !== 0) nonDefaults['y'] = this.y;
         if (this.w !== 0) nonDefaults['w'] = this.w;
         if (this.h !== 0) nonDefaults['h'] = this.h;
         if (this.precision !== 1) nonDefaults['precision'] = this.precision;
-        return nonDefaults;        
+        return nonDefaults;
     }
 
     get px() {
@@ -221,11 +412,12 @@ class Texture {
     }
 
     getRenderWidth() {
-        return (this._w || this.source.getRenderWidth()) / this._precision
+        // If dimensions are unknown (texture not yet loaded), use maximum width as a fallback as render width to allow proper bounds checking.
+        return (this._w || (this._source ? this._source.getRenderWidth() : 0) || this.mw) / this._precision
     }
 
     getRenderHeight() {
-        return (this._h || this.source.getRenderHeight()) / this._precision
+        return (this._h || (this._source ? this._source.getRenderHeight() : 0) || this.mh) / this._precision
     }
 
     patch(settings) {
@@ -233,6 +425,8 @@ class Texture {
     }
 
 }
+
+Texture.prototype.isTexture = true
 
 let Base = require('./Base')
 

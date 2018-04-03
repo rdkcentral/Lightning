@@ -65,7 +65,7 @@ class Component extends View {
             this.fire('_enable')
         })
 
-        this.on('disable', () => {
+        this.on('disabled', () => {
             this.fire('_disable')
         })
     }
@@ -99,7 +99,7 @@ class Component extends View {
     }
 
     __unfocusBranch(target, newTarget) {
-        this.fire('_focusBranch', {target:target, newTarget:newTarget})
+        this.fire('_unfocusBranch', {target:target, newTarget:newTarget})
     }
 
     __focusChange(target, newTarget) {
@@ -109,6 +109,10 @@ class Component extends View {
     _getFocused() {
         // Override to delegate focus to child components.
         return this
+    }
+
+    _setFocusSettings(settings) {
+        // Override to add custom settings. See Application._handleFocusSettings().
     }
 
     _getStates() {

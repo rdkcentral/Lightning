@@ -1,7 +1,7 @@
 /**
  * Copyright Metrological, 2017
  */
-class TextRenderer {
+class TextTextureRenderer {
 
     constructor(canvas, settings) {
         this._canvas = canvas;
@@ -273,6 +273,6 @@ class TextRenderer {
     
 }
 
-module.exports = TextRenderer;
+module.exports = TextTextureRenderer;
 
-let StageUtils = require('./StageUtils');
+let StageUtils = require('../tree/StageUtils');

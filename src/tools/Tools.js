@@ -3,63 +3,25 @@
  */
 let Utils = require('../tree/Utils');
 let StageUtils = require('../tree/StageUtils');
+const StaticCanvasTexture = require('../textures/StaticCanvasTexture')
 
 class Tools {
 
-    static getSvgTexture(stage, url, w, h, texOptions = {}) {
-        texOptions.id = texOptions.id || 'svg' + [w, h, url].join(",");
-
-        return stage.texture(function(cb) {
-            let canvas = stage.adapter.getDrawingCanvas();
-            let ctx = canvas.getContext('2d');
-            ctx.imageSmoothingEnabled = true;
-
-            let img = new Image()
-            img.onload = () => {
-                canvas.width = w
-                canvas.height = h
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                let info = Tools.convertCanvas(canvas)
-                cb(null, info.data, info.options)
-            }
-            img.onError = (err) => {
-                cb(err)
-            }
-            img.src = url
-        }, texOptions)
+    static getCanvasTexture(canvasFactory, lookupId) {
+        return {type: StaticCanvasTexture, content: {factory: canvasFactory, lookupId: lookupId}}
     }
 
-    static convertCanvas(canvas) {
-        let data = canvas
-        let options = {}
-        if (Utils.isNode) {
-            data = canvas.toBuffer('raw');
-            options.w = canvas.width;
-            options.h = canvas.height;
-            options.premultiplyAlpha = false;
-            options.flipBlueRed = true;
-        }
-        return {data: data, options: options}
-    }
-
-    static getCanvasTexture(stage, canvasFactory, texOptions = {}) {
-        return stage.texture(function(cb) {
-            const info = Tools.convertCanvas(canvasFactory())
-            cb(null, info.data, info.options);
-        }, texOptions);
-    }
-
-    static getRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor) {
+    static getRoundRect(w, h, radius, strokeWidth, strokeColor, fill, fillColor) {
         if (!Array.isArray(radius)){
             // upper-left, upper-right, bottom-right, bottom-left.
             radius = [radius, radius, radius, radius]
         }
 
-        let factory = () => {
-            return this.createRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor)
+        let factory = (cb, stage) => {
+            cb(null, this.createRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor))
         }
         let id = 'rect' + [w, h, strokeWidth, strokeColor, fill ? 1 : 0, fillColor].concat(radius).join(",");
-        return Tools.getCanvasTexture(stage, factory, {id: id});
+        return Tools.getCanvasTexture(factory, id);
     }
 
     static createRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor) {
@@ -108,17 +70,17 @@ class Tools {
         return canvas;
     }
 
-    static getShadowRect(stage, w, h, radius = 0, blur = 5, margin = blur * 2) {
+    static getShadowRect(w, h, radius = 0, blur = 5, margin = blur * 2) {
         if (!Array.isArray(radius)){
             // upper-left, upper-right, bottom-right, bottom-left.
             radius = [radius, radius, radius, radius]
         }
 
-        let factory = () => {
-            return this.createShadowRect(stage, w, h, radius, blur, margin)
+        let factory = (cb, stage) => {
+            cb(null, this.createShadowRect(stage, w, h, radius, blur, margin))
         }
         let id = 'shadow' + [w, h, blur, margin].concat(radius).join(",");
-        return Tools.getCanvasTexture(stage, factory, {id: id});
+        return Tools.getCanvasTexture(factory, id);
     }
 
     static createShadowRect(stage, w, h, radius, blur, margin) {
@@ -151,6 +113,32 @@ class Tools {
         ctx.fill()
 
         return canvas;
+    }
+
+    static getSvgTexture(url, w, h) {
+        let factory = (cb, stage) => {
+            this.createSvg(cb, stage, url, w, h)
+        }
+        let id = 'svg' + [w, h, url].join(",");
+        return Tools.getCanvasTexture(factory, id);
+    }
+
+    static createSvg(cb, stage, url, w, h) {
+        let canvas = stage.adapter.getDrawingCanvas();
+        let ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+
+        let img = new Image()
+        img.onload = () => {
+            canvas.width = w
+            canvas.height = h
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            cb(null, canvas)
+        }
+        img.onError = (err) => {
+            cb(err)
+        }
+        img.src = url
     }
 
 }
