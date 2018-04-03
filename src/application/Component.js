@@ -111,6 +111,10 @@ class Component extends View {
         return this
     }
 
+    _setFocusSettings(settings) {
+        // Override to add custom settings. See Application._handleFocusSettings().
+    }
+
     _getStates() {
         if (!this.constructor.__states) {
             this.constructor.__states = this.constructor._states()

@@ -87,6 +87,21 @@ class EventEmitter {
         }
     }
 
+    listenerCount(name) {
+        if (this._hasEventListeners) {
+            const func = this._eventFunction[name]
+            if (func) {
+                if (func === EventEmitter.combiner) {
+                    return this._eventListeners[name].length
+                } else {
+                    return 1
+                }
+            }
+        } else {
+            return 0
+        }
+    }
+
 }
 
 EventEmitter.combiner = function(object, name, arg1, arg2, arg3) {
@@ -12989,6 +13004,10 @@ class Component extends View {
         return this
     }
 
+    _setFocusSettings(settings) {
+        // Override to add custom settings. See Application._handleFocusSettings().
+    }
+
     _getStates() {
         if (!this.constructor.__states) {
             this.constructor.__states = this.constructor._states()
@@ -13248,7 +13267,9 @@ class Application extends Component {
     __updateFocus(maxRecursion = 100) {
         const newFocusPath = this.__getFocusPath()
         const newFocusedComponent = newFocusPath[newFocusPath.length - 1]
-        if (!this._focusPath) {
+        const prevFocusedComponent = this._focusPath ? this._focusPath[this._focusPath.length - 1] : undefined
+
+        if (!prevFocusedComponent) {
             // First focus.
             this._focusPath = newFocusPath
 
@@ -13257,8 +13278,6 @@ class Application extends Component {
                 this._focusPath[i].__focus(newFocusedComponent, undefined)
             }
         } else {
-            const focusedComponent = this._focusPath[this._focusPath.length - 1]
-
             let m = Math.min(this._focusPath.length, newFocusPath.length)
             let index
             for (index = 0; index < m; index++) {
@@ -13273,19 +13292,19 @@ class Application extends Component {
                 }
                 // Unfocus events.
                 for (let i = this._focusPath.length - 1; i >= index; i--) {
-                    this._focusPath[i].__unfocus(newFocusedComponent, focusedComponent)
+                    this._focusPath[i].__unfocus(newFocusedComponent, prevFocusedComponent)
                 }
 
                 this._focusPath = newFocusPath
 
                 // Focus events.
                 for (let i = index, n = this._focusPath.length; i < n; i++) {
-                    this._focusPath[i].__focus(newFocusedComponent, focusedComponent)
+                    this._focusPath[i].__focus(newFocusedComponent, prevFocusedComponent)
                 }
 
                 // Focus changed events.
                 for (let i = 0; i < index; i++) {
-                    this._focusPath[i].__focusChange(newFocusedComponent, focusedComponent)
+                    this._focusPath[i].__focusChange(newFocusedComponent, prevFocusedComponent)
                 }
 
                 // Focus events could trigger focus changes.
@@ -13294,8 +13313,25 @@ class Application extends Component {
                 }
                 this.__updateFocus(maxRecursion)
             }
-
         }
+
+        // Performance optimization: do not gather settings if no handler is defined.
+        if (this._handleFocusSettings !== Application.prototype._handleFocusSettings) {
+            // Get focus settings. These can be used for dynamic application-wide settings the depend on the
+            // focus directly (such as the application background).
+            const focusSettings = {}
+            for (let i = 0, n = this._focusPath.length; i < n; i++) {
+                this._focusPath[i]._setFocusSettings(focusSettings)
+            }
+
+            this._handleFocusSettings(focusSettings, this.__prevFocusSettings, newFocusedComponent, prevFocusedComponent)
+
+            this.__prevFocusSettings = focusSettings
+        }
+    }
+
+    _handleFocusSettings(settings, prevSettings, focused, prevFocused) {
+        // Override to handle focus-based settings.
     }
 
     __getFocusPath() {
