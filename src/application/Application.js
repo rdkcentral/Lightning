@@ -39,7 +39,7 @@ class Application extends Component {
         }
 
         opt('debug', false);
-        opt('keys', false);
+        opt('keys', {});
     }
 
     __construct() {
