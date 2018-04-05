@@ -2112,7 +2112,7 @@ class Texture {
     }
 
     _getTextureSource() {
-        let source
+        let source = undefined
         if (this._getIsValid()) {
             const lookupId = this._getLookupId()
             if (lookupId) {
@@ -2134,17 +2134,25 @@ class Texture {
             oldSource.removeTexture(this)
         }
 
-        if (newSource && this.isUsed()) {
-            if (newSource && newSource.glTexture) {
-                // Was already loaded: no display immediately.
+        if (this.isUsed()) {
+            if (newSource) {
+                if (newSource && newSource.glTexture) {
+                    // Was already loaded: no display immediately.
+                    this.views.forEach(view => {
+                        if (view.isActive()) {
+                            view._setDisplayedTexture(this)
+                        }
+                    })
+                }
+
+                newSource.addTexture(this)
+            } else {
                 this.views.forEach(view => {
                     if (view.isActive()) {
-                        view._setDisplayedTexture(this)
+                        view._setDisplayedTexture(null)
                     }
                 })
             }
-
-            newSource.addTexture(this)
         }
     }
 
