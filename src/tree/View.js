@@ -732,7 +732,7 @@ class View extends EventEmitter {
 
                         // Remove from treeTags.
                         let p = this;
-                        while ((p = p.__parent) && !p.__tagRoot) {
+                        while ((p = p.__parent)) {
                             let parentTreeTags = p.__treeTags.get(tags[i]);
 
                             tagSet.forEach(function (comp) {
@@ -741,6 +741,10 @@ class View extends EventEmitter {
 
 
                             p._clearTagsCache(tags[i]);
+
+                            if (p.__tagRoot) {
+                                break
+                            }
                         }
                     }
                 }
