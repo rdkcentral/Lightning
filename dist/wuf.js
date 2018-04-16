@@ -451,6 +451,15 @@ class Utils {
         return typeof value == 'string';
     }
 
+    static clone(v) {
+        if (Utils.isObject(v)) {
+            return this.cloneObj(v)
+        } else {
+            // Copy by value.
+            return v
+        }
+    }
+
     static cloneObj(obj) {
         let keys = Object.keys(obj);
         let clone = {}
@@ -518,6 +527,38 @@ class Utils {
         } else {
             return obj;
         }
+    }
+
+    static equalValues(v1, v2) {
+        if ((typeof v1) !== (typeof v2)) return false
+        if (Utils.isObjectLiteral(v1)) {
+            return Utils.equalObjectLiterals(v1, v2)
+        } else {
+            return v1 === v2
+        }
+    }
+
+    static equalObjectLiterals(obj1, obj2) {
+        let keys1 = Object.keys(obj1)
+        let keys2 = Object.keys(obj2)
+        if (keys1.length !== keys2.length) {
+            return false
+        }
+
+        for (let i = 0, n = keys1.length; i < n; i++) {
+            const v1 = keys1[i]
+            const v2 = keys2[i]
+            if (v1 !== v2) {
+                return false
+            }
+            if (Utils.isObjectLiteral(v1)) {
+                if (!this.equalObjectLiterals(v1, v2)) {
+                    return false
+                }
+            }
+        }
+
+        return true;
     }
 
     static setToArray(s) {
@@ -1039,6 +1080,8 @@ class Stage extends EventEmitter {
         opt('srcBasePath', null);
         opt('textureMemory', 18e6);
         opt('renderTextureMemory', 12e6);
+        opt('bufferMemory', 8e6);
+        opt('textRenderIssueMargin', 0);
         opt('glClearColor', [0, 0, 0, 0]);
         opt('defaultFontFace', 'Sans-Serif');
         opt('fixedDt', 0);
@@ -3989,7 +4032,7 @@ class View extends EventEmitter {
 
                         // Remove from treeTags.
                         let p = this;
-                        while ((p = p.__parent) && !p.__tagRoot) {
+                        while ((p = p.__parent)) {
                             let parentTreeTags = p.__treeTags.get(tags[i]);
 
                             tagSet.forEach(function (comp) {
@@ -3998,6 +4041,10 @@ class View extends EventEmitter {
 
 
                             p._clearTagsCache(tags[i]);
+
+                            if (p.__tagRoot) {
+                                break
+                            }
                         }
                     }
                 }
@@ -7786,7 +7833,7 @@ class CoreRenderState {
         // We do not (want to) handle memory overflow.
 
         // We could optimize memory usage by increasing the ArrayBuffer gradually.
-        this.quads = new CoreQuadList(ctx, 8e6)
+        this.quads = new CoreQuadList(ctx, ctx.stage.getOption('bufferMemory'))
 
         this.defaultShader = new Shader(this.ctx);
     }
@@ -9657,6 +9704,10 @@ class ImageTexture extends Texture {
         this._src = undefined
     }
 
+    get src() {
+        return this._src
+    }
+
     set src(v) {
         if (this._src !== v) {
             this._src = v
@@ -10153,7 +10204,7 @@ class TextTexture extends Texture {
 
         const canvas = this.stage.adapter.getDrawingCanvas()
         return function(cb) {
-            const renderer = new TextTextureRenderer(canvas, args)
+            const renderer = new TextTextureRenderer(this.stage, canvas, args)
             renderer.draw()
             cb(null, this.stage.adapter.getTextureOptionsForDrawingCanvas(canvas))
         }
@@ -10282,7 +10333,8 @@ proto._cutEy = 0;
  */
 class TextTextureRenderer {
 
-    constructor(canvas, settings) {
+    constructor(stage, canvas, settings) {
+        this._stage = stage
         this._canvas = canvas;
         this._context = this._canvas.getContext('2d');
         this._settings = settings;
@@ -10296,7 +10348,7 @@ class TextTextureRenderer {
         let ff = this._settings.fontFace;
         let fonts = '"' + (Array.isArray(ff) ? this._settings.fontFace.join('","') : ff) + '"';
         let precision = (withPrecision ? this.getPrecision() : 1);
-        this._context.font = this._settings.fontStyle + " " + (this._settings.fontSize * precision) + "px " + fonts;
+        this._context.font = this._settings.fontStyle + " " + Math.floor(this._settings.fontSize * precision) + "px " + fonts;
         this._context.textBaseline = this._settings.textBaseline;
     };
 
@@ -10422,8 +10474,8 @@ class TextTextureRenderer {
                 height = Math.min(height, this._settings.cutEy - this._settings.cutSy);
             }
 
-            // Get corrected precision so that text
-            this._canvas.width = Math.ceil(width * precision);
+            // Add extra margin to prevent issue with clipped text when scaling.
+            this._canvas.width = Math.ceil(width * precision + this._stage.getOption('textRenderIssueMargin'));
             this._canvas.height = Math.ceil(height * precision);
 
             // After changing the canvas, we need to reset the properties.
@@ -13439,7 +13491,7 @@ class Application extends Component {
                     newParts.push(ptr)
                     ptr = ptr.cparent
                     if (!ptr) {
-                        current._throwError("Return value for _getFocus must be an attached descendant component but its '" + nextFocus.getLocationString() + "'")
+                        current._throwError("Return value for _getFocused must be an attached descendant component but its '" + nextFocus.getLocationString() + "'")
                     }
                 } while (ptr !== current)
 

@@ -151,7 +151,7 @@ class Application extends Component {
                     newParts.push(ptr)
                     ptr = ptr.cparent
                     if (!ptr) {
-                        current._throwError("Return value for _getFocus must be an attached descendant component but its '" + nextFocus.getLocationString() + "'")
+                        current._throwError("Return value for _getFocused must be an attached descendant component but its '" + nextFocus.getLocationString() + "'")
                     }
                 } while (ptr !== current)
 

@@ -13,7 +13,7 @@ class CoreRenderState {
         // We do not (want to) handle memory overflow.
 
         // We could optimize memory usage by increasing the ArrayBuffer gradually.
-        this.quads = new CoreQuadList(ctx, 8e6)
+        this.quads = new CoreQuadList(ctx, ctx.stage.getOption('bufferMemory'))
 
         let Shader = require('../Shader');
         this.defaultShader = new Shader(this.ctx);

@@ -428,7 +428,7 @@ class TextTexture extends Texture {
 
         const canvas = this.stage.adapter.getDrawingCanvas()
         return function(cb) {
-            const renderer = new TextTextureRenderer(canvas, args)
+            const renderer = new TextTextureRenderer(this.stage, canvas, args)
             renderer.draw()
             cb(null, this.stage.adapter.getTextureOptionsForDrawingCanvas(canvas))
         }

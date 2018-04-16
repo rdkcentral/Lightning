@@ -8,6 +8,10 @@ class ImageTexture extends Texture {
         this._src = undefined
     }
 
+    get src() {
+        return this._src
+    }
+
     set src(v) {
         if (this._src !== v) {
             this._src = v

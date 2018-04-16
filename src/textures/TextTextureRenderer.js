@@ -3,7 +3,8 @@
  */
 class TextTextureRenderer {
 
-    constructor(canvas, settings) {
+    constructor(stage, canvas, settings) {
+        this._stage = stage
         this._canvas = canvas;
         this._context = this._canvas.getContext('2d');
         this._settings = settings;
@@ -17,7 +18,7 @@ class TextTextureRenderer {
         let ff = this._settings.fontFace;
         let fonts = '"' + (Array.isArray(ff) ? this._settings.fontFace.join('","') : ff) + '"';
         let precision = (withPrecision ? this.getPrecision() : 1);
-        this._context.font = this._settings.fontStyle + " " + (this._settings.fontSize * precision) + "px " + fonts;
+        this._context.font = this._settings.fontStyle + " " + Math.floor(this._settings.fontSize * precision) + "px " + fonts;
         this._context.textBaseline = this._settings.textBaseline;
     };
 
@@ -143,8 +144,8 @@ class TextTextureRenderer {
                 height = Math.min(height, this._settings.cutEy - this._settings.cutSy);
             }
 
-            // Get corrected precision so that text
-            this._canvas.width = Math.ceil(width * precision);
+            // Add extra margin to prevent issue with clipped text when scaling.
+            this._canvas.width = Math.ceil(width * precision + this._stage.getOption('textRenderIssueMargin'));
             this._canvas.height = Math.ceil(height * precision);
 
             // After changing the canvas, we need to reset the properties.

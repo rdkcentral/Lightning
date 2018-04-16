@@ -22,6 +22,15 @@ class Utils {
         return typeof value == 'string';
     }
 
+    static clone(v) {
+        if (Utils.isObject(v)) {
+            return this.cloneObj(v)
+        } else {
+            // Copy by value.
+            return v
+        }
+    }
+
     static cloneObj(obj) {
         let keys = Object.keys(obj);
         let clone = {}
@@ -89,6 +98,38 @@ class Utils {
         } else {
             return obj;
         }
+    }
+
+    static equalValues(v1, v2) {
+        if ((typeof v1) !== (typeof v2)) return false
+        if (Utils.isObjectLiteral(v1)) {
+            return Utils.equalObjectLiterals(v1, v2)
+        } else {
+            return v1 === v2
+        }
+    }
+
+    static equalObjectLiterals(obj1, obj2) {
+        let keys1 = Object.keys(obj1)
+        let keys2 = Object.keys(obj2)
+        if (keys1.length !== keys2.length) {
+            return false
+        }
+
+        for (let i = 0, n = keys1.length; i < n; i++) {
+            const v1 = keys1[i]
+            const v2 = keys2[i]
+            if (v1 !== v2) {
+                return false
+            }
+            if (Utils.isObjectLiteral(v1)) {
+                if (!this.equalObjectLiterals(v1, v2)) {
+                    return false
+                }
+            }
+        }
+
+        return true;
     }
 
     static setToArray(s) {
