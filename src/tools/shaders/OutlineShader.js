@@ -22,7 +22,7 @@ class OutlineShader extends Shader {
         super.setupUniforms(operation)
         let gl = this.gl
 
-        this._setUniform("color", new Float32Array(StageUtils.getRgbaComponents(this._color)), gl.uniform4fv)
+        this._setUniform("color", new Float32Array(StageUtils.getRgbaComponentsNormalized(this._color)), gl.uniform4fv)
     }
 
     enableAttribs() {
