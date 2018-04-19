@@ -125,7 +125,12 @@ class Stage extends EventEmitter {
      * @param texture
      */
     addUpdateSourceTexture(texture) {
-        this._updateSourceTextures.add(texture)
+        if (this._updatingFrame) {
+            // When called from the upload loop, we must immediately load the texture in order to avoid a 'flash'.
+            texture._performUpdateSource()
+        } else {
+            this._updateSourceTextures.add(texture)
+        }
     }
 
     removeUpdateSourceTexture(texture) {
@@ -161,7 +166,9 @@ class Stage extends EventEmitter {
         const changes = this.ctx.hasRenderUpdates()
 
         if (changes) {
+            this._updatingFrame = true
             this.ctx.frame();
+            this._updatingFrame = false
         }
 
         this.adapter.nextFrame(changes);
