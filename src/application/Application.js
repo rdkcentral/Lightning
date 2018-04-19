@@ -112,7 +112,7 @@ class Application extends Component {
         }
 
         // Performance optimization: do not gather settings if no handler is defined.
-        if (this._handleFocusSettings !== Application.prototype._handleFocusSettings) {
+        if (this.__initialized && this._handleFocusSettings !== Application.prototype._handleFocusSettings) {
             // Get focus settings. These can be used for dynamic application-wide settings the depend on the
             // focus directly (such as the application background).
             const focusSettings = {}
@@ -222,8 +222,8 @@ class Application extends Component {
     _receiveKeydown(e) {
         const obj = {keyCode: e.keyCode}
         if (this.__keymap[e.keyCode]) {
-            if (!this.stage.application.focusTopDownEvent([{event: "_capture" + this.__keymap[e.keyCode]}, {event: "_captureKey", args: obj}])) {
-                this.stage.application.focusBottomUpEvent([{event: "_handle" + this.__keymap[e.keyCode]}, {event: "_handleKey", args: obj}])
+            if (!this.stage.application.focusTopDownEvent([{event: "_capture" + this.__keymap[e.keyCode], args: obj}, {event: "_captureKey", args: obj}])) {
+                this.stage.application.focusBottomUpEvent([{event: "_handle" + this.__keymap[e.keyCode], args: obj}, {event: "_handleKey", args: obj}])
             }
         } else {
             if (!this.stage.application.focusTopDownEvent("_captureKey", obj)) {
