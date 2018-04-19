@@ -6,6 +6,7 @@ class OutlineShader extends Shader {
         super(ctx)
         this._width = 5
         this._color = 0xFFFFFFFF
+        this._col = [1,1,1,1]
     }
 
     set width(v) {
@@ -13,16 +14,30 @@ class OutlineShader extends Shader {
         this.redraw()
     }
 
+    get color() {
+        return this._col
+    }
+
     set color(v) {
-        this._color = v
-        this.redraw()
+        if (this._col !== v) {
+            const col = StageUtils.getRgbaComponentsNormalized(v)
+            col[0] = col[0] * col[3]
+            col[1] = col[1] * col[3]
+            col[2] = col[2] * col[3]
+
+            this._color = col
+
+            this.redraw()
+
+            this._col = v
+        }
     }
 
     setupUniforms(operation) {
         super.setupUniforms(operation)
         let gl = this.gl
-
-        this._setUniform("color", new Float32Array(StageUtils.getRgbaComponentsNormalized(this._color)), gl.uniform4fv)
+        console.log(this._color.join(','))
+        this._setUniform("color", new Float32Array(this._color), gl.uniform4fv)
     }
 
     enableAttribs() {
@@ -78,7 +93,7 @@ class OutlineShader extends Shader {
     }
 
     useDefault() {
-        return (this._width === 0)
+        return (this._width === 0 || this._col[3] === 0)
     }
 }
 

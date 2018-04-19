@@ -1134,7 +1134,12 @@ class Stage extends EventEmitter {
      * @param texture
      */
     addUpdateSourceTexture(texture) {
-        this._updateSourceTextures.add(texture)
+        if (this._updatingFrame) {
+            // When called from the upload loop, we must immediately load the texture in order to avoid a 'flash'.
+            texture._performUpdateSource()
+        } else {
+            this._updateSourceTextures.add(texture)
+        }
     }
 
     removeUpdateSourceTexture(texture) {
@@ -1170,7 +1175,9 @@ class Stage extends EventEmitter {
         const changes = this.ctx.hasRenderUpdates()
 
         if (changes) {
+            this._updatingFrame = true
             this.ctx.frame();
+            this._updatingFrame = false
         }
 
         this.adapter.nextFrame(changes);
@@ -5402,7 +5409,7 @@ class View extends EventEmitter {
     }
 
     static isColorProperty(property) {
-        return property.startsWith("color")
+        return property.indexOf("color") >= 0
     }
 
     static getMerger(property) {
@@ -11356,8 +11363,8 @@ class ListItems extends ObjectListWrapper {
             if (this.list.length === 1) {
                 this.list.setIndex(0, true, true);
             } else {
-                if (index <= this.list._index) {
-                    this.list.setIndex(this.list._index + 1);
+                if (this.list._index >= this.list.length) {
+                    this.list.setIndex(0);
                 }
             }
             this.list.update();
@@ -11472,25 +11479,21 @@ class BorderView extends View {
     set borderWidthTop(v) {
         this._borderTop.h = v;
         this._borderTop.visible = (v > 0);
-        this._updateLayout = true;
     }
 
     set borderWidthRight(v) {
         this._borderRight.w = v;
         this._borderRight.visible = (v > 0);
-        this._updateLayout = true;
     }
 
     set borderWidthBottom(v) {
         this._borderBottom.h = v;
         this._borderBottom.visible = (v > 0);
-        this._updateLayout = true;
     }
 
     set borderWidthLeft(v) {
         this._borderLeft.w = v;
         this._borderLeft.visible = (v > 0);
-        this._updateLayout = true;
     }
 
     get colorBorder() {
@@ -12241,6 +12244,7 @@ class OutlineShader extends Shader {
         super(ctx)
         this._width = 5
         this._color = 0xFFFFFFFF
+        this._col = [1,1,1,1]
     }
 
     set width(v) {
@@ -12248,16 +12252,30 @@ class OutlineShader extends Shader {
         this.redraw()
     }
 
+    get color() {
+        return this._col
+    }
+
     set color(v) {
-        this._color = v
-        this.redraw()
+        if (this._col !== v) {
+            const col = StageUtils.getRgbaComponentsNormalized(v)
+            col[0] = col[0] * col[3]
+            col[1] = col[1] * col[3]
+            col[2] = col[2] * col[3]
+
+            this._color = col
+
+            this.redraw()
+
+            this._col = v
+        }
     }
 
     setupUniforms(operation) {
         super.setupUniforms(operation)
         let gl = this.gl
-
-        this._setUniform("color", new Float32Array(StageUtils.getRgbaComponents(this._color)), gl.uniform4fv)
+        console.log(this._color.join(','))
+        this._setUniform("color", new Float32Array(this._color), gl.uniform4fv)
     }
 
     enableAttribs() {
@@ -12313,7 +12331,7 @@ class OutlineShader extends Shader {
     }
 
     useDefault() {
-        return (this._width === 0)
+        return (this._width === 0 || this._col[3] === 0)
     }
 }
 
@@ -13452,7 +13470,7 @@ class Application extends Component {
         }
 
         // Performance optimization: do not gather settings if no handler is defined.
-        if (this._handleFocusSettings !== Application.prototype._handleFocusSettings) {
+        if (this.__initialized && this._handleFocusSettings !== Application.prototype._handleFocusSettings) {
             // Get focus settings. These can be used for dynamic application-wide settings the depend on the
             // focus directly (such as the application background).
             const focusSettings = {}
@@ -13562,8 +13580,8 @@ class Application extends Component {
     _receiveKeydown(e) {
         const obj = {keyCode: e.keyCode}
         if (this.__keymap[e.keyCode]) {
-            if (!this.stage.application.focusTopDownEvent([{event: "_capture" + this.__keymap[e.keyCode]}, {event: "_captureKey", args: obj}])) {
-                this.stage.application.focusBottomUpEvent([{event: "_handle" + this.__keymap[e.keyCode]}, {event: "_handleKey", args: obj}])
+            if (!this.stage.application.focusTopDownEvent([{event: "_capture" + this.__keymap[e.keyCode], args: obj}, {event: "_captureKey", args: obj}])) {
+                this.stage.application.focusBottomUpEvent([{event: "_handle" + this.__keymap[e.keyCode], args: obj}, {event: "_handleKey", args: obj}])
             }
         } else {
             if (!this.stage.application.focusTopDownEvent("_captureKey", obj)) {

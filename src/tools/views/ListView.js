@@ -453,8 +453,8 @@ class ListItems extends ObjectListWrapper {
             if (this.list.length === 1) {
                 this.list.setIndex(0, true, true);
             } else {
-                if (index <= this.list._index) {
-                    this.list.setIndex(this.list._index + 1);
+                if (this.list._index >= this.list.length) {
+                    this.list.setIndex(0);
                 }
             }
             this.list.update();

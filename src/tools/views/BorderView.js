@@ -76,25 +76,21 @@ class BorderView extends View {
     set borderWidthTop(v) {
         this._borderTop.h = v;
         this._borderTop.visible = (v > 0);
-        this._updateLayout = true;
     }
 
     set borderWidthRight(v) {
         this._borderRight.w = v;
         this._borderRight.visible = (v > 0);
-        this._updateLayout = true;
     }
 
     set borderWidthBottom(v) {
         this._borderBottom.h = v;
         this._borderBottom.visible = (v > 0);
-        this._updateLayout = true;
     }
 
     set borderWidthLeft(v) {
         this._borderLeft.w = v;
         this._borderLeft.visible = (v > 0);
-        this._updateLayout = true;
     }
 
     get colorBorder() {
