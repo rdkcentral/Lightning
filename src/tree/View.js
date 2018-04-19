@@ -2102,7 +2102,7 @@ class View extends EventEmitter {
     }
 
     static isColorProperty(property) {
-        return property.startsWith("color")
+        return property.indexOf("color") >= 0
     }
 
     static getMerger(property) {
