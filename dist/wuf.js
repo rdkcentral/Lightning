@@ -5005,7 +5005,7 @@ class View extends EventEmitter {
     }
 
     hasChildren() {
-        return this.__childList && (this.__childList.length > 0)
+        return this._allowChildrenAccess() && this.__childList && (this.__childList.length > 0)
     }
 
     _allowChildrenAccess() {
@@ -13937,10 +13937,11 @@ return {
         LinearBlurFilter: LinearBlurFilter,
         GrayscaleFilter: GrayscaleFilter
     },
-    _internal: {
+    _internal: { /* Required for inspect.js */
         Stage: Stage,
         ViewCore: ViewCore,
-        ViewTexturizer: ViewTexturizer
+        ViewTexturizer: ViewTexturizer,
+        Texture: Texture,
     },
     EventEmitter: EventEmitter
 }

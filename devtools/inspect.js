@@ -3,16 +3,14 @@ var attachInspector = function(wuf) {
         const Stage = _internal.Stage
         const ViewCore = _internal.ViewCore
         const ViewTexturizer = _internal.ViewTexturizer
+        const Texture = _internal.Texture
 
 // _properties must have been called already to prevent init mayhem.
         window.mutationCounter = 0;
         window.mutatingChildren = false;
         var observer = new MutationObserver(function(mutations) {
-            var fa = ["x", "y", "w", "h", "alpha", "mountX", "mountY", "pivotX", "pivotY", "scaleX", "scaleY", "rotation", "visible", "clipping", "rect", "colorUl", "colorUr", "colorBl", "colorBr", "color", "borderWidthLeft", "borderWidthRight", "borderWidthTop", "borderWidthBottom", "borderWidth", "borderColorLeft", "borderColorRight", "borderColorTop", "borderColorBottom", "borderColor", "zIndex", "forceZIndexContext", "renderToTexture", "renderToTextureLazy", "hideResultTexture", "colorizeResultTexture"];
+            var fa = ["x", "y", "w", "h", "alpha", "mountX", "mountY", "pivotX", "pivotY", "scaleX", "scaleY", "rotation", "visible", "clipping", "rect", "colorUl", "colorUr", "colorBl", "colorBr", "color", "borderWidthLeft", "borderWidthRight", "borderWidthTop", "borderWidthBottom", "borderWidth", "borderColorLeft", "borderColorRight", "borderColorTop", "borderColorBottom", "borderColor", "zIndex", "forceZIndexContext", "renderToTexture", "renderToTextureLazy", "hideResultTexture", "colorizeResultTexture", "texture"];
             var fac = fa.map(function(v) {return v.toLowerCase()});
-
-            var ta = ["text", "fontStyle", "fontSize", "fontFace", "wordWrap", "wordWrapWidth", "lineHeight", "textBaseline", "textAlign", "offsetY", "maxLines", "maxLinesSuffix", "precision", "paddingLeft", "paddingRight", "shadow", "shadowOffsetX", "shadowOffsetY", "shadowBlur", "highlight", "highlightHeight", "highlightOffset", "highlightPaddingLeft", "highlightPaddingRight", "cutSx", "cutEx", "cutSy", "cutEy", "textColor", "shadowColor", "highlightColor"];
-            var tac = ta.map(function(v) {return v.toLowerCase()});
 
             mutations.forEach(function(mutation) {
                 if (mutation.type == 'childList') {
@@ -31,6 +29,19 @@ var attachInspector = function(wuf) {
                     }
 
                     var v = mutation.target.getAttribute(mutation.attributeName);
+
+                    if (n.startsWith("texture-")) {
+                        if (c.displayedTexture) {
+                            const att = n.substr(8).split("_")
+                            const camelCaseAtt = att[0] + att.slice(1).map(a => {
+                                return a.substr(0,1).toUpperCase() + a.substr(1).toLowerCase()
+                            }).join()
+
+                            c.displayedTexture[camelCaseAtt] = v
+                        }
+                        return
+                    }
+
                     var index = fac.indexOf(n);
                     if (index !== -1) {
                         var rn = fa[index];
@@ -109,6 +120,9 @@ var attachInspector = function(wuf) {
                                     case "colorizeResultTexture":
                                         pv = (v === "true");
                                         break;
+                                    case "texture":
+                                        pv = JSON.parse(v)
+                                        break
                                     default:
                                         pv = parseFloat(v);
                                         if (isNaN(pv)) throw "e";
@@ -729,6 +743,40 @@ var attachInspector = function(wuf) {
 
             this.dhtml().style.transform = parts.join(' ');
         };
+
+        var updateTextureAttribs = function(view) {
+            const nonDefaults = view.texture.getNonDefaults()
+            const keys = Object.keys(nonDefaults)
+            keys.forEach(key => {
+                let f = ""
+                for (let i = 0, n = key.length; i < n; i++) {
+                    const c = key.charAt(i)
+                    if (c !== c.toLowerCase()) {
+                        f += "_" + c.toLowerCase()
+                    } else {
+                        f += c
+                    }
+                }
+                val(view, `texture-${f}`, nonDefaults[key], false);
+            })
+
+        }
+
+        const _performUpdateSource = Texture.prototype._performUpdateSource
+        Texture.prototype._performUpdateSource = function() {
+            _performUpdateSource.apply(this, arguments)
+            const nonDefaults = this.getNonDefaults()
+            this.views.forEach(v => {
+                updateTextureAttribs(v)
+            })
+        }
+
+        const _setDisplayedTexture = View.prototype._setDisplayedTexture
+        View.prototype._setDisplayedTexture = function() {
+            _setDisplayedTexture.apply(this, arguments)
+            updateTextureAttribs(this)
+        }
+
     }
 }
 

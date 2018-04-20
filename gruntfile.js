@@ -47,10 +47,11 @@ return {
         LinearBlurFilter: LinearBlurFilter,
         GrayscaleFilter: GrayscaleFilter
     },
-    _internal: {
+    _internal: { /* Required for inspect.js */
         Stage: Stage,
         ViewCore: ViewCore,
-        ViewTexturizer: ViewTexturizer
+        ViewTexturizer: ViewTexturizer,
+        Texture: Texture,
     },
     EventEmitter: EventEmitter
 }
