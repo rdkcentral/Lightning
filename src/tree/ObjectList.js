@@ -161,6 +161,14 @@ class ObjectList {
         return this._refs[ref]
     }
 
+    clearRef(ref) {
+        delete this._refs[ref]
+    }
+
+    setRef(ref, child) {
+        this._refs[ref] = child
+    }
+
     patch(settings) {
         if (Utils.isObjectLiteral(settings)) {
             this._setByObject(settings)

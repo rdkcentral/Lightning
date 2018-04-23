@@ -3438,9 +3438,19 @@ class View extends EventEmitter {
             }
             if (this.__ref !== null) {
                 this.removeTag(this.__ref)
+                if (this.__parent) {
+                    this.__parent.__childList.clearRef(this.__ref)
+                }
             }
+
             this.__ref = ref
-            this._addTag(this.__ref)
+
+            if (this.__ref) {
+                this._addTag(this.__ref)
+                if (this.__parent) {
+                    this.__parent.__childList.setRef(this.__ref, this)
+                }
+            }
         }
     }
 
@@ -5595,6 +5605,14 @@ class ObjectList {
 
     getByRef(ref) {
         return this._refs[ref]
+    }
+
+    clearRef(ref) {
+        delete this._refs[ref]
+    }
+
+    setRef(ref, child) {
+        this._refs[ref] = child
     }
 
     patch(settings) {
