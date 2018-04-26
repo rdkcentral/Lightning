@@ -71,7 +71,7 @@ class NodeAdapter {
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, textureSource.w, textureSource.h, 0, format, gl.UNSIGNED_BYTE, source);
     }
 
-    loadSrcTexture(src, cb) {
+    loadSrcTexture({src}, cb) {
         if (this._supercharger) {
             //@todo: fix supercharger to new args/return value.
             // this._supercharger.loadSrcTexture(src, cb)

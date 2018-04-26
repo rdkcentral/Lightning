@@ -168,7 +168,7 @@ class WebAdapter {
         }
     }
 
-    loadSrcTexture(src, cb) {
+    loadSrcTexture({src, hasAlpha}, cb) {
         let cancelCb = undefined
         let isPng = (src.indexOf(".png") >= 0)
         if (this.wpeImageParser) {
@@ -219,7 +219,7 @@ class WebAdapter {
                 cb(null, {
                     source: image,
                     renderInfo: {src: src},
-                    hasAlpha: isPng
+                    hasAlpha: isPng || hasAlpha
                 });
             };
             image.src = src;
@@ -9727,6 +9727,7 @@ class ImageTexture extends Texture {
         super(stage)
 
         this._src = undefined
+        this._hasAlpha = false
     }
 
     get src() {
@@ -9736,6 +9737,17 @@ class ImageTexture extends Texture {
     set src(v) {
         if (this._src !== v) {
             this._src = v
+            this._changed()
+        }
+    }
+
+    get hasAlpha() {
+        return this._hasAlpha
+    }
+
+    set hasAlpha(v) {
+        if (this._hasAlpha !== v) {
+            this._hasAlpha = v
             this._changed()
         }
     }
@@ -9750,6 +9762,7 @@ class ImageTexture extends Texture {
 
     _getSourceLoader() {
         let src = this._src
+        let hasAlpha = this._hasAlpha
         if (this.stage.getOption('srcBasePath')) {
             var fc = src.charCodeAt(0)
             if ((src.indexOf("//") === -1) && ((fc >= 65 && fc <= 90) || (fc >= 97 && fc <= 122) || fc == 46)) {
@@ -9760,7 +9773,7 @@ class ImageTexture extends Texture {
 
         const adapter = this.stage.adapter
         return function(cb) {
-            return adapter.loadSrcTexture(src, cb)
+            return adapter.loadSrcTexture({src: src, hasAlpha: hasAlpha}, cb)
         }
     }
 
@@ -13524,11 +13537,11 @@ class Application extends Component {
                 // Not an immediate child: include full path to descendant.
                 const newParts = [nextFocus]
                 do {
-                    newParts.push(ptr)
-                    ptr = ptr.cparent
                     if (!ptr) {
                         current._throwError("Return value for _getFocused must be an attached descendant component but its '" + nextFocus.getLocationString() + "'")
                     }
+                    newParts.push(ptr)
+                    ptr = ptr.cparent
                 } while (ptr !== current)
 
                 // Add them reversed.

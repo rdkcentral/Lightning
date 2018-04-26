@@ -51,7 +51,7 @@ class WebAdapter {
         }
     }
 
-    loadSrcTexture(src, cb) {
+    loadSrcTexture({src, hasAlpha}, cb) {
         let cancelCb = undefined
         let isPng = (src.indexOf(".png") >= 0)
         if (this.wpeImageParser) {
@@ -102,7 +102,7 @@ class WebAdapter {
                 cb(null, {
                     source: image,
                     renderInfo: {src: src},
-                    hasAlpha: isPng
+                    hasAlpha: isPng || hasAlpha
                 });
             };
             image.src = src;
