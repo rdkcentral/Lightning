@@ -148,11 +148,11 @@ class Application extends Component {
                 // Not an immediate child: include full path to descendant.
                 const newParts = [nextFocus]
                 do {
-                    newParts.push(ptr)
-                    ptr = ptr.cparent
                     if (!ptr) {
                         current._throwError("Return value for _getFocused must be an attached descendant component but its '" + nextFocus.getLocationString() + "'")
                     }
+                    newParts.push(ptr)
+                    ptr = ptr.cparent
                 } while (ptr !== current)
 
                 // Add them reversed.
