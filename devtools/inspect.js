@@ -3,7 +3,6 @@ var attachInspector = function(wuf) {
         const Stage = _internal.Stage
         const ViewCore = _internal.ViewCore
         const ViewTexturizer = _internal.ViewTexturizer
-        const Texture = _internal.Texture
 
 // _properties must have been called already to prevent init mayhem.
         window.mutationCounter = 0;

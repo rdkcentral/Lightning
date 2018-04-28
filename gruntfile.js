@@ -14,6 +14,7 @@ return {
     Filter: Filter,
     View: View,
     Tools: Tools,
+    Texture: Texture,
     textures: {
         SourceTexture: SourceTexture,
         RectangleTexture: RectangleTexture,
@@ -50,8 +51,7 @@ return {
     _internal: { /* Required for inspect.js */
         Stage: Stage,
         ViewCore: ViewCore,
-        ViewTexturizer: ViewTexturizer,
-        Texture: Texture,
+        ViewTexturizer: ViewTexturizer
     },
     EventEmitter: EventEmitter
 }
