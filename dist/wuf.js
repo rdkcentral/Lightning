@@ -546,13 +546,21 @@ class Utils {
         }
 
         for (let i = 0, n = keys1.length; i < n; i++) {
-            const v1 = keys1[i]
-            const v2 = keys2[i]
-            if (v1 !== v2) {
+            const k1 = keys1[i]
+            const k2 = keys2[i]
+            if (k1 !== k2) {
                 return false
             }
+
+            const v1 = obj1[k1]
+            const v2 = obj2[k2]
+
             if (Utils.isObjectLiteral(v1)) {
                 if (!this.equalObjectLiterals(v1, v2)) {
+                    return false
+                }
+            } else {
+                if (v1 !== v2) {
                     return false
                 }
             }
@@ -2122,6 +2130,10 @@ class Texture {
      */
     _getSourceLoader() {
         throw new Error("Texture.generate must be implemented.")
+    }
+
+    get isValid() {
+        return this._getIsValid()
     }
 
     /**
