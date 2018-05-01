@@ -240,7 +240,7 @@ class StateManager {
                         }
                     } else if (stateSwitch) {
                         // We've already exited some states (so are, in fact, in another state).
-                        component.__state = StateManager._getSuperState(newState, n - i)
+                        component.__state = StateManager._getSuperState(newState, n - (i + 1))
 
                         const info = this._setState(
                             component,
