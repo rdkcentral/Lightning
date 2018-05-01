@@ -183,6 +183,10 @@ class Texture {
         throw new Error("Texture.generate must be implemented.")
     }
 
+    get isValid() {
+        return this._getIsValid()
+    }
+
     /**
      * If texture is not 'valid', no source can be created for it.
      * @returns {boolean}
