@@ -140,7 +140,11 @@ class CoreRenderState {
         if (this._shader !== q.shader) return true
         if (this._shaderOwner !== q.shaderOwner) return true
         if (this._renderTextureInfo !== q.renderTextureInfo) return true
-        if (this._scissor !== q.scissor) return true
+        if (this._scissor !== q.scissor) {
+            if ((this._scissor[0] !== q.scissor[0]) || (this._scissor[1] !== q.scissor[1]) || (this._scissor[2] !== q.scissor[2]) || (this._scissor[3] !== q.scissor[3])) {
+                return true
+            }
+        }
 
         return false
     }
