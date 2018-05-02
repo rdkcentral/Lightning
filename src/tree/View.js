@@ -1802,6 +1802,10 @@ class View extends EventEmitter {
         this.__core.onUpdate = f;
     }
 
+    set onAfterCalcs(f) {
+        this.__core.onAfterCalcs = f;
+    }
+
     set onAfterUpdate(f) {
         this.__core.onAfterUpdate = f;
     }

@@ -5121,6 +5121,10 @@ class View extends EventEmitter {
         this.__core.onUpdate = f;
     }
 
+    set onAfterCalcs(f) {
+        this.__core.onAfterCalcs = f;
+    }
+
     set onAfterUpdate(f) {
         this.__core.onAfterUpdate = f;
     }
@@ -6109,9 +6113,11 @@ class ViewCore {
 
         this._hasRenderUpdates = 0;
 
-        this._onUpdate = null;
+        this._onUpdate = undefined;
 
-        this._onAfterUpdate = null;
+        this._onAfterUpdate = undefined;
+
+        this._onAfterCalcs = undefined;
 
         this._recalc = 0;
 
@@ -6664,6 +6670,10 @@ class ViewCore {
         this._onAfterUpdate = f;
     }
 
+    set onAfterCalcs(f) {
+        this._onAfterCalcs = f
+    }
+
     get shader() {
         return this._shader;
     }
@@ -7026,6 +7036,10 @@ class ViewCore {
             }
 
             const r = this._renderContext
+
+            if (this._onAfterCalcs) {
+                this._onAfterCalcs(this.view)
+            }
 
             if (this._parent._outOfBounds === 2) {
                 // Inherit parent out of boundsness.
