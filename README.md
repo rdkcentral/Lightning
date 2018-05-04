@@ -4,7 +4,7 @@
 [![npm](https://img.shields.io/npm/dt/wpe-uiframework.svg)]()
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=55UJZHTXW8VTE)
 
-**WARNING! This documentation is out of date with the master branch. It will be updated next February.**
+**WARNING! This documentation is out of date with the master branch. It will be updated soon.**
 
 WPE UI Framework is a javascript 2d graphics rendering and animation library using (Web)GL. It's geared towards developing animated User Interfaces that run nicely on low-performance (embedded) devices. The framework has been optimized for high performance and low CPU/memory usage, and has been carefully tested for memory leaks.
 
