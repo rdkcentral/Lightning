@@ -104,9 +104,17 @@ Below is a complete list of the properties that are available for any view.
 ### Advanced render tree
 
 ## Performance considerations
-Many optimizations have been performed to minimize the work, power consumption and improve performance. Most importantly, if no updates at all were done to a certain part of the render tree since the last frame, it can be completely skipped. Also, invisible parts of the render tree are not recalculated until they become visible again. And last but not least: if no changes have been performed since the last frame (static output), the last frame is reused and no rendering is performed at all.
+This chapter describes how the framework tries to improve performance of your application, and what you can do to best utilize these optimizations. 
 
-### View modes
+### Basic optimizations
+Many optimizations have been performed to minimize the work, power consumption and improve performance.
+There are some basic optimizations that you should be aware of:
+* If no updates at all were done to a certain part of the render tree since the last frame, it can be completely skipped. 
+* Invisible parts of the render tree are not calculated or rendered at all until they become visible again. 
+* If no changes have been performed to the full render tree since the last frame (static output), no rendering is performed at all.
+* When renderToTexture is turned on, that branch is checked individually: if nothing has been changed, the previous renderToTexture result is reused.
+
+### Calculation loop
 Before understanding the optimization below, note that a view can be in several modes:
 Mode | Description
 ---|---
@@ -115,7 +123,6 @@ Enabled | True iff attached *and* visible *and* alpha > 0
 Active | True iff enabled *and* withinBounds
 WithinBounds | True iff the (x,y,x+renderWidth,y+renderHeight) area is within visible bounds (on screen)
 
-### Calculation loop
 During the calculations loop, when a view is found to be *out of bounds* (not withinBounds), and it can be assumed that no other descendant view can possibly be within bounds, the complete branch can be skipped (both for calculations and for rendering), improving performance. This can have a big effect when there are a lot of enabled views in the render tree (such as in an EPG or a side scroller game). The framework is able to optimize it when any of the following properties is enabled:
 * `renderToTexture`
 * `clipping`
@@ -124,7 +131,7 @@ During the calculations loop, when a view is found to be *out of bounds* (not wi
 Clipbox tells the framework that no descendant of this view will extend the view dimensions, without actually clipping it (which, in itself, costs performance).
 
 ### Rendering
-Views that have a texture will only be rendered when they are both **active** *and* **within bounds**. 
+Views that have a texture will only be rendered when they are both **active** *and* **within bounds**.
 
 ### Texture loading
 When a view has an associated texture, that texture will not be loaded until the view is **active** *and* **within bounds**. 
@@ -132,8 +139,17 @@ When a view has an associated texture, that texture will not be loaded until the
 Settings `boundsMargin` property allows a certain additional margin (can be specified separately for all directions) to be set for a branch of the render tree. This may force additional textures to be loaded (those within the bounds margin) before they enter the screen when scrolling. It does **not** force them to be rendered though.
 
 One thing to watch out for is that it the framework does normally not know in advance what the dimensions of a texture are. Sometimes these dimensions do affect when the view is within bounds. For example, when it is positioned somewhere on the left side of the viewport, it could be either withinBounds (if the texture is wide) or not (if the texture is narrow). Therefor the framework assumes, if all else is not known, a maximum 2048x2048 texture size. In some cases, especially when having a lot of stuff on the left or top side of the screen or when using an alternative mount position, this may cause textures to be loaded unnecessarily. There are two ways to fix this:
-* when known, specify the w,h properties on the view in advance
-* in the texture object, set mw, mh properties to specify a max size other than 2048x2048 to be used as a fallback for determining the 'with bounds' mode.
+* when known, specify the `w`, `h` properties on the view in advance
+* in the texture object, set `mw`, `mh` properties to specify a max size other than 2048x2048 to be used as a fallback for determining the 'with bounds' mode.
+
+### Batching drawElements calls
+The framework eventually converts the complete render tree into a series of WebGL commands that are pushed to the video card. A video card likes to receive things in a 'batched' form: a single drawElements call that draws many *quads* (2 polygons) in a single command has much better performance than one individual drawElements call per quad. The difference is not so noticable when you only have a couple of things to draw, but when you need to draw a lot of quads (100+) the difference can be huge for both CPU and GPU (up to 10x). Of course the framework tries to batch calls where it can, but certain things may force it to separate the calls, such as:
+* using a different texture source (different textures referencing the same source can be batched)
+* switching to another clipping area
+* generating a new texture when using renderToTexture (when the previous one is cached it can be batched)
+* using another shader program
+
+In practice, the first one (different texture sources) is by far the most likely to cause many batch breaks. You should understand that the render order of the views/texturizes is fully determined by the position in the render tree (top-down first-last) and the z-index, if specified. As an example: you may be able to create a draw batch by z-indexing all views that share the same texture (good candidates are those that have `rect` enabled). You may want to use the forceZIndexContext on an ancestor to make sure that the batch doesn't interfere with other parts of the render tree. 
 
 ## Code composition
 An application can be composed into components. A component extends the `wuf.Component` class, which itself extends the `wuf.View` class. In fact, `wuf.Application` extends `wuf.Component`, so it *is* the render tree root. Composition is achieved by simply including them as Views somewhere in the render tree.
