@@ -82,46 +82,64 @@ Our test application `YourApp` should simply extend the `wuf.Application` class.
 `YourApp` has a template that allows you to define the layout of your application. In this case, it consists of a single *view* (a wuf render tree element) that contains a text.
 
 ## Render Tree
-The render tree defines what is being rendered on the screen. It consists out of a tree containing `View` instances. The `View` has the same goal as `HTMLElement`, but then for WUF. Some basic characteristics of a view:
+The render tree defines what is being rendered on the screen. It consists out of a tree containing `View` instances. The `View` has the same goal as `HTMLElement` has for HTML.
+
+### Layout Positioning
+All views are positioned absolutely, relative to the parent view. The framework was designed for fixed width/height viewports, but if you need more complex positioning such as floating or relative widths/heights, have a look at the calculation cycle hooks `onUpdate`, and `onAfterUpdate`.
+
+A view has dimensions, gettable by the renderWidth and renderHeight properties. They can be set by specifying the w, h properties. If w, h are not set, the renderWidth corresponds to the (displayed) texture width. By default, both w and h are 0. The view dimensions are used for both positioning (mount, pivot) as well as for rendering the texture. 
+
+The `mount` specifies the point within the view dimensions that is specified by the x, y coordinates. Mount 0 corresponds the upper-left corner, 1 to the bottom-right corner. `mountX` and `mountY` can also be set separately, so (1,0) corresponds to the upper-right corner and (0,1) to the bottom-right corner.
+
+The `pivot` (pivot,pivotX,pivotY) specifies the point within the view dimensions that is the origin for `rotation` and `scale` transformations.
+
+### View properties
+Below is a complete list of the properties that are available for any view.
+TODO
+
+### View structure
+Some basic characteristics of a view:
 * A view has many properties dealing with positioning and rendering
 * A view may have a texture (that is rendered) or not
 * A view may have 0, 1 or more child views
 * The render tree has a single root view
 * The View class may be subclassed to add additional functionality (`BorderView`, `FastBlurView`, `SmoothScaleView`)
 
-### View properties
-Below is a complete list of the properties that are available for any view.
+### Textures
 
-### View positioning
+### Advanced features
 
-### Advanced render tree
+#### RenderToTexture
+#### Shaders
 
-## Performance considerations
+#### Filters
+
+### Performance considerations
 This chapter describes how the framework tries to improve performance of your application, and what you can do to best utilize these optimizations. 
 
-### Render cycle
+#### Render cycle
 During every requestAnimationFrame call, ideally at 60fps, the render tree is checked for changes, and those changes are rendered to the screen:
 * Newly used textures are loaded (images, text, etc)
 * Check the render tree for updates and recalculate the updated branches
 * Gather the textures of the views, together with the calculated coordinates
 * Render everything to screen using WebGL calls
 
-### Basic optimizations
+#### Basic optimizations
 Many optimizations have been performed to minimize the work, power consumption and improve performance.
 There are some basic optimizations that you should be aware of:
 * If no updates at all were done to a certain part of the render tree since the last frame, it can be completely skipped. 
 * Invisible parts of the render tree are not calculated or rendered at all until they become visible again. 
 * If no changes have been performed to the full render tree since the last frame (static output), no rendering is performed at all.
-* When renderToTexture is turned on, that branch is checked individually: if nothing has been changed, the previous renderToTexture result is reused.
+* When renderToTexture is turned on, that branch is cached: if nothing has been changed, the previous renderToTexture result is reused.
 
-### Calculation loop
+#### Calculation loop
 Before understanding the optimization below, note that a view can be in several modes:
 Mode | Description
 ---|---
-Attached | True iff the view is attached of the render tree
-Enabled | True iff attached *and* visible *and* alpha > 0
-Active | True iff enabled *and* withinBounds
-WithinBounds | True iff the (x,y,x+renderWidth,y+renderHeight) area is within visible bounds (on screen)
+**Attached** | True iff the view is attached of the render tree
+**Enabled** | True iff attached *and* visible *and* alpha > 0
+**Active** | True iff enabled *and* withinBounds
+**WithinBounds** | True iff the (x,y,x+renderWidth,y+renderHeight) area is within visible bounds (on screen)
 
 During the calculations loop, when a view is found to be *out of bounds* (not withinBounds), and it can be assumed that no other descendant view can possibly be within bounds, the complete branch can be skipped (both for calculations and for rendering), improving performance. This can have a big effect when there are a lot of enabled views in the render tree (such as in an EPG or a side scroller game). The framework is able to optimize it when any of the following properties is enabled:
 * `renderToTexture`
@@ -130,10 +148,10 @@ During the calculations loop, when a view is found to be *out of bounds* (not wi
 
 Clipbox tells the framework that no descendant of this view will extend the view dimensions, without actually clipping it (which, in itself, costs performance). *This is the cheapest way to improve performance. You should use it when a view contains a lot of non-protruding descendands and can go out of bounds.*
 
-### Rendering
+#### Rendering
 Views that have a texture will only be rendered when they are both **active** *and* **within bounds**.
 
-### Texture loading
+#### Texture loading
 When a view has an associated texture, that texture will not be loaded until the view is **active** *and* **within bounds**. 
 
 Settings `boundsMargin` property allows a certain additional margin (can be specified separately for all directions) to be set for a branch of the render tree. This may force additional textures to be loaded (those within the bounds margin) before they enter the screen when scrolling. It does **not** force them to be rendered though.
@@ -142,8 +160,8 @@ One thing to watch out for is that it the framework does normally not know in ad
 * when known, specify the `w`, `h` properties on the view in advance
 * in the texture object, set `mw`, `mh` properties to specify a max size other than 2048x2048 to be used as a fallback for determining the 'with bounds' mode.
 
-### Batching drawElements calls
-The framework eventually converts the complete render tree into a series of WebGL commands that are pushed to the video card. A video card likes to receive things in a 'batched' form: a single drawElements call that draws many *quads* (2 polygons) in a single command has much better performance than one individual drawElements call per quad. The difference is not so noticable when you only have a couple of things to draw, but when you need to draw a lot of quads (100+) the difference can be huge for both CPU and GPU (up to 10x). Of course the framework tries to batch calls where it can, but certain things may force it to separate the calls, such as:
+#### Batching drawElements calls
+Every frame the framework converts the complete render tree into a series of WebGL commands that are pushed to the video card. A video card likes to receive things in a 'batched' form: a single drawElements call that draws many *quads* (2 polygons) in a single command has much better performance than one individual drawElements call per quad. The difference is not so noticable when you only have a couple of things to draw, but when you need to draw a lot of quads (100+) the difference can be huge for both CPU and GPU (up to more than 10x). Of course the framework tries to batch calls where it can, but certain things may force it to separate the calls, such as:
 * using a different texture source (different textures referencing the same source can be batched)
 * switching to another clipping area
 * generating a new texture when using renderToTexture (when the previous one is cached it can be batched)
