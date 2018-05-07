@@ -6869,7 +6869,7 @@ class ViewCore {
          *  null: no margin
          *  number[4]: specific margins: left, top, right, bottom.
          */
-        this._boundsMargin = v
+        this._boundsMargin = v ? v.slice() : undefined
 
         // We force recalc in order to set all boundsMargin recursively during the next update.
         this._setRecalc(64)
@@ -7102,18 +7102,18 @@ class ViewCore {
                         if (this._recBoundsMargin[0] > maxDistance || this._recBoundsMargin[1] > maxDistance || this._recBoundsMargin[2] > maxDistance || this._recBoundsMargin[3] > maxDistance) {
                             // Re-test, now with bounds.
                             if (this._isComplex) {
-                                withinMargin = !((Math.max(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) < this._scissor[0] - r.px - this._recBoundsMargin[0]) ||
-                                (Math.max(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) < this._scissor[1] - r.py - this._recBoundsMargin[1]) ||
-                                (Math.min(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) > this._scissor[0] + this._scissor[2] - r.px + this._recBoundsMargin[2]) ||
-                                (Math.min(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) > this._scissor[1] + this._scissor[3] - r.py + this._recBoundsMargin[3]))
+                                withinMargin = !((Math.max(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) < this._scissor[0] - r.px - this._recBoundsMargin[2]) ||
+                                (Math.max(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) < this._scissor[1] - r.py - this._recBoundsMargin[3]) ||
+                                (Math.min(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) > this._scissor[0] + this._scissor[2] - r.px + this._recBoundsMargin[0]) ||
+                                (Math.min(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) > this._scissor[1] + this._scissor[3] - r.py + this._recBoundsMargin[1]))
                             } else {
                                 const sx = r.px + r.ta * rw
                                 const sy = r.py + r.td * rh
 
-                                withinMargin = !((r.px < this._scissor[0] && sx < this._scissor[0] - this._recBoundsMargin[0]) ||
-                                (r.py < this._scissor[1] && sy < this._scissor[1] - this._recBoundsMargin[1]) ||
-                                ((r.px > (this._scissor[0] + this._scissor[2] + this._recBoundsMargin[2])) && (sx > (this._scissor[0] + this._scissor[2] + this._recBoundsMargin[2]))) ||
-                                ((r.py > (this._scissor[1] + this._scissor[3] + this._recBoundsMargin[3])) && (sy > (this._scissor[1] + this._scissor[3] + this._recBoundsMargin[3]))))
+                                withinMargin = !((r.px < this._scissor[0] && sx < this._scissor[0] - this._recBoundsMargin[2]) ||
+                                (r.py < this._scissor[1] && sy < this._scissor[1] - this._recBoundsMargin[3]) ||
+                                ((r.px > (this._scissor[0] + this._scissor[2] + this._recBoundsMargin[0])) && (sx > (this._scissor[0] + this._scissor[2] + this._recBoundsMargin[0]))) ||
+                                ((r.py > (this._scissor[1] + this._scissor[3] + this._recBoundsMargin[1])) && (sy > (this._scissor[1] + this._scissor[3] + this._recBoundsMargin[1]))))
                             }
 
                             if (withinMargin && this._outOfBounds === 2) {
@@ -10741,6 +10741,12 @@ class StaticTexture extends Texture {
 
 class HtmlTexture extends Texture {
 
+    constructor(stage) {
+        super(stage)
+        this._htmlElement = undefined
+        this._scale = 1
+    }
+
     set htmlElement(v) {
         this._htmlElement = v
         this._changed()
@@ -10750,10 +10756,23 @@ class HtmlTexture extends Texture {
         return this._htmlElement
     }
 
+    set scale(v) {
+        this._scale = v
+        this._changed()
+    }
+
+    get scale() {
+        return this._scale
+    }
+
     set html(v) {
-        const d = document.createElement('div')
-        d.innerHTML = v
-        this.htmlElement = d.firstElementChild
+        if (!v) {
+            this.htmlElement = undefined
+        } else {
+            const d = document.createElement('div')
+            d.innerHTML = "<div>" + v + "</div>"
+            this.htmlElement = d.firstElementChild
+        }
     }
 
     get html() {
@@ -10764,22 +10783,30 @@ class HtmlTexture extends Texture {
         this._lookupId = v
     }
 
+    _getIsValid() {
+        return this.htmlElement
+    }
+
     _getLookupId() {
         return this._lookupId
     }
 
     _getSourceLoader() {
         const htmlElement = this._htmlElement
+        const scale = this._scale
         return function(cb) {
-            if (!html2canvas) {
-                cb(new Error("Please include html2canvas (https://html2canvas.hertzen.com/)"))
+            if (!window.html2canvas) {
+                return cb(new Error("Please include html2canvas (https://html2canvas.hertzen.com/)"))
             }
 
             const area = HtmlTexture.getPreloadArea()
             area.appendChild(htmlElement)
 
-            html2canvas(htmlElement, {backgroundColor: null, scale: 1}).then(function(canvas) {
+            html2canvas(htmlElement, {backgroundColor: null, scale: scale}).then(function(canvas) {
                 area.removeChild(htmlElement)
+                if (canvas.height === 0) {
+                    return cb(new Error("Canvas height is 0"))
+                }
                 cb(null, {source: canvas, width: canvas.width, height: canvas.height})
             }).catch(e => {
                 console.error(e)

@@ -2,6 +2,12 @@ const Texture = require('../tree/Texture');
 
 class HtmlTexture extends Texture {
 
+    constructor(stage) {
+        super(stage)
+        this._htmlElement = undefined
+        this._scale = 1
+    }
+
     set htmlElement(v) {
         this._htmlElement = v
         this._changed()
@@ -11,10 +17,23 @@ class HtmlTexture extends Texture {
         return this._htmlElement
     }
 
+    set scale(v) {
+        this._scale = v
+        this._changed()
+    }
+
+    get scale() {
+        return this._scale
+    }
+
     set html(v) {
-        const d = document.createElement('div')
-        d.innerHTML = v
-        this.htmlElement = d.firstElementChild
+        if (!v) {
+            this.htmlElement = undefined
+        } else {
+            const d = document.createElement('div')
+            d.innerHTML = "<div>" + v + "</div>"
+            this.htmlElement = d.firstElementChild
+        }
     }
 
     get html() {
@@ -25,22 +44,30 @@ class HtmlTexture extends Texture {
         this._lookupId = v
     }
 
+    _getIsValid() {
+        return this.htmlElement
+    }
+
     _getLookupId() {
         return this._lookupId
     }
 
     _getSourceLoader() {
         const htmlElement = this._htmlElement
+        const scale = this._scale
         return function(cb) {
-            if (!html2canvas) {
-                cb(new Error("Please include html2canvas (https://html2canvas.hertzen.com/)"))
+            if (!window.html2canvas) {
+                return cb(new Error("Please include html2canvas (https://html2canvas.hertzen.com/)"))
             }
 
             const area = HtmlTexture.getPreloadArea()
             area.appendChild(htmlElement)
 
-            html2canvas(htmlElement, {backgroundColor: null, scale: 1}).then(function(canvas) {
+            html2canvas(htmlElement, {backgroundColor: null, scale: scale}).then(function(canvas) {
                 area.removeChild(htmlElement)
+                if (canvas.height === 0) {
+                    return cb(new Error("Canvas height is 0"))
+                }
                 cb(null, {source: canvas, width: canvas.width, height: canvas.height})
             }).catch(e => {
                 console.error(e)

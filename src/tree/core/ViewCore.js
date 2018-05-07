@@ -773,7 +773,7 @@ class ViewCore {
          *  null: no margin
          *  number[4]: specific margins: left, top, right, bottom.
          */
-        this._boundsMargin = v
+        this._boundsMargin = v ? v.slice() : undefined
 
         // We force recalc in order to set all boundsMargin recursively during the next update.
         this._setRecalc(64)
@@ -1006,18 +1006,18 @@ class ViewCore {
                         if (this._recBoundsMargin[0] > maxDistance || this._recBoundsMargin[1] > maxDistance || this._recBoundsMargin[2] > maxDistance || this._recBoundsMargin[3] > maxDistance) {
                             // Re-test, now with bounds.
                             if (this._isComplex) {
-                                withinMargin = !((Math.max(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) < this._scissor[0] - r.px - this._recBoundsMargin[0]) ||
-                                (Math.max(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) < this._scissor[1] - r.py - this._recBoundsMargin[1]) ||
-                                (Math.min(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) > this._scissor[0] + this._scissor[2] - r.px + this._recBoundsMargin[2]) ||
-                                (Math.min(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) > this._scissor[1] + this._scissor[3] - r.py + this._recBoundsMargin[3]))
+                                withinMargin = !((Math.max(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) < this._scissor[0] - r.px - this._recBoundsMargin[2]) ||
+                                (Math.max(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) < this._scissor[1] - r.py - this._recBoundsMargin[3]) ||
+                                (Math.min(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) > this._scissor[0] + this._scissor[2] - r.px + this._recBoundsMargin[0]) ||
+                                (Math.min(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) > this._scissor[1] + this._scissor[3] - r.py + this._recBoundsMargin[1]))
                             } else {
                                 const sx = r.px + r.ta * rw
                                 const sy = r.py + r.td * rh
 
-                                withinMargin = !((r.px < this._scissor[0] && sx < this._scissor[0] - this._recBoundsMargin[0]) ||
-                                (r.py < this._scissor[1] && sy < this._scissor[1] - this._recBoundsMargin[1]) ||
-                                ((r.px > (this._scissor[0] + this._scissor[2] + this._recBoundsMargin[2])) && (sx > (this._scissor[0] + this._scissor[2] + this._recBoundsMargin[2]))) ||
-                                ((r.py > (this._scissor[1] + this._scissor[3] + this._recBoundsMargin[3])) && (sy > (this._scissor[1] + this._scissor[3] + this._recBoundsMargin[3]))))
+                                withinMargin = !((r.px < this._scissor[0] && sx < this._scissor[0] - this._recBoundsMargin[2]) ||
+                                (r.py < this._scissor[1] && sy < this._scissor[1] - this._recBoundsMargin[3]) ||
+                                ((r.px > (this._scissor[0] + this._scissor[2] + this._recBoundsMargin[0])) && (sx > (this._scissor[0] + this._scissor[2] + this._recBoundsMargin[0]))) ||
+                                ((r.py > (this._scissor[1] + this._scissor[3] + this._recBoundsMargin[1])) && (sy > (this._scissor[1] + this._scissor[3] + this._recBoundsMargin[1]))))
                             }
 
                             if (withinMargin && this._outOfBounds === 2) {
