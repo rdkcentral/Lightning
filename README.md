@@ -89,13 +89,6 @@ The render tree defines what is being rendered on the screen. It consists out of
 * The render tree has a single root view
 * The View class may be subclassed to add additional functionality (`BorderView`, `FastBlurView`, `SmoothScaleView`)
 
-### Render cycle
-During every requestAnimationFrame call, ideally at 60fps, the render tree is checked for changes, and those changes are rendered to the screen:
-* Newly used textures are loaded (images, text, etc)
-* Check the render tree for updates and recalculate only the updated branches
-* Gather the textures of the views, together with the calculated coordinates
-* Render everything to screen
-
 ### View properties
 Below is a complete list of the properties that are available for any view.
 
@@ -105,6 +98,13 @@ Below is a complete list of the properties that are available for any view.
 
 ## Performance considerations
 This chapter describes how the framework tries to improve performance of your application, and what you can do to best utilize these optimizations. 
+
+### Render cycle
+During every requestAnimationFrame call, ideally at 60fps, the render tree is checked for changes, and those changes are rendered to the screen:
+* Newly used textures are loaded (images, text, etc)
+* Check the render tree for updates and recalculate the updated branches
+* Gather the textures of the views, together with the calculated coordinates
+* Render everything to screen using WebGL calls
 
 ### Basic optimizations
 Many optimizations have been performed to minimize the work, power consumption and improve performance.
@@ -128,7 +128,7 @@ During the calculations loop, when a view is found to be *out of bounds* (not wi
 * `clipping`
 * `clipbox`
 
-Clipbox tells the framework that no descendant of this view will extend the view dimensions, without actually clipping it (which, in itself, costs performance).
+Clipbox tells the framework that no descendant of this view will extend the view dimensions, without actually clipping it (which, in itself, costs performance). *This is the cheapest way to improve performance. You should use it when a view contains a lot of non-protruding descendands and can go out of bounds.*
 
 ### Rendering
 Views that have a texture will only be rendered when they are both **active** *and* **within bounds**.
