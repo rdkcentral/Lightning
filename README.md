@@ -4,15 +4,20 @@
 [![npm](https://img.shields.io/npm/dt/wpe-uiframework.svg)]()
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=55UJZHTXW8VTE)
 
-The WPE UI Framework (WUF) enables you to build WebGL-rendered UIs, apps and games. It contains a feature-rich and highly optimized 2D render tree, a flexible animation/transition toolkit and a framework to compose your UI in a handy way. Some characteristics of the framework:
+The WPE UI Framework (WUF) enables you to build WebGL-rendered UIs, apps and games. It contains a feature-rich and highly optimized 2D **render tree**, a flexible **animation/transition toolkit** and a framework to compose your UI based on **UML state charts** defined in-code.
+
+## Features
 
 **High performance**
+
 A highly optimized update loop for coordinate calculations. You will be able to get much better performance than when using HTML5. It has been carefully tested for memory leaks.
 
 **Memory Management**
-Avoid memory leaks and control memory.
+
+The framework has been tested for memory leaks and catefully handles GPU memory as well.
 
 **WebGL effects**
+
 Reuse our shaders or specify your own vertex and fragment shaders on a branch of the render tree, to create cool pixel/lighting/3d/displacement/etc effects.
 
 ## Installation
@@ -52,6 +57,7 @@ For Node.js, this module depends on node-canvas for image loading and text creat
 </body>
 </html>
 ```
+{PROVIDE EXAMPLE}
 
 ### NodeJS
 `start.js` contents:
@@ -77,36 +83,36 @@ Our test application `YourApp` should simply extend the `wuf.Application` class.
 ## Render Tree
 The render tree defines what is being rendered on the screen. It consists out of a tree containing exclusively `View` (+ subtypes) instances. You can add, remove and change the views in this render tree as you wish, and those changes will be reflected on the screen during the next frame. The `Stage` manages the render tree and is responsible for texture loading, performing coordinate calculations and performing the required WebGL calls.
 
-### Frame drawing
+### Drawing loop
 On every requestAnimationFrame call, ideally at 60fps, the render tree is checked for changes, and those changes are rendered to the screen:
 * Load on-screen textures (images, text, etc)
 * Check the render tree for updates and recalculate the updated branches
 * Gather the textures of the views, together with the calculated coordinates
 * Render everything to screen using WebGL calls
 
-### Layout Positioning
-All views are positioned absolutely, relative to the parent view. The framework was designed for fixed width/height viewports, but if you need more complex positioning such as floating or relative widths/heights, have a look at the calculation cycle hooks `onUpdate`, and `onAfterUpdate`.
+### Layouting / Positioning
+All views are positioned absolutely, relative to the parent view, using `x` and `y`. The framework was designed for fixed width/height viewports, but if you need more complex positioning such as floating or relative widths/heights, have a look at the calculation cycle hooks `onUpdate`, and `onAfterUpdate`.
 
 A view has dimensions, gettable by the renderWidth and renderHeight properties. They can be set by specifying the w, h properties. If w, h are not set, the renderWidth corresponds to the (displayed) texture width. By default, both w and h are 0. The view dimensions are used for both positioning (mount, pivot) as well as for rendering the texture. 
 
 The `mount` specifies the point within the view dimensions that is specified by the x, y coordinates. Mount 0 corresponds the upper-left corner, 1 to the bottom-right corner. `mountX` and `mountY` can also be set separately, so (1,0) corresponds to the upper-right corner and (0,1) to the bottom-right corner.
 
 The `pivot` (pivot,pivotX,pivotY) specifies the point within the view dimensions that is the origin for `rotation` and `scale` transformations.
+{PROVIDE EXAMPLE}
 
 ### View properties
 Many different propreties can be used to control the positioning, rendering and behavior of views. Some were just mentioned, but please check the API for a complete list of [view properties](#view-properties).
 
-### View structure
-Some basic characteristics of a view:
-* A view has many properties dealing with positioning and rendering
-* A view may have a texture (that is rendered) or not
-* A view may have 0, 1 or more child views
-* The render tree has a single root view
-* The View class may be subclassed to add additional functionality (`BorderView`, `FastBlurView`, `SmoothScaleView`)
+### Children
+Views are part of the render tree, and may contain view 'children'. These can be accessed using the `childList` property.
+TODO
 
-### Patching view branches
+### Accessing the view tree
+{PROVIDE EXAMPLE}
 
 ### Textures
+A view may or may not have a texture to be rendered.
+TODO
 
 ### Shaders
 
@@ -182,4 +188,7 @@ In practice, the first one (different texture sources) is by far the most likely
 ## Code composition
 An application can be composed into components. A component extends the `wuf.Component` class, which itself extends the `wuf.View` class. In fact, `wuf.Application` extends `wuf.Component`, so it *is* the render tree root. Composition is achieved by simply including them as Views somewhere in the render tree.
 
-Example:
+## Tools
+
+### View types
+The View class may be subclassed to add additional functionality (`BorderView`, `FastBlurView`, `SmoothScaleView`)
