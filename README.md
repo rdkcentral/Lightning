@@ -7,12 +7,13 @@
 The WPE UI Framework (WUF) enables you to build WebGL-rendered UIs, apps and games. It contains a feature-rich and highly optimized 2D render tree, a flexible animation/transition toolkit and a framework to compose your UI in a handy way. Some characteristics of the framework:
 
 **High performance**
-
 A highly optimized update loop for coordinate calculations. You will be able to get much better performance than when using HTML5. It has been carefully tested for memory leaks.
 
-**WebGL features**
+**Memory Management**
+Avoid memory leaks and control memory.
 
-Specify your own vertex and fragment shaders on a branch of the render tree, to create cool pixel/lighting/3d/displacement/etc effects.
+**WebGL effects**
+Reuse our shaders or specify your own vertex and fragment shaders on a branch of the render tree, to create cool pixel/lighting/3d/displacement/etc effects.
 
 ## Installation
 
@@ -126,27 +127,31 @@ In terms of GPU memory: a certain amount of reserved GPU memory (in pixels) can 
 
 If you are using `renderToTexture` or `filters`, the created textures are also cached, even when they are no longer used. This cache has a positive impact on the performance because it is expensive to recreate them, and often they can be reused. Again, a configuration parameter controls the reserved amount of pixels in memory: `renderTextureMemory` (defaults to 12M pixels).
 
+Garbage collection for both caches can be forced using `Stage.gcTextureMemory()` and `Stage.gcRenderTextureMemory()`. This is handy on embedded devices where GPU memory is a limited resource, and another application may be brought up in front the UI.
+
 ### Performance
 This chapter describes how the framework tries to improve performance of your application, and what you can do to best utilize these optimizations. 
 
 #### Basic optimizations
-Many optimizations have been performed to minimize the work, power consumption and improve performance.
-There are some basic optimizations that you should be aware of:
+Many optimizations have been performed to minimize the work, power consumption and improve performance, both for the CPU and GPU. The most important optimisations are:
+
 * If no updates at all were done to a certain part of the render tree since the last frame, it can be completely skipped. 
-* Invisible parts of the render tree are not calculated or rendered at all until they become visible again. 
 * If no changes have been performed to the full render tree since the last frame (static output), no rendering is performed at all.
 * When renderToTexture is turned on, that branch is cached: if nothing has been changed, the previous renderToTexture result is reused.
+* Invisible parts of the render tree are not calculated or rendered at all until they become visible again. 
+* Parts of the render tree that are out of the screen are not calculated or rendered.
+
+To be able to perform these optimizations when possible, the framework keeps a couple of flags per view:
+
+|Mode | Description|
+|---|---|
+|**Attached** | True iff the view is attached of the render tree|
+|**Enabled** | True iff attached *and* visible *and* alpha > 0|
+|**Active** | True iff enabled *and* withinBounds|
+|**WithinBounds** | True iff the (x,y,x+renderWidth,y+renderHeight) area is within visible bounds (viewport and/or clipping area)|
 
 #### Calculation loop
-Before understanding the optimization below, note that a view can be in several modes:
-Mode | Description
----|---
-**Attached** | True iff the view is attached of the render tree
-**Enabled** | True iff attached *and* visible *and* alpha > 0
-**Active** | True iff enabled *and* withinBounds
-**WithinBounds** | True iff the (x,y,x+renderWidth,y+renderHeight) area is within visible bounds (on screen)
-
-During the calculations loop, when a view is found to be *out of bounds* (not withinBounds), and it can be assumed that no other descendant view can possibly be within bounds, the complete branch can be skipped (both for calculations and for rendering), improving performance. This can have a big effect when there are a lot of enabled views in the render tree (such as in an EPG or a side scroller game). The framework is able to optimize it when any of the following properties is enabled:
+During the calculations loop, when a view is found to be **not** withinBounds (*out of bounds*), and it can be assumed that no other descendant view can possibly be within bounds, the complete branch can be skipped (both for calculations and for rendering), improving performance. This can have a big effect when there are a lot of enabled views in the render tree (such as in an EPG or a side scroller game). The framework is able to optimize it when any of the following properties is enabled:
 * `renderToTexture`
 * `clipping`
 * `clipbox`
@@ -154,16 +159,16 @@ During the calculations loop, when a view is found to be *out of bounds* (not wi
 Clipbox tells the framework that no descendant of this view will extend the view dimensions, without actually clipping it (which, in itself, costs performance). *This is the cheapest way to improve performance. You should use it when a view contains a lot of non-protruding descendands and can go out of bounds.*
 
 #### Rendering
-Views that have a texture will only be rendered when they are both **active** *and* **within bounds**.
+Views that have a texture will only be rendered when they are both **active** *and* **withinBounds**.
 
 #### Texture loading
-When a view has an associated texture, that texture will not be loaded until the view is **active** *and* **within bounds**. 
+When a view has an associated texture, that texture will not be loaded until the view is **active** *and* **withinBounds**. 
 
-Settings `boundsMargin` property allows a certain additional margin (can be specified separately for all directions) to be set for a branch of the render tree. This may force additional textures to be loaded (those within the bounds margin) before they enter the screen when scrolling. It does **not** force them to be rendered though.
+Often, you'd like textures (images etc) to be loaded before they enter a screen to avoid the 'pop in' effect. The `boundsMargin` view property allows a certain additional margin (can be specified separately for all sides) to be set for a branch of the render tree. This may force additional textures to be loaded (those within the bounds margin) before they enter the screen when scrolling. It does **not** force them to be rendered though. Setting a boundsMargin activates it for the full branch, and overrides the parent setting. By default, the root is set to a 100px margin on all sides (top, right, bottom, left).
 
-One thing to watch out for is that it the framework does normally not know in advance what the dimensions of a texture are. Sometimes these dimensions do affect when the view is within bounds. For example, when it is positioned somewhere on the left side of the viewport, it could be either withinBounds (if the texture is wide) or not (if the texture is narrow). Therefor the framework assumes, if all else is not known, a maximum 2048x2048 texture size. In some cases, especially when having a lot of stuff on the left or top side of the screen or when using an alternative mount position, this may cause textures to be loaded unnecessarily. There are two ways to fix this:
-* when known, specify the `w`, `h` properties on the view in advance
-* in the texture object, set `mw`, `mh` properties to specify a max size other than 2048x2048 to be used as a fallback for determining the 'with bounds' mode.
+One thing to watch out for is that it the framework usually doesn't know in advance what the dimensions of a texture will be until that texture is loaded. Sometimes these dimensions do affect when the view is considered to be `withinBounds`. For example, when it is positioned somewhere on the left side of the viewport, it could be either `withinBounds` (if the texture is wide) or not (if the texture is narrow). Therefor the framework assumes, if dimensions are unknown and unspecified, a maximum 2048x2048 texture size. In some cases, especially when having a lot of stuff on the left or top side of the screen or when using an alternative mount position, this may cause textures to be loaded unnecessarily. There are two ways to fix this:
+* when known, specify the `w`, `h` properties on the view containing the texture in advance
+* in the texture object, set `mw`, `mh` properties to specify a max size other than 2048x2048 to be used as a fallback
 
 #### Batching drawElements calls
 Every frame the framework converts the complete render tree into a series of WebGL commands that are pushed to the video card. A video card likes to receive things in a 'batched' form: a single drawElements call that draws many *quads* (2 polygons) in a single command has much better performance than one individual drawElements call per quad. The difference is not so noticable when you only have a couple of things to draw, but when you need to draw a lot of quads (100+) the difference can be huge for both CPU and GPU (up to more than 10x). Of course the framework tries to batch calls where it can, but certain things may force it to separate the calls, such as:
