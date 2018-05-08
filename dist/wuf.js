@@ -452,15 +452,15 @@ class Utils {
     }
 
     static clone(v) {
-        if (Utils.isObject(v)) {
-            return this.cloneObj(v)
+        if (Utils.isObjectLiteral(v)) {
+            return Utils.getDeepClone(v)
         } else {
             // Copy by value.
             return v
         }
     }
 
-    static cloneObj(obj) {
+    static cloneObjShallow(obj) {
         let keys = Object.keys(obj);
         let clone = {}
         for (let i = 0; i < keys.length; i++) {
@@ -510,7 +510,7 @@ class Utils {
             // Copy functions by reference.
             return obj;
         }
-        if (Utils.isArray(obj)) {
+        if (Array.isArray(obj)) {
             c = [];
             let keys = Object.keys(obj);
             for (i = 0; i < keys.length; i++) {
@@ -10779,16 +10779,12 @@ class HtmlTexture extends Texture {
         return this._htmlElement.innerHTML
     }
 
-    set lookupId(v) {
-        this._lookupId = v
-    }
-
     _getIsValid() {
         return this.htmlElement
     }
 
     _getLookupId() {
-        return this._lookupId
+        return this._scale + ":" + this._htmlElement.innerHTML
     }
 
     _getSourceLoader() {
@@ -10818,6 +10814,9 @@ class HtmlTexture extends Texture {
         if (!this._preloadArea) {
             // Preload area must be included in document body and must be visible to trigger html element rendering.
             this._preloadArea = document.createElement('div')
+            if (this._preloadArea.attachShadow) {
+                this._preloadArea.attachShadow({mode: 'closed'});
+            }
             this._preloadArea.style.opacity = 0
             this._preloadArea.style.pointerEvents = 'none'
             this._preloadArea.style.position = 'fixed'
