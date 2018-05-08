@@ -62,9 +62,9 @@ For Node.js, this module depends on node-canvas for image loading and text creat
 ### NodeJS
 `start.js` contents:
 ```javascript
-const Application = require('wpe-uiframework').Application
+const wuf = require('wpe-uiframework')
 
-class YourApp extends Application {
+class YourApp extends wuf.Application {
     static _template() {
         return {texture: {type: wuf.textures.TextTexture, text: “hello world”}}
     }
