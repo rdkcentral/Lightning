@@ -14,14 +14,6 @@ A highly optimized update loop for coordinate calculations. You will be able to 
 
 Specify your own vertex and fragment shaders on a branch of the render tree, to create cool pixel/lighting/3d/displacement/etc effects.
 
-**Concise syntax**
-
-We use javascript object notation to set and 'patch' multiple properties at once, improving readability and reducing the amount of LOCs.
-
-**Browser and NodeJS support**
-
-The framework comes with modern browser support (requires WebGL and ES6) and NodeJS support (WebGL is proxied to a OpenGL ES2 context).
-
 ## Installation
 
 ### Browser
@@ -82,7 +74,14 @@ Our test application `YourApp` should simply extend the `wuf.Application` class.
 `YourApp` has a template that allows you to define the layout of your application. In this case, it consists of a single *view* (a wuf render tree element) that contains a text.
 
 ## Render Tree
-The render tree defines what is being rendered on the screen. It consists out of a tree containing `View` instances. The `View` has the same goal as `HTMLElement` has for HTML.
+The render tree defines what is being rendered on the screen. It consists out of a tree containing exclusively `View` (+ subtypes) instances. You can add, remove and change the views in this render tree as you wish, and those changes will be reflected on the screen during the next frame. The `Stage` manages the render tree and is responsible for texture loading, performing coordinate calculations and performing the required WebGL calls.
+
+### Frame drawing
+On every requestAnimationFrame call, ideally at 60fps, the render tree is checked for changes, and those changes are rendered to the screen:
+* Load on-screen textures (images, text, etc)
+* Check the render tree for updates and recalculate the updated branches
+* Gather the textures of the views, together with the calculated coordinates
+* Render everything to screen using WebGL calls
 
 ### Layout Positioning
 All views are positioned absolutely, relative to the parent view. The framework was designed for fixed width/height viewports, but if you need more complex positioning such as floating or relative widths/heights, have a look at the calculation cycle hooks `onUpdate`, and `onAfterUpdate`.
@@ -94,8 +93,7 @@ The `mount` specifies the point within the view dimensions that is specified by 
 The `pivot` (pivot,pivotX,pivotY) specifies the point within the view dimensions that is the origin for `rotation` and `scale` transformations.
 
 ### View properties
-Below is a complete list of the properties that are available for any view.
-TODO
+Many different propreties can be used to control the positioning, rendering and behavior of views. Some were just mentioned, but please check the API for a complete list of [view properties](#view-properties).
 
 ### View structure
 Some basic characteristics of a view:
@@ -105,24 +103,31 @@ Some basic characteristics of a view:
 * The render tree has a single root view
 * The View class may be subclassed to add additional functionality (`BorderView`, `FastBlurView`, `SmoothScaleView`)
 
+### Patching view branches
+
 ### Textures
 
-### Advanced features
+### Shaders
 
-#### RenderToTexture
-#### Shaders
+### RenderToTexture
 
-#### Filters
+### Filters
 
-### Performance considerations
+### Memory management
+We can distinguish between **CPU memory** and **GPU memory**.
+
+#### CPU memory
+We have tried to set up the framework in such a way that CPU memory memory leaks are avoided. When you remove a branch of views, it will be dereferenced by the framework (including the animation/transition system), so it's up to your own code to also stop referencing it and then it can be cleaned up.
+
+If you are running into memory problems on embedded devices, you could reduce the cpu-to-gpu coordinate buffers (configuration parameter `bufferMemory`, defaults to 8M). Usually, 1M is already more than enough because that allows you to draw 15K quads per frame.
+
+#### GPU memory
+In terms of GPU memory: a certain amount of reserved GPU memory (in pixels) can pre-specified in the Application configuration parameter `textureMemory` (defaults to 18M pixels). All textures are uploaded to the GPU only when they are used, and there they take up space. Previously used textures will remain in the GPU memory until the reserved amount is full; then, the textures that are not required for rendering at that moment are all garbage collected from the GPU memory. When they appear on the screen again, they must be reloaded and uploaded to GPU memory again. 
+
+If you are using `renderToTexture` or `filters`, the created textures are also cached, even when they are no longer used. This cache has a positive impact on the performance because it is expensive to recreate them, and often they can be reused. Again, a configuration parameter controls the reserved amount of pixels in memory: `renderTextureMemory` (defaults to 12M pixels).
+
+### Performance
 This chapter describes how the framework tries to improve performance of your application, and what you can do to best utilize these optimizations. 
-
-#### Render cycle
-During every requestAnimationFrame call, ideally at 60fps, the render tree is checked for changes, and those changes are rendered to the screen:
-* Newly used textures are loaded (images, text, etc)
-* Check the render tree for updates and recalculate the updated branches
-* Gather the textures of the views, together with the calculated coordinates
-* Render everything to screen using WebGL calls
 
 #### Basic optimizations
 Many optimizations have been performed to minimize the work, power consumption and improve performance.
