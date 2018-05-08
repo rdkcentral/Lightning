@@ -1,7 +1,6 @@
 # WPE UI Framework
 
 [![npm version](https://badge.fury.io/js/wpe-uiframework.svg)](https://badge.fury.io/js/wpe-uiframework)
-[![npm](https://img.shields.io/npm/dt/wpe-uiframework.svg)]()
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=55UJZHTXW8VTE)
 
 The WPE UI Framework (WUF) enables you to build WebGL-rendered UIs, apps and games. It contains a feature-rich and highly optimized 2D **render tree**, a flexible **animation/transition toolkit** and a framework to compose your UI based on **UML state charts** defined in-code.
@@ -10,15 +9,15 @@ The WPE UI Framework (WUF) enables you to build WebGL-rendered UIs, apps and gam
 
 **High performance**
 
-A highly optimized update loop for coordinate calculations. You will be able to get much better performance than when using HTML5. It has been carefully tested for memory leaks.
-
-**Memory Management**
-
-The framework has been tested for memory leaks and catefully handles GPU memory as well.
+The framework is highly optimized, both in terms of CPU and GPU performance.
 
 **WebGL effects**
 
-Reuse our shaders or specify your own vertex and fragment shaders on a branch of the render tree, to create cool pixel/lighting/3d/displacement/etc effects.
+Create cool pixel/lighting/3d/displacement/etc effects with our set of shaders, or implement your own custom shaders.
+
+**Memory Management**
+
+No memory leaks. Smart GPU memory management.
 
 ## Installation
 
@@ -57,6 +56,7 @@ For Node.js, this module depends on node-canvas for image loading and text creat
 </body>
 </html>
 ```
+
 {PROVIDE EXAMPLE}
 
 ### NodeJS
@@ -76,7 +76,9 @@ options.stage.window = {title: "Border example", fullscreen: false};
 const app = new YourApp(options);
 ```
 
-Our test application `YourApp` should simply extend the `wuf.Application` class. The full framework is bootstrapped by simply creating a new instance of your app. It is possible to run multiple apps in the same browser tab. You can pass several options to an app. In this case, we specify the canvas width and height, and a background color in ARGB format (the `glClearColor`). Check the API for a list of all [initialisation options](#initialisation-options).
+Our test application `YourApp` extends the `wuf.Application` class. The full framework is bootstrapped by simply creating a new instance of your app. It is possible to run multiple apps in the same browser tab. Every app has it's own WebGL canvas and rendering context.
+
+You can pass several options to an app. In this case, we specify the canvas width and height, and a background color in ARGB format (the `glClearColor`). Check the API for a list of all [initialisation options](#initialisation-options).
 
 `YourApp` has a template that allows you to define the layout of your application. In this case, it consists of a single *view* (a wuf render tree element) that contains a text.
 
