@@ -40,16 +40,12 @@ class HtmlTexture extends Texture {
         return this._htmlElement.innerHTML
     }
 
-    set lookupId(v) {
-        this._lookupId = v
-    }
-
     _getIsValid() {
         return this.htmlElement
     }
 
     _getLookupId() {
-        return this._lookupId
+        return this._scale + ":" + this._htmlElement.innerHTML
     }
 
     _getSourceLoader() {
@@ -79,6 +75,10 @@ class HtmlTexture extends Texture {
         if (!this._preloadArea) {
             // Preload area must be included in document body and must be visible to trigger html element rendering.
             this._preloadArea = document.createElement('div')
+            if (this._preloadArea.attachShadow) {
+                // Use a shadow DOM if possible to prevent styling from interfering.
+                this._preloadArea.attachShadow({mode: 'closed'});
+            }
             this._preloadArea.style.opacity = 0
             this._preloadArea.style.pointerEvents = 'none'
             this._preloadArea.style.position = 'fixed'
