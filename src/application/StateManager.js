@@ -118,7 +118,7 @@ class StateManager {
 
                 const prevState = component.state
 
-                if (newState && Utils.isString(newState)) {
+                if (Utils.isString(newState)) {
                     this._setState(component, StateManager._ucfirst(newState), {event: event, args: args, prevState: prevState, newState: newState})
                 }
 
