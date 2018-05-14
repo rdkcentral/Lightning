@@ -3498,7 +3498,6 @@ class View extends EventEmitter {
         }
 
         this._updateAttachedFlag();
-        this._updateEnabledFlag();
 
         if (this.isRoot && parent) {
             this._throwError("Root should not be added as a child! Results are unspecified!")
@@ -3599,6 +3598,9 @@ class View extends EventEmitter {
         if (this.__attached !== newAttached) {
             this.__attached = newAttached;
 
+            // No need to recurse since we are already recursing when setting the attached flags.
+            this._updateEnabledLocal()
+
             let children = this._children.get();
             if (children) {
                 let m = children.length;
@@ -3616,6 +3618,17 @@ class View extends EventEmitter {
             }
         }
     };
+
+    _updateEnabledLocal() {
+        let newEnabled = this.isEnabled();
+        if (this.__enabled !== newEnabled) {
+            if (newEnabled) {
+                this._setEnabledFlag();
+            } else {
+                this._unsetEnabledFlag();
+            }
+        }
+    }
 
     /**
      * Updates the 'enabled' flag for this branch.
@@ -4361,6 +4374,8 @@ class View extends EventEmitter {
 
     _select(path) {
         if (path === "") return [this]
+
+
         let pointIdx = path.indexOf(".")
         let arrowIdx = path.indexOf(">")
         if (pointIdx === -1 && arrowIdx === -1) {
@@ -4374,32 +4389,24 @@ class View extends EventEmitter {
         }
 
         // Detect by first char.
-        let isChild
+        let isRef
         if (arrowIdx === 0) {
-            isChild = true
+            isRef = true
             path = path.substr(1)
         } else if (pointIdx === 0) {
-            isChild = false
+            isRef = false
             path = path.substr(1)
         } else {
             const firstCharcode = path.charCodeAt(0)
-            isChild = Utils.isUcChar(firstCharcode)
+            isRef = Utils.isUcChar(firstCharcode)
         }
 
-        if (isChild) {
-            // ">"
-            return this._selectChilds(path)
-        } else {
-            // "."
-            return this._selectDescs(path)
-        }
+        return this._selectChilds(path, isRef)
     }
 
-    _selectChilds(path) {
+    _selectChilds(path, isRef) {
         const pointIdx = path.indexOf(".")
         const arrowIdx = path.indexOf(">")
-
-        let isRef = Utils.isUcChar(path.charCodeAt(0))
 
         if (pointIdx === -1 && arrowIdx === -1) {
             if (isRef) {
@@ -4422,7 +4429,7 @@ class View extends EventEmitter {
             let total = []
             const subPath = path.substr(pointIdx + 1)
             for (let i = 0, n = next.length; i < n; i++) {
-                total = total.concat(next[i]._selectDescs(subPath))
+                total = total.concat(next[i]._selectChilds(subPath, false))
             }
             return total
         } else {
@@ -4437,25 +4444,7 @@ class View extends EventEmitter {
             let total = []
             const subPath = path.substr(arrowIdx + 1)
             for (let i = 0, n = next.length; i < n; i++) {
-                total = total.concat(next[i]._selectChilds(subPath))
-            }
-            return total
-        }
-    }
-
-    _selectDescs(path) {
-        const arrowIdx = path.indexOf(">")
-        if (arrowIdx === -1) {
-            // Use multi-tag path directly.
-            return this.mtag(path)
-        } else {
-            const str = path.substr(0, arrowIdx)
-            let next = this.mtag(str)
-
-            let total = []
-            const subPath = path.substr(arrowIdx + 1)
-            for (let i = 0, n = next.length; i < n; i++) {
-                total = total.concat(next[i]._selectChilds(subPath))
+                total = total.concat(next[i]._selectChilds(subPath, true))
             }
             return total
         }
@@ -10815,6 +10804,7 @@ class HtmlTexture extends Texture {
             // Preload area must be included in document body and must be visible to trigger html element rendering.
             this._preloadArea = document.createElement('div')
             if (this._preloadArea.attachShadow) {
+                // Use a shadow DOM if possible to prevent styling from interfering.
                 this._preloadArea.attachShadow({mode: 'closed'});
             }
             this._preloadArea.style.opacity = 0
@@ -13865,7 +13855,7 @@ class StateManager {
 
                 const prevState = component.state
 
-                if (newState && Utils.isString(newState)) {
+                if (Utils.isString(newState)) {
                     this._setState(component, StateManager._ucfirst(newState), {event: event, args: args, prevState: prevState, newState: newState})
                 }
 
