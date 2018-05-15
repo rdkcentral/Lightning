@@ -287,6 +287,12 @@ class ObjectList {
         this.onSync(removed, added, newItems)
     }
 
+    sort(f) {
+        const items = this._items.slice()
+        items.sort(f)
+        this._setByArray(items)
+    }
+
     onAdd(item, index) {
     }
 
