@@ -5738,6 +5738,12 @@ class ObjectList {
         this.onSync(removed, added, newItems)
     }
 
+    sort(f) {
+        const items = this._items.slice()
+        items.sort(f)
+        this._setByArray(items)
+    }
+
     onAdd(item, index) {
     }
 
@@ -13931,7 +13937,9 @@ class StateManager {
             const info = StateManager._compareStatePaths(paths, newPaths)
             const exit = info.exit.reverse()
             const enter = info.enter
+            const state = component.state
             for (let i = 0, n = exit.length; i < n; i++) {
+                component.__state = StateManager._getSuperState(state, i)
                 const def = StateManager._getStateAction(exit[i], "_exit")
                 if (def) {
                     if (this.debug) {
@@ -13943,9 +13951,6 @@ class StateManager {
                             console.log(`${this._logPrefix}[CANCELED]`)
                         }
                     } else if (stateSwitch) {
-                        // We've already exited some states (so are, in fact, already in another state).
-                        component.__state = StateManager._getSuperState(component.state, i)
-
                         const info = this._setState(
                             component,
                             stateSwitch,
@@ -13962,9 +13967,8 @@ class StateManager {
                 }
             }
 
-            component.__state = newState
-
             for (let i = 0, n = enter.length; i < n; i++) {
+                component.__state = StateManager._getSuperState(newState, (n - (i + 1)))
                 const def = StateManager._getStateAction(enter[i], "_enter")
                 if (def) {
                     if (this.debug) {
@@ -13976,9 +13980,6 @@ class StateManager {
                             console.log(`${this._logPrefix}[CANCELED]`)
                         }
                     } else if (stateSwitch) {
-                        // We've already exited some states (so are, in fact, in another state).
-                        component.__state = StateManager._getSuperState(newState, n - (i + 1))
-
                         const info = this._setState(
                             component,
                             stateSwitch,
@@ -14015,6 +14016,9 @@ class StateManager {
     }
 
     static _getSuperState(state, levels) {
+        if (levels === 0) {
+            return state
+        }
         return state.split(".").slice(0, -levels).join(".")
     }
 
