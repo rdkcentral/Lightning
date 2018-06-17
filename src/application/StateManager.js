@@ -224,6 +224,8 @@ class StateManager {
                 }
             }
 
+            component.__state = StateManager._getSuperState(state, exit.length)
+
             for (let i = 0, n = enter.length; i < n; i++) {
                 component.__state = StateManager._getSuperState(newState, (n - (i + 1)))
                 const def = StateManager._getStateAction(enter[i], "_enter")
