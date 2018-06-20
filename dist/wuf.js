@@ -13566,6 +13566,10 @@ class Application extends Component {
         this.__updateFocus()
     }
 
+    updateFocusPath() {
+        this.__updateFocus()
+    }
+
     __updateFocus(maxRecursion = 100) {
         const newFocusPath = this.__getFocusPath()
         const newFocusedComponent = newFocusPath[newFocusPath.length - 1]
