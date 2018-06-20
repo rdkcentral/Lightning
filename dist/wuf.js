@@ -6899,7 +6899,7 @@ class ViewCore {
                 this.ctx.updateTreeOrderForceUpdate++;
             }
 
-            const recalc = this._recalc
+            let recalc = this._recalc
 
             // Update world coords/alpha.
             if (recalc & 1) {
@@ -6965,6 +6965,11 @@ class ViewCore {
                     if (pr.tc !== 0) r.py += this._localPx * pr.tc;
                 }
 
+                if (init) {
+                    // We set the recalc toggle, because we must make sure that the scissor is updated.
+                    recalc |= 2
+                }
+
                 if (init || (recalc & 4)) {
                     r.ta = this._localTa * pr.ta
                     r.tb = this._localTd * pr.tb
@@ -6990,6 +6995,9 @@ class ViewCore {
                 // Coords must be changed.
                 this._recalc |= 2 + 4
 
+                // Scissor may change: force update.
+                recalc |= 2
+
                 if (!this._useRenderToTexture) {
                     // We must release the texture.
                     this._texturizer.release()
@@ -6997,29 +7005,31 @@ class ViewCore {
             }
             this._useRenderToTexture = useRenderToTexture
 
-            // Determine whether we must 'clip'.
-            if (this._clipping && this._renderContext.isSquare()) {
-                // We must clip.
-                const x = this._renderContext.px
-                const y = this._renderContext.py
-                const w = this._renderContext.ta * this._rw
-                const h = this._renderContext.td * this._rh
+            if (recalc & 6 || !this._scissor /* initial */) {
+                // Determine whether we must 'clip'.
+                if (this._clipping && this._renderContext.isSquare()) {
+                    // We must clip.
+                    const x = this._renderContext.px
+                    const y = this._renderContext.py
+                    const w = this._renderContext.ta * this._rw
+                    const h = this._renderContext.td * this._rh
 
-                // If the parent renders to a texture, it's scissor should be ignored
-                const area = this._parent._useRenderToTexture ? this._parent._viewport : this._parent._scissor
-                if (area) {
-                    // Merge scissor areas.
-                    let sx = Math.max(area[0], x)
-                    let sy = Math.max(area[1], y)
-                    let ex = Math.min(area[0] + area[2], x + w)
-                    let ey = Math.min(area[1] + area[3], y + h)
-                    this._scissor = [sx, sy, ex - sx, ey - sy]
+                    // If the parent renders to a texture, it's scissor should be ignored
+                    const area = this._parent._useRenderToTexture ? this._parent._viewport : this._parent._scissor
+                    if (area) {
+                        // Merge scissor areas.
+                        let sx = Math.max(area[0], x)
+                        let sy = Math.max(area[1], y)
+                        let ex = Math.min(area[0] + area[2], x + w)
+                        let ey = Math.min(area[1] + area[3], y + h)
+                        this._scissor = [sx, sy, ex - sx, ey - sy]
+                    } else {
+                        this._scissor = [x, y, w, h]
+                    }
                 } else {
-                    this._scissor = [x, y, w, h]
+                    // No clipping: reuse parent scissor.
+                    this._scissor = this._parent._useRenderToTexture ? this._parent._viewport : this._parent._scissor
                 }
-            } else {
-                // No clipping: reuse parent scissor.
-                this._scissor = this._parent._useRenderToTexture ? this._parent._viewport : this._parent._scissor
             }
 
             // Calculate the outOfBounds margin.
