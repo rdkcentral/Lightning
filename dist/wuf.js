@@ -6224,7 +6224,6 @@ class ViewCore {
      *   1: alpha
      *   2: translate
      *   4: transform
-     *  64: update bounds margin
      * 128: becomes visible
      */
     _setRecalc(type) {
@@ -6867,7 +6866,7 @@ class ViewCore {
         this._boundsMargin = v ? v.slice() : undefined
 
         // We force recalc in order to set all boundsMargin recursively during the next update.
-        this._setRecalc(64)
+        this._setRecalc(2)
     }
 
     get boundsMargin() {
