@@ -497,15 +497,35 @@ class ViewCore {
 
     enableZContext(prevZContext) {
         if (prevZContext && prevZContext._zContextUsage > 0) {
-            let self = this;
             // Transfer from upper z context to this z context.
-            prevZContext._zIndexedChildren.slice().forEach(function (c) {
-                if (self.isAncestorOf(c) && c._zIndex !== 0) {
-                    c.setZParent(self);
+            const results = this._getZIndexedDescs()
+            results.forEach((c) => {
+                if (this.isAncestorOf(c) && c._zIndex !== 0) {
+                    c.setZParent(this);
                 }
             });
         }
-    };
+    }
+
+    _getZIndexedDescs() {
+        const results = []
+        if (this._children) {
+            for (let i = 0, n = this._children.length; i < n; i++) {
+                this._children[i]._getZIndexedDescsRec(results)
+            }
+        }
+        return results
+    }
+
+    _getZIndexedDescsRec(results) {
+        if (this._zIndex) {
+            results.push(this)
+        } else if (this._children && !this.isZContext()) {
+            for (let i = 0, n = this._children.length; i < n; i++) {
+                this._children[i]._getZIndexedDescsRec(results)
+            }
+        }
+    }
 
     disableZContext() {
         // Transfer from this z context to upper z context.
