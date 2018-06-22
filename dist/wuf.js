@@ -9583,7 +9583,6 @@ class Animation extends EventEmitter {
         }
         if (this.settings.stopMethod == AnimationSettings.STOP_METHODS.IMMEDIATE) {
             this._state = Animation.STATES.STOPPED
-            this.emit('stop')
             this.emit('stopFinish')
         } else if (this.settings.stopMethod == AnimationSettings.STOP_METHODS.REVERSE) {
             if (duration === 0) {
