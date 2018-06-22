@@ -24,50 +24,46 @@ class Component extends View {
 
         this.patch(this._getTemplate(), true)
 
-        this._registerLifecycleListeners()
-
         this.__signals = undefined
     }
 
-    _registerLifecycleListeners() {
-        this.on('attach', () => {
-            if (!this.__initialized) {
-                this.__init()
-                this.__initialized = true
-            }
+    _onAttach() {
+        if (!this.__initialized) {
+            this.__init()
+            this.__initialized = true
+        }
 
-            this.fire('_attach')
-        })
+        this.fire('_attach')
+    }
 
-        this.on('detach', () => {
-            this.fire('_detach')
-        })
+    _onDetach() {
+        this.fire('_detach')
+    }
 
-        this.on('active', () => {
-            if (!this.__firstActive) {
-                this.fire('_firstActive')
-                this.__firstActive = true
-            }
+    _onEnabled() {
+        if (!this.__firstEnable) {
+            this.fire('_firstEnable')
+            this.__firstEnable = true
+        }
 
-            this.fire('_active')
-        })
+        this.fire('_enable')
+    }
 
-        this.on('inactive', () => {
-            this.fire('_inactive')
-        })
+    _onDisabled() {
+        this.fire('_disable')
+    }
 
-        this.on('enabled', () => {
-            if (!this.__firstEnable) {
-                this.fire('_firstEnable')
-                this.__firstEnable = true
-            }
+    _onActive() {
+        if (!this.__firstActive) {
+            this.fire('_firstActive')
+            this.__firstActive = true
+        }
 
-            this.fire('_enable')
-        })
+        this.fire('_active')
+    }
 
-        this.on('disabled', () => {
-            this.fire('_disable')
-        })
+    _onInactive() {
+        this.fire('_inactive')
     }
 
     get application() {

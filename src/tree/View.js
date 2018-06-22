@@ -10,10 +10,11 @@ const Base = require('./Base');
 const Utils = require('./Utils');
 /*M¬*/const EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
 
-class View extends EventEmitter {
+class View {
 
     constructor(stage) {
-        super()
+        // EventEmitter constructor.
+        this._hasEventListeners = false
 
         this.__id = View.id++;
 
@@ -118,7 +119,7 @@ class View extends EventEmitter {
         this.__childList = null;
 
     }
-    
+
     get id() {
         return this.__id
     }
@@ -293,9 +294,10 @@ class View extends EventEmitter {
             }
 
             if (newAttached) {
-                this.emit('attach');
+                // Using method instead of emit gives a performance benefit.
+                this._onAttach()
             } else {
-                this.emit('detach');
+                this._onDetach()
             }
         }
     };
@@ -335,9 +337,9 @@ class View extends EventEmitter {
 
             // Run this after all _children because we'd like to see (de)activating a branch as an 'atomic' operation.
             if (newEnabled) {
-                this.emit('enabled');
+                this._onEnabled()
             } else {
-                this.emit('disabled');
+                this._onDisabled()
             }
         }
     };
@@ -392,7 +394,7 @@ class View extends EventEmitter {
         if (this.__texture) {
             this._enableTexture()
         }
-        this.emit('active')
+        this._onActive()
     }
 
     _unsetActiveFlag() {
@@ -405,7 +407,25 @@ class View extends EventEmitter {
             this.texturizer.deactivate();
         }
 
-        this.emit('inactive')
+        this._onInactive()
+    }
+
+    _onAttach() {
+    }
+
+    _onDetach() {
+    }
+
+    _onEnabled() {
+    }
+
+    _onDisabled() {
+    }
+
+    _onActive() {
+    }
+
+    _onInactive() {
     }
 
     _getRenderWidth() {
@@ -2117,6 +2137,8 @@ class View extends EventEmitter {
     }
 }
 
+// This gives a slight performance benefit compared to extending EventEmitter.
+EventEmitter.addAsMixin(View)
 
 View.prototype.isView = 1;
 

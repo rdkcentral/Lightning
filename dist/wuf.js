@@ -114,6 +114,15 @@ EventEmitter.combiner = function(object, name, arg1, arg2, arg3) {
     }
 }
 
+EventEmitter.addAsMixin = function(cls) {
+    cls.prototype.on = EventEmitter.prototype.on
+    cls.prototype.has = EventEmitter.prototype.has
+    cls.prototype.off = EventEmitter.prototype.off
+    cls.prototype.removeListener = EventEmitter.prototype.removeListener
+    cls.prototype.emit = EventEmitter.prototype.emit
+    cls.prototype.listenerCount = EventEmitter.prototype.listenerCount
+}
+
 
 
 /**
@@ -3329,10 +3338,11 @@ class TextureAtlasTree {
 
 
 
-class View extends EventEmitter {
+class View {
 
     constructor(stage) {
-        super()
+        // EventEmitter constructor.
+        this._hasEventListeners = false
 
         this.__id = View.id++;
 
@@ -3437,7 +3447,7 @@ class View extends EventEmitter {
         this.__childList = null;
 
     }
-    
+
     get id() {
         return this.__id
     }
@@ -3612,9 +3622,10 @@ class View extends EventEmitter {
             }
 
             if (newAttached) {
-                this.emit('attach');
+                // Using method instead of emit gives a performance benefit.
+                this._onAttach()
             } else {
-                this.emit('detach');
+                this._onDetach()
             }
         }
     };
@@ -3654,9 +3665,9 @@ class View extends EventEmitter {
 
             // Run this after all _children because we'd like to see (de)activating a branch as an 'atomic' operation.
             if (newEnabled) {
-                this.emit('enabled');
+                this._onEnabled()
             } else {
-                this.emit('disabled');
+                this._onDisabled()
             }
         }
     };
@@ -3711,7 +3722,7 @@ class View extends EventEmitter {
         if (this.__texture) {
             this._enableTexture()
         }
-        this.emit('active')
+        this._onActive()
     }
 
     _unsetActiveFlag() {
@@ -3724,7 +3735,25 @@ class View extends EventEmitter {
             this.texturizer.deactivate();
         }
 
-        this.emit('inactive')
+        this._onInactive()
+    }
+
+    _onAttach() {
+    }
+
+    _onDetach() {
+    }
+
+    _onEnabled() {
+    }
+
+    _onDisabled() {
+    }
+
+    _onActive() {
+    }
+
+    _onInactive() {
     }
 
     _getRenderWidth() {
@@ -5436,6 +5465,8 @@ class View extends EventEmitter {
     }
 }
 
+// This gives a slight performance benefit compared to extending EventEmitter.
+EventEmitter.addAsMixin(View)
 
 View.prototype.isView = 1;
 
@@ -13247,50 +13278,46 @@ class Component extends View {
 
         this.patch(this._getTemplate(), true)
 
-        this._registerLifecycleListeners()
-
         this.__signals = undefined
     }
 
-    _registerLifecycleListeners() {
-        this.on('attach', () => {
-            if (!this.__initialized) {
-                this.__init()
-                this.__initialized = true
-            }
+    _onAttach() {
+        if (!this.__initialized) {
+            this.__init()
+            this.__initialized = true
+        }
 
-            this.fire('_attach')
-        })
+        this.fire('_attach')
+    }
 
-        this.on('detach', () => {
-            this.fire('_detach')
-        })
+    _onDetach() {
+        this.fire('_detach')
+    }
 
-        this.on('active', () => {
-            if (!this.__firstActive) {
-                this.fire('_firstActive')
-                this.__firstActive = true
-            }
+    _onEnabled() {
+        if (!this.__firstEnable) {
+            this.fire('_firstEnable')
+            this.__firstEnable = true
+        }
 
-            this.fire('_active')
-        })
+        this.fire('_enable')
+    }
 
-        this.on('inactive', () => {
-            this.fire('_inactive')
-        })
+    _onDisabled() {
+        this.fire('_disable')
+    }
 
-        this.on('enabled', () => {
-            if (!this.__firstEnable) {
-                this.fire('_firstEnable')
-                this.__firstEnable = true
-            }
+    _onActive() {
+        if (!this.__firstActive) {
+            this.fire('_firstActive')
+            this.__firstActive = true
+        }
 
-            this.fire('_enable')
-        })
+        this.fire('_active')
+    }
 
-        this.on('disabled', () => {
-            this.fire('_disable')
-        })
+    _onInactive() {
+        this.fire('_inactive')
     }
 
     get application() {
