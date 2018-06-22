@@ -15,7 +15,7 @@ class TextTexture extends Texture {
 
     set text(v) {
         if (this._text !== v) {
-            this._text = v;
+            this._text = "" + v;
             this._changed();
         }
     }
