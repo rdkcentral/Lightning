@@ -215,6 +215,10 @@ class WebAdapter {
                 });
             });
             image.src = src;
+
+            cancelCb = function() {
+                image.removeAttribute('src');
+            }
         } else {
             let image = new Image();
             if (!(src.substr(0,5) == "data:")) {
@@ -222,7 +226,10 @@ class WebAdapter {
                 image.crossOrigin = "Anonymous";
             }
             image.onerror = function(err) {
-                return cb("Image load error");
+                // Ignore error message when cancelled.
+                if (image.src) {
+                    return cb("Image load error");
+                }
             };
             image.onload = function() {
                 cb(null, {
@@ -232,6 +239,10 @@ class WebAdapter {
                 });
             };
             image.src = src;
+
+            cancelCb = function() {
+                image.removeAttribute('src');
+            }
         }
 
         return cancelCb
@@ -541,7 +552,9 @@ class Utils {
     static equalValues(v1, v2) {
         if ((typeof v1) !== (typeof v2)) return false
         if (Utils.isObjectLiteral(v1)) {
-            return Utils.equalObjectLiterals(v1, v2)
+            return Utils.isObjectLiteral(v2) && Utils.equalObjectLiterals(v1, v2)
+        } else if (Array.isArray(v1)) {
+            return Array.isArray(v2) && Utils.equalArrays(v1, v2)
         } else {
             return v1 === v2
         }
@@ -564,18 +577,25 @@ class Utils {
             const v1 = obj1[k1]
             const v2 = obj2[k2]
 
-            if (Utils.isObjectLiteral(v1)) {
-                if (!this.equalObjectLiterals(v1, v2)) {
-                    return false
-                }
-            } else {
-                if (v1 !== v2) {
-                    return false
-                }
+            if (!Utils.equalValues(v1, v2)) {
+                return false
             }
         }
 
         return true;
+    }
+
+    static equalArrays(v1, v2) {
+        if (v1.length !== v2.length) {
+            return false
+        }
+        for (let i = 0, n = v1.length; i < n; i++) {
+            if (!this.equalValues(v1[i], v2[i])) {
+                return false
+            }
+        }
+
+        return true
     }
 
     static setToArray(s) {
@@ -3341,6 +3361,7 @@ class TextureAtlasTree {
 class View {
 
     constructor(stage) {
+        
         // EventEmitter constructor.
         this._hasEventListeners = false
 
@@ -5109,6 +5130,20 @@ class View {
         }
     }
 
+    enableTextTexture() {
+        if (!this.texture || !(this.texture instanceof TextTexture)) {
+            this.texture = new TextTexture(this.stage)
+
+            if (!this.texture.w && !this.texture.h) {
+                // Inherit dimensions from view.
+                // This allows userland to set dimensions of the View and then later specify the text.
+                this.texture.w = this.w
+                this.texture.h = this.h
+            }
+        }
+        return this.texture
+    }
+
     get text() {
         if (this.texture && (this.texture instanceof TextTexture)) {
             return this.texture
@@ -5119,14 +5154,7 @@ class View {
 
     set text(v) {
         if (!this.texture || !(this.texture instanceof TextTexture)) {
-            this.texture = new TextTexture(this.stage)
-
-            if (!this.texture.w && !this.texture.h) {
-                // Inherit dimensions from view.
-                // This allows userland to set dimensions of the View and then later specify the text.
-                this.texture.w = this.w
-                this.texture.h = this.h
-            }
+            this.enableTextTexture()
         }
         if (Utils.isString(v)) {
             this.texture.text = v
@@ -5466,7 +5494,9 @@ class View {
 }
 
 // This gives a slight performance benefit compared to extending EventEmitter.
-EventEmitter.addAsMixin(View)
+if (!Utils.isNode) {
+    EventEmitter.addAsMixin(View)
+}
 
 View.prototype.isView = 1;
 
@@ -13276,9 +13306,126 @@ class Component extends View {
 
         this.__construct()
 
-        this.patch(this._getTemplate(), true)
+        // Quick-apply template.
+        const func = this.constructor.getTemplateFunc()
+        func.f(this, func.a)
 
         this.__signals = undefined
+    }
+
+    /**
+     * Returns a high-performance template patcher.
+     */
+    static getTemplateFunc() {
+        if (!this._templateFunc) {
+            this._templateFunc = this.parseTemplate(this._template())
+        }
+        return this._templateFunc
+    }
+
+    static parseTemplate(obj) {
+        const context = {
+            loc: [],
+            store: [],
+            rid: 0
+        }
+
+        this.parseTemplateRec(obj, context, "view")
+
+        const code = context.loc.join(";\n")
+        const f = new Function("view", "store", code)
+        return {f:f, a:context.store}
+    }
+
+    static parseTemplateRec(obj, context, cursor) {
+        const store = context.store
+        const loc = context.loc
+        const keys = Object.keys(obj)
+        keys.forEach(key => {
+            const value = obj[key]
+            if (Utils.isUcChar(key.charCodeAt(0))) {
+                // Value must be expanded as well.
+                if (Utils.isObjectLiteral(value)) {
+                    // Ref.
+                    const childCursor = `r${key.replace(/[^a-z0-9]/gi, "") + context.rid}`
+                    let type = value.type ? value.type : View
+                    if (type === "View") {
+                        loc.push(`const ${childCursor} = view.stage.createView()`)
+                    } else {
+                        store.push(type)
+                        loc.push(`const ${childCursor} = new store[${store.length - 1}](${cursor}.stage)`)
+                    }
+                    loc.push(`${childCursor}.ref = "${key}"`)
+                    context.rid++
+
+                    // Enter sub.
+                    this.parseTemplateRec(value, context, childCursor)
+
+                    loc.push(`${cursor}.childList.add(${childCursor})`)
+                } else if (Utils.isObject(value)) {
+                    // Dynamic assignment.
+                    store.push(value)
+                    loc.push(`${cursor}.childList.add(store[${store.length - 1}])`)
+                }
+            } else {
+                if (key === "text") {
+                    const propKey = cursor + "__text"
+                    loc.push(`${propKey} = ${cursor}.enableTextTexture()`)
+                    this.parseTemplatePropRec(value, context, propKey)
+                } else if (key === "texture" && Utils.isObjectLiteral(value)) {
+                    const propKey = cursor + "__texture"
+                    const type = value.type
+                    if (type) {
+                        store.push(type)
+                        loc.push(`${propKey} = new store[${store.length - 1}](${cursor}.stage)`)
+                        this.parseTemplatePropRec(value, context, propKey)
+                        loc.push(`${cursor}["${key}"] = ${propKey}`)
+                    } else {
+                        loc.push(`${propKey} = ${cursor}.texture`)
+                        this.parseTemplatePropRec(value, context, propKey)
+                    }
+                } else {
+                    // Property
+                    if (Utils.isNumber(value)) {
+                        loc.push(`${cursor}["${key}"] = ${value}`)
+                    } else if (Utils.isBoolean(value)) {
+                        loc.push(`${cursor}["${key}"] = ${value ? "true" : "false"}`)
+                    } else if (Utils.isObject(value) || Array.isArray(value)) {
+                        // Dynamic assignment.
+                        // Because literal objects may contain dynamics, we store the full object.
+                        store.push(value)
+                        loc.push(`${cursor}["${key}"] = store[${store.length - 1}]`)
+                    } else {
+                        // String etc.
+                        loc.push(`${cursor}["${key}"] = ${JSON.stringify(value)}`)
+                    }
+                }
+            }
+        })
+    }
+
+    static parseTemplatePropRec(obj, context, cursor) {
+        const store = context.store
+        const loc = context.loc
+        const keys = Object.keys(obj)
+        keys.forEach(key => {
+            if (key !== "type") {
+                const value = obj[key]
+                if (Utils.isNumber(value)) {
+                    loc.push(`${cursor}["${key}"] = ${value}`)
+                } else if (Utils.isBoolean(value)) {
+                    loc.push(`${cursor}["${key}"] = ${value ? "true" : "false"}`)
+                } else if (Utils.isObject(value) || Array.isArray(value)) {
+                    // Dynamic assignment.
+                    // Because literal objects may contain dynamics, we store the full object.
+                    store.push(value)
+                    loc.push(`${cursor}["${key}"] = store[${store.length - 1}]`)
+                } else {
+                    // String etc.
+                    loc.push(`${cursor}["${key}"] = ${JSON.stringify(value)}`)
+                }
+            }
+        })
     }
 
     _onAttach() {

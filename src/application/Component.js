@@ -22,9 +22,126 @@ class Component extends View {
 
         this.__construct()
 
-        this.patch(this._getTemplate(), true)
+        // Quick-apply template.
+        const func = this.constructor.getTemplateFunc()
+        func.f(this, func.a)
 
         this.__signals = undefined
+    }
+
+    /**
+     * Returns a high-performance template patcher.
+     */
+    static getTemplateFunc() {
+        if (!this._templateFunc) {
+            this._templateFunc = this.parseTemplate(this._template())
+        }
+        return this._templateFunc
+    }
+
+    static parseTemplate(obj) {
+        const context = {
+            loc: [],
+            store: [],
+            rid: 0
+        }
+
+        this.parseTemplateRec(obj, context, "view")
+
+        const code = context.loc.join(";\n")
+        const f = new Function("view", "store", code)
+        return {f:f, a:context.store}
+    }
+
+    static parseTemplateRec(obj, context, cursor) {
+        const store = context.store
+        const loc = context.loc
+        const keys = Object.keys(obj)
+        keys.forEach(key => {
+            const value = obj[key]
+            if (Utils.isUcChar(key.charCodeAt(0))) {
+                // Value must be expanded as well.
+                if (Utils.isObjectLiteral(value)) {
+                    // Ref.
+                    const childCursor = `r${key.replace(/[^a-z0-9]/gi, "") + context.rid}`
+                    let type = value.type ? value.type : View
+                    if (type === "View") {
+                        loc.push(`const ${childCursor} = view.stage.createView()`)
+                    } else {
+                        store.push(type)
+                        loc.push(`const ${childCursor} = new store[${store.length - 1}](${cursor}.stage)`)
+                    }
+                    loc.push(`${childCursor}.ref = "${key}"`)
+                    context.rid++
+
+                    // Enter sub.
+                    this.parseTemplateRec(value, context, childCursor)
+
+                    loc.push(`${cursor}.childList.add(${childCursor})`)
+                } else if (Utils.isObject(value)) {
+                    // Dynamic assignment.
+                    store.push(value)
+                    loc.push(`${cursor}.childList.add(store[${store.length - 1}])`)
+                }
+            } else {
+                if (key === "text") {
+                    const propKey = cursor + "__text"
+                    loc.push(`${propKey} = ${cursor}.enableTextTexture()`)
+                    this.parseTemplatePropRec(value, context, propKey)
+                } else if (key === "texture" && Utils.isObjectLiteral(value)) {
+                    const propKey = cursor + "__texture"
+                    const type = value.type
+                    if (type) {
+                        store.push(type)
+                        loc.push(`${propKey} = new store[${store.length - 1}](${cursor}.stage)`)
+                        this.parseTemplatePropRec(value, context, propKey)
+                        loc.push(`${cursor}["${key}"] = ${propKey}`)
+                    } else {
+                        loc.push(`${propKey} = ${cursor}.texture`)
+                        this.parseTemplatePropRec(value, context, propKey)
+                    }
+                } else {
+                    // Property
+                    if (Utils.isNumber(value)) {
+                        loc.push(`${cursor}["${key}"] = ${value}`)
+                    } else if (Utils.isBoolean(value)) {
+                        loc.push(`${cursor}["${key}"] = ${value ? "true" : "false"}`)
+                    } else if (Utils.isObject(value) || Array.isArray(value)) {
+                        // Dynamic assignment.
+                        // Because literal objects may contain dynamics, we store the full object.
+                        store.push(value)
+                        loc.push(`${cursor}["${key}"] = store[${store.length - 1}]`)
+                    } else {
+                        // String etc.
+                        loc.push(`${cursor}["${key}"] = ${JSON.stringify(value)}`)
+                    }
+                }
+            }
+        })
+    }
+
+    static parseTemplatePropRec(obj, context, cursor) {
+        const store = context.store
+        const loc = context.loc
+        const keys = Object.keys(obj)
+        keys.forEach(key => {
+            if (key !== "type") {
+                const value = obj[key]
+                if (Utils.isNumber(value)) {
+                    loc.push(`${cursor}["${key}"] = ${value}`)
+                } else if (Utils.isBoolean(value)) {
+                    loc.push(`${cursor}["${key}"] = ${value ? "true" : "false"}`)
+                } else if (Utils.isObject(value) || Array.isArray(value)) {
+                    // Dynamic assignment.
+                    // Because literal objects may contain dynamics, we store the full object.
+                    store.push(value)
+                    loc.push(`${cursor}["${key}"] = store[${store.length - 1}]`)
+                } else {
+                    // String etc.
+                    loc.push(`${cursor}["${key}"] = ${JSON.stringify(value)}`)
+                }
+            }
+        })
     }
 
     _onAttach() {

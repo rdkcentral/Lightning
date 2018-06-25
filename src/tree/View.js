@@ -10,9 +10,10 @@ const Base = require('./Base');
 const Utils = require('./Utils');
 /*M¬*/const EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
 
-class View {
+class View /*M¬*/extends EventEmitter/*¬M*/{
 
     constructor(stage) {
+        /*M¬*/super()/*¬M*/
         // EventEmitter constructor.
         this._hasEventListeners = false
 
@@ -1781,6 +1782,20 @@ class View {
         }
     }
 
+    enableTextTexture() {
+        if (!this.texture || !(this.texture instanceof TextTexture)) {
+            this.texture = new TextTexture(this.stage)
+
+            if (!this.texture.w && !this.texture.h) {
+                // Inherit dimensions from view.
+                // This allows userland to set dimensions of the View and then later specify the text.
+                this.texture.w = this.w
+                this.texture.h = this.h
+            }
+        }
+        return this.texture
+    }
+
     get text() {
         if (this.texture && (this.texture instanceof TextTexture)) {
             return this.texture
@@ -1791,14 +1806,7 @@ class View {
 
     set text(v) {
         if (!this.texture || !(this.texture instanceof TextTexture)) {
-            this.texture = new TextTexture(this.stage)
-
-            if (!this.texture.w && !this.texture.h) {
-                // Inherit dimensions from view.
-                // This allows userland to set dimensions of the View and then later specify the text.
-                this.texture.w = this.w
-                this.texture.h = this.h
-            }
+            this.enableTextTexture()
         }
         if (Utils.isString(v)) {
             this.texture.text = v
@@ -2138,7 +2146,9 @@ class View {
 }
 
 // This gives a slight performance benefit compared to extending EventEmitter.
-EventEmitter.addAsMixin(View)
+if (!Utils.isNode) {
+    EventEmitter.addAsMixin(View)
+}
 
 View.prototype.isView = 1;
 

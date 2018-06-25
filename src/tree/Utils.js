@@ -103,7 +103,9 @@ class Utils {
     static equalValues(v1, v2) {
         if ((typeof v1) !== (typeof v2)) return false
         if (Utils.isObjectLiteral(v1)) {
-            return Utils.equalObjectLiterals(v1, v2)
+            return Utils.isObjectLiteral(v2) && Utils.equalObjectLiterals(v1, v2)
+        } else if (Array.isArray(v1)) {
+            return Array.isArray(v2) && Utils.equalArrays(v1, v2)
         } else {
             return v1 === v2
         }
@@ -126,18 +128,25 @@ class Utils {
             const v1 = obj1[k1]
             const v2 = obj2[k2]
 
-            if (Utils.isObjectLiteral(v1)) {
-                if (!this.equalObjectLiterals(v1, v2)) {
-                    return false
-                }
-            } else {
-                if (v1 !== v2) {
-                    return false
-                }
+            if (!Utils.equalValues(v1, v2)) {
+                return false
             }
         }
 
         return true;
+    }
+
+    static equalArrays(v1, v2) {
+        if (v1.length !== v2.length) {
+            return false
+        }
+        for (let i = 0, n = v1.length; i < n; i++) {
+            if (!this.equalValues(v1[i], v2[i])) {
+                return false
+            }
+        }
+
+        return true
     }
 
     static setToArray(s) {
