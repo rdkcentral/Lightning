@@ -89,6 +89,10 @@ class WebAdapter {
                 });
             });
             image.src = src;
+
+            cancelCb = function() {
+                image.removeAttribute('src');
+            }
         } else {
             let image = new Image();
             if (!(src.substr(0,5) == "data:")) {
@@ -96,7 +100,10 @@ class WebAdapter {
                 image.crossOrigin = "Anonymous";
             }
             image.onerror = function(err) {
-                return cb("Image load error");
+                // Ignore error message when cancelled.
+                if (image.src) {
+                    return cb("Image load error");
+                }
             };
             image.onload = function() {
                 cb(null, {
@@ -106,6 +113,10 @@ class WebAdapter {
                 });
             };
             image.src = src;
+
+            cancelCb = function() {
+                image.removeAttribute('src');
+            }
         }
 
         return cancelCb
