@@ -7810,7 +7810,7 @@ class ViewCoreContext {
 ViewCoreContext.IDENTITY = new ViewCoreContext()
 
 ViewCore.sortZIndexedChildren = function(a,b) {
-    return (a._zIndex === b._zIndex ? a._updateTreeOrder - b._updateTreeOrder : a._zIndex < b._zIndex)
+    return (a._zIndex === b._zIndex ? a._updateTreeOrder - b._updateTreeOrder : a._zIndex - b._zIndex)
 }
 
 
