@@ -6233,6 +6233,8 @@ class ViewCore {
 
         this._zIndexedChildren = null;
 
+        this._zIndexSortedCounter = 0;
+
         this._shader = null;
 
         // The ancestor ViewCore that owns the inherited shader. Null if none is active (default shader).
@@ -6377,6 +6379,7 @@ class ViewCore {
 
             if (this._zIndexedChildren) {
                 this._zIndexedChildren.splice(0);
+                this._zIndexSortedCounter = 0
             }
         }
     };
@@ -6526,6 +6529,7 @@ class ViewCore {
                 if (this._zParent._zContextUsage > 0) {
                     let index = this._zParent._zIndexedChildren.indexOf(this);
                     this._zParent._zIndexedChildren.splice(index, 1);
+                    this._zParent._zIndexSortedCounter--
                 }
             }
 
@@ -6572,6 +6576,7 @@ class ViewCore {
         if (this._zContextUsage === 0) {
             this._zSort = false;
             this._zIndexedChildren.splice(0);
+            this._zIndexSortedCounter = 0
         }
     };
 
@@ -7611,22 +7616,37 @@ class ViewCore {
     }
 
     sortZIndexedChildren() {
-        // Insertion sort works best for almost correctly ordered arrays.
-        for (let i = 1, n = this._zIndexedChildren.length; i < n; i++) {
-            let a = this._zIndexedChildren[i];
-            let j = i - 1;
-            while (j >= 0) {
-                let b = this._zIndexedChildren[j];
-                if (!(a._zIndex === b._zIndex ? (a._updateTreeOrder < b._updateTreeOrder) : (a._zIndex < b._zIndex))) {
-                    break;
+        if (this._zIndexSortedCounter === 0) {
+            this._zIndexedChildren.sort(ViewCore.sortZIndexedChildren)
+        } else if (this._zIndexSortedCounter < this._zIndexedChildren.length) {
+            // Fast sorting: reuse the already sorted part of the z-indexed children.
+            const a = this._zIndexedChildren.slice(0, this._zIndexSortedCounter)
+            const b = this._zIndexedChildren.slice(this._zIndexSortedCounter).sort(ViewCore.sortZIndexedChildren)
+
+            // Merge the two things.
+            const n = a.length
+            const m = b.length
+            const t = this._zIndexedChildren.length
+            let i = 0, j = 0, ptr = 0
+            const func = ViewCore.sortZIndexedChildren
+            do {
+                const v = func(a[i], b[j])
+
+                this._zIndexedChildren[ptr++] = v > 0 ? b[j++] : a[i++]
+
+                if (i >= n) {
+                    do {
+                        this._zIndexedChildren[ptr++] = b[j++]
+                    } while(j < m)
+                } else if (j >= m) {
+                    do {
+                        this._zIndexedChildren[ptr++] = a[i++]
+                    } while(i < n)
                 }
-
-                this._zIndexedChildren[j + 1] = this._zIndexedChildren[j];
-                j--;
-            }
-
-            this._zIndexedChildren[j + 1] = a;
+            } while(ptr < t)
         }
+
+        this._zIndexSortedCounter = this._zIndexedChildren.length
     };
 
     addQuads() {
@@ -7788,6 +7808,10 @@ class ViewCoreContext {
 }
 
 ViewCoreContext.IDENTITY = new ViewCoreContext()
+
+ViewCore.sortZIndexedChildren = function(a,b) {
+    return (a._zIndex === b._zIndex ? a._updateTreeOrder - b._updateTreeOrder : a._zIndex - b._zIndex)
+}
 
 
 /**
