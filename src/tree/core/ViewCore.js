@@ -457,6 +457,12 @@ class ViewCore {
                 }
             } else if (zIndex !== this._zIndex) {
                 if (this._zParent) {
+                    // Place at the end to enforce zIndex position update.
+                    let index = this._zParent._zIndexedChildren.indexOf(this);
+                    this._zParent._zIndexedChildren.splice(index, 1);
+                    this._zParent._zIndexedChildren.push(this)
+                    this._zParent._zIndexSortedCounter--
+
                     this._zParent._zSort = true;
                 }
             }
