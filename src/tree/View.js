@@ -1671,7 +1671,6 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
 
     get zIndex() {return this.__core.zIndex}
     set zIndex(v) {
-        let prev = this.__core.zIndex;
         this.__core.zIndex = v;
     }
 

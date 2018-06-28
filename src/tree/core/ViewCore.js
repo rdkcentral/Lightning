@@ -73,14 +73,7 @@ class ViewCore {
         this._forceZIndexContext = false;
         this._zContextUsage = 0;
         this._zParent = null;
-
-        /**
-         * Flags:
-         * 1: Re-sort (zIndexSortedCounter above zIndexSortedCounter)
-         * 2: Complete re-sort of all children
-         * @type {number}
-         */
-        this._zSort = 0;
+        this._zSort = false;
 
         this._isRoot = false;
 
@@ -88,7 +81,14 @@ class ViewCore {
 
         this._zIndexedChildren = null;
 
-        this._zIndexSortedCounter = 0;
+        /**
+         * Iff true, during zSort, this view should be 're-sorted' because either:
+         * - zIndex did chang
+         * - zParent did change
+         * - view was moved in the render tree
+         * @type {boolean}
+         */
+        this._zIndexResort = false;
 
         this._shader = null;
 
@@ -184,12 +184,7 @@ class ViewCore {
             if (this._zIndex === 0) {
                 this.setZParent(parent);
             } else {
-                const newZParent = parent ? parent.findZContext() : null
-                if (newZParent === this._zParent && this._zParent) {
-                    // Parent has changed by z-index did not: updateTreeOrder will change, so we need to resort.
-                    this._zParent.zSort = 2
-                }
-                this.setZParent(newZParent);
+                this.setZParent(parent ? parent.findZContext() : null);
             }
 
             if (prevIsZContext !== this.isZContext()) {
@@ -198,6 +193,12 @@ class ViewCore {
                 } else {
                     this.enableZContext(prevParent.findZContext());
                 }
+            }
+
+            // Tree order did change: even if zParent stays the same, we must resort.
+            this._zIndexResort = true
+            if (this._zParent) {
+                this._zParent.enableZSort()
             }
 
             if (!this._shader) {
@@ -209,6 +210,17 @@ class ViewCore {
             }
         }
     };
+
+    enableZSort(force = false) {
+        if (!this._zSort && this._zContextUsage > 0) {
+            this._zSort = true
+            if (force) {
+                // ZSort must be done, even if this view is invisible.
+                // This is done to prevent memory leaks when removing views from inactive render branches.
+                this.ctx.forceZSort(this)
+            }
+        }
+    }
 
     addChildAt(index, child) {
         if (!this._children) this._children = [];
@@ -239,7 +251,6 @@ class ViewCore {
 
             if (this._zIndexedChildren) {
                 this._zIndexedChildren.splice(0);
-                this._zIndexSortedCounter = 0
             }
         }
     };
@@ -259,9 +270,10 @@ class ViewCore {
         this._children.splice(fromIndex, 1);
         this._children.splice(toIndex, 0, c);
 
+        // Tree order changed: must resort!
+        this._zIndexResort = true
         if (this._zParent) {
-            // Child has moved within the same zParent: drawing order may have changed.
-            this._zParent.zSort |= 2
+            this._zParent.enableZSort()
         }
     }
 
@@ -391,10 +403,8 @@ class ViewCore {
                     this._zParent.decZContextUsage();
                 }
 
-                if (this._zParent._zContextUsage > 0) {
-                    // We don't remove the child from yet. It will be removed upon the next 'resort'.
-                    this._zParent._zSort |= 2;
-                }
+                // We must filter out this item upon the next resort.
+                this._zParent.enableZSort()
             }
 
             if (newZParent !== null) {
@@ -409,19 +419,20 @@ class ViewCore {
                     if (!hadZContextUsage && (this._parent === newZParent)) {
                         // This child was already in the children list.
                         // Do not add double.
-
-                        // Must resort all.
-                        newZParent._zSort |= 2;
                     } else {
+                        // Add new child to array.
                         newZParent._zIndexedChildren.push(this);
-
-                        // We should update the z parent.
-                        newZParent._zSort |= 1;
                     }
+
+                    // Order should be checked.
+                    newZParent.enableZSort()
                 }
             }
 
             this._zParent = newZParent;
+
+            // Newly added view must be marked for resort.
+            this._zIndexResort = true
         }
     };
 
@@ -437,8 +448,7 @@ class ViewCore {
                     this._zIndexedChildren.push(this._children[i]);
                 }
                 // Initially, children are already sorted properly (tree order).
-                this._zSort = 0
-                this._zIndexSortedCounter = this._zIndexedChildren.length
+                this._zSort = false
             }
         }
     };
@@ -446,10 +456,8 @@ class ViewCore {
     decZContextUsage() {
         this._zContextUsage--;
         if (this._zContextUsage === 0) {
-            // Clear update bits.
-            this._zSort = 0
+            this._zSort = false;
             this._zIndexedChildren.splice(0);
-            this._zIndexSortedCounter = 0
         }
     };
 
@@ -477,7 +485,12 @@ class ViewCore {
                 if (newZParent === this._zParent) {
                     if (this._zParent) {
                         this._zParent.incZContextUsage();
+                        this._zParent.enableZSort();
                     }
+                }
+            } else if (zIndex !== this._zIndex) {
+                if (this._zParent && this._zParent._zContextUsage) {
+                    this._zParent.enableZSort();
                 }
             }
 
@@ -489,11 +502,6 @@ class ViewCore {
 
             if (newZParent !== this._zParent) {
                 this.setZParent(newZParent);
-            } else {
-                if (this._zParent) {
-                    // Make sure that the parent's children are resorted.
-                    this._zParent._zSort |= 2;
-                }
             }
 
             if (prevIsZContext !== this.isZContext()) {
@@ -502,6 +510,12 @@ class ViewCore {
                 } else {
                     this.enableZContext(this._parent.findZContext());
                 }
+            }
+
+            // Make sure that resort is done.
+            this._zIndexResort = true
+            if (this._zParent) {
+                this._zParent.enableZSort();
             }
         }
     };
@@ -561,6 +575,11 @@ class ViewCore {
         // Transfer from this z context to upper z context.
         if (this._zContextUsage > 0) {
             let newZParent = this._parent.findZContext();
+
+            // Make sure that z-indexed children are up to date (old ones removed).
+            if (this._zSort) {
+                this.sortZIndexedChildren()
+            }
 
             this._zIndexedChildren.slice().forEach(function (c) {
                 if (c._zIndex !== 0) {
@@ -1261,6 +1280,7 @@ class ViewCore {
                             // If zIndex is set, this item already belongs to a zIndexedChildren array in one of the ancestors.
                             this._children[i].render();
                         }
+
                     }
                 }
             }
@@ -1486,45 +1506,93 @@ class ViewCore {
         }
     }
 
+    get zSort() {
+        return this._zSort
+    }
+
     sortZIndexedChildren() {
-        if (this._zSort === 2) {
-            // Filter out items that have been deleted.
-            this._zIndexedChildren.filter(child => child._zParent === this)
-            this._zIndexedChildren.sort(ViewCore.sortZIndexedChildren)
-        } else if (this._zSort === 1) {
-            if (this._zIndexSortedCounter === 0) {
-                this._zIndexedChildren.sort(ViewCore.sortZIndexedChildren)
-            } else if (this._zIndexSortedCounter < this._zIndexedChildren.length) {
-                // Fast sorting: reuse the already sorted part of the z-indexed children.
-                const a = this._zIndexedChildren.slice(0, this._zIndexSortedCounter)
-                const b = this._zIndexedChildren.slice(this._zIndexSortedCounter).sort(ViewCore.sortZIndexedChildren)
+        /**
+         * We want to avoid resorting everything. Instead, we do a single pass of the full array:
+         * - filtering out views with a different zParent than this (were removed)
+         * - filtering out, but also gathering (in a temporary array) the views that have zIndexResort flag
+         * - then, finally, we merge-sort both the new array and the 'old' one
+         * - view may have been added 'double', so when merge-sorting also check for doubles.
+         * - if the old one is larger (in size) than it should be, splice off the end of the array.
+         */
 
-                // Merge the two things.
-                const n = a.length
-                const m = b.length
-                const t = this._zIndexedChildren.length
-                let i = 0, j = 0, ptr = 0
-                const func = ViewCore.sortZIndexedChildren
-                do {
-                    const v = func(a[i], b[j])
+        const n = this._zIndexedChildren.length
+        let ptr = 0
+        const a = this._zIndexedChildren
 
-                    this._zIndexedChildren[ptr++] = v > 0 ? b[j++] : a[i++]
-
-                    if (i >= n) {
-                        do {
-                            this._zIndexedChildren[ptr++] = b[j++]
-                        } while(j < m)
-                    } else if (j >= m) {
-                        do {
-                            this._zIndexedChildren[ptr++] = a[i++]
-                        } while(i < n)
+        const b = []
+        for (let i = 0; i < n; i++) {
+            if (a[i]._zParent === this) {
+                if (a[i]._zIndexResort) {
+                    a[i]._zIndexResort = false
+                    b.push(a[i])
+                } else {
+                    if (ptr !== i) {
+                        a[ptr] = a[i]
                     }
-                } while(ptr < t)
+                    ptr++
+                }
             }
         }
 
-        this._zIndexSortedCounter = this._zIndexedChildren.length
-        this._zSort = 0
+        const m = b.length
+        if (m) {
+            b.sort(ViewCore.sortZIndexedChildren)
+            const n = ptr
+            if (!n) {
+                ptr = 0
+                let j = 0
+                do {
+                    a[ptr++] = b[j++]
+                } while(j < m)
+
+                if (a.length > ptr) {
+                    // Slice old (unnecessary) part off array.
+                    a.splice(ptr)
+                }
+            } else {
+                // Merge-sort arrays
+                ptr = 0
+                let i = 0
+                let j = 0
+                const mergeResult = []
+                do {
+                    const v = (a[i]._zIndex === b[j]._zIndex ? a[i]._updateTreeOrder - b[j]._updateTreeOrder : a[i]._zIndex - b[j]._zIndex)
+
+                    const add = v > 0 ? b[j++] : a[i++]
+
+                    if (ptr === 0 || (mergeResult[ptr - 1] !== add)) {
+                        mergeResult[ptr++] = add
+                    }
+
+                    if (i >= n) {
+                        do {
+                            const add = b[j++]
+                            if (ptr === 0 || (mergeResult[ptr - 1] !== add)) {
+                                mergeResult[ptr++] = add
+                            }
+                        } while(j < m)
+                        break
+                    } else if (j >= m) {
+                        do {
+                            const add = a[i++]
+                            if (ptr === 0 || (mergeResult[ptr - 1] !== add)) {
+                                mergeResult[ptr++] = add
+                            }
+                        } while(i < n)
+                        break
+                    }
+                } while(true)
+
+                this._zIndexedChildren = mergeResult
+            }
+        }
+
+        this._zSort = false
     };
 
     addQuads() {

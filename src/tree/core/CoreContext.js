@@ -25,6 +25,8 @@ class CoreContext {
         this._renderTexturePool = []
 
         this._renderTextureId = 1
+
+        this._zSorts = []
     }
 
     destroy() {
@@ -44,6 +46,17 @@ class CoreContext {
         // (but not recursively to prevent infinite loops).
         if (this.root._hasUpdates) {
             this.update()
+        }
+
+        const n = this._zSorts.length
+        if (n) {
+            // Forced z-sorts (ViewCore may force a z-sort in order to free memory/prevent memory leakd).
+            for (let i = 0, n = this._zSorts.length; i < n; i++) {
+                if (this._zSorts[i].zSort) {
+                    this._zSorts[i].sortZIndexedChildren()
+                }
+            }
+            this._zSorts = []
         }
 
         this.render()
@@ -157,6 +170,10 @@ class CoreContext {
         gl.deleteTexture(glTexture);
 
         this._renderTexturePixels -= glTexture.w * glTexture.h
+    }
+
+    forceZSort(viewCore) {
+        this._zSorts.push(viewCore)
     }
 
 }
