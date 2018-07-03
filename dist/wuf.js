@@ -6523,6 +6523,8 @@ class ViewCore {
 
         // Default: no bounds margin.
         this._parent._boundsMargin = null
+
+        this._setRecalc(1 + 2 + 4)
     };
 
     isAncestorOf(c) {
