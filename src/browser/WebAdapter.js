@@ -41,13 +41,12 @@ class WebAdapter {
         requestAnimationFrame(lp);
     }
 
-    uploadGlTexture(gl, textureSource, source, hasAlpha) {
-        let format = hasAlpha ? gl.RGBA : gl.RGB;
+    uploadGlTexture(gl, textureSource, source, options) {
         if (source instanceof ImageData || source instanceof HTMLImageElement || source instanceof HTMLCanvasElement || source instanceof HTMLVideoElement || (window.ImageBitmap && source instanceof ImageBitmap)) {
             // Web-specific data types.
-            gl.texImage2D(gl.TEXTURE_2D, 0, format, format, gl.UNSIGNED_BYTE, source);
+            gl.texImage2D(gl.TEXTURE_2D, 0, options.internalFormat, options.format, options.type, source);
         } else {
-            gl.texImage2D(gl.TEXTURE_2D, 0, format, textureSource.w, textureSource.h, 0, format, gl.UNSIGNED_BYTE, source);
+            gl.texImage2D(gl.TEXTURE_2D, 0, options.internalFormat, textureSource.w, textureSource.h, 0, options.format, options.type, source);
         }
     }
 

@@ -1,5 +1,6 @@
-const Application = require('../../wuf').Application
-const Utils = require('../../wuf').Utils
+const wuf = require('../../wuf')
+const Application = wuf.Application
+const Utils = wuf.Utils
 
 class BasicUsageExample extends Application {
     static _template() {
@@ -8,7 +9,7 @@ class BasicUsageExample extends Application {
                 Guide: {color: 0xFFFFAAAA, alpha: 1},
                 Main: {rect: true, renderToTexture: true, w: 900, h: 900, colorLeft: 0xFF000000, colorRight: 0xFF0000FF
                 },
-                App: {alpha: 0.5, rect: true, w: 100, h: 100},
+                App: {alpha: 0.5, rect: true, w: 100, h: 100, texture: {type: wuf.textures.NoiseTexture, x: 0, y: 0, w: 1000, h: 1000}},
             },
             Overlay: {}
         }

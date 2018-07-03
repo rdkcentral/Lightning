@@ -711,10 +711,10 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
                 iw *= (displayedTexture.px);
                 ih *= (displayedTexture.py);
 
-                tx1 = Math.min(1.0, Math.max(0, iw));
-                ty1 = Math.min(1.0, Math.max(ih));
-                tx2 = Math.min(1.0, Math.max(tx2 * rw + iw));
-                ty2 = Math.min(1.0, Math.max(ty2 * rh + ih));
+                tx1 = iw;
+                ty1 = ih;
+                tx2 = tx2 * rw + iw;
+                ty2 = ty2 * rh + ih;
             }
 
             this.__core.setTextureCoords(tx1, ty1, tx2, ty2);

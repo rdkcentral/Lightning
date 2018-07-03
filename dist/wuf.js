@@ -167,13 +167,12 @@ class WebAdapter {
         requestAnimationFrame(lp);
     }
 
-    uploadGlTexture(gl, textureSource, source, hasAlpha) {
-        let format = hasAlpha ? gl.RGBA : gl.RGB;
+    uploadGlTexture(gl, textureSource, source, options) {
         if (source instanceof ImageData || source instanceof HTMLImageElement || source instanceof HTMLCanvasElement || source instanceof HTMLVideoElement || (window.ImageBitmap && source instanceof ImageBitmap)) {
             // Web-specific data types.
-            gl.texImage2D(gl.TEXTURE_2D, 0, format, format, gl.UNSIGNED_BYTE, source);
+            gl.texImage2D(gl.TEXTURE_2D, 0, options.internalFormat, options.format, options.type, source);
         } else {
-            gl.texImage2D(gl.TEXTURE_2D, 0, format, textureSource.w, textureSource.h, 0, format, gl.UNSIGNED_BYTE, source);
+            gl.texImage2D(gl.TEXTURE_2D, 0, options.internalFormat, textureSource.w, textureSource.h, 0, options.format, options.type, source);
         }
     }
 
@@ -1889,12 +1888,23 @@ class TextureManager {
             gl.pixelStorei(gl.UNPACK_FLIP_BLUE_RED, !!format.flipBlueRed);
         }
 
-        this.stage.adapter.uploadGlTexture(gl, textureSource, source, format.hasAlpha);
+        const texParams = format.texParams
+        if (!texParams[gl.TEXTURE_MAG_FILTER]) texParams[gl.TEXTURE_MAG_FILTER] = gl.LINEAR
+        if (!texParams[gl.TEXTURE_MIN_FILTER]) texParams[gl.TEXTURE_MIN_FILTER] = gl.LINEAR
+        if (!texParams[gl.TEXTURE_WRAP_S]) texParams[gl.TEXTURE_WRAP_S] = gl.CLAMP_TO_EDGE
+        if (!texParams[gl.TEXTURE_WRAP_T]) texParams[gl.TEXTURE_WRAP_T] = gl.CLAMP_TO_EDGE
 
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        Object.keys(texParams).forEach(key => {
+            const value = texParams[key]
+            gl.texParameteri(gl.TEXTURE_2D, parseInt(key), value);
+        })
+
+        const texOptions = format.texOptions
+        texOptions.format = texOptions.format || (format.hasAlpha ? gl.RGBA : gl.RGB)
+        texOptions.type = texOptions.type || gl.UNSIGNED_BYTE
+        texOptions.internalFormat = texOptions.internalFormat || texOptions.format
+
+        this.stage.adapter.uploadGlTexture(gl, textureSource, source, texOptions);
 
         // Store texture.
         textureSource.glTexture = sourceTexture;
@@ -2649,6 +2659,9 @@ class TextureSource {
             if (!format.hasAlpha) {
                 format.premultiplyAlpha = false;
             }
+
+            format.texParams = options.texParams || {}
+            format.texOptions = options.texOptions || {}
 
             this.manager.uploadTextureSource(this, source, format);
         }
@@ -4059,10 +4072,10 @@ class View {
                 iw *= (displayedTexture.px);
                 ih *= (displayedTexture.py);
 
-                tx1 = Math.min(1.0, Math.max(0, iw));
-                ty1 = Math.min(1.0, Math.max(ih));
-                tx2 = Math.min(1.0, Math.max(tx2 * rw + iw));
-                ty2 = Math.min(1.0, Math.max(ty2 * rh + ih));
+                tx1 = iw;
+                ty1 = ih;
+                tx2 = tx2 * rw + iw;
+                ty2 = ty2 * rh + ih;
             }
 
             this.__core.setTextureCoords(tx1, ty1, tx2, ty2);
@@ -6481,6 +6494,11 @@ class ViewCore {
         this._uly = uly;
         this._brx = brx;
         this._bry = bry;
+
+        ulx = Math.max(0, ulx)
+        uly = Math.max(0, uly)
+        brx = Math.min(1, brx)
+        bry = Math.min(1, bry)
 
         this._txCoordsUl = ((ulx * 65535 + 0.5) | 0) + ((uly * 65535 + 0.5) | 0) * 65536;
         this._txCoordsUr = ((brx * 65535 + 0.5) | 0) + ((uly * 65535 + 0.5) | 0) * 65536;
@@ -9968,7 +9986,37 @@ class RectangleTexture extends Texture {
     _getSourceLoader() {
         return function(cb) {
             var whitePixel = new Uint8Array([255, 255, 255, 255]);
-            cb(null, {source: whitePixel, w: 1, h: 1});
+            cb(null, {source: whitePixel, w: 1, h: 1, permanent: true});
+        }
+    }
+
+}
+
+
+class NoiseTexture extends Texture {
+
+    _getLookupId() {
+        return '__noise'
+    }
+
+    _getSourceLoader() {
+        const gl = this.stage.gl
+        return function(cb) {
+            const noise = new Uint8Array(128 * 128 * 4);
+            for (let i = 0; i < 128 * 128 * 4; i+=4) {
+                const v = Math.floor(Math.random() * 255)
+                noise[i] = v
+                noise[i+1] = v
+                noise[i+2] = v
+                noise[i+3] = v
+            }
+            const texParams = {}
+            texParams[gl.TEXTURE_WRAP_S] = gl.REPEAT
+            texParams[gl.TEXTURE_WRAP_T] = gl.REPEAT
+            texParams[gl.TEXTURE_MIN_FILTER] = gl.NEAREST
+            texParams[gl.TEXTURE_MAG_FILTER] = gl.NEAREST
+
+            cb(null, {source: noise, w: 64, h: 64, texParams: texParams});
         }
     }
 
@@ -14409,6 +14457,7 @@ return {
     textures: {
         SourceTexture: SourceTexture,
         RectangleTexture: RectangleTexture,
+        NoiseTexture: NoiseTexture,
         TextTexture: TextTexture,
         ImageTexture: ImageTexture,
         HtmlTexture: HtmlTexture,

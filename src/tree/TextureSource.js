@@ -226,6 +226,9 @@ class TextureSource {
                 format.premultiplyAlpha = false;
             }
 
+            format.texParams = options.texParams || {}
+            format.texOptions = options.texOptions || {}
+
             this.manager.uploadTextureSource(this, source, format);
         }
 

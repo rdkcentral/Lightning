@@ -69,12 +69,23 @@ class TextureManager {
             gl.pixelStorei(gl.UNPACK_FLIP_BLUE_RED, !!format.flipBlueRed);
         }
 
-        this.stage.adapter.uploadGlTexture(gl, textureSource, source, format.hasAlpha);
+        const texParams = format.texParams
+        if (!texParams[gl.TEXTURE_MAG_FILTER]) texParams[gl.TEXTURE_MAG_FILTER] = gl.LINEAR
+        if (!texParams[gl.TEXTURE_MIN_FILTER]) texParams[gl.TEXTURE_MIN_FILTER] = gl.LINEAR
+        if (!texParams[gl.TEXTURE_WRAP_S]) texParams[gl.TEXTURE_WRAP_S] = gl.CLAMP_TO_EDGE
+        if (!texParams[gl.TEXTURE_WRAP_T]) texParams[gl.TEXTURE_WRAP_T] = gl.CLAMP_TO_EDGE
 
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        Object.keys(texParams).forEach(key => {
+            const value = texParams[key]
+            gl.texParameteri(gl.TEXTURE_2D, parseInt(key), value);
+        })
+
+        const texOptions = format.texOptions
+        texOptions.format = texOptions.format || (format.hasAlpha ? gl.RGBA : gl.RGB)
+        texOptions.type = texOptions.type || gl.UNSIGNED_BYTE
+        texOptions.internalFormat = texOptions.internalFormat || texOptions.format
+
+        this.stage.adapter.uploadGlTexture(gl, textureSource, source, texOptions);
 
         // Store texture.
         textureSource.glTexture = sourceTexture;

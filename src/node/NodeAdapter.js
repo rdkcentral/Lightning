@@ -66,9 +66,8 @@ class NodeAdapter {
         setTimeout(lp, 16)
     }
 
-    uploadGlTexture(gl, textureSource, source, hasAlpha) {
-        let format = hasAlpha ? gl.RGBA : gl.RGB;
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, textureSource.w, textureSource.h, 0, format, gl.UNSIGNED_BYTE, source);
+    uploadGlTexture(gl, textureSource, source, options) {
+        gl.texImage2D(gl.TEXTURE_2D, 0, options.internalFormat, textureSource.w, textureSource.h, 0, options.format, options.type, source);
     }
 
     loadSrcTexture({src}, cb) {

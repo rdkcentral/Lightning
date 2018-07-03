@@ -331,6 +331,11 @@ class ViewCore {
         this._brx = brx;
         this._bry = bry;
 
+        ulx = Math.max(0, ulx)
+        uly = Math.max(0, uly)
+        brx = Math.min(1, brx)
+        bry = Math.min(1, bry)
+
         this._txCoordsUl = ((ulx * 65535 + 0.5) | 0) + ((uly * 65535 + 0.5) | 0) * 65536;
         this._txCoordsUr = ((brx * 65535 + 0.5) | 0) + ((uly * 65535 + 0.5) | 0) * 65536;
         this._txCoordsBl = ((ulx * 65535 + 0.5) | 0) + ((bry * 65535 + 0.5) | 0) * 65536;

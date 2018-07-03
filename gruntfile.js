@@ -18,6 +18,7 @@ return {
     textures: {
         SourceTexture: SourceTexture,
         RectangleTexture: RectangleTexture,
+        NoiseTexture: NoiseTexture,
         TextTexture: TextTexture,
         ImageTexture: ImageTexture,
         HtmlTexture: HtmlTexture,
@@ -96,6 +97,7 @@ return {
                     'src/animation/AnimationActionItems.js',
                     'src/animation/Animation.js',
                     'src/textures/RectangleTexture.js',
+                    'src/textures/NoiseTexture.js',
                     'src/textures/ImageTexture.js',
                     'src/textures/SourceTexture.js',
                     'src/textures/TextTexture.js',

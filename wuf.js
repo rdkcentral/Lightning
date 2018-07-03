@@ -10,6 +10,7 @@ module.exports = {
     Tools: require('./src/tools/Tools'),
     textures: {
         RectangleTexture: require('./src/textures/RectangleTexture'),
+        NoiseTexture: require('./src/textures/NoiseTexture'),
         TextTexture: require('./src/textures/TextTexture'),
         ImageTexture: require('./src/textures/ImageTexture'),
         HtmlTexture: require('./src/textures/HtmlTexture'),
