@@ -4,7 +4,7 @@ class FlowingGradientExample extends wuf.Application {
 
     static _template() {
         return {
-            Shader: {shader: {type: FlowingGradientShader, random: true, graining: 0, banding: 0.95}, texture: {type: wuf.textures.NoiseTexture}, w: 900, h: 450}
+            Shader: {shader: {type: FlowingGradientShader, random: true, graining: 0, banding: 0.95}, texture: {type: wuf.textures.NoiseTexture}, w: 900, h: 900}
         }
     }
 
