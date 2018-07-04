@@ -42,7 +42,8 @@ return {
         GrayscaleShader: GrayscaleShader,
         OutlineShader: OutlineShader,
         CircularPushShader: CircularPushShader,
-        RadialFilterShader: RadialFilterShader
+        RadialFilterShader: RadialFilterShader,
+        RadialGradientShader: RadialGradientShader
     },
     filters: {
         FxaaFilter: FxaaFilter,
@@ -120,6 +121,7 @@ return {
                     "src/tools/shaders/OutlineShader.js",
                     "src/tools/shaders/CircularPushShader.js",
                     "src/tools/shaders/RadialFilterShader.js",
+                    "src/tools/shaders/RadialGradientShader.js",
                     "src/tools/filters/FxaaFilter.js",
                     "src/tools/filters/InversionFilter.js",
                     "src/tools/filters/BlurFilter.js",

@@ -29,6 +29,7 @@ module.exports = {
     },
     shaders: {
         DitheringShader: require('./src/tools/shaders/DitheringShader'),
+        RadialGradientShader: require('./src/tools/shaders/RadialGradientShader'),
         PixelateShader: require('./src/tools/shaders/PixelateShader'),
         InversionShader: require('./src/tools/shaders/InversionShader'),
         GrayscaleShader: require('./src/tools/shaders/GrayscaleShader'),
