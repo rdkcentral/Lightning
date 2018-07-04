@@ -59,10 +59,10 @@ class CoreContext {
             this._zSorts = []
         }
 
-        this.render()
-
         // Clear flag to identify if anything changes before the next frame.
         this.root._parent._hasRenderUpdates = false
+
+        this.render()
 
         return true
     }
