@@ -21,6 +21,11 @@ class CoreQuadOperation {
         return this.ctx.renderState.quads
     }
 
+    getAttribsDataByteOffset(index) {
+        // Where this quad can be found in the attribs buffer.
+        return this.quads.getAttribsDataByteOffset(this.index + index)
+    }
+
     getTexture(index) {
         return this.quads.getTexture(this.index + index)
     }
@@ -31,6 +36,14 @@ class CoreQuadOperation {
 
     getView(index) {
         return this.quads.getView(this.index + index)
+    }
+
+    getViewWidth(index) {
+        return this.getView(index).renderWidth
+    }
+
+    getViewHeight(index) {
+        return this.getView(index).renderHeight
     }
 
     getTextureWidth(index) {

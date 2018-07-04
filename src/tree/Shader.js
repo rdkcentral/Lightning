@@ -57,12 +57,6 @@ class Shader extends ShaderBase {
         return false;
     }
 
-    supportsMerging() {
-        // Multiple shader instances that have the same type and same uniforms may be combined into one draw operation.
-        // Notice that this causes the shaderOwner to vary within the same draw, so it is nullified in the shader options.
-        return true
-    }
-
     addEmpty() {
         // Draws this shader even if there are no quads to be added.
         // This is handy for custom shaders.
@@ -79,9 +73,6 @@ class Shader extends ShaderBase {
         // Notice that all uniforms should be set, even if they have not been changed within this shader instance.
         // The uniforms are shared by all shaders that have the same type (and shader program).
         this._setUniform("projection", this._getProjection(operation), this.ctx.gl.uniform2fv, false)
-    }
-
-    isMergable(shader) {
     }
 
     _getProjection(operation) {

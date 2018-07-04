@@ -397,7 +397,7 @@ class StageUtils {
         // Fallback: binary search method. This is more reliable when there are near-0 slopes.
         let minT = 0;
         let maxT = 1;
-        for (it = 0; it < 20; it++) {
+        for (let it = 0; it < 20; it++) {
             t = 0.5 * (minT + maxT);
 
             // Cubic bezier function: f(t)=t*(t*(t*a+b)+c)+d.

@@ -51,6 +51,11 @@ class CoreQuadList {
         this.dataLength = 0
     }
 
+    getAttribsDataByteOffset(index) {
+        // Where this quad can be found in the attribs buffer.
+        return (this.index + index) * 64 + 64
+    }
+
     getView(index) {
         return this.quadViews[index]._view
     }
@@ -68,8 +73,6 @@ class CoreQuadList {
         if (glTexture.w) {
             // Render texture
             return glTexture.w
-        } else if (glTexture === this.textureAtlasGlTexture) {
-            return 2048
         } else {
             return this.quadViews[index]._displayedTextureSource.w
         }
@@ -80,8 +83,6 @@ class CoreQuadList {
         if (glTexture.h) {
             // Render texture
             return glTexture.h
-        } else if (glTexture === this.textureAtlasGlTexture) {
-            return 2048
         } else {
             return this.quadViews[index]._displayedTextureSource.h
         }
