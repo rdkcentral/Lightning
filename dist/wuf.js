@@ -1021,7 +1021,7 @@ class StageUtils {
         // Fallback: binary search method. This is more reliable when there are near-0 slopes.
         let minT = 0;
         let maxT = 1;
-        for (it = 0; it < 20; it++) {
+        for (let it = 0; it < 20; it++) {
             t = 0.5 * (minT + maxT);
 
             // Cubic bezier function: f(t)=t*(t*(t*a+b)+c)+d.
@@ -1625,12 +1625,6 @@ class Shader extends ShaderBase {
         return false;
     }
 
-    supportsMerging() {
-        // Multiple shader instances that have the same type and same uniforms may be combined into one draw operation.
-        // Notice that this causes the shaderOwner to vary within the same draw, so it is nullified in the shader options.
-        return true
-    }
-
     addEmpty() {
         // Draws this shader even if there are no quads to be added.
         // This is handy for custom shaders.
@@ -1647,9 +1641,6 @@ class Shader extends ShaderBase {
         // Notice that all uniforms should be set, even if they have not been changed within this shader instance.
         // The uniforms are shared by all shaders that have the same type (and shader program).
         this._setUniform("projection", this._getProjection(operation), this.ctx.gl.uniform2fv, false)
-    }
-
-    isMergable(shader) {
     }
 
     _getProjection(operation) {
@@ -3669,8 +3660,10 @@ class View {
         if (this.__enabled !== newEnabled) {
             if (newEnabled) {
                 this._setEnabledFlag();
+                this._onEnabled()
             } else {
                 this._unsetEnabledFlag();
+                this._onDisabled()
             }
         }
     }
@@ -7992,10 +7985,10 @@ class CoreContext {
             this._zSorts = []
         }
 
-        this.render()
-
         // Clear flag to identify if anything changes before the next frame.
         this.root._parent._hasRenderUpdates = false
+
+        this.render()
 
         return true
     }
@@ -8376,6 +8369,11 @@ class CoreQuadList {
         this.dataLength = 0
     }
 
+    getAttribsDataByteOffset(index) {
+        // Where this quad can be found in the attribs buffer.
+        return (this.index + index) * 64 + 64
+    }
+
     getView(index) {
         return this.quadViews[index]._view
     }
@@ -8393,8 +8391,6 @@ class CoreQuadList {
         if (glTexture.w) {
             // Render texture
             return glTexture.w
-        } else if (glTexture === this.textureAtlasGlTexture) {
-            return 2048
         } else {
             return this.quadViews[index]._displayedTextureSource.w
         }
@@ -8405,8 +8401,6 @@ class CoreQuadList {
         if (glTexture.h) {
             // Render texture
             return glTexture.h
-        } else if (glTexture === this.textureAtlasGlTexture) {
-            return 2048
         } else {
             return this.quadViews[index]._displayedTextureSource.h
         }
@@ -8453,6 +8447,11 @@ class CoreQuadOperation {
         return this.ctx.renderState.quads
     }
 
+    getAttribsDataByteOffset(index) {
+        // Where this quad can be found in the attribs buffer.
+        return this.quads.getAttribsDataByteOffset(this.index + index)
+    }
+
     getTexture(index) {
         return this.quads.getTexture(this.index + index)
     }
@@ -8463,6 +8462,14 @@ class CoreQuadOperation {
 
     getView(index) {
         return this.quads.getView(this.index + index)
+    }
+
+    getViewWidth(index) {
+        return this.getView(index).renderWidth
+    }
+
+    getViewHeight(index) {
+        return this.getView(index).renderHeight
     }
 
     getTextureWidth(index) {
@@ -10004,7 +10011,7 @@ class NoiseTexture extends Texture {
         return function(cb) {
             const noise = new Uint8Array(128 * 128 * 4);
             for (let i = 0; i < 128 * 128 * 4; i+=4) {
-                const v = Math.floor(Math.random() * 255)
+                const v = Math.floor(Math.random() * 256)
                 noise[i] = v
                 noise[i+1] = v
                 noise[i+2] = v
@@ -10016,7 +10023,7 @@ class NoiseTexture extends Texture {
             texParams[gl.TEXTURE_MIN_FILTER] = gl.NEAREST
             texParams[gl.TEXTURE_MAG_FILTER] = gl.NEAREST
 
-            cb(null, {source: noise, w: 64, h: 64, texParams: texParams});
+            cb(null, {source: noise, w: 128, h: 128, texParams: texParams});
         }
     }
 
@@ -12448,6 +12455,171 @@ class SmoothScaleView extends View {
 
 
 /**
+ * This shader can be used to fix a problem that is known as 'gradient banding'.
+ */
+class DitheringShader extends Shader {
+
+    constructor(ctx) {
+        super(ctx)
+
+        this._noiseTexture = new NoiseTexture(ctx.stage)
+
+        this._graining = 1/256
+
+        this._random = false
+    }
+
+    set graining(v) {
+        this._graining = v
+        this.redraw()
+    }
+
+    set random(v) {
+        this._random = v
+        this.redraw()
+    }
+
+    setExtraAttribsInBuffer(operation) {
+        // Make sure that the noise texture is uploaded to the GPU.
+        this._noiseTexture.load()
+
+        let offset = operation.extraAttribsDataByteOffset / 4
+        let floats = operation.quads.floats
+
+        let length = operation.length
+
+        for (let i = 0; i < length; i++) {
+
+            // Calculate ǹoise texture coordinates so that it spans the full view.
+            let brx = operation.getViewWidth(i) / this._noiseTexture.getRenderWidth()
+            let bry = operation.getViewHeight(i) / this._noiseTexture.getRenderHeight()
+
+            let ulx = 0
+            let uly = 0
+            if (this._random) {
+                ulx = Math.random()
+                uly = Math.random()
+
+                brx += ulx
+                bry += uly
+
+                if (Math.random() < 0.5) {
+                    // Flip for more randomness.
+                    const t = ulx
+                    ulx = brx
+                    brx = t
+                }
+
+                if (Math.random() < 0.5) {
+                    // Flip for more randomness.
+                    const t = uly
+                    uly = bry
+                    bry = t
+                }
+            }
+
+            // Specify all corner points.
+            floats[offset] = ulx
+            floats[offset + 1] = uly
+
+            floats[offset + 2] = brx
+            floats[offset + 3] = uly
+
+            floats[offset + 4] = brx
+            floats[offset + 5] = bry
+
+            floats[offset + 6] = ulx
+            floats[offset + 7] = bry
+
+            offset += 8
+        }
+    }
+
+    beforeDraw(operation) {
+        let gl = this.gl
+        gl.vertexAttribPointer(this._attrib("aNoiseTextureCoord"), 2, gl.FLOAT, false, 8, this.getVertexAttribPointerOffset(operation))
+
+        let glTexture = this._noiseTexture.source.glTexture
+        gl.activeTexture(gl.TEXTURE1)
+        gl.bindTexture(gl.TEXTURE_2D, glTexture)
+        gl.activeTexture(gl.TEXTURE0)
+    }
+
+    getExtraAttribBytesPerVertex() {
+        return 8
+    }
+
+    setupUniforms(operation) {
+        super.setupUniforms(operation)
+        this._setUniform("uNoiseSampler", 1, this.gl.uniform1i)
+        this._setUniform("graining", 2 * this._graining, this.gl.uniform1f)
+    }
+
+    enableAttribs() {
+        super.enableAttribs()
+        let gl = this.ctx.gl
+        gl.enableVertexAttribArray(this._attrib("aNoiseTextureCoord"))
+    }
+
+    disableAttribs() {
+        super.disableAttribs()
+        let gl = this.ctx.gl
+        gl.disableVertexAttribArray(this._attrib("aNoiseTextureCoord"))
+    }
+
+    useDefault() {
+        return this._graining === 0
+    }
+
+    afterDraw(operation) {
+        if (this._random) {
+            this.redraw()
+        }
+    }
+
+}
+
+DitheringShader.vertexShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    attribute vec2 aVertexPosition;
+    attribute vec2 aTextureCoord;
+    attribute vec2 aNoiseTextureCoord;
+    attribute vec4 aColor;
+    uniform vec2 projection;
+    varying vec2 vTextureCoord;
+    varying vec2 vNoiseTextureCoord;
+    varying vec4 vColor;
+    void main(void){
+        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);
+        vTextureCoord = aTextureCoord;
+        vNoiseTextureCoord = aNoiseTextureCoord;
+        vColor = aColor;
+        gl_Position.y = -sign(projection.y) * gl_Position.y;
+    }
+`;
+
+DitheringShader.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoord;
+    varying vec2 vNoiseTextureCoord;
+    varying vec4 vColor;
+    uniform sampler2D uSampler;
+    uniform sampler2D uNoiseSampler;
+    uniform float graining;
+    void main(void){
+        vec4 noise = texture2D(uNoiseSampler, vNoiseTextureCoord);
+        vec4 color = texture2D(uSampler, vTextureCoord);
+        gl_FragColor = (color * vColor) + graining * (noise.r - 0.5);
+    }
+`;
+
+
+
+/**
  * @see https://github.com/pixijs/pixi-filters/tree/master/filters/pixelate/src
  */
 class PixelateShader extends Shader {
@@ -14475,6 +14647,7 @@ return {
         SmoothScaleView: SmoothScaleView
     },
     shaders: {
+        DitheringShader: DitheringShader,
         PixelateShader: PixelateShader,
         InversionShader: InversionShader,
         GrayscaleShader: GrayscaleShader,

@@ -28,6 +28,7 @@ module.exports = {
         SmoothScaleView: require('./src/tools/views/SmoothScaleView')
     },
     shaders: {
+        DitheringShader: require('./src/tools/shaders/DitheringShader'),
         PixelateShader: require('./src/tools/shaders/PixelateShader'),
         InversionShader: require('./src/tools/shaders/InversionShader'),
         GrayscaleShader: require('./src/tools/shaders/GrayscaleShader'),

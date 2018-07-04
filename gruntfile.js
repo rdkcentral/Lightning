@@ -36,6 +36,7 @@ return {
         SmoothScaleView: SmoothScaleView
     },
     shaders: {
+        DitheringShader: DitheringShader,
         PixelateShader: PixelateShader,
         InversionShader: InversionShader,
         GrayscaleShader: GrayscaleShader,
@@ -112,6 +113,7 @@ return {
                     'src/tools/views/BorderView.js',
                     'src/tools/views/FastBlurView.js',
                     'src/tools/views/SmoothScaleView.js',
+                    "src/tools/shaders/DitheringShader.js",
                     "src/tools/shaders/PixelateShader.js",
                     "src/tools/shaders/InversionShader.js",
                     "src/tools/shaders/GrayscaleShader.js",
