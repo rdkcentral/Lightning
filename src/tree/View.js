@@ -308,8 +308,10 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
         if (this.__enabled !== newEnabled) {
             if (newEnabled) {
                 this._setEnabledFlag();
+                this._onEnabled()
             } else {
                 this._unsetEnabledFlag();
+                this._onDisabled()
             }
         }
     }
