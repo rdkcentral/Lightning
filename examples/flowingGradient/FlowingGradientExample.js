@@ -4,7 +4,7 @@ class FlowingGradientExample extends wuf.Application {
 
     static _template() {
         return {
-            Shader: {shader: {type: FlowingGradientShader, random: true}, texture: {type: wuf.textures.NoiseTexture}, w: 900, h: 900}
+            Shader: {shader: {type: FlowingGradientShader, random: false}, texture: {type: wuf.textures.NoiseTexture}, w: 1600, h: 1000}
         }
     }
 
@@ -28,7 +28,7 @@ class FlowingGradientExample extends wuf.Application {
         return {
             _construct: function() {
                 this._t = 0
-                this._speed = 2
+                this._speed = 1
 
                 this._frameStartListener = () => {
                     this._step(this.stage.dt * this._speed)
