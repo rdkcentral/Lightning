@@ -4739,7 +4739,7 @@ class View {
 
     set boundsMargin(v) {
         if (!Array.isArray(v) && v !== null && v !== undefined) {
-            throw new Error("boundsMargin should be an array of top-right-bottom-left values, null (no margin) or undefined (inherit margin)")
+            throw new Error("boundsMargin should be an array of left-top-right-bottom values, null (no margin) or undefined (inherit margin)")
         }
         this.__core.boundsMargin = v
     }
@@ -5563,6 +5563,20 @@ class ObjectList {
         }
     }
 
+    replaceByRef(item) {
+        if (item.ref) {
+            const existingItem = this.getByRef(item.ref)
+            if (!existingItem) {
+                throw new Error('replaceByRef: no item found with reference: ' + item.ref)
+            }
+            this.replace(item, existingItem)
+        } else {
+            throw new Error('replaceByRef: no ref specified in item')
+        }
+        this.addAt(item, this._items.length);
+
+    }
+
     replace(item, prevItem) {
         const index = this.getIndex(prevItem)
         if (index === -1) {
@@ -5774,7 +5788,10 @@ class ObjectList {
                     c.marker = false
                 }
 
-                c.patch(s)
+                if (Utils.isObjectLiteral(s)) {
+                    c.patch(s)
+                }
+
                 newItems.push(c)
             }
         }
@@ -10015,7 +10032,7 @@ class NoiseTexture extends Texture {
                 noise[i] = v
                 noise[i+1] = v
                 noise[i+2] = v
-                noise[i+3] = v
+                noise[i+3] = 255
             }
             const texParams = {}
             texParams[gl.TEXTURE_WRAP_S] = gl.REPEAT
