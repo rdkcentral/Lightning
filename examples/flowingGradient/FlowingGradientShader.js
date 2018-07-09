@@ -179,7 +179,7 @@ FlowingGradientShader.fragmentShaderSource = `
     uniform float graining;
     uniform float banding;
     void main(void){
-        vec4 color = texture2D(uSampler, vTextureCoord);
+        vec4 noise = texture2D(uSampler, vTextureCoord);
         
         vec2 delta = pos - positions[0];
         float p1 = dot(delta, delta); 
@@ -197,14 +197,14 @@ FlowingGradientShader.fragmentShaderSource = `
             c2 = floor(c2 * v) / v;
         }
         
-        vec4 addColor = 1.00 * (colors[0] * c1 + colors[1] * c2);
+        vec4 addColor = (colors[0] * c1 + colors[1] * c2);
         
         // Graining.
         if (graining > 0.0) {
-            addColor += graining * (color.r - 0.5);
+            addColor += graining * (noise.r - 0.5);
         }
         
-        gl_FragColor = addColor;
+        gl_FragColor = addColor * vColor;
     }
 `;
 

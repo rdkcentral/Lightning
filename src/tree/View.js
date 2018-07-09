@@ -1387,7 +1387,7 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
 
     set boundsMargin(v) {
         if (!Array.isArray(v) && v !== null && v !== undefined) {
-            throw new Error("boundsMargin should be an array of top-right-bottom-left values, null (no margin) or undefined (inherit margin)")
+            throw new Error("boundsMargin should be an array of left-top-right-bottom values, null (no margin) or undefined (inherit margin)")
         }
         this.__core.boundsMargin = v
     }

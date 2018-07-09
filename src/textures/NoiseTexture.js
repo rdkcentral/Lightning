@@ -15,7 +15,7 @@ class NoiseTexture extends Texture {
                 noise[i] = v
                 noise[i+1] = v
                 noise[i+2] = v
-                noise[i+3] = v
+                noise[i+3] = 255
             }
             const texParams = {}
             texParams[gl.TEXTURE_WRAP_S] = gl.REPEAT
