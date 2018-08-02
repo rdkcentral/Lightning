@@ -21,17 +21,18 @@ class ImageWorker {
             if (e.data && e.data.id) {
                 const id = e.data.id
                 const item = this._items.get(id)
-                if (e.data.type == 'data') {
-                    this.finish(item, e.data.info)
-                } else {
-                    this.error(item, e.data.info)
+                if (item) {
+                    if (e.data.type == 'data') {
+                        this.finish(item, e.data.info)
+                    } else {
+                        this.error(item, e.data.info)
+                    }
                 }
             }
         }
     }
 
     create(src) {
-        console.log('offthread: ' + src)
         const id = ++this._id
         const item = new ImageWorkerImage(this, id, src)
         this._items.set(id, item)
