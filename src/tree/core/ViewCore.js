@@ -735,6 +735,10 @@ class ViewCore {
         return this._renderContext !== this._worldContext
     }
 
+    get renderContext() {
+        return this._renderContext
+    }
+
     updateRenderToTextureEnabled() {
         // Enforce texturizer initialisation.
         let v = (this.texturizer._hasFilters() || this.texturizer._enabled)
