@@ -143,10 +143,13 @@ class WebAdapter {
         this.canvas = null;
         this._looping = false;
         this._awaitingLoop = false;
-        if (window.imageparser) {
-            this.wpeImageParser = new WpeImageParser();
-        } else {
-            this.wpeImageParser = null;
+
+        if (this.stage.getOption("useImageWorker")) {
+            if (!window.createImageBitmap || !window.Worker) {
+                console.warn("Can't use image worker because browser does not have createImageBitmap and Web Worker support")
+            } else {
+                this._imageWorker = new ImageWorker()
+            }
         }
     }
 
@@ -186,44 +189,22 @@ class WebAdapter {
     loadSrcTexture({src, hasAlpha}, cb) {
         let cancelCb = undefined
         let isPng = (src.indexOf(".png") >= 0)
-        if (this.wpeImageParser) {
+        if (this._imageWorker) {
             // WPE-specific image parser.
-            var oReq = this.wpeImageParser.add(src, function(err, width, height, memory, offset, length) {
-                if (err) return cb(err);
-
-                var options = {
-                    source: new Uint8Array(memory, offset, length),
-                    w: width,
-                    h: height,
-                    premultiplyAlpha: false,
-                    flipBlueRed: false,
-                    hasAlpha: true
-                };
-                cb(null, options);
-            });
-            cancelCb = function() {
-                oReq.abort();
-            }
-        } else if (window.OffthreadImage && OffthreadImage.available) {
-            // For offthread support: simply include https://github.com/GoogleChrome/offthread-image/blob/master/dist/offthread-img.js
-            // Possible optimisation: do not paint on canvas, but directly pass ImageData to texImage2d.
-            let element = document.createElement('DIV');
-            element.setAttribute('alt', '.');
-            let image = new OffthreadImage(element);
-            element.addEventListener('painted', function () {
-                let canvas = element.childNodes[0];
-                // Because a canvas stores all in RGBA alpha-premultiplied, GPU upload is fastest with those settings.
+            const image = this._imageWorker.create(src)
+            image.onError = function(err) {
+                return cb("Image load error");
+            };
+            image.onLoad = function({imageBitmap, hasAlphaChannel}) {
                 cb(null, {
-                    source: canvas,
-                    renderInfo: {src},
-                    hasAlpha: true,
-                    premultiplyAlpha: true
+                    source: imageBitmap,
+                    renderInfo: {src: src},
+                    hasAlpha: hasAlphaChannel,
+                    premultiplyAlpha: false
                 });
-            });
-            image.src = src;
-
+            };
             cancelCb = function() {
-                image.removeAttribute('src');
+                image.cancel()
             }
         } else {
             let image = new Image();
@@ -311,101 +292,269 @@ class WebAdapter {
 
 
 
-class WpeImageParser {
-    constructor(memory = 16777216) {
-        this.memory = new ArrayBuffer(memory);
+class ImageWorker {
 
-        this.init();
+    constructor(options = {}) {
+        this._items = new Map()
+        this._id = 0
+
+        this._initWorker()
     }
 
-    init() {
-        this.pending = {};
-        this.pendingCount = 0;
-        this.session = imageparser.Init(this.memory);
-        console.log('SESSION: ' + this.session);
-        this.oReqs = new Set();
-
-        this.start();
-    }
-
-    start() {
-        if (this.pendingCount && !this.timeout) {
-            this.timeout = setTimeout(() => {
-                this.timeout = 0;
-                this.process();
-                this.start();
-            }, 50)
-        }
-    }
-
-    cleanup() {
-        if (this.timeout) {
-            clearTimeout(this.timeout);
-            this.timeout = null;
-        }
-
-        this.oReqs.forEach(function(oReq) {
-            oReq.abort();
+    _initWorker() {
+        const code = `(${createWorker.toString()})()`
+        const blob = new Blob([code.replace('"use strict";', '')]); // firefox adds "use strict"; to any function which might block worker execution so knock it off
+        const blobURL = (window.URL ? URL : webkitURL).createObjectURL(blob, {
+            type: 'application/javascript; charset=utf-8'
         });
+        this._worker = new Worker(blobURL);
 
-        imageparser.Cleanup(this.session);
+        this._worker.postMessage({type: 'config', config: {path: window.location.href}})
 
-        this.oReqs = null;
-        this.session = null;
-        this.pending = null;
-        this.pendingCount = 0;
-    }
-
-    process() {
-        imageparser.ProcessResults(this.session, (id, error, width, height, offset) => {
-            this.pendingCount--;
-            this.pending[id].cb(error, width, height, this.memory, offset, width * height * 4);
-            this.pending[id] = null;
-        })
-    }
-
-    add(url, cb) {
-        var oReq = new XMLHttpRequest();
-        oReq.open("GET", url, true);
-        oReq.responseType = "arraybuffer";
-
-        oReq.onload = oEvent => {
-            this.oReqs.delete(oReq);
-            var buffer = oReq.response;
-
-            var contentTypeHeader = oReq.getResponseHeader('content-type');
-            var contentType = -1;
-            if (contentTypeHeader == "image/jpeg" || contentTypeHeader == "image/jpg") {
-                contentType = 0;
-            } else if (contentTypeHeader == "image/png") {
-                contentType = 1;
+        this._worker.onmessage = (e) => {
+            if (e.data && e.data.id) {
+                const id = e.data.id
+                const item = this._items.get(id)
+                if (e.data.type == 'data') {
+                    this.finish(item, e.data.info)
+                } else {
+                    this.error(item, e.data.info)
+                }
             }
-
-            if (contentType >= 0) {
-                var id = imageparser.Add(this.session, contentType, buffer);
-                this.pending[id] = {buffer: buffer, cb: cb}
-                this.pendingCount++;
-
-                this.start();
-            } else {
-                cb("Unsupported content type: " + contentTypeHeader);
-            }
-        };
-
-        this.oReqs.add(oReq);
-
-        oReq.onerror = oEvent => {
-            this.oReqs.delete(oReq);
-            cb(oEvent);
-        };
-
-        oReq.send(null);
-
-        // By calling oReq.abort, the image parsing can be aborted.
-        return oReq;
+        }
     }
+
+    create(src) {
+        console.log('offthread: ' + src)
+        const id = ++this._id
+        const item = new ImageWorkerImage(this, id, src)
+        this._items.set(id, item)
+        this._worker.postMessage({type: "add", id: id, src: src})
+        return item
+    }
+
+    cancel(image) {
+        this._worker.postMessage({type: "cancel", id: image.id})
+        this._items.delete(image.id)
+    }
+
+    error(image, info) {
+        image.error(info)
+        this._items.delete(image.id)
+    }
+
+    finish(image, info) {
+        image.load(info)
+        this._items.delete(image.id)
+    }
+
 }
 
+class ImageWorkerImage {
+
+    constructor(manager, id, src) {
+        this._manager = manager
+        this._id = id
+        this._src = src
+        this._onError = null
+        this._onLoad = null
+    }
+
+    get id() {
+        return this._id
+    }
+
+    get src() {
+        return this._src
+    }
+
+    set onError(f) {
+        this._onError = f
+    }
+
+    set onLoad(f) {
+        this._onLoad = f
+    }
+
+    cancel() {
+        this._manager.cancel(this)
+    }
+
+    load(info) {
+        if (this._onLoad) {
+            this._onLoad(info)
+        }
+    }
+
+    error(info) {
+        if (this._onError) {
+            this._onError(info)
+        }
+    }
+
+}
+
+var createWorker = function() {
+    class ImageWorkerServer {
+
+        constructor() {
+            this.items = new Map()
+
+            onmessage = (e) => {
+                if (e.data.type == 'config') {
+                    this.config = e.data.config
+
+                    const base = this.config.path
+                    const parts = base.split("/")
+                    parts.pop()
+                    this._relativeBase = parts.join("/") + "/"
+
+                } else if (e.data.type == 'add') {
+                    this.add(e.data.id, e.data.src)
+                } else if (e.data.type == 'cancel') {
+                    this.cancel(e.data.id)
+                }
+            }
+        }
+
+        static isPathAbsolute(path) {
+            return /^(?:\/|[a-z]+:\/\/)/.test(path);
+        }
+
+        add(id, src) {
+            // Convert relative URLs.
+            if (!ImageWorkerServer.isPathAbsolute(src)) {
+                src = this._relativeBase + src
+                console.log('convert to relative: ' + src)
+            }
+
+            const item = new ImageWorkerServerItem(id, src)
+            item.onFinish = (result) => {
+                this.finish(item, result)
+            }
+            item.onError = (info) => {
+                this.error(item, info)
+            }
+            this.items.set(id, item)
+            item.start()
+        }
+
+        cancel(id) {
+            const item = this.items.get(id)
+            if (item) {
+                item.cancel()
+                this.items.delete(id)
+            }
+        }
+
+        finish(item, {imageBitmap, hasAlphaChannel}) {
+            postMessage({
+                type: "data",
+                id: item.id,
+                info: {
+                    imageBitmap,
+                    hasAlphaChannel
+                }
+            }, [imageBitmap]);
+            this.items.delete(item.id)
+        }
+
+        error(item, {type, message}) {
+            postMessage({
+                type: "error",
+                id: item.id,
+                info: {
+                    type,
+                    message
+                }
+            });
+            this.items.delete(item.id)
+        }
+    }
+
+    class ImageWorkerServerItem {
+
+        constructor(id, src) {
+            this._onError = undefined
+            this._onFinish = undefined
+            this._id = id
+            this._src = src
+            this._xhr = undefined
+            this._mimeType = undefined
+            this._canceled = false
+        }
+
+        get id() {
+            return this._id
+        }
+
+        set onFinish(f) {
+            this._onFinish = f
+        }
+
+        set onError(f) {
+            this._onError = f
+        }
+
+        start() {
+            this._xhr = new XMLHttpRequest()
+            this._xhr.open("GET", this._src, true)
+            this._xhr.responseType = "blob"
+
+            this._xhr.onerror = oEvent => {
+                this.error({type: "connection", message: "Connection error"})
+            }
+
+            this._xhr.onload = oEvent => {
+                const blob = this._xhr.response
+                this._mimeType = blob.type
+
+                this._createImageBitmap(blob)
+            }
+
+            this._xhr.send()
+
+        }
+
+        _createImageBitmap(blob) {
+            createImageBitmap(blob, {premultiplyAlpha: 'premultiply', colorSpaceConversion: 'none'}).then(imageBitmap => {
+                this.finish({
+                    imageBitmap,
+                    hasAlphaChannel: this._hasAlphaChannel()
+                })
+            }).catch(e => {
+                this.error({type: "parse", message: "Error parsing image data"})
+            })
+        }
+
+        _hasAlphaChannel() {
+            return (this._mimeType.indexOf("image/png") !== -1)
+        }
+
+        cancel() {
+            if (this._canceled) return
+            if (this._xhr) {
+                this._xhr.abort()
+            }
+            this._canceled = true
+        }
+
+        error(type, message) {
+            if (!this._canceled && this._onError) {
+                this._onError({type, message})
+            }
+        }
+
+        finish(info) {
+            if (!this._canceled && this._onFinish) {
+                this._onFinish(info)
+            }
+        }
+
+    }
+
+    const worker = new ImageWorkerServer()
+}
 /**
  * Copyright Metrological, 2017
  */
@@ -1130,6 +1279,7 @@ class Stage extends EventEmitter {
         opt('fixedDt', 0);
         opt('useTextureAtlas', false);
         opt('debugTextureAtlas', false);
+        opt('useImageWorker', false);
         opt('precision', 1);
     }
     

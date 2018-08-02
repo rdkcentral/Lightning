@@ -9,11 +9,13 @@ class WebAdapter {
         this.canvas = null;
         this._looping = false;
         this._awaitingLoop = false;
-        if (window.imageparser) {
-            let WpeImageParser = require('./WpeImageParser');
-            this.wpeImageParser = new WpeImageParser();
-        } else {
-            this.wpeImageParser = null;
+
+        if (this.stage.getOption("useImageWorker")) {
+            if (!window.createImageBitmap || !window.Worker) {
+                console.warn("Can't use image worker because browser does not have createImageBitmap and Web Worker support")
+            } else {
+                this._imageWorker = new ImageWorker()
+            }
         }
     }
 
@@ -53,44 +55,22 @@ class WebAdapter {
     loadSrcTexture({src, hasAlpha}, cb) {
         let cancelCb = undefined
         let isPng = (src.indexOf(".png") >= 0)
-        if (this.wpeImageParser) {
+        if (this._imageWorker) {
             // WPE-specific image parser.
-            var oReq = this.wpeImageParser.add(src, function(err, width, height, memory, offset, length) {
-                if (err) return cb(err);
-
-                var options = {
-                    source: new Uint8Array(memory, offset, length),
-                    w: width,
-                    h: height,
-                    premultiplyAlpha: false,
-                    flipBlueRed: false,
-                    hasAlpha: true
-                };
-                cb(null, options);
-            });
-            cancelCb = function() {
-                oReq.abort();
-            }
-        } else if (window.OffthreadImage && OffthreadImage.available) {
-            // For offthread support: simply include https://github.com/GoogleChrome/offthread-image/blob/master/dist/offthread-img.js
-            // Possible optimisation: do not paint on canvas, but directly pass ImageData to texImage2d.
-            let element = document.createElement('DIV');
-            element.setAttribute('alt', '.');
-            let image = new OffthreadImage(element);
-            element.addEventListener('painted', function () {
-                let canvas = element.childNodes[0];
-                // Because a canvas stores all in RGBA alpha-premultiplied, GPU upload is fastest with those settings.
+            const image = this._imageWorker.create(src)
+            image.onError = function(err) {
+                return cb("Image load error");
+            };
+            image.onLoad = function({imageBitmap, hasAlphaChannel}) {
                 cb(null, {
-                    source: canvas,
-                    renderInfo: {src},
-                    hasAlpha: true,
-                    premultiplyAlpha: true
+                    source: imageBitmap,
+                    renderInfo: {src: src},
+                    hasAlpha: hasAlphaChannel,
+                    premultiplyAlpha: false
                 });
-            });
-            image.src = src;
-
+            };
             cancelCb = function() {
-                image.removeAttribute('src');
+                image.cancel()
             }
         } else {
             let image = new Image();

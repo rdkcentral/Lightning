@@ -78,6 +78,7 @@ class Stage extends EventEmitter {
         opt('fixedDt', 0);
         opt('useTextureAtlas', false);
         opt('debugTextureAtlas', false);
+        opt('useImageWorker', false);
         opt('precision', 1);
     }
     

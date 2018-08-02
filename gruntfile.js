@@ -65,7 +65,7 @@ return {
                 src : [
                     'src/browser/EventEmitter.js',
                     'src/browser/WebAdapter.js',
-                    'src/browser/WpeImageParser.js',
+                    'src/browser/ImageWorker.js',
                     'src/tree/Base.js',
                     'src/tree/Utils.js',
                     'src/tree/StageUtils.js',
