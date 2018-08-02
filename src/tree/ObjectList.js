@@ -74,9 +74,6 @@ class ObjectList {
             if (currentIndex != -1) {
                 if (currentIndex !== index) {
                     const fromIndex = currentIndex
-                    if (fromIndex <= index) {
-                        index--
-                    }
                     if (fromIndex !== index) {
                         this._items.splice(fromIndex, 1)
                         this._items.splice(index, 0, item)

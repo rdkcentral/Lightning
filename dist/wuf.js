@@ -102,6 +102,13 @@ class EventEmitter {
         }
     }
 
+    removeAllListeners(name) {
+        if (this._hasEventListeners) {
+            delete this._eventFunction[name]
+            delete this._eventListeners[name]
+        }
+    }
+
 }
 
 EventEmitter.combiner = function(object, name, arg1, arg2, arg3) {
@@ -5591,9 +5598,6 @@ class ObjectList {
             if (currentIndex != -1) {
                 if (currentIndex !== index) {
                     const fromIndex = currentIndex
-                    if (fromIndex <= index) {
-                        index--
-                    }
                     if (fromIndex !== index) {
                         this._items.splice(fromIndex, 1)
                         this._items.splice(index, 0, item)
@@ -14038,18 +14042,28 @@ class Component extends View {
         return {}
     }
 
-    hasFocus() {
+    hasFinalFocus() {
         let path = this.application._focusPath
         return path && path.length && path[path.length - 1] === this
     }
 
-    hasFinalFocus() {
+    hasFocus() {
         let path = this.application._focusPath
         return path && (path.indexOf(this) >= 0)
     }
 
     get cparent() {
         return Component.getParent(this)
+    }
+
+    seekAncestorByType(type) {
+        let c = this.cparent
+        while(c) {
+            if (c.constructor === type) {
+                return c
+            }
+            c = c.cparent
+        }
     }
 
     getSharedAncestorComponent(view) {
@@ -14178,11 +14192,11 @@ class Component extends View {
         }
     }
 
-    get _broadcasts() {
+    get broadcasts() {
         return this.__broadcasts
     }
 
-    set _broadcasts(v) {
+    set broadcasts(v) {
         if (!Utils.isObjectLiteral(v)) {
             this._throwError("Broadcasts: specify an object with broadcast-to-fire mappings")
         }
@@ -14322,7 +14336,7 @@ class Application extends Component {
         }
 
         // Performance optimization: do not gather settings if no handler is defined.
-        if (this.__initialized && this._handleFocusSettings !== Application.prototype._handleFocusSettings) {
+        if (this._handleFocusSettings !== Application.prototype._handleFocusSettings) {
             this.updateFocusSettings()
         }
     }
@@ -14331,7 +14345,7 @@ class Application extends Component {
         const newFocusPath = this.__getFocusPath()
         const focusedComponent = newFocusPath[newFocusPath.length - 1]
 
-        // Get focus settings. These can be used for dynamic application-wide settings the depend on the
+        // Get focus settings. These can be used for dynamic application-wide settings that depend on the
         // focus directly (such as the application background).
         const focusSettings = {}
         for (let i = 0, n = this._focusPath.length; i < n; i++) {

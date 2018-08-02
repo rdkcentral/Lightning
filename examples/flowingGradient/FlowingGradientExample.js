@@ -4,7 +4,7 @@ class FlowingGradientExample extends wuf.Application {
 
     static _template() {
         return {
-            Shader: {shader: {type: FlowingGradientShader, random: false}, texture: {type: wuf.textures.NoiseTexture}, w: 1600, h: 1000}
+            Shader: {shader: {type: FlowingGradientShader, random: true, graining: 0.04}, texture: {type: wuf.textures.NoiseTexture}, w: 1600, h: 1000}
         }
     }
 
@@ -38,7 +38,7 @@ class FlowingGradientExample extends wuf.Application {
                 this.tag("Shader").animation({duration: 60, repeat: -1, actions: [
                     {p: 'shader.color1', v: {0: 0xFFFF0000, 0.1: 0xFFFFFF00, 0.4: 0xFF00FF00, 0.6: 0xFFFF0000, 0.8: 0xFF0000FF, 1: 0xFFFF0000}},
                     {p: 'shader.color2', v: {0: 0xFF0000FF, 0.1: 0xFFFF00FF, 0.4: 0xFF0000FF, 0.6: 0xFF0000FF, 0.8: 0xFFFF0000, 1: 0xFF0000FF}},
-                    {p: 'shader.graining', v: {0.2: 0, 0.3: 0.05, 0.4: 0.05, 0.5: 0, 0.7: 0, 0.8: 0.05, 0.9: 0.05, 1: 0}},
+                    //{p: 'shader.graining', v: {0.2: 0, 0.3: 0.05, 0.4: 0.05, 0.5: 0, 0.7: 0, 0.8: 0.05, 0.9: 0.05, 1: 0}},
                     {p: 'shader.banding', v: {sm: 0, 0.4: 0, 0.5: 0.80, 0.6: 0.95, 0.8: 0.95, 0.95: 0.95, 1: 0}}
                 ]}).start()
             },

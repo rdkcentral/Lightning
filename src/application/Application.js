@@ -116,7 +116,7 @@ class Application extends Component {
         }
 
         // Performance optimization: do not gather settings if no handler is defined.
-        if (this.__initialized && this._handleFocusSettings !== Application.prototype._handleFocusSettings) {
+        if (this._handleFocusSettings !== Application.prototype._handleFocusSettings) {
             this.updateFocusSettings()
         }
     }
@@ -125,7 +125,7 @@ class Application extends Component {
         const newFocusPath = this.__getFocusPath()
         const focusedComponent = newFocusPath[newFocusPath.length - 1]
 
-        // Get focus settings. These can be used for dynamic application-wide settings the depend on the
+        // Get focus settings. These can be used for dynamic application-wide settings that depend on the
         // focus directly (such as the application background).
         const focusSettings = {}
         for (let i = 0, n = this._focusPath.length; i < n; i++) {

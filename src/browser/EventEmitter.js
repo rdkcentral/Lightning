@@ -101,6 +101,13 @@ class EventEmitter {
         }
     }
 
+    removeAllListeners(name) {
+        if (this._hasEventListeners) {
+            delete this._eventFunction[name]
+            delete this._eventListeners[name]
+        }
+    }
+
 }
 
 EventEmitter.combiner = function(object, name, arg1, arg2, arg3) {

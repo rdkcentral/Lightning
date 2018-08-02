@@ -256,18 +256,28 @@ class Component extends View {
         return {}
     }
 
-    hasFocus() {
+    hasFinalFocus() {
         let path = this.application._focusPath
         return path && path.length && path[path.length - 1] === this
     }
 
-    hasFinalFocus() {
+    hasFocus() {
         let path = this.application._focusPath
         return path && (path.indexOf(this) >= 0)
     }
 
     get cparent() {
         return Component.getParent(this)
+    }
+
+    seekAncestorByType(type) {
+        let c = this.cparent
+        while(c) {
+            if (c.constructor === type) {
+                return c
+            }
+            c = c.cparent
+        }
     }
 
     getSharedAncestorComponent(view) {
@@ -396,11 +406,11 @@ class Component extends View {
         }
     }
 
-    get _broadcasts() {
+    get broadcasts() {
         return this.__broadcasts
     }
 
-    set _broadcasts(v) {
+    set broadcasts(v) {
         if (!Utils.isObjectLiteral(v)) {
             this._throwError("Broadcasts: specify an object with broadcast-to-fire mappings")
         }
