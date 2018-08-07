@@ -18,7 +18,9 @@ class TextTextureRenderer {
         let ff = this._settings.fontFace;
         let fonts = '"' + (Array.isArray(ff) ? this._settings.fontFace.join('","') : ff) + '"';
         let precision = (withPrecision ? this.getPrecision() : 1);
-        this._context.font = this._settings.fontStyle + " " + Math.floor(this._settings.fontSize * precision) + "px " + fonts;
+
+        this._realFontSize = Math.floor(this._settings.fontSize * precision)
+        this._context.font = this._settings.fontStyle + " " + this._realFontSize + "px " + fonts;
         this._context.textBaseline = this._settings.textBaseline;
     };
 
@@ -150,6 +152,13 @@ class TextTextureRenderer {
 
             // After changing the canvas, we need to reset the properties.
             this.setFontProperties(true);
+
+            if (this._realFontSize >= 128) {
+                // WpeWebKit bug: must force compositing because cairo-traps-compositor will not work with text first.
+                this._context.globalAlpha = 0.01;
+                this._context.fillRect(0, 0, 0.01, 0.01);
+                this._context.globalAlpha = 1.0;
+            }
 
             if (this._settings.cutSx || this._settings.cutSy) {
                 this._context.translate(-(this._settings.cutSx * precision), -(this._settings.cutSy * precision));
