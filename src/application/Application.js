@@ -6,12 +6,18 @@ class Application extends Component {
         // Save options temporarily to avoid having to pass it through the constructor.
         Application._temp_options = options
 
+        // Booting flag is used to postpone updateFocusSettings
+        Application.booting = true
         const stage = new Stage(options.stage)
         super(stage, properties)
+        Application.booting = false
 
         // We must construct while the application is not yet attached.
         // That's why we 'init' the stage later (which actually emits the attach event).
         this.stage.init()
+
+        // Initially, the focus settings are updated after both the stage and application are constructed.
+        this.updateFocusSettings()
 
         this.__keymap = this.getOption('keys')
         if (this.__keymap) {
@@ -117,7 +123,9 @@ class Application extends Component {
 
         // Performance optimization: do not gather settings if no handler is defined.
         if (this._handleFocusSettings !== Application.prototype._handleFocusSettings) {
-            this.updateFocusSettings()
+            if (!Application.booting) {
+                this.updateFocusSettings()
+            }
         }
     }
 
@@ -243,6 +251,12 @@ class Application extends Component {
         }
     }
 
+    destroy() {
+        // This forces the _detach, _disabled and _active events to be called.
+        this.stage.root = undefined
+        this._updateAttachedFlag();
+        this._updateEnabledFlag();
+    }
 }
 
 module.exports = Application

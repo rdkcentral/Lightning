@@ -1294,10 +1294,13 @@ class Stage extends EventEmitter {
     }
 
     destroy() {
-        this.adapter.stopLoop();
-        this.ctx.destroy();
-        this.textureManager.destroy();
-        this._destroyed = true;
+        if (!this._destroyed) {
+            this.application.destroy();
+            this.adapter.stopLoop();
+            this.ctx.destroy();
+            this.textureManager.destroy();
+            this._destroyed = true;
+        }
     }
 
     stop() {
@@ -10871,7 +10874,9 @@ class TextTextureRenderer {
         let ff = this._settings.fontFace;
         let fonts = '"' + (Array.isArray(ff) ? this._settings.fontFace.join('","') : ff) + '"';
         let precision = (withPrecision ? this.getPrecision() : 1);
-        this._context.font = this._settings.fontStyle + " " + Math.floor(this._settings.fontSize * precision) + "px " + fonts;
+
+        this._realFontSize = Math.floor(this._settings.fontSize * precision)
+        this._context.font = this._settings.fontStyle + " " + this._realFontSize + "px " + fonts;
         this._context.textBaseline = this._settings.textBaseline;
     };
 
@@ -11003,6 +11008,13 @@ class TextTextureRenderer {
 
             // After changing the canvas, we need to reset the properties.
             this.setFontProperties(true);
+
+            if (this._realFontSize >= 128) {
+                // WpeWebKit bug: must force compositing because cairo-traps-compositor will not work with text first.
+                this._context.globalAlpha = 0.01;
+                this._context.fillRect(0, 0, 0.01, 0.01);
+                this._context.globalAlpha = 1.0;
+            }
 
             if (this._settings.cutSx || this._settings.cutSy) {
                 this._context.translate(-(this._settings.cutSx * precision), -(this._settings.cutSy * precision));
@@ -14387,12 +14399,18 @@ class Application extends Component {
         // Save options temporarily to avoid having to pass it through the constructor.
         Application._temp_options = options
 
+        // Booting flag is used to postpone updateFocusSettings
+        Application.booting = true
         const stage = new Stage(options.stage)
         super(stage, properties)
+        Application.booting = false
 
         // We must construct while the application is not yet attached.
         // That's why we 'init' the stage later (which actually emits the attach event).
         this.stage.init()
+
+        // Initially, the focus settings are updated after both the stage and application are constructed.
+        this.updateFocusSettings()
 
         this.__keymap = this.getOption('keys')
         if (this.__keymap) {
@@ -14498,7 +14516,9 @@ class Application extends Component {
 
         // Performance optimization: do not gather settings if no handler is defined.
         if (this._handleFocusSettings !== Application.prototype._handleFocusSettings) {
-            this.updateFocusSettings()
+            if (!Application.booting) {
+                this.updateFocusSettings()
+            }
         }
     }
 
@@ -14624,6 +14644,12 @@ class Application extends Component {
         }
     }
 
+    destroy() {
+        // This forces the _detach, _disabled and _active events to be called.
+        this.stage.root = undefined
+        this._updateAttachedFlag();
+        this._updateEnabledFlag();
+    }
 }
 
 
