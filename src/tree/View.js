@@ -181,6 +181,7 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
         }
 
         this._updateAttachedFlag();
+        this._updateEnabledFlag();
 
         if (this.isRoot && parent) {
             this._throwError("Root should not be added as a child! Results are unspecified!")
@@ -281,8 +282,9 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
         if (this.__attached !== newAttached) {
             this.__attached = newAttached;
 
-            // No need to recurse since we are already recursing when setting the attached flags.
-            this._updateEnabledLocal()
+            if (newAttached) {
+                this._onSetup()
+            }
 
             let children = this._children.get();
             if (children) {
@@ -295,26 +297,12 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
             }
 
             if (newAttached) {
-                // Using method instead of emit gives a performance benefit.
                 this._onAttach()
             } else {
                 this._onDetach()
             }
         }
     };
-
-    _updateEnabledLocal() {
-        let newEnabled = this.isEnabled();
-        if (this.__enabled !== newEnabled) {
-            if (newEnabled) {
-                this._setEnabledFlag();
-                this._onEnabled()
-            } else {
-                this._unsetEnabledFlag();
-                this._onDisabled()
-            }
-        }
-    }
 
     /**
      * Updates the 'enabled' flag for this branch.
@@ -323,8 +311,10 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
         let newEnabled = this.isEnabled();
         if (this.__enabled !== newEnabled) {
             if (newEnabled) {
+                this._onEnabled()
                 this._setEnabledFlag();
             } else {
+                this._onDisabled()
                 this._unsetEnabledFlag();
             }
 
@@ -336,13 +326,6 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
                         children[i]._updateEnabledFlag();
                     }
                 }
-            }
-
-            // Run this after all _children because we'd like to see (de)activating a branch as an 'atomic' operation.
-            if (newEnabled) {
-                this._onEnabled()
-            } else {
-                this._onDisabled()
             }
         }
     };
@@ -411,6 +394,9 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
         }
 
         this._onInactive()
+    }
+
+    _onSetup() {
     }
 
     _onAttach() {

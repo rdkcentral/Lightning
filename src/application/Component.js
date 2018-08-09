@@ -144,6 +144,12 @@ class Component extends View {
         })
     }
 
+    _onSetup() {
+        if (!this.__initialized) {
+            this.fire('_setup')
+        }
+    }
+
     _onAttach() {
         if (!this.__initialized) {
             this.__init()
