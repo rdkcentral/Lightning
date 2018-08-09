@@ -163,11 +163,11 @@ class TextureSource {
                     // Ignore async load when stage is destroyed.
                     return;
                 }
-                this.loadingSince = 0;
                 if (err) {
                     // Emit txError.
                     this.onError(err);
                 } else if (options && options.source) {
+                    this.loadingSince = 0;
                     this.setSource(options);
                 }
             }, this);
