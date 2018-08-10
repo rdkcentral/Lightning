@@ -2065,6 +2065,11 @@ class TextureManager {
         sourceTexture.w = textureSource.w
         sourceTexture.h = textureSource.h
 
+        sourceTexture.params = Utils.cloneObjShallow(texParams)
+        sourceTexture.options = Utils.cloneObjShallow(texOptions)
+
+        sourceTexture.update = this.stage.frameCounter
+
         this._usedTextureMemory += textureSource.w * textureSource.h;
 
         this._uploadedTextureSources.push(textureSource);
@@ -2780,13 +2785,13 @@ class TextureSource {
 
         this.permanent = !!options.permanent
 
-        if (!Utils.isNode && source instanceof WebGLTexture) {
+        if ((Utils.isNode ? source.constructor.name === "WebGLTexture" : source instanceof WebGLTexture)) {
             // Texture managed by caller.
             this.glTexture = source;
 
             // Used by CoreRenderState for optimizations.
-            source.w = this.w
-            source.h = this.h
+            this.w = source.w
+            this.h = source.h
 
             // WebGLTexture objects are by default
             this.permanent = options.hasOwnProperty('permanent') ? options.permanent : true
@@ -2881,9 +2886,9 @@ TextureSource.id = 1;
  */
 
 
-class TextureAtlas {
+class SpriteMap {
 
-    constructor(stage) {
+    constructor(stage, w, h) {
         let vertexShaderSrc = `
             #ifdef GL_ES
             precision lowp float;
@@ -2914,58 +2919,30 @@ class TextureAtlas {
 
         this.stage = stage;
 
-        this.w = 2048;
-        this.h = 2048;
+        this.w = w;
+        this.h = h;
 
-        this._activeTree = new TextureAtlasTree(this.w, this.h);
-
-        /**
-         * The texture sources that should be on to the texture atlas (active in stage, loaded and with valid dimensions).
-         * @type {Set<TextureSource>}
-         */
-        this._activeTextureSources = new Set();
+        this._allocator = new SpriteMapAllocator(this.w, this.h);
 
         /**
-         * The texture sources that were added to the texture atlas (since the last defragment).
-         * @type {Set<TextureSource>}
-         */
-        this._addedTextureSources = new Set();
-
-        /**
-         * The total surface of the current texture atlas that's being used by unused texture sources.
+         * The render frame number that the sprite map was last cleared on.
          * @type {number}
          */
-        this._wastedPixels = 0;
-
-        /**
-         * The last render frame number that the texture atlas was defragmented on.
-         * @type {number}
-         */
-        this._lastDefragFrame = 0;
-
-        /**
-         * Texture atlas size limit.
-         * @type {number}
-         */
-        this._pixelsLimit = this.w * this.h / 16;
-
-        /**
-         * The minimal amount of pixels that should be able to be reclaimed when performing a defragment.
-         * @type {number}
-         */
-        this._minWastedPixels = this.w * this.h / 8;
-
-        this._defragNeeded = false;
+        this._lastClearFrame = 0;
 
         /**
          * Pending texture sources to be uploaded.
-         * @type {TextureSource[]}
+         * @type {{x: number, y: number, texture: WebGLTexture}[]}
          */
         this._uploads = [];
 
         this._init();
     }
-    
+
+    get lastClearFrame() {
+        return this._lastClearFrame
+    }
+
     _init() {
         let gl = this.gl;
 
@@ -3041,20 +3018,28 @@ class TextureAtlas {
         this._program.destroy();
     }
     
-    uploadTextureSources(textureSources) {
+    uploadTextures(textures) {
         let i;
 
-        let n = textureSources.length;
+        let n = textures.length;
         if (n > 1000) {
+            // Max upload space.
             n = 1000;
         }
+
+        const frame = this.stage.frameCounter
+
         for (i = 0; i < n; i++) {
 
-            let w = textureSources[i].w;
-            let h = textureSources[i].h;
+            const texture = textures[i]
+            const smi = texture.smi
+            smi._f = frame
 
-            let x = textureSources[i].textureAtlasX;
-            let y = textureSources[i].textureAtlasY;
+            let w = texture.w
+            let h = texture.h
+
+            let x = smi.x
+            let y = smi.y
 
             let divW = 1 / w;
             let divH = 1 / h;
@@ -3234,6 +3219,17 @@ class TextureAtlas {
             this._allTexCoords[offset + 139] = 1;
             this._allTexCoords[offset + 142] = 0;
             this._allTexCoords[offset + 143] = 1;
+
+            if (smi.rotate) {
+                // Rotate all points, in such a way that the upper-left point is still on (x,y).
+                for (let j = 0; j < 9 * 4; j++) {
+                    const o = offset + j * 4
+                    const xc = this._allCoords[o] - x
+                    const yc = this._allCoords[o + 1] - y
+                    this._allCoords[o] = yc + x
+                    this._allCoords[o + 1] = xc + y
+                }
+            }
         }
 
         let gl = this.gl;
@@ -3262,7 +3258,7 @@ class TextureAtlas {
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._indicesGlBuffer);
 
         for (i = 0; i < n; i++) {
-            gl.bindTexture(gl.TEXTURE_2D, textureSources[i].glTexture);
+            gl.bindTexture(gl.TEXTURE_2D, textures[i]);
             gl.drawElements(gl.TRIANGLES, 6 * 9, gl.UNSIGNED_SHORT, i * 6 * 9 * 2);
         }
 
@@ -3276,74 +3272,55 @@ class TextureAtlas {
      * @return {{x: number, y: number}|null}
      *   The allocated position.
      */
-    allocate(texture) {
-        return this._activeTree.add(texture);
-    }
-
-    /**
-     * Registers the texture source to the texture atlas.
-     * @param {TextureSource} textureSource
-     * @pre TextureSource.glTexture !== null
-     */    
-    addActiveTextureSource(textureSource) {
-        if (textureSource.id === 1) {
-            // Rectangle texture is automatically added.
-        } else {
-            if ((textureSource.w * textureSource.h < this._pixelsLimit)) {
-                // Only add if dimensions are valid.
-                if (!this._activeTextureSources.has(textureSource)) {
-                    this._activeTextureSources.add(textureSource);
-
-                    // Add it directly (if possible).
-                    if (!this._addedTextureSources.has(textureSource)) {
-                        this.add(textureSource);
-                    }
-                }
-            }
-        }        
-    }
-
-    removeActiveTextureSource(textureSource) {
-        if (this._activeTextureSources.has(textureSource)) {
-            this._activeTextureSources.delete(textureSource);
-
-            let uploadsIndex = this._uploads.indexOf(textureSource);
-            if (uploadsIndex >= 0) {
-                // Still waiting to be uploaded.
-                this._uploads.splice(uploadsIndex, 1);
-
-                // It is not uploaded, so it's not on the texture atlas any more.
-                textureSource.onRemovedFromTextureAtlas();
-
-                this._addedTextureSources.delete(textureSource);
-            }
-
-            if (this._addedTextureSources.has(textureSource)) {
-                this._wastedPixels += textureSource.w * textureSource.h;
-            }
-        }        
-    }
-    
-    add(textureSource) {
-        let position = this.allocate(textureSource);
-        if (position) {
-            this._addedTextureSources.add(textureSource);
-
-            textureSource.onAddedToTextureAtlas(position.x + 1, position.y + 1);
-
-            this._uploads.push(textureSource);
-        } else {
-            this._defragNeeded = true;
-
-            // Error.
-            return false;
+    _allocate(texture) {
+        if (texture.smi && texture.smi._f >= this._lastClearFrame) {
+            // We can reuse the same position!
+            return true
         }
 
-        return true;        
+        // Add margin for border, needed for consistent results when using GL_LINEAR texture interpolation.
+        let w = texture.w + 2
+        let h = texture.h + 2
+        const rotate = h > w
+
+        if (rotate) {
+            const t = h
+            h = w
+            w = t
+        }
+        const info = this._allocator.allocate(w, h);
+
+        if (info) {
+            texture.smi = new SpriteMapInfo(this, texture, info.x + 1, info.y + 1, rotate)
+            return true
+        }
+        return false
+    }
+
+    shouldBeAdded(texture) {
+        // Spritemap texture should only be added/used when the texcoords are within [0,1].
+        // Currently, out-of-bounds texture coords (for repeating textures) are not supported in the render engine.
+        if (texture.w && texture.h && (Math.min(texture.w, texture.h) < 510 /* 512px - 2px border */) && texture.w * texture.h < 131072) {
+            const gl = this.gl
+            if (texture.params && texture.params[gl.TEXTURE_WRAP_S] === gl.CLAMP_TO_EDGE && texture.params[gl.TEXTURE_WRAP_T] === gl.CLAMP_TO_EDGE) {
+                return true
+            }
+        }
+        return false
+    }
+
+    add(texture) {
+        if (this._allocate(texture)) {
+            this._uploads.push(texture)
+            return true
+        } else {
+            // Does not fit!
+            return false
+        }
     }
     
-    defragment() {
-        console.log('defragment texture atlas');
+    clear() {
+        console.log('clear sprite map');
 
         // Clear new area (necessary for semi-transparent textures).
         let gl = this.gl;
@@ -3352,47 +3329,23 @@ class TextureAtlas {
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
-        this._activeTree.reset();
+        this._allocator.reset();
         this._uploads = [];
-        this._wastedPixels = 0;
-        this._lastDefragFrame = this.stage.frameCounter;
-        this._defragNeeded = false;
-
-        this._addedTextureSources.forEach(function(textureSource) {
-            textureSource.onRemovedFromTextureAtlas();
-        });
-
-        this._addedTextureSources.clear();
-
-        // Automatically re-add the rectangle texture, to make sure that it is at coordinate 0,0.
-        this.add(this.stage.rectangleTexture.source);
-
-        // Then (try to) re-add all active texture sources.
-        // @todo: sort by dimensions (smallest first)?
-        let self = this;
-        this._activeTextureSources.forEach(function(textureSource) {
-            self.add(textureSource);
-        });
+        this._lastClearFrame = this.stage.frameCounter;
     }
 
     /**
-     * Actually uploads the previously added sources to the texture atlas.
+     * Actually uploads the previously added sources to the sprite map.
      */
     flush() {
-        if (this._defragNeeded) {
-            // Only defragment when there is something serious to gain.
-            if (this._wastedPixels >= this._minWastedPixels) {
-                // Limit defragmentations from happening all the time when it can't keep up.
-                if (this._lastDefragFrame < this.stage.frameCounter - 300) {
-                    this.defragment();
-                }
-            }
-        }
-
         if (this._uploads.length) {
-            this.uploadTextureSources(this._uploads);
+            this.uploadTextures(this._uploads);
             this._uploads = [];
         }
+    }
+
+    mustFlush() {
+        return this._uploads.length
     }
 
     get glProgram() {
@@ -3405,113 +3358,258 @@ class TextureAtlas {
 
 }
 
+class SpriteMapInfo {
+    
+    constructor(spriteMap, texture, x, y, rotate) {
+        this._spriteMap = spriteMap
+        this._texture = texture
+        this._x = x
+        this._y = y
+        this._rotate = rotate
+
+        this._precalcTexCoords()
+    }
+
+    get x() {
+        return this._x
+    }
+
+    get y() {
+        return this._y
+    }
+
+    get rotate() {
+        return this._rotate
+    }
+
+    _precalcTexCoords() {
+        const w = this._rotate ? this._texture.h : this._texture.w
+        const h = this._rotate ? this._texture.w : this._texture.h
+
+        // Add border margin.
+        const x = this._x
+        const y = this._y
+
+        const ulx = x / this._spriteMap.w
+        const uly = y / this._spriteMap.h
+        const brx = (x + w) / this._spriteMap.w
+        const bry = (y + h) / this._spriteMap.h
+        this.txCoordUl = ((ulx * 65535 + 0.5) | 0) + ((uly * 65535 + 0.5) | 0) * 65536;
+
+        this.txCoordBr = ((brx * 65535 + 0.5) | 0) + ((bry * 65535 + 0.5) | 0) * 65536;
+        if (this._rotate) {
+            this.txCoordUr = ((ulx * 65535 + 0.5) | 0) + ((bry * 65535 + 0.5) | 0) * 65536;
+            this.txCoordBl = ((brx * 65535 + 0.5) | 0) + ((uly * 65535 + 0.5) | 0) * 65536;
+        } else {
+            this.txCoordUr = ((brx * 65535 + 0.5) | 0) + ((uly * 65535 + 0.5) | 0) * 65536;
+            this.txCoordBl = ((ulx * 65535 + 0.5) | 0) + ((bry * 65535 + 0.5) | 0) * 65536;
+        }
+    }
+
+    isInSpriteMap() {
+        return (this._f >= this._spriteMap._lastClearFrame) && (this._texture.update <= this._f)
+    }
+    
+}
+
 
 
 /**
- * Copyright Metrological, 2017
+ * Allocates the space of the sprite map as efficiently as possible to textures.
  */
-class TextureAtlasTree {
-
+class SpriteMapAllocator {
+    
     constructor(w, h) {
-        this.w = w;
-        this.h = h;
-
-        this.reset();
+        this._w = w
+        this._h = h
+        this.reset()
     }
 
     reset() {
-        this.root = {x: 0, y: 0, w: this.w, h: this.h};
-        this.spaces = new Set([this.root]);
-        this.maxH = this.h;
+        this.areas = [new SpriteMapArea(0,0,this._w,this._h)]
     }
 
-    add(texture) {
-        // We need an extra border to fix linear interpolation artifacts (see TextureAtlasRenderer).
-        let w = texture.w + 2;
-        let h = texture.h + 2;
-
-        if (h > this.maxH) {
-            return false;
+    allocate(w, h) {
+        if (h > 512) {
+            return null
         }
 
-        let mp = 0;
-        let found = null;
-        let maxH = 0;
-        this.spaces.forEach(function(n) {
-            if (n.h > maxH) {
-                maxH = n.h;
+        const result = this._allocate(w, h)
+
+        return result
+    }
+
+    _allocate(w, h) {
+        const hGroup = SpriteMapAllocator.getHeightGroup(h)
+
+        const n = this.areas.length
+
+        // Try to allocate in already existing regions.
+        for (let i = n - 1; i >= 0; i--) {
+            const area = this.areas[i]
+            const result = area.allocate(hGroup, w)
+            if (result) {
+                return result
             }
-            if (n.w >= w && n.h >= h) {
-                if (!mp || mp > w * h) {
-                    mp = w * h;
-                    found = n;
+        }
+
+        // Create new height group in remaining map space.
+        for (let i = n - 1; i >= 0; i--) {
+            const area = this.areas[i]
+            const result = area.create(hGroup, w)
+            if (result) {
+                return result
+            }
+        }
+
+        // Really running low on space. Try to reuse a remainder of an existing region.
+        const region = this._getReusableRegion(hGroup, w)
+        if (region) {
+            const area = region.split()
+            this.areas.push(area)
+            return area.create(hGroup, w)
+        }
+
+        return null
+    }
+
+    _getReusableRegion(hGroup, w) {
+        let bestFit = 0
+        let bestGroup = null
+        for (let i = 0, n = this.areas.length; i < n; i++) {
+            const area = this.areas[i]
+            const region = area.getReusableRegion(hGroup, w)
+            if (region && (region.hGroup > hGroup)) {
+                if (bestFit === 0 || (region.hGroup < bestFit)) {
+                    bestFit = region.hGroup
+                    bestGroup = region
                 }
             }
-        });
-        this.maxH = maxH;
-
-        // Best match.
-        if (!found) {
-            return false;
         }
-
-        this.useNode(found, texture);
-        return found;
+        return bestGroup
     }
 
-    findNode(node, w, h) {
-        if (!node) return null;
-        if (!node.o) {
-            if (w <= node.w && h <= node.h) {
-                return node;
-            } else {
-                // No space.
-                return null;
-            }
+    static getHeightGroup(h) {
+        if (h >= 384) {
+            return 512
+        } else if (h >= 256) {
+            return 384
+        } else if (h >= 128) {
+            return 256
+        } else if (h >= 64) {
+            return 128
+        } else if (h >= 32) {
+            return 64
+        } else if (h >= 16) {
+            return 32
         } else {
-            return this.findNode(node.r, w, h) || this.findNode(node.d, w, h);
+            return 16
         }
     }
 
-    useNode(node, texture) {
-        let w = texture.w + 2, h = texture.h + 2;
-        if (node.w > w) {
-            node.r = {x: node.x + w, y: node.y, w: node.w - w, h: h};
-            this.spaces.add(node.r);
-        }
-        if (node.h > h) {
-            node.d = {x: node.x, y: node.y + h, w: node.w, h: node.h - h};
-            this.spaces.add(node.d);
-        }
-        this.spaces.delete(node);
-        node.o = texture;
+}
+
+class SpriteMapArea {
+    constructor(x, y, w, h) {
+        this._x = x
+        this._y = y
+        this._w = w
+        this._h = h
+        this._regions = []
+        this._usedH = 0
     }
-    
-    getTextures() {
-        let n = [this.root];
 
-        let textures = [];
-        let c = 1;
-        while(c) {
-            let item = n.pop();
-            c--;
+    get remaining() {
+        return this._h - this._usedH
+    }
 
-            if (item.o) {
-                textures.push(item.o);
-                if (item.r) {
-                    n.push(item.r);
-                    c++;
-                }
-                if (item.d) {
-                    n.push(item.d);
-                    c++;
+    /**
+     * Allocates the requested space if such a region already exists.
+     */
+    allocate(hGroup, w) {
+        if (this._w >= w && this._h >= hGroup) {
+            for (let i = 0, n = this._regions.length; i < n; i++) {
+                const region = this._regions[i]
+                if (region.hGroup === hGroup) {
+                    const result = region.allocate(w)
+                    if (result) {
+                        return result
+                    }
                 }
             }
         }
 
-        return textures;        
+        // No such height group region exists.
+        return null
     }
-    
+
+    /**
+     * Creates a new map group for the required space if possible.
+     */
+    create(hGroup, w) {
+        if (this._w >= w && this.remaining >= hGroup) {
+            const region = new SpriteMapRegion(this._x, this._usedH, hGroup, this._w)
+            this._regions.push(region)
+            this._usedH += hGroup
+            return region.allocate(w)
+        }
+    }
+
+    /**
+     * Returns the best reusable region.
+     */
+    getReusableRegion(hGroup, w) {
+        let bestFit = 0
+        let bestGroup = null
+        if (this._w >= w && this._h >= hGroup) {
+            for (let i = 0, n = this._regions.length; i < n; i++) {
+                const region = this._regions[i]
+                if (region.hGroup > hGroup) {
+                    if (bestFit === 0 || (region.hGroup < bestFit)) {
+                        bestFit = region.hGroup
+                        bestGroup = region
+                    }
+                }
+            }
+        }
+        return bestGroup
+    }
+
+}
+
+class SpriteMapRegion {
+    constructor(x, y, hGroup, w) {
+        this._x = x
+        this._y = y
+        this._hGroup = hGroup
+        this._w = w
+        this._usedW = 0
+    }
+
+    get hGroup() {
+        return this._hGroup
+    }
+
+    get remaining() {
+        return this._w - this._usedW
+    }
+
+    allocate(w) {
+        if (w < this.remaining) {
+            const result = {x: this._x + this._usedW, y: this._y}
+            this._usedW += w
+            return result
+        }
+
+        // Not enough space.
+        return null
+    }
+
+    split() {
+        const newArea = new SpriteMapArea(this._x + this._usedW, this._y, this._hGroup, this.remaining)
+        this._w = this._usedW
+        return newArea
+    }
 }
 
 
@@ -8233,6 +8331,13 @@ class CoreContext {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
+        sourceTexture.params = {}
+        sourceTexture.params[gl.TEXTURE_MAG_FILTER] = gl.LINEAR
+        sourceTexture.params[gl.TEXTURE_MIN_FILTER] = gl.LINEAR
+        sourceTexture.params[gl.TEXTURE_WRAP_S] = gl.CLAMP_TO_EDGE
+        sourceTexture.params[gl.TEXTURE_WRAP_T] = gl.CLAMP_TO_EDGE
+        sourceTexture.options = {format: gl.RGBA, internalFormat: gl.RGBA, type: gl.UNSIGNED_BYTE}
+
         // We need a specific framebuffer for every render texture.
         sourceTexture.framebuffer = gl.createFramebuffer();
         sourceTexture.w = w;
@@ -8536,7 +8641,7 @@ class CoreQuadList {
 
     getAttribsDataByteOffset(index) {
         // Where this quad can be found in the attribs buffer.
-        return (this.index + index) * 64 + 64
+        return index * 64 + 64
     }
 
     getView(index) {
@@ -8734,8 +8839,74 @@ class CoreRenderExecutor {
 
         this.gl = this.ctx.stage.gl
 
+        this.spriteMap = new SpriteMap(this.ctx.stage, 2048, 2048)
+
         this.init()
     }
+
+    _applySpritemap() {
+        // Add textures to the spritemap, and if possible, replace them in the quad buffers.
+        const spriteMap = this.spriteMap
+
+        const frame = this.ctx.stage.frameCounter
+
+        if (this._spritemapFull) {
+            if (this.spriteMap.lastClearFrame < frame - 180) {
+                spriteMap.clear()
+                this._spritemapFull = false
+            }
+        }
+
+        //@type CoreQuadList
+        const quadList = this.renderState.quads
+        const n = quadList.length
+        const uints = quadList.uints
+
+        let amountAdded = 0
+
+        for (let i = 0; i < n; i++) {
+            const texture = quadList.getTexture(i)
+
+            const offset = quadList.getAttribsDataByteOffset(i) / 4
+
+            // Only add/use spritemap when not cutting the texture.
+            // @todo: support texture cutting
+            let shouldBeAdded = true
+            shouldBeAdded = shouldBeAdded && !texture.projection
+            shouldBeAdded = shouldBeAdded && (uints[offset + 2] === 0)
+            shouldBeAdded = shouldBeAdded && (uints[offset + 10] === 0xFFFFFFFF)
+
+            if (shouldBeAdded) {
+                let inSpritemap = (texture.smi !== undefined) && texture.smi.isInSpriteMap()
+                if (!inSpritemap && (amountAdded < 10)) {
+                    if (spriteMap.shouldBeAdded(texture)) {
+                        amountAdded++
+                        this._spritemapFull = this._spritemapFull || !spriteMap.add(texture)
+                        inSpritemap = !this._spritemapFull
+                    }
+                }
+
+                if (inSpritemap) {
+                    // Replace texture coords by the new ones.
+                    uints[offset + 2] = texture.smi.txCoordUl
+                    uints[offset + 6] = texture.smi.txCoordUr
+                    uints[offset + 10] = texture.smi.txCoordBr
+                    uints[offset + 14] = texture.smi.txCoordBl
+
+                    quadList.quadTextures[i] = spriteMap.texture
+                }
+            }
+        }
+
+        if (spriteMap.mustFlush()) {
+            this._stopShaderProgram()
+            this._bindRenderTexture(null)
+            this._setScissor(null)
+            spriteMap.flush()
+        }
+    }
+
+
 
     init() {
         let gl = this.gl;
@@ -8771,6 +8942,7 @@ class CoreRenderExecutor {
     destroy() {
         this.gl.deleteBuffer(this._attribsBuffer);
         this.gl.deleteBuffer(this._quadsBuffer);
+        this.spriteMap.destroy();
     }
 
     _reset() {
@@ -8797,7 +8969,10 @@ class CoreRenderExecutor {
     }
 
     execute() {
+        this._applySpritemap()
+
         this._reset()
+
         this._setupBuffers()
 
         let qops = this.renderState.quadOperations
@@ -8825,8 +9000,6 @@ class CoreRenderExecutor {
             this._execFilterOperation(fops[j])
             j++
         }
-
-        this._stopShaderProgram()
     }
 
     getQuadContents() {
@@ -8958,6 +9131,7 @@ class CoreRenderExecutor {
     }
 
 }
+
 
 
 /**

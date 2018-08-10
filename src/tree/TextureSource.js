@@ -194,13 +194,13 @@ class TextureSource {
 
         this.permanent = !!options.permanent
 
-        if (!Utils.isNode && source instanceof WebGLTexture) {
+        if ((Utils.isNode ? source.constructor.name === "WebGLTexture" : source instanceof WebGLTexture)) {
             // Texture managed by caller.
             this.glTexture = source;
 
             // Used by CoreRenderState for optimizations.
-            source.w = this.w
-            source.h = this.h
+            this.w = source.w
+            this.h = source.h
 
             // WebGLTexture objects are by default
             this.permanent = options.hasOwnProperty('permanent') ? options.permanent : true

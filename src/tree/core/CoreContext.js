@@ -142,6 +142,13 @@ class CoreContext {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
+        sourceTexture.params = {}
+        sourceTexture.params[gl.TEXTURE_MAG_FILTER] = gl.LINEAR
+        sourceTexture.params[gl.TEXTURE_MIN_FILTER] = gl.LINEAR
+        sourceTexture.params[gl.TEXTURE_WRAP_S] = gl.CLAMP_TO_EDGE
+        sourceTexture.params[gl.TEXTURE_WRAP_T] = gl.CLAMP_TO_EDGE
+        sourceTexture.options = {format: gl.RGBA, internalFormat: gl.RGBA, type: gl.UNSIGNED_BYTE}
+
         // We need a specific framebuffer for every render texture.
         sourceTexture.framebuffer = gl.createFramebuffer();
         sourceTexture.w = w;

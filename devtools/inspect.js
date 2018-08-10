@@ -744,21 +744,22 @@ var attachInspector = function(wuf) {
         };
 
         var updateTextureAttribs = function(view) {
-            const nonDefaults = view.texture.getNonDefaults()
-            const keys = Object.keys(nonDefaults)
-            keys.forEach(key => {
-                let f = ""
-                for (let i = 0, n = key.length; i < n; i++) {
-                    const c = key.charAt(i)
-                    if (c !== c.toLowerCase()) {
-                        f += "_" + c.toLowerCase()
-                    } else {
-                        f += c
+            if (view.texture) {
+                const nonDefaults = view.texture.getNonDefaults()
+                const keys = Object.keys(nonDefaults)
+                keys.forEach(key => {
+                    let f = ""
+                    for (let i = 0, n = key.length; i < n; i++) {
+                        const c = key.charAt(i)
+                        if (c !== c.toLowerCase()) {
+                            f += "_" + c.toLowerCase()
+                        } else {
+                            f += c
+                        }
                     }
-                }
-                val(view, `texture-${f}`, nonDefaults[key], false);
-            })
-
+                    val(view, `texture-${f}`, nonDefaults[key], false);
+                })
+            }
         }
 
         const _performUpdateSource = Texture.prototype._performUpdateSource

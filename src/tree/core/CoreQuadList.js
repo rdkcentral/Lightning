@@ -53,7 +53,7 @@ class CoreQuadList {
 
     getAttribsDataByteOffset(index) {
         // Where this quad can be found in the attribs buffer.
-        return (this.index + index) * 64 + 64
+        return index * 64 + 64
     }
 
     getView(index) {

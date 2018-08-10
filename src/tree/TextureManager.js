@@ -94,6 +94,11 @@ class TextureManager {
         sourceTexture.w = textureSource.w
         sourceTexture.h = textureSource.h
 
+        sourceTexture.params = Utils.cloneObjShallow(texParams)
+        sourceTexture.options = Utils.cloneObjShallow(texOptions)
+
+        sourceTexture.update = this.stage.frameCounter
+
         this._usedTextureMemory += textureSource.w * textureSource.h;
 
         this._uploadedTextureSources.push(textureSource);
