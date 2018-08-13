@@ -11,74 +11,8 @@ class CoreRenderExecutor {
 
         this.gl = this.ctx.stage.gl
 
-        this.spriteMap = new SpriteMap(this.ctx.stage, 2048, 2048)
-
         this.init()
     }
-
-    _applySpritemap() {
-        // Add textures to the spritemap, and if possible, replace them in the quad buffers.
-        const spriteMap = this.spriteMap
-
-        const frame = this.ctx.stage.frameCounter
-
-        if (this._spritemapFull) {
-            if (this.spriteMap.lastClearFrame < frame - 180) {
-                spriteMap.clear()
-                this._spritemapFull = false
-            }
-        }
-
-        //@type CoreQuadList
-        const quadList = this.renderState.quads
-        const n = quadList.length
-        const uints = quadList.uints
-
-        let amountAdded = 0
-
-        for (let i = 0; i < n; i++) {
-            const texture = quadList.getTexture(i)
-
-            const offset = quadList.getAttribsDataByteOffset(i) / 4
-
-            // Only add/use spritemap when not cutting the texture.
-            // @todo: support texture cutting
-            let shouldBeAdded = true
-            shouldBeAdded = shouldBeAdded && !texture.projection
-            shouldBeAdded = shouldBeAdded && (uints[offset + 2] === 0)
-            shouldBeAdded = shouldBeAdded && (uints[offset + 10] === 0xFFFFFFFF)
-
-            if (shouldBeAdded) {
-                let inSpritemap = (texture.smi !== undefined) && texture.smi.isInSpriteMap()
-                if (!inSpritemap && (amountAdded < 10)) {
-                    if (spriteMap.shouldBeAdded(texture)) {
-                        amountAdded++
-                        this._spritemapFull = this._spritemapFull || !spriteMap.add(texture)
-                        inSpritemap = !this._spritemapFull
-                    }
-                }
-
-                if (inSpritemap) {
-                    // Replace texture coords by the new ones.
-                    uints[offset + 2] = texture.smi.txCoordUl
-                    uints[offset + 6] = texture.smi.txCoordUr
-                    uints[offset + 10] = texture.smi.txCoordBr
-                    uints[offset + 14] = texture.smi.txCoordBl
-
-                    quadList.quadTextures[i] = spriteMap.texture
-                }
-            }
-        }
-
-        if (spriteMap.mustFlush()) {
-            this._stopShaderProgram()
-            this._bindRenderTexture(null)
-            this._setScissor(null)
-            spriteMap.flush()
-        }
-    }
-
-
 
     init() {
         let gl = this.gl;
@@ -114,7 +48,6 @@ class CoreRenderExecutor {
     destroy() {
         this.gl.deleteBuffer(this._attribsBuffer);
         this.gl.deleteBuffer(this._quadsBuffer);
-        this.spriteMap.destroy();
     }
 
     _reset() {
@@ -129,7 +62,6 @@ class CoreRenderExecutor {
         gl.disable(gl.DEPTH_TEST);
 
         this._quadOperation = null
-        this._currentShaderProgramOwner = null
     }
 
     _setupBuffers() {
@@ -141,7 +73,16 @@ class CoreRenderExecutor {
     }
 
     execute() {
-        this._applySpritemap()
+        const spriteMap = this.ctx.stage.spriteMap
+        if (spriteMap && spriteMap.mustFlush()) {
+
+            // We do not want the render executor to interfere with the sprite map.
+            this._stopShaderProgram()
+            this._bindRenderTexture(null)
+            this._setScissor(null)
+
+            spriteMap.flush()
+        }
 
         this._reset()
 
@@ -172,6 +113,17 @@ class CoreRenderExecutor {
             this._execFilterOperation(fops[j])
             j++
         }
+
+        if (spriteMap && spriteMap.mustDefrag()) {
+
+            // We do not want the render executor to interfere with the sprite map.
+            this._stopShaderProgram()
+            this._bindRenderTexture(null)
+            this._setScissor(null)
+
+            spriteMap.defrag()
+        }
+
     }
 
     getQuadContents() {
@@ -303,7 +255,5 @@ class CoreRenderExecutor {
     }
 
 }
-
-const SpriteMap = require('../spriteMap/SpriteMap')
 
 module.exports = CoreRenderExecutor

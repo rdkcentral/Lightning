@@ -323,7 +323,7 @@ class ViewCore {
         }
     };
 
-    setTextureCoords(ulx, uly, brx, bry) {
+    setTextureCoords(ulx, uly, brx, bry, rotate) {
         this.setHasRenderUpdates(3);
 
         this._ulx = ulx;
@@ -331,15 +331,16 @@ class ViewCore {
         this._brx = brx;
         this._bry = bry;
 
-        ulx = Math.max(0, ulx)
-        uly = Math.max(0, uly)
-        brx = Math.min(1, brx)
-        bry = Math.min(1, bry)
-
         this._txCoordsUl = ((ulx * 65535 + 0.5) | 0) + ((uly * 65535 + 0.5) | 0) * 65536;
-        this._txCoordsUr = ((brx * 65535 + 0.5) | 0) + ((uly * 65535 + 0.5) | 0) * 65536;
-        this._txCoordsBl = ((ulx * 65535 + 0.5) | 0) + ((bry * 65535 + 0.5) | 0) * 65536;
         this._txCoordsBr = ((brx * 65535 + 0.5) | 0) + ((bry * 65535 + 0.5) | 0) * 65536;
+
+        if (rotate) {
+            this._txCoordsUr = ((ulx * 65535 + 0.5) | 0) + ((bry * 65535 + 0.5) | 0) * 65536;
+            this._txCoordsBl = ((brx * 65535 + 0.5) | 0) + ((uly * 65535 + 0.5) | 0) * 65536;
+        } else {
+            this._txCoordsUr = ((brx * 65535 + 0.5) | 0) + ((uly * 65535 + 0.5) | 0) * 65536;
+            this._txCoordsBl = ((ulx * 65535 + 0.5) | 0) + ((bry * 65535 + 0.5) | 0) * 65536;
+        }
     };
 
     get displayedTextureSource() {

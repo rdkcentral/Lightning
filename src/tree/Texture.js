@@ -249,16 +249,16 @@ class Texture {
 
         if (this.isUsed()) {
             if (newSource) {
+                // Must happen before setDisplayedTexture to ensure sprite map texcoords are used.
+                newSource.addTexture(this)
+
                 if (newSource && newSource.glTexture) {
-                    // Was already loaded: no display immediately.
                     this.views.forEach(view => {
                         if (view.isActive()) {
                             view._setDisplayedTexture(this)
                         }
                     })
                 }
-
-                newSource.addTexture(this)
             } else {
                 this.views.forEach(view => {
                     if (view.isActive()) {
@@ -270,10 +270,12 @@ class Texture {
     }
 
     load() {
-        this._performUpdateSource(true)
-        this.stage.removeUpdateSourceTexture(this)
-        if (this._source) {
-            this._source.load()
+        if (!this.isLoaded()) {
+            this._performUpdateSource(true)
+            this.stage.removeUpdateSourceTexture(this)
+            if (this._source) {
+                this._source.load()
+            }
         }
     }
 
@@ -425,11 +427,11 @@ class Texture {
 
     getRenderWidth() {
         // If dimensions are unknown (texture not yet loaded), use maximum width as a fallback as render width to allow proper bounds checking.
-        return (this._w || (this._source ? this._source.getRenderWidth() : 0) || this.mw) / this._precision
+        return ((this._w || (this._source ? this._source.getRenderWidth() - this._x : 0)) || this.mw) / this._precision
     }
 
     getRenderHeight() {
-        return (this._h || (this._source ? this._source.getRenderHeight() : 0) || this.mh) / this._precision
+        return ((this._h || (this._source ? this._source.getRenderHeight() - this._y : 0)) || this.mh) / this._precision
     }
 
     patch(settings) {

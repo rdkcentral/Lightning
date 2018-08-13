@@ -43,26 +43,33 @@ class SpriteMap {
         this._allocator = new SpriteMapAllocator(this.w, this.h);
 
         /**
-         * The render frame number that the sprite map was last cleared on.
+         * The render frame number that the sprite map was last defragmented on.
          * @type {number}
          */
-        this._lastClearFrame = 0;
+        this._lastDefragFrame = 0;
 
         /**
-         * Pending texture sources to be uploaded.
-         * @type {{x: number, y: number, texture: WebGLTexture}[]}
+         * Flag that indicates that there was not enough room for all texture sources and a defrag/clear is needed.
          */
-        this._uploads = [];
+        this._full = false
+
+        /**
+         * The texture sources that are currently used by the stage and should ideally be on the sprite map.
+         * @type {Set}
+         * @private
+         */
+        this._activeTextureSources = new Set();
+
+        this._uploads = []
 
         this._init();
     }
 
-    get lastClearFrame() {
-        return this._lastClearFrame
-    }
-
     _init() {
         let gl = this.gl;
+
+        // Clear current error.
+        gl.getError()
 
         gl.useProgram(this.glProgram);
 
@@ -73,8 +80,7 @@ class SpriteMap {
         // Init webgl arrays.
         // We support up to 1000 textures per call, all consisting out of 9 elements.
         this._paramsBuffer = new ArrayBuffer(16 * 4 * 9 * 1000);
-        this._allCoords = new Float32Array(this._paramsBuffer);
-        this._allTexCoords = new Float32Array(this._paramsBuffer);
+        this._floats = new Float32Array(this._paramsBuffer);
 
         this._allIndices = new Uint16Array(6 * 9 * 1000);
 
@@ -121,13 +127,15 @@ class SpriteMap {
         this.framebuffer = gl.createFramebuffer();
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.texture, 0);
-        if (gl.getError() != gl.NO_ERROR) {
-            throw "Some WebGL error occurred while trying to create framebuffer.";
+
+        const error = gl.getError()
+        if (error != gl.NO_ERROR) {
+            throw "Some WebGL error occurred while trying to create framebuffer: " + error;
         }
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
     }
-    
+
     destroy() {
         this.gl.deleteTexture(this.texture);
         this.gl.deleteFramebuffer(this.framebuffer);
@@ -135,26 +143,35 @@ class SpriteMap {
         this.gl.deleteBuffer(this._indicesGlBuffer);
         this._program.destroy();
     }
-    
-    uploadTextures(textures) {
+
+    get lastDefragFrame() {
+        return this._lastDefragFrame
+    }
+
+    uploadTextures(textureSources) {
         let i;
 
-        let n = textures.length;
-        if (n > 1000) {
-            // Max upload space.
-            n = 1000;
-        }
+        let ctr = 0
 
         const frame = this.stage.frameCounter
 
+        const n = textureSources.length
+
+        const glTextures = []
+
         for (i = 0; i < n; i++) {
+            const ts = textureSources[i]
 
-            const texture = textures[i]
-            const smi = texture.smi
-            smi._f = frame
+            if (!ts.glTexture || !ts.smi || !ts.isUsed()) {
+                // Texture source is no longer active: ignore.
+                continue
+            }
 
-            let w = texture.w
-            let h = texture.h
+            const smi = ts.smi
+            smi.f = frame
+
+            let w = ts.w
+            let h = ts.h
 
             let x = smi.x
             let y = smi.y
@@ -162,192 +179,196 @@ class SpriteMap {
             let divW = 1 / w;
             let divH = 1 / h;
 
-            let offset = i * 16 * 9;
+            let offset = glTextures.length * 16 * 9;
 
             // Add 2px margin to avoid edge artifacts.
 
             // Full area.
-            this._allCoords[offset + 0] = x;
-            this._allCoords[offset + 1] = y;
-            this._allCoords[offset + 4] = x + w;
-            this._allCoords[offset + 5] = y;
-            this._allCoords[offset + 8] = x + w;
-            this._allCoords[offset + 9] = y + h;
-            this._allCoords[offset + 12] = x;
-            this._allCoords[offset + 13] = y + h;
+            const fs = this._floats
+            fs[offset] = x;
+            fs[offset + 1] = y;
+            fs[offset + 4] = x + w;
+            fs[offset + 5] = y;
+            fs[offset + 8] = x + w;
+            fs[offset + 9] = y + h;
+            fs[offset + 12] = x;
+            fs[offset + 13] = y + h;
 
             // Top row.
-            this._allCoords[offset + 16] = x;
-            this._allCoords[offset + 17] = y - 1;
-            this._allCoords[offset + 20] = x + w;
-            this._allCoords[offset + 21] = y - 1;
-            this._allCoords[offset + 24] = x + w;
-            this._allCoords[offset + 25] = y;
-            this._allCoords[offset + 28] = x;
-            this._allCoords[offset + 29] = y;
+            fs[offset + 16] = x;
+            fs[offset + 17] = y - 1;
+            fs[offset + 20] = x + w;
+            fs[offset + 21] = y - 1;
+            fs[offset + 24] = x + w;
+            fs[offset + 25] = y;
+            fs[offset + 28] = x;
+            fs[offset + 29] = y;
 
             // Bottom row.
-            this._allCoords[offset + 32] = x;
-            this._allCoords[offset + 33] = y + h;
-            this._allCoords[offset + 36] = x + w;
-            this._allCoords[offset + 37] = y + h;
-            this._allCoords[offset + 40] = x + w;
-            this._allCoords[offset + 41] = y + h + 1;
-            this._allCoords[offset + 44] = x;
-            this._allCoords[offset + 45] = y + h + 1;
+            fs[offset + 32] = x;
+            fs[offset + 33] = y + h;
+            fs[offset + 36] = x + w;
+            fs[offset + 37] = y + h;
+            fs[offset + 40] = x + w;
+            fs[offset + 41] = y + h + 1;
+            fs[offset + 44] = x;
+            fs[offset + 45] = y + h + 1;
 
             // Left row.
-            this._allCoords[offset + 48] = x - 1;
-            this._allCoords[offset + 49] = y;
-            this._allCoords[offset + 52] = x;
-            this._allCoords[offset + 53] = y;
-            this._allCoords[offset + 56] = x;
-            this._allCoords[offset + 57] = y + h;
-            this._allCoords[offset + 60] = x - 1;
-            this._allCoords[offset + 61] = y + h;
+            fs[offset + 48] = x - 1;
+            fs[offset + 49] = y;
+            fs[offset + 52] = x;
+            fs[offset + 53] = y;
+            fs[offset + 56] = x;
+            fs[offset + 57] = y + h;
+            fs[offset + 60] = x - 1;
+            fs[offset + 61] = y + h;
 
             // Right row.
-            this._allCoords[offset + 64] = x + w;
-            this._allCoords[offset + 65] = y;
-            this._allCoords[offset + 68] = x + w + 1;
-            this._allCoords[offset + 69] = y;
-            this._allCoords[offset + 72] = x + w + 1;
-            this._allCoords[offset + 73] = y + h;
-            this._allCoords[offset + 76] = x + w;
-            this._allCoords[offset + 77] = y + h;
+            fs[offset + 64] = x + w;
+            fs[offset + 65] = y;
+            fs[offset + 68] = x + w + 1;
+            fs[offset + 69] = y;
+            fs[offset + 72] = x + w + 1;
+            fs[offset + 73] = y + h;
+            fs[offset + 76] = x + w;
+            fs[offset + 77] = y + h;
 
             // Upper-left.
-            this._allCoords[offset + 80] = x - 1;
-            this._allCoords[offset + 81] = y - 1;
-            this._allCoords[offset + 84] = x;
-            this._allCoords[offset + 85] = y - 1;
-            this._allCoords[offset + 88] = x;
-            this._allCoords[offset + 89] = y;
-            this._allCoords[offset + 92] = x - 1;
-            this._allCoords[offset + 93] = y;
+            fs[offset + 80] = x - 1;
+            fs[offset + 81] = y - 1;
+            fs[offset + 84] = x;
+            fs[offset + 85] = y - 1;
+            fs[offset + 88] = x;
+            fs[offset + 89] = y;
+            fs[offset + 92] = x - 1;
+            fs[offset + 93] = y;
 
             // Upper-right.
-            this._allCoords[offset + 96] = x + w;
-            this._allCoords[offset + 97] = y - 1;
-            this._allCoords[offset + 100] = x + w + 1;
-            this._allCoords[offset + 101] = y - 1;
-            this._allCoords[offset + 104] = x + w + 1;
-            this._allCoords[offset + 105] = y;
-            this._allCoords[offset + 108] = x + w;
-            this._allCoords[offset + 109] = y;
+            fs[offset + 96] = x + w;
+            fs[offset + 97] = y - 1;
+            fs[offset + 100] = x + w + 1;
+            fs[offset + 101] = y - 1;
+            fs[offset + 104] = x + w + 1;
+            fs[offset + 105] = y;
+            fs[offset + 108] = x + w;
+            fs[offset + 109] = y;
 
             // Lower-right.
-            this._allCoords[offset + 112] = x + w;
-            this._allCoords[offset + 113] = y + h;
-            this._allCoords[offset + 116] = x + w + 1;
-            this._allCoords[offset + 117] = y + h;
-            this._allCoords[offset + 120] = x + w + 1;
-            this._allCoords[offset + 121] = y + h + 1;
-            this._allCoords[offset + 124] = x + w;
-            this._allCoords[offset + 125] = y + h + 1;
+            fs[offset + 112] = x + w;
+            fs[offset + 113] = y + h;
+            fs[offset + 116] = x + w + 1;
+            fs[offset + 117] = y + h;
+            fs[offset + 120] = x + w + 1;
+            fs[offset + 121] = y + h + 1;
+            fs[offset + 124] = x + w;
+            fs[offset + 125] = y + h + 1;
 
             // Lower-left.
-            this._allCoords[offset + 128] = x - 1;
-            this._allCoords[offset + 129] = y + h;
-            this._allCoords[offset + 132] = x;
-            this._allCoords[offset + 133] = y + h;
-            this._allCoords[offset + 136] = x;
-            this._allCoords[offset + 137] = y + h + 1;
-            this._allCoords[offset + 140] = x - 1;
-            this._allCoords[offset + 141] = y + h + 1;
+            fs[offset + 128] = x - 1;
+            fs[offset + 129] = y + h;
+            fs[offset + 132] = x;
+            fs[offset + 133] = y + h;
+            fs[offset + 136] = x;
+            fs[offset + 137] = y + h + 1;
+            fs[offset + 140] = x - 1;
+            fs[offset + 141] = y + h + 1;
 
             // Texture coords.
-            this._allTexCoords[offset + 2] = 0;
-            this._allTexCoords[offset + 3] = 0;
-            this._allTexCoords[offset + 6] = 1;
-            this._allTexCoords[offset + 7] = 0;
-            this._allTexCoords[offset + 10] = 1;
-            this._allTexCoords[offset + 11] = 1;
-            this._allTexCoords[offset + 14] = 0;
-            this._allTexCoords[offset + 15] = 1;
+            fs[offset + 2] = 0;
+            fs[offset + 3] = 0;
+            fs[offset + 6] = 1;
+            fs[offset + 7] = 0;
+            fs[offset + 10] = 1;
+            fs[offset + 11] = 1;
+            fs[offset + 14] = 0;
+            fs[offset + 15] = 1;
 
-            this._allTexCoords[offset + 18] = 0;
-            this._allTexCoords[offset + 19] = 0;
-            this._allTexCoords[offset + 22] = 1;
-            this._allTexCoords[offset + 23] = 0;
-            this._allTexCoords[offset + 26] = 1;
-            this._allTexCoords[offset + 27] = divH;
-            this._allTexCoords[offset + 30] = 0;
-            this._allTexCoords[offset + 31] = divH;
+            fs[offset + 18] = 0;
+            fs[offset + 19] = 0;
+            fs[offset + 22] = 1;
+            fs[offset + 23] = 0;
+            fs[offset + 26] = 1;
+            fs[offset + 27] = divH;
+            fs[offset + 30] = 0;
+            fs[offset + 31] = divH;
 
-            this._allTexCoords[offset + 34] = 0;
-            this._allTexCoords[offset + 35] = 1 - divH;
-            this._allTexCoords[offset + 38] = 1;
-            this._allTexCoords[offset + 39] = 1 - divH;
-            this._allTexCoords[offset + 42] = 1;
-            this._allTexCoords[offset + 43] = 1;
-            this._allTexCoords[offset + 46] = 0;
-            this._allTexCoords[offset + 47] = 1;
+            fs[offset + 34] = 0;
+            fs[offset + 35] = 1 - divH;
+            fs[offset + 38] = 1;
+            fs[offset + 39] = 1 - divH;
+            fs[offset + 42] = 1;
+            fs[offset + 43] = 1;
+            fs[offset + 46] = 0;
+            fs[offset + 47] = 1;
 
-            this._allTexCoords[offset + 50] = 0;
-            this._allTexCoords[offset + 51] = 0;
-            this._allTexCoords[offset + 54] = divW;
-            this._allTexCoords[offset + 55] = 0;
-            this._allTexCoords[offset + 58] = divW;
-            this._allTexCoords[offset + 59] = 1;
-            this._allTexCoords[offset + 62] = 0;
-            this._allTexCoords[offset + 63] = 1;
+            fs[offset + 50] = 0;
+            fs[offset + 51] = 0;
+            fs[offset + 54] = divW;
+            fs[offset + 55] = 0;
+            fs[offset + 58] = divW;
+            fs[offset + 59] = 1;
+            fs[offset + 62] = 0;
+            fs[offset + 63] = 1;
 
-            this._allTexCoords[offset + 66] = 1 - divW;
-            this._allTexCoords[offset + 67] = 0;
-            this._allTexCoords[offset + 70] = 1;
-            this._allTexCoords[offset + 71] = 0;
-            this._allTexCoords[offset + 74] = 1;
-            this._allTexCoords[offset + 75] = 1;
-            this._allTexCoords[offset + 78] = 1 - divW;
-            this._allTexCoords[offset + 79] = 1;
+            fs[offset + 66] = 1 - divW;
+            fs[offset + 67] = 0;
+            fs[offset + 70] = 1;
+            fs[offset + 71] = 0;
+            fs[offset + 74] = 1;
+            fs[offset + 75] = 1;
+            fs[offset + 78] = 1 - divW;
+            fs[offset + 79] = 1;
 
-            this._allTexCoords[offset + 82] = 0;
-            this._allTexCoords[offset + 83] = 0;
-            this._allTexCoords[offset + 86] = divW;
-            this._allTexCoords[offset + 87] = 0;
-            this._allTexCoords[offset + 90] = divW;
-            this._allTexCoords[offset + 91] = divH;
-            this._allTexCoords[offset + 94] = 0;
-            this._allTexCoords[offset + 95] = divH;
+            fs[offset + 82] = 0;
+            fs[offset + 83] = 0;
+            fs[offset + 86] = divW;
+            fs[offset + 87] = 0;
+            fs[offset + 90] = divW;
+            fs[offset + 91] = divH;
+            fs[offset + 94] = 0;
+            fs[offset + 95] = divH;
 
-            this._allTexCoords[offset + 98] = 1 - divW;
-            this._allTexCoords[offset + 99] = 0;
-            this._allTexCoords[offset + 102] = 1;
-            this._allTexCoords[offset + 103] = 0;
-            this._allTexCoords[offset + 106] = 1;
-            this._allTexCoords[offset + 107] = divH;
-            this._allTexCoords[offset + 110] = 1 - divW;
-            this._allTexCoords[offset + 111] = divH;
+            fs[offset + 98] = 1 - divW;
+            fs[offset + 99] = 0;
+            fs[offset + 102] = 1;
+            fs[offset + 103] = 0;
+            fs[offset + 106] = 1;
+            fs[offset + 107] = divH;
+            fs[offset + 110] = 1 - divW;
+            fs[offset + 111] = divH;
 
-            this._allTexCoords[offset + 114] = 1 - divW;
-            this._allTexCoords[offset + 115] = 1 - divH;
-            this._allTexCoords[offset + 118] = 1;
-            this._allTexCoords[offset + 119] = 1 - divH;
-            this._allTexCoords[offset + 122] = 1;
-            this._allTexCoords[offset + 123] = 1;
-            this._allTexCoords[offset + 126] = 1 - divW;
-            this._allTexCoords[offset + 127] = 1;
+            fs[offset + 114] = 1 - divW;
+            fs[offset + 115] = 1 - divH;
+            fs[offset + 118] = 1;
+            fs[offset + 119] = 1 - divH;
+            fs[offset + 122] = 1;
+            fs[offset + 123] = 1;
+            fs[offset + 126] = 1 - divW;
+            fs[offset + 127] = 1;
 
-            this._allTexCoords[offset + 130] = 0;
-            this._allTexCoords[offset + 131] = 1 - divH;
-            this._allTexCoords[offset + 134] = divW;
-            this._allTexCoords[offset + 135] = 1 - divH;
-            this._allTexCoords[offset + 138] = divW;
-            this._allTexCoords[offset + 139] = 1;
-            this._allTexCoords[offset + 142] = 0;
-            this._allTexCoords[offset + 143] = 1;
+            fs[offset + 130] = 0;
+            fs[offset + 131] = 1 - divH;
+            fs[offset + 134] = divW;
+            fs[offset + 135] = 1 - divH;
+            fs[offset + 138] = divW;
+            fs[offset + 139] = 1;
+            fs[offset + 142] = 0;
+            fs[offset + 143] = 1;
 
             if (smi.rotate) {
                 // Rotate all points, in such a way that the upper-left point is still on (x,y).
                 for (let j = 0; j < 9 * 4; j++) {
                     const o = offset + j * 4
-                    const xc = this._allCoords[o] - x
-                    const yc = this._allCoords[o + 1] - y
-                    this._allCoords[o] = yc + x
-                    this._allCoords[o + 1] = xc + y
+                    const xc = fs[o] - x
+                    const yc = fs[o + 1] - y
+                    fs[o] = yc + x
+                    fs[o + 1] = xc + y
                 }
             }
+
+            glTextures.push(ts.glTexture)
+
         }
 
         let gl = this.gl;
@@ -375,8 +396,9 @@ class SpriteMap {
 
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._indicesGlBuffer);
 
-        for (i = 0; i < n; i++) {
-            gl.bindTexture(gl.TEXTURE_2D, textures[i]);
+        const m = glTextures.length
+        for (i = 0; i < m; i++) {
+            gl.bindTexture(gl.TEXTURE_2D, glTextures[i]);
             gl.drawElements(gl.TRIANGLES, 6 * 9, gl.UNSIGNED_SHORT, i * 6 * 9 * 2);
         }
 
@@ -384,21 +406,50 @@ class SpriteMap {
         gl.disableVertexAttribArray(this._textureCoordAttribute);
     }
 
+    shouldBeAdded(textureSource) {
+        // Spritemap texture should only be added/used when the texcoords are within [0,1].
+        // Currently, out-of-bounds texture coords (for repeating textures) are not supported in the render engine.
+        if (textureSource.w && textureSource.h && (Math.min(textureSource.w, textureSource.h) < 510 /* 512px - 2px border */) && textureSource.w * textureSource.h < 131072 /* 512x256*/) {
+            const gl = this.gl
+            const texture = textureSource.glTexture
+            if (texture &&
+                texture.params &&
+                texture.params[gl.TEXTURE_WRAP_S] === gl.CLAMP_TO_EDGE &&
+                texture.params[gl.TEXTURE_WRAP_T] === gl.CLAMP_TO_EDGE) {
+                // Do not use spritemap for repeating textures because they rely on the [0,1] texture coords window.
+                return true
+            }
+        }
+        return false
+    }
+
+    add(textureSource) {
+        this._activeTextureSources.add(textureSource)
+        this._add(textureSource)
+    }
+
     /**
-     * Allocates space for a loaded texture.
-     * @param texture
-     * @return {{x: number, y: number}|null}
-     *   The allocated position.
+     * Adds the specified texture source to the sprite map
+     * @param {TextureSource} textureSource
      */
-    _allocate(texture) {
-        if (texture.smi && texture.smi._f >= this._lastClearFrame) {
-            // We can reuse the same position!
-            return true
+    _add(textureSource, defrag = false) {
+        if (this._uploads.length >= 1000) {
+            // We can't upload so many textures. Just don't put it on the sprite map.
+            textureSource.smi = null
+            return
+        }
+
+        if (textureSource.smi &&
+            (textureSource.smi.f > 0) &&
+            (textureSource.smi.f >= this._lastDefragFrame) &&
+            !defrag) {
+            // Reuse already known sprite map entry.
+            return
         }
 
         // Add margin for border, needed for consistent results when using GL_LINEAR texture interpolation.
-        let w = texture.w + 2
-        let h = texture.h + 2
+        let w = textureSource.w + 2
+        let h = textureSource.h + 2
         const rotate = h > w
 
         if (rotate) {
@@ -409,36 +460,30 @@ class SpriteMap {
         const info = this._allocator.allocate(w, h);
 
         if (info) {
-            texture.smi = new SpriteMapInfo(this, texture, info.x + 1, info.y + 1, rotate)
-            return true
-        }
-        return false
-    }
-
-    shouldBeAdded(texture) {
-        // Spritemap texture should only be added/used when the texcoords are within [0,1].
-        // Currently, out-of-bounds texture coords (for repeating textures) are not supported in the render engine.
-        if (texture.w && texture.h && (Math.min(texture.w, texture.h) < 510 /* 512px - 2px border */) && texture.w * texture.h < 131072) {
-            const gl = this.gl
-            if (texture.params && texture.params[gl.TEXTURE_WRAP_S] === gl.CLAMP_TO_EDGE && texture.params[gl.TEXTURE_WRAP_T] === gl.CLAMP_TO_EDGE) {
-                return true
-            }
-        }
-        return false
-    }
-
-    add(texture) {
-        if (this._allocate(texture)) {
-            this._uploads.push(texture)
-            return true
+            textureSource.smi = new SpriteMapInfo(this, textureSource, info.x + 1, info.y + 1, rotate)
+            this._uploads.push(textureSource)
         } else {
-            // Does not fit!
-            return false
+            textureSource.smi = null
+            this._full = true
         }
     }
-    
-    clear() {
-        console.log('clear sprite map');
+
+    has(textureSource) {
+        return !!textureSource.smi
+    }
+
+    remove(textureSource) {
+        this._activeTextureSources.delete(textureSource)
+    }
+
+    invalidate(textureSource) {
+        // When the texture source is removed, the smi is kept so that it may be reused.
+        // In case of a manual glTexture change (see TextureSource.forceRenderUpdate), this is necessary.
+        textureSource.smi = null
+    }
+
+    defrag() {
+        console.log('defrag sprite map');
 
         // Clear new area (necessary for semi-transparent textures).
         let gl = this.gl;
@@ -449,7 +494,14 @@ class SpriteMap {
 
         this._allocator.reset();
         this._uploads = [];
-        this._lastClearFrame = this.stage.frameCounter;
+        this._lastDefragFrame = this.stage.frameCounter;
+        this._full = false
+
+        // Now, re-add all texture sources.
+        this._activeTextureSources.forEach(textureSource => {
+            this._add(textureSource, true)
+            textureSource.forceUpdateRenderCoords()
+        })
     }
 
     /**
@@ -462,8 +514,24 @@ class SpriteMap {
         }
     }
 
+    mustDefrag() {
+        return this._full && (this._lastDefragFrame < this.stage.frameCounter - 180)
+    }
+
     mustFlush() {
         return this._uploads.length
+    }
+
+    mustExecute() {
+        return this.mustDefrag() || this.mustFlush()
+    }
+
+    execute() {
+        if (this.mustDefrag()) {
+            this.defrag()
+        }
+
+        this.flush()
     }
 
     get glProgram() {
@@ -478,54 +546,47 @@ class SpriteMap {
 
 class SpriteMapInfo {
     
-    constructor(spriteMap, texture, x, y, rotate) {
-        this._spriteMap = spriteMap
-        this._texture = texture
-        this._x = x
-        this._y = y
-        this._rotate = rotate
-
-        this._precalcTexCoords()
+    constructor(sm, ts, x, y, rotate) {
+        this._sm = sm
+        this._ts = ts
+        this.f = 0  // Frame uploaded.
+        this.x = x
+        this.y = y
+        this.rotate = rotate
     }
 
-    get x() {
-        return this._x
+    getTexCoords() {
+        const w = this.rotate ? this._ts.h : this._ts.w
+        const h = this.rotate ? this._ts.w : this._ts.h
+
+        return [
+            (this.x / this._sm.w),
+            (this.y / this._sm.h),
+            ((this.x + w) / this._sm.w),
+            ((this.y + h) / this._sm.h)
+        ]
     }
 
-    get y() {
-        return this._y
-    }
+    changeTexCoords(c) {
+        if (this.rotate) {
+            // ul
+            let t = c[0]
+            c[0] = (this.x + (this._ts.h * c[1])) / this._sm.w
+            c[1] = (this.y + (this._ts.w * (1 - t))) / this._sm.h
 
-    get rotate() {
-        return this._rotate
-    }
-
-    _precalcTexCoords() {
-        const w = this._rotate ? this._texture.h : this._texture.w
-        const h = this._rotate ? this._texture.w : this._texture.h
-
-        // Add border margin.
-        const x = this._x
-        const y = this._y
-
-        const ulx = x / this._spriteMap.w
-        const uly = y / this._spriteMap.h
-        const brx = (x + w) / this._spriteMap.w
-        const bry = (y + h) / this._spriteMap.h
-        this.txCoordUl = ((ulx * 65535 + 0.5) | 0) + ((uly * 65535 + 0.5) | 0) * 65536;
-
-        this.txCoordBr = ((brx * 65535 + 0.5) | 0) + ((bry * 65535 + 0.5) | 0) * 65536;
-        if (this._rotate) {
-            this.txCoordUr = ((ulx * 65535 + 0.5) | 0) + ((bry * 65535 + 0.5) | 0) * 65536;
-            this.txCoordBl = ((brx * 65535 + 0.5) | 0) + ((uly * 65535 + 0.5) | 0) * 65536;
+            // br
+            t = c[2]
+            c[2] = (this.x + (this._ts.h * c[3])) / this._sm.w
+            c[3] = (this.y + (this._ts.w * (1 - t))) / this._sm.h
         } else {
-            this.txCoordUr = ((brx * 65535 + 0.5) | 0) + ((uly * 65535 + 0.5) | 0) * 65536;
-            this.txCoordBl = ((ulx * 65535 + 0.5) | 0) + ((bry * 65535 + 0.5) | 0) * 65536;
-        }
-    }
+            // ul
+            c[0] = (this.x + (c[0] * this._ts.w)) / this._sm.w
+            c[1] = (this.y + (c[1] * this._ts.h)) / this._sm.h
 
-    isInSpriteMap() {
-        return (this._f >= this._spriteMap._lastClearFrame) && (this._texture.update <= this._f)
+            // br
+            c[2] = (this.x + (c[2] * this._ts.w)) / this._sm.w
+            c[3] = (this.y + (c[3] * this._ts.h)) / this._sm.h
+        }
     }
     
 }

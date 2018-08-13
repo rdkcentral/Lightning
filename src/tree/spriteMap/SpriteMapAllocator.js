@@ -132,7 +132,7 @@ class SpriteMapArea {
      */
     create(hGroup, w) {
         if (this._w >= w && this.remaining >= hGroup) {
-            const region = new SpriteMapRegion(this._x, this._usedH, hGroup, this._w)
+            const region = new SpriteMapRegion(this._x, this._y + this._usedH, hGroup, this._w)
             this._regions.push(region)
             this._usedH += hGroup
             return region.allocate(w)
@@ -190,8 +190,8 @@ class SpriteMapRegion {
     }
 
     split() {
-        const newArea = new SpriteMapArea(this._x + this._usedW, this._y, this._hGroup, this.remaining)
-        this._w = this._usedW
+        const newArea = new SpriteMapArea(this._x + this._usedW, this._y, this.remaining, this._hGroup)
+        this._usedW = this._w
         return newArea
     }
 }
