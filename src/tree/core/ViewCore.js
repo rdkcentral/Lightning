@@ -934,9 +934,9 @@ class ViewCore {
                     this._renderContext = new ViewCoreContext()
                 }
 
-                let r = this._renderContext
+                const r = this._renderContext
 
-                let pr = this._parent._renderContext
+                const pr = this._parent._renderContext
 
                 // Update world coords/alpha.
                 if (init || (recalc & 1)) {
@@ -1070,7 +1070,6 @@ class ViewCore {
                         } else {
                             const sx = r.px + r.ta * rw
                             const sy = r.py + r.td * rh
-
                             maxDistance = Math.max(
                                 0,
                                 this._scissor[0] - Math.max(r.px, sx),

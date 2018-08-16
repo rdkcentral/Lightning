@@ -200,7 +200,7 @@ class WebAdapter {
                     source: imageBitmap,
                     renderInfo: {src: src},
                     hasAlpha: hasAlphaChannel,
-                    premultiplyAlpha: false
+                    premultiplyAlpha: true
                 });
             };
             cancelCb = function() {
@@ -429,6 +429,11 @@ var createWorker = function() {
                 console.log('convert to relative: ' + src)
             }
 
+            if (src.substr(0,2) === "//") {
+                // This doesn't work for image workers.
+                src = "http:" + src
+            }
+
             const item = new ImageWorkerServerItem(id, src)
             item.onFinish = (result) => {
                 this.finish(item, result)
@@ -518,7 +523,7 @@ var createWorker = function() {
         }
 
         _createImageBitmap(blob) {
-            createImageBitmap(blob, {premultiplyAlpha: 'premultiply', colorSpaceConversion: 'none'}).then(imageBitmap => {
+            createImageBitmap(blob, {premultiplyAlpha: 'premultiply', colorSpaceConversion: 'none', imageOrientation: 'none'}).then(imageBitmap => {
                 this.finish({
                     imageBitmap,
                     hasAlphaChannel: this._hasAlphaChannel()
@@ -529,6 +534,11 @@ var createWorker = function() {
         }
 
         _hasAlphaChannel() {
+            // When using unaccelerated rendering image (https://github.com/WebPlatformForEmbedded/WPEWebKit/blob/wpe-20170728/Source/WebCore/html/ImageBitmap.cpp#L52),
+            // everything including JPG images are in RGBA format. Upload is way faster when using an alpha channel.
+            //return true
+
+            // @todo: after hardware acceleration is fixed and re-enabled, JPG should be uploaded in RGB to get the best possible performance and memory usage.
             return (this._mimeType.indexOf("image/png") !== -1)
         }
 
@@ -1352,13 +1362,14 @@ class Stage extends EventEmitter {
     }
 
     drawFrame() {
+        this.startTime = this.currentTime;
+        this.currentTime = this.adapter.getHrTime();
+
         if (this._options.fixedDt) {
             this.dt = this._options.fixedDt;
         } else {
             this.dt = (!this.startTime) ? .02 : .001 * (this.currentTime - this.startTime);
         }
-        this.startTime = this.currentTime;
-        this.currentTime = (new Date()).getTime();
 
         this.emit('frameStart');
 
@@ -3679,7 +3690,7 @@ class SpriteMapArea {
      */
     create(hGroup, w) {
         if (this._w >= w && this.remaining >= hGroup) {
-            const region = new SpriteMapRegion(this._x, this._usedH, hGroup, this._w)
+            const region = new SpriteMapRegion(this._x, this._y + this._usedH, hGroup, this._w)
             this._regions.push(region)
             this._usedH += hGroup
             return region.allocate(w)
@@ -3737,7 +3748,7 @@ class SpriteMapRegion {
     }
 
     split() {
-        const newArea = new SpriteMapArea(this._x + this._usedW, this._y, this._hGroup, this.remaining)
+        const newArea = new SpriteMapArea(this._x + this._usedW, this._y, this.remaining, this._hGroup)
         this._usedW = this._w
         return newArea
     }
@@ -7498,9 +7509,9 @@ class ViewCore {
                     this._renderContext = new ViewCoreContext()
                 }
 
-                let r = this._renderContext
+                const r = this._renderContext
 
-                let pr = this._parent._renderContext
+                const pr = this._parent._renderContext
 
                 // Update world coords/alpha.
                 if (init || (recalc & 1)) {
@@ -7634,7 +7645,6 @@ class ViewCore {
                         } else {
                             const sx = r.px + r.ta * rw
                             const sy = r.py + r.td * rh
-
                             maxDistance = Math.max(
                                 0,
                                 this._scissor[0] - Math.max(r.px, sx),

@@ -150,13 +150,14 @@ class Stage extends EventEmitter {
     }
 
     drawFrame() {
+        this.startTime = this.currentTime;
+        this.currentTime = this.adapter.getHrTime();
+
         if (this._options.fixedDt) {
             this.dt = this._options.fixedDt;
         } else {
             this.dt = (!this.startTime) ? .02 : .001 * (this.currentTime - this.startTime);
         }
-        this.startTime = this.currentTime;
-        this.currentTime = (new Date()).getTime();
 
         this.emit('frameStart');
 
