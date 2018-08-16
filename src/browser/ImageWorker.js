@@ -135,6 +135,11 @@ var createWorker = function() {
                 console.log('convert to relative: ' + src)
             }
 
+            if (src.substr(0,2) === "//") {
+                // This doesn't work for image workers.
+                src = "http:" + src
+            }
+
             const item = new ImageWorkerServerItem(id, src)
             item.onFinish = (result) => {
                 this.finish(item, result)
@@ -224,7 +229,7 @@ var createWorker = function() {
         }
 
         _createImageBitmap(blob) {
-            createImageBitmap(blob, {premultiplyAlpha: 'premultiply', colorSpaceConversion: 'none'}).then(imageBitmap => {
+            createImageBitmap(blob, {premultiplyAlpha: 'premultiply', colorSpaceConversion: 'none', imageOrientation: 'none'}).then(imageBitmap => {
                 this.finish({
                     imageBitmap,
                     hasAlphaChannel: this._hasAlphaChannel()
@@ -235,6 +240,11 @@ var createWorker = function() {
         }
 
         _hasAlphaChannel() {
+            // When using unaccelerated rendering image (https://github.com/WebPlatformForEmbedded/WPEWebKit/blob/wpe-20170728/Source/WebCore/html/ImageBitmap.cpp#L52),
+            // everything including JPG images are in RGBA format. Upload is way faster when using an alpha channel.
+            //return true
+
+            // @todo: after hardware acceleration is fixed and re-enabled, JPG should be uploaded in RGB to get the best possible performance and memory usage.
             return (this._mimeType.indexOf("image/png") !== -1)
         }
 

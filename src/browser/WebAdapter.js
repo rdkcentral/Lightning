@@ -66,7 +66,7 @@ class WebAdapter {
                     source: imageBitmap,
                     renderInfo: {src: src},
                     hasAlpha: hasAlphaChannel,
-                    premultiplyAlpha: false
+                    premultiplyAlpha: true
                 });
             };
             cancelCb = function() {
