@@ -1295,11 +1295,13 @@ class ViewCore {
                     const area = this._parent._useRenderToTexture ? this._parent._viewport : this._parent._scissor
                     if (area) {
                         // Merge scissor areas.
+                        const lx = Math.max(area[0], sx)
+                        const ly = Math.max(area[1], sy)
                         this._scissor = [
-                            Math.max(area[0], sx),
-                            Math.max(area[1], sy),
-                            Math.min(area[2], ex - area[0]),
-                            Math.min(area[3], ey - area[1]),
+                            lx,
+                            ly,
+                            Math.min(area[2], ex) - lx,
+                            Math.min(area[3], ey) - ly
                         ]
                     } else {
                         this._scissor = [sx, sy, ex - sx, ey - sy]
