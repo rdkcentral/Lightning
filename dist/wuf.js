@@ -1406,9 +1406,9 @@ class Stage extends EventEmitter {
     }
 
     forceRenderUpdate() {
-        // Enfore re-rendering.
+        // Enforce re-rendering.
         if (this.root) {
-            this.root.core._parent._hasRenderUpdates = true
+            this.root.core._parent.setHasRenderUpdates(1)
         }
     }
 
@@ -3897,9 +3897,9 @@ class View {
     }
 
     setAsRoot() {
+        this.__core.setAsRoot();
         this._updateAttachedFlag();
         this._updateEnabledFlag();
-        this.__core.setAsRoot();
     }
 
     get isRoot() {
@@ -6461,25 +6461,80 @@ class ViewCore {
 
         this.ctx = view.stage.ctx;
 
-        this.renderState = this.ctx.renderState;
-
-        this._parent = null;
-
-        this._hasUpdates = false
-
-        this._hasRenderUpdates = 0;
-
-        this._onUpdate = undefined;
-
-        this._onAfterUpdate = undefined;
-
-        this._onAfterCalcs = undefined;
+        // The memory layout of the internal variables is affected by their position in the constructor.
+        // It boosts performance to order them by usage of cpu-heavy functions (renderSimple and update).
 
         this._recalc = 0;
 
+        this._parent = null;
+
+        this._onUpdate = undefined;
+
         this._pRecalc = 0;
 
+        this._worldContext = new ViewCoreContext()
+
+        this._hasUpdates = false
+
+        this._localAlpha = 1;
+
+        this._onAfterCalcs = undefined;
+
+        this._onAfterUpdate = undefined;
+
+        // All local translation/transform updates: directly propagated from x/y/w/h/scale/whatever.
+        this._localPx = 0;
+        this._localPy = 0;
+
+        this._localTa = 1;
+        this._localTb = 0;
+        this._localTc = 0;
+        this._localTd = 1;
+
+        this._isComplex = false;
+
+        this._rw = 0;
+        this._rh = 0;
+
+        this._clipping = false;
+
+        // Used by both update and render.
+        this._zSort = false;
+
+        this._outOfBounds = 0
+
+        /**
+         * The texture source to be displayed.
+         * @type {TextureSource}
+         */
+        this._displayedTextureSource = null;
+
+        this._zContextUsage = 0;
+
+        this._children = null;
+
+        this._hasRenderUpdates = 0;
+
+        this._zIndexedChildren = null;
+
+        this._renderContext = this._worldContext
+
+        this.renderState = this.ctx.renderState;
+
+        this._scissor = undefined
+
+        // The ancestor ViewCore that owns the inherited shader. Null if none is active (default shader).
+        this._shaderOwner = null;
+
+
         this._updateTreeOrder = 0;
+
+        this._colorUl = this._colorUr = this._colorBl = this._colorBr = 0xFFFFFFFF;
+
+        this._txCoordsUl = 0x00000000;
+        this._txCoordsUr = 0x0000FFFF;
+        this._txCoordsBr = 0xFFFFFFFF;
+        this._txCoordsBl = 0xFFFF0000;
 
         this._x = 0;
         this._y = 0;
@@ -6496,42 +6551,6 @@ class ViewCore {
         this._alpha = 1;
         this._visible = true;
 
-
-        this._worldContext = new ViewCoreContext()
-
-        this._renderContext = this._worldContext
-
-        // All local translation/transform updates: directly propagated from x/y/w/h/scale/whatever.
-        this._localPx = 0;
-        this._localPy = 0;
-
-        this._localTa = 1;
-        this._localTb = 0;
-        this._localTc = 0;
-        this._localTd = 1;
-
-        this._isComplex = false;
-
-        this._localAlpha = 1;
-
-        this._rw = 0;
-        this._rh = 0;
-
-        this._clipping = false;
-
-        /**
-         * The texture source to be displayed.
-         * @type {TextureSource}
-         */
-        this._displayedTextureSource = null;
-
-        this._colorUl = this._colorUr = this._colorBl = this._colorBr = 0xFFFFFFFF;
-
-        this._txCoordsUl = 0x00000000;
-        this._txCoordsUr = 0x0000FFFF;
-        this._txCoordsBr = 0xFFFFFFFF;
-        this._txCoordsBl = 0xFFFF0000;
-
         this._ulx = 0;
         this._uly = 0;
         this._brx = 1;
@@ -6539,15 +6558,9 @@ class ViewCore {
 
         this._zIndex = 0;
         this._forceZIndexContext = false;
-        this._zContextUsage = 0;
         this._zParent = null;
-        this._zSort = false;
 
         this._isRoot = false;
-
-        this._children = null;
-
-        this._zIndexedChildren = null;
 
         /**
          * Iff true, during zSort, this view should be 're-sorted' because either:
@@ -6560,9 +6573,6 @@ class ViewCore {
 
         this._shader = null;
 
-        // The ancestor ViewCore that owns the inherited shader. Null if none is active (default shader).
-        this._shaderOwner = null;
-
         // View is rendered on another texture.
         this._renderToTextureEnabled = false;
 
@@ -6570,15 +6580,11 @@ class ViewCore {
 
         this._useRenderToTexture = false
 
-        this._outOfBounds = 0
-
         this._boundsMargin = undefined
 
         this._recBoundsMargin = undefined
 
         this._withinBoundsMargin = false
-
-        this._scissor = undefined
 
         this._viewport = undefined
 
@@ -6982,7 +6988,9 @@ class ViewCore {
         this._localTb = b;
         this._localTc = c;
         this._localTd = d;
-        this._isComplex = (b != 0) || (c != 0);
+        
+        // We also regard negative scaling as a complex case, so that we can optimize the non-complex case better.
+        this._isComplex = (b != 0) || (c != 0) || (a < 0) || (d < 0);
     };
 
     _setLocalTranslate(x, y) {
@@ -7700,26 +7708,37 @@ class ViewCore {
             }
             this._useRenderToTexture = useRenderToTexture
 
+            const r = this._renderContext
+
+            // Calculate a bbox for this view.
+            let sx, sy, ex, ey
+            if (this._isComplex) {
+                sx = Math.min(0, this._rw * r.ta, this._rw * r.ta + this._rh * r.tb, this._rh * r.tb) + r.px
+                ex = Math.max(0, this._rw * r.ta, this._rw * r.ta + this._rh * r.tb, this._rh * r.tb) + r.px
+                sy = Math.min(0, this._rw * r.tc, this._rw * r.tc + this._rh * r.td, this._rh * r.td) + r.py
+                ey = Math.max(0, this._rw * r.tc, this._rw * r.tc + this._rh * r.td, this._rh * r.td) + r.py
+            } else {
+                sx = r.px
+                ex = r.px + r.ta * this._rw
+                sy = r.py
+                ey = r.py + r.td * this._rh
+            }
+
             if (recalc & 6 || !this._scissor /* initial */) {
                 // Determine whether we must 'clip'.
-                if (this._clipping && this._renderContext.isSquare()) {
-                    // We must clip.
-                    const x = this._renderContext.px
-                    const y = this._renderContext.py
-                    const w = this._renderContext.ta * this._rw
-                    const h = this._renderContext.td * this._rh
-
+                if (this._clipping && r.isSquare()) {
                     // If the parent renders to a texture, it's scissor should be ignored
                     const area = this._parent._useRenderToTexture ? this._parent._viewport : this._parent._scissor
                     if (area) {
                         // Merge scissor areas.
-                        let sx = Math.max(area[0], x)
-                        let sy = Math.max(area[1], y)
-                        let ex = Math.min(area[0] + area[2], x + w)
-                        let ey = Math.min(area[1] + area[3], y + h)
-                        this._scissor = [sx, sy, ex - sx, ey - sy]
+                        this._scissor = [
+                            Math.max(area[0], sx),
+                            Math.max(area[1], sy),
+                            Math.min(area[2], ex - sx),
+                            Math.min(area[3], ey - sy),
+                        ]
                     } else {
-                        this._scissor = [x, y, w, h]
+                        this._scissor = [sx, sy, ex - sx, ey - sy]
                     }
                 } else {
                     // No clipping: reuse parent scissor.
@@ -7735,10 +7754,22 @@ class ViewCore {
                 this._recBoundsMargin = this._parent._recBoundsMargin
             }
 
-            const r = this._renderContext
-
             if (this._onAfterCalcs) {
-                this._onAfterCalcs(this.view)
+                // After calcs may change render coords, scissor and/or recBoundsMargin.
+                if (this._onAfterCalcs(this.view)) {
+                    // Recalculate bbox.
+                    if (this._isComplex) {
+                        sx = Math.min(0, this._rw * r.ta, this._rw * r.ta + this._rh * r.tb, this._rh * r.tb) + r.px
+                        ex = Math.max(0, this._rw * r.ta, this._rw * r.ta + this._rh * r.tb, this._rh * r.tb) + r.px
+                        sy = Math.min(0, this._rw * r.tc, this._rw * r.tc + this._rh * r.td, this._rh * r.td) + r.py
+                        ey = Math.max(0, this._rw * r.tc, this._rw * r.tc + this._rh * r.td, this._rh * r.td) + r.py
+                    } else {
+                        sx = r.px
+                        ex = r.px + r.ta * this._rw
+                        sy = r.py
+                        ey = r.py + r.td * this._rh
+                    }
+                }
             }
 
             if (this._parent._outOfBounds === 2) {
@@ -7751,43 +7782,21 @@ class ViewCore {
                 }
             } else {
                 if (recalc & 6) {
-                    const rw = this._rw
-                    const rh = this._rh
-
                     // Recheck if view is out-of-bounds (all settings that affect this should enable recalc bit 2 or 4).
-                    let maxDistance = 0
                     this._outOfBounds = 0
                     if (this._scissor && (this._scissor[2] <= 0 || this._scissor[3] <= 0)) {
                         // Empty scissor area.
                         this._outOfBounds = 2
                     } else {
-                        if (this._isComplex) {
-                            maxDistance = Math.max(
-                                0,
-                                this._scissor[0] - (Math.max(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) + r.px),
-                                this._scissor[1] - (Math.max(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) + r.py),
-                                (Math.min(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) + r.px) - (this._scissor[0] + this._scissor[2]),
-                                (Math.min(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) + r.py) - (this._scissor[1] + this._scissor[3])
-                            )
-
-                            if (maxDistance > 0) {
-                                this._outOfBounds = 1
-                            }
-                        } else {
-                            const sx = r.px + r.ta * rw
-                            const sy = r.py + r.td * rh
-                            maxDistance = Math.max(
-                                0,
-                                this._scissor[0] - Math.max(r.px, sx),
-                                this._scissor[1] - Math.max(r.py, sy),
-                                Math.min(r.px, sx) - (this._scissor[0] + this._scissor[2]),
-                                Math.min(r.py, sy) - (this._scissor[1] + this._scissor[3])
-                            )
-
-                            if (maxDistance > 0) {
-                                this._outOfBounds = 1
-                            }
+                        // Use bbox to check out-of-boundness.
+                        if ((this._scissor[0] > ex) ||
+                            (this._scissor[1] > ey) ||
+                            (sx > (this._scissor[0] + this._scissor[2])) ||
+                            (sy > (this._scissor[1] + this._scissor[3]))
+                        ) {
+                            this._outOfBounds = 1
                         }
+
                         if (this._outOfBounds) {
                             if (this._clipping || this._useRenderToTexture || this._clipbox) {
                                 this._outOfBounds = 2
@@ -7797,28 +7806,15 @@ class ViewCore {
 
                     let withinMargin = (this._outOfBounds === 0)
                     if (!withinMargin && !!this._recBoundsMargin) {
-                        // Start with a quick retest.
-                        if (this._recBoundsMargin[0] > maxDistance || this._recBoundsMargin[1] > maxDistance || this._recBoundsMargin[2] > maxDistance || this._recBoundsMargin[3] > maxDistance) {
-                            // Re-test, now with bounds.
-                            if (this._isComplex) {
-                                withinMargin = !((Math.max(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) < this._scissor[0] - r.px - this._recBoundsMargin[2]) ||
-                                (Math.max(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) < this._scissor[1] - r.py - this._recBoundsMargin[3]) ||
-                                (Math.min(0, rw * r.ta, rw * r.ta + rh * r.tb, rh * r.tb) > this._scissor[0] + this._scissor[2] - r.px + this._recBoundsMargin[0]) ||
-                                (Math.min(0, rw * r.tc, rw * r.tc + rh * r.td, rh * r.td) > this._scissor[1] + this._scissor[3] - r.py + this._recBoundsMargin[1]))
-                            } else {
-                                const sx = r.px + r.ta * rw
-                                const sy = r.py + r.td * rh
+                        // Re-test, now with margins.
+                        withinMargin = !((ex < this._scissor[0] - this._recBoundsMargin[2]) ||
+                        (ey < this._scissor[1] - this._recBoundsMargin[3]) ||
+                        (sx > this._scissor[0] + this._scissor[2] + this._recBoundsMargin[0]) ||
+                        (sy > this._scissor[1] + this._scissor[3] + this._recBoundsMargin[1]))
 
-                                withinMargin = !((r.px < this._scissor[0] && sx < this._scissor[0] - this._recBoundsMargin[2]) ||
-                                (r.py < this._scissor[1] && sy < this._scissor[1] - this._recBoundsMargin[3]) ||
-                                ((r.px > (this._scissor[0] + this._scissor[2] + this._recBoundsMargin[0])) && (sx > (this._scissor[0] + this._scissor[2] + this._recBoundsMargin[0]))) ||
-                                ((r.py > (this._scissor[1] + this._scissor[3] + this._recBoundsMargin[1])) && (sy > (this._scissor[1] + this._scissor[3] + this._recBoundsMargin[1]))))
-                            }
-
-                            if (withinMargin && this._outOfBounds === 2) {
-                                // Children must be visited because they may contain views that are within margin, so must be visible.
-                                this._outOfBounds = 1
-                            }
+                        if (withinMargin && this._outOfBounds === 2) {
+                            // Children must be visited because they may contain views that are within margin, so must be visible.
+                            this._outOfBounds = 1
                         }
                     }
 
