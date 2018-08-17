@@ -600,7 +600,23 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
     };
 
     _updateDimensions() {
-        if (this.__core.setDimensions(this._getRenderWidth(), this._getRenderHeight())) {
+        let rw = this._getRenderWidth()
+        let rh = this._getRenderHeight()
+
+        let unknownSize = false
+        if (!rw || !rh) {
+            if (!this.__displayedTexture && this.__texture) {
+                // Texture size unknown.
+                unknownSize = true
+
+                // We use a 'max width' replacement instead in the ViewCore calcs.
+                // This makes sure that it is able to determine withinBounds.
+                rw = rw || this.__texture.mw
+                rh = rh || this.__texture.mh
+            }
+        }
+
+        if (this.__core.setDimensions(rw, rh, unknownSize)) {
             this._onResize()
         }
     }

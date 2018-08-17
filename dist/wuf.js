@@ -2589,11 +2589,11 @@ class Texture {
 
     getRenderWidth() {
         // If dimensions are unknown (texture not yet loaded), use maximum width as a fallback as render width to allow proper bounds checking.
-        return ((this._w || (this._source ? this._source.getRenderWidth() - this._x : 0)) || this.mw) / this._precision
+        return (this._w || (this._source ? this._source.getRenderWidth() - this._x : 0)) / this._precision
     }
 
     getRenderHeight() {
-        return ((this._h || (this._source ? this._source.getRenderHeight() - this._y : 0)) || this.mh) / this._precision
+        return (this._h || (this._source ? this._source.getRenderHeight() - this._y : 0)) / this._precision
     }
 
     patch(settings) {
@@ -4353,7 +4353,23 @@ class View {
     };
 
     _updateDimensions() {
-        if (this.__core.setDimensions(this._getRenderWidth(), this._getRenderHeight())) {
+        let rw = this._getRenderWidth()
+        let rh = this._getRenderHeight()
+
+        let unknownSize = false
+        if (!rw || !rh) {
+            if (!this.__displayedTexture && this.__texture) {
+                // Texture size unknown.
+                unknownSize = true
+
+                // We use a 'max width' replacement instead in the ViewCore calcs.
+                // This makes sure that it is able to determine withinBounds.
+                rw = rw || this.__texture.mw
+                rh = rh || this.__texture.mh
+            }
+        }
+
+        if (this.__core.setDimensions(rw, rh, unknownSize)) {
             this._onResize()
         }
     }
@@ -6495,6 +6511,7 @@ class ViewCore {
 
         this._rw = 0;
         this._rh = 0;
+        this._rwhEstimate = false;
 
         this._clipping = false;
 
@@ -6621,7 +6638,8 @@ class ViewCore {
 
     set w(v) {
         if (this._w !== v) {
-            this._w = v
+            // We don't support negative dimensions because we'd need to sacrifice some update-loop optimizations.
+            this._w = Math.max(0, v)
             this._view._updateDimensions()
         }
     }
@@ -6632,7 +6650,7 @@ class ViewCore {
 
     set h(v) {
         if (this._h !== v) {
-            this._h = v
+            this._h = Math.max(0, v)
             this._view._updateDimensions()
         }
     }
@@ -7019,10 +7037,14 @@ class ViewCore {
         this._localAlpha = a;
     };
 
-    setDimensions(w, h) {
+    setDimensions(w, h, isEstimate) {
         if (this._rw !== w || this._rh !== h) {
             this._rw = w;
             this._rh = h;
+
+            // In case of an estimation, the update loop should perform different bound checks.
+            this._rwhEstimate = isEstimate
+
             this._setRecalc(2);
             if (this._texturizer) {
                 this._texturizer.releaseRenderTexture();
@@ -7640,6 +7662,7 @@ class ViewCore {
             }
 
             // Update render coords/alpha.
+            const pr = this._parent._renderContext
             if (this._parent._hasRenderContext()) {
                 const init = this._renderContext === this._worldContext
                 if (init) {
@@ -7649,8 +7672,6 @@ class ViewCore {
                 }
 
                 const r = this._renderContext
-
-                const pr = this._parent._renderContext
 
                 // Update world coords/alpha.
                 if (init || (recalc & 1)) {
@@ -7724,6 +7745,17 @@ class ViewCore {
                 ey = r.py + r.td * this._rh
             }
 
+            if (this._rwhEstimate && (this._isComplex || this._localTa < 1 || this._localTb < 1)) {
+                // If we are dealing with a non-identity matrix, we must extend the bbox so that withinBounds and
+                //  scissors will include the complete range of (positive) dimensions up to rw,rh.
+                const nx = this._x * pr.ta + this._y * pr.tb + pr.px
+                const ny = this._x * pr.tc + this._y * pr.td + pr.py
+                if (nx < sx) sx = nx
+                if (ny < sy) sy = ny
+                if (nx > ex) ex = nx
+                if (ny > ey) ey = ny
+            }
+
             if (recalc & 6 || !this._scissor /* initial */) {
                 // Determine whether we must 'clip'.
                 if (this._clipping && r.isSquare()) {
@@ -7768,6 +7800,15 @@ class ViewCore {
                         ex = r.px + r.ta * this._rw
                         sy = r.py
                         ey = r.py + r.td * this._rh
+                    }
+
+                    if (this._rwhEstimate && (this._isComplex || this._localTa < 1 || this._localTb < 1)) {
+                        const nx = this._x * pr.ta + this._y * pr.tb + pr.px
+                        const ny = this._x * pr.tc + this._y * pr.td + pr.py
+                        if (nx < sx) sx = nx
+                        if (ny < sy) sy = ny
+                        if (nx > ex) ex = nx
+                        if (ny > ey) ey = ny
                     }
                 }
             }
