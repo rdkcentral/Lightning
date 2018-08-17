@@ -78,10 +78,8 @@ class FastBlurView extends View {
         return this.getLayer(i).sel("Content")
     }
 
-    _updateDimensions() {
-        if (super._updateDimensions()) {
-            this._updateBlurSize()
-        }
+    _onResize() {
+        this._updateBlurSize()
     }
 
     _updateBlurSize() {

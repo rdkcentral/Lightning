@@ -23,7 +23,7 @@ class SmoothScaleView extends View {
         this.sel("ContentWrap").onAfterUpdate = (view) => {
             const content = view.sel("Content")
             if (content.renderWidth !== this._w || content.renderHeight !== this._h) {
-                this._updateDimensions()
+                this._update()
             }
         };
     }
@@ -65,7 +65,7 @@ class SmoothScaleView extends View {
                 scalers.a({renderToTexture: true, hideResultTexture: true, texture: texture});
             }
 
-            this._updateDimensions()
+            this._update()
 
             const useScalers = (its > 0);
             this.patch({
@@ -83,7 +83,7 @@ class SmoothScaleView extends View {
         }
     }
 
-    _updateDimensions() {
+    _update() {
         let w = this.tag("Content").renderWidth;
         let h = this.tag("Content").renderHeight;
 

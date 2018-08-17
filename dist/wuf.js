@@ -3852,20 +3852,6 @@ class View {
          */
         this.__tagRoot = false;
 
-        this.__x = 0;
-        this.__y = 0;
-        this.__w = 0;
-        this.__h = 0;
-        this.__scaleX = 1;
-        this.__scaleY = 1;
-        this.__pivotX = 0.5;
-        this.__pivotY = 0.5;
-        this.__mountX = 0;
-        this.__mountY = 0;
-        this.__alpha = 1;
-        this.__rotation = 0;
-        this.__visible = true;
-
         /**
          * (Lazy-initialised) list of children owned by this view.
          * @type {ViewChildList}
@@ -4020,7 +4006,7 @@ class View {
     };
 
     isEnabled() {
-        return this.__visible && (this.__alpha > 0) && (this.__parent ? this.__parent.__enabled : (this.stage.root === this));
+        return this.__core.visible && (this.__core.alpha > 0) && (this.__parent ? this.__parent.__enabled : (this.stage.root === this));
     };
 
     isActive() {
@@ -4170,9 +4156,12 @@ class View {
     _onInactive() {
     }
 
+    _onResize() {
+    }
+
     _getRenderWidth() {
-        if (this.__w) {
-            return this.__w;
+        if (this.__core.w) {
+            return this.__core.w;
         } else if (this.__displayedTexture) {
             return this.__displayedTexture.getRenderWidth()
         } else if (this.__texture) {
@@ -4184,8 +4173,8 @@ class View {
     };
 
     _getRenderHeight() {
-        if (this.__h) {
-            return this.__h;
+        if (this.__core.h) {
+            return this.__core.h;
         } else if (this.__displayedTexture) {
             return this.__displayedTexture.getRenderHeight()
         } else if (this.__texture) {
@@ -4364,64 +4353,10 @@ class View {
     };
 
     _updateDimensions() {
-        let beforeW = this.__core.rw;
-        let beforeH = this.__core.rh;
-        let rw = this._getRenderWidth();
-        let rh = this._getRenderHeight();
-        if (beforeW !== rw || beforeH !== rh) {
-            // Due to width/height change: update the translation vector and borders.
-            this.__core.setDimensions(rw, rh);
-            this._updateLocalTranslate();
-
-            // Returning whether there was an update is handy for extending classes.
-            return true
+        if (this.__core.setDimensions(this._getRenderWidth(), this._getRenderHeight())) {
+            this._onResize()
         }
-        return false
     }
-
-    _updateLocalTransform() {
-        if (this.__rotation !== 0 && this.__rotation % (2 * Math.PI)) {
-            // check to see if the rotation is the same as the previous render. This means we only need to use sin and cos when rotation actually changes
-            let _sr = Math.sin(this.__rotation);
-            let _cr = Math.cos(this.__rotation);
-
-            this.__core.setLocalTransform(
-                _cr * this.__scaleX,
-                -_sr * this.__scaleY,
-                _sr * this.__scaleX,
-                _cr * this.__scaleY
-            );
-        } else {
-            this.__core.setLocalTransform(
-                this.__scaleX,
-                0,
-                0,
-                this.__scaleY
-            );
-        }
-        this._updateLocalTranslate();
-    };
-
-    _updateLocalTranslate() {
-        let pivotXMul = this.__pivotX * this.__core.rw;
-        let pivotYMul = this.__pivotY * this.__core.rh;
-        let px = this.__x - (pivotXMul * this.__core.localTa + pivotYMul * this.__core.localTb) + pivotXMul;
-        let py = this.__y - (pivotXMul * this.__core.localTc + pivotYMul * this.__core.localTd) + pivotYMul;
-        px -= this.__mountX * this.__core.rw;
-        py -= this.__mountY * this.__core.rh;
-        this.__core.setLocalTranslate(
-            px,
-            py
-        );
-    };
-
-    _updateLocalTranslateDelta(dx, dy) {
-        this.__core.addLocalTranslate(dx, dy)
-    };
-
-    _updateLocalAlpha() {
-        this.__core.setLocalAlpha(this.__visible ? this.__alpha : 0);
-    };
 
     _updateTextureCoords() {
         if (this.displayedTexture && this.displayedTexture.source) {
@@ -5022,54 +4957,54 @@ class View {
             settings.tags = this.__tags;
         }
 
-        if (this.__x !== 0) settings.x = this.__x;
-        if (this.__y !== 0) settings.y = this.__y;
-        if (this.__w !== 0) settings.w = this.__w;
-        if (this.__h !== 0) settings.h = this.__h;
+        if (this.x !== 0) settings.x = this.x;
+        if (this.y !== 0) settings.y = this.y;
+        if (this.w !== 0) settings.w = this.w;
+        if (this.h !== 0) settings.h = this.h;
 
-        if (this.__scaleX === this.__scaleY) {
-            if (this.__scaleX !== 1) settings.scale = this.__scaleX;
+        if (this.scaleX === this.scaleY) {
+            if (this.scaleX !== 1) settings.scale = this.scaleX;
         } else {
-            if (this.__scaleX !== 1) settings.scaleX = this.__scaleX;
-            if (this.__scaleY !== 1) settings.scaleY = this.__scaleY;
+            if (this.scaleX !== 1) settings.scaleX = this.scaleX;
+            if (this.scaleY !== 1) settings.scaleY = this.scaleY;
         }
 
-        if (this.__pivotX === this.__pivotY) {
-            if (this.__pivotX !== 0.5) settings.pivot = this.__pivotX;
+        if (this.pivotX === this.pivotY) {
+            if (this.pivotX !== 0.5) settings.pivot = this.pivotX;
         } else {
-            if (this.__pivotX !== 0.5) settings.pivotX = this.__pivotX;
-            if (this.__pivotY !== 0.5) settings.pivotY = this.__pivotY;
+            if (this.pivotX !== 0.5) settings.pivotX = this.pivotX;
+            if (this.pivotY !== 0.5) settings.pivotY = this.pivotY;
         }
 
-        if (this.__mountX === this.__mountY) {
-            if (this.__mountX !== 0) settings.mount = this.__mountX;
+        if (this.mountX === this.mountY) {
+            if (this.mountX !== 0) settings.mount = this.mountX;
         } else {
-            if (this.__mountX !== 0) settings.mountX = this.__mountX;
-            if (this.__mountY !== 0) settings.mountY = this.__mountY;
+            if (this.mountX !== 0) settings.mountX = this.mountX;
+            if (this.mountY !== 0) settings.mountY = this.mountY;
         }
 
-        if (this.__alpha !== 1) settings.alpha = this.__alpha;
+        if (this.alpha !== 1) settings.alpha = this.alpha;
 
-        if (this.__rotation !== 0) settings.rotation = this.__rotation;
+        if (!this.visible) settings.visible = false;
 
-        if (this.__core.colorUl === this.__core.colorUr && this.__core.colorBl === this.__core.colorBr && this.__core.colorUl === this.__core.colorBl) {
-            if (this.__core.colorUl !== 0xFFFFFFFF) settings.color = this.__core.colorUl.toString(16);
+        if (this.rotation !== 0) settings.rotation = this.rotation;
+
+        if (this.colorUl === this.colorUr && this.colorBl === this.colorBr && this.colorUl === this.colorBl) {
+            if (this.colorUl !== 0xFFFFFFFF) settings.color = this.colorUl.toString(16);
         } else {
-            if (this.__core.colorUl !== 0xFFFFFFFF) settings.colorUl = this.__core.colorUl.toString(16);
-            if (this.__core.colorUr !== 0xFFFFFFFF) settings.colorUr = this.__core.colorUr.toString(16);
-            if (this.__core.colorBl !== 0xFFFFFFFF) settings.colorBl = this.__core.colorBl.toString(16);
-            if (this.__core.colorBr !== 0xFFFFFFFF) settings.colorBr = this.__core.colorBr.toString(16);
+            if (this.colorUl !== 0xFFFFFFFF) settings.colorUl = this.colorUl.toString(16);
+            if (this.colorUr !== 0xFFFFFFFF) settings.colorUr = this.colorUr.toString(16);
+            if (this.colorBl !== 0xFFFFFFFF) settings.colorBl = this.colorBl.toString(16);
+            if (this.colorBr !== 0xFFFFFFFF) settings.colorBr = this.colorBr.toString(16);
         }
 
-        if (!this.__visible) settings.visible = false;
+        if (this.zIndex) settings.zIndex = this.zIndex;
 
-        if (this.__core.zIndex) settings.zIndex = this.__core.zIndex;
+        if (this.forceZIndexContext) settings.forceZIndexContext = true;
 
-        if (this.__core.forceZIndexContext) settings.forceZIndexContext = true;
+        if (this.clipping) settings.clipping = this.clipping;
 
-        if (this.__core.clipping) settings.clipping = this.__core.clipping;
-
-        if (this.__core.clipbox) settings.clipbox = this.__core.clipbox;
+        if (this.clipbox) settings.clipbox = this.clipbox;
 
         if (this.__texture) {
             let tnd = this.__texture.getNonDefaults();
@@ -5153,179 +5088,133 @@ class View {
     }
 
     get x() {
-        return this.__x
+        return this.__core.x
     }
 
     set x(v) {
-        if (this.__x !== v) {
-            this._updateLocalTranslateDelta(v - this.__x, 0)
-            this.__x = v
-        }
+        this.__core.x = v
     }
 
     get y() {
-        return this.__y
+        return this.__core.y
     }
 
     set y(v) {
-        if (this.__y !== v) {
-            this._updateLocalTranslateDelta(0, v - this.__y)
-            this.__y = v
-        }
+        this.__core.y = v
     }
 
     get w() {
-        return this.__w
+        return this.__core.w
     }
 
     set w(v) {
-        if (this.__w !== v) {
-            this.__w = v
-            this._updateDimensions()
-        }
+        this.__core.w = v
     }
 
     get h() {
-        return this.__h
+        return this.__core.h
     }
 
     set h(v) {
-        if (this.__h !== v) {
-            this.__h = v
-            this._updateDimensions()
-        }
+        this.__core.h = v
     }
 
     get scaleX() {
-        return this.__scaleX
+        return this.__core.scaleX
     }
 
     set scaleX(v) {
-        if (this.__scaleX !== v) {
-            this.__scaleX = v
-            this._updateLocalTransform()
-        }
+        this.__core.scaleX = v
     }
 
     get scaleY() {
-        return this.__scaleY
+        return this.__core.scaleY
     }
 
     set scaleY(v) {
-        if (this.__scaleY !== v) {
-            this.__scaleY = v
-            this._updateLocalTransform()
-        }
+        this.__core.scaleY = v
     }
 
     get scale() {
-        return this.__scaleX
+        return this.__core.scale
     }
 
     set scale(v) {
-        if (this.__scaleX !== v || this.__scaleY !== v) {
-            this.__scaleX = v
-            this.__scaleY = v
-            this._updateLocalTransform()
-        }
+        this.__core.scale = v
     }
 
     get pivotX() {
-        return this.__pivotX
+        return this.__core.pivotX
     }
 
     set pivotX(v) {
-        if (this.__pivotX !== v) {
-            this.__pivotX = v
-            this._updateLocalTranslate()
-        }
+        this.__core.pivotX = v
     }
 
     get pivotY() {
-        return this.__pivotY
+        return this.__core.pivotY
     }
 
     set pivotY(v) {
-        if (this.__pivotY !== v) {
-            this.__pivotY = v
-            this._updateLocalTranslate()
-        }
+        this.__core.pivotY = v
     }
 
     get pivot() {
-        return this.__pivotX
+        return this.__core.pivot
     }
 
     set pivot(v) {
-        if (this.__pivotX !== v || this.__pivotY !== v) {
-            this.__pivotX = v;
-            this.__pivotY = v;
-            this._updateLocalTranslate()
-        }
+        this.__core.pivot = v
     }
 
     get mountX() {
-        return this.__mountX
+        return this.__core.mountX
     }
 
     set mountX(v) {
-        if (this.__mountX !== v) {
-            this.__mountX = v
-            this._updateLocalTranslate()
-        }
+        this.__core.mountX = v
     }
 
     get mountY() {
-        return this.__mountY
+        return this.__core.mountY
     }
 
     set mountY(v) {
-        if (this.__mountY !== v) {
-            this.__mountY = v
-            this._updateLocalTranslate()
-        }
+        this.__core.mountY = v
     }
 
     get mount() {
-        return this.__mountX
+        return this.__core.mount
     }
 
     set mount(v) {
-        if (this.__mountX !== v || this.__mountY !== v) {
-            this.__mountX = v
-            this.__mountY = v
-            this._updateLocalTranslate()
-        }
-    }
-
-    get alpha() {
-        return this.__alpha
-    }
-
-    set alpha(v) {
-        // Account for rounding errors.
-        v = (v > 1 ? 1 : (v < 1e-14 ? 0 : v));
-        if (this.__alpha !== v) {
-            let prev = this.__alpha
-            this.__alpha = v
-            this._updateLocalAlpha();
-            if ((prev === 0) !== (v === 0)) {
-                this._updateEnabledFlag()
-            }
-        }
+        this.__core.mount = v
     }
 
     get rotation() {
-        return this.__rotation
+        return this.__core.rotation
     }
 
     set rotation(v) {
-        if (this.__rotation !== v) {
-            this.__rotation = v
-            this._updateLocalTransform()
-        }
+        this.__core.rotation = v
     }
 
+    get alpha() {
+        return this.__core.alpha
+    }
+
+    set alpha(v) {
+        this.__core.alpha = v
+    }
+
+    get visible() {
+        return this.__core.visible
+    }
+
+    set visible(v) {
+        this.__core.visible = v
+    }
+    
     get colorUl() {
         return this.__core.colorUl
     }
@@ -5412,18 +5301,6 @@ class View {
         if (this.colorUr !== v || this.colorBr !== v) {
             this.colorUr = v;
             this.colorBr = v;
-        }
-    }
-
-    get visible() {
-        return this.__visible
-    }
-
-    set visible(v) {
-        if (this.__visible !== v) {
-            this.__visible = v
-            this._updateLocalAlpha()
-            this._updateEnabledFlag()
         }
     }
 
@@ -6604,6 +6481,22 @@ class ViewCore {
 
         this._updateTreeOrder = 0;
 
+        this._x = 0;
+        this._y = 0;
+        this._w = 0;
+        this._h = 0;
+        this._scaleX = 1;
+        this._scaleY = 1;
+        this._pivotX = 0.5;
+        this._pivotY = 0.5;
+        this._mountX = 0;
+        this._mountY = 0;
+        this._rotation = 0;
+
+        this._alpha = 1;
+        this._visible = true;
+
+
         this._worldContext = new ViewCoreContext()
 
         this._renderContext = this._worldContext
@@ -6693,6 +6586,237 @@ class ViewCore {
 
         this.render = this._renderSimple
     }
+
+    get x() {
+        return this._x
+    }
+
+    set x(v) {
+        if (this._x !== v) {
+            this._updateLocalTranslateDelta(v - this._x, 0)
+            this._x = v
+        }
+    }
+
+    get y() {
+        return this._y
+    }
+
+    set y(v) {
+        if (this._y !== v) {
+            this._updateLocalTranslateDelta(0, v - this._y)
+            this._y = v
+        }
+    }
+
+    get w() {
+        return this._w
+    }
+
+    set w(v) {
+        if (this._w !== v) {
+            this._w = v
+            this._view._updateDimensions()
+        }
+    }
+
+    get h() {
+        return this._h
+    }
+
+    set h(v) {
+        if (this._h !== v) {
+            this._h = v
+            this._view._updateDimensions()
+        }
+    }
+    
+    get scaleX() {
+        return this._scaleX
+    }
+
+    set scaleX(v) {
+        if (this._scaleX !== v) {
+            this._scaleX = v
+            this._updateLocalTransform()
+        }
+    }
+
+    get scaleY() {
+        return this._scaleY
+    }
+
+    set scaleY(v) {
+        if (this._scaleY !== v) {
+            this._scaleY = v
+            this._updateLocalTransform()
+        }
+    }
+
+    get scale() {
+        return this.scaleX
+    }
+
+    set scale(v) {
+        if (this._scaleX !== v || this._scaleY !== v) {
+            this._scaleX = v
+            this._scaleY = v
+            this._updateLocalTransform()
+        }
+    }
+
+    get pivotX() {
+        return this._pivotX
+    }
+
+    set pivotX(v) {
+        if (this._pivotX !== v) {
+            this._pivotX = v
+            this._updateLocalTranslate()
+        }
+    }
+
+    get pivotY() {
+        return this._pivotY
+    }
+
+    set pivotY(v) {
+        if (this._pivotY !== v) {
+            this._pivotY = v
+            this._updateLocalTranslate()
+        }
+    }
+
+    get pivot() {
+        return this._pivotX
+    }
+
+    set pivot(v) {
+        if (this._pivotX !== v || this._pivotY !== v) {
+            this._pivotX = v;
+            this._pivotY = v;
+            this._updateLocalTranslate()
+        }
+    }
+
+    get mountX() {
+        return this._mountX
+    }
+
+    set mountX(v) {
+        if (this._mountX !== v) {
+            this._mountX = v
+            this._updateLocalTranslate()
+        }
+    }
+
+    get mountY() {
+        return this._mountY
+    }
+
+    set mountY(v) {
+        if (this._mountY !== v) {
+            this._mountY = v
+            this._updateLocalTranslate()
+        }
+    }
+
+    get mount() {
+        return this._mountX
+    }
+
+    set mount(v) {
+        if (this._mountX !== v || this._mountY !== v) {
+            this._mountX = v
+            this._mountY = v
+            this._updateLocalTranslate()
+        }
+    }
+
+    get rotation() {
+        return this._rotation
+    }
+
+    set rotation(v) {
+        if (this._rotation !== v) {
+            this._rotation = v
+            this._updateLocalTransform()
+        }
+    }
+
+    get alpha() {
+        return this._alpha
+    }
+
+    set alpha(v) {
+        // Account for rounding errors.
+        v = (v > 1 ? 1 : (v < 1e-14 ? 0 : v));
+        if (this._alpha !== v) {
+            let prev = this._alpha
+            this._alpha = v
+            this._updateLocalAlpha();
+            if ((prev === 0) !== (v === 0)) {
+                this._view._updateEnabledFlag()
+            }
+        }
+    }
+
+    get visible() {
+        return this._visible
+    }
+
+    set visible(v) {
+        if (this._visible !== v) {
+            this._visible = v
+            this._updateLocalAlpha()
+            this._view._updateEnabledFlag()
+        }
+    }
+
+    _updateLocalTransform() {
+        if (this._rotation !== 0 && this._rotation % (2 * Math.PI)) {
+            // check to see if the rotation is the same as the previous render. This means we only need to use sin and cos when rotation actually changes
+            let _sr = Math.sin(this._rotation);
+            let _cr = Math.cos(this._rotation);
+
+            this._setLocalTransform(
+                _cr * this._scaleX,
+                -_sr * this._scaleY,
+                _sr * this._scaleX,
+                _cr * this._scaleY
+            );
+        } else {
+            this._setLocalTransform(
+                this._scaleX,
+                0,
+                0,
+                this._scaleY
+            );
+        }
+        this._updateLocalTranslate();
+    };
+
+    _updateLocalTranslate() {
+        let pivotXMul = this._pivotX * this.rw;
+        let pivotYMul = this._pivotY * this.rh;
+        let px = this._x - (pivotXMul * this.localTa + pivotYMul * this.localTb) + pivotXMul;
+        let py = this._y - (pivotXMul * this.localTc + pivotYMul * this.localTd) + pivotYMul;
+        px -= this._mountX * this.rw;
+        py -= this._mountY * this.rh;
+        this._setLocalTranslate(
+            px,
+            py
+        );
+    };
+
+    _updateLocalTranslateDelta(dx, dy) {
+        this._addLocalTranslate(dx, dy)
+    };
+
+    _updateLocalAlpha() {
+        this._setLocalAlpha(this._visible ? this._alpha : 0);
+    };
+
 
     /**
      * @param {number} type
@@ -6852,7 +6976,7 @@ class ViewCore {
         }
     }
 
-    setLocalTransform(a, b, c, d) {
+    _setLocalTransform(a, b, c, d) {
         this._setRecalc(4);
         this._localTa = a;
         this._localTb = b;
@@ -6861,17 +6985,17 @@ class ViewCore {
         this._isComplex = (b != 0) || (c != 0);
     };
 
-    setLocalTranslate(x, y) {
+    _setLocalTranslate(x, y) {
         this._setRecalc(2);
         this._localPx = x;
         this._localPy = y;
     };
 
-    addLocalTranslate(dx, dy) {
-        this.setLocalTranslate(this._localPx + dx, this._localPy + dy);
+    _addLocalTranslate(dx, dy) {
+        this._setLocalTranslate(this._localPx + dx, this._localPy + dy);
     }
 
-    setLocalAlpha(a) {
+    _setLocalAlpha(a) {
         if (!this._worldContext.alpha && ((this._parent && this._parent._worldContext.alpha) && a)) {
             // View is becoming visible. We need to force update.
             this._setRecalc(1 + 128);
@@ -6888,13 +7012,20 @@ class ViewCore {
     };
 
     setDimensions(w, h) {
-        this._rw = w;
-        this._rh = h;
-        this._setRecalc(2);
-        if (this._texturizer) {
-            this._texturizer.releaseRenderTexture();
-            this._texturizer.releaseFilterTexture();
-            this._texturizer.updateResultTexture()
+        if (this._rw !== w || this._rh !== h) {
+            this._rw = w;
+            this._rh = h;
+            this._setRecalc(2);
+            if (this._texturizer) {
+                this._texturizer.releaseRenderTexture();
+                this._texturizer.releaseFilterTexture();
+                this._texturizer.updateResultTexture()
+            }
+            // Due to width/height change: update the translation vector.
+            this._updateLocalTranslate()
+            return true
+        } else {
+            return false
         }
     };
 
@@ -12549,10 +12680,8 @@ class FastBlurView extends View {
         return this.getLayer(i).sel("Content")
     }
 
-    _updateDimensions() {
-        if (super._updateDimensions()) {
-            this._updateBlurSize()
-        }
+    _onResize() {
+        this._updateBlurSize()
     }
 
     _updateBlurSize() {
@@ -12835,7 +12964,7 @@ class SmoothScaleView extends View {
         this.sel("ContentWrap").onAfterUpdate = (view) => {
             const content = view.sel("Content")
             if (content.renderWidth !== this._w || content.renderHeight !== this._h) {
-                this._updateDimensions()
+                this._update()
             }
         };
     }
@@ -12877,7 +13006,7 @@ class SmoothScaleView extends View {
                 scalers.a({renderToTexture: true, hideResultTexture: true, texture: texture});
             }
 
-            this._updateDimensions()
+            this._update()
 
             const useScalers = (its > 0);
             this.patch({
@@ -12895,7 +13024,7 @@ class SmoothScaleView extends View {
         }
     }
 
-    _updateDimensions() {
+    _update() {
         let w = this.tag("Content").renderWidth;
         let h = this.tag("Content").renderHeight;
 
