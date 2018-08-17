@@ -144,9 +144,9 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
     }
 
     setAsRoot() {
+        this.__core.setAsRoot();
         this._updateAttachedFlag();
         this._updateEnabledFlag();
-        this.__core.setAsRoot();
     }
 
     get isRoot() {
