@@ -1298,8 +1298,8 @@ class ViewCore {
                         this._scissor = [
                             Math.max(area[0], sx),
                             Math.max(area[1], sy),
-                            Math.min(area[2], ex - sx),
-                            Math.min(area[3], ey - sy),
+                            Math.min(area[2], ex - area[0]),
+                            Math.min(area[3], ey - area[1]),
                         ]
                     } else {
                         this._scissor = [sx, sy, ex - sx, ey - sy]
