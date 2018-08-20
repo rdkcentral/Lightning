@@ -1383,7 +1383,7 @@ class ViewCore {
                             }
                         }
 
-                        let withinMargin = (this._outOfBounds === 0)
+                        withinMargin = (this._outOfBounds === 0)
                         if (!withinMargin && !!this._recBoundsMargin) {
                             // Re-test, now with margins.
                             withinMargin = !((ex < this._scissor[0] - this._recBoundsMargin[2]) ||

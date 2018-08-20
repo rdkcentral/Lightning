@@ -7854,7 +7854,7 @@ class ViewCore {
                             }
                         }
 
-                        let withinMargin = (this._outOfBounds === 0)
+                        withinMargin = (this._outOfBounds === 0)
                         if (!withinMargin && !!this._recBoundsMargin) {
                             // Re-test, now with margins.
                             withinMargin = !((ex < this._scissor[0] - this._recBoundsMargin[2]) ||
@@ -11836,6 +11836,11 @@ class Tools {
 
         canvas.width = w + margin * 2;
         canvas.height = h + margin * 2;
+
+        // WpeWebKit bug: we experienced problems without this with shadows in noncompositedwebgl mode.
+        ctx.globalAlpha = 0.01;
+        ctx.fillRect(0, 0, 0.01, 0.01);
+        ctx.globalAlpha = 1.0;
 
         ctx.shadowColor = StageUtils.getRgbaString(0xFFFFFFFF)
         ctx.fillStyle = StageUtils.getRgbaString(0xFFFFFFFF)
