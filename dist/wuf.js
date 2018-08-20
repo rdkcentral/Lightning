@@ -7622,11 +7622,6 @@ class ViewCore {
          * - this branch becomes invisible (descs may be z-indexed so we must update all alpha values)
          */
         if (this._hasUpdates || (this._recalc && visible) || (w.alpha && !visible)) {
-            if (this._zSort) {
-                // Make sure that all descendants are updated so that the updateTreeOrder flags are correctly set.
-                this.ctx.updateTreeOrderForceUpdate++;
-            }
-
             let recalc = this._recalc
 
             // Update world coords/alpha.
@@ -7959,12 +7954,7 @@ class ViewCore {
             if (this._onAfterUpdate) {
                 this._onAfterUpdate(this.view)
             }
-
-            if (this._zSort) {
-                this.ctx.updateTreeOrderForceUpdate--;
-            }
-        } else if (this.ctx.updateTreeOrderForceUpdate > 0) {
-            // Branch is invisible, but still we want to update the tree order.
+        } else {
             this.updateTreeOrder();
         }
     }
@@ -7991,30 +7981,14 @@ class ViewCore {
     }
 
     updateTreeOrder() {
-        if (this._zSort) {
-            // Make sure that all descendants are updated so that the updateTreeOrder flags are correctly set.
-            this.ctx.updateTreeOrderForceUpdate++;
-        }
+        if (this._localAlpha && (this._outOfBounds !== 2)) {
+            this._updateTreeOrder = this.ctx.updateTreeOrder++;
 
-        this._updateTreeOrder = this.ctx.updateTreeOrder++;
-
-        if (this._children) {
-            for (let i = 0, n = this._children.length; i < n; i++) {
-                let hasZSort = this._children[i]._zSort
-                if (hasZSort) {
-                    this.ctx.updateTreeOrderForceUpdate--;
-                }
-
-                this._children[i].updateTreeOrder();
-
-                if (hasZSort) {
-                    this.ctx.updateTreeOrderForceUpdate--;
+            if (this._children) {
+                for (let i = 0, n = this._children.length; i < n; i++) {
+                    this._children[i].updateTreeOrder();
                 }
             }
-        }
-
-        if (this._zSort) {
-            this.ctx.updateTreeOrderForceUpdate--;
         }
     }
 
@@ -8538,7 +8512,6 @@ class CoreContext {
         this.root = null
 
         this.updateTreeOrder = 0
-        this.updateTreeOrderForceUpdate = 0
 
         this.shaderPrograms = new Map()
 
@@ -8594,7 +8567,6 @@ class CoreContext {
     }
 
     update() {
-        this.updateTreeOrderForceUpdate = 0
         this.updateTreeOrder = 0
 
         this.root.update()

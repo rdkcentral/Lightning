@@ -12,7 +12,6 @@ class CoreContext {
         this.root = null
 
         this.updateTreeOrder = 0
-        this.updateTreeOrderForceUpdate = 0
 
         this.shaderPrograms = new Map()
 
@@ -68,7 +67,6 @@ class CoreContext {
     }
 
     update() {
-        this.updateTreeOrderForceUpdate = 0
         this.updateTreeOrder = 0
 
         this.root.update()
