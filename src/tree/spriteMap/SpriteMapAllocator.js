@@ -14,13 +14,11 @@ class SpriteMapAllocator {
     }
 
     allocate(w, h) {
-        if (h > 512) {
+        if (h > 256) {
             return null
         }
 
-        const result = this._allocate(w, h)
-
-        return result
+        return this._allocate(w, h)
     }
 
     _allocate(w, h) {
@@ -74,11 +72,7 @@ class SpriteMapAllocator {
     }
 
     static getHeightGroup(h) {
-        if (h >= 384) {
-            return 512
-        } else if (h >= 256) {
-            return 384
-        } else if (h >= 128) {
+        if (h >= 128) {
             return 256
         } else if (h >= 64) {
             return 128

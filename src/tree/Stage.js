@@ -30,7 +30,7 @@ class Stage extends EventEmitter {
 
         this.textureManager = new TextureManager(this);
 
-        this.spriteMap = this.getOption('useSpriteMap') ? new SpriteMap(this, 2048, 2048) : null
+        this.spriteMap = this.getOption('useSpriteMap') ? new SpriteMap(this, 1024, 1024) : null
 
         this.ctx = new CoreContext(this);
 

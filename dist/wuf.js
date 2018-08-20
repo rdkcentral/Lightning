@@ -1242,7 +1242,7 @@ class Stage extends EventEmitter {
 
         this.textureManager = new TextureManager(this);
 
-        this.spriteMap = this.getOption('useSpriteMap') ? new SpriteMap(this, 2048, 2048) : null
+        this.spriteMap = this.getOption('useSpriteMap') ? new SpriteMap(this, 1024, 1024) : null
 
         this.ctx = new CoreContext(this);
 
@@ -3572,13 +3572,11 @@ class SpriteMapAllocator {
     }
 
     allocate(w, h) {
-        if (h > 512) {
+        if (h > 256) {
             return null
         }
 
-        const result = this._allocate(w, h)
-
-        return result
+        return this._allocate(w, h)
     }
 
     _allocate(w, h) {
@@ -3632,11 +3630,7 @@ class SpriteMapAllocator {
     }
 
     static getHeightGroup(h) {
-        if (h >= 384) {
-            return 512
-        } else if (h >= 256) {
-            return 384
-        } else if (h >= 128) {
+        if (h >= 128) {
             return 256
         } else if (h >= 64) {
             return 128
@@ -7709,7 +7703,11 @@ class ViewCore {
                 this._renderContext = this._worldContext
             }
 
-            this._updateTreeOrder = this.ctx.updateTreeOrder++;
+            if (this.ctx.updateTreeOrder === -1) {
+                this.ctx.updateTreeOrder = this._updateTreeOrder + 1
+            } else {
+                this._updateTreeOrder = this.ctx.updateTreeOrder++;
+            }
 
             // Determine whether we must use a 'renderTexture'.
             const useRenderToTexture = this._renderToTextureEnabled && this._texturizer.mustRenderToTexture()
@@ -7955,7 +7953,20 @@ class ViewCore {
                 this._onAfterUpdate(this.view)
             }
         } else {
-            this.updateTreeOrder();
+            if (this.ctx.updateTreeOrder === -1 || this._updateTreeOrder === this.ctx.updateTreeOrder) {
+                // If current update tree order equals last, there's no need to change the branch as there are no changes at all anyway.
+                this.ctx.updateTreeOrder = -1
+            } else {
+                this.updateTreeOrder();
+            }
+        }
+    }
+
+    _getLastDescendant() {
+        if (this._children && this._children.length) {
+            return this._children[this._children.length - 1]._getLastDescendant()
+        } else {
+            return this
         }
     }
 
