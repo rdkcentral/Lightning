@@ -27,7 +27,7 @@ class ViewTexturizer {
 
         this._renderToTextureEnabled = false
 
-        this._hideResult = false
+        this._renderOffscreen = false
 
         this.filterResultCached = false
 
@@ -43,13 +43,16 @@ class ViewTexturizer {
         this._core.updateRenderToTextureEnabled()
     }
 
-    get hideResult() {
-        return this._hideResult
+    get renderOffscreen() {
+        return this._renderOffscreen
     }
 
-    set hideResult(v) {
-        this._hideResult = v
+    set renderOffscreen(v) {
+        this._renderOffscreen = v
         this._core.setHasRenderUpdates(1);
+
+        // This enforces rechecking the 'within bounds'.
+        this._core._setRecalc(6)
     }
 
     get colorize() {

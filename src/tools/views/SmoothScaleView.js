@@ -13,7 +13,7 @@ class SmoothScaleView extends View {
 
         this.patch({
             "ContentWrap": {
-                hideResultTexture: true,
+                renderOffscreen: true,
                 "Content": {}
             },
             "Scale": {visible: false
@@ -62,7 +62,7 @@ class SmoothScaleView extends View {
             while (scalers.length < its) {
                 const first = scalers.length === 0
                 const texture = (first ? content.getTexture() : scalers.last.getTexture());
-                scalers.a({renderToTexture: true, hideResultTexture: true, texture: texture});
+                scalers.a({renderToTexture: true, renderOffscreen: true, texture: texture});
             }
 
             this._update()
@@ -76,7 +76,7 @@ class SmoothScaleView extends View {
             for (let i = 0, n = scalers.length; i < n; i++) {
                 scalers.getAt(i).patch({
                     visible: i < its,
-                    hideResultTexture: i !== its - 1
+                    renderOffscreen: i !== its - 1
                 });
             }
             this._iterations = its;

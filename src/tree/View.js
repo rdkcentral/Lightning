@@ -1286,8 +1286,8 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
             if (this._texturizer.colorize) {
                 settings.colorizeResultTexture = this._texturizer.colorize
             }
-            if (this._texturizer.hideResult) {
-                settings.hideResultTexture = this._texturizer.hideResult
+            if (this._texturizer.renderOffscreen) {
+                settings.renderOffscreen = this._texturizer.renderOffscreen
             }
         }
 
@@ -1784,12 +1784,12 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
         this.texturizer.lazy = v
     }
 
-    get hideResultTexture() {
-        return this._hasTexturizer() && this.texturizer.hideResult
+    get renderOffscreen() {
+        return this._hasTexturizer() && this.texturizer.renderOffscreen
     }
 
-    set hideResultTexture(v) {
-        this.texturizer.hideResult = v
+    set renderOffscreen(v) {
+        this.texturizer.renderOffscreen = v
     }
 
     get colorizeResultTexture() {

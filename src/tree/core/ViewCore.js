@@ -1359,37 +1359,42 @@ class ViewCore {
                 if (recalc & 6) {
                     // Recheck if view is out-of-bounds (all settings that affect this should enable recalc bit 2 or 4).
                     this._outOfBounds = 0
-                    if (this._scissor && (this._scissor[2] <= 0 || this._scissor[3] <= 0)) {
-                        // Empty scissor area.
-                        this._outOfBounds = 2
-                    } else {
-                        // Use bbox to check out-of-boundness.
-                        if ((this._scissor[0] > ex) ||
-                            (this._scissor[1] > ey) ||
-                            (sx > (this._scissor[0] + this._scissor[2])) ||
-                            (sy > (this._scissor[1] + this._scissor[3]))
-                        ) {
-                            this._outOfBounds = 1
-                        }
+                    let withinMargin = true
 
-                        if (this._outOfBounds) {
-                            if (this._clipping || this._useRenderToTexture || this._clipbox) {
-                                this._outOfBounds = 2
+                    // Offscreens are always rendered as long as the parent is within bounds.
+                    if (!this._renderToTextureEnabled || !this._texturizer || !this._texturizer.renderOffscreen) {
+                        if (this._scissor && (this._scissor[2] <= 0 || this._scissor[3] <= 0)) {
+                            // Empty scissor area.
+                            this._outOfBounds = 2
+                        } else {
+                            // Use bbox to check out-of-boundness.
+                            if ((this._scissor[0] > ex) ||
+                                (this._scissor[1] > ey) ||
+                                (sx > (this._scissor[0] + this._scissor[2])) ||
+                                (sy > (this._scissor[1] + this._scissor[3]))
+                            ) {
+                                this._outOfBounds = 1
+                            }
+
+                            if (this._outOfBounds) {
+                                if (this._clipping || this._useRenderToTexture || this._clipbox) {
+                                    this._outOfBounds = 2
+                                }
                             }
                         }
-                    }
 
-                    let withinMargin = (this._outOfBounds === 0)
-                    if (!withinMargin && !!this._recBoundsMargin) {
-                        // Re-test, now with margins.
-                        withinMargin = !((ex < this._scissor[0] - this._recBoundsMargin[2]) ||
-                        (ey < this._scissor[1] - this._recBoundsMargin[3]) ||
-                        (sx > this._scissor[0] + this._scissor[2] + this._recBoundsMargin[0]) ||
-                        (sy > this._scissor[1] + this._scissor[3] + this._recBoundsMargin[1]))
+                        let withinMargin = (this._outOfBounds === 0)
+                        if (!withinMargin && !!this._recBoundsMargin) {
+                            // Re-test, now with margins.
+                            withinMargin = !((ex < this._scissor[0] - this._recBoundsMargin[2]) ||
+                            (ey < this._scissor[1] - this._recBoundsMargin[3]) ||
+                            (sx > this._scissor[0] + this._scissor[2] + this._recBoundsMargin[0]) ||
+                            (sy > this._scissor[1] + this._scissor[3] + this._recBoundsMargin[1]))
 
-                        if (withinMargin && this._outOfBounds === 2) {
-                            // Children must be visited because they may contain views that are within margin, so must be visible.
-                            this._outOfBounds = 1
+                            if (withinMargin && this._outOfBounds === 2) {
+                                // Children must be visited because they may contain views that are within margin, so must be visible.
+                                this._outOfBounds = 1
+                            }
                         }
                     }
 
@@ -1730,7 +1735,7 @@ class ViewCore {
                         this._texturizer.updateResultTexture();
                     }
 
-                    if (!this._texturizer.hideResult) {
+                    if (!this._texturizer.renderOffscreen) {
                         // Render result texture to the actual render target.
                         renderState.setShader(this.activeShader, this._shaderOwner);
                         renderState.setScissor(this._scissor)

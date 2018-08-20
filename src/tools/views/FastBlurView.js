@@ -16,12 +16,12 @@ class FastBlurView extends View {
         this.tagRoot = true
 
         this.patch({
-            "Textwrap": {renderToTexture: false, hideResultTexture: true, "Content": {}},
+            "Textwrap": {renderToTexture: false, renderOffscreen: true, "Content": {}},
             "Layers": {
-                "L0": {renderToTexture: true, hideResultTexture: true, visible: false, "Content": {shader: fastBoxBlurShader}},
-                "L1": {renderToTexture: true, hideResultTexture: true, visible: false, "Content": {shader: fastBoxBlurShader}},
-                "L2": {renderToTexture: true, hideResultTexture: true, visible: false, "Content": {shader: fastBoxBlurShader}},
-                "L3": {renderToTexture: true, hideResultTexture: true, visible: false, "Content": {shader: fastBoxBlurShader}},
+                "L0": {renderToTexture: true, renderOffscreen: true, visible: false, "Content": {shader: fastBoxBlurShader}},
+                "L1": {renderToTexture: true, renderOffscreen: true, visible: false, "Content": {shader: fastBoxBlurShader}},
+                "L2": {renderToTexture: true, renderOffscreen: true, visible: false, "Content": {shader: fastBoxBlurShader}},
+                "L3": {renderToTexture: true, renderOffscreen: true, visible: false, "Content": {shader: fastBoxBlurShader}},
             },
             "Result": {shader: {type: FastBlurOutputShader}, visible: false}
         }, true)

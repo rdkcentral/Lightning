@@ -536,10 +536,10 @@ var createWorker = function() {
         _hasAlphaChannel() {
             // When using unaccelerated rendering image (https://github.com/WebPlatformForEmbedded/WPEWebKit/blob/wpe-20170728/Source/WebCore/html/ImageBitmap.cpp#L52),
             // everything including JPG images are in RGBA format. Upload is way faster when using an alpha channel.
-            //return true
+            return true
 
             // @todo: after hardware acceleration is fixed and re-enabled, JPG should be uploaded in RGB to get the best possible performance and memory usage.
-            return (this._mimeType.indexOf("image/png") !== -1)
+            // return (this._mimeType.indexOf("image/png") !== -1)
         }
 
         cancel() {
@@ -638,7 +638,7 @@ class Utils {
     }
 
     static clone(v) {
-        if (Utils.isObjectLiteral(v)) {
+        if (Utils.isObjectLiteral(v) || Array.isArray(v)) {
             return Utils.getDeepClone(v)
         } else {
             // Copy by value.
@@ -5039,8 +5039,8 @@ class View {
             if (this._texturizer.colorize) {
                 settings.colorizeResultTexture = this._texturizer.colorize
             }
-            if (this._texturizer.hideResult) {
-                settings.hideResultTexture = this._texturizer.hideResult
+            if (this._texturizer.renderOffscreen) {
+                settings.renderOffscreen = this._texturizer.renderOffscreen
             }
         }
 
@@ -5537,12 +5537,12 @@ class View {
         this.texturizer.lazy = v
     }
 
-    get hideResultTexture() {
-        return this._hasTexturizer() && this.texturizer.hideResult
+    get renderOffscreen() {
+        return this._hasTexturizer() && this.texturizer.renderOffscreen
     }
 
-    set hideResultTexture(v) {
-        this.texturizer.hideResult = v
+    set renderOffscreen(v) {
+        this.texturizer.renderOffscreen = v
     }
 
     get colorizeResultTexture() {
@@ -6259,7 +6259,7 @@ class ViewTexturizer {
 
         this._renderToTextureEnabled = false
 
-        this._hideResult = false
+        this._renderOffscreen = false
 
         this.filterResultCached = false
 
@@ -6275,13 +6275,16 @@ class ViewTexturizer {
         this._core.updateRenderToTextureEnabled()
     }
 
-    get hideResult() {
-        return this._hideResult
+    get renderOffscreen() {
+        return this._renderOffscreen
     }
 
-    set hideResult(v) {
-        this._hideResult = v
+    set renderOffscreen(v) {
+        this._renderOffscreen = v
         this._core.setHasRenderUpdates(1);
+
+        // This enforces rechecking the 'within bounds'.
+        this._core._setRecalc(6)
     }
 
     get colorize() {
@@ -7827,37 +7830,42 @@ class ViewCore {
                 if (recalc & 6) {
                     // Recheck if view is out-of-bounds (all settings that affect this should enable recalc bit 2 or 4).
                     this._outOfBounds = 0
-                    if (this._scissor && (this._scissor[2] <= 0 || this._scissor[3] <= 0)) {
-                        // Empty scissor area.
-                        this._outOfBounds = 2
-                    } else {
-                        // Use bbox to check out-of-boundness.
-                        if ((this._scissor[0] > ex) ||
-                            (this._scissor[1] > ey) ||
-                            (sx > (this._scissor[0] + this._scissor[2])) ||
-                            (sy > (this._scissor[1] + this._scissor[3]))
-                        ) {
-                            this._outOfBounds = 1
-                        }
+                    let withinMargin = true
 
-                        if (this._outOfBounds) {
-                            if (this._clipping || this._useRenderToTexture || this._clipbox) {
-                                this._outOfBounds = 2
+                    // Offscreens are always rendered as long as the parent is within bounds.
+                    if (!this._renderToTextureEnabled || !this._texturizer || !this._texturizer.renderOffscreen) {
+                        if (this._scissor && (this._scissor[2] <= 0 || this._scissor[3] <= 0)) {
+                            // Empty scissor area.
+                            this._outOfBounds = 2
+                        } else {
+                            // Use bbox to check out-of-boundness.
+                            if ((this._scissor[0] > ex) ||
+                                (this._scissor[1] > ey) ||
+                                (sx > (this._scissor[0] + this._scissor[2])) ||
+                                (sy > (this._scissor[1] + this._scissor[3]))
+                            ) {
+                                this._outOfBounds = 1
+                            }
+
+                            if (this._outOfBounds) {
+                                if (this._clipping || this._useRenderToTexture || this._clipbox) {
+                                    this._outOfBounds = 2
+                                }
                             }
                         }
-                    }
 
-                    let withinMargin = (this._outOfBounds === 0)
-                    if (!withinMargin && !!this._recBoundsMargin) {
-                        // Re-test, now with margins.
-                        withinMargin = !((ex < this._scissor[0] - this._recBoundsMargin[2]) ||
-                        (ey < this._scissor[1] - this._recBoundsMargin[3]) ||
-                        (sx > this._scissor[0] + this._scissor[2] + this._recBoundsMargin[0]) ||
-                        (sy > this._scissor[1] + this._scissor[3] + this._recBoundsMargin[1]))
+                        let withinMargin = (this._outOfBounds === 0)
+                        if (!withinMargin && !!this._recBoundsMargin) {
+                            // Re-test, now with margins.
+                            withinMargin = !((ex < this._scissor[0] - this._recBoundsMargin[2]) ||
+                            (ey < this._scissor[1] - this._recBoundsMargin[3]) ||
+                            (sx > this._scissor[0] + this._scissor[2] + this._recBoundsMargin[0]) ||
+                            (sy > this._scissor[1] + this._scissor[3] + this._recBoundsMargin[1]))
 
-                        if (withinMargin && this._outOfBounds === 2) {
-                            // Children must be visited because they may contain views that are within margin, so must be visible.
-                            this._outOfBounds = 1
+                            if (withinMargin && this._outOfBounds === 2) {
+                                // Children must be visited because they may contain views that are within margin, so must be visible.
+                                this._outOfBounds = 1
+                            }
                         }
                     }
 
@@ -8198,7 +8206,7 @@ class ViewCore {
                         this._texturizer.updateResultTexture();
                     }
 
-                    if (!this._texturizer.hideResult) {
+                    if (!this._texturizer.renderOffscreen) {
                         // Render result texture to the actual render target.
                         renderState.setShader(this.activeShader, this._shaderOwner);
                         renderState.setScissor(this._scissor)
@@ -12657,12 +12665,12 @@ class FastBlurView extends View {
         this.tagRoot = true
 
         this.patch({
-            "Textwrap": {renderToTexture: false, hideResultTexture: true, "Content": {}},
+            "Textwrap": {renderToTexture: false, renderOffscreen: true, "Content": {}},
             "Layers": {
-                "L0": {renderToTexture: true, hideResultTexture: true, visible: false, "Content": {shader: fastBoxBlurShader}},
-                "L1": {renderToTexture: true, hideResultTexture: true, visible: false, "Content": {shader: fastBoxBlurShader}},
-                "L2": {renderToTexture: true, hideResultTexture: true, visible: false, "Content": {shader: fastBoxBlurShader}},
-                "L3": {renderToTexture: true, hideResultTexture: true, visible: false, "Content": {shader: fastBoxBlurShader}},
+                "L0": {renderToTexture: true, renderOffscreen: true, visible: false, "Content": {shader: fastBoxBlurShader}},
+                "L1": {renderToTexture: true, renderOffscreen: true, visible: false, "Content": {shader: fastBoxBlurShader}},
+                "L2": {renderToTexture: true, renderOffscreen: true, visible: false, "Content": {shader: fastBoxBlurShader}},
+                "L3": {renderToTexture: true, renderOffscreen: true, visible: false, "Content": {shader: fastBoxBlurShader}},
             },
             "Result": {shader: {type: FastBlurOutputShader}, visible: false}
         }, true)
@@ -12993,7 +13001,7 @@ class SmoothScaleView extends View {
 
         this.patch({
             "ContentWrap": {
-                hideResultTexture: true,
+                renderOffscreen: true,
                 "Content": {}
             },
             "Scale": {visible: false
@@ -13042,7 +13050,7 @@ class SmoothScaleView extends View {
             while (scalers.length < its) {
                 const first = scalers.length === 0
                 const texture = (first ? content.getTexture() : scalers.last.getTexture());
-                scalers.a({renderToTexture: true, hideResultTexture: true, texture: texture});
+                scalers.a({renderToTexture: true, renderOffscreen: true, texture: texture});
             }
 
             this._update()
@@ -13056,7 +13064,7 @@ class SmoothScaleView extends View {
             for (let i = 0, n = scalers.length; i < n; i++) {
                 scalers.getAt(i).patch({
                     visible: i < its,
-                    hideResultTexture: i !== its - 1
+                    renderOffscreen: i !== its - 1
                 });
             }
             this._iterations = its;

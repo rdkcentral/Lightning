@@ -8,7 +8,7 @@ var attachInspector = function(wuf) {
         window.mutationCounter = 0;
         window.mutatingChildren = false;
         var observer = new MutationObserver(function(mutations) {
-            var fa = ["x", "y", "w", "h", "alpha", "mountX", "mountY", "pivotX", "pivotY", "scaleX", "scaleY", "rotation", "visible", "clipping", "rect", "colorUl", "colorUr", "colorBl", "colorBr", "color", "borderWidthLeft", "borderWidthRight", "borderWidthTop", "borderWidthBottom", "borderWidth", "borderColorLeft", "borderColorRight", "borderColorTop", "borderColorBottom", "borderColor", "zIndex", "forceZIndexContext", "renderToTexture", "renderToTextureLazy", "hideResultTexture", "colorizeResultTexture", "texture"];
+            var fa = ["x", "y", "w", "h", "alpha", "mountX", "mountY", "pivotX", "pivotY", "scaleX", "scaleY", "rotation", "visible", "clipping", "rect", "colorUl", "colorUr", "colorBl", "colorBr", "color", "borderWidthLeft", "borderWidthRight", "borderWidthTop", "borderWidthBottom", "borderWidth", "borderColorLeft", "borderColorRight", "borderColorTop", "borderColorBottom", "borderColor", "zIndex", "forceZIndexContext", "renderToTexture", "renderToTextureLazy", "renderOffscreen", "colorizeResultTexture", "texture"];
             var fac = fa.map(function(v) {return v.toLowerCase()});
 
             mutations.forEach(function(mutation) {
@@ -91,7 +91,7 @@ var attachInspector = function(wuf) {
                                     case "renderToTextureLazy":
                                         pv = false
                                         break;
-                                    case "hideResultTexture":
+                                    case "renderOffscreen":
                                         pv = false
                                         break;
                                     case "colorizeResultTexture":
@@ -115,7 +115,7 @@ var attachInspector = function(wuf) {
                                     case "forceZIndexContext":
                                     case "renderToTexture":
                                     case "renderToTextureLazy":
-                                    case "hideResultTexture":
+                                    case "renderOffscreen":
                                     case "colorizeResultTexture":
                                         pv = (v === "true");
                                         break;
@@ -706,15 +706,15 @@ var attachInspector = function(wuf) {
             }
         });
 
-        ViewTexturizer.prototype.__hideResult = false;
-        Object.defineProperty(ViewTexturizer.prototype, '_hideResult', {
+        ViewTexturizer.prototype.__renderOffscreen = false;
+        Object.defineProperty(ViewTexturizer.prototype, '_renderOffscreen', {
             get: function() {
-                return this.__hideResult;
+                return this.__renderOffscreen;
             },
             set: function(v) {
-                if (this.__hideResult !== v) {
-                    val(this, 'hideResultTexture', v, false);
-                    this.__hideResult = v;
+                if (this.__renderOffscreen !== v) {
+                    val(this, 'renderOffscreen', v, false);
+                    this.__renderOffscreen = v;
                 }
             }
         });

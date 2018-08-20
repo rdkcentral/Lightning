@@ -242,10 +242,10 @@ var createWorker = function() {
         _hasAlphaChannel() {
             // When using unaccelerated rendering image (https://github.com/WebPlatformForEmbedded/WPEWebKit/blob/wpe-20170728/Source/WebCore/html/ImageBitmap.cpp#L52),
             // everything including JPG images are in RGBA format. Upload is way faster when using an alpha channel.
-            //return true
+            return true
 
             // @todo: after hardware acceleration is fixed and re-enabled, JPG should be uploaded in RGB to get the best possible performance and memory usage.
-            return (this._mimeType.indexOf("image/png") !== -1)
+            // return (this._mimeType.indexOf("image/png") !== -1)
         }
 
         cancel() {
