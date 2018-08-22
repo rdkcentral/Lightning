@@ -65,6 +65,14 @@ class Transition extends EventEmitter {
         this.manager.removeActive(this)
     }
 
+    pause() {
+        this.stop()
+    }
+
+    play() {
+        this.manager.addActive(this)
+    }
+
     reset(targetValue, p) {
         if (!this.isAttached()) {
             // We don't support transitions on non-attached views. Just set value without invoking listeners.

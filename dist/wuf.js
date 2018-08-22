@@ -9554,6 +9554,14 @@ class Transition extends EventEmitter {
         this.manager.removeActive(this)
     }
 
+    pause() {
+        this.stop()
+    }
+
+    play() {
+        this.manager.addActive(this)
+    }
+
     reset(targetValue, p) {
         if (!this.isAttached()) {
             // We don't support transitions on non-attached views. Just set value without invoking listeners.
@@ -10273,13 +10281,25 @@ class Animation extends EventEmitter {
     }
 
     play() {
-        if (this._state == Animation.STATES.STOPPING && this.settings.stopMethod == AnimationSettings.STOP_METHODS.REVERSE) {
+        if (this._state === Animation.STATES.PAUSED) {
+            // Continue.
+            this._state = Animation.STATES.PLAYING
+            this.checkActive()
+            this.emit('resume')
+        } else if (this._state == Animation.STATES.STOPPING && this.settings.stopMethod == AnimationSettings.STOP_METHODS.REVERSE) {
             // Continue.
             this._state = Animation.STATES.PLAYING
             this.emit('stopContinue')
         } else if (this._state != Animation.STATES.PLAYING && this._state != Animation.STATES.FINISHED) {
             // Restart.
             this.start()
+        }
+    }
+
+    pause() {
+        if (this._state === Animation.STATES.PLAYING) {
+            this._state = Animation.STATES.PAUSED
+            this.emit('pause')
         }
     }
 
@@ -10336,6 +10356,10 @@ class Animation extends EventEmitter {
             this._state = Animation.STATES.STOPPED
             this.emit('stopFinish')
         }
+    }
+
+    isPaused() {
+        return this._state === Animation.STATES.PAUSED
     }
 
     isPlaying() {
@@ -10537,7 +10561,7 @@ class Animation extends EventEmitter {
     }
 
     apply() {
-        if (this._state == Animation.STATES.STOPPED) {
+        if (this._state === Animation.STATES.STOPPED) {
             this.reset()
         } else {
             let factor = 1
@@ -10583,7 +10607,8 @@ Animation.STATES = {
     PLAYING: 1,
     STOPPING: 2,
     STOPPED: 3,
-    FINISHED: 4
+    FINISHED: 4,
+    PAUSED: 5
 }
 
 
