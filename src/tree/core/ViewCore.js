@@ -1299,8 +1299,8 @@ class ViewCore {
                         this._scissor = [
                             lx,
                             ly,
-                            Math.min(area[2], ex) - lx,
-                            Math.min(area[3], ey) - ly
+                            Math.min(area[2] + area[0], ex) - lx,
+                            Math.min(area[3] + area[1], ey) - ly
                         ]
                     } else {
                         this._scissor = [sx, sy, ex - sx, ey - sy]
@@ -1488,20 +1488,12 @@ class ViewCore {
                 this._onAfterUpdate(this.view)
             }
         } else {
-            if (this.ctx.updateTreeOrder === -1 || this._updateTreeOrder === this.ctx.updateTreeOrder) {
-                // If current update tree order equals last, there's no need to change the branch as there are no changes at all anyway.
+            if (this.ctx.updateTreeOrder === -1 || this._updateTreeOrder >= this.ctx.updateTreeOrder) {
+                // If new tree order does not interfere with the current (gaps allowed) there's no need to traverse the branch.
                 this.ctx.updateTreeOrder = -1
             } else {
                 this.updateTreeOrder();
             }
-        }
-    }
-
-    _getLastDescendant() {
-        if (this._children && this._children.length) {
-            return this._children[this._children.length - 1]._getLastDescendant()
-        } else {
-            return this
         }
     }
 
