@@ -900,7 +900,7 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
                 s.add(this);
 
                 p._clearTagsCache(tag);
-            } while (p = p.__parent);
+            } while (!p.__tagRoot && (p = p.__parent));
         }
     }
 
@@ -918,7 +918,7 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
 
                     p._clearTagsCache(tag);
                 }
-            } while (p = p.__parent);
+            } while (!p.__tagRoot && (p = p.__parent));
         }
     }
 

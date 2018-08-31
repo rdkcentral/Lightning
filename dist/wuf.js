@@ -4647,7 +4647,7 @@ class View {
                 s.add(this);
 
                 p._clearTagsCache(tag);
-            } while (p = p.__parent);
+            } while (!p.__tagRoot && (p = p.__parent));
         }
     }
 
@@ -4665,7 +4665,7 @@ class View {
 
                     p._clearTagsCache(tag);
                 }
-            } while (p = p.__parent);
+            } while (!p.__tagRoot && (p = p.__parent));
         }
     }
 
