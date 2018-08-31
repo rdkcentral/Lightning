@@ -578,8 +578,11 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
     }
 
     onTextureSourceLoaded() {
-        // We may be dealing with a texture reloading, so we must force update.
-        this._setDisplayedTexture(this.__texture);
+        // This function is called when view is enabled, but we only want to set displayed texture for active views.
+        if (this.isActive()) {
+            // We may be dealing with a texture reloading, so we must force update.
+            this._setDisplayedTexture(this.__texture);
+        }
     };
 
     onTextureSourceLoadError(e) {
@@ -661,19 +664,7 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
                 ty2 = Math.min(1, ty2)
             }
 
-            if (displayedTextureSource.smi !== null) {
-                // Change texture coords for layout on sprite map.
-                if (displayedTexture.clipping) {
-                    const c = [tx1, ty1, tx2, ty2]
-                    displayedTextureSource.smi.changeTexCoords(c)
-                    this.__core.setTextureCoords(c[0], c[1], c[2], c[3], displayedTextureSource.smi.rotate)
-                } else {
-                    const c = displayedTextureSource.smi.getTexCoords()
-                    this.__core.setTextureCoords(c[0], c[1], c[2], c[3], displayedTextureSource.smi.rotate)
-                }
-            } else {
-                this.__core.setTextureCoords(tx1, ty1, tx2, ty2, false);
-            }
+            this.__core.setTextureCoords(tx1, ty1, tx2, ty2, false);
         }
     }
 

@@ -66,12 +66,6 @@ class TextureSource {
          */
         this._isResultTexture = !this.loader;
 
-        /**
-         * Sprite map info, only exists when texture source is active in spritemap.
-         * @type {SpriteMapInfo}
-         */
-        this.smi = null
-
     }
 
     addTexture(v) {
@@ -125,15 +119,12 @@ class TextureSource {
             }
         }
 
-        if (this.isLoaded()) {
-            this._addToSpriteMap()
-        } else {
+        if (!this.isLoaded()) {
             this.load();
         }
     }
 
     becomesUnused() {
-        this._removeFromSpriteMap()
         if (this.isLoading()) {
             if (this._cancelCb) {
                 this._cancelCb(this);
@@ -252,7 +243,6 @@ class TextureSource {
 
     onLoad() {
         if (this.isUsed()) {
-            this._addToSpriteMap()
             this.forEachView(function(view) {
                 view.onTextureSourceLoaded();
             });
@@ -266,17 +256,6 @@ class TextureSource {
         if (this.glTexture) {
             // Change 'update' flag. This is currently not used by the framework but is handy in userland.
             this.glTexture.update = this.stage.frameCounter
-        }
-
-        // In this case, we disable the sprite map from now on for this texture.
-        // Rationale: it is likely that this glTexture will change more often and sprite map may become a burden.
-        if (this.stage.spriteMap && this.stage.spriteMap.has(this)) {
-            this.stage.spriteMap.remove(this)
-
-            // We also invalidate the smi.
-            this.stage.spriteMap.invalidate(this)
-
-            this.forceUpdateRenderCoords()
         }
 
         this.forEachView(function(view) {
@@ -320,29 +299,8 @@ class TextureSource {
     }
 
     free() {
-        this._removeFromSpriteMap()
         this.manager.freeTextureSource(this);
     }
-
-    _addToSpriteMap() {
-        const spriteMap = this.stage.spriteMap
-
-        if (spriteMap) {
-            // Ignore 'render textures' because they can be updated at any time.
-            if (this.glTexture && !this.glTexture.projection) {
-                if (this.stage.spriteMap.shouldBeAdded(this)) {
-                    return this.stage.spriteMap.add(this)
-                }
-            }
-        }
-    }
-
-    _removeFromSpriteMap() {
-        if (this.stage.spriteMap) {
-            this.stage.spriteMap.remove(this)
-        }
-    }
-
 
 }
 
