@@ -27,7 +27,7 @@ class Animation extends EventEmitter {
     }
 
     start() {
-        if (this._view && this._view.isAttached()) {
+        if (this._view && this._view.attached) {
             this._p = 0
             this._delayLeft = this.settings.delay
             this._repeatsLeft = this.settings.repeat
@@ -136,7 +136,7 @@ class Animation extends EventEmitter {
     }
 
     isActive() {
-        return (this._state == Animation.STATES.PLAYING || this._state == Animation.STATES.STOPPING) && this._view && this._view.isAttached()
+        return (this._state == Animation.STATES.PLAYING || this._state == Animation.STATES.STOPPING) && this._view && this._view.attached
     }
 
     progress(dt) {

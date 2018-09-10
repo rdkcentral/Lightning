@@ -254,14 +254,14 @@ class Texture {
 
                 if (newSource && newSource.glTexture) {
                     this.views.forEach(view => {
-                        if (view.isActive()) {
+                        if (view.active) {
                             view._setDisplayedTexture(this)
                         }
                     })
                 }
             } else {
                 this.views.forEach(view => {
-                    if (view.isActive()) {
+                    if (view.active) {
                         view._setDisplayedTexture(null)
                     }
                 })

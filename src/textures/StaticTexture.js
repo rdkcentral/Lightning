@@ -15,6 +15,10 @@ class StaticTexture extends Texture {
         }
     }
 
+    get options() {
+        return this._options
+    }
+
     _getIsValid() {
         return !!this._options
     }

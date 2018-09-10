@@ -97,7 +97,7 @@ class Transition extends EventEmitter {
     }
 
     isAttached() {
-        return this._view.isAttached()
+        return this._view.attached
     }
 
     isRunning() {

@@ -248,23 +248,23 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
         return this.__active
     }
 
-    isAttached() {
+    _isAttached() {
         return (this.__parent ? this.__parent.__attached : (this.stage.root === this));
     };
 
-    isEnabled() {
+    _isEnabled() {
         return this.__core.visible && (this.__core.alpha > 0) && (this.__parent ? this.__parent.__enabled : (this.stage.root === this));
     };
 
-    isActive() {
-        return this.isEnabled() && this.withinBoundsMargin;
+    _isActive() {
+        return this._isEnabled() && this.withinBoundsMargin;
     };
 
     /**
      * Updates the 'attached' flag for this branch.
      */
     _updateAttachedFlag() {
-        let newAttached = this.isAttached();
+        let newAttached = this._isAttached();
         if (this.__attached !== newAttached) {
             this.__attached = newAttached;
 
@@ -294,7 +294,7 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
      * Updates the 'enabled' flag for this branch.
      */
     _updateEnabledFlag() {
-        let newEnabled = this.isEnabled();
+        let newEnabled = this._isEnabled();
         if (this.__enabled !== newEnabled) {
             if (newEnabled) {
                 this._onEnabled()
@@ -457,7 +457,7 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
         if (this.__texture) {
             this.__texture.load();
 
-            if (!this.__texture.isUsed() || !this.isEnabled()) {
+            if (!this.__texture.isUsed() || !this._isEnabled()) {
                 // Loading the texture will have no effect on the dimensions of this view.
                 // Manually update them, so that calcs can be performed immediately in userland.
                 this._updateDimensions();
@@ -2013,7 +2013,7 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
 
     getSmooth(property, v) {
         let t = this._getTransition(property);
-        if (t && t.isAttached()) {
+        if (t && t.attached) {
             return t.targetValue;
         } else {
             return v;

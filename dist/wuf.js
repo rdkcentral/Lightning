@@ -2416,14 +2416,14 @@ class Texture {
 
                 if (newSource && newSource.glTexture) {
                     this.views.forEach(view => {
-                        if (view.isActive()) {
+                        if (view.active) {
                             view._setDisplayedTexture(this)
                         }
                     })
                 }
             } else {
                 this.views.forEach(view => {
-                    if (view.isActive()) {
+                    if (view.active) {
                         view._setDisplayedTexture(null)
                     }
                 })
@@ -3995,23 +3995,23 @@ class View {
         return this.__active
     }
 
-    isAttached() {
+    _isAttached() {
         return (this.__parent ? this.__parent.__attached : (this.stage.root === this));
     };
 
-    isEnabled() {
+    _isEnabled() {
         return this.__core.visible && (this.__core.alpha > 0) && (this.__parent ? this.__parent.__enabled : (this.stage.root === this));
     };
 
-    isActive() {
-        return this.isEnabled() && this.withinBoundsMargin;
+    _isActive() {
+        return this._isEnabled() && this.withinBoundsMargin;
     };
 
     /**
      * Updates the 'attached' flag for this branch.
      */
     _updateAttachedFlag() {
-        let newAttached = this.isAttached();
+        let newAttached = this._isAttached();
         if (this.__attached !== newAttached) {
             this.__attached = newAttached;
 
@@ -4041,7 +4041,7 @@ class View {
      * Updates the 'enabled' flag for this branch.
      */
     _updateEnabledFlag() {
-        let newEnabled = this.isEnabled();
+        let newEnabled = this._isEnabled();
         if (this.__enabled !== newEnabled) {
             if (newEnabled) {
                 this._onEnabled()
@@ -4204,7 +4204,7 @@ class View {
         if (this.__texture) {
             this.__texture.load();
 
-            if (!this.__texture.isUsed() || !this.isEnabled()) {
+            if (!this.__texture.isUsed() || !this._isEnabled()) {
                 // Loading the texture will have no effect on the dimensions of this view.
                 // Manually update them, so that calcs can be performed immediately in userland.
                 this._updateDimensions();
@@ -5760,7 +5760,7 @@ class View {
 
     getSmooth(property, v) {
         let t = this._getTransition(property);
-        if (t && t.isAttached()) {
+        if (t && t.attached) {
             return t.targetValue;
         } else {
             return v;
@@ -9586,7 +9586,7 @@ class Transition extends EventEmitter {
     }
 
     isAttached() {
-        return this._view.isAttached()
+        return this._view.attached
     }
 
     isRunning() {
@@ -10268,7 +10268,7 @@ class Animation extends EventEmitter {
     }
 
     start() {
-        if (this._view && this._view.isAttached()) {
+        if (this._view && this._view.attached) {
             this._p = 0
             this._delayLeft = this.settings.delay
             this._repeatsLeft = this.settings.repeat
@@ -10377,7 +10377,7 @@ class Animation extends EventEmitter {
     }
 
     isActive() {
-        return (this._state == Animation.STATES.PLAYING || this._state == Animation.STATES.STOPPING) && this._view && this._view.isAttached()
+        return (this._state == Animation.STATES.PLAYING || this._state == Animation.STATES.STOPPING) && this._view && this._view.attached
     }
 
     progress(dt) {
@@ -11641,6 +11641,10 @@ class StaticTexture extends Texture {
             this._options = v
             this._changed()
         }
+    }
+
+    get options() {
+        return this._options
     }
 
     _getIsValid() {
