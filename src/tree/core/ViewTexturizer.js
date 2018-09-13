@@ -126,10 +126,6 @@ class ViewTexturizer {
         return activeFilters
     }
 
-    getTexture() {
-        return this.ctx.stage.texture(this._getTextureSource(), {precision: this._getTextureSource().precision});
-    }
-
     _getTextureSource() {
         if (!this._resultTextureSource) {
             this._resultTextureSource = new TextureSource(this._view.stage.textureManager);
