@@ -14,6 +14,10 @@ class SourceTexture extends Texture {
 
     set textureSource(v) {
         if (v !== this._textureSource) {
+            if (v.isResultTexture) {
+                // In case of a result texture, automatically inherit the precision.
+                this._precision = this.stage.getRenderPrecision()
+            }
             this._textureSource = v
             this._changed()
         }
