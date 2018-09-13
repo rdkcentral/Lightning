@@ -622,9 +622,9 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
     }
 
     _updateTextureCoords() {
-        if (this.displayedTexture && this.displayedTexture.source) {
+        if (this.displayedTexture && this.displayedTexture._source) {
             let displayedTexture = this.displayedTexture;
-            let displayedTextureSource = this.displayedTexture.source;
+            let displayedTextureSource = this.displayedTexture._source;
 
             let tx1 = 0, ty1 = 0, tx2 = 1.0, ty2 = 1.0;
             if (displayedTexture.clipping) {

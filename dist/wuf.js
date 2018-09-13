@@ -4369,9 +4369,9 @@ class View {
     }
 
     _updateTextureCoords() {
-        if (this.displayedTexture && this.displayedTexture.source) {
+        if (this.displayedTexture && this.displayedTexture._source) {
             let displayedTexture = this.displayedTexture;
-            let displayedTextureSource = this.displayedTexture.source;
+            let displayedTextureSource = this.displayedTexture._source;
 
             let tx1 = 0, ty1 = 0, tx2 = 1.0, ty2 = 1.0;
             if (displayedTexture.clipping) {
@@ -6350,10 +6350,6 @@ class ViewTexturizer {
             }
         })
         return activeFilters
-    }
-
-    getTexture() {
-        return this.ctx.stage.texture(this._getTextureSource(), {precision: this._getTextureSource().precision});
     }
 
     _getTextureSource() {
@@ -10740,6 +10736,10 @@ class SourceTexture extends Texture {
 
     set textureSource(v) {
         if (v !== this._textureSource) {
+            if (v.isResultTexture) {
+                // In case of a result texture, automatically inherit the precision.
+                this._precision = this.stage.getRenderPrecision()
+            }
             this._textureSource = v
             this._changed()
         }
