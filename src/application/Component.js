@@ -20,13 +20,14 @@ class Component extends View {
         this.__firstActive = false
         this.__firstEnable = false
 
+        this.__signals = undefined
+
         this.__construct()
 
         // Quick-apply template.
         const func = this.constructor.getTemplateFunc()
         func.f(this, func.a)
 
-        this.__signals = undefined
     }
 
     /**
