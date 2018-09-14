@@ -72,6 +72,17 @@ class TextureSource {
          */
         this.smi = null
 
+        /**
+         * Contains the load error, if the texture source could previously not be loaded.
+         * @type {object}
+         * @private
+         */
+        this._loadError = undefined
+
+    }
+
+    get loadError() {
+        return this._loadError
     }
 
     addTexture(v) {
@@ -100,9 +111,19 @@ class TextureSource {
         this._isResultTexture = v
     }
 
-    forEachView(cb) {
+    forEachEnabledView(cb) {
         this.textures.forEach(texture => {
             texture.views.forEach(cb)
+        })
+    }
+
+    forEachActiveView(cb) {
+        this.textures.forEach(texture => {
+            texture.views.forEach(view => {
+                if (view.active) {
+                    cb(view)
+                }
+            })
         })
     }
 
@@ -185,13 +206,6 @@ class TextureSource {
         }
     }
 
-    onError(e) {
-        console.error('texture load error', e, this.id);
-        this.forEachView(function(view) {
-            view.onTextureSourceLoadError(e);
-        });
-    }
-
     setSource(options) {
         const source = options.source
 
@@ -243,6 +257,9 @@ class TextureSource {
             this.manager.uploadTextureSource(this, source, format);
         }
 
+        // Must be cleared when reload is succesful.
+        this._loadError = undefined
+        
         this.onLoad();
     }
 
@@ -253,7 +270,7 @@ class TextureSource {
     onLoad() {
         if (this.isUsed()) {
             this._addToSpriteMap()
-            this.forEachView(function(view) {
+            this.forEachActiveView(function(view) {
                 view.onTextureSourceLoaded();
             });
         }
@@ -279,14 +296,14 @@ class TextureSource {
             this.forceUpdateRenderCoords()
         }
 
-        this.forEachView(function(view) {
+        this.forEachActiveView(function(view) {
             view.forceRenderUpdate();
         });
 
     }
 
     forceUpdateRenderCoords() {
-        this.forEachView(function(view) {
+        this.forEachActiveView(function(view) {
             view._updateTextureCoords()
         })
     }
@@ -302,21 +319,23 @@ class TextureSource {
         this.h = h;
 
         if (!prevGlTexture && this.glTexture) {
-            this.forEachView(view => view.onTextureSourceLoaded())
+            this.forEachActiveView(view => view.onTextureSourceLoaded())
         }
 
         if (!this.glTexture) {
-            this.forEachView(view => view._setDisplayedTexture(null))
+            this.forEachActiveView(view => view._setDisplayedTexture(null))
         }
 
-        this.forEachView(view => view._updateDimensions());
+        // Dimensions must be updated also on enabled views, as it may force it to go within bounds.
+        this.forEachEnabledView(view => view._updateDimensions());
 
         // Notice that the sprite map must never contain render textures.
     }
 
     onError(e) {
-        console.error('texture load error', e, this.id);
-        this.forEachView(view => view.onTextureSourceLoadError(e))
+        this._loadError = e
+        console.error('texture load error', e, this.lookupId);
+        this.forEachActiveView(view => view.onTextureSourceLoadError(e))
     }
 
     free() {

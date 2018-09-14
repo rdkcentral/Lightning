@@ -252,12 +252,21 @@ class Texture {
                 // Must happen before setDisplayedTexture to ensure sprite map texcoords are used.
                 newSource.addTexture(this)
 
-                if (newSource && newSource.glTexture) {
+                if (newSource.glTexture) {
                     this.views.forEach(view => {
                         if (view.active) {
                             view._setDisplayedTexture(this)
                         }
                     })
+                } else {
+                    const loadError = newSource.loadError
+                    if (loadError) {
+                        this.views.forEach(view => {
+                            if (view.active) {
+                                view.onTextureSourceLoadError(loadError);
+                            }
+                        });
+                    }
                 }
             } else {
                 this.views.forEach(view => {
@@ -281,6 +290,10 @@ class Texture {
 
     isLoaded() {
         return this._source && this._source.isLoaded()
+    }
+
+    get loadError() {
+        return this._source && this._source.loadError
     }
 
     free() {

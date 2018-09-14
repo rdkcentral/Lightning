@@ -465,15 +465,23 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
         }
     }
 
-    _enableTexture() {
-        // Detect texture changes.
-        let dt = null;
-        if (this.__texture.isLoaded()) {
-            dt = this.__texture;
+    _enableTextureError() {
+        // txError event should automatically be re-triggered when a view becomes active.
+        const loadError = this.__texture.loadError
+        if (loadError) {
+            this.emit('txError', loadError, this.__texture._source);
         }
+    }
 
-        // Note that the texture source may have been replaced while being invisible.
-        this._setDisplayedTexture(dt)
+    _enableTexture() {
+        if (this.__texture.isLoaded()) {
+            this._setDisplayedTexture(this.__texture)
+        } else {
+            // We don't want to retain the old 'ghost' image as it wasn't visible anyway.
+            this._setDisplayedTexture(null)
+
+            this._enableTextureError()
+        }
     }
 
     _disableTexture() {
@@ -519,10 +527,14 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
             if (this.__texture) {
                 if (this.__enabled) {
                     this.__texture.addView(this)
-                }
 
-                if (this.__texture.isLoaded() && this.__enabled && this.withinBoundsMargin) {
-                    this._setDisplayedTexture(this.__texture)
+                    if (this.withinBoundsMargin) {
+                        if (this.__texture.isLoaded()) {
+                            this._setDisplayedTexture(this.__texture)
+                        } else {
+                            this._enableTextureError()
+                        }
+                    }
                 }
             } else {
                 // Make sure that current texture is cleared when the texture is explicitly set to null.
@@ -536,7 +548,6 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
             this._updateDimensions()
         }
     }
-
 
     get displayedTexture() {
         return this.__displayedTexture;
@@ -578,7 +589,6 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
     }
 
     onTextureSourceLoaded() {
-        // We may be dealing with a texture reloading, so we must force update.
         this._setDisplayedTexture(this.__texture);
     };
 

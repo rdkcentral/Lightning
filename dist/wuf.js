@@ -2414,12 +2414,21 @@ class Texture {
                 // Must happen before setDisplayedTexture to ensure sprite map texcoords are used.
                 newSource.addTexture(this)
 
-                if (newSource && newSource.glTexture) {
+                if (newSource.glTexture) {
                     this.views.forEach(view => {
                         if (view.active) {
                             view._setDisplayedTexture(this)
                         }
                     })
+                } else {
+                    const loadError = newSource.loadError
+                    if (loadError) {
+                        this.views.forEach(view => {
+                            if (view.active) {
+                                view.onTextureSourceLoadError(loadError);
+                            }
+                        });
+                    }
                 }
             } else {
                 this.views.forEach(view => {
@@ -2443,6 +2452,10 @@ class Texture {
 
     isLoaded() {
         return this._source && this._source.isLoaded()
+    }
+
+    get loadError() {
+        return this._source && this._source.loadError
     }
 
     free() {
@@ -2682,6 +2695,17 @@ class TextureSource {
          */
         this.smi = null
 
+        /**
+         * Contains the load error, if the texture source could previously not be loaded.
+         * @type {object}
+         * @private
+         */
+        this._loadError = undefined
+
+    }
+
+    get loadError() {
+        return this._loadError
     }
 
     addTexture(v) {
@@ -2710,9 +2734,19 @@ class TextureSource {
         this._isResultTexture = v
     }
 
-    forEachView(cb) {
+    forEachEnabledView(cb) {
         this.textures.forEach(texture => {
             texture.views.forEach(cb)
+        })
+    }
+
+    forEachActiveView(cb) {
+        this.textures.forEach(texture => {
+            texture.views.forEach(view => {
+                if (view.active) {
+                    cb(view)
+                }
+            })
         })
     }
 
@@ -2795,13 +2829,6 @@ class TextureSource {
         }
     }
 
-    onError(e) {
-        console.error('texture load error', e, this.id);
-        this.forEachView(function(view) {
-            view.onTextureSourceLoadError(e);
-        });
-    }
-
     setSource(options) {
         const source = options.source
 
@@ -2853,6 +2880,9 @@ class TextureSource {
             this.manager.uploadTextureSource(this, source, format);
         }
 
+        // Must be cleared when reload is succesful.
+        this._loadError = undefined
+        
         this.onLoad();
     }
 
@@ -2863,7 +2893,7 @@ class TextureSource {
     onLoad() {
         if (this.isUsed()) {
             this._addToSpriteMap()
-            this.forEachView(function(view) {
+            this.forEachActiveView(function(view) {
                 view.onTextureSourceLoaded();
             });
         }
@@ -2889,14 +2919,14 @@ class TextureSource {
             this.forceUpdateRenderCoords()
         }
 
-        this.forEachView(function(view) {
+        this.forEachActiveView(function(view) {
             view.forceRenderUpdate();
         });
 
     }
 
     forceUpdateRenderCoords() {
-        this.forEachView(function(view) {
+        this.forEachActiveView(function(view) {
             view._updateTextureCoords()
         })
     }
@@ -2912,21 +2942,23 @@ class TextureSource {
         this.h = h;
 
         if (!prevGlTexture && this.glTexture) {
-            this.forEachView(view => view.onTextureSourceLoaded())
+            this.forEachActiveView(view => view.onTextureSourceLoaded())
         }
 
         if (!this.glTexture) {
-            this.forEachView(view => view._setDisplayedTexture(null))
+            this.forEachActiveView(view => view._setDisplayedTexture(null))
         }
 
-        this.forEachView(view => view._updateDimensions());
+        // Dimensions must be updated also on enabled views, as it may force it to go within bounds.
+        this.forEachEnabledView(view => view._updateDimensions());
 
         // Notice that the sprite map must never contain render textures.
     }
 
     onError(e) {
-        console.error('texture load error', e, this.id);
-        this.forEachView(view => view.onTextureSourceLoadError(e))
+        this._loadError = e
+        console.error('texture load error', e, this.lookupId);
+        this.forEachActiveView(view => view.onTextureSourceLoadError(e))
     }
 
     free() {
@@ -4212,15 +4244,23 @@ class View {
         }
     }
 
-    _enableTexture() {
-        // Detect texture changes.
-        let dt = null;
-        if (this.__texture.isLoaded()) {
-            dt = this.__texture;
+    _enableTextureError() {
+        // txError event should automatically be re-triggered when a view becomes active.
+        const loadError = this.__texture.loadError
+        if (loadError) {
+            this.emit('txError', loadError, this.__texture._source);
         }
+    }
 
-        // Note that the texture source may have been replaced while being invisible.
-        this._setDisplayedTexture(dt)
+    _enableTexture() {
+        if (this.__texture.isLoaded()) {
+            this._setDisplayedTexture(this.__texture)
+        } else {
+            // We don't want to retain the old 'ghost' image as it wasn't visible anyway.
+            this._setDisplayedTexture(null)
+
+            this._enableTextureError()
+        }
     }
 
     _disableTexture() {
@@ -4266,10 +4306,14 @@ class View {
             if (this.__texture) {
                 if (this.__enabled) {
                     this.__texture.addView(this)
-                }
 
-                if (this.__texture.isLoaded() && this.__enabled && this.withinBoundsMargin) {
-                    this._setDisplayedTexture(this.__texture)
+                    if (this.withinBoundsMargin) {
+                        if (this.__texture.isLoaded()) {
+                            this._setDisplayedTexture(this.__texture)
+                        } else {
+                            this._enableTextureError()
+                        }
+                    }
                 }
             } else {
                 // Make sure that current texture is cleared when the texture is explicitly set to null.
@@ -4283,7 +4327,6 @@ class View {
             this._updateDimensions()
         }
     }
-
 
     get displayedTexture() {
         return this.__displayedTexture;
@@ -4325,7 +4368,6 @@ class View {
     }
 
     onTextureSourceLoaded() {
-        // We may be dealing with a texture reloading, so we must force update.
         this._setDisplayedTexture(this.__texture);
     };
 
@@ -6370,7 +6412,7 @@ class ViewTexturizer {
             }
 
             // Texture will be updated: all views using the source need to be updated as well.
-            this._resultTextureSource.forEachView(view => {
+            this._resultTextureSource.forEachEnabledView(view => {
                 view._updateDimensions()
                 view.core.setHasRenderUpdates(3)
             })
@@ -14436,13 +14478,14 @@ class Component extends View {
         this.__firstActive = false
         this.__firstEnable = false
 
+        this.__signals = undefined
+
         this.__construct()
 
         // Quick-apply template.
         const func = this.constructor.getTemplateFunc()
         func.f(this, func.a)
 
-        this.__signals = undefined
     }
 
     /**
