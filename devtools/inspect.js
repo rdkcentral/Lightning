@@ -162,6 +162,7 @@ var attachInspector = function(wuf) {
         View.prototype.dhtml = function() {
             if (!this.debugElement) {
                 this.debugElement = document.createElement('DIV');
+                this.debugElement.setAttribute('type', this.constructor.name)
                 this.debugElement.view = this;
                 this.debugElement.style.position = 'absolute';
 
