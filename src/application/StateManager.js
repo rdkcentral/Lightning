@@ -43,15 +43,20 @@ class StateManager {
         }
 
         let found
-        if (Array.isArray(event)) {
-            found = this._mfire(component, event, args)
-        } else {
-            found = this._fire(component, event, args)
-        }
+        try {
+            if (Array.isArray(event)) {
+                found = this._mfire(component, event, args)
+            } else {
+                found = this._fire(component, event, args)
+            }
 
-        if (found && primaryEvent) {
-            // Update focus.
-            component.application.__updateFocus()
+            if (found && primaryEvent) {
+                // Update focus.
+                component.application.__updateFocus()
+            }
+        } catch(e) {
+            console.error(`${component.constructor.name} "${component.state}".${event} ${component.getLocationString()}`)
+            console.error(e.stack)
         }
 
         this._fireLevel--
@@ -95,19 +100,15 @@ class StateManager {
             let validAction = (result.s !== undefined)
             let newState = result.s
             if (result.a) {
-                try {
+                if (this.debug) {
+                    console.log(`${this._logPrefix}${component.constructor.name} "${component.state}".${event} ${component.getLocationString()}`)
+                }
+                newState = result.a.call(component, args)
+                validAction = (newState !== false)
+                if (!validAction) {
                     if (this.debug) {
-                        console.log(`${this._logPrefix}${component.constructor.name} "${component.state}".${event} ${component.getLocationString()}`)
+                        console.log(`${this._logPrefix}[PASS THROUGH]`)
                     }
-                    newState = result.a.call(component, args)
-                    validAction = (newState !== false)
-                    if (!validAction) {
-                        if (this.debug) {
-                            console.log(`${this._logPrefix}[PASS THROUGH]`)
-                        }
-                    }
-                } catch(e) {
-                    console.error(e)
                 }
             }
             if (validAction) {
