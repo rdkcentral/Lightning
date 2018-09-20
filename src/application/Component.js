@@ -236,12 +236,16 @@ class Component extends View {
     }
 
     _getStates() {
-        if (!this.constructor.__states) {
+        // Be careful with class-based static inheritance.
+        if (this.constructor.__hasStates !== this.constructor) {
+            this.constructor.__hasStates = this.constructor
+
             this.constructor.__states = this.constructor._states()
             if (!Utils.isObjectLiteral(this.constructor.__states)) {
                 this._throwError("States object empty")
             }
         }
+
         return this.constructor.__states
     }
 
@@ -250,7 +254,9 @@ class Component extends View {
     }
 
     _getTemplate() {
-        if (!this.constructor.__template) {
+        if (this.constructor.__hasTemplate !== this.constructor) {
+            this.constructor.__hasTemplate = this.constructor
+
             this.constructor.__template = this.constructor._template()
             if (!Utils.isObjectLiteral(this.constructor.__template)) {
                 this._throwError("Template object empty")

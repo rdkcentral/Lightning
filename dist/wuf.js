@@ -1668,8 +1668,13 @@ class ShaderBase {
     _init() {
         if (!this._initialized) {
             this._program.compile(this.ctx.gl)
+            this.initialize()
             this._initialized = true
         }
+    }
+
+    initialize() {
+
     }
 
     _uniform(name) {
@@ -1739,7 +1744,7 @@ class ShaderBase {
     }
 
     cleanup() {
-
+        this._initialized = false
     }
 
 }
@@ -14694,12 +14699,16 @@ class Component extends View {
     }
 
     _getStates() {
-        if (!this.constructor.__states) {
+        // Be careful with class-based static inheritance.
+        if (this.constructor.__hasStates !== this.constructor) {
+            this.constructor.__hasStates = this.constructor
+
             this.constructor.__states = this.constructor._states()
             if (!Utils.isObjectLiteral(this.constructor.__states)) {
                 this._throwError("States object empty")
             }
         }
+
         return this.constructor.__states
     }
 
@@ -14708,7 +14717,9 @@ class Component extends View {
     }
 
     _getTemplate() {
-        if (!this.constructor.__template) {
+        if (this.constructor.__hasTemplate !== this.constructor) {
+            this.constructor.__hasTemplate = this.constructor
+
             this.constructor.__template = this.constructor._template()
             if (!Utils.isObjectLiteral(this.constructor.__template)) {
                 this._throwError("Template object empty")
@@ -15204,15 +15215,20 @@ class StateManager {
         }
 
         let found
-        if (Array.isArray(event)) {
-            found = this._mfire(component, event, args)
-        } else {
-            found = this._fire(component, event, args)
-        }
+        try {
+            if (Array.isArray(event)) {
+                found = this._mfire(component, event, args)
+            } else {
+                found = this._fire(component, event, args)
+            }
 
-        if (found && primaryEvent) {
-            // Update focus.
-            component.application.__updateFocus()
+            if (found && primaryEvent) {
+                // Update focus.
+                component.application.__updateFocus()
+            }
+        } catch(e) {
+            console.error(`${component.constructor.name} "${component.state}".${event} ${component.getLocationString()}`)
+            console.error(e.stack)
         }
 
         this._fireLevel--
@@ -15256,19 +15272,15 @@ class StateManager {
             let validAction = (result.s !== undefined)
             let newState = result.s
             if (result.a) {
-                try {
+                if (this.debug) {
+                    console.log(`${this._logPrefix}${component.constructor.name} "${component.state}".${event} ${component.getLocationString()}`)
+                }
+                newState = result.a.call(component, args)
+                validAction = (newState !== false)
+                if (!validAction) {
                     if (this.debug) {
-                        console.log(`${this._logPrefix}${component.constructor.name} "${component.state}".${event} ${component.getLocationString()}`)
+                        console.log(`${this._logPrefix}[PASS THROUGH]`)
                     }
-                    newState = result.a.call(component, args)
-                    validAction = (newState !== false)
-                    if (!validAction) {
-                        if (this.debug) {
-                            console.log(`${this._logPrefix}[PASS THROUGH]`)
-                        }
-                    }
-                } catch(e) {
-                    console.error(e)
                 }
             }
             if (validAction) {
