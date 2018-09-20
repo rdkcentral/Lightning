@@ -30,8 +30,13 @@ class ShaderBase {
     _init() {
         if (!this._initialized) {
             this._program.compile(this.ctx.gl)
+            this.initialize()
             this._initialized = true
         }
+    }
+
+    initialize() {
+
     }
 
     _uniform(name) {
@@ -101,7 +106,7 @@ class ShaderBase {
     }
 
     cleanup() {
-
+        this._initialized = false
     }
 
 }
