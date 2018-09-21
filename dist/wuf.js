@@ -140,7 +140,6 @@ class WebAdapter {
 
     init(stage) {
         this.stage = stage;
-        this.canvas = null;
         this._looping = false;
         this._awaitingLoop = false;
 
@@ -236,10 +235,12 @@ class WebAdapter {
     }
 
     createWebGLContext(w, h) {
-        let canvas = this.stage.getOption('canvas') || document.createElement('canvas');
+        let canvas = this.stage.getOption('canvas') || document.createElement('canvas')
 
-        canvas.width = w;
-        canvas.height = h;
+        if (w && h) {
+            canvas.width = w;
+            canvas.height = h;
+        }
 
         let opts = {
             alpha: true,
@@ -254,13 +255,7 @@ class WebAdapter {
             throw new Error('This browser does not support webGL.');
         }
 
-        this.canvas = canvas;
-
         return gl;
-    }
-
-    getWebGLCanvas() {
-        return this.canvas;
     }
 
     getHrTime() {
@@ -1231,7 +1226,14 @@ class Stage extends EventEmitter {
             this.adapter.init(this);
         }
 
-        this.gl = this.adapter.createWebGLContext(this.getOption('w'), this.getOption('h'));
+        this.gl = this.getOption('context')
+        if (!this.gl) {
+            this.gl = this.adapter.createWebGLContext(this.getOption('w'), this.getOption('h'));
+        } else {
+            // Override width and height.
+            this._options.w = this.gl.canvas.width
+            this._options.h = this.gl.canvas.height
+        }
 
         this.setGlClearColor(this._options.glClearColor);
 
@@ -1279,9 +1281,10 @@ class Stage extends EventEmitter {
             }
         }
 
+        opt('canvas', undefined);
+        opt('context', undefined);
         opt('w', 1280);
         opt('h', 720);
-        opt('canvas', this._options.canvas);
         opt('srcBasePath', null);
         opt('textureMemory', 18e6);
         opt('renderTextureMemory', 12e6);
@@ -1294,16 +1297,19 @@ class Stage extends EventEmitter {
         opt('debugTextureAtlas', false);
         opt('useImageWorker', false);
         opt('useSpriteMap', false);
+        opt('autostart', true)
         opt('precision', 1);
     }
-    
+
     setApplication(app) {
         this.application = app
     }
 
     init() {
         this.application.setAsRoot();
-        this.adapter.startLoop()
+        if (this.getOption('autostart')) {
+            this.adapter.startLoop()
+        }
     }
 
     destroy() {
@@ -1335,7 +1341,7 @@ class Stage extends EventEmitter {
     }
 
     getCanvas() {
-        return this.adapter.getWebGLCanvas()
+        return this.gl.canvas
     }
 
     getRenderPrecision() {
@@ -1414,7 +1420,10 @@ class Stage extends EventEmitter {
 
     setGlClearColor(clearColor) {
         this.forceRenderUpdate()
-        if (Array.isArray(clearColor)) {
+        if (!clearColor) {
+            // Do not clear.
+            this._options.glClearColor = undefined
+        } else if (Array.isArray(clearColor)) {
             this._options.glClearColor = clearColor;
         } else {
             this._options.glClearColor = StageUtils.getRgbaComponentsNormalized(clearColor);
@@ -9413,8 +9422,10 @@ class CoreRenderExecutor {
         let gl = this.gl
         if (!this._renderTexture) {
             let glClearColor = this.ctx.stage.getOption('glClearColor');
-            gl.clearColor(glClearColor[0] * glClearColor[3], glClearColor[1] * glClearColor[3], glClearColor[2] * glClearColor[3], glClearColor[3]);
-            gl.clear(gl.COLOR_BUFFER_BIT);
+            if (glClearColor) {
+                gl.clearColor(glClearColor[0] * glClearColor[3], glClearColor[1] * glClearColor[3], glClearColor[2] * glClearColor[3], glClearColor[3]);
+                gl.clear(gl.COLOR_BUFFER_BIT);
+            }
         } else {
             // Clear texture.
             gl.clearColor(0, 0, 0, 0);

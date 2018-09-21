@@ -6,7 +6,6 @@ class WebAdapter {
 
     init(stage) {
         this.stage = stage;
-        this.canvas = null;
         this._looping = false;
         this._awaitingLoop = false;
 
@@ -102,10 +101,12 @@ class WebAdapter {
     }
 
     createWebGLContext(w, h) {
-        let canvas = this.stage.getOption('canvas') || document.createElement('canvas');
+        let canvas = this.stage.getOption('canvas') || document.createElement('canvas')
 
-        canvas.width = w;
-        canvas.height = h;
+        if (w && h) {
+            canvas.width = w;
+            canvas.height = h;
+        }
 
         let opts = {
             alpha: true,
@@ -120,13 +121,7 @@ class WebAdapter {
             throw new Error('This browser does not support webGL.');
         }
 
-        this.canvas = canvas;
-
         return gl;
-    }
-
-    getWebGLCanvas() {
-        return this.canvas;
     }
 
     getHrTime() {

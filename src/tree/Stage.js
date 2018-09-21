@@ -19,7 +19,14 @@ class Stage extends EventEmitter {
             this.adapter.init(this);
         }
 
-        this.gl = this.adapter.createWebGLContext(this.getOption('w'), this.getOption('h'));
+        this.gl = this.getOption('context')
+        if (!this.gl) {
+            this.gl = this.adapter.createWebGLContext(this.getOption('w'), this.getOption('h'));
+        } else {
+            // Override width and height.
+            this._options.w = this.gl.canvas.width
+            this._options.h = this.gl.canvas.height
+        }
 
         this.setGlClearColor(this._options.glClearColor);
 
@@ -67,9 +74,10 @@ class Stage extends EventEmitter {
             }
         }
 
+        opt('canvas', undefined);
+        opt('context', undefined);
         opt('w', 1280);
         opt('h', 720);
-        opt('canvas', this._options.canvas);
         opt('srcBasePath', null);
         opt('textureMemory', 18e6);
         opt('renderTextureMemory', 12e6);
@@ -82,16 +90,19 @@ class Stage extends EventEmitter {
         opt('debugTextureAtlas', false);
         opt('useImageWorker', false);
         opt('useSpriteMap', false);
+        opt('autostart', true)
         opt('precision', 1);
     }
-    
+
     setApplication(app) {
         this.application = app
     }
 
     init() {
         this.application.setAsRoot();
-        this.adapter.startLoop()
+        if (this.getOption('autostart')) {
+            this.adapter.startLoop()
+        }
     }
 
     destroy() {
@@ -123,7 +134,7 @@ class Stage extends EventEmitter {
     }
 
     getCanvas() {
-        return this.adapter.getWebGLCanvas()
+        return this.gl.canvas
     }
 
     getRenderPrecision() {
@@ -202,7 +213,10 @@ class Stage extends EventEmitter {
 
     setGlClearColor(clearColor) {
         this.forceRenderUpdate()
-        if (Array.isArray(clearColor)) {
+        if (!clearColor) {
+            // Do not clear.
+            this._options.glClearColor = undefined
+        } else if (Array.isArray(clearColor)) {
             this._options.glClearColor = clearColor;
         } else {
             this._options.glClearColor = StageUtils.getRgbaComponentsNormalized(clearColor);

@@ -8,7 +8,6 @@ class NodeAdapter {
     
     init(stage) {
         this.stage = stage;
-        this.canvas = null;
         this._looping = false;
         this._awaitingLoop = false;
 
