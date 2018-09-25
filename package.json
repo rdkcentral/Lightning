@@ -5,14 +5,10 @@
   "main": "wuf.js",
   "license": "apache",
   "dependencies": {
-    "canvas": "https://github.com/basvanmeurs/node-canvas.git",
+    "canvas": "git+https://github.com/basvanmeurs/node-canvas.git",
     "wpe-webgl": "https://github.com/WebPlatformForEmbedded/node-wpe-webgl.git"
   },
-  "devDependencies": {
-    "grunt": "^1.0.1",
-    "grunt-contrib-concat": "*",
-    "grunt-strip-code": "*"
-  },
+  "devDependencies": {},
   "repository": {
     "type": "git",
     "url": "git@github.com:WebPlatformForEmbedded/WPEUIFramework.git"
