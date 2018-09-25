@@ -73,17 +73,6 @@ class CoreRenderExecutor {
     }
 
     execute() {
-        const spriteMap = this.ctx.stage.spriteMap
-        if (spriteMap && spriteMap.mustFlush()) {
-
-            // We do not want the render executor to interfere with the sprite map.
-            this._stopShaderProgram()
-            this._bindRenderTexture(null)
-            this._setScissor(null)
-
-            spriteMap.flush()
-        }
-
         this._reset()
 
         this._setupBuffers()
@@ -113,17 +102,6 @@ class CoreRenderExecutor {
             this._execFilterOperation(fops[j])
             j++
         }
-
-        if (spriteMap && spriteMap.mustDefrag()) {
-
-            // We do not want the render executor to interfere with the sprite map.
-            this._stopShaderProgram()
-            this._bindRenderTexture(null)
-            this._setScissor(null)
-
-            spriteMap.defrag()
-        }
-
     }
 
     getQuadContents() {

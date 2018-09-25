@@ -9,8 +9,6 @@ class CoreRenderState {
 
         this.stage = ctx.stage
 
-        this.spriteMapGlTexture = this.stage.spriteMap ? this.stage.spriteMap.texture : null
-
         // Allocate a fairly big chunk of memory that should be enough to support ~100000 (default) quads.
         // We do not (want to) handle memory overflow.
 
@@ -112,7 +110,7 @@ class CoreRenderState {
 
         let glTexture = this._overrideQuadTexture;
         if (!glTexture) {
-            glTexture = viewCore._displayedTextureSource.smi ? this.spriteMapGlTexture : viewCore._displayedTextureSource.glTexture
+            glTexture = viewCore._displayedTextureSource.glTexture
         }
 
         let offset = this.length * 64 + 64 // Skip the identity filter quad.

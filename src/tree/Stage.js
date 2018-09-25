@@ -37,8 +37,6 @@ class Stage extends EventEmitter {
 
         this.textureManager = new TextureManager(this);
 
-        this.spriteMap = this.getOption('useSpriteMap') ? new SpriteMap(this, 1024, 1024) : null
-
         this.ctx = new CoreContext(this);
 
         this._destroyed = false;
@@ -89,7 +87,6 @@ class Stage extends EventEmitter {
         opt('useTextureAtlas', false);
         opt('debugTextureAtlas', false);
         opt('useImageWorker', false);
-        opt('useSpriteMap', false);
         opt('autostart', true)
         opt('precision', 1);
     }
@@ -107,9 +104,6 @@ class Stage extends EventEmitter {
 
     destroy() {
         if (!this._destroyed) {
-            if (this.spriteMap) {
-                this.spriteMap.destroy()
-            }
             this.application.destroy();
             this.adapter.stopLoop();
             this.ctx.destroy();
@@ -306,4 +300,3 @@ const NodeAdapter = Utils.isNode ? require('../node/NodeAdapter') : null;
 /*¬M*/
 const Application = require('../application/Application')
 const RectangleTexture = require('../textures/RectangleTexture')
-const SpriteMap = require('./spriteMap/SpriteMap')
