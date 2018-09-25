@@ -1,9 +1,5 @@
-var attachInspector = function(wuf) {
-    with(wuf) {
-        const Stage = _internal.Stage
-        const ViewCore = _internal.ViewCore
-        const ViewTexturizer = _internal.ViewTexturizer
-
+var attachInspector = function(lng) {
+    with(lng) {
 // _properties must have been called already to prevent init mayhem.
         window.mutationCounter = 0;
         window.mutatingChildren = false;
@@ -175,7 +171,7 @@ var attachInspector = function(wuf) {
                 document.body.appendChild(root);
                 var self = this;
                 setTimeout(function() {
-                    var bcr = self.stage.adapter.canvas.getBoundingClientRect();
+                    var bcr = self.stage.getCanvas().getBoundingClientRect();
                     root.style.left = bcr.left + 'px';
                     root.style.top = bcr.top + 'px';
                     root.style.width = Math.ceil(bcr.width / self.stage.getRenderPrecision()) + 'px';
@@ -784,7 +780,7 @@ var attachInspector = function(wuf) {
     }
 }
 
-if (typeof wuf !== "undefined") {
+if (typeof lng !== "undefined") {
     // Sync loading. Auto attach immediately.
-    attachInspector(wuf);
+    attachInspector(lng);
 }

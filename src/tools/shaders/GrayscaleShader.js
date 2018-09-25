@@ -1,27 +1,27 @@
-const Shader = require('../../tree/Shader');
+import Shader from "../../tree/Shader.mjs";
 
-class GrayscaleShader extends Shader {
+export default class GrayscaleShader extends Shader {
     constructor(context) {
-        super(context)
-        this._amount = 0
+        super(context);
+        this._amount = 0;
     }
 
     set amount(v) {
-        this._amount = v
-        this.redraw()
+        this._amount = v;
+        this.redraw();
     }
 
     get amount() {
-        return this._amount
+        return this._amount;
     }
 
     setupUniforms(operation) {
-        super.setupUniforms(operation)
-        this._setUniform("amount", this._amount, this.gl.uniform1f)
+        super.setupUniforms(operation);
+        this._setUniform("amount", this._amount, this.gl.uniform1f);
     }
 
     useDefault() {
-        return this._amount === 0
+        return this._amount === 0;
     }
 
 }
@@ -40,5 +40,3 @@ GrayscaleShader.fragmentShaderSource = `
         gl_FragColor = vec4(amount * vec3(grayness, grayness, grayness) + (1.0 - amount) * color.rgb, color.a);
     }
 `;
-
-module.exports = GrayscaleShader;

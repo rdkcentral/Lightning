@@ -1,49 +1,49 @@
 /**
- * Copyright Metrological, 2017
+ * Copyright Metrological, 2017;
  */
 
-let Filter = require('../../tree/Filter');
+import Filter from "../../tree/Filter.mjs";
 
-class LinearBlurFilter extends Filter {
+export default class LinearBlurFilter extends Filter {
 
     constructor(ctx) {
-        super(ctx)
+        super(ctx);
 
-        this._direction = new Float32Array([0, 0])
-        this._kernelRadius = 1
+        this._direction = new Float32Array([0, 0]);
+        this._kernelRadius = 1;
     }
 
     get x() {
-        return this._direction[0]
+        return this._direction[0];
     }
 
     set x(v) {
-        this._direction[0] = v
-        this.redraw()
+        this._direction[0] = v;
+        this.redraw();
     }
 
     get y() {
-        return this._direction[1]
+        return this._direction[1];
     }
 
     set y(v) {
-        this._direction[1] = v
-        this.redraw()
+        this._direction[1] = v;
+        this.redraw();
     }
 
     get kernelRadius() {
-        return this._kernelRadius
+        return this._kernelRadius;
     }
 
     set kernelRadius(v) {
-        this._kernelRadius = v
-        this.redraw()
+        this._kernelRadius = v;
+        this.redraw();
     }
 
     setupUniforms(operation) {
-        super.setupUniforms(operation)
-        this._setUniform("direction", this._direction, this.gl.uniform2fv)
-        this._setUniform("kernelRadius", this._kernelRadius, this.gl.uniform1i)
+        super.setupUniforms(operation);
+        this._setUniform("direction", this._direction, this.gl.uniform2fv);
+        this._setUniform("kernelRadius", this._kernelRadius, this.gl.uniform1i);
     }
 
 }
@@ -106,5 +106,3 @@ LinearBlurFilter.fragmentShaderSource = `
         }
     }
 `;
-
-module.exports = LinearBlurFilter

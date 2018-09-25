@@ -2,7 +2,7 @@
  * Base functionality for shader setup/destroy.
  * Copyright Metrological, 2017
  */
-class ShaderProgram {
+export default class ShaderProgram {
 
     constructor(vertexShaderSource, fragmentShaderSource) {
 
@@ -60,8 +60,8 @@ class ShaderProgram {
         if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
             console.log(this.constructor.name, 'Type: ' + (type === this.gl.VERTEX_SHADER ? 'vertex shader' : 'fragment shader') );
             console.log(this.gl.getShaderInfoLog(shader));
-            let idx = 0
-            console.log("========== source ==========\n" + src.split("\n").map(line => "" + (++idx) + ": " + line).join("\n"))
+            let idx = 0;
+            console.log("========== source ==========\n" + src.split("\n").map(line => "" + (++idx) + ": " + line).join("\n"));
             return null;
         }
 
@@ -107,40 +107,38 @@ class ShaderProgram {
         // Uniform value is either a typed array or a numeric value.
         if (v1.length && v2.length) {
             for (let i = 0, n = v1.length; i < n; i++) {
-                if (v1[i] !== v2[i]) return false
+                if (v1[i] !== v2[i]) return false;
             }
-            return true
+            return true;
         } else {
-            return (v1 === v2)
+            return (v1 === v2);
         }
     }
 
     _valueClone(v) {
         if (v.length) {
-            return v.slice(0)
+            return v.slice(0);
         } else {
-            return v
+            return v;
         }
     }
 
     setUniformValue(name, value, glFunction) {
         let v = this._currentUniformValues[name];
         if (v === undefined || !this._valueEquals(v, value)) {
-            let clonedValue = this._valueClone(value)
-            this._currentUniformValues[name] = clonedValue
+            let clonedValue = this._valueClone(value);
+            this._currentUniformValues[name] = clonedValue;
 
-            let loc = this.getUniformLocation(name)
+            let loc = this.getUniformLocation(name);
             if (loc) {
-                let isMatrix = (glFunction === this.gl.uniformMatrix2fv || glFunction === this.gl.uniformMatrix3fv || glFunction === this.gl.uniformMatrix4fv)
+                let isMatrix = (glFunction === this.gl.uniformMatrix2fv || glFunction === this.gl.uniformMatrix3fv || glFunction === this.gl.uniformMatrix4fv);
                 if (isMatrix) {
-                    glFunction.call(this.gl, loc, false, clonedValue)
+                    glFunction.call(this.gl, loc, false, clonedValue);
                 } else {
-                    glFunction.call(this.gl, loc, clonedValue)
+                    glFunction.call(this.gl, loc, clonedValue);
                 }
             }
         }
     }
 
 }
-
-module.exports = ShaderProgram

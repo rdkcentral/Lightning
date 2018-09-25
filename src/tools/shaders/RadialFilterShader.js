@@ -1,39 +1,39 @@
-const Shader = require('../../tree/Shader');
+import Shader from "../../tree/Shader.mjs";
 
-class RadialFilterShader extends Shader {
+export default class RadialFilterShader extends Shader {
     constructor(context) {
-        super(context)
-        this._radius = 0
-        this._cutoff = 1
+        super(context);
+        this._radius = 0;
+        this._cutoff = 1;
     }
 
     set radius(v) {
-        this._radius = v
-        this.redraw()
+        this._radius = v;
+        this.redraw();
     }
 
     get radius() {
-        return this._radius
+        return this._radius;
     }
 
     set cutoff(v) {
-        this._cutoff = v
-        this.redraw()
+        this._cutoff = v;
+        this.redraw();
     }
 
     get cutoff() {
-        return this._cutoff
+        return this._cutoff;
     }
     
     setupUniforms(operation) {
-        super.setupUniforms(operation)
+        super.setupUniforms(operation);
         // We substract half a pixel to get a better cutoff effect.
-        this._setUniform("radius", 2 * (this._radius - 0.5) / operation.getRenderWidth(), this.gl.uniform1f)
-        this._setUniform("cutoff", 0.5 * operation.getRenderWidth() / this._cutoff, this.gl.uniform1f)
+        this._setUniform("radius", 2 * (this._radius - 0.5) / operation.getRenderWidth(), this.gl.uniform1f);
+        this._setUniform("cutoff", 0.5 * operation.getRenderWidth() / this._cutoff, this.gl.uniform1f);
     }
 
     useDefault() {
-        return this._radius === 0
+        return this._radius === 0;
     }
 
 }
@@ -75,4 +75,3 @@ RadialFilterShader.fragmentShaderSource = `
     }
 `;
 
-module.exports = RadialFilterShader

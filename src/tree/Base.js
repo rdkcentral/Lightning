@@ -1,21 +1,21 @@
 /**
- * Copyright Metrological, 2017
+ * Copyright Metrological, 2017;
  */
-class Base {
+export default class Base {
 
     static defaultSetter(obj, name, value) {
-        obj[name] = value
+        obj[name] = value;
     }
 
     static patchObject(obj, settings) {
         if (!Utils.isObjectLiteral(settings)) {
-            console.error("Settings must be object literal")
+            console.error("Settings must be object literal");
         } else {
-            let names = Object.keys(settings)
+            let names = Object.keys(settings);
             for (let i = 0, n = names.length; i < n; i++) {
-                let name = names[i]
+                let name = names[i];
 
-                this.patchObjectProperty(obj, name, settings[name])
+                this.patchObjectProperty(obj, name, settings[name]);
             }
         }
     }
@@ -25,25 +25,25 @@ class Base {
 
         if (name.substr(0, 1) === "_" && name !== "__create") {
             // Disallow patching private variables.
-            console.error("Patch of private property '" + name + "' is not allowed")
+            console.error("Patch of private property '" + name + "' is not allowed");
         } else if (name !== "type") {
             // Type is a reserved keyword to specify the class type on creation.
             if (Utils.isFunction(value) && value.__local) {
                 // Local function (Base.local(s => s.something))
-                value = value.__local(obj)
+                value = value.__local(obj);
             }
 
-            setter(obj, name, value)
+            setter(obj, name, value);
         }
     }
 
     static local(func) {
         // This function can be used as an object setting, which is called with the target object.
-        func.__local = true
+        func.__local = true;
     }
+
 
 }
 
-let Utils = require('./Utils');
+import Utils from "./Utils.mjs";
 
-module.exports = Base;

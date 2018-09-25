@@ -1,24 +1,24 @@
 /**
- * Copyright Metrological, 2017
+ * Copyright Metrological, 2017;
  */
 
-class CoreQuadList {
+export default class CoreQuadList {
 
     constructor(ctx, byteSize) {
 
-        this.ctx = ctx
+        this.ctx = ctx;
 
-        this.textureAtlasGlTexture = this.ctx.textureAtlas ? this.ctx.textureAtlas.texture : null
+        this.textureAtlasGlTexture = this.ctx.textureAtlas ? this.ctx.textureAtlas.texture : null;
 
-        this.dataLength = 0
+        this.dataLength = 0;
 
-        this.data = new ArrayBuffer(byteSize)
-        this.floats = new Float32Array(this.data)
-        this.uints = new Uint32Array(this.data)
+        this.data = new ArrayBuffer(byteSize);
+        this.floats = new Float32Array(this.data);
+        this.uints = new Uint32Array(this.data);
 
-        this.quadTextures = []
+        this.quadTextures = [];
 
-        this.quadViews = []
+        this.quadViews = [];
 
         // Set up first quad to the identity quad (reused for filters).
         let f = this.floats;
@@ -42,68 +42,66 @@ class CoreQuadList {
     }
 
     get length() {
-        return this.quadTextures.length
+        return this.quadTextures.length;
     }
 
     reset() {
-        this.quadTextures = []
-        this.quadViews = []
-        this.dataLength = 0
+        this.quadTextures = [];
+        this.quadViews = [];
+        this.dataLength = 0;
     }
 
     getAttribsDataByteOffset(index) {
         // Where this quad can be found in the attribs buffer.
-        return index * 64 + 64
+        return index * 64 + 64;
     }
 
     getView(index) {
-        return this.quadViews[index]._view
+        return this.quadViews[index]._view;
     }
 
     getViewCore(index) {
-        return this.quadViews[index]
+        return this.quadViews[index];
     }
 
     getTexture(index) {
-        return this.quadTextures[index]
+        return this.quadTextures[index];
     }
 
     getTextureWidth(index) {
-        let glTexture = this.quadTextures[index]
+        let glTexture = this.quadTextures[index];
         if (glTexture.w) {
-            // Render texture
-            return glTexture.w
+            // Render texture;
+            return glTexture.w;
         } else {
-            return this.quadViews[index]._displayedTextureSource.w
+            return this.quadViews[index]._displayedTextureSource.w;
         }
     }
 
     getTextureHeight(index) {
-        let glTexture = this.quadTextures[index]
+        let glTexture = this.quadTextures[index];
         if (glTexture.h) {
-            // Render texture
-            return glTexture.h
+            // Render texture;
+            return glTexture.h;
         } else {
-            return this.quadViews[index]._displayedTextureSource.h
+            return this.quadViews[index]._displayedTextureSource.h;
         }
     }
 
     getQuadContents() {
         // Debug: log contents of quad buffer.
-        let floats = this.floats
-        let uints = this.uints
-        let lines = []
+        let floats = this.floats;
+        let uints = this.uints;
+        let lines = [];
         for (let i = 1; i <= this.length; i++) {
             let str = 'entry ' + i + ': ';
             for (let j = 0; j < 4; j++) {
-                let b = i * 16 + j * 4
+                let b = i * 16 + j * 4;
                 str += floats[b] + ',' + floats[b+1] + ':' + uints[b+2].toString(16) + '[' + uints[b+3].toString(16) + '] ';
             }
-            lines.push(str)
+            lines.push(str);
         }
 
-        return lines
+        return lines;
     }
 }
-
-module.exports = CoreQuadList

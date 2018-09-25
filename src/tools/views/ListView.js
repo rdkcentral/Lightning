@@ -1,9 +1,9 @@
 /**
  * Copyright Metrological, 2017
  */
-let View = require('../../tree/View');
+import View from "../../tree/View.mjs";
 
-class ListView extends View {
+export default class ListView extends View {
 
     constructor(stage) {
         super(stage);
@@ -68,23 +68,23 @@ class ListView extends View {
          */
         this._horizontal = true;
 
-        this.itemList = new ListItems(this)
+        this.itemList = new ListItems(this);
     }
 
     _allowChildrenAccess() {
-        return false
+        return false;
     }
 
     get items() {
-        return this.itemList.get()
+        return this.itemList.get();
     }
 
     set items(children) {
-        this.itemList.patch(children)
+        this.itemList.patch(children);
     }
 
     start() {
-        this._wrapper.transition(this.property, this._scrollTransitionSettings)
+        this._wrapper.transition(this.property, this._scrollTransitionSettings);
         this._scrollTransition = this._wrapper.transition(this.property);
         this._scrollTransition.on('progress', p => this.update());
 
@@ -426,14 +426,14 @@ class ListView extends View {
 
 }
 
-const ObjectListWrapper = require('../misc/ObjectListWrapper')
+import ObjectListWrapper from "../misc/ObjectListWrapper.mjs";
 class ListItems extends ObjectListWrapper {
     constructor(list) {
         let wrap = (item => {
-            let parent = item.stage.createView()
-            parent.add(item)
-            parent.visible = false
-            return parent
+            let parent = item.stage.createView();
+            parent.add(item);
+            parent.visible = false;
+            return parent;
         })
 
         super(list._wrapper._children, wrap);
@@ -441,8 +441,8 @@ class ListItems extends ObjectListWrapper {
     }
 
     onAdd(item, index) {
-        super.onAdd(item, index)
-        this.checkStarted(index)
+        super.onAdd(item, index);
+        this.checkStarted(index);
     }
 
     checkStarted(index) {
@@ -462,7 +462,7 @@ class ListItems extends ObjectListWrapper {
     }
 
     onRemove(item, index) {
-        super.onRemove(item, index)
+        super.onRemove(item, index);
         let ri = this.list.realIndex;
         if (ri === index) {
             if (ri === this.list.length) {
@@ -479,18 +479,15 @@ class ListItems extends ObjectListWrapper {
     }
 
     onSet(item, index) {
-        super.onSet(item, index)
-        this.checkStarted(index)
+        super.onSet(item, index);
+        this.checkStarted(index);
     }
 
     onSync(removed, added, order) {
-        super.onSync(removed, added, order)
-        this.checkStarted(0)
+        super.onSync(removed, added, order);
+        this.checkStarted(0);
     }
 
 }
 
-let Utils = require('../../tree/Utils');
-/*M¬*/let EventEmitter = require(Utils.isNode ? 'events' : '../../browser/EventEmitter');/*¬M*/
-
-module.exports = ListView;
+import Utils from "../../tree/Utils.mjs";

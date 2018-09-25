@@ -1,155 +1,155 @@
-const Shader = require('../../tree/Shader');
+import Shader from "../../tree/Shader.mjs";
 
-class CircularPushShader extends Shader {
+export default class CircularPushShader extends Shader {
     constructor(context) {
-        super(context)
+        super(context);
 
-        this._inputValue = 0
+        this._inputValue = 0;
 
-        this._maxDerivative = 0.01
+        this._maxDerivative = 0.01;
 
-        this._normalizedValue = 0
+        this._normalizedValue = 0;
 
         // The offset between buckets. A value between 0 and 1.
-        this._offset = 0
+        this._offset = 0;
 
-        this._amount = 0.1
+        this._amount = 0.1;
 
-        this._aspectRatio = 1
+        this._aspectRatio = 1;
 
-        this._offsetX = 0
+        this._offsetX = 0;
 
-        this._offsetY = 0
+        this._offsetY = 0;
 
-        this.buckets = 100
+        this.buckets = 100;
     }
 
     get aspectRatio() {
-        return this._aspectRatio
+        return this._aspectRatio;
     }
 
     set aspectRatio(v) {
-        this._aspectRatio = v
-        this.redraw()
+        this._aspectRatio = v;
+        this.redraw();
     }
 
     get offsetX() {
-        return this._offsetX
+        return this._offsetX;
     }
 
     set offsetX(v) {
-        this._offsetX = v
-        this.redraw()
+        this._offsetX = v;
+        this.redraw();
     }
 
     get offsetY() {
-        return this._offsetY
+        return this._offsetY;
     }
 
     set offsetY(v) {
-        this._offsetY = v
-        this.redraw()
+        this._offsetY = v;
+        this.redraw();
     }
 
     set amount(v) {
-        this._amount = v
-        this.redraw()
+        this._amount = v;
+        this.redraw();
     }
 
     get amount() {
-        return this._amount
+        return this._amount;
     }
 
     set inputValue(v) {
-        this._inputValue = v
+        this._inputValue = v;
     }
 
     get inputValue() {
-        return this._inputValue
+        return this._inputValue;
     }
 
     set maxDerivative(v) {
-        this._maxDerivative = v
+        this._maxDerivative = v;
     }
 
     get maxDerivative() {
-        return this._maxDerivative
+        return this._maxDerivative;
     }
 
     set buckets(v) {
         if (v > 100) {
-            console.warn("CircularPushShader: supports max 100 buckets")
-            v = 100
+            console.warn("CircularPushShader: supports max 100 buckets");
+            v = 100;
         }
 
         // This should be set before starting.
-        this._buckets = v
+        this._buckets = v;
 
         // Init values array in the correct length.
-        this._values = new Uint8Array(this._getValues(v))
+        this._values = new Uint8Array(this._getValues(v));
 
-        this.redraw()
+        this.redraw();
     }
 
     get buckets() {
-        return this._buckets
+        return this._buckets;
     }
 
     _getValues(n) {
-        const v = []
+        const v = [];
         for (let i = 0; i < n; i++) {
-            v.push(this._inputValue)
+            v.push(this._inputValue);
         }
-        return v
+        return v;
     }
 
     /**
      * Progresses the shader with the specified (fractional) number of buckets.
-     * @param {number} o
+     * @param {number} o;
      *   A number from 0 to 1 (1 = all buckets).
      */
     progress(o) {
-        this._offset += o * this._buckets
-        const full = Math.floor(this._offset)
-        this._offset -= full
-        this._shiftBuckets(full)
-        this.redraw()
+        this._offset += o * this._buckets;
+        const full = Math.floor(this._offset);
+        this._offset -= full;
+        this._shiftBuckets(full);
+        this.redraw();
     }
 
     _shiftBuckets(n) {
         for (let i = this._buckets - 1; i >= 0; i--) {
-            const targetIndex = i - n
+            const targetIndex = i - n;
             if (targetIndex < 0) {
-                this._normalizedValue = Math.min(this._normalizedValue + this._maxDerivative, Math.max(this._normalizedValue - this._maxDerivative, this._inputValue))
-                this._values[i] = 255 * this._normalizedValue
+                this._normalizedValue = Math.min(this._normalizedValue + this._maxDerivative, Math.max(this._normalizedValue - this._maxDerivative, this._inputValue));
+                this._values[i] = 255 * this._normalizedValue;
             } else {
-                this._values[i] = this._values[targetIndex]
+                this._values[i] = this._values[targetIndex];
             }
         }
     }
 
     set offset(v) {
-        this._offset = v
-        this.redraw()
+        this._offset = v;
+        this.redraw();
     }
 
     setupUniforms(operation) {
-        super.setupUniforms(operation)
-        this._setUniform("aspectRatio", this._aspectRatio, this.gl.uniform1f)
-        this._setUniform("offsetX", this._offsetX, this.gl.uniform1f)
-        this._setUniform("offsetY", this._offsetY, this.gl.uniform1f)
-        this._setUniform("amount", this._amount, this.gl.uniform1f)
-        this._setUniform("offset", this._offset, this.gl.uniform1f)
-        this._setUniform("buckets", this._buckets, this.gl.uniform1f)
-        this._setUniform("uValueSampler", 1, this.gl.uniform1i)
+        super.setupUniforms(operation);
+        this._setUniform("aspectRatio", this._aspectRatio, this.gl.uniform1f);
+        this._setUniform("offsetX", this._offsetX, this.gl.uniform1f);
+        this._setUniform("offsetY", this._offsetY, this.gl.uniform1f);
+        this._setUniform("amount", this._amount, this.gl.uniform1f);
+        this._setUniform("offset", this._offset, this.gl.uniform1f);
+        this._setUniform("buckets", this._buckets, this.gl.uniform1f);
+        this._setUniform("uValueSampler", 1, this.gl.uniform1i);
     }
 
     useDefault() {
-        return this._amount === 0
+        return this._amount === 0;
     }
 
     beforeDraw(operation) {
-        const gl = this.gl
+        const gl = this.gl;
         gl.activeTexture(gl.TEXTURE1);
         if (!this._valuesTexture) {
             this._valuesTexture = gl.createTexture();
@@ -173,7 +173,7 @@ class CircularPushShader extends Shader {
 
     cleanup() {
         if (this._valuesTexture) {
-            this.gl.deleteTexture(this._valuesTexture)
+            this.gl.deleteTexture(this._valuesTexture);
         }
     }
 
@@ -228,7 +228,5 @@ CircularPushShader.fragmentShaderSource = `
     }
 `;
 
-module.exports = CircularPushShader
-
-const Utils = require('../../tree/Utils');
+import Utils from "../../tree/Utils.mjs";
 

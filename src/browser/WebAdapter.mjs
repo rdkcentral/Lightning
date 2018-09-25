@@ -1,8 +1,10 @@
+import ImageWorker from "./ImageWorker.mjs";
+
 /**
  * Platform-specific functionality.
- * Copyright Metrological, 2017
+ * Copyright Metrological, 2017;
  */
-class WebAdapter {
+export default class WebAdapter {
 
     init(stage) {
         this.stage = stage;
@@ -11,9 +13,9 @@ class WebAdapter {
 
         if (this.stage.getOption("useImageWorker")) {
             if (!window.createImageBitmap || !window.Worker) {
-                console.warn("Can't use image worker because browser does not have createImageBitmap and Web Worker support")
+                console.warn("Can't use image worker because browser does not have createImageBitmap and Web Worker support");
             } else {
-                this._imageWorker = new ImageWorker()
+                this._imageWorker = new ImageWorker();
             }
         }
     }
@@ -52,11 +54,11 @@ class WebAdapter {
     }
 
     loadSrcTexture({src, hasAlpha}, cb) {
-        let cancelCb = undefined
-        let isPng = (src.indexOf(".png") >= 0)
+        let cancelCb = undefined;
+        let isPng = (src.indexOf(".png") >= 0);
         if (this._imageWorker) {
             // WPE-specific image parser.
-            const image = this._imageWorker.create(src)
+            const image = this._imageWorker.create(src);
             image.onError = function(err) {
                 return cb("Image load error");
             };
@@ -69,7 +71,7 @@ class WebAdapter {
                 });
             };
             cancelCb = function() {
-                image.cancel()
+                image.cancel();
             }
         } else {
             let image = new Image();
@@ -97,11 +99,11 @@ class WebAdapter {
             }
         }
 
-        return cancelCb
+        return cancelCb;
     }
 
     createWebGLContext(w, h) {
-        let canvas = this.stage.getOption('canvas') || document.createElement('canvas')
+        let canvas = this.stage.getOption('canvas') || document.createElement('canvas');
 
         if (w && h) {
             canvas.width = w;
@@ -135,8 +137,8 @@ class WebAdapter {
 
     getTextureOptionsForDrawingCanvas(canvas) {
         let options = {}
-        options.source = canvas
-        return options
+        options.source = canvas;
+        return options;
     }
 
     nextFrame(changes) {
@@ -145,12 +147,9 @@ class WebAdapter {
 
     registerKeyHandler(keyhandler) {
         window.addEventListener('keydown', e => {
-            keyhandler({keyCode: e.keyCode})
-        })
+            keyhandler({keyCode: e.keyCode});
+        });
     }
 
 }
 
-module.exports = WebAdapter;
-
-let TextRenderer = require('../tree/TextRenderer');

@@ -1,11 +1,11 @@
 /**
  * Copyright Metrological, 2017
  */
-let Utils = require('../tree/Utils');
-let StageUtils = require('../tree/StageUtils');
-const StaticCanvasTexture = require('../textures/StaticCanvasTexture')
+import Utils from "../tree/Utils.mjs";
+import StageUtils from "../tree/StageUtils.mjs";
+import StaticCanvasTexture from "../textures/StaticCanvasTexture.mjs"
 
-class Tools {
+export default class Tools {
 
     static getCanvasTexture(canvasFactory, lookupId) {
         return {type: StaticCanvasTexture, content: {factory: canvasFactory, lookupId: lookupId}}
@@ -14,11 +14,11 @@ class Tools {
     static getRoundRect(w, h, radius, strokeWidth, strokeColor, fill, fillColor) {
         if (!Array.isArray(radius)){
             // upper-left, upper-right, bottom-right, bottom-left.
-            radius = [radius, radius, radius, radius]
+            radius = [radius, radius, radius, radius];
         }
 
         let factory = (cb, stage) => {
-            cb(null, this.createRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor))
+            cb(null, this.createRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor));
         }
         let id = 'rect' + [w, h, strokeWidth, strokeColor, fill ? 1 : 0, fillColor].concat(radius).join(",");
         return Tools.getCanvasTexture(factory, id);
@@ -73,11 +73,11 @@ class Tools {
     static getShadowRect(w, h, radius = 0, blur = 5, margin = blur * 2) {
         if (!Array.isArray(radius)){
             // upper-left, upper-right, bottom-right, bottom-left.
-            radius = [radius, radius, radius, radius]
+            radius = [radius, radius, radius, radius];
         }
 
         let factory = (cb, stage) => {
-            cb(null, this.createShadowRect(stage, w, h, radius, blur, margin))
+            cb(null, this.createShadowRect(stage, w, h, radius, blur, margin));
         }
         let id = 'shadow' + [w, h, blur, margin].concat(radius).join(",");
         return Tools.getCanvasTexture(factory, id);
@@ -96,15 +96,15 @@ class Tools {
         ctx.fillRect(0, 0, 0.01, 0.01);
         ctx.globalAlpha = 1.0;
 
-        ctx.shadowColor = StageUtils.getRgbaString(0xFFFFFFFF)
-        ctx.fillStyle = StageUtils.getRgbaString(0xFFFFFFFF)
-        ctx.shadowBlur = blur
-        ctx.shadowOffsetX = (w + 10) + margin
-        ctx.shadowOffsetY = margin
+        ctx.shadowColor = StageUtils.getRgbaString(0xFFFFFFFF);
+        ctx.fillStyle = StageUtils.getRgbaString(0xFFFFFFFF);
+        ctx.shadowBlur = blur;
+        ctx.shadowOffsetX = (w + 10) + margin;
+        ctx.shadowOffsetY = margin;
 
         ctx.beginPath();
-        const x = -(w + 10)
-        const y = 0
+        const x = -(w + 10);
+        const y = 0;
 
         ctx.moveTo(x + radius[0], y);
         ctx.lineTo(x + w - radius[1], y);
@@ -115,14 +115,14 @@ class Tools {
         ctx.arcTo(x, y + h, x, y + h - radius[3], radius[3]);
         ctx.lineTo(x, y + radius[0]);
         ctx.arcTo(x, y, x + radius[0], y, radius[0]);
-        ctx.fill()
+        ctx.fill();
 
         return canvas;
     }
 
     static getSvgTexture(url, w, h) {
         let factory = (cb, stage) => {
-            this.createSvg(cb, stage, url, w, h)
+            this.createSvg(cb, stage, url, w, h);
         }
         let id = 'svg' + [w, h, url].join(",");
         return Tools.getCanvasTexture(factory, id);
@@ -133,19 +133,17 @@ class Tools {
         let ctx = canvas.getContext('2d');
         ctx.imageSmoothingEnabled = true;
 
-        let img = new Image()
+        let img = new Image();
         img.onload = () => {
-            canvas.width = w
-            canvas.height = h
+            canvas.width = w;
+            canvas.height = h;
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            cb(null, canvas)
+            cb(null, canvas);
         }
         img.onError = (err) => {
-            cb(err)
+            cb(err);
         }
-        img.src = url
+        img.src = url;
     }
 
 }
-
-module.exports = Tools;

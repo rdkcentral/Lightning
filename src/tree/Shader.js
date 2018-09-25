@@ -1,10 +1,10 @@
 /**
- * Copyright Metrological, 2017
+ * Copyright Metrological, 2017;
  */
 
-let ShaderBase = require('./ShaderBase')
+import ShaderBase from "./ShaderBase.mjs";
 
-class Shader extends ShaderBase {
+export default class Shader extends ShaderBase {
 
     constructor(coreContext) {
         super(coreContext);
@@ -13,42 +13,42 @@ class Shader extends ShaderBase {
 
     enableAttribs() {
         // Enables the attribs in the shader program.
-        let gl = this.ctx.gl
-        gl.vertexAttribPointer(this._attrib("aVertexPosition"), 2, gl.FLOAT, false, 16, 0)
-        gl.enableVertexAttribArray(this._attrib("aVertexPosition"))
+        let gl = this.ctx.gl;
+        gl.vertexAttribPointer(this._attrib("aVertexPosition"), 2, gl.FLOAT, false, 16, 0);
+        gl.enableVertexAttribArray(this._attrib("aVertexPosition"));
 
         if (this._attrib("aTextureCoord") !== -1) {
-            gl.vertexAttribPointer(this._attrib("aTextureCoord"), 2, gl.UNSIGNED_SHORT, true, 16, 2 * 4)
-            gl.enableVertexAttribArray(this._attrib("aTextureCoord"))
+            gl.vertexAttribPointer(this._attrib("aTextureCoord"), 2, gl.UNSIGNED_SHORT, true, 16, 2 * 4);
+            gl.enableVertexAttribArray(this._attrib("aTextureCoord"));
         }
 
         if (this._attrib("aColor") !== -1) {
             // Some shaders may ignore the color.
-            gl.vertexAttribPointer(this._attrib("aColor"), 4, gl.UNSIGNED_BYTE, true, 16, 3 * 4)
-            gl.enableVertexAttribArray(this._attrib("aColor"))
+            gl.vertexAttribPointer(this._attrib("aColor"), 4, gl.UNSIGNED_BYTE, true, 16, 3 * 4);
+            gl.enableVertexAttribArray(this._attrib("aColor"));
         }
     }
 
     disableAttribs() {
         // Disables the attribs in the shader program.
-        let gl = this.ctx.gl
+        let gl = this.ctx.gl;
         gl.disableVertexAttribArray(this._attrib("aVertexPosition"));
 
         if (this._attrib("aTextureCoord") !== -1) {
-            gl.disableVertexAttribArray(this._attrib("aTextureCoord"))
+            gl.disableVertexAttribArray(this._attrib("aTextureCoord"));
         }
 
         if (this._attrib("aColor") !== -1) {
-            gl.disableVertexAttribArray(this._attrib("aColor"))
+            gl.disableVertexAttribArray(this._attrib("aColor"));
         }
     }
 
     getExtraAttribBytesPerVertex() {
-        return 0
+        return 0;
     }
 
     getVertexAttribPointerOffset(operation) {
-        return operation.extraAttribsDataByteOffset - (operation.index + 1) * 4 * this.getExtraAttribBytesPerVertex()
+        return operation.extraAttribsDataByteOffset - (operation.index + 1) * 4 * this.getExtraAttribBytesPerVertex();
     }
 
     useDefault() {
@@ -60,7 +60,7 @@ class Shader extends ShaderBase {
     addEmpty() {
         // Draws this shader even if there are no quads to be added.
         // This is handy for custom shaders.
-        return false
+        return false;
     }
 
     setExtraAttribsInBuffer(operation) {
@@ -72,15 +72,15 @@ class Shader extends ShaderBase {
         // Set all shader-specific uniforms.
         // Notice that all uniforms should be set, even if they have not been changed within this shader instance.
         // The uniforms are shared by all shaders that have the same type (and shader program).
-        this._setUniform("projection", this._getProjection(operation), this.ctx.gl.uniform2fv, false)
+        this._setUniform("projection", this._getProjection(operation), this.ctx.gl.uniform2fv, false);
     }
 
     _getProjection(operation) {
-        return operation.getProjection()
+        return operation.getProjection();
     }
 
     getFlipY(operation) {
-        return this._getProjection(operation)[1] < 0
+        return this._getProjection(operation)[1] < 0;
     }
 
     beforeDraw(operation) {
@@ -145,6 +145,5 @@ Shader.fragmentShaderSource = `
     }
 `;
 
-Shader.prototype.isShader = true
+Shader.prototype.isShader = true;
 
-module.exports = Shader;

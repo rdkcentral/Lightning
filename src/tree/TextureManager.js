@@ -1,7 +1,7 @@
 /**
- * Copyright Metrological, 2017
+ * Copyright Metrological, 2017;
  */
-class TextureManager {
+export default class TextureManager {
 
     constructor(stage) {
         this.stage = stage;
@@ -69,21 +69,21 @@ class TextureManager {
             gl.pixelStorei(gl.UNPACK_FLIP_BLUE_RED, !!format.flipBlueRed);
         }
 
-        const texParams = format.texParams
-        if (!texParams[gl.TEXTURE_MAG_FILTER]) texParams[gl.TEXTURE_MAG_FILTER] = gl.LINEAR
-        if (!texParams[gl.TEXTURE_MIN_FILTER]) texParams[gl.TEXTURE_MIN_FILTER] = gl.LINEAR
-        if (!texParams[gl.TEXTURE_WRAP_S]) texParams[gl.TEXTURE_WRAP_S] = gl.CLAMP_TO_EDGE
-        if (!texParams[gl.TEXTURE_WRAP_T]) texParams[gl.TEXTURE_WRAP_T] = gl.CLAMP_TO_EDGE
+        const texParams = format.texParams;
+        if (!texParams[gl.TEXTURE_MAG_FILTER]) texParams[gl.TEXTURE_MAG_FILTER] = gl.LINEAR;
+        if (!texParams[gl.TEXTURE_MIN_FILTER]) texParams[gl.TEXTURE_MIN_FILTER] = gl.LINEAR;
+        if (!texParams[gl.TEXTURE_WRAP_S]) texParams[gl.TEXTURE_WRAP_S] = gl.CLAMP_TO_EDGE;
+        if (!texParams[gl.TEXTURE_WRAP_T]) texParams[gl.TEXTURE_WRAP_T] = gl.CLAMP_TO_EDGE;
 
         Object.keys(texParams).forEach(key => {
-            const value = texParams[key]
+            const value = texParams[key];
             gl.texParameteri(gl.TEXTURE_2D, parseInt(key), value);
-        })
+        });
 
-        const texOptions = format.texOptions
-        texOptions.format = texOptions.format || (format.hasAlpha ? gl.RGBA : gl.RGB)
-        texOptions.type = texOptions.type || gl.UNSIGNED_BYTE
-        texOptions.internalFormat = texOptions.internalFormat || texOptions.format
+        const texOptions = format.texOptions;
+        texOptions.format = texOptions.format || (format.hasAlpha ? gl.RGBA : gl.RGB);
+        texOptions.type = texOptions.type || gl.UNSIGNED_BYTE;
+        texOptions.internalFormat = texOptions.internalFormat || texOptions.format;
 
         this.stage.adapter.uploadGlTexture(gl, textureSource, source, texOptions);
 
@@ -91,13 +91,13 @@ class TextureManager {
         textureSource.glTexture = sourceTexture;
 
         // Used by CoreRenderState for optimizations.
-        sourceTexture.w = textureSource.w
-        sourceTexture.h = textureSource.h
+        sourceTexture.w = textureSource.w;
+        sourceTexture.h = textureSource.h;
 
-        sourceTexture.params = Utils.cloneObjShallow(texParams)
-        sourceTexture.options = Utils.cloneObjShallow(texOptions)
+        sourceTexture.params = Utils.cloneObjShallow(texParams);
+        sourceTexture.options = Utils.cloneObjShallow(texOptions);
 
-        sourceTexture.update = this.stage.frameCounter
+        sourceTexture.update = this.stage.frameCounter;
 
         this._usedTextureMemory += textureSource.w * textureSource.h;
 
@@ -146,13 +146,13 @@ class TextureManager {
      * @param textureSource
      */
     freeTextureSource(textureSource) {
-        const index = this._uploadedTextureSources.indexOf(textureSource)
-        const managed = (index !== -1)
+        const index = this._uploadedTextureSources.indexOf(textureSource);
+        const managed = (index !== -1);
 
         if (textureSource.glTexture) {
             if (managed) {
                 this._usedTextureMemory -= textureSource.w * textureSource.h;
-                this._uploadedTextureSources.splice(index, 1)
+                this._uploadedTextureSources.splice(index, 1);
             }
             this.gl.deleteTexture(textureSource.glTexture);
             textureSource.glTexture = null;
@@ -170,7 +170,5 @@ class TextureManager {
 
 }
 
-module.exports = TextureManager;
-
-let Utils = require('./Utils');
-let TextureSource = require('./TextureSource');
+import Utils from "./Utils.mjs";
+import TextureSource from "./TextureSource.mjs";

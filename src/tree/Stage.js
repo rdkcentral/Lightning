@@ -1,31 +1,30 @@
 /**
  * Application render tree.
- * Copyright Metrological, 2017
+ * Copyright Metrological, 2017;
  */
 
-const Utils = require('./Utils');
-/*M¬*/const EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
+import EventEmitter from "../EventEmitter.mjs";
 
-class Stage extends EventEmitter {
+export default class Stage extends EventEmitter {
 
     constructor(options = {}) {
-        super()
+        super();
         this._setOptions(options);
 
-        /*M¬*/if (!Utils.isNode) {/*¬M*/this.adapter = new WebAdapter();/*M¬*/}
-        if (Utils.isNode) {this.adapter = new NodeAdapter();}/*¬M*/
+        // Platform adapter should be injected before creating the stage.
+        this.adapter = new Stage.ADAPTER();
 
         if (this.adapter.init) {
             this.adapter.init(this);
         }
 
-        this.gl = this.getOption('context')
+        this.gl = this.getOption('context');
         if (!this.gl) {
             this.gl = this.adapter.createWebGLContext(this.getOption('w'), this.getOption('h'));
         } else {
             // Override width and height.
-            this._options.w = this.gl.canvas.width
-            this._options.h = this.gl.canvas.height
+            this._options.w = this.gl.canvas.width;
+            this._options.h = this.gl.canvas.height;
         }
 
         this.setGlClearColor(this._options.glClearColor);
@@ -46,17 +45,17 @@ class Stage extends EventEmitter {
         this.dt = 0;
 
         // Preload rectangle texture, so that we can skip some border checks for loading textures.
-        this.rectangleTexture = new RectangleTexture(this)
+        this.rectangleTexture = new RectangleTexture(this);
         this.rectangleTexture.load();
 
         // Never clean up because we use it all the time.
-        this.rectangleTexture.source.permanent = true
+        this.rectangleTexture.source.permanent = true;
 
-        this._updateSourceTextures = new Set()
+        this._updateSourceTextures = new Set();
     }
 
     getOption(name) {
-        return this._options[name]
+        return this._options[name];
     }
     
     _setOptions(o) {
@@ -87,18 +86,18 @@ class Stage extends EventEmitter {
         opt('useTextureAtlas', false);
         opt('debugTextureAtlas', false);
         opt('useImageWorker', false);
-        opt('autostart', true)
+        opt('autostart', true);
         opt('precision', 1);
     }
 
     setApplication(app) {
-        this.application = app
+        this.application = app;
     }
 
     init() {
         this.application.setAsRoot();
         if (this.getOption('autostart')) {
-            this.adapter.startLoop()
+            this.adapter.startLoop();
         }
     }
 
@@ -118,17 +117,17 @@ class Stage extends EventEmitter {
 
     resume() {
         if (this._destroyed) {
-            throw new Error("Already destroyed")
+            throw new Error("Already destroyed");
         }
         this.adapter.startLoop();
     }
 
     get root() {
-        return this.application
+        return this.application;
     }
 
     getCanvas() {
-        return this.gl.canvas
+        return this.gl.canvas;
     }
 
     getRenderPrecision() {
@@ -142,15 +141,15 @@ class Stage extends EventEmitter {
     addUpdateSourceTexture(texture) {
         if (this._updatingFrame) {
             // When called from the upload loop, we must immediately load the texture in order to avoid a 'flash'.
-            texture._performUpdateSource()
+            texture._performUpdateSource();
         } else {
-            this._updateSourceTextures.add(texture)
+            this._updateSourceTextures.add(texture);
         }
     }
 
     removeUpdateSourceTexture(texture) {
         if (this._updateSourceTextures) {
-            this._updateSourceTextures.delete(texture)
+            this._updateSourceTextures.delete(texture);
         }
     }
 
@@ -172,19 +171,19 @@ class Stage extends EventEmitter {
 
         if (this._updateSourceTextures.size) {
             this._updateSourceTextures.forEach(texture => {
-                texture._performUpdateSource()
-            })
-            this._updateSourceTextures = new Set()
+                texture._performUpdateSource();
+            });
+            this._updateSourceTextures = new Set();
         }
 
         this.emit('update');
 
-        const changes = this.ctx.hasRenderUpdates()
+        const changes = this.ctx.hasRenderUpdates();
 
         if (changes) {
-            this._updatingFrame = true
+            this._updatingFrame = true;
             this.ctx.frame();
-            this._updatingFrame = false
+            this._updatingFrame = false;
         }
 
         this.adapter.nextFrame(changes);
@@ -195,21 +194,21 @@ class Stage extends EventEmitter {
     }
 
     renderFrame() {
-        this.ctx.frame()
+        this.ctx.frame();
     }
 
     forceRenderUpdate() {
         // Enforce re-rendering.
         if (this.root) {
-            this.root.core._parent.setHasRenderUpdates(1)
+            this.root.core._parent.setHasRenderUpdates(1);
         }
     }
 
     setGlClearColor(clearColor) {
-        this.forceRenderUpdate()
+        this.forceRenderUpdate();
         if (!clearColor) {
             // Do not clear.
-            this._options.glClearColor = undefined
+            this._options.glClearColor = undefined;
         } else if (Array.isArray(clearColor)) {
             this._options.glClearColor = clearColor;
         } else {
@@ -231,7 +230,7 @@ class Stage extends EventEmitter {
             view = new View(this);
         }
 
-        view.patch(settings, true)
+        view.patch(settings, true);
 
         return view;
     }
@@ -241,62 +240,55 @@ class Stage extends EventEmitter {
     }
 
     get w() {
-        return this._options.w
+        return this._options.w;
     }
 
     get h() {
-        return this._options.h
+        return this._options.h;
     }
 
     get rw() {
-        return this.w / this._options.precision
+        return this.w / this._options.precision;
     }
 
     get rh() {
-        return this.h / this._options.precision
+        return this.h / this._options.precision;
     }
 
     gcTextureMemory(aggressive = false) {
-        console.log("GC texture memory" + (aggressive ? " (aggressive)" : ""))
+        console.log("GC texture memory" + (aggressive ? " (aggressive)" : ""));
         if (aggressive && this.ctx.root.visible) {
-            // Make sure that ALL textures are cleaned
-            this.ctx.root.visible = false
-            this.textureManager.freeUnusedTextureSources()
-            this.ctx.root.visible = true
+            // Make sure that ALL textures are cleaned;
+            this.ctx.root.visible = false;
+            this.textureManager.freeUnusedTextureSources();
+            this.ctx.root.visible = true;
         } else {
-            this.textureManager.freeUnusedTextureSources()
+            this.textureManager.freeUnusedTextureSources();
         }
     }
 
     gcRenderTextureMemory(aggressive = false) {
-        console.log("GC texture render memory" + (aggressive ? " (aggressive)" : ""))
+        console.log("GC texture render memory" + (aggressive ? " (aggressive)" : ""));
         if (aggressive && this.root.visible) {
-            // Make sure that ALL render textures are cleaned
-            this.root.visible = false
-            this.ctx.freeUnusedRenderTextures(0)
-            this.root.visible = true
+            // Make sure that ALL render textures are cleaned;
+            this.root.visible = false;
+            this.ctx.freeUnusedRenderTextures(0);
+            this.root.visible = true;
         } else {
-            this.ctx.freeUnusedRenderTextures(0)
+            this.ctx.freeUnusedRenderTextures(0);
         }
     }
 
     getDrawingCanvas() {
-        return this.adapter.getDrawingCanvas()
+        return this.adapter.getDrawingCanvas();
     }
 
 }
 
-module.exports = Stage;
-
-const View = require('./View');
-const StageUtils = require('./StageUtils');
-const TextureManager = require('./TextureManager');
-const CoreContext = require('./core/CoreContext');
-const TransitionManager = require('../animation/TransitionManager');
-const AnimationManager = require('../animation/AnimationManager');
-/*M¬*/
-const WebAdapter = Utils.isNode ? undefined : require('../browser/WebAdapter');
-const NodeAdapter = Utils.isNode ? require('../node/NodeAdapter') : null;
-/*¬M*/
-const Application = require('../application/Application')
-const RectangleTexture = require('../textures/RectangleTexture')
+import View from "./View.mjs";
+import StageUtils from "./StageUtils.mjs";
+import TextureManager from "./TextureManager.mjs";
+import CoreContext from "./core/CoreContext.mjs";
+import TransitionManager from "../animation/TransitionManager.mjs";
+import AnimationManager from "../animation/AnimationManager.mjs";
+import RectangleTexture from "../textures/RectangleTexture.mjs";

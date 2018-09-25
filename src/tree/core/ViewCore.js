@@ -2,7 +2,7 @@
  * Graphical calculations / VBO buffer filling.
  */
 
-class ViewCore {
+export default class ViewCore {
 
     constructor(view) {
         this._view = view;
@@ -20,9 +20,9 @@ class ViewCore {
 
         this._pRecalc = 0;
 
-        this._worldContext = new ViewCoreContext()
+        this._worldContext = new ViewCoreContext();
 
-        this._hasUpdates = false
+        this._hasUpdates = false;
 
         this._localAlpha = 1;
 
@@ -50,7 +50,7 @@ class ViewCore {
         // Used by both update and render.
         this._zSort = false;
 
-        this._outOfBounds = 0
+        this._outOfBounds = 0;
 
         /**
          * The texture source to be displayed.
@@ -66,11 +66,11 @@ class ViewCore {
 
         this._zIndexedChildren = null;
 
-        this._renderContext = this._worldContext
+        this._renderContext = this._worldContext;
 
         this.renderState = this.ctx.renderState;
 
-        this._scissor = undefined
+        this._scissor = undefined;
 
         // The ancestor ViewCore that owns the inherited shader. Null if none is active (default shader).
         this._shaderOwner = null;
@@ -125,207 +125,207 @@ class ViewCore {
         // View is rendered on another texture.
         this._renderToTextureEnabled = false;
 
-        this._texturizer = null
+        this._texturizer = null;
 
-        this._useRenderToTexture = false
+        this._useRenderToTexture = false;
 
-        this._boundsMargin = undefined
+        this._boundsMargin = undefined;
 
-        this._recBoundsMargin = undefined
+        this._recBoundsMargin = undefined;
 
-        this._withinBoundsMargin = false
+        this._withinBoundsMargin = false;
 
-        this._viewport = undefined
+        this._viewport = undefined;
 
-        this._clipbox = false
+        this._clipbox = false;
 
-        this.render = this._renderSimple
+        this.render = this._renderSimple;
     }
 
     get x() {
-        return this._x
+        return this._x;
     }
 
     set x(v) {
         if (this._x !== v) {
-            this._updateLocalTranslateDelta(v - this._x, 0)
-            this._x = v
+            this._updateLocalTranslateDelta(v - this._x, 0);
+            this._x = v;
         }
     }
 
     get y() {
-        return this._y
+        return this._y;
     }
 
     set y(v) {
         if (this._y !== v) {
-            this._updateLocalTranslateDelta(0, v - this._y)
-            this._y = v
+            this._updateLocalTranslateDelta(0, v - this._y);
+            this._y = v;
         }
     }
 
     get w() {
-        return this._w
+        return this._w;
     }
 
     set w(v) {
         if (this._w !== v) {
             // We don't support negative dimensions because we'd need to sacrifice some update-loop optimizations.
-            this._w = Math.max(0, v)
-            this._view._updateDimensions()
+            this._w = Math.max(0, v);
+            this._view._updateDimensions();
         }
     }
 
     get h() {
-        return this._h
+        return this._h;
     }
 
     set h(v) {
         if (this._h !== v) {
-            this._h = Math.max(0, v)
-            this._view._updateDimensions()
+            this._h = Math.max(0, v);
+            this._view._updateDimensions();
         }
     }
     
     get scaleX() {
-        return this._scaleX
+        return this._scaleX;
     }
 
     set scaleX(v) {
         if (this._scaleX !== v) {
-            this._scaleX = v
-            this._updateLocalTransform()
+            this._scaleX = v;
+            this._updateLocalTransform();
         }
     }
 
     get scaleY() {
-        return this._scaleY
+        return this._scaleY;
     }
 
     set scaleY(v) {
         if (this._scaleY !== v) {
-            this._scaleY = v
-            this._updateLocalTransform()
+            this._scaleY = v;
+            this._updateLocalTransform();
         }
     }
 
     get scale() {
-        return this.scaleX
+        return this.scaleX;
     }
 
     set scale(v) {
         if (this._scaleX !== v || this._scaleY !== v) {
-            this._scaleX = v
-            this._scaleY = v
-            this._updateLocalTransform()
+            this._scaleX = v;
+            this._scaleY = v;
+            this._updateLocalTransform();
         }
     }
 
     get pivotX() {
-        return this._pivotX
+        return this._pivotX;
     }
 
     set pivotX(v) {
         if (this._pivotX !== v) {
-            this._pivotX = v
-            this._updateLocalTranslate()
+            this._pivotX = v;
+            this._updateLocalTranslate();
         }
     }
 
     get pivotY() {
-        return this._pivotY
+        return this._pivotY;
     }
 
     set pivotY(v) {
         if (this._pivotY !== v) {
-            this._pivotY = v
-            this._updateLocalTranslate()
+            this._pivotY = v;
+            this._updateLocalTranslate();
         }
     }
 
     get pivot() {
-        return this._pivotX
+        return this._pivotX;
     }
 
     set pivot(v) {
         if (this._pivotX !== v || this._pivotY !== v) {
             this._pivotX = v;
             this._pivotY = v;
-            this._updateLocalTranslate()
+            this._updateLocalTranslate();
         }
     }
 
     get mountX() {
-        return this._mountX
+        return this._mountX;
     }
 
     set mountX(v) {
         if (this._mountX !== v) {
-            this._mountX = v
-            this._updateLocalTranslate()
+            this._mountX = v;
+            this._updateLocalTranslate();
         }
     }
 
     get mountY() {
-        return this._mountY
+        return this._mountY;
     }
 
     set mountY(v) {
         if (this._mountY !== v) {
-            this._mountY = v
-            this._updateLocalTranslate()
+            this._mountY = v;
+            this._updateLocalTranslate();
         }
     }
 
     get mount() {
-        return this._mountX
+        return this._mountX;
     }
 
     set mount(v) {
         if (this._mountX !== v || this._mountY !== v) {
-            this._mountX = v
-            this._mountY = v
-            this._updateLocalTranslate()
+            this._mountX = v;
+            this._mountY = v;
+            this._updateLocalTranslate();
         }
     }
 
     get rotation() {
-        return this._rotation
+        return this._rotation;
     }
 
     set rotation(v) {
         if (this._rotation !== v) {
-            this._rotation = v
-            this._updateLocalTransform()
+            this._rotation = v;
+            this._updateLocalTransform();
         }
     }
 
     get alpha() {
-        return this._alpha
+        return this._alpha;
     }
 
     set alpha(v) {
         // Account for rounding errors.
         v = (v > 1 ? 1 : (v < 1e-14 ? 0 : v));
         if (this._alpha !== v) {
-            let prev = this._alpha
-            this._alpha = v
+            let prev = this._alpha;
+            this._alpha = v;
             this._updateLocalAlpha();
             if ((prev === 0) !== (v === 0)) {
-                this._view._updateEnabledFlag()
+                this._view._updateEnabledFlag();
             }
         }
     }
 
     get visible() {
-        return this._visible
+        return this._visible;
     }
 
     set visible(v) {
         if (this._visible !== v) {
-            this._visible = v
-            this._updateLocalAlpha()
-            this._view._updateEnabledFlag()
+            this._visible = v;
+            this._updateLocalAlpha();
+            this._view._updateEnabledFlag();
         }
     }
 
@@ -366,7 +366,7 @@ class ViewCore {
     };
 
     _updateLocalTranslateDelta(dx, dy) {
-        this._addLocalTranslate(dx, dy)
+        this._addLocalTranslate(dx, dy);
     };
 
     _updateLocalAlpha() {
@@ -402,7 +402,7 @@ class ViewCore {
     _setRecalc(type) {
         this._recalc |= type;
 
-        this._setHasUpdates()
+        this._setHasUpdates();
 
         // Any changes in descendants should trigger texture updates.
         if (this._parent) {
@@ -411,10 +411,10 @@ class ViewCore {
     }
 
     _setHasUpdates() {
-        let p = this
+        let p = this;
         while(p && !p._hasUpdates) {
-            p._hasUpdates = true
-            p = p._parent
+            p._hasUpdates = true;
+            p = p._parent;
         }
     }
 
@@ -433,7 +433,7 @@ class ViewCore {
 
             if (this._parent) {
                 // Force parent to propagate hasUpdates flag.
-                this._parent._setHasUpdates()
+                this._parent._setHasUpdates();
             }
 
             if (this._zIndex === 0) {
@@ -451,9 +451,9 @@ class ViewCore {
             }
 
             // Tree order did change: even if zParent stays the same, we must resort.
-            this._zIndexResort = true
+            this._zIndexResort = true;
             if (this._zParent) {
-                this._zParent.enableZSort()
+                this._zParent.enableZSort();
             }
 
             if (!this._shader) {
@@ -468,11 +468,11 @@ class ViewCore {
 
     enableZSort(force = false) {
         if (!this._zSort && this._zContextUsage > 0) {
-            this._zSort = true
+            this._zSort = true;
             if (force) {
                 // ZSort must be done, even if this view is invisible.
                 // This is done to prevent memory leaks when removing views from inactive render branches.
-                this.ctx.forceZSort(this)
+                this.ctx.forceZSort(this);
             }
         }
     }
@@ -485,9 +485,9 @@ class ViewCore {
 
     setChildAt(index, child) {
         if (!this._children) this._children = [];
-        this._children[index].setParent(null)
-        this._children[index] = child
-        child.setParent(this)
+        this._children[index].setParent(null);
+        this._children[index] = child;
+        child.setParent(this);
     }
 
     removeChildAt(index) {
@@ -511,24 +511,24 @@ class ViewCore {
     };
 
     syncChildren(removed, added, order) {
-        this._children = order
+        this._children = order;
         for (let i = 0, n = removed.length; i < n; i++) {
-            removed[i].setParent(null)
+            removed[i].setParent(null);
         }
         for (let i = 0, n = added.length; i < n; i++) {
-            added[i].setParent(this)
+            added[i].setParent(this);
         }
     }
 
     moveChild(fromIndex, toIndex) {
-        let c = this._children[fromIndex]
+        let c = this._children[fromIndex];
         this._children.splice(fromIndex, 1);
         this._children.splice(toIndex, 0, c);
 
-        // Tree order changed: must resort!
-        this._zIndexResort = true
+        // Tree order changed: must resort!;
+        this._zIndexResort = true;
         if (this._zParent) {
-            this._zParent.enableZSort()
+            this._zParent.enableZSort();
         }
     }
 
@@ -575,19 +575,19 @@ class ViewCore {
             this._rh = h;
 
             // In case of an estimation, the update loop should perform different bound checks.
-            this._rwhEstimate = isEstimate
+            this._rwhEstimate = isEstimate;
 
             this._setRecalc(2);
             if (this._texturizer) {
                 this._texturizer.releaseRenderTexture();
                 this._texturizer.releaseFilterTexture();
-                this._texturizer.updateResultTexture()
+                this._texturizer.updateResultTexture();
             }
             // Due to width/height change: update the translation vector.
-            this._updateLocalTranslate()
-            return true
+            this._updateLocalTranslate();
+            return true;
         } else {
-            return false
+            return false;
         }
     };
 
@@ -612,7 +612,7 @@ class ViewCore {
     };
 
     get displayedTextureSource() {
-        return this._displayedTextureSource
+        return this._displayedTextureSource;
     }
 
     setDisplayedTextureSource(textureSource) {
@@ -621,33 +621,33 @@ class ViewCore {
     };
 
     get isRoot() {
-        return this._isRoot
+        return this._isRoot;
     }
 
     setAsRoot() {
         // Use parent dummy.
-        this._parent = new ViewCore(this._view)
+        this._parent = new ViewCore(this._view);
 
         // After setting root, make sure it's updated.
-        this._parent._hasRenderUpdates = 3
-        this._parent._hasUpdates = true
+        this._parent._hasRenderUpdates = 3;
+        this._parent._hasUpdates = true;
 
         // Root is, and will always be, the primary zContext.
-        this._isRoot = true
+        this._isRoot = true;
 
-        this.ctx.root = this
+        this.ctx.root = this;
 
         // Set scissor area of 'fake parent' to stage's viewport.
-        this._parent._viewport = [0, 0, this.ctx.stage.rw, this.ctx.stage.rh]
-        this._parent._scissor = this._parent._viewport
+        this._parent._viewport = [0, 0, this.ctx.stage.rw, this.ctx.stage.rh];
+        this._parent._scissor = this._parent._viewport;
 
         // We use a default of 100px bounds margin to detect images around the edges.
-        this._parent._recBoundsMargin = [100, 100, 100, 100]
+        this._parent._recBoundsMargin = [100, 100, 100, 100];
 
         // Default: no bounds margin.
-        this._parent._boundsMargin = null
+        this._parent._boundsMargin = null;
 
-        this._setRecalc(1 + 2 + 4)
+        this._setRecalc(1 + 2 + 4);
     };
 
     isAncestorOf(c) {
@@ -680,7 +680,7 @@ class ViewCore {
                 }
 
                 // We must filter out this item upon the next resort.
-                this._zParent.enableZSort()
+                this._zParent.enableZSort();
             }
 
             if (newZParent !== null) {
@@ -701,14 +701,14 @@ class ViewCore {
                     }
 
                     // Order should be checked.
-                    newZParent.enableZSort()
+                    newZParent.enableZSort();
                 }
             }
 
             this._zParent = newZParent;
 
             // Newly added view must be marked for resort.
-            this._zIndexResort = true
+            this._zIndexResort = true;
         }
     };
 
@@ -724,7 +724,7 @@ class ViewCore {
                     this._zIndexedChildren.push(this._children[i]);
                 }
                 // Initially, children are already sorted properly (tree order).
-                this._zSort = false
+                this._zSort = false;
             }
         }
     };
@@ -789,7 +789,7 @@ class ViewCore {
             }
 
             // Make sure that resort is done.
-            this._zIndexResort = true
+            this._zIndexResort = true;
             if (this._zParent) {
                 this._zParent.enableZSort();
             }
@@ -818,7 +818,7 @@ class ViewCore {
     enableZContext(prevZContext) {
         if (prevZContext && prevZContext._zContextUsage > 0) {
             // Transfer from upper z context to this z context.
-            const results = this._getZIndexedDescs()
+            const results = this._getZIndexedDescs();
             results.forEach((c) => {
                 if (this.isAncestorOf(c) && c._zIndex !== 0) {
                     c.setZParent(this);
@@ -828,21 +828,21 @@ class ViewCore {
     }
 
     _getZIndexedDescs() {
-        const results = []
+        const results = [];
         if (this._children) {
             for (let i = 0, n = this._children.length; i < n; i++) {
-                this._children[i]._getZIndexedDescsRec(results)
+                this._children[i]._getZIndexedDescsRec(results);
             }
         }
-        return results
+        return results;
     }
 
     _getZIndexedDescsRec(results) {
         if (this._zIndex) {
-            results.push(this)
+            results.push(this);
         } else if (this._children && !this.isZContext()) {
             for (let i = 0, n = this._children.length; i < n; i++) {
-                this._children[i]._getZIndexedDescsRec(results)
+                this._children[i]._getZIndexedDescsRec(results);
             }
         }
     }
@@ -854,7 +854,7 @@ class ViewCore {
 
             // Make sure that z-indexed children are up to date (old ones removed).
             if (this._zSort) {
-                this.sortZIndexedChildren()
+                this.sortZIndexedChildren();
             }
 
             this._zIndexedChildren.slice().forEach(function (c) {
@@ -919,7 +919,7 @@ class ViewCore {
     }
 
     set onAfterCalcs(f) {
-        this._onAfterCalcs = f
+        this._onAfterCalcs = f;
     }
 
     get shader() {
@@ -950,28 +950,28 @@ class ViewCore {
     }
 
     get clipping() {
-        return this._clipping
+        return this._clipping;
     }
 
     set clipping(v) {
         if (this._clipping !== v) {
-            this._clipping = v
+            this._clipping = v;
 
             // Force update of scissor by updating translate.
             // Alpha must also be updated because the scissor area may have been empty.
-            this._setRecalc(1 + 2)
+            this._setRecalc(1 + 2);
         }
     }
 
     get clipbox() {
-        return this._clipbox
+        return this._clipbox;
     }
 
     set clipbox(v) {
         // In case of out-of-bounds view, all children will also be ignored.
         // It will save us from executing the update/render loops for those.
         // The optimization will be used immediately during the next frame.
-        this._clipbox = v
+        this._clipbox = v;
     }
 
     _setShaderOwnerRecursive(viewCore) {
@@ -979,7 +979,7 @@ class ViewCore {
 
         if (this._children && !this._renderToTextureEnabled) {
             for (let i = 0, n = this._children.length; i < n; i++) {
-                let c = this._children[i]
+                let c = this._children[i];
                 if (!c._shader) {
                     c._setShaderOwnerRecursive(viewCore);
                     c._hasRenderUpdates = 3;
@@ -991,7 +991,7 @@ class ViewCore {
     _setShaderOwnerChildrenRecursive(viewCore) {
         if (this._children) {
             for (let i = 0, n = this._children.length; i < n; i++) {
-                let c = this._children[i]
+                let c = this._children[i];
                 if (!c._shader) {
                     c._setShaderOwnerRecursive(viewCore);
                     c._hasRenderUpdates = 3;
@@ -1001,57 +1001,57 @@ class ViewCore {
     };
 
     _hasRenderContext() {
-        return this._renderContext !== this._worldContext
+        return this._renderContext !== this._worldContext;
     }
 
     get renderContext() {
-        return this._renderContext
+        return this._renderContext;
     }
 
     updateRenderToTextureEnabled() {
         // Enforce texturizer initialisation.
-        let v = (this.texturizer._hasFilters() || this.texturizer._enabled)
+        let v = (this.texturizer._hasFilters() || this.texturizer._enabled);
 
         if (v) {
-            this._enableRenderToTexture()
+            this._enableRenderToTexture();
         } else {
-            this._disableRenderToTexture()
-            this._texturizer.releaseRenderTexture()
+            this._disableRenderToTexture();
+            this._texturizer.releaseRenderTexture();
         }
     }
 
     _enableRenderToTexture() {
         if (!this._renderToTextureEnabled) {
-            let prevIsZContext = this.isZContext()
+            let prevIsZContext = this.isZContext();
 
-            this._renderToTextureEnabled = true
+            this._renderToTextureEnabled = true;
 
-            this._renderContext = new ViewCoreContext()
+            this._renderContext = new ViewCoreContext();
 
             // If render to texture is active, a new shader context is started.
-            this._setShaderOwnerChildrenRecursive(null)
+            this._setShaderOwnerChildrenRecursive(null);
 
             if (!prevIsZContext) {
                 // Render context forces z context.
                 this.enableZContext(this._parent ? this._parent.findZContext() : null);
             }
 
-            this.setHasRenderUpdates(3)
+            this.setHasRenderUpdates(3);
 
             // Make sure that the render coordinates get updated.
-            this._setRecalc(7)
+            this._setRecalc(7);
 
-            this.render = this._renderAdvanced
+            this.render = this._renderAdvanced;
         }
     }
 
     _disableRenderToTexture() {
         if (this._renderToTextureEnabled) {
-            this._renderToTextureEnabled = false
+            this._renderToTextureEnabled = false;
 
-            this._setShaderOwnerChildrenRecursive(this._shaderOwner)
+            this._setShaderOwnerChildrenRecursive(this._shaderOwner);
 
-            this._renderContext = this._worldContext
+            this._renderContext = this._worldContext;
 
             if (!this.isZContext()) {
                 this.disableZContext();
@@ -1060,9 +1060,9 @@ class ViewCore {
             // Make sure that the render coordinates get updated.
             this._setRecalc(7);
 
-            this.setHasRenderUpdates(3)
+            this.setHasRenderUpdates(3);
 
-            this.render = this._renderSimple
+            this.render = this._renderSimple;
         }
     }
 
@@ -1111,7 +1111,7 @@ class ViewCore {
     };
 
     get outOfBounds() {
-        return this._outOfBounds
+        return this._outOfBounds;
     }
 
     set boundsMargin(v) {
@@ -1121,27 +1121,27 @@ class ViewCore {
          *  null: no margin
          *  number[4]: specific margins: left, top, right, bottom.
          */
-        this._boundsMargin = v ? v.slice() : undefined
+        this._boundsMargin = v ? v.slice() : undefined;
 
         // We force recalc in order to set all boundsMargin recursively during the next update.
-        this._setRecalc(2)
+        this._setRecalc(2);
     }
 
     get boundsMargin() {
-        return this._boundsMargin
+        return this._boundsMargin;
     }
 
     update() {
-        this._recalc |= this._parent._pRecalc
+        this._recalc |= this._parent._pRecalc;
 
         if (this._onUpdate) {
             // Block all 'upwards' updates when changing things in this branch.
-            this._hasUpdates = true
-            this._onUpdate(this.view)
+            this._hasUpdates = true;
+            this._onUpdate(this.view);
         }
 
-        const pw = this._parent._worldContext
-        let w = this._worldContext
+        const pw = this._parent._worldContext;
+        let w = this._worldContext;
         const visible = (pw.alpha && this._localAlpha);
 
         /**
@@ -1151,172 +1151,172 @@ class ViewCore {
          * - this branch becomes invisible (descs may be z-indexed so we must update all alpha values)
          */
         if (this._hasUpdates || (this._recalc && visible) || (w.alpha && !visible)) {
-            let recalc = this._recalc
+            let recalc = this._recalc;
 
             // Update world coords/alpha.
             if (recalc & 1) {
                 if (!w.alpha && visible) {
                     // Becomes visible.
-                    this._hasRenderUpdates = 3
+                    this._hasRenderUpdates = 3;
                 }
                 w.alpha = pw.alpha * this._localAlpha;
 
                 if (w.alpha < 1e-14) {
                     // Tiny rounding errors may cause failing visibility tests.
-                    w.alpha = 0
+                    w.alpha = 0;
                 }
             }
 
             if (recalc & 6) {
-                w.px = pw.px + this._localPx * pw.ta
-                w.py = pw.py + this._localPy * pw.td
+                w.px = pw.px + this._localPx * pw.ta;
+                w.py = pw.py + this._localPy * pw.td;
                 if (pw.tb !== 0) w.px += this._localPy * pw.tb;
                 if (pw.tc !== 0) w.py += this._localPx * pw.tc;
             }
 
             if (recalc & 4) {
-                w.ta = this._localTa * pw.ta
-                w.tb = this._localTd * pw.tb
-                w.tc = this._localTa * pw.tc
-                w.td = this._localTd * pw.td
+                w.ta = this._localTa * pw.ta;
+                w.tb = this._localTd * pw.tb;
+                w.tc = this._localTa * pw.tc;
+                w.td = this._localTd * pw.td;
 
                 if (this._isComplex) {
-                    w.ta += this._localTc * pw.tb
-                    w.tb += this._localTb * pw.ta
-                    w.tc += this._localTc * pw.td
-                    w.td += this._localTb * pw.tc
+                    w.ta += this._localTc * pw.tb;
+                    w.tb += this._localTb * pw.ta;
+                    w.tc += this._localTc * pw.td;
+                    w.td += this._localTb * pw.tc;
                 }
             }
 
             // Update render coords/alpha.
-            const pr = this._parent._renderContext
+            const pr = this._parent._renderContext;
             if (this._parent._hasRenderContext()) {
-                const init = this._renderContext === this._worldContext
+                const init = this._renderContext === this._worldContext;
                 if (init) {
                     // First render context build: make sure that it is fully initialized correctly.
                     // Otherwise, if we get into bounds later, the render context would not be initialized correctly.
-                    this._renderContext = new ViewCoreContext()
+                    this._renderContext = new ViewCoreContext();
                 }
 
-                const r = this._renderContext
+                const r = this._renderContext;
 
                 // Update world coords/alpha.
                 if (init || (recalc & 1)) {
                     r.alpha = pr.alpha * this._localAlpha;
 
                     if (r.alpha < 1e-14) {
-                        r.alpha = 0
+                        r.alpha = 0;
                     }
                 }
 
                 if (init || (recalc & 6)) {
-                    r.px = pr.px + this._localPx * pr.ta
-                    r.py = pr.py + this._localPy * pr.td
+                    r.px = pr.px + this._localPx * pr.ta;
+                    r.py = pr.py + this._localPy * pr.td;
                     if (pr.tb !== 0) r.px += this._localPy * pr.tb;
                     if (pr.tc !== 0) r.py += this._localPx * pr.tc;
                 }
 
                 if (init) {
                     // We set the recalc toggle, because we must make sure that the scissor is updated.
-                    recalc |= 2
+                    recalc |= 2;
                 }
 
                 if (init || (recalc & 4)) {
-                    r.ta = this._localTa * pr.ta
-                    r.tb = this._localTd * pr.tb
-                    r.tc = this._localTa * pr.tc
-                    r.td = this._localTd * pr.td
+                    r.ta = this._localTa * pr.ta;
+                    r.tb = this._localTd * pr.tb;
+                    r.tc = this._localTa * pr.tc;
+                    r.td = this._localTd * pr.td;
 
                     if (this._isComplex) {
-                        r.ta += this._localTc * pr.tb
-                        r.tb += this._localTb * pr.ta
-                        r.tc += this._localTc * pr.td
-                        r.td += this._localTb * pr.tc
+                        r.ta += this._localTc * pr.tb;
+                        r.tb += this._localTb * pr.ta;
+                        r.tc += this._localTc * pr.td;
+                        r.td += this._localTb * pr.tc;
                     }
                 }
             } else {
-                this._renderContext = this._worldContext
+                this._renderContext = this._worldContext;
             }
 
             if (this.ctx.updateTreeOrder === -1) {
-                this.ctx.updateTreeOrder = this._updateTreeOrder + 1
+                this.ctx.updateTreeOrder = this._updateTreeOrder + 1;
             } else {
                 this._updateTreeOrder = this.ctx.updateTreeOrder++;
             }
 
             // Determine whether we must use a 'renderTexture'.
-            const useRenderToTexture = this._renderToTextureEnabled && this._texturizer.mustRenderToTexture()
+            const useRenderToTexture = this._renderToTextureEnabled && this._texturizer.mustRenderToTexture();
             if (this._useRenderToTexture !== useRenderToTexture) {
                 // Coords must be changed.
-                this._recalc |= 2 + 4
+                this._recalc |= 2 + 4;
 
                 // Scissor may change: force update.
-                recalc |= 2
+                recalc |= 2;
 
                 if (!this._useRenderToTexture) {
                     // We must release the texture.
-                    this._texturizer.release()
+                    this._texturizer.release();
                 }
             }
-            this._useRenderToTexture = useRenderToTexture
+            this._useRenderToTexture = useRenderToTexture;
 
-            const r = this._renderContext
+            const r = this._renderContext;
 
             // Calculate a bbox for this view.
-            let sx, sy, ex, ey
+            let sx, sy, ex, ey;
             if (this._isComplex) {
-                sx = Math.min(0, this._rw * r.ta, this._rw * r.ta + this._rh * r.tb, this._rh * r.tb) + r.px
-                ex = Math.max(0, this._rw * r.ta, this._rw * r.ta + this._rh * r.tb, this._rh * r.tb) + r.px
-                sy = Math.min(0, this._rw * r.tc, this._rw * r.tc + this._rh * r.td, this._rh * r.td) + r.py
-                ey = Math.max(0, this._rw * r.tc, this._rw * r.tc + this._rh * r.td, this._rh * r.td) + r.py
+                sx = Math.min(0, this._rw * r.ta, this._rw * r.ta + this._rh * r.tb, this._rh * r.tb) + r.px;
+                ex = Math.max(0, this._rw * r.ta, this._rw * r.ta + this._rh * r.tb, this._rh * r.tb) + r.px;
+                sy = Math.min(0, this._rw * r.tc, this._rw * r.tc + this._rh * r.td, this._rh * r.td) + r.py;
+                ey = Math.max(0, this._rw * r.tc, this._rw * r.tc + this._rh * r.td, this._rh * r.td) + r.py;
             } else {
-                sx = r.px
-                ex = r.px + r.ta * this._rw
-                sy = r.py
-                ey = r.py + r.td * this._rh
+                sx = r.px;
+                ex = r.px + r.ta * this._rw;
+                sy = r.py;
+                ey = r.py + r.td * this._rh;
             }
 
             if (this._rwhEstimate && (this._isComplex || this._localTa < 1 || this._localTb < 1)) {
-                // If we are dealing with a non-identity matrix, we must extend the bbox so that withinBounds and
+                // If we are dealing with a non-identity matrix, we must extend the bbox so that withinBounds and;
                 //  scissors will include the complete range of (positive) dimensions up to rw,rh.
-                const nx = this._x * pr.ta + this._y * pr.tb + pr.px
-                const ny = this._x * pr.tc + this._y * pr.td + pr.py
-                if (nx < sx) sx = nx
-                if (ny < sy) sy = ny
-                if (nx > ex) ex = nx
-                if (ny > ey) ey = ny
+                const nx = this._x * pr.ta + this._y * pr.tb + pr.px;
+                const ny = this._x * pr.tc + this._y * pr.td + pr.py;
+                if (nx < sx) sx = nx;
+                if (ny < sy) sy = ny;
+                if (nx > ex) ex = nx;
+                if (ny > ey) ey = ny;
             }
 
             if (recalc & 6 || !this._scissor /* initial */) {
                 // Determine whether we must 'clip'.
                 if (this._clipping && r.isSquare()) {
-                    // If the parent renders to a texture, it's scissor should be ignored
-                    const area = this._parent._useRenderToTexture ? this._parent._viewport : this._parent._scissor
+                    // If the parent renders to a texture, it's scissor should be ignored;
+                    const area = this._parent._useRenderToTexture ? this._parent._viewport : this._parent._scissor;
                     if (area) {
                         // Merge scissor areas.
-                        const lx = Math.max(area[0], sx)
-                        const ly = Math.max(area[1], sy)
+                        const lx = Math.max(area[0], sx);
+                        const ly = Math.max(area[1], sy);
                         this._scissor = [
                             lx,
                             ly,
                             Math.min(area[2] + area[0], ex) - lx,
                             Math.min(area[3] + area[1], ey) - ly
-                        ]
+                        ];
                     } else {
-                        this._scissor = [sx, sy, ex - sx, ey - sy]
+                        this._scissor = [sx, sy, ex - sx, ey - sy];
                     }
                 } else {
                     // No clipping: reuse parent scissor.
-                    this._scissor = this._parent._useRenderToTexture ? this._parent._viewport : this._parent._scissor
+                    this._scissor = this._parent._useRenderToTexture ? this._parent._viewport : this._parent._scissor;
                 }
             }
 
             // Calculate the outOfBounds margin.
             if (this._boundsMargin !== undefined) {
                 // Reuse parent's recBoundsMargin.
-                this._recBoundsMargin = this._boundsMargin
+                this._recBoundsMargin = this._boundsMargin;
             } else {
-                this._recBoundsMargin = this._parent._recBoundsMargin
+                this._recBoundsMargin = this._parent._recBoundsMargin;
             }
 
             if (this._onAfterCalcs) {
@@ -1324,47 +1324,47 @@ class ViewCore {
                 if (this._onAfterCalcs(this.view)) {
                     // Recalculate bbox.
                     if (this._isComplex) {
-                        sx = Math.min(0, this._rw * r.ta, this._rw * r.ta + this._rh * r.tb, this._rh * r.tb) + r.px
-                        ex = Math.max(0, this._rw * r.ta, this._rw * r.ta + this._rh * r.tb, this._rh * r.tb) + r.px
-                        sy = Math.min(0, this._rw * r.tc, this._rw * r.tc + this._rh * r.td, this._rh * r.td) + r.py
-                        ey = Math.max(0, this._rw * r.tc, this._rw * r.tc + this._rh * r.td, this._rh * r.td) + r.py
+                        sx = Math.min(0, this._rw * r.ta, this._rw * r.ta + this._rh * r.tb, this._rh * r.tb) + r.px;
+                        ex = Math.max(0, this._rw * r.ta, this._rw * r.ta + this._rh * r.tb, this._rh * r.tb) + r.px;
+                        sy = Math.min(0, this._rw * r.tc, this._rw * r.tc + this._rh * r.td, this._rh * r.td) + r.py;
+                        ey = Math.max(0, this._rw * r.tc, this._rw * r.tc + this._rh * r.td, this._rh * r.td) + r.py;
                     } else {
-                        sx = r.px
-                        ex = r.px + r.ta * this._rw
-                        sy = r.py
-                        ey = r.py + r.td * this._rh
+                        sx = r.px;
+                        ex = r.px + r.ta * this._rw;
+                        sy = r.py;
+                        ey = r.py + r.td * this._rh;
                     }
 
                     if (this._rwhEstimate && (this._isComplex || this._localTa < 1 || this._localTb < 1)) {
-                        const nx = this._x * pr.ta + this._y * pr.tb + pr.px
-                        const ny = this._x * pr.tc + this._y * pr.td + pr.py
-                        if (nx < sx) sx = nx
-                        if (ny < sy) sy = ny
-                        if (nx > ex) ex = nx
-                        if (ny > ey) ey = ny
+                        const nx = this._x * pr.ta + this._y * pr.tb + pr.px;
+                        const ny = this._x * pr.tc + this._y * pr.td + pr.py;
+                        if (nx < sx) sx = nx;
+                        if (ny < sy) sy = ny;
+                        if (nx > ex) ex = nx;
+                        if (ny > ey) ey = ny;
                     }
                 }
             }
 
             if (this._parent._outOfBounds === 2) {
                 // Inherit parent out of boundsness.
-                this._outOfBounds = 2
+                this._outOfBounds = 2;
 
                 if (this._withinBoundsMargin) {
-                    this._withinBoundsMargin = false
-                    this.view._disableWithinBoundsMargin()
+                    this._withinBoundsMargin = false;
+                    this.view._disableWithinBoundsMargin();
                 }
             } else {
                 if (recalc & 6) {
                     // Recheck if view is out-of-bounds (all settings that affect this should enable recalc bit 2 or 4).
-                    this._outOfBounds = 0
-                    let withinMargin = true
+                    this._outOfBounds = 0;
+                    let withinMargin = true;
 
                     // Offscreens are always rendered as long as the parent is within bounds.
                     if (!this._renderToTextureEnabled || !this._texturizer || !this._texturizer.renderOffscreen) {
                         if (this._scissor && (this._scissor[2] <= 0 || this._scissor[3] <= 0)) {
                             // Empty scissor area.
-                            this._outOfBounds = 2
+                            this._outOfBounds = 2;
                         } else {
                             // Use bbox to check out-of-boundness.
                             if ((this._scissor[0] > ex) ||
@@ -1372,17 +1372,17 @@ class ViewCore {
                                 (sx > (this._scissor[0] + this._scissor[2])) ||
                                 (sy > (this._scissor[1] + this._scissor[3]))
                             ) {
-                                this._outOfBounds = 1
+                                this._outOfBounds = 1;
                             }
 
                             if (this._outOfBounds) {
                                 if (this._clipping || this._useRenderToTexture || this._clipbox) {
-                                    this._outOfBounds = 2
+                                    this._outOfBounds = 2;
                                 }
                             }
                         }
 
-                        withinMargin = (this._outOfBounds === 0)
+                        withinMargin = (this._outOfBounds === 0);
                         if (!withinMargin && !!this._recBoundsMargin) {
                             // Re-test, now with margins.
                             withinMargin = !((ex < this._scissor[0] - this._recBoundsMargin[2]) ||
@@ -1392,13 +1392,13 @@ class ViewCore {
 
                             if (withinMargin && this._outOfBounds === 2) {
                                 // Children must be visited because they may contain views that are within margin, so must be visible.
-                                this._outOfBounds = 1
+                                this._outOfBounds = 1;
                             }
                         }
                     }
 
                     if (this._withinBoundsMargin !== withinMargin) {
-                        this._withinBoundsMargin = withinMargin
+                        this._withinBoundsMargin = withinMargin;
 
                         if (this._withinBoundsMargin) {
                             // This may update things (txLoaded events) in the view itself, but also in descendants and ancestors.
@@ -1411,20 +1411,20 @@ class ViewCore {
                             // Changes in descendants are automatically executed within the current update loop, though we must
                             // take care to not update the hasUpdates flag unnecessarily in ancestors. We achieve this by making
                             // sure that the hasUpdates flag of this view is turned on, which blocks it for ancestors.
-                            this._hasUpdates = true
+                            this._hasUpdates = true;
 
-                            const recalc = this._recalc
-                            this._recalc = 0
-                            this.view._enableWithinBoundsMargin()
+                            const recalc = this._recalc;
+                            this._recalc = 0;
+                            this.view._enableWithinBoundsMargin();
 
                             if (this._recalc) {
                                 // This view needs to be re-updated now, because we want the dimensions (and other changes) to be updated.
-                                return this.update()
+                                return this.update();
                             }
 
-                            this._recalc = recalc
+                            this._recalc = recalc;
                         } else {
-                            this.view._disableWithinBoundsMargin()
+                            this.view._disableWithinBoundsMargin();
                         }
                     }
                 }
@@ -1433,10 +1433,10 @@ class ViewCore {
             if (this._useRenderToTexture) {
                 // Set viewport necessary for children scissor calculation.
                 if (this._viewport) {
-                    this._viewport[2] = this._rw
-                    this._viewport[3] = this._rh
+                    this._viewport[2] = this._rw;
+                    this._viewport[3] = this._rh;
                 } else {
-                    this._viewport = [0, 0, this._rw, this._rh]
+                    this._viewport = [0, 0, this._rw, this._rh];
                 }
             }
 
@@ -1444,7 +1444,7 @@ class ViewCore {
             this._pRecalc = (this._recalc & 135);
 
             // Clear flags so that future updates are properly detected.
-            this._recalc = 0
+            this._recalc = 0;
             this._hasUpdates = false;
 
             if (this._outOfBounds < 2) {
@@ -1457,7 +1457,7 @@ class ViewCore {
                     } else {
                         // Temporarily replace the render coord attribs by the identity matrix.
                         // This allows the children to calculate the render context.
-                        this._renderContext = ViewCoreContext.IDENTITY
+                        this._renderContext = ViewCoreContext.IDENTITY;
                     }
                 }
 
@@ -1468,29 +1468,29 @@ class ViewCore {
                 }
 
                 if (this._useRenderToTexture) {
-                    this._renderContext = r
+                    this._renderContext = r;
                 }
             } else {
                 if (this._children) {
                     for (let i = 0, n = this._children.length; i < n; i++) {
                         if (this._children[i]._hasUpdates) {
-                            this._children[i].update()
+                            this._children[i].update();
                         } else {
                             // Make sure we don't lose the 'inherited' updates.
-                            this._children[i]._recalc |= this._pRecalc
-                            this._children[i].updateOutOfBounds()
+                            this._children[i]._recalc |= this._pRecalc;
+                            this._children[i].updateOutOfBounds();
                         }
                     }
                 }
             }
 
             if (this._onAfterUpdate) {
-                this._onAfterUpdate(this.view)
+                this._onAfterUpdate(this.view);
             }
         } else {
             if (this.ctx.updateTreeOrder === -1 || this._updateTreeOrder >= this.ctx.updateTreeOrder) {
                 // If new tree order does not interfere with the current (gaps allowed) there's no need to traverse the branch.
-                this.ctx.updateTreeOrder = -1
+                this.ctx.updateTreeOrder = -1;
             } else {
                 this.updateTreeOrder();
             }
@@ -1503,11 +1503,11 @@ class ViewCore {
         if (this._outOfBounds !== 2 && this._renderContext.alpha > 0) {
 
             // Inherit parent out of boundsness.
-            this._outOfBounds = 2
+            this._outOfBounds = 2;
 
             if (this._withinBoundsMargin) {
-                this._withinBoundsMargin = false
-                this.view._disableWithinBoundsMargin()
+                this._withinBoundsMargin = false;
+                this.view._disableWithinBoundsMargin();
             }
 
             if (this._children) {
@@ -1540,8 +1540,8 @@ class ViewCore {
 
             if ((this._outOfBounds === 0) && this._displayedTextureSource) {
                 renderState.setShader(this.activeShader, this._shaderOwner);
-                renderState.setScissor(this._scissor)
-                this.addQuads()
+                renderState.setScissor(this._scissor);
+                this.addQuads();
             }
 
             // Also add children to the VBO.
@@ -1573,9 +1573,9 @@ class ViewCore {
         if (this._outOfBounds < 2 && this._renderContext.alpha) {
             let renderState = this.renderState;
 
-            let mustRenderChildren = true
-            let renderTextureInfo
-            let prevRenderTextureInfo
+            let mustRenderChildren = true;
+            let renderTextureInfo;
+            let prevRenderTextureInfo;
             if (this._useRenderToTexture) {
                 if (this._rw === 0 || this._rh === 0) {
                     // Ignore this branch and don't draw anything.
@@ -1583,9 +1583,9 @@ class ViewCore {
                     return;
                 } else if (!this._texturizer.hasRenderTexture() || (this._hasRenderUpdates >= 3)) {
                     // Switch to default shader for building up the render texture.
-                    renderState.setShader(renderState.defaultShader, this)
+                    renderState.setShader(renderState.defaultShader, this);
 
-                    prevRenderTextureInfo = renderState.renderTextureInfo
+                    prevRenderTextureInfo = renderState.renderTextureInfo;
 
                     renderTextureInfo = {
                         glTexture: null,
@@ -1598,18 +1598,18 @@ class ViewCore {
                     }
 
                     renderState.setRenderTextureInfo(renderTextureInfo);
-                    renderState.setScissor(undefined)
+                    renderState.setScissor(undefined);
 
                     if (this._displayedTextureSource) {
-                        let r = this._renderContext
+                        let r = this._renderContext;
 
                         // Use an identity context for drawing the displayed texture to the render texture.
-                        this._renderContext = ViewCoreContext.IDENTITY
+                        this._renderContext = ViewCoreContext.IDENTITY;
 
                         // Add displayed texture source in local coordinates.
-                        this.addQuads()
+                        this.addQuads();
 
-                        this._renderContext = r
+                        this._renderContext = r;
                     }
                 } else {
                     mustRenderChildren = false;
@@ -1617,8 +1617,8 @@ class ViewCore {
             } else {
                 if ((this._outOfBounds === 0) && this._displayedTextureSource) {
                     renderState.setShader(this.activeShader, this._shaderOwner);
-                    renderState.setScissor(this._scissor)
-                    this.addQuads()
+                    renderState.setScissor(this._scissor);
+                    this.addQuads();
                 }
             }
 
@@ -1639,15 +1639,15 @@ class ViewCore {
             }
 
             if (this._useRenderToTexture) {
-                let updateResultTexture = false
+                let updateResultTexture = false;
                 if (mustRenderChildren) {
                     // Finish refreshing renderTexture.
                     if (renderTextureInfo.glTexture) {
                         // There was only one texture drawn in this render texture.
                         // Check if we can reuse it (it should exactly span this render texture).
-                        let floats = renderState.quads.floats
-                        let uints = renderState.quads.uints
-                        let offset = renderTextureInfo.offset / 4
+                        let floats = renderState.quads.floats;
+                        let uints = renderState.quads.uints;
+                        let offset = renderTextureInfo.offset / 4;
                         let reuse = ((floats[offset] === 0) &&
                         (floats[offset + 1] === 0) &&
                         (uints[offset + 2] === 0x00000000) &&
@@ -1663,40 +1663,40 @@ class ViewCore {
                         (floats[offset + 12] === 0) &&
                         (floats[offset + 13] === renderTextureInfo.h) &&
                         (uints[offset + 14] === 0xFFFF0000) &&
-                        (uints[offset + 15] === 0xFFFFFFFF))
+                        (uints[offset + 15] === 0xFFFFFFFF));
                         if (!reuse) {
-                            renderTextureInfo.glTexture = null
+                            renderTextureInfo.glTexture = null;
                         }
                     }
 
                     // If nothing was rendered, we store a flag in the texturizer and prevent unnecessary
                     //  render-to-texture and filtering.
-                    this._texturizer.empty = renderTextureInfo.empty
+                    this._texturizer.empty = renderTextureInfo.empty;
 
                     if (renderTextureInfo.empty) {
                         // We ignore empty render textures and do not draw the final quad.
 
                         // The following cleans up memory and enforces that the result texture is also cleared.
-                        this._texturizer.releaseFilterTexture()
-                        this._texturizer.releaseRenderTexture()
+                        this._texturizer.releaseFilterTexture();
+                        this._texturizer.releaseRenderTexture();
                     } else if (renderTextureInfo.glTexture) {
                         // If glTexture is set, we can reuse that directly instead of creating a new render texture.
-                        this._texturizer.reuseTextureAsRenderTexture(renderTextureInfo.glTexture)
+                        this._texturizer.reuseTextureAsRenderTexture(renderTextureInfo.glTexture);
 
-                        renderTextureInfo.ignore = true
+                        renderTextureInfo.ignore = true;
                     } else {
                         if (this._texturizer.renderTextureReused) {
                             // Quad operations must be written to a render texture actually owned.
-                            this._texturizer.releaseRenderTexture()
+                            this._texturizer.releaseRenderTexture();
                         }
                         // Just create the render texture.
-                        renderTextureInfo.glTexture = this._texturizer.getRenderTexture()
+                        renderTextureInfo.glTexture = this._texturizer.getRenderTexture();
                     }
 
                     // Restore the parent's render texture and active scissor.
-                    renderState.setRenderTextureInfo(prevRenderTextureInfo)
+                    renderState.setRenderTextureInfo(prevRenderTextureInfo);
 
-                    updateResultTexture = true
+                    updateResultTexture = true;
                 }
 
                 if (!this._texturizer.empty) {
@@ -1705,7 +1705,7 @@ class ViewCore {
                     if (hasFilters) {
                         if ((this._hasRenderUpdates >= 2 || !this._texturizer.filterResultCached)) {
                             this.applyFilters();
-                            updateResultTexture = true
+                            updateResultTexture = true;
                         }
                     }
 
@@ -1713,7 +1713,7 @@ class ViewCore {
                     if (updateResultTexture) {
                         if (resultTexture) {
                             // Logging the update frame can be handy for userland.
-                            resultTexture.update = renderState.stage.frameCounter
+                            resultTexture.update = renderState.stage.frameCounter;
                         }
                         this._texturizer.updateResultTexture();
                     }
@@ -1721,11 +1721,11 @@ class ViewCore {
                     if (!this._texturizer.renderOffscreen) {
                         // Render result texture to the actual render target.
                         renderState.setShader(this.activeShader, this._shaderOwner);
-                        renderState.setScissor(this._scissor)
+                        renderState.setScissor(this._scissor);
 
                         renderState.setOverrideQuadTexture(resultTexture);
                         this._stashTexCoords();
-                        if (!this._texturizer.colorize) this._stashColors()
+                        if (!this._texturizer.colorize) this._stashColors();
                         this.addQuads();
                         if (!this._texturizer.colorize) this._unstashColors();
                         this._unstashTexCoords();
@@ -1746,11 +1746,11 @@ class ViewCore {
 
         let textureRenders = activeFilters.length;
 
-        this._texturizer.filterResultCached = false
+        this._texturizer.filterResultCached = false;
 
         if (textureRenders === 0) {
             // No filters: just render the source texture with the normal shader.
-            return sourceTexture
+            return sourceTexture;
         } else if (textureRenders === 1) {
             let targetTexture = this._texturizer.getFilterTexture();
 
@@ -1773,7 +1773,7 @@ class ViewCore {
                     target = tmp;
                 }
 
-                renderState.addFilter(activeFilters[i], this, i === 0 ? sourceTexture : source, target)
+                renderState.addFilter(activeFilters[i], this, i === 0 ? sourceTexture : source, target);
             }
 
             this.ctx.releaseRenderTexture(intermediate);
@@ -1783,7 +1783,7 @@ class ViewCore {
     }
 
     get zSort() {
-        return this._zSort
+        return this._zSort;
     }
 
     sortZIndexedChildren() {
@@ -1796,83 +1796,83 @@ class ViewCore {
          * - if the old one is larger (in size) than it should be, splice off the end of the array.
          */
 
-        const n = this._zIndexedChildren.length
-        let ptr = 0
-        const a = this._zIndexedChildren
+        const n = this._zIndexedChildren.length;
+        let ptr = 0;
+        const a = this._zIndexedChildren;
 
-        const b = []
+        const b = [];
         for (let i = 0; i < n; i++) {
             if (a[i]._zParent === this) {
                 if (a[i]._zIndexResort) {
-                    a[i]._zIndexResort = false
-                    b.push(a[i])
+                    a[i]._zIndexResort = false;
+                    b.push(a[i]);
                 } else {
                     if (ptr !== i) {
-                        a[ptr] = a[i]
+                        a[ptr] = a[i];
                     }
-                    ptr++
+                    ptr++;
                 }
             }
         }
 
-        const m = b.length
+        const m = b.length;
         if (m) {
-            b.sort(ViewCore.sortZIndexedChildren)
-            const n = ptr
+            b.sort(ViewCore.sortZIndexedChildren);
+            const n = ptr;
             if (!n) {
-                ptr = 0
-                let j = 0
+                ptr = 0;
+                let j = 0;
                 do {
-                    a[ptr++] = b[j++]
-                } while(j < m)
+                    a[ptr++] = b[j++];
+                } while(j < m);
 
                 if (a.length > ptr) {
                     // Slice old (unnecessary) part off array.
-                    a.splice(ptr)
+                    a.splice(ptr);
                 }
             } else {
-                // Merge-sort arrays
-                ptr = 0
-                let i = 0
-                let j = 0
-                const mergeResult = []
+                // Merge-sort arrays;
+                ptr = 0;
+                let i = 0;
+                let j = 0;
+                const mergeResult = [];
                 do {
-                    const v = (a[i]._zIndex === b[j]._zIndex ? a[i]._updateTreeOrder - b[j]._updateTreeOrder : a[i]._zIndex - b[j]._zIndex)
+                    const v = (a[i]._zIndex === b[j]._zIndex ? a[i]._updateTreeOrder - b[j]._updateTreeOrder : a[i]._zIndex - b[j]._zIndex);
 
-                    const add = v > 0 ? b[j++] : a[i++]
+                    const add = v > 0 ? b[j++] : a[i++];
 
                     if (ptr === 0 || (mergeResult[ptr - 1] !== add)) {
-                        mergeResult[ptr++] = add
+                        mergeResult[ptr++] = add;
                     }
 
                     if (i >= n) {
                         do {
-                            const add = b[j++]
+                            const add = b[j++];
                             if (ptr === 0 || (mergeResult[ptr - 1] !== add)) {
-                                mergeResult[ptr++] = add
+                                mergeResult[ptr++] = add;
                             }
-                        } while(j < m)
-                        break
+                        } while(j < m);
+                        break;
                     } else if (j >= m) {
                         do {
-                            const add = a[i++]
+                            const add = a[i++];
                             if (ptr === 0 || (mergeResult[ptr - 1] !== add)) {
-                                mergeResult[ptr++] = add
+                                mergeResult[ptr++] = add;
                             }
-                        } while(i < n)
-                        break
+                        } while(i < n);
+                        break;
                     }
-                } while(true)
+                } while(true);
 
-                this._zIndexedChildren = mergeResult
+                this._zIndexedChildren = mergeResult;
             }
         }
 
-        this._zSort = false
+        this._zSort = false;
     };
 
     addQuads() {
-        let r = this._renderContext
+        let r = this._renderContext;
 
         let floats = this.renderState.quads.floats;
         let uints = this.renderState.quads.uints;
@@ -1902,7 +1902,7 @@ class ViewCore {
 
             let offset = this.renderState.addQuad(this) / 4;
             floats[offset++] = r.px;
-            floats[offset++] = r.py
+            floats[offset++] = r.py;
             uints[offset++] = this._txCoordsUl; // Texture.
             uints[offset++] = getColorInt(this._colorUl, r.alpha);
             floats[offset++] = cx;
@@ -1949,18 +1949,18 @@ class ViewCore {
     }
 
     get renderUpdates() {
-        return this._hasRenderUpdates
+        return this._hasRenderUpdates;
     }
 
     get texturizer() {
         if (!this._texturizer) {
-            this._texturizer = new ViewTexturizer(this)
+            this._texturizer = new ViewTexturizer(this);
         }
-        return this._texturizer
+        return this._texturizer;
     }
 
     getCornerPoints() {
-        let w = this._worldContext
+        let w = this._worldContext;
 
         return [
             w.px,
@@ -1975,7 +1975,7 @@ class ViewCore {
     };
 
     getRenderTextureCoords(relX, relY) {
-        let r = this._renderContext
+        let r = this._renderContext;
         return [
             r.px + r.ta * relX + r.tb * relY,
             r.py + r.tc * relX + r.td * relY
@@ -1983,7 +1983,7 @@ class ViewCore {
     }
 
     getAbsoluteCoords(relX, relY) {
-        let w = this._renderContext
+        let w = this._renderContext;
         return [
             w.px + w.ta * relX + w.tb * relY,
             w.py + w.tc * relX + w.td * relY
@@ -2020,21 +2020,19 @@ class ViewCoreContext {
             this.ta === 1 &&
             this.tb === 0 &&
             this.tc === 0 &&
-            this.td === 1
+            this.td === 1;
     }
 
     isSquare() {
-        return this.tb === 0 && this.tc === 0
+        return this.tb === 0 && this.tc === 0;
     }
 
 }
 
-ViewCoreContext.IDENTITY = new ViewCoreContext()
+ViewCoreContext.IDENTITY = new ViewCoreContext();
 
 ViewCore.sortZIndexedChildren = function(a,b) {
-    return (a._zIndex === b._zIndex ? a._updateTreeOrder - b._updateTreeOrder : a._zIndex - b._zIndex)
+    return (a._zIndex === b._zIndex ? a._updateTreeOrder - b._updateTreeOrder : a._zIndex - b._zIndex);
 }
 
-module.exports = ViewCore;
-
-let ViewTexturizer = require('./ViewTexturizer')
+import ViewTexturizer from "./ViewTexturizer.mjs";

@@ -1,9 +1,9 @@
-const Shader = require('../../tree/Shader');
+import Shader from "../../tree/Shader.mjs";
 
 /**
  * @see https://github.com/pixijs/pixi-filters/tree/master/filters/pixelate/src
  */
-class PixelateShader extends Shader {
+export default class PixelateShader extends Shader {
 
     constructor(ctx) {
         super(ctx);
@@ -40,9 +40,9 @@ class PixelateShader extends Shader {
     }
 
     setupUniforms(operation) {
-        super.setupUniforms(operation)
-        let gl = this.gl
-        this._setUniform("size", new Float32Array(this._size), gl.uniform2fv)
+        super.setupUniforms(operation);
+        let gl = this.gl;
+        this._setUniform("size", new Float32Array(this._size), gl.uniform2fv);
     }
 
     getExtraAttribBytesPerVertex() {
@@ -50,44 +50,44 @@ class PixelateShader extends Shader {
     }
 
     enableAttribs() {
-        super.enableAttribs()
-        this.gl.enableVertexAttribArray(this._attrib("aTextureRes"))
+        super.enableAttribs();
+        this.gl.enableVertexAttribArray(this._attrib("aTextureRes"));
     }
 
     disableAttribs() {
-        super.disableAttribs()
-        this.gl.disableVertexAttribArray(this._attrib("aTextureRes"))
+        super.disableAttribs();
+        this.gl.disableVertexAttribArray(this._attrib("aTextureRes"));
     }
 
     setExtraAttribsInBuffer(operation) {
-        let offset = operation.extraAttribsDataByteOffset / 4
-        let floats = operation.quads.floats
+        let offset = operation.extraAttribsDataByteOffset / 4;
+        let floats = operation.quads.floats;
 
-        let length = operation.length
+        let length = operation.length;
         for (let i = 0; i < length; i++) {
-            let w = operation.quads.getTextureWidth(operation.index + i)
-            let h = operation.quads.getTextureHeight(operation.index + i)
+            let w = operation.quads.getTextureWidth(operation.index + i);
+            let h = operation.quads.getTextureHeight(operation.index + i);
 
-            floats[offset] = w
-            floats[offset + 1] = h
-            floats[offset + 2] = w
-            floats[offset + 3] = h
-            floats[offset + 4] = w
-            floats[offset + 5] = h
-            floats[offset + 6] = w
-            floats[offset + 7] = h
+            floats[offset] = w;
+            floats[offset + 1] = h;
+            floats[offset + 2] = w;
+            floats[offset + 3] = h;
+            floats[offset + 4] = w;
+            floats[offset + 5] = h;
+            floats[offset + 6] = w;
+            floats[offset + 7] = h;
 
-            offset += 8
+            offset += 8;
         }
     }
 
     beforeDraw(operation) {
-        let gl = this.gl
-        gl.vertexAttribPointer(this._attrib("aTextureRes"), 2, gl.FLOAT, false, this.getExtraAttribBytesPerVertex(), this.getVertexAttribPointerOffset(operation))
+        let gl = this.gl;
+        gl.vertexAttribPointer(this._attrib("aTextureRes"), 2, gl.FLOAT, false, this.getExtraAttribBytesPerVertex(), this.getVertexAttribPointerOffset(operation));
     }
 
     useDefault() {
-        return ((this._size[0] === 0) && (this._size[1] === 0))
+        return ((this._size[0] === 0) && (this._size[1] === 0));
     }
 
 }
@@ -150,4 +150,3 @@ PixelateShader.fragmentShaderSource = `
     }
 `;
 
-module.exports = PixelateShader

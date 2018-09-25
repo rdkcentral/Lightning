@@ -1,99 +1,98 @@
-const Shader = require('../../tree/Shader');
+import Shader from "../../tree/Shader.mjs";
 
-class OutlineShader extends Shader {
+export default class OutlineShader extends Shader {
 
     constructor(ctx) {
-        super(ctx)
-        this._width = 5
-        this._color = 0xFFFFFFFF
-        this._col = [1,1,1,1]
+        super(ctx);
+        this._width = 5;
+        this._color = 0xFFFFFFFF;
+        this._col = [1,1,1,1];
     }
 
     set width(v) {
-        this._width = v
-        this.redraw()
+        this._width = v;
+        this.redraw();
     }
 
     get color() {
-        return this._col
+        return this._col;
     }
 
     set color(v) {
         if (this._col !== v) {
-            const col = StageUtils.getRgbaComponentsNormalized(v)
-            col[0] = col[0] * col[3]
-            col[1] = col[1] * col[3]
-            col[2] = col[2] * col[3]
+            const col = StageUtils.getRgbaComponentsNormalized(v);
+            col[0] = col[0] * col[3];
+            col[1] = col[1] * col[3];
+            col[2] = col[2] * col[3];
 
-            this._color = col
+            this._color = col;
 
-            this.redraw()
+            this.redraw();
 
-            this._col = v
+            this._col = v;
         }
     }
 
     setupUniforms(operation) {
-        super.setupUniforms(operation)
-        let gl = this.gl
-        console.log(this._color.join(','))
-        this._setUniform("color", new Float32Array(this._color), gl.uniform4fv)
+        super.setupUniforms(operation);
+        let gl = this.gl;
+        this._setUniform("color", new Float32Array(this._color), gl.uniform4fv);
     }
 
     enableAttribs() {
-        super.enableAttribs()
-        this.gl.enableVertexAttribArray(this._attrib("aCorner"))
+        super.enableAttribs();
+        this.gl.enableVertexAttribArray(this._attrib("aCorner"));
     }
 
     disableAttribs() {
-        super.disableAttribs()
-        this.gl.disableVertexAttribArray(this._attrib("aCorner"))
+        super.disableAttribs();
+        this.gl.disableVertexAttribArray(this._attrib("aCorner"));
     }
 
     setExtraAttribsInBuffer(operation) {
-        let offset = operation.extraAttribsDataByteOffset / 4
-        let floats = operation.quads.floats
+        let offset = operation.extraAttribsDataByteOffset / 4;
+        let floats = operation.quads.floats;
 
-        let length = operation.length
+        let length = operation.length;
 
         for (let i = 0; i < length; i++) {
 
-            const viewCore = operation.getViewCore(i)
+            const viewCore = operation.getViewCore(i);
 
             // We are setting attributes such that if the value is < 0 or > 1, a border should be drawn.
-            const ddw = this._width / viewCore.rw
-            const dw = ddw / (1 - 2 * ddw)
-            const ddh = this._width / viewCore.rh
-            const dh = ddh / (1 - 2 * ddh)
+            const ddw = this._width / viewCore.rw;
+            const dw = ddw / (1 - 2 * ddw);
+            const ddh = this._width / viewCore.rh;
+            const dh = ddh / (1 - 2 * ddh);
 
             // Specify all corner points.
-            floats[offset] = -dw
-            floats[offset + 1] = -dh
+            floats[offset] = -dw;
+            floats[offset + 1] = -dh;
 
-            floats[offset + 2] = 1 + dw
-            floats[offset + 3] = -dh
+            floats[offset + 2] = 1 + dw;
+            floats[offset + 3] = -dh;
 
-            floats[offset + 4] = 1 + dw
-            floats[offset + 5] = 1 + dh
+            floats[offset + 4] = 1 + dw;
+            floats[offset + 5] = 1 + dh;
 
-            floats[offset + 6] = -dw
-            floats[offset + 7] = 1 + dh
+            floats[offset + 6] = -dw;
+            floats[offset + 7] = 1 + dh;
 
-            offset += 8
+            offset += 8;
         }
     }
 
     beforeDraw(operation) {
-        let gl = this.gl
-        gl.vertexAttribPointer(this._attrib("aCorner"), 2, gl.FLOAT, false, 8, this.getVertexAttribPointerOffset(operation))
+        let gl = this.gl;
+        gl.vertexAttribPointer(this._attrib("aCorner"), 2, gl.FLOAT, false, 8, this.getVertexAttribPointerOffset(operation));
     }
 
     getExtraAttribBytesPerVertex() {
-        return 8
+        return 8;
     }
 
     useDefault() {
-        return (this._width === 0 || this._col[3] === 0)
+        return (this._width === 0 || this._col[3] === 0);
     }
 }
 
@@ -134,6 +133,4 @@ OutlineShader.fragmentShaderSource = `
     }
 `;
 
-module.exports = OutlineShader;
-
-const StageUtils = require('../../tree/StageUtils');
+import StageUtils from "../../tree/StageUtils.mjs";

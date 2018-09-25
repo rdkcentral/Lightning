@@ -2,7 +2,7 @@
  * Copyright Metrological, 2017
  */
 
-class TextureSource {
+export default class TextureSource {
 
     constructor(manager, loader = undefined) {
         this.id = TextureSource.id++;
@@ -15,7 +15,7 @@ class TextureSource {
          * All enabled textures (textures that are used by visible views).
          * @type {Set<Texture>}
          */
-        this.textures = new Set()
+        this.textures = new Set();
 
         /**
          * The factory for the source of this texture.
@@ -76,7 +76,7 @@ class TextureSource {
     }
 
     get loadError() {
-        return this._loadError
+        return this._loadError;
     }
 
     addTexture(v) {
@@ -84,7 +84,7 @@ class TextureSource {
             this.textures.add(v);
 
             if (this.textures.size === 1) {
-                this.becomesUsed()
+                this.becomesUsed();
             }
         }
     }
@@ -92,33 +92,33 @@ class TextureSource {
     removeTexture(v) {
         if (this.textures.delete(v)) {
             if (this.textures.size === 0) {
-                this.becomesUnused()
+                this.becomesUnused();
             }
         }
     }
 
     get isResultTexture() {
-        return this._isResultTexture
+        return this._isResultTexture;
     }
 
     set isResultTexture(v) {
-        this._isResultTexture = v
+        this._isResultTexture = v;
     }
 
     forEachEnabledView(cb) {
         this.textures.forEach(texture => {
-            texture.views.forEach(cb)
-        })
+            texture.views.forEach(cb);
+        });
     }
 
     forEachActiveView(cb) {
         this.textures.forEach(texture => {
             texture.views.forEach(view => {
                 if (view.active) {
-                    cb(view)
+                    cb(view);
                 }
-            })
-        })
+            });
+        });
     }
 
     getRenderWidth() {
@@ -130,7 +130,7 @@ class TextureSource {
     }
 
     allowCleanup() {
-        return !this.permanent && (!this.isUsed()) && !this.isResultTexture
+        return !this.permanent && (!this.isUsed()) && !this.isResultTexture;
     }
 
     becomesUsed() {
@@ -164,9 +164,9 @@ class TextureSource {
     }
 
     reload() {
-        this.free()
+        this.free();
         if (this.isUsed()) {
-            this.load()
+            this.load();
         }
     }
 
@@ -180,7 +180,7 @@ class TextureSource {
             this.loadingSince = (new Date()).getTime();
             this._cancelCb = this.loader((err, options) => {
                 // Clear callback to avoid memory leaks.
-                this._cancelCb = undefined
+                this._cancelCb = undefined;
 
                 if (this.manager.stage.destroyed) {
                     // Ignore async load when stage is destroyed.
@@ -198,7 +198,7 @@ class TextureSource {
     }
 
     setSource(options) {
-        const source = options.source
+        const source = options.source;
 
         this.w = source.width || (options && options.w) || 0;
         this.h = source.height || (options && options.h) || 0;
@@ -208,18 +208,18 @@ class TextureSource {
             this.renderInfo = options.renderInfo;
         }
 
-        this.permanent = !!options.permanent
+        this.permanent = !!options.permanent;
 
         if ((Utils.isNode ? source.constructor.name === "WebGLTexture" : source instanceof WebGLTexture)) {
             // Texture managed by caller.
             this.glTexture = source;
 
             // Used by CoreRenderState for optimizations.
-            this.w = source.w
-            this.h = source.h
+            this.w = source.w;
+            this.h = source.h;
 
-            // WebGLTexture objects are by default
-            this.permanent = options.hasOwnProperty('permanent') ? options.permanent : true
+            // WebGLTexture objects are by default;
+            this.permanent = options.hasOwnProperty('permanent') ? options.permanent : true;
         } else {
             var format = {
                 premultiplyAlpha: true,
@@ -249,7 +249,7 @@ class TextureSource {
         }
 
         // Must be cleared when reload is succesful.
-        this._loadError = undefined
+        this._loadError = undefined;
 
         this.onLoad();
     }
@@ -272,7 +272,7 @@ class TextureSource {
 
         if (this.glTexture) {
             // Change 'update' flag. This is currently not used by the framework but is handy in userland.
-            this.glTexture.update = this.stage.frameCounter
+            this.glTexture.update = this.stage.frameCounter;
         }
 
         this.forEachActiveView(function(view) {
@@ -283,8 +283,8 @@ class TextureSource {
 
     forceUpdateRenderCoords() {
         this.forEachActiveView(function(view) {
-            view._updateTextureCoords()
-        })
+            view._updateTextureCoords();
+        });
     }
 
     /**
@@ -298,11 +298,11 @@ class TextureSource {
         this.h = h;
 
         if (!prevGlTexture && this.glTexture) {
-            this.forEachActiveView(view => view.onTextureSourceLoaded())
+            this.forEachActiveView(view => view.onTextureSourceLoaded());
         }
 
         if (!this.glTexture) {
-            this.forEachActiveView(view => view._setDisplayedTexture(null))
+            this.forEachActiveView(view => view._setDisplayedTexture(null));
         }
 
         // Dimensions must be updated also on enabled views, as it may force it to go within bounds.
@@ -312,9 +312,9 @@ class TextureSource {
     }
 
     onError(e) {
-        this._loadError = e
+        this._loadError = e;
         console.error('texture load error', e, this.lookupId);
-        this.forEachActiveView(view => view.onTextureSourceLoadError(e))
+        this.forEachActiveView(view => view.onTextureSourceLoadError(e));
     }
 
     free() {
@@ -323,10 +323,8 @@ class TextureSource {
 
 }
 
-TextureSource.prototype.isTextureSource = true
+TextureSource.prototype.isTextureSource = true;
 
 TextureSource.id = 1;
 
-module.exports = TextureSource;
-
-const Utils = require('./Utils')
+import Utils from "./Utils.mjs";

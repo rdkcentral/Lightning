@@ -1,10 +1,10 @@
 /**
- * Copyright Metrological, 2017
+ * Copyright Metrological, 2017;
  */
 
-let ShaderProgram = require('./ShaderProgram')
+import ShaderProgram from "./ShaderProgram.mjs";
 
-class ShaderBase {
+export default class ShaderBase {
 
     constructor(coreContext) {
         this._program = coreContext.shaderPrograms.get(this.constructor);
@@ -14,24 +14,24 @@ class ShaderBase {
             // Let the vbo context perform garbage collection.
             coreContext.shaderPrograms.set(this.constructor, this._program);
         }
-        this._initialized = false
+        this._initialized = false;
 
-        this.ctx = coreContext
+        this.ctx = coreContext;
 
-        this.gl = this.ctx.gl
+        this.gl = this.ctx.gl;
 
         /**
          * The (enabled) views that use this shader.
          * @type {Set<ViewCore>}
          */
-        this._views = new Set()
+        this._views = new Set();
     }
 
     _init() {
         if (!this._initialized) {
-            this._program.compile(this.ctx.gl)
-            this.initialize()
-            this._initialized = true
+            this._program.compile(this.ctx.gl);
+            this.initialize();
+            this._initialized = true;
         }
     }
 
@@ -48,24 +48,24 @@ class ShaderBase {
     }
 
     _setUniform(name, value, glFunction) {
-        this._program.setUniformValue(name, value, glFunction)
+        this._program.setUniformValue(name, value, glFunction);
     }
 
     useProgram() {
-        this._init()
+        this._init();
         this.ctx.gl.useProgram(this.glProgram);
-        this.beforeUsage()
-        this.enableAttribs()
+        this.beforeUsage();
+        this.enableAttribs();
     }
 
     stopProgram() {
-        this.afterUsage()
-        this.disableAttribs()
+        this.afterUsage();
+        this.disableAttribs();
     }
 
     hasSameProgram(other) {
         // For performance reasons, we first check for identical references.
-        return (other && ((other === this) || (other._program === this._program)))
+        return (other && ((other === this) || (other._program === this._program)));
     }
 
     beforeUsage() {
@@ -85,32 +85,30 @@ class ShaderBase {
     }
 
     addView(viewCore) {
-        this._views.add(viewCore)
+        this._views.add(viewCore);
     }
 
     removeView(viewCore) {
-        this._views.delete(viewCore)
+        this._views.delete(viewCore);
         if (!this._views) {
-            this.cleanup()
+            this.cleanup();
         }
     }
 
     redraw() {
         this._views.forEach(viewCore => {
-            viewCore.setHasRenderUpdates(2)
-        })
+            viewCore.setHasRenderUpdates(2);
+        });
     }
 
     patch(settings) {
-        Base.patchObject(this, settings)
+        Base.patchObject(this, settings);
     }
 
     cleanup() {
-        this._initialized = false
+        this._initialized = false;
     }
 
 }
 
-let Base = require('./Base')
-
-module.exports = ShaderBase
+import Base from "./Base.mjs";

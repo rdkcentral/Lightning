@@ -2,12 +2,12 @@
  * Copyright Metrological, 2017
  */
 
-let Filter = require('../../tree/Filter');
+import Filter from "../../tree/Filter.mjs";
 
 /**
  * @see https://github.com/mattdesl/glsl-fxaa
  */
-class FxaaFilter extends Filter {
+export default class FxaaFilter extends Filter {
     constructor(ctx) {
         super(ctx);
     }
@@ -118,5 +118,3 @@ FxaaFilter.fragmentShaderSource = `
     
 `;
 
-
-module.exports = FxaaFilter

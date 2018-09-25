@@ -1,7 +1,7 @@
 /**
  * Copyright Metrological, 2017
  */
-class StageUtils {
+export default class StageUtils {
 
     static mergeNumbers(v1, v2, p) {
         return v1 * p + v2 * (1 - p);
@@ -158,7 +158,7 @@ class StageUtils {
             // Fallback: binary search method. This is more reliable when there are near-0 slopes.
             let minT = 0;
             let maxT = 1;
-            for (it = 0; it < 20; it++) {
+            for (let it = 0; it < 20; it++) {
                 t = 0.5 * (minT + maxT);
 
                 cbx = t * (t * (t * xa + xb) + xc);
@@ -419,5 +419,3 @@ class StageUtils {
         return t;
     };
 }
-
-module.exports = StageUtils;

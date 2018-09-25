@@ -1,27 +1,27 @@
-let Filter = require('../../tree/Filter');
+import Filter from "../../tree/Filter.mjs";
 
-class GrayscaleFilter extends Filter {
+export default class GrayscaleFilter extends Filter {
     constructor(context) {
-        super(context)
-        this._amount = 0
+        super(context);
+        this._amount = 0;
     }
 
     set amount(v) {
-        this._amount = v
-        this.redraw()
+        this._amount = v;
+        this.redraw();
     }
 
     get amount() {
-        return this._amount
+        return this._amount;
     }
 
     setupUniforms(operation) {
-        super.setupUniforms(operation)
-        this._setUniform("amount", this._amount, this.gl.uniform1f)
+        super.setupUniforms(operation);
+        this._setUniform("amount", this._amount, this.gl.uniform1f);
     }
 
     useDefault() {
-        return this._amount === 0
+        return this._amount === 0;
     }
 
 }

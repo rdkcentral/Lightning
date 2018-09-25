@@ -1,86 +1,85 @@
 /**
- * Copyright Metrological, 2017
+ * Copyright Metrological, 2017;
  */
 
-class AnimationSettings {
+export default class AnimationSettings {
     constructor() {
         /**
          * @type {AnimationActionSettings[]}
-         * @private
          */
-        this._actions = []
+        this._actions = [];
 
-        this.delay = 0
-        this.duration = 1
+        this.delay = 0;
+        this.duration = 1;
 
-        this.repeat = 0
-        this.repeatOffset = 0
-        this.repeatDelay = 0
+        this.repeat = 0;
+        this.repeatOffset = 0;
+        this.repeatDelay = 0;
 
-        this.autostop = false
+        this.autostop = false;
 
-        this.stopMethod = AnimationSettings.STOP_METHODS.FADE
-        this._stopTimingFunction = 'ease'
-        this._stopTimingFunctionImpl = StageUtils.getTimingFunction(this._stopTimingFunction)
-        this.stopDuration = 0
-        this.stopDelay = 0
+        this.stopMethod = AnimationSettings.STOP_METHODS.FADE;
+        this._stopTimingFunction = 'ease';
+        this._stopTimingFunctionImpl = StageUtils.getTimingFunction(this._stopTimingFunction);
+        this.stopDuration = 0;
+        this.stopDelay = 0;
     }
 
     get actions() {
-        return this._actions
+        return this._actions;
     }
 
     set actions(v) {
-        this._actions = []
+        this._actions = [];
         for (let i = 0, n = v.length; i < n; i++) {
-            const e = v[i]
+            const e = v[i];
             if (!e.isAnimationActionSettings) {
-                const aas = new AnimationActionSettings(this)
-                aas.patch(e)
-                this._actions.push(aas)
+                const aas = new AnimationActionSettings(this);
+                aas.patch(e);
+                this._actions.push(aas);
             } else {
-                this._actions.push(e)
+                this._actions.push(e);
             }
         }
     }
 
     /**
      * Applies the animation to the specified view, for the specified progress between 0 and 1.
-     * @param {View} view
-     * @param {number} p
-     * @param {number} factor
+     * @param {View} view;
+     * @param {number} p;
+     * @param {number} factor;
      */
     apply(view, p, factor = 1) {
         this._actions.forEach(function(action) {
-            action.apply(view, p, factor)
-        })
+            action.apply(view, p, factor);
+        });
     }
 
     /**
      * Resets the animation to the reset values.
-     * @param {View} view
+     * @param {View} view;
      */
     reset(view) {
         this._actions.forEach(function(action) {
-            action.reset(view)
-        })
+            action.reset(view);
+        });
     }
 
     get stopTimingFunction() {
-        return this._stopTimingFunction
+        return this._stopTimingFunction;
     }
 
     set stopTimingFunction(v) {
-        this._stopTimingFunction = v
-        this._stopTimingFunctionImpl = StageUtils.getTimingFunction(v)
+        this._stopTimingFunction = v;
+        this._stopTimingFunctionImpl = StageUtils.getTimingFunction(v);
     }
 
     get stopTimingFunctionImpl() {
-        return this._stopTimingFunctionImpl
+        return this._stopTimingFunctionImpl;
     }
 
     patch(settings) {
-        Base.patchObject(this, settings)
+        Base.patchObject(this, settings);
     }
 }
 
@@ -92,8 +91,6 @@ AnimationSettings.STOP_METHODS = {
     ONETOTWO: 'onetotwo'
 }
 
-module.exports = AnimationSettings
-
-const Base = require('../tree/Base')
-const StageUtils = require('../tree/StageUtils')
-const AnimationActionSettings = require('./AnimationActionSettings')
+import Base from "../tree/Base.mjs";
+import StageUtils from "../tree/StageUtils.mjs";
+import AnimationActionSettings from "./AnimationActionSettings.mjs";

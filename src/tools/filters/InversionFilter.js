@@ -2,9 +2,9 @@
  * Copyright Metrological, 2017
  */
 
-let Filter = require('../../tree/Filter');
+import Filter from "../../tree/Filter.mjs";
 
-class InversionFilter extends Filter {
+export default class InversionFilter extends Filter {
 }
 
 InversionFilter.fragmentShaderSource = `
@@ -19,6 +19,3 @@ InversionFilter.fragmentShaderSource = `
         gl_FragColor = color;
     }
 `;
-
-
-module.exports = InversionFilter

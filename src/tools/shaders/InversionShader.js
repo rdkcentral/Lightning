@@ -1,10 +1,10 @@
 /**
- * Copyright Metrological, 2017
+ * Copyright Metrological, 2017;
  */
 
-const Shader = require('../../tree/Shader');
+import Shader from "../../tree/Shader.mjs";
 
-class InversionShader extends Shader {
+export default class InversionShader extends Shader {
 }
 
 InversionShader.fragmentShaderSource = `
@@ -21,4 +21,3 @@ InversionShader.fragmentShaderSource = `
     }
 `;
 
-module.exports = InversionShader

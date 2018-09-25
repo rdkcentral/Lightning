@@ -1,126 +1,126 @@
-const Shader = require('../../tree/Shader');
-const NoiseTexture = require('../../textures/NoiseTexture');
+import Shader from "../../tree/Shader.mjs";
+import NoiseTexture from "../../textures/NoiseTexture.mjs";
 
 /**
  * This shader can be used to fix a problem that is known as 'gradient banding'.
  */
-class DitheringShader extends Shader {
+export default class DitheringShader extends Shader {
 
     constructor(ctx) {
-        super(ctx)
+        super(ctx);
 
-        this._noiseTexture = new NoiseTexture(ctx.stage)
+        this._noiseTexture = new NoiseTexture(ctx.stage);
 
-        this._graining = 1/256
+        this._graining = 1/256;
 
-        this._random = false
+        this._random = false;
     }
 
     set graining(v) {
-        this._graining = v
-        this.redraw()
+        this._graining = v;
+        this.redraw();
     }
 
     set random(v) {
-        this._random = v
-        this.redraw()
+        this._random = v;
+        this.redraw();
     }
 
     setExtraAttribsInBuffer(operation) {
         // Make sure that the noise texture is uploaded to the GPU.
-        this._noiseTexture.load()
+        this._noiseTexture.load();
 
-        let offset = operation.extraAttribsDataByteOffset / 4
-        let floats = operation.quads.floats
+        let offset = operation.extraAttribsDataByteOffset / 4;
+        let floats = operation.quads.floats;
 
-        let length = operation.length
+        let length = operation.length;
 
         for (let i = 0; i < length; i++) {
 
             // Calculate ǹoise texture coordinates so that it spans the full view.
-            let brx = operation.getViewWidth(i) / this._noiseTexture.getRenderWidth()
-            let bry = operation.getViewHeight(i) / this._noiseTexture.getRenderHeight()
+            let brx = operation.getViewWidth(i) / this._noiseTexture.getRenderWidth();
+            let bry = operation.getViewHeight(i) / this._noiseTexture.getRenderHeight();
 
-            let ulx = 0
-            let uly = 0
+            let ulx = 0;
+            let uly = 0;
             if (this._random) {
-                ulx = Math.random()
-                uly = Math.random()
+                ulx = Math.random();
+                uly = Math.random();
 
-                brx += ulx
-                bry += uly
+                brx += ulx;
+                bry += uly;
 
                 if (Math.random() < 0.5) {
                     // Flip for more randomness.
-                    const t = ulx
-                    ulx = brx
-                    brx = t
+                    const t = ulx;
+                    ulx = brx;
+                    brx = t;
                 }
 
                 if (Math.random() < 0.5) {
                     // Flip for more randomness.
-                    const t = uly
-                    uly = bry
-                    bry = t
+                    const t = uly;
+                    uly = bry;
+                    bry = t;
                 }
             }
 
             // Specify all corner points.
-            floats[offset] = ulx
-            floats[offset + 1] = uly
+            floats[offset] = ulx;
+            floats[offset + 1] = uly;
 
-            floats[offset + 2] = brx
-            floats[offset + 3] = uly
+            floats[offset + 2] = brx;
+            floats[offset + 3] = uly;
 
-            floats[offset + 4] = brx
-            floats[offset + 5] = bry
+            floats[offset + 4] = brx;
+            floats[offset + 5] = bry;
 
-            floats[offset + 6] = ulx
-            floats[offset + 7] = bry
+            floats[offset + 6] = ulx;
+            floats[offset + 7] = bry;
 
-            offset += 8
+            offset += 8;
         }
     }
 
     beforeDraw(operation) {
-        let gl = this.gl
-        gl.vertexAttribPointer(this._attrib("aNoiseTextureCoord"), 2, gl.FLOAT, false, 8, this.getVertexAttribPointerOffset(operation))
+        let gl = this.gl;
+        gl.vertexAttribPointer(this._attrib("aNoiseTextureCoord"), 2, gl.FLOAT, false, 8, this.getVertexAttribPointerOffset(operation));
 
-        let glTexture = this._noiseTexture.source.glTexture
-        gl.activeTexture(gl.TEXTURE1)
-        gl.bindTexture(gl.TEXTURE_2D, glTexture)
-        gl.activeTexture(gl.TEXTURE0)
+        let glTexture = this._noiseTexture.source.glTexture;
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, glTexture);
+        gl.activeTexture(gl.TEXTURE0);
     }
 
     getExtraAttribBytesPerVertex() {
-        return 8
+        return 8;
     }
 
     setupUniforms(operation) {
-        super.setupUniforms(operation)
-        this._setUniform("uNoiseSampler", 1, this.gl.uniform1i)
-        this._setUniform("graining", 2 * this._graining, this.gl.uniform1f)
+        super.setupUniforms(operation);
+        this._setUniform("uNoiseSampler", 1, this.gl.uniform1i);
+        this._setUniform("graining", 2 * this._graining, this.gl.uniform1f);
     }
 
     enableAttribs() {
-        super.enableAttribs()
-        let gl = this.ctx.gl
-        gl.enableVertexAttribArray(this._attrib("aNoiseTextureCoord"))
+        super.enableAttribs();
+        let gl = this.ctx.gl;
+        gl.enableVertexAttribArray(this._attrib("aNoiseTextureCoord"));
     }
 
     disableAttribs() {
-        super.disableAttribs()
-        let gl = this.ctx.gl
-        gl.disableVertexAttribArray(this._attrib("aNoiseTextureCoord"))
+        super.disableAttribs();
+        let gl = this.ctx.gl;
+        gl.disableVertexAttribArray(this._attrib("aNoiseTextureCoord"));
     }
 
     useDefault() {
-        return this._graining === 0
+        return this._graining === 0;
     }
 
     afterDraw(operation) {
         if (this._random) {
-            this.redraw()
+            this.redraw();
         }
     }
 
@@ -163,5 +163,3 @@ DitheringShader.fragmentShaderSource = `
         gl_FragColor = (color * vColor) + graining * (noise.r - 0.5);
     }
 `;
-
-module.exports = DitheringShader

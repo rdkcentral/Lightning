@@ -1,9 +1,9 @@
 /**
- * Copyright Metrological, 2017
+ * Copyright Metrological, 2017;
  */
-let View = require('../../tree/View');
+import View from "../../tree/View.mjs";
 
-class BorderView extends View {
+export default class BorderView extends View {
 
     constructor(stage) {
         super(stage);
@@ -16,15 +16,15 @@ class BorderView extends View {
                 "Bottom": {rect: true, visible: false},
                 "Left": {rect: true, visible: false, mountX: 1}
             }
-        }, true)
+        }, true);
 
-        this._borderTop = this.tag("Top")
-        this._borderRight = this.tag("Right")
-        this._borderBottom = this.tag("Bottom")
-        this._borderLeft = this.tag("Left")
+        this._borderTop = this.tag("Top");
+        this._borderRight = this.tag("Right");
+        this._borderBottom = this.tag("Bottom");
+        this._borderLeft = this.tag("Left");
 
         this.onAfterUpdate = function (view) {
-            const content = view.childList.first
+            const content = view.childList.first;
             let rw = view.core.rw || content.renderWidth;
             let rh = view.core.rh || content.renderHeight;
             view._borderTop.w = rw;
@@ -39,11 +39,11 @@ class BorderView extends View {
     }
 
     get content() {
-        return this.sel('Content')
+        return this.sel('Content');
     }
 
     set content(v) {
-        this.sel('Content').patch(v, true)
+        this.sel('Content').patch(v, true);
     }
 
     get borderWidth() {
@@ -177,4 +177,3 @@ class BorderView extends View {
 
 }
 
-module.exports = BorderView;

@@ -1,16 +1,16 @@
-const Texture = require('../tree/Texture');
+import Texture from "../tree/Texture.mjs";
 
-class TextTexture extends Texture {
+export default class TextTexture extends Texture {
 
     constructor(stage) {
-        super(stage)
+        super(stage);
 
         // We use the stage precision as the default precision in case of a text texture.
-        this._precision = this.stage.getOption('precision')
+        this._precision = this.stage.getOption('precision');
     }
 
     get text() {
-        return this._text
+        return this._text;
     }
 
     set text(v) {
@@ -21,7 +21,7 @@ class TextTexture extends Texture {
     }
 
     get w() {
-        return this._w
+        return this._w;
     }
 
     set w(v) {
@@ -32,7 +32,7 @@ class TextTexture extends Texture {
     }
 
     get h() {
-        return this._h
+        return this._h;
     }
 
     set h(v) {
@@ -43,7 +43,7 @@ class TextTexture extends Texture {
     }
 
     get fontStyle() {
-        return this._fontStyle
+        return this._fontStyle;
     }
 
     set fontStyle(v) {
@@ -54,7 +54,7 @@ class TextTexture extends Texture {
     }
 
     get fontSize() {
-        return this._fontSize
+        return this._fontSize;
     }
 
     set fontSize(v) {
@@ -65,7 +65,7 @@ class TextTexture extends Texture {
     }
 
     get fontFace() {
-        return this._fontFace
+        return this._fontFace;
     }
 
     set fontFace(v) {
@@ -76,7 +76,7 @@ class TextTexture extends Texture {
     }
 
     get wordWrap() {
-        return this._wordWrap
+        return this._wordWrap;
     }
 
     set wordWrap(v) {
@@ -87,7 +87,7 @@ class TextTexture extends Texture {
     }
 
     get wordWrapWidth() {
-        return this._wordWrapWidth
+        return this._wordWrapWidth;
     }
 
     set wordWrapWidth(v) {
@@ -98,7 +98,7 @@ class TextTexture extends Texture {
     }
 
     get lineHeight() {
-        return this._lineHeight
+        return this._lineHeight;
     }
 
     set lineHeight(v) {
@@ -109,7 +109,7 @@ class TextTexture extends Texture {
     }
 
     get textBaseline() {
-        return this._textBaseline
+        return this._textBaseline;
     }
 
     set textBaseline(v) {
@@ -120,7 +120,7 @@ class TextTexture extends Texture {
     }
 
     get textAlign() {
-        return this._textAlign
+        return this._textAlign;
     }
 
     set textAlign(v) {
@@ -131,7 +131,7 @@ class TextTexture extends Texture {
     }
 
     get offsetY() {
-        return this._offsetY
+        return this._offsetY;
     }
 
     set offsetY(v) {
@@ -142,7 +142,7 @@ class TextTexture extends Texture {
     }
 
     get maxLines() {
-        return this._maxLines
+        return this._maxLines;
     }
 
     set maxLines(v) {
@@ -153,7 +153,7 @@ class TextTexture extends Texture {
     }
 
     get maxLinesSuffix() {
-        return this._maxLinesSuffix
+        return this._maxLinesSuffix;
     }
 
     set maxLinesSuffix(v) {
@@ -164,7 +164,7 @@ class TextTexture extends Texture {
     }
 
     get textColor() {
-        return this._textColor
+        return this._textColor;
     }
 
     set textColor(v) {
@@ -175,7 +175,7 @@ class TextTexture extends Texture {
     }
 
     get paddingLeft() {
-        return this._paddingLeft
+        return this._paddingLeft;
     }
 
     set paddingLeft(v) {
@@ -186,7 +186,7 @@ class TextTexture extends Texture {
     }
 
     get paddingRight() {
-        return this._paddingRight
+        return this._paddingRight;
     }
 
     set paddingRight(v) {
@@ -197,7 +197,7 @@ class TextTexture extends Texture {
     }
 
     get shadow() {
-        return this._shadow
+        return this._shadow;
     }
 
     set shadow(v) {
@@ -208,7 +208,7 @@ class TextTexture extends Texture {
     }
 
     get shadowColor() {
-        return this._shadowColor
+        return this._shadowColor;
     }
 
     set shadowColor(v) {
@@ -219,7 +219,7 @@ class TextTexture extends Texture {
     }
 
     get shadowOffsetX() {
-        return this._shadowOffsetX
+        return this._shadowOffsetX;
     }
 
     set shadowOffsetX(v) {
@@ -230,7 +230,7 @@ class TextTexture extends Texture {
     }
 
     get shadowOffsetY() {
-        return this._shadowOffsetY
+        return this._shadowOffsetY;
     }
 
     set shadowOffsetY(v) {
@@ -241,7 +241,7 @@ class TextTexture extends Texture {
     }
 
     get shadowBlur() {
-        return this._shadowBlur
+        return this._shadowBlur;
     }
 
     set shadowBlur(v) {
@@ -252,7 +252,7 @@ class TextTexture extends Texture {
     }
 
     get highlight() {
-        return this._highlight
+        return this._highlight;
     }
 
     set highlight(v) {
@@ -263,7 +263,7 @@ class TextTexture extends Texture {
     }
 
     get highlightHeight() {
-        return this._highlightHeight
+        return this._highlightHeight;
     }
 
     set highlightHeight(v) {
@@ -274,7 +274,7 @@ class TextTexture extends Texture {
     }
 
     get highlightColor() {
-        return this._highlightColor
+        return this._highlightColor;
     }
 
     set highlightColor(v) {
@@ -285,7 +285,7 @@ class TextTexture extends Texture {
     }
 
     get highlightOffset() {
-        return this._highlightOffset
+        return this._highlightOffset;
     }
 
     set highlightOffset(v) {
@@ -296,7 +296,7 @@ class TextTexture extends Texture {
     }
 
     get highlightPaddingLeft() {
-        return this._highlightPaddingLeft
+        return this._highlightPaddingLeft;
     }
 
     set highlightPaddingLeft(v) {
@@ -307,7 +307,7 @@ class TextTexture extends Texture {
     }
 
     get highlightPaddingRight() {
-        return this._highlightPaddingRight
+        return this._highlightPaddingRight;
     }
 
     set highlightPaddingRight(v) {
@@ -318,7 +318,7 @@ class TextTexture extends Texture {
     }
 
     get cutSx() {
-        return this._cutSx
+        return this._cutSx;
     }
 
     set cutSx(v) {
@@ -329,7 +329,7 @@ class TextTexture extends Texture {
     }
 
     get cutEx() {
-        return this._cutEx
+        return this._cutEx;
     }
 
     set cutEx(v) {
@@ -340,7 +340,7 @@ class TextTexture extends Texture {
     }
 
     get cutSy() {
-        return this._cutSy
+        return this._cutSy;
     }
 
     set cutSy(v) {
@@ -351,7 +351,7 @@ class TextTexture extends Texture {
     }
 
     get cutEy() {
-        return this._cutEy
+        return this._cutEy;
     }
 
     set cutEy(v) {
@@ -362,19 +362,19 @@ class TextTexture extends Texture {
     }
 
     get precision() {
-        return super.precision
+        return super.precision;
     }
 
     set precision(v) {
         // We actually draw differently when the precision changes.
         if (this.precision !== v) {
-            super.precision = v
-            this._changed()
+            super.precision = v;
+            this._changed();
         }
     }
 
     _getIsValid() {
-        return !!this.text
+        return !!this.text;
     }
 
     _getLookupId() {
@@ -419,23 +419,23 @@ class TextTexture extends Texture {
     }
 
     _getSourceLoader() {
-        const args = this.cloneArgs()
+        const args = this.cloneArgs();
 
         // Inherit font face from stage.
         if (args.fontFace === null) {
             args.fontFace = this.stage.getOption('defaultFontFace');
         }
 
-        const canvas = this.stage.adapter.getDrawingCanvas()
+        const canvas = this.stage.adapter.getDrawingCanvas();
         return function(cb) {
-            const renderer = new TextTextureRenderer(this.stage, canvas, args)
-            renderer.draw()
-            cb(null, this.stage.adapter.getTextureOptionsForDrawingCanvas(canvas))
+            const renderer = new TextTextureRenderer(this.stage, canvas, args);
+            renderer.draw();
+            cb(null, this.stage.adapter.getTextureOptionsForDrawingCanvas(canvas));
         }
     }
 
     getNonDefaults() {
-        const nonDefaults = super.getNonDefaults()
+        const nonDefaults = super.getNonDefaults();
         if (this.text !== "") nonDefaults['text'] = this.text;
         if (this.w !== 0) nonDefaults['w'] = this.w;
         if (this.h !== 0) nonDefaults['h'] = this.h;
@@ -470,7 +470,7 @@ class TextTexture extends Texture {
         if (this.cutEx) nonDefaults["cutEx"] = this.cutEx;
         if (this.cutSy) nonDefaults["cutSy"] = this.cutSy;
         if (this.cutEy) nonDefaults["cutEy"] = this.cutEy;
-        return nonDefaults
+        return nonDefaults;
     }
 
     cloneArgs() {
@@ -516,7 +516,7 @@ class TextTexture extends Texture {
 
 // Because there are so many properties, we prefer to use the prototype for default values.
 // This causes a decrease in performance, but also a decrease in memory usage.
-let proto = TextTexture.prototype
+let proto = TextTexture.prototype;
 proto._text = "";
 proto._w = 0;
 proto._h = 0;
@@ -551,6 +551,4 @@ proto._cutSy = 0;
 proto._cutEy = 0;
 
 
-module.exports = TextTexture
-
-const TextTextureRenderer = require('./TextTextureRenderer')
+import TextTextureRenderer from "./TextTextureRenderer.mjs";

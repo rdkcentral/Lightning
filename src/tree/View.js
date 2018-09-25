@@ -3,19 +3,19 @@
  * Copyright Metrological, 2017
  */
 
-const StageUtils = require('./StageUtils');
-const ViewCore = require('./core/ViewCore');
-const Base = require('./Base');
+import StageUtils from "./StageUtils.mjs";
+import ViewCore from "./core/ViewCore.mjs";
+import Base from "./Base.mjs";
 
-const Utils = require('./Utils');
-/*M¬*/const EventEmitter = require(Utils.isNode ? 'events' : '../browser/EventEmitter');/*¬M*/
+import Utils from "./Utils.mjs";
+import EventEmitter from "../EventEmitter.mjs";
 
-class View /*M¬*/extends EventEmitter/*¬M*/{
+export default class View {
 
     constructor(stage) {
-        /*M¬*/super()/*¬M*/
+
         // EventEmitter constructor.
-        this._hasEventListeners = false
+        this._hasEventListeners = false;
 
         this.__id = View.id++;
 
@@ -55,14 +55,12 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
         /**
          * The texture that is currently set.
          * @type {Texture}
-         * @protected
          */
         this.__texture = null;
 
         /**
          * The currently displayed texture. While this.texture is loading, this one may be different.
          * @type {Texture}
-         * @protected
          */
         this.__displayedTexture = null;
 
@@ -95,7 +93,6 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
         /**
          * Creates a tag context: tagged views in this branch will not be reachable from ancestors of this view.
          * @type {boolean}
-         * @private
          */
         this.__tagRoot = false;
 
@@ -108,39 +105,39 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
     }
 
     get id() {
-        return this.__id
+        return this.__id;
     }
 
     set ref(ref) {
         if (this.__ref !== ref) {
-            const charcode = ref.charCodeAt(0)
+            const charcode = ref.charCodeAt(0);
             if (!Utils.isUcChar(charcode)) {
-                this._throwError("Ref must start with an upper case character: " + ref)
+                this._throwError("Ref must start with an upper case character: " + ref);
             }
             if (this.__ref !== null) {
-                this.removeTag(this.__ref)
+                this.removeTag(this.__ref);
                 if (this.__parent) {
-                    this.__parent.__childList.clearRef(this.__ref)
+                    this.__parent.__childList.clearRef(this.__ref);
                 }
             }
 
-            this.__ref = ref
+            this.__ref = ref;
 
             if (this.__ref) {
-                this._addTag(this.__ref)
+                this._addTag(this.__ref);
                 if (this.__parent) {
-                    this.__parent.__childList.setRef(this.__ref, this)
+                    this.__parent.__childList.setRef(this.__ref, this);
                 }
             }
         }
     }
 
     get ref() {
-        return this.__ref
+        return this.__ref;
     }
 
     get core() {
-        return this.__core
+        return this.__core;
     }
 
     setAsRoot() {
@@ -150,7 +147,7 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
     }
 
     get isRoot() {
-        return this.__core.isRoot
+        return this.__core.isRoot;
     }
 
     _setParent(parent) {
@@ -170,7 +167,7 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
         this._updateEnabledFlag();
 
         if (this.isRoot && parent) {
-            this._throwError("Root should not be added as a child! Results are unspecified!")
+            this._throwError("Root should not be added as a child! Results are unspecified!");
         }
     };
 
@@ -237,15 +234,15 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
     };
 
     get attached() {
-        return this.__attached
+        return this.__attached;
     }
 
     get enabled() {
-        return this.__enabled
+        return this.__enabled;
     }
 
     get active() {
-        return this.__active
+        return this.__active;
     }
 
     _isAttached() {
@@ -269,7 +266,7 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
             this.__attached = newAttached;
 
             if (newAttached) {
-                this._onSetup()
+                this._onSetup();
             }
 
             let children = this._children.get();
@@ -283,9 +280,9 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
             }
 
             if (newAttached) {
-                this._onAttach()
+                this._onAttach();
             } else {
-                this._onDetach()
+                this._onDetach();
             }
         }
     };
@@ -297,10 +294,10 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
         let newEnabled = this._isEnabled();
         if (this.__enabled !== newEnabled) {
             if (newEnabled) {
-                this._onEnabled()
+                this._onEnabled();
                 this._setEnabledFlag();
             } else {
-                this._onDisabled()
+                this._onDisabled();
                 this._unsetEnabledFlag();
             }
 
@@ -324,11 +321,11 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
         this._updateTextureCoords();
 
         if (this.__texture) {
-            this.__texture.addView(this)
+            this.__texture.addView(this);
         }
 
         if (this.withinBoundsMargin) {
-            this._setActiveFlag()
+            this._setActiveFlag();
         }
 
         if (this.__core.shader) {
@@ -336,18 +333,18 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
         }
 
         if (this._texturizer) {
-            this.texturizer.filters.forEach(filter => filter.addView(this.__core))
+            this.texturizer.filters.forEach(filter => filter.addView(this.__core));
         }
 
     }
 
     _unsetEnabledFlag() {
         if (this.__active) {
-            this._unsetActiveFlag()
+            this._unsetActiveFlag();
         }
 
         if (this.__texture) {
-            this.__texture.removeView(this)
+            this.__texture.removeView(this);
         }
 
         if (this.__core.shader) {
@@ -355,31 +352,31 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
         }
 
         if (this._texturizer) {
-            this.texturizer.filters.forEach(filter => filter.removeView(this.__core))
+            this.texturizer.filters.forEach(filter => filter.removeView(this.__core));
         }
 
         this.__enabled = false;
     }
 
     _setActiveFlag() {
-        this.__active = true
+        this.__active = true;
         if (this.__texture) {
-            this._enableTexture()
+            this._enableTexture();
         }
-        this._onActive()
+        this._onActive();
     }
 
     _unsetActiveFlag() {
         this.__active = false;
         if (this.__texture) {
-            this._disableTexture()
+            this._disableTexture();
         }
 
         if (this._hasTexturizer()) {
             this.texturizer.deactivate();
         }
 
-        this._onInactive()
+        this._onInactive();
     }
 
     _onSetup() {
@@ -410,10 +407,10 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
         if (this.__core.w) {
             return this.__core.w;
         } else if (this.__displayedTexture) {
-            return this.__displayedTexture.getRenderWidth()
+            return this.__displayedTexture.getRenderWidth();
         } else if (this.__texture) {
             // Texture already loaded, but not yet updated (probably because this view is not active).
-            return this.__texture.getRenderWidth()
+            return this.__texture.getRenderWidth();
         } else {
             return 0;
         }
@@ -423,10 +420,10 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
         if (this.__core.h) {
             return this.__core.h;
         } else if (this.__displayedTexture) {
-            return this.__displayedTexture.getRenderHeight()
+            return this.__displayedTexture.getRenderHeight();
         } else if (this.__texture) {
             // Texture already loaded, but not yet updated (probably because this view is not active).
-            return this.__texture.getRenderHeight()
+            return this.__texture.getRenderHeight();
         } else {
             return 0;
         }
@@ -467,7 +464,7 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
 
     _enableTextureError() {
         // txError event should automatically be re-triggered when a view becomes active.
-        const loadError = this.__texture.loadError
+        const loadError = this.__texture.loadError;
         if (loadError) {
             this.emit('txError', loadError, this.__texture._source);
         }
@@ -475,19 +472,19 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
 
     _enableTexture() {
         if (this.__texture.isLoaded()) {
-            this._setDisplayedTexture(this.__texture)
+            this._setDisplayedTexture(this.__texture);
         } else {
             // We don't want to retain the old 'ghost' image as it wasn't visible anyway.
-            this._setDisplayedTexture(null)
+            this._setDisplayedTexture(null);
 
-            this._enableTextureError()
+            this._enableTextureError();
         }
     }
 
     _disableTexture() {
         // We disable the displayed texture because, when the texture changes while invisible, we should use that w, h,
         // mw, mh for checking within bounds.
-        this._setDisplayedTexture(null)
+        this._setDisplayedTexture(null);
     }
 
     get texture() {
@@ -498,13 +495,13 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
         let texture;
         if (Utils.isObjectLiteral(v)) {
             if (v.type) {
-                texture = new v.type(this.stage)
+                texture = new v.type(this.stage);
             } else {
-                texture = this.texture
+                texture = this.texture;
             }
 
             if (texture) {
-                Base.patchObject(texture, v)
+                Base.patchObject(texture, v);
             }
         } else if (!v) {
             texture = null;
@@ -512,27 +509,27 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
             if (v.isTexture) {
                 texture = v;
             } else if (v.isTextureSource) {
-                texture = new SourceTexture(this.stage)
-                texture.textureSource = v
+                texture = new SourceTexture(this.stage);
+                texture.textureSource = v;
             } else {
                 console.error("Please specify a texture type.");
-                return
+                return;
             }
         }
 
         const prevTexture = this.__texture;
         if (texture !== prevTexture) {
-            this.__texture = texture
+            this.__texture = texture;
 
             if (this.__texture) {
                 if (this.__enabled) {
-                    this.__texture.addView(this)
+                    this.__texture.addView(this);
 
                     if (this.withinBoundsMargin) {
                         if (this.__texture.isLoaded()) {
-                            this._setDisplayedTexture(this.__texture)
+                            this._setDisplayedTexture(this.__texture);
                         } else {
-                            this._enableTextureError()
+                            this._enableTextureError();
                         }
                     }
                 }
@@ -542,10 +539,10 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
             }
 
             if (prevTexture && prevTexture !== this.__displayedTexture) {
-                prevTexture.removeView(this)
+                prevTexture.removeView(this);
             }
 
-            this._updateDimensions()
+            this._updateDimensions();
         }
     }
 
@@ -563,8 +560,8 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
             }
         }
 
-        const prevSource = this.__core.displayedTextureSource ? this.__core.displayedTextureSource._source : undefined
-        const sourceChanged = (v ? v._source : undefined) !== prevSource
+        const prevSource = this.__core.displayedTextureSource ? this.__core.displayedTextureSource._source : undefined;
+        const sourceChanged = (v ? v._source : undefined) !== prevSource;
 
         this.__displayedTexture = v;
         this._updateDimensions();
@@ -590,7 +587,7 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
 
     onTextureSourceLoaded() {
         // This function is called when view is enabled, but we only want to set displayed texture for active views.
-        if (this.isActive()) {
+        if (this.active) {
             // We may be dealing with a texture reloading, so we must force update.
             this._setDisplayedTexture(this.__texture);
         }
@@ -601,7 +598,7 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
     };
 
     forceRenderUpdate() {
-        this.__core.setHasRenderUpdates(3)
+        this.__core.setHasRenderUpdates(3);
     }
 
     onDisplayedTextureClippingChanged() {
@@ -614,24 +611,24 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
     };
 
     _updateDimensions() {
-        let rw = this._getRenderWidth()
-        let rh = this._getRenderHeight()
+        let rw = this._getRenderWidth();
+        let rh = this._getRenderHeight();
 
-        let unknownSize = false
+        let unknownSize = false;
         if (!rw || !rh) {
             if (!this.__displayedTexture && this.__texture) {
                 // Texture size unknown.
-                unknownSize = true
+                unknownSize = true;
 
                 // We use a 'max width' replacement instead in the ViewCore calcs.
                 // This makes sure that it is able to determine withinBounds.
-                rw = rw || this.__texture.mw
-                rh = rh || this.__texture.mh
+                rw = rw || this.__texture.mw;
+                rh = rh || this.__texture.mh;
             }
         }
 
         if (this.__core.setDimensions(rw, rh, unknownSize)) {
-            this._onResize()
+            this._onResize();
         }
     }
 
@@ -669,10 +666,10 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
                 tx2 = tx2 * rw + iw;
                 ty2 = ty2 * rh + ih;
 
-                tx1 = Math.max(0, tx1)
-                ty1 = Math.max(0, ty1)
-                tx2 = Math.min(1, tx2)
-                ty2 = Math.min(1, ty2)
+                tx1 = Math.max(0, tx1);
+                ty1 = Math.max(0, ty1);
+                tx2 = Math.min(1, tx2);
+                ty2 = Math.min(1, ty2);
             }
 
             this.__core.setTextureCoords(tx1, ty1, tx2, ty2, false);
@@ -719,7 +716,7 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
                             p._clearTagsCache(tag);
 
                             if (p.__tagRoot) {
-                                break
+                                break;
                             }
                         }
                     });
@@ -745,7 +742,7 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
                             p._clearTagsCache(tags[i]);
 
                             if (p.__tagRoot) {
-                                break
+                                break;
                             }
                         }
                     }
@@ -760,7 +757,7 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
                 // Just copy over the 'local' tags.
                 if (this.__tags) {
                     this.__tags.forEach((tag) => {
-                        let p = this
+                        let p = this;
                         while (p = p.__parent) {
                             if (!p.__treeTags) {
                                 p.__treeTags = new Map();
@@ -777,14 +774,14 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
                             p._clearTagsCache(tag);
 
                             if (p.__tagRoot) {
-                                break
+                                break;
                             }
                         }
                     });
                 }
             } else {
                 this.__treeTags.forEach((tagSet, tag) => {
-                    let p = this
+                    let p = this;
                     while (!p.__tagRoot && (p = p.__parent)) {
                         if (p.__tagRoot) {
                             // Do not copy all subs.
@@ -825,11 +822,11 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
 
     setTags(tags) {
         tags = tags.reduce((acc, tag) => {
-            return acc.concat(tag.split(' '))
-        }, [])
+            return acc.concat(tag.split(' '));
+        }, []);
 
         if (this.__ref) {
-            tags.push(this.__ref)
+            tags.push(this.__ref);
         }
 
         let i, n = tags.length;
@@ -861,20 +858,20 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
     addTag(tag) {
         if (tag.indexOf(' ') === -1) {
             if (Utils.isUcChar(tag.charCodeAt(0))) {
-                this._throwError("Tag may not start with an upper case character.")
+                this._throwError("Tag may not start with an upper case character.");
             }
 
-            this._addTag(tag)
+            this._addTag(tag);
         } else {
-            const tags = tag.split(' ')
+            const tags = tag.split(' ');
             for (let i = 0, m = tags.length; i < m; i++) {
-                const tag = tags[i]
+                const tag = tags[i];
 
                 if (Utils.isUcChar(tag.charCodeAt(0))) {
-                    this._throwError("Tag may not start with an upper case character.")
+                    this._throwError("Tag may not start with an upper case character.");
                 }
 
-                this._addTag(tag)
+                this._addTag(tag);
             }
         }
     }
@@ -990,7 +987,7 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
         let t = this.mtag(tag);
         let n = t.length;
         for (let i = 0; i < n; i++) {
-            Base.patchObject(t[i], settings)
+            Base.patchObject(t[i], settings);
         }
     }
 
@@ -1011,122 +1008,122 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
     }
 
     sel(path) {
-        const results = this.select(path)
+        const results = this.select(path);
         if (results.length) {
-            return results[0]
+            return results[0];
         } else {
-            return undefined
+            return undefined;
         }
     }
 
     select(path) {
         if (path.indexOf(",") !== -1) {
-            let selectors = path.split(',')
-            let res = []
+            let selectors = path.split(',');
+            let res = [];
             for (let i = 0; i < selectors.length; i++) {
-                res = res.concat(this._select(selectors[i]))
+                res = res.concat(this._select(selectors[i]));
             }
-            return res
+            return res;
         } else {
-            return this._select(path)
+            return this._select(path);
         }
     }
 
     _select(path) {
-        if (path === "") return [this]
+        if (path === "") return [this];
 
 
-        let pointIdx = path.indexOf(".")
-        let arrowIdx = path.indexOf(">")
+        let pointIdx = path.indexOf(".");
+        let arrowIdx = path.indexOf(">");
         if (pointIdx === -1 && arrowIdx === -1) {
             // Quick case.
             if (Utils.isUcChar(path.charCodeAt(0))) {
-                const ref = this.getByRef(path)
-                return ref ? [ref] : []
+                const ref = this.getByRef(path);
+                return ref ? [ref] : [];
             } else {
-                return this.mtag(path)
+                return this.mtag(path);
             }
         }
 
         // Detect by first char.
-        let isRef
+        let isRef;
         if (arrowIdx === 0) {
-            isRef = true
-            path = path.substr(1)
+            isRef = true;
+            path = path.substr(1);
         } else if (pointIdx === 0) {
-            isRef = false
-            path = path.substr(1)
+            isRef = false;
+            path = path.substr(1);
         } else {
-            const firstCharcode = path.charCodeAt(0)
-            isRef = Utils.isUcChar(firstCharcode)
+            const firstCharcode = path.charCodeAt(0);
+            isRef = Utils.isUcChar(firstCharcode);
         }
 
-        return this._selectChilds(path, isRef)
+        return this._selectChilds(path, isRef);
     }
 
     _selectChilds(path, isRef) {
-        const pointIdx = path.indexOf(".")
-        const arrowIdx = path.indexOf(">")
+        const pointIdx = path.indexOf(".");
+        const arrowIdx = path.indexOf(">");
 
         if (pointIdx === -1 && arrowIdx === -1) {
             if (isRef) {
-                const ref = this.getByRef(path)
-                return ref ? [ref] : []
+                const ref = this.getByRef(path);
+                return ref ? [ref] : [];
             } else {
-                return this.mtag(path)
+                return this.mtag(path);
             }
         }
 
         if ((arrowIdx === -1) || (pointIdx !== -1 && pointIdx < arrowIdx)) {
-            let next
-            const str = path.substr(0, pointIdx)
+            let next;
+            const str = path.substr(0, pointIdx);
             if (isRef) {
-                const ref = this.getByRef(str)
-                next = ref ? [ref] : []
+                const ref = this.getByRef(str);
+                next = ref ? [ref] : [];
             } else {
-                next = this.mtag(str)
+                next = this.mtag(str);
             }
-            let total = []
-            const subPath = path.substr(pointIdx + 1)
+            let total = [];
+            const subPath = path.substr(pointIdx + 1);
             for (let i = 0, n = next.length; i < n; i++) {
-                total = total.concat(next[i]._selectChilds(subPath, false))
+                total = total.concat(next[i]._selectChilds(subPath, false));
             }
-            return total
+            return total;
         } else {
-            let next
-            const str = path.substr(0, arrowIdx)
+            let next;
+            const str = path.substr(0, arrowIdx);
             if (isRef) {
-                const ref = this.getByRef(str)
-                next = ref ? [ref] : []
+                const ref = this.getByRef(str);
+                next = ref ? [ref] : [];
             } else {
-                next = this.mtag(str)
+                next = this.mtag(str);
             }
-            let total = []
-            const subPath = path.substr(arrowIdx + 1)
+            let total = [];
+            const subPath = path.substr(arrowIdx + 1);
             for (let i = 0, n = next.length; i < n; i++) {
-                total = total.concat(next[i]._selectChilds(subPath, true))
+                total = total.concat(next[i]._selectChilds(subPath, true));
             }
-            return total
+            return total;
         }
     }
 
     getByRef(ref) {
-        return this.childList.getByRef(ref)
+        return this.childList.getByRef(ref);
     }
 
     getLocationString() {
         let i;
         i = this.__parent ? this.__parent._children.getIndex(this) : "R";
         let localTags = this.getTags();
-        let str = this.__parent ? this.__parent.getLocationString(): ""
+        let str = this.__parent ? this.__parent.getLocationString(): "";
         if (this.ref) {
-            str += ":[" + i + "]" + this.ref
+            str += ":[" + i + "]" + this.ref;
         } else if (localTags.length) {
-            str += ":[" + i + "]" + localTags.join(",")
+            str += ":[" + i + "]" + localTags.join(",");
         } else {
-            str += ":[" + i + "]#" + this.id
+            str += ":[" + i + "]#" + this.id;
         }
-        return str
+        return str;
     }
 
     toString() {
@@ -1140,7 +1137,7 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
 
 
         // Convert singular json settings object.
-        let colorKeys = ["color", "colorUl", "colorUr", "colorBl", "colorBr"]
+        let colorKeys = ["color", "colorUl", "colorUr", "colorBl", "colorBr"];
         let str = JSON.stringify(obj, function (k, v) {
             if (colorKeys.indexOf(k) !== -1) {
                 return "COLOR[" + v.toString(16) + "]";
@@ -1150,26 +1147,26 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
         str = str.replace(/"COLOR\[([a-f0-9]{1,8})\]"/g, "0x$1");
 
         if (children) {
-            let childStr = ""
+            let childStr = "";
             if (Utils.isObjectLiteral(children)) {
-                let refs = Object.keys(children)
-                childStr = ""
+                let refs = Object.keys(children);
+                childStr = "";
                 for (let i = 0, n = refs.length; i < n; i++) {
                     childStr += `\n${indent}  "${refs[i]}":`
-                    delete children[refs[i]].ref
-                    childStr += View.getPrettyString(children[refs[i]], indent + "  ") + (i < n - 1 ? "," : "")
+                    delete children[refs[i]].ref;
+                    childStr += View.getPrettyString(children[refs[i]], indent + "  ") + (i < n - 1 ? "," : "");
                 }
                 let isEmpty = (str === "{}");
-                str = str.substr(0, str.length - 1) + (isEmpty ? "" : ",") + childStr + "\n" + indent + "}"
+                str = str.substr(0, str.length - 1) + (isEmpty ? "" : ",") + childStr + "\n" + indent + "}";
             } else {
                 let n = children.length;
-                childStr = "["
+                childStr = "[";
                 for (let i = 0; i < n; i++) {
-                    childStr += View.getPrettyString(children[i], indent + "  ") + (i < n - 1 ? "," : "") + "\n"
+                    childStr += View.getPrettyString(children[i], indent + "  ") + (i < n - 1 ? "," : "") + "\n";
                 }
                 childStr += indent + "]}";
                 let isEmpty = (str === "{}");
-                str = str.substr(0, str.length - 1) + (isEmpty ? "" : ",") + "\"children\":\n" + indent + childStr + "}"
+                str = str.substr(0, str.length - 1) + (isEmpty ? "" : ",") + "\"children\":\n" + indent + childStr + "}";
             }
 
         }
@@ -1185,19 +1182,19 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
             let n = children.length;
             if (n) {
                 const childArray = [];
-                let missing = false
+                let missing = false;
                 for (let i = 0; i < n; i++) {
                     childArray.push(children[i].getSettings());
-                    missing = missing || !children[i].ref
+                    missing = missing || !children[i].ref;
                 }
 
                 if (!missing) {
                     settings.children = {}
                     childArray.forEach(child => {
-                        settings.children[child.ref] = child
-                    })
+                        settings.children[child.ref] = child;
+                    });
                 } else {
-                    settings.children = childArray
+                    settings.children = childArray;
                 }
             }
         }
@@ -1211,11 +1208,11 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
         let settings = {};
 
         if (this.constructor !== View) {
-            settings.type = this.constructor.name
+            settings.type = this.constructor.name;
         }
 
         if (this.__ref) {
-            settings.ref = this.__ref
+            settings.ref = this.__ref;
         }
 
         if (this.__tags && this.__tags.length) {
@@ -1280,16 +1277,16 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
 
         if (this._texturizer) {
             if (this.texturizer.enabled) {
-                settings.renderToTexture = this.texturizer.enabled
+                settings.renderToTexture = this.texturizer.enabled;
             }
             if (this.texturizer.lazy) {
-                settings.renderToTextureLazy = this._texturizer.lazy
+                settings.renderToTextureLazy = this._texturizer.lazy;
             }
             if (this._texturizer.colorize) {
-                settings.colorizeResultTexture = this._texturizer.colorize
+                settings.colorizeResultTexture = this._texturizer.colorize;
             }
             if (this._texturizer.renderOffscreen) {
-                settings.renderOffscreen = this._texturizer.renderOffscreen
+                settings.renderOffscreen = this._texturizer.renderOffscreen;
             }
         }
 
@@ -1315,7 +1312,7 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
     }
 
     get withinBoundsMargin() {
-        return this.__core._withinBoundsMargin
+        return this.__core._withinBoundsMargin;
     }
 
     _enableWithinBoundsMargin() {
@@ -1323,165 +1320,165 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
         if (this.__enabled) {
             // This must happen before enabling the texture, because it may already be loaded or load directly.
             if (this.__texture) {
-                this.__texture.incWithinBoundsCount()
+                this.__texture.incWithinBoundsCount();
             }
 
-            this._setActiveFlag()
+            this._setActiveFlag();
         }
     }
 
     _disableWithinBoundsMargin() {
         // Iff active, this toggles the active flag.
         if (this.__active) {
-            this._unsetActiveFlag()
+            this._unsetActiveFlag();
 
             if (this.__texture) {
-                this.__texture.decWithinBoundsCount()
+                this.__texture.decWithinBoundsCount();
             }
         }
     }
 
     set boundsMargin(v) {
         if (!Array.isArray(v) && v !== null && v !== undefined) {
-            throw new Error("boundsMargin should be an array of left-top-right-bottom values, null (no margin) or undefined (inherit margin)")
+            throw new Error("boundsMargin should be an array of left-top-right-bottom values, null (no margin) or undefined (inherit margin)");
         }
-        this.__core.boundsMargin = v
+        this.__core.boundsMargin = v;
     }
 
     get boundsMargin() {
-        return this.__core.boundsMargin
+        return this.__core.boundsMargin;
     }
 
     get x() {
-        return this.__core.x
+        return this.__core.x;
     }
 
     set x(v) {
-        this.__core.x = v
+        this.__core.x = v;
     }
 
     get y() {
-        return this.__core.y
+        return this.__core.y;
     }
 
     set y(v) {
-        this.__core.y = v
+        this.__core.y = v;
     }
 
     get w() {
-        return this.__core.w
+        return this.__core.w;
     }
 
     set w(v) {
-        this.__core.w = v
+        this.__core.w = v;
     }
 
     get h() {
-        return this.__core.h
+        return this.__core.h;
     }
 
     set h(v) {
-        this.__core.h = v
+        this.__core.h = v;
     }
 
     get scaleX() {
-        return this.__core.scaleX
+        return this.__core.scaleX;
     }
 
     set scaleX(v) {
-        this.__core.scaleX = v
+        this.__core.scaleX = v;
     }
 
     get scaleY() {
-        return this.__core.scaleY
+        return this.__core.scaleY;
     }
 
     set scaleY(v) {
-        this.__core.scaleY = v
+        this.__core.scaleY = v;
     }
 
     get scale() {
-        return this.__core.scale
+        return this.__core.scale;
     }
 
     set scale(v) {
-        this.__core.scale = v
+        this.__core.scale = v;
     }
 
     get pivotX() {
-        return this.__core.pivotX
+        return this.__core.pivotX;
     }
 
     set pivotX(v) {
-        this.__core.pivotX = v
+        this.__core.pivotX = v;
     }
 
     get pivotY() {
-        return this.__core.pivotY
+        return this.__core.pivotY;
     }
 
     set pivotY(v) {
-        this.__core.pivotY = v
+        this.__core.pivotY = v;
     }
 
     get pivot() {
-        return this.__core.pivot
+        return this.__core.pivot;
     }
 
     set pivot(v) {
-        this.__core.pivot = v
+        this.__core.pivot = v;
     }
 
     get mountX() {
-        return this.__core.mountX
+        return this.__core.mountX;
     }
 
     set mountX(v) {
-        this.__core.mountX = v
+        this.__core.mountX = v;
     }
 
     get mountY() {
-        return this.__core.mountY
+        return this.__core.mountY;
     }
 
     set mountY(v) {
-        this.__core.mountY = v
+        this.__core.mountY = v;
     }
 
     get mount() {
-        return this.__core.mount
+        return this.__core.mount;
     }
 
     set mount(v) {
-        this.__core.mount = v
+        this.__core.mount = v;
     }
 
     get rotation() {
-        return this.__core.rotation
+        return this.__core.rotation;
     }
 
     set rotation(v) {
-        this.__core.rotation = v
+        this.__core.rotation = v;
     }
 
     get alpha() {
-        return this.__core.alpha
+        return this.__core.alpha;
     }
 
     set alpha(v) {
-        this.__core.alpha = v
+        this.__core.alpha = v;
     }
 
     get visible() {
-        return this.__core.visible
+        return this.__core.visible;
     }
 
     set visible(v) {
-        this.__core.visible = v
+        this.__core.visible = v;
     }
     
     get colorUl() {
-        return this.__core.colorUl
+        return this.__core.colorUl;
     }
 
     set colorUl(v) {
@@ -1489,7 +1486,7 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
     }
 
     get colorUr() {
-        return this.__core.colorUr
+        return this.__core.colorUr;
     }
 
     set colorUr(v) {
@@ -1497,7 +1494,7 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
     }
 
     get colorBl() {
-        return this.__core.colorBl
+        return this.__core.colorBl;
     }
 
     set colorBl(v) {
@@ -1505,7 +1502,7 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
     }
 
     get colorBr() {
-        return this.__core.colorBr
+        return this.__core.colorBr;
     }
 
     set colorBr(v) {
@@ -1513,7 +1510,7 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
     }
 
     get color() {
-        return this.__core.colorUl
+        return this.__core.colorUl;
     }
 
     set color(v) {
@@ -1526,7 +1523,7 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
     }
 
     get colorTop() {
-        return this.colorUl
+        return this.colorUl;
     }
 
     set colorTop(v) {
@@ -1537,7 +1534,7 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
     }
 
     get colorBottom() {
-        return this.colorBl
+        return this.colorBl;
     }
 
     set colorBottom(v) {
@@ -1548,7 +1545,7 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
     }
 
     get colorLeft() {
-        return this.colorUl
+        return this.colorUl;
     }
 
     set colorLeft(v) {
@@ -1559,7 +1556,7 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
     }
 
     get colorRight() {
-        return this.colorUr
+        return this.colorUr;
     }
 
     set colorRight(v) {
@@ -1604,32 +1601,32 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
 
     get _children() {
         if (!this.__childList) {
-            this.__childList = new ViewChildList(this, false)
+            this.__childList = new ViewChildList(this, false);
         }
-        return this.__childList
+        return this.__childList;
     }
 
     get childList() {
         if (!this._allowChildrenAccess()) {
-            this._throwError("Direct access to children is not allowed in " + this.getLocationString())
+            this._throwError("Direct access to children is not allowed in " + this.getLocationString());
         }
-        return this._children
+        return this._children;
     }
 
     hasChildren() {
-        return this._allowChildrenAccess() && this.__childList && (this.__childList.length > 0)
+        return this._allowChildrenAccess() && this.__childList && (this.__childList.length > 0);
     }
 
     _allowChildrenAccess() {
-        return true
+        return true;
     }
 
     get children() {
-        return this.childList.get()
+        return this.childList.get();
     }
 
     set children(children) {
-        this.childList.patch(children)
+        this.childList.patch(children);
     }
 
     add(o) {
@@ -1642,30 +1639,30 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
 
     get src() {
         if (this.texture && this.texture instanceof ImageTexture) {
-            return this.texture._src
+            return this.texture._src;
         } else {
-            return undefined
+            return undefined;
         }
     }
 
     set src(v) {
-        this.texture = new ImageTexture(this.stage)
-        this.texture.src = v
+        this.texture = new ImageTexture(this.stage);
+        this.texture.src = v;
     }
 
     set mw(v) {
         if (this.texture) {
-            this.texture.mw = v
+            this.texture.mw = v;
         } else {
-            this._throwError('Please set mw after setting a texture.')
+            this._throwError('Please set mw after setting a texture.');
         }
     }
 
     set mh(v) {
         if (this.texture) {
-            this.texture.mh = v
+            this.texture.mh = v;
         } else {
-            this._throwError('Please set mh after setting a texture.')
+            this._throwError('Please set mh after setting a texture.');
         }
     }
 
@@ -1683,34 +1680,34 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
 
     enableTextTexture() {
         if (!this.texture || !(this.texture instanceof TextTexture)) {
-            this.texture = new TextTexture(this.stage)
+            this.texture = new TextTexture(this.stage);
 
             if (!this.texture.w && !this.texture.h) {
                 // Inherit dimensions from view.
                 // This allows userland to set dimensions of the View and then later specify the text.
-                this.texture.w = this.w
-                this.texture.h = this.h
+                this.texture.w = this.w;
+                this.texture.h = this.h;
             }
         }
-        return this.texture
+        return this.texture;
     }
 
     get text() {
         if (this.texture && (this.texture instanceof TextTexture)) {
-            return this.texture
+            return this.texture;
         } else {
-            return undefined
+            return undefined;
         }
     }
 
     set text(v) {
         if (!this.texture || !(this.texture instanceof TextTexture)) {
-            this.enableTextTexture()
+            this.enableTextTexture();
         }
         if (Utils.isString(v)) {
-            this.texture.text = v
+            this.texture.text = v;
         } else {
-            this.texture.patch(v)
+            this.texture.patch(v);
         }
     }
 
@@ -1734,13 +1731,13 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
         let shader;
         if (Utils.isObjectLiteral(v)) {
             if (v.type) {
-                shader = new v.type(this.stage.ctx)
+                shader = new v.type(this.stage.ctx);
             } else {
-                shader = this.shader
+                shader = this.shader;
             }
 
             if (shader) {
-                Base.patchObject(shader, v)
+                Base.patchObject(shader, v);
             }
         } else if (v === null) {
             shader = this.stage.ctx.renderState.defaultShader;
@@ -1751,7 +1748,7 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
                 shader = v;
             } else {
                 console.error("Please specify a shader type.");
-                return
+                return;
             }
         }
 
@@ -1767,89 +1764,89 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
     }
 
     _hasTexturizer() {
-        return !!this.__core._texturizer
+        return !!this.__core._texturizer;
     }
 
     get renderToTexture() {
-        return this._hasTexturizer() && this.texturizer.enabled
+        return this._hasTexturizer() && this.texturizer.enabled;
     }
 
     set renderToTexture(v) {
-        this.texturizer.enabled = v
+        this.texturizer.enabled = v;
     }
 
     get renderToTextureLazy() {
-        return this._hasTexturizer() && this.texturizer.lazy
+        return this._hasTexturizer() && this.texturizer.lazy;
     }
 
     set renderToTextureLazy(v) {
-        this.texturizer.lazy = v
+        this.texturizer.lazy = v;
     }
 
     get renderOffscreen() {
-        return this._hasTexturizer() && this.texturizer.renderOffscreen
+        return this._hasTexturizer() && this.texturizer.renderOffscreen;
     }
 
     set renderOffscreen(v) {
-        this.texturizer.renderOffscreen = v
+        this.texturizer.renderOffscreen = v;
     }
 
     get colorizeResultTexture() {
-        return this._hasTexturizer() && this.texturizer.colorize
+        return this._hasTexturizer() && this.texturizer.colorize;
     }
 
     set colorizeResultTexture(v) {
-        this.texturizer.colorize = v
+        this.texturizer.colorize = v;
     }
 
     get filters() {
-        return this._hasTexturizer() && this.texturizer.filters
+        return this._hasTexturizer() && this.texturizer.filters;
     }
 
     set filters(v) {
         if (this.__enabled) {
-            this.texturizer.filters.forEach(filter => filter.removeView(this.__core))
+            this.texturizer.filters.forEach(filter => filter.removeView(this.__core));
         }
 
-        this.texturizer.filters = v
+        this.texturizer.filters = v;
 
         if (this.__enabled) {
-            this.texturizer.filters.forEach(filter => filter.addView(this.__core))
+            this.texturizer.filters.forEach(filter => filter.addView(this.__core));
         }
     }
 
     getTexture() {
-        return this.texturizer._getTextureSource()
+        return this.texturizer._getTextureSource();
     }
 
     get texturizer() {
-        return this.__core.texturizer
+        return this.__core.texturizer;
     }
 
     patch(settings, createMode = false) {
-        let paths = Object.keys(settings)
+        let paths = Object.keys(settings);
 
         if (settings.hasOwnProperty("__create")) {
-            createMode = settings["__create"]
+            createMode = settings["__create"];
         }
 
         for (let i = 0, n = paths.length; i < n; i++) {
-            let path = paths[i]
-            const v = settings[path]
+            let path = paths[i];
+            const v = settings[path];
 
-            let pointIdx = path.indexOf(".")
-            let arrowIdx = path.indexOf(">")
+            let pointIdx = path.indexOf(".");
+            let arrowIdx = path.indexOf(">");
             if (arrowIdx === -1 && pointIdx === -1) {
-                const firstCharCode = path.charCodeAt(0)
+                const firstCharCode = path.charCodeAt(0);
                 if (Utils.isUcChar(firstCharCode)) {
                     // Ref.
-                    const child = this.getByRef(path)
+                    const child = this.getByRef(path);
                     if (!child) {
                         if (v !== undefined) {
-                            let subCreateMode = createMode
+                            let subCreateMode = createMode;
                             if (Utils.isObjectLiteral(v)) {
                                 if (v.hasOwnProperty("__create")) {
-                                    subCreateMode = v.__create
+                                    subCreateMode = v.__create;
                                 }
                             }
 
@@ -1857,65 +1854,65 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
                                 // Ignore.
                             } else if (subCreateMode === true) {
                                 // Add to list immediately.
-                                let c
+                                let c;
                                 if (Utils.isObjectLiteral(v)) {
                                     // Catch this case to capture createMode flag.
                                     c = this.childList.createItem(v);
                                     c.patch(v, subCreateMode);
                                 } else if (Utils.isObject(v)) {
-                                    c = v
+                                    c = v;
                                 }
                                 if (c.isView) {
-                                    c.ref = path
+                                    c.ref = path;
                                 }
 
-                                this.childList.a(c)
+                                this.childList.a(c);
                             } else {
-                                this._throwError("Can't find path: " + path)
+                                this._throwError("Can't find path: " + path);
                             }
                         }
                     } else {
                         if (v === undefined) {
                             if (child.parent) {
-                                child.parent.childList.remove(child)
+                                child.parent.childList.remove(child);
                             }
                         } else if (Utils.isObjectLiteral(v)) {
-                            child.patch(v, createMode)
+                            child.patch(v, createMode);
                         } else if (v.isView) {
                             // Replace view by new view.
-                            v.ref = path
-                            this.childList.replace(v, child)
+                            v.ref = path;
+                            this.childList.replace(v, child);
                         } else {
-                            this._throwError("Unexpected value for path: " + path)
+                            this._throwError("Unexpected value for path: " + path);
                         }
                     }
                 } else {
                     // Property.
-                    Base.patchObjectProperty(this, path, v)
+                    Base.patchObjectProperty(this, path, v);
                 }
             } else {
                 // Select path.
-                const views = this.select(path)
+                const views = this.select(path);
                 if (v === undefined) {
                     for (let i = 0, n = views.length; i < n; i++) {
                         if (views[i].parent) {
-                            views[i].parent.childList.remove(views[i])
+                            views[i].parent.childList.remove(views[i]);
                         }
                     }
                 } else if (Utils.isObjectLiteral(v)) {
                     // Recursive path.
                     for (let i = 0, n = views.length; i < n; i++) {
-                        views[i].patch(v, createMode)
+                        views[i].patch(v, createMode);
                     }
                 } else {
-                    this._throwError("Unexpected value for path: " + path)
+                    this._throwError("Unexpected value for path: " + path);
                 }
             }
         }
     }
 
     _throwError(message) {
-        throw new Error(this.constructor.name + " (" + this.getLocationString() + "): " + message)
+        throw new Error(this.constructor.name + " (" + this.getLocationString() + "): " + message);
     }
 
 
@@ -1943,11 +1940,11 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
     set smooth(object) {
         let keys = Object.keys(object);
         keys.forEach(property => {
-            let value = object[property]
+            let value = object[property];
             if (Array.isArray(value)) {
-                this.setSmooth(property, value[0], value[1])
+                this.setSmooth(property, value[0], value[1]);
             } else {
-                this.setSmooth(property, value)
+                this.setSmooth(property, value);
             }
         });
     }
@@ -2028,26 +2025,24 @@ class View /*M¬*/extends EventEmitter/*¬M*/{
         }
         let t = this._getTransition(property);
         t.start(v);
-        return t
+        return t;
     }
 
     static isColorProperty(property) {
-        return property.indexOf("color") >= 0
+        return property.indexOf("color") >= 0;
     }
 
     static getMerger(property) {
         if (View.isColorProperty(property)) {
-            return StageUtils.mergeColors
+            return StageUtils.mergeColors;
         } else {
-            return StageUtils.mergeNumbers
+            return StageUtils.mergeNumbers;
         }
     }
 }
 
 // This gives a slight performance benefit compared to extending EventEmitter.
-if (!Utils.isNode) {
-    EventEmitter.addAsMixin(View)
-}
+EventEmitter.addAsMixin(View);
 
 View.prototype.isView = 1;
 
@@ -2059,13 +2054,9 @@ View.PROP_GETTERS = new Map();
 // Setters reused when referencing view (subobject) properties by a property path, as used in a transition or animation ('x', 'texture.x', etc).
 View.PROP_SETTERS = new Map();
 
-module.exports = View;
-
-const Texture = require('./Texture');
-const ImageTexture = require('../textures/ImageTexture');
-const TextTexture = require('../textures/TextTexture');
-const SourceTexture = require('../textures/SourceTexture');
-const TextureSource = require('./TextureSource')
-const Transition = require('../animation/Transition')
-const TransitionSettings = require('../animation/TransitionSettings')
-const ViewChildList = require('./ViewChildList');
+import Texture from "./Texture.mjs";
+import ImageTexture from "../textures/ImageTexture.mjs";
+import TextTexture from "../textures/TextTexture.mjs";
+import SourceTexture from "../textures/SourceTexture.mjs";
+import Transition from "../animation/Transition.mjs";
+import ViewChildList from "./ViewChildList.mjs";

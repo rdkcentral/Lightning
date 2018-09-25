@@ -1,7 +1,7 @@
 /**
  * Copyright Metrological, 2017
  */
-class TransitionManager {
+export default class TransitionManager {
 
     constructor(stage) {
         this.stage = stage;
@@ -51,9 +51,6 @@ class TransitionManager {
     }
 }
 
-module.exports = TransitionManager;
-
-let Base = require('../tree/Base');
-let Utils = require('../tree/Utils');
-let TransitionSettings = require('./TransitionSettings');
-let Transition = require('./Transition');
+import Base from "../tree/Base.mjs";
+import TransitionSettings from "./TransitionSettings.mjs";
+import Transition from "./Transition.mjs";

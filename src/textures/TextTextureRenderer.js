@@ -1,10 +1,10 @@
 /**
  * Copyright Metrological, 2017
  */
-class TextTextureRenderer {
+export default class TextTextureRenderer {
 
     constructor(stage, canvas, settings) {
-        this._stage = stage
+        this._stage = stage;
         this._canvas = canvas;
         this._context = this._canvas.getContext('2d');
         this._settings = settings;
@@ -19,7 +19,7 @@ class TextTextureRenderer {
         let fonts = '"' + (Array.isArray(ff) ? this._settings.fontFace.join('","') : ff) + '"';
         let precision = (withPrecision ? this.getPrecision() : 1);
 
-        this._realFontSize = Math.floor(this._settings.fontSize * precision)
+        this._realFontSize = Math.floor(this._settings.fontSize * precision);
         this._context.font = this._settings.fontStyle + " " + this._realFontSize + "px " + fonts;
         this._context.textBaseline = this._settings.textBaseline;
     };
@@ -62,12 +62,12 @@ class TextTextureRenderer {
             let otherLines = null;
             if (this._settings.maxLinesSuffix) {
                 // Wrap again with max lines suffix enabled.
-                let w = this._settings.maxLinesSuffix ? this._context.measureText(this._settings.maxLinesSuffix).width : 0
+                let w = this._settings.maxLinesSuffix ? this._context.measureText(this._settings.maxLinesSuffix).width : 0;
                 let al = this.wrapText(usedLines[usedLines.length - 1], wordWrapWidth - w);
                 usedLines[usedLines.length - 1] = al.l[0] + this._settings.maxLinesSuffix;
                 otherLines = [al.l.length > 1 ? al.l[1] : ''];
             } else {
-                otherLines = ['']
+                otherLines = [''];
             }
 
             // Re-assemble the remaining text.
@@ -237,7 +237,7 @@ class TextTextureRenderer {
      * bounds set by the Text object's wordWrapWidth property.
      */
     wrapText(text, wordWrapWidth) {
-        // Greedy wrapping algorithm that will wrap words as the line grows longer
+        // Greedy wrapping algorithm that will wrap words as the line grows longer.
         // than its horizontal bounds.
         let lines = text.split(/\r?\n/g);
         let allLines = [];
@@ -251,7 +251,7 @@ class TextTextureRenderer {
                 let wordWidth = this._context.measureText(words[j]).width;
                 let wordWidthWithSpace = wordWidth + this._context.measureText(' ').width;
                 if (j === 0 || wordWidthWithSpace > spaceLeft) {
-                    // Skip printing the newline if it's the first word of the line that is
+                    // Skip printing the newline if it's the first word of the line that is.
                     // greater than the word wrap width.
                     if (j > 0) {
                         resultLines.push(result);
@@ -283,6 +283,4 @@ class TextTextureRenderer {
     
 }
 
-module.exports = TextTextureRenderer;
-
-let StageUtils = require('../tree/StageUtils');
+import StageUtils from "../tree/StageUtils.mjs";

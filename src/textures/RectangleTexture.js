@@ -1,9 +1,9 @@
-const Texture = require('../tree/Texture');
+import Texture from "../tree/Texture.mjs";
 
-class RectangleTexture extends Texture {
+export default class RectangleTexture extends Texture {
 
     _getLookupId() {
-        return '__whitepix'
+        return '__whitepix';
     }
 
     _getSourceLoader() {
@@ -14,5 +14,3 @@ class RectangleTexture extends Texture {
     }
 
 }
-
-module.exports = RectangleTexture

@@ -1,9 +1,9 @@
 /**
  * Copyright Metrological, 2017
  */
-let View = require('../../tree/View');
+import View from "../../tree/View.mjs";
 
-class SmoothScaleView extends View {
+export default class SmoothScaleView extends View {
 
     constructor(stage) {
         super(stage);
@@ -16,24 +16,23 @@ class SmoothScaleView extends View {
                 renderOffscreen: true,
                 "Content": {}
             },
-            "Scale": {visible: false
-            }
+            "Scale": {visible: false}
         }, true);
 
         this.sel("ContentWrap").onAfterUpdate = (view) => {
-            const content = view.sel("Content")
+            const content = view.sel("Content");
             if (content.renderWidth !== this._w || content.renderHeight !== this._h) {
-                this._update()
+                this._update();
             }
         };
     }
 
     get content() {
-        return this.tag('Content')
+        return this.tag('Content');
     }
 
     set content(v) {
-        this.tag('Content').patch(v, true)
+        this.tag('Content').patch(v, true);
     }
 
     get smoothScale() {
@@ -60,12 +59,12 @@ class SmoothScaleView extends View {
             const scalers = this.sel("Scale").childList;
             const content = this.sel("ContentWrap");
             while (scalers.length < its) {
-                const first = scalers.length === 0
+                const first = scalers.length === 0;
                 const texture = (first ? content.getTexture() : scalers.last.getTexture());
                 scalers.a({renderToTexture: true, renderOffscreen: true, texture: texture});
             }
 
-            this._update()
+            this._update();
 
             const useScalers = (its > 0);
             this.patch({
@@ -97,8 +96,5 @@ class SmoothScaleView extends View {
         }
     }
 
-
-
 }
 
-module.exports = SmoothScaleView;

@@ -1,10 +1,10 @@
-let gles2 = require('wpe-webgl');
-let fs = require('fs');
-let Canvas = require('canvas');
-let http = require('http');
-let https = require('https');
+import gles2 from "wpe-webgl.mjs";
+import fs from "fs.mjs";
+import Canvas from "canvas.mjs";
+import http from "http.mjs";
+import https from "https.mjs";
 
-class NodeAdapter {
+export default class NodeAdapter {
     
     init(stage) {
         this.stage = stage;
@@ -62,7 +62,7 @@ class NodeAdapter {
                 self._awaitingLoop = true;
             }
         }
-        setTimeout(lp, 16)
+        setTimeout(lp, 16);
     }
 
     uploadGlTexture(gl, textureSource, source, options) {
@@ -72,7 +72,7 @@ class NodeAdapter {
     loadSrcTexture({src}, cb) {
         if (this._supercharger) {
             //@todo: fix supercharger to new args/return value.
-            // this._supercharger.loadSrcTexture(src, cb)
+            // this._supercharger.loadSrcTexture(src, cb);
             // return;
         }
 
@@ -114,7 +114,7 @@ class NodeAdapter {
     }
     
     parseImage(data, cb) {
-        let Canvas = require('canvas');
+        import Canvas from "canvas.mjs";
         let img = new Canvas.Image();
         img.src = data;
         let buf = img.rawData;
@@ -123,7 +123,7 @@ class NodeAdapter {
 
     createWebGLContext(w, h) {
         let options = {width: w, height: h, title: "WebGL"};
-        const windowOptions = this.stage.getOption('window')
+        const windowOptions = this.stage.getOption('window');
         if (windowOptions) {
             options = Object.assign(options, windowOptions);
         }
@@ -142,7 +142,7 @@ class NodeAdapter {
         options.h = canvas.height;
         options.premultiplyAlpha = false;
         options.flipBlueRed = true;
-        return options
+        return options;
     }
 
     getHrTime() {
@@ -161,9 +161,8 @@ class NodeAdapter {
     }
 
     registerKeyHandler(keyhandler) {
-        console.warn("No support for key handling")
+        console.warn("No support for key handling");
     }
 
 }
 
-module.exports = NodeAdapter;
