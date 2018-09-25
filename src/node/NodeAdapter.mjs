@@ -1,8 +1,8 @@
-import gles2 from "wpe-webgl.mjs";
-import fs from "fs.mjs";
-import Canvas from "canvas.mjs";
-import http from "http.mjs";
-import https from "https.mjs";
+import gles2 from "wpe-webgl";
+import fs from "fs";
+import Canvas from "canvas";
+import http from "http";
+import https from "https";
 
 export default class NodeAdapter {
     
@@ -10,27 +10,6 @@ export default class NodeAdapter {
         this.stage = stage;
         this._looping = false;
         this._awaitingLoop = false;
-
-        if (this.stage.getOption('supercharger')) {
-            try {
-                // Images are downloaded, parsed and pre-processed off-thread.
-                this._supercharger = require('wpe-uiframework-supercharger');
-                console.log('Using WPEUIFramework supercharger.');
-            } catch(e) {
-                console.warn('WPEUIFramework supercharger not found. Images will be downloaded and parsed on-thread.');
-            }
-
-            if (this._supercharger) {
-                let localImagePath = this.stage.getOption('supercharger').localImagePath;
-                let options = {allowFiles: (!!localImagePath)};
-                if (localImagePath !== true) {
-                    options.allowedFilePath = localImagePath;
-                }
-                this._supercharger.init(options);
-            }
-        } else {
-            console.warn('Specify supercharger option to enable off-thread (supercharged) image loading.');
-        }
     }
 
     startLoop() {
@@ -49,9 +28,6 @@ export default class NodeAdapter {
         let lp = function() {
             self._awaitingLoop = false;
             if (self._looping) {
-                if (self._supercharger) {
-                    self._supercharger.process();
-                }
                 self.stage.drawFrame();
                 if (self.changes) {
                     // We depend on blit to limit to 60fps.
@@ -70,12 +46,6 @@ export default class NodeAdapter {
     }
 
     loadSrcTexture({src}, cb) {
-        if (this._supercharger) {
-            //@todo: fix supercharger to new args/return value.
-            // this._supercharger.loadSrcTexture(src, cb);
-            // return;
-        }
-
         if (/^https?:\/\//i.test(src)) {
             // URL. Download first.
             let mod = null;
@@ -114,7 +84,6 @@ export default class NodeAdapter {
     }
     
     parseImage(data, cb) {
-        import Canvas from "canvas.mjs";
         let img = new Canvas.Image();
         img.src = data;
         let buf = img.rawData;

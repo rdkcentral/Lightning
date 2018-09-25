@@ -1,4 +1,6 @@
-class WaterWaveShader extends wuf.Shader {
+import Shader from "../../src/tree/Shader.mjs"
+
+export default class WaterWaveShader extends Shader {
 
     constructor(context) {
         super(context);
@@ -19,7 +21,7 @@ class WaterWaveShader extends wuf.Shader {
 
         const w = operation.getTextureWidth(0);
         const h = operation.getTextureHeight(0);
-        this._setUniform("texDims", [w, h, w/h], this.gl.uniform3fv);
+        this._setUniform("texDims", new Float32Array([w, h, w/h]), this.gl.uniform3fv);
 
         this.redraw()
     }

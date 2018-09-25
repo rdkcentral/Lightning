@@ -1,8 +1,9 @@
-const lng = require('../../dist/lightning-node')
+import lng from "../../src/lightning-node"
+
 const Application = lng.Application
 const Utils = lng.Utils
 
-class BasicUsageExample extends Application {
+export default class BasicUsageExample extends Application {
     static _template() {
         return {
             Primary: {
