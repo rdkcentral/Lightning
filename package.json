@@ -8,7 +8,9 @@
     "canvas": "git+https://github.com/basvanmeurs/node-canvas.git",
     "wpe-webgl": "https://github.com/WebPlatformForEmbedded/node-wpe-webgl.git"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "rollup-plugin-closure-compiler": "^0.1.0"
+  },
   "repository": {
     "type": "git",
     "url": "git@github.com:WebPlatformForEmbedded/WPEUIFramework.git"
