@@ -2012,7 +2012,7 @@ export default class View {
 
     getSmooth(property, v) {
         let t = this._getTransition(property);
-        if (t && t.attached) {
+        if (t && t.isAttached()) {
             return t.targetValue;
         } else {
             return v;

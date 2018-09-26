@@ -4094,7 +4094,7 @@ var lng = (function () {
                     let paddingRight = (this._settings.highlightPaddingRight !== null ? this._settings.highlightPaddingRight : this._settings.paddingRight);
 
                     this._context.fillStyle = StageUtils.getRgbaString(color);
-                    for (i = 0; i < drawLines.length; i++) {
+                    for (let i = 0; i < drawLines.length; i++) {
                         let drawLine = drawLines[i];
                         this._context.fillRect((drawLine.x - paddingLeft) * precision, (drawLine.y + offset) * precision, (drawLine.w + paddingRight + paddingLeft) * precision, hlHeight * precision);
                     }
@@ -7382,7 +7382,7 @@ var lng = (function () {
 
         getSmooth(property, v) {
             let t = this._getTransition(property);
-            if (t && t.attached) {
+            if (t && t.isAttached()) {
                 return t.targetValue;
             } else {
                 return v;
@@ -10527,7 +10527,7 @@ var lng = (function () {
 
         setGlClearColor(clearColor) {
             this.forceRenderUpdate();
-            if (!clearColor) {
+            if (clearColor === undefined) {
                 // Do not clear.
                 this._options.glClearColor = undefined;
             } else if (Array.isArray(clearColor)) {
@@ -14511,6 +14511,7 @@ var lng = (function () {
         ViewCore,
         ViewTexturizer,
         Texture,
+        EventEmitter,
         textures: {
             RectangleTexture,
             NoiseTexture,

@@ -206,7 +206,7 @@ export default class Stage extends EventEmitter {
 
     setGlClearColor(clearColor) {
         this.forceRenderUpdate();
-        if (!clearColor) {
+        if (clearColor === undefined) {
             // Do not clear.
             this._options.glClearColor = undefined;
         } else if (Array.isArray(clearColor)) {

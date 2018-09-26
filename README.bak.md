@@ -263,7 +263,7 @@ Check the API for a list of all [animation methods, properties and events](#anim
 # Development Tools
 There is a handy tool available for inspection of rendered compontents. It keeps a 'real' HTML DOM rendering tree syncronized with the WPE UI Framework rendering tree, so that you are able to use the browser's web inspector to check on the layout of your rendering tree. You can even change the properties on the fly and see the result reflected in your stage!
 
-To use it, include the script `browser/inspect.js` script *after* the wpe.js source file.
+To use it, include the script `devtools/lightning-inspect.js` script *after* the lightning-web.js source file.
 
 As an example, open the following jsfiddle and try the inspector on the graphics output:
 

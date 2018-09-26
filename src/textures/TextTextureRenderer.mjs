@@ -193,7 +193,7 @@ export default class TextTextureRenderer {
                 let paddingRight = (this._settings.highlightPaddingRight !== null ? this._settings.highlightPaddingRight : this._settings.paddingRight);
 
                 this._context.fillStyle = StageUtils.getRgbaString(color);
-                for (i = 0; i < drawLines.length; i++) {
+                for (let i = 0; i < drawLines.length; i++) {
                     let drawLine = drawLines[i];
                     this._context.fillRect((drawLine.x - paddingLeft) * precision, (drawLine.y + offset) * precision, (drawLine.w + paddingRight + paddingLeft) * precision, hlHeight * precision);
                 }

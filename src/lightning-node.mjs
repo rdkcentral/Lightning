@@ -36,6 +36,7 @@ import InversionFilter from "./tools/filters/InversionFilter.mjs";
 import BlurFilter from "./tools/filters/BlurFilter.mjs";
 import LinearBlurFilter from "./tools/filters/LinearBlurFilter.mjs";
 import GrayscaleFilter from "./tools/filters/GrayscaleFilter.mjs";
+import EventEmitter from "./EventEmitter.mjs";
 
 import Stage from "./tree/Stage.mjs";
 import NodeAdapter from "./node/NodeAdapter.mjs";
@@ -55,6 +56,7 @@ const lightning = {
     ViewCore,
     ViewTexturizer,
     Texture,
+    EventEmitter,
     textures: {
         RectangleTexture,
         NoiseTexture,
