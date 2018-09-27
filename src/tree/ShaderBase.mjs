@@ -15,7 +15,7 @@ export default class ShaderBase {
 
         this.ctx = coreContext;
 
-        this.gl = this.ctx.gl;
+        this.gl = this.ctx.stage.gl;
 
         /**
          * The (enabled) views that use this shader.
@@ -26,7 +26,7 @@ export default class ShaderBase {
 
     _init() {
         if (!this._initialized) {
-            this._program.compile(this.ctx.gl);
+            this._program.compile(this.gl);
             this.initialize();
             this._initialized = true;
         }
@@ -50,7 +50,7 @@ export default class ShaderBase {
 
     useProgram() {
         this._init();
-        this.ctx.gl.useProgram(this.glProgram);
+        this.gl.useProgram(this.glProgram);
         this.beforeUsage();
         this.enableAttribs();
     }

@@ -104,13 +104,13 @@ export default class DitheringShader extends Shader {
 
     enableAttribs() {
         super.enableAttribs();
-        let gl = this.ctx.gl;
+        let gl = this.gl;
         gl.enableVertexAttribArray(this._attrib("aNoiseTextureCoord"));
     }
 
     disableAttribs() {
         super.disableAttribs();
-        let gl = this.ctx.gl;
+        let gl = this.gl;
         gl.disableVertexAttribArray(this._attrib("aNoiseTextureCoord"));
     }
 

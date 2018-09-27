@@ -10,7 +10,7 @@ export default class Shader extends ShaderBase {
 
     enableAttribs() {
         // Enables the attribs in the shader program.
-        let gl = this.ctx.gl;
+        let gl = this.gl;
         gl.vertexAttribPointer(this._attrib("aVertexPosition"), 2, gl.FLOAT, false, 20, 0);
         gl.enableVertexAttribArray(this._attrib("aVertexPosition"));
 
@@ -28,7 +28,7 @@ export default class Shader extends ShaderBase {
 
     disableAttribs() {
         // Disables the attribs in the shader program.
-        let gl = this.ctx.gl;
+        let gl = this.gl;
         gl.disableVertexAttribArray(this._attrib("aVertexPosition"));
 
         if (this._attrib("aTextureCoord") !== -1) {
@@ -69,7 +69,7 @@ export default class Shader extends ShaderBase {
         // Set all shader-specific uniforms.
         // Notice that all uniforms should be set, even if they have not been changed within this shader instance.
         // The uniforms are shared by all shaders that have the same type (and shader program).
-        this._setUniform("projection", this._getProjection(operation), this.ctx.gl.uniform2fv, false);
+        this._setUniform("projection", this._getProjection(operation), this.gl.uniform2fv, false);
     }
 
     _getProjection(operation) {
@@ -84,7 +84,7 @@ export default class Shader extends ShaderBase {
     }
 
     draw(operation) {
-        let gl = this.ctx.gl;
+        let gl = this.gl;
 
         let length = operation.length;
 
