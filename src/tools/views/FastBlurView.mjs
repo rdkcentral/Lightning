@@ -308,10 +308,6 @@ class FastBlurOutputShader extends Shader {
         gl.activeTexture(gl.TEXTURE0);
     }
 
-    isMergable(shader) {
-        return super.isMergable(shader) && (shader._otherTextureSource === this._otherTextureSource);
-    }
-
 }
 
 FastBlurOutputShader.fragmentShaderSource = `

@@ -3,7 +3,7 @@ import Filter from "../../tree/Filter.mjs";
 export default class GrayscaleFilter extends Filter {
     constructor(context) {
         super(context);
-        this._amount = 0;
+        this._amount = 1;
     }
 
     set amount(v) {

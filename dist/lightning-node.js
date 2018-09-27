@@ -8,9 +8,6 @@ var canvas = _interopDefault(require('canvas'));
 var http = _interopDefault(require('http'));
 var https = _interopDefault(require('https'));
 
-/**
- * Copyright Metrological, 2017
- */
 class StageUtils {
 
     static mergeNumbers(v1, v2, p) {
@@ -438,9 +435,6 @@ class StageUtils {
     };
 }
 
-/**
- * Copyright Metrological, 2017;
- */
 class Utils {
     static isFunction(value) {
         return typeof value === 'function';
@@ -613,10 +607,6 @@ class Utils {
 }
 
 Utils.isNode = (typeof window === "undefined");
-
-/**
- * Copyright Metrological, 2017
- */
 
 class TextureSource {
 
@@ -926,10 +916,6 @@ class TextureSource {
 TextureSource.prototype.isTextureSource = true;
 
 TextureSource.id = 1;
-
-/**
- * Copyright Metrological, 2017;
- */
 
 class ViewTexturizer {
 
@@ -3089,9 +3075,6 @@ ViewCore.sortZIndexedChildren = function(a,b) {
     return (a._zIndex === b._zIndex ? a._updateTreeOrder - b._updateTreeOrder : a._zIndex - b._zIndex);
 };
 
-/**
- * Copyright Metrological, 2017;
- */
 class Base {
 
     static defaultSetter(obj, name, value) {
@@ -3140,8 +3123,6 @@ class Base {
  * This is a partial (and more efficient) implementation of the event emitter.
  * It attempts to maintain a one-to-one mapping between events and listeners, skipping an array lookup.
  * Only if there are multiple listeners, they are combined in an array.
- *
- * Copyright Metrological, 2017;
  */
 class EventEmitter {
 
@@ -3267,9 +3248,6 @@ EventEmitter.addAsMixin = function(cls) {
     cls.prototype.listenerCount = EventEmitter.prototype.listenerCount;
 };
 
-/**
- * Copyright Metrological, 2017
- */
 class Texture {
 
     /**
@@ -3792,9 +3770,6 @@ class ImageTexture extends Texture {
 
 }
 
-/**
- * Copyright Metrological, 2017
- */
 class TextTextureRenderer {
 
     constructor(stage, canvas$$1, settings) {
@@ -4655,10 +4630,6 @@ class SourceTexture extends Texture {
     }
 
 }
-
-/**
- * Copyright Metrological, 2017;
- */
 
 class Transition extends EventEmitter {
 
@@ -5599,7 +5570,7 @@ class View {
             this.__core.shader.addView(this.__core);
         }
 
-        if (this._texturizer) {
+        if (this._hasTexturizer()) {
             this.texturizer.filters.forEach(filter => filter.addView(this.__core));
         }
 
@@ -7762,9 +7733,116 @@ class Component extends View {
 
 Component.prototype.isComponent = true;
 
-/**
- * Copyright Metrological, 2017;
- */
+class WebGLRenderer {
+
+    constructor(stage) {
+        this.stage = stage;
+    }
+
+    createRenderTexture(w, h) {
+        const gl = this.stage.gl;
+        const glTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, glTexture);
+
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+        glTexture.params = {};
+        glTexture.params[gl.TEXTURE_MAG_FILTER] = gl.LINEAR;
+        glTexture.params[gl.TEXTURE_MIN_FILTER] = gl.LINEAR;
+        glTexture.params[gl.TEXTURE_WRAP_S] = gl.CLAMP_TO_EDGE;
+        glTexture.params[gl.TEXTURE_WRAP_T] = gl.CLAMP_TO_EDGE;
+        glTexture.options = {format: gl.RGBA, internalFormat: gl.RGBA, type: gl.UNSIGNED_BYTE};
+
+        // We need a specific framebuffer for every render texture.
+        glTexture.framebuffer = gl.createFramebuffer();
+        glTexture.projection = new Float32Array([2/w, 2/h]);
+
+        gl.bindFramebuffer(gl.FRAMEBUFFER, glTexture.framebuffer);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, glTexture, 0);
+
+        return glTexture;
+    }
+    
+    freeRenderTexture(glTexture) {
+        let gl = this.stage.gl;
+        gl.deleteFramebuffer(glTexture.framebuffer);
+        gl.deleteTexture(glTexture);
+    }
+
+    uploadTextureSource(textureSource, options) {
+        const gl = this.stage.gl;
+
+        const source = options.source;
+
+        const format = {
+            premultiplyAlpha: true,
+            hasAlpha: true
+        };
+
+        if (options && options.hasOwnProperty('premultiplyAlpha')) {
+            format.premultiplyAlpha = options.premultiplyAlpha;
+        }
+
+        if (options && options.hasOwnProperty('flipBlueRed')) {
+            format.flipBlueRed = options.flipBlueRed;
+        }
+
+        if (options && options.hasOwnProperty('hasAlpha')) {
+            format.hasAlpha = options.hasAlpha;
+        }
+
+        if (!format.hasAlpha) {
+            format.premultiplyAlpha = false;
+        }
+
+        format.texParams = options.texParams || {};
+        format.texOptions = options.texOptions || {};
+
+        let glTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, glTexture);
+
+        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, format.premultiplyAlpha);
+
+        if (Utils.isNode) {
+            gl.pixelStorei(gl.UNPACK_FLIP_BLUE_RED, !!format.flipBlueRed);
+        }
+
+        const texParams = format.texParams;
+        if (!texParams[gl.TEXTURE_MAG_FILTER]) texParams[gl.TEXTURE_MAG_FILTER] = gl.LINEAR;
+        if (!texParams[gl.TEXTURE_MIN_FILTER]) texParams[gl.TEXTURE_MIN_FILTER] = gl.LINEAR;
+        if (!texParams[gl.TEXTURE_WRAP_S]) texParams[gl.TEXTURE_WRAP_S] = gl.CLAMP_TO_EDGE;
+        if (!texParams[gl.TEXTURE_WRAP_T]) texParams[gl.TEXTURE_WRAP_T] = gl.CLAMP_TO_EDGE;
+
+        Object.keys(texParams).forEach(key => {
+            const value = texParams[key];
+            gl.texParameteri(gl.TEXTURE_2D, parseInt(key), value);
+        });
+
+        const texOptions = format.texOptions;
+        texOptions.format = texOptions.format || (format.hasAlpha ? gl.RGBA : gl.RGB);
+        texOptions.type = texOptions.type || gl.UNSIGNED_BYTE;
+        texOptions.internalFormat = texOptions.internalFormat || texOptions.format;
+
+        this.stage.adapter.uploadGlTexture(gl, textureSource, source, texOptions);
+
+        glTexture.params = Utils.cloneObjShallow(texParams);
+        glTexture.options = Utils.cloneObjShallow(texOptions);
+
+        return glTexture;
+    }
+
+    freeTextureSource(textureSource) {
+        this.stage.gl.deleteTexture(textureSource.nativeTexture);
+        textureSource.nativeTexture = null;
+    }
+
+}
+
 class TextureManager {
 
     constructor(stage) {
@@ -7898,77 +7976,14 @@ class TextureManager {
     }
 
     _nativeUploadTextureSource(textureSource, options) {
-        let gl = this.stage.gl;
-
-        const source = options.source;
-
-        const format = {
-            premultiplyAlpha: true,
-            hasAlpha: true
-        };
-
-        if (options && options.hasOwnProperty('premultiplyAlpha')) {
-            format.premultiplyAlpha = options.premultiplyAlpha;
-        }
-
-        if (options && options.hasOwnProperty('flipBlueRed')) {
-            format.flipBlueRed = options.flipBlueRed;
-        }
-
-        if (options && options.hasOwnProperty('hasAlpha')) {
-            format.hasAlpha = options.hasAlpha;
-        }
-
-        if (!format.hasAlpha) {
-            format.premultiplyAlpha = false;
-        }
-
-        format.texParams = options.texParams || {};
-        format.texOptions = options.texOptions || {};
-
-        let glTexture = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, glTexture);
-
-        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, format.premultiplyAlpha);
-
-        if (Utils.isNode) {
-            gl.pixelStorei(gl.UNPACK_FLIP_BLUE_RED, !!format.flipBlueRed);
-        }
-
-        const texParams = format.texParams;
-        if (!texParams[gl.TEXTURE_MAG_FILTER]) texParams[gl.TEXTURE_MAG_FILTER] = gl.LINEAR;
-        if (!texParams[gl.TEXTURE_MIN_FILTER]) texParams[gl.TEXTURE_MIN_FILTER] = gl.LINEAR;
-        if (!texParams[gl.TEXTURE_WRAP_S]) texParams[gl.TEXTURE_WRAP_S] = gl.CLAMP_TO_EDGE;
-        if (!texParams[gl.TEXTURE_WRAP_T]) texParams[gl.TEXTURE_WRAP_T] = gl.CLAMP_TO_EDGE;
-
-        Object.keys(texParams).forEach(key => {
-            const value = texParams[key];
-            gl.texParameteri(gl.TEXTURE_2D, parseInt(key), value);
-        });
-
-        const texOptions = format.texOptions;
-        texOptions.format = texOptions.format || (format.hasAlpha ? gl.RGBA : gl.RGB);
-        texOptions.type = texOptions.type || gl.UNSIGNED_BYTE;
-        texOptions.internalFormat = texOptions.internalFormat || texOptions.format;
-
-        this.stage.adapter.uploadGlTexture(gl, textureSource, source, texOptions);
-
-        glTexture.params = Utils.cloneObjShallow(texParams);
-        glTexture.options = Utils.cloneObjShallow(texOptions);
-        
-        return glTexture;
+        return this.stage.renderer.uploadTextureSource(textureSource, options);
     }
 
     _nativeFreeTextureSource(textureSource) {
-        this.stage.gl.deleteTexture(textureSource.nativeTexture);
-        textureSource.nativeTexture = null;
+        this.stage.renderer.freeTextureSource(textureSource);
     }
 
 }
-
-/**
- * Copyright Metrological, 2017;
- */
 
 class CoreQuadOperation {
 
@@ -8062,10 +8077,6 @@ class CoreQuadOperation {
     }
 
 }
-
-/**
- * Copyright Metrological, 2017;
- */
 
 class CoreQuadList {
 
@@ -8163,8 +8174,8 @@ class CoreQuadList {
         for (let i = 1; i <= this.length; i++) {
             let str = 'entry ' + i + ': ';
             for (let j = 0; j < 4; j++) {
-                let b = i * 16 + j * 4;
-                str += floats[b] + ',' + floats[b+1] + ':' + uints[b+2].toString(16) + '[' + uints[b+3].toString(16) + '] ';
+                let b = i * 20 + j * 4;
+                str += floats[b] + ',' + floats[b+1] + ':' + floats[b+2] + ',' + floats[b+3] + '[' + uints[b+4].toString(16) + '] ';
             }
             lines.push(str);
         }
@@ -8172,10 +8183,6 @@ class CoreQuadList {
         return lines;
     }
 }
-
-/**
- * Copyright Metrological, 2017;
- */
 
 class CoreFilterOperation {
 
@@ -8353,10 +8360,6 @@ class ShaderProgram {
 
 }
 
-/**
- * Copyright Metrological, 2017;
- */
-
 class ShaderBase {
 
     constructor(coreContext) {
@@ -8371,7 +8374,7 @@ class ShaderBase {
 
         this.ctx = coreContext;
 
-        this.gl = this.ctx.gl;
+        this.gl = this.ctx.stage.gl;
 
         /**
          * The (enabled) views that use this shader.
@@ -8382,7 +8385,7 @@ class ShaderBase {
 
     _init() {
         if (!this._initialized) {
-            this._program.compile(this.ctx.gl);
+            this._program.compile(this.gl);
             this.initialize();
             this._initialized = true;
         }
@@ -8406,7 +8409,7 @@ class ShaderBase {
 
     useProgram() {
         this._init();
-        this.ctx.gl.useProgram(this.glProgram);
+        this.gl.useProgram(this.glProgram);
         this.beforeUsage();
         this.enableAttribs();
     }
@@ -8464,10 +8467,6 @@ class ShaderBase {
 
 }
 
-/**
- * Copyright Metrological, 2017;
- */
-
 class Shader extends ShaderBase {
 
     constructor(coreContext) {
@@ -8477,7 +8476,7 @@ class Shader extends ShaderBase {
 
     enableAttribs() {
         // Enables the attribs in the shader program.
-        let gl = this.ctx.gl;
+        let gl = this.gl;
         gl.vertexAttribPointer(this._attrib("aVertexPosition"), 2, gl.FLOAT, false, 20, 0);
         gl.enableVertexAttribArray(this._attrib("aVertexPosition"));
 
@@ -8495,7 +8494,7 @@ class Shader extends ShaderBase {
 
     disableAttribs() {
         // Disables the attribs in the shader program.
-        let gl = this.ctx.gl;
+        let gl = this.gl;
         gl.disableVertexAttribArray(this._attrib("aVertexPosition"));
 
         if (this._attrib("aTextureCoord") !== -1) {
@@ -8536,7 +8535,7 @@ class Shader extends ShaderBase {
         // Set all shader-specific uniforms.
         // Notice that all uniforms should be set, even if they have not been changed within this shader instance.
         // The uniforms are shared by all shaders that have the same type (and shader program).
-        this._setUniform("projection", this._getProjection(operation), this.ctx.gl.uniform2fv, false);
+        this._setUniform("projection", this._getProjection(operation), this.gl.uniform2fv, false);
     }
 
     _getProjection(operation) {
@@ -8551,7 +8550,7 @@ class Shader extends ShaderBase {
     }
 
     draw(operation) {
-        let gl = this.ctx.gl;
+        let gl = this.gl;
 
         let length = operation.length;
 
@@ -8610,10 +8609,6 @@ Shader.fragmentShaderSource = `
 `;
 
 Shader.prototype.isShader = true;
-
-/**
- * Copyright Metrological, 2017;
- */
 
 class CoreRenderState {
 
@@ -8912,10 +8907,6 @@ class CoreRenderState {
 
 }
 
-/**
- * Copyright Metrological, 2017;
- */
-
 class CoreRenderExecutor {
 
     constructor(ctx) {
@@ -9033,8 +9024,7 @@ class CoreRenderExecutor {
         }
 
         let shader = quadOperation.shader;
-        this._useShaderProgram(shader);
-        shader.setupUniforms(quadOperation);
+        this._useShaderProgram(shader, quadOperation);
 
         this._quadOperation = quadOperation;
     }
@@ -9070,8 +9060,7 @@ class CoreRenderExecutor {
 
     _execFilterOperation(filterOperation) {
         let filter = filterOperation.filter;
-        this._useShaderProgram(filter);
-        filter.setupUniforms(filterOperation);
+        this._useShaderProgram(filter, filterOperation);
         filter.beforeDraw(filterOperation);
         this._bindRenderTexture(filterOperation.renderTexture);
         if (this._scissor) {
@@ -9083,23 +9072,25 @@ class CoreRenderExecutor {
     }
 
     /**
-     * @param {Filter|Shader} owner;
+     * @param {Filter|Shader} program;
+     * @param {CoreFilterOperation|CoreQuadOperation} program;
      */
-    _useShaderProgram(owner) {
-        if (!owner.hasSameProgram(this._currentShaderProgramOwner)) {
-            if (this._currentShaderProgramOwner) {
-                this._currentShaderProgramOwner.stopProgram();
+    _useShaderProgram(program, operation) {
+        if (!program.hasSameProgram(this._currentShaderProgram)) {
+            if (this._currentShaderProgram) {
+                this._currentShaderProgram.stopProgram();
             }
-            owner.useProgram();
-            this._currentShaderProgramOwner = owner;
+            program.useProgram();
+            this._currentShaderProgram = program;
         }
+        program.setupUniforms(operation);
     }
 
     _stopShaderProgram() {
-        if (this._currentShaderProgramOwner) {
+        if (this._currentShaderProgram) {
             // The currently used shader program should be stopped gracefully.
-            this._currentShaderProgramOwner.stopProgram();
-            this._currentShaderProgramOwner = null;
+            this._currentShaderProgram.stopProgram();
+            this._currentShaderProgram = null;
         }
     }
 
@@ -9150,16 +9141,10 @@ class CoreRenderExecutor {
 
 }
 
-/**
- * Copyright Metrological, 2017;
- */
-
 class CoreContext {
 
     constructor(stage) {
         this.stage = stage;
-
-        this.gl = stage.gl;
 
         this.root = null;
 
@@ -9240,7 +9225,7 @@ class CoreContext {
         let ah = Math.max(1, Math.round(h * prec));
 
         for (let i = 0, n = this._renderTexturePool.length; i < n; i++) {
-            let texture = this._renderTexturePool[i];
+            const texture = this._renderTexturePool[i];
             if (texture.w === aw && texture.h === ah) {
                 texture.f = this.stage.frameCounter;
                 this._renderTexturePool.splice(i, 1);
@@ -9248,12 +9233,8 @@ class CoreContext {
             }
         }
 
-        let texture = this._createRenderTexture(aw, ah);
-
-        texture.f = this.stage.frameCounter;
+        const texture = this._createRenderTexture(aw, ah);
         texture.precision = prec;
-        texture.projection = new Float32Array([2/w, 2/h]);
-
         return texture;
     }
 
@@ -9281,30 +9262,11 @@ class CoreContext {
     }
 
     _createRenderTexture(w, h) {
-        let gl = this.gl;
-        let sourceTexture = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
-
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-        sourceTexture.params = {};
-        sourceTexture.params[gl.TEXTURE_MAG_FILTER] = gl.LINEAR;
-        sourceTexture.params[gl.TEXTURE_MIN_FILTER] = gl.LINEAR;
-        sourceTexture.params[gl.TEXTURE_WRAP_S] = gl.CLAMP_TO_EDGE;
-        sourceTexture.params[gl.TEXTURE_WRAP_T] = gl.CLAMP_TO_EDGE;
-        sourceTexture.options = {format: gl.RGBA, internalFormat: gl.RGBA, type: gl.UNSIGNED_BYTE};
-
-        // We need a specific framebuffer for every render texture.
-        sourceTexture.framebuffer = gl.createFramebuffer();
-        sourceTexture.w = w;
-        sourceTexture.h = h;
-        sourceTexture.id = this._renderTextureId++;
-
+        const texture = this.stage.renderer.createRenderTexture(w, h);
+        texture.id = this._renderTextureId++;
+        texture.f = this.stage.frameCounter;
+        texture.w = w;
+        texture.h = h;
         this._renderTexturePixels += w * h;
 
         if (this._renderTexturePixels > this.stage.getOption('renderTextureMemory')) {
@@ -9315,17 +9277,11 @@ class CoreContext {
             }
         }
 
-        gl.bindFramebuffer(gl.FRAMEBUFFER, sourceTexture.framebuffer);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, sourceTexture, 0);
-
-        return sourceTexture;
+        return texture;
     }
 
     _freeRenderTexture(nativeTexture) {
-        let gl = this.stage.gl;
-        gl.deleteFramebuffer(nativeTexture.framebuffer);
-        gl.deleteTexture(nativeTexture);
-
+        this.stage.renderer.freeRenderTexture(nativeTexture);
         this._renderTexturePixels -= nativeTexture.w * nativeTexture.h;
     }
 
@@ -9334,10 +9290,6 @@ class CoreContext {
     }
 
 }
-
-/**
- * Copyright Metrological, 2017;
- */
 
 class TransitionSettings {
     constructor() {
@@ -9368,9 +9320,6 @@ class TransitionSettings {
 
 TransitionSettings.prototype.isTransitionSettings = true;
 
-/**
- * Copyright Metrological, 2017
- */
 class TransitionManager {
 
     constructor(stage) {
@@ -9421,9 +9370,6 @@ class TransitionManager {
     }
 }
 
-/**
- * Copyright Metrological, 2017
- */
 class AnimationActionItems {
     
     constructor(action) {
@@ -9634,10 +9580,6 @@ class AnimationActionItems {
 
 }
 
-/**
- * Copyright Metrological, 2017;
- */
-
 class AnimationActionSettings {
 
     constructor() {
@@ -9802,10 +9744,6 @@ class AnimationActionSettings {
 
 AnimationActionSettings.prototype.isAnimationActionSettings = true;
 
-/**
- * Copyright Metrological, 2017;
- */
-
 class AnimationSettings {
     constructor() {
         /**
@@ -9894,10 +9832,6 @@ AnimationSettings.STOP_METHODS = {
     IMMEDIATE: 'immediate',
     ONETOTWO: 'onetotwo'
 };
-
-/**
- * Copyright Metrological, 2017
- */
 
 class Animation extends EventEmitter {
 
@@ -10264,9 +10198,6 @@ Animation.STATES = {
     PAUSED: 5
 };
 
-/**
- * Copyright Metrological, 2017;
- */
 class AnimationManager {
 
     constructor(stage) {
@@ -10383,6 +10314,10 @@ class Stage extends EventEmitter {
             this._options.h = this.getCanvas().height;
         }
 
+        if (this._mode === 0) {
+            this._renderer = new WebGLRenderer(this);
+        }
+
         this.setClearColor(this.getOption('clearColor'));
 
         this.frameCounter = 0;
@@ -10408,6 +10343,10 @@ class Stage extends EventEmitter {
         this.rectangleTexture.source.permanent = true;
 
         this._updateSourceTextures = new Set();
+    }
+
+    get renderer() {
+        return this._renderer;
     }
 
     static isWebglSupported() {
@@ -11230,10 +11169,6 @@ class Application extends Component {
     }
 }
 
-/**
- * Copyright Metrological, 2017;
- */
-
 class Filter extends ShaderBase {
 
     constructor(coreContext) {
@@ -11248,19 +11183,19 @@ class Filter extends ShaderBase {
 
     enableAttribs() {
         // Enables the attribs in the shader program.
-        let gl = this.ctx.gl;
+        let gl = this.gl;
         gl.vertexAttribPointer(this._attrib("aVertexPosition"), 2, gl.FLOAT, false, 20, 0);
         gl.enableVertexAttribArray(this._attrib("aVertexPosition"));
 
         if (this._attrib("aTextureCoord") !== -1) {
-            gl.vertexAttribPointer(this._attrib("aTextureCoord"), 2, gl.UNSIGNED_SHORT, true, 20, 2 * 4);
+            gl.vertexAttribPointer(this._attrib("aTextureCoord"), 2, gl.FLOAT, true, 20, 2 * 4);
             gl.enableVertexAttribArray(this._attrib("aTextureCoord"));
         }
     }
 
     disableAttribs() {
         // Disables the attribs in the shader program.
-        let gl = this.ctx.gl;
+        let gl = this.gl;
         gl.disableVertexAttribArray(this._attrib("aVertexPosition"));
         if (this._attrib("aTextureCoord") !== -1) {
             gl.disableVertexAttribArray(this._attrib("aTextureCoord"));
@@ -11288,7 +11223,7 @@ class Filter extends ShaderBase {
         this._views.forEach(viewCore => {
             viewCore.setHasRenderUpdates(2);
 
-            // Changing filter settings may cause a change mustRenderToTexture for the branch:
+            // Changing filter settings may cause a changed mustRenderToTexture for the branch:
             // we need to be sure that the update function is called for this branch.
             viewCore._setRecalc(1 + 2 + 4 + 8);
         });
@@ -11357,10 +11292,6 @@ class StaticCanvasTexture extends Texture {
     }
 
 }
-
-/**
- * Copyright Metrological, 2017
- */
 
 class Tools {
 
@@ -11738,10 +11669,6 @@ class ObjectListWrapper extends ObjectListProxy {
     }
 
 }
-
-/**
- * Copyright Metrological, 2017
- */
 
 class ListView extends View {
 
@@ -12228,10 +12155,6 @@ class ListItems extends ObjectListWrapper {
 
 }
 
-/**
- * Copyright Metrological, 2017;
- */
-
 class BorderView extends View {
 
     constructor(stage) {
@@ -12406,10 +12329,6 @@ class BorderView extends View {
 
 }
 
-/**
- * Copyright Metrological, 2017;
- */
-
 class LinearBlurFilter extends Filter {
 
     constructor(ctx) {
@@ -12512,10 +12431,6 @@ LinearBlurFilter.fragmentShaderSource = `
         }
     }
 `;
-
-/**
- * Copyright Metrological, 2017;
- */
 
 class FastBlurView extends View {
 
@@ -12823,10 +12738,6 @@ class FastBlurOutputShader extends Shader {
         gl.activeTexture(gl.TEXTURE0);
     }
 
-    isMergable(shader) {
-        return super.isMergable(shader) && (shader._otherTextureSource === this._otherTextureSource);
-    }
-
 }
 
 FastBlurOutputShader.fragmentShaderSource = `
@@ -12846,10 +12757,6 @@ FastBlurOutputShader.fragmentShaderSource = `
         }
     }
 `;
-
-/**
- * Copyright Metrological, 2017
- */
 
 class SmoothScaleView extends View {
 
@@ -13049,13 +12956,13 @@ class DitheringShader extends Shader {
 
     enableAttribs() {
         super.enableAttribs();
-        let gl = this.ctx.gl;
+        let gl = this.gl;
         gl.enableVertexAttribArray(this._attrib("aNoiseTextureCoord"));
     }
 
     disableAttribs() {
         super.disableAttribs();
-        let gl = this.ctx.gl;
+        let gl = this.gl;
         gl.disableVertexAttribArray(this._attrib("aNoiseTextureCoord"));
     }
 
@@ -13382,10 +13289,6 @@ PixelateShader.fragmentShaderSource = `
         gl_FragColor = texture2D(uSampler, coord) * vColor;
     }
 `;
-
-/**
- * Copyright Metrological, 2017;
- */
 
 class InversionShader extends Shader {
 }
@@ -13882,10 +13785,6 @@ RadialFilterShader.fragmentShaderSource = `
 `;
 
 /**
- * Copyright Metrological, 2017
- */
-
-/**
  * @see https://github.com/mattdesl/glsl-fxaa
  */
 class FxaaFilter extends Filter {
@@ -13999,10 +13898,6 @@ FxaaFilter.fragmentShaderSource = `
     
 `;
 
-/**
- * Copyright Metrological, 2017
- */
-
 class InversionFilter extends Filter {
 }
 
@@ -14018,10 +13913,6 @@ InversionFilter.fragmentShaderSource = `
         gl_FragColor = color;
     }
 `;
-
-/**
- * Copyright Metrological, 2017;
- */
 
 /**
  * @see https://github.com/Jam3/glsl-fast-gaussian-blur
@@ -14094,7 +13985,7 @@ class BlurFilter extends Filter {
 class GrayscaleFilter extends Filter {
     constructor(context) {
         super(context);
-        this._amount = 0;
+        this._amount = 1;
     }
 
     set amount(v) {

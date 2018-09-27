@@ -332,7 +332,7 @@ export default class View {
             this.__core.shader.addView(this.__core);
         }
 
-        if (this._texturizer) {
+        if (this._hasTexturizer()) {
             this.texturizer.filters.forEach(filter => filter.addView(this.__core));
         }
 

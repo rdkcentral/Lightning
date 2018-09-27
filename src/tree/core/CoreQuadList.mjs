@@ -95,8 +95,8 @@ export default class CoreQuadList {
         for (let i = 1; i <= this.length; i++) {
             let str = 'entry ' + i + ': ';
             for (let j = 0; j < 4; j++) {
-                let b = i * 16 + j * 4;
-                str += floats[b] + ',' + floats[b+1] + ':' + uints[b+2].toString(16) + '[' + uints[b+3].toString(16) + '] ';
+                let b = i * 20 + j * 4;
+                str += floats[b] + ',' + floats[b+1] + ':' + floats[b+2] + ',' + floats[b+3] + '[' + uints[b+4].toString(16) + '] ';
             }
             lines.push(str);
         }
