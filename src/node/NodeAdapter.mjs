@@ -1,6 +1,6 @@
 import gles2 from "wpe-webgl";
 import fs from "fs";
-import Canvas from "canvas";
+import canvas from "canvas";
 import http from "http";
 import https from "https";
 
@@ -84,7 +84,7 @@ export default class NodeAdapter {
     }
     
     parseImage(data, cb) {
-        let img = new Canvas.Image();
+        let img = new canvas.Image();
         img.src = data;
         let buf = img.rawData;
         cb(null, {source: buf, w: img.width, h: img.height, premultiplyAlpha: false, flipBlueRed: true});
@@ -121,7 +121,7 @@ export default class NodeAdapter {
 
     getDrawingCanvas() {
         // We can't reuse this canvas because textures may load async.
-        return new Canvas(0, 0);
+        return new canvas.Canvas(0, 0);
     }
 
     nextFrame(changes) {
