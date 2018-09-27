@@ -1,6 +1,3 @@
-/**
- * Copyright Metrological, 2017
- */
 export default class StageUtils {
 
     static mergeNumbers(v1, v2, p) {

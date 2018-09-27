@@ -1,6 +1,3 @@
-/**
- * Copyright Metrological, 2017
- */
 import View from "../../tree/View.mjs";
 
 export default class SmoothScaleView extends View {

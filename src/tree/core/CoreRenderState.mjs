@@ -1,8 +1,5 @@
 import StageUtils from "../../tree/StageUtils.mjs";
 
-/**
- * Copyright Metrological, 2017;
- */
 
 export default class CoreRenderState {
 

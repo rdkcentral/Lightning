@@ -1,6 +1,3 @@
-/**
- * Copyright Metrological, 2017;
- */
 export default class Base {
 
     static defaultSetter(obj, name, value) {

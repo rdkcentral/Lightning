@@ -1,9 +1,6 @@
 import Utils from "../tree/Utils.mjs";
 import StageUtils from "../tree/StageUtils.mjs";
 
-/**
- * Copyright Metrological, 2017
- */
 export default class AnimationActionItems {
     
     constructor(action) {

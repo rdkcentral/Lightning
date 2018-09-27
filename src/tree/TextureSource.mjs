@@ -1,6 +1,3 @@
-/**
- * Copyright Metrological, 2017
- */
 
 export default class TextureSource {
 

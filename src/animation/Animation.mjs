@@ -1,7 +1,3 @@
-/**
- * Copyright Metrological, 2017
- */
-
 import EventEmitter from "../EventEmitter.mjs";
 import AnimationSettings from "./AnimationSettings.mjs";
 

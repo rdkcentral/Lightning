@@ -1,6 +1,3 @@
-/**
- * Copyright Metrological, 2017;
- */
 
 import ShaderProgram from "./ShaderProgram.mjs";
 

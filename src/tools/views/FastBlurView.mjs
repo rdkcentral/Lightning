@@ -1,6 +1,3 @@
-/**
- * Copyright Metrological, 2017;
- */
 import View from "../../tree/View.mjs";
 import LinearBlurFilter from "../filters/LinearBlurFilter.mjs";
 import Shader from "../../tree/Shader.mjs";

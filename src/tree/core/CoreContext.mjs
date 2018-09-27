@@ -1,6 +1,3 @@
-/**
- * Copyright Metrological, 2017;
- */
 
 export default class CoreContext {
 
@@ -140,7 +137,7 @@ export default class CoreContext {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-        sourceTexture.params = {}
+        sourceTexture.params = {};
         sourceTexture.params[gl.TEXTURE_MAG_FILTER] = gl.LINEAR;
         sourceTexture.params[gl.TEXTURE_MIN_FILTER] = gl.LINEAR;
         sourceTexture.params[gl.TEXTURE_WRAP_S] = gl.CLAMP_TO_EDGE;

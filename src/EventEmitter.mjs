@@ -2,8 +2,6 @@
  * This is a partial (and more efficient) implementation of the event emitter.
  * It attempts to maintain a one-to-one mapping between events and listeners, skipping an array lookup.
  * Only if there are multiple listeners, they are combined in an array.
- *
- * Copyright Metrological, 2017;
  */
 export default class EventEmitter {
 

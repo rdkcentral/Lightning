@@ -1,6 +1,3 @@
-/**
- * Copyright Metrological, 2017;
- */
 
 import Filter from "../../tree/Filter.mjs";
 

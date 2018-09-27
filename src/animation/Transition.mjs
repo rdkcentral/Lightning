@@ -1,6 +1,3 @@
-/**
- * Copyright Metrological, 2017;
- */
 import EventEmitter from "../EventEmitter.mjs";
 
 export default class Transition extends EventEmitter {
