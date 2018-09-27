@@ -15,7 +15,7 @@ class BasicUsageExample extends Application {
     }
 }
 
-const options = {stage: {w: 900, h: 900, glClearColor: 0xFF000000}}
+const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000}}
 if (Utils.isNode) {
     options.stage.window = {title: "Border example", fullscreen: false};
 }

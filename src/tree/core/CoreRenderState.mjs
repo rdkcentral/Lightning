@@ -107,31 +107,61 @@ export default class CoreRenderState {
             this._check = false;
         }
 
-        let glTexture = this._overrideQuadTexture;
-        if (!glTexture) {
-            glTexture = viewCore._displayedTextureSource.glTexture;
+        let nativeTexture = this._overrideQuadTexture;
+        if (!nativeTexture) {
+            nativeTexture = viewCore._displayedTextureSource.nativeTexture;
         }
 
         let offset = this.length * 64 + 64 // Skip the identity filter quad.
 
         if (this._renderTextureInfo) {
-            if (this._shader === this.defaultShader && this._renderTextureInfo.empty && (this._renderTextureInfo.w === glTexture.w && this._renderTextureInfo.h === glTexture.h)) {
+            if (this._shader === this.defaultShader && this._renderTextureInfo.empty) {
                 // The texture might be reusable under some conditions. We will check them in ViewCore.renderer.
-                this._renderTextureInfo.glTexture = glTexture;
+                this._renderTextureInfo.nativeTexture = nativeTexture;
                 this._renderTextureInfo.offset = offset;
             } else {
                 // It is not possible to reuse another texture when there is more than one quad.
-                this._renderTextureInfo.glTexture = null;
+                this._renderTextureInfo.nativeTexture = null;
             }
             this._renderTextureInfo.empty = false;
         }
 
-        this.quads.quadTextures.push(glTexture);
+        this.quads.quadTextures.push(nativeTexture);
         this.quads.quadViews.push(viewCore);
 
         this._quadOperation.length++;
 
         return offset;
+    }
+
+    finishedRenderTexture() {
+        if (this._renderTextureInfo.nativeTexture) {
+            // There was only one texture drawn in this render texture.
+            // Check if we can reuse it (it should exactly span this render texture).
+            let floats = this.quads.floats;
+            let uints = this.quads.uints;
+            let offset = this._renderTextureInfo.offset / 4;
+            let reuse = ((floats[offset] === 0) &&
+            (floats[offset + 1] === 0) &&
+            (uints[offset + 2] === 0x00000000) &&
+            (uints[offset + 3] === 0xFFFFFFFF) &&
+            (floats[offset + 4] === this._renderTextureInfo.w) &&
+            (floats[offset + 5] === 0) &&
+            (uints[offset + 6] === 0x0000FFFF) &&
+            (uints[offset + 7] === 0xFFFFFFFF) &&
+            (floats[offset + 8] === this._renderTextureInfo.w) &&
+            (floats[offset + 9] === this._renderTextureInfo.h) &&
+            (uints[offset + 10] === 0xFFFFFFFF) &&
+            (uints[offset + 11] === 0xFFFFFFFF) &&
+            (floats[offset + 12] === 0) &&
+            (floats[offset + 13] === this._renderTextureInfo.h) &&
+            (uints[offset + 14] === 0xFFFF0000) &&
+            (uints[offset + 15] === 0xFFFFFFFF));
+            if (!reuse) {
+                // We'll have to render-to-texture.
+                this._renderTextureInfo.nativeTexture = null;
+            }
+        }
     }
 
     _hasChanges() {

@@ -44,7 +44,7 @@ export default class TextureSource {
         this.w = 0;
         this.h = 0;
 
-        this.glTexture = null;
+        this._nativeTexture = null;
 
         /**
          * If true, then this.texture source is never freed from memory during garbage collection.
@@ -156,7 +156,7 @@ export default class TextureSource {
     }
 
     isLoaded() {
-        return !!this.glTexture;
+        return !!this._nativeTexture;
     }
 
     isLoading() {
@@ -172,11 +172,11 @@ export default class TextureSource {
 
     load() {
         if (this.isResultTexture) {
-            // Core texture source (View resultGlTexture), for which the loading is managed by the core.
+            // View result texture source, for which the loading is managed by the core.
             return;
         }
 
-        if (!this.glTexture && !this.isLoading()) {
+        if (!this._nativeTexture && !this.isLoading()) {
             this.loadingSince = (new Date()).getTime();
             this._cancelCb = this.loader((err, options) => {
                 // Clear callback to avoid memory leaks.
@@ -210,9 +210,9 @@ export default class TextureSource {
 
         this.permanent = !!options.permanent;
 
-        if ((Utils.isNode ? source.constructor.name === "WebGLTexture" : source instanceof WebGLTexture)) {
+        if (this._isNativeTexture(source)) {
             // Texture managed by caller.
-            this.glTexture = source;
+            this._nativeTexture = source;
 
             // Used by CoreRenderState for optimizations.
             this.w = source.w;
@@ -221,31 +221,7 @@ export default class TextureSource {
             // WebGLTexture objects are by default;
             this.permanent = options.hasOwnProperty('permanent') ? options.permanent : true;
         } else {
-            var format = {
-                premultiplyAlpha: true,
-                hasAlpha: true
-            };
-
-            if (options && options.hasOwnProperty('premultiplyAlpha')) {
-                format.premultiplyAlpha = options.premultiplyAlpha;
-            }
-
-            if (options && options.hasOwnProperty('flipBlueRed')) {
-                format.flipBlueRed = options.flipBlueRed;
-            }
-
-            if (options && options.hasOwnProperty('hasAlpha')) {
-                format.hasAlpha = options.hasAlpha;
-            }
-
-            if (!format.hasAlpha) {
-                format.premultiplyAlpha = false;
-            }
-
-            format.texParams = options.texParams || {}
-            format.texOptions = options.texOptions || {}
-
-            this.manager.uploadTextureSource(this, source, format);
+            this.manager.uploadTextureSource(this, options);
         }
 
         // Must be cleared when reload is succesful.
@@ -267,12 +243,12 @@ export default class TextureSource {
     }
     
     forceRenderUpdate() {
-        // Userland should call this method after changing the glTexture manually outside of the framework
+        // Userland should call this method after changing the nativeTexture manually outside of the framework
         //  (using tex[Sub]Image2d for example).
 
-        if (this.glTexture) {
+        if (this._nativeTexture) {
             // Change 'update' flag. This is currently not used by the framework but is handy in userland.
-            this.glTexture.update = this.stage.frameCounter;
+            this._nativeTexture.update = this.stage.frameCounter;
         }
 
         this.forEachActiveView(function(view) {
@@ -287,21 +263,25 @@ export default class TextureSource {
         });
     }
 
+    get nativeTexture() {
+        return this._nativeTexture;
+    }
+
     /**
      * Used for result textures.
      */
-    replaceGlTexture(glTexture, w, h) {
-        let prevGlTexture = this.glTexture;
+    replaceNativeTexture(newNativeTexture, w, h) {
+        let prevNativeTexture = this._nativeTexture;
         // Loaded by core.
-        this.glTexture = glTexture;
+        this._nativeTexture = newNativeTexture;
         this.w = w;
         this.h = h;
 
-        if (!prevGlTexture && this.glTexture) {
+        if (!prevNativeTexture && this._nativeTexture) {
             this.forEachActiveView(view => view.onTextureSourceLoaded());
         }
 
-        if (!this.glTexture) {
+        if (!this._nativeTexture) {
             this.forEachActiveView(view => view._setDisplayedTexture(null));
         }
 
@@ -319,6 +299,10 @@ export default class TextureSource {
 
     free() {
         this.manager.freeTextureSource(this);
+    }
+
+    _isNativeTexture(source) {
+        return ((Utils.isNode ? source.constructor.name === "WebGLTexture" : source instanceof WebGLTexture));
     }
 
 }

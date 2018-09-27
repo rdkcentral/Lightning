@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <script src="../../devtools/lightning-inspect.js"></script>
+</head>
+<body>
+    <canvas width="900" height="900" id="canvas"></canvas>
+
+    <script type="module">
+        import lng from '../../src/lightning-web.mjs'
+        attachInspector(lng)
+
+        const canvas = document.getElementById('canvas')
+        let gl = canvas.getContext('webgl')
+
+        window.start = function() {
+
+            class AppExample extends lng.Application {
+                static _template() {
+                    return {
+                        Blur: {type: lng.views.FastBlurView, amount: 2, w: 900, h: 900, content: {
+                            Texture: {
+                                src: "../rockies.jpeg", w: 899, h: 900
+                            }/*,
+                            Hello: {
+                                text: {text: "Hello world", fontSize: 100}
+                            }*/
+                        }}
+                    }
+                }
+            }
+            const options = {stage: {clearColor: 0xFF000000, canvas: canvas, context: gl}}
+            const app = new AppExample(options);
+
+            const tx = new lng.textures.ImageTexture(app.stage)
+            tx.src = "../rockies.jpeg"
+            tx.load()
+
+            setTimeout(function() {
+                app.tag("Blur").content.tag("Texture").w = 900
+            }, 2000)
+        }
+
+
+        setTimeout(start, 400);
+
+    </script>
+</body>
+</html>

@@ -67,20 +67,20 @@ export default class CoreQuadList {
     }
 
     getTextureWidth(index) {
-        let glTexture = this.quadTextures[index];
-        if (glTexture.w) {
+        let nativeTexture = this.quadTextures[index];
+        if (nativeTexture.w) {
             // Render texture;
-            return glTexture.w;
+            return nativeTexture.w;
         } else {
             return this.quadViews[index]._displayedTextureSource.w;
         }
     }
 
     getTextureHeight(index) {
-        let glTexture = this.quadTextures[index];
-        if (glTexture.h) {
+        let nativeTexture = this.quadTextures[index];
+        if (nativeTexture.h) {
             // Render texture;
-            return glTexture.h;
+            return nativeTexture.h;
         } else {
             return this.quadViews[index]._displayedTextureSource.h;
         }

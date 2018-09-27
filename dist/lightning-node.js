@@ -4,7 +4,7 @@ function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'defau
 
 var gles2 = _interopDefault(require('wpe-webgl'));
 var fs = _interopDefault(require('fs'));
-var Canvas = _interopDefault(require('canvas'));
+var canvas = _interopDefault(require('canvas'));
 var http = _interopDefault(require('http'));
 var https = _interopDefault(require('https'));
 
@@ -652,7 +652,7 @@ class TextureSource {
         this.w = 0;
         this.h = 0;
 
-        this.glTexture = null;
+        this._nativeTexture = null;
 
         /**
          * If true, then this.texture source is never freed from memory during garbage collection.
@@ -764,7 +764,7 @@ class TextureSource {
     }
 
     isLoaded() {
-        return !!this.glTexture;
+        return !!this._nativeTexture;
     }
 
     isLoading() {
@@ -780,11 +780,11 @@ class TextureSource {
 
     load() {
         if (this.isResultTexture) {
-            // Core texture source (View resultGlTexture), for which the loading is managed by the core.
+            // View result texture source, for which the loading is managed by the core.
             return;
         }
 
-        if (!this.glTexture && !this.isLoading()) {
+        if (!this._nativeTexture && !this.isLoading()) {
             this.loadingSince = (new Date()).getTime();
             this._cancelCb = this.loader((err, options) => {
                 // Clear callback to avoid memory leaks.
@@ -818,9 +818,9 @@ class TextureSource {
 
         this.permanent = !!options.permanent;
 
-        if ((Utils.isNode ? source.constructor.name === "WebGLTexture" : source instanceof WebGLTexture)) {
+        if (this._isNativeTexture(source)) {
             // Texture managed by caller.
-            this.glTexture = source;
+            this._nativeTexture = source;
 
             // Used by CoreRenderState for optimizations.
             this.w = source.w;
@@ -829,31 +829,7 @@ class TextureSource {
             // WebGLTexture objects are by default;
             this.permanent = options.hasOwnProperty('permanent') ? options.permanent : true;
         } else {
-            var format = {
-                premultiplyAlpha: true,
-                hasAlpha: true
-            };
-
-            if (options && options.hasOwnProperty('premultiplyAlpha')) {
-                format.premultiplyAlpha = options.premultiplyAlpha;
-            }
-
-            if (options && options.hasOwnProperty('flipBlueRed')) {
-                format.flipBlueRed = options.flipBlueRed;
-            }
-
-            if (options && options.hasOwnProperty('hasAlpha')) {
-                format.hasAlpha = options.hasAlpha;
-            }
-
-            if (!format.hasAlpha) {
-                format.premultiplyAlpha = false;
-            }
-
-            format.texParams = options.texParams || {};
-            format.texOptions = options.texOptions || {};
-
-            this.manager.uploadTextureSource(this, source, format);
+            this.manager.uploadTextureSource(this, options);
         }
 
         // Must be cleared when reload is succesful.
@@ -875,12 +851,12 @@ class TextureSource {
     }
     
     forceRenderUpdate() {
-        // Userland should call this method after changing the glTexture manually outside of the framework
+        // Userland should call this method after changing the nativeTexture manually outside of the framework
         //  (using tex[Sub]Image2d for example).
 
-        if (this.glTexture) {
+        if (this._nativeTexture) {
             // Change 'update' flag. This is currently not used by the framework but is handy in userland.
-            this.glTexture.update = this.stage.frameCounter;
+            this._nativeTexture.update = this.stage.frameCounter;
         }
 
         this.forEachActiveView(function(view) {
@@ -895,21 +871,25 @@ class TextureSource {
         });
     }
 
+    get nativeTexture() {
+        return this._nativeTexture;
+    }
+
     /**
      * Used for result textures.
      */
-    replaceGlTexture(glTexture, w, h) {
-        let prevGlTexture = this.glTexture;
+    replaceNativeTexture(newNativeTexture, w, h) {
+        let prevNativeTexture = this._nativeTexture;
         // Loaded by core.
-        this.glTexture = glTexture;
+        this._nativeTexture = newNativeTexture;
         this.w = w;
         this.h = h;
 
-        if (!prevGlTexture && this.glTexture) {
+        if (!prevNativeTexture && this._nativeTexture) {
             this.forEachActiveView(view => view.onTextureSourceLoaded());
         }
 
-        if (!this.glTexture) {
+        if (!this._nativeTexture) {
             this.forEachActiveView(view => view._setDisplayedTexture(null));
         }
 
@@ -927,6 +907,10 @@ class TextureSource {
 
     free() {
         this.manager.freeTextureSource(this);
+    }
+
+    _isNativeTexture(source) {
+        return ((Utils.isNode ? source.constructor.name === "WebGLTexture" : source instanceof WebGLTexture));
     }
 
 }
@@ -1074,10 +1058,10 @@ class ViewTexturizer {
     updateResultTexture() {
         let resultTexture = this.getResultTexture();
         if (this._resultTextureSource) {
-            if (this._resultTextureSource.glTexture !== resultTexture) {
+            if (this._resultTextureSource.nativeTexture !== resultTexture) {
                 let w = resultTexture ? resultTexture.w : 0;
                 let h = resultTexture ? resultTexture.h : 0;
-                this._resultTextureSource.replaceGlTexture(resultTexture, w, h);
+                this._resultTextureSource.replaceNativeTexture(resultTexture, w, h);
             }
 
             // Texture will be updated: all views using the source need to be updated as well.
@@ -1127,10 +1111,10 @@ class ViewTexturizer {
     }
 
     // Reuses the specified texture as the render texture.
-    reuseTextureAsRenderTexture(glTexture) {
-        if (this._renderTexture !== glTexture) {
+    reuseTextureAsRenderTexture(nativeTexture) {
+        if (this._renderTexture !== nativeTexture) {
             this.releaseRenderTexture();
-            this._renderTexture = glTexture;
+            this._renderTexture = nativeTexture;
             this._renderTextureReused = true;
         }
     }
@@ -2756,7 +2740,7 @@ class ViewCore {
                     prevRenderTextureInfo = renderState.renderTextureInfo;
 
                     renderTextureInfo = {
-                        glTexture: null,
+                        nativeTexture: null,
                         offset: 0,
                         w: this._rw,
                         h: this._rh,
@@ -2809,33 +2793,8 @@ class ViewCore {
             if (this._useRenderToTexture) {
                 let updateResultTexture = false;
                 if (mustRenderChildren) {
-                    // Finish refreshing renderTexture.
-                    if (renderTextureInfo.glTexture) {
-                        // There was only one texture drawn in this render texture.
-                        // Check if we can reuse it (it should exactly span this render texture).
-                        let floats = renderState.quads.floats;
-                        let uints = renderState.quads.uints;
-                        let offset = renderTextureInfo.offset / 4;
-                        let reuse = ((floats[offset] === 0) &&
-                        (floats[offset + 1] === 0) &&
-                        (uints[offset + 2] === 0x00000000) &&
-                        (uints[offset + 3] === 0xFFFFFFFF) &&
-                        (floats[offset + 4] === renderTextureInfo.w) &&
-                        (floats[offset + 5] === 0) &&
-                        (uints[offset + 6] === 0x0000FFFF) &&
-                        (uints[offset + 7] === 0xFFFFFFFF) &&
-                        (floats[offset + 8] === renderTextureInfo.w) &&
-                        (floats[offset + 9] === renderTextureInfo.h) &&
-                        (uints[offset + 10] === 0xFFFFFFFF) &&
-                        (uints[offset + 11] === 0xFFFFFFFF) &&
-                        (floats[offset + 12] === 0) &&
-                        (floats[offset + 13] === renderTextureInfo.h) &&
-                        (uints[offset + 14] === 0xFFFF0000) &&
-                        (uints[offset + 15] === 0xFFFFFFFF));
-                        if (!reuse) {
-                            renderTextureInfo.glTexture = null;
-                        }
-                    }
+                    // Finished refreshing renderTexture.
+                    renderState.finishedRenderTexture();
 
                     // If nothing was rendered, we store a flag in the texturizer and prevent unnecessary
                     //  render-to-texture and filtering.
@@ -2847,9 +2806,9 @@ class ViewCore {
                         // The following cleans up memory and enforces that the result texture is also cleared.
                         this._texturizer.releaseFilterTexture();
                         this._texturizer.releaseRenderTexture();
-                    } else if (renderTextureInfo.glTexture) {
-                        // If glTexture is set, we can reuse that directly instead of creating a new render texture.
-                        this._texturizer.reuseTextureAsRenderTexture(renderTextureInfo.glTexture);
+                    } else if (renderTextureInfo.nativeTexture) {
+                        // If nativeTexture is set, we can reuse that directly instead of creating a new render texture.
+                        this._texturizer.reuseTextureAsRenderTexture(renderTextureInfo.nativeTexture);
 
                         renderTextureInfo.ignore = true;
                     } else {
@@ -2858,10 +2817,10 @@ class ViewCore {
                             this._texturizer.releaseRenderTexture();
                         }
                         // Just create the render texture.
-                        renderTextureInfo.glTexture = this._texturizer.getRenderTexture();
+                        renderTextureInfo.nativeTexture = this._texturizer.getRenderTexture();
                     }
 
-                    // Restore the parent's render texture and active scissor.
+                    // Restore the parent's render texture.
                     renderState.setRenderTextureInfo(prevRenderTextureInfo);
 
                     updateResultTexture = true;
@@ -3635,7 +3594,7 @@ class Texture {
                 // Must happen before setDisplayedTexture to ensure sprite map texcoords are used.
                 newSource.addTexture(this);
 
-                if (newSource.glTexture) {
+                if (newSource.isLoaded()) {
                     this.views.forEach(view => {
                         if (view.active) {
                             view._setDisplayedTexture(this);
@@ -3911,9 +3870,9 @@ class ImageTexture extends Texture {
  */
 class TextTextureRenderer {
 
-    constructor(stage, canvas, settings) {
+    constructor(stage, canvas$$1, settings) {
         this._stage = stage;
-        this._canvas = canvas;
+        this._canvas = canvas$$1;
         this._context = this._canvas.getContext('2d');
         this._settings = settings;
     }
@@ -4136,8 +4095,8 @@ class TextTextureRenderer {
             }
         }
 
-        let canvas = this._canvas;
-        return {renderInfo: renderInfo, canvas: canvas};
+        let canvas$$1 = this._canvas;
+        return {renderInfo: renderInfo, canvas: canvas$$1};
     };
 
     /**
@@ -4617,11 +4576,11 @@ class TextTexture extends Texture {
             args.fontFace = this.stage.getOption('defaultFontFace');
         }
 
-        const canvas = this.stage.adapter.getDrawingCanvas();
+        const canvas$$1 = this.stage.adapter.getDrawingCanvas();
         return function(cb) {
-            const renderer = new TextTextureRenderer(this.stage, canvas, args);
+            const renderer = new TextTextureRenderer(this.stage, canvas$$1, args);
             renderer.draw();
-            cb(null, this.stage.adapter.getTextureOptionsForDrawingCanvas(canvas));
+            cb(null, this.stage.adapter.getTextureOptionsForDrawingCanvas(canvas$$1));
         }
     }
 
@@ -7884,8 +7843,6 @@ class TextureManager {
     constructor(stage) {
         this.stage = stage;
 
-        this.gl = this.stage.gl;
-
         /**
          * The currently used amount of texture memory.
          * @type {number}
@@ -7908,8 +7865,7 @@ class TextureManager {
 
     destroy() {
         for (let i = 0, n = this._uploadedTextureSources.length; i < n; i++) {
-            let ts = this._uploadedTextureSources[i];
-            this.gl.deleteTexture(ts.glTexture);
+            this._nativeFreeTextureSource(this._uploadedTextureSources[i]);
         }
     }
 
@@ -7933,49 +7889,19 @@ class TextureManager {
         return textureSource;
     }
 
-    uploadTextureSource(textureSource, source, format) {
-        if (textureSource.glTexture) return;
+    uploadTextureSource(textureSource, options) {
+        if (textureSource.isLoaded()) return;
 
         // Load texture.
-        let gl = this.gl;
-        let sourceTexture = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
+        const nativeTexture = this._nativeUploadTextureSource(textureSource, options);
 
-        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, format.premultiplyAlpha);
+        textureSource._nativeTexture = nativeTexture;
 
-        if (Utils.isNode) {
-            gl.pixelStorei(gl.UNPACK_FLIP_BLUE_RED, !!format.flipBlueRed);
-        }
+        // We attach w and h to native texture (see CoreQuadOperation.getTextureWidth()).
+        nativeTexture.w = textureSource.w;
+        nativeTexture.h = textureSource.h;
 
-        const texParams = format.texParams;
-        if (!texParams[gl.TEXTURE_MAG_FILTER]) texParams[gl.TEXTURE_MAG_FILTER] = gl.LINEAR;
-        if (!texParams[gl.TEXTURE_MIN_FILTER]) texParams[gl.TEXTURE_MIN_FILTER] = gl.LINEAR;
-        if (!texParams[gl.TEXTURE_WRAP_S]) texParams[gl.TEXTURE_WRAP_S] = gl.CLAMP_TO_EDGE;
-        if (!texParams[gl.TEXTURE_WRAP_T]) texParams[gl.TEXTURE_WRAP_T] = gl.CLAMP_TO_EDGE;
-
-        Object.keys(texParams).forEach(key => {
-            const value = texParams[key];
-            gl.texParameteri(gl.TEXTURE_2D, parseInt(key), value);
-        });
-
-        const texOptions = format.texOptions;
-        texOptions.format = texOptions.format || (format.hasAlpha ? gl.RGBA : gl.RGB);
-        texOptions.type = texOptions.type || gl.UNSIGNED_BYTE;
-        texOptions.internalFormat = texOptions.internalFormat || texOptions.format;
-
-        this.stage.adapter.uploadGlTexture(gl, textureSource, source, texOptions);
-
-        // Store texture.
-        textureSource.glTexture = sourceTexture;
-
-        // Used by CoreRenderState for optimizations.
-        sourceTexture.w = textureSource.w;
-        sourceTexture.h = textureSource.h;
-
-        sourceTexture.params = Utils.cloneObjShallow(texParams);
-        sourceTexture.options = Utils.cloneObjShallow(texOptions);
-
-        sourceTexture.update = this.stage.frameCounter;
+        nativeTexture.update = this.stage.frameCounter;
 
         this._usedTextureMemory += textureSource.w * textureSource.h;
 
@@ -8003,10 +7929,9 @@ class TextureManager {
     }
 
     _freeManagedTextureSource(textureSource) {
-        if (textureSource.glTexture) {
+        if (textureSource.isLoaded()) {
             this._usedTextureMemory -= textureSource.w * textureSource.h;
-            this.gl.deleteTexture(textureSource.glTexture);
-            textureSource.glTexture = null;
+            this._nativeFreeTextureSource(textureSource);
         }
 
         // Should be reloaded.
@@ -8027,13 +7952,12 @@ class TextureManager {
         const index = this._uploadedTextureSources.indexOf(textureSource);
         const managed = (index !== -1);
 
-        if (textureSource.glTexture) {
+        if (textureSource.isLoaded()) {
             if (managed) {
                 this._usedTextureMemory -= textureSource.w * textureSource.h;
                 this._uploadedTextureSources.splice(index, 1);
             }
-            this.gl.deleteTexture(textureSource.glTexture);
-            textureSource.glTexture = null;
+            this._nativeFreeTextureSource(textureSource);
         }
 
         // Should be reloaded.
@@ -8044,6 +7968,73 @@ class TextureManager {
             // If it is still referenced somewhere, we'll re-add it later.
             this.textureSourceHashmap.delete(textureSource.lookupId);
         }
+    }
+
+    _nativeUploadTextureSource(textureSource, options) {
+        let gl = this.stage.gl;
+
+        const source = options.source;
+
+        const format = {
+            premultiplyAlpha: true,
+            hasAlpha: true
+        };
+
+        if (options && options.hasOwnProperty('premultiplyAlpha')) {
+            format.premultiplyAlpha = options.premultiplyAlpha;
+        }
+
+        if (options && options.hasOwnProperty('flipBlueRed')) {
+            format.flipBlueRed = options.flipBlueRed;
+        }
+
+        if (options && options.hasOwnProperty('hasAlpha')) {
+            format.hasAlpha = options.hasAlpha;
+        }
+
+        if (!format.hasAlpha) {
+            format.premultiplyAlpha = false;
+        }
+
+        format.texParams = options.texParams || {};
+        format.texOptions = options.texOptions || {};
+
+        let glTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, glTexture);
+
+        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, format.premultiplyAlpha);
+
+        if (Utils.isNode) {
+            gl.pixelStorei(gl.UNPACK_FLIP_BLUE_RED, !!format.flipBlueRed);
+        }
+
+        const texParams = format.texParams;
+        if (!texParams[gl.TEXTURE_MAG_FILTER]) texParams[gl.TEXTURE_MAG_FILTER] = gl.LINEAR;
+        if (!texParams[gl.TEXTURE_MIN_FILTER]) texParams[gl.TEXTURE_MIN_FILTER] = gl.LINEAR;
+        if (!texParams[gl.TEXTURE_WRAP_S]) texParams[gl.TEXTURE_WRAP_S] = gl.CLAMP_TO_EDGE;
+        if (!texParams[gl.TEXTURE_WRAP_T]) texParams[gl.TEXTURE_WRAP_T] = gl.CLAMP_TO_EDGE;
+
+        Object.keys(texParams).forEach(key => {
+            const value = texParams[key];
+            gl.texParameteri(gl.TEXTURE_2D, parseInt(key), value);
+        });
+
+        const texOptions = format.texOptions;
+        texOptions.format = texOptions.format || (format.hasAlpha ? gl.RGBA : gl.RGB);
+        texOptions.type = texOptions.type || gl.UNSIGNED_BYTE;
+        texOptions.internalFormat = texOptions.internalFormat || texOptions.format;
+
+        this.stage.adapter.uploadGlTexture(gl, textureSource, source, texOptions);
+
+        glTexture.params = Utils.cloneObjShallow(texParams);
+        glTexture.options = Utils.cloneObjShallow(texOptions);
+        
+        return glTexture;
+    }
+
+    _nativeFreeTextureSource(textureSource) {
+        this.stage.gl.deleteTexture(textureSource.nativeTexture);
+        textureSource.nativeTexture = null;
     }
 
 }
@@ -8139,7 +8130,7 @@ class CoreQuadOperation {
         if (this.renderTextureInfo === null) {
             return this.ctx.renderExec._projection;
         } else {
-            return this.renderTextureInfo.glTexture.projection;
+            return this.renderTextureInfo.nativeTexture.projection;
         }
     }
 
@@ -8154,8 +8145,6 @@ class CoreQuadList {
     constructor(ctx, byteSize) {
 
         this.ctx = ctx;
-
-        this.textureAtlasGlTexture = this.ctx.textureAtlas ? this.ctx.textureAtlas.texture : null;
 
         this.dataLength = 0;
 
@@ -8216,20 +8205,20 @@ class CoreQuadList {
     }
 
     getTextureWidth(index) {
-        let glTexture = this.quadTextures[index];
-        if (glTexture.w) {
+        let nativeTexture = this.quadTextures[index];
+        if (nativeTexture.w) {
             // Render texture;
-            return glTexture.w;
+            return nativeTexture.w;
         } else {
             return this.quadViews[index]._displayedTextureSource.w;
         }
     }
 
     getTextureHeight(index) {
-        let glTexture = this.quadTextures[index];
-        if (glTexture.h) {
+        let nativeTexture = this.quadTextures[index];
+        if (nativeTexture.h) {
             // Render texture;
-            return glTexture.h;
+            return nativeTexture.h;
         } else {
             return this.quadViews[index]._displayedTextureSource.h;
         }
@@ -8800,31 +8789,61 @@ class CoreRenderState {
             this._check = false;
         }
 
-        let glTexture = this._overrideQuadTexture;
-        if (!glTexture) {
-            glTexture = viewCore._displayedTextureSource.glTexture;
+        let nativeTexture = this._overrideQuadTexture;
+        if (!nativeTexture) {
+            nativeTexture = viewCore._displayedTextureSource.nativeTexture;
         }
 
         let offset = this.length * 64 + 64; // Skip the identity filter quad.
 
         if (this._renderTextureInfo) {
-            if (this._shader === this.defaultShader && this._renderTextureInfo.empty && (this._renderTextureInfo.w === glTexture.w && this._renderTextureInfo.h === glTexture.h)) {
+            if (this._shader === this.defaultShader && this._renderTextureInfo.empty) {
                 // The texture might be reusable under some conditions. We will check them in ViewCore.renderer.
-                this._renderTextureInfo.glTexture = glTexture;
+                this._renderTextureInfo.nativeTexture = nativeTexture;
                 this._renderTextureInfo.offset = offset;
             } else {
                 // It is not possible to reuse another texture when there is more than one quad.
-                this._renderTextureInfo.glTexture = null;
+                this._renderTextureInfo.nativeTexture = null;
             }
             this._renderTextureInfo.empty = false;
         }
 
-        this.quads.quadTextures.push(glTexture);
+        this.quads.quadTextures.push(nativeTexture);
         this.quads.quadViews.push(viewCore);
 
         this._quadOperation.length++;
 
         return offset;
+    }
+
+    finishedRenderTexture() {
+        if (this._renderTextureInfo.nativeTexture) {
+            // There was only one texture drawn in this render texture.
+            // Check if we can reuse it (it should exactly span this render texture).
+            let floats = this.quads.floats;
+            let uints = this.quads.uints;
+            let offset = this._renderTextureInfo.offset / 4;
+            let reuse = ((floats[offset] === 0) &&
+            (floats[offset + 1] === 0) &&
+            (uints[offset + 2] === 0x00000000) &&
+            (uints[offset + 3] === 0xFFFFFFFF) &&
+            (floats[offset + 4] === this._renderTextureInfo.w) &&
+            (floats[offset + 5] === 0) &&
+            (uints[offset + 6] === 0x0000FFFF) &&
+            (uints[offset + 7] === 0xFFFFFFFF) &&
+            (floats[offset + 8] === this._renderTextureInfo.w) &&
+            (floats[offset + 9] === this._renderTextureInfo.h) &&
+            (uints[offset + 10] === 0xFFFFFFFF) &&
+            (uints[offset + 11] === 0xFFFFFFFF) &&
+            (floats[offset + 12] === 0) &&
+            (floats[offset + 13] === this._renderTextureInfo.h) &&
+            (uints[offset + 14] === 0xFFFF0000) &&
+            (uints[offset + 15] === 0xFFFFFFFF));
+            if (!reuse) {
+                // We'll have to render-to-texture.
+                this._renderTextureInfo.nativeTexture = null;
+            }
+        }
     }
 
     _hasChanges() {
@@ -9035,9 +9054,9 @@ class CoreRenderExecutor {
 
         if (op.length || shader.addEmpty()) {
             // Set render texture.
-            let glTexture = op.renderTextureInfo ? op.renderTextureInfo.glTexture : null;
-            if (this._renderTexture !== glTexture) {
-                this._bindRenderTexture(glTexture);
+            let nativeTexture = op.renderTextureInfo ? op.renderTextureInfo.nativeTexture : null;
+            if (this._renderTexture !== nativeTexture) {
+                this._bindRenderTexture(nativeTexture);
             }
 
             if (op.renderTextureInfo && !op.renderTextureInfo.cleared) {
@@ -9108,7 +9127,7 @@ class CoreRenderExecutor {
     _clearRenderTexture() {
         let gl = this.gl;
         if (!this._renderTexture) {
-            let glClearColor = this.ctx.stage.getOption('glClearColor');
+            let glClearColor = this.ctx.stage.getClearColor();
             if (glClearColor) {
                 gl.clearColor(glClearColor[0] * glClearColor[3], glClearColor[1] * glClearColor[3], glClearColor[2] * glClearColor[3], glClearColor[3]);
                 gl.clear(gl.COLOR_BUFFER_BIT);
@@ -9310,12 +9329,12 @@ class CoreContext {
         return sourceTexture;
     }
 
-    _freeRenderTexture(glTexture) {
+    _freeRenderTexture(nativeTexture) {
         let gl = this.stage.gl;
-        gl.deleteFramebuffer(glTexture.framebuffer);
-        gl.deleteTexture(glTexture);
+        gl.deleteFramebuffer(nativeTexture.framebuffer);
+        gl.deleteTexture(nativeTexture);
 
-        this._renderTexturePixels -= glTexture.w * glTexture.h;
+        this._renderTexturePixels -= nativeTexture.w * nativeTexture.h;
     }
 
     forceZSort(viewCore) {
@@ -10346,16 +10365,31 @@ class Stage extends EventEmitter {
             this.adapter.init(this);
         }
 
-        this.gl = this.getOption('context');
-        if (!this.gl) {
-            this.gl = this.adapter.createWebGLContext(this.getOption('w'), this.getOption('h'));
+        this.gl = undefined;
+        this.c2d = undefined;
+
+        const context = this.getOption('context');
+        if (context) {
+            if (context instanceof WebGLRenderingContext) {
+                this.c2d = context;
+            } else {
+                this.gl = context;
+            }
         } else {
-            // Override width and height.
-            this._options.w = this.gl.canvas.width;
-            this._options.h = this.gl.canvas.height;
+            if (!Stage.isWebglSupported() || this.getOption('canvas2d')) {
+                this.c2d = this.adapter.createCanvasContext(this.getOption('w'), this.getOption('h'));
+            } else {
+                this.gl = this.adapter.createWebGLContext(this.getOption('w'), this.getOption('h'));
+            }
         }
 
-        this.setGlClearColor(this._options.glClearColor);
+        this._mode = this.gl ? 0 : 1;
+
+        // Override width and height.
+        this._options.w = this.getCanvas().width;
+        this._options.h = this.getCanvas().height;
+
+        this.setClearColor(this.getOption('clearColor'));
 
         this.frameCounter = 0;
 
@@ -10382,10 +10416,34 @@ class Stage extends EventEmitter {
         this._updateSourceTextures = new Set();
     }
 
+    static isWebglSupported() {
+        if (Utils.isNode) {
+            return true;
+        }
+
+        try {
+            var canvas$$1 = document.createElement('canvas');
+            return !!window.WebGLRenderingContext &&
+                (canvas$$1.getContext('webgl') || canvas$$1.getContext('experimental-webgl'));
+        } catch(e) {
+            return false;
+        }
+    }
+
+    /**
+     * Returns the rendering mode.
+     * @returns {number}
+     *  0: WebGL
+     *  1: Canvas2d
+     */
+    get mode() {
+        return this._mode;
+    }
+
     getOption(name) {
         return this._options[name];
     }
-    
+
     _setOptions(o) {
         this._options = {};
 
@@ -10416,6 +10474,7 @@ class Stage extends EventEmitter {
         opt('useImageWorker', false);
         opt('autostart', true);
         opt('precision', 1);
+        opt('canvas2d', false);
     }
 
     setApplication(app) {
@@ -10455,7 +10514,7 @@ class Stage extends EventEmitter {
     }
 
     getCanvas() {
-        return this.gl.canvas;
+        return this._mode ? this.c2d.canvas : this.gl.canvas;
     }
 
     getRenderPrecision() {
@@ -10532,16 +10591,20 @@ class Stage extends EventEmitter {
         }
     }
 
-    setGlClearColor(clearColor) {
+    setClearColor(clearColor) {
         this.forceRenderUpdate();
         if (clearColor === undefined) {
             // Do not clear.
-            this._options.glClearColor = undefined;
+            this._clearColor = undefined;
         } else if (Array.isArray(clearColor)) {
-            this._options.glClearColor = clearColor;
+            this._clearColor = clearColor;
         } else {
-            this._options.glClearColor = StageUtils.getRgbaComponentsNormalized(clearColor);
+            this._clearColor = StageUtils.getRgbaComponentsNormalized(clearColor);
         }
+    }
+
+    getClearColor() {
+        return this._clearColor;
     }
 
     createView() {
@@ -11290,11 +11353,11 @@ class StaticCanvasTexture extends Texture {
     _getSourceLoader() {
         const f = this._factory;
         return (cb) => {
-            return f((err, canvas) => {
+            return f((err, canvas$$1) => {
                 if (err) {
                     return cb(err);
                 }
-                cb(null, this.stage.adapter.getTextureOptionsForDrawingCanvas(canvas));
+                cb(null, this.stage.adapter.getTextureOptionsForDrawingCanvas(canvas$$1));
             }, this.stage);
         }
     }
@@ -11328,12 +11391,12 @@ class Tools {
         if (fill === undefined) fill = true;
         if (strokeWidth === undefined) strokeWidth = 0;
 
-        let canvas = stage.adapter.getDrawingCanvas();
-        let ctx = canvas.getContext('2d');
+        let canvas$$1 = stage.adapter.getDrawingCanvas();
+        let ctx = canvas$$1.getContext('2d');
         ctx.imageSmoothingEnabled = true;
 
-        canvas.width = w + strokeWidth + 2;
-        canvas.height = h + strokeWidth + 2;
+        canvas$$1.width = w + strokeWidth + 2;
+        canvas$$1.height = h + strokeWidth + 2;
 
         ctx.beginPath();
         let x = 0.5 * strokeWidth + 1, y = 0.5 * strokeWidth + 1;
@@ -11367,7 +11430,7 @@ class Tools {
             ctx.stroke();
         }
 
-        return canvas;
+        return canvas$$1;
     }
 
     static getShadowRect(w, h, radius = 0, blur = 5, margin = blur * 2) {
@@ -11384,12 +11447,12 @@ class Tools {
     }
 
     static createShadowRect(stage, w, h, radius, blur, margin) {
-        let canvas = stage.adapter.getDrawingCanvas();
-        let ctx = canvas.getContext('2d');
+        let canvas$$1 = stage.adapter.getDrawingCanvas();
+        let ctx = canvas$$1.getContext('2d');
         ctx.imageSmoothingEnabled = true;
 
-        canvas.width = w + margin * 2;
-        canvas.height = h + margin * 2;
+        canvas$$1.width = w + margin * 2;
+        canvas$$1.height = h + margin * 2;
 
         // WpeWebKit bug: we experienced problems without this with shadows in noncompositedwebgl mode.
         ctx.globalAlpha = 0.01;
@@ -11417,7 +11480,7 @@ class Tools {
         ctx.arcTo(x, y, x + radius[0], y, radius[0]);
         ctx.fill();
 
-        return canvas;
+        return canvas$$1;
     }
 
     static getSvgTexture(url, w, h) {
@@ -11429,16 +11492,16 @@ class Tools {
     }
 
     static createSvg(cb, stage, url, w, h) {
-        let canvas = stage.adapter.getDrawingCanvas();
-        let ctx = canvas.getContext('2d');
+        let canvas$$1 = stage.adapter.getDrawingCanvas();
+        let ctx = canvas$$1.getContext('2d');
         ctx.imageSmoothingEnabled = true;
 
         let img = new Image();
         img.onload = () => {
-            canvas.width = w;
-            canvas.height = h;
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            cb(null, canvas);
+            canvas$$1.width = w;
+            canvas$$1.height = h;
+            ctx.drawImage(img, 0, 0, canvas$$1.width, canvas$$1.height);
+            cb(null, canvas$$1);
         };
         img.onError = (err) => {
             cb(err);
@@ -11536,12 +11599,12 @@ class HtmlTexture extends Texture {
             const area = HtmlTexture.getPreloadArea();
             area.appendChild(htmlElement);
 
-            html2canvas(htmlElement, {backgroundColor: null, scale: scale}).then(function(canvas) {
+            html2canvas(htmlElement, {backgroundColor: null, scale: scale}).then(function(canvas$$1) {
                 area.removeChild(htmlElement);
-                if (canvas.height === 0) {
+                if (canvas$$1.height === 0) {
                     return cb(new Error("Canvas height is 0"));
                 }
-                cb(null, {source: canvas, width: canvas.width, height: canvas.height});
+                cb(null, {source: canvas$$1, width: canvas$$1.width, height: canvas$$1.height});
             }).catch(e => {
                 console.error(e);
             });
@@ -12758,7 +12821,7 @@ class FastBlurOutputShader extends Shader {
     }
 
     beforeDraw(operation) {
-        let glTexture = this._otherTextureSource ? this._otherTextureSource.glTexture : null;
+        let glTexture = this._otherTextureSource ? this._otherTextureSource.nativeTexture : null;
 
         let gl = this.gl;
         gl.activeTexture(gl.TEXTURE1);
@@ -12974,7 +13037,7 @@ class DitheringShader extends Shader {
         let gl = this.gl;
         gl.vertexAttribPointer(this._attrib("aNoiseTextureCoord"), 2, gl.FLOAT, false, 8, this.getVertexAttribPointerOffset(operation));
 
-        let glTexture = this._noiseTexture.source.glTexture;
+        let glTexture = this._noiseTexture.source.nativeTexture;
         gl.activeTexture(gl.TEXTURE1);
         gl.bindTexture(gl.TEXTURE_2D, glTexture);
         gl.activeTexture(gl.TEXTURE0);
@@ -14154,7 +14217,7 @@ class NodeAdapter {
     }
     
     parseImage(data, cb) {
-        let img = new Canvas.Image();
+        let img = new canvas.Image();
         img.src = data;
         let buf = img.rawData;
         cb(null, {source: buf, w: img.width, h: img.height, premultiplyAlpha: false, flipBlueRed: true});
@@ -14174,11 +14237,11 @@ class NodeAdapter {
         return;
     }
 
-    getTextureOptionsForDrawingCanvas(canvas) {
+    getTextureOptionsForDrawingCanvas(canvas$$1) {
         let options = {};
-        options.source = canvas.toBuffer('raw');
-        options.w = canvas.width;
-        options.h = canvas.height;
+        options.source = canvas$$1.toBuffer('raw');
+        options.w = canvas$$1.width;
+        options.h = canvas$$1.height;
         options.premultiplyAlpha = false;
         options.flipBlueRed = true;
         return options;
@@ -14191,7 +14254,7 @@ class NodeAdapter {
 
     getDrawingCanvas() {
         // We can't reuse this canvas because textures may load async.
-        return new Canvas(0, 0);
+        return new canvas.Canvas(0, 0);
     }
 
     nextFrame(changes) {

@@ -252,7 +252,7 @@ export default class Texture {
                 // Must happen before setDisplayedTexture to ensure sprite map texcoords are used.
                 newSource.addTexture(this);
 
-                if (newSource.glTexture) {
+                if (newSource.isLoaded()) {
                     this.views.forEach(view => {
                         if (view.active) {
                             view._setDisplayedTexture(this);

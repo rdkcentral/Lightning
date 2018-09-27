@@ -126,6 +126,22 @@ export default class WebAdapter {
         return gl;
     }
 
+    createCanvasContext(w, h) {
+        let canvas = this.stage.getOption('canvas') || document.createElement('canvas');
+
+        if (w && h) {
+            canvas.width = w;
+            canvas.height = h;
+        }
+
+        let c2d = canvas.getContext('2d');
+        if (!c2d) {
+            throw new Error('This browser does not support 2d canvas.');
+        }
+
+        return c2d;
+    }
+
     getHrTime() {
         return window.performance ? window.performance.now() : (new Date()).getTime();
     }

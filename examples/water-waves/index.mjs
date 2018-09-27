@@ -9,6 +9,6 @@ class AppExample extends lng.Application {
     }
 }
 
-const options = {stage: {w:1280, h: 720, glClearColor: 0xFF000000}}
+const options = {stage: {w:1280, h: 720, clearColor: 0xFF000000}}
 const app = new AppExample(options);
 

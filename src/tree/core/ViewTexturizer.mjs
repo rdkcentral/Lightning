@@ -137,10 +137,10 @@ export default class ViewTexturizer {
     updateResultTexture() {
         let resultTexture = this.getResultTexture();
         if (this._resultTextureSource) {
-            if (this._resultTextureSource.glTexture !== resultTexture) {
+            if (this._resultTextureSource.nativeTexture !== resultTexture) {
                 let w = resultTexture ? resultTexture.w : 0;
                 let h = resultTexture ? resultTexture.h : 0;
-                this._resultTextureSource.replaceGlTexture(resultTexture, w, h);
+                this._resultTextureSource.replaceNativeTexture(resultTexture, w, h);
             }
 
             // Texture will be updated: all views using the source need to be updated as well.
@@ -190,10 +190,10 @@ export default class ViewTexturizer {
     }
 
     // Reuses the specified texture as the render texture.
-    reuseTextureAsRenderTexture(glTexture) {
-        if (this._renderTexture !== glTexture) {
+    reuseTextureAsRenderTexture(nativeTexture) {
+        if (this._renderTexture !== nativeTexture) {
             this.releaseRenderTexture();
-            this._renderTexture = glTexture;
+            this._renderTexture = nativeTexture;
             this._renderTextureReused = true;
         }
     }

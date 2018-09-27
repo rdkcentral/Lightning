@@ -6,8 +6,6 @@ export default class TextureManager {
     constructor(stage) {
         this.stage = stage;
 
-        this.gl = this.stage.gl;
-
         /**
          * The currently used amount of texture memory.
          * @type {number}
@@ -30,8 +28,7 @@ export default class TextureManager {
 
     destroy() {
         for (let i = 0, n = this._uploadedTextureSources.length; i < n; i++) {
-            let ts = this._uploadedTextureSources[i];
-            this.gl.deleteTexture(ts.glTexture);
+            this._nativeFreeTextureSource(this._uploadedTextureSources[i]);
         }
     }
 
@@ -55,49 +52,19 @@ export default class TextureManager {
         return textureSource;
     }
 
-    uploadTextureSource(textureSource, source, format) {
-        if (textureSource.glTexture) return;
+    uploadTextureSource(textureSource, options) {
+        if (textureSource.isLoaded()) return;
 
         // Load texture.
-        let gl = this.gl;
-        let sourceTexture = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
+        const nativeTexture = this._nativeUploadTextureSource(textureSource, options);
 
-        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, format.premultiplyAlpha);
+        textureSource._nativeTexture = nativeTexture;
 
-        if (Utils.isNode) {
-            gl.pixelStorei(gl.UNPACK_FLIP_BLUE_RED, !!format.flipBlueRed);
-        }
+        // We attach w and h to native texture (see CoreQuadOperation.getTextureWidth()).
+        nativeTexture.w = textureSource.w;
+        nativeTexture.h = textureSource.h;
 
-        const texParams = format.texParams;
-        if (!texParams[gl.TEXTURE_MAG_FILTER]) texParams[gl.TEXTURE_MAG_FILTER] = gl.LINEAR;
-        if (!texParams[gl.TEXTURE_MIN_FILTER]) texParams[gl.TEXTURE_MIN_FILTER] = gl.LINEAR;
-        if (!texParams[gl.TEXTURE_WRAP_S]) texParams[gl.TEXTURE_WRAP_S] = gl.CLAMP_TO_EDGE;
-        if (!texParams[gl.TEXTURE_WRAP_T]) texParams[gl.TEXTURE_WRAP_T] = gl.CLAMP_TO_EDGE;
-
-        Object.keys(texParams).forEach(key => {
-            const value = texParams[key];
-            gl.texParameteri(gl.TEXTURE_2D, parseInt(key), value);
-        });
-
-        const texOptions = format.texOptions;
-        texOptions.format = texOptions.format || (format.hasAlpha ? gl.RGBA : gl.RGB);
-        texOptions.type = texOptions.type || gl.UNSIGNED_BYTE;
-        texOptions.internalFormat = texOptions.internalFormat || texOptions.format;
-
-        this.stage.adapter.uploadGlTexture(gl, textureSource, source, texOptions);
-
-        // Store texture.
-        textureSource.glTexture = sourceTexture;
-
-        // Used by CoreRenderState for optimizations.
-        sourceTexture.w = textureSource.w;
-        sourceTexture.h = textureSource.h;
-
-        sourceTexture.params = Utils.cloneObjShallow(texParams);
-        sourceTexture.options = Utils.cloneObjShallow(texOptions);
-
-        sourceTexture.update = this.stage.frameCounter;
+        nativeTexture.update = this.stage.frameCounter;
 
         this._usedTextureMemory += textureSource.w * textureSource.h;
 
@@ -125,10 +92,9 @@ export default class TextureManager {
     }
 
     _freeManagedTextureSource(textureSource) {
-        if (textureSource.glTexture) {
+        if (textureSource.isLoaded()) {
             this._usedTextureMemory -= textureSource.w * textureSource.h;
-            this.gl.deleteTexture(textureSource.glTexture);
-            textureSource.glTexture = null;
+            this._nativeFreeTextureSource(textureSource);
         }
 
         // Should be reloaded.
@@ -149,13 +115,12 @@ export default class TextureManager {
         const index = this._uploadedTextureSources.indexOf(textureSource);
         const managed = (index !== -1);
 
-        if (textureSource.glTexture) {
+        if (textureSource.isLoaded()) {
             if (managed) {
                 this._usedTextureMemory -= textureSource.w * textureSource.h;
                 this._uploadedTextureSources.splice(index, 1);
             }
-            this.gl.deleteTexture(textureSource.glTexture);
-            textureSource.glTexture = null;
+            this._nativeFreeTextureSource(textureSource);
         }
 
         // Should be reloaded.
@@ -166,6 +131,73 @@ export default class TextureManager {
             // If it is still referenced somewhere, we'll re-add it later.
             this.textureSourceHashmap.delete(textureSource.lookupId);
         }
+    }
+
+    _nativeUploadTextureSource(textureSource, options) {
+        let gl = this.stage.gl;
+
+        const source = options.source;
+
+        const format = {
+            premultiplyAlpha: true,
+            hasAlpha: true
+        };
+
+        if (options && options.hasOwnProperty('premultiplyAlpha')) {
+            format.premultiplyAlpha = options.premultiplyAlpha;
+        }
+
+        if (options && options.hasOwnProperty('flipBlueRed')) {
+            format.flipBlueRed = options.flipBlueRed;
+        }
+
+        if (options && options.hasOwnProperty('hasAlpha')) {
+            format.hasAlpha = options.hasAlpha;
+        }
+
+        if (!format.hasAlpha) {
+            format.premultiplyAlpha = false;
+        }
+
+        format.texParams = options.texParams || {}
+        format.texOptions = options.texOptions || {}
+
+        let glTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, glTexture);
+
+        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, format.premultiplyAlpha);
+
+        if (Utils.isNode) {
+            gl.pixelStorei(gl.UNPACK_FLIP_BLUE_RED, !!format.flipBlueRed);
+        }
+
+        const texParams = format.texParams;
+        if (!texParams[gl.TEXTURE_MAG_FILTER]) texParams[gl.TEXTURE_MAG_FILTER] = gl.LINEAR;
+        if (!texParams[gl.TEXTURE_MIN_FILTER]) texParams[gl.TEXTURE_MIN_FILTER] = gl.LINEAR;
+        if (!texParams[gl.TEXTURE_WRAP_S]) texParams[gl.TEXTURE_WRAP_S] = gl.CLAMP_TO_EDGE;
+        if (!texParams[gl.TEXTURE_WRAP_T]) texParams[gl.TEXTURE_WRAP_T] = gl.CLAMP_TO_EDGE;
+
+        Object.keys(texParams).forEach(key => {
+            const value = texParams[key];
+            gl.texParameteri(gl.TEXTURE_2D, parseInt(key), value);
+        });
+
+        const texOptions = format.texOptions;
+        texOptions.format = texOptions.format || (format.hasAlpha ? gl.RGBA : gl.RGB);
+        texOptions.type = texOptions.type || gl.UNSIGNED_BYTE;
+        texOptions.internalFormat = texOptions.internalFormat || texOptions.format;
+
+        this.stage.adapter.uploadGlTexture(gl, textureSource, source, texOptions);
+
+        glTexture.params = Utils.cloneObjShallow(texParams);
+        glTexture.options = Utils.cloneObjShallow(texOptions);
+        
+        return glTexture;
+    }
+
+    _nativeFreeTextureSource(textureSource) {
+        this.stage.gl.deleteTexture(textureSource.nativeTexture);
+        textureSource.nativeTexture = null;
     }
 
 }

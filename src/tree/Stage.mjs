@@ -4,6 +4,7 @@
  */
 
 import EventEmitter from "../EventEmitter.mjs";
+import Utils from "./Utils.mjs";
 
 export default class Stage extends EventEmitter {
 
@@ -18,16 +19,31 @@ export default class Stage extends EventEmitter {
             this.adapter.init(this);
         }
 
-        this.gl = this.getOption('context');
-        if (!this.gl) {
-            this.gl = this.adapter.createWebGLContext(this.getOption('w'), this.getOption('h'));
+        this.gl = undefined;
+        this.c2d = undefined;
+
+        const context = this.getOption('context');
+        if (context) {
+            if (context instanceof WebGLRenderingContext) {
+                this.c2d = context;
+            } else {
+                this.gl = context;
+            }
         } else {
-            // Override width and height.
-            this._options.w = this.gl.canvas.width;
-            this._options.h = this.gl.canvas.height;
+            if (!Stage.isWebglSupported() || this.getOption('canvas2d')) {
+                this.c2d = this.adapter.createCanvasContext(this.getOption('w'), this.getOption('h'));
+            } else {
+                this.gl = this.adapter.createWebGLContext(this.getOption('w'), this.getOption('h'));
+            }
         }
 
-        this.setGlClearColor(this._options.glClearColor);
+        this._mode = this.gl ? 0 : 1;
+
+        // Override width and height.
+        this._options.w = this.getCanvas().width;
+        this._options.h = this.getCanvas().height;
+
+        this.setClearColor(this.getOption('clearColor'));
 
         this.frameCounter = 0;
 
@@ -54,10 +70,34 @@ export default class Stage extends EventEmitter {
         this._updateSourceTextures = new Set();
     }
 
+    static isWebglSupported() {
+        if (Utils.isNode) {
+            return true;
+        }
+
+        try {
+            var canvas = document.createElement('canvas');
+            return !!window.WebGLRenderingContext &&
+                (canvas.getContext('webgl') || canvas.getContext('experimental-webgl'));
+        } catch(e) {
+            return false;
+        }
+    }
+
+    /**
+     * Returns the rendering mode.
+     * @returns {number}
+     *  0: WebGL
+     *  1: Canvas2d
+     */
+    get mode() {
+        return this._mode;
+    }
+
     getOption(name) {
         return this._options[name];
     }
-    
+
     _setOptions(o) {
         this._options = {};
 
@@ -88,6 +128,7 @@ export default class Stage extends EventEmitter {
         opt('useImageWorker', false);
         opt('autostart', true);
         opt('precision', 1);
+        opt('canvas2d', false);
     }
 
     setApplication(app) {
@@ -127,7 +168,7 @@ export default class Stage extends EventEmitter {
     }
 
     getCanvas() {
-        return this.gl.canvas;
+        return this._mode ? this.c2d.canvas : this.gl.canvas;
     }
 
     getRenderPrecision() {
@@ -204,16 +245,20 @@ export default class Stage extends EventEmitter {
         }
     }
 
-    setGlClearColor(clearColor) {
+    setClearColor(clearColor) {
         this.forceRenderUpdate();
         if (clearColor === undefined) {
             // Do not clear.
-            this._options.glClearColor = undefined;
+            this._clearColor = undefined;
         } else if (Array.isArray(clearColor)) {
-            this._options.glClearColor = clearColor;
+            this._clearColor = clearColor;
         } else {
-            this._options.glClearColor = StageUtils.getRgbaComponentsNormalized(clearColor);
+            this._clearColor = StageUtils.getRgbaComponentsNormalized(clearColor);
         }
+    }
+
+    getClearColor() {
+        return this._clearColor;
     }
 
     createView() {

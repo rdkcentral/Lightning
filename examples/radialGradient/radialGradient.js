@@ -10,6 +10,6 @@ class RadialGradientExample extends lng.Application {
 
 }
 
-const options = {stage: {w: 900, h: 900, glClearColor: 0xFF000000}}
+const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000}}
 const app = new RadialGradientExample(options);
 

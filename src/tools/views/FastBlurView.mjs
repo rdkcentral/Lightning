@@ -303,7 +303,7 @@ class FastBlurOutputShader extends Shader {
     }
 
     beforeDraw(operation) {
-        let glTexture = this._otherTextureSource ? this._otherTextureSource.glTexture : null;
+        let glTexture = this._otherTextureSource ? this._otherTextureSource.nativeTexture : null;
 
         let gl = this.gl;
         gl.activeTexture(gl.TEXTURE1);

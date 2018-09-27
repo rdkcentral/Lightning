@@ -169,12 +169,12 @@ export default class CoreContext {
         return sourceTexture;
     }
 
-    _freeRenderTexture(glTexture) {
+    _freeRenderTexture(nativeTexture) {
         let gl = this.stage.gl;
-        gl.deleteFramebuffer(glTexture.framebuffer);
-        gl.deleteTexture(glTexture);
+        gl.deleteFramebuffer(nativeTexture.framebuffer);
+        gl.deleteTexture(nativeTexture);
 
-        this._renderTexturePixels -= glTexture.w * glTexture.h;
+        this._renderTexturePixels -= nativeTexture.w * nativeTexture.h;
     }
 
     forceZSort(viewCore) {

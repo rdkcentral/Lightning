@@ -132,9 +132,9 @@ export default class CoreRenderExecutor {
 
         if (op.length || shader.addEmpty()) {
             // Set render texture.
-            let glTexture = op.renderTextureInfo ? op.renderTextureInfo.glTexture : null;
-            if (this._renderTexture !== glTexture) {
-                this._bindRenderTexture(glTexture);
+            let nativeTexture = op.renderTextureInfo ? op.renderTextureInfo.nativeTexture : null;
+            if (this._renderTexture !== nativeTexture) {
+                this._bindRenderTexture(nativeTexture);
             }
 
             if (op.renderTextureInfo && !op.renderTextureInfo.cleared) {
@@ -205,7 +205,7 @@ export default class CoreRenderExecutor {
     _clearRenderTexture() {
         let gl = this.gl;
         if (!this._renderTexture) {
-            let glClearColor = this.ctx.stage.getOption('glClearColor');
+            let glClearColor = this.ctx.stage.getClearColor();
             if (glClearColor) {
                 gl.clearColor(glClearColor[0] * glClearColor[3], glClearColor[1] * glClearColor[3], glClearColor[2] * glClearColor[3], glClearColor[3]);
                 gl.clear(gl.COLOR_BUFFER_BIT);

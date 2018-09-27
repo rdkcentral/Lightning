@@ -89,7 +89,7 @@ export default class CoreQuadOperation {
         if (this.renderTextureInfo === null) {
             return this.ctx.renderExec._projection;
         } else {
-            return this.renderTextureInfo.glTexture.projection;
+            return this.renderTextureInfo.nativeTexture.projection;
         }
     }
 

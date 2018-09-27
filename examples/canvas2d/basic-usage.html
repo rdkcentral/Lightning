@@ -15,34 +15,29 @@
             class BasicUsageExample extends wuf.Application {
                 static _template() {
                     return {
-                        Primary: {
-                            Main: {rect: true, renderToTexture: true, w: 900, h: 900, colorLeft: 0xFF000000, colorRight: 0xFF0000FF
-                            },
-                            App: {color: 0xAAFFFFFF, rect: true, w: 100, h: 100}
-                        },
-                        Overlay: {}
+                        Image: {src: "../rockies.jpeg"}
                     }
                 }
 
                 static _states() {
                     return {
                         "_handleLeft": function() {
-                            this.tag('Primary').setSmooth('x', this.tag('Primary').getSmooth('x') - 100)
+                            this.tag('Image').setSmooth('x', this.tag('Image').getSmooth('x') - 100)
                         },
                         "_handleRight": function() {
-                            this.tag('Primary').setSmooth('x', this.tag('Primary').getSmooth('x') + 100)
+                            this.tag('Image').setSmooth('x', this.tag('Image').getSmooth('x') + 100)
                         },
                         "_handleUp": function() {
-                            this.tag('Primary').setSmooth('y', this.tag('Primary').getSmooth('y') - 100)
+                            this.tag('Image').setSmooth('y', this.tag('Image').getSmooth('y') - 100)
                         },
                         "_handleDown": function() {
-                            this.tag('Primary').setSmooth('y', this.tag('Primary').getSmooth('y') + 100)
+                            this.tag('Image').setSmooth('y', this.tag('Image').getSmooth('y') + 100)
                         }
                     }
                 }
             }
 
-            const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000}, debug: true}
+            const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000, canvas2d: true}, debug: true}
             options.keys = {
                 38: "Up",
                 40: "Down",
