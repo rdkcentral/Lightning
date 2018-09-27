@@ -80,11 +80,6 @@ export default class ViewCore {
 
         this._colorUl = this._colorUr = this._colorBl = this._colorBr = 0xFFFFFFFF;
 
-        this._txCoordsUl = 0x00000000;
-        this._txCoordsUr = 0x0000FFFF;
-        this._txCoordsBr = 0xFFFFFFFF;
-        this._txCoordsBl = 0xFFFF0000;
-
         this._x = 0;
         this._y = 0;
         this._w = 0;
@@ -591,24 +586,13 @@ export default class ViewCore {
         }
     };
 
-    setTextureCoords(ulx, uly, brx, bry, rotate) {
+    setTextureCoords(ulx, uly, brx, bry) {
         this.setHasRenderUpdates(3);
 
         this._ulx = ulx;
         this._uly = uly;
         this._brx = brx;
         this._bry = bry;
-
-        this._txCoordsUl = ((ulx * 65535 + 0.5) | 0) + ((uly * 65535 + 0.5) | 0) * 65536;
-        this._txCoordsBr = ((brx * 65535 + 0.5) | 0) + ((bry * 65535 + 0.5) | 0) * 65536;
-
-        if (rotate) {
-            this._txCoordsUr = ((ulx * 65535 + 0.5) | 0) + ((bry * 65535 + 0.5) | 0) * 65536;
-            this._txCoordsBl = ((brx * 65535 + 0.5) | 0) + ((uly * 65535 + 0.5) | 0) * 65536;
-        } else {
-            this._txCoordsUr = ((brx * 65535 + 0.5) | 0) + ((uly * 65535 + 0.5) | 0) * 65536;
-            this._txCoordsBl = ((ulx * 65535 + 0.5) | 0) + ((bry * 65535 + 0.5) | 0) * 65536;
-        }
     };
 
     get displayedTextureSource() {
@@ -1067,11 +1051,7 @@ export default class ViewCore {
     }
 
     _stashTexCoords() {
-        this._stashedTexCoords = [this._txCoordsUl, this._txCoordsUr, this._txCoordsBr, this._txCoordsBl, this._ulx, this._uly, this._brx, this._bry];
-        this._txCoordsUl = 0x00000000;
-        this._txCoordsUr = 0x0000FFFF;
-        this._txCoordsBr = 0xFFFFFFFF;
-        this._txCoordsBl = 0xFFFF0000;
+        this._stashedTexCoords = [this._ulx, this._uly, this._brx, this._bry];
         this._ulx = 0;
         this._uly = 0;
         this._brx = 1;
@@ -1079,14 +1059,10 @@ export default class ViewCore {
     }
 
     _unstashTexCoords() {
-        this._txCoordsUl = this._stashedTexCoords[0];
-        this._txCoordsUr = this._stashedTexCoords[1];
-        this._txCoordsBr = this._stashedTexCoords[2];
-        this._txCoordsBl = this._stashedTexCoords[3];
-        this._ulx = this._stashedTexCoords[4];
-        this._uly = this._stashedTexCoords[5];
-        this._brx = this._stashedTexCoords[6];
-        this._bry = this._stashedTexCoords[7];
+        this._ulx = this._stashedTexCoords[0];
+        this._uly = this._stashedTexCoords[1];
+        this._brx = this._stashedTexCoords[2];
+        this._bry = this._stashedTexCoords[3];
         this._stashedTexCoords = null;
     }
 

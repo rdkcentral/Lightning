@@ -19,11 +19,11 @@ export default class Filter extends ShaderBase {
     enableAttribs() {
         // Enables the attribs in the shader program.
         let gl = this.ctx.gl;
-        gl.vertexAttribPointer(this._attrib("aVertexPosition"), 2, gl.FLOAT, false, 16, 0);
+        gl.vertexAttribPointer(this._attrib("aVertexPosition"), 2, gl.FLOAT, false, 20, 0);
         gl.enableVertexAttribArray(this._attrib("aVertexPosition"));
 
         if (this._attrib("aTextureCoord") !== -1) {
-            gl.vertexAttribPointer(this._attrib("aTextureCoord"), 2, gl.UNSIGNED_SHORT, true, 16, 2 * 4);
+            gl.vertexAttribPointer(this._attrib("aTextureCoord"), 2, gl.UNSIGNED_SHORT, true, 20, 2 * 4);
             gl.enableVertexAttribArray(this._attrib("aTextureCoord"));
         }
     }

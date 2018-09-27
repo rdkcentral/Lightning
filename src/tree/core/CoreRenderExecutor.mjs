@@ -20,7 +20,7 @@ export default class CoreRenderExecutor {
         // Create new sharable buffer for params.
         this._attribsBuffer = gl.createBuffer();
 
-        let maxQuads = Math.floor(this.renderState.quads.data.byteLength / 64);
+        let maxQuads = Math.floor(this.renderState.quads.data.byteLength / 80);
 
         // Init webgl arrays.
         let allIndices = new Uint16Array(maxQuads * 6);

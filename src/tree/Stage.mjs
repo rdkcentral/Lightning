@@ -24,10 +24,10 @@ export default class Stage extends EventEmitter {
 
         const context = this.getOption('context');
         if (context) {
-            if (context instanceof WebGLRenderingContext) {
-                this.c2d = context;
-            } else {
+            if (context.useProgram) {
                 this.gl = context;
+            } else {
+                this.c2d = context;
             }
         } else {
             if (!Stage.isWebglSupported() || this.getOption('canvas2d')) {

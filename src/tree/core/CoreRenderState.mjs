@@ -114,7 +114,7 @@ export default class CoreRenderState {
             nativeTexture = viewCore._displayedTextureSource.nativeTexture;
         }
 
-        let offset = this.length * 64 + 64; // Skip the identity filter quad.
+        let offset = this.length * 80 + 80; // Skip the identity filter quad.
 
         if (this._renderTextureInfo) {
             if (this._shader === this.defaultShader && this._renderTextureInfo.empty) {
@@ -146,19 +146,23 @@ export default class CoreRenderState {
         if (r.tb !== 0 || r.tc !== 0) {
             floats[offset++] = r.px;
             floats[offset++] = r.py;
-            uints[offset++] = viewCore._txCoordsUl; // Texture.
+            floats[offset++] = viewCore._ulx;
+            floats[offset++] = viewCore._uly;
             uints[offset++] = mca(viewCore._colorUl, r.alpha);
             floats[offset++] = r.px + viewCore._rw * r.ta;
             floats[offset++] = r.py + viewCore._rw * r.tc;
-            uints[offset++] = viewCore._txCoordsUr;
+            floats[offset++] = viewCore._brx;
+            floats[offset++] = viewCore._uly;
             uints[offset++] = mca(viewCore._colorUr, r.alpha);
             floats[offset++] = r.px + viewCore._rw * r.ta + viewCore._rh * r.tb;
             floats[offset++] = r.py + viewCore._rw * r.tc + viewCore._rh * r.td;
-            uints[offset++] = viewCore._txCoordsBr;
+            floats[offset++] = viewCore._brx;
+            floats[offset++] = viewCore._bry;
             uints[offset++] = mca(viewCore._colorBr, r.alpha);
             floats[offset++] = r.px + viewCore._rh * r.tb;
             floats[offset++] = r.py + viewCore._rh * r.td;
-            uints[offset++] = viewCore._txCoordsBl;
+            floats[offset++] = viewCore._ulx;
+            floats[offset++] = viewCore._bry;
             uints[offset] = mca(viewCore._colorBl, r.alpha);
         } else {
             // Simple.
@@ -167,19 +171,23 @@ export default class CoreRenderState {
 
             floats[offset++] = r.px;
             floats[offset++] = r.py;
-            uints[offset++] = viewCore._txCoordsUl; // Texture.
+            floats[offset++] = viewCore._ulx;
+            floats[offset++] = viewCore._uly;
             uints[offset++] = mca(viewCore._colorUl, r.alpha);
             floats[offset++] = cx;
             floats[offset++] = r.py;
-            uints[offset++] = viewCore._txCoordsUr;
+            floats[offset++] = viewCore._brx;
+            floats[offset++] = viewCore._uly;
             uints[offset++] = mca(viewCore._colorUr, r.alpha);
             floats[offset++] = cx;
             floats[offset++] = cy;
-            uints[offset++] = viewCore._txCoordsBr;
+            floats[offset++] = viewCore._brx;
+            floats[offset++] = viewCore._bry;
             uints[offset++] = mca(viewCore._colorBr, r.alpha);
             floats[offset++] = r.px;
             floats[offset++] = cy;
-            uints[offset++] = viewCore._txCoordsBl;
+            floats[offset++] = viewCore._ulx;
+            floats[offset++] = viewCore._bry;
             uints[offset] = mca(viewCore._colorBl, r.alpha);
         }
     }
@@ -194,20 +202,24 @@ export default class CoreRenderState {
             let offset = this._renderTextureInfo.offset / 4;
             let reuse = ((floats[offset] === 0) &&
             (floats[offset + 1] === 0) &&
-            (uints[offset + 2] === 0x00000000) &&
-            (uints[offset + 3] === 0xFFFFFFFF) &&
-            (floats[offset + 4] === this._renderTextureInfo.w) &&
-            (floats[offset + 5] === 0) &&
-            (uints[offset + 6] === 0x0000FFFF) &&
-            (uints[offset + 7] === 0xFFFFFFFF) &&
-            (floats[offset + 8] === this._renderTextureInfo.w) &&
-            (floats[offset + 9] === this._renderTextureInfo.h) &&
-            (uints[offset + 10] === 0xFFFFFFFF) &&
-            (uints[offset + 11] === 0xFFFFFFFF) &&
-            (floats[offset + 12] === 0) &&
-            (floats[offset + 13] === this._renderTextureInfo.h) &&
-            (uints[offset + 14] === 0xFFFF0000) &&
-            (uints[offset + 15] === 0xFFFFFFFF));
+            (floats[offset + 2] === 0) &&
+            (floats[offset + 3] === 0) &&
+            (uints[offset + 4] === 0xFFFFFFFF) &&
+            (floats[offset + 5] === this._renderTextureInfo.w) &&
+            (floats[offset + 6] === 0) &&
+            (floats[offset + 7] === 1) &&
+            (floats[offset + 8] === 0) &&
+            (uints[offset + 9] === 0xFFFFFFFF) &&
+            (floats[offset + 10] === this._renderTextureInfo.w) &&
+            (floats[offset + 11] === this._renderTextureInfo.h) &&
+            (floats[offset + 12] === 1) &&
+            (floats[offset + 13] === 1) &&
+            (uints[offset + 14] === 0xFFFFFFFF) &&
+            (floats[offset + 15] === 0) &&
+            (floats[offset + 16] === this._renderTextureInfo.h) &&
+            (floats[offset + 17] === 1) &&
+            (floats[offset + 18] === 0) &&
+            (uints[offset + 19] === 0xFFFFFFFF));
             if (!reuse) {
                 // We'll have to render-to-texture.
                 this._renderTextureInfo.nativeTexture = null;
@@ -275,7 +287,7 @@ export default class CoreRenderState {
     }
 
     _setExtraShaderAttribs() {
-        let offset = this.length * 64 + 64;
+        let offset = this.length * 80 + 80;
         for (let i = 0, n = this.quadOperations.length; i < n; i++) {
             this.quadOperations[i].extraAttribsDataByteOffset = offset;
             let extra = this.quadOperations[i].shader.getExtraAttribBytesPerVertex() * 4 * this.quadOperations[i].length;

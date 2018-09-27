@@ -672,7 +672,7 @@ export default class View {
                 ty2 = Math.min(1, ty2);
             }
 
-            this.__core.setTextureCoords(tx1, ty1, tx2, ty2, false);
+            this.__core.setTextureCoords(tx1, ty1, tx2, ty2);
         }
     }
 

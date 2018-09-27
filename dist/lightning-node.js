@@ -1243,11 +1243,6 @@ class ViewCore {
 
         this._colorUl = this._colorUr = this._colorBl = this._colorBr = 0xFFFFFFFF;
 
-        this._txCoordsUl = 0x00000000;
-        this._txCoordsUr = 0x0000FFFF;
-        this._txCoordsBr = 0xFFFFFFFF;
-        this._txCoordsBl = 0xFFFF0000;
-
         this._x = 0;
         this._y = 0;
         this._w = 0;
@@ -1754,24 +1749,13 @@ class ViewCore {
         }
     };
 
-    setTextureCoords(ulx, uly, brx, bry, rotate) {
+    setTextureCoords(ulx, uly, brx, bry) {
         this.setHasRenderUpdates(3);
 
         this._ulx = ulx;
         this._uly = uly;
         this._brx = brx;
         this._bry = bry;
-
-        this._txCoordsUl = ((ulx * 65535 + 0.5) | 0) + ((uly * 65535 + 0.5) | 0) * 65536;
-        this._txCoordsBr = ((brx * 65535 + 0.5) | 0) + ((bry * 65535 + 0.5) | 0) * 65536;
-
-        if (rotate) {
-            this._txCoordsUr = ((ulx * 65535 + 0.5) | 0) + ((bry * 65535 + 0.5) | 0) * 65536;
-            this._txCoordsBl = ((brx * 65535 + 0.5) | 0) + ((uly * 65535 + 0.5) | 0) * 65536;
-        } else {
-            this._txCoordsUr = ((brx * 65535 + 0.5) | 0) + ((uly * 65535 + 0.5) | 0) * 65536;
-            this._txCoordsBl = ((ulx * 65535 + 0.5) | 0) + ((bry * 65535 + 0.5) | 0) * 65536;
-        }
     };
 
     get displayedTextureSource() {
@@ -2227,11 +2211,7 @@ class ViewCore {
     }
 
     _stashTexCoords() {
-        this._stashedTexCoords = [this._txCoordsUl, this._txCoordsUr, this._txCoordsBr, this._txCoordsBl, this._ulx, this._uly, this._brx, this._bry];
-        this._txCoordsUl = 0x00000000;
-        this._txCoordsUr = 0x0000FFFF;
-        this._txCoordsBr = 0xFFFFFFFF;
-        this._txCoordsBl = 0xFFFF0000;
+        this._stashedTexCoords = [this._ulx, this._uly, this._brx, this._bry];
         this._ulx = 0;
         this._uly = 0;
         this._brx = 1;
@@ -2239,14 +2219,10 @@ class ViewCore {
     }
 
     _unstashTexCoords() {
-        this._txCoordsUl = this._stashedTexCoords[0];
-        this._txCoordsUr = this._stashedTexCoords[1];
-        this._txCoordsBr = this._stashedTexCoords[2];
-        this._txCoordsBl = this._stashedTexCoords[3];
-        this._ulx = this._stashedTexCoords[4];
-        this._uly = this._stashedTexCoords[5];
-        this._brx = this._stashedTexCoords[6];
-        this._bry = this._stashedTexCoords[7];
+        this._ulx = this._stashedTexCoords[0];
+        this._uly = this._stashedTexCoords[1];
+        this._brx = this._stashedTexCoords[2];
+        this._bry = this._stashedTexCoords[3];
         this._stashedTexCoords = null;
     }
 
@@ -5963,7 +5939,7 @@ class View {
                 ty2 = Math.min(1, ty2);
             }
 
-            this.__core.setTextureCoords(tx1, ty1, tx2, ty2, false);
+            this.__core.setTextureCoords(tx1, ty1, tx2, ty2);
         }
     }
 
@@ -8112,20 +8088,24 @@ class CoreQuadList {
         let u = this.uints;
         f[0] = -1;
         f[1] = -1;
-        u[2] = 0x00000000;
-        u[3] = 0xFFFFFFFF;
-        f[4] = 1;
-        f[5] = -1;
-        u[6] = 0x0000FFFF;
-        u[7] = 0xFFFFFFFF;
-        f[8] = 1;
-        f[9] = 1;
-        u[10] = 0xFFFFFFFF;
-        u[11] = 0xFFFFFFFF;
-        f[12] = -1;
+        f[2] = 0;
+        f[3] = 0;
+        u[4] = 0xFFFFFFFF;
+        f[5] = 1;
+        f[6] = -1;
+        f[7] = 1;
+        f[8] = 0;
+        u[9] = 0xFFFFFFFF;
+        f[10] = 1;
+        f[11] = 1;
+        f[12] = 1;
         f[13] = 1;
-        u[14] = 0xFFFF0000;
-        u[15] = 0xFFFFFFFF;
+        u[14] = 0xFFFFFFFF;
+        f[15] = -1;
+        f[16] = 1;
+        f[17] = 0;
+        f[18] = 1;
+        u[19] = 0xFFFFFFFF;
     }
 
     get length() {
@@ -8140,7 +8120,7 @@ class CoreQuadList {
 
     getAttribsDataByteOffset(index) {
         // Where this quad can be found in the attribs buffer.
-        return index * 64 + 64;
+        return index * 80 + 80;
     }
 
     getView(index) {
@@ -8498,17 +8478,17 @@ class Shader extends ShaderBase {
     enableAttribs() {
         // Enables the attribs in the shader program.
         let gl = this.ctx.gl;
-        gl.vertexAttribPointer(this._attrib("aVertexPosition"), 2, gl.FLOAT, false, 16, 0);
+        gl.vertexAttribPointer(this._attrib("aVertexPosition"), 2, gl.FLOAT, false, 20, 0);
         gl.enableVertexAttribArray(this._attrib("aVertexPosition"));
 
         if (this._attrib("aTextureCoord") !== -1) {
-            gl.vertexAttribPointer(this._attrib("aTextureCoord"), 2, gl.UNSIGNED_SHORT, true, 16, 2 * 4);
+            gl.vertexAttribPointer(this._attrib("aTextureCoord"), 2, gl.FLOAT, true, 20, 2 * 4);
             gl.enableVertexAttribArray(this._attrib("aTextureCoord"));
         }
 
         if (this._attrib("aColor") !== -1) {
             // Some shaders may ignore the color.
-            gl.vertexAttribPointer(this._attrib("aColor"), 4, gl.UNSIGNED_BYTE, true, 16, 3 * 4);
+            gl.vertexAttribPointer(this._attrib("aColor"), 4, gl.UNSIGNED_BYTE, true, 20, 4 * 4);
             gl.enableVertexAttribArray(this._attrib("aColor"));
         }
     }
@@ -8745,7 +8725,7 @@ class CoreRenderState {
             nativeTexture = viewCore._displayedTextureSource.nativeTexture;
         }
 
-        let offset = this.length * 64 + 64; // Skip the identity filter quad.
+        let offset = this.length * 80 + 80; // Skip the identity filter quad.
 
         if (this._renderTextureInfo) {
             if (this._shader === this.defaultShader && this._renderTextureInfo.empty) {
@@ -8777,19 +8757,23 @@ class CoreRenderState {
         if (r.tb !== 0 || r.tc !== 0) {
             floats[offset++] = r.px;
             floats[offset++] = r.py;
-            uints[offset++] = viewCore._txCoordsUl; // Texture.
+            floats[offset++] = viewCore._ulx;
+            floats[offset++] = viewCore._uly;
             uints[offset++] = mca(viewCore._colorUl, r.alpha);
             floats[offset++] = r.px + viewCore._rw * r.ta;
             floats[offset++] = r.py + viewCore._rw * r.tc;
-            uints[offset++] = viewCore._txCoordsUr;
+            floats[offset++] = viewCore._brx;
+            floats[offset++] = viewCore._uly;
             uints[offset++] = mca(viewCore._colorUr, r.alpha);
             floats[offset++] = r.px + viewCore._rw * r.ta + viewCore._rh * r.tb;
             floats[offset++] = r.py + viewCore._rw * r.tc + viewCore._rh * r.td;
-            uints[offset++] = viewCore._txCoordsBr;
+            floats[offset++] = viewCore._brx;
+            floats[offset++] = viewCore._bry;
             uints[offset++] = mca(viewCore._colorBr, r.alpha);
             floats[offset++] = r.px + viewCore._rh * r.tb;
             floats[offset++] = r.py + viewCore._rh * r.td;
-            uints[offset++] = viewCore._txCoordsBl;
+            floats[offset++] = viewCore._ulx;
+            floats[offset++] = viewCore._bry;
             uints[offset] = mca(viewCore._colorBl, r.alpha);
         } else {
             // Simple.
@@ -8798,19 +8782,23 @@ class CoreRenderState {
 
             floats[offset++] = r.px;
             floats[offset++] = r.py;
-            uints[offset++] = viewCore._txCoordsUl; // Texture.
+            floats[offset++] = viewCore._ulx;
+            floats[offset++] = viewCore._uly;
             uints[offset++] = mca(viewCore._colorUl, r.alpha);
             floats[offset++] = cx;
             floats[offset++] = r.py;
-            uints[offset++] = viewCore._txCoordsUr;
+            floats[offset++] = viewCore._brx;
+            floats[offset++] = viewCore._uly;
             uints[offset++] = mca(viewCore._colorUr, r.alpha);
             floats[offset++] = cx;
             floats[offset++] = cy;
-            uints[offset++] = viewCore._txCoordsBr;
+            floats[offset++] = viewCore._brx;
+            floats[offset++] = viewCore._bry;
             uints[offset++] = mca(viewCore._colorBr, r.alpha);
             floats[offset++] = r.px;
             floats[offset++] = cy;
-            uints[offset++] = viewCore._txCoordsBl;
+            floats[offset++] = viewCore._ulx;
+            floats[offset++] = viewCore._bry;
             uints[offset] = mca(viewCore._colorBl, r.alpha);
         }
     }
@@ -8825,20 +8813,24 @@ class CoreRenderState {
             let offset = this._renderTextureInfo.offset / 4;
             let reuse = ((floats[offset] === 0) &&
             (floats[offset + 1] === 0) &&
-            (uints[offset + 2] === 0x00000000) &&
-            (uints[offset + 3] === 0xFFFFFFFF) &&
-            (floats[offset + 4] === this._renderTextureInfo.w) &&
-            (floats[offset + 5] === 0) &&
-            (uints[offset + 6] === 0x0000FFFF) &&
-            (uints[offset + 7] === 0xFFFFFFFF) &&
-            (floats[offset + 8] === this._renderTextureInfo.w) &&
-            (floats[offset + 9] === this._renderTextureInfo.h) &&
-            (uints[offset + 10] === 0xFFFFFFFF) &&
-            (uints[offset + 11] === 0xFFFFFFFF) &&
-            (floats[offset + 12] === 0) &&
-            (floats[offset + 13] === this._renderTextureInfo.h) &&
-            (uints[offset + 14] === 0xFFFF0000) &&
-            (uints[offset + 15] === 0xFFFFFFFF));
+            (floats[offset + 2] === 0) &&
+            (floats[offset + 3] === 0) &&
+            (uints[offset + 4] === 0xFFFFFFFF) &&
+            (floats[offset + 5] === this._renderTextureInfo.w) &&
+            (floats[offset + 6] === 0) &&
+            (floats[offset + 7] === 1) &&
+            (floats[offset + 8] === 0) &&
+            (uints[offset + 9] === 0xFFFFFFFF) &&
+            (floats[offset + 10] === this._renderTextureInfo.w) &&
+            (floats[offset + 11] === this._renderTextureInfo.h) &&
+            (floats[offset + 12] === 1) &&
+            (floats[offset + 13] === 1) &&
+            (uints[offset + 14] === 0xFFFFFFFF) &&
+            (floats[offset + 15] === 0) &&
+            (floats[offset + 16] === this._renderTextureInfo.h) &&
+            (floats[offset + 17] === 1) &&
+            (floats[offset + 18] === 0) &&
+            (uints[offset + 19] === 0xFFFFFFFF));
             if (!reuse) {
                 // We'll have to render-to-texture.
                 this._renderTextureInfo.nativeTexture = null;
@@ -8906,7 +8898,7 @@ class CoreRenderState {
     }
 
     _setExtraShaderAttribs() {
-        let offset = this.length * 64 + 64;
+        let offset = this.length * 80 + 80;
         for (let i = 0, n = this.quadOperations.length; i < n; i++) {
             this.quadOperations[i].extraAttribsDataByteOffset = offset;
             let extra = this.quadOperations[i].shader.getExtraAttribBytesPerVertex() * 4 * this.quadOperations[i].length;
@@ -8942,7 +8934,7 @@ class CoreRenderExecutor {
         // Create new sharable buffer for params.
         this._attribsBuffer = gl.createBuffer();
 
-        let maxQuads = Math.floor(this.renderState.quads.data.byteLength / 64);
+        let maxQuads = Math.floor(this.renderState.quads.data.byteLength / 80);
 
         // Init webgl arrays.
         let allIndices = new Uint16Array(maxQuads * 6);
@@ -10370,10 +10362,10 @@ class Stage extends EventEmitter {
 
         const context = this.getOption('context');
         if (context) {
-            if (context instanceof WebGLRenderingContext) {
-                this.c2d = context;
-            } else {
+            if (context.useProgram) {
                 this.gl = context;
+            } else {
+                this.c2d = context;
             }
         } else {
             if (!Stage.isWebglSupported() || this.getOption('canvas2d')) {
@@ -10386,8 +10378,10 @@ class Stage extends EventEmitter {
         this._mode = this.gl ? 0 : 1;
 
         // Override width and height.
-        this._options.w = this.getCanvas().width;
-        this._options.h = this.getCanvas().height;
+        if (this.getCanvas()) {
+            this._options.w = this.getCanvas().width;
+            this._options.h = this.getCanvas().height;
+        }
 
         this.setClearColor(this.getOption('clearColor'));
 
@@ -11255,11 +11249,11 @@ class Filter extends ShaderBase {
     enableAttribs() {
         // Enables the attribs in the shader program.
         let gl = this.ctx.gl;
-        gl.vertexAttribPointer(this._attrib("aVertexPosition"), 2, gl.FLOAT, false, 16, 0);
+        gl.vertexAttribPointer(this._attrib("aVertexPosition"), 2, gl.FLOAT, false, 20, 0);
         gl.enableVertexAttribArray(this._attrib("aVertexPosition"));
 
         if (this._attrib("aTextureCoord") !== -1) {
-            gl.vertexAttribPointer(this._attrib("aTextureCoord"), 2, gl.UNSIGNED_SHORT, true, 16, 2 * 4);
+            gl.vertexAttribPointer(this._attrib("aTextureCoord"), 2, gl.UNSIGNED_SHORT, true, 20, 2 * 4);
             gl.enableVertexAttribArray(this._attrib("aTextureCoord"));
         }
     }

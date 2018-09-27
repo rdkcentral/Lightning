@@ -23,20 +23,24 @@ export default class CoreQuadList {
         let u = this.uints;
         f[0] = -1;
         f[1] = -1;
-        u[2] = 0x00000000;
-        u[3] = 0xFFFFFFFF;
-        f[4] = 1;
-        f[5] = -1;
-        u[6] = 0x0000FFFF;
-        u[7] = 0xFFFFFFFF;
-        f[8] = 1;
-        f[9] = 1;
-        u[10] = 0xFFFFFFFF;
-        u[11] = 0xFFFFFFFF;
-        f[12] = -1;
+        f[2] = 0;
+        f[3] = 0;
+        u[4] = 0xFFFFFFFF;
+        f[5] = 1;
+        f[6] = -1;
+        f[7] = 1;
+        f[8] = 0;
+        u[9] = 0xFFFFFFFF;
+        f[10] = 1;
+        f[11] = 1;
+        f[12] = 1;
         f[13] = 1;
-        u[14] = 0xFFFF0000;
-        u[15] = 0xFFFFFFFF;
+        u[14] = 0xFFFFFFFF;
+        f[15] = -1;
+        f[16] = 1;
+        f[17] = 0;
+        f[18] = 1;
+        u[19] = 0xFFFFFFFF;
     }
 
     get length() {
@@ -51,7 +55,7 @@ export default class CoreQuadList {
 
     getAttribsDataByteOffset(index) {
         // Where this quad can be found in the attribs buffer.
-        return index * 64 + 64;
+        return index * 80 + 80;
     }
 
     getView(index) {

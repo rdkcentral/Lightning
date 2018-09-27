@@ -777,7 +777,7 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
     }
 };
 
-if (lng) {
+if (window.lng) {
     // Automatically attach inspector if lng was already loaded.
     attachInspector(lng);
 }
