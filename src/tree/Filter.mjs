@@ -20,7 +20,7 @@ export default class Filter extends ShaderBase {
         gl.enableVertexAttribArray(this._attrib("aVertexPosition"));
 
         if (this._attrib("aTextureCoord") !== -1) {
-            gl.vertexAttribPointer(this._attrib("aTextureCoord"), 2, gl.UNSIGNED_SHORT, true, 20, 2 * 4);
+            gl.vertexAttribPointer(this._attrib("aTextureCoord"), 2, gl.FLOAT, true, 20, 2 * 4);
             gl.enableVertexAttribArray(this._attrib("aTextureCoord"));
         }
     }
@@ -55,7 +55,7 @@ export default class Filter extends ShaderBase {
         this._views.forEach(viewCore => {
             viewCore.setHasRenderUpdates(2);
 
-            // Changing filter settings may cause a change mustRenderToTexture for the branch:
+            // Changing filter settings may cause a changed mustRenderToTexture for the branch:
             // we need to be sure that the update function is called for this branch.
             viewCore._setRecalc(1 + 2 + 4 + 8);
         });
