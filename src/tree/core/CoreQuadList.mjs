@@ -8,8 +8,6 @@ export default class CoreQuadList {
 
         this.ctx = ctx;
 
-        this.textureAtlasGlTexture = this.ctx.textureAtlas ? this.ctx.textureAtlas.texture : null;
-
         this.dataLength = 0;
 
         this.data = new ArrayBuffer(byteSize);
