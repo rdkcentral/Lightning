@@ -1,3 +1,5 @@
+import TextureSource from "./TextureSource.mjs";
+
 export default class TextureManager {
 
     constructor(stage) {
@@ -131,73 +133,11 @@ export default class TextureManager {
     }
 
     _nativeUploadTextureSource(textureSource, options) {
-        let gl = this.stage.gl;
-
-        const source = options.source;
-
-        const format = {
-            premultiplyAlpha: true,
-            hasAlpha: true
-        };
-
-        if (options && options.hasOwnProperty('premultiplyAlpha')) {
-            format.premultiplyAlpha = options.premultiplyAlpha;
-        }
-
-        if (options && options.hasOwnProperty('flipBlueRed')) {
-            format.flipBlueRed = options.flipBlueRed;
-        }
-
-        if (options && options.hasOwnProperty('hasAlpha')) {
-            format.hasAlpha = options.hasAlpha;
-        }
-
-        if (!format.hasAlpha) {
-            format.premultiplyAlpha = false;
-        }
-
-        format.texParams = options.texParams || {}
-        format.texOptions = options.texOptions || {}
-
-        let glTexture = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, glTexture);
-
-        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, format.premultiplyAlpha);
-
-        if (Utils.isNode) {
-            gl.pixelStorei(gl.UNPACK_FLIP_BLUE_RED, !!format.flipBlueRed);
-        }
-
-        const texParams = format.texParams;
-        if (!texParams[gl.TEXTURE_MAG_FILTER]) texParams[gl.TEXTURE_MAG_FILTER] = gl.LINEAR;
-        if (!texParams[gl.TEXTURE_MIN_FILTER]) texParams[gl.TEXTURE_MIN_FILTER] = gl.LINEAR;
-        if (!texParams[gl.TEXTURE_WRAP_S]) texParams[gl.TEXTURE_WRAP_S] = gl.CLAMP_TO_EDGE;
-        if (!texParams[gl.TEXTURE_WRAP_T]) texParams[gl.TEXTURE_WRAP_T] = gl.CLAMP_TO_EDGE;
-
-        Object.keys(texParams).forEach(key => {
-            const value = texParams[key];
-            gl.texParameteri(gl.TEXTURE_2D, parseInt(key), value);
-        });
-
-        const texOptions = format.texOptions;
-        texOptions.format = texOptions.format || (format.hasAlpha ? gl.RGBA : gl.RGB);
-        texOptions.type = texOptions.type || gl.UNSIGNED_BYTE;
-        texOptions.internalFormat = texOptions.internalFormat || texOptions.format;
-
-        this.stage.adapter.uploadGlTexture(gl, textureSource, source, texOptions);
-
-        glTexture.params = Utils.cloneObjShallow(texParams);
-        glTexture.options = Utils.cloneObjShallow(texOptions);
-        
-        return glTexture;
+        return this.stage.renderer.uploadTextureSource(textureSource, options);
     }
 
     _nativeFreeTextureSource(textureSource) {
-        this.stage.gl.deleteTexture(textureSource.nativeTexture);
-        textureSource.nativeTexture = null;
+        this.stage.renderer.freeTextureSource(textureSource);
     }
 
 }
-
-import Utils from "./Utils.mjs";
-import TextureSource from "./TextureSource.mjs";

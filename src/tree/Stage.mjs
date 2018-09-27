@@ -5,6 +5,7 @@
 
 import EventEmitter from "../EventEmitter.mjs";
 import Utils from "./Utils.mjs";
+import WebGLRenderer from "./core/render/WebGLRenderer.mjs";
 
 export default class Stage extends EventEmitter {
 
@@ -45,6 +46,12 @@ export default class Stage extends EventEmitter {
             this._options.h = this.getCanvas().height;
         }
 
+        if (this._mode === 0) {
+            this._renderer = new WebGLRenderer(this);
+        } else {
+//            this._renderer = new CanvasRenderer(this);
+        }
+
         this.setClearColor(this.getOption('clearColor'));
 
         this.frameCounter = 0;
@@ -70,6 +77,10 @@ export default class Stage extends EventEmitter {
         this.rectangleTexture.source.permanent = true;
 
         this._updateSourceTextures = new Set();
+    }
+
+    get renderer() {
+        return this._renderer;
     }
 
     static isWebglSupported() {

@@ -4,8 +4,6 @@ export default class CoreContext {
     constructor(stage) {
         this.stage = stage;
 
-        this.gl = stage.gl;
-
         this.root = null;
 
         this.updateTreeOrder = 0;
@@ -85,7 +83,7 @@ export default class CoreContext {
         let ah = Math.max(1, Math.round(h * prec));
 
         for (let i = 0, n = this._renderTexturePool.length; i < n; i++) {
-            let texture = this._renderTexturePool[i];
+            const texture = this._renderTexturePool[i];
             if (texture.w === aw && texture.h === ah) {
                 texture.f = this.stage.frameCounter;
                 this._renderTexturePool.splice(i, 1);
@@ -93,12 +91,8 @@ export default class CoreContext {
             }
         }
 
-        let texture = this._createRenderTexture(aw, ah);
-
-        texture.f = this.stage.frameCounter;
+        const texture = this._createRenderTexture(aw, ah);
         texture.precision = prec;
-        texture.projection = new Float32Array([2/w, 2/h]);
-
         return texture;
     }
 
@@ -126,30 +120,11 @@ export default class CoreContext {
     }
 
     _createRenderTexture(w, h) {
-        let gl = this.gl;
-        let sourceTexture = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
-
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-        sourceTexture.params = {};
-        sourceTexture.params[gl.TEXTURE_MAG_FILTER] = gl.LINEAR;
-        sourceTexture.params[gl.TEXTURE_MIN_FILTER] = gl.LINEAR;
-        sourceTexture.params[gl.TEXTURE_WRAP_S] = gl.CLAMP_TO_EDGE;
-        sourceTexture.params[gl.TEXTURE_WRAP_T] = gl.CLAMP_TO_EDGE;
-        sourceTexture.options = {format: gl.RGBA, internalFormat: gl.RGBA, type: gl.UNSIGNED_BYTE}
-
-        // We need a specific framebuffer for every render texture.
-        sourceTexture.framebuffer = gl.createFramebuffer();
-        sourceTexture.w = w;
-        sourceTexture.h = h;
-        sourceTexture.id = this._renderTextureId++;
-
+        const texture = this.stage.renderer.createRenderTexture(w, h);
+        texture.id = this._renderTextureId++;
+        texture.f = this.stage.frameCounter;
+        texture.w = w;
+        texture.h = h;
         this._renderTexturePixels += w * h;
 
         if (this._renderTexturePixels > this.stage.getOption('renderTextureMemory')) {
@@ -160,17 +135,11 @@ export default class CoreContext {
             }
         }
 
-        gl.bindFramebuffer(gl.FRAMEBUFFER, sourceTexture.framebuffer);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, sourceTexture, 0);
-
-        return sourceTexture;
+        return texture;
     }
 
     _freeRenderTexture(nativeTexture) {
-        let gl = this.stage.gl;
-        gl.deleteFramebuffer(nativeTexture.framebuffer);
-        gl.deleteTexture(nativeTexture);
-
+        this.stage.renderer.freeRenderTexture(nativeTexture);
         this._renderTexturePixels -= nativeTexture.w * nativeTexture.h;
     }
 

@@ -116,8 +116,7 @@ export default class CoreRenderExecutor {
         }
 
         let shader = quadOperation.shader;
-        this._useShaderProgram(shader);
-        shader.setupUniforms(quadOperation);
+        this._useShaderProgram(shader, quadOperation);
 
         this._quadOperation = quadOperation;
     }
@@ -153,8 +152,7 @@ export default class CoreRenderExecutor {
 
     _execFilterOperation(filterOperation) {
         let filter = filterOperation.filter;
-        this._useShaderProgram(filter);
-        filter.setupUniforms(filterOperation);
+        this._useShaderProgram(filter, filterOperation);
         filter.beforeDraw(filterOperation);
         this._bindRenderTexture(filterOperation.renderTexture);
         if (this._scissor) {
@@ -166,23 +164,25 @@ export default class CoreRenderExecutor {
     }
 
     /**
-     * @param {Filter|Shader} owner;
+     * @param {Filter|Shader} program;
+     * @param {CoreFilterOperation|CoreQuadOperation} program;
      */
-    _useShaderProgram(owner) {
-        if (!owner.hasSameProgram(this._currentShaderProgramOwner)) {
-            if (this._currentShaderProgramOwner) {
-                this._currentShaderProgramOwner.stopProgram();
+    _useShaderProgram(program, operation) {
+        if (!program.hasSameProgram(this._currentShaderProgram)) {
+            if (this._currentShaderProgram) {
+                this._currentShaderProgram.stopProgram();
             }
-            owner.useProgram();
-            this._currentShaderProgramOwner = owner;
+            program.useProgram();
+            this._currentShaderProgram = program;
         }
+        program.setupUniforms(operation);
     }
 
     _stopShaderProgram() {
-        if (this._currentShaderProgramOwner) {
+        if (this._currentShaderProgram) {
             // The currently used shader program should be stopped gracefully.
-            this._currentShaderProgramOwner.stopProgram();
-            this._currentShaderProgramOwner = null;
+            this._currentShaderProgram.stopProgram();
+            this._currentShaderProgram = null;
         }
     }
 
