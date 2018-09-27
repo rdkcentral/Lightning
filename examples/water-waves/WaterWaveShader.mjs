@@ -6,11 +6,6 @@ export default class WaterWaveShader extends Shader {
         super(context);
     }
 
-    set skyTextureSource(v) {
-        this._skyTextureSource = v;
-        this.redraw();
-    }
-
     restart() {
         this._start = Date.now()
     }
@@ -32,20 +27,8 @@ export default class WaterWaveShader extends Shader {
         const h = operation.getRenderHeight();
         this._setUniform("dims", new Float32Array([w, h, w/h]), this.gl.uniform3fv);
 
-        this._setUniform("uSamplerSky", 1, this.gl.uniform1i);
-
         this.redraw()
     }
-
-    beforeDraw(operation) {
-        let glTexture = this._skyTextureSource ? this._skyTextureSource.glTexture : null;
-
-        let gl = this.gl;
-        gl.activeTexture(gl.TEXTURE1);
-        gl.bindTexture(gl.TEXTURE_2D, glTexture);
-        gl.activeTexture(gl.TEXTURE0);
-    }
-
 
 }
 
@@ -117,16 +100,8 @@ WaterWaveShader.fragmentShaderSource = `
         vec2 delta = vec2(0.0, 0.0);
         addNormal(2., t, 40., 80., 1.85*M_PI, delta);
         addNormal(4., t, 40., 60., 0.4*M_PI, delta);
-        addNormal(2., t, 40., 50., -0.4*M_PI, delta);
 
-        addRipple(60.0, vec2(${Math.random()*1600},${Math.random()*1000}), 100.0, 40.0, 0.05, ${Math.random() * 4}, t, delta);
-        addRipple(60.0, vec2(${Math.random()*1600},${Math.random()*1000}), 100.0, 40.0, 0.05, ${Math.random() * 4}, t, delta);
-        addRipple(60.0, vec2(${Math.random()*1600},${Math.random()*1000}), 100.0, 40.0, 0.05, ${Math.random() * 4}, t, delta);
-        // addRipple(60.0, vec2(${Math.random()*1600},${Math.random()*1000}), 100.0, 20.0, 0.05, ${Math.random() * 4}, t, delta);
-        // addRipple(60.0, vec2(${Math.random()*1600},${Math.random()*1000}), 100.0, 20.0, 0.05, ${Math.random() * 4}, t, delta);
-        // addRipple(60.0, vec2(${Math.random()*1600},${Math.random()*1000}), 100.0, 20.0, 0.05, ${Math.random() * 4}, t, delta);
-        // addRipple(60.0, vec2(${Math.random()*1600},${Math.random()*1000}), 100.0, 20.0, 0.05, ${Math.random() * 4}, t, delta);
-        // addRipple(60.0, vec2(${Math.random()*1600},${Math.random()*1000}), 100.0, 20.0, 0.05, ${Math.random() * 4}, t, delta);
+        addRipple(90.0, 0.4 * dims.xy, 120.0, 50.0, 0.05, 2.0, t, delta);
 
         vec3 normal = normalize(vec3(delta, -1.0));
         

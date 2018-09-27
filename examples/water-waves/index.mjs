@@ -13,7 +13,3 @@ class AppExample extends lng.Application {
 const options = {stage: {w:1280, h: 960, glClearColor: 0xFF000000}}
 const app = new AppExample(options);
 
-const texture = new lng.textures.ImageTexture(app.stage)
-texture.src = "./sky.jpg"
-texture.load()
-app.tag("Circle").shader.skyTextureSource = texture.source
