@@ -115,6 +115,14 @@ export default class StageUtils {
         return ((a * t) | 0) * 16777216 + ((r * t) | 0) * 65536 + ((g * t) | 0) * 256 + ((b * t) | 0);
     };
 
+    static mergeColorAlpha(c, alpha) {
+        let a = ((c / 16777216 | 0) * alpha) | 0;
+        return (((((c >> 16) & 0xff) * a) / 255) & 0xff) +
+            ((((c & 0xff00) * a) / 255) & 0xff00) +
+            (((((c & 0xff) << 16) * a) / 255) & 0xff0000) +
+            (a << 24);
+    };
+
     static rad(deg) {
         return deg * (Math.PI / 180);
     };

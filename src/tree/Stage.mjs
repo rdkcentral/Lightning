@@ -40,8 +40,10 @@ export default class Stage extends EventEmitter {
         this._mode = this.gl ? 0 : 1;
 
         // Override width and height.
-        this._options.w = this.getCanvas().width;
-        this._options.h = this.getCanvas().height;
+        if (this.getCanvas()) {
+            this._options.w = this.getCanvas().width;
+            this._options.h = this.getCanvas().height;
+        }
 
         this.setClearColor(this.getOption('clearColor'));
 

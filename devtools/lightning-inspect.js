@@ -775,4 +775,9 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         _setDisplayedTexture.apply(this, arguments)
         updateTextureAttribs(this)
     }
+};
+
+if (lng) {
+    // Automatically attach inspector if lng was already loaded.
+    attachInspector(lng);
 }

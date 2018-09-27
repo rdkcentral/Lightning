@@ -125,6 +125,14 @@ class StageUtils {
         return ((a * t) | 0) * 16777216 + ((r * t) | 0) * 65536 + ((g * t) | 0) * 256 + ((b * t) | 0);
     };
 
+    static mergeColorAlpha(c, alpha) {
+        let a = ((c / 16777216 | 0) * alpha) | 0;
+        return (((((c >> 16) & 0xff) * a) / 255) & 0xff) +
+            ((((c & 0xff00) * a) / 255) & 0xff00) +
+            (((((c & 0xff) << 16) * a) / 255) & 0xff0000) +
+            (a << 24);
+    };
+
     static rad(deg) {
         return deg * (Math.PI / 180);
     };
@@ -2693,7 +2701,7 @@ class ViewCore {
             if ((this._outOfBounds === 0) && this._displayedTextureSource) {
                 renderState.setShader(this.activeShader, this._shaderOwner);
                 renderState.setScissor(this._scissor);
-                this.addQuads();
+                this.renderState.addQuad(this);
             }
 
             // Also add children to the VBO.
@@ -2759,7 +2767,7 @@ class ViewCore {
                         this._renderContext = ViewCoreContext.IDENTITY;
 
                         // Add displayed texture source in local coordinates.
-                        this.addQuads();
+                        this.renderState.addQuad(this);
 
                         this._renderContext = r;
                     }
@@ -2770,7 +2778,7 @@ class ViewCore {
                 if ((this._outOfBounds === 0) && this._displayedTextureSource) {
                     renderState.setShader(this.activeShader, this._shaderOwner);
                     renderState.setScissor(this._scissor);
-                    this.addQuads();
+                    this.renderState.addQuad(this);
                 }
             }
 
@@ -2853,7 +2861,7 @@ class ViewCore {
                         renderState.setOverrideQuadTexture(resultTexture);
                         this._stashTexCoords();
                         if (!this._texturizer.colorize) this._stashColors();
-                        this.addQuads();
+                        this.renderState.addQuad(this);
                         if (!this._texturizer.colorize) this._unstashColors();
                         this._unstashTexCoords();
                         renderState.setOverrideQuadTexture(null);
@@ -2998,55 +3006,6 @@ class ViewCore {
         this._zSort = false;
     };
 
-    addQuads() {
-        let r = this._renderContext;
-
-        let floats = this.renderState.quads.floats;
-        let uints = this.renderState.quads.uints;
-
-        if (r.tb !== 0 || r.tc !== 0) {
-            let offset = this.renderState.addQuad(this) / 4;
-            floats[offset++] = r.px;
-            floats[offset++] = r.py;
-            uints[offset++] = this._txCoordsUl; // Texture.
-            uints[offset++] = getColorInt(this._colorUl, r.alpha);
-            floats[offset++] = r.px + this._rw * r.ta;
-            floats[offset++] = r.py + this._rw * r.tc;
-            uints[offset++] = this._txCoordsUr;
-            uints[offset++] = getColorInt(this._colorUr, r.alpha);
-            floats[offset++] = r.px + this._rw * r.ta + this._rh * r.tb;
-            floats[offset++] = r.py + this._rw * r.tc + this._rh * r.td;
-            uints[offset++] = this._txCoordsBr;
-            uints[offset++] = getColorInt(this._colorBr, r.alpha);
-            floats[offset++] = r.px + this._rh * r.tb;
-            floats[offset++] = r.py + this._rh * r.td;
-            uints[offset++] = this._txCoordsBl;
-            uints[offset] = getColorInt(this._colorBl, r.alpha);
-        } else {
-            // Simple.
-            let cx = r.px + this._rw * r.ta;
-            let cy = r.py + this._rh * r.td;
-
-            let offset = this.renderState.addQuad(this) / 4;
-            floats[offset++] = r.px;
-            floats[offset++] = r.py;
-            uints[offset++] = this._txCoordsUl; // Texture.
-            uints[offset++] = getColorInt(this._colorUl, r.alpha);
-            floats[offset++] = cx;
-            floats[offset++] = r.py;
-            uints[offset++] = this._txCoordsUr;
-            uints[offset++] = getColorInt(this._colorUr, r.alpha);
-            floats[offset++] = cx;
-            floats[offset++] = cy;
-            uints[offset++] = this._txCoordsBr;
-            uints[offset++] = getColorInt(this._colorBr, r.alpha);
-            floats[offset++] = r.px;
-            floats[offset++] = cy;
-            uints[offset++] = this._txCoordsBl;
-            uints[offset] = getColorInt(this._colorBl, r.alpha);
-        }
-    };
-
     get localTa() {
         return this._localTa;
     };
@@ -3117,14 +3076,6 @@ class ViewCore {
         ]
     }
 }
-
-let getColorInt = function (c, alpha) {
-    let a = ((c / 16777216 | 0) * alpha) | 0;
-    return (((((c >> 16) & 0xff) * a) / 255) & 0xff) +
-        ((((c & 0xff00) * a) / 255) & 0xff00) +
-        (((((c & 0xff) << 16) * a) / 255) & 0xff0000) +
-        (a << 24);
-};
 
 class ViewCoreContext {
 
@@ -8813,8 +8764,57 @@ class CoreRenderState {
 
         this._quadOperation.length++;
 
-        return offset;
+        this._fillQuadData(viewCore, offset / 4);
     }
+    
+    _fillQuadData(viewCore, offset) {
+        let r = viewCore._renderContext;
+
+        let floats = this.quads.floats;
+        let uints = this.quads.uints;
+        const mca = StageUtils.mergeColorAlpha;
+
+        if (r.tb !== 0 || r.tc !== 0) {
+            floats[offset++] = r.px;
+            floats[offset++] = r.py;
+            uints[offset++] = viewCore._txCoordsUl; // Texture.
+            uints[offset++] = mca(viewCore._colorUl, r.alpha);
+            floats[offset++] = r.px + viewCore._rw * r.ta;
+            floats[offset++] = r.py + viewCore._rw * r.tc;
+            uints[offset++] = viewCore._txCoordsUr;
+            uints[offset++] = mca(viewCore._colorUr, r.alpha);
+            floats[offset++] = r.px + viewCore._rw * r.ta + viewCore._rh * r.tb;
+            floats[offset++] = r.py + viewCore._rw * r.tc + viewCore._rh * r.td;
+            uints[offset++] = viewCore._txCoordsBr;
+            uints[offset++] = mca(viewCore._colorBr, r.alpha);
+            floats[offset++] = r.px + viewCore._rh * r.tb;
+            floats[offset++] = r.py + viewCore._rh * r.td;
+            uints[offset++] = viewCore._txCoordsBl;
+            uints[offset] = mca(viewCore._colorBl, r.alpha);
+        } else {
+            // Simple.
+            let cx = r.px + viewCore._rw * r.ta;
+            let cy = r.py + viewCore._rh * r.td;
+
+            floats[offset++] = r.px;
+            floats[offset++] = r.py;
+            uints[offset++] = viewCore._txCoordsUl; // Texture.
+            uints[offset++] = mca(viewCore._colorUl, r.alpha);
+            floats[offset++] = cx;
+            floats[offset++] = r.py;
+            uints[offset++] = viewCore._txCoordsUr;
+            uints[offset++] = mca(viewCore._colorUr, r.alpha);
+            floats[offset++] = cx;
+            floats[offset++] = cy;
+            uints[offset++] = viewCore._txCoordsBr;
+            uints[offset++] = mca(viewCore._colorBr, r.alpha);
+            floats[offset++] = r.px;
+            floats[offset++] = cy;
+            uints[offset++] = viewCore._txCoordsBl;
+            uints[offset] = mca(viewCore._colorBl, r.alpha);
+        }
+    }
+
 
     finishedRenderTexture() {
         if (this._renderTextureInfo.nativeTexture) {

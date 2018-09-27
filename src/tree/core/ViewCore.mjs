@@ -1541,7 +1541,7 @@ export default class ViewCore {
             if ((this._outOfBounds === 0) && this._displayedTextureSource) {
                 renderState.setShader(this.activeShader, this._shaderOwner);
                 renderState.setScissor(this._scissor);
-                this.addQuads();
+                this.renderState.addQuad(this);
             }
 
             // Also add children to the VBO.
@@ -1607,7 +1607,7 @@ export default class ViewCore {
                         this._renderContext = ViewCoreContext.IDENTITY;
 
                         // Add displayed texture source in local coordinates.
-                        this.addQuads();
+                        this.renderState.addQuad(this);
 
                         this._renderContext = r;
                     }
@@ -1618,7 +1618,7 @@ export default class ViewCore {
                 if ((this._outOfBounds === 0) && this._displayedTextureSource) {
                     renderState.setShader(this.activeShader, this._shaderOwner);
                     renderState.setScissor(this._scissor);
-                    this.addQuads();
+                    this.renderState.addQuad(this);
                 }
             }
 
@@ -1701,7 +1701,7 @@ export default class ViewCore {
                         renderState.setOverrideQuadTexture(resultTexture);
                         this._stashTexCoords();
                         if (!this._texturizer.colorize) this._stashColors();
-                        this.addQuads();
+                        this.renderState.addQuad(this);
                         if (!this._texturizer.colorize) this._unstashColors();
                         this._unstashTexCoords();
                         renderState.setOverrideQuadTexture(null);
@@ -1846,55 +1846,6 @@ export default class ViewCore {
         this._zSort = false;
     };
 
-    addQuads() {
-        let r = this._renderContext;
-
-        let floats = this.renderState.quads.floats;
-        let uints = this.renderState.quads.uints;
-
-        if (r.tb !== 0 || r.tc !== 0) {
-            let offset = this.renderState.addQuad(this) / 4;
-            floats[offset++] = r.px;
-            floats[offset++] = r.py;
-            uints[offset++] = this._txCoordsUl; // Texture.
-            uints[offset++] = getColorInt(this._colorUl, r.alpha);
-            floats[offset++] = r.px + this._rw * r.ta;
-            floats[offset++] = r.py + this._rw * r.tc;
-            uints[offset++] = this._txCoordsUr;
-            uints[offset++] = getColorInt(this._colorUr, r.alpha);
-            floats[offset++] = r.px + this._rw * r.ta + this._rh * r.tb;
-            floats[offset++] = r.py + this._rw * r.tc + this._rh * r.td;
-            uints[offset++] = this._txCoordsBr;
-            uints[offset++] = getColorInt(this._colorBr, r.alpha);
-            floats[offset++] = r.px + this._rh * r.tb;
-            floats[offset++] = r.py + this._rh * r.td;
-            uints[offset++] = this._txCoordsBl;
-            uints[offset] = getColorInt(this._colorBl, r.alpha);
-        } else {
-            // Simple.
-            let cx = r.px + this._rw * r.ta;
-            let cy = r.py + this._rh * r.td;
-
-            let offset = this.renderState.addQuad(this) / 4;
-            floats[offset++] = r.px;
-            floats[offset++] = r.py;
-            uints[offset++] = this._txCoordsUl; // Texture.
-            uints[offset++] = getColorInt(this._colorUl, r.alpha);
-            floats[offset++] = cx;
-            floats[offset++] = r.py;
-            uints[offset++] = this._txCoordsUr;
-            uints[offset++] = getColorInt(this._colorUr, r.alpha);
-            floats[offset++] = cx;
-            floats[offset++] = cy;
-            uints[offset++] = this._txCoordsBr;
-            uints[offset++] = getColorInt(this._colorBr, r.alpha);
-            floats[offset++] = r.px;
-            floats[offset++] = cy;
-            uints[offset++] = this._txCoordsBl;
-            uints[offset] = getColorInt(this._colorBl, r.alpha);
-        }
-    };
-
     get localTa() {
         return this._localTa;
     };
@@ -1965,14 +1916,6 @@ export default class ViewCore {
         ]
     }
 }
-
-let getColorInt = function (c, alpha) {
-    let a = ((c / 16777216 | 0) * alpha) | 0;
-    return (((((c >> 16) & 0xff) * a) / 255) & 0xff) +
-        ((((c & 0xff00) * a) / 255) & 0xff00) +
-        (((((c & 0xff) << 16) * a) / 255) & 0xff0000) +
-        (a << 24);
-};
 
 class ViewCoreContext {
 

@@ -1,3 +1,5 @@
+import StageUtils from "../../tree/StageUtils.mjs";
+
 /**
  * Copyright Metrological, 2017;
  */
@@ -112,7 +114,7 @@ export default class CoreRenderState {
             nativeTexture = viewCore._displayedTextureSource.nativeTexture;
         }
 
-        let offset = this.length * 64 + 64 // Skip the identity filter quad.
+        let offset = this.length * 64 + 64; // Skip the identity filter quad.
 
         if (this._renderTextureInfo) {
             if (this._shader === this.defaultShader && this._renderTextureInfo.empty) {
@@ -131,8 +133,57 @@ export default class CoreRenderState {
 
         this._quadOperation.length++;
 
-        return offset;
+        this._fillQuadData(viewCore, offset / 4);
     }
+    
+    _fillQuadData(viewCore, offset) {
+        let r = viewCore._renderContext;
+
+        let floats = this.quads.floats;
+        let uints = this.quads.uints;
+        const mca = StageUtils.mergeColorAlpha;
+
+        if (r.tb !== 0 || r.tc !== 0) {
+            floats[offset++] = r.px;
+            floats[offset++] = r.py;
+            uints[offset++] = viewCore._txCoordsUl; // Texture.
+            uints[offset++] = mca(viewCore._colorUl, r.alpha);
+            floats[offset++] = r.px + viewCore._rw * r.ta;
+            floats[offset++] = r.py + viewCore._rw * r.tc;
+            uints[offset++] = viewCore._txCoordsUr;
+            uints[offset++] = mca(viewCore._colorUr, r.alpha);
+            floats[offset++] = r.px + viewCore._rw * r.ta + viewCore._rh * r.tb;
+            floats[offset++] = r.py + viewCore._rw * r.tc + viewCore._rh * r.td;
+            uints[offset++] = viewCore._txCoordsBr;
+            uints[offset++] = mca(viewCore._colorBr, r.alpha);
+            floats[offset++] = r.px + viewCore._rh * r.tb;
+            floats[offset++] = r.py + viewCore._rh * r.td;
+            uints[offset++] = viewCore._txCoordsBl;
+            uints[offset] = mca(viewCore._colorBl, r.alpha);
+        } else {
+            // Simple.
+            let cx = r.px + viewCore._rw * r.ta;
+            let cy = r.py + viewCore._rh * r.td;
+
+            floats[offset++] = r.px;
+            floats[offset++] = r.py;
+            uints[offset++] = viewCore._txCoordsUl; // Texture.
+            uints[offset++] = mca(viewCore._colorUl, r.alpha);
+            floats[offset++] = cx;
+            floats[offset++] = r.py;
+            uints[offset++] = viewCore._txCoordsUr;
+            uints[offset++] = mca(viewCore._colorUr, r.alpha);
+            floats[offset++] = cx;
+            floats[offset++] = cy;
+            uints[offset++] = viewCore._txCoordsBr;
+            uints[offset++] = mca(viewCore._colorBr, r.alpha);
+            floats[offset++] = r.px;
+            floats[offset++] = cy;
+            uints[offset++] = viewCore._txCoordsBl;
+            uints[offset] = mca(viewCore._colorBl, r.alpha);
+        }
+    }
+
 
     finishedRenderTexture() {
         if (this._renderTextureInfo.nativeTexture) {
