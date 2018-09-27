@@ -99,6 +99,7 @@ WaterWaveShader.fragmentShaderSource = `
     void main(void){
         vec2 delta = vec2(0.0, 0.0);
         addNormal(2., t, 40., 80., 1.85*M_PI, delta);
+        addNormal(3., t, 40., 100., -0.4*M_PI, delta);
         addNormal(4., t, 40., 60., 0.4*M_PI, delta);
 
         addRipple(90.0, 0.4 * dims.xy, 120.0, 50.0, 0.05, 2.0, t, delta);
@@ -110,7 +111,7 @@ WaterWaveShader.fragmentShaderSource = `
         // Water diffraction.
         vec2 changeTxCoord = (20.0 * projection.x) * -0.33333 * normal.xy;
         changeTxCoord.y = changeTxCoord.y * texDims.z;
-        color = 0.7 * texture2D(uSampler, vTextureCoord + changeTxCoord) * vColor;
+        color = 1.0 * texture2D(uSampler, vTextureCoord + changeTxCoord);
 
         // Reflection.
         vec3 v = normalize(vec3(gl_FragCoord.xy - 0.5 * dims.xy, 1000.0));
@@ -118,10 +119,11 @@ WaterWaveShader.fragmentShaderSource = `
         
         r.xy -= 0.1;
         float dist = dot(r.xy, r.xy);
-        color += 0.7 * mix(vec4(1.0, 1.0, 0.8, 1.0), vec4(0.5, 0.5, 0.7, 1.0), min(1.0, max(0.0, 40.0 * (dist - 0.01))));  
+        color += 0.7 * mix(vec4(1.0, 1.0, 1.0, 1.0), vec4(0.2, 0.2, 0.5, 0.5), min(1.0, max(0.0, 40.0 * (dist - 0.01))));  
         
+        color.a = 1.0;
         
-        gl_FragColor = color;
+        gl_FragColor = color * vColor;
     }
 `;
 
