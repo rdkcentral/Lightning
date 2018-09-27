@@ -10,19 +10,22 @@
     import WaterWaveShader from "./WaterWaveShader.mjs"
 
     window.onload = function() {
-        class AppExample extends wuf.Application {
+        class AppExample extends lng.Application {
             static _template() {
                 return {
 //                    Circle: {src: "../grid.png", color: 0xFFFFFFFF, shader: {type: WaterWaveShader}, pivot: 0}
-                  Circle: {src: "../frog.jpeg", color: 0xFFFFFFFF, shader: {type: WaterWaveShader}, pivot: 0, scale: 0.8}
+                    Circle: {src: "./pebbles.jpg", color: 0xFF999999, shader: {type: WaterWaveShader}, pivot: 0, scale: 1}
                 }
             }
         }
 
-        const options = {stage: {w:1600, h: 1080, glClearColor: 0xFFFFFFFF}}
+        const options = {stage: {w:1280, h: 960, glClearColor: 0xFFFFFFFF}}
         const app = new AppExample(options);
 
-        app.tag("Circle").setSmooth("shader.t", 10000, {duration: 100, timingFunction: 'linear'});
+        const texture = new lng.textures.ImageTexture(app.stage)
+        texture.src = "./sky.jpg"
+        texture.load()
+        app.tag("Circle").shader.skyTextureSource = texture.source
 
         document.body.appendChild(app.stage.getCanvas());
 

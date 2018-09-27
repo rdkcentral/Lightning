@@ -6,6 +6,11 @@ export default class WaterWaveShader extends Shader {
         super(context);
     }
 
+    set skyTextureSource(v) {
+        this._skyTextureSource = v;
+        this.redraw();
+    }
+
     restart() {
         this._start = Date.now()
     }
@@ -19,12 +24,28 @@ export default class WaterWaveShader extends Shader {
         }
         this._setUniform("t", 0.001 * (Date.now() - this._start), this.gl.uniform1f);
 
-        const w = operation.getTextureWidth(0);
-        const h = operation.getTextureHeight(0);
-        this._setUniform("texDims", new Float32Array([w, h, w/h]), this.gl.uniform3fv);
+        const tw = operation.getTextureWidth(0);
+        const th = operation.getTextureHeight(0);
+        this._setUniform("texDims", new Float32Array([tw, th, tw/th]), this.gl.uniform3fv);
+
+        const w = operation.getRenderWidth();
+        const h = operation.getRenderHeight();
+        this._setUniform("dims", new Float32Array([w, h, w/h]), this.gl.uniform3fv);
+
+        this._setUniform("uSamplerSky", 1, this.gl.uniform1i);
 
         this.redraw()
     }
+
+    beforeDraw(operation) {
+        let glTexture = this._skyTextureSource ? this._skyTextureSource.glTexture : null;
+
+        let gl = this.gl;
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, glTexture);
+        gl.activeTexture(gl.TEXTURE0);
+    }
+
 
 }
 
@@ -55,8 +76,10 @@ WaterWaveShader.fragmentShaderSource = `
     varying vec4 vColor;
     uniform vec2 projection;
     uniform sampler2D uSampler;
+    uniform sampler2D uSamplerSky;
     uniform float t;
     uniform vec3 texDims;
+    uniform vec3 dims;
     
     void addNormal(in float amplitude, in float t, in float v, in float wavelength, in float angle, inout vec2 delta) {
         vec2 dir = vec2(cos(angle), sin(angle));
@@ -74,7 +97,7 @@ WaterWaveShader.fragmentShaderSource = `
             float outerEdge = (t - t0) * v;
             float iteration = (outerEdge - dist)/wavelength;
             
-            if (iteration > 0.0 && iteration < 15.0) {
+            if (iteration > 0.25 && iteration < 15.25) {
                 float q = 2.0*M_PI * (outerEdge-dist) / wavelength;
                 float w = 1.0 + fadeout*dist;
                 
@@ -82,8 +105,6 @@ WaterWaveShader.fragmentShaderSource = `
                 if (decrease < 6.0) {
                     amplitude = amplitude / decrease;
                     float dz = amplitude * ((cos(q)/-wavelength)*w - fadeout*sin(q))/(w*w); 
-                    
-                    /*float dz = cos(2.0*M_PI * iteration) * amplitude;*/
                     delta.x -= dz * dir.x;
                     delta.y += dz * dir.y;
                 }
@@ -94,24 +115,38 @@ WaterWaveShader.fragmentShaderSource = `
 
     void main(void){
         vec2 delta = vec2(0.0, 0.0);
-        addNormal(2., t, 60., 30., 0.85*M_PI, delta);
-        addNormal(2., t, 60., 50., 0.25*M_PI, delta);
+        addNormal(2., t, 40., 80., 1.85*M_PI, delta);
+        addNormal(4., t, 40., 60., 0.4*M_PI, delta);
+        addNormal(2., t, 40., 50., -0.4*M_PI, delta);
 
-        addRipple(60.0, vec2(${Math.random()*1600},${Math.random()*1000}), 100.0, 20.0, 0.05, ${Math.random() * 4}, t, delta);
-        addRipple(60.0, vec2(${Math.random()*1600},${Math.random()*1000}), 100.0, 20.0, 0.05, ${Math.random() * 4}, t, delta);
-        addRipple(60.0, vec2(${Math.random()*1600},${Math.random()*1000}), 100.0, 20.0, 0.05, ${Math.random() * 4}, t, delta);
-        addRipple(60.0, vec2(${Math.random()*1600},${Math.random()*1000}), 100.0, 20.0, 0.05, ${Math.random() * 4}, t, delta);
-        addRipple(60.0, vec2(${Math.random()*1600},${Math.random()*1000}), 100.0, 20.0, 0.05, ${Math.random() * 4}, t, delta);
-        addRipple(60.0, vec2(${Math.random()*1600},${Math.random()*1000}), 100.0, 20.0, 0.05, ${Math.random() * 4}, t, delta);
-        addRipple(60.0, vec2(${Math.random()*1600},${Math.random()*1000}), 100.0, 20.0, 0.05, ${Math.random() * 4}, t, delta);
-        addRipple(60.0, vec2(${Math.random()*1600},${Math.random()*1000}), 100.0, 20.0, 0.05, ${Math.random() * 4}, t, delta);
-        addRipple(60.0, vec2(${Math.random()*1600},${Math.random()*1000}), 100.0, 20.0, 0.05, ${Math.random() * 4}, t, delta);
+        addRipple(60.0, vec2(${Math.random()*1600},${Math.random()*1000}), 100.0, 40.0, 0.05, ${Math.random() * 4}, t, delta);
+        addRipple(60.0, vec2(${Math.random()*1600},${Math.random()*1000}), 100.0, 40.0, 0.05, ${Math.random() * 4}, t, delta);
+        addRipple(60.0, vec2(${Math.random()*1600},${Math.random()*1000}), 100.0, 40.0, 0.05, ${Math.random() * 4}, t, delta);
+        // addRipple(60.0, vec2(${Math.random()*1600},${Math.random()*1000}), 100.0, 20.0, 0.05, ${Math.random() * 4}, t, delta);
+        // addRipple(60.0, vec2(${Math.random()*1600},${Math.random()*1000}), 100.0, 20.0, 0.05, ${Math.random() * 4}, t, delta);
+        // addRipple(60.0, vec2(${Math.random()*1600},${Math.random()*1000}), 100.0, 20.0, 0.05, ${Math.random() * 4}, t, delta);
+        // addRipple(60.0, vec2(${Math.random()*1600},${Math.random()*1000}), 100.0, 20.0, 0.05, ${Math.random() * 4}, t, delta);
+        // addRipple(60.0, vec2(${Math.random()*1600},${Math.random()*1000}), 100.0, 20.0, 0.05, ${Math.random() * 4}, t, delta);
 
         vec3 normal = normalize(vec3(delta, -1.0));
         
+        vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
+        
+        // Water diffraction.
         vec2 changeTxCoord = (20.0 * projection.x) * -0.33333 * normal.xy;
         changeTxCoord.y = changeTxCoord.y * texDims.z;
-        gl_FragColor = texture2D(uSampler, vTextureCoord + changeTxCoord) * vColor;
+        color = 0.7 * texture2D(uSampler, vTextureCoord + changeTxCoord) * vColor;
+
+        // Reflection.
+        vec3 v = normalize(vec3(gl_FragCoord.xy - 0.5 * dims.xy, 1000.0));
+        vec3 r = (v - 2.0 * normal * dot(normal, v));
+        
+        r.xy -= 0.1;
+        float dist = dot(r.xy, r.xy);
+        color += 0.7 * mix(vec4(1.0, 1.0, 0.8, 1.0), vec4(0.5, 0.5, 0.7, 1.0), min(1.0, max(0.0, 40.0 * (dist - 0.01))));  
+        
+        
+        gl_FragColor = color;
     }
 `;
 
