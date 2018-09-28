@@ -1,4 +1,5 @@
 import Utils from "../../Utils.mjs";
+import StageUtils from "../../StageUtils.mjs";
 
 export default class WebGLRenderer {
 
@@ -107,5 +108,105 @@ export default class WebGLRenderer {
         this.stage.gl.deleteTexture(textureSource.nativeTexture);
         textureSource.nativeTexture = null;
     }
+
+    addQuad(renderState, quads, index) {
+        let offset = (index * 20 + 20);
+        const viewCore = quads.quadViews[index]
+
+        let r = viewCore._renderContext;
+
+        let floats = renderState.quads.floats;
+        let uints = renderState.quads.uints;
+        const mca = StageUtils.mergeColorAlpha;
+
+        if (r.tb !== 0 || r.tc !== 0) {
+            floats[offset++] = r.px;
+            floats[offset++] = r.py;
+            floats[offset++] = viewCore._ulx;
+            floats[offset++] = viewCore._uly;
+            uints[offset++] = mca(viewCore._colorUl, r.alpha);
+            floats[offset++] = r.px + viewCore._rw * r.ta;
+            floats[offset++] = r.py + viewCore._rw * r.tc;
+            floats[offset++] = viewCore._brx;
+            floats[offset++] = viewCore._uly;
+            uints[offset++] = mca(viewCore._colorUr, r.alpha);
+            floats[offset++] = r.px + viewCore._rw * r.ta + viewCore._rh * r.tb;
+            floats[offset++] = r.py + viewCore._rw * r.tc + viewCore._rh * r.td;
+            floats[offset++] = viewCore._brx;
+            floats[offset++] = viewCore._bry;
+            uints[offset++] = mca(viewCore._colorBr, r.alpha);
+            floats[offset++] = r.px + viewCore._rh * r.tb;
+            floats[offset++] = r.py + viewCore._rh * r.td;
+            floats[offset++] = viewCore._ulx;
+            floats[offset++] = viewCore._bry;
+            uints[offset] = mca(viewCore._colorBl, r.alpha);
+        } else {
+            // Simple.
+            let cx = r.px + viewCore._rw * r.ta;
+            let cy = r.py + viewCore._rh * r.td;
+
+            floats[offset++] = r.px;
+            floats[offset++] = r.py;
+            floats[offset++] = viewCore._ulx;
+            floats[offset++] = viewCore._uly;
+            uints[offset++] = mca(viewCore._colorUl, r.alpha);
+            floats[offset++] = cx;
+            floats[offset++] = r.py;
+            floats[offset++] = viewCore._brx;
+            floats[offset++] = viewCore._uly;
+            uints[offset++] = mca(viewCore._colorUr, r.alpha);
+            floats[offset++] = cx;
+            floats[offset++] = cy;
+            floats[offset++] = viewCore._brx;
+            floats[offset++] = viewCore._bry;
+            uints[offset++] = mca(viewCore._colorBr, r.alpha);
+            floats[offset++] = r.px;
+            floats[offset++] = cy;
+            floats[offset++] = viewCore._ulx;
+            floats[offset++] = viewCore._bry;
+            uints[offset] = mca(viewCore._colorBl, r.alpha);
+        }
+    }
+
+    isRenderTextureReusable(renderState, renderTextureInfo) {
+        let offset = (renderState._renderTextureInfo.offset * 80 + 80) / 4;
+        let floats = renderState.quads.floats;
+        let uints = renderState.quads.uints;
+        return ((floats[offset] === 0) &&
+            (floats[offset + 1] === 0) &&
+            (floats[offset + 2] === 0) &&
+            (floats[offset + 3] === 0) &&
+            (uints[offset + 4] === 0xFFFFFFFF) &&
+            (floats[offset + 5] === renderTextureInfo.w) &&
+            (floats[offset + 6] === 0) &&
+            (floats[offset + 7] === 1) &&
+            (floats[offset + 8] === 0) &&
+            (uints[offset + 9] === 0xFFFFFFFF) &&
+            (floats[offset + 10] === renderTextureInfo.w) &&
+            (floats[offset + 11] === renderTextureInfo.h) &&
+            (floats[offset + 12] === 1) &&
+            (floats[offset + 13] === 1) &&
+            (uints[offset + 14] === 0xFFFFFFFF) &&
+            (floats[offset + 15] === 0) &&
+            (floats[offset + 16] === renderTextureInfo.h) &&
+            (floats[offset + 17] === 0) &&
+            (floats[offset + 18] === 1) &&
+            (uints[offset + 19] === 0xFFFFFFFF));
+    }
+
+    finishRenderState(renderState) {
+        // Set extra shader attribute data.
+        let offset = renderState.length * 80 + 80;
+        for (let i = 0, n = renderState.quadOperations.length; i < n; i++) {
+            renderState.quadOperations[i].extraAttribsDataByteOffset = offset;
+            let extra = renderState.quadOperations[i].shader.getExtraAttribBytesPerVertex() * 4 * renderState.quadOperations[i].length;
+            offset += extra;
+            if (extra) {
+                renderState.quadOperations[i].shader.setExtraAttribsInBuffer(renderState.quadOperations[i], renderState.quads);
+            }
+        }
+        renderState.quads.dataLength = offset;
+    }
+
 
 }

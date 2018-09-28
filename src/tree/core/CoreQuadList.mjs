@@ -1,7 +1,11 @@
 
 export default class CoreQuadList {
 
-    constructor(ctx, byteSize) {
+    constructor(ctx) {
+
+        // Allocate a fairly big chunk of memory that should be enough to support ~100000 (default) quads.
+        // We do not (want to) handle memory overflow.
+        const byteSize = ctx.stage.getOption('bufferMemory');
 
         this.ctx = ctx;
 

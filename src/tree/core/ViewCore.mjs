@@ -1565,7 +1565,7 @@ export default class ViewCore {
 
                     renderTextureInfo = {
                         nativeTexture: null,
-                        offset: 0,
+                        offset: 0,  // Set by CoreRenderState.
                         w: this._rw,
                         h: this._rh,
                         empty: true,

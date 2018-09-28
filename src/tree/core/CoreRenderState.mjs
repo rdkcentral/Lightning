@@ -8,13 +8,11 @@ export default class CoreRenderState {
 
         this.stage = ctx.stage;
 
-        // Allocate a fairly big chunk of memory that should be enough to support ~100000 (default) quads.
-        // We do not (want to) handle memory overflow.
-
-        // We could optimize memory usage by increasing the ArrayBuffer gradually.
-        this.quads = new CoreQuadList(ctx, ctx.stage.getOption('bufferMemory'));
+        this.quads = new CoreQuadList(ctx);
 
         this.defaultShader = new Shader(this.ctx);
+
+        this.renderer = ctx.stage.renderer;
     }
 
     reset() {
@@ -111,13 +109,11 @@ export default class CoreRenderState {
             nativeTexture = viewCore._displayedTextureSource.nativeTexture;
         }
 
-        let offset = this.length * 80 + 80; // Skip the identity filter quad.
-
         if (this._renderTextureInfo) {
             if (this._shader === this.defaultShader && this._renderTextureInfo.empty) {
                 // The texture might be reusable under some conditions. We will check them in ViewCore.renderer.
                 this._renderTextureInfo.nativeTexture = nativeTexture;
-                this._renderTextureInfo.offset = offset;
+                this._renderTextureInfo.offset = this.length;
             } else {
                 // It is not possible to reuse another texture when there is more than one quad.
                 this._renderTextureInfo.nativeTexture = null;
@@ -130,95 +126,15 @@ export default class CoreRenderState {
 
         this._quadOperation.length++;
 
-        this._fillQuadData(viewCore, offset / 4);
+        this.renderer.addQuad(this, this.quads, this.length - 1)
     }
-    
-    _fillQuadData(viewCore, offset) {
-        let r = viewCore._renderContext;
-
-        let floats = this.quads.floats;
-        let uints = this.quads.uints;
-        const mca = StageUtils.mergeColorAlpha;
-
-        if (r.tb !== 0 || r.tc !== 0) {
-            floats[offset++] = r.px;
-            floats[offset++] = r.py;
-            floats[offset++] = viewCore._ulx;
-            floats[offset++] = viewCore._uly;
-            uints[offset++] = mca(viewCore._colorUl, r.alpha);
-            floats[offset++] = r.px + viewCore._rw * r.ta;
-            floats[offset++] = r.py + viewCore._rw * r.tc;
-            floats[offset++] = viewCore._brx;
-            floats[offset++] = viewCore._uly;
-            uints[offset++] = mca(viewCore._colorUr, r.alpha);
-            floats[offset++] = r.px + viewCore._rw * r.ta + viewCore._rh * r.tb;
-            floats[offset++] = r.py + viewCore._rw * r.tc + viewCore._rh * r.td;
-            floats[offset++] = viewCore._brx;
-            floats[offset++] = viewCore._bry;
-            uints[offset++] = mca(viewCore._colorBr, r.alpha);
-            floats[offset++] = r.px + viewCore._rh * r.tb;
-            floats[offset++] = r.py + viewCore._rh * r.td;
-            floats[offset++] = viewCore._ulx;
-            floats[offset++] = viewCore._bry;
-            uints[offset] = mca(viewCore._colorBl, r.alpha);
-        } else {
-            // Simple.
-            let cx = r.px + viewCore._rw * r.ta;
-            let cy = r.py + viewCore._rh * r.td;
-
-            floats[offset++] = r.px;
-            floats[offset++] = r.py;
-            floats[offset++] = viewCore._ulx;
-            floats[offset++] = viewCore._uly;
-            uints[offset++] = mca(viewCore._colorUl, r.alpha);
-            floats[offset++] = cx;
-            floats[offset++] = r.py;
-            floats[offset++] = viewCore._brx;
-            floats[offset++] = viewCore._uly;
-            uints[offset++] = mca(viewCore._colorUr, r.alpha);
-            floats[offset++] = cx;
-            floats[offset++] = cy;
-            floats[offset++] = viewCore._brx;
-            floats[offset++] = viewCore._bry;
-            uints[offset++] = mca(viewCore._colorBr, r.alpha);
-            floats[offset++] = r.px;
-            floats[offset++] = cy;
-            floats[offset++] = viewCore._ulx;
-            floats[offset++] = viewCore._bry;
-            uints[offset] = mca(viewCore._colorBl, r.alpha);
-        }
-    }
-
 
     finishedRenderTexture() {
         if (this._renderTextureInfo.nativeTexture) {
             // There was only one texture drawn in this render texture.
-            // Check if we can reuse it (it should exactly span this render texture).
-            let floats = this.quads.floats;
-            let uints = this.quads.uints;
-            let offset = this._renderTextureInfo.offset / 4;
-            let reuse = ((floats[offset] === 0) &&
-            (floats[offset + 1] === 0) &&
-            (floats[offset + 2] === 0) &&
-            (floats[offset + 3] === 0) &&
-            (uints[offset + 4] === 0xFFFFFFFF) &&
-            (floats[offset + 5] === this._renderTextureInfo.w) &&
-            (floats[offset + 6] === 0) &&
-            (floats[offset + 7] === 1) &&
-            (floats[offset + 8] === 0) &&
-            (uints[offset + 9] === 0xFFFFFFFF) &&
-            (floats[offset + 10] === this._renderTextureInfo.w) &&
-            (floats[offset + 11] === this._renderTextureInfo.h) &&
-            (floats[offset + 12] === 1) &&
-            (floats[offset + 13] === 1) &&
-            (uints[offset + 14] === 0xFFFFFFFF) &&
-            (floats[offset + 15] === 0) &&
-            (floats[offset + 16] === this._renderTextureInfo.h) &&
-            (floats[offset + 17] === 1) &&
-            (floats[offset + 18] === 0) &&
-            (uints[offset + 19] === 0xFFFFFFFF));
-            if (!reuse) {
-                // We'll have to render-to-texture.
+            // Check if we can reuse it so that we can optimize out an unnecessary render texture operation.
+            // (it should exactly span this render texture).
+            if (!this.renderer.isRenderTextureReusable(this, this._renderTextureInfo)) {
                 this._renderTextureInfo.nativeTexture = null;
             }
         }
@@ -280,20 +196,7 @@ export default class CoreRenderState {
             this._addQuadOperation(false);
         }
 
-        this._setExtraShaderAttribs();
-    }
-
-    _setExtraShaderAttribs() {
-        let offset = this.length * 80 + 80;
-        for (let i = 0, n = this.quadOperations.length; i < n; i++) {
-            this.quadOperations[i].extraAttribsDataByteOffset = offset;
-            let extra = this.quadOperations[i].shader.getExtraAttribBytesPerVertex() * 4 * this.quadOperations[i].length;
-            offset += extra;
-            if (extra) {
-                this.quadOperations[i].shader.setExtraAttribsInBuffer(this.quadOperations[i], this.quads);
-            }
-        }
-        this.quads.dataLength = offset;
+        this.renderer.finishRenderState(this);
     }
 
 }
