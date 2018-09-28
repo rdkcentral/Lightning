@@ -7948,6 +7948,273 @@ var lng = (function () {
 
     }
 
+    class CoreRenderExecutor {
+
+        constructor(ctx) {
+            this.ctx = ctx;
+
+            this.renderState = ctx.renderState;
+
+            this.gl = this.ctx.stage.gl;
+        }
+
+        destroy() {
+        }
+
+        _reset() {
+            this._quadOperation = null;
+        }
+
+        execute() {
+            this._reset();
+
+            let qops = this.renderState.quadOperations;
+            let fops = this.renderState.filterOperations;
+
+            let i = 0, j = 0, n = qops.length, m = fops.length;
+            while (i < n) {
+                while (j < m && i === fops[j].beforeQuadOperation) {
+                    if (this._quadOperation) {
+                        this._execQuadOperation(this._quadOperation);
+                    }
+                    this._execFilterOperation(fops[j]);
+                    j++;
+                }
+
+                this._processQuadOperation(qops[i]);
+                i++;
+            }
+
+            if (this._quadOperation) {
+                this._execQuadOperation(this._quadOperation);
+            }
+
+            while (j < m) {
+                this._execFilterOperation(fops[j]);
+                j++;
+            }
+        }
+
+        _processQuadOperation(quadOperation) {
+            if (quadOperation.renderTextureInfo && quadOperation.renderTextureInfo.ignore) {
+                // Ignore quad operations when we are 're-using' another texture as the render texture result.
+                return;
+            }
+
+            if (this._quadOperation) {
+                this._execQuadOperation(this._quadOperation);
+            }
+
+            this._setupQuadOperation(quadOperation);
+
+            this._quadOperation = quadOperation;
+        }
+
+        _setupQuadOperation(quadOperation) {
+            let shader = quadOperation.shader;
+            this._useShaderProgram(shader, quadOperation);
+        }
+
+        _execQuadOperation(op) {
+            this._renderQuadOperation(op);
+            this._quadOperation = null;
+        }
+
+        _renderQuadOperation(op) {
+        }
+
+        _execFilterOperation(filterOperation) {
+            this._renderFilterOperation(filterOperation);
+        }
+
+        _renderFilterOperation(op) {
+        }
+
+    }
+
+    class WebGLCoreRenderExecutor extends CoreRenderExecutor {
+
+        constructor(ctx) {
+            super(ctx);
+
+            this.gl = this.ctx.stage.gl;
+
+            this.init();
+        }
+
+        init() {
+            let gl = this.gl;
+
+            // Create new sharable buffer for params.
+            this._attribsBuffer = gl.createBuffer();
+
+            let maxQuads = Math.floor(this.renderState.quads.data.byteLength / 80);
+
+            // Init webgl arrays.
+            let allIndices = new Uint16Array(maxQuads * 6);
+
+            // fill the indices with the quads to draw.
+            for (let i = 0, j = 0; i < maxQuads; i += 6, j += 4) {
+                allIndices[i] = j;
+                allIndices[i + 1] = j + 1;
+                allIndices[i + 2] = j + 2;
+                allIndices[i + 3] = j;
+                allIndices[i + 4] = j + 2;
+                allIndices[i + 5] = j + 3;
+            }
+
+            // The quads buffer can be (re)used to draw a range of quads.
+            this._quadsBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._quadsBuffer);
+            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, allIndices, gl.STATIC_DRAW);
+
+            // The matrix that causes the [0,0 - W,H] box to map to [-1,-1 - 1,1] in the end results.
+            this._projection = new Float32Array([2/this.ctx.stage.rw, -2/this.ctx.stage.rh]);
+
+        }
+
+        destroy() {
+            super.destroy();
+            this.gl.deleteBuffer(this._attribsBuffer);
+            this.gl.deleteBuffer(this._quadsBuffer);
+        }
+
+        _reset() {
+            super._reset();
+
+            this._bindRenderTexture(null);
+            this._setScissor(null);
+            this._clearRenderTexture();
+
+            let gl = this.gl;
+            gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+            gl.enable(gl.BLEND);
+            gl.disable(gl.DEPTH_TEST);
+
+            this._setupBuffers();
+        }
+
+        _setupBuffers() {
+            let gl = this.gl;
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._quadsBuffer);
+            let view = new DataView(this.renderState.quads.data, 0, this.renderState.quads.dataLength);
+            gl.bindBuffer(gl.ARRAY_BUFFER, this._attribsBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, view, gl.DYNAMIC_DRAW);
+        }
+
+        _setupQuadOperation(quadOperation) {
+            super._setupQuadOperation(quadOperation);
+            this._useShaderProgram(quadOperation.shader, quadOperation);
+        }
+
+        _renderQuadOperation(op) {
+            let shader = op.shader;
+
+            if (op.length || shader.addEmpty()) {
+                // Set render texture.
+                let nativeTexture = op.renderTextureInfo ? op.renderTextureInfo.nativeTexture : null;
+                if (this._renderTexture !== nativeTexture) {
+                    this._bindRenderTexture(nativeTexture);
+                }
+
+                if (op.renderTextureInfo && !op.renderTextureInfo.cleared) {
+                    this._setScissor(null);
+                    this._clearRenderTexture();
+                    op.renderTextureInfo.cleared = true;
+                    this._setScissor(op.scissor);
+                } else if (this._scissor !== op.scissor) {
+                    this._setScissor(op.scissor);
+                }
+
+                shader.beforeDraw(op);
+                shader.draw(op);
+                shader.afterDraw(op);
+            }
+        }
+
+        _renderFilterOperation(op) {
+            let filter = op.filter;
+            this._useShaderProgram(filter, op);
+            filter.beforeDraw(op);
+            this._bindRenderTexture(op.renderTexture);
+            if (this._scissor) {
+                this._setScissor(null);
+            }
+            this._clearRenderTexture();
+            filter.draw(op);
+            filter.afterDraw(op);
+        }
+
+        /**
+         * @param {Filter|Shader} program;
+         * @param {CoreFilterOperation|CoreQuadOperation} operation;
+         */
+        _useShaderProgram(program, operation) {
+            if (!program.hasSameProgram(this._currentShaderProgram)) {
+                if (this._currentShaderProgram) {
+                    this._currentShaderProgram.stopProgram();
+                }
+                program.useProgram();
+                this._currentShaderProgram = program;
+            }
+            program.setupUniforms(operation);
+        }
+
+        _stopShaderProgram() {
+            if (this._currentShaderProgram) {
+                // The currently used shader program should be stopped gracefully.
+                this._currentShaderProgram.stopProgram();
+                this._currentShaderProgram = null;
+            }
+        }
+
+        _bindRenderTexture(renderTexture) {
+            this._renderTexture = renderTexture;
+
+            let gl = this.gl;
+            if (!this._renderTexture) {
+                gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+                gl.viewport(0,0,this.ctx.stage.w,this.ctx.stage.h);
+            } else {
+                gl.bindFramebuffer(gl.FRAMEBUFFER, this._renderTexture.framebuffer);
+                gl.viewport(0,0,this._renderTexture.w, this._renderTexture.h);
+            }
+        }
+
+        _clearRenderTexture() {
+            let gl = this.gl;
+            if (!this._renderTexture) {
+                let glClearColor = this.ctx.stage.getClearColor();
+                if (glClearColor) {
+                    gl.clearColor(glClearColor[0] * glClearColor[3], glClearColor[1] * glClearColor[3], glClearColor[2] * glClearColor[3], glClearColor[3]);
+                    gl.clear(gl.COLOR_BUFFER_BIT);
+                }
+            } else {
+                // Clear texture.
+                gl.clearColor(0, 0, 0, 0);
+                gl.clear(gl.COLOR_BUFFER_BIT);
+            }
+        }
+
+        _setScissor(area) {
+            let gl = this.gl;
+            if (!area) {
+                gl.disable(gl.SCISSOR_TEST);
+            } else {
+                gl.enable(gl.SCISSOR_TEST);
+                let precision = this.ctx.stage.getRenderPrecision();
+                let y = area[1];
+                if (this._renderTexture === null) {
+                    // Flip.
+                    y = (this.ctx.stage.h / precision - (area[1] + area[3]));
+                }
+                gl.scissor(Math.round(area[0] * precision), Math.round(y * precision), Math.round(area[2] * precision), Math.round(area[3] * precision));
+            }
+            this._scissor = area;
+        }
+
+    }
+
     class CoreFilterOperation {
 
         constructor(ctx, filter, owner, source, renderTexture, beforeQuadOperation) {
@@ -7975,370 +8242,6 @@ var lng = (function () {
             } else {
                 return this.ctx.stage.h;
             }
-        }
-
-    }
-
-    class WebGLRenderer {
-
-        constructor(stage) {
-            this.stage = stage;
-        }
-
-        createCoreQuadList(ctx) {
-            return new WebGLCoreQuadList(ctx);
-        }
-
-        createCoreQuadOperation(ctx, shader, shaderOwner, renderTextureInfo, scissor, index) {
-            return new WebGLCoreQuadOperation(ctx, shader, shaderOwner, renderTextureInfo, scissor, index);
-        }
-
-        createCoreFilterOperation(ctx, filter, owner, source, renderTexture, beforeQuadOperation) {
-            return new CoreFilterOperation(ctx, filter, owner, source, renderTexture, beforeQuadOperation);
-        }
-
-        createRenderTexture(w, h) {
-            const gl = this.stage.gl;
-            const glTexture = gl.createTexture();
-            gl.bindTexture(gl.TEXTURE_2D, glTexture);
-
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-            glTexture.params = {};
-            glTexture.params[gl.TEXTURE_MAG_FILTER] = gl.LINEAR;
-            glTexture.params[gl.TEXTURE_MIN_FILTER] = gl.LINEAR;
-            glTexture.params[gl.TEXTURE_WRAP_S] = gl.CLAMP_TO_EDGE;
-            glTexture.params[gl.TEXTURE_WRAP_T] = gl.CLAMP_TO_EDGE;
-            glTexture.options = {format: gl.RGBA, internalFormat: gl.RGBA, type: gl.UNSIGNED_BYTE};
-
-            // We need a specific framebuffer for every render texture.
-            glTexture.framebuffer = gl.createFramebuffer();
-            glTexture.projection = new Float32Array([2/w, 2/h]);
-
-            gl.bindFramebuffer(gl.FRAMEBUFFER, glTexture.framebuffer);
-            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, glTexture, 0);
-
-            return glTexture;
-        }
-        
-        freeRenderTexture(glTexture) {
-            let gl = this.stage.gl;
-            gl.deleteFramebuffer(glTexture.framebuffer);
-            gl.deleteTexture(glTexture);
-        }
-
-        uploadTextureSource(textureSource, options) {
-            const gl = this.stage.gl;
-
-            const source = options.source;
-
-            const format = {
-                premultiplyAlpha: true,
-                hasAlpha: true
-            };
-
-            if (options && options.hasOwnProperty('premultiplyAlpha')) {
-                format.premultiplyAlpha = options.premultiplyAlpha;
-            }
-
-            if (options && options.hasOwnProperty('flipBlueRed')) {
-                format.flipBlueRed = options.flipBlueRed;
-            }
-
-            if (options && options.hasOwnProperty('hasAlpha')) {
-                format.hasAlpha = options.hasAlpha;
-            }
-
-            if (!format.hasAlpha) {
-                format.premultiplyAlpha = false;
-            }
-
-            format.texParams = options.texParams || {};
-            format.texOptions = options.texOptions || {};
-
-            let glTexture = gl.createTexture();
-            gl.bindTexture(gl.TEXTURE_2D, glTexture);
-
-            gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, format.premultiplyAlpha);
-
-            if (Utils.isNode) {
-                gl.pixelStorei(gl.UNPACK_FLIP_BLUE_RED, !!format.flipBlueRed);
-            }
-
-            const texParams = format.texParams;
-            if (!texParams[gl.TEXTURE_MAG_FILTER]) texParams[gl.TEXTURE_MAG_FILTER] = gl.LINEAR;
-            if (!texParams[gl.TEXTURE_MIN_FILTER]) texParams[gl.TEXTURE_MIN_FILTER] = gl.LINEAR;
-            if (!texParams[gl.TEXTURE_WRAP_S]) texParams[gl.TEXTURE_WRAP_S] = gl.CLAMP_TO_EDGE;
-            if (!texParams[gl.TEXTURE_WRAP_T]) texParams[gl.TEXTURE_WRAP_T] = gl.CLAMP_TO_EDGE;
-
-            Object.keys(texParams).forEach(key => {
-                const value = texParams[key];
-                gl.texParameteri(gl.TEXTURE_2D, parseInt(key), value);
-            });
-
-            const texOptions = format.texOptions;
-            texOptions.format = texOptions.format || (format.hasAlpha ? gl.RGBA : gl.RGB);
-            texOptions.type = texOptions.type || gl.UNSIGNED_BYTE;
-            texOptions.internalFormat = texOptions.internalFormat || texOptions.format;
-
-            this.stage.adapter.uploadGlTexture(gl, textureSource, source, texOptions);
-
-            glTexture.params = Utils.cloneObjShallow(texParams);
-            glTexture.options = Utils.cloneObjShallow(texOptions);
-
-            return glTexture;
-        }
-
-        freeTextureSource(textureSource) {
-            this.stage.gl.deleteTexture(textureSource.nativeTexture);
-            textureSource.nativeTexture = null;
-        }
-
-        addQuad(renderState, quads, index) {
-            let offset = (index * 20 + 20);
-            const viewCore = quads.quadViews[index];
-
-            let r = viewCore._renderContext;
-
-            let floats = renderState.quads.floats;
-            let uints = renderState.quads.uints;
-            const mca = StageUtils.mergeColorAlpha;
-
-            if (r.tb !== 0 || r.tc !== 0) {
-                floats[offset++] = r.px;
-                floats[offset++] = r.py;
-                floats[offset++] = viewCore._ulx;
-                floats[offset++] = viewCore._uly;
-                uints[offset++] = mca(viewCore._colorUl, r.alpha);
-                floats[offset++] = r.px + viewCore._rw * r.ta;
-                floats[offset++] = r.py + viewCore._rw * r.tc;
-                floats[offset++] = viewCore._brx;
-                floats[offset++] = viewCore._uly;
-                uints[offset++] = mca(viewCore._colorUr, r.alpha);
-                floats[offset++] = r.px + viewCore._rw * r.ta + viewCore._rh * r.tb;
-                floats[offset++] = r.py + viewCore._rw * r.tc + viewCore._rh * r.td;
-                floats[offset++] = viewCore._brx;
-                floats[offset++] = viewCore._bry;
-                uints[offset++] = mca(viewCore._colorBr, r.alpha);
-                floats[offset++] = r.px + viewCore._rh * r.tb;
-                floats[offset++] = r.py + viewCore._rh * r.td;
-                floats[offset++] = viewCore._ulx;
-                floats[offset++] = viewCore._bry;
-                uints[offset] = mca(viewCore._colorBl, r.alpha);
-            } else {
-                // Simple.
-                let cx = r.px + viewCore._rw * r.ta;
-                let cy = r.py + viewCore._rh * r.td;
-
-                floats[offset++] = r.px;
-                floats[offset++] = r.py;
-                floats[offset++] = viewCore._ulx;
-                floats[offset++] = viewCore._uly;
-                uints[offset++] = mca(viewCore._colorUl, r.alpha);
-                floats[offset++] = cx;
-                floats[offset++] = r.py;
-                floats[offset++] = viewCore._brx;
-                floats[offset++] = viewCore._uly;
-                uints[offset++] = mca(viewCore._colorUr, r.alpha);
-                floats[offset++] = cx;
-                floats[offset++] = cy;
-                floats[offset++] = viewCore._brx;
-                floats[offset++] = viewCore._bry;
-                uints[offset++] = mca(viewCore._colorBr, r.alpha);
-                floats[offset++] = r.px;
-                floats[offset++] = cy;
-                floats[offset++] = viewCore._ulx;
-                floats[offset++] = viewCore._bry;
-                uints[offset] = mca(viewCore._colorBl, r.alpha);
-            }
-        }
-
-        isRenderTextureReusable(renderState, renderTextureInfo) {
-            let offset = (renderState._renderTextureInfo.offset * 80 + 80) / 4;
-            let floats = renderState.quads.floats;
-            let uints = renderState.quads.uints;
-            return ((floats[offset] === 0) &&
-                (floats[offset + 1] === 0) &&
-                (floats[offset + 2] === 0) &&
-                (floats[offset + 3] === 0) &&
-                (uints[offset + 4] === 0xFFFFFFFF) &&
-                (floats[offset + 5] === renderTextureInfo.w) &&
-                (floats[offset + 6] === 0) &&
-                (floats[offset + 7] === 1) &&
-                (floats[offset + 8] === 0) &&
-                (uints[offset + 9] === 0xFFFFFFFF) &&
-                (floats[offset + 10] === renderTextureInfo.w) &&
-                (floats[offset + 11] === renderTextureInfo.h) &&
-                (floats[offset + 12] === 1) &&
-                (floats[offset + 13] === 1) &&
-                (uints[offset + 14] === 0xFFFFFFFF) &&
-                (floats[offset + 15] === 0) &&
-                (floats[offset + 16] === renderTextureInfo.h) &&
-                (floats[offset + 17] === 0) &&
-                (floats[offset + 18] === 1) &&
-                (uints[offset + 19] === 0xFFFFFFFF));
-        }
-
-        finishRenderState(renderState) {
-            // Set extra shader attribute data.
-            let offset = renderState.length * 80 + 80;
-            for (let i = 0, n = renderState.quadOperations.length; i < n; i++) {
-                renderState.quadOperations[i].extraAttribsDataByteOffset = offset;
-                let extra = renderState.quadOperations[i].shader.getExtraAttribBytesPerVertex() * 4 * renderState.quadOperations[i].length;
-                offset += extra;
-                if (extra) {
-                    renderState.quadOperations[i].shader.setExtraAttribsInBuffer(renderState.quadOperations[i], renderState.quads);
-                }
-            }
-            renderState.quads.dataLength = offset;
-        }
-
-
-    }
-
-    class TextureManager {
-
-        constructor(stage) {
-            this.stage = stage;
-
-            /**
-             * The currently used amount of texture memory.
-             * @type {number}
-             */
-            this._usedTextureMemory = 0;
-
-            /**
-             * All uploaded texture sources.
-             * @type {TextureSource[]}
-             */
-            this._uploadedTextureSources = [];
-
-            /**
-             * The texture source lookup id to texture source hashmap.
-             * @type {Map<String, TextureSource>}
-             */
-            this.textureSourceHashmap = new Map();
-
-        }
-
-        destroy() {
-            for (let i = 0, n = this._uploadedTextureSources.length; i < n; i++) {
-                this._nativeFreeTextureSource(this._uploadedTextureSources[i]);
-            }
-        }
-
-        getReusableTextureSource(id) {
-            return this.textureSourceHashmap.get(id);
-        }
-
-        getTextureSource(func, id) {
-            // Check if texture source is already known.
-            let textureSource = id ? this.textureSourceHashmap.get(id) : null;
-            if (!textureSource) {
-                // Create new texture source.
-                textureSource = new TextureSource(this, func);
-
-                if (id) {
-                    textureSource.lookupId = id;
-                    this.textureSourceHashmap.set(id, textureSource);
-                }
-            }
-
-            return textureSource;
-        }
-
-        uploadTextureSource(textureSource, options) {
-            if (textureSource.isLoaded()) return;
-
-            // Load texture.
-            const nativeTexture = this._nativeUploadTextureSource(textureSource, options);
-
-            textureSource._nativeTexture = nativeTexture;
-
-            // We attach w and h to native texture (see CoreQuadOperation.getTextureWidth()).
-            nativeTexture.w = textureSource.w;
-            nativeTexture.h = textureSource.h;
-
-            nativeTexture.update = this.stage.frameCounter;
-
-            this._usedTextureMemory += textureSource.w * textureSource.h;
-
-            this._uploadedTextureSources.push(textureSource);
-        }
-
-        isFull() {
-            return this._usedTextureMemory >= this.stage.getOption('textureMemory');
-        }
-
-        freeUnusedTextureSources() {
-            let remainingTextureSources = [];
-            let usedTextureMemoryBefore = this._usedTextureMemory;
-            for (let i = 0, n = this._uploadedTextureSources.length; i < n; i++) {
-                let ts = this._uploadedTextureSources[i];
-                if (ts.allowCleanup() && !ts.isResultTexture) {
-                    this._freeManagedTextureSource(ts);
-                } else {
-                    remainingTextureSources.push(ts);
-                }
-            }
-
-            this._uploadedTextureSources = remainingTextureSources;
-            console.log('freed ' + ((usedTextureMemoryBefore - this._usedTextureMemory) / 1e6).toFixed(2) + 'M texture pixels from GPU memory. Remaining: ' + this._usedTextureMemory);
-        }
-
-        _freeManagedTextureSource(textureSource) {
-            if (textureSource.isLoaded()) {
-                this._usedTextureMemory -= textureSource.w * textureSource.h;
-                this._nativeFreeTextureSource(textureSource);
-            }
-
-            // Should be reloaded.
-            textureSource.loadingSince = null;
-
-            if (textureSource.lookupId) {
-                // Delete it from the texture source hashmap to allow GC to collect it.
-                // If it is still referenced somewhere, we'll re-add it later.
-                this.textureSourceHashmap.delete(textureSource.lookupId);
-            }
-        }
-
-        /**
-         * Externally free texture source.
-         * @param textureSource
-         */
-        freeTextureSource(textureSource) {
-            const index = this._uploadedTextureSources.indexOf(textureSource);
-            const managed = (index !== -1);
-
-            if (textureSource.isLoaded()) {
-                if (managed) {
-                    this._usedTextureMemory -= textureSource.w * textureSource.h;
-                    this._uploadedTextureSources.splice(index, 1);
-                }
-                this._nativeFreeTextureSource(textureSource);
-            }
-
-            // Should be reloaded.
-            textureSource.loadingSince = null;
-
-            if (textureSource.lookupId) {
-                // Delete it from the texture source hashmap to allow GC to collect it.
-                // If it is still referenced somewhere, we'll re-add it later.
-                this.textureSourceHashmap.delete(textureSource.lookupId);
-            }
-        }
-
-        _nativeUploadTextureSource(textureSource, options) {
-            return this.stage.renderer.uploadTextureSource(textureSource, options);
-        }
-
-        _nativeFreeTextureSource(textureSource) {
-            this.stage.renderer.freeTextureSource(textureSource);
         }
 
     }
@@ -8939,236 +8842,374 @@ var lng = (function () {
 
     }
 
-    class CoreRenderExecutor {
+    class WebGLRenderer {
 
-        constructor(ctx) {
-            this.ctx = ctx;
-
-            this.renderState = ctx.renderState;
-
-            this.gl = this.ctx.stage.gl;
-
-            this.init();
+        constructor(stage) {
+            this.stage = stage;
         }
 
-        init() {
-            let gl = this.gl;
+        createCoreQuadList(ctx) {
+            return new WebGLCoreQuadList(ctx);
+        }
 
-            // Create new sharable buffer for params.
-            this._attribsBuffer = gl.createBuffer();
+        createCoreQuadOperation(ctx, shader, shaderOwner, renderTextureInfo, scissor, index) {
+            return new WebGLCoreQuadOperation(ctx, shader, shaderOwner, renderTextureInfo, scissor, index);
+        }
 
-            let maxQuads = Math.floor(this.renderState.quads.data.byteLength / 80);
+        createCoreFilterOperation(ctx, filter, owner, source, renderTexture, beforeQuadOperation) {
+            return new CoreFilterOperation(ctx, filter, owner, source, renderTexture, beforeQuadOperation);
+        }
+        
+        createCoreRenderExecutor(ctx) {
+            return new WebGLCoreRenderExecutor(ctx);
+        }
+        
+        createCoreRenderState(ctx) {
+            return new CoreRenderState(ctx);
+        }
 
-            // Init webgl arrays.
-            let allIndices = new Uint16Array(maxQuads * 6);
+        createRenderTexture(w, h) {
+            const gl = this.stage.gl;
+            const glTexture = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, glTexture);
 
-            // fill the indices with the quads to draw.
-            for (let i = 0, j = 0; i < maxQuads; i += 6, j += 4) {
-                allIndices[i] = j;
-                allIndices[i + 1] = j + 1;
-                allIndices[i + 2] = j + 2;
-                allIndices[i + 3] = j;
-                allIndices[i + 4] = j + 2;
-                allIndices[i + 5] = j + 3;
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+            glTexture.params = {};
+            glTexture.params[gl.TEXTURE_MAG_FILTER] = gl.LINEAR;
+            glTexture.params[gl.TEXTURE_MIN_FILTER] = gl.LINEAR;
+            glTexture.params[gl.TEXTURE_WRAP_S] = gl.CLAMP_TO_EDGE;
+            glTexture.params[gl.TEXTURE_WRAP_T] = gl.CLAMP_TO_EDGE;
+            glTexture.options = {format: gl.RGBA, internalFormat: gl.RGBA, type: gl.UNSIGNED_BYTE};
+
+            // We need a specific framebuffer for every render texture.
+            glTexture.framebuffer = gl.createFramebuffer();
+            glTexture.projection = new Float32Array([2/w, 2/h]);
+
+            gl.bindFramebuffer(gl.FRAMEBUFFER, glTexture.framebuffer);
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, glTexture, 0);
+
+            return glTexture;
+        }
+        
+        freeRenderTexture(glTexture) {
+            let gl = this.stage.gl;
+            gl.deleteFramebuffer(glTexture.framebuffer);
+            gl.deleteTexture(glTexture);
+        }
+
+        uploadTextureSource(textureSource, options) {
+            const gl = this.stage.gl;
+
+            const source = options.source;
+
+            const format = {
+                premultiplyAlpha: true,
+                hasAlpha: true
+            };
+
+            if (options && options.hasOwnProperty('premultiplyAlpha')) {
+                format.premultiplyAlpha = options.premultiplyAlpha;
             }
 
-            // The quads buffer can be (re)used to draw a range of quads.
-            this._quadsBuffer = gl.createBuffer();
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._quadsBuffer);
-            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, allIndices, gl.STATIC_DRAW);
+            if (options && options.hasOwnProperty('flipBlueRed')) {
+                format.flipBlueRed = options.flipBlueRed;
+            }
 
-            // The matrix that causes the [0,0 - W,H] box to map to [-1,-1 - 1,1] in the end results.
-            this._projection = new Float32Array([2/this.ctx.stage.rw, -2/this.ctx.stage.rh]);
+            if (options && options.hasOwnProperty('hasAlpha')) {
+                format.hasAlpha = options.hasAlpha;
+            }
+
+            if (!format.hasAlpha) {
+                format.premultiplyAlpha = false;
+            }
+
+            format.texParams = options.texParams || {};
+            format.texOptions = options.texOptions || {};
+
+            let glTexture = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, glTexture);
+
+            gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, format.premultiplyAlpha);
+
+            if (Utils.isNode) {
+                gl.pixelStorei(gl.UNPACK_FLIP_BLUE_RED, !!format.flipBlueRed);
+            }
+
+            const texParams = format.texParams;
+            if (!texParams[gl.TEXTURE_MAG_FILTER]) texParams[gl.TEXTURE_MAG_FILTER] = gl.LINEAR;
+            if (!texParams[gl.TEXTURE_MIN_FILTER]) texParams[gl.TEXTURE_MIN_FILTER] = gl.LINEAR;
+            if (!texParams[gl.TEXTURE_WRAP_S]) texParams[gl.TEXTURE_WRAP_S] = gl.CLAMP_TO_EDGE;
+            if (!texParams[gl.TEXTURE_WRAP_T]) texParams[gl.TEXTURE_WRAP_T] = gl.CLAMP_TO_EDGE;
+
+            Object.keys(texParams).forEach(key => {
+                const value = texParams[key];
+                gl.texParameteri(gl.TEXTURE_2D, parseInt(key), value);
+            });
+
+            const texOptions = format.texOptions;
+            texOptions.format = texOptions.format || (format.hasAlpha ? gl.RGBA : gl.RGB);
+            texOptions.type = texOptions.type || gl.UNSIGNED_BYTE;
+            texOptions.internalFormat = texOptions.internalFormat || texOptions.format;
+
+            this.stage.adapter.uploadGlTexture(gl, textureSource, source, texOptions);
+
+            glTexture.params = Utils.cloneObjShallow(texParams);
+            glTexture.options = Utils.cloneObjShallow(texOptions);
+
+            return glTexture;
+        }
+
+        freeTextureSource(textureSource) {
+            this.stage.gl.deleteTexture(textureSource.nativeTexture);
+            textureSource.nativeTexture = null;
+        }
+
+        addQuad(renderState, quads, index) {
+            let offset = (index * 20 + 20);
+            const viewCore = quads.quadViews[index];
+
+            let r = viewCore._renderContext;
+
+            let floats = renderState.quads.floats;
+            let uints = renderState.quads.uints;
+            const mca = StageUtils.mergeColorAlpha;
+
+            if (r.tb !== 0 || r.tc !== 0) {
+                floats[offset++] = r.px;
+                floats[offset++] = r.py;
+                floats[offset++] = viewCore._ulx;
+                floats[offset++] = viewCore._uly;
+                uints[offset++] = mca(viewCore._colorUl, r.alpha);
+                floats[offset++] = r.px + viewCore._rw * r.ta;
+                floats[offset++] = r.py + viewCore._rw * r.tc;
+                floats[offset++] = viewCore._brx;
+                floats[offset++] = viewCore._uly;
+                uints[offset++] = mca(viewCore._colorUr, r.alpha);
+                floats[offset++] = r.px + viewCore._rw * r.ta + viewCore._rh * r.tb;
+                floats[offset++] = r.py + viewCore._rw * r.tc + viewCore._rh * r.td;
+                floats[offset++] = viewCore._brx;
+                floats[offset++] = viewCore._bry;
+                uints[offset++] = mca(viewCore._colorBr, r.alpha);
+                floats[offset++] = r.px + viewCore._rh * r.tb;
+                floats[offset++] = r.py + viewCore._rh * r.td;
+                floats[offset++] = viewCore._ulx;
+                floats[offset++] = viewCore._bry;
+                uints[offset] = mca(viewCore._colorBl, r.alpha);
+            } else {
+                // Simple.
+                let cx = r.px + viewCore._rw * r.ta;
+                let cy = r.py + viewCore._rh * r.td;
+
+                floats[offset++] = r.px;
+                floats[offset++] = r.py;
+                floats[offset++] = viewCore._ulx;
+                floats[offset++] = viewCore._uly;
+                uints[offset++] = mca(viewCore._colorUl, r.alpha);
+                floats[offset++] = cx;
+                floats[offset++] = r.py;
+                floats[offset++] = viewCore._brx;
+                floats[offset++] = viewCore._uly;
+                uints[offset++] = mca(viewCore._colorUr, r.alpha);
+                floats[offset++] = cx;
+                floats[offset++] = cy;
+                floats[offset++] = viewCore._brx;
+                floats[offset++] = viewCore._bry;
+                uints[offset++] = mca(viewCore._colorBr, r.alpha);
+                floats[offset++] = r.px;
+                floats[offset++] = cy;
+                floats[offset++] = viewCore._ulx;
+                floats[offset++] = viewCore._bry;
+                uints[offset] = mca(viewCore._colorBl, r.alpha);
+            }
+        }
+
+        isRenderTextureReusable(renderState, renderTextureInfo) {
+            let offset = (renderState._renderTextureInfo.offset * 80 + 80) / 4;
+            let floats = renderState.quads.floats;
+            let uints = renderState.quads.uints;
+            return ((floats[offset] === 0) &&
+                (floats[offset + 1] === 0) &&
+                (floats[offset + 2] === 0) &&
+                (floats[offset + 3] === 0) &&
+                (uints[offset + 4] === 0xFFFFFFFF) &&
+                (floats[offset + 5] === renderTextureInfo.w) &&
+                (floats[offset + 6] === 0) &&
+                (floats[offset + 7] === 1) &&
+                (floats[offset + 8] === 0) &&
+                (uints[offset + 9] === 0xFFFFFFFF) &&
+                (floats[offset + 10] === renderTextureInfo.w) &&
+                (floats[offset + 11] === renderTextureInfo.h) &&
+                (floats[offset + 12] === 1) &&
+                (floats[offset + 13] === 1) &&
+                (uints[offset + 14] === 0xFFFFFFFF) &&
+                (floats[offset + 15] === 0) &&
+                (floats[offset + 16] === renderTextureInfo.h) &&
+                (floats[offset + 17] === 0) &&
+                (floats[offset + 18] === 1) &&
+                (uints[offset + 19] === 0xFFFFFFFF));
+        }
+
+        finishRenderState(renderState) {
+            // Set extra shader attribute data.
+            let offset = renderState.length * 80 + 80;
+            for (let i = 0, n = renderState.quadOperations.length; i < n; i++) {
+                renderState.quadOperations[i].extraAttribsDataByteOffset = offset;
+                let extra = renderState.quadOperations[i].shader.getExtraAttribBytesPerVertex() * 4 * renderState.quadOperations[i].length;
+                offset += extra;
+                if (extra) {
+                    renderState.quadOperations[i].shader.setExtraAttribsInBuffer(renderState.quadOperations[i], renderState.quads);
+                }
+            }
+            renderState.quads.dataLength = offset;
+        }
+
+
+    }
+
+    class TextureManager {
+
+        constructor(stage) {
+            this.stage = stage;
+
+            /**
+             * The currently used amount of texture memory.
+             * @type {number}
+             */
+            this._usedTextureMemory = 0;
+
+            /**
+             * All uploaded texture sources.
+             * @type {TextureSource[]}
+             */
+            this._uploadedTextureSources = [];
+
+            /**
+             * The texture source lookup id to texture source hashmap.
+             * @type {Map<String, TextureSource>}
+             */
+            this.textureSourceHashmap = new Map();
 
         }
 
         destroy() {
-            this.gl.deleteBuffer(this._attribsBuffer);
-            this.gl.deleteBuffer(this._quadsBuffer);
+            for (let i = 0, n = this._uploadedTextureSources.length; i < n; i++) {
+                this._nativeFreeTextureSource(this._uploadedTextureSources[i]);
+            }
         }
 
-        _reset() {
-            this._bindRenderTexture(null);
-            this._setScissor(null);
-            this._clearRenderTexture();
-
-            // Set up default settings. Shaders should, after drawing, reset these properly.
-            let gl = this.gl;
-            gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-            gl.enable(gl.BLEND);
-            gl.disable(gl.DEPTH_TEST);
-
-            this._quadOperation = null;
+        getReusableTextureSource(id) {
+            return this.textureSourceHashmap.get(id);
         }
 
-        _setupBuffers() {
-            let gl = this.gl;
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._quadsBuffer);
-            let view = new DataView(this.renderState.quads.data, 0, this.renderState.quads.dataLength);
-            gl.bindBuffer(gl.ARRAY_BUFFER, this._attribsBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, view, gl.DYNAMIC_DRAW);
-        }
+        getTextureSource(func, id) {
+            // Check if texture source is already known.
+            let textureSource = id ? this.textureSourceHashmap.get(id) : null;
+            if (!textureSource) {
+                // Create new texture source.
+                textureSource = new TextureSource(this, func);
 
-        execute() {
-            this._reset();
-
-            this._setupBuffers();
-
-            let qops = this.renderState.quadOperations;
-            let fops = this.renderState.filterOperations;
-
-            let i = 0, j = 0, n = qops.length, m = fops.length;
-            while (i < n) {
-                while (j < m && i === fops[j].beforeQuadOperation) {
-                    if (this._quadOperation) {
-                        this._execQuadOperation(this._quadOperation);
-                    }
-                    this._execFilterOperation(fops[j]);
-                    j++;
+                if (id) {
+                    textureSource.lookupId = id;
+                    this.textureSourceHashmap.set(id, textureSource);
                 }
-
-                this._processQuadOperation(qops[i]);
-                i++;
             }
 
-            if (this._quadOperation) {
-                this._execQuadOperation();
-            }
-
-            while (j < m) {
-                this._execFilterOperation(fops[j]);
-                j++;
-            }
+            return textureSource;
         }
 
-        getQuadContents() {
-            return this.renderState.quads.getQuadContents();
+        uploadTextureSource(textureSource, options) {
+            if (textureSource.isLoaded()) return;
+
+            // Load texture.
+            const nativeTexture = this._nativeUploadTextureSource(textureSource, options);
+
+            textureSource._nativeTexture = nativeTexture;
+
+            // We attach w and h to native texture (see CoreQuadOperation.getTextureWidth()).
+            nativeTexture.w = textureSource.w;
+            nativeTexture.h = textureSource.h;
+
+            nativeTexture.update = this.stage.frameCounter;
+
+            this._usedTextureMemory += textureSource.w * textureSource.h;
+
+            this._uploadedTextureSources.push(textureSource);
         }
 
-        _processQuadOperation(quadOperation) {
-            if (quadOperation.renderTextureInfo && quadOperation.renderTextureInfo.ignore) {
-                // Ignore quad operations when we are 're-using' another texture as the render texture result.
-                return;
-            }
-
-            if (this._quadOperation) {
-                this._execQuadOperation();
-            }
-
-            let shader = quadOperation.shader;
-            this._useShaderProgram(shader, quadOperation);
-
-            this._quadOperation = quadOperation;
+        isFull() {
+            return this._usedTextureMemory >= this.stage.getOption('textureMemory');
         }
 
-        _execQuadOperation() {
-            let op = this._quadOperation;
-
-            let shader = op.shader;
-
-            if (op.length || shader.addEmpty()) {
-                // Set render texture.
-                let nativeTexture = op.renderTextureInfo ? op.renderTextureInfo.nativeTexture : null;
-                if (this._renderTexture !== nativeTexture) {
-                    this._bindRenderTexture(nativeTexture);
+        freeUnusedTextureSources() {
+            let remainingTextureSources = [];
+            let usedTextureMemoryBefore = this._usedTextureMemory;
+            for (let i = 0, n = this._uploadedTextureSources.length; i < n; i++) {
+                let ts = this._uploadedTextureSources[i];
+                if (ts.allowCleanup() && !ts.isResultTexture) {
+                    this._freeManagedTextureSource(ts);
+                } else {
+                    remainingTextureSources.push(ts);
                 }
-
-                if (op.renderTextureInfo && !op.renderTextureInfo.cleared) {
-                    this._setScissor(null);
-                    this._clearRenderTexture();
-                    op.renderTextureInfo.cleared = true;
-                    this._setScissor(op.scissor);
-                } else if (this._scissor !== op.scissor) {
-                    this._setScissor(op.scissor);
-                }
-
-                shader.beforeDraw(op);
-                shader.draw(op);
-                shader.afterDraw(op);
             }
 
-            this._quadOperation = null;
+            this._uploadedTextureSources = remainingTextureSources;
+            console.log('freed ' + ((usedTextureMemoryBefore - this._usedTextureMemory) / 1e6).toFixed(2) + 'M texture pixels from GPU memory. Remaining: ' + this._usedTextureMemory);
         }
 
-        _execFilterOperation(filterOperation) {
-            let filter = filterOperation.filter;
-            this._useShaderProgram(filter, filterOperation);
-            filter.beforeDraw(filterOperation);
-            this._bindRenderTexture(filterOperation.renderTexture);
-            if (this._scissor) {
-                this._setScissor(null);
+        _freeManagedTextureSource(textureSource) {
+            if (textureSource.isLoaded()) {
+                this._usedTextureMemory -= textureSource.w * textureSource.h;
+                this._nativeFreeTextureSource(textureSource);
             }
-            this._clearRenderTexture();
-            filter.draw(filterOperation);
-            filter.afterDraw(filterOperation);
+
+            // Should be reloaded.
+            textureSource.loadingSince = null;
+
+            if (textureSource.lookupId) {
+                // Delete it from the texture source hashmap to allow GC to collect it.
+                // If it is still referenced somewhere, we'll re-add it later.
+                this.textureSourceHashmap.delete(textureSource.lookupId);
+            }
         }
 
         /**
-         * @param {Filter|Shader} program;
-         * @param {CoreFilterOperation|CoreQuadOperation} program;
+         * Externally free texture source.
+         * @param textureSource
          */
-        _useShaderProgram(program, operation) {
-            if (!program.hasSameProgram(this._currentShaderProgram)) {
-                if (this._currentShaderProgram) {
-                    this._currentShaderProgram.stopProgram();
+        freeTextureSource(textureSource) {
+            const index = this._uploadedTextureSources.indexOf(textureSource);
+            const managed = (index !== -1);
+
+            if (textureSource.isLoaded()) {
+                if (managed) {
+                    this._usedTextureMemory -= textureSource.w * textureSource.h;
+                    this._uploadedTextureSources.splice(index, 1);
                 }
-                program.useProgram();
-                this._currentShaderProgram = program;
+                this._nativeFreeTextureSource(textureSource);
             }
-            program.setupUniforms(operation);
-        }
 
-        _stopShaderProgram() {
-            if (this._currentShaderProgram) {
-                // The currently used shader program should be stopped gracefully.
-                this._currentShaderProgram.stopProgram();
-                this._currentShaderProgram = null;
-            }
-        }
+            // Should be reloaded.
+            textureSource.loadingSince = null;
 
-        _bindRenderTexture(renderTexture) {
-            this._renderTexture = renderTexture;
-
-            let gl = this.gl;
-            if (!this._renderTexture) {
-                gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-                gl.viewport(0,0,this.ctx.stage.w,this.ctx.stage.h);
-            } else {
-                gl.bindFramebuffer(gl.FRAMEBUFFER, this._renderTexture.framebuffer);
-                gl.viewport(0,0,this._renderTexture.w, this._renderTexture.h);
+            if (textureSource.lookupId) {
+                // Delete it from the texture source hashmap to allow GC to collect it.
+                // If it is still referenced somewhere, we'll re-add it later.
+                this.textureSourceHashmap.delete(textureSource.lookupId);
             }
         }
 
-        _clearRenderTexture() {
-            let gl = this.gl;
-            if (!this._renderTexture) {
-                let glClearColor = this.ctx.stage.getClearColor();
-                if (glClearColor) {
-                    gl.clearColor(glClearColor[0] * glClearColor[3], glClearColor[1] * glClearColor[3], glClearColor[2] * glClearColor[3], glClearColor[3]);
-                    gl.clear(gl.COLOR_BUFFER_BIT);
-                }
-            } else {
-                // Clear texture.
-                gl.clearColor(0, 0, 0, 0);
-                gl.clear(gl.COLOR_BUFFER_BIT);
-            }
+        _nativeUploadTextureSource(textureSource, options) {
+            return this.stage.renderer.uploadTextureSource(textureSource, options);
         }
 
-        _setScissor(area) {
-            let gl = this.gl;
-            if (!area) {
-                gl.disable(gl.SCISSOR_TEST);
-            } else {
-                gl.enable(gl.SCISSOR_TEST);
-                let precision = this.ctx.stage.getRenderPrecision();
-                let y = area[1];
-                if (this._renderTexture === null) {
-                    // Flip.
-                    y = (this.ctx.stage.h / precision - (area[1] + area[3]));
-                }
-                gl.scissor(Math.round(area[0] * precision), Math.round(y * precision), Math.round(area[2] * precision), Math.round(area[3] * precision));
-            }
-            this._scissor = area;
+        _nativeFreeTextureSource(textureSource) {
+            this.stage.renderer.freeTextureSource(textureSource);
         }
 
     }
@@ -9184,9 +9225,9 @@ var lng = (function () {
 
             this.shaderPrograms = new Map();
 
-            this.renderState = new CoreRenderState(this);
+            this.renderState = this.stage.renderer.createCoreRenderState(this);
 
-            this.renderExec = new CoreRenderExecutor(this);
+            this.renderExec = this.stage.renderer.createCoreRenderExecutor(this);
             this.renderExec.init();
 
             this._renderTexturePixels = 0;

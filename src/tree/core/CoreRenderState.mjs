@@ -202,7 +202,4 @@ export default class CoreRenderState {
 
 }
 
-import CoreQuadOperation from "./CoreQuadOperation.mjs";
-import CoreQuadList from "./CoreQuadList.mjs";
-import CoreFilterOperation from "./CoreFilterOperation.mjs";
 import Shader from "../Shader.mjs";

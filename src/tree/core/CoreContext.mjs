@@ -10,9 +10,9 @@ export default class CoreContext {
 
         this.shaderPrograms = new Map();
 
-        this.renderState = new CoreRenderState(this);
+        this.renderState = this.stage.renderer.createCoreRenderState(this);
 
-        this.renderExec = new CoreRenderExecutor(this);
+        this.renderExec = this.stage.renderer.createCoreRenderExecutor(this);
         this.renderExec.init();
 
         this._renderTexturePixels = 0;
