@@ -1,10 +1,25 @@
-import Utils from "../../Utils.mjs";
-import StageUtils from "../../StageUtils.mjs";
+import Utils from "../../../Utils.mjs";
+import StageUtils from "../../../StageUtils.mjs";
+import WebGLCoreQuadList from "./WebGLCoreQuadList.mjs";
+import WebGLCoreQuadOperation from "./WebGLCoreQuadOperation.mjs";
+import CoreFilterOperation from "../../CoreFilterOperation.mjs";
 
 export default class WebGLRenderer {
 
     constructor(stage) {
-        this.stage = stage
+        this.stage = stage;
+    }
+
+    createCoreQuadList(ctx) {
+        return new WebGLCoreQuadList(ctx);
+    }
+
+    createCoreQuadOperation(ctx, shader, shaderOwner, renderTextureInfo, scissor, index) {
+        return new WebGLCoreQuadOperation(ctx, shader, shaderOwner, renderTextureInfo, scissor, index);
+    }
+
+    createCoreFilterOperation(ctx, filter, owner, source, renderTexture, beforeQuadOperation) {
+        return new CoreFilterOperation(ctx, filter, owner, source, renderTexture, beforeQuadOperation);
     }
 
     createRenderTexture(w, h) {
@@ -24,7 +39,7 @@ export default class WebGLRenderer {
         glTexture.params[gl.TEXTURE_MIN_FILTER] = gl.LINEAR;
         glTexture.params[gl.TEXTURE_WRAP_S] = gl.CLAMP_TO_EDGE;
         glTexture.params[gl.TEXTURE_WRAP_T] = gl.CLAMP_TO_EDGE;
-        glTexture.options = {format: gl.RGBA, internalFormat: gl.RGBA, type: gl.UNSIGNED_BYTE}
+        glTexture.options = {format: gl.RGBA, internalFormat: gl.RGBA, type: gl.UNSIGNED_BYTE};
 
         // We need a specific framebuffer for every render texture.
         glTexture.framebuffer = gl.createFramebuffer();
@@ -111,7 +126,7 @@ export default class WebGLRenderer {
 
     addQuad(renderState, quads, index) {
         let offset = (index * 20 + 20);
-        const viewCore = quads.quadViews[index]
+        const viewCore = quads.quadViews[index];
 
         let r = viewCore._renderContext;
 

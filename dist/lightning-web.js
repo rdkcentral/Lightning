@@ -7726,10 +7726,275 @@ var lng = (function () {
 
     Component.prototype.isComponent = true;
 
+    class CoreQuadList {
+
+        constructor(ctx) {
+
+            this.ctx = ctx;
+
+            this.quadTextures = [];
+
+            this.quadViews = [];
+        }
+
+        get length() {
+            return this.quadTextures.length;
+        }
+
+        reset() {
+            this.quadTextures = [];
+            this.quadViews = [];
+            this.dataLength = 0;
+        }
+
+        getView(index) {
+            return this.quadViews[index]._view;
+        }
+
+        getViewCore(index) {
+            return this.quadViews[index];
+        }
+
+        getTexture(index) {
+            return this.quadTextures[index];
+        }
+
+        getTextureWidth(index) {
+            let nativeTexture = this.quadTextures[index];
+            if (nativeTexture.w) {
+                // Render texture;
+                return nativeTexture.w;
+            } else {
+                return this.quadViews[index]._displayedTextureSource.w;
+            }
+        }
+
+        getTextureHeight(index) {
+            let nativeTexture = this.quadTextures[index];
+            if (nativeTexture.h) {
+                // Render texture;
+                return nativeTexture.h;
+            } else {
+                return this.quadViews[index]._displayedTextureSource.h;
+            }
+        }
+
+    }
+
+    class WebGLCoreQuadList extends CoreQuadList {
+
+        constructor(ctx) {
+            super(ctx);
+
+            // Allocate a fairly big chunk of memory that should be enough to support ~100000 (default) quads.
+            // We do not (want to) handle memory overflow.
+            const byteSize = ctx.stage.getOption('bufferMemory');
+
+            this.dataLength = 0;
+
+            this.data = new ArrayBuffer(byteSize);
+            this.floats = new Float32Array(this.data);
+            this.uints = new Uint32Array(this.data);
+
+            // Set up first quad to the identity quad (reused for filters).
+            let f = this.floats;
+            let u = this.uints;
+            f[0] = -1;
+            f[1] = -1;
+            f[2] = 0;
+            f[3] = 0;
+            u[4] = 0xFFFFFFFF;
+            f[5] = 1;
+            f[6] = -1;
+            f[7] = 1;
+            f[8] = 0;
+            u[9] = 0xFFFFFFFF;
+            f[10] = 1;
+            f[11] = 1;
+            f[12] = 1;
+            f[13] = 1;
+            u[14] = 0xFFFFFFFF;
+            f[15] = -1;
+            f[16] = 1;
+            f[17] = 0;
+            f[18] = 1;
+            u[19] = 0xFFFFFFFF;
+        }
+
+        getAttribsDataByteOffset(index) {
+            // Where this quad can be found in the attribs buffer.
+            return index * 80 + 80;
+        }
+
+        getQuadContents() {
+            // Debug: log contents of quad buffer.
+            let floats = this.floats;
+            let uints = this.uints;
+            let lines = [];
+            for (let i = 1; i <= this.length; i++) {
+                let str = 'entry ' + i + ': ';
+                for (let j = 0; j < 4; j++) {
+                    let b = i * 20 + j * 4;
+                    str += floats[b] + ',' + floats[b+1] + ':' + floats[b+2] + ',' + floats[b+3] + '[' + uints[b+4].toString(16) + '] ';
+                }
+                lines.push(str);
+            }
+
+            return lines;
+        }
+
+
+    }
+
+    class CoreQuadOperation {
+
+        constructor(ctx, shader, shaderOwner, renderTextureInfo, scissor, index) {
+
+            this.ctx = ctx;
+            this.shader = shader;
+            this.shaderOwner = shaderOwner;
+            this.renderTextureInfo = renderTextureInfo;
+            this.scissor = scissor;
+            this.index = index;
+            this.length = 0;
+
+        }
+
+        get quads() {
+            return this.ctx.renderState.quads;
+        }
+
+        getTexture(index) {
+            return this.quads.getTexture(this.index + index);
+        }
+
+        getViewCore(index) {
+            return this.quads.getViewCore(this.index + index);
+        }
+
+        getView(index) {
+            return this.quads.getView(this.index + index);
+        }
+
+        getViewWidth(index) {
+            return this.getView(index).renderWidth;
+        }
+
+        getViewHeight(index) {
+            return this.getView(index).renderHeight;
+        }
+
+        getTextureWidth(index) {
+            return this.quads.getTextureWidth(this.index + index);
+        }
+
+        getTextureHeight(index) {
+            return this.quads.getTextureHeight(this.index + index);
+        }
+
+        getRenderWidth() {
+            if (this.renderTextureInfo) {
+                return this.renderTextureInfo.w;
+            } else {
+                return this.ctx.stage.w;
+            }
+        }
+
+        getRenderHeight() {
+            if (this.renderTextureInfo) {
+                return this.renderTextureInfo.h;
+            } else {
+                return this.ctx.stage.h;
+            }
+        }
+
+    }
+
+    class WebGLCoreQuadOperation extends CoreQuadOperation {
+
+        constructor(ctx, shader, shaderOwner, renderTextureInfo, scissor, index) {
+            super(ctx, shader, shaderOwner, renderTextureInfo, scissor, index);
+
+            this.extraAttribsDataByteOffset = 0;
+        }
+
+        getAttribsDataByteOffset(index) {
+            // Where this quad can be found in the attribs buffer.
+            return this.quads.getAttribsDataByteOffset(this.index + index);
+        }
+
+        /**
+         * Returns the relative pixel coordinates in the shader owner to gl position coordinates in the render texture.
+         * @param x
+         * @param y
+         * @return {number[]}
+         */
+        getNormalRenderTextureCoords(x, y) {
+            let coords = this.shaderOwner.getRenderTextureCoords(x, y);
+            coords[0] /= this.getRenderWidth();
+            coords[1] /= this.getRenderHeight();
+            coords[0] = coords[0] * 2 - 1;
+            coords[1] = 1 - coords[1] * 2;
+            return coords;
+        }
+
+        getProjection() {
+            if (this.renderTextureInfo === null) {
+                return this.ctx.renderExec._projection;
+            } else {
+                return this.renderTextureInfo.nativeTexture.projection;
+            }
+        }
+
+    }
+
+    class CoreFilterOperation {
+
+        constructor(ctx, filter, owner, source, renderTexture, beforeQuadOperation) {
+
+            this.ctx = ctx;
+            this.filter = filter;
+            this.owner = owner;
+            this.source = source;
+            this.renderTexture = renderTexture;
+            this.beforeQuadOperation = beforeQuadOperation;
+
+        }
+
+        getRenderWidth() {
+            if (this.renderTexture) {
+                return this.renderTexture.w;
+            } else {
+                return this.ctx.stage.w;
+            }
+        }
+
+        getRenderHeight() {
+            if (this.renderTexture) {
+                return this.renderTexture.h;
+            } else {
+                return this.ctx.stage.h;
+            }
+        }
+
+    }
+
     class WebGLRenderer {
 
         constructor(stage) {
             this.stage = stage;
+        }
+
+        createCoreQuadList(ctx) {
+            return new WebGLCoreQuadList(ctx);
+        }
+
+        createCoreQuadOperation(ctx, shader, shaderOwner, renderTextureInfo, scissor, index) {
+            return new WebGLCoreQuadOperation(ctx, shader, shaderOwner, renderTextureInfo, scissor, index);
+        }
+
+        createCoreFilterOperation(ctx, filter, owner, source, renderTexture, beforeQuadOperation) {
+            return new CoreFilterOperation(ctx, filter, owner, source, renderTexture, beforeQuadOperation);
         }
 
         createRenderTexture(w, h) {
@@ -8074,240 +8339,6 @@ var lng = (function () {
 
         _nativeFreeTextureSource(textureSource) {
             this.stage.renderer.freeTextureSource(textureSource);
-        }
-
-    }
-
-    class CoreQuadOperation {
-
-        constructor(ctx, shader, shaderOwner, renderTextureInfo, scissor, index) {
-
-            this.ctx = ctx;
-            this.shader = shader;
-            this.shaderOwner = shaderOwner;
-            this.renderTextureInfo = renderTextureInfo;
-            this.scissor = scissor;
-            this.index = index;
-            this.length = 0;
-            this.extraAttribsDataByteOffset = 0;
-
-        }
-
-        get quads() {
-            return this.ctx.renderState.quads;
-        }
-
-        getAttribsDataByteOffset(index) {
-            // Where this quad can be found in the attribs buffer.
-            return this.quads.getAttribsDataByteOffset(this.index + index);
-        }
-
-        getTexture(index) {
-            return this.quads.getTexture(this.index + index);
-        }
-
-        getViewCore(index) {
-            return this.quads.getViewCore(this.index + index);
-        }
-
-        getView(index) {
-            return this.quads.getView(this.index + index);
-        }
-
-        getViewWidth(index) {
-            return this.getView(index).renderWidth;
-        }
-
-        getViewHeight(index) {
-            return this.getView(index).renderHeight;
-        }
-
-        getTextureWidth(index) {
-            return this.quads.getTextureWidth(this.index + index);
-        }
-
-        getTextureHeight(index) {
-            return this.quads.getTextureHeight(this.index + index);
-        }
-
-        /**
-         * Returns the relative pixel coordinates in the shader owner to gl position coordinates in the render texture.
-         * @param x
-         * @param y
-         * @return {number[]}
-         */
-        getNormalRenderTextureCoords(x, y) {
-            let coords = this.shaderOwner.getRenderTextureCoords(x, y);
-            coords[0] /= this.getRenderWidth();
-            coords[1] /= this.getRenderHeight();
-            coords[0] = coords[0] * 2 - 1;
-            coords[1] = 1 - coords[1] * 2;
-            return coords;
-        }
-
-        getRenderWidth() {
-            if (this.renderTextureInfo) {
-                return this.renderTextureInfo.w;
-            } else {
-                return this.ctx.stage.w;
-            }
-        }
-
-        getRenderHeight() {
-            if (this.renderTextureInfo) {
-                return this.renderTextureInfo.h;
-            } else {
-                return this.ctx.stage.h;
-            }
-        }
-
-        getProjection() {
-            if (this.renderTextureInfo === null) {
-                return this.ctx.renderExec._projection;
-            } else {
-                return this.renderTextureInfo.nativeTexture.projection;
-            }
-        }
-
-    }
-
-    class CoreQuadList {
-
-        constructor(ctx) {
-
-            // Allocate a fairly big chunk of memory that should be enough to support ~100000 (default) quads.
-            // We do not (want to) handle memory overflow.
-            const byteSize = ctx.stage.getOption('bufferMemory');
-
-            this.ctx = ctx;
-
-            this.dataLength = 0;
-
-            this.data = new ArrayBuffer(byteSize);
-            this.floats = new Float32Array(this.data);
-            this.uints = new Uint32Array(this.data);
-
-            this.quadTextures = [];
-
-            this.quadViews = [];
-
-            // Set up first quad to the identity quad (reused for filters).
-            let f = this.floats;
-            let u = this.uints;
-            f[0] = -1;
-            f[1] = -1;
-            f[2] = 0;
-            f[3] = 0;
-            u[4] = 0xFFFFFFFF;
-            f[5] = 1;
-            f[6] = -1;
-            f[7] = 1;
-            f[8] = 0;
-            u[9] = 0xFFFFFFFF;
-            f[10] = 1;
-            f[11] = 1;
-            f[12] = 1;
-            f[13] = 1;
-            u[14] = 0xFFFFFFFF;
-            f[15] = -1;
-            f[16] = 1;
-            f[17] = 0;
-            f[18] = 1;
-            u[19] = 0xFFFFFFFF;
-        }
-
-        get length() {
-            return this.quadTextures.length;
-        }
-
-        reset() {
-            this.quadTextures = [];
-            this.quadViews = [];
-            this.dataLength = 0;
-        }
-
-        getAttribsDataByteOffset(index) {
-            // Where this quad can be found in the attribs buffer.
-            return index * 80 + 80;
-        }
-
-        getView(index) {
-            return this.quadViews[index]._view;
-        }
-
-        getViewCore(index) {
-            return this.quadViews[index];
-        }
-
-        getTexture(index) {
-            return this.quadTextures[index];
-        }
-
-        getTextureWidth(index) {
-            let nativeTexture = this.quadTextures[index];
-            if (nativeTexture.w) {
-                // Render texture;
-                return nativeTexture.w;
-            } else {
-                return this.quadViews[index]._displayedTextureSource.w;
-            }
-        }
-
-        getTextureHeight(index) {
-            let nativeTexture = this.quadTextures[index];
-            if (nativeTexture.h) {
-                // Render texture;
-                return nativeTexture.h;
-            } else {
-                return this.quadViews[index]._displayedTextureSource.h;
-            }
-        }
-
-        getQuadContents() {
-            // Debug: log contents of quad buffer.
-            let floats = this.floats;
-            let uints = this.uints;
-            let lines = [];
-            for (let i = 1; i <= this.length; i++) {
-                let str = 'entry ' + i + ': ';
-                for (let j = 0; j < 4; j++) {
-                    let b = i * 20 + j * 4;
-                    str += floats[b] + ',' + floats[b+1] + ':' + floats[b+2] + ',' + floats[b+3] + '[' + uints[b+4].toString(16) + '] ';
-                }
-                lines.push(str);
-            }
-
-            return lines;
-        }
-    }
-
-    class CoreFilterOperation {
-
-        constructor(ctx, filter, owner, source, renderTexture, beforeQuadOperation) {
-
-            this.ctx = ctx;
-            this.filter = filter;
-            this.owner = owner;
-            this.source = source;
-            this.renderTexture = renderTexture;
-            this.beforeQuadOperation = beforeQuadOperation;
-
-        }
-
-        getRenderWidth() {
-            if (this.renderTexture) {
-                return this.renderTexture.w;
-            } else {
-                return this.ctx.stage.w;
-            }
-        }
-
-        getRenderHeight() {
-            if (this.renderTexture) {
-                return this.renderTexture.h;
-            } else {
-                return this.ctx.stage.h;
-            }
         }
 
     }
@@ -8714,11 +8745,12 @@ var lng = (function () {
 
             this.stage = ctx.stage;
 
-            this.quads = new CoreQuadList(ctx);
-
             this.defaultShader = new Shader(this.ctx);
 
             this.renderer = ctx.stage.renderer;
+
+            this.quads = this.renderer.createCoreQuadList(ctx);
+
         }
 
         reset() {
@@ -8878,7 +8910,7 @@ var lng = (function () {
         }
 
         _createQuadOperation() {
-            this._quadOperation = new CoreQuadOperation(
+            this._quadOperation = this.renderer.createCoreQuadOperation(
                 this.ctx,
                 this._shader,
                 this._shaderOwner,
@@ -8893,7 +8925,7 @@ var lng = (function () {
             // Close current quad operation.
             this._addQuadOperation(false);
 
-            this.filterOperations.push(new CoreFilterOperation(this.ctx, filter, owner, source, target, this.quadOperations.length));
+            this.filterOperations.push(this.renderer.createCoreFilterOperation(this.ctx, filter, owner, source, target, this.quadOperations.length));
         }
 
         finish() {

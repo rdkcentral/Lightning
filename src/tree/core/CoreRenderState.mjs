@@ -8,11 +8,12 @@ export default class CoreRenderState {
 
         this.stage = ctx.stage;
 
-        this.quads = new CoreQuadList(ctx);
-
         this.defaultShader = new Shader(this.ctx);
 
         this.renderer = ctx.stage.renderer;
+
+        this.quads = this.renderer.createCoreQuadList(ctx);
+
     }
 
     reset() {
@@ -172,7 +173,7 @@ export default class CoreRenderState {
     }
 
     _createQuadOperation() {
-        this._quadOperation = new CoreQuadOperation(
+        this._quadOperation = this.renderer.createCoreQuadOperation(
             this.ctx,
             this._shader,
             this._shaderOwner,
@@ -187,7 +188,7 @@ export default class CoreRenderState {
         // Close current quad operation.
         this._addQuadOperation(false);
 
-        this.filterOperations.push(new CoreFilterOperation(this.ctx, filter, owner, source, target, this.quadOperations.length));
+        this.filterOperations.push(this.renderer.createCoreFilterOperation(this.ctx, filter, owner, source, target, this.quadOperations.length));
     }
 
     finish() {
