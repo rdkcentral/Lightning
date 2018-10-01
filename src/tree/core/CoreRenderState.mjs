@@ -39,6 +39,8 @@ export default class CoreRenderState {
 
         this.quads.reset();
 
+        this._temporaryTexturizers = [];
+
     }
 
     get length() {
@@ -91,19 +93,28 @@ export default class CoreRenderState {
         }
     }
 
-    setOverrideQuadTexture(texture) {
-        this._overrideQuadTexture = texture;
+    setOverrideQuadTexture(texturizer) {
+        this._overrideQuadTexture = texturizer;
     }
 
     addQuad(viewCore) {
         if (!this._quadOperation) {
             this._createQuadOperation();
         } else if (this._check && this._hasChanges()) {
-            this._addQuadOperation();
+            this._finishQuadOperation();
             this._check = false;
         }
 
-        let nativeTexture = this._overrideQuadTexture;
+        let nativeTexture = null;
+        if (this._overrideQuadTexture) {
+            nativeTexture =  this._overrideQuadTexture.getResultTexture();
+
+            if (this._overrideQuadTexture.temporary) {
+                // We can release the temporary texture immediately after finalizing this quad operation.
+                this._temporaryTexturizers.push(this._overrideQuadTexture);
+            }
+        }
+
         if (!nativeTexture) {
             nativeTexture = viewCore._displayedTextureSource.nativeTexture;
         }
@@ -153,13 +164,22 @@ export default class CoreRenderState {
         return false;
     }
 
-    _addQuadOperation(create = true) {
+    _finishQuadOperation(create = true) {
         if (this._quadOperation) {
             if (this._quadOperation.length || this._shader.addEmpty()) {
                 if (!this._quadOperation.scissor || ((this._quadOperation.scissor[2] > 0) && (this._quadOperation.scissor[3] > 0))) {
                     // Ignore empty clipping regions.
                     this.quadOperations.push(this._quadOperation);
                 }
+            }
+
+            if (this._temporaryTexturizers.length) {
+                for (let i = 0, n = this._temporaryTexturizers.length; i < n; i++) {
+                    // We can now reuse these render-to-textures in subsequent stages.
+                    // Huge performance benefit when filtering (fast blur).
+                    this._temporaryTexturizers[i].releaseRenderTexture();
+                }
+                this._temporaryTexturizers = [];
             }
 
             this._quadOperation = null;
@@ -185,7 +205,7 @@ export default class CoreRenderState {
     finish() {
         if (this._quadOperation) {
             // Add remaining.
-            this._addQuadOperation(false);
+            this._finishQuadOperation(false);
         }
 
         this.renderer.finishRenderState(this);

@@ -1,3 +1,4 @@
+import TextureSource from '../TextureSource.mjs';
 
 export default class ViewTexturizer {
 
@@ -16,15 +17,23 @@ export default class ViewTexturizer {
 
         this._renderTextureReused = false;
 
-        this._resultTexture = null;
-
         this._resultTextureSource = null;
-
-        this._renderToTextureEnabled = false;
 
         this._renderOffscreen = false;
 
+        this._temporary = false;
+
         this.empty = false;
+    }
+
+    get temporary() {
+        return this._temporary;
+    }
+
+    set temporary(v) {
+        // When temporary, the view texture is released immediately after generating/using it.
+        // This makes it possible to reuse them during multiple sequential shader.
+        this._temporary = v;
     }
 
     get enabled() {
@@ -147,5 +156,3 @@ export default class ViewTexturizer {
 
 }
 
-import Utils from "../Utils.mjs";
-import TextureSource from "../TextureSource.mjs";

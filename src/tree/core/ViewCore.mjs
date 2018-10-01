@@ -1569,7 +1569,12 @@ export default class ViewCore {
                         empty: true,
                         cleared: false,
                         ignore: false
-                    }
+                    };
+
+                    // We can already release the current texture to the pool.
+                    // In case of multiple layers of 'filtering', this may save us from having to create one
+                    //  render-to-texture layer.
+                    this._texturizer.releaseRenderTexture();
 
                     renderState.setRenderTextureInfo(renderTextureInfo);
                     renderState.setScissor(undefined);
@@ -1662,7 +1667,7 @@ export default class ViewCore {
                         renderState.setShader(this.activeShader, this._shaderOwner);
                         renderState.setScissor(this._scissor);
 
-                        renderState.setOverrideQuadTexture(resultTexture);
+                        renderState.setOverrideQuadTexture(this._texturizer);
                         this._stashTexCoords();
                         if (!this._texturizer.colorize) this._stashColors();
                         this.renderState.addQuad(this);

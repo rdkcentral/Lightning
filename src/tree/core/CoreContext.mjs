@@ -79,7 +79,9 @@ export default class CoreContext {
         let aw = Math.max(1, Math.round(w * prec));
         let ah = Math.max(1, Math.round(h * prec));
 
-        for (let i = 0, n = this._renderTexturePool.length; i < n; i++) {
+        // Search last item first, so that last released render texture is preferred (may cause memory cache benefits).
+        const n = this._renderTexturePool.length;
+        for (let i = n - 1; i >= 0; i--) {
             const texture = this._renderTexturePool[i];
             if (texture.w === aw && texture.h === ah) {
                 texture.f = this.stage.frameCounter;

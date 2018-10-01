@@ -1764,19 +1764,35 @@ export default class View {
     }
 
     get renderToTexture() {
-        return this._hasTexturizer() && this.texturizer.enabled;
+        return this.rtt
     }
 
     set renderToTexture(v) {
+        this.rtt = v
+    }
+
+    get rtt() {
+        return this._hasTexturizer() && this.texturizer.enabled;
+    }
+
+    set rtt(v) {
         this.texturizer.enabled = v;
     }
 
-    get renderToTextureLazy() {
+    get rttLazy() {
         return this._hasTexturizer() && this.texturizer.lazy;
     }
 
-    set renderToTextureLazy(v) {
+    set rttLazy(v) {
         this.texturizer.lazy = v;
+    }
+
+    get rttTemp() {
+        return this._hasTexturizer() && this.texturizer.temporary;
+    }
+
+    set rttTemp(v) {
+        this.texturizer.temporary = v;
     }
 
     get renderOffscreen() {
