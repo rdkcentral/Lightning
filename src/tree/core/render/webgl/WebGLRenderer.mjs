@@ -37,12 +37,12 @@ export default class WebGLRenderer {
         return new CoreRenderState(ctx);
     }
 
-    createRenderTexture(w, h) {
+    createRenderTexture(w, h, pw, ph) {
         const gl = this.stage.gl;
         const glTexture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, glTexture);
 
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, pw, ph, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
 
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);

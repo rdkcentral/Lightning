@@ -76,21 +76,21 @@ export default class CoreContext {
 
     allocateRenderTexture(w, h) {
         let prec = this.stage.getRenderPrecision();
-        let aw = Math.max(1, Math.round(w * prec));
-        let ah = Math.max(1, Math.round(h * prec));
+        let pw = Math.max(1, Math.round(w * prec));
+        let ph = Math.max(1, Math.round(h * prec));
 
         // Search last item first, so that last released render texture is preferred (may cause memory cache benefits).
         const n = this._renderTexturePool.length;
         for (let i = n - 1; i >= 0; i--) {
             const texture = this._renderTexturePool[i];
-            if (texture.w === aw && texture.h === ah) {
+            if (texture.w === pw && texture.h === ph) {
                 texture.f = this.stage.frameCounter;
                 this._renderTexturePool.splice(i, 1);
                 return texture;
             }
         }
 
-        const texture = this._createRenderTexture(aw, ah);
+        const texture = this._createRenderTexture(w, h, pw, ph);
         texture.precision = prec;
         return texture;
     }
@@ -118,13 +118,13 @@ export default class CoreContext {
         console.warn("GC render texture memory" + (maxAge ? "" : " (aggressive)") + ": " + prevMem + "px > " + this._renderTexturePixels + "px");
     }
 
-    _createRenderTexture(w, h) {
-        const texture = this.stage.renderer.createRenderTexture(w, h);
+    _createRenderTexture(w, h, pw, ph) {
+        const texture = this.stage.renderer.createRenderTexture(w, h, pw, ph);
         texture.id = this._renderTextureId++;
         texture.f = this.stage.frameCounter;
-        texture.w = w;
-        texture.h = h;
-        this._renderTexturePixels += w * h;
+        texture.w = pw;
+        texture.h = ph;
+        this._renderTexturePixels += pw * ph;
 
         if (this._renderTexturePixels > this.stage.getOption('renderTextureMemory')) {
             this.freeUnusedRenderTextures();
@@ -147,6 +147,3 @@ export default class CoreContext {
     }
 
 }
-
-import CoreRenderState from "./CoreRenderState.mjs";
-import CoreRenderExecutor from "./CoreRenderExecutor.mjs";
