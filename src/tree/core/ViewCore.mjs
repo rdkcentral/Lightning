@@ -1568,10 +1568,31 @@ export default class ViewCore {
                         h: this._rh,
                         empty: true,
                         cleared: false,
-                        ignore: false
+                        ignore: false,
+                        cache: false
                     };
 
-                    // We can already release the current texture to the pool.
+                    if (!renderState.isCachingTexturizer && (this._hasRenderUpdates === 0)) {
+                        /**
+                         * We don't always cache render textures.
+                         *
+                         * The rule is, that caching for a specific render texture is only enabled if:
+                         * - There were no render updates since last frame (ViewCore.hasRenderUpdates === 0)
+                         * - There are no ancestors that are being cached during this frame (CoreRenderState.isCachingTexturizer)
+                         *   If an ancestor is cached anyway, it's probably not necessary to keep deeper caches. If the top level is to
+                         *   change while a lower one is not, that lower level will be cached instead.
+                         *
+                         * In case of the fast blur view, this prevents having to cache all blur levels and stages, saving a huge amount
+                         * of GPU memory!
+                         *
+                         * Especially when using multiple stacked layers of the same dimensions that are RTT this will have a very
+                         * noticable effect on performance as less render textures need to be allocated.
+                         */
+                        renderTextureInfo.cache = true;
+                        renderState.isCachingTexturizer = true;
+                    }
+
+                    // We can already release the current texture to the pool, as it will be rebuild anyway.
                     // In case of multiple layers of 'filtering', this may save us from having to create one
                     //  render-to-texture layer.
                     this._texturizer.releaseRenderTexture();
@@ -1667,13 +1688,19 @@ export default class ViewCore {
                         renderState.setShader(this.activeShader, this._shaderOwner);
                         renderState.setScissor(this._scissor);
 
-                        renderState.setOverrideQuadTexture(this._texturizer);
+                        const fillingCache = !!(renderTextureInfo && renderTextureInfo.cache);
+                        renderState.setTexturizer(this._texturizer, (!updateResultTexture || fillingCache));
                         this._stashTexCoords();
                         if (!this._texturizer.colorize) this._stashColors();
                         this.renderState.addQuad(this);
                         if (!this._texturizer.colorize) this._unstashColors();
                         this._unstashTexCoords();
-                        renderState.setOverrideQuadTexture(null);
+                        renderState.setTexturizer(null);
+
+                        if (fillingCache) {
+                            // Allow siblings to cache.
+                            renderState.isCachingTexturizer = false;
+                        }
                     }
                 }
             }

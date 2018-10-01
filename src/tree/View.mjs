@@ -1787,14 +1787,6 @@ export default class View {
         this.texturizer.lazy = v;
     }
 
-    get rttTemp() {
-        return this._hasTexturizer() && this.texturizer.temporary;
-    }
-
-    set rttTemp(v) {
-        this.texturizer.temporary = v;
-    }
-
     get renderOffscreen() {
         return this._hasTexturizer() && this.texturizer.renderOffscreen;
     }

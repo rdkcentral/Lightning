@@ -33,13 +33,17 @@ export default class CoreRenderState {
 
         this.quadOperations = [];
 
-        this._overrideQuadTexture = null;
+        this._texturizer = null;
+
+        this._texturizerTemporary = false;
 
         this._quadOperation = null;
 
         this.quads.reset();
 
         this._temporaryTexturizers = [];
+        
+        this._isCachingTexturizer = false;
 
     }
 
@@ -93,8 +97,21 @@ export default class CoreRenderState {
         }
     }
 
-    setOverrideQuadTexture(texturizer) {
-        this._overrideQuadTexture = texturizer;
+    /**
+     * Sets the texturizer to be drawn during subsequent addQuads.
+     * @param {ViewTexturizer} texturizer
+     */
+    setTexturizer(texturizer, cache = false) {
+        this._texturizer = texturizer;
+        this._cacheTexturizer = cache;
+    }
+
+    set isCachingTexturizer(v) {
+        this._isCachingTexturizer = v;
+    }
+
+    get isCachingTexturizer() {
+        return this._isCachingTexturizer;
     }
 
     addQuad(viewCore) {
@@ -106,12 +123,12 @@ export default class CoreRenderState {
         }
 
         let nativeTexture = null;
-        if (this._overrideQuadTexture) {
-            nativeTexture =  this._overrideQuadTexture.getResultTexture();
+        if (this._texturizer) {
+            nativeTexture = this._texturizer.getResultTexture();
 
-            if (this._overrideQuadTexture.temporary) {
+            if (!this._cacheTexturizer) {
                 // We can release the temporary texture immediately after finalizing this quad operation.
-                this._temporaryTexturizers.push(this._overrideQuadTexture);
+                this._temporaryTexturizers.push(this._texturizer);
             }
         }
 
