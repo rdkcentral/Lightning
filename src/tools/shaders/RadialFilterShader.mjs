@@ -1,6 +1,6 @@
-import Shader from "../../tree/Shader.mjs";
+import DefaultShader from "../../tree/DefaultShader.mjs";
 
-export default class RadialFilterShader extends Shader {
+export default class RadialFilterShader extends DefaultShader {
     constructor(context) {
         super(context);
         this._radius = 0;
@@ -25,20 +25,29 @@ export default class RadialFilterShader extends Shader {
         return this._cutoff;
     }
     
-    setupUniforms(operation) {
-        super.setupUniforms(operation);
-        // We substract half a pixel to get a better cutoff effect.
-        this._setUniform("radius", 2 * (this._radius - 0.5) / operation.getRenderWidth(), this.gl.uniform1f);
-        this._setUniform("cutoff", 0.5 * operation.getRenderWidth() / this._cutoff, this.gl.uniform1f);
-    }
-
     useDefault() {
         return this._radius === 0;
     }
 
+    static getWebGLImpl() {
+        return WebGLRadialFilterShaderImpl;
+    }
+
 }
 
-RadialFilterShader.vertexShaderSource = `
+import WebGLDefaultShaderImpl from "../../tree/core/render/webgl/WebGLDefaultShaderImpl.mjs";
+class WebGLRadialFilterShaderImpl extends WebGLDefaultShaderImpl {
+
+    setupUniforms(operation) {
+        super.setupUniforms(operation);
+        // We substract half a pixel to get a better cutoff effect.
+        this._setUniform("radius", 2 * (this.shader._radius - 0.5) / operation.getRenderWidth(), this.gl.uniform1f);
+        this._setUniform("cutoff", 0.5 * operation.getRenderWidth() / this.shader._cutoff, this.gl.uniform1f);
+    }
+
+}
+
+WebGLRadialFilterShaderImpl.vertexShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -58,7 +67,7 @@ RadialFilterShader.vertexShaderSource = `
     }
 `;
 
-RadialFilterShader.fragmentShaderSource = `
+WebGLRadialFilterShaderImpl.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif

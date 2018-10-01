@@ -20,29 +20,15 @@ export default class CoreRenderExecutor {
         this._reset();
 
         let qops = this.renderState.quadOperations;
-        let fops = this.renderState.filterOperations;
 
-        let i = 0, j = 0, n = qops.length, m = fops.length;
+        let i = 0, j = 0, n = qops.length;
         while (i < n) {
-            while (j < m && i === fops[j].beforeQuadOperation) {
-                if (this._quadOperation) {
-                    this._execQuadOperation(this._quadOperation);
-                }
-                this._execFilterOperation(fops[j]);
-                j++;
-            }
-
             this._processQuadOperation(qops[i]);
             i++;
         }
 
         if (this._quadOperation) {
             this._execQuadOperation(this._quadOperation);
-        }
-
-        while (j < m) {
-            this._execFilterOperation(fops[j]);
-            j++;
         }
     }
 
@@ -62,8 +48,6 @@ export default class CoreRenderExecutor {
     }
 
     _setupQuadOperation(quadOperation) {
-        let shader = quadOperation.shader;
-        this._useShaderProgram(shader, quadOperation);
     }
 
     _execQuadOperation(op) {
@@ -72,13 +56,6 @@ export default class CoreRenderExecutor {
     }
 
     _renderQuadOperation(op) {
-    }
-
-    _execFilterOperation(filterOperation) {
-        this._renderFilterOperation(filterOperation)
-    }
-
-    _renderFilterOperation(op) {
     }
 
 }

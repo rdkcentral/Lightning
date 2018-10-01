@@ -71,14 +71,14 @@ export default class WebGLCoreRenderExecutor extends CoreRenderExecutor {
     }
 
     _setupQuadOperation(quadOperation) {
-        super._setupQuadOperation(quadOperation)
-        this._useShaderProgram(quadOperation.shader, quadOperation);
+        super._setupQuadOperation(quadOperation);
+        this._useShaderProgram(quadOperation.shader.impl, quadOperation);
     }
 
     _renderQuadOperation(op) {
-        let shader = op.shader;
+        let shaderImpl = op.shader.impl;
 
-        if (op.length || shader.addEmpty()) {
+        if (op.length || op.shader.addEmpty()) {
             // Set render texture.
             let nativeTexture = op.renderTextureInfo ? op.renderTextureInfo.nativeTexture : null;
             if (this._renderTexture !== nativeTexture) {
@@ -94,9 +94,9 @@ export default class WebGLCoreRenderExecutor extends CoreRenderExecutor {
                 this._setScissor(op.scissor);
             }
 
-            shader.beforeDraw(op);
-            shader.draw(op);
-            shader.afterDraw(op);
+            shaderImpl.beforeDraw(op);
+            shaderImpl.draw(op);
+            shaderImpl.afterDraw(op);
         }
     }
 
@@ -114,18 +114,18 @@ export default class WebGLCoreRenderExecutor extends CoreRenderExecutor {
     }
 
     /**
-     * @param {Filter|Shader} program;
+     * @param {WebGLShaderImpl} shader;
      * @param {CoreFilterOperation|CoreQuadOperation} operation;
      */
-    _useShaderProgram(program, operation) {
-        if (!program.hasSameProgram(this._currentShaderProgram)) {
+    _useShaderProgram(shader, operation) {
+        if (!shader.hasSameProgram(this._currentShaderProgram)) {
             if (this._currentShaderProgram) {
                 this._currentShaderProgram.stopProgram();
             }
-            program.useProgram();
-            this._currentShaderProgram = program;
+            shader.useProgram();
+            this._currentShaderProgram = shader;
         }
-        program.setupUniforms(operation);
+        shader.setupUniforms(operation);
     }
 
     _stopShaderProgram() {

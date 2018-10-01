@@ -1,39 +1,40 @@
+import WebGLShaderProgram from "./WebGLShaderProgram.mjs";
 
-import ShaderProgram from "./ShaderProgram.mjs";
+export default class WebGLShaderImpl {
 
-export default class ShaderBase {
+    constructor(shader) {
+        this._shader = shader;
 
-    constructor(coreContext) {
-        this._program = coreContext.shaderPrograms.get(this.constructor);
+        const stage = this._shader.ctx.stage;
+
+        this._program = stage.renderer.shaderPrograms.get(this.constructor);
         if (!this._program) {
-            this._program = new ShaderProgram(this.constructor.vertexShaderSource, this.constructor.fragmentShaderSource);
+            this._program = new WebGLShaderProgram(this.constructor.vertexShaderSource, this.constructor.fragmentShaderSource);
 
             // Let the vbo context perform garbage collection.
-            coreContext.shaderPrograms.set(this.constructor, this._program);
+            stage.renderer.shaderPrograms.set(this.constructor, this._program);
         }
-        this._initialized = false;
 
-        this.ctx = coreContext;
+        this.gl = stage.gl;
+    }
 
-        this.gl = this.ctx.stage.gl;
-
-        /**
-         * The (enabled) views that use this shader.
-         * @type {Set<ViewCore>}
-         */
-        this._views = new Set();
+    get shader() {
+        return this._shader;
     }
 
     _init() {
         if (!this._initialized) {
-            this._program.compile(this.gl);
             this.initialize();
             this._initialized = true;
         }
     }
 
     initialize() {
+        this._program.compile(this.gl);
+    }
 
+    get initialized() {
+        return this._initialized;
     }
 
     _uniform(name) {
@@ -73,39 +74,21 @@ export default class ShaderBase {
         // All settings changed in beforeUsage should be reset here.
     }
 
-    get initialized() {
-        return this._initialized;
+    enableAttribs() {
+
+    }
+
+    disableAttribs() {
+
     }
 
     get glProgram() {
         return this._program.glProgram;
     }
 
-    addView(viewCore) {
-        this._views.add(viewCore);
-    }
-
-    removeView(viewCore) {
-        this._views.delete(viewCore);
-        if (!this._views) {
-            this.cleanup();
-        }
-    }
-
-    redraw() {
-        this._views.forEach(viewCore => {
-            viewCore.setHasRenderUpdates(2);
-        });
-    }
-
-    patch(settings) {
-        Base.patchObject(this, settings);
-    }
-
     cleanup() {
         this._initialized = false;
+        // Program takes little resources, so it is only destroyed when the full stage is destroyed.
     }
 
 }
-
-import Base from "./Base.mjs";

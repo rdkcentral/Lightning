@@ -1,12 +1,10 @@
+import DefaultShader from "../../tree/DefaultShader.mjs";
 
-import Filter from "../../tree/Filter.mjs";
+export default class LinearBlurShader extends DefaultShader {
+    constructor(context) {
+        super(context);
 
-export default class LinearBlurFilter extends Filter {
-
-    constructor(ctx) {
-        super(ctx);
-
-        this._direction = new Float32Array([0, 0]);
+        this._direction = new Float32Array([1, 0]);
         this._kernelRadius = 1;
     }
 
@@ -37,20 +35,36 @@ export default class LinearBlurFilter extends Filter {
         this.redraw();
     }
 
-    setupUniforms(operation) {
-        super.setupUniforms(operation);
-        this._setUniform("direction", this._direction, this.gl.uniform2fv);
-        this._setUniform("kernelRadius", this._kernelRadius, this.gl.uniform1i);
+
+    useDefault() {
+        return (this._kernelRadius === 0);
     }
 
+    static getWebGLImpl() {
+        return WebGLLinearBlurShaderImpl;
+    }
 }
 
-LinearBlurFilter.fragmentShaderSource = `
+import WebGLDefaultShaderImpl from "../../tree/core/render/webgl/WebGLDefaultShaderImpl.mjs";
+class WebGLLinearBlurShaderImpl extends WebGLDefaultShaderImpl {
+    setupUniforms(operation) {
+        super.setupUniforms(operation);
+        this._setUniform("direction", this.shader._direction, this.gl.uniform2fv);
+        this._setUniform("kernelRadius", this.shader._kernelRadius, this.gl.uniform1i);
+
+        const w = operation.getRenderWidth();
+        const h = operation.getRenderHeight();
+        this._setUniform("resolution", new Float32Array([w, h]), this.gl.uniform2fv);
+    }
+}
+
+WebGLLinearBlurShaderImpl.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
     uniform vec2 resolution;
     varying vec2 vTextureCoord;
+    varying vec4 vColor;
     uniform sampler2D uSampler;
     uniform vec2 direction;
     uniform int kernelRadius;
@@ -92,14 +106,12 @@ LinearBlurFilter.fragmentShaderSource = `
     }    
 
     void main(void){
-        if (kernelRadius == 0) {
-            gl_FragColor = texture2D(uSampler, vTextureCoord);
-        } else if (kernelRadius == 1) {
-            gl_FragColor = blur1(uSampler, vTextureCoord, resolution, direction);
+        if (kernelRadius == 1) {
+            gl_FragColor = blur1(uSampler, vTextureCoord, resolution, direction) * vColor;
         } else if (kernelRadius == 2) {
-            gl_FragColor = blur2(uSampler, vTextureCoord, resolution, direction);
+            gl_FragColor = blur2(uSampler, vTextureCoord, resolution, direction) * vColor;
         } else {
-            gl_FragColor = blur3(uSampler, vTextureCoord, resolution, direction);
+            gl_FragColor = blur3(uSampler, vTextureCoord, resolution, direction) * vColor;
         }
     }
 `;

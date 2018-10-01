@@ -2,7 +2,7 @@
  * Base functionality for shader setup/destroy.
  * Copyright Metrological, 2017
  */
-export default class ShaderProgram {
+export default class WebGLShaderProgram {
 
     constructor(vertexShaderSource, fragmentShaderSource) {
 

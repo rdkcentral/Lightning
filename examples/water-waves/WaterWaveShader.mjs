@@ -1,6 +1,6 @@
-import Shader from "../../src/tree/Shader.mjs"
+import DefaultShader from "../../src/tree/DefaultShader.mjs"
 
-export default class WaterWaveShader extends Shader {
+export default class WaterWaveShader extends DefaultShader {
 
     constructor(context) {
         super(context);
@@ -10,14 +10,23 @@ export default class WaterWaveShader extends Shader {
         this._start = Date.now()
     }
 
+    static getWebGLImpl() {
+        return WebGLWaterWaveShaderImpl;
+    }
+
+}
+
+import WebGLDefaultShaderImpl from "../../src/tree/core/render/webgl/WebGLDefaultShaderImpl.mjs";
+class WebGLWaterWaveShaderImpl extends WebGLDefaultShaderImpl {
+
     setupUniforms(operation) {
         super.setupUniforms(operation)
 
         // We substract half a pixel to get a better cutoff effect.
-        if (!this._start) {
-            this._start = Date.now()
+        if (!this.shader._start) {
+            this.shader._start = Date.now()
         }
-        this._setUniform("t", 0.001 * (Date.now() - this._start), this.gl.uniform1f);
+        this._setUniform("t", 0.001 * (Date.now() - this.shader._start), this.gl.uniform1f);
 
         const tw = operation.getTextureWidth(0);
         const th = operation.getTextureHeight(0);
@@ -27,12 +36,12 @@ export default class WaterWaveShader extends Shader {
         const h = operation.getRenderHeight();
         this._setUniform("dims", new Float32Array([w, h, w/h]), this.gl.uniform3fv);
 
-        this.redraw()
+        this.shader.redraw()
     }
 
 }
 
-WaterWaveShader.vertexShaderSource = `
+WebGLWaterWaveShaderImpl.vertexShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -50,7 +59,7 @@ WaterWaveShader.vertexShaderSource = `
     }
 `;
 
-WaterWaveShader.fragmentShaderSource = `
+WebGLWaterWaveShaderImpl.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif

@@ -1,6 +1,6 @@
 (function(wuf) {
 
-class FlowingGradientShader extends wuf.Shader {
+class FlowingGradientShader extends wuf.DefaultShader {
     constructor(context) {
         super(context)
 

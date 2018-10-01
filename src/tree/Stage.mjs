@@ -133,7 +133,7 @@ export default class Stage extends EventEmitter {
         opt('renderTextureMemory', 12e6);
         opt('bufferMemory', 8e6);
         opt('textRenderIssueMargin', 0);
-        opt('glClearColor', [0, 0, 0, 0]);
+        opt('clearColor', [0, 0, 0, 0]);
         opt('defaultFontFace', 'Sans-Serif');
         opt('fixedDt', 0);
         opt('useTextureAtlas', false);
@@ -161,6 +161,7 @@ export default class Stage extends EventEmitter {
             this.adapter.stopLoop();
             this.ctx.destroy();
             this.textureManager.destroy();
+            this._renderer.destroy();
             this._destroyed = true;
         }
     }

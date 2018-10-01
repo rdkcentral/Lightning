@@ -1,9 +1,9 @@
-import Shader from "../../tree/Shader.mjs";
+import DefaultShader from "../../tree/DefaultShader.mjs";
 
-export default class GrayscaleShader extends Shader {
+export default class GrayscaleShader extends DefaultShader {
     constructor(context) {
         super(context);
-        this._amount = 0;
+        this._amount = 1;
     }
 
     set amount(v) {
@@ -15,18 +15,24 @@ export default class GrayscaleShader extends Shader {
         return this._amount;
     }
 
-    setupUniforms(operation) {
-        super.setupUniforms(operation);
-        this._setUniform("amount", this._amount, this.gl.uniform1f);
-    }
-
     useDefault() {
         return this._amount === 0;
     }
 
+    static getWebGLImpl() {
+        return WebGLGrayscaleShaderImpl;
+    }
 }
 
-GrayscaleShader.fragmentShaderSource = `
+import WebGLDefaultShaderImpl from "../../tree/core/render/webgl/WebGLDefaultShaderImpl.mjs";
+class WebGLGrayscaleShaderImpl extends WebGLDefaultShaderImpl {
+    setupUniforms(operation) {
+        super.setupUniforms(operation);
+        this._setUniform("amount", this.shader._amount, this.gl.uniform1f);
+    }
+}
+
+WebGLGrayscaleShaderImpl.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif

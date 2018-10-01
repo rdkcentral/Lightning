@@ -1,12 +1,12 @@
-import Shader from "../../tree/Shader.mjs";
+import DefaultShader from "../../tree/DefaultShader.mjs";
 
-export default class OutlineShader extends Shader {
+export default class OutlineShader extends DefaultShader {
 
     constructor(ctx) {
         super(ctx);
         this._width = 5;
-        this._color = 0xFFFFFFFF;
-        this._col = [1,1,1,1];
+        this._col = 0xFFFFFFFF;
+        this._color = [1,1,1,1];
     }
 
     set width(v) {
@@ -33,10 +33,22 @@ export default class OutlineShader extends Shader {
         }
     }
 
+    useDefault() {
+        return (this._width === 0 || this._col[3] === 0);
+    }
+
+    static getWebGLImpl() {
+        return WebGLOutlineShaderImpl;
+    }
+}
+
+import WebGLDefaultShaderImpl from "../../tree/core/render/webgl/WebGLDefaultShaderImpl.mjs";
+class WebGLOutlineShaderImpl extends WebGLDefaultShaderImpl {
+
     setupUniforms(operation) {
         super.setupUniforms(operation);
         let gl = this.gl;
-        this._setUniform("color", new Float32Array(this._color), gl.uniform4fv);
+        this._setUniform("color", new Float32Array(this.shader._color), gl.uniform4fv);
     }
 
     enableAttribs() {
@@ -60,9 +72,9 @@ export default class OutlineShader extends Shader {
             const viewCore = operation.getViewCore(i);
 
             // We are setting attributes such that if the value is < 0 or > 1, a border should be drawn.
-            const ddw = this._width / viewCore.rw;
+            const ddw = this.shader._width / viewCore.rw;
             const dw = ddw / (1 - 2 * ddw);
-            const ddh = this._width / viewCore.rh;
+            const ddh = this.shader._width / viewCore.rh;
             const dh = ddh / (1 - 2 * ddh);
 
             // Specify all corner points.
@@ -91,12 +103,9 @@ export default class OutlineShader extends Shader {
         return 8;
     }
 
-    useDefault() {
-        return (this._width === 0 || this._col[3] === 0);
-    }
 }
 
-OutlineShader.vertexShaderSource = `
+WebGLOutlineShaderImpl.vertexShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -117,7 +126,7 @@ OutlineShader.vertexShaderSource = `
     }
 `;
 
-OutlineShader.fragmentShaderSource = `
+WebGLOutlineShaderImpl.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif

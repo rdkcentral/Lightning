@@ -8,8 +8,6 @@ export default class CoreContext {
 
         this.updateTreeOrder = 0;
 
-        this.shaderPrograms = new Map();
-
         this.renderState = this.stage.renderer.createCoreRenderState(this);
 
         this.renderExec = this.stage.renderer.createCoreRenderExecutor(this);
@@ -24,7 +22,6 @@ export default class CoreContext {
     }
 
     destroy() {
-        this.shaderPrograms.forEach(shaderProgram => shaderProgram.destroy());
         this._renderTexturePool.forEach(texture => this._freeRenderTexture(texture));
     }
 
@@ -68,7 +65,7 @@ export default class CoreContext {
     }
 
     render() {
-        // Obtain a sequence of the quad and filter operations.
+        // Obtain a sequence of the quad operations.
         this.renderState.reset();
         this.root.render();
         this.renderState.finish();
@@ -104,7 +101,7 @@ export default class CoreContext {
         const prevMem = this._renderTexturePixels;
 
         // Clean up all textures that are no longer used.
-        // This cache is short-lived because it is really just meant to supply running shaders and filters that are
+        // This cache is short-lived because it is really just meant to supply running shaders that are
         // updated during a number of frames.
         let limit = this.stage.frameCounter - maxAge;
 

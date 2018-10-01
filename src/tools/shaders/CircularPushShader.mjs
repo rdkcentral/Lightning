@@ -1,8 +1,10 @@
-import Shader from "../../tree/Shader.mjs";
+import Utils from "../../tree/Utils.mjs";
+import DefaultShader from "../../tree/DefaultShader.mjs";
 
-export default class CircularPushShader extends Shader {
-    constructor(context) {
-        super(context);
+export default class CircularPushShader extends DefaultShader {
+
+    constructor(ctx) {
+        super(ctx);
 
         this._inputValue = 0;
 
@@ -133,23 +135,40 @@ export default class CircularPushShader extends Shader {
         this.redraw();
     }
 
-    setupUniforms(operation) {
-        super.setupUniforms(operation);
-        this._setUniform("aspectRatio", this._aspectRatio, this.gl.uniform1f);
-        this._setUniform("offsetX", this._offsetX, this.gl.uniform1f);
-        this._setUniform("offsetY", this._offsetY, this.gl.uniform1f);
-        this._setUniform("amount", this._amount, this.gl.uniform1f);
-        this._setUniform("offset", this._offset, this.gl.uniform1f);
-        this._setUniform("buckets", this._buckets, this.gl.uniform1f);
-        this._setUniform("uValueSampler", 1, this.gl.uniform1i);
-    }
-
     useDefault() {
         return this._amount === 0;
     }
 
+    static getWebGLImpl() {
+        return WebGLCircularPushShaderImpl;
+    }
+
+}
+
+import WebGLDefaultShaderImpl from "../../tree/core/render/webgl/WebGLDefaultShaderImpl.mjs";
+
+class WebGLCircularPushShaderImpl extends WebGLDefaultShaderImpl {
+
+    constructor(context) {
+        super(context);
+    }
+
+    setupUniforms(operation) {
+        super.setupUniforms(operation);
+        const shader = this.shader;
+
+        this._setUniform("aspectRatio", shader._aspectRatio, this.gl.uniform1f);
+        this._setUniform("offsetX", shader._offsetX, this.gl.uniform1f);
+        this._setUniform("offsetY", shader._offsetY, this.gl.uniform1f);
+        this._setUniform("amount", shader._amount, this.gl.uniform1f);
+        this._setUniform("offset", shader._offset, this.gl.uniform1f);
+        this._setUniform("buckets", shader._buckets, this.gl.uniform1f);
+        this._setUniform("uValueSampler", 1, this.gl.uniform1i);
+    }
+
     beforeDraw(operation) {
         const gl = this.gl;
+        const shader = this.shader;
         gl.activeTexture(gl.TEXTURE1);
         if (!this._valuesTexture) {
             this._valuesTexture = gl.createTexture();
@@ -167,20 +186,22 @@ export default class CircularPushShader extends Shader {
         }
 
         // Upload new values.
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.ALPHA, this._buckets, 1, 0, gl.ALPHA, gl.UNSIGNED_BYTE, this._values);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.ALPHA, shader._buckets, 1, 0, gl.ALPHA, gl.UNSIGNED_BYTE, shader._values);
         gl.activeTexture(gl.TEXTURE0);
     }
 
     cleanup() {
+        super.cleanup();
         if (this._valuesTexture) {
             this.gl.deleteTexture(this._valuesTexture);
+            this._valuesTexture = null;
         }
     }
 
 
 }
 
-CircularPushShader.vertexShaderSource = `
+WebGLCircularPushShaderImpl.vertexShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -206,7 +227,7 @@ CircularPushShader.vertexShaderSource = `
     }
 `;
 
-CircularPushShader.fragmentShaderSource = `
+WebGLCircularPushShaderImpl.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -228,5 +249,4 @@ CircularPushShader.fragmentShaderSource = `
     }
 `;
 
-import Utils from "../../tree/Utils.mjs";
 

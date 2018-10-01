@@ -1,6 +1,6 @@
 import View from "../../tree/View.mjs";
 import LinearBlurFilter from "../filters/LinearBlurFilter.mjs";
-import Shader from "../../tree/Shader.mjs";
+import DefaultShader from "../../tree/Shader.mjs";
 
 export default class FastBlurView extends View {
 
@@ -211,7 +211,7 @@ export default class FastBlurView extends View {
 /**
  * 4x4 box blur shader which works in conjunction with a 50% rescale.
  */
-class FastBoxBlurShader extends Shader {
+class FastBoxBlurShader extends DefaultShader {
 
     constructor(ctx) {
         super(ctx);
@@ -270,7 +270,7 @@ FastBoxBlurShader.fragmentShaderSource = `
 /**
  * Shader that combines two textures into one output.
  */
-class FastBlurOutputShader extends Shader {
+class FastBlurOutputShader extends DefaultShader {
 
     constructor(ctx) {
         super(ctx);

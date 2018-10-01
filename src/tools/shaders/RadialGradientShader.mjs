@@ -1,6 +1,6 @@
-import Shader from "../../tree/Shader.mjs";
+import DefaultShader from "../../tree/DefaultShader.mjs";
 
-export default class RadialGradientShader extends Shader {
+export default class RadialGradientShader extends DefaultShader {
     
     constructor(context) {
         super(context);
@@ -66,25 +66,34 @@ export default class RadialGradientShader extends Shader {
         }
     }
 
+    static getWebGLImpl() {
+        return WebGLRadialGradientShaderImpl;
+    }
+
+}
+
+import WebGLDefaultShaderImpl from "../../tree/core/render/webgl/WebGLDefaultShaderImpl.mjs";
+class WebGLRadialGradientShaderImpl extends WebGLDefaultShaderImpl {
+
     setupUniforms(operation) {
         super.setupUniforms(operation);
         // We substract half a pixel to get a better cutoff effect.
-        const rtc = operation.getNormalRenderTextureCoords(this._x, this._y);
+        const rtc = operation.getNormalRenderTextureCoords(this.shader._x, this.shader._y);
         this._setUniform("center", new Float32Array(rtc), this.gl.uniform2fv);
 
-        this._setUniform("radius", 2 * this._radiusX / operation.getRenderWidth(), this.gl.uniform1f);
+        this._setUniform("radius", 2 * this.shader._radiusX / operation.getRenderWidth(), this.gl.uniform1f);
 
 
         // Radial gradient shader is expected to be used on a single view. That view's alpha is used.
         this._setUniform("alpha", operation.getViewCore(0).renderContext.alpha, this.gl.uniform1f);
 
-        this._setUniform("color", this._rawColor, this.gl.uniform4fv);
-        this._setUniform("aspectRatio", (this._radiusX/this._radiusY) * operation.getRenderHeight()/operation.getRenderWidth(), this.gl.uniform1f);
+        this._setUniform("color", this.shader._rawColor, this.gl.uniform4fv);
+        this._setUniform("aspectRatio", (this.shader._radiusX/this.shader._radiusY) * operation.getRenderHeight()/operation.getRenderWidth(), this.gl.uniform1f);
     }
 
 }
 
-RadialGradientShader.vertexShaderSource = `
+WebGLRadialGradientShaderImpl.vertexShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -107,7 +116,7 @@ RadialGradientShader.vertexShaderSource = `
     }
 `;
 
-RadialGradientShader.fragmentShaderSource = `
+WebGLRadialGradientShaderImpl.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif

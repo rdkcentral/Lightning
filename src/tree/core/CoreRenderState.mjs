@@ -1,5 +1,4 @@
-import StageUtils from "../../tree/StageUtils.mjs";
-
+import DefaultShader from "../DefaultShader.mjs";
 
 export default class CoreRenderState {
 
@@ -8,7 +7,7 @@ export default class CoreRenderState {
 
         this.stage = ctx.stage;
 
-        this.defaultShader = new Shader(this.ctx);
+        this.defaultShader = new DefaultShader(this.ctx);
 
         this.renderer = ctx.stage.renderer;
 
@@ -22,7 +21,7 @@ export default class CoreRenderState {
         this._scissor = null;
 
         /**
-         * @type {Shader}
+         * @type {DefaultShader}
          */
         this._shader = null;
 
@@ -33,7 +32,6 @@ export default class CoreRenderState {
         this._check = false;
 
         this.quadOperations = [];
-        this.filterOperations = [];
 
         this._overrideQuadTexture = null;
 
@@ -184,13 +182,6 @@ export default class CoreRenderState {
         this._check = false;
     }
 
-    addFilter(filter, owner, source, target) {
-        // Close current quad operation.
-        this._addQuadOperation(false);
-
-        this.filterOperations.push(this.renderer.createCoreFilterOperation(this.ctx, filter, owner, source, target, this.quadOperations.length));
-    }
-
     finish() {
         if (this._quadOperation) {
             // Add remaining.
@@ -202,4 +193,3 @@ export default class CoreRenderState {
 
 }
 
-import Shader from "../Shader.mjs";

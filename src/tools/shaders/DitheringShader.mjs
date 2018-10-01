@@ -1,15 +1,13 @@
-import Shader from "../../tree/Shader.mjs";
+import DefaultShader from "../../tree/DefaultShader.mjs";
 import NoiseTexture from "../../textures/NoiseTexture.mjs";
 
 /**
  * This shader can be used to fix a problem that is known as 'gradient banding'.
  */
-export default class DitheringShader extends Shader {
+export default class DitheringShader extends DefaultShader {
 
     constructor(ctx) {
         super(ctx);
-
-        this._noiseTexture = new NoiseTexture(ctx.stage);
 
         this._graining = 1/256;
 
@@ -24,6 +22,26 @@ export default class DitheringShader extends Shader {
     set random(v) {
         this._random = v;
         this.redraw();
+    }
+
+    useDefault() {
+        return this._graining === 0;
+    }
+
+
+    static getWebGLImpl() {
+        return WebGLDitheringShaderImpl;
+    }
+}
+
+
+import WebGLDefaultShaderImpl from "../../tree/core/render/webgl/WebGLDefaultShaderImpl.mjs";
+class WebGLDitheringShaderImpl extends WebGLDefaultShaderImpl {
+
+    constructor(shader) {
+        super(shader)
+
+        this._noiseTexture = new NoiseTexture(shader.ctx.stage);
     }
 
     setExtraAttribsInBuffer(operation) {
@@ -43,7 +61,7 @@ export default class DitheringShader extends Shader {
 
             let ulx = 0;
             let uly = 0;
-            if (this._random) {
+            if (this.shader._random) {
                 ulx = Math.random();
                 uly = Math.random();
 
@@ -99,7 +117,7 @@ export default class DitheringShader extends Shader {
     setupUniforms(operation) {
         super.setupUniforms(operation);
         this._setUniform("uNoiseSampler", 1, this.gl.uniform1i);
-        this._setUniform("graining", 2 * this._graining, this.gl.uniform1f);
+        this._setUniform("graining", 2 * this.shader._graining, this.gl.uniform1f);
     }
 
     enableAttribs() {
@@ -114,10 +132,6 @@ export default class DitheringShader extends Shader {
         gl.disableVertexAttribArray(this._attrib("aNoiseTextureCoord"));
     }
 
-    useDefault() {
-        return this._graining === 0;
-    }
-
     afterDraw(operation) {
         if (this._random) {
             this.redraw();
@@ -126,7 +140,7 @@ export default class DitheringShader extends Shader {
 
 }
 
-DitheringShader.vertexShaderSource = `
+WebGLDitheringShaderImpl.vertexShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -147,7 +161,7 @@ DitheringShader.vertexShaderSource = `
     }
 `;
 
-DitheringShader.fragmentShaderSource = `
+WebGLDitheringShaderImpl.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -163,3 +177,4 @@ DitheringShader.fragmentShaderSource = `
         gl_FragColor = (color * vColor) + graining * (noise.r - 0.5);
     }
 `;
+

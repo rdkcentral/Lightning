@@ -373,8 +373,7 @@ export default class ViewCore {
      * @param {number} type
      * 0: no updates
      * 1: re-invoke shader
-     * 2: re-invoke filter
-     * 3: re-create render texture and re-invoke shader and filter
+     * 3: re-create render texture and re-invoke shader
      */
     setHasRenderUpdates(type) {
         if (this._worldContext.alpha) {
@@ -575,7 +574,6 @@ export default class ViewCore {
             this._setRecalc(2);
             if (this._texturizer) {
                 this._texturizer.releaseRenderTexture();
-                this._texturizer.releaseFilterTexture();
                 this._texturizer.updateResultTexture();
             }
             // Due to width/height change: update the translation vector.
@@ -994,7 +992,7 @@ export default class ViewCore {
 
     updateRenderToTextureEnabled() {
         // Enforce texturizer initialisation.
-        let v = (this.texturizer._hasFilters() || this.texturizer._enabled);
+        let v = this.texturizer._enabled;
 
         if (v) {
             this._enableRenderToTexture();
@@ -1628,7 +1626,6 @@ export default class ViewCore {
                         // We ignore empty render textures and do not draw the final quad.
 
                         // The following cleans up memory and enforces that the result texture is also cleared.
-                        this._texturizer.releaseFilterTexture();
                         this._texturizer.releaseRenderTexture();
                     } else if (renderTextureInfo.nativeTexture) {
                         // If nativeTexture is set, we can reuse that directly instead of creating a new render texture.
@@ -1651,15 +1648,6 @@ export default class ViewCore {
                 }
 
                 if (!this._texturizer.empty) {
-                    let hasFilters = this._texturizer._hasActiveFilters();
-
-                    if (hasFilters) {
-                        if ((this._hasRenderUpdates >= 2 || !this._texturizer.filterResultCached)) {
-                            this.applyFilters();
-                            updateResultTexture = true;
-                        }
-                    }
-
                     let resultTexture = this._texturizer.getResultTexture();
                     if (updateResultTexture) {
                         if (resultTexture) {
@@ -1686,50 +1674,6 @@ export default class ViewCore {
             }
 
             this._hasRenderUpdates = 0;
-        }
-    }
-
-    applyFilters() {
-        let sourceTexture = this._texturizer.getRenderTexture();
-
-        let renderState = this.renderState;
-        let activeFilters = this._texturizer.getActiveFilters();
-
-        let textureRenders = activeFilters.length;
-
-        this._texturizer.filterResultCached = false;
-
-        if (textureRenders === 0) {
-            // No filters: just render the source texture with the normal shader.
-            return sourceTexture;
-        } else if (textureRenders === 1) {
-            let targetTexture = this._texturizer.getFilterTexture();
-
-            // No intermediate texture is needed.
-            renderState.addFilter(activeFilters[0], this, sourceTexture, targetTexture);
-            this._texturizer.filterResultCached = true;
-        } else {
-            let targetTexture = this._texturizer.getFilterTexture();
-            let intermediate = this.ctx.allocateRenderTexture(this._rw, this._rh);
-            let source = intermediate;
-            let target = targetTexture;
-
-            let even = ((textureRenders % 2) === 0);
-
-            for (let i = 0; i < textureRenders; i++) {
-                if (i !== 0 || even) {
-                    // Finally, the target should contain targetTexture, and source the intermediate texture.
-                    let tmp = source;
-                    source = target;
-                    target = tmp;
-                }
-
-                renderState.addFilter(activeFilters[i], this, i === 0 ? sourceTexture : source, target);
-            }
-
-            this.ctx.releaseRenderTexture(intermediate);
-
-            this._texturizer.filterResultCached = true;
         }
     }
 

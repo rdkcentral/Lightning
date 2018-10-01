@@ -10,6 +10,11 @@ export default class WebGLRenderer {
 
     constructor(stage) {
         this.stage = stage;
+        this.shaderPrograms = new Map();
+    }
+
+    destroy() {
+        this.shaderPrograms.forEach(shaderProgram => shaderProgram.destroy());
     }
 
     createCoreQuadList(ctx) {
@@ -224,10 +229,10 @@ export default class WebGLRenderer {
         let offset = renderState.length * 80 + 80;
         for (let i = 0, n = renderState.quadOperations.length; i < n; i++) {
             renderState.quadOperations[i].extraAttribsDataByteOffset = offset;
-            let extra = renderState.quadOperations[i].shader.getExtraAttribBytesPerVertex() * 4 * renderState.quadOperations[i].length;
+            let extra = renderState.quadOperations[i].shader.impl.getExtraAttribBytesPerVertex() * 4 * renderState.quadOperations[i].length;
             offset += extra;
             if (extra) {
-                renderState.quadOperations[i].shader.setExtraAttribsInBuffer(renderState.quadOperations[i], renderState.quads);
+                renderState.quadOperations[i].shader.impl.setExtraAttribsInBuffer(renderState.quadOperations[i], renderState.quads);
             }
         }
         renderState.quads.dataLength = offset;

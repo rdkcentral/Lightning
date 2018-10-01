@@ -1,10 +1,16 @@
+import DefaultShader from "../../tree/DefaultShader.mjs";
 
-import Shader from "../../tree/Shader.mjs";
-
-export default class InversionShader extends Shader {
+export default class InversionShader extends DefaultShader {
+    static getWebGLImpl() {
+        return WebGLInversionShaderImpl;
+    }
 }
 
-InversionShader.fragmentShaderSource = `
+import WebGLDefaultShaderImpl from "../../tree/core/render/webgl/WebGLDefaultShaderImpl.mjs";
+class WebGLInversionShaderImpl extends WebGLDefaultShaderImpl {
+}
+
+WebGLInversionShaderImpl.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif

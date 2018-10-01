@@ -3,8 +3,7 @@ import Component from "./application/Component.mjs";
 import Base from "./tree/Base.mjs";
 import Utils from "./tree/Utils.mjs";
 import StageUtils from "./tree/StageUtils.mjs";
-import Shader from "./tree/Shader.mjs";
-import Filter from "./tree/Filter.mjs";
+import DefaultShader from "./tree/DefaultShader.mjs";
 import View from "./tree/View.mjs";
 import ViewCore from "./tree/core/ViewCore.mjs";
 import ViewTexturizer from "./tree/core/ViewTexturizer.mjs";
@@ -21,8 +20,9 @@ import ObjectListProxy from "./tools/misc/ObjectListProxy.mjs";
 import ObjectListWrapper from "./tools/misc/ObjectListWrapper.mjs";
 import ListView from "./tools/views/ListView.mjs";
 import BorderView from "./tools/views/BorderView.mjs";
-import FastBlurView from "./tools/views/FastBlurView.mjs";
+// import FastBlurView from "./tools/views/FastBlurView.mjs";
 import SmoothScaleView from "./tools/views/SmoothScaleView.mjs";
+import LinearBlurShader from "./tools/shaders/LinearBlurShader.mjs";
 import DitheringShader from "./tools/shaders/DitheringShader.mjs";
 import RadialGradientShader from "./tools/shaders/RadialGradientShader.mjs";
 import PixelateShader from "./tools/shaders/PixelateShader.mjs";
@@ -31,11 +31,6 @@ import GrayscaleShader from "./tools/shaders/GrayscaleShader.mjs";
 import OutlineShader from "./tools/shaders/OutlineShader.mjs";
 import CircularPushShader from "./tools/shaders/CircularPushShader.mjs";
 import RadialFilterShader from "./tools/shaders/RadialFilterShader.mjs";
-import FxaaFilter from "./tools/filters/FxaaFilter.mjs";
-import InversionFilter from "./tools/filters/InversionFilter.mjs";
-import BlurFilter from "./tools/filters/BlurFilter.mjs";
-import LinearBlurFilter from "./tools/filters/LinearBlurFilter.mjs";
-import GrayscaleFilter from "./tools/filters/GrayscaleFilter.mjs";
 import EventEmitter from "./EventEmitter.mjs";
 
 import Stage from "./tree/Stage.mjs";
@@ -48,8 +43,7 @@ const lightning = {
     Base,
     Utils,
     StageUtils,
-    Shader,
-    Filter,
+    DefaultShader,
     View,
     Tools,
     Stage,
@@ -72,10 +66,11 @@ const lightning = {
     },
     views: {ListView,
         BorderView,
-        FastBlurView,
+        // FastBlurView,
         SmoothScaleView,
     },
     shaders: {
+        LinearBlurShader,
         DitheringShader,
         RadialGradientShader,
         PixelateShader,
@@ -84,15 +79,8 @@ const lightning = {
         OutlineShader,
         CircularPushShader,
         RadialFilterShader,
-    },
-    filters: {
-        FxaaFilter,
-        InversionFilter,
-        BlurFilter,
-        LinearBlurFilter,
-        GrayscaleFilter,
     }
-}
+};
 
 // Legacy.
 window.wuf = lightning;

@@ -1,9 +1,9 @@
-import Shader from "../../tree/Shader.mjs";
+import DefaultShader from "../../tree/DefaultShader.mjs";
 
 /**
  * @see https://github.com/pixijs/pixi-filters/tree/master/filters/pixelate/src
  */
-export default class PixelateShader extends Shader {
+export default class PixelateShader extends DefaultShader {
 
     constructor(ctx) {
         super(ctx);
@@ -39,10 +39,21 @@ export default class PixelateShader extends Shader {
         this.redraw();
     }
 
+    useDefault() {
+        return ((this._size[0] === 0) && (this._size[1] === 0));
+    }
+
+    static getWebGLImpl() {
+        return WebGLPixelateShaderImpl;
+    }
+}
+
+import WebGLDefaultShaderImpl from "../../tree/core/render/webgl/WebGLDefaultShaderImpl.mjs";
+class WebGLPixelateShaderImpl extends WebGLDefaultShaderImpl {
     setupUniforms(operation) {
         super.setupUniforms(operation);
         let gl = this.gl;
-        this._setUniform("size", new Float32Array(this._size), gl.uniform2fv);
+        this._setUniform("size", new Float32Array(this.shader._size), gl.uniform2fv);
     }
 
     getExtraAttribBytesPerVertex() {
@@ -85,14 +96,9 @@ export default class PixelateShader extends Shader {
         let gl = this.gl;
         gl.vertexAttribPointer(this._attrib("aTextureRes"), 2, gl.FLOAT, false, this.getExtraAttribBytesPerVertex(), this.getVertexAttribPointerOffset(operation));
     }
-
-    useDefault() {
-        return ((this._size[0] === 0) && (this._size[1] === 0));
-    }
-
 }
 
-PixelateShader.vertexShaderSource = `
+WebGLPixelateShaderImpl.vertexShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -113,7 +119,7 @@ PixelateShader.vertexShaderSource = `
     }
 `;
 
-PixelateShader.fragmentShaderSource = `
+WebGLPixelateShaderImpl.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif

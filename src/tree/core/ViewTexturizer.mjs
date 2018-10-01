@@ -12,8 +12,6 @@ export default class ViewTexturizer {
         this.lazy = false;
         this._colorize = false;
 
-        this._filters = [];
-
         this._renderTexture = null;
 
         this._renderTextureReused = false;
@@ -25,8 +23,6 @@ export default class ViewTexturizer {
         this._renderToTextureEnabled = false;
 
         this._renderOffscreen = false;
-
-        this.filterResultCached = false;
 
         this.empty = false;
     }
@@ -65,64 +61,6 @@ export default class ViewTexturizer {
         }
     }
 
-    get filters() {
-        return this._filters;
-    }
-
-    set filters(v) {
-        this._clearFilters();
-        v.forEach(filter => {
-            if (Utils.isObjectLiteral(filter) && filter.type) {
-                let s = new filter.type(this.ctx);
-                s.patch(filter);
-                filter = s;
-            }
-
-            if (filter.isFilter) {
-                this._addFilter(filter);
-            } else {
-                console.error("Please specify a filter type.");
-            }
-        });
-
-        this._core.updateRenderToTextureEnabled();
-        this._core.setHasRenderUpdates(2);
-    }
-
-    _clearFilters() {
-        this._filters = [];
-        this.filterResultCached = false;
-    }
-
-    _addFilter(filter) {
-        this._filters.push(filter);
-    }
-
-    _hasFilters() {
-        return (this._filters.length > 0);
-    }
-
-    _hasActiveFilters() {
-        for (let i = 0, n = this._filters.length; i < n; i++) {
-            if (!this._filters[i].useDefault()) return true;
-        }
-        return false;
-    }
-
-    getActiveFilters() {
-        let activeFilters = [];
-        this._filters.forEach(filter => {
-            if (!filter.useDefault()) {
-                if (filter.getFilters) {
-                    filter.getFilters().forEach(f => activeFilters.push(f));
-                } else {
-                    activeFilters.push(filter);
-                }
-            }
-        });
-        return activeFilters;
-    }
-
     _getTextureSource() {
         if (!this._resultTextureSource) {
             this._resultTextureSource = new TextureSource(this._view.stage.textureManager);
@@ -155,9 +93,6 @@ export default class ViewTexturizer {
         } else if (this._enabled && this.lazy && this._core._hasRenderUpdates < 3) {
             // Static-only: if renderToTexture did not need to update during last drawn frame, generate it as a cache.
             return true;
-        } else if (this._hasActiveFilters()) {
-            // Only render as texture if there is at least one filter shader to be applied.
-            return true;
         }
         return false;
     }
@@ -172,7 +107,6 @@ export default class ViewTexturizer {
 
     release() {
         this.releaseRenderTexture();
-        this.releaseFilterTexture();
     }
 
     releaseRenderTexture() {
@@ -207,24 +141,8 @@ export default class ViewTexturizer {
         return this._renderTexture;
     }
 
-    getFilterTexture() {
-        if (!this._resultTexture) {
-            this._resultTexture = this.ctx.allocateRenderTexture(this._core._rw, this._core._rh);
-        }
-        return this._resultTexture;
-    }
-
-    releaseFilterTexture() {
-        if (this._resultTexture) {
-            this.ctx.releaseRenderTexture(this._resultTexture);
-            this._resultTexture = null;
-            this.filterResultCached = false;
-            this.updateResultTexture();
-        }
-    }
-
     getResultTexture() {
-        return this._hasActiveFilters() ? this._resultTexture : this._renderTexture;
+        return this._renderTexture;
     }
 
 }
