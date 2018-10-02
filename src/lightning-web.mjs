@@ -20,7 +20,7 @@ import ObjectListProxy from "./tools/misc/ObjectListProxy.mjs";
 import ObjectListWrapper from "./tools/misc/ObjectListWrapper.mjs";
 import ListView from "./tools/views/ListView.mjs";
 import BorderView from "./tools/views/BorderView.mjs";
-// import FastBlurView from "./tools/views/FastBlurView.mjs";
+import FastBlurComponent from "./tools/components/FastBlurComponent.mjs";
 import SmoothScaleView from "./tools/views/SmoothScaleView.mjs";
 import LinearBlurShader from "./tools/shaders/LinearBlurShader.mjs";
 import DitheringShader from "./tools/shaders/DitheringShader.mjs";
@@ -31,6 +31,7 @@ import GrayscaleShader from "./tools/shaders/GrayscaleShader.mjs";
 import OutlineShader from "./tools/shaders/OutlineShader.mjs";
 import CircularPushShader from "./tools/shaders/CircularPushShader.mjs";
 import RadialFilterShader from "./tools/shaders/RadialFilterShader.mjs";
+import BoxBlurShader from "./tools/shaders/LinearBlurShader.mjs";
 import EventEmitter from "./EventEmitter.mjs";
 
 import Stage from "./tree/Stage.mjs";
@@ -64,13 +65,16 @@ const lightning = {
         ObjectListProxy,
         ObjectListWrapper,
     },
-    views: {ListView,
+    views: {
+        ListView,
         BorderView,
         // FastBlurView,
         SmoothScaleView,
     },
+    components: {
+        FastBlurComponent
+    },
     shaders: {
-        LinearBlurShader,
         DitheringShader,
         RadialGradientShader,
         PixelateShader,
@@ -79,6 +83,8 @@ const lightning = {
         OutlineShader,
         CircularPushShader,
         RadialFilterShader,
+        LinearBlurShader,
+        BoxBlurShader
     }
 };
 

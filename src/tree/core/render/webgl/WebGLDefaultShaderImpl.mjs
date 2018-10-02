@@ -38,35 +38,8 @@ export default class WebGLDefaultShaderImpl extends WebGLShaderImpl {
         }
     }
 
-    getExtraAttribBytesPerVertex() {
-        return 0;
-    }
-
-    getVertexAttribPointerOffset(operation) {
-        return operation.extraAttribsDataByteOffset - (operation.index + 1) * 4 * this.getExtraAttribBytesPerVertex();
-    }
-
-    setExtraAttribsInBuffer(operation) {
-        // Set extra attrib data in in operation.quads.data/floats/uints, starting from
-        // operation.extraAttribsBufferByteOffset.
-    }
-
     setupUniforms(operation) {
-        // Set all shader-specific uniforms.
-        // Notice that all uniforms should be set, even if they have not been changed within this shader instance.
-        // The uniforms are shared by all shaders that have the same type (and shader program).
         this._setUniform("projection", this._getProjection(operation), this.gl.uniform2fv, false);
-    }
-
-    _getProjection(operation) {
-        return operation.getProjection();
-    }
-
-    getFlipY(operation) {
-        return this._getProjection(operation)[1] < 0;
-    }
-
-    beforeDraw(operation) {
     }
 
     draw(operation) {
@@ -92,10 +65,6 @@ export default class WebGLDefaultShaderImpl extends WebGLShaderImpl {
             }
         }
     }
-
-    afterDraw(operation) {
-    }
-
 
 }
 

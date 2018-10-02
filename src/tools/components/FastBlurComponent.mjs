@@ -1,45 +1,78 @@
-import View from "../../tree/View.mjs";
-import LinearBlurFilter from "../filters/LinearBlurFilter.mjs";
-import DefaultShader from "../../tree/Shader.mjs";
+import Component from "../../application/Component.mjs";
+import LinearBlurShader from "../shaders/LinearBlurShader.mjs";
+import BoxBlurShader from "../shaders/BoxBlurShader.mjs";
+import DefaultShader from "../../tree/DefaultShader.mjs";
+import WebGLDefaultShaderImpl from "../../tree/core/render/webgl/WebGLDefaultShaderImpl.mjs";
 
-export default class FastBlurView extends View {
+export default class FastBlurComponent extends Component {
+
+    static _template() {
+        const onUpdate = function(view, viewCore) {
+            if ((viewCore._recalc & 2)) {
+                const rw = viewCore.rw;
+                const rh = viewCore.rh;
+                let cur = viewCore;
+                do {
+                    cur = cur._children[0];
+                    cur._view.w = rw;
+                    cur._view.h = rh;
+                } while(cur._children);
+            }
+        };
+
+        return {
+            Textwrap: {rtt: false, renderOffscreen: true, Content: {}},
+            Layers: {
+                L0: {rtt: true, onUpdate: onUpdate, renderOffscreen: true, visible: false, Content: {shader: {type: BoxBlurShader}}},
+                L1: {rtt: true, onUpdate: onUpdate, renderOffscreen: true, visible: false, Content: {shader: {type: BoxBlurShader}}},
+                L2: {rtt: true, onUpdate: onUpdate, renderOffscreen: true, visible: false, Content: {shader: {type: BoxBlurShader}}},
+                L3: {rtt: true, onUpdate: onUpdate, renderOffscreen: true, visible: false, Content: {shader: {type: BoxBlurShader}}}
+            },
+            Result: {shader: {type: FastBlurOutputShader}, visible: false}
+        }
+    }
 
     constructor(stage) {
         super(stage);
-
-        let fastBoxBlurShader = FastBlurView.getFastBoxBlurShader(stage.ctx);
-
-        this.tagRoot = true;
-
-        this.patch({
-            "Textwrap": {renderToTexture: false, renderOffscreen: true, "Content": {}},
-            "Layers": {
-                "L0": {renderToTexture: true, renderOffscreen: true, visible: false, "Content": {shader: fastBoxBlurShader}},
-                "L1": {renderToTexture: true, renderOffscreen: true, visible: false, "Content": {shader: fastBoxBlurShader}},
-                "L2": {renderToTexture: true, renderOffscreen: true, visible: false, "Content": {shader: fastBoxBlurShader}},
-                "L3": {renderToTexture: true, renderOffscreen: true, visible: false, "Content": {shader: fastBoxBlurShader}},
-            },
-            "Result": {shader: {type: FastBlurOutputShader}, visible: false}
-        }, true);
-
         this._textwrap = this.sel("Textwrap");
         this._wrapper = this.sel("Textwrap>Content");
         this._layers = this.sel("Layers");
         this._output = this.sel("Result");
 
-        this.getLayerContents(0).texture = this._textwrap.getTexture();
-        this.getLayerContents(1).texture = this.getLayer(0).getTexture();
-        this.getLayerContents(2).texture = this.getLayer(1).getTexture();
-        this.getLayerContents(3).texture = this.getLayer(2).getTexture();
-
-        let filters = FastBlurView.getLinearBlurFilters(stage.ctx);
-        this.getLayer(1).filters = [filters[0], filters[1]];
-        this.getLayer(2).filters = [filters[2], filters[3], filters[0], filters[1]];
-        this.getLayer(3).filters = [filters[2], filters[3], filters[0], filters[1]];
-
         this._amount = 0;
         this._paddingX = 0;
         this._paddingY = 0;
+    }
+
+    _build() {
+        const ctx = this.stage.ctx;
+
+        const filterShaderSettings = [{x:1,y:0,kernelRadius:1},{x:0,y:1,kernelRadius:1},{x:1.5,y:0,kernelRadius:1},{x:0,y:1.5,kernelRadius:1}];
+        const filterShaders = filterShaderSettings.map(s => {
+            const shader = new LinearBlurShader(ctx);
+            shader.patch(s);
+            return shader;
+        });
+
+        this._setLayerTexture(this.getLayerContents(0), this._textwrap.getTexture(), []);
+        this._setLayerTexture(this.getLayerContents(1), this.getLayer(0).getTexture(), [filterShaders[0], filterShaders[1]]);
+        this._setLayerTexture(this.getLayerContents(2), this.getLayer(1).getTexture(), [filterShaders[0], filterShaders[1], filterShaders[2], filterShaders[3]]);
+        this._setLayerTexture(this.getLayerContents(3), this.getLayer(2).getTexture(), [filterShaders[0], filterShaders[1], filterShaders[2], filterShaders[3]]);
+    }
+
+    _setLayerTexture(view, texture, steps) {
+        if (!steps.length) {
+            view.texture = texture;
+        } else {
+            const step = steps.pop();
+            const child = view.stage.c({rtt: (steps.length > 0), shader: step});
+
+            // Recurse.
+            this._setLayerTexture(child, texture, steps);
+
+            view.childList.add(child);
+        }
+        return view;
     }
 
     get content() {
@@ -57,12 +90,12 @@ export default class FastBlurView extends View {
     }
 
     set paddingX(v) {
-        this.paddingX = v;
+        this._paddingX = v;
         this._updateBlurSize();
     }
 
     set paddingY(v) {
-        this.paddingY = v;
+        this._paddingY = v;
         this._updateBlurSize();
     }
 
@@ -167,105 +200,15 @@ export default class FastBlurView extends View {
         }
     }
 
-    static getFastBoxBlurShader(ctx) {
-        if (!ctx.fastBoxBlurShader) {
-            ctx.fastBoxBlurShader = new FastBoxBlurShader(ctx);
+    static _states() {
+        const p = FastBlurComponent.prototype
+        return {
+            _construct: p._construct,
+            _firstActive: p._build
         }
-        return ctx.fastBoxBlurShader;
-    }
-
-    static getLinearBlurFilters(ctx) {
-        if (!ctx.linearBlurFilters) {
-            ctx.linearBlurFilters = [];
-
-            let lbf = new LinearBlurFilter(ctx);
-            lbf.x = 1;
-            lbf.y = 0;
-            lbf.kernelRadius = 1;
-            ctx.linearBlurFilters.push(lbf);
-
-            lbf = new LinearBlurFilter(ctx);
-            lbf.x = 0;
-            lbf.y = 1;
-            lbf.kernelRadius = 1;
-            ctx.linearBlurFilters.push(lbf);
-
-            lbf = new LinearBlurFilter(ctx);
-            lbf.x = 1.5;
-            lbf.y = 0;
-            lbf.kernelRadius = 1;
-            ctx.linearBlurFilters.push(lbf);
-
-            lbf = new LinearBlurFilter(ctx);
-            lbf.x = 0;
-            lbf.y = 1.5;
-            lbf.kernelRadius = 1;
-            ctx.linearBlurFilters.push(lbf);
-        }
-        return ctx.linearBlurFilters;
-    }
-
-
-}
-
-/**
- * 4x4 box blur shader which works in conjunction with a 50% rescale.
- */
-class FastBoxBlurShader extends DefaultShader {
-
-    constructor(ctx) {
-        super(ctx);
-    }
-
-    setupUniforms(operation) {
-        super.setupUniforms(operation);
-        const dx = 1.0 / operation.getTextureWidth(0);
-        const dy = 1.0 / operation.getTextureHeight(0);
-        this._setUniform("stepTextureCoord", new Float32Array([dx, dy]), this.gl.uniform2fv);
     }
 
 }
-
-FastBoxBlurShader.vertexShaderSource = `
-    #ifdef GL_ES
-    precision lowp float;
-    #endif
-    uniform vec2 stepTextureCoord;
-    attribute vec2 aVertexPosition;
-    attribute vec2 aTextureCoord;
-    attribute vec4 aColor;
-    uniform vec2 projection;
-    varying vec4 vColor;
-    varying vec2 vTextureCoordUl;
-    varying vec2 vTextureCoordUr;
-    varying vec2 vTextureCoordBl;
-    varying vec2 vTextureCoordBr;
-    void main(void){
-        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);
-        vTextureCoordUl = aTextureCoord - stepTextureCoord;
-        vTextureCoordBr = aTextureCoord + stepTextureCoord;
-        vTextureCoordUr = vec2(vTextureCoordBr.x, vTextureCoordUl.y);
-        vTextureCoordBl = vec2(vTextureCoordUl.x, vTextureCoordBr.y);
-        vColor = aColor;
-        gl_Position.y = -sign(projection.y) * gl_Position.y;
-    }
-`;
-
-FastBoxBlurShader.fragmentShaderSource = `
-    #ifdef GL_ES
-    precision lowp float;
-    #endif
-    varying vec2 vTextureCoordUl;
-    varying vec2 vTextureCoordUr;
-    varying vec2 vTextureCoordBl;
-    varying vec2 vTextureCoordBr;
-    varying vec4 vColor;
-    uniform sampler2D uSampler;
-    void main(void){
-        vec4 color = 0.25 * (texture2D(uSampler, vTextureCoordUl) + texture2D(uSampler, vTextureCoordUr) + texture2D(uSampler, vTextureCoordBl) + texture2D(uSampler, vTextureCoordBr));
-        gl_FragColor = color * vColor;
-    }
-`;
 
 /**
  * Shader that combines two textures into one output.
@@ -293,24 +236,30 @@ class FastBlurOutputShader extends DefaultShader {
         this.redraw();
     }
 
+    static getWebGLImpl() {
+        return WebGLFastBlurOutputShaderImpl;
+    }
+}
+
+class WebGLFastBlurOutputShaderImpl extends WebGLDefaultShaderImpl {
+
     setupUniforms(operation) {
         super.setupUniforms(operation);
-        this._setUniform("a", this._a, this.gl.uniform1f);
+        this._setUniform("a", this.shader._a, this.gl.uniform1f);
         this._setUniform("uSampler2", 1, this.gl.uniform1i);
     }
 
     beforeDraw(operation) {
-        let glTexture = this._otherTextureSource ? this._otherTextureSource.nativeTexture : null;
+        let glTexture = this.shader._otherTextureSource ? this.shader._otherTextureSource.nativeTexture : null;
 
         let gl = this.gl;
         gl.activeTexture(gl.TEXTURE1);
         gl.bindTexture(gl.TEXTURE_2D, glTexture);
         gl.activeTexture(gl.TEXTURE0);
     }
-
 }
 
-FastBlurOutputShader.fragmentShaderSource = `
+WebGLFastBlurOutputShaderImpl.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif

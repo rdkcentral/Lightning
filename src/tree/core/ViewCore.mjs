@@ -1111,7 +1111,7 @@ export default class ViewCore {
         if (this._onUpdate) {
             // Block all 'upwards' updates when changing things in this branch.
             this._hasUpdates = true;
-            this._onUpdate(this.view);
+            this._onUpdate(this.view, this);
         }
 
         const pw = this._parent._worldContext;

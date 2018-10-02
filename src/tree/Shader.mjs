@@ -21,7 +21,7 @@ export default class Shader {
         return this._impl;
     }
 
-    static createWebGLImpl() {
+    static getWebGLImpl() {
         return undefined
     }
 

@@ -9,7 +9,7 @@
 
     <script type="module">
         import lng from '../../src/lightning-web.mjs'
-        //attachInspector(lng)
+        attachInspector(lng)
 
         const canvas = document.getElementById('canvas')
         let gl = canvas.getContext('webgl')
@@ -19,9 +19,9 @@
             class AppExample extends lng.Application {
                 static _template() {
                     return {
-                        Blur: {type: lng.views.FastBlurView, amount: 2, w: 900, h: 900, content: {
+                        Blur: {type: lng.components.FastBlurComponent, amount: 3, w: 900, h: 900, content: {
                             Texture: {
-                                src: "../rockies.jpeg", w: 899, h: 900
+                                src: "../rockies.jpeg"
                             }/*,
                             Hello: {
                                 text: {text: "Hello world", fontSize: 100}
@@ -37,9 +37,9 @@
             tx.src = "../rockies.jpeg"
             tx.load()
 
-            setTimeout(function() {
-                app.tag("Blur").content.tag("Texture").w = 900
-            }, 2000)
+            app.tag("Blur").content.animation({duration: 5, repeat: -1, actions: [
+                    {p: 'x', v: {0: 0, 0.5: 100, 1: 0}}
+                ]}).start()
         }
 
 
