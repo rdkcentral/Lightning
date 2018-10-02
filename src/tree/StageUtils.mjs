@@ -20,6 +20,14 @@ export default class StageUtils {
         return 'rgba(' + r + ',' + g + ',' + b + ',' + a.toFixed(4) + ')';
     };
 
+    static getRgbaStringFromArray(color) {
+        let r = Math.floor(color[0] * 255);
+        let g = Math.floor(color[1] * 255);
+        let b = Math.floor(color[2] * 255);
+        let a = Math.floor(color[3] * 255);
+        return 'rgba(' + r + ',' + g + ',' + b + ',' + a.toFixed(4) + ')';
+    };
+
     static getRgbaComponentsNormalized(argb) {
         let r = ((argb / 65536) | 0) % 256;
         let g = ((argb / 256) | 0) % 256;

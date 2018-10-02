@@ -1803,22 +1803,6 @@ export default class View {
         this.texturizer.colorize = v;
     }
 
-    get filters() {
-        return this._hasTexturizer() && this.texturizer.filters;
-    }
-
-    set filters(v) {
-        if (this.__enabled) {
-            this.texturizer.filters.forEach(filter => filter.removeView(this.__core));
-        }
-
-        this.texturizer.filters = v;
-
-        if (this.__enabled) {
-            this.texturizer.filters.forEach(filter => filter.addView(this.__core));
-        }
-    }
-
     getTexture() {
         return this.texturizer._getTextureSource();
     }

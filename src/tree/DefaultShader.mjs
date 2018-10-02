@@ -1,5 +1,6 @@
 import Shader from "./Shader.mjs";
 import WebGLDefaultShaderImpl from "./core/render/webgl/WebGLDefaultShaderImpl.mjs";
+import C2dDefaultShaderImpl from "./core/render/c2d/C2dDefaultShaderImpl.mjs";
 
 export default class DefaultShader extends Shader {
 
@@ -13,7 +14,7 @@ export default class DefaultShader extends Shader {
     }
 
     static getC2dImpl() {
-        //@todo: implement
+        return C2dDefaultShaderImpl;
     }
 
 }

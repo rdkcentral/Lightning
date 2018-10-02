@@ -50,10 +50,6 @@ export default class WebGLCoreRenderExecutor extends CoreRenderExecutor {
     _reset() {
         super._reset();
 
-        this._bindRenderTexture(null);
-        this._setScissor(null);
-        this._clearRenderTexture();
-
         let gl = this.gl;
         gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
         gl.enable(gl.BLEND);
@@ -79,43 +75,15 @@ export default class WebGLCoreRenderExecutor extends CoreRenderExecutor {
         let shaderImpl = op.shader.impl;
 
         if (op.length || op.shader.addEmpty()) {
-            // Set render texture.
-            let nativeTexture = op.renderTextureInfo ? op.renderTextureInfo.nativeTexture : null;
-            if (this._renderTexture !== nativeTexture) {
-                this._bindRenderTexture(nativeTexture);
-            }
-
-            if (op.renderTextureInfo && !op.renderTextureInfo.cleared) {
-                this._setScissor(null);
-                this._clearRenderTexture();
-                op.renderTextureInfo.cleared = true;
-                this._setScissor(op.scissor);
-            } else if (this._scissor !== op.scissor) {
-                this._setScissor(op.scissor);
-            }
-
             shaderImpl.beforeDraw(op);
             shaderImpl.draw(op);
             shaderImpl.afterDraw(op);
         }
     }
 
-    _renderFilterOperation(op) {
-        let filter = op.filter;
-        this._useShaderProgram(filter, op);
-        filter.beforeDraw(op);
-        this._bindRenderTexture(op.renderTexture);
-        if (this._scissor) {
-            this._setScissor(null);
-        }
-        this._clearRenderTexture();
-        filter.draw(op);
-        filter.afterDraw(op);
-    }
-
     /**
      * @param {WebGLShaderImpl} shader;
-     * @param {CoreFilterOperation|CoreQuadOperation} operation;
+     * @param {CoreQuadOperation} operation;
      */
     _useShaderProgram(shader, operation) {
         if (!shader.hasSameProgram(this._currentShaderProgram)) {
@@ -137,7 +105,7 @@ export default class WebGLCoreRenderExecutor extends CoreRenderExecutor {
     }
 
     _bindRenderTexture(renderTexture) {
-        this._renderTexture = renderTexture;
+        super._bindRenderTexture(renderTexture);
 
         let gl = this.gl;
         if (!this._renderTexture) {
@@ -150,6 +118,7 @@ export default class WebGLCoreRenderExecutor extends CoreRenderExecutor {
     }
 
     _clearRenderTexture() {
+        super._clearRenderTexture();
         let gl = this.gl;
         if (!this._renderTexture) {
             let glClearColor = this.ctx.stage.getClearColor();
@@ -165,6 +134,13 @@ export default class WebGLCoreRenderExecutor extends CoreRenderExecutor {
     }
 
     _setScissor(area) {
+        super._setScissor(area);
+
+        if (this._scissor === area) {
+            return;
+        }
+        this._scissor = area;
+
         let gl = this.gl;
         if (!area) {
             gl.disable(gl.SCISSOR_TEST);
@@ -178,7 +154,6 @@ export default class WebGLCoreRenderExecutor extends CoreRenderExecutor {
             }
             gl.scissor(Math.round(area[0] * precision), Math.round(y * precision), Math.round(area[2] * precision), Math.round(area[3] * precision));
         }
-        this._scissor = area;
     }
 
 }

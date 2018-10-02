@@ -30,6 +30,14 @@ class StageUtils {
         return 'rgba(' + r + ',' + g + ',' + b + ',' + a.toFixed(4) + ')';
     };
 
+    static getRgbaStringFromArray(color) {
+        let r = Math.floor(color[0] * 255);
+        let g = Math.floor(color[1] * 255);
+        let b = Math.floor(color[2] * 255);
+        let a = Math.floor(color[3] * 255);
+        return 'rgba(' + r + ',' + g + ',' + b + ',' + a.toFixed(4) + ')';
+    };
+
     static getRgbaComponentsNormalized(argb) {
         let r = ((argb / 65536) | 0) % 256;
         let g = ((argb / 256) | 0) % 256;
@@ -6929,22 +6937,6 @@ class View {
         this.texturizer.colorize = v;
     }
 
-    get filters() {
-        return this._hasTexturizer() && this.texturizer.filters;
-    }
-
-    set filters(v) {
-        if (this.__enabled) {
-            this.texturizer.filters.forEach(filter => filter.removeView(this.__core));
-        }
-
-        this.texturizer.filters = v;
-
-        if (this.__enabled) {
-            this.texturizer.filters.forEach(filter => filter.addView(this.__core));
-        }
-    }
-
     getTexture() {
         return this.texturizer._getTextureSource();
     }
@@ -7863,7 +7855,9 @@ class CoreRenderExecutor {
     }
 
     _reset() {
-        this._quadOperation = null;
+        this._bindRenderTexture(null);
+        this._setScissor(null);
+        this._clearRenderTexture();
     }
 
     execute() {
@@ -7876,10 +7870,6 @@ class CoreRenderExecutor {
             this._processQuadOperation(qops[i]);
             i++;
         }
-
-        if (this._quadOperation) {
-            this._execQuadOperation(this._quadOperation);
-        }
     }
 
     _processQuadOperation(quadOperation) {
@@ -7888,24 +7878,45 @@ class CoreRenderExecutor {
             return;
         }
 
-        if (this._quadOperation) {
-            this._execQuadOperation(this._quadOperation);
-        }
-
         this._setupQuadOperation(quadOperation);
+        this._execQuadOperation(quadOperation);
 
-        this._quadOperation = quadOperation;
     }
 
     _setupQuadOperation(quadOperation) {
     }
 
     _execQuadOperation(op) {
+        // Set render texture.
+        let nativeTexture = op.renderTextureInfo ? op.renderTextureInfo.nativeTexture : null;
+
+        if (this._renderTexture !== nativeTexture) {
+            this._bindRenderTexture(nativeTexture);
+        }
+
+        if (op.renderTextureInfo && !op.renderTextureInfo.cleared) {
+            this._setScissor(null);
+            this._clearRenderTexture();
+            op.renderTextureInfo.cleared = true;
+            this._setScissor(op.scissor);
+        } else {
+            this._setScissor(op.scissor);
+        }
+
         this._renderQuadOperation(op);
-        this._quadOperation = null;
     }
 
     _renderQuadOperation(op) {
+    }
+
+    _bindRenderTexture(renderTexture) {
+        this._renderTexture = renderTexture;
+    }
+
+    _clearRenderTexture(renderTexture) {
+    }
+
+    _setScissor(area) {
     }
 
 }
@@ -7960,10 +7971,6 @@ class WebGLCoreRenderExecutor extends CoreRenderExecutor {
     _reset() {
         super._reset();
 
-        this._bindRenderTexture(null);
-        this._setScissor(null);
-        this._clearRenderTexture();
-
         let gl = this.gl;
         gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
         gl.enable(gl.BLEND);
@@ -7989,43 +7996,15 @@ class WebGLCoreRenderExecutor extends CoreRenderExecutor {
         let shaderImpl = op.shader.impl;
 
         if (op.length || op.shader.addEmpty()) {
-            // Set render texture.
-            let nativeTexture = op.renderTextureInfo ? op.renderTextureInfo.nativeTexture : null;
-            if (this._renderTexture !== nativeTexture) {
-                this._bindRenderTexture(nativeTexture);
-            }
-
-            if (op.renderTextureInfo && !op.renderTextureInfo.cleared) {
-                this._setScissor(null);
-                this._clearRenderTexture();
-                op.renderTextureInfo.cleared = true;
-                this._setScissor(op.scissor);
-            } else if (this._scissor !== op.scissor) {
-                this._setScissor(op.scissor);
-            }
-
             shaderImpl.beforeDraw(op);
             shaderImpl.draw(op);
             shaderImpl.afterDraw(op);
         }
     }
 
-    _renderFilterOperation(op) {
-        let filter = op.filter;
-        this._useShaderProgram(filter, op);
-        filter.beforeDraw(op);
-        this._bindRenderTexture(op.renderTexture);
-        if (this._scissor) {
-            this._setScissor(null);
-        }
-        this._clearRenderTexture();
-        filter.draw(op);
-        filter.afterDraw(op);
-    }
-
     /**
      * @param {WebGLShaderImpl} shader;
-     * @param {CoreFilterOperation|CoreQuadOperation} operation;
+     * @param {CoreQuadOperation} operation;
      */
     _useShaderProgram(shader, operation) {
         if (!shader.hasSameProgram(this._currentShaderProgram)) {
@@ -8047,7 +8026,7 @@ class WebGLCoreRenderExecutor extends CoreRenderExecutor {
     }
 
     _bindRenderTexture(renderTexture) {
-        this._renderTexture = renderTexture;
+        super._bindRenderTexture(renderTexture);
 
         let gl = this.gl;
         if (!this._renderTexture) {
@@ -8060,6 +8039,7 @@ class WebGLCoreRenderExecutor extends CoreRenderExecutor {
     }
 
     _clearRenderTexture() {
+        super._clearRenderTexture();
         let gl = this.gl;
         if (!this._renderTexture) {
             let glClearColor = this.ctx.stage.getClearColor();
@@ -8075,6 +8055,13 @@ class WebGLCoreRenderExecutor extends CoreRenderExecutor {
     }
 
     _setScissor(area) {
+        super._setScissor(area);
+
+        if (this._scissor === area) {
+            return;
+        }
+        this._scissor = area;
+
         let gl = this.gl;
         if (!area) {
             gl.disable(gl.SCISSOR_TEST);
@@ -8087,38 +8074,6 @@ class WebGLCoreRenderExecutor extends CoreRenderExecutor {
                 y = (this.ctx.stage.h / precision - (area[1] + area[3]));
             }
             gl.scissor(Math.round(area[0] * precision), Math.round(y * precision), Math.round(area[2] * precision), Math.round(area[3] * precision));
-        }
-        this._scissor = area;
-    }
-
-}
-
-class CoreFilterOperation {
-
-    constructor(ctx, filter, owner, source, renderTexture, beforeQuadOperation) {
-
-        this.ctx = ctx;
-        this.filter = filter;
-        this.owner = owner;
-        this.source = source;
-        this.renderTexture = renderTexture;
-        this.beforeQuadOperation = beforeQuadOperation;
-
-    }
-
-    getRenderWidth() {
-        if (this.renderTexture) {
-            return this.renderTexture.w;
-        } else {
-            return this.ctx.stage.w;
-        }
-    }
-
-    getRenderHeight() {
-        if (this.renderTexture) {
-            return this.renderTexture.h;
-        } else {
-            return this.ctx.stage.h;
         }
     }
 
@@ -8142,6 +8097,8 @@ class Shader {
         if (!this._impl) {
             if (this.ctx.stage.mode === 0) {
                 this._impl = new (this.constructor.getWebGLImpl())(this);
+            } else {
+                this._impl = new (this.constructor.getC2dImpl())(this);
             }
         }
         return this._impl;
@@ -8567,6 +8524,81 @@ WebGLDefaultShaderImpl.fragmentShaderSource = `
     }
 `;
 
+class C2dShaderImpl {
+
+    constructor(shader) {
+        this._shader = shader;
+    }
+
+    beforeDraw(operation) {
+    }
+
+    draw(operation) {
+    }
+
+    afterDraw(operation) {
+    }
+
+}
+
+class C2dDefaultShaderImpl extends C2dShaderImpl {
+
+    constructor(shader) {
+        super(shader);
+        this._rectangleTexture = shader.ctx.stage.rectangleTexture.source.nativeTexture;
+    }
+
+    draw(operation, target) {
+        const ctx = target.ctx;
+        let length = operation.length;
+        for (let i = 0; i < length; i++) {
+            const tx = operation.getTexture(i);
+            const vc = operation.getViewCore(i);
+            const rc = vc.renderContext;
+
+            //@todo: try to optimize out per-draw transform setting. split translate, transform.
+            ctx.setTransform(rc.ta, rc.tc, rc.tb, rc.td, rc.px, rc.py);
+
+            if (tx === this._rectangleTexture) {
+                // Check for gradient.
+                let color = vc._colorUl;
+                let gradient;
+                //@todo: quick single color check.
+                //@todo: cache gradient/fill style (if possible, probably context-specific).
+
+                if (vc._colorUl === vc._colorUr) {
+                    if (vc._colorBl === vc._colorBr) {
+                        if (vc._colorUl === vc.colorBl) ; else {
+                            // Vertical gradient.
+                            gradient = ctx.createLinearGradient(0, 0, 0, vc.rh);
+                            gradient.addColorStop(0, StageUtils.getRgbaString(vc._colorUl));
+                            gradient.addColorStop(1, StageUtils.getRgbaString(vc._colorBl));
+                        }
+                    }
+                } else {
+                    if (vc._colorUl === vc._colorBl && vc._colorUr === vc._colorBr) {
+                        // Horizontal gradient.
+                        gradient = ctx.createLinearGradient(0, 0, vc.rw, 0);
+                        gradient.addColorStop(0, StageUtils.getRgbaString(vc._colorUl));
+                        gradient.addColorStop(1, StageUtils.getRgbaString(vc._colorBr));
+                    }
+                }
+
+                ctx.fillStyle = (gradient || StageUtils.getRgbaString(color));
+                ctx.fillRect(0, 0, vc.rw, vc.rh);
+            } else {
+                // @todo: set image smoothing based on the texture.
+
+                //@todo: optimize by registering whether identity texcoords are used.
+                ctx.globalAlpha = rc.alpha;
+                ctx.drawImage(tx, vc._ulx * tx.w, vc._uly * tx.h, (vc._brx - vc._ulx) * tx.w, (vc._bry - vc._uly) * tx.h, 0, 0, vc.rw, vc.rh);
+                ctx.globalAlpha = 1.0;
+            }
+        }
+    }
+
+}
+
 class DefaultShader extends Shader {
 
     constructor(coreContext) {
@@ -8579,7 +8611,7 @@ class DefaultShader extends Shader {
     }
 
     static getC2dImpl() {
-        //@todo: implement
+        return C2dDefaultShaderImpl;
     }
 
 }
@@ -8842,10 +8874,6 @@ class WebGLRenderer {
         return new WebGLCoreQuadOperation(ctx, shader, shaderOwner, renderTextureInfo, scissor, index);
     }
 
-    createCoreFilterOperation(ctx, filter, owner, source, renderTexture, beforeQuadOperation) {
-        return new CoreFilterOperation(ctx, filter, owner, source, renderTexture, beforeQuadOperation);
-    }
-    
     createCoreRenderExecutor(ctx) {
         return new WebGLCoreRenderExecutor(ctx);
     }
@@ -9055,6 +9083,168 @@ class WebGLRenderer {
         renderState.quads.dataLength = offset;
     }
 
+
+}
+
+class C2dCoreRenderExecutor extends CoreRenderExecutor {
+
+    init() {
+        this._mainRenderTexture = this.ctx.stage.getCanvas();
+    }
+
+    _renderQuadOperation(op) {
+        let shaderImpl = op.shader.impl;
+
+        if (op.length || op.shader.addEmpty()) {
+            const target = this._renderTexture || this._mainRenderTexture;
+            shaderImpl.beforeDraw(op, target);
+            shaderImpl.draw(op, target);
+            shaderImpl.afterDraw(op, target);
+        }
+    }
+
+    _clearRenderTexture() {
+        const ctx = this._getContext();
+
+        let clearColor = [0, 0, 0, 0];
+        if (this._mainRenderTexture.ctx === ctx) {
+            clearColor = this.ctx.stage.getClearColor();
+        }
+
+        const renderTexture = ctx.canvas;
+        
+        if (!clearColor[0] && !clearColor[1] && !clearColor[2] && !clearColor[3]) {
+            ctx.clearRect(0, 0, renderTexture.width, renderTexture.height);
+        } else {
+            ctx.fillStyle = StageUtils.getRgbaStringFromArray(clearColor);
+            // Do not use fillRect because it produces artifacts.
+            ctx.rect(0, 0, renderTexture.width, renderTexture.height);
+            ctx.fill();
+        }
+    }
+    
+    _getContext() {
+        if (this._renderTexture) {
+            return this._renderTexture.ctx;
+        } else {
+            return this._mainRenderTexture.ctx;
+        } 
+    }
+
+    _restoreContext() {
+        const ctx = this._getContext();
+        ctx.restore();
+        ctx.save();
+        ctx._scissor = null;
+    }
+
+    _setScissor(area) {
+        const ctx = this._getContext();
+
+        if (!C2dCoreRenderExecutor._equalScissorAreas(ctx.canvas, ctx._scissor, area)) {
+            // Clipping is stored in the canvas context state.
+            // We can't reset clipping alone so we need to restore the full context.
+            this._restoreContext();
+
+            let precision = this.ctx.stage.getRenderPrecision();
+            if (area) {
+                ctx.rect(Math.round(area[0] * precision), Math.round(area[1] * precision), Math.round(area[2] * precision), Math.round(area[3] * precision));
+                ctx.clip();
+            }
+            ctx._scissor = area;
+        }
+    }
+
+    static _equalScissorAreas(canvas$$1, area, current) {
+        if (!area) {
+            area = [0, 0, canvas$$1.width, canvas$$1.height];
+        }
+        if (!current) {
+            current = [0, 0, canvas$$1.width, canvas$$1.height];
+        }
+        return Utils.equalValues(area, current)
+    }
+
+}
+
+class C2dRenderer {
+
+    constructor(stage) {
+        this.stage = stage;
+
+        this.setupC2d(this.stage.c2d.canvas);
+    }
+
+    createCoreQuadList(ctx) {
+        return new CoreQuadList(ctx);
+    }
+
+    createCoreQuadOperation(ctx, shader, shaderOwner, renderTextureInfo, scissor, index) {
+        return new CoreQuadOperation(ctx, shader, shaderOwner, renderTextureInfo, scissor, index);
+    }
+
+    createCoreRenderExecutor(ctx) {
+        return new C2dCoreRenderExecutor(ctx);
+    }
+    
+    createCoreRenderState(ctx) {
+        return new CoreRenderState(ctx);
+    }
+
+    createRenderTexture(w, h, pw, ph) {
+        const canvas$$1 = document.createElement('canvas');
+        canvas$$1.width = pw;
+        canvas$$1.height = ph;
+        this.setupC2d(canvas$$1);
+        return canvas$$1;
+    }
+    
+    freeRenderTexture(glTexture) {
+    }
+
+
+    uploadTextureSource(textureSource, options) {
+        // For canvas, we do not need to upload.
+        if (options.source.buffer) {
+            // Convert RGBA buffer to canvas.
+            const canvas$$1 = document.createElement('canvas');
+            canvas$$1.width = options.w;
+            canvas$$1.height = options.h;
+
+            const imageData = new ImageData(new Uint8ClampedArray(options.source.buffer), options.w, options.h);
+            canvas$$1.getContext('2d').putImageData(imageData, 0, 0);
+            return canvas$$1;
+        }
+
+        return options.source;
+    }
+
+    freeTextureSource(textureSource) {
+    }
+
+    addQuad(renderState, quads, index) {
+    }
+
+    isRenderTextureReusable(renderState, renderTextureInfo) {
+        // @todo: check render coords/matrix, maybe move this to core?
+        return false;
+    }
+
+    finishRenderState(renderState) {
+    }
+
+    setupC2d(canvas$$1) {
+        const ctx = canvas$$1.getContext('2d');
+        canvas$$1.ctx = ctx;
+
+        ctx._scissor = null;
+
+        // Set basic settings.
+        // ...
+
+        // Save base state so we can restore the defaults later.
+        canvas$$1.ctx.save();
+    }
 
 }
 
@@ -10374,6 +10564,8 @@ class Stage extends EventEmitter {
 
         if (this._mode === 0) {
             this._renderer = new WebGLRenderer(this);
+        } else {
+            this._renderer = new C2dRenderer(this);
         }
 
         this.setClearColor(this.getOption('clearColor'));
@@ -11425,10 +11617,13 @@ class NoiseTexture extends Texture {
                 noise[i+3] = 255;
             }
             const texParams = {};
-            texParams[gl.TEXTURE_WRAP_S] = gl.REPEAT;
-            texParams[gl.TEXTURE_WRAP_T] = gl.REPEAT;
-            texParams[gl.TEXTURE_MIN_FILTER] = gl.NEAREST;
-            texParams[gl.TEXTURE_MAG_FILTER] = gl.NEAREST;
+
+            if (gl) {
+                texParams[gl.TEXTURE_WRAP_S] = gl.REPEAT;
+                texParams[gl.TEXTURE_WRAP_T] = gl.REPEAT;
+                texParams[gl.TEXTURE_MIN_FILTER] = gl.NEAREST;
+                texParams[gl.TEXTURE_MAG_FILTER] = gl.NEAREST;
+            }
 
             cb(null, {source: noise, w: 128, h: 128, texParams: texParams});
         }
@@ -14020,5 +14215,8 @@ const lightning = {
         BoxBlurShader: LinearBlurShader
     }
 };
+
+// Legacy.
+window.wuf = lightning;
 
 module.exports = lightning;

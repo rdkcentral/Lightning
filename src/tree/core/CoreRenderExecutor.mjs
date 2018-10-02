@@ -13,7 +13,9 @@ export default class CoreRenderExecutor {
     }
 
     _reset() {
-        this._quadOperation = null;
+        this._bindRenderTexture(null);
+        this._setScissor(null);
+        this._clearRenderTexture();
     }
 
     execute() {
@@ -26,10 +28,6 @@ export default class CoreRenderExecutor {
             this._processQuadOperation(qops[i]);
             i++;
         }
-
-        if (this._quadOperation) {
-            this._execQuadOperation(this._quadOperation);
-        }
     }
 
     _processQuadOperation(quadOperation) {
@@ -38,24 +36,46 @@ export default class CoreRenderExecutor {
             return;
         }
 
-        if (this._quadOperation) {
-            this._execQuadOperation(this._quadOperation);
-        }
-
         this._setupQuadOperation(quadOperation);
+        this._execQuadOperation(quadOperation);
 
-        this._quadOperation = quadOperation;
     }
 
     _setupQuadOperation(quadOperation) {
     }
 
     _execQuadOperation(op) {
+        // Set render texture.
+        let nativeTexture = op.renderTextureInfo ? op.renderTextureInfo.nativeTexture : null;
+
+        if (this._renderTexture !== nativeTexture) {
+            this._bindRenderTexture(nativeTexture);
+        }
+
+        if (op.renderTextureInfo && !op.renderTextureInfo.cleared) {
+            this._setScissor(null);
+            this._clearRenderTexture();
+            op.renderTextureInfo.cleared = true;
+            this._setScissor(op.scissor);
+        } else {
+            this._setScissor(op.scissor);
+        }
+
         this._renderQuadOperation(op);
-        this._quadOperation = null;
     }
 
     _renderQuadOperation(op) {
     }
 
+    _bindRenderTexture(renderTexture) {
+        this._renderTexture = renderTexture;
+    }
+
+    _clearRenderTexture(renderTexture) {
+    }
+
+    _setScissor(area) {
+    }
+
 }
+

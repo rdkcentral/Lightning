@@ -6,6 +6,7 @@
 import EventEmitter from "../EventEmitter.mjs";
 import Utils from "./Utils.mjs";
 import WebGLRenderer from "./core/render/webgl/WebGLRenderer.mjs";
+import C2dRenderer from "./core/render/c2d/C2dRenderer.mjs";
 
 export default class Stage extends EventEmitter {
 
@@ -49,7 +50,7 @@ export default class Stage extends EventEmitter {
         if (this._mode === 0) {
             this._renderer = new WebGLRenderer(this);
         } else {
-//            this._renderer = new CanvasRenderer(this);
+            this._renderer = new C2dRenderer(this);
         }
 
         this.setClearColor(this.getOption('clearColor'));

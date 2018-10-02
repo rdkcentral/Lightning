@@ -15,7 +15,11 @@
             class BasicUsageExample extends lng.Application {
                 static _template() {
                     return {
-                        Image: {src: "../rockies.jpeg"}
+                        //Bg: {src: "../rockies.jpeg", w: 900, h: 900},
+                        Wrap: {
+                            x: 100, y: 10, rotation: 0.2,
+                            Image: {rtt: true, texture: {type: lng.textures.ImageTexture, src: "../rockies.jpeg", x: 150, y: 50, w: 200, h: 100}, w:400, h: 400/*, color: 0x66FF0000*/}
+                        }
                     }
                 }
 
@@ -37,7 +41,7 @@
                 }
             }
 
-            const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000, canvas2d: true}, debug: true}
+            const options = {stage: {w: 900, h: 900, clearColor: 0xFF0000FF, canvas2d: true}, debug: true}
             options.keys = {
                 38: "Up",
                 40: "Down",

@@ -16,6 +16,8 @@ export default class Shader {
         if (!this._impl) {
             if (this.ctx.stage.mode === 0) {
                 this._impl = new (this.constructor.getWebGLImpl())(this);
+            } else {
+                this._impl = new (this.constructor.getC2dImpl())(this);
             }
         }
         return this._impl;

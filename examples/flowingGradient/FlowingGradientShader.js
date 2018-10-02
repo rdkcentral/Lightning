@@ -1,5 +1,3 @@
-(function(lng) {
-
 class FlowingGradientShader extends lng.DefaultShader {
     constructor(context) {
         super(context)

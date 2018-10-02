@@ -3,7 +3,6 @@ import StageUtils from "../../../StageUtils.mjs";
 import WebGLCoreQuadList from "./WebGLCoreQuadList.mjs";
 import WebGLCoreQuadOperation from "./WebGLCoreQuadOperation.mjs";
 import WebGLCoreRenderExecutor from "./WebGLCoreRenderExecutor.mjs";
-import CoreFilterOperation from "../../CoreFilterOperation.mjs";
 import CoreRenderState from "../../CoreRenderState.mjs";
 
 export default class WebGLRenderer {
@@ -25,10 +24,6 @@ export default class WebGLRenderer {
         return new WebGLCoreQuadOperation(ctx, shader, shaderOwner, renderTextureInfo, scissor, index);
     }
 
-    createCoreFilterOperation(ctx, filter, owner, source, renderTexture, beforeQuadOperation) {
-        return new CoreFilterOperation(ctx, filter, owner, source, renderTexture, beforeQuadOperation);
-    }
-    
     createCoreRenderExecutor(ctx) {
         return new WebGLCoreRenderExecutor(ctx);
     }

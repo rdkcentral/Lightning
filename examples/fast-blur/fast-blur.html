@@ -5,14 +5,9 @@
     <script src="../../devtools/lightning-inspect.js"></script>
 </head>
 <body>
-    <canvas width="900" height="900" id="canvas"></canvas>
-
     <script type="module">
         import lng from '../../src/lightning-web.mjs'
-        attachInspector(lng)
-
-        const canvas = document.getElementById('canvas')
-        let gl = canvas.getContext('webgl')
+        //attachInspector(lng)
 
         window.start = function() {
 
@@ -30,16 +25,18 @@
                     }
                 }
             }
-            const options = {stage: {clearColor: 0xFFFF0000, canvas: canvas, context: gl}}
+            const options = {stage: {clearColor: 0xFFFF0000, w: 900, h: 900, canvas2d: true}}
             const app = new AppExample(options);
 
             const tx = new lng.textures.ImageTexture(app.stage)
             tx.src = "../rockies.jpeg"
             tx.load()
 
-            app.tag("Blur").content.animation({duration: 5, repeat: -1, actions: [
-                    {p: 'x', v: {0: 0, 0.5: 100, 1: 0}}
-                ]}).start()
+            // app.tag("Blur").content.animation({duration: 5, repeat: -1, actions: [
+            //         {p: 'x', v: {0: 0, 0.5: 100, 1: 0}}
+            //     ]}).start()
+
+            document.body.appendChild(app.stage.getCanvas());
         }
 
 

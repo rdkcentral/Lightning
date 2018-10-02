@@ -18,10 +18,13 @@ export default class NoiseTexture extends Texture {
                 noise[i+3] = 255;
             }
             const texParams = {}
-            texParams[gl.TEXTURE_WRAP_S] = gl.REPEAT;
-            texParams[gl.TEXTURE_WRAP_T] = gl.REPEAT;
-            texParams[gl.TEXTURE_MIN_FILTER] = gl.NEAREST;
-            texParams[gl.TEXTURE_MAG_FILTER] = gl.NEAREST;
+
+            if (gl) {
+                texParams[gl.TEXTURE_WRAP_S] = gl.REPEAT;
+                texParams[gl.TEXTURE_WRAP_T] = gl.REPEAT;
+                texParams[gl.TEXTURE_MIN_FILTER] = gl.NEAREST;
+                texParams[gl.TEXTURE_MAG_FILTER] = gl.NEAREST;
+            }
 
             cb(null, {source: noise, w: 128, h: 128, texParams: texParams});
         }

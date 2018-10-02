@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8" />
 
-    <script src="../../dist/lightning-web.js"></script>
-
 </head>
 <body>
-<script>
+<script type="module">
+    import lng from '../../src/lightning-web.mjs'
     window.onload = function() {
 
         class DitheringExample extends lng.Application {
@@ -21,7 +20,7 @@
 
         }
 
-        const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000}}
+        const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000, canvas2d: true}};
         const app = new DitheringExample(options);
         document.body.appendChild(app.stage.getCanvas());
 
