@@ -8545,6 +8545,7 @@ class C2dDefaultShaderImpl extends C2dShaderImpl {
 
     constructor(shader) {
         super(shader);
+        this._filterUrl = shader.ctx.stage.renderer.svgBlobUrl;
         this._rectangleTexture = shader.ctx.stage.rectangleTexture.source.nativeTexture;
     }
 
@@ -8554,7 +8555,7 @@ class C2dDefaultShaderImpl extends C2dShaderImpl {
         for (let i = 0; i < length; i++) {
             const tx = operation.getTexture(i);
             const vc = operation.getViewCore(i);
-            const rc = vc.renderContext;
+            const rc = operation.getRenderContext(i);
 
             //@todo: try to optimize out per-draw transform setting. split translate, transform.
             ctx.setTransform(rc.ta, rc.tc, rc.tb, rc.td, rc.px, rc.py);
@@ -8593,6 +8594,15 @@ class C2dDefaultShaderImpl extends C2dShaderImpl {
                 ctx.globalAlpha = rc.alpha;
                 ctx.drawImage(tx, vc._ulx * tx.w, vc._uly * tx.h, (vc._brx - vc._ulx) * tx.w, (vc._bry - vc._uly) * tx.h, 0, 0, vc.rw, vc.rh);
                 ctx.globalAlpha = 1.0;
+
+                //@todo: colorize does not really work the way we want it to.
+                // if (vc._colorUl !== 0xFFFFFFFF) {
+                //     ctx.globalCompositeOperation = 'multiply';
+                //     ctx.fillStyle = StageUtils.getRgbaString(vc._colorUl);
+                //     ctx.fillRect(0, 0, vc.rw, vc.rh);
+                //     ctx.globalCompositeOperation = 'source-over';
+                // }
+
             }
         }
     }
@@ -9086,6 +9096,27 @@ class WebGLRenderer {
 
 }
 
+class C2dCoreQuadList extends CoreQuadList {
+
+    constructor(ctx) {
+        super(ctx);
+
+        this.renderContexts = [];
+    }
+
+    getRenderContext(index) {
+        return this.renderContexts[index];
+    }
+}
+
+class C2dCoreQuadOperation extends CoreQuadOperation {
+
+    getRenderContext(index) {
+        return this.quads.getRenderContext(this.index + index);
+    }
+
+}
+
 class C2dCoreRenderExecutor extends CoreRenderExecutor {
 
     init() {
@@ -9116,6 +9147,7 @@ class C2dCoreRenderExecutor extends CoreRenderExecutor {
         if (!clearColor[0] && !clearColor[1] && !clearColor[2] && !clearColor[3]) {
             ctx.clearRect(0, 0, renderTexture.width, renderTexture.height);
         } else {
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.fillStyle = StageUtils.getRgbaStringFromArray(clearColor);
             // Do not use fillRect because it produces artifacts.
             ctx.rect(0, 0, renderTexture.width, renderTexture.height);
@@ -9176,11 +9208,11 @@ class C2dRenderer {
     }
 
     createCoreQuadList(ctx) {
-        return new CoreQuadList(ctx);
+        return new C2dCoreQuadList(ctx);
     }
 
     createCoreQuadOperation(ctx, shader, shaderOwner, renderTextureInfo, scissor, index) {
-        return new CoreQuadOperation(ctx, shader, shaderOwner, renderTextureInfo, scissor, index);
+        return new C2dCoreQuadOperation(ctx, shader, shaderOwner, renderTextureInfo, scissor, index);
     }
 
     createCoreRenderExecutor(ctx) {
@@ -9223,6 +9255,9 @@ class C2dRenderer {
     }
 
     addQuad(renderState, quads, index) {
+        // Render context changes while traversing so we save it by ref.
+        const viewCore = quads.quadViews[index];
+        quads.renderContexts[index] = viewCore._renderContext;
     }
 
     isRenderTextureReusable(renderState, renderTextureInfo) {
