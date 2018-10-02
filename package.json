@@ -1,8 +1,8 @@
 {
   "author": "Metrological, Bas van Meurs <b.van.meurs@metrological.com>",
-  "name": "wpe-uiframework",
-  "version": "0.0.10",
-  "main": "wuf.js",
+  "name": "wpe-lightning",
+  "version": "0.0.11",
+  "main": "dist/lightning-node.js",
   "license": "apache",
   "dependencies": {
     "canvas": "git+https://github.com/basvanmeurs/node-canvas.git",
@@ -13,9 +13,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:WebPlatformForEmbedded/WPEUIFramework.git"
+    "url": "git@github.com:WebPlatformForEmbedded/Lightning.git"
   },
   "bugs": {
-    "url": "https://github.com/WebPlatformForEmbedded/WPEUIFramework/issues"
+    "url": "https://github.com/WebPlatformForEmbedded/Lightning/issues"
   }
 }
