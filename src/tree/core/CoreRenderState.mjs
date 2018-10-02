@@ -161,10 +161,17 @@ export default class CoreRenderState {
             // There was only one texture drawn in this render texture.
             // Check if we can reuse it so that we can optimize out an unnecessary render texture operation.
             // (it should exactly span this render texture).
-            if (!this.renderer.isRenderTextureReusable(this, this._renderTextureInfo)) {
+            if (!this._isRenderTextureReusable()) {
                 this._renderTextureInfo.nativeTexture = null;
             }
         }
+    }
+
+    _isRenderTextureReusable() {
+        const offset = this._renderTextureInfo.offset;
+        return (this.quads.quadTextures[offset].w === this._renderTextureInfo.w) &&
+            (this.quads.quadTextures[offset].h === this._renderTextureInfo.h) &&
+            this.renderer.isRenderTextureReusable(this, this._renderTextureInfo)
     }
 
     _hasChanges() {

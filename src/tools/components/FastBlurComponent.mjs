@@ -65,7 +65,7 @@ export default class FastBlurComponent extends Component {
             view.texture = texture;
         } else {
             const step = steps.pop();
-            const child = view.stage.c({rtt: (steps.length > 0), shader: step});
+            const child = view.stage.c({rtt: true, shader: step});
 
             // Recurse.
             this._setLayerTexture(child, texture, steps);
