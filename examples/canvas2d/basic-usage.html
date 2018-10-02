@@ -15,10 +15,9 @@
             class BasicUsageExample extends lng.Application {
                 static _template() {
                     return {
-                        //Bg: {src: "../rockies.jpeg", w: 900, h: 900},
                         Wrap: {
                             x: 100, y: 10, rotation: 0.2,
-                            Image: {rtt: true, texture: {type: lng.textures.ImageTexture, src: "../rockies.jpeg", x: 150, y: 50, w: 200, h: 100}, w:400, h: 400/*, color: 0x66FF0000*/}
+                            Image: {texture: {type: lng.textures.ImageTexture, src: "../rockies.jpeg"/*, x: 150, y: 50, w: 200, h: 100*/}}
                         }
                     }
                 }

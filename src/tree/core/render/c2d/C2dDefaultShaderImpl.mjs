@@ -18,7 +18,7 @@ export default class C2dDefaultShaderImpl extends C2dShaderImpl {
             const rc = operation.getRenderContext(i);
 
             //@todo: try to optimize out per-draw transform setting. split translate, transform.
-            ctx.setTransform(rc.ta, rc.tc, rc.tb, rc.td, rc.px, 0);
+            ctx.setTransform(rc.ta, rc.tc, rc.tb, rc.td, rc.px, rc.py);
 
             if (tx === this._rectangleTexture) {
                 // Check for gradient.
@@ -59,6 +59,7 @@ export default class C2dDefaultShaderImpl extends C2dShaderImpl {
                 ctx.drawImage(tx, vc._ulx * tx.w, vc._uly * tx.h, (vc._brx - vc._ulx) * tx.w, (vc._bry - vc._uly) * tx.h, 0, 0, vc.rw, vc.rh);
                 ctx.globalAlpha = 1.0;
 
+                //@todo: colorize does not really work the way we want it to.
                 // if (vc._colorUl !== 0xFFFFFFFF) {
                 //     ctx.globalCompositeOperation = 'multiply';
                 //     ctx.fillStyle = StageUtils.getRgbaString(vc._colorUl);

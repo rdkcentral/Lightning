@@ -1,0 +1,26 @@
+Canvas2d render implementatie:
+
+TODO:
+
+Save texture coords during addQuads as well.
+Because they are also temporarily saved.
+
+Colorizing images.
+
+Fallback for corner gradients.
+
+Patterns (repeating textures?): texture params.
+
+Set image smoothing based on texture (if gl.NEAREST).
+
+WebGL specific settings ($gl: {type: ...}, $c2d: {type: ...})
+
+FastBlurComponent: two types:
+- webgl
+- canvas2d
+  canvas2d uses the 'blur' filter.
+
+Fix:
+FlowingGradientShader
+
+FastBlurShader fallback for canvas2d.
