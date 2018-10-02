@@ -1,6 +1,6 @@
-(function(wuf) {
+(function(lng) {
 
-class FlowingGradientShader extends wuf.DefaultShader {
+class FlowingGradientShader extends lng.DefaultShader {
     constructor(context) {
         super(context)
 
@@ -54,7 +54,7 @@ class FlowingGradientShader extends wuf.DefaultShader {
     _updateColors() {
         let arr = []
         this._colors.forEach(color => {
-            const col = wuf.StageUtils.getRgbaComponentsNormalized(color)
+            const col = lng.StageUtils.getRgbaComponentsNormalized(color)
             col[0] *= col[3]
             col[1] *= col[3]
             col[2] *= col[3]
@@ -214,7 +214,7 @@ try {
     window.FlowingGradientShader = FlowingGradientShader
 }
 })(
-    typeof window === 'undefined' ? require('../../wuf') : wuf
+    typeof window === 'undefined' ? require('../../lng') : lng
 )
 
 

@@ -10,12 +10,12 @@
 <script>
     window.onload = function() {
 
-        class DitheringExample extends wuf.Application {
+        class DitheringExample extends lng.Application {
 
             static _template() {
                 return {
                     Plain: {rect: true, colorLeft: 0xFF000000, colorRight: 0xFF444444, w: 900, h: 450},
-                    Dithering: {shader: {type: wuf.shaders.DitheringShader}, rect: true, colorLeft: 0xFF000000, colorRight: 0xFF444444, y: 450, w: 900, h: 450}
+                    Dithering: {shader: {type: lng.shaders.DitheringShader}, rect: true, colorLeft: 0xFF000000, colorRight: 0xFF444444, y: 450, w: 900, h: 450}
                 }
             }
 

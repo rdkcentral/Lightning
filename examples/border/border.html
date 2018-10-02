@@ -7,26 +7,24 @@
 
 </head>
 <body>
-    <script>
-        window.onload = function() {
-            class BorderExample extends wuf.Application {
-                static _template() {
-                    return {
-                        Primary: {
-                            Rect: {x: 50, y: 50, type: wuf.views.BorderView, borderWidth: 10, colorBorder: 0xFFFF0000, content: {
-                                text: {text: "hello world"}
-                            }}
-                        },
-                        Overlay: {}
-                    }
+    <script type="module">
+        import lng from '../../src/lightning-web.mjs';
+        class BorderExample extends lng.Application {
+            static _template() {
+                return {
+                    Primary: {
+                        Rect: {x: 50, y: 50, type: lng.components.BorderComponent, borderWidth: 5, colorBorder: 0xFFFF0000, content: {
+                            text: {text: "hello world"}
+                        }}
+                    },
+                    Overlay: {}
                 }
             }
-
-            const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000}}
-            const app = new BorderExample(options);
-            document.body.appendChild(app.stage.getCanvas());
-
         }
+
+        const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000}};
+        const app = new BorderExample(options);
+        document.body.appendChild(app.stage.getCanvas());
     </script>
 </body>
 </html>

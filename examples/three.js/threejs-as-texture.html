@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8" />
 
-    <script src="../../dist/lightning-web.js"></script>
     <script src="./WebGLStateManager.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/96/three.js"></script>
 </head>
 <body>
     <canvas width="900" height="900" id="canvas"></canvas>
 
-    <script>
+    <script type="module">
+        import lng from '../../src/lightning-web.mjs'
+
         const canvas = document.getElementById('canvas')
         let gl = canvas.getContext('webgl')
         gl = WebGLStateManager.enable(gl, "app")
@@ -20,7 +21,7 @@
             class AppExample extends lng.Application {
                 static _template() {
                     return {
-                        Blur: {type: lng.views.FastBlurView, amount: 2, w: 900, h: 900, content: {
+                        Blur: {type: lng.components.FastBlurComponent, amount: 2, w: 900, h: 900, content: {
                             Texture: {
                                 w: 900, h: 900,
                                 texture: {type: lng.textures.StaticTexture}

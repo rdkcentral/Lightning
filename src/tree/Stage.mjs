@@ -261,7 +261,7 @@ export default class Stage extends EventEmitter {
 
     setClearColor(clearColor) {
         this.forceRenderUpdate();
-        if (clearColor === undefined) {
+        if (clearColor === null || clearColor === undefined) {
             // Do not clear.
             this._clearColor = undefined;
         } else if (Array.isArray(clearColor)) {

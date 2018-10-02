@@ -930,21 +930,13 @@ class ViewTexturizer {
         this.lazy = false;
         this._colorize = false;
 
-        this._filters = [];
-
         this._renderTexture = null;
 
         this._renderTextureReused = false;
 
-        this._resultTexture = null;
-
         this._resultTextureSource = null;
 
-        this._renderToTextureEnabled = false;
-
         this._renderOffscreen = false;
-
-        this.filterResultCached = false;
 
         this.empty = false;
     }
@@ -983,64 +975,6 @@ class ViewTexturizer {
         }
     }
 
-    get filters() {
-        return this._filters;
-    }
-
-    set filters(v) {
-        this._clearFilters();
-        v.forEach(filter => {
-            if (Utils.isObjectLiteral(filter) && filter.type) {
-                let s = new filter.type(this.ctx);
-                s.patch(filter);
-                filter = s;
-            }
-
-            if (filter.isFilter) {
-                this._addFilter(filter);
-            } else {
-                console.error("Please specify a filter type.");
-            }
-        });
-
-        this._core.updateRenderToTextureEnabled();
-        this._core.setHasRenderUpdates(2);
-    }
-
-    _clearFilters() {
-        this._filters = [];
-        this.filterResultCached = false;
-    }
-
-    _addFilter(filter) {
-        this._filters.push(filter);
-    }
-
-    _hasFilters() {
-        return (this._filters.length > 0);
-    }
-
-    _hasActiveFilters() {
-        for (let i = 0, n = this._filters.length; i < n; i++) {
-            if (!this._filters[i].useDefault()) return true;
-        }
-        return false;
-    }
-
-    getActiveFilters() {
-        let activeFilters = [];
-        this._filters.forEach(filter => {
-            if (!filter.useDefault()) {
-                if (filter.getFilters) {
-                    filter.getFilters().forEach(f => activeFilters.push(f));
-                } else {
-                    activeFilters.push(filter);
-                }
-            }
-        });
-        return activeFilters;
-    }
-
     _getTextureSource() {
         if (!this._resultTextureSource) {
             this._resultTextureSource = new TextureSource(this._view.stage.textureManager);
@@ -1073,9 +1007,6 @@ class ViewTexturizer {
         } else if (this._enabled && this.lazy && this._core._hasRenderUpdates < 3) {
             // Static-only: if renderToTexture did not need to update during last drawn frame, generate it as a cache.
             return true;
-        } else if (this._hasActiveFilters()) {
-            // Only render as texture if there is at least one filter shader to be applied.
-            return true;
         }
         return false;
     }
@@ -1090,7 +1021,6 @@ class ViewTexturizer {
 
     release() {
         this.releaseRenderTexture();
-        this.releaseFilterTexture();
     }
 
     releaseRenderTexture() {
@@ -1125,24 +1055,8 @@ class ViewTexturizer {
         return this._renderTexture;
     }
 
-    getFilterTexture() {
-        if (!this._resultTexture) {
-            this._resultTexture = this.ctx.allocateRenderTexture(this._core._rw, this._core._rh);
-        }
-        return this._resultTexture;
-    }
-
-    releaseFilterTexture() {
-        if (this._resultTexture) {
-            this.ctx.releaseRenderTexture(this._resultTexture);
-            this._resultTexture = null;
-            this.filterResultCached = false;
-            this.updateResultTexture();
-        }
-    }
-
     getResultTexture() {
-        return this._hasActiveFilters() ? this._resultTexture : this._renderTexture;
+        return this._renderTexture;
     }
 
 }
@@ -1522,8 +1436,7 @@ class ViewCore {
      * @param {number} type
      * 0: no updates
      * 1: re-invoke shader
-     * 2: re-invoke filter
-     * 3: re-create render texture and re-invoke shader and filter
+     * 3: re-create render texture and re-invoke shader
      */
     setHasRenderUpdates(type) {
         if (this._worldContext.alpha) {
@@ -1724,7 +1637,6 @@ class ViewCore {
             this._setRecalc(2);
             if (this._texturizer) {
                 this._texturizer.releaseRenderTexture();
-                this._texturizer.releaseFilterTexture();
                 this._texturizer.updateResultTexture();
             }
             // Due to width/height change: update the translation vector.
@@ -2140,7 +2052,7 @@ class ViewCore {
 
     updateRenderToTextureEnabled() {
         // Enforce texturizer initialisation.
-        let v = (this.texturizer._hasFilters() || this.texturizer._enabled);
+        let v = this.texturizer._enabled;
 
         if (v) {
             this._enableRenderToTexture();
@@ -2259,7 +2171,7 @@ class ViewCore {
         if (this._onUpdate) {
             // Block all 'upwards' updates when changing things in this branch.
             this._hasUpdates = true;
-            this._onUpdate(this.view);
+            this._onUpdate(this.view, this);
         }
 
         const pw = this._parent._worldContext;
@@ -2716,8 +2628,34 @@ class ViewCore {
                         h: this._rh,
                         empty: true,
                         cleared: false,
-                        ignore: false
+                        ignore: false,
+                        cache: false
                     };
+
+                    if (!renderState.isCachingTexturizer && (this._hasRenderUpdates === 0)) {
+                        /**
+                         * We don't always cache render textures.
+                         *
+                         * The rule is, that caching for a specific render texture is only enabled if:
+                         * - There were no render updates since last frame (ViewCore.hasRenderUpdates === 0)
+                         * - There are no ancestors that are being cached during this frame (CoreRenderState.isCachingTexturizer)
+                         *   If an ancestor is cached anyway, it's probably not necessary to keep deeper caches. If the top level is to
+                         *   change while a lower one is not, that lower level will be cached instead.
+                         *
+                         * In case of the fast blur view, this prevents having to cache all blur levels and stages, saving a huge amount
+                         * of GPU memory!
+                         *
+                         * Especially when using multiple stacked layers of the same dimensions that are RTT this will have a very
+                         * noticable effect on performance as less render textures need to be allocated.
+                         */
+                        renderTextureInfo.cache = true;
+                        renderState.isCachingTexturizer = true;
+                    }
+
+                    // We can already release the current texture to the pool, as it will be rebuild anyway.
+                    // In case of multiple layers of 'filtering', this may save us from having to create one
+                    //  render-to-texture layer.
+                    this._texturizer.releaseRenderTexture();
 
                     renderState.setRenderTextureInfo(renderTextureInfo);
                     renderState.setScissor(undefined);
@@ -2774,7 +2712,6 @@ class ViewCore {
                         // We ignore empty render textures and do not draw the final quad.
 
                         // The following cleans up memory and enforces that the result texture is also cleared.
-                        this._texturizer.releaseFilterTexture();
                         this._texturizer.releaseRenderTexture();
                     } else if (renderTextureInfo.nativeTexture) {
                         // If nativeTexture is set, we can reuse that directly instead of creating a new render texture.
@@ -2797,15 +2734,6 @@ class ViewCore {
                 }
 
                 if (!this._texturizer.empty) {
-                    let hasFilters = this._texturizer._hasActiveFilters();
-
-                    if (hasFilters) {
-                        if ((this._hasRenderUpdates >= 2 || !this._texturizer.filterResultCached)) {
-                            this.applyFilters();
-                            updateResultTexture = true;
-                        }
-                    }
-
                     let resultTexture = this._texturizer.getResultTexture();
                     if (updateResultTexture) {
                         if (resultTexture) {
@@ -2820,62 +2748,24 @@ class ViewCore {
                         renderState.setShader(this.activeShader, this._shaderOwner);
                         renderState.setScissor(this._scissor);
 
-                        renderState.setOverrideQuadTexture(resultTexture);
+                        const fillingCache = !!(renderTextureInfo && renderTextureInfo.cache);
+                        renderState.setTexturizer(this._texturizer, (!updateResultTexture || fillingCache));
                         this._stashTexCoords();
                         if (!this._texturizer.colorize) this._stashColors();
                         this.renderState.addQuad(this);
                         if (!this._texturizer.colorize) this._unstashColors();
                         this._unstashTexCoords();
-                        renderState.setOverrideQuadTexture(null);
+                        renderState.setTexturizer(null);
+
+                        if (fillingCache) {
+                            // Allow siblings to cache.
+                            renderState.isCachingTexturizer = false;
+                        }
                     }
                 }
             }
 
             this._hasRenderUpdates = 0;
-        }
-    }
-
-    applyFilters() {
-        let sourceTexture = this._texturizer.getRenderTexture();
-
-        let renderState = this.renderState;
-        let activeFilters = this._texturizer.getActiveFilters();
-
-        let textureRenders = activeFilters.length;
-
-        this._texturizer.filterResultCached = false;
-
-        if (textureRenders === 0) {
-            // No filters: just render the source texture with the normal shader.
-            return sourceTexture;
-        } else if (textureRenders === 1) {
-            let targetTexture = this._texturizer.getFilterTexture();
-
-            // No intermediate texture is needed.
-            renderState.addFilter(activeFilters[0], this, sourceTexture, targetTexture);
-            this._texturizer.filterResultCached = true;
-        } else {
-            let targetTexture = this._texturizer.getFilterTexture();
-            let intermediate = this.ctx.allocateRenderTexture(this._rw, this._rh);
-            let source = intermediate;
-            let target = targetTexture;
-
-            let even = ((textureRenders % 2) === 0);
-
-            for (let i = 0; i < textureRenders; i++) {
-                if (i !== 0 || even) {
-                    // Finally, the target should contain targetTexture, and source the intermediate texture.
-                    let tmp = source;
-                    source = target;
-                    target = tmp;
-                }
-
-                renderState.addFilter(activeFilters[i], this, i === 0 ? sourceTexture : source, target);
-            }
-
-            this.ctx.releaseRenderTexture(intermediate);
-
-            this._texturizer.filterResultCached = true;
         }
     }
 
@@ -5570,10 +5460,6 @@ class View {
             this.__core.shader.addView(this.__core);
         }
 
-        if (this._hasTexturizer()) {
-            this.texturizer.filters.forEach(filter => filter.addView(this.__core));
-        }
-
     }
 
     _unsetEnabledFlag() {
@@ -7004,18 +6890,26 @@ class View {
     }
 
     get renderToTexture() {
-        return this._hasTexturizer() && this.texturizer.enabled;
+        return this.rtt
     }
 
     set renderToTexture(v) {
+        this.rtt = v;
+    }
+
+    get rtt() {
+        return this._hasTexturizer() && this.texturizer.enabled;
+    }
+
+    set rtt(v) {
         this.texturizer.enabled = v;
     }
 
-    get renderToTextureLazy() {
+    get rttLazy() {
         return this._hasTexturizer() && this.texturizer.lazy;
     }
 
-    set renderToTextureLazy(v) {
+    set rttLazy(v) {
         this.texturizer.lazy = v;
     }
 
@@ -7976,29 +7870,15 @@ class CoreRenderExecutor {
         this._reset();
 
         let qops = this.renderState.quadOperations;
-        let fops = this.renderState.filterOperations;
 
-        let i = 0, j = 0, n = qops.length, m = fops.length;
+        let i = 0, n = qops.length;
         while (i < n) {
-            while (j < m && i === fops[j].beforeQuadOperation) {
-                if (this._quadOperation) {
-                    this._execQuadOperation(this._quadOperation);
-                }
-                this._execFilterOperation(fops[j]);
-                j++;
-            }
-
             this._processQuadOperation(qops[i]);
             i++;
         }
 
         if (this._quadOperation) {
             this._execQuadOperation(this._quadOperation);
-        }
-
-        while (j < m) {
-            this._execFilterOperation(fops[j]);
-            j++;
         }
     }
 
@@ -8018,8 +7898,6 @@ class CoreRenderExecutor {
     }
 
     _setupQuadOperation(quadOperation) {
-        let shader = quadOperation.shader;
-        this._useShaderProgram(shader, quadOperation);
     }
 
     _execQuadOperation(op) {
@@ -8028,13 +7906,6 @@ class CoreRenderExecutor {
     }
 
     _renderQuadOperation(op) {
-    }
-
-    _execFilterOperation(filterOperation) {
-        this._renderFilterOperation(filterOperation);
-    }
-
-    _renderFilterOperation(op) {
     }
 
 }
@@ -8111,13 +7982,13 @@ class WebGLCoreRenderExecutor extends CoreRenderExecutor {
 
     _setupQuadOperation(quadOperation) {
         super._setupQuadOperation(quadOperation);
-        this._useShaderProgram(quadOperation.shader, quadOperation);
+        this._useShaderProgram(quadOperation.shader.impl, quadOperation);
     }
 
     _renderQuadOperation(op) {
-        let shader = op.shader;
+        let shaderImpl = op.shader.impl;
 
-        if (op.length || shader.addEmpty()) {
+        if (op.length || op.shader.addEmpty()) {
             // Set render texture.
             let nativeTexture = op.renderTextureInfo ? op.renderTextureInfo.nativeTexture : null;
             if (this._renderTexture !== nativeTexture) {
@@ -8133,9 +8004,9 @@ class WebGLCoreRenderExecutor extends CoreRenderExecutor {
                 this._setScissor(op.scissor);
             }
 
-            shader.beforeDraw(op);
-            shader.draw(op);
-            shader.afterDraw(op);
+            shaderImpl.beforeDraw(op);
+            shaderImpl.draw(op);
+            shaderImpl.afterDraw(op);
         }
     }
 
@@ -8153,18 +8024,18 @@ class WebGLCoreRenderExecutor extends CoreRenderExecutor {
     }
 
     /**
-     * @param {Filter|Shader} program;
+     * @param {WebGLShaderImpl} shader;
      * @param {CoreFilterOperation|CoreQuadOperation} operation;
      */
-    _useShaderProgram(program, operation) {
-        if (!program.hasSameProgram(this._currentShaderProgram)) {
+    _useShaderProgram(shader, operation) {
+        if (!shader.hasSameProgram(this._currentShaderProgram)) {
             if (this._currentShaderProgram) {
                 this._currentShaderProgram.stopProgram();
             }
-            program.useProgram();
-            this._currentShaderProgram = program;
+            shader.useProgram();
+            this._currentShaderProgram = shader;
         }
-        program.setupUniforms(operation);
+        shader.setupUniforms(operation);
     }
 
     _stopShaderProgram() {
@@ -8253,11 +8124,82 @@ class CoreFilterOperation {
 
 }
 
+class Shader {
+
+    constructor(coreContext) {
+        this._initialized = false;
+
+        this.ctx = coreContext;
+
+        /**
+         * The (enabled) views that use this shader.
+         * @type {Set<ViewCore>}
+         */
+        this._views = new Set();
+    }
+
+    get impl() {
+        if (!this._impl) {
+            if (this.ctx.stage.mode === 0) {
+                this._impl = new (this.constructor.getWebGLImpl())(this);
+            }
+        }
+        return this._impl;
+    }
+
+    static getWebGLImpl() {
+        return undefined
+    }
+
+    static getC2dImpl() {
+        return undefined
+    }
+
+    addView(viewCore) {
+        this._views.add(viewCore);
+    }
+
+    removeView(viewCore) {
+        this._views.delete(viewCore);
+        if (!this._views) {
+            this.cleanup();
+        }
+    }
+
+    redraw() {
+        this._views.forEach(viewCore => {
+            viewCore.setHasRenderUpdates(2);
+        });
+    }
+
+    patch(settings) {
+        Base.patchObject(this, settings);
+    }
+
+    useDefault() {
+        // Should return true if this shader is configured (using it's properties) to not have any effect.
+        // This may allow the render engine to avoid unnecessary shader program switches or even texture copies.
+        return false;
+    }
+
+    addEmpty() {
+        // Draws this shader even if there are no quads to be added.
+        // This is handy for custom shaders.
+        return false;
+    }
+
+    cleanup() {
+        // Called when no more enabled views have this shader.
+        this.impl.cleanup();
+    }
+
+}
+
 /**
  * Base functionality for shader setup/destroy.
  * Copyright Metrological, 2017
  */
-class ShaderProgram {
+class WebGLShaderProgram {
 
     constructor(vertexShaderSource, fragmentShaderSource) {
 
@@ -8398,39 +8340,45 @@ class ShaderProgram {
 
 }
 
-class ShaderBase {
+class WebGLShaderImpl {
 
-    constructor(coreContext) {
-        this._program = coreContext.shaderPrograms.get(this.constructor);
+    constructor(shader) {
+        this._shader = shader;
+
+        const stage = this._shader.ctx.stage;
+
+        this._program = stage.renderer.shaderPrograms.get(this.constructor);
         if (!this._program) {
-            this._program = new ShaderProgram(this.constructor.vertexShaderSource, this.constructor.fragmentShaderSource);
+            this._program = new WebGLShaderProgram(this.constructor.vertexShaderSource, this.constructor.fragmentShaderSource);
 
             // Let the vbo context perform garbage collection.
-            coreContext.shaderPrograms.set(this.constructor, this._program);
+            stage.renderer.shaderPrograms.set(this.constructor, this._program);
         }
-        this._initialized = false;
 
-        this.ctx = coreContext;
+        this.gl = stage.gl;
+    }
 
-        this.gl = this.ctx.stage.gl;
+    get shader() {
+        return this._shader;
+    }
 
-        /**
-         * The (enabled) views that use this shader.
-         * @type {Set<ViewCore>}
-         */
-        this._views = new Set();
+    get glProgram() {
+        return this._program.glProgram;
     }
 
     _init() {
         if (!this._initialized) {
-            this._program.compile(this.gl);
             this.initialize();
             this._initialized = true;
         }
     }
 
     initialize() {
+        this._program.compile(this.gl);
+    }
 
+    get initialized() {
+        return this._initialized;
     }
 
     _uniform(name) {
@@ -8470,46 +8418,61 @@ class ShaderBase {
         // All settings changed in beforeUsage should be reset here.
     }
 
-    get initialized() {
-        return this._initialized;
+    enableAttribs() {
+
     }
 
-    get glProgram() {
-        return this._program.glProgram;
+    disableAttribs() {
+
     }
 
-    addView(viewCore) {
-        this._views.add(viewCore);
+    getExtraAttribBytesPerVertex() {
+        return 0;
     }
 
-    removeView(viewCore) {
-        this._views.delete(viewCore);
-        if (!this._views) {
-            this.cleanup();
-        }
+    getVertexAttribPointerOffset(operation) {
+        return operation.extraAttribsDataByteOffset - (operation.index + 1) * 4 * this.getExtraAttribBytesPerVertex();
     }
 
-    redraw() {
-        this._views.forEach(viewCore => {
-            viewCore.setHasRenderUpdates(2);
-        });
+    setExtraAttribsInBuffer(operation) {
+        // Set extra attrib data in in operation.quads.data/floats/uints, starting from
+        // operation.extraAttribsBufferByteOffset.
     }
 
-    patch(settings) {
-        Base.patchObject(this, settings);
+    setupUniforms(operation) {
+        // Set all shader-specific uniforms.
+        // Notice that all uniforms should be set, even if they have not been changed within this shader instance.
+        // The uniforms are shared by all shaders that have the same type (and shader program).
+    }
+
+    _getProjection(operation) {
+        return operation.getProjection();
+    }
+
+    getFlipY(operation) {
+        return this._getProjection(operation)[1] < 0;
+    }
+
+    beforeDraw(operation) {
+    }
+
+    draw(operation) {
+    }
+
+    afterDraw(operation) {
     }
 
     cleanup() {
         this._initialized = false;
+        // Program takes little resources, so it is only destroyed when the full stage is destroyed.
     }
 
 }
 
-class Shader extends ShaderBase {
+class WebGLDefaultShaderImpl extends WebGLShaderImpl {
 
-    constructor(coreContext) {
-        super(coreContext);
-        this.isDefault = this.constructor === Shader;
+    constructor(shader) {
+        super(shader);
     }
 
     enableAttribs() {
@@ -8544,47 +8507,8 @@ class Shader extends ShaderBase {
         }
     }
 
-    getExtraAttribBytesPerVertex() {
-        return 0;
-    }
-
-    getVertexAttribPointerOffset(operation) {
-        return operation.extraAttribsDataByteOffset - (operation.index + 1) * 4 * this.getExtraAttribBytesPerVertex();
-    }
-
-    useDefault() {
-        // Should return true if this shader is configured (using it's properties) to not have any effect.
-        // This may allow the render engine to avoid unnecessary shader program switches or even texture copies.
-        return false;
-    }
-
-    addEmpty() {
-        // Draws this shader even if there are no quads to be added.
-        // This is handy for custom shaders.
-        return false;
-    }
-
-    setExtraAttribsInBuffer(operation) {
-        // Set extra attrib data in in operation.quads.data/floats/uints, starting from
-        // operation.extraAttribsBufferByteOffset.
-    }
-
     setupUniforms(operation) {
-        // Set all shader-specific uniforms.
-        // Notice that all uniforms should be set, even if they have not been changed within this shader instance.
-        // The uniforms are shared by all shaders that have the same type (and shader program).
         this._setUniform("projection", this._getProjection(operation), this.gl.uniform2fv, false);
-    }
-
-    _getProjection(operation) {
-        return operation.getProjection();
-    }
-
-    getFlipY(operation) {
-        return this._getProjection(operation)[1] < 0;
-    }
-
-    beforeDraw(operation) {
     }
 
     draw(operation) {
@@ -8611,12 +8535,9 @@ class Shader extends ShaderBase {
         }
     }
 
-    afterDraw(operation) {
-    }
-
 }
 
-Shader.vertexShaderSource = `
+WebGLDefaultShaderImpl.vertexShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -8634,7 +8555,7 @@ Shader.vertexShaderSource = `
     }
 `;
 
-Shader.fragmentShaderSource = `
+WebGLDefaultShaderImpl.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -8646,7 +8567,24 @@ Shader.fragmentShaderSource = `
     }
 `;
 
-Shader.prototype.isShader = true;
+class DefaultShader extends Shader {
+
+    constructor(coreContext) {
+        super(coreContext);
+        this.isDefault = this.constructor === DefaultShader;
+    }
+
+    static getWebGLImpl() {
+        return WebGLDefaultShaderImpl;
+    }
+
+    static getC2dImpl() {
+        //@todo: implement
+    }
+
+}
+
+DefaultShader.prototype.isShader = true;
 
 class CoreRenderState {
 
@@ -8655,7 +8593,7 @@ class CoreRenderState {
 
         this.stage = ctx.stage;
 
-        this.defaultShader = new Shader(this.ctx);
+        this.defaultShader = new DefaultShader(this.ctx);
 
         this.renderer = ctx.stage.renderer;
 
@@ -8669,7 +8607,7 @@ class CoreRenderState {
         this._scissor = null;
 
         /**
-         * @type {Shader}
+         * @type {DefaultShader}
          */
         this._shader = null;
 
@@ -8680,13 +8618,18 @@ class CoreRenderState {
         this._check = false;
 
         this.quadOperations = [];
-        this.filterOperations = [];
 
-        this._overrideQuadTexture = null;
+        this._texturizer = null;
+
+        this._texturizerTemporary = false;
 
         this._quadOperation = null;
 
         this.quads.reset();
+
+        this._temporaryTexturizers = [];
+        
+        this._isCachingTexturizer = false;
 
     }
 
@@ -8740,19 +8683,41 @@ class CoreRenderState {
         }
     }
 
-    setOverrideQuadTexture(texture) {
-        this._overrideQuadTexture = texture;
+    /**
+     * Sets the texturizer to be drawn during subsequent addQuads.
+     * @param {ViewTexturizer} texturizer
+     */
+    setTexturizer(texturizer, cache = false) {
+        this._texturizer = texturizer;
+        this._cacheTexturizer = cache;
+    }
+
+    set isCachingTexturizer(v) {
+        this._isCachingTexturizer = v;
+    }
+
+    get isCachingTexturizer() {
+        return this._isCachingTexturizer;
     }
 
     addQuad(viewCore) {
         if (!this._quadOperation) {
             this._createQuadOperation();
         } else if (this._check && this._hasChanges()) {
-            this._addQuadOperation();
+            this._finishQuadOperation();
             this._check = false;
         }
 
-        let nativeTexture = this._overrideQuadTexture;
+        let nativeTexture = null;
+        if (this._texturizer) {
+            nativeTexture = this._texturizer.getResultTexture();
+
+            if (!this._cacheTexturizer) {
+                // We can release the temporary texture immediately after finalizing this quad operation.
+                this._temporaryTexturizers.push(this._texturizer);
+            }
+        }
+
         if (!nativeTexture) {
             nativeTexture = viewCore._displayedTextureSource.nativeTexture;
         }
@@ -8782,10 +8747,17 @@ class CoreRenderState {
             // There was only one texture drawn in this render texture.
             // Check if we can reuse it so that we can optimize out an unnecessary render texture operation.
             // (it should exactly span this render texture).
-            if (!this.renderer.isRenderTextureReusable(this, this._renderTextureInfo)) {
+            if (!this._isRenderTextureReusable()) {
                 this._renderTextureInfo.nativeTexture = null;
             }
         }
+    }
+
+    _isRenderTextureReusable() {
+        const offset = this._renderTextureInfo.offset;
+        return (this.quads.quadTextures[offset].w === this._renderTextureInfo.w) &&
+            (this.quads.quadTextures[offset].h === this._renderTextureInfo.h) &&
+            this.renderer.isRenderTextureReusable(this, this._renderTextureInfo)
     }
 
     _hasChanges() {
@@ -8802,13 +8774,22 @@ class CoreRenderState {
         return false;
     }
 
-    _addQuadOperation(create = true) {
+    _finishQuadOperation(create = true) {
         if (this._quadOperation) {
             if (this._quadOperation.length || this._shader.addEmpty()) {
                 if (!this._quadOperation.scissor || ((this._quadOperation.scissor[2] > 0) && (this._quadOperation.scissor[3] > 0))) {
                     // Ignore empty clipping regions.
                     this.quadOperations.push(this._quadOperation);
                 }
+            }
+
+            if (this._temporaryTexturizers.length) {
+                for (let i = 0, n = this._temporaryTexturizers.length; i < n; i++) {
+                    // We can now reuse these render-to-textures in subsequent stages.
+                    // Huge performance benefit when filtering (fast blur).
+                    this._temporaryTexturizers[i].releaseRenderTexture();
+                }
+                this._temporaryTexturizers = [];
             }
 
             this._quadOperation = null;
@@ -8831,17 +8812,10 @@ class CoreRenderState {
         this._check = false;
     }
 
-    addFilter(filter, owner, source, target) {
-        // Close current quad operation.
-        this._addQuadOperation(false);
-
-        this.filterOperations.push(this.renderer.createCoreFilterOperation(this.ctx, filter, owner, source, target, this.quadOperations.length));
-    }
-
     finish() {
         if (this._quadOperation) {
             // Add remaining.
-            this._addQuadOperation(false);
+            this._finishQuadOperation(false);
         }
 
         this.renderer.finishRenderState(this);
@@ -8853,6 +8827,11 @@ class WebGLRenderer {
 
     constructor(stage) {
         this.stage = stage;
+        this.shaderPrograms = new Map();
+    }
+
+    destroy() {
+        this.shaderPrograms.forEach(shaderProgram => shaderProgram.destroy());
     }
 
     createCoreQuadList(ctx) {
@@ -8875,12 +8854,12 @@ class WebGLRenderer {
         return new CoreRenderState(ctx);
     }
 
-    createRenderTexture(w, h) {
+    createRenderTexture(w, h, pw, ph) {
         const gl = this.stage.gl;
         const glTexture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, glTexture);
 
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, pw, ph, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
 
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -9067,10 +9046,10 @@ class WebGLRenderer {
         let offset = renderState.length * 80 + 80;
         for (let i = 0, n = renderState.quadOperations.length; i < n; i++) {
             renderState.quadOperations[i].extraAttribsDataByteOffset = offset;
-            let extra = renderState.quadOperations[i].shader.getExtraAttribBytesPerVertex() * 4 * renderState.quadOperations[i].length;
+            let extra = renderState.quadOperations[i].shader.impl.getExtraAttribBytesPerVertex() * 4 * renderState.quadOperations[i].length;
             offset += extra;
             if (extra) {
-                renderState.quadOperations[i].shader.setExtraAttribsInBuffer(renderState.quadOperations[i], renderState.quads);
+                renderState.quadOperations[i].shader.impl.setExtraAttribsInBuffer(renderState.quadOperations[i], renderState.quads);
             }
         }
         renderState.quads.dataLength = offset;
@@ -9138,7 +9117,7 @@ class TextureManager {
 
         textureSource._nativeTexture = nativeTexture;
 
-        // We attach w and h to native texture (see CoreQuadOperation.getTextureWidth()).
+        // We attach w and h to native texture (we need it in CoreRenderState._isRenderTextureReusable).
         nativeTexture.w = textureSource.w;
         nativeTexture.h = textureSource.h;
 
@@ -9230,8 +9209,6 @@ class CoreContext {
 
         this.updateTreeOrder = 0;
 
-        this.shaderPrograms = new Map();
-
         this.renderState = this.stage.renderer.createCoreRenderState(this);
 
         this.renderExec = this.stage.renderer.createCoreRenderExecutor(this);
@@ -9246,7 +9223,6 @@ class CoreContext {
     }
 
     destroy() {
-        this.shaderPrograms.forEach(shaderProgram => shaderProgram.destroy());
         this._renderTexturePool.forEach(texture => this._freeRenderTexture(texture));
     }
 
@@ -9290,7 +9266,7 @@ class CoreContext {
     }
 
     render() {
-        // Obtain a sequence of the quad and filter operations.
+        // Obtain a sequence of the quad operations.
         this.renderState.reset();
         this.root.render();
         this.renderState.finish();
@@ -9301,19 +9277,21 @@ class CoreContext {
 
     allocateRenderTexture(w, h) {
         let prec = this.stage.getRenderPrecision();
-        let aw = Math.max(1, Math.round(w * prec));
-        let ah = Math.max(1, Math.round(h * prec));
+        let pw = Math.max(1, Math.round(w * prec));
+        let ph = Math.max(1, Math.round(h * prec));
 
-        for (let i = 0, n = this._renderTexturePool.length; i < n; i++) {
+        // Search last item first, so that last released render texture is preferred (may cause memory cache benefits).
+        const n = this._renderTexturePool.length;
+        for (let i = n - 1; i >= 0; i--) {
             const texture = this._renderTexturePool[i];
-            if (texture.w === aw && texture.h === ah) {
+            if (texture.w === pw && texture.h === ph) {
                 texture.f = this.stage.frameCounter;
                 this._renderTexturePool.splice(i, 1);
                 return texture;
             }
         }
 
-        const texture = this._createRenderTexture(aw, ah);
+        const texture = this._createRenderTexture(w, h, pw, ph);
         texture.precision = prec;
         return texture;
     }
@@ -9326,7 +9304,7 @@ class CoreContext {
         const prevMem = this._renderTexturePixels;
 
         // Clean up all textures that are no longer used.
-        // This cache is short-lived because it is really just meant to supply running shaders and filters that are
+        // This cache is short-lived because it is really just meant to supply running shaders that are
         // updated during a number of frames.
         let limit = this.stage.frameCounter - maxAge;
 
@@ -9341,13 +9319,13 @@ class CoreContext {
         console.warn("GC render texture memory" + (maxAge ? "" : " (aggressive)") + ": " + prevMem + "px > " + this._renderTexturePixels + "px");
     }
 
-    _createRenderTexture(w, h) {
-        const texture = this.stage.renderer.createRenderTexture(w, h);
+    _createRenderTexture(w, h, pw, ph) {
+        const texture = this.stage.renderer.createRenderTexture(w, h, pw, ph);
         texture.id = this._renderTextureId++;
         texture.f = this.stage.frameCounter;
-        texture.w = w;
-        texture.h = h;
-        this._renderTexturePixels += w * h;
+        texture.w = pw;
+        texture.h = ph;
+        this._renderTexturePixels += pw * ph;
 
         if (this._renderTexturePixels > this.stage.getOption('renderTextureMemory')) {
             this.freeUnusedRenderTextures();
@@ -10479,7 +10457,7 @@ class Stage extends EventEmitter {
         opt('renderTextureMemory', 12e6);
         opt('bufferMemory', 8e6);
         opt('textRenderIssueMargin', 0);
-        opt('glClearColor', [0, 0, 0, 0]);
+        opt('clearColor', [0, 0, 0, 0]);
         opt('defaultFontFace', 'Sans-Serif');
         opt('fixedDt', 0);
         opt('useTextureAtlas', false);
@@ -10507,6 +10485,7 @@ class Stage extends EventEmitter {
             this.adapter.stopLoop();
             this.ctx.destroy();
             this.textureManager.destroy();
+            this._renderer.destroy();
             this._destroyed = true;
         }
     }
@@ -10606,7 +10585,7 @@ class Stage extends EventEmitter {
 
     setClearColor(clearColor) {
         this.forceRenderUpdate();
-        if (clearColor === undefined) {
+        if (clearColor === null || clearColor === undefined) {
             // Do not clear.
             this._clearColor = undefined;
         } else if (Array.isArray(clearColor)) {
@@ -11249,94 +11228,6 @@ class Application extends Component {
     }
 }
 
-class Filter extends ShaderBase {
-
-    constructor(coreContext) {
-        super(coreContext);
-    }
-
-    useDefault() {
-        // Should return true if this filter is configured (using it's properties) to not have any effect.
-        // This may allow the render engine to avoid unnecessary shader program switches or even texture copies.
-        return false;
-    }
-
-    enableAttribs() {
-        // Enables the attribs in the shader program.
-        let gl = this.gl;
-        gl.vertexAttribPointer(this._attrib("aVertexPosition"), 2, gl.FLOAT, false, 20, 0);
-        gl.enableVertexAttribArray(this._attrib("aVertexPosition"));
-
-        if (this._attrib("aTextureCoord") !== -1) {
-            gl.vertexAttribPointer(this._attrib("aTextureCoord"), 2, gl.FLOAT, true, 20, 2 * 4);
-            gl.enableVertexAttribArray(this._attrib("aTextureCoord"));
-        }
-    }
-
-    disableAttribs() {
-        // Disables the attribs in the shader program.
-        let gl = this.gl;
-        gl.disableVertexAttribArray(this._attrib("aVertexPosition"));
-        if (this._attrib("aTextureCoord") !== -1) {
-            gl.disableVertexAttribArray(this._attrib("aTextureCoord"));
-        }
-    }
-
-    setupUniforms(operation) {
-        this._setUniform("resolution", new Float32Array([operation.getRenderWidth(), operation.getRenderHeight()]), this.gl.uniform2fv);
-    }
-
-    beforeDraw(operation) {
-    }
-
-    afterDraw(operation) {
-    }
-
-    draw(operation) {
-        // Draw the identity quad.
-        let gl = this.gl;
-        gl.bindTexture(gl.TEXTURE_2D, operation.source);
-        gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
-    }
-
-    redraw() {
-        this._views.forEach(viewCore => {
-            viewCore.setHasRenderUpdates(2);
-
-            // Changing filter settings may cause a changed mustRenderToTexture for the branch:
-            // we need to be sure that the update function is called for this branch.
-            viewCore._setRecalc(1 + 2 + 4 + 8);
-        });
-    }
-
-}
-
-Filter.prototype.isFilter = true;
-
-Filter.vertexShaderSource = `
-    #ifdef GL_ES
-    precision lowp float;
-    #endif
-    attribute vec2 aVertexPosition;
-    attribute vec2 aTextureCoord;
-    varying vec2 vTextureCoord;
-    void main(void){
-        gl_Position = vec4(aVertexPosition, 0.0, 1.0);
-        vTextureCoord = aTextureCoord;
-    }
-`;
-
-Filter.fragmentShaderSource = `
-    #ifdef GL_ES
-    precision lowp float;
-    #endif
-    varying vec2 vTextureCoord;
-    uniform sampler2D uSampler;
-    void main(void){
-        gl_FragColor = texture2D(uSampler, vTextureCoord);
-    }
-`;
-
 class StaticCanvasTexture extends Texture {
 
     constructor(stage) {
@@ -11750,7 +11641,7 @@ class ObjectListWrapper extends ObjectListProxy {
 
 }
 
-class ListView extends View {
+class ListView extends Component {
 
     constructor(stage) {
         super(stage);
@@ -12235,20 +12126,567 @@ class ListItems extends ObjectListWrapper {
 
 }
 
-class BorderView extends View {
+class LinearBlurShader extends DefaultShader {
+    constructor(context) {
+        super(context);
+
+        this._direction = new Float32Array([1, 0]);
+        this._kernelRadius = 1;
+    }
+
+    get x() {
+        return this._direction[0];
+    }
+
+    set x(v) {
+        this._direction[0] = v;
+        this.redraw();
+    }
+
+    get y() {
+        return this._direction[1];
+    }
+
+    set y(v) {
+        this._direction[1] = v;
+        this.redraw();
+    }
+
+    get kernelRadius() {
+        return this._kernelRadius;
+    }
+
+    set kernelRadius(v) {
+        this._kernelRadius = v;
+        this.redraw();
+    }
+
+
+    useDefault() {
+        return (this._kernelRadius === 0);
+    }
+
+    static getWebGLImpl() {
+        return WebGLLinearBlurShaderImpl;
+    }
+}
+class WebGLLinearBlurShaderImpl extends WebGLDefaultShaderImpl {
+    setupUniforms(operation) {
+        super.setupUniforms(operation);
+        this._setUniform("direction", this.shader._direction, this.gl.uniform2fv);
+        this._setUniform("kernelRadius", this.shader._kernelRadius, this.gl.uniform1i);
+
+        const w = operation.getRenderWidth();
+        const h = operation.getRenderHeight();
+        this._setUniform("resolution", new Float32Array([w, h]), this.gl.uniform2fv);
+    }
+}
+
+WebGLLinearBlurShaderImpl.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    uniform vec2 resolution;
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    uniform sampler2D uSampler;
+    uniform vec2 direction;
+    uniform int kernelRadius;
+    
+    vec4 blur1(sampler2D image, vec2 uv, vec2 resolution, vec2 direction) {
+        vec4 color = vec4(0.0);
+        vec2 off1 = vec2(1.3333333333333333) * direction;
+        color += texture2D(image, uv) * 0.29411764705882354;
+        color += texture2D(image, uv + (off1 / resolution)) * 0.35294117647058826;
+        color += texture2D(image, uv - (off1 / resolution)) * 0.35294117647058826;
+        return color; 
+    }
+    
+    vec4 blur2(sampler2D image, vec2 uv, vec2 resolution, vec2 direction) {
+        vec4 color = vec4(0.0);
+        vec2 off1 = vec2(1.3846153846) * direction;
+        vec2 off2 = vec2(3.2307692308) * direction;
+        color += texture2D(image, uv) * 0.2270270270;
+        color += texture2D(image, uv + (off1 / resolution)) * 0.3162162162;
+        color += texture2D(image, uv - (off1 / resolution)) * 0.3162162162;
+        color += texture2D(image, uv + (off2 / resolution)) * 0.0702702703;
+        color += texture2D(image, uv - (off2 / resolution)) * 0.0702702703;
+        return color;
+    }
+    
+    vec4 blur3(sampler2D image, vec2 uv, vec2 resolution, vec2 direction) {
+        vec4 color = vec4(0.0);
+        vec2 off1 = vec2(1.411764705882353) * direction;
+        vec2 off2 = vec2(3.2941176470588234) * direction;
+        vec2 off3 = vec2(5.176470588235294) * direction;
+        color += texture2D(image, uv) * 0.1964825501511404;
+        color += texture2D(image, uv + (off1 / resolution)) * 0.2969069646728344;
+        color += texture2D(image, uv - (off1 / resolution)) * 0.2969069646728344;
+        color += texture2D(image, uv + (off2 / resolution)) * 0.09447039785044732;
+        color += texture2D(image, uv - (off2 / resolution)) * 0.09447039785044732;
+        color += texture2D(image, uv + (off3 / resolution)) * 0.010381362401148057;
+        color += texture2D(image, uv - (off3 / resolution)) * 0.010381362401148057;
+        return color;
+    }    
+
+    void main(void){
+        if (kernelRadius == 1) {
+            gl_FragColor = blur1(uSampler, vTextureCoord, resolution, direction) * vColor;
+        } else if (kernelRadius == 2) {
+            gl_FragColor = blur2(uSampler, vTextureCoord, resolution, direction) * vColor;
+        } else {
+            gl_FragColor = blur3(uSampler, vTextureCoord, resolution, direction) * vColor;
+        }
+    }
+`;
+
+/**
+ * 4x4 box blur shader which works in conjunction with a 50% rescale.
+ */
+class BoxBlurShader extends DefaultShader {
+
+    constructor(ctx) {
+        super(ctx);
+    }
+
+    static getWebGLImpl() {
+        return WebGLBoxBlurShaderImpl;
+    }
+
+}
+
+class WebGLBoxBlurShaderImpl extends WebGLDefaultShaderImpl {
+    setupUniforms(operation) {
+        super.setupUniforms(operation);
+        const dx = 1.0 / operation.getTextureWidth(0);
+        const dy = 1.0 / operation.getTextureHeight(0);
+        this._setUniform("stepTextureCoord", new Float32Array([dx, dy]), this.gl.uniform2fv);
+    }
+}
+
+WebGLBoxBlurShaderImpl.vertexShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    uniform vec2 stepTextureCoord;
+    attribute vec2 aVertexPosition;
+    attribute vec2 aTextureCoord;
+    attribute vec4 aColor;
+    uniform vec2 projection;
+    varying vec4 vColor;
+    varying vec2 vTextureCoordUl;
+    varying vec2 vTextureCoordUr;
+    varying vec2 vTextureCoordBl;
+    varying vec2 vTextureCoordBr;
+    void main(void){
+        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);
+        vTextureCoordUl = aTextureCoord - stepTextureCoord;
+        vTextureCoordBr = aTextureCoord + stepTextureCoord;
+        vTextureCoordUr = vec2(vTextureCoordBr.x, vTextureCoordUl.y);
+        vTextureCoordBl = vec2(vTextureCoordUl.x, vTextureCoordBr.y);
+        vColor = aColor;
+        gl_Position.y = -sign(projection.y) * gl_Position.y;
+    }
+`;
+
+WebGLBoxBlurShaderImpl.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoordUl;
+    varying vec2 vTextureCoordUr;
+    varying vec2 vTextureCoordBl;
+    varying vec2 vTextureCoordBr;
+    varying vec4 vColor;
+    uniform sampler2D uSampler;
+    void main(void){
+        vec4 color = 0.25 * (texture2D(uSampler, vTextureCoordUl) + texture2D(uSampler, vTextureCoordUr) + texture2D(uSampler, vTextureCoordBl) + texture2D(uSampler, vTextureCoordBr));
+        gl_FragColor = color * vColor;
+    }
+`;
+
+class FastBlurComponent extends Component {
+
+    static _template() {
+        const onUpdate = function(view, viewCore) {
+            if ((viewCore._recalc & 2)) {
+                const rw = viewCore.rw;
+                const rh = viewCore.rh;
+                let cur = viewCore;
+                do {
+                    cur = cur._children[0];
+                    cur._view.w = rw;
+                    cur._view.h = rh;
+                } while(cur._children);
+            }
+        };
+
+        return {
+            Textwrap: {rtt: false, renderOffscreen: true, Content: {}},
+            Layers: {
+                L0: {rtt: true, onUpdate: onUpdate, renderOffscreen: true, visible: false, Content: {shader: {type: BoxBlurShader}}},
+                L1: {rtt: true, onUpdate: onUpdate, renderOffscreen: true, visible: false, Content: {shader: {type: BoxBlurShader}}},
+                L2: {rtt: true, onUpdate: onUpdate, renderOffscreen: true, visible: false, Content: {shader: {type: BoxBlurShader}}},
+                L3: {rtt: true, onUpdate: onUpdate, renderOffscreen: true, visible: false, Content: {shader: {type: BoxBlurShader}}}
+            },
+            Result: {shader: {type: FastBlurOutputShader}, visible: false}
+        }
+    }
+
+    constructor(stage) {
+        super(stage);
+        this._textwrap = this.sel("Textwrap");
+        this._wrapper = this.sel("Textwrap>Content");
+        this._layers = this.sel("Layers");
+        this._output = this.sel("Result");
+
+        this._amount = 0;
+        this._paddingX = 0;
+        this._paddingY = 0;
+    }
+
+    _build() {
+        const ctx = this.stage.ctx;
+
+        const filterShaderSettings = [{x:1,y:0,kernelRadius:1},{x:0,y:1,kernelRadius:1},{x:1.5,y:0,kernelRadius:1},{x:0,y:1.5,kernelRadius:1}];
+        const filterShaders = filterShaderSettings.map(s => {
+            const shader = new LinearBlurShader(ctx);
+            shader.patch(s);
+            return shader;
+        });
+
+        this._setLayerTexture(this.getLayerContents(0), this._textwrap.getTexture(), []);
+        this._setLayerTexture(this.getLayerContents(1), this.getLayer(0).getTexture(), [filterShaders[0], filterShaders[1]]);
+        this._setLayerTexture(this.getLayerContents(2), this.getLayer(1).getTexture(), [filterShaders[0], filterShaders[1], filterShaders[2], filterShaders[3]]);
+        this._setLayerTexture(this.getLayerContents(3), this.getLayer(2).getTexture(), [filterShaders[0], filterShaders[1], filterShaders[2], filterShaders[3]]);
+    }
+
+    _setLayerTexture(view, texture, steps) {
+        if (!steps.length) {
+            view.texture = texture;
+        } else {
+            const step = steps.pop();
+            const child = view.stage.c({rtt: true, shader: step});
+
+            // Recurse.
+            this._setLayerTexture(child, texture, steps);
+
+            view.childList.add(child);
+        }
+        return view;
+    }
+
+    get content() {
+        return this.sel('Textwrap>Content');
+    }
+
+    set content(v) {
+        this.sel('Textwrap>Content').patch(v, true);
+    }
+
+    set padding(v) {
+        this._paddingX = v;
+        this._paddingY = v;
+        this._updateBlurSize();
+    }
+
+    set paddingX(v) {
+        this._paddingX = v;
+        this._updateBlurSize();
+    }
+
+    set paddingY(v) {
+        this._paddingY = v;
+        this._updateBlurSize();
+    }
+
+    getLayer(i) {
+        return this._layers.sel("L" + i);
+    }
+
+    getLayerContents(i) {
+        return this.getLayer(i).sel("Content");
+    }
+
+    _onResize() {
+        this._updateBlurSize();
+    }
+
+    _updateBlurSize() {
+        let w = this.renderWidth;
+        let h = this.renderHeight;
+
+        let paddingX = this._paddingX;
+        let paddingY = this._paddingY;
+
+        let fw = w + paddingX * 2;
+        let fh = h + paddingY * 2;
+        this._textwrap.w = fw;
+        this._wrapper.x = paddingX;
+        this.getLayer(0).w = this.getLayerContents(0).w = fw / 2;
+        this.getLayer(1).w = this.getLayerContents(1).w = fw / 4;
+        this.getLayer(2).w = this.getLayerContents(2).w = fw / 8;
+        this.getLayer(3).w = this.getLayerContents(3).w = fw / 16;
+        this._output.x = -paddingX;
+        this._textwrap.x = -paddingX;
+        this._output.w = fw;
+
+        this._textwrap.h = fh;
+        this._wrapper.y = paddingY;
+        this.getLayer(0).h = this.getLayerContents(0).h = fh / 2;
+        this.getLayer(1).h = this.getLayerContents(1).h = fh / 4;
+        this.getLayer(2).h = this.getLayerContents(2).h = fh / 8;
+        this.getLayer(3).h = this.getLayerContents(3).h = fh / 16;
+        this._output.y = -paddingY;
+        this._textwrap.y = -paddingY;
+        this._output.h = fh;
+
+        this.w = w;
+        this.h = h;
+    }
+
+    /**
+     * Sets the amount of blur. A value between 0 and 4. Goes up exponentially for blur.
+     * Best results for non-fractional values.
+     * @param v;
+     */
+    set amount(v) {
+        this._amount = v;
+        this._update();
+    }
+
+    get amount() {
+        return this._amount;
+    }
+
+    _update() {
+        let v = Math.min(4, Math.max(0, this._amount));
+        if (v === 0) {
+            this._textwrap.renderToTexture = false;
+            this._output.shader.otherTextureSource = null;
+            this._output.visible = false;
+        } else {
+            this._textwrap.renderToTexture = true;
+            this._output.visible = true;
+
+            this.getLayer(0).visible = (v > 0);
+            this.getLayer(1).visible = (v > 1);
+            this.getLayer(2).visible = (v > 2);
+            this.getLayer(3).visible = (v > 3);
+
+            if (v <= 1) {
+                this._output.texture = this._textwrap.getTexture();
+                this._output.shader.otherTextureSource = this.getLayer(0).getTexture();
+                this._output.shader.a = v;
+            } else if (v <= 2) {
+                this._output.texture = this.getLayer(0).getTexture();
+                this._output.shader.otherTextureSource = this.getLayer(1).getTexture();
+                this._output.shader.a = v - 1;
+            } else if (v <= 3) {
+                this._output.texture = this.getLayer(1).getTexture();
+                this._output.shader.otherTextureSource = this.getLayer(2).getTexture();
+                this._output.shader.a = v - 2;
+            } else if (v <= 4) {
+                this._output.texture = this.getLayer(2).getTexture();
+                this._output.shader.otherTextureSource = this.getLayer(3).getTexture();
+                this._output.shader.a = v - 3;
+            }
+        }
+    }
+
+    set shader(s) {
+        super.shader = s;
+        if (!this.renderToTexture) {
+            console.warn("FastBlurView: please enable renderToTexture to use with a shader.");
+        }
+    }
+
+    static _states() {
+        const p = FastBlurComponent.prototype;
+        return {
+            _construct: p._construct,
+            _firstActive: p._build
+        }
+    }
+
+}
+
+/**
+ * Shader that combines two textures into one output.
+ */
+class FastBlurOutputShader extends DefaultShader {
+
+    constructor(ctx) {
+        super(ctx);
+
+        this._a = 0;
+        this._otherTextureSource = null;
+    }
+
+    get a() {
+        return this._a;
+    }
+
+    set a(v) {
+        this._a = v;
+        this.redraw();
+    }
+
+    set otherTextureSource(v) {
+        this._otherTextureSource = v;
+        this.redraw();
+    }
+
+    static getWebGLImpl() {
+        return WebGLFastBlurOutputShaderImpl;
+    }
+}
+
+class WebGLFastBlurOutputShaderImpl extends WebGLDefaultShaderImpl {
+
+    setupUniforms(operation) {
+        super.setupUniforms(operation);
+        this._setUniform("a", this.shader._a, this.gl.uniform1f);
+        this._setUniform("uSampler2", 1, this.gl.uniform1i);
+    }
+
+    beforeDraw(operation) {
+        let glTexture = this.shader._otherTextureSource ? this.shader._otherTextureSource.nativeTexture : null;
+
+        let gl = this.gl;
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, glTexture);
+        gl.activeTexture(gl.TEXTURE0);
+    }
+}
+
+WebGLFastBlurOutputShaderImpl.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    uniform sampler2D uSampler;
+    uniform sampler2D uSampler2;
+    uniform float a;
+    void main(void){
+        if (a == 1.0) {
+            gl_FragColor = texture2D(uSampler2, vTextureCoord) * vColor;
+        } else {
+            gl_FragColor = ((1.0 - a) * texture2D(uSampler, vTextureCoord) + (a * texture2D(uSampler2, vTextureCoord))) * vColor;
+        }
+    }
+`;
+
+class SmoothScaleComponent extends Component {
+
+    static _template() {
+        return {
+            ContentWrap: {renderOffscreen: true, onAfterUpdate: SmoothScaleComponent._updateDimensions,
+                Content: {}
+            },
+            Scale: {visible: false}
+        }
+    }
 
     constructor(stage) {
         super(stage);
 
-        this.patch({
-            "Content": {},
-            "Borders": {
-                "Top": {rect: true, visible: false, mountY: 1},
-                "Right": {rect: true, visible: false},
-                "Bottom": {rect: true, visible: false},
-                "Left": {rect: true, visible: false, mountX: 1}
+        this._smoothScale = 1;
+        this._iterations = 0;
+    }
+
+    get content() {
+        return this.tag('Content');
+    }
+
+    set content(v) {
+        this.tag('Content').patch(v, true);
+    }
+
+    get smoothScale() {
+        return this._smoothScale;
+    }
+
+    set smoothScale(v) {
+        if (this._smoothScale !== v) {
+            let its = 0;
+            while(v < 0.5 && its < 12) {
+                its++;
+                v = v * 2;
             }
-        }, true);
+
+            this.scale = v;
+            this._setIterations(its);
+
+            this._smoothScale = v;
+        }
+    }
+
+    _setIterations(its) {
+        if (this._iterations !== its) {
+            const scalers = this.sel("Scale").childList;
+            const content = this.sel("ContentWrap");
+            while (scalers.length < its) {
+                const first = scalers.length === 0;
+                const texture = (first ? content.getTexture() : scalers.last.getTexture());
+                scalers.a({rtt: true, renderOffscreen: true, texture: texture});
+            }
+
+            SmoothScaleComponent._updateDimensions(this.tag("ContentWrap"), true);
+
+            const useScalers = (its > 0);
+            this.patch({
+                ContentWrap: {renderToTexture: useScalers},
+                Scale: {visible: useScalers}
+            });
+
+            for (let i = 0, n = scalers.length; i < n; i++) {
+                scalers.getAt(i).patch({
+                    visible: i < its,
+                    renderOffscreen: i !== its - 1
+                });
+            }
+            this._iterations = its;
+        }
+    }
+
+    static _updateDimensions(contentWrap, force) {
+        const content = contentWrap.children[0];
+        let w = content.renderWidth;
+        let h = content.renderHeight;
+        if (w !== contentWrap.w || h !== contentWrap.h || force) {
+            contentWrap.w = w;
+            contentWrap.h = h;
+
+            const scalers = contentWrap.parent.tag("Scale").children;
+            for (let i = 0, n = scalers.length; i < n; i++) {
+                w = w * 0.5;
+                h = h * 0.5;
+                scalers[i].w = w;
+                scalers[i].h = h;
+            }
+        }
+    }
+
+}
+
+class BorderComponent extends Component {
+
+    static _template() {
+        return {
+            Content: {},
+            Borders: {
+                Top: {rect: true, visible: false, mountY: 1},
+                Right: {rect: true, visible: false},
+                Bottom: {rect: true, visible: false},
+                Left: {rect: true, visible: false, mountX: 1}
+            }
+        }
+    }
+
+    constructor(stage) {
+        super(stage);
 
         this._borderTop = this.tag("Top");
         this._borderRight = this.tag("Right");
@@ -12409,539 +12847,13 @@ class BorderView extends View {
 
 }
 
-class LinearBlurFilter extends Filter {
-
-    constructor(ctx) {
-        super(ctx);
-
-        this._direction = new Float32Array([0, 0]);
-        this._kernelRadius = 1;
-    }
-
-    get x() {
-        return this._direction[0];
-    }
-
-    set x(v) {
-        this._direction[0] = v;
-        this.redraw();
-    }
-
-    get y() {
-        return this._direction[1];
-    }
-
-    set y(v) {
-        this._direction[1] = v;
-        this.redraw();
-    }
-
-    get kernelRadius() {
-        return this._kernelRadius;
-    }
-
-    set kernelRadius(v) {
-        this._kernelRadius = v;
-        this.redraw();
-    }
-
-    setupUniforms(operation) {
-        super.setupUniforms(operation);
-        this._setUniform("direction", this._direction, this.gl.uniform2fv);
-        this._setUniform("kernelRadius", this._kernelRadius, this.gl.uniform1i);
-    }
-
-}
-
-LinearBlurFilter.fragmentShaderSource = `
-    #ifdef GL_ES
-    precision lowp float;
-    #endif
-    uniform vec2 resolution;
-    varying vec2 vTextureCoord;
-    uniform sampler2D uSampler;
-    uniform vec2 direction;
-    uniform int kernelRadius;
-    
-    vec4 blur1(sampler2D image, vec2 uv, vec2 resolution, vec2 direction) {
-        vec4 color = vec4(0.0);
-        vec2 off1 = vec2(1.3333333333333333) * direction;
-        color += texture2D(image, uv) * 0.29411764705882354;
-        color += texture2D(image, uv + (off1 / resolution)) * 0.35294117647058826;
-        color += texture2D(image, uv - (off1 / resolution)) * 0.35294117647058826;
-        return color; 
-    }
-    
-    vec4 blur2(sampler2D image, vec2 uv, vec2 resolution, vec2 direction) {
-        vec4 color = vec4(0.0);
-        vec2 off1 = vec2(1.3846153846) * direction;
-        vec2 off2 = vec2(3.2307692308) * direction;
-        color += texture2D(image, uv) * 0.2270270270;
-        color += texture2D(image, uv + (off1 / resolution)) * 0.3162162162;
-        color += texture2D(image, uv - (off1 / resolution)) * 0.3162162162;
-        color += texture2D(image, uv + (off2 / resolution)) * 0.0702702703;
-        color += texture2D(image, uv - (off2 / resolution)) * 0.0702702703;
-        return color;
-    }
-    
-    vec4 blur3(sampler2D image, vec2 uv, vec2 resolution, vec2 direction) {
-        vec4 color = vec4(0.0);
-        vec2 off1 = vec2(1.411764705882353) * direction;
-        vec2 off2 = vec2(3.2941176470588234) * direction;
-        vec2 off3 = vec2(5.176470588235294) * direction;
-        color += texture2D(image, uv) * 0.1964825501511404;
-        color += texture2D(image, uv + (off1 / resolution)) * 0.2969069646728344;
-        color += texture2D(image, uv - (off1 / resolution)) * 0.2969069646728344;
-        color += texture2D(image, uv + (off2 / resolution)) * 0.09447039785044732;
-        color += texture2D(image, uv - (off2 / resolution)) * 0.09447039785044732;
-        color += texture2D(image, uv + (off3 / resolution)) * 0.010381362401148057;
-        color += texture2D(image, uv - (off3 / resolution)) * 0.010381362401148057;
-        return color;
-    }    
-
-    void main(void){
-        if (kernelRadius == 0) {
-            gl_FragColor = texture2D(uSampler, vTextureCoord);
-        } else if (kernelRadius == 1) {
-            gl_FragColor = blur1(uSampler, vTextureCoord, resolution, direction);
-        } else if (kernelRadius == 2) {
-            gl_FragColor = blur2(uSampler, vTextureCoord, resolution, direction);
-        } else {
-            gl_FragColor = blur3(uSampler, vTextureCoord, resolution, direction);
-        }
-    }
-`;
-
-class FastBlurView extends View {
-
-    constructor(stage) {
-        super(stage);
-
-        let fastBoxBlurShader = FastBlurView.getFastBoxBlurShader(stage.ctx);
-
-        this.tagRoot = true;
-
-        this.patch({
-            "Textwrap": {renderToTexture: false, renderOffscreen: true, "Content": {}},
-            "Layers": {
-                "L0": {renderToTexture: true, renderOffscreen: true, visible: false, "Content": {shader: fastBoxBlurShader}},
-                "L1": {renderToTexture: true, renderOffscreen: true, visible: false, "Content": {shader: fastBoxBlurShader}},
-                "L2": {renderToTexture: true, renderOffscreen: true, visible: false, "Content": {shader: fastBoxBlurShader}},
-                "L3": {renderToTexture: true, renderOffscreen: true, visible: false, "Content": {shader: fastBoxBlurShader}},
-            },
-            "Result": {shader: {type: FastBlurOutputShader}, visible: false}
-        }, true);
-
-        this._textwrap = this.sel("Textwrap");
-        this._wrapper = this.sel("Textwrap>Content");
-        this._layers = this.sel("Layers");
-        this._output = this.sel("Result");
-
-        this.getLayerContents(0).texture = this._textwrap.getTexture();
-        this.getLayerContents(1).texture = this.getLayer(0).getTexture();
-        this.getLayerContents(2).texture = this.getLayer(1).getTexture();
-        this.getLayerContents(3).texture = this.getLayer(2).getTexture();
-
-        let filters = FastBlurView.getLinearBlurFilters(stage.ctx);
-        this.getLayer(1).filters = [filters[0], filters[1]];
-        this.getLayer(2).filters = [filters[2], filters[3], filters[0], filters[1]];
-        this.getLayer(3).filters = [filters[2], filters[3], filters[0], filters[1]];
-
-        this._amount = 0;
-        this._paddingX = 0;
-        this._paddingY = 0;
-    }
-
-    get content() {
-        return this.sel('Textwrap>Content');
-    }
-
-    set content(v) {
-        this.sel('Textwrap>Content').patch(v, true);
-    }
-
-    set padding(v) {
-        this._paddingX = v;
-        this._paddingY = v;
-        this._updateBlurSize();
-    }
-
-    set paddingX(v) {
-        this.paddingX = v;
-        this._updateBlurSize();
-    }
-
-    set paddingY(v) {
-        this.paddingY = v;
-        this._updateBlurSize();
-    }
-
-    getLayer(i) {
-        return this._layers.sel("L" + i);
-    }
-
-    getLayerContents(i) {
-        return this.getLayer(i).sel("Content");
-    }
-
-    _onResize() {
-        this._updateBlurSize();
-    }
-
-    _updateBlurSize() {
-        let w = this.renderWidth;
-        let h = this.renderHeight;
-
-        let paddingX = this._paddingX;
-        let paddingY = this._paddingY;
-
-        let fw = w + paddingX * 2;
-        let fh = h + paddingY * 2;
-        this._textwrap.w = fw;
-        this._wrapper.x = paddingX;
-        this.getLayer(0).w = this.getLayerContents(0).w = fw / 2;
-        this.getLayer(1).w = this.getLayerContents(1).w = fw / 4;
-        this.getLayer(2).w = this.getLayerContents(2).w = fw / 8;
-        this.getLayer(3).w = this.getLayerContents(3).w = fw / 16;
-        this._output.x = -paddingX;
-        this._textwrap.x = -paddingX;
-        this._output.w = fw;
-
-        this._textwrap.h = fh;
-        this._wrapper.y = paddingY;
-        this.getLayer(0).h = this.getLayerContents(0).h = fh / 2;
-        this.getLayer(1).h = this.getLayerContents(1).h = fh / 4;
-        this.getLayer(2).h = this.getLayerContents(2).h = fh / 8;
-        this.getLayer(3).h = this.getLayerContents(3).h = fh / 16;
-        this._output.y = -paddingY;
-        this._textwrap.y = -paddingY;
-        this._output.h = fh;
-
-        this.w = w;
-        this.h = h;
-    }
-
-    /**
-     * Sets the amount of blur. A value between 0 and 4. Goes up exponentially for blur.
-     * Best results for non-fractional values.
-     * @param v;
-     */
-    set amount(v) {
-        this._amount = v;
-        this._update();
-    }
-
-    get amount() {
-        return this._amount;
-    }
-
-    _update() {
-        let v = Math.min(4, Math.max(0, this._amount));
-        if (v === 0) {
-            this._textwrap.renderToTexture = false;
-            this._output.shader.otherTextureSource = null;
-            this._output.visible = false;
-        } else {
-            this._textwrap.renderToTexture = true;
-            this._output.visible = true;
-
-            this.getLayer(0).visible = (v > 0);
-            this.getLayer(1).visible = (v > 1);
-            this.getLayer(2).visible = (v > 2);
-            this.getLayer(3).visible = (v > 3);
-
-            if (v <= 1) {
-                this._output.texture = this._textwrap.getTexture();
-                this._output.shader.otherTextureSource = this.getLayer(0).getTexture();
-                this._output.shader.a = v;
-            } else if (v <= 2) {
-                this._output.texture = this.getLayer(0).getTexture();
-                this._output.shader.otherTextureSource = this.getLayer(1).getTexture();
-                this._output.shader.a = v - 1;
-            } else if (v <= 3) {
-                this._output.texture = this.getLayer(1).getTexture();
-                this._output.shader.otherTextureSource = this.getLayer(2).getTexture();
-                this._output.shader.a = v - 2;
-            } else if (v <= 4) {
-                this._output.texture = this.getLayer(2).getTexture();
-                this._output.shader.otherTextureSource = this.getLayer(3).getTexture();
-                this._output.shader.a = v - 3;
-            }
-        }
-    }
-
-    set shader(s) {
-        super.shader = s;
-        if (!this.renderToTexture) {
-            console.warn("FastBlurView: please enable renderToTexture to use with a shader.");
-        }
-    }
-
-    static getFastBoxBlurShader(ctx) {
-        if (!ctx.fastBoxBlurShader) {
-            ctx.fastBoxBlurShader = new FastBoxBlurShader(ctx);
-        }
-        return ctx.fastBoxBlurShader;
-    }
-
-    static getLinearBlurFilters(ctx) {
-        if (!ctx.linearBlurFilters) {
-            ctx.linearBlurFilters = [];
-
-            let lbf = new LinearBlurFilter(ctx);
-            lbf.x = 1;
-            lbf.y = 0;
-            lbf.kernelRadius = 1;
-            ctx.linearBlurFilters.push(lbf);
-
-            lbf = new LinearBlurFilter(ctx);
-            lbf.x = 0;
-            lbf.y = 1;
-            lbf.kernelRadius = 1;
-            ctx.linearBlurFilters.push(lbf);
-
-            lbf = new LinearBlurFilter(ctx);
-            lbf.x = 1.5;
-            lbf.y = 0;
-            lbf.kernelRadius = 1;
-            ctx.linearBlurFilters.push(lbf);
-
-            lbf = new LinearBlurFilter(ctx);
-            lbf.x = 0;
-            lbf.y = 1.5;
-            lbf.kernelRadius = 1;
-            ctx.linearBlurFilters.push(lbf);
-        }
-        return ctx.linearBlurFilters;
-    }
-
-
-}
-
-/**
- * 4x4 box blur shader which works in conjunction with a 50% rescale.
- */
-class FastBoxBlurShader extends Shader {
-
-    constructor(ctx) {
-        super(ctx);
-    }
-
-    setupUniforms(operation) {
-        super.setupUniforms(operation);
-        const dx = 1.0 / operation.getTextureWidth(0);
-        const dy = 1.0 / operation.getTextureHeight(0);
-        this._setUniform("stepTextureCoord", new Float32Array([dx, dy]), this.gl.uniform2fv);
-    }
-
-}
-
-FastBoxBlurShader.vertexShaderSource = `
-    #ifdef GL_ES
-    precision lowp float;
-    #endif
-    uniform vec2 stepTextureCoord;
-    attribute vec2 aVertexPosition;
-    attribute vec2 aTextureCoord;
-    attribute vec4 aColor;
-    uniform vec2 projection;
-    varying vec4 vColor;
-    varying vec2 vTextureCoordUl;
-    varying vec2 vTextureCoordUr;
-    varying vec2 vTextureCoordBl;
-    varying vec2 vTextureCoordBr;
-    void main(void){
-        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);
-        vTextureCoordUl = aTextureCoord - stepTextureCoord;
-        vTextureCoordBr = aTextureCoord + stepTextureCoord;
-        vTextureCoordUr = vec2(vTextureCoordBr.x, vTextureCoordUl.y);
-        vTextureCoordBl = vec2(vTextureCoordUl.x, vTextureCoordBr.y);
-        vColor = aColor;
-        gl_Position.y = -sign(projection.y) * gl_Position.y;
-    }
-`;
-
-FastBoxBlurShader.fragmentShaderSource = `
-    #ifdef GL_ES
-    precision lowp float;
-    #endif
-    varying vec2 vTextureCoordUl;
-    varying vec2 vTextureCoordUr;
-    varying vec2 vTextureCoordBl;
-    varying vec2 vTextureCoordBr;
-    varying vec4 vColor;
-    uniform sampler2D uSampler;
-    void main(void){
-        vec4 color = 0.25 * (texture2D(uSampler, vTextureCoordUl) + texture2D(uSampler, vTextureCoordUr) + texture2D(uSampler, vTextureCoordBl) + texture2D(uSampler, vTextureCoordBr));
-        gl_FragColor = color * vColor;
-    }
-`;
-
-/**
- * Shader that combines two textures into one output.
- */
-class FastBlurOutputShader extends Shader {
-
-    constructor(ctx) {
-        super(ctx);
-
-        this._a = 0;
-        this._otherTextureSource = null;
-    }
-
-    get a() {
-        return this._a;
-    }
-
-    set a(v) {
-        this._a = v;
-        this.redraw();
-    }
-
-    set otherTextureSource(v) {
-        this._otherTextureSource = v;
-        this.redraw();
-    }
-
-    setupUniforms(operation) {
-        super.setupUniforms(operation);
-        this._setUniform("a", this._a, this.gl.uniform1f);
-        this._setUniform("uSampler2", 1, this.gl.uniform1i);
-    }
-
-    beforeDraw(operation) {
-        let glTexture = this._otherTextureSource ? this._otherTextureSource.nativeTexture : null;
-
-        let gl = this.gl;
-        gl.activeTexture(gl.TEXTURE1);
-        gl.bindTexture(gl.TEXTURE_2D, glTexture);
-        gl.activeTexture(gl.TEXTURE0);
-    }
-
-}
-
-FastBlurOutputShader.fragmentShaderSource = `
-    #ifdef GL_ES
-    precision lowp float;
-    #endif
-    varying vec2 vTextureCoord;
-    varying vec4 vColor;
-    uniform sampler2D uSampler;
-    uniform sampler2D uSampler2;
-    uniform float a;
-    void main(void){
-        if (a == 1.0) {
-            gl_FragColor = texture2D(uSampler2, vTextureCoord) * vColor;
-        } else {
-            gl_FragColor = ((1.0 - a) * texture2D(uSampler, vTextureCoord) + (a * texture2D(uSampler2, vTextureCoord))) * vColor;
-        }
-    }
-`;
-
-class SmoothScaleView extends View {
-
-    constructor(stage) {
-        super(stage);
-
-        this._smoothScale = 1;
-        this._iterations = 0;
-
-        this.patch({
-            "ContentWrap": {
-                renderOffscreen: true,
-                "Content": {}
-            },
-            "Scale": {visible: false}
-        }, true);
-
-        this.sel("ContentWrap").onAfterUpdate = (view) => {
-            const content = view.sel("Content");
-            if (content.renderWidth !== this._w || content.renderHeight !== this._h) {
-                this._update();
-            }
-        };
-    }
-
-    get content() {
-        return this.tag('Content');
-    }
-
-    set content(v) {
-        this.tag('Content').patch(v, true);
-    }
-
-    get smoothScale() {
-        return this._smoothScale;
-    }
-
-    set smoothScale(v) {
-        if (this._smoothScale !== v) {
-            let its = 0;
-            while(v < 0.5 && its < 12) {
-                its++;
-                v = v * 2;
-            }
-
-            this.scale = v;
-            this._setIterations(its);
-
-            this._smoothScale = v;
-        }
-    }
-
-    _setIterations(its) {
-        if (this._iterations !== its) {
-            const scalers = this.sel("Scale").childList;
-            const content = this.sel("ContentWrap");
-            while (scalers.length < its) {
-                const first = scalers.length === 0;
-                const texture = (first ? content.getTexture() : scalers.last.getTexture());
-                scalers.a({renderToTexture: true, renderOffscreen: true, texture: texture});
-            }
-
-            this._update();
-
-            const useScalers = (its > 0);
-            this.patch({
-                "ContentWrap": {renderToTexture: useScalers},
-                "Scale": {visible: useScalers}
-            });
-
-            for (let i = 0, n = scalers.length; i < n; i++) {
-                scalers.getAt(i).patch({
-                    visible: i < its,
-                    renderOffscreen: i !== its - 1
-                });
-            }
-            this._iterations = its;
-        }
-    }
-
-    _update() {
-        let w = this.tag("Content").renderWidth;
-        let h = this.tag("Content").renderHeight;
-
-        this.sel("ContentWrap").patch({w: w, h: h});
-
-        const scalers = this.sel("Scale").childList;
-        for (let i = 0, n = scalers.length; i < n; i++) {
-            w = w * 0.5;
-            h = h * 0.5;
-            scalers.getAt(i).patch({w: w, h: h});
-        }
-    }
-
-}
-
 /**
  * This shader can be used to fix a problem that is known as 'gradient banding'.
  */
-class DitheringShader extends Shader {
+class DitheringShader extends DefaultShader {
 
     constructor(ctx) {
         super(ctx);
-
-        this._noiseTexture = new NoiseTexture(ctx.stage);
 
         this._graining = 1/256;
 
@@ -12956,6 +12868,23 @@ class DitheringShader extends Shader {
     set random(v) {
         this._random = v;
         this.redraw();
+    }
+
+    useDefault() {
+        return this._graining === 0;
+    }
+
+
+    static getWebGLImpl() {
+        return WebGLDitheringShaderImpl;
+    }
+}
+class WebGLDitheringShaderImpl extends WebGLDefaultShaderImpl {
+
+    constructor(shader) {
+        super(shader);
+
+        this._noiseTexture = new NoiseTexture(shader.ctx.stage);
     }
 
     setExtraAttribsInBuffer(operation) {
@@ -12975,7 +12904,7 @@ class DitheringShader extends Shader {
 
             let ulx = 0;
             let uly = 0;
-            if (this._random) {
+            if (this.shader._random) {
                 ulx = Math.random();
                 uly = Math.random();
 
@@ -13031,7 +12960,7 @@ class DitheringShader extends Shader {
     setupUniforms(operation) {
         super.setupUniforms(operation);
         this._setUniform("uNoiseSampler", 1, this.gl.uniform1i);
-        this._setUniform("graining", 2 * this._graining, this.gl.uniform1f);
+        this._setUniform("graining", 2 * this.shader._graining, this.gl.uniform1f);
     }
 
     enableAttribs() {
@@ -13046,10 +12975,6 @@ class DitheringShader extends Shader {
         gl.disableVertexAttribArray(this._attrib("aNoiseTextureCoord"));
     }
 
-    useDefault() {
-        return this._graining === 0;
-    }
-
     afterDraw(operation) {
         if (this._random) {
             this.redraw();
@@ -13058,7 +12983,7 @@ class DitheringShader extends Shader {
 
 }
 
-DitheringShader.vertexShaderSource = `
+WebGLDitheringShaderImpl.vertexShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -13079,7 +13004,7 @@ DitheringShader.vertexShaderSource = `
     }
 `;
 
-DitheringShader.fragmentShaderSource = `
+WebGLDitheringShaderImpl.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -13096,7 +13021,7 @@ DitheringShader.fragmentShaderSource = `
     }
 `;
 
-class RadialGradientShader extends Shader {
+class RadialGradientShader extends DefaultShader {
     
     constructor(context) {
         super(context);
@@ -13162,25 +13087,32 @@ class RadialGradientShader extends Shader {
         }
     }
 
+    static getWebGLImpl() {
+        return WebGLRadialGradientShaderImpl;
+    }
+
+}
+class WebGLRadialGradientShaderImpl extends WebGLDefaultShaderImpl {
+
     setupUniforms(operation) {
         super.setupUniforms(operation);
         // We substract half a pixel to get a better cutoff effect.
-        const rtc = operation.getNormalRenderTextureCoords(this._x, this._y);
+        const rtc = operation.getNormalRenderTextureCoords(this.shader._x, this.shader._y);
         this._setUniform("center", new Float32Array(rtc), this.gl.uniform2fv);
 
-        this._setUniform("radius", 2 * this._radiusX / operation.getRenderWidth(), this.gl.uniform1f);
+        this._setUniform("radius", 2 * this.shader._radiusX / operation.getRenderWidth(), this.gl.uniform1f);
 
 
         // Radial gradient shader is expected to be used on a single view. That view's alpha is used.
         this._setUniform("alpha", operation.getViewCore(0).renderContext.alpha, this.gl.uniform1f);
 
-        this._setUniform("color", this._rawColor, this.gl.uniform4fv);
-        this._setUniform("aspectRatio", (this._radiusX/this._radiusY) * operation.getRenderHeight()/operation.getRenderWidth(), this.gl.uniform1f);
+        this._setUniform("color", this.shader._rawColor, this.gl.uniform4fv);
+        this._setUniform("aspectRatio", (this.shader._radiusX/this.shader._radiusY) * operation.getRenderHeight()/operation.getRenderWidth(), this.gl.uniform1f);
     }
 
 }
 
-RadialGradientShader.vertexShaderSource = `
+WebGLRadialGradientShaderImpl.vertexShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -13203,7 +13135,7 @@ RadialGradientShader.vertexShaderSource = `
     }
 `;
 
-RadialGradientShader.fragmentShaderSource = `
+WebGLRadialGradientShaderImpl.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -13223,7 +13155,7 @@ RadialGradientShader.fragmentShaderSource = `
 /**
  * @see https://github.com/pixijs/pixi-filters/tree/master/filters/pixelate/src
  */
-class PixelateShader extends Shader {
+class PixelateShader extends DefaultShader {
 
     constructor(ctx) {
         super(ctx);
@@ -13259,10 +13191,19 @@ class PixelateShader extends Shader {
         this.redraw();
     }
 
+    useDefault() {
+        return ((this._size[0] === 0) && (this._size[1] === 0));
+    }
+
+    static getWebGLImpl() {
+        return WebGLPixelateShaderImpl;
+    }
+}
+class WebGLPixelateShaderImpl extends WebGLDefaultShaderImpl {
     setupUniforms(operation) {
         super.setupUniforms(operation);
         let gl = this.gl;
-        this._setUniform("size", new Float32Array(this._size), gl.uniform2fv);
+        this._setUniform("size", new Float32Array(this.shader._size), gl.uniform2fv);
     }
 
     getExtraAttribBytesPerVertex() {
@@ -13305,14 +13246,9 @@ class PixelateShader extends Shader {
         let gl = this.gl;
         gl.vertexAttribPointer(this._attrib("aTextureRes"), 2, gl.FLOAT, false, this.getExtraAttribBytesPerVertex(), this.getVertexAttribPointerOffset(operation));
     }
-
-    useDefault() {
-        return ((this._size[0] === 0) && (this._size[1] === 0));
-    }
-
 }
 
-PixelateShader.vertexShaderSource = `
+WebGLPixelateShaderImpl.vertexShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -13333,7 +13269,7 @@ PixelateShader.vertexShaderSource = `
     }
 `;
 
-PixelateShader.fragmentShaderSource = `
+WebGLPixelateShaderImpl.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -13370,10 +13306,15 @@ PixelateShader.fragmentShaderSource = `
     }
 `;
 
-class InversionShader extends Shader {
+class InversionShader extends DefaultShader {
+    static getWebGLImpl() {
+        return WebGLInversionShaderImpl;
+    }
+}
+class WebGLInversionShaderImpl extends WebGLDefaultShaderImpl {
 }
 
-InversionShader.fragmentShaderSource = `
+WebGLInversionShaderImpl.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -13387,10 +13328,10 @@ InversionShader.fragmentShaderSource = `
     }
 `;
 
-class GrayscaleShader extends Shader {
+class GrayscaleShader extends DefaultShader {
     constructor(context) {
         super(context);
-        this._amount = 0;
+        this._amount = 1;
     }
 
     set amount(v) {
@@ -13402,18 +13343,22 @@ class GrayscaleShader extends Shader {
         return this._amount;
     }
 
-    setupUniforms(operation) {
-        super.setupUniforms(operation);
-        this._setUniform("amount", this._amount, this.gl.uniform1f);
-    }
-
     useDefault() {
         return this._amount === 0;
     }
 
+    static getWebGLImpl() {
+        return WebGLGrayscaleShaderImpl;
+    }
+}
+class WebGLGrayscaleShaderImpl extends WebGLDefaultShaderImpl {
+    setupUniforms(operation) {
+        super.setupUniforms(operation);
+        this._setUniform("amount", this.shader._amount, this.gl.uniform1f);
+    }
 }
 
-GrayscaleShader.fragmentShaderSource = `
+WebGLGrayscaleShaderImpl.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -13428,13 +13373,13 @@ GrayscaleShader.fragmentShaderSource = `
     }
 `;
 
-class OutlineShader extends Shader {
+class OutlineShader extends DefaultShader {
 
     constructor(ctx) {
         super(ctx);
         this._width = 5;
-        this._color = 0xFFFFFFFF;
-        this._col = [1,1,1,1];
+        this._col = 0xFFFFFFFF;
+        this._color = [1,1,1,1];
     }
 
     set width(v) {
@@ -13461,10 +13406,20 @@ class OutlineShader extends Shader {
         }
     }
 
+    useDefault() {
+        return (this._width === 0 || this._col[3] === 0);
+    }
+
+    static getWebGLImpl() {
+        return WebGLOutlineShaderImpl;
+    }
+}
+class WebGLOutlineShaderImpl extends WebGLDefaultShaderImpl {
+
     setupUniforms(operation) {
         super.setupUniforms(operation);
         let gl = this.gl;
-        this._setUniform("color", new Float32Array(this._color), gl.uniform4fv);
+        this._setUniform("color", new Float32Array(this.shader._color), gl.uniform4fv);
     }
 
     enableAttribs() {
@@ -13488,9 +13443,9 @@ class OutlineShader extends Shader {
             const viewCore = operation.getViewCore(i);
 
             // We are setting attributes such that if the value is < 0 or > 1, a border should be drawn.
-            const ddw = this._width / viewCore.rw;
+            const ddw = this.shader._width / viewCore.rw;
             const dw = ddw / (1 - 2 * ddw);
-            const ddh = this._width / viewCore.rh;
+            const ddh = this.shader._width / viewCore.rh;
             const dh = ddh / (1 - 2 * ddh);
 
             // Specify all corner points.
@@ -13519,12 +13474,9 @@ class OutlineShader extends Shader {
         return 8;
     }
 
-    useDefault() {
-        return (this._width === 0 || this._col[3] === 0);
-    }
 }
 
-OutlineShader.vertexShaderSource = `
+WebGLOutlineShaderImpl.vertexShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -13545,7 +13497,7 @@ OutlineShader.vertexShaderSource = `
     }
 `;
 
-OutlineShader.fragmentShaderSource = `
+WebGLOutlineShaderImpl.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -13561,9 +13513,10 @@ OutlineShader.fragmentShaderSource = `
     }
 `;
 
-class CircularPushShader extends Shader {
-    constructor(context) {
-        super(context);
+class CircularPushShader extends DefaultShader {
+
+    constructor(ctx) {
+        super(ctx);
 
         this._inputValue = 0;
 
@@ -13694,23 +13647,38 @@ class CircularPushShader extends Shader {
         this.redraw();
     }
 
-    setupUniforms(operation) {
-        super.setupUniforms(operation);
-        this._setUniform("aspectRatio", this._aspectRatio, this.gl.uniform1f);
-        this._setUniform("offsetX", this._offsetX, this.gl.uniform1f);
-        this._setUniform("offsetY", this._offsetY, this.gl.uniform1f);
-        this._setUniform("amount", this._amount, this.gl.uniform1f);
-        this._setUniform("offset", this._offset, this.gl.uniform1f);
-        this._setUniform("buckets", this._buckets, this.gl.uniform1f);
-        this._setUniform("uValueSampler", 1, this.gl.uniform1i);
-    }
-
     useDefault() {
         return this._amount === 0;
     }
 
+    static getWebGLImpl() {
+        return WebGLCircularPushShaderImpl;
+    }
+
+}
+
+class WebGLCircularPushShaderImpl extends WebGLDefaultShaderImpl {
+
+    constructor(context) {
+        super(context);
+    }
+
+    setupUniforms(operation) {
+        super.setupUniforms(operation);
+        const shader = this.shader;
+
+        this._setUniform("aspectRatio", shader._aspectRatio, this.gl.uniform1f);
+        this._setUniform("offsetX", shader._offsetX, this.gl.uniform1f);
+        this._setUniform("offsetY", shader._offsetY, this.gl.uniform1f);
+        this._setUniform("amount", shader._amount, this.gl.uniform1f);
+        this._setUniform("offset", shader._offset, this.gl.uniform1f);
+        this._setUniform("buckets", shader._buckets, this.gl.uniform1f);
+        this._setUniform("uValueSampler", 1, this.gl.uniform1i);
+    }
+
     beforeDraw(operation) {
         const gl = this.gl;
+        const shader = this.shader;
         gl.activeTexture(gl.TEXTURE1);
         if (!this._valuesTexture) {
             this._valuesTexture = gl.createTexture();
@@ -13728,20 +13696,22 @@ class CircularPushShader extends Shader {
         }
 
         // Upload new values.
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.ALPHA, this._buckets, 1, 0, gl.ALPHA, gl.UNSIGNED_BYTE, this._values);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.ALPHA, shader._buckets, 1, 0, gl.ALPHA, gl.UNSIGNED_BYTE, shader._values);
         gl.activeTexture(gl.TEXTURE0);
     }
 
     cleanup() {
+        super.cleanup();
         if (this._valuesTexture) {
             this.gl.deleteTexture(this._valuesTexture);
+            this._valuesTexture = null;
         }
     }
 
 
 }
 
-CircularPushShader.vertexShaderSource = `
+WebGLCircularPushShaderImpl.vertexShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -13767,7 +13737,7 @@ CircularPushShader.vertexShaderSource = `
     }
 `;
 
-CircularPushShader.fragmentShaderSource = `
+WebGLCircularPushShaderImpl.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -13789,7 +13759,7 @@ CircularPushShader.fragmentShaderSource = `
     }
 `;
 
-class RadialFilterShader extends Shader {
+class RadialFilterShader extends DefaultShader {
     constructor(context) {
         super(context);
         this._radius = 0;
@@ -13814,20 +13784,27 @@ class RadialFilterShader extends Shader {
         return this._cutoff;
     }
     
-    setupUniforms(operation) {
-        super.setupUniforms(operation);
-        // We substract half a pixel to get a better cutoff effect.
-        this._setUniform("radius", 2 * (this._radius - 0.5) / operation.getRenderWidth(), this.gl.uniform1f);
-        this._setUniform("cutoff", 0.5 * operation.getRenderWidth() / this._cutoff, this.gl.uniform1f);
-    }
-
     useDefault() {
         return this._radius === 0;
     }
 
+    static getWebGLImpl() {
+        return WebGLRadialFilterShaderImpl;
+    }
+
+}
+class WebGLRadialFilterShaderImpl extends WebGLDefaultShaderImpl {
+
+    setupUniforms(operation) {
+        super.setupUniforms(operation);
+        // We substract half a pixel to get a better cutoff effect.
+        this._setUniform("radius", 2 * (this.shader._radius - 0.5) / operation.getRenderWidth(), this.gl.uniform1f);
+        this._setUniform("cutoff", 0.5 * operation.getRenderWidth() / this.shader._cutoff, this.gl.uniform1f);
+    }
+
 }
 
-RadialFilterShader.vertexShaderSource = `
+WebGLRadialFilterShaderImpl.vertexShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -13847,7 +13824,7 @@ RadialFilterShader.vertexShaderSource = `
     }
 `;
 
-RadialFilterShader.fragmentShaderSource = `
+WebGLRadialFilterShaderImpl.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -13861,244 +13838,6 @@ RadialFilterShader.fragmentShaderSource = `
         vec4 color = texture2D(uSampler, vTextureCoord);
         float f = max(0.0, min(1.0, 1.0 - (length(pos) - radius) * cutoff));
         gl_FragColor = texture2D(uSampler, vTextureCoord) * vColor * f;
-    }
-`;
-
-/**
- * @see https://github.com/mattdesl/glsl-fxaa
- */
-class FxaaFilter extends Filter {
-    constructor(ctx) {
-        super(ctx);
-    }
-
-}
-
-FxaaFilter.fxaa = `
-    #ifndef FXAA_REDUCE_MIN
-        #define FXAA_REDUCE_MIN   (1.0/ 128.0)
-    #endif
-    #ifndef FXAA_REDUCE_MUL
-        #define FXAA_REDUCE_MUL   (1.0 / 8.0)
-    #endif
-    #ifndef FXAA_SPAN_MAX
-        #define FXAA_SPAN_MAX     8.0
-    #endif
-    
-    //optimized version for mobile, where dependent 
-    //texture reads can be a bottleneck
-    vec4 fxaa(sampler2D tex, vec2 fragCoord, vec2 resolution,
-            vec2 v_rgbNW, vec2 v_rgbNE, 
-            vec2 v_rgbSW, vec2 v_rgbSE, 
-            vec2 v_rgbM) {
-            
-        vec4 color;
-        vec2 inverseVP = vec2(1.0 / resolution.x, 1.0 / resolution.y);
-        vec3 rgbNW = texture2D(tex, v_rgbNW).xyz;
-        vec3 rgbNE = texture2D(tex, v_rgbNE).xyz;
-        vec3 rgbSW = texture2D(tex, v_rgbSW).xyz;
-        vec3 rgbSE = texture2D(tex, v_rgbSE).xyz;
-        vec4 texColor = texture2D(tex, v_rgbM);
-        vec3 rgbM  = texColor.xyz;
-        vec3 luma = vec3(0.299, 0.587, 0.114);
-        float lumaNW = dot(rgbNW, luma);
-        float lumaNE = dot(rgbNE, luma);
-        float lumaSW = dot(rgbSW, luma);
-        float lumaSE = dot(rgbSE, luma);
-        float lumaM  = dot(rgbM,  luma);
-        float lumaMin = min(lumaM, min(min(lumaNW, lumaNE), min(lumaSW, lumaSE)));
-        float lumaMax = max(lumaM, max(max(lumaNW, lumaNE), max(lumaSW, lumaSE)));
-        
-        vec2 dir;
-        dir.x = -((lumaNW + lumaNE) - (lumaSW + lumaSE));
-        dir.y =  ((lumaNW + lumaSW) - (lumaNE + lumaSE));
-        
-        float dirReduce = max((lumaNW + lumaNE + lumaSW + lumaSE) *
-                              (0.25 * FXAA_REDUCE_MUL), FXAA_REDUCE_MIN);
-        
-        float rcpDirMin = 1.0 / (min(abs(dir.x), abs(dir.y)) + dirReduce);
-        dir = min(vec2(FXAA_SPAN_MAX, FXAA_SPAN_MAX),
-                  max(vec2(-FXAA_SPAN_MAX, -FXAA_SPAN_MAX),
-                  dir * rcpDirMin)) * inverseVP;
-        
-        vec3 rgbA = 0.5 * (
-            texture2D(tex, fragCoord * inverseVP + dir * (1.0 / 3.0 - 0.5)).xyz +
-            texture2D(tex, fragCoord * inverseVP + dir * (2.0 / 3.0 - 0.5)).xyz);
-        vec3 rgbB = rgbA * 0.5 + 0.25 * (
-            texture2D(tex, fragCoord * inverseVP + dir * -0.5).xyz +
-            texture2D(tex, fragCoord * inverseVP + dir * 0.5).xyz);
-    
-        float lumaB = dot(rgbB, luma);
-        if ((lumaB < lumaMin) || (lumaB > lumaMax))
-            color = vec4(rgbA, texColor.a);
-        else
-            color = vec4(rgbB, texColor.a);
-        return color;
-    }
-    
-    void texcoords(vec2 fragCoord, vec2 resolution,
-            out vec2 v_rgbNW, out vec2 v_rgbNE,
-            out vec2 v_rgbSW, out vec2 v_rgbSE,
-            out vec2 v_rgbM) {
-        
-        vec2 inverseVP = 1.0 / resolution.xy;
-        v_rgbNW = (fragCoord + vec2(-1.0, -1.0)) * inverseVP;
-        v_rgbNE = (fragCoord + vec2(1.0, -1.0)) * inverseVP;
-        v_rgbSW = (fragCoord + vec2(-1.0, 1.0)) * inverseVP;
-        v_rgbSE = (fragCoord + vec2(1.0, 1.0)) * inverseVP;
-        v_rgbM = vec2(fragCoord * inverseVP);
-    }
-    vec4 apply(sampler2D tex, vec2 fragCoord, vec2 resolution) {
-        vec2 v_rgbNW;
-        vec2 v_rgbNE;
-        vec2 v_rgbSW;
-        vec2 v_rgbSE;
-        vec2 v_rgbM;
-    
-        //compute the texture coords
-        texcoords(fragCoord, resolution, v_rgbNW, v_rgbNE, v_rgbSW, v_rgbSE, v_rgbM);
-        
-        //compute FXAA
-        return fxaa(tex, fragCoord, resolution, v_rgbNW, v_rgbNE, v_rgbSW, v_rgbSE, v_rgbM);
-    }    
-`;
-
-FxaaFilter.fragmentShaderSource = `
-    #ifdef GL_ES
-    precision lowp float;
-    #endif
-    
-    ${FxaaFilter.fxaa}
-    
-    uniform vec2 resolution;
-    uniform sampler2D uSampler;
-    void main(void){
-        gl_FragColor = apply(uSampler, gl_FragCoord.xy, resolution);
-    }
-    
-`;
-
-class InversionFilter extends Filter {
-}
-
-InversionFilter.fragmentShaderSource = `
-    #ifdef GL_ES
-    precision lowp float;
-    #endif
-    varying vec2 vTextureCoord;
-    uniform sampler2D uSampler;
-    void main(void){
-        vec4 color = texture2D(uSampler, vTextureCoord);
-        color.rgb = 1.0 - color.rgb; 
-        gl_FragColor = color;
-    }
-`;
-
-/**
- * @see https://github.com/Jam3/glsl-fast-gaussian-blur
- */
-class BlurFilter extends Filter {
-
-    constructor(ctx) {
-        super(ctx);
-
-        this.ctx = ctx;
-
-        this._kernelRadius = 1;
-
-        this._steps = [];
-
-        this.steps = 1;
-    }
-
-    get kernelRadius() {
-        return this._kernelRadius;
-    }
-
-    set kernelRadius(v) {
-        this._kernelRadius = v;
-        this._steps.forEach(step => step._kernelRadius = v);
-        this.redraw();
-    }
-
-    get steps() {
-        return this._size;
-    }
-
-    set steps(v) {
-        this._size = Math.round(v);
-
-        let currentSteps = this._steps.length / 2;
-        // Try to reuse objects.
-        if (currentSteps < this._size) {
-            let add = [];
-            for (let i = currentSteps + 1; i <= this._size; i++) {
-                let lbf = new LinearBlurFilter(this.ctx);
-                lbf._direction[0] = i;
-                lbf._kernelRadius = this._kernelRadius;
-                add.push(lbf);
-
-                lbf = new LinearBlurFilter(this.ctx);
-                lbf._kernelRadius = this._kernelRadius;
-                lbf._direction[1] = i;
-                add.push(lbf);
-            }
-            this._steps = this._steps.concat(add);
-            this.redraw();
-        } else if (currentSteps > this._size) {
-            let r = currentSteps - this._size;
-            this._steps.splice(-r * 2);
-            this.redraw();
-        }
-    }
-
-    useDefault() {
-        return (this._size === 0 || this._kernelRadius === 0);
-    }
-
-    getFilters() {
-        return this._steps;
-    }
-
-}
-
-class GrayscaleFilter extends Filter {
-    constructor(context) {
-        super(context);
-        this._amount = 1;
-    }
-
-    set amount(v) {
-        this._amount = v;
-        this.redraw();
-    }
-
-    get amount() {
-        return this._amount;
-    }
-
-    setupUniforms(operation) {
-        super.setupUniforms(operation);
-        this._setUniform("amount", this._amount, this.gl.uniform1f);
-    }
-
-    useDefault() {
-        return this._amount === 0;
-    }
-
-}
-
-GrayscaleFilter.fragmentShaderSource = `
-    #ifdef GL_ES
-    precision lowp float;
-    #endif
-    varying vec2 vTextureCoord;
-    uniform sampler2D uSampler;
-    uniform float amount;
-    void main(void){
-        vec4 color = texture2D(uSampler, vTextureCoord);
-        float grayness = 0.2 * color.r + 0.6 * color.g + 0.2 * color.b;
-        gl_FragColor = (amount * vec4(grayness, grayness, grayness, 1.0) + (1.0 - amount) * color);
     }
 `;
 
@@ -14241,8 +13980,7 @@ const lightning = {
     Base,
     Utils,
     StageUtils,
-    Shader,
-    Filter,
+    DefaultShader,
     View,
     Tools,
     Stage,
@@ -14263,10 +14001,11 @@ const lightning = {
         ObjectListProxy,
         ObjectListWrapper,
     },
-    views: {ListView,
-        BorderView,
-        FastBlurView,
-        SmoothScaleView,
+    components: {
+        FastBlurComponent,
+        SmoothScaleComponent,
+        BorderComponent,
+        ListComponent: ListView
     },
     shaders: {
         DitheringShader,
@@ -14277,13 +14016,8 @@ const lightning = {
         OutlineShader,
         CircularPushShader,
         RadialFilterShader,
-    },
-    filters: {
-        FxaaFilter,
-        InversionFilter,
-        BlurFilter,
-        LinearBlurFilter,
-        GrayscaleFilter,
+        LinearBlurShader,
+        BoxBlurShader: LinearBlurShader
     }
 };
 

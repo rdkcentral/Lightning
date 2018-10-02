@@ -1,10 +1,10 @@
-(function(wuf, FlowingGradientShader) {
+(function(lng, FlowingGradientShader) {
 
-class FlowingGradientExample extends wuf.Application {
+class FlowingGradientExample extends lng.Application {
 
     static _template() {
         return {
-            Shader: {shader: {type: FlowingGradientShader, random: true, graining: 0.04}, texture: {type: wuf.textures.NoiseTexture}, w: 1600, h: 1000}
+            Shader: {shader: {type: FlowingGradientShader, random: true, graining: 0.04}, texture: {type: lng.textures.NoiseTexture}, w: 1600, h: 1000}
         }
     }
 
@@ -59,7 +59,7 @@ try {
     window.FlowingGradientExample = FlowingGradientExample
 }
 })(
-    typeof window === 'undefined' ? require('../../wuf') : wuf,
+    typeof window === 'undefined' ? require('../../lng') : lng,
     typeof window === 'undefined' ? require('./FlowingGradientShader') : FlowingGradientShader
 )
 

@@ -1,6 +1,6 @@
-const lng = require('../../dist/lightning-node')
-const Application = lng.Application
-const Utils = lng.Utils
+const lng = require('../../dist/lightning-node');
+const Application = lng.Application;
+const Utils = lng.Utils;
 
 class BasicUsageExample extends Application {
     static _template() {

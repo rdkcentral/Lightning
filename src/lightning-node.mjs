@@ -18,10 +18,11 @@ import StaticTexture from "./textures/StaticTexture.mjs";
 import StaticCanvasTexture from "./textures/StaticCanvasTexture.mjs";
 import ObjectListProxy from "./tools/misc/ObjectListProxy.mjs";
 import ObjectListWrapper from "./tools/misc/ObjectListWrapper.mjs";
-import ListView from "./tools/views/ListView.mjs";
-import BorderView from "./tools/views/BorderView.mjs";
-// import FastBlurView from "./tools/views/FastBlurView.mjs";
-import SmoothScaleView from "./tools/views/SmoothScaleView.mjs";
+import ListComponent from "./tools/components/ListComponent.mjs";
+import FastBlurComponent from "./tools/components/FastBlurComponent.mjs";
+import SmoothScaleComponent from "./tools/components/SmoothScaleComponent.mjs";
+import BorderComponent from "./tools/components/BorderComponent.mjs";
+import LinearBlurShader from "./tools/shaders/LinearBlurShader.mjs";
 import DitheringShader from "./tools/shaders/DitheringShader.mjs";
 import RadialGradientShader from "./tools/shaders/RadialGradientShader.mjs";
 import PixelateShader from "./tools/shaders/PixelateShader.mjs";
@@ -30,9 +31,11 @@ import GrayscaleShader from "./tools/shaders/GrayscaleShader.mjs";
 import OutlineShader from "./tools/shaders/OutlineShader.mjs";
 import CircularPushShader from "./tools/shaders/CircularPushShader.mjs";
 import RadialFilterShader from "./tools/shaders/RadialFilterShader.mjs";
+import BoxBlurShader from "./tools/shaders/LinearBlurShader.mjs";
 import EventEmitter from "./EventEmitter.mjs";
 
 import Stage from "./tree/Stage.mjs";
+
 import NodeAdapter from "./node/NodeAdapter.mjs";
 Stage.ADAPTER = NodeAdapter;
 
@@ -42,8 +45,7 @@ const lightning = {
     Base,
     Utils,
     StageUtils,
-    Shader: DefaultShader,
-    Filter,
+    DefaultShader,
     View,
     Tools,
     Stage,
@@ -64,11 +66,11 @@ const lightning = {
         ObjectListProxy,
         ObjectListWrapper,
     },
-    views: {
-        ListView,
-        BorderView,
-        // FastBlurView,
-        SmoothScaleView,
+    components: {
+        FastBlurComponent,
+        SmoothScaleComponent,
+        BorderComponent,
+        ListComponent
     },
     shaders: {
         DitheringShader,
@@ -79,7 +81,12 @@ const lightning = {
         OutlineShader,
         CircularPushShader,
         RadialFilterShader,
+        LinearBlurShader,
+        BoxBlurShader
     }
-}
+};
+
+// Legacy.
+window.wuf = lightning;
 
 export default lightning;

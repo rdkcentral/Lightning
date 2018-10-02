@@ -2,32 +2,32 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-
-    <script src="../../dist/lightning-web.js"></script>
-
+    <script src="../../devtools/lightning-inspect.js"></script>
 </head>
 <body>
-    <script>
-        window.onload = function() {
-            class SmoothScaleExample extends wuf.Application {
-                static _template() {
-                    return {
-                        Scaler: {type: wuf.views.SmoothScaleView, content: {
-                            text: {text: "hello", fontSize: 500}
-                        }}
-                    }
+<script type="module">
+    import lng from '../../src/lightning-web.mjs'
+    attachInspector(lng)
+    window.onload = function() {
+        class SmoothScaleExample extends lng.Application {
+            static _template() {
+                return {
+                    Scaler: {type: lng.components.SmoothScaleComponent, smoothScale: 1, content: {
+                        text: {text: "hello", fontSize: 500}
+                    }}
                 }
             }
-
-            const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000}}
-            const app = new SmoothScaleExample(options);
-            document.body.appendChild(app.stage.getCanvas());
-
-            app.animation({duration: 6, repeat: -1, actions: [
-                {t: 'Scaler', p: 'smoothScale', v: {0: 1, 0.5: 0.05, 1.0: 1}}
-            ]}).start()
-
         }
-    </script>
+
+        const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000}}
+        const app = new SmoothScaleExample(options);
+        document.body.appendChild(app.stage.getCanvas());
+
+        app.animation({duration: 6, repeat: -1, actions: [
+            {t: 'Scaler', p: 'smoothScale', v: {0: 1, 0.5: 0.05, 1.0: 1}}
+        ]}).start()
+
+    }
+</script>
 </body>
 </html>

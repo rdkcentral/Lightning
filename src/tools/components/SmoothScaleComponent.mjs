@@ -1,27 +1,21 @@
-import View from "../../tree/View.mjs";
+import Component from "../../application/Component.mjs";
 
-export default class SmoothScaleView extends View {
+export default class SmoothScaleComponent extends Component {
+
+    static _template() {
+        return {
+            ContentWrap: {renderOffscreen: true, onAfterUpdate: SmoothScaleComponent._updateDimensions,
+                Content: {}
+            },
+            Scale: {visible: false}
+        }
+    }
 
     constructor(stage) {
         super(stage);
 
         this._smoothScale = 1;
         this._iterations = 0;
-
-        this.patch({
-            "ContentWrap": {
-                renderOffscreen: true,
-                "Content": {}
-            },
-            "Scale": {visible: false}
-        }, true);
-
-        this.sel("ContentWrap").onAfterUpdate = (view) => {
-            const content = view.sel("Content");
-            if (content.renderWidth !== this._w || content.renderHeight !== this._h) {
-                this._update();
-            }
-        };
     }
 
     get content() {
@@ -58,15 +52,15 @@ export default class SmoothScaleView extends View {
             while (scalers.length < its) {
                 const first = scalers.length === 0;
                 const texture = (first ? content.getTexture() : scalers.last.getTexture());
-                scalers.a({renderToTexture: true, renderOffscreen: true, texture: texture});
+                scalers.a({rtt: true, renderOffscreen: true, texture: texture});
             }
 
-            this._update();
+            SmoothScaleComponent._updateDimensions(this.tag("ContentWrap"), true);
 
             const useScalers = (its > 0);
             this.patch({
-                "ContentWrap": {renderToTexture: useScalers},
-                "Scale": {visible: useScalers}
+                ContentWrap: {renderToTexture: useScalers},
+                Scale: {visible: useScalers}
             });
 
             for (let i = 0, n = scalers.length; i < n; i++) {
@@ -79,19 +73,22 @@ export default class SmoothScaleView extends View {
         }
     }
 
-    _update() {
-        let w = this.tag("Content").renderWidth;
-        let h = this.tag("Content").renderHeight;
+    static _updateDimensions(contentWrap, force) {
+        const content = contentWrap.children[0];
+        let w = content.renderWidth;
+        let h = content.renderHeight;
+        if (w !== contentWrap.w || h !== contentWrap.h || force) {
+            contentWrap.w = w;
+            contentWrap.h = h;
 
-        this.sel("ContentWrap").patch({w: w, h: h});
-
-        const scalers = this.sel("Scale").childList;
-        for (let i = 0, n = scalers.length; i < n; i++) {
-            w = w * 0.5;
-            h = h * 0.5;
-            scalers.getAt(i).patch({w: w, h: h});
+            const scalers = contentWrap.parent.tag("Scale").children;
+            for (let i = 0, n = scalers.length; i < n; i++) {
+                w = w * 0.5;
+                h = h * 0.5;
+                scalers[i].w = w;
+                scalers[i].h = h;
+            }
         }
     }
 
 }
-

@@ -18,10 +18,10 @@ import StaticTexture from "./textures/StaticTexture.mjs";
 import StaticCanvasTexture from "./textures/StaticCanvasTexture.mjs";
 import ObjectListProxy from "./tools/misc/ObjectListProxy.mjs";
 import ObjectListWrapper from "./tools/misc/ObjectListWrapper.mjs";
-import ListView from "./tools/views/ListView.mjs";
-import BorderView from "./tools/views/BorderView.mjs";
+import ListComponent from "./tools/components/ListComponent.mjs";
 import FastBlurComponent from "./tools/components/FastBlurComponent.mjs";
-import SmoothScaleView from "./tools/views/SmoothScaleView.mjs";
+import SmoothScaleComponent from "./tools/components/SmoothScaleComponent.mjs";
+import BorderComponent from "./tools/components/BorderComponent.mjs";
 import LinearBlurShader from "./tools/shaders/LinearBlurShader.mjs";
 import DitheringShader from "./tools/shaders/DitheringShader.mjs";
 import RadialGradientShader from "./tools/shaders/RadialGradientShader.mjs";
@@ -65,14 +65,11 @@ const lightning = {
         ObjectListProxy,
         ObjectListWrapper,
     },
-    views: {
-        ListView,
-        BorderView,
-        // FastBlurView,
-        SmoothScaleView,
-    },
     components: {
-        FastBlurComponent
+        FastBlurComponent,
+        SmoothScaleComponent,
+        BorderComponent,
+        ListComponent
     },
     shaders: {
         DitheringShader,
