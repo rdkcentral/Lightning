@@ -22,10 +22,12 @@ No memory leaks. Smart GPU memory management.
 ## Installation
 
 ### Browser
-You can download the latest version of wuf.js from the repository here: https://github.com/WebPlatformForEmbedded/WPEUIFramework (dist/wuf.js).
+You can download the latest version of lightning-web.js from the repository here: https://github.com/WebPlatformForEmbedded/Lightning (dist/lightning-web.js).
 
 ### Node.js
 For Node.js, this module depends on node-canvas for image loading and text creation, and node-wpe-webgl for providing a WebGL interface to the native hardware. Install the dependencies and follow the installation instructions of node-canvas (https://github.com/Automattic/node-canvas) and node-wpe-webgl (https://github.com/WebPlatformForEmbedded/node-wpe-webgl).
+
+The module uses ESM module imports, but provides a rollup export. When require-ing this module, the rollup is included. To use the ESM mechanism, use `import lng from 'wpe-lightning/src/lightning-node'`.
 
 ## Basic usage
 
@@ -37,14 +39,14 @@ For Node.js, this module depends on node-canvas for image loading and text creat
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <script src="wuf.js"></script>
+    <script src="dist/lightning-web.js"></script>
 </head>
 <body>
     <script>
         window.onload = function() {
-            class YourApp extends wuf.Application {
+            class YourApp extends lng.Application {
                   static _template() {
-			return {texture: {type: wuf.textures.TextTexture, text: “hello world”}}
+			return {texture: {type: lng.textures.TextTexture, text: “hello world”}}
                 }
             }
 
@@ -62,11 +64,11 @@ For Node.js, this module depends on node-canvas for image loading and text creat
 ### NodeJS
 `start.js` contents:
 ```javascript
-const wuf = require('wpe-uiframework')
+const lng = require('wpe-lightning')
 
-class YourApp extends wuf.Application {
+class YourApp extends lng.Application {
     static _template() {
-        return {texture: {type: wuf.textures.TextTexture, text: “hello world”}}
+        return {texture: {type: lng.textures.TextTexture, text: “hello world”}}
     }
 }
 
@@ -76,11 +78,11 @@ options.stage.window = {title: "Border example", fullscreen: false};
 const app = new YourApp(options);
 ```
 
-Our test application `YourApp` extends the `wuf.Application` class. The full framework is bootstrapped by simply creating a new instance of your app. It is possible to run multiple apps in the same browser tab. Every app has it's own WebGL canvas and rendering context.
+Our test application `YourApp` extends the `lng.Application` class. The full framework is bootstrapped by simply creating a new instance of your app. It is possible to run multiple apps in the same browser tab. Every app has it's own WebGL canvas and rendering context.
 
-You can pass several options to an app. In this case, we specify the canvas width and height, and a background color in ARGB format (the `glClearColor`). Check the API for a list of all [initialisation options](#initialisation-options).
+You can pass several options to an app. In this case, we specify the canvas width and height, and a background color in ARGB format (the `clearColor`). Check the API for a list of all [initialisation options](#initialisation-options).
 
-`YourApp` has a template that allows you to define the layout of your application. In this case, it consists of a single *view* (a wuf render tree element) that contains a text.
+`YourApp` has a template that allows you to define the layout of your application. In this case, it consists of a single *view* (a render tree element) that contains a text.
 
 ## Render Tree
 The render tree defines what is being rendered on the screen. It consists out of a tree containing exclusively `View` (+ subtypes) instances. You can add, remove and change the views in this render tree as you wish, and those changes will be reflected on the screen during the next frame. The `Stage` manages the render tree and is responsible for texture loading, performing coordinate calculations and performing the required WebGL calls.
@@ -188,7 +190,7 @@ Every frame the framework converts the complete render tree into a series of Web
 In practice, the first one (different texture sources) is by far the most likely to cause many batch breaks. You should understand that the render order of the views/texturizes is fully determined by the position in the render tree (top-down first-last) and the z-index, if specified. As an example: you may be able to create a draw batch by z-indexing all views that share the same texture (good candidates are those that have `rect` enabled). You may want to use the forceZIndexContext on an ancestor to make sure that the batch doesn't interfere with other parts of the render tree. 
 
 ## Code composition
-An application can be composed into components. A component extends the `wuf.Component` class, which itself extends the `wuf.View` class. In fact, `wuf.Application` extends `wuf.Component`, so it *is* the render tree root. Composition is achieved by simply including them as Views somewhere in the render tree.
+An application can be composed into components. A component extends the `lng.Component` class, which itself extends the `lng.View` class. In fact, `lng.Application` extends `lng.Component`, so it *is* the render tree root. Composition is achieved by simply including them as Views somewhere in the render tree.
 
 ## Tools
 
