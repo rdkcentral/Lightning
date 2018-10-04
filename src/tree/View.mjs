@@ -9,6 +9,7 @@ import Base from "./Base.mjs";
 
 import Utils from "./Utils.mjs";
 import EventEmitter from "../EventEmitter.mjs";
+import Shader from "./Shader.mjs";
 
 export default class View {
 
@@ -1724,38 +1725,18 @@ export default class View {
     }
 
     set shader(v) {
-        let shader;
-        if (Utils.isObjectLiteral(v)) {
-            if (v.type) {
-                shader = new v.type(this.stage.ctx);
-            } else {
-                shader = this.shader;
+        const shader = Shader.create(this.stage, v);
+
+        if (shader) {
+            if (this.__enabled && this.__core.shader) {
+                this.__core.shader.removeView(this);
             }
 
-            if (shader) {
-                Base.patchObject(shader, v);
+            this.__core.shader = shader;
+
+            if (this.__enabled && this.__core.shader) {
+                this.__core.shader.addView(this);
             }
-        } else if (v === null) {
-            shader = this.stage.ctx.renderState.defaultShader;
-        } else if (v === undefined) {
-            shader = null;
-        } else {
-            if (v.isShader) {
-                shader = v;
-            } else {
-                console.error("Please specify a shader type.");
-                return;
-            }
-        }
-
-        if (this.__enabled && this.__core.shader) {
-            this.__core.shader.removeView(this);
-        }
-
-        this.__core.shader = shader;
-
-        if (this.__enabled && this.__core.shader) {
-            this.__core.shader.addView(this);
         }
     }
 

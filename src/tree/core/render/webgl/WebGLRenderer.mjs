@@ -4,16 +4,31 @@ import WebGLCoreQuadList from "./WebGLCoreQuadList.mjs";
 import WebGLCoreQuadOperation from "./WebGLCoreQuadOperation.mjs";
 import WebGLCoreRenderExecutor from "./WebGLCoreRenderExecutor.mjs";
 import CoreRenderState from "../../CoreRenderState.mjs";
+import WebGLDefaultShader from "./shaders/WebGLDefaultShader.mjs";
+import WebGLShader from "./WebGLShader.mjs";
+import Renderer from "../../Renderer.mjs";
 
-export default class WebGLRenderer {
+export default class WebGLRenderer extends Renderer {
 
     constructor(stage) {
-        this.stage = stage;
+        super(stage);
         this.shaderPrograms = new Map();
     }
 
     destroy() {
         this.shaderPrograms.forEach(shaderProgram => shaderProgram.destroy());
+    }
+
+    _createDefaultShader(ctx) {
+        return new WebGLDefaultShader(ctx);
+    }
+
+    _getShaderBaseType() {
+        return WebGLShader
+    }
+
+    _getShaderAlternative(shaderType) {
+        return shaderType.getWebGL && shaderType.getWebGL();
     }
 
     createCoreQuadList(ctx) {
@@ -224,10 +239,10 @@ export default class WebGLRenderer {
         let offset = renderState.length * 80 + 80;
         for (let i = 0, n = renderState.quadOperations.length; i < n; i++) {
             renderState.quadOperations[i].extraAttribsDataByteOffset = offset;
-            let extra = renderState.quadOperations[i].shader.impl.getExtraAttribBytesPerVertex() * 4 * renderState.quadOperations[i].length;
+            let extra = renderState.quadOperations[i].shader.getExtraAttribBytesPerVertex() * 4 * renderState.quadOperations[i].length;
             offset += extra;
             if (extra) {
-                renderState.quadOperations[i].shader.impl.setExtraAttribsInBuffer(renderState.quadOperations[i], renderState.quads);
+                renderState.quadOperations[i].shader.setExtraAttribsInBuffer(renderState.quadOperations[i], renderState.quads);
             }
         }
         renderState.quads.dataLength = offset;

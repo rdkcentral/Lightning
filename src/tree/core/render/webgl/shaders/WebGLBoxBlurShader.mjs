@@ -1,31 +1,20 @@
-import DefaultShader from "../../tree/DefaultShader.mjs";
-import WebGLDefaultShader from "../../tree/core/render/webgl/WebGLDefaultShaderImpl.mjs";
+import WebGLDefaultShader from "./WebGLDefaultShader.mjs";
 
 /**
  * 4x4 box blur shader which works in conjunction with a 50% rescale.
  */
-export default class BoxBlurShader extends DefaultShader {
+export default class WebGLBoxBlurShader extends WebGLDefaultShader {
 
-    constructor(ctx) {
-        super(ctx);
-    }
-
-    static getWebGLImpl() {
-        return WebGLBoxBlurShaderImpl;
-    }
-
-}
-
-class WebGLBoxBlurShaderImpl extends WebGLDefaultShader {
     setupUniforms(operation) {
         super.setupUniforms(operation);
         const dx = 1.0 / operation.getTextureWidth(0);
         const dy = 1.0 / operation.getTextureHeight(0);
         this._setUniform("stepTextureCoord", new Float32Array([dx, dy]), this.gl.uniform2fv);
     }
+
 }
 
-WebGLBoxBlurShaderImpl.vertexShaderSource = `
+WebGLBoxBlurShader.vertexShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -50,7 +39,7 @@ WebGLBoxBlurShaderImpl.vertexShaderSource = `
     }
 `;
 
-WebGLBoxBlurShaderImpl.fragmentShaderSource = `
+WebGLBoxBlurShader.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif

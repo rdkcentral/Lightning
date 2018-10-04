@@ -6,8 +6,8 @@ export default class InversionShader extends DefaultShader {
     }
 }
 
-import WebGLDefaultShaderImpl from "../../tree/core/render/webgl/WebGLDefaultShaderImpl.mjs";
-class WebGLInversionShaderImpl extends WebGLDefaultShaderImpl {
+import WebGLDefaultShader from "../../tree/core/render/webgl/WebGLDefaultShaderImpl.mjs";
+class WebGLInversionShaderImpl extends WebGLDefaultShader {
 }
 
 WebGLInversionShaderImpl.fragmentShaderSource = `

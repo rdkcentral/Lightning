@@ -9,13 +9,13 @@ export default class C2dCoreRenderExecutor extends CoreRenderExecutor {
     }
 
     _renderQuadOperation(op) {
-        let shaderImpl = op.shader.impl;
+        let shader = op.shader;
 
         if (op.length || op.shader.addEmpty()) {
             const target = this._renderTexture || this._mainRenderTexture;
-            shaderImpl.beforeDraw(op, target);
-            shaderImpl.draw(op, target);
-            shaderImpl.afterDraw(op, target);
+            shader.beforeDraw(op, target);
+            shader.draw(op, target);
+            shader.afterDraw(op, target);
         }
     }
 

@@ -2,7 +2,7 @@ import Component from "../../application/Component.mjs";
 import LinearBlurShader from "../shaders/LinearBlurShader.mjs";
 import BoxBlurShader from "../shaders/BoxBlurShader.mjs";
 import DefaultShader from "../../tree/DefaultShader.mjs";
-import WebGLDefaultShaderImpl from "../../tree/core/render/webgl/WebGLDefaultShaderImpl.mjs";
+import WebGLDefaultShader from "../../tree/core/render/webgl/WebGLDefaultShaderImpl.mjs";
 
 export default class FastBlurComponent extends Component {
 
@@ -241,7 +241,7 @@ class FastBlurOutputShader extends DefaultShader {
     }
 }
 
-class WebGLFastBlurOutputShaderImpl extends WebGLDefaultShaderImpl {
+class WebGLFastBlurOutputShaderImpl extends WebGLDefaultShader {
 
     setupUniforms(operation) {
         super.setupUniforms(operation);

@@ -1,10 +1,6 @@
-import WebGLShaderImpl from "./WebGLShaderImpl.mjs";
+import WebGLShader from "../WebGLShader.mjs";
 
-export default class WebGLDefaultShaderImpl extends WebGLShaderImpl {
-
-    constructor(shader) {
-        super(shader);
-    }
+export default class WebGLDefaultShader extends WebGLShader {
 
     enableAttribs() {
         // Enables the attribs in the shader program.
@@ -68,7 +64,7 @@ export default class WebGLDefaultShaderImpl extends WebGLShaderImpl {
 
 }
 
-WebGLDefaultShaderImpl.vertexShaderSource = `
+WebGLDefaultShader.vertexShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -86,7 +82,7 @@ WebGLDefaultShaderImpl.vertexShaderSource = `
     }
 `;
 
-WebGLDefaultShaderImpl.fragmentShaderSource = `
+WebGLDefaultShader.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif

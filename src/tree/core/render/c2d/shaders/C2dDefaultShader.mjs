@@ -1,12 +1,11 @@
-import C2dShaderImpl from "./C2dShaderImpl.mjs";
-import StageUtils from "../../../StageUtils.mjs";
+import C2dShader from "../C2dShader.mjs";
+import StageUtils from "../../../../StageUtils.mjs";
 
-export default class C2dDefaultShaderImpl extends C2dShaderImpl {
+export default class C2dDefaultShader extends C2dShader {
 
-    constructor(shader) {
-        super(shader);
-        this._filterUrl = shader.ctx.stage.renderer.svgBlobUrl;
-        this._rectangleTexture = shader.ctx.stage.rectangleTexture.source.nativeTexture
+    constructor(ctx) {
+        super(ctx);
+        this._rectangleTexture = ctx.stage.rectangleTexture.source.nativeTexture
     }
 
     draw(operation, target) {
@@ -20,7 +19,10 @@ export default class C2dDefaultShaderImpl extends C2dShaderImpl {
             //@todo: try to optimize out per-draw transform setting. split translate, transform.
             ctx.setTransform(rc.ta, rc.tc, rc.tb, rc.td, rc.px, rc.py);
 
-            if (tx === this._rectangleTexture) {
+            const rect = (tx === this._rectangleTexture);
+            const info = {operation, target, index: i, rect};
+
+            if (rect) {
                 // Check for gradient.
                 let color = vc._colorUl;
                 let gradient;
@@ -50,13 +52,20 @@ export default class C2dDefaultShaderImpl extends C2dShaderImpl {
                 }
 
                 ctx.fillStyle = (gradient || StageUtils.getRgbaString(color));
+
+                info.gradient = gradient;
+                info.color = color;
+                this._beforeDrawEl(info);
                 ctx.fillRect(0, 0, vc.rw, vc.rh);
+                this._afterDrawEl(info);
             } else {
                 // @todo: set image smoothing based on the texture.
 
                 //@todo: optimize by registering whether identity texcoords are used.
                 ctx.globalAlpha = rc.alpha;
+                this._beforeDrawEl(info);
                 ctx.drawImage(tx, vc._ulx * tx.w, vc._uly * tx.h, (vc._brx - vc._ulx) * tx.w, (vc._bry - vc._uly) * tx.h, 0, 0, vc.rw, vc.rh);
+                this._afterDrawEl(info);
                 ctx.globalAlpha = 1.0;
 
                 //@todo: colorize does not really work the way we want it to.
@@ -69,6 +78,12 @@ export default class C2dDefaultShaderImpl extends C2dShaderImpl {
 
             }
         }
+    }
+
+    _beforeDrawEl(info) {
+    }
+
+    _afterDrawEl(info) {
     }
 
 }

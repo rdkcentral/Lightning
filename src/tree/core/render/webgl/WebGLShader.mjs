@@ -1,11 +1,12 @@
 import WebGLShaderProgram from "./WebGLShaderProgram.mjs";
+import Shader from "../../../Shader.mjs";
 
-export default class WebGLShaderImpl {
+export default class WebGLShader extends Shader {
 
-    constructor(shader) {
-        this._shader = shader;
+    constructor(ctx) {
+        super(ctx);
 
-        const stage = this._shader.ctx.stage;
+        const stage = ctx.stage;
 
         this._program = stage.renderer.shaderPrograms.get(this.constructor);
         if (!this._program) {
@@ -16,10 +17,6 @@ export default class WebGLShaderImpl {
         }
 
         this.gl = stage.gl;
-    }
-
-    get shader() {
-        return this._shader;
     }
 
     get glProgram() {

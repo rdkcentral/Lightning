@@ -35,8 +35,8 @@ export default class RadialFilterShader extends DefaultShader {
 
 }
 
-import WebGLDefaultShaderImpl from "../../tree/core/render/webgl/WebGLDefaultShaderImpl.mjs";
-class WebGLRadialFilterShaderImpl extends WebGLDefaultShaderImpl {
+import WebGLDefaultShader from "../../tree/core/render/webgl/WebGLDefaultShaderImpl.mjs";
+class WebGLRadialFilterShaderImpl extends WebGLDefaultShader {
 
     setupUniforms(operation) {
         super.setupUniforms(operation);

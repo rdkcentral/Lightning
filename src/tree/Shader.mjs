@@ -1,3 +1,6 @@
+import Base from "./Base.mjs";
+import Utils from "./Utils.mjs";
+
 export default class Shader {
 
     constructor(coreContext) {
@@ -12,23 +15,44 @@ export default class Shader {
         this._views = new Set();
     }
 
-    get impl() {
-        if (!this._impl) {
-            if (this.ctx.stage.mode === 0) {
-                this._impl = new (this.constructor.getWebGLImpl())(this);
+    static create(stage, v) {
+        let shader;
+        if (Utils.isObjectLiteral(v)) {
+            if (v.type) {
+                shader = stage.renderer.createShader(v.type, stage.ctx);
             } else {
-                this._impl = new (this.constructor.getC2dImpl())(this);
+                shader = this.shader;
+            }
+
+            if (shader) {
+                Base.patchObject(shader, v);
+            }
+        } else if (v === null) {
+            shader = stage.ctx.renderState.defaultShader;
+        } else if (v === undefined) {
+            shader = null;
+        } else {
+            if (v.isShader) {
+                if (!stage.renderer.isValidShaderType(v)) {
+                    console.error("Invalid shader type");
+                    v = null;
+                }
+                shader = v;
+            } else {
+                console.error("Please specify a shader type.");
+                return;
             }
         }
-        return this._impl;
+
+        return shader;
     }
 
-    static getWebGLImpl() {
-        return undefined
+    static getWebGL() {
+        return undefined;
     }
 
-    static getC2dImpl() {
-        return undefined
+    static getC2d() {
+        return undefined;
     }
 
     addView(viewCore) {
@@ -66,9 +90,7 @@ export default class Shader {
 
     cleanup() {
         // Called when no more enabled views have this shader.
-        this.impl.cleanup();
     }
 
 }
 
-import Base from "./Base.mjs";

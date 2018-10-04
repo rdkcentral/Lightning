@@ -48,8 +48,8 @@ export default class PixelateShader extends DefaultShader {
     }
 }
 
-import WebGLDefaultShaderImpl from "../../tree/core/render/webgl/WebGLDefaultShaderImpl.mjs";
-class WebGLPixelateShaderImpl extends WebGLDefaultShaderImpl {
+import WebGLDefaultShader from "../../tree/core/render/webgl/WebGLDefaultShaderImpl.mjs";
+class WebGLPixelateShaderImpl extends WebGLDefaultShader {
     setupUniforms(operation) {
         super.setupUniforms(operation);
         let gl = this.gl;

@@ -35,8 +35,8 @@ export default class DitheringShader extends DefaultShader {
 }
 
 
-import WebGLDefaultShaderImpl from "../../tree/core/render/webgl/WebGLDefaultShaderImpl.mjs";
-class WebGLDitheringShaderImpl extends WebGLDefaultShaderImpl {
+import WebGLDefaultShader from "../../tree/core/render/webgl/WebGLDefaultShaderImpl.mjs";
+class WebGLDitheringShaderImpl extends WebGLDefaultShader {
 
     constructor(shader) {
         super(shader)

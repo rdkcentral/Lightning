@@ -62,8 +62,6 @@ export default class Stage extends EventEmitter {
 
         this.textureManager = new TextureManager(this);
 
-        this.ctx = new CoreContext(this);
-
         this._destroyed = false;
 
         this.startTime = 0;
@@ -76,6 +74,8 @@ export default class Stage extends EventEmitter {
 
         // Never clean up because we use it all the time.
         this.rectangleTexture.source.permanent = true;
+
+        this.ctx = new CoreContext(this);
 
         this._updateSourceTextures = new Set();
     }

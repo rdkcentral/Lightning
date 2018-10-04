@@ -72,8 +72,8 @@ export default class RadialGradientShader extends DefaultShader {
 
 }
 
-import WebGLDefaultShaderImpl from "../../tree/core/render/webgl/WebGLDefaultShaderImpl.mjs";
-class WebGLRadialGradientShaderImpl extends WebGLDefaultShaderImpl {
+import WebGLDefaultShader from "../../tree/core/render/webgl/WebGLDefaultShaderImpl.mjs";
+class WebGLRadialGradientShaderImpl extends WebGLDefaultShader {
 
     setupUniforms(operation) {
         super.setupUniforms(operation);

@@ -16,8 +16,8 @@ export default class WaterWaveShader extends DefaultShader {
 
 }
 
-import WebGLDefaultShaderImpl from "../../src/tree/core/render/webgl/WebGLDefaultShaderImpl.mjs";
-class WebGLWaterWaveShaderImpl extends WebGLDefaultShaderImpl {
+import WebGLDefaultShader from "../../src/tree/core/render/webgl/WebGLDefaultShaderImpl.mjs";
+class WebGLWaterWaveShaderImpl extends WebGLDefaultShader {
 
     setupUniforms(operation) {
         super.setupUniforms(operation)

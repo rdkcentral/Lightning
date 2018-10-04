@@ -145,9 +145,9 @@ export default class CircularPushShader extends DefaultShader {
 
 }
 
-import WebGLDefaultShaderImpl from "../../tree/core/render/webgl/WebGLDefaultShaderImpl.mjs";
+import WebGLDefaultShader from "../../tree/core/render/webgl/WebGLDefaultShaderImpl.mjs";
 
-class WebGLCircularPushShaderImpl extends WebGLDefaultShaderImpl {
+class WebGLCircularPushShaderImpl extends WebGLDefaultShader {
 
     constructor(context) {
         super(context);

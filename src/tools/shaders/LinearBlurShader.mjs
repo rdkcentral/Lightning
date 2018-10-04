@@ -45,8 +45,8 @@ export default class LinearBlurShader extends DefaultShader {
     }
 }
 
-import WebGLDefaultShaderImpl from "../../tree/core/render/webgl/WebGLDefaultShaderImpl.mjs";
-class WebGLLinearBlurShaderImpl extends WebGLDefaultShaderImpl {
+import WebGLDefaultShader from "../../tree/core/render/webgl/WebGLDefaultShaderImpl.mjs";
+class WebGLLinearBlurShaderImpl extends WebGLDefaultShader {
     setupUniforms(operation) {
         super.setupUniforms(operation);
         this._setUniform("direction", this.shader._direction, this.gl.uniform2fv);

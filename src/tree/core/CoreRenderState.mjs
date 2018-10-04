@@ -1,5 +1,3 @@
-import DefaultShader from "../DefaultShader.mjs";
-
 export default class CoreRenderState {
 
     constructor(ctx) {
@@ -7,7 +5,7 @@ export default class CoreRenderState {
 
         this.stage = ctx.stage;
 
-        this.defaultShader = new DefaultShader(this.ctx);
+        this.defaultShader = this.stage.renderer.getDefaultShader(ctx);
 
         this.renderer = ctx.stage.renderer;
 
@@ -20,9 +18,6 @@ export default class CoreRenderState {
 
         this._scissor = null;
 
-        /**
-         * @type {DefaultShader}
-         */
         this._shader = null;
 
         this._shaderOwner = null;

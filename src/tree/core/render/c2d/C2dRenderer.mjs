@@ -2,13 +2,28 @@ import C2dCoreQuadList from "./C2dCoreQuadList.mjs";
 import C2dCoreQuadOperation from "./C2dCoreQuadOperation.mjs";
 import C2dCoreRenderExecutor from "./C2dCoreRenderExecutor.mjs";
 import CoreRenderState from "../../CoreRenderState.mjs";
+import C2dDefaultShader from "./shaders/C2dDefaultShader.mjs";
+import C2dShader from "./C2dShader.mjs";
+import Renderer from "../../Renderer.mjs";
 
-export default class C2dRenderer {
+export default class C2dRenderer extends Renderer {
 
     constructor(stage) {
-        this.stage = stage;
+        super(stage);
 
         this.setupC2d(this.stage.c2d.canvas);
+    }
+
+    _createDefaultShader(ctx) {
+        return new C2dDefaultShader(ctx);
+    }
+
+    _getShaderBaseType() {
+        return C2dShader
+    }
+
+    _getShaderAlternative(shaderType) {
+        return shaderType.getC2d && shaderType.getC2d();
     }
 
     createCoreQuadList(ctx) {

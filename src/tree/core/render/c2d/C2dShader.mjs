@@ -1,8 +1,6 @@
-export default class C2dShaderImpl {
+import Shader from "../../../Shader.mjs";
 
-    constructor(shader) {
-        this._shader = shader;
-    }
+export default class C2dShader extends Shader {
 
     beforeDraw(operation) {
     }

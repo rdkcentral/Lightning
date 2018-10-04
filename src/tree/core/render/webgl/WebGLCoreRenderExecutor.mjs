@@ -68,21 +68,21 @@ export default class WebGLCoreRenderExecutor extends CoreRenderExecutor {
 
     _setupQuadOperation(quadOperation) {
         super._setupQuadOperation(quadOperation);
-        this._useShaderProgram(quadOperation.shader.impl, quadOperation);
+        this._useShaderProgram(quadOperation.shader, quadOperation);
     }
 
     _renderQuadOperation(op) {
-        let shaderImpl = op.shader.impl;
+        let shader = op.shader;
 
         if (op.length || op.shader.addEmpty()) {
-            shaderImpl.beforeDraw(op);
-            shaderImpl.draw(op);
-            shaderImpl.afterDraw(op);
+            shader.beforeDraw(op);
+            shader.draw(op);
+            shader.afterDraw(op);
         }
     }
 
     /**
-     * @param {WebGLShaderImpl} shader;
+     * @param {WebGLShader} shader;
      * @param {CoreQuadOperation} operation;
      */
     _useShaderProgram(shader, operation) {
