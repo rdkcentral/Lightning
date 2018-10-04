@@ -15,34 +15,33 @@ import ImageTexture from "./textures/ImageTexture.mjs";
 import HtmlTexture from "./textures/HtmlTexture.mjs";
 import StaticTexture from "./textures/StaticTexture.mjs";
 import StaticCanvasTexture from "./textures/StaticCanvasTexture.mjs";
-import ObjectListProxy from "./tools/misc/ObjectListProxy.mjs";
-import ObjectListWrapper from "./tools/misc/ObjectListWrapper.mjs";
-// import ListComponent from "./tools/components/ListComponent.mjs";
-// import FastBlurComponent from "./tools/components/FastBlurComponent.mjs";
-// import SmoothScaleComponent from "./tools/components/SmoothScaleComponent.mjs";
-// import BorderComponent from "./tools/components/BorderComponent.mjs";
-// import LinearBlurShader from "./tools/shaders/LinearBlurShader.mjs";
-// import DitheringShader from "./tools/shaders/DitheringShader.mjs";
-// import RadialGradientShader from "./tools/shaders/RadialGradientShader.mjs";
-// import PixelateShader from "./tools/shaders/PixelateShader.mjs";
-// import InversionShader from "./tools/shaders/InversionShader.mjs";
-// import OutlineShader from "./tools/shaders/OutlineShader.mjs";
-// import CircularPushShader from "./tools/shaders/CircularPushShader.mjs";
-// import RadialFilterShader from "./tools/shaders/RadialFilterShader.mjs";
-// import BoxBlurShader from "./tools/shaders/LinearBlurShader.mjs";
+import ObjectListProxy from "./tools/ObjectListProxy.mjs";
+import ObjectListWrapper from "./tools/ObjectListWrapper.mjs";
+import ListComponent from "./components/ListComponent.mjs";
+import FastBlurComponent from "./components/FastBlurComponent.mjs";
+import SmoothScaleComponent from "./components/SmoothScaleComponent.mjs";
+import BorderComponent from "./components/BorderComponent.mjs";
 import EventEmitter from "./EventEmitter.mjs";
 
-import WebGLShader from "./tree/core/render/webgl/WebGLShader.mjs";
-import WebGLDefaultShader from "./tree/core/render/webgl/shaders/WebGLDefaultShader.mjs";
-import WebGLGrayscaleShader from "./tree/core/render/webgl/shaders/WebGLGrayscaleShader.mjs";
-import WebGLBoxBlurShader from "./tree/core/render/webgl/shaders/WebGLBoxBlurShader.mjs";
+import WebGLShader from "./renderer/webgl/WebGLShader.mjs";
+import WebGLDefaultShader from "./renderer/webgl/shaders/DefaultShader.mjs";
+import GrayscaleShader from "./renderer/webgl/shaders/GrayscaleShader.mjs";
+import BoxBlurShader from "./renderer/webgl/shaders/BoxBlurShader.mjs";
+import DitheringShader from "./renderer/webgl/shaders/DitheringShader.mjs";
+import CircularPushShader from "./renderer/webgl/shaders/CircularPushShader.mjs";
+import InversionShader from "./renderer/webgl/shaders/InversionShader.mjs";
+import LinearBlurShader from "./renderer/webgl/shaders/LinearBlurShader.mjs";
+import OutlineShader from "./renderer/webgl/shaders/OutlineShader.mjs";
+import PixelateShader from "./renderer/webgl/shaders/PixelateShader.mjs";
+import RadialFilterShader from "./renderer/webgl/shaders/RadialFilterShader.mjs";
+import RadialGradientShader from "./renderer/webgl/shaders/RadialGradientShader.mjs";
 
-import C2dShader from "./tree/core/render/c2d/C2dShader.mjs";
-import C2dDefaultShader from "./tree/core/render/c2d/shaders/C2dDefaultShader.mjs";
-import C2dGrayscaleShader from "./tree/core/render/c2d/shaders/C2dGrayscaleShader.mjs";
+import C2dShader from "./renderer/c2d/C2dShader.mjs";
+import C2dDefaultShader from "./renderer/c2d/shaders/DefaultShader.mjs";
 
 import Stage from "./tree/Stage.mjs";
 import WebAdapter from "./browser/WebAdapter.mjs";
+
 Stage.ADAPTER = WebAdapter;
 
 const lightning = {
@@ -59,27 +58,20 @@ const lightning = {
     Texture,
     EventEmitter,
     shaders: {
-        Grayscale: WebGLGrayscaleShader,
-        BoxBlurShader: WebGLBoxBlurShader,
-        webgl: {
-            Shader: WebGLShader,
-            DefaultShader: WebGLDefaultShader,
-        },
-        c2d: {
-            Shader: C2dShader,
-            DefaultShader: C2dDefaultShader,
-            Grayscale: C2dGrayscaleShader,
-        }
-    },
-    webgl: {
-        shaders: {
-        }
-    },
-    c2d: {
-        shaders: {
-            C2dShader,
-            C2dDefaultShader
-        }
+        Grayscale: GrayscaleShader,
+        BoxBlur: BoxBlurShader,
+        Dithering: DitheringShader,
+        CircularPush: CircularPushShader,
+        Inversion: InversionShader,
+        LinearBlur: LinearBlurShader,
+        Outline: OutlineShader,
+        Pixelate: PixelateShader,
+        RadialFilter: RadialFilterShader,
+        RadialGradient: RadialGradientShader,
+        WebGLShader,
+        WebGLDefaultShader,
+        C2dShader,
+        C2dDefaultShader
     },
     textures: {
         RectangleTexture,
@@ -94,24 +86,12 @@ const lightning = {
         ObjectListProxy,
         ObjectListWrapper,
     },
-    // components: {
-    //     FastBlurComponent,
-    //     SmoothScaleComponent,
-    //     BorderComponent,
-    //     ListComponent
-    // },
-    // shaders: {
-    //     DitheringShader,
-    //     RadialGradientShader,
-    //     PixelateShader,
-    //     InversionShader,
-    //     GrayscaleShader,
-    //     OutlineShader,
-    //     CircularPushShader,
-    //     RadialFilterShader,
-    //     LinearBlurShader,
-    //     BoxBlurShader
-    // }
+    components: {
+        FastBlurComponent,
+        SmoothScaleComponent,
+        BorderComponent,
+        ListComponent
+    }
 };
 
 // Legacy.

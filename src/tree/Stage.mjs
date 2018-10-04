@@ -5,8 +5,8 @@
 
 import EventEmitter from "../EventEmitter.mjs";
 import Utils from "./Utils.mjs";
-import WebGLRenderer from "./core/render/webgl/WebGLRenderer.mjs";
-import C2dRenderer from "./core/render/c2d/C2dRenderer.mjs";
+import WebGLRenderer from "../renderer/webgl/WebGLRenderer.mjs";
+import C2dRenderer from "../renderer/c2d/C2dRenderer.mjs";
 
 export default class Stage extends EventEmitter {
 

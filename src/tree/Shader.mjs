@@ -19,7 +19,7 @@ export default class Shader {
         let shader;
         if (Utils.isObjectLiteral(v)) {
             if (v.type) {
-                shader = stage.renderer.createShader(v.type, stage.ctx);
+                shader = stage.renderer.createShader(stage.ctx, v);
             } else {
                 shader = this.shader;
             }
@@ -33,7 +33,7 @@ export default class Shader {
             shader = null;
         } else {
             if (v.isShader) {
-                if (!stage.renderer.isValidShaderType(v)) {
+                if (!stage.renderer.isValidShaderType(v.constructor)) {
                     console.error("Invalid shader type");
                     v = null;
                 }
@@ -92,5 +92,8 @@ export default class Shader {
         // Called when no more enabled views have this shader.
     }
 
+    get isShader() {
+        return true;
+    }
 }
 

@@ -3157,7 +3157,7 @@ var lng = (function () {
             let shader;
             if (Utils.isObjectLiteral(v)) {
                 if (v.type) {
-                    shader = stage.renderer.createShader(v.type, stage.ctx);
+                    shader = stage.renderer.createShader(stage.ctx, v);
                 } else {
                     shader = this.shader;
                 }
@@ -3171,7 +3171,7 @@ var lng = (function () {
                 shader = null;
             } else {
                 if (v.isShader) {
-                    if (!stage.renderer.isValidShaderType(v)) {
+                    if (!stage.renderer.isValidShaderType(v.constructor)) {
                         console.error("Invalid shader type");
                         v = null;
                     }
@@ -3230,6 +3230,9 @@ var lng = (function () {
             // Called when no more enabled views have this shader.
         }
 
+        get isShader() {
+            return true;
+        }
     }
 
     class Texture {
@@ -8381,7 +8384,6 @@ var lng = (function () {
 
     /**
      * Base functionality for shader setup/destroy.
-     * Copyright Metrological, 2017
      */
     class WebGLShaderProgram {
 
@@ -8649,7 +8651,7 @@ var lng = (function () {
 
     }
 
-    class WebGLDefaultShader extends WebGLShader {
+    class DefaultShader$1 extends WebGLShader {
 
         enableAttribs() {
             // Enables the attribs in the shader program.
@@ -8713,7 +8715,7 @@ var lng = (function () {
 
     }
 
-    WebGLDefaultShader.vertexShaderSource = `
+    DefaultShader$1.vertexShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -8731,7 +8733,7 @@ var lng = (function () {
     }
 `;
 
-    WebGLDefaultShader.fragmentShaderSource = `
+    DefaultShader$1.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -8764,18 +8766,21 @@ var lng = (function () {
             return (shaderType.prototype instanceof this._getShaderBaseType());
         }
 
-        createShader(shaderType, ctx) {
+        createShader(ctx, settings) {
+            const shaderType = settings.type || DefaultShader;
             // If shader type is not correct, use a different platform.
             if (!this.isValidShaderType(shaderType)) {
                 const convertedShaderType = this._getShaderAlternative(shaderType);
                 if (!convertedShaderType) {
                     console.warn("Shader has no implementation for render target: " + shaderType.name);
-                    return this.getDefaultShader();
+                    return this._createDefaultShader(ctx);
                 }
-                shaderType = convertedShaderType;
+                return new convertedShaderType(ctx);
+            } else {
+                const shader = new shaderType(ctx);
+                Base.patchObject(shader, settings);
+                return shader;
             }
-
-            return new shaderType(ctx);
         }
 
         _getShaderBaseType() {
@@ -8799,7 +8804,7 @@ var lng = (function () {
         }
 
         _createDefaultShader(ctx) {
-            return new WebGLDefaultShader(ctx);
+            return new DefaultShader$1(ctx);
         }
 
         _getShaderBaseType() {
@@ -9146,7 +9151,7 @@ var lng = (function () {
 
     }
 
-    class C2dDefaultShader extends C2dShader {
+    class DefaultShader$2 extends C2dShader {
 
         constructor(ctx) {
             super(ctx);
@@ -9238,7 +9243,7 @@ var lng = (function () {
         }
 
         _createDefaultShader(ctx) {
-            return new C2dDefaultShader(ctx);
+            return new DefaultShader$2(ctx);
         }
 
         _getShaderBaseType() {
@@ -11913,7 +11918,1240 @@ var lng = (function () {
 
     }
 
-    class GrayscaleShader extends C2dDefaultShader {
+    class ListView extends Component {
+
+        constructor(stage) {
+            super(stage);
+
+            this._wrapper = super._children.a({});
+
+            this._reloadVisibleElements = false;
+
+            this._visibleItems = new Set();
+
+            this._index = 0;
+
+            this._started = false;
+
+            /**
+             * The transition definition that is being used when scrolling the items.
+             * @type TransitionSettings
+             */
+            this._scrollTransitionSettings = this.stage.transitions.createSettings({});
+
+            /**
+             * The scroll area size in pixels per item.
+             */
+            this._itemSize = 100;
+
+            this._viewportScrollOffset = 0;
+
+            this._itemScrollOffset = 0;
+
+            /**
+             * Should the list jump when scrolling between end to start, or should it be continuous, like a carrousel?
+             */
+            this._roll = false;
+
+            /**
+             * Allows restricting the start scroll position.
+             */
+            this._rollMin = 0;
+
+            /**
+             * Allows restricting the end scroll position.
+             */
+            this._rollMax = 0;
+
+            /**
+             * Definition for a custom animation that is applied when an item is (partially) selected.
+             * @type AnimationSettings
+             */
+            this._progressAnimation = null;
+
+            /**
+             * Inverts the scrolling direction.
+             * @type {boolean}
+             * @private
+             */
+            this._invertDirection = false;
+
+            /**
+             * Layout the items horizontally or vertically?
+             * @type {boolean}
+             * @private
+             */
+            this._horizontal = true;
+
+            this.itemList = new ListItems(this);
+        }
+
+        _allowChildrenAccess() {
+            return false;
+        }
+
+        get items() {
+            return this.itemList.get();
+        }
+
+        set items(children) {
+            this.itemList.patch(children);
+        }
+
+        start() {
+            this._wrapper.transition(this.property, this._scrollTransitionSettings);
+            this._scrollTransition = this._wrapper.transition(this.property);
+            this._scrollTransition.on('progress', p => this.update());
+
+            this.setIndex(0, true, true);
+
+            this._started = true;
+
+            this.update();
+        }
+
+        setIndex(index, immediate = false, closest = false) {
+            let nElements = this.length;
+            if (!nElements) return;
+
+            this.emit('unfocus', this.getElement(this.realIndex), this._index, this.realIndex);
+
+            if (closest) {
+                // Scroll to same offset closest to the index.
+                let offset = Utils.getModuloIndex(index, nElements);
+                let o = Utils.getModuloIndex(this.index, nElements);
+                let diff = offset - o;
+                if (diff > 0.5 * nElements) {
+                    diff -= nElements;
+                } else if (diff < -0.5 * nElements) {
+                    diff += nElements;
+                }
+                this._index += diff;
+            } else {
+                this._index = index;
+            }
+
+            if (this._roll || (this.viewportSize > this._itemSize * nElements)) {
+                this._index = Utils.getModuloIndex(this._index, nElements);
+            }
+
+            let direction = (this._horizontal ^ this._invertDirection ? -1 : 1);
+            let value = direction * this._index * this._itemSize;
+
+            if (this._roll) {
+                let min, max, scrollDelta;
+                if (direction == 1) {
+                    max = (nElements - 1) * this._itemSize;
+                    scrollDelta = this._viewportScrollOffset * this.viewportSize - this._itemScrollOffset * this._itemSize;
+
+                    max -= scrollDelta;
+
+                    min = this.viewportSize - (this._itemSize + scrollDelta);
+
+                    if (this._rollMin) min -= this._rollMin;
+                    if (this._rollMax) max += this._rollMax;
+
+                    value = Math.max(Math.min(value, max), min);
+                } else {
+                    max = (nElements * this._itemSize - this.viewportSize);
+                    scrollDelta = this._viewportScrollOffset * this.viewportSize - this._itemScrollOffset * this._itemSize;
+
+                    max += scrollDelta;
+
+                    let min = scrollDelta;
+
+                    if (this._rollMin) min -= this._rollMin;
+                    if (this._rollMax) max += this._rollMax;
+
+                    value = Math.min(Math.max(-max, value), -min);
+                }
+            }
+
+            this._scrollTransition.start(value);
+
+            if (immediate) {
+                this._scrollTransition.finish();
+            }
+
+            this.emit('focus', this.getElement(this.realIndex), this._index, this.realIndex);
+        }
+
+        getAxisPosition() {
+            let target = -this._scrollTransition._targetValue;
+
+            let direction = (this._horizontal ^ this._invertDirection ? -1 : 1);
+            let value = -direction * this._index * this._itemSize;
+
+            return this._viewportScrollOffset * this.viewportSize + (value - target);
+        }
+
+        update() {
+            if (!this._started) return;
+
+            let nElements = this.length;
+            if (!nElements) return;
+
+            let direction = (this._horizontal ^ this._invertDirection ? -1 : 1);
+
+            // Map position to index value.
+            let v = (this._horizontal ? this._wrapper.x : this._wrapper.y);
+
+            let viewportSize = this.viewportSize;
+            let scrollDelta = this._viewportScrollOffset * viewportSize - this._itemScrollOffset * this._itemSize;
+            v += scrollDelta;
+
+            let s, e, ps, pe;
+            if (direction == -1) {
+                s = Math.floor(-v / this._itemSize);
+                ps = 1 - ((-v / this._itemSize) - s);
+                e = Math.floor((viewportSize - v) / this._itemSize);
+                pe = (((viewportSize - v) / this._itemSize) - e);
+            } else {
+                s = Math.ceil(v / this._itemSize);
+                ps = 1 + (v / this._itemSize) - s;
+                e = Math.ceil((v - viewportSize) / this._itemSize);
+                pe = e - ((v - viewportSize) / this._itemSize);
+            }
+            if (this._roll || (viewportSize > this._itemSize * nElements)) {
+                // Don't show additional items.
+                if (e >= nElements) {
+                    e = nElements - 1;
+                    pe = 1;
+                }
+                if (s >= nElements) {
+                    s = nElements - 1;
+                    ps = 1;
+                }
+                if (e <= -1) {
+                    e = 0;
+                    pe = 1;
+                }
+                if (s <= -1) {
+                    s = 0;
+                    ps = 1;
+                }
+            }
+
+            let offset = -direction * s * this._itemSize;
+
+            let item;
+            for (let index = s; (direction == -1 ? index <= e : index >= e); (direction == -1 ? index++ : index--)) {
+                let realIndex = Utils.getModuloIndex(index, nElements);
+
+                let element = this.getElement(realIndex);
+                item = element.parent;
+                this._visibleItems.delete(item);
+                if (this._horizontal) {
+                    item.x = offset + scrollDelta;
+                } else {
+                    item.y = offset + scrollDelta;
+                }
+
+                let wasVisible = item.visible;
+                item.visible = true;
+
+                if (!wasVisible || this._reloadVisibleElements) {
+                    // Turned visible.
+                    this.emit('visible', index, realIndex);
+                }
+
+
+
+                if (this._progressAnimation) {
+                    let p = 1;
+                    if (index == s) {
+                        p = ps;
+                    } else if (index == e) {
+                        p = pe;
+                    }
+
+                    // Use animation to progress.
+                    this._progressAnimation.apply(element, p);
+                }
+
+                offset += this._itemSize;
+            }
+
+            // Handle item visibility.
+            let self = this;
+            this._visibleItems.forEach(function(invisibleItem) {
+                invisibleItem.visible = false;
+                self._visibleItems.delete(invisibleItem);
+            });
+
+            for (let index = s; (direction == -1 ? index <= e : index >= e); (direction == -1 ? index++ : index--)) {
+                let realIndex = Utils.getModuloIndex(index, nElements);
+                this._visibleItems.add(this.getWrapper(realIndex));
+            }
+
+            this._reloadVisibleElements = false;
+        }
+
+        setPrevious() {
+            this.setIndex(this._index - 1);
+        }
+
+        setNext() {
+            this.setIndex(this._index + 1);
+        }
+
+        getWrapper(index) {
+            return this._wrapper.children[index];
+        }
+
+        getElement(index) {
+            let e = this._wrapper.children[index];
+            return e ? e.children[0] : null;
+        }
+
+        reload() {
+            this._reloadVisibleElements = true;
+            this.update();
+        }
+
+        get element() {
+            let e = this._wrapper.children[this.realIndex];
+            return e ? e.children[0] : null;
+        }
+
+        get length() {
+            return this._wrapper.children.length;
+        }
+
+        get property() {
+            return this._horizontal ? 'x' : 'y';
+        }
+
+        get viewportSize() {
+            return this._horizontal ? this.w : this.h;
+        }
+
+        get index() {
+            return this._index;
+        }
+
+        get realIndex() {
+            return Utils.getModuloIndex(this._index, this.length);
+        }
+
+        get itemSize() {
+            return this._itemSize;
+        }
+
+        set itemSize(v) {
+            this._itemSize = v;
+            this.update();
+        }
+
+        get viewportScrollOffset() {
+            return this._viewportScrollOffset;
+        }
+
+        set viewportScrollOffset(v) {
+            this._viewportScrollOffset = v;
+            this.update();
+        }
+
+        get itemScrollOffset() {
+            return this._itemScrollOffset;
+        }
+
+        set itemScrollOffset(v) {
+            this._itemScrollOffset = v;
+            this.update();
+        }
+
+        get scrollTransitionSettings() {
+            return this._scrollTransitionSettings;
+        }
+
+        set scrollTransitionSettings(v) {
+            this._scrollTransitionSettings.patch(v);
+        }
+
+        set scrollTransition(v) {
+            this._scrollTransitionSettings.patch(v);
+        }
+
+        get scrollTransition() {
+            return this._scrollTransition;
+        }
+
+        get progressAnimation() {
+            return this._progressAnimation;
+        }
+
+        set progressAnimation(v) {
+            if (Utils.isObjectLiteral(v)) {
+                this._progressAnimation = this.stage.animations.createSettings(v);
+            } else {
+                this._progressAnimation = v;
+            }
+            this.update();
+        }
+
+        get roll() {
+            return this._roll;
+        }
+
+        set roll(v) {
+            this._roll = v;
+            this.update();
+        }
+
+        get rollMin() {
+            return this._rollMin;
+        }
+
+        set rollMin(v) {
+            this._rollMin = v;
+            this.update();
+        }
+
+        get rollMax() {
+            return this._rollMax;
+        }
+
+        set rollMax(v) {
+            this._rollMax = v;
+            this.update();
+        }
+
+        get invertDirection() {
+            return this._invertDirection;
+        }
+
+        set invertDirection(v) {
+            if (!this._started) {
+                this._invertDirection = v;
+            }
+        }
+
+        get horizontal() {
+            return this._horizontal;
+        }
+
+        set horizontal(v) {
+            if (v !== this._horizontal) {
+                if (!this._started) {
+                    this._horizontal = v;
+                }
+            }
+        }
+
+    }
+    class ListItems extends ObjectListWrapper {
+        constructor(list) {
+            let wrap = (item => {
+                let parent = item.stage.createView();
+                parent.add(item);
+                parent.visible = false;
+                return parent;
+            });
+
+            super(list._wrapper._children, wrap);
+            this.list = list;
+        }
+
+        onAdd(item, index) {
+            super.onAdd(item, index);
+            this.checkStarted(index);
+        }
+
+        checkStarted(index) {
+            this.list._reloadVisibleElements = true;
+            if (!this.list._started) {
+                this.list.start();
+            } else {
+                if (this.list.length === 1) {
+                    this.list.setIndex(0, true, true);
+                } else {
+                    if (this.list._index >= this.list.length) {
+                        this.list.setIndex(0);
+                    }
+                }
+                this.list.update();
+            }
+        }
+
+        onRemove(item, index) {
+            super.onRemove(item, index);
+            let ri = this.list.realIndex;
+            if (ri === index) {
+                if (ri === this.list.length) {
+                    ri--;
+                }
+                if (ri >= 0) {
+                    this.list.setIndex(ri);
+                }
+            } else if (ri > index) {
+                this.list.setIndex(ri - 1);
+            }
+
+            this.list._reloadVisibleElements = true;
+        }
+
+        onSet(item, index) {
+            super.onSet(item, index);
+            this.checkStarted(index);
+        }
+
+        onSync(removed, added, order) {
+            super.onSync(removed, added, order);
+            this.checkStarted(0);
+        }
+
+    }
+
+    class LinearBlurShader extends DefaultShader$1 {
+        constructor(context) {
+            super(context);
+
+            this._direction = new Float32Array([1, 0]);
+            this._kernelRadius = 1;
+        }
+
+        get x() {
+            return this._direction[0];
+        }
+
+        set x(v) {
+            this._direction[0] = v;
+            this.redraw();
+        }
+
+        get y() {
+            return this._direction[1];
+        }
+
+        set y(v) {
+            this._direction[1] = v;
+            this.redraw();
+        }
+
+        get kernelRadius() {
+            return this._kernelRadius;
+        }
+
+        set kernelRadius(v) {
+            this._kernelRadius = v;
+            this.redraw();
+        }
+
+
+        useDefault() {
+            return (this._kernelRadius === 0);
+        }
+
+        setupUniforms(operation) {
+            super.setupUniforms(operation);
+            this._setUniform("direction", this._direction, this.gl.uniform2fv);
+            this._setUniform("kernelRadius", this._kernelRadius, this.gl.uniform1i);
+
+            const w = operation.getRenderWidth();
+            const h = operation.getRenderHeight();
+            this._setUniform("resolution", new Float32Array([w, h]), this.gl.uniform2fv);
+        }
+    }
+
+    LinearBlurShader.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    uniform vec2 resolution;
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    uniform sampler2D uSampler;
+    uniform vec2 direction;
+    uniform int kernelRadius;
+    
+    vec4 blur1(sampler2D image, vec2 uv, vec2 resolution, vec2 direction) {
+        vec4 color = vec4(0.0);
+        vec2 off1 = vec2(1.3333333333333333) * direction;
+        color += texture2D(image, uv) * 0.29411764705882354;
+        color += texture2D(image, uv + (off1 / resolution)) * 0.35294117647058826;
+        color += texture2D(image, uv - (off1 / resolution)) * 0.35294117647058826;
+        return color; 
+    }
+    
+    vec4 blur2(sampler2D image, vec2 uv, vec2 resolution, vec2 direction) {
+        vec4 color = vec4(0.0);
+        vec2 off1 = vec2(1.3846153846) * direction;
+        vec2 off2 = vec2(3.2307692308) * direction;
+        color += texture2D(image, uv) * 0.2270270270;
+        color += texture2D(image, uv + (off1 / resolution)) * 0.3162162162;
+        color += texture2D(image, uv - (off1 / resolution)) * 0.3162162162;
+        color += texture2D(image, uv + (off2 / resolution)) * 0.0702702703;
+        color += texture2D(image, uv - (off2 / resolution)) * 0.0702702703;
+        return color;
+    }
+    
+    vec4 blur3(sampler2D image, vec2 uv, vec2 resolution, vec2 direction) {
+        vec4 color = vec4(0.0);
+        vec2 off1 = vec2(1.411764705882353) * direction;
+        vec2 off2 = vec2(3.2941176470588234) * direction;
+        vec2 off3 = vec2(5.176470588235294) * direction;
+        color += texture2D(image, uv) * 0.1964825501511404;
+        color += texture2D(image, uv + (off1 / resolution)) * 0.2969069646728344;
+        color += texture2D(image, uv - (off1 / resolution)) * 0.2969069646728344;
+        color += texture2D(image, uv + (off2 / resolution)) * 0.09447039785044732;
+        color += texture2D(image, uv - (off2 / resolution)) * 0.09447039785044732;
+        color += texture2D(image, uv + (off3 / resolution)) * 0.010381362401148057;
+        color += texture2D(image, uv - (off3 / resolution)) * 0.010381362401148057;
+        return color;
+    }    
+
+    void main(void){
+        if (kernelRadius == 1) {
+            gl_FragColor = blur1(uSampler, vTextureCoord, resolution, direction) * vColor;
+        } else if (kernelRadius == 2) {
+            gl_FragColor = blur2(uSampler, vTextureCoord, resolution, direction) * vColor;
+        } else {
+            gl_FragColor = blur3(uSampler, vTextureCoord, resolution, direction) * vColor;
+        }
+    }
+`;
+
+    /**
+     * 4x4 box blur shader which works in conjunction with a 50% rescale.
+     */
+    class BoxBlurShader extends DefaultShader$1 {
+
+        setupUniforms(operation) {
+            super.setupUniforms(operation);
+            const dx = 1.0 / operation.getTextureWidth(0);
+            const dy = 1.0 / operation.getTextureHeight(0);
+            this._setUniform("stepTextureCoord", new Float32Array([dx, dy]), this.gl.uniform2fv);
+        }
+
+    }
+
+    BoxBlurShader.vertexShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    uniform vec2 stepTextureCoord;
+    attribute vec2 aVertexPosition;
+    attribute vec2 aTextureCoord;
+    attribute vec4 aColor;
+    uniform vec2 projection;
+    varying vec4 vColor;
+    varying vec2 vTextureCoordUl;
+    varying vec2 vTextureCoordUr;
+    varying vec2 vTextureCoordBl;
+    varying vec2 vTextureCoordBr;
+    void main(void){
+        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);
+        vTextureCoordUl = aTextureCoord - stepTextureCoord;
+        vTextureCoordBr = aTextureCoord + stepTextureCoord;
+        vTextureCoordUr = vec2(vTextureCoordBr.x, vTextureCoordUl.y);
+        vTextureCoordBl = vec2(vTextureCoordUl.x, vTextureCoordBr.y);
+        vColor = aColor;
+        gl_Position.y = -sign(projection.y) * gl_Position.y;
+    }
+`;
+
+    BoxBlurShader.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoordUl;
+    varying vec2 vTextureCoordUr;
+    varying vec2 vTextureCoordBl;
+    varying vec2 vTextureCoordBr;
+    varying vec4 vColor;
+    uniform sampler2D uSampler;
+    void main(void){
+        vec4 color = 0.25 * (texture2D(uSampler, vTextureCoordUl) + texture2D(uSampler, vTextureCoordUr) + texture2D(uSampler, vTextureCoordBl) + texture2D(uSampler, vTextureCoordBr));
+        gl_FragColor = color * vColor;
+    }
+`;
+
+    class FastBlurComponent extends Component {
+        static _template() {
+            return {
+                Wrap: {type: WebGLFastBlurComponent}
+            }
+        }
+
+        get wrap() {
+            return this.tag("Wrap");
+        }
+
+        set content(v) {
+            return this.wrap.content = v;
+        }
+
+        get content() {
+            return this.wrap.content;
+        }
+
+        set padding(v) {
+            this.wrap._paddingX = v;
+            this.wrap._paddingY = v;
+            this.wrap._updateBlurSize();
+        }
+
+        set paddingX(v) {
+            this.wrap._paddingX = v;
+            this.wrap._updateBlurSize();
+        }
+
+        set paddingY(v) {
+            this.wrap._paddingY = v;
+            this.wrap._updateBlurSize();
+        }
+
+        set amount(v) {
+            return this.wrap.amount = v;
+        }
+
+        get amount() {
+            return this.wrap.amount;
+        }
+
+        set shader(v) {
+            this.wrap.shader = v;
+        }
+
+        _onResize() {
+            this.wrap.w = this.renderWidth;
+            this.wrap.h = this.renderHeight;
+        }
+    }
+
+    class WebGLFastBlurComponent extends Component {
+
+        static _template() {
+            const onUpdate = function(view, viewCore) {
+                if ((viewCore._recalc & 2)) {
+                    const rw = viewCore.rw;
+                    const rh = viewCore.rh;
+                    let cur = viewCore;
+                    do {
+                        cur = cur._children[0];
+                        cur._view.w = rw;
+                        cur._view.h = rh;
+                    } while(cur._children);
+                }
+            };
+
+            return {
+                Textwrap: {rtt: true, renderOffscreen: true, Content: {}},
+                Layers: {
+                    L0: {rtt: true, onUpdate: onUpdate, renderOffscreen: true, visible: false, Content: {shader: {type: BoxBlurShader}}},
+                    L1: {rtt: true, onUpdate: onUpdate, renderOffscreen: true, visible: false, Content: {shader: {type: BoxBlurShader}}},
+                    L2: {rtt: true, onUpdate: onUpdate, renderOffscreen: true, visible: false, Content: {shader: {type: BoxBlurShader}}},
+                    L3: {rtt: true, onUpdate: onUpdate, renderOffscreen: true, visible: false, Content: {shader: {type: BoxBlurShader}}}
+                },
+                Result: {shader: {type: FastBlurOutputShader}, visible: false}
+            }
+        }
+
+        constructor(stage) {
+            super(stage);
+            this._textwrap = this.sel("Textwrap");
+            this._wrapper = this.sel("Textwrap>Content");
+            this._layers = this.sel("Layers");
+            this._output = this.sel("Result");
+
+            this._amount = 0;
+            this._paddingX = 0;
+            this._paddingY = 0;
+        }
+
+        _build() {
+            const filterShaderSettings = [{x:1,y:0,kernelRadius:1},{x:0,y:1,kernelRadius:1},{x:1.5,y:0,kernelRadius:1},{x:0,y:1.5,kernelRadius:1}];
+            const filterShaders = filterShaderSettings.map(s => {
+                const shader = Shader.create(this.stage, Object.assign({type: LinearBlurShader}, s));
+                return shader;
+            });
+
+            this._setLayerTexture(this.getLayerContents(0), this._textwrap.getTexture(), []);
+            this._setLayerTexture(this.getLayerContents(1), this.getLayer(0).getTexture(), [filterShaders[0], filterShaders[1]]);
+            this._setLayerTexture(this.getLayerContents(2), this.getLayer(1).getTexture(), [filterShaders[0], filterShaders[1], filterShaders[2], filterShaders[3]]);
+            this._setLayerTexture(this.getLayerContents(3), this.getLayer(2).getTexture(), [filterShaders[0], filterShaders[1], filterShaders[2], filterShaders[3]]);
+        }
+
+        _setLayerTexture(view, texture, steps) {
+            if (!steps.length) {
+                view.texture = texture;
+            } else {
+                const step = steps.pop();
+                const child = view.stage.c({rtt: true, shader: step});
+
+                // Recurse.
+                this._setLayerTexture(child, texture, steps);
+
+                view.childList.add(child);
+            }
+            return view;
+        }
+
+        get content() {
+            return this.sel('Textwrap>Content');
+        }
+
+        set content(v) {
+            this.sel('Textwrap>Content').patch(v, true);
+        }
+
+        set padding(v) {
+            this._paddingX = v;
+            this._paddingY = v;
+            this._updateBlurSize();
+        }
+
+        set paddingX(v) {
+            this._paddingX = v;
+            this._updateBlurSize();
+        }
+
+        set paddingY(v) {
+            this._paddingY = v;
+            this._updateBlurSize();
+        }
+
+        getLayer(i) {
+            return this._layers.sel("L" + i);
+        }
+
+        getLayerContents(i) {
+            return this.getLayer(i).sel("Content");
+        }
+
+        _onResize() {
+            this._updateBlurSize();
+        }
+
+        _updateBlurSize() {
+            let w = this.renderWidth;
+            let h = this.renderHeight;
+
+            let paddingX = this._paddingX;
+            let paddingY = this._paddingY;
+
+            let fw = w + paddingX * 2;
+            let fh = h + paddingY * 2;
+            this._textwrap.w = fw;
+            this._wrapper.x = paddingX;
+            this.getLayer(0).w = this.getLayerContents(0).w = fw / 2;
+            this.getLayer(1).w = this.getLayerContents(1).w = fw / 4;
+            this.getLayer(2).w = this.getLayerContents(2).w = fw / 8;
+            this.getLayer(3).w = this.getLayerContents(3).w = fw / 16;
+            this._output.x = -paddingX;
+            this._textwrap.x = -paddingX;
+            this._output.w = fw;
+
+            this._textwrap.h = fh;
+            this._wrapper.y = paddingY;
+            this.getLayer(0).h = this.getLayerContents(0).h = fh / 2;
+            this.getLayer(1).h = this.getLayerContents(1).h = fh / 4;
+            this.getLayer(2).h = this.getLayerContents(2).h = fh / 8;
+            this.getLayer(3).h = this.getLayerContents(3).h = fh / 16;
+            this._output.y = -paddingY;
+            this._textwrap.y = -paddingY;
+            this._output.h = fh;
+
+            this.w = w;
+            this.h = h;
+        }
+
+        /**
+         * Sets the amount of blur. A value between 0 and 4. Goes up exponentially for blur.
+         * Best results for non-fractional values.
+         * @param v;
+         */
+        set amount(v) {
+            this._amount = v;
+            this._update();
+        }
+
+        get amount() {
+            return this._amount;
+        }
+
+        _update() {
+            let v = Math.min(4, Math.max(0, this._amount));
+            if (v === 0) {
+                this._textwrap.renderToTexture = false;
+                this._output.shader.otherTextureSource = null;
+                this._output.visible = false;
+            } else {
+                this._textwrap.renderToTexture = true;
+                this._output.visible = true;
+
+                this.getLayer(0).visible = (v > 0);
+                this.getLayer(1).visible = (v > 1);
+                this.getLayer(2).visible = (v > 2);
+                this.getLayer(3).visible = (v > 3);
+
+                if (v <= 1) {
+                    this._output.texture = this._textwrap.getTexture();
+                    this._output.shader.otherTextureSource = this.getLayer(0).getTexture();
+                    this._output.shader.a = v;
+                } else if (v <= 2) {
+                    this._output.texture = this.getLayer(0).getTexture();
+                    this._output.shader.otherTextureSource = this.getLayer(1).getTexture();
+                    this._output.shader.a = v - 1;
+                } else if (v <= 3) {
+                    this._output.texture = this.getLayer(1).getTexture();
+                    this._output.shader.otherTextureSource = this.getLayer(2).getTexture();
+                    this._output.shader.a = v - 2;
+                } else if (v <= 4) {
+                    this._output.texture = this.getLayer(2).getTexture();
+                    this._output.shader.otherTextureSource = this.getLayer(3).getTexture();
+                    this._output.shader.a = v - 3;
+                }
+            }
+        }
+
+        set shader(s) {
+            super.shader = s;
+            if (!this.renderToTexture) {
+                console.warn("FastBlurView: please enable renderToTexture to use with a shader.");
+            }
+        }
+
+        static _states() {
+            const p = WebGLFastBlurComponent.prototype;
+            return {
+                _firstActive: p._build
+            }
+        }
+
+    }
+
+    /**
+     * Shader that combines two textures into one output.
+     */
+    class FastBlurOutputShader extends DefaultShader$1 {
+
+        constructor(ctx) {
+            super(ctx);
+
+            this._a = 0;
+            this._otherTextureSource = null;
+        }
+
+        get a() {
+            return this._a;
+        }
+
+        set a(v) {
+            this._a = v;
+            this.redraw();
+        }
+
+        set otherTextureSource(v) {
+            this._otherTextureSource = v;
+            this.redraw();
+        }
+
+        setupUniforms(operation) {
+            super.setupUniforms(operation);
+            this._setUniform("a", this._a, this.gl.uniform1f);
+            this._setUniform("uSampler2", 1, this.gl.uniform1i);
+        }
+
+        beforeDraw(operation) {
+            let glTexture = this._otherTextureSource ? this._otherTextureSource.nativeTexture : null;
+
+            let gl = this.gl;
+            gl.activeTexture(gl.TEXTURE1);
+            gl.bindTexture(gl.TEXTURE_2D, glTexture);
+            gl.activeTexture(gl.TEXTURE0);
+        }
+    }
+
+    FastBlurOutputShader.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    uniform sampler2D uSampler;
+    uniform sampler2D uSampler2;
+    uniform float a;
+    void main(void){
+        if (a == 1.0) {
+            gl_FragColor = texture2D(uSampler2, vTextureCoord) * vColor;
+        } else {
+            gl_FragColor = ((1.0 - a) * texture2D(uSampler, vTextureCoord) + (a * texture2D(uSampler2, vTextureCoord))) * vColor;
+        }
+    }
+`;
+
+    class SmoothScaleComponent extends Component {
+
+        static _template() {
+            return {
+                ContentWrap: {renderOffscreen: true, onAfterUpdate: SmoothScaleComponent._updateDimensions,
+                    Content: {}
+                },
+                Scale: {visible: false}
+            }
+        }
+
+        constructor(stage) {
+            super(stage);
+
+            this._smoothScale = 1;
+            this._iterations = 0;
+        }
+
+        get content() {
+            return this.tag('Content');
+        }
+
+        set content(v) {
+            this.tag('Content').patch(v, true);
+        }
+
+        get smoothScale() {
+            return this._smoothScale;
+        }
+
+        set smoothScale(v) {
+            if (this._smoothScale !== v) {
+                let its = 0;
+                while(v < 0.5 && its < 12) {
+                    its++;
+                    v = v * 2;
+                }
+
+                this.scale = v;
+                this._setIterations(its);
+
+                this._smoothScale = v;
+            }
+        }
+
+        _setIterations(its) {
+            if (this._iterations !== its) {
+                const scalers = this.sel("Scale").childList;
+                const content = this.sel("ContentWrap");
+                while (scalers.length < its) {
+                    const first = scalers.length === 0;
+                    const texture = (first ? content.getTexture() : scalers.last.getTexture());
+                    scalers.a({rtt: true, renderOffscreen: true, texture: texture});
+                }
+
+                SmoothScaleComponent._updateDimensions(this.tag("ContentWrap"), true);
+
+                const useScalers = (its > 0);
+                this.patch({
+                    ContentWrap: {renderToTexture: useScalers},
+                    Scale: {visible: useScalers}
+                });
+
+                for (let i = 0, n = scalers.length; i < n; i++) {
+                    scalers.getAt(i).patch({
+                        visible: i < its,
+                        renderOffscreen: i !== its - 1
+                    });
+                }
+                this._iterations = its;
+            }
+        }
+
+        static _updateDimensions(contentWrap, force) {
+            const content = contentWrap.children[0];
+            let w = content.renderWidth;
+            let h = content.renderHeight;
+            if (w !== contentWrap.w || h !== contentWrap.h || force) {
+                contentWrap.w = w;
+                contentWrap.h = h;
+
+                const scalers = contentWrap.parent.tag("Scale").children;
+                for (let i = 0, n = scalers.length; i < n; i++) {
+                    w = w * 0.5;
+                    h = h * 0.5;
+                    scalers[i].w = w;
+                    scalers[i].h = h;
+                }
+            }
+        }
+
+    }
+
+    class BorderComponent extends Component {
+
+        static _template() {
+            return {
+                Content: {},
+                Borders: {
+                    Top: {rect: true, visible: false, mountY: 1},
+                    Right: {rect: true, visible: false},
+                    Bottom: {rect: true, visible: false},
+                    Left: {rect: true, visible: false, mountX: 1}
+                }
+            }
+        }
+
+        constructor(stage) {
+            super(stage);
+
+            this._borderTop = this.tag("Top");
+            this._borderRight = this.tag("Right");
+            this._borderBottom = this.tag("Bottom");
+            this._borderLeft = this.tag("Left");
+
+            this.onAfterUpdate = function (view) {
+                const content = view.childList.first;
+                let rw = view.core.rw || content.renderWidth;
+                let rh = view.core.rh || content.renderHeight;
+                view._borderTop.w = rw;
+                view._borderBottom.y = rh;
+                view._borderBottom.w = rw;
+                view._borderLeft.h = rh + view._borderTop.h + view._borderBottom.h;
+                view._borderLeft.y = -view._borderTop.h;
+                view._borderRight.x = rw;
+                view._borderRight.h = rh + view._borderTop.h + view._borderBottom.h;
+                view._borderRight.y = -view._borderTop.h;
+            };
+        }
+
+        get content() {
+            return this.sel('Content');
+        }
+
+        set content(v) {
+            this.sel('Content').patch(v, true);
+        }
+
+        get borderWidth() {
+            return this.borderWidthTop;
+        }
+
+        get borderWidthTop() {
+            return this._borderTop.h;
+        }
+
+        get borderWidthRight() {
+            return this._borderRight.w;
+        }
+
+        get borderWidthBottom() {
+            return this._borderBottom.h;
+        }
+
+        get borderWidthLeft() {
+            return this._borderLeft.w;
+        }
+
+        set borderWidth(v) {
+            this.borderWidthTop = v;
+            this.borderWidthRight = v;
+            this.borderWidthBottom = v;
+            this.borderWidthLeft = v;
+        }
+
+        set borderWidthTop(v) {
+            this._borderTop.h = v;
+            this._borderTop.visible = (v > 0);
+        }
+
+        set borderWidthRight(v) {
+            this._borderRight.w = v;
+            this._borderRight.visible = (v > 0);
+        }
+
+        set borderWidthBottom(v) {
+            this._borderBottom.h = v;
+            this._borderBottom.visible = (v > 0);
+        }
+
+        set borderWidthLeft(v) {
+            this._borderLeft.w = v;
+            this._borderLeft.visible = (v > 0);
+        }
+
+        get colorBorder() {
+            return this.colorBorderTop;
+        }
+
+        get colorBorderTop() {
+            return this._borderTop.color;
+        }
+
+        get colorBorderRight() {
+            return this._borderRight.color;
+        }
+
+        get colorBorderBottom() {
+            return this._borderBottom.color;
+        }
+
+        get colorBorderLeft() {
+            return this._borderLeft.color;
+        }
+        
+        set colorBorder(v) {
+            this.colorBorderTop = v;
+            this.colorBorderRight = v;
+            this.colorBorderBottom = v;
+            this.colorBorderLeft = v;
+        }
+
+        set colorBorderTop(v) {
+            this._borderTop.color = v;
+        }
+
+        set colorBorderRight(v) {
+            this._borderRight.color = v;
+        }
+
+        set colorBorderBottom(v) {
+            this._borderBottom.color = v;
+        }
+
+        set colorBorderLeft(v) {
+            this._borderLeft.color = v;
+        }
+
+        get borderTop() {
+            return this._borderTop;
+        }
+
+        set borderTop(settings) {
+            this.borderTop.patch(settings);
+        }
+
+        get borderRight() {
+            return this._borderRight;
+        }
+
+        set borderRight(settings) {
+            this.borderRight.patch(settings);
+        }
+
+        get borderBottom() {
+            return this._borderBottom;
+        }
+
+        set borderBottom(settings) {
+            this.borderBottom.patch(settings);
+        }
+
+        get borderLeft() {
+            return this._borderLeft;
+        }
+
+        set borderLeft(settings) {
+            this.borderLeft.patch(settings);
+        }    
+
+        set borders(settings) {
+            this.borderTop = settings;
+            this.borderLeft = settings;
+            this.borderBottom = settings;
+            this.borderRight = settings;
+        }
+
+    }
+
+    class GrayscaleShader extends DefaultShader$2 {
 
         constructor(context) {
             super(context);
@@ -11921,7 +13159,7 @@ var lng = (function () {
         }
 
         static getWebGL() {
-            return WebGLGrayscaleShader;
+            return GrayscaleShader$1;
         }
 
 
@@ -11948,7 +13186,7 @@ var lng = (function () {
 
     }
 
-    class WebGLGrayscaleShader extends WebGLDefaultShader {
+    class GrayscaleShader$1 extends DefaultShader$1 {
 
         constructor(context) {
             super(context);
@@ -11980,7 +13218,7 @@ var lng = (function () {
 
     }
 
-    WebGLGrayscaleShader.fragmentShaderSource = `
+    GrayscaleShader$1.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -11996,57 +13234,897 @@ var lng = (function () {
 `;
 
     /**
-     * 4x4 box blur shader which works in conjunction with a 50% rescale.
+     * This shader can be used to fix a problem that is known as 'gradient banding'.
      */
-    class WebGLBoxBlurShader extends WebGLDefaultShader {
+    class DitheringShader extends DefaultShader$1 {
+
+        constructor(ctx) {
+            super(ctx);
+
+            this._noiseTexture = new NoiseTexture(ctx.stage);
+
+            this._graining = 1/256;
+
+            this._random = false;
+        }
+
+        set graining(v) {
+            this._graining = v;
+            this.redraw();
+        }
+
+        set random(v) {
+            this._random = v;
+            this.redraw();
+        }
+
+        setExtraAttribsInBuffer(operation) {
+            // Make sure that the noise texture is uploaded to the GPU.
+            this._noiseTexture.load();
+
+            let offset = operation.extraAttribsDataByteOffset / 4;
+            let floats = operation.quads.floats;
+
+            let length = operation.length;
+
+            for (let i = 0; i < length; i++) {
+
+                // Calculate ǹoise texture coordinates so that it spans the full view.
+                let brx = operation.getViewWidth(i) / this._noiseTexture.getRenderWidth();
+                let bry = operation.getViewHeight(i) / this._noiseTexture.getRenderHeight();
+
+                let ulx = 0;
+                let uly = 0;
+                if (this._random) {
+                    ulx = Math.random();
+                    uly = Math.random();
+
+                    brx += ulx;
+                    bry += uly;
+
+                    if (Math.random() < 0.5) {
+                        // Flip for more randomness.
+                        const t = ulx;
+                        ulx = brx;
+                        brx = t;
+                    }
+
+                    if (Math.random() < 0.5) {
+                        // Flip for more randomness.
+                        const t = uly;
+                        uly = bry;
+                        bry = t;
+                    }
+                }
+
+                // Specify all corner points.
+                floats[offset] = ulx;
+                floats[offset + 1] = uly;
+
+                floats[offset + 2] = brx;
+                floats[offset + 3] = uly;
+
+                floats[offset + 4] = brx;
+                floats[offset + 5] = bry;
+
+                floats[offset + 6] = ulx;
+                floats[offset + 7] = bry;
+
+                offset += 8;
+            }
+        }
+
+        beforeDraw(operation) {
+            let gl = this.gl;
+            gl.vertexAttribPointer(this._attrib("aNoiseTextureCoord"), 2, gl.FLOAT, false, 8, this.getVertexAttribPointerOffset(operation));
+
+            let glTexture = this._noiseTexture.source.glTexture;
+            gl.activeTexture(gl.TEXTURE1);
+            gl.bindTexture(gl.TEXTURE_2D, glTexture);
+            gl.activeTexture(gl.TEXTURE0);
+        }
+
+        getExtraAttribBytesPerVertex() {
+            return 8;
+        }
 
         setupUniforms(operation) {
             super.setupUniforms(operation);
-            const dx = 1.0 / operation.getTextureWidth(0);
-            const dy = 1.0 / operation.getTextureHeight(0);
-            this._setUniform("stepTextureCoord", new Float32Array([dx, dy]), this.gl.uniform2fv);
+            this._setUniform("uNoiseSampler", 1, this.gl.uniform1i);
+            this._setUniform("graining", 2 * this._graining, this.gl.uniform1f);
+        }
+
+        enableAttribs() {
+            super.enableAttribs();
+            let gl = this.ctx.gl;
+            gl.enableVertexAttribArray(this._attrib("aNoiseTextureCoord"));
+        }
+
+        disableAttribs() {
+            super.disableAttribs();
+            let gl = this.ctx.gl;
+            gl.disableVertexAttribArray(this._attrib("aNoiseTextureCoord"));
+        }
+
+        useDefault() {
+            return this._graining === 0;
+        }
+
+        afterDraw(operation) {
+            if (this._random) {
+                this.redraw();
+            }
         }
 
     }
 
-    WebGLBoxBlurShader.vertexShaderSource = `
+    DitheringShader.vertexShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
-    uniform vec2 stepTextureCoord;
     attribute vec2 aVertexPosition;
     attribute vec2 aTextureCoord;
+    attribute vec2 aNoiseTextureCoord;
     attribute vec4 aColor;
     uniform vec2 projection;
+    varying vec2 vTextureCoord;
+    varying vec2 vNoiseTextureCoord;
     varying vec4 vColor;
-    varying vec2 vTextureCoordUl;
-    varying vec2 vTextureCoordUr;
-    varying vec2 vTextureCoordBl;
-    varying vec2 vTextureCoordBr;
     void main(void){
         gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);
-        vTextureCoordUl = aTextureCoord - stepTextureCoord;
-        vTextureCoordBr = aTextureCoord + stepTextureCoord;
-        vTextureCoordUr = vec2(vTextureCoordBr.x, vTextureCoordUl.y);
-        vTextureCoordBl = vec2(vTextureCoordUl.x, vTextureCoordBr.y);
+        vTextureCoord = aTextureCoord;
+        vNoiseTextureCoord = aNoiseTextureCoord;
         vColor = aColor;
         gl_Position.y = -sign(projection.y) * gl_Position.y;
     }
 `;
 
-    WebGLBoxBlurShader.fragmentShaderSource = `
+    DitheringShader.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
-    varying vec2 vTextureCoordUl;
-    varying vec2 vTextureCoordUr;
-    varying vec2 vTextureCoordBl;
-    varying vec2 vTextureCoordBr;
+    varying vec2 vTextureCoord;
+    varying vec2 vNoiseTextureCoord;
+    varying vec4 vColor;
+    uniform sampler2D uSampler;
+    uniform sampler2D uNoiseSampler;
+    uniform float graining;
+    void main(void){
+        vec4 noise = texture2D(uNoiseSampler, vNoiseTextureCoord);
+        vec4 color = texture2D(uSampler, vTextureCoord);
+        gl_FragColor = (color * vColor) + graining * (noise.r - 0.5);
+    }
+`;
+
+    class CircularPushShader extends DefaultShader$1 {
+
+        constructor(ctx) {
+            super(ctx);
+
+            this._inputValue = 0;
+
+            this._maxDerivative = 0.01;
+
+            this._normalizedValue = 0;
+
+            // The offset between buckets. A value between 0 and 1.
+            this._offset = 0;
+
+            this._amount = 0.1;
+
+            this._aspectRatio = 1;
+
+            this._offsetX = 0;
+
+            this._offsetY = 0;
+
+            this.buckets = 100;
+        }
+
+        get aspectRatio() {
+            return this._aspectRatio;
+        }
+
+        set aspectRatio(v) {
+            this._aspectRatio = v;
+            this.redraw();
+        }
+
+        get offsetX() {
+            return this._offsetX;
+        }
+
+        set offsetX(v) {
+            this._offsetX = v;
+            this.redraw();
+        }
+
+        get offsetY() {
+            return this._offsetY;
+        }
+
+        set offsetY(v) {
+            this._offsetY = v;
+            this.redraw();
+        }
+
+        set amount(v) {
+            this._amount = v;
+            this.redraw();
+        }
+
+        get amount() {
+            return this._amount;
+        }
+
+        set inputValue(v) {
+            this._inputValue = v;
+        }
+
+        get inputValue() {
+            return this._inputValue;
+        }
+
+        set maxDerivative(v) {
+            this._maxDerivative = v;
+        }
+
+        get maxDerivative() {
+            return this._maxDerivative;
+        }
+
+        set buckets(v) {
+            if (v > 100) {
+                console.warn("CircularPushShader: supports max 100 buckets");
+                v = 100;
+            }
+
+            // This should be set before starting.
+            this._buckets = v;
+
+            // Init values array in the correct length.
+            this._values = new Uint8Array(this._getValues(v));
+
+            this.redraw();
+        }
+
+        get buckets() {
+            return this._buckets;
+        }
+
+        _getValues(n) {
+            const v = [];
+            for (let i = 0; i < n; i++) {
+                v.push(this._inputValue);
+            }
+            return v;
+        }
+
+        /**
+         * Progresses the shader with the specified (fractional) number of buckets.
+         * @param {number} o;
+         *   A number from 0 to 1 (1 = all buckets).
+         */
+        progress(o) {
+            this._offset += o * this._buckets;
+            const full = Math.floor(this._offset);
+            this._offset -= full;
+            this._shiftBuckets(full);
+            this.redraw();
+        }
+
+        _shiftBuckets(n) {
+            for (let i = this._buckets - 1; i >= 0; i--) {
+                const targetIndex = i - n;
+                if (targetIndex < 0) {
+                    this._normalizedValue = Math.min(this._normalizedValue + this._maxDerivative, Math.max(this._normalizedValue - this._maxDerivative, this._inputValue));
+                    this._values[i] = 255 * this._normalizedValue;
+                } else {
+                    this._values[i] = this._values[targetIndex];
+                }
+            }
+        }
+
+        set offset(v) {
+            this._offset = v;
+            this.redraw();
+        }
+
+        setupUniforms(operation) {
+            super.setupUniforms(operation);
+            this._setUniform("aspectRatio", this._aspectRatio, this.gl.uniform1f);
+            this._setUniform("offsetX", this._offsetX, this.gl.uniform1f);
+            this._setUniform("offsetY", this._offsetY, this.gl.uniform1f);
+            this._setUniform("amount", this._amount, this.gl.uniform1f);
+            this._setUniform("offset", this._offset, this.gl.uniform1f);
+            this._setUniform("buckets", this._buckets, this.gl.uniform1f);
+            this._setUniform("uValueSampler", 1, this.gl.uniform1i);
+        }
+
+        useDefault() {
+            return this._amount === 0;
+        }
+
+        beforeDraw(operation) {
+            const gl = this.gl;
+            gl.activeTexture(gl.TEXTURE1);
+            if (!this._valuesTexture) {
+                this._valuesTexture = gl.createTexture();
+                gl.bindTexture(gl.TEXTURE_2D, this._valuesTexture);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                if (Utils.isNode) {
+                    gl.pixelStorei(gl.UNPACK_FLIP_BLUE_RED, false);
+                }
+                gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+            } else {
+                gl.bindTexture(gl.TEXTURE_2D, this._valuesTexture);
+            }
+
+            // Upload new values.
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.ALPHA, this._buckets, 1, 0, gl.ALPHA, gl.UNSIGNED_BYTE, this._values);
+            gl.activeTexture(gl.TEXTURE0);
+        }
+
+        cleanup() {
+            if (this._valuesTexture) {
+                this.gl.deleteTexture(this._valuesTexture);
+            }
+        }
+
+
+    }
+
+    CircularPushShader.vertexShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    attribute vec2 aVertexPosition;
+    attribute vec2 aTextureCoord;
+    attribute vec4 aColor;
+    uniform vec2 projection;
+    uniform float offsetX;
+    uniform float offsetY;
+    uniform float aspectRatio;
+    varying vec2 vTextureCoord;
+    varying vec2 vPos;
+    varying vec4 vColor;
+    void main(void){
+        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);
+        vTextureCoord = aTextureCoord;
+        vPos = vTextureCoord * 2.0 - 1.0;
+        vPos.y = vPos.y * aspectRatio;
+        vPos.y = vPos.y + offsetY;
+        vPos.x = vPos.x + offsetX;
+        vColor = aColor;
+        gl_Position.y = -sign(projection.y) * gl_Position.y;
+    }
+`;
+
+    CircularPushShader.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    varying vec2 vPos;
+    uniform float amount;
+    uniform float offset;
+    uniform float values[100];
+    uniform float buckets;
+    uniform sampler2D uSampler;
+    uniform sampler2D uValueSampler;
+    void main(void){
+        float l = length(vPos);
+        float m = (l * buckets * 0.678 - offset) / buckets;
+        float f = texture2D(uValueSampler, vec2(m, 0.0)).a * amount;
+        vec2 unit = vPos / l;
+        gl_FragColor = texture2D(uSampler, vTextureCoord - f * unit) * vColor;
+    }
+`;
+
+    class InversionShader extends DefaultShader$1 {
+    }
+
+    InversionShader.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoord;
     varying vec4 vColor;
     uniform sampler2D uSampler;
     void main(void){
-        vec4 color = 0.25 * (texture2D(uSampler, vTextureCoordUl) + texture2D(uSampler, vTextureCoordUr) + texture2D(uSampler, vTextureCoordBl) + texture2D(uSampler, vTextureCoordBr));
+        vec4 color = texture2D(uSampler, vTextureCoord);
+        color.rgb = 1.0 - color.rgb; 
         gl_FragColor = color * vColor;
+    }
+`;
+
+    class OutlineShader extends DefaultShader$1 {
+
+        constructor(ctx) {
+            super(ctx);
+            this._width = 5;
+            this._col = 0xFFFFFFFF;
+            this._color = [1,1,1,1];
+        }
+
+        set width(v) {
+            this._width = v;
+            this.redraw();
+        }
+
+        get color() {
+            return this._col;
+        }
+
+        set color(v) {
+            if (this._col !== v) {
+                const col = StageUtils.getRgbaComponentsNormalized(v);
+                col[0] = col[0] * col[3];
+                col[1] = col[1] * col[3];
+                col[2] = col[2] * col[3];
+
+                this._color = col;
+
+                this.redraw();
+
+                this._col = v;
+            }
+        }
+
+        useDefault() {
+            return (this._width === 0 || this._col[3] === 0);
+        }
+
+        setupUniforms(operation) {
+            super.setupUniforms(operation);
+            let gl = this.gl;
+            this._setUniform("color", new Float32Array(this._color), gl.uniform4fv);
+        }
+
+        enableAttribs() {
+            super.enableAttribs();
+            this.gl.enableVertexAttribArray(this._attrib("aCorner"));
+        }
+
+        disableAttribs() {
+            super.disableAttribs();
+            this.gl.disableVertexAttribArray(this._attrib("aCorner"));
+        }
+
+        setExtraAttribsInBuffer(operation) {
+            let offset = operation.extraAttribsDataByteOffset / 4;
+            let floats = operation.quads.floats;
+
+            let length = operation.length;
+
+            for (let i = 0; i < length; i++) {
+
+                const viewCore = operation.getViewCore(i);
+
+                // We are setting attributes such that if the value is < 0 or > 1, a border should be drawn.
+                const ddw = this._width / viewCore.rw;
+                const dw = ddw / (1 - 2 * ddw);
+                const ddh = this._width / viewCore.rh;
+                const dh = ddh / (1 - 2 * ddh);
+
+                // Specify all corner points.
+                floats[offset] = -dw;
+                floats[offset + 1] = -dh;
+
+                floats[offset + 2] = 1 + dw;
+                floats[offset + 3] = -dh;
+
+                floats[offset + 4] = 1 + dw;
+                floats[offset + 5] = 1 + dh;
+
+                floats[offset + 6] = -dw;
+                floats[offset + 7] = 1 + dh;
+
+                offset += 8;
+            }
+        }
+
+        beforeDraw(operation) {
+            let gl = this.gl;
+            gl.vertexAttribPointer(this._attrib("aCorner"), 2, gl.FLOAT, false, 8, this.getVertexAttribPointerOffset(operation));
+        }
+
+        getExtraAttribBytesPerVertex() {
+            return 8;
+        }
+
+    }
+
+    OutlineShader.vertexShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    attribute vec2 aVertexPosition;
+    attribute vec2 aTextureCoord;
+    attribute vec4 aColor;
+    attribute vec2 aCorner;
+    uniform vec2 projection;
+    varying vec2 vTextureCoord;
+    varying vec2 vCorner;
+    varying vec4 vColor;
+    void main(void){
+        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);
+        vTextureCoord = aTextureCoord;
+        vCorner = aCorner;
+        vColor = aColor;
+        gl_Position.y = -sign(projection.y) * gl_Position.y;
+    }
+`;
+
+    OutlineShader.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    varying vec2 vCorner;
+    uniform vec4 color;
+    uniform sampler2D uSampler;
+    void main(void){
+        vec2 m = min(vCorner, 1.0 - vCorner);
+        float value = step(0.0, min(m.x, m.y));
+        gl_FragColor = mix(color, texture2D(uSampler, vTextureCoord) * vColor, value);
+    }
+`;
+
+    /**
+     * @see https://github.com/pixijs/pixi-filters/tree/master/filters/pixelate/src
+     */
+    class PixelateShader extends DefaultShader$1 {
+
+        constructor(ctx) {
+            super(ctx);
+
+            this._size = new Float32Array([4, 4]);
+        }
+
+        get x() {
+            return this._size[0];
+        }
+
+        set x(v) {
+            this._size[0] = v;
+            this.redraw();
+        }
+
+        get y() {
+            return this._size[1];
+        }
+
+        set y(v) {
+            this._size[1] = v;
+            this.redraw();
+        }
+
+        get size() {
+            return this._size[0];
+        }
+
+        set size(v) {
+            this._size[0] = v;
+            this._size[1] = v;
+            this.redraw();
+        }
+
+        useDefault() {
+            return ((this._size[0] === 0) && (this._size[1] === 0));
+        }
+
+        static getWebGLImpl() {
+            return WebGLPixelateShaderImpl;
+        }
+
+        setupUniforms(operation) {
+            super.setupUniforms(operation);
+            let gl = this.gl;
+            this._setUniform("size", new Float32Array(this._size), gl.uniform2fv);
+        }
+
+        getExtraAttribBytesPerVertex() {
+            return 8;
+        }
+
+        enableAttribs() {
+            super.enableAttribs();
+            this.gl.enableVertexAttribArray(this._attrib("aTextureRes"));
+        }
+
+        disableAttribs() {
+            super.disableAttribs();
+            this.gl.disableVertexAttribArray(this._attrib("aTextureRes"));
+        }
+
+        setExtraAttribsInBuffer(operation) {
+            let offset = operation.extraAttribsDataByteOffset / 4;
+            let floats = operation.quads.floats;
+
+            let length = operation.length;
+            for (let i = 0; i < length; i++) {
+                let w = operation.quads.getTextureWidth(operation.index + i);
+                let h = operation.quads.getTextureHeight(operation.index + i);
+
+                floats[offset] = w;
+                floats[offset + 1] = h;
+                floats[offset + 2] = w;
+                floats[offset + 3] = h;
+                floats[offset + 4] = w;
+                floats[offset + 5] = h;
+                floats[offset + 6] = w;
+                floats[offset + 7] = h;
+
+                offset += 8;
+            }
+        }
+
+        beforeDraw(operation) {
+            let gl = this.gl;
+            gl.vertexAttribPointer(this._attrib("aTextureRes"), 2, gl.FLOAT, false, this.getExtraAttribBytesPerVertex(), this.getVertexAttribPointerOffset(operation));
+        }
+    }
+
+    PixelateShader.vertexShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    attribute vec2 aVertexPosition;
+    attribute vec2 aTextureCoord;
+    attribute vec4 aColor;
+    attribute vec2 aTextureRes;
+    uniform vec2 projection;
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    varying vec2 vTextureRes;
+    void main(void){
+        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);
+        vTextureCoord = aTextureCoord;
+        vColor = aColor;
+        vTextureRes = aTextureRes;
+        gl_Position.y = -sign(projection.y) * gl_Position.y;
+    }
+`;
+
+    PixelateShader.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    varying vec2 vTextureRes;
+
+    uniform vec2 size;
+    uniform sampler2D uSampler;
+    
+    vec2 mapCoord( vec2 coord )
+    {
+        coord *= vTextureRes.xy;
+        return coord;
+    }
+    
+    vec2 unmapCoord( vec2 coord )
+    {
+        coord /= vTextureRes.xy;
+        return coord;
+    }
+    
+    vec2 pixelate(vec2 coord, vec2 size)
+    {
+        return floor( coord / size ) * size;
+    }
+    
+    void main(void)
+    {
+        vec2 coord = mapCoord(vTextureCoord);
+        coord = pixelate(coord, size);
+        coord = unmapCoord(coord);
+        gl_FragColor = texture2D(uSampler, coord) * vColor;
+    }
+`;
+
+    class RadialFilterShader extends DefaultShader$1 {
+        constructor(context) {
+            super(context);
+            this._radius = 0;
+            this._cutoff = 1;
+        }
+
+        set radius(v) {
+            this._radius = v;
+            this.redraw();
+        }
+
+        get radius() {
+            return this._radius;
+        }
+
+        set cutoff(v) {
+            this._cutoff = v;
+            this.redraw();
+        }
+
+        get cutoff() {
+            return this._cutoff;
+        }
+        
+        useDefault() {
+            return this._radius === 0;
+        }
+
+        setupUniforms(operation) {
+            super.setupUniforms(operation);
+            // We substract half a pixel to get a better cutoff effect.
+            this._setUniform("radius", 2 * (this._radius - 0.5) / operation.getRenderWidth(), this.gl.uniform1f);
+            this._setUniform("cutoff", 0.5 * operation.getRenderWidth() / this._cutoff, this.gl.uniform1f);
+        }
+
+    }
+
+    RadialFilterShader.vertexShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    attribute vec2 aVertexPosition;
+    attribute vec2 aTextureCoord;
+    attribute vec4 aColor;
+    uniform vec2 projection;
+    varying vec2 pos;
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    void main(void){
+        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);
+        vTextureCoord = aTextureCoord;
+        vColor = aColor;
+        gl_Position.y = -sign(projection.y) * gl_Position.y;
+        pos = gl_Position.xy;
+    }
+`;
+
+    RadialFilterShader.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoord;
+    varying vec2 pos;
+    varying vec4 vColor;
+    uniform sampler2D uSampler;
+    uniform float radius;
+    uniform float cutoff;
+    void main(void){
+        vec4 color = texture2D(uSampler, vTextureCoord);
+        float f = max(0.0, min(1.0, 1.0 - (length(pos) - radius) * cutoff));
+        gl_FragColor = texture2D(uSampler, vTextureCoord) * vColor * f;
+    }
+`;
+
+    class RadialGradientShader extends DefaultShader$1 {
+        
+        constructor(context) {
+            super(context);
+            
+            this._x = 0;
+            this._y = 0;
+
+            this.color = 0xFFFF0000;
+
+            this._radiusX = 100;
+            this._radiusY = 100;
+        }
+
+        set x(v) {
+            this._x = v;
+            this.redraw();
+        }
+
+        set y(v) {
+            this._y = v;
+            this.redraw();
+        }
+
+        set radiusX(v) {
+            this._radiusX = v;
+            this.redraw();
+        }
+
+        get radiusX() {
+            return this._radiusX;
+        }
+
+        set radiusY(v) {
+            this._radiusY = v;
+            this.redraw();
+        }
+
+        get radiusY() {
+            return this._radiusY;
+        }
+
+        set radius(v) {
+            this.radiusX = v;
+            this.radiusY = v;
+        }
+
+        get color() {
+            return this._color;
+        }
+
+        set color(v) {
+            if (this._color !== v) {
+                const col = StageUtils.getRgbaComponentsNormalized(v);
+                col[0] = col[0] * col[3];
+                col[1] = col[1] * col[3];
+                col[2] = col[2] * col[3];
+
+                this._rawColor = new Float32Array(col);
+
+                this.redraw();
+
+                this._color = v;
+            }
+        }
+
+        setupUniforms(operation) {
+            super.setupUniforms(operation);
+            // We substract half a pixel to get a better cutoff effect.
+            const rtc = operation.getNormalRenderTextureCoords(this._x, this._y);
+            this._setUniform("center", new Float32Array(rtc), this.gl.uniform2fv);
+
+            this._setUniform("radius", 2 * this._radiusX / operation.getRenderWidth(), this.gl.uniform1f);
+
+
+            // Radial gradient shader is expected to be used on a single view. That view's alpha is used.
+            this._setUniform("alpha", operation.getViewCore(0).renderContext.alpha, this.gl.uniform1f);
+
+            this._setUniform("color", this._rawColor, this.gl.uniform4fv);
+            this._setUniform("aspectRatio", (this._radiusX/this._radiusY) * operation.getRenderHeight()/operation.getRenderWidth(), this.gl.uniform1f);
+        }
+
+    }
+
+    RadialGradientShader.vertexShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    attribute vec2 aVertexPosition;
+    attribute vec2 aTextureCoord;
+    attribute vec4 aColor;
+    uniform vec2 projection;
+    uniform vec2 center;
+    uniform float aspectRatio;
+    varying vec2 pos;
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    void main(void){
+        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);
+        vTextureCoord = aTextureCoord;
+        vColor = aColor;
+        gl_Position.y = -sign(projection.y) * gl_Position.y;
+        pos = gl_Position.xy - center;
+        pos.y = pos.y * aspectRatio;
+    }
+`;
+
+    RadialGradientShader.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    varying vec2 pos;
+    uniform sampler2D uSampler;
+    uniform float radius;
+    uniform vec4 color;
+    uniform float alpha;
+    void main(void){
+        float dist = length(pos);
+        gl_FragColor = mix(color * alpha, texture2D(uSampler, vTextureCoord) * vColor, min(1.0, dist / radius));
     }
 `;
 
@@ -12510,27 +14588,20 @@ var lng = (function () {
         Texture,
         EventEmitter,
         shaders: {
-            Grayscale: WebGLGrayscaleShader,
-            BoxBlurShader: WebGLBoxBlurShader,
-            webgl: {
-                Shader: WebGLShader,
-                DefaultShader: WebGLDefaultShader,
-            },
-            c2d: {
-                Shader: C2dShader,
-                DefaultShader: C2dDefaultShader,
-                Grayscale: GrayscaleShader,
-            }
-        },
-        webgl: {
-            shaders: {
-            }
-        },
-        c2d: {
-            shaders: {
-                C2dShader,
-                C2dDefaultShader
-            }
+            Grayscale: GrayscaleShader$1,
+            BoxBlur: BoxBlurShader,
+            Dithering: DitheringShader,
+            CircularPush: CircularPushShader,
+            Inversion: InversionShader,
+            LinearBlur: LinearBlurShader,
+            Outline: OutlineShader,
+            Pixelate: PixelateShader,
+            RadialFilter: RadialFilterShader,
+            RadialGradient: RadialGradientShader,
+            WebGLShader,
+            WebGLDefaultShader: DefaultShader$1,
+            C2dShader,
+            C2dDefaultShader: DefaultShader$2
         },
         textures: {
             RectangleTexture,
@@ -12545,24 +14616,12 @@ var lng = (function () {
             ObjectListProxy,
             ObjectListWrapper,
         },
-        // components: {
-        //     FastBlurComponent,
-        //     SmoothScaleComponent,
-        //     BorderComponent,
-        //     ListComponent
-        // },
-        // shaders: {
-        //     DitheringShader,
-        //     RadialGradientShader,
-        //     PixelateShader,
-        //     InversionShader,
-        //     GrayscaleShader,
-        //     OutlineShader,
-        //     CircularPushShader,
-        //     RadialFilterShader,
-        //     LinearBlurShader,
-        //     BoxBlurShader
-        // }
+        components: {
+            FastBlurComponent,
+            SmoothScaleComponent,
+            BorderComponent,
+            ListComponent: ListView
+        }
     };
 
     // Legacy.

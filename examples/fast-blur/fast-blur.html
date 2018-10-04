@@ -7,14 +7,14 @@
 <body>
     <script type="module">
         import lng from '../../src/lightning-web.mjs'
-        //attachInspector(lng)
+        attachInspector(lng)
 
         window.start = function() {
 
             class AppExample extends lng.Application {
                 static _template() {
                     return {
-                        Blur: {type: lng.components.FastBlurComponent, amount: 3, w: 900, h: 900, content: {
+                        Blur: {type: lng.components.FastBlurComponent, amount: 2, w: 900, h: 900, content: {
                             Texture: {
                                 src: "../rockies.jpeg"
                             }/*,
