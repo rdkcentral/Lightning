@@ -248,5 +248,7 @@ export default class WebGLRenderer extends Renderer {
         renderState.quads.dataLength = offset;
     }
 
-
+    getPatchId() {
+        return "webgl";
+    }
 }

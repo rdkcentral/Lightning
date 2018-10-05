@@ -2985,12 +2985,28 @@ var lng = (function () {
             }
         }
 
+        static preparePatchSettings(settings, patchId) {
+            if (patchId) {
+                return this._preparePatchSettings(settings, "_$" + patchId);
+            }
+        }
+
+        static _preparePatchSettings(settings, patchId) {
+            if (patchId && settings[patchId]) {
+                settings = Object.assign({}, settings, settings[patchId]);
+                delete settings[patchId];
+            }
+            return settings;
+        }
+
         static patchObjectProperty(obj, name, value) {
             let setter = obj.setSetting || Base.defaultSetter;
 
-            if (name.substr(0, 1) === "_" && name !== "__create") {
+            if (name.charAt(0) === "_") {
                 // Disallow patching private variables.
-                console.error("Patch of private property '" + name + "' is not allowed");
+                if (name.charAt(1) === "$") ; else {
+                    console.error("Patch of private property '" + name + "' is not allowed");
+                }
             } else if (name !== "type") {
                 // Type is a reserved keyword to specify the class type on creation.
                 if (Utils.isFunction(value) && value.__local) {
@@ -3163,7 +3179,7 @@ var lng = (function () {
                 }
 
                 if (shader) {
-                    Base.patchObject(shader, v);
+                    stage.patchObject(shader, v);
                 }
             } else if (v === null) {
                 shader = stage.ctx.renderState.defaultShader;
@@ -3211,7 +3227,7 @@ var lng = (function () {
         }
 
         patch(settings) {
-            Base.patchObject(this, settings);
+            this.ctx.stage.patchObject(this, settings);
         }
 
         useDefault() {
@@ -3682,7 +3698,7 @@ var lng = (function () {
         }
 
         patch(settings) {
-            Base.patchObject(this, settings);
+            this.stage.patchObject(this, settings);
         }
 
     }
@@ -5722,7 +5738,7 @@ var lng = (function () {
                 }
 
                 if (texture) {
-                    Base.patchObject(texture, v);
+                    this.stage.patchObject(texture, v);
                 }
             } else if (!v) {
                 texture = null;
@@ -6206,7 +6222,7 @@ var lng = (function () {
             let t = this.mtag(tag);
             let n = t.length;
             for (let i = 0; i < n; i++) {
-                Base.patchObject(t[i], settings);
+                this.stage.patchObject(t[i], settings);
             }
         }
 
@@ -7015,6 +7031,8 @@ var lng = (function () {
         }
 
         patch(settings, createMode = false) {
+            Base.preparePatchSettings(settings, this.stage.getPatchId());
+
             let paths = Object.keys(settings);
 
             if (settings.hasOwnProperty("__create")) {
@@ -7267,7 +7285,7 @@ var lng = (function () {
             this.__construct();
 
             // Quick-apply template.
-            const func = this.constructor.getTemplateFunc();
+            const func = this.constructor.getTemplateFunc(stage);
             func.f(this, func.a);
 
         }
@@ -7275,20 +7293,25 @@ var lng = (function () {
         /**
          * Returns a high-performance template patcher.
          */
-        static getTemplateFunc() {
-            if (!this._templateFunc) {
-                this._templateFunc = this.parseTemplate(this._template());
+        static getTemplateFunc(stage) {
+            // We need a different template function per patch id.
+            const patchId = stage.getPatchId();
+            const name = "_templateFunc_" + patchId;
+            if (!this[name]) {
+                this[name] = this.parseTemplate(patchId ? "_$" + patchId : patchId, this._template());
             }
-            return this._templateFunc;
+            return this[name];
         }
 
-        static parseTemplate(obj) {
+        static parseTemplate(patchId, obj) {
             const context = {
+                patchId: patchId,
                 loc: [],
                 store: [],
                 rid: 0
             };
 
+            obj = Base._preparePatchSettings(obj, patchId);
             this.parseTemplateRec(obj, context, "view");
 
             const code = context.loc.join(";\n");
@@ -7301,10 +7324,12 @@ var lng = (function () {
             const loc = context.loc;
             const keys = Object.keys(obj);
             keys.forEach(key => {
-                const value = obj[key];
+                let value = obj[key];
                 if (Utils.isUcChar(key.charCodeAt(0))) {
                     // Value must be expanded as well.
                     if (Utils.isObjectLiteral(value)) {
+                        value = Base._preparePatchSettings(value, context.patchId);
+
                         // Ref.
                         const childCursor = `r${key.replace(/[^a-z0-9]/gi, "") + context.rid}`;
                         let type = value.type ? value.type : View;
@@ -8778,7 +8803,7 @@ var lng = (function () {
                 return new convertedShaderType(ctx);
             } else {
                 const shader = new shaderType(ctx);
-                Base.patchObject(shader, settings);
+                this.stage.patchObject(this, settings);
                 return shader;
             }
         }
@@ -8788,6 +8813,9 @@ var lng = (function () {
 
         _getShaderAlternative(shaderType) {
             return this.getDefaultShader();
+        }
+
+        getPatchId() {
         }
 
     }
@@ -9032,7 +9060,9 @@ var lng = (function () {
             renderState.quads.dataLength = offset;
         }
 
-
+        getPatchId() {
+            return "webgl";
+        }
     }
 
     class C2dCoreQuadList extends CoreQuadList {
@@ -9328,6 +9358,9 @@ var lng = (function () {
             canvas.ctx.save();
         }
 
+        getPatchId() {
+            return "c2d";
+        }
     }
 
     class TextureManager {
@@ -9622,7 +9655,8 @@ var lng = (function () {
     }
 
     class TransitionSettings {
-        constructor() {
+        constructor(stage) {
+            this.stage = stage;
             this._timingFunction = 'ease';
             this._timingFunctionImpl = StageUtils.getTimingFunction(this._timingFunction);
             this.delay = 0;
@@ -9644,7 +9678,7 @@ var lng = (function () {
         }
 
         patch(settings) {
-            Base.patchObject(this, settings);
+            this.stage.patchObject(this, settings);
         }
     }
 
@@ -9664,7 +9698,7 @@ var lng = (function () {
              */
             this.active = new Set();
 
-            this.defaultTransitionSettings = new TransitionSettings();
+            this.defaultTransitionSettings = new TransitionSettings(this.stage);
         }
 
         progress() {
@@ -9686,8 +9720,8 @@ var lng = (function () {
         }
 
         createSettings(settings) {
-            let transitionSettings = new TransitionSettings();
-            Base.patchObject(transitionSettings, settings);
+            let transitionSettings = new TransitionSettings(this.stage);
+            transitionSettings.patch(settings);
             return transitionSettings;
         }
 
@@ -9912,7 +9946,10 @@ var lng = (function () {
 
     class AnimationActionSettings {
 
-        constructor() {
+        constructor(animationSettings) {
+
+            this.animationSettings = animationSettings;
+
             /**
              * The selector that selects the views.
              * @type {string}
@@ -10061,7 +10098,7 @@ var lng = (function () {
         }
 
         patch(settings) {
-            Base.patchObject(this, settings);
+            this.animationSettings.stage.patchObject(this, settings);
         }
 
         hasColorProperty() {
@@ -10075,7 +10112,9 @@ var lng = (function () {
     AnimationActionSettings.prototype.isAnimationActionSettings = true;
 
     class AnimationSettings {
-        constructor() {
+        constructor(stage) {
+            this.stage = stage;
+
             /**
              * @type {AnimationActionSettings[]}
              */
@@ -10151,7 +10190,7 @@ var lng = (function () {
         }
 
         patch(settings) {
-            Base.patchObject(this, settings);
+            this.stage.patchObject(this, settings);
         }
     }
 
@@ -10575,8 +10614,8 @@ var lng = (function () {
         }
 
         createSettings(settings) {
-            const animationSettings = new AnimationSettings();
-            Base.patchObject(animationSettings, settings);
+            const animationSettings = new AnimationSettings(this.stage);
+            animationSettings.patch(settings);
             return animationSettings;
         }
 
@@ -10938,6 +10977,15 @@ var lng = (function () {
 
         getDrawingCanvas() {
             return this.adapter.getDrawingCanvas();
+        }
+
+        patchObject(object, settings) {
+            settings = Base.preparePatchSettings(settings, this.getPatchId());
+            Base.patchObject(object, settings);
+        }
+
+        getPatchId() {
+            return this.renderer.getPatchId();
         }
 
     }
@@ -12404,6 +12452,7 @@ var lng = (function () {
     }
 
     class LinearBlurShader extends DefaultShader$1 {
+
         constructor(context) {
             super(context);
 
@@ -12567,10 +12616,40 @@ var lng = (function () {
     }
 `;
 
+    class BlurShader extends DefaultShader$2 {
+
+        constructor(context) {
+            super(context);
+            this._kernelRadius = 1;
+        }
+
+        get kernelRadius() {
+            return this._kernelRadius;
+        }
+
+        set kernelRadius(v) {
+            this._kernelRadius = v;
+            this.redraw();
+        }
+
+        useDefault() {
+            return this._amount === 0;
+        }
+
+        _beforeDrawEl({target}) {
+            target.ctx.filter = "blur(" + this._kernelRadius + "px)";
+        }
+
+        _afterDrawEl({target}) {
+            target.ctx.filter = "";
+        }
+
+    }
+
     class FastBlurComponent extends Component {
         static _template() {
             return {
-                Wrap: {type: WebGLFastBlurComponent}
+                Wrap: {type: WebGLFastBlurComponent, _$c2d: {type: C2dFastBlurComponent}}
             }
         }
 
@@ -12618,6 +12697,110 @@ var lng = (function () {
             this.wrap.w = this.renderWidth;
             this.wrap.h = this.renderHeight;
         }
+    }
+
+
+    class C2dFastBlurComponent extends Component {
+
+        static _template() {
+            return {
+                Textwrap: {shader: {type: BlurShader}, Content: {}}
+            }
+        }
+
+        constructor(stage) {
+            super(stage);
+            this._textwrap = this.sel("Textwrap");
+            this._wrapper = this.sel("Textwrap>Content");
+
+            this._amount = 0;
+            this._paddingX = 0;
+            this._paddingY = 0;
+        }
+
+        get content() {
+            return this.sel('Textwrap>Content');
+        }
+
+        set content(v) {
+            this.sel('Textwrap>Content').patch(v, true);
+        }
+
+        set padding(v) {
+            this._paddingX = v;
+            this._paddingY = v;
+            this._updateBlurSize();
+        }
+
+        set paddingX(v) {
+            this._paddingX = v;
+            this._updateBlurSize();
+        }
+
+        set paddingY(v) {
+            this._paddingY = v;
+            this._updateBlurSize();
+        }
+
+        _updateBlurSize() {
+            let w = this.renderWidth;
+            let h = this.renderHeight;
+
+            let paddingX = this._paddingX;
+            let paddingY = this._paddingY;
+
+            this._wrapper.x = paddingX;
+            this._textwrap.x = -paddingX;
+
+            this._wrapper.y = paddingY;
+            this._textwrap.y = -paddingY;
+
+            this._textwrap.w = w + paddingX * 2;
+            this._textwrap.h = h + paddingY * 2;
+        }
+
+        get amount() {
+            return this._amount;
+        }
+
+        /**
+         * Sets the amount of blur. A value between 0 and 4. Goes up exponentially for blur.
+         * Best results for non-fractional values.
+         * @param v;
+         */
+        set amount(v) {
+            this._amount = v;
+            this._textwrap.shader.kernelRadius = C2dFastBlurComponent._amountToKernelRadius(v);
+        }
+
+        static _amountToKernelRadius(v) {
+            const min = Math.floor(v);
+            const remainder = v - min;
+            const base = C2dFastBlurComponent._amountToKernelRadiusStep(min);
+            if (remainder > 0) {
+                const next = C2dFastBlurComponent._amountToKernelRadiusStep(min + 1);
+                return base + (next - base) * remainder;
+            } else {
+                return base;
+            }
+        }
+
+        static _amountToKernelRadiusStep(i) {
+            switch(i) {
+                case 0:
+                    return 0;
+                case 1:
+                    return 1.5;
+                case 2:
+                    return 5.5;
+                case 3:
+                    return 18;
+                case 4:
+                    return 39;
+            }
+
+        }
+
     }
 
     class WebGLFastBlurComponent extends Component {
@@ -13269,7 +13452,7 @@ var lng = (function () {
 
             for (let i = 0; i < length; i++) {
 
-                // Calculate ǹoise texture coordinates so that it spans the full view.
+                // Calculate noise texture coordinates so that it spans the full view.
                 let brx = operation.getViewWidth(i) / this._noiseTexture.getRenderWidth();
                 let bry = operation.getViewHeight(i) / this._noiseTexture.getRenderHeight();
 
@@ -13318,7 +13501,7 @@ var lng = (function () {
             let gl = this.gl;
             gl.vertexAttribPointer(this._attrib("aNoiseTextureCoord"), 2, gl.FLOAT, false, 8, this.getVertexAttribPointerOffset(operation));
 
-            let glTexture = this._noiseTexture.source.glTexture;
+            let glTexture = this._noiseTexture.source.nativeTexture;
             gl.activeTexture(gl.TEXTURE1);
             gl.bindTexture(gl.TEXTURE_2D, glTexture);
             gl.activeTexture(gl.TEXTURE0);
@@ -13336,13 +13519,13 @@ var lng = (function () {
 
         enableAttribs() {
             super.enableAttribs();
-            let gl = this.ctx.gl;
+            let gl = this.gl;
             gl.enableVertexAttribArray(this._attrib("aNoiseTextureCoord"));
         }
 
         disableAttribs() {
             super.disableAttribs();
-            let gl = this.ctx.gl;
+            let gl = this.gl;
             gl.disableVertexAttribArray(this._attrib("aNoiseTextureCoord"));
         }
 
@@ -14601,7 +14784,11 @@ var lng = (function () {
             WebGLShader,
             WebGLDefaultShader: DefaultShader$1,
             C2dShader,
-            C2dDefaultShader: DefaultShader$2
+            C2dDefaultShader: DefaultShader$2,
+            c2d: {
+                Grayscale: GrayscaleShader,
+                Blur: BlurShader
+            }
         },
         textures: {
             RectangleTexture,

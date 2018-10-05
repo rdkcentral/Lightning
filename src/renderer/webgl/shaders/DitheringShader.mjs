@@ -37,7 +37,7 @@ export default class DitheringShader extends DefaultShader {
 
         for (let i = 0; i < length; i++) {
 
-            // Calculate ǹoise texture coordinates so that it spans the full view.
+            // Calculate noise texture coordinates so that it spans the full view.
             let brx = operation.getViewWidth(i) / this._noiseTexture.getRenderWidth();
             let bry = operation.getViewHeight(i) / this._noiseTexture.getRenderHeight();
 
@@ -86,7 +86,7 @@ export default class DitheringShader extends DefaultShader {
         let gl = this.gl;
         gl.vertexAttribPointer(this._attrib("aNoiseTextureCoord"), 2, gl.FLOAT, false, 8, this.getVertexAttribPointerOffset(operation));
 
-        let glTexture = this._noiseTexture.source.glTexture;
+        let glTexture = this._noiseTexture.source.nativeTexture;
         gl.activeTexture(gl.TEXTURE1);
         gl.bindTexture(gl.TEXTURE_2D, glTexture);
         gl.activeTexture(gl.TEXTURE0);
@@ -104,13 +104,13 @@ export default class DitheringShader extends DefaultShader {
 
     enableAttribs() {
         super.enableAttribs();
-        let gl = this.ctx.gl;
+        let gl = this.gl;
         gl.enableVertexAttribArray(this._attrib("aNoiseTextureCoord"));
     }
 
     disableAttribs() {
         super.disableAttribs();
-        let gl = this.ctx.gl;
+        let gl = this.gl;
         gl.disableVertexAttribArray(this._attrib("aNoiseTextureCoord"));
     }
 

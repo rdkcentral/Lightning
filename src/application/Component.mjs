@@ -1,5 +1,6 @@
 import View from "../tree/View.mjs";
 import Utils from "../tree/Utils.mjs";
+import Base from "../tree/Base.mjs";
 
 export default class Component extends View {
 
@@ -25,7 +26,7 @@ export default class Component extends View {
         this.__construct();
 
         // Quick-apply template.
-        const func = this.constructor.getTemplateFunc();
+        const func = this.constructor.getTemplateFunc(stage);
         func.f(this, func.a);
 
     }
@@ -33,20 +34,25 @@ export default class Component extends View {
     /**
      * Returns a high-performance template patcher.
      */
-    static getTemplateFunc() {
-        if (!this._templateFunc) {
-            this._templateFunc = this.parseTemplate(this._template());
+    static getTemplateFunc(stage) {
+        // We need a different template function per patch id.
+        const patchId = stage.getPatchId();
+        const name = "_templateFunc_" + patchId;
+        if (!this[name]) {
+            this[name] = this.parseTemplate(patchId ? "_$" + patchId : patchId, this._template());
         }
-        return this._templateFunc;
+        return this[name];
     }
 
-    static parseTemplate(obj) {
+    static parseTemplate(patchId, obj) {
         const context = {
+            patchId: patchId,
             loc: [],
             store: [],
             rid: 0
-        }
+        };
 
+        obj = Base._preparePatchSettings(obj, patchId);
         this.parseTemplateRec(obj, context, "view");
 
         const code = context.loc.join(";\n");
@@ -59,10 +65,12 @@ export default class Component extends View {
         const loc = context.loc;
         const keys = Object.keys(obj);
         keys.forEach(key => {
-            const value = obj[key];
+            let value = obj[key];
             if (Utils.isUcChar(key.charCodeAt(0))) {
                 // Value must be expanded as well.
                 if (Utils.isObjectLiteral(value)) {
+                    value = Base._preparePatchSettings(value, context.patchId);
+
                     // Ref.
                     const childCursor = `r${key.replace(/[^a-z0-9]/gi, "") + context.rid}`;
                     let type = value.type ? value.type : View;

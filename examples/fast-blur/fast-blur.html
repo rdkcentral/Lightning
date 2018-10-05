@@ -14,7 +14,7 @@
             class AppExample extends lng.Application {
                 static _template() {
                     return {
-                        Blur: {type: lng.components.FastBlurComponent, amount: 2, w: 900, h: 900, content: {
+                        Blur: {type: lng.components.FastBlurComponent, amount: 1, w: 900, h: 900, content: {
                             Texture: {
                                 src: "../rockies.jpeg"
                             }/*,
@@ -25,16 +25,16 @@
                     }
                 }
             }
-            const options = {stage: {clearColor: 0xFFFF0000, w: 900, h: 900, canvas2d: true}}
+            const options = {stage: {clearColor: 0xFFFF0000, w: 900, h: 900, canvas2d: false}};
             const app = new AppExample(options);
 
-            const tx = new lng.textures.ImageTexture(app.stage)
-            tx.src = "../rockies.jpeg"
+            const tx = new lng.textures.ImageTexture(app.stage);
+            tx.src = "../rockies.jpeg";
             tx.load()
 
-            // app.tag("Blur").content.animation({duration: 5, repeat: -1, actions: [
-            //         {p: 'x', v: {0: 0, 0.5: 100, 1: 0}}
-            //     ]}).start()
+            app.tag("Blur").animation({duration: 5, repeat: -1, actions: [
+                    {p: 'amount', v: {0: 0, 1: 4}}
+                ]}).start()
 
             document.body.appendChild(app.stage.getCanvas());
         }

@@ -1,5 +1,3 @@
-import Base from "../tree/Base.mjs";
-
 export default class Renderer {
 
     constructor(stage) {
@@ -33,7 +31,7 @@ export default class Renderer {
             return new convertedShaderType(ctx);
         } else {
             const shader = new shaderType(ctx);
-            Base.patchObject(shader, settings);
+            this.stage.patchObject(this, settings);
             return shader;
         }
     }
@@ -43,6 +41,9 @@ export default class Renderer {
 
     _getShaderAlternative(shaderType) {
         return this.getDefaultShader();
+    }
+
+    getPatchId() {
     }
 
 }

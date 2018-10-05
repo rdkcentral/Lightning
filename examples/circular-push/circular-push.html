@@ -20,17 +20,19 @@
             }
         }
 
-        const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000}}
+        const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000, canvas2d: false}}
         const app = new CircularPushExample(options);
         document.body.appendChild(app.stage.getCanvas());
 
         const shader = app.tag("Rect").shader
-        let t = 0
-        app.stage.on('frameStart', () => {
-            t = 0.8 * t + 0.2 * Math.random()
-            shader.inputValue = t
-            shader.progress(0.01)
-        })
+        if (shader instanceof lng.shaders.CircularPush) {
+            let t = 0
+            app.stage.on('frameStart', () => {
+                t = 0.8 * t + 0.2 * Math.random()
+                shader.inputValue = t
+                shader.progress(0.01)
+            })
+        }
     }
 </script>
 </body>

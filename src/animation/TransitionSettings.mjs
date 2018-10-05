@@ -1,6 +1,8 @@
+import StageUtils from "../tree/StageUtils.mjs";
 
 export default class TransitionSettings {
-    constructor() {
+    constructor(stage) {
+        this.stage = stage;
         this._timingFunction = 'ease';
         this._timingFunctionImpl = StageUtils.getTimingFunction(this._timingFunction);
         this.delay = 0;
@@ -22,11 +24,9 @@ export default class TransitionSettings {
     }
 
     patch(settings) {
-        Base.patchObject(this, settings);
+        this.stage.patchObject(this, settings);
     }
 }
 
 TransitionSettings.prototype.isTransitionSettings = true;
 
-import Base from "../tree/Base.mjs";
-import StageUtils from "../tree/StageUtils.mjs";

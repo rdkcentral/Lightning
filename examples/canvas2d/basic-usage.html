@@ -16,8 +16,8 @@
                 static _template() {
                     return {
                         Wrap: {
-                            x: 100, y: 10,
-                            Image: {shader: {type: lng.shaders.Grayscale, amount: 0.5}, texture: {type: lng.textures.ImageTexture, src: "../rockies.jpeg"/*, x: 150, y: 50, w: 200, h: 100*/}}
+                            x: 100, y: 10, _$c2d: {x: 500},
+                            Image: {shader: {type: lng.shaders.c2d.Grayscale, amount: 1}, texture: {type: lng.textures.ImageTexture, src: "../rockies.jpeg"/*, x: 150, y: 50, w: 200, h: 100*/}}
                         }
                     }
                 }
@@ -40,7 +40,7 @@
                 }
             }
 
-            const options = {stage: {w: 1280, h: 720, clearColor: 0xFF0000FF, canvas2d: false}, debug: true}
+            const options = {stage: {w: 1280, h: 720, clearColor: 0xFF0000FF, canvas2d: true}, debug: true}
             options.keys = {
                 38: "Up",
                 40: "Down",
@@ -57,9 +57,9 @@
 
             const app = new BasicUsageExample(options);
 
-            app.animation({duration: 6, repeat: -1, actions: [
-                    {t: '.Image', p: 'rotation', v: {sm: 0, 0: 0, 1: 2 * Math.PI}}
-                ]}).start()
+            // app.animation({duration: 6, repeat: -1, actions: [
+            //         {t: '.Image', p: 'rotation', v: {sm: 0, 0: 0, 1: 2 * Math.PI}}
+            //     ]}).start()
 
             document.body.appendChild(app.stage.getCanvas());
         }

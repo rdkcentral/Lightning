@@ -100,4 +100,7 @@ export default class C2dRenderer extends Renderer {
         canvas.ctx.save();
     }
 
+    getPatchId() {
+        return "c2d";
+    }
 }

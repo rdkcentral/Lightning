@@ -45,8 +45,8 @@ export default class AnimationManager {
     }
 
     createSettings(settings) {
-        const animationSettings = new AnimationSettings();
-        Base.patchObject(animationSettings, settings);
+        const animationSettings = new AnimationSettings(this.stage);
+        animationSettings.patch(settings);
         return animationSettings;
     }
 

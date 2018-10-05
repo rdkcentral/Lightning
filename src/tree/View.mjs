@@ -498,7 +498,7 @@ export default class View {
             }
 
             if (texture) {
-                Base.patchObject(texture, v);
+                this.stage.patchObject(texture, v);
             }
         } else if (!v) {
             texture = null;
@@ -984,7 +984,7 @@ export default class View {
         let t = this.mtag(tag);
         let n = t.length;
         for (let i = 0; i < n; i++) {
-            Base.patchObject(t[i], settings);
+            this.stage.patchObject(t[i], settings);
         }
     }
 
@@ -1793,6 +1793,8 @@ export default class View {
     }
 
     patch(settings, createMode = false) {
+        Base.preparePatchSettings(settings, this.stage.getPatchId());
+
         let paths = Object.keys(settings);
 
         if (settings.hasOwnProperty("__create")) {

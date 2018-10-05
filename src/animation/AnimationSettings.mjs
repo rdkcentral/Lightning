@@ -1,6 +1,10 @@
+import StageUtils from "../tree/StageUtils.mjs";
+import AnimationActionSettings from "./AnimationActionSettings.mjs";
 
 export default class AnimationSettings {
-    constructor() {
+    constructor(stage) {
+        this.stage = stage;
+
         /**
          * @type {AnimationActionSettings[]}
          */
@@ -76,7 +80,7 @@ export default class AnimationSettings {
     }
 
     patch(settings) {
-        Base.patchObject(this, settings);
+        this.stage.patchObject(this, settings);
     }
 }
 
@@ -86,8 +90,5 @@ AnimationSettings.STOP_METHODS = {
     FORWARD: 'forward',
     IMMEDIATE: 'immediate',
     ONETOTWO: 'onetotwo'
-}
+};
 
-import Base from "../tree/Base.mjs";
-import StageUtils from "../tree/StageUtils.mjs";
-import AnimationActionSettings from "./AnimationActionSettings.mjs";

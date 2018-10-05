@@ -38,6 +38,8 @@ import RadialGradientShader from "./renderer/webgl/shaders/RadialGradientShader.
 
 import C2dShader from "./renderer/c2d/C2dShader.mjs";
 import C2dDefaultShader from "./renderer/c2d/shaders/DefaultShader.mjs";
+import C2dGrayscaleShader from "./renderer/c2d/shaders/GrayscaleShader.mjs";
+import C2dBlurShader from "./renderer/c2d/shaders/BlurShader.mjs";
 
 import Stage from "./tree/Stage.mjs";
 import WebAdapter from "./browser/WebAdapter.mjs";
@@ -71,7 +73,11 @@ const lightning = {
         WebGLShader,
         WebGLDefaultShader,
         C2dShader,
-        C2dDefaultShader
+        C2dDefaultShader,
+        c2d: {
+            Grayscale: C2dGrayscaleShader,
+            Blur: C2dBlurShader
+        }
     },
     textures: {
         RectangleTexture,

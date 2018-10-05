@@ -445,13 +445,11 @@ export default class Texture {
     }
 
     patch(settings) {
-        Base.patchObject(this, settings);
+        this.stage.patchObject(this, settings);
     }
 
 }
 
 Texture.prototype.isTexture = true;
-
-import Base from "./Base.mjs";
 
 Texture.id = 0;

@@ -1,6 +1,7 @@
 import DefaultShader from "./DefaultShader.mjs";
 
 export default class LinearBlurShader extends DefaultShader {
+
     constructor(context) {
         super(context);
 

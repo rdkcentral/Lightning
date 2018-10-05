@@ -1,6 +1,9 @@
 export default class AnimationActionSettings {
 
-    constructor() {
+    constructor(animationSettings) {
+
+        this.animationSettings = animationSettings;
+
         /**
          * The selector that selects the views.
          * @type {string}
@@ -149,7 +152,7 @@ export default class AnimationActionSettings {
     }
 
     patch(settings) {
-        Base.patchObject(this, settings);
+        this.animationSettings.stage.patchObject(this, settings);
     }
 
     hasColorProperty() {

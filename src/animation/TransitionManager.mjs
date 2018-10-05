@@ -12,7 +12,7 @@ export default class TransitionManager {
          */
         this.active = new Set();
 
-        this.defaultTransitionSettings = new TransitionSettings();
+        this.defaultTransitionSettings = new TransitionSettings(this.stage);
     }
 
     progress() {
@@ -34,8 +34,8 @@ export default class TransitionManager {
     }
 
     createSettings(settings) {
-        let transitionSettings = new TransitionSettings();
-        Base.patchObject(transitionSettings, settings);
+        let transitionSettings = new TransitionSettings(this.stage);
+        transitionSettings.patch(settings);
         return transitionSettings;
     }
 

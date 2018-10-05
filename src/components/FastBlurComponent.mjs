@@ -2,12 +2,13 @@ import Component from "../application/Component.mjs";
 import LinearBlurShader from "../renderer/webgl/shaders/LinearBlurShader.mjs";
 import BoxBlurShader from "../renderer/webgl/shaders/BoxBlurShader.mjs";
 import DefaultShader from "../renderer/webgl/shaders/DefaultShader.mjs";
+import C2dBlurShader from "../renderer/c2d/shaders/BlurShader.mjs";
 import Shader from "../tree/Shader.mjs";
 
 export default class FastBlurComponent extends Component {
     static _template() {
         return {
-            Wrap: {type: WebGLFastBlurComponent}
+            Wrap: {type: WebGLFastBlurComponent, _$c2d: {type: C2dFastBlurComponent}}
         }
     }
 
@@ -55,6 +56,110 @@ export default class FastBlurComponent extends Component {
         this.wrap.w = this.renderWidth;
         this.wrap.h = this.renderHeight;
     }
+}
+
+
+class C2dFastBlurComponent extends Component {
+
+    static _template() {
+        return {
+            Textwrap: {shader: {type: C2dBlurShader}, Content: {}}
+        }
+    }
+
+    constructor(stage) {
+        super(stage);
+        this._textwrap = this.sel("Textwrap");
+        this._wrapper = this.sel("Textwrap>Content");
+
+        this._amount = 0;
+        this._paddingX = 0;
+        this._paddingY = 0;
+    }
+
+    get content() {
+        return this.sel('Textwrap>Content');
+    }
+
+    set content(v) {
+        this.sel('Textwrap>Content').patch(v, true);
+    }
+
+    set padding(v) {
+        this._paddingX = v;
+        this._paddingY = v;
+        this._updateBlurSize();
+    }
+
+    set paddingX(v) {
+        this._paddingX = v;
+        this._updateBlurSize();
+    }
+
+    set paddingY(v) {
+        this._paddingY = v;
+        this._updateBlurSize();
+    }
+
+    _updateBlurSize() {
+        let w = this.renderWidth;
+        let h = this.renderHeight;
+
+        let paddingX = this._paddingX;
+        let paddingY = this._paddingY;
+
+        this._wrapper.x = paddingX;
+        this._textwrap.x = -paddingX;
+
+        this._wrapper.y = paddingY;
+        this._textwrap.y = -paddingY;
+
+        this._textwrap.w = w + paddingX * 2;
+        this._textwrap.h = h + paddingY * 2;
+    }
+
+    get amount() {
+        return this._amount;
+    }
+
+    /**
+     * Sets the amount of blur. A value between 0 and 4. Goes up exponentially for blur.
+     * Best results for non-fractional values.
+     * @param v;
+     */
+    set amount(v) {
+        this._amount = v;
+        this._textwrap.shader.kernelRadius = C2dFastBlurComponent._amountToKernelRadius(v);
+    }
+
+    static _amountToKernelRadius(v) {
+        const min = Math.floor(v);
+        const remainder = v - min;
+        const base = C2dFastBlurComponent._amountToKernelRadiusStep(min);
+        if (remainder > 0) {
+            const next = C2dFastBlurComponent._amountToKernelRadiusStep(min + 1);
+            return base + (next - base) * remainder;
+        } else {
+            return base;
+        }
+    }
+
+    static _amountToKernelRadiusStep(i) {
+        switch(i) {
+            case 0:
+                return 0;
+            case 1:
+                return 1.5;
+            case 2:
+                return 5.5;
+            case 3:
+                return 18;
+            case 4:
+                return 39;
+        }
+
+    }
+
 }
 
 class WebGLFastBlurComponent extends Component {
