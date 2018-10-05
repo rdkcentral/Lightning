@@ -12,10 +12,10 @@ export default class AnimationActionSettings {
 
         /**
          * The value items, ordered by progress offset.
-         * @type {AnimationActionItems}
+         * @type {MultiSpline}
          * @private;
          */
-        this._items = new AnimationActionItems(this);
+        this._items = new MultiSpline();
 
         /**
          * The affected properties (paths).
@@ -122,7 +122,7 @@ export default class AnimationActionSettings {
     }
 
     set value(v) {
-        this._items.parse(v);
+        this._items.parse(this.hasColorProperty(), v);
     }
 
     set v(v) {
@@ -165,8 +165,7 @@ export default class AnimationActionSettings {
 
 AnimationActionSettings.prototype.isAnimationActionSettings = true;
 
-import Base from "../tree/Base.mjs";
-import AnimationActionItems from "./AnimationActionItems.mjs";
+import MultiSpline from "../tools/MultiSpline.mjs";
 import View from "../tree/View.mjs";
 import StageUtils from "../tree/StageUtils.mjs";
 import Utils from "../tree/Utils.mjs";

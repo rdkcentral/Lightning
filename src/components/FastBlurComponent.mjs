@@ -4,6 +4,7 @@ import BoxBlurShader from "../renderer/webgl/shaders/BoxBlurShader.mjs";
 import DefaultShader from "../renderer/webgl/shaders/DefaultShader.mjs";
 import C2dBlurShader from "../renderer/c2d/shaders/BlurShader.mjs";
 import Shader from "../tree/Shader.mjs";
+import MultiSpline from "../tools/MultiSpline.mjs";
 
 export default class FastBlurComponent extends Component {
     static _template() {
@@ -75,6 +76,15 @@ class C2dFastBlurComponent extends Component {
         this._amount = 0;
         this._paddingX = 0;
         this._paddingY = 0;
+
+    }
+
+    static getSpline() {
+        if (!this._multiSpline) {
+            this._multiSpline = new MultiSpline();
+            this._multiSpline.parse(false, {0: 0, 0.25: 1.5, 0.5: 5.5, 0.75: 18, 1: 39});
+        }
+        return this._multiSpline;
     }
 
     get content() {
@@ -133,31 +143,7 @@ class C2dFastBlurComponent extends Component {
     }
 
     static _amountToKernelRadius(v) {
-        const min = Math.floor(v);
-        const remainder = v - min;
-        const base = C2dFastBlurComponent._amountToKernelRadiusStep(min);
-        if (remainder > 0) {
-            const next = C2dFastBlurComponent._amountToKernelRadiusStep(min + 1);
-            return base + (next - base) * remainder;
-        } else {
-            return base;
-        }
-    }
-
-    static _amountToKernelRadiusStep(i) {
-        switch(i) {
-            case 0:
-                return 0;
-            case 1:
-                return 1.5;
-            case 2:
-                return 5.5;
-            case 3:
-                return 18;
-            case 4:
-                return 39;
-        }
-
+        return C2dFastBlurComponent.getSpline().getValue(Math.min(1, v * 0.25));
     }
 
 }
