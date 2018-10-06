@@ -414,4 +414,15 @@ export default class MultiSpline {
         return a * 16777216 + r * 65536 + g * 256 + b;
     };
 
+    static getArgbNumber(rgba) {
+        rgba[0] = Math.max(0, Math.min(255, rgba[0]));
+        rgba[1] = Math.max(0, Math.min(255, rgba[1]));
+        rgba[2] = Math.max(0, Math.min(255, rgba[2]));
+        rgba[3] = Math.max(0, Math.min(255, rgba[3]));
+        let v = ((rgba[3] | 0) << 24) + ((rgba[0] | 0) << 16) + ((rgba[1] | 0) << 8) + (rgba[2] | 0);
+        if (v < 0) {
+            v = 0xFFFFFFFF + v + 1;
+        }
+        return v;
+    };
 }

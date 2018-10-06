@@ -1,4 +1,6 @@
-class FlowingGradientShader extends lng.DefaultShader {
+import WebGLDefaultShader from '../../src/renderer/webgl/shaders/DefaultShader.mjs';
+import StageUtils from "../../src/tree/StageUtils.mjs";
+export default class FlowingGradientShader extends WebGLDefaultShader {
     constructor(context) {
         super(context)
 
@@ -52,7 +54,7 @@ class FlowingGradientShader extends lng.DefaultShader {
     _updateColors() {
         let arr = []
         this._colors.forEach(color => {
-            const col = lng.StageUtils.getRgbaComponentsNormalized(color)
+            const col = StageUtils.getRgbaComponentsNormalized(color)
             col[0] *= col[3]
             col[1] *= col[3]
             col[2] *= col[3]
@@ -205,14 +207,4 @@ FlowingGradientShader.fragmentShaderSource = `
         gl_FragColor = addColor * vColor;
     }
 `;
-
-try {
-    module.exports = FlowingGradientShader
-} catch(e) {
-    window.FlowingGradientShader = FlowingGradientShader
-}
-})(
-    typeof window === 'undefined' ? require('../../lng') : lng
-)
-
 

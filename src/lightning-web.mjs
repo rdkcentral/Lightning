@@ -100,7 +100,4 @@ const lightning = {
     }
 };
 
-// Legacy.
-window.wuf = lightning;
-
 export default lightning;

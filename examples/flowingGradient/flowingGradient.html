@@ -2,20 +2,20 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-
-    <script src="../../dist/lightning-web.js"></script>
-    <script src="FlowingGradientShader.js"></script>
-    <script src="FlowingGradientExample.js?v=2"></script>
-
 </head>
 <body>
-<script>
+<script type="module">
+    import FlowingGradientExample from "./FlowingGradientExample.mjs";
+    import Stage from '../../src/tree/Stage.mjs';
+    import WebAdapter from '../../src/browser/WebAdapter.mjs';
+
+    Stage.ADAPTER = WebAdapter;
+
     window.onload = function() {
-        const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000}}
-        const app = new FlowingGradientExample()
+        const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000}};
+        const app = new FlowingGradientExample();
 
         document.body.appendChild(app.stage.getCanvas());
-
     }
 </script>
 </body>

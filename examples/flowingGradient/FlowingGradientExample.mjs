@@ -1,10 +1,13 @@
-(function(lng, FlowingGradientShader) {
+import Application from '../../src/application/Application.mjs';
+import NoiseTexture from '../../src/textures/NoiseTexture.mjs';
 
-class FlowingGradientExample extends lng.Application {
+import FlowingGradientShader from "./FlowingGradientShader.mjs";
+
+export default class FlowingGradientExample extends Application {
 
     static _template() {
         return {
-            Shader: {shader: {type: FlowingGradientShader, random: true, graining: 0.04}, texture: {type: lng.textures.NoiseTexture}, w: 1600, h: 1000}
+            Shader: {shader: {type: FlowingGradientShader, random: true, graining: 0.04}, texture: {type: NoiseTexture}, w: 1600, h: 1000}
         }
     }
 
@@ -52,15 +55,4 @@ class FlowingGradientExample extends lng.Application {
     }
 
 }
-
-try {
-    module.exports = FlowingGradientExample
-} catch(e) {
-    window.FlowingGradientExample = FlowingGradientExample
-}
-})(
-    typeof window === 'undefined' ? require('../../lng') : lng,
-    typeof window === 'undefined' ? require('./FlowingGradientShader') : FlowingGradientShader
-)
-
 
