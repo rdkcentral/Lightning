@@ -1,6 +1,6 @@
-import WebGLDefaultShader from '../../src/renderer/webgl/shaders/DefaultShader.mjs';
-import StageUtils from "../../src/tree/StageUtils.mjs";
-export default class FlowingGradientShader extends WebGLDefaultShader {
+import lng from '../../lightning.mjs';
+
+export default class FlowingGradientShader extends lng.shaders.WebGLDefaultShader {
     constructor(context) {
         super(context)
 
@@ -54,7 +54,7 @@ export default class FlowingGradientShader extends WebGLDefaultShader {
     _updateColors() {
         let arr = []
         this._colors.forEach(color => {
-            const col = StageUtils.getRgbaComponentsNormalized(color)
+            const col = lng.StageUtils.getRgbaComponentsNormalized(color)
             col[0] *= col[3]
             col[1] *= col[3]
             col[2] *= col[3]

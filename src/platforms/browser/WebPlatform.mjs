@@ -4,7 +4,7 @@ import ImageWorker from "./ImageWorker.mjs";
  * Platform-specific functionality.
  * Copyright Metrological, 2017;
  */
-export default class WebAdapter {
+export default class WebPlatform {
 
     init(stage) {
         this.stage = stage;

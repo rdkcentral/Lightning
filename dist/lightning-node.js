@@ -259,188 +259,6 @@ class StageUtils {
         }
     };
 
-    static getSplineValueFunction(v1, v2, p1, p2, o1, i2, s1, s2) {
-        // Normalize slopes because we use a spline that goes from 0 to 1.
-        let dp = p2 - p1;
-        s1 *= dp;
-        s2 *= dp;
-
-        let helpers = StageUtils.getSplineHelpers(v1, v2, o1, i2, s1, s2);
-        if (!helpers) {
-            return function (p) {
-                if (p == 0) return v1;
-                if (p == 1) return v2;
-
-                return v2 * p + v1 * (1 - p);
-            };
-        } else {
-            return function (p) {
-                if (p == 0) return v1;
-                if (p == 1) return v2;
-                return StageUtils.calculateSpline(helpers, p);
-            };
-        }
-    };
-
-    static getSplineRgbaValueFunction(v1, v2, p1, p2, o1, i2, s1, s2) {
-        // Normalize slopes because we use a spline that goes from 0 to 1.
-        let dp = p2 - p1;
-        s1[0] *= dp;
-        s1[1] *= dp;
-        s1[2] *= dp;
-        s1[3] *= dp;
-        s2[0] *= dp;
-        s2[1] *= dp;
-        s2[2] *= dp;
-        s2[3] *= dp;
-
-        let cv1 = StageUtils.getRgbaComponents(v1);
-        let cv2 = StageUtils.getRgbaComponents(v2);
-
-        let helpers = [
-            StageUtils.getSplineHelpers(cv1[0], cv2[0], o1, i2, s1[0], s2[0]),
-            StageUtils.getSplineHelpers(cv1[1], cv2[1], o1, i2, s1[1], s2[1]),
-            StageUtils.getSplineHelpers(cv1[2], cv2[2], o1, i2, s1[2], s2[2]),
-            StageUtils.getSplineHelpers(cv1[3], cv2[3], o1, i2, s1[3], s2[3])
-        ];
-
-        if (!helpers[0]) {
-            return function (p) {
-                // Linear.
-                if (p == 0) return v1;
-                if (p == 1) return v2;
-
-                return StageUtils.mergeColors(v2, v1, p);
-            };
-        } else {
-            return function (p) {
-                if (p == 0) return v1;
-                if (p == 1) return v2;
-
-                return StageUtils.getArgbNumber([
-                    Math.min(255, StageUtils.calculateSpline(helpers[0], p)),
-                    Math.min(255, StageUtils.calculateSpline(helpers[1], p)),
-                    Math.min(255, StageUtils.calculateSpline(helpers[2], p)),
-                    Math.min(255, StageUtils.calculateSpline(helpers[3], p))
-                ]);
-            };
-        }
-
-    };
-
-    /**
-     * Creates helpers to be used in the spline function.
-     * @param {number} v1
-     *   From value.
-     * @param {number} v2
-     *   To value.
-     * @param {number} o1
-     *   From smoothness (0 = linear, 1 = smooth).
-     * @param {number} s1
-     *   From slope (0 = horizontal, infinite = vertical).
-     * @param {number} i2
-     *   To smoothness.
-     * @param {number} s2
-     *   To slope.
-     * @returns {Number[]}
-     *   The helper values to be supplied to the spline function.
-     *   If the configuration is actually linear, null is returned.
-     */
-    static getSplineHelpers(v1, v2, o1, i2, s1, s2) {
-        if (!o1 && !i2) {
-            // Linear.
-            return null;
-        }
-
-        // Cubic bezier points.
-        // http://cubic-bezier.com/
-        let csx = o1;
-        let csy = v1 + s1 * o1;
-        let cex = 1 - i2;
-        let cey = v2 - s2 * i2;
-
-        // Helper letiables.
-        let xa = 3 * csx - 3 * cex + 1;
-        let xb = -6 * csx + 3 * cex;
-        let xc = 3 * csx;
-
-        let ya = 3 * csy - 3 * cey + v2 - v1;
-        let yb = 3 * (cey + v1) - 6 * csy;
-        let yc = 3 * (csy - v1);
-        let yd = v1;
-
-        return [xa, xb, xc, ya, yb, yc, yd];
-    };
-
-    /**
-     * Calculates the intermediate spline value based on the specified helpers.
-     * @param {number[]} helpers
-     *   Obtained from getSplineHelpers.
-     * @param {number} p
-     * @return {number}
-     */
-    static calculateSpline(helpers, p) {
-        let xa = helpers[0];
-        let xb = helpers[1];
-        let xc = helpers[2];
-        let ya = helpers[3];
-        let yb = helpers[4];
-        let yc = helpers[5];
-        let yd = helpers[6];
-
-        if (xa == -2 && ya == -2 && xc == 0 && yc == 0) {
-            // Linear.
-            return p;
-        }
-
-        // Find t for p.
-        let t = 0.5, cbx, dx;
-
-        for (let it = 0; it < 20; it++) {
-            // Cubic bezier function: f(t)=t*(t*(t*a+b)+c).
-            cbx = t * (t * (t * xa + xb) + xc);
-
-            dx = p - cbx;
-            if (dx > -1e-8 && dx < 1e-8) {
-                // Solution found!
-                return t * (t * (t * ya + yb) + yc) + yd;
-            }
-
-            // Cubic bezier derivative function: f'(t)=t*(t*(3*a)+2*b)+c
-            let cbxd = t * (t * (3 * xa) + 2 * xb) + xc;
-
-            if (cbxd > 1e-10 && cbxd < 1e-10) {
-                // Problematic. Fall back to binary search method.
-                break;
-            }
-
-            t += dx / cbxd;
-        }
-
-        // Fallback: binary search method. This is more reliable when there are near-0 slopes.
-        let minT = 0;
-        let maxT = 1;
-        for (let it = 0; it < 20; it++) {
-            t = 0.5 * (minT + maxT);
-
-            // Cubic bezier function: f(t)=t*(t*(t*a+b)+c)+d.
-            cbx = t * (t * (t * xa + xb) + xc);
-
-            dx = p - cbx;
-            if (dx > -1e-8 && dx < 1e-8) {
-                // Solution found!
-                return t * (t * (t * ya + yb) + yc) + yd;
-            }
-
-            if (dx < 0) {
-                maxT = t;
-            } else {
-                minT = t;
-            }
-        }
-
-        return t;
-    };
 }
 
 class Utils {
@@ -615,6 +433,7 @@ class Utils {
 }
 
 Utils.isNode = (typeof window === "undefined");
+Utils.isWeb = (typeof window !== "undefined");
 
 class TextureSource {
 
@@ -2992,12 +2811,28 @@ class Base {
         }
     }
 
+    static preparePatchSettings(settings, patchId) {
+        if (patchId) {
+            return this._preparePatchSettings(settings, "_$" + patchId);
+        }
+    }
+
+    static _preparePatchSettings(settings, patchId) {
+        if (patchId && settings[patchId]) {
+            settings = Object.assign({}, settings, settings[patchId]);
+            delete settings[patchId];
+        }
+        return settings;
+    }
+
     static patchObjectProperty(obj, name, value) {
         let setter = obj.setSetting || Base.defaultSetter;
 
-        if (name.substr(0, 1) === "_" && name !== "__create") {
+        if (name.charAt(0) === "_") {
             // Disallow patching private variables.
-            console.error("Patch of private property '" + name + "' is not allowed");
+            if (name.charAt(1) === "$") ; else {
+                console.error("Patch of private property '" + name + "' is not allowed");
+            }
         } else if (name !== "type") {
             // Type is a reserved keyword to specify the class type on creation.
             if (Utils.isFunction(value) && value.__local) {
@@ -3145,6 +2980,102 @@ EventEmitter.addAsMixin = function(cls) {
     cls.prototype.emit = EventEmitter.prototype.emit;
     cls.prototype.listenerCount = EventEmitter.prototype.listenerCount;
 };
+
+class Shader {
+
+    constructor(coreContext) {
+        this._initialized = false;
+
+        this.ctx = coreContext;
+
+        /**
+         * The (enabled) views that use this shader.
+         * @type {Set<ViewCore>}
+         */
+        this._views = new Set();
+    }
+
+    static create(stage, v) {
+        let shader;
+        if (Utils.isObjectLiteral(v)) {
+            if (v.type) {
+                shader = stage.renderer.createShader(stage.ctx, v);
+            } else {
+                shader = this.shader;
+            }
+
+            if (shader) {
+                stage.patchObject(shader, v);
+            }
+        } else if (v === null) {
+            shader = stage.ctx.renderState.defaultShader;
+        } else if (v === undefined) {
+            shader = null;
+        } else {
+            if (v.isShader) {
+                if (!stage.renderer.isValidShaderType(v.constructor)) {
+                    console.error("Invalid shader type");
+                    v = null;
+                }
+                shader = v;
+            } else {
+                console.error("Please specify a shader type.");
+                return;
+            }
+        }
+
+        return shader;
+    }
+
+    static getWebGL() {
+        return undefined;
+    }
+
+    static getC2d() {
+        return undefined;
+    }
+
+    addView(viewCore) {
+        this._views.add(viewCore);
+    }
+
+    removeView(viewCore) {
+        this._views.delete(viewCore);
+        if (!this._views) {
+            this.cleanup();
+        }
+    }
+
+    redraw() {
+        this._views.forEach(viewCore => {
+            viewCore.setHasRenderUpdates(2);
+        });
+    }
+
+    patch(settings) {
+        this.ctx.stage.patchObject(this, settings);
+    }
+
+    useDefault() {
+        // Should return true if this shader is configured (using it's properties) to not have any effect.
+        // This may allow the render engine to avoid unnecessary shader program switches or even texture copies.
+        return false;
+    }
+
+    addEmpty() {
+        // Draws this shader even if there are no quads to be added.
+        // This is handy for custom shaders.
+        return false;
+    }
+
+    cleanup() {
+        // Called when no more enabled views have this shader.
+    }
+
+    get isShader() {
+        return true;
+    }
+}
 
 class Texture {
 
@@ -3593,7 +3524,7 @@ class Texture {
     }
 
     patch(settings) {
-        Base.patchObject(this, settings);
+        this.stage.patchObject(this, settings);
     }
 
 }
@@ -3652,9 +3583,9 @@ class ImageTexture extends Texture {
             }
         }
 
-        const adapter = this.stage.adapter;
+        const platform = this.stage.platform;
         return function(cb) {
-            return adapter.loadSrcTexture({src: src, hasAlpha: hasAlpha}, cb);
+            return platform.loadSrcTexture({src: src, hasAlpha: hasAlpha}, cb);
         }
     }
 
@@ -4376,11 +4307,11 @@ class TextTexture extends Texture {
             args.fontFace = this.stage.getOption('defaultFontFace');
         }
 
-        const canvas$$1 = this.stage.adapter.getDrawingCanvas();
+        const canvas$$1 = this.stage.platform.getDrawingCanvas();
         return function(cb) {
             const renderer = new TextTextureRenderer(this.stage, canvas$$1, args);
             renderer.draw();
-            cb(null, this.stage.adapter.getTextureOptionsForDrawingCanvas(canvas$$1));
+            cb(null, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas$$1));
         }
     }
 
@@ -5633,7 +5564,7 @@ class View {
             }
 
             if (texture) {
-                Base.patchObject(texture, v);
+                this.stage.patchObject(texture, v);
             }
         } else if (!v) {
             texture = null;
@@ -6117,7 +6048,7 @@ class View {
         let t = this.mtag(tag);
         let n = t.length;
         for (let i = 0; i < n; i++) {
-            Base.patchObject(t[i], settings);
+            this.stage.patchObject(t[i], settings);
         }
     }
 
@@ -6858,38 +6789,18 @@ class View {
     }
 
     set shader(v) {
-        let shader;
-        if (Utils.isObjectLiteral(v)) {
-            if (v.type) {
-                shader = new v.type(this.stage.ctx);
-            } else {
-                shader = this.shader;
+        const shader = Shader.create(this.stage, v);
+
+        if (shader) {
+            if (this.__enabled && this.__core.shader) {
+                this.__core.shader.removeView(this);
             }
 
-            if (shader) {
-                Base.patchObject(shader, v);
+            this.__core.shader = shader;
+
+            if (this.__enabled && this.__core.shader) {
+                this.__core.shader.addView(this);
             }
-        } else if (v === null) {
-            shader = this.stage.ctx.renderState.defaultShader;
-        } else if (v === undefined) {
-            shader = null;
-        } else {
-            if (v.isShader) {
-                shader = v;
-            } else {
-                console.error("Please specify a shader type.");
-                return;
-            }
-        }
-
-        if (this.__enabled && this.__core.shader) {
-            this.__core.shader.removeView(this);
-        }
-
-        this.__core.shader = shader;
-
-        if (this.__enabled && this.__core.shader) {
-            this.__core.shader.addView(this);
         }
     }
 
@@ -6946,6 +6857,8 @@ class View {
     }
 
     patch(settings, createMode = false) {
+        Base.preparePatchSettings(settings, this.stage.getPatchId());
+
         let paths = Object.keys(settings);
 
         if (settings.hasOwnProperty("__create")) {
@@ -7198,7 +7111,7 @@ class Component extends View {
         this.__construct();
 
         // Quick-apply template.
-        const func = this.constructor.getTemplateFunc();
+        const func = this.constructor.getTemplateFunc(stage);
         func.f(this, func.a);
 
     }
@@ -7206,20 +7119,25 @@ class Component extends View {
     /**
      * Returns a high-performance template patcher.
      */
-    static getTemplateFunc() {
-        if (!this._templateFunc) {
-            this._templateFunc = this.parseTemplate(this._template());
+    static getTemplateFunc(stage) {
+        // We need a different template function per patch id.
+        const patchId = stage.getPatchId();
+        const name = "_templateFunc_" + patchId;
+        if (!this[name]) {
+            this[name] = this.parseTemplate(patchId ? "_$" + patchId : patchId, this._template());
         }
-        return this._templateFunc;
+        return this[name];
     }
 
-    static parseTemplate(obj) {
+    static parseTemplate(patchId, obj) {
         const context = {
+            patchId: patchId,
             loc: [],
             store: [],
             rid: 0
         };
 
+        obj = Base._preparePatchSettings(obj, patchId);
         this.parseTemplateRec(obj, context, "view");
 
         const code = context.loc.join(";\n");
@@ -7232,10 +7150,12 @@ class Component extends View {
         const loc = context.loc;
         const keys = Object.keys(obj);
         keys.forEach(key => {
-            const value = obj[key];
+            let value = obj[key];
             if (Utils.isUcChar(key.charCodeAt(0))) {
                 // Value must be expanded as well.
                 if (Utils.isObjectLiteral(value)) {
+                    value = Base._preparePatchSettings(value, context.patchId);
+
                     // Ref.
                     const childCursor = `r${key.replace(/[^a-z0-9]/gi, "") + context.rid}`;
                     let type = value.type ? value.type : View;
@@ -7989,21 +7909,21 @@ class WebGLCoreRenderExecutor extends CoreRenderExecutor {
 
     _setupQuadOperation(quadOperation) {
         super._setupQuadOperation(quadOperation);
-        this._useShaderProgram(quadOperation.shader.impl, quadOperation);
+        this._useShaderProgram(quadOperation.shader, quadOperation);
     }
 
     _renderQuadOperation(op) {
-        let shaderImpl = op.shader.impl;
+        let shader = op.shader;
 
         if (op.length || op.shader.addEmpty()) {
-            shaderImpl.beforeDraw(op);
-            shaderImpl.draw(op);
-            shaderImpl.afterDraw(op);
+            shader.beforeDraw(op);
+            shader.draw(op);
+            shader.afterDraw(op);
         }
     }
 
     /**
-     * @param {WebGLShaderImpl} shader;
+     * @param {WebGLShader} shader;
      * @param {CoreQuadOperation} operation;
      */
     _useShaderProgram(shader, operation) {
@@ -8079,555 +7999,6 @@ class WebGLCoreRenderExecutor extends CoreRenderExecutor {
 
 }
 
-class Shader {
-
-    constructor(coreContext) {
-        this._initialized = false;
-
-        this.ctx = coreContext;
-
-        /**
-         * The (enabled) views that use this shader.
-         * @type {Set<ViewCore>}
-         */
-        this._views = new Set();
-    }
-
-    get impl() {
-        if (!this._impl) {
-            if (this.ctx.stage.mode === 0) {
-                this._impl = new (this.constructor.getWebGLImpl())(this);
-            } else {
-                this._impl = new (this.constructor.getC2dImpl())(this);
-            }
-        }
-        return this._impl;
-    }
-
-    static getWebGLImpl() {
-        return undefined
-    }
-
-    static getC2dImpl() {
-        return undefined
-    }
-
-    addView(viewCore) {
-        this._views.add(viewCore);
-    }
-
-    removeView(viewCore) {
-        this._views.delete(viewCore);
-        if (!this._views) {
-            this.cleanup();
-        }
-    }
-
-    redraw() {
-        this._views.forEach(viewCore => {
-            viewCore.setHasRenderUpdates(2);
-        });
-    }
-
-    patch(settings) {
-        Base.patchObject(this, settings);
-    }
-
-    useDefault() {
-        // Should return true if this shader is configured (using it's properties) to not have any effect.
-        // This may allow the render engine to avoid unnecessary shader program switches or even texture copies.
-        return false;
-    }
-
-    addEmpty() {
-        // Draws this shader even if there are no quads to be added.
-        // This is handy for custom shaders.
-        return false;
-    }
-
-    cleanup() {
-        // Called when no more enabled views have this shader.
-        this.impl.cleanup();
-    }
-
-}
-
-/**
- * Base functionality for shader setup/destroy.
- * Copyright Metrological, 2017
- */
-class WebGLShaderProgram {
-
-    constructor(vertexShaderSource, fragmentShaderSource) {
-
-        this.vertexShaderSource = vertexShaderSource;
-        this.fragmentShaderSource = fragmentShaderSource;
-
-        this._program = null;
-
-        this._uniformLocations = new Map();
-        this._attributeLocations = new Map();
-
-        this._currentUniformValues = {};
-    }
-
-    compile(gl) {
-        if (this._program) return;
-
-        this.gl = gl;
-
-        this._program = gl.createProgram();
-
-        let glVertShader = this._glCompile(gl.VERTEX_SHADER, this.vertexShaderSource);
-        let glFragShader = this._glCompile(gl.FRAGMENT_SHADER, this.fragmentShaderSource);
-
-        gl.attachShader(this._program, glVertShader);
-        gl.attachShader(this._program, glFragShader);
-        gl.linkProgram(this._program);
-
-        // if linking fails, then log and cleanup
-        if (!gl.getProgramParameter(this._program, gl.LINK_STATUS)) {
-            console.error('Error: Could not initialize shader.');
-            console.error('gl.VALIDATE_STATUS', gl.getProgramParameter(this._program, gl.VALIDATE_STATUS));
-            console.error('gl.getError()', gl.getError());
-
-            // if there is a program info log, log it
-            if (gl.getProgramInfoLog(this._program) !== '') {
-                console.warn('Warning: gl.getProgramInfoLog()', gl.getProgramInfoLog(this._program));
-            }
-
-            gl.deleteProgram(this._program);
-            this._program = null;
-        }
-
-        // clean up some shaders
-        gl.deleteShader(glVertShader);
-        gl.deleteShader(glFragShader);
-    }
-
-    _glCompile(type, src) {
-        let shader = this.gl.createShader(type);
-
-        this.gl.shaderSource(shader, src);
-        this.gl.compileShader(shader);
-
-        if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-            console.log(this.constructor.name, 'Type: ' + (type === this.gl.VERTEX_SHADER ? 'vertex shader' : 'fragment shader') );
-            console.log(this.gl.getShaderInfoLog(shader));
-            let idx = 0;
-            console.log("========== source ==========\n" + src.split("\n").map(line => "" + (++idx) + ": " + line).join("\n"));
-            return null;
-        }
-
-        return shader;
-    }
-
-    getUniformLocation(name) {
-        let location = this._uniformLocations.get(name);
-        if (location === undefined) {
-            location = this.gl.getUniformLocation(this._program, name);
-            this._uniformLocations.set(name, location);
-        }
-
-        return location;
-    }
-
-    getAttribLocation(name) {
-        let location = this._attributeLocations.get(name);
-        if (location === undefined) {
-            location = this.gl.getAttribLocation(this._program, name);
-            this._attributeLocations.set(name, location);
-        }
-
-        return location;
-    }
-
-    destroy() {
-        if (this._program) {
-            this.gl.deleteProgram(this._program);
-            this._program = null;
-        }
-    }
-
-    get glProgram() {
-        return this._program;
-    }
-
-    get compiled() {
-        return !!this._program;
-    }
-
-    _valueEquals(v1, v2) {
-        // Uniform value is either a typed array or a numeric value.
-        if (v1.length && v2.length) {
-            for (let i = 0, n = v1.length; i < n; i++) {
-                if (v1[i] !== v2[i]) return false;
-            }
-            return true;
-        } else {
-            return (v1 === v2);
-        }
-    }
-
-    _valueClone(v) {
-        if (v.length) {
-            return v.slice(0);
-        } else {
-            return v;
-        }
-    }
-
-    setUniformValue(name, value, glFunction) {
-        let v = this._currentUniformValues[name];
-        if (v === undefined || !this._valueEquals(v, value)) {
-            let clonedValue = this._valueClone(value);
-            this._currentUniformValues[name] = clonedValue;
-
-            let loc = this.getUniformLocation(name);
-            if (loc) {
-                let isMatrix = (glFunction === this.gl.uniformMatrix2fv || glFunction === this.gl.uniformMatrix3fv || glFunction === this.gl.uniformMatrix4fv);
-                if (isMatrix) {
-                    glFunction.call(this.gl, loc, false, clonedValue);
-                } else {
-                    glFunction.call(this.gl, loc, clonedValue);
-                }
-            }
-        }
-    }
-
-}
-
-class WebGLShaderImpl {
-
-    constructor(shader) {
-        this._shader = shader;
-
-        const stage = this._shader.ctx.stage;
-
-        this._program = stage.renderer.shaderPrograms.get(this.constructor);
-        if (!this._program) {
-            this._program = new WebGLShaderProgram(this.constructor.vertexShaderSource, this.constructor.fragmentShaderSource);
-
-            // Let the vbo context perform garbage collection.
-            stage.renderer.shaderPrograms.set(this.constructor, this._program);
-        }
-
-        this.gl = stage.gl;
-    }
-
-    get shader() {
-        return this._shader;
-    }
-
-    get glProgram() {
-        return this._program.glProgram;
-    }
-
-    _init() {
-        if (!this._initialized) {
-            this.initialize();
-            this._initialized = true;
-        }
-    }
-
-    initialize() {
-        this._program.compile(this.gl);
-    }
-
-    get initialized() {
-        return this._initialized;
-    }
-
-    _uniform(name) {
-        return this._program.getUniformLocation(name);
-    }
-
-    _attrib(name) {
-        return this._program.getAttribLocation(name);
-    }
-
-    _setUniform(name, value, glFunction) {
-        this._program.setUniformValue(name, value, glFunction);
-    }
-
-    useProgram() {
-        this._init();
-        this.gl.useProgram(this.glProgram);
-        this.beforeUsage();
-        this.enableAttribs();
-    }
-
-    stopProgram() {
-        this.afterUsage();
-        this.disableAttribs();
-    }
-
-    hasSameProgram(other) {
-        // For performance reasons, we first check for identical references.
-        return (other && ((other === this) || (other._program === this._program)));
-    }
-
-    beforeUsage() {
-        // Override to set settings other than the default settings (blend mode etc).
-    }
-
-    afterUsage() {
-        // All settings changed in beforeUsage should be reset here.
-    }
-
-    enableAttribs() {
-
-    }
-
-    disableAttribs() {
-
-    }
-
-    getExtraAttribBytesPerVertex() {
-        return 0;
-    }
-
-    getVertexAttribPointerOffset(operation) {
-        return operation.extraAttribsDataByteOffset - (operation.index + 1) * 4 * this.getExtraAttribBytesPerVertex();
-    }
-
-    setExtraAttribsInBuffer(operation) {
-        // Set extra attrib data in in operation.quads.data/floats/uints, starting from
-        // operation.extraAttribsBufferByteOffset.
-    }
-
-    setupUniforms(operation) {
-        // Set all shader-specific uniforms.
-        // Notice that all uniforms should be set, even if they have not been changed within this shader instance.
-        // The uniforms are shared by all shaders that have the same type (and shader program).
-    }
-
-    _getProjection(operation) {
-        return operation.getProjection();
-    }
-
-    getFlipY(operation) {
-        return this._getProjection(operation)[1] < 0;
-    }
-
-    beforeDraw(operation) {
-    }
-
-    draw(operation) {
-    }
-
-    afterDraw(operation) {
-    }
-
-    cleanup() {
-        this._initialized = false;
-        // Program takes little resources, so it is only destroyed when the full stage is destroyed.
-    }
-
-}
-
-class WebGLDefaultShaderImpl extends WebGLShaderImpl {
-
-    constructor(shader) {
-        super(shader);
-    }
-
-    enableAttribs() {
-        // Enables the attribs in the shader program.
-        let gl = this.gl;
-        gl.vertexAttribPointer(this._attrib("aVertexPosition"), 2, gl.FLOAT, false, 20, 0);
-        gl.enableVertexAttribArray(this._attrib("aVertexPosition"));
-
-        if (this._attrib("aTextureCoord") !== -1) {
-            gl.vertexAttribPointer(this._attrib("aTextureCoord"), 2, gl.FLOAT, true, 20, 2 * 4);
-            gl.enableVertexAttribArray(this._attrib("aTextureCoord"));
-        }
-
-        if (this._attrib("aColor") !== -1) {
-            // Some shaders may ignore the color.
-            gl.vertexAttribPointer(this._attrib("aColor"), 4, gl.UNSIGNED_BYTE, true, 20, 4 * 4);
-            gl.enableVertexAttribArray(this._attrib("aColor"));
-        }
-    }
-
-    disableAttribs() {
-        // Disables the attribs in the shader program.
-        let gl = this.gl;
-        gl.disableVertexAttribArray(this._attrib("aVertexPosition"));
-
-        if (this._attrib("aTextureCoord") !== -1) {
-            gl.disableVertexAttribArray(this._attrib("aTextureCoord"));
-        }
-
-        if (this._attrib("aColor") !== -1) {
-            gl.disableVertexAttribArray(this._attrib("aColor"));
-        }
-    }
-
-    setupUniforms(operation) {
-        this._setUniform("projection", this._getProjection(operation), this.gl.uniform2fv, false);
-    }
-
-    draw(operation) {
-        let gl = this.gl;
-
-        let length = operation.length;
-
-        if (length) {
-            let glTexture = operation.getTexture(0);
-            let pos = 0;
-            for (let i = 0; i < length; i++) {
-                let tx = operation.getTexture(i);
-                if (glTexture !== tx) {
-                    gl.bindTexture(gl.TEXTURE_2D, glTexture);
-                    gl.drawElements(gl.TRIANGLES, 6 * (i - pos), gl.UNSIGNED_SHORT, (pos + operation.index + 1) * 6 * 2);
-                    glTexture = tx;
-                    pos = i;
-                }
-            }
-            if (pos < length) {
-                gl.bindTexture(gl.TEXTURE_2D, glTexture);
-                gl.drawElements(gl.TRIANGLES, 6 * (length - pos), gl.UNSIGNED_SHORT, (pos + operation.index + 1) * 6 * 2);
-            }
-        }
-    }
-
-}
-
-WebGLDefaultShaderImpl.vertexShaderSource = `
-    #ifdef GL_ES
-    precision lowp float;
-    #endif
-    attribute vec2 aVertexPosition;
-    attribute vec2 aTextureCoord;
-    attribute vec4 aColor;
-    uniform vec2 projection;
-    varying vec2 vTextureCoord;
-    varying vec4 vColor;
-    void main(void){
-        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);
-        vTextureCoord = aTextureCoord;
-        vColor = aColor;
-        gl_Position.y = -sign(projection.y) * gl_Position.y;
-    }
-`;
-
-WebGLDefaultShaderImpl.fragmentShaderSource = `
-    #ifdef GL_ES
-    precision lowp float;
-    #endif
-    varying vec2 vTextureCoord;
-    varying vec4 vColor;
-    uniform sampler2D uSampler;
-    void main(void){
-        gl_FragColor = texture2D(uSampler, vTextureCoord) * vColor;
-    }
-`;
-
-class C2dShaderImpl {
-
-    constructor(shader) {
-        this._shader = shader;
-    }
-
-    beforeDraw(operation) {
-    }
-
-    draw(operation) {
-    }
-
-    afterDraw(operation) {
-    }
-
-}
-
-class C2dDefaultShaderImpl extends C2dShaderImpl {
-
-    constructor(shader) {
-        super(shader);
-        this._filterUrl = shader.ctx.stage.renderer.svgBlobUrl;
-        this._rectangleTexture = shader.ctx.stage.rectangleTexture.source.nativeTexture;
-    }
-
-    draw(operation, target) {
-        const ctx = target.ctx;
-        let length = operation.length;
-        for (let i = 0; i < length; i++) {
-            const tx = operation.getTexture(i);
-            const vc = operation.getViewCore(i);
-            const rc = operation.getRenderContext(i);
-
-            //@todo: try to optimize out per-draw transform setting. split translate, transform.
-            ctx.setTransform(rc.ta, rc.tc, rc.tb, rc.td, rc.px, rc.py);
-
-            if (tx === this._rectangleTexture) {
-                // Check for gradient.
-                let color = vc._colorUl;
-                let gradient;
-                //@todo: quick single color check.
-                //@todo: cache gradient/fill style (if possible, probably context-specific).
-
-                if (vc._colorUl === vc._colorUr) {
-                    if (vc._colorBl === vc._colorBr) {
-                        if (vc._colorUl === vc.colorBl) ; else {
-                            // Vertical gradient.
-                            gradient = ctx.createLinearGradient(0, 0, 0, vc.rh);
-                            gradient.addColorStop(0, StageUtils.getRgbaString(vc._colorUl));
-                            gradient.addColorStop(1, StageUtils.getRgbaString(vc._colorBl));
-                        }
-                    }
-                } else {
-                    if (vc._colorUl === vc._colorBl && vc._colorUr === vc._colorBr) {
-                        // Horizontal gradient.
-                        gradient = ctx.createLinearGradient(0, 0, vc.rw, 0);
-                        gradient.addColorStop(0, StageUtils.getRgbaString(vc._colorUl));
-                        gradient.addColorStop(1, StageUtils.getRgbaString(vc._colorBr));
-                    }
-                }
-
-                ctx.fillStyle = (gradient || StageUtils.getRgbaString(color));
-                ctx.fillRect(0, 0, vc.rw, vc.rh);
-            } else {
-                // @todo: set image smoothing based on the texture.
-
-                //@todo: optimize by registering whether identity texcoords are used.
-                ctx.globalAlpha = rc.alpha;
-                ctx.drawImage(tx, vc._ulx * tx.w, vc._uly * tx.h, (vc._brx - vc._ulx) * tx.w, (vc._bry - vc._uly) * tx.h, 0, 0, vc.rw, vc.rh);
-                ctx.globalAlpha = 1.0;
-
-                //@todo: colorize does not really work the way we want it to.
-                // if (vc._colorUl !== 0xFFFFFFFF) {
-                //     ctx.globalCompositeOperation = 'multiply';
-                //     ctx.fillStyle = StageUtils.getRgbaString(vc._colorUl);
-                //     ctx.fillRect(0, 0, vc.rw, vc.rh);
-                //     ctx.globalCompositeOperation = 'source-over';
-                // }
-
-            }
-        }
-    }
-
-}
-
-class DefaultShader extends Shader {
-
-    constructor(coreContext) {
-        super(coreContext);
-        this.isDefault = this.constructor === DefaultShader;
-    }
-
-    static getWebGLImpl() {
-        return WebGLDefaultShaderImpl;
-    }
-
-    static getC2dImpl() {
-        return C2dDefaultShaderImpl;
-    }
-
-}
-
-DefaultShader.prototype.isShader = true;
-
 class CoreRenderState {
 
     constructor(ctx) {
@@ -8635,7 +8006,7 @@ class CoreRenderState {
 
         this.stage = ctx.stage;
 
-        this.defaultShader = new DefaultShader(this.ctx);
+        this.defaultShader = this.stage.renderer.getDefaultShader(ctx);
 
         this.renderer = ctx.stage.renderer;
 
@@ -8648,9 +8019,6 @@ class CoreRenderState {
 
         this._scissor = null;
 
-        /**
-         * @type {DefaultShader}
-         */
         this._shader = null;
 
         this._shaderOwner = null;
@@ -8865,15 +8233,440 @@ class CoreRenderState {
 
 }
 
-class WebGLRenderer {
+/**
+ * Base functionality for shader setup/destroy.
+ */
+class WebGLShaderProgram {
+
+    constructor(vertexShaderSource, fragmentShaderSource) {
+
+        this.vertexShaderSource = vertexShaderSource;
+        this.fragmentShaderSource = fragmentShaderSource;
+
+        this._program = null;
+
+        this._uniformLocations = new Map();
+        this._attributeLocations = new Map();
+
+        this._currentUniformValues = {};
+    }
+
+    compile(gl) {
+        if (this._program) return;
+
+        this.gl = gl;
+
+        this._program = gl.createProgram();
+
+        let glVertShader = this._glCompile(gl.VERTEX_SHADER, this.vertexShaderSource);
+        let glFragShader = this._glCompile(gl.FRAGMENT_SHADER, this.fragmentShaderSource);
+
+        gl.attachShader(this._program, glVertShader);
+        gl.attachShader(this._program, glFragShader);
+        gl.linkProgram(this._program);
+
+        // if linking fails, then log and cleanup
+        if (!gl.getProgramParameter(this._program, gl.LINK_STATUS)) {
+            console.error('Error: Could not initialize shader.');
+            console.error('gl.VALIDATE_STATUS', gl.getProgramParameter(this._program, gl.VALIDATE_STATUS));
+            console.error('gl.getError()', gl.getError());
+
+            // if there is a program info log, log it
+            if (gl.getProgramInfoLog(this._program) !== '') {
+                console.warn('Warning: gl.getProgramInfoLog()', gl.getProgramInfoLog(this._program));
+            }
+
+            gl.deleteProgram(this._program);
+            this._program = null;
+        }
+
+        // clean up some shaders
+        gl.deleteShader(glVertShader);
+        gl.deleteShader(glFragShader);
+    }
+
+    _glCompile(type, src) {
+        let shader = this.gl.createShader(type);
+
+        this.gl.shaderSource(shader, src);
+        this.gl.compileShader(shader);
+
+        if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
+            console.log(this.constructor.name, 'Type: ' + (type === this.gl.VERTEX_SHADER ? 'vertex shader' : 'fragment shader') );
+            console.log(this.gl.getShaderInfoLog(shader));
+            let idx = 0;
+            console.log("========== source ==========\n" + src.split("\n").map(line => "" + (++idx) + ": " + line).join("\n"));
+            return null;
+        }
+
+        return shader;
+    }
+
+    getUniformLocation(name) {
+        let location = this._uniformLocations.get(name);
+        if (location === undefined) {
+            location = this.gl.getUniformLocation(this._program, name);
+            this._uniformLocations.set(name, location);
+        }
+
+        return location;
+    }
+
+    getAttribLocation(name) {
+        let location = this._attributeLocations.get(name);
+        if (location === undefined) {
+            location = this.gl.getAttribLocation(this._program, name);
+            this._attributeLocations.set(name, location);
+        }
+
+        return location;
+    }
+
+    destroy() {
+        if (this._program) {
+            this.gl.deleteProgram(this._program);
+            this._program = null;
+        }
+    }
+
+    get glProgram() {
+        return this._program;
+    }
+
+    get compiled() {
+        return !!this._program;
+    }
+
+    _valueEquals(v1, v2) {
+        // Uniform value is either a typed array or a numeric value.
+        if (v1.length && v2.length) {
+            for (let i = 0, n = v1.length; i < n; i++) {
+                if (v1[i] !== v2[i]) return false;
+            }
+            return true;
+        } else {
+            return (v1 === v2);
+        }
+    }
+
+    _valueClone(v) {
+        if (v.length) {
+            return v.slice(0);
+        } else {
+            return v;
+        }
+    }
+
+    setUniformValue(name, value, glFunction) {
+        let v = this._currentUniformValues[name];
+        if (v === undefined || !this._valueEquals(v, value)) {
+            let clonedValue = this._valueClone(value);
+            this._currentUniformValues[name] = clonedValue;
+
+            let loc = this.getUniformLocation(name);
+            if (loc) {
+                let isMatrix = (glFunction === this.gl.uniformMatrix2fv || glFunction === this.gl.uniformMatrix3fv || glFunction === this.gl.uniformMatrix4fv);
+                if (isMatrix) {
+                    glFunction.call(this.gl, loc, false, clonedValue);
+                } else {
+                    glFunction.call(this.gl, loc, clonedValue);
+                }
+            }
+        }
+    }
+
+}
+
+class WebGLShader extends Shader {
+
+    constructor(ctx) {
+        super(ctx);
+
+        const stage = ctx.stage;
+
+        this._program = stage.renderer.shaderPrograms.get(this.constructor);
+        if (!this._program) {
+            this._program = new WebGLShaderProgram(this.constructor.vertexShaderSource, this.constructor.fragmentShaderSource);
+
+            // Let the vbo context perform garbage collection.
+            stage.renderer.shaderPrograms.set(this.constructor, this._program);
+        }
+
+        this.gl = stage.gl;
+    }
+
+    get glProgram() {
+        return this._program.glProgram;
+    }
+
+    _init() {
+        if (!this._initialized) {
+            this.initialize();
+            this._initialized = true;
+        }
+    }
+
+    initialize() {
+        this._program.compile(this.gl);
+    }
+
+    get initialized() {
+        return this._initialized;
+    }
+
+    _uniform(name) {
+        return this._program.getUniformLocation(name);
+    }
+
+    _attrib(name) {
+        return this._program.getAttribLocation(name);
+    }
+
+    _setUniform(name, value, glFunction) {
+        this._program.setUniformValue(name, value, glFunction);
+    }
+
+    useProgram() {
+        this._init();
+        this.gl.useProgram(this.glProgram);
+        this.beforeUsage();
+        this.enableAttribs();
+    }
+
+    stopProgram() {
+        this.afterUsage();
+        this.disableAttribs();
+    }
+
+    hasSameProgram(other) {
+        // For performance reasons, we first check for identical references.
+        return (other && ((other === this) || (other._program === this._program)));
+    }
+
+    beforeUsage() {
+        // Override to set settings other than the default settings (blend mode etc).
+    }
+
+    afterUsage() {
+        // All settings changed in beforeUsage should be reset here.
+    }
+
+    enableAttribs() {
+
+    }
+
+    disableAttribs() {
+
+    }
+
+    getExtraAttribBytesPerVertex() {
+        return 0;
+    }
+
+    getVertexAttribPointerOffset(operation) {
+        return operation.extraAttribsDataByteOffset - (operation.index + 1) * 4 * this.getExtraAttribBytesPerVertex();
+    }
+
+    setExtraAttribsInBuffer(operation) {
+        // Set extra attrib data in in operation.quads.data/floats/uints, starting from
+        // operation.extraAttribsBufferByteOffset.
+    }
+
+    setupUniforms(operation) {
+        // Set all shader-specific uniforms.
+        // Notice that all uniforms should be set, even if they have not been changed within this shader instance.
+        // The uniforms are shared by all shaders that have the same type (and shader program).
+    }
+
+    _getProjection(operation) {
+        return operation.getProjection();
+    }
+
+    getFlipY(operation) {
+        return this._getProjection(operation)[1] < 0;
+    }
+
+    beforeDraw(operation) {
+    }
+
+    draw(operation) {
+    }
+
+    afterDraw(operation) {
+    }
+
+    cleanup() {
+        this._initialized = false;
+        // Program takes little resources, so it is only destroyed when the full stage is destroyed.
+    }
+
+}
+
+class DefaultShader$1 extends WebGLShader {
+
+    enableAttribs() {
+        // Enables the attribs in the shader program.
+        let gl = this.gl;
+        gl.vertexAttribPointer(this._attrib("aVertexPosition"), 2, gl.FLOAT, false, 20, 0);
+        gl.enableVertexAttribArray(this._attrib("aVertexPosition"));
+
+        if (this._attrib("aTextureCoord") !== -1) {
+            gl.vertexAttribPointer(this._attrib("aTextureCoord"), 2, gl.FLOAT, true, 20, 2 * 4);
+            gl.enableVertexAttribArray(this._attrib("aTextureCoord"));
+        }
+
+        if (this._attrib("aColor") !== -1) {
+            // Some shaders may ignore the color.
+            gl.vertexAttribPointer(this._attrib("aColor"), 4, gl.UNSIGNED_BYTE, true, 20, 4 * 4);
+            gl.enableVertexAttribArray(this._attrib("aColor"));
+        }
+    }
+
+    disableAttribs() {
+        // Disables the attribs in the shader program.
+        let gl = this.gl;
+        gl.disableVertexAttribArray(this._attrib("aVertexPosition"));
+
+        if (this._attrib("aTextureCoord") !== -1) {
+            gl.disableVertexAttribArray(this._attrib("aTextureCoord"));
+        }
+
+        if (this._attrib("aColor") !== -1) {
+            gl.disableVertexAttribArray(this._attrib("aColor"));
+        }
+    }
+
+    setupUniforms(operation) {
+        this._setUniform("projection", this._getProjection(operation), this.gl.uniform2fv, false);
+    }
+
+    draw(operation) {
+        let gl = this.gl;
+
+        let length = operation.length;
+
+        if (length) {
+            let glTexture = operation.getTexture(0);
+            let pos = 0;
+            for (let i = 0; i < length; i++) {
+                let tx = operation.getTexture(i);
+                if (glTexture !== tx) {
+                    gl.bindTexture(gl.TEXTURE_2D, glTexture);
+                    gl.drawElements(gl.TRIANGLES, 6 * (i - pos), gl.UNSIGNED_SHORT, (pos + operation.index + 1) * 6 * 2);
+                    glTexture = tx;
+                    pos = i;
+                }
+            }
+            if (pos < length) {
+                gl.bindTexture(gl.TEXTURE_2D, glTexture);
+                gl.drawElements(gl.TRIANGLES, 6 * (length - pos), gl.UNSIGNED_SHORT, (pos + operation.index + 1) * 6 * 2);
+            }
+        }
+    }
+
+}
+
+DefaultShader$1.vertexShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    attribute vec2 aVertexPosition;
+    attribute vec2 aTextureCoord;
+    attribute vec4 aColor;
+    uniform vec2 projection;
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    void main(void){
+        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);
+        vTextureCoord = aTextureCoord;
+        vColor = aColor;
+        gl_Position.y = -sign(projection.y) * gl_Position.y;
+    }
+`;
+
+DefaultShader$1.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    uniform sampler2D uSampler;
+    void main(void){
+        gl_FragColor = texture2D(uSampler, vTextureCoord) * vColor;
+    }
+`;
+
+class Renderer {
 
     constructor(stage) {
         this.stage = stage;
+        this._defaultShader = undefined;
+    }
+
+    getDefaultShader(ctx = this.stage.ctx) {
+        if (!this._defaultShader) {
+            this._defaultShader = this._createDefaultShader(ctx);
+        }
+        return this._defaultShader;
+    }
+
+    _createDefaultShader(ctx) {
+    }
+
+    isValidShaderType(shaderType) {
+        return (shaderType.prototype instanceof this._getShaderBaseType());
+    }
+
+    createShader(ctx, settings) {
+        const shaderType = settings.type || DefaultShader;
+        // If shader type is not correct, use a different platform.
+        if (!this.isValidShaderType(shaderType)) {
+            const convertedShaderType = this._getShaderAlternative(shaderType);
+            if (!convertedShaderType) {
+                console.warn("Shader has no implementation for render target: " + shaderType.name);
+                return this._createDefaultShader(ctx);
+            }
+            return new convertedShaderType(ctx);
+        } else {
+            const shader = new shaderType(ctx);
+            this.stage.patchObject(this, settings);
+            return shader;
+        }
+    }
+
+    _getShaderBaseType() {
+    }
+
+    _getShaderAlternative(shaderType) {
+        return this.getDefaultShader();
+    }
+
+    getPatchId() {
+    }
+
+}
+
+class WebGLRenderer extends Renderer {
+
+    constructor(stage) {
+        super(stage);
         this.shaderPrograms = new Map();
     }
 
     destroy() {
         this.shaderPrograms.forEach(shaderProgram => shaderProgram.destroy());
+    }
+
+    _createDefaultShader(ctx) {
+        return new DefaultShader$1(ctx);
+    }
+
+    _getShaderBaseType() {
+        return WebGLShader
+    }
+
+    _getShaderAlternative(shaderType) {
+        return shaderType.getWebGL && shaderType.getWebGL();
     }
 
     createCoreQuadList(ctx) {
@@ -8981,7 +8774,7 @@ class WebGLRenderer {
         texOptions.type = texOptions.type || gl.UNSIGNED_BYTE;
         texOptions.internalFormat = texOptions.internalFormat || texOptions.format;
 
-        this.stage.adapter.uploadGlTexture(gl, textureSource, source, texOptions);
+        this.stage.platform.uploadGlTexture(gl, textureSource, source, texOptions);
 
         glTexture.params = Utils.cloneObjShallow(texParams);
         glTexture.options = Utils.cloneObjShallow(texOptions);
@@ -9084,16 +8877,18 @@ class WebGLRenderer {
         let offset = renderState.length * 80 + 80;
         for (let i = 0, n = renderState.quadOperations.length; i < n; i++) {
             renderState.quadOperations[i].extraAttribsDataByteOffset = offset;
-            let extra = renderState.quadOperations[i].shader.impl.getExtraAttribBytesPerVertex() * 4 * renderState.quadOperations[i].length;
+            let extra = renderState.quadOperations[i].shader.getExtraAttribBytesPerVertex() * 4 * renderState.quadOperations[i].length;
             offset += extra;
             if (extra) {
-                renderState.quadOperations[i].shader.impl.setExtraAttribsInBuffer(renderState.quadOperations[i], renderState.quads);
+                renderState.quadOperations[i].shader.setExtraAttribsInBuffer(renderState.quadOperations[i], renderState.quads);
             }
         }
         renderState.quads.dataLength = offset;
     }
 
-
+    getPatchId() {
+        return "webgl";
+    }
 }
 
 class C2dCoreQuadList extends CoreQuadList {
@@ -9124,13 +8919,13 @@ class C2dCoreRenderExecutor extends CoreRenderExecutor {
     }
 
     _renderQuadOperation(op) {
-        let shaderImpl = op.shader.impl;
+        let shader = op.shader;
 
         if (op.length || op.shader.addEmpty()) {
             const target = this._renderTexture || this._mainRenderTexture;
-            shaderImpl.beforeDraw(op, target);
-            shaderImpl.draw(op, target);
-            shaderImpl.afterDraw(op, target);
+            shader.beforeDraw(op, target);
+            shader.draw(op, target);
+            shader.afterDraw(op, target);
         }
     }
 
@@ -9199,12 +8994,120 @@ class C2dCoreRenderExecutor extends CoreRenderExecutor {
 
 }
 
-class C2dRenderer {
+class C2dShader extends Shader {
+
+    beforeDraw(operation) {
+    }
+
+    draw(operation) {
+    }
+
+    afterDraw(operation) {
+    }
+
+}
+
+class DefaultShader$2 extends C2dShader {
+
+    constructor(ctx) {
+        super(ctx);
+        this._rectangleTexture = ctx.stage.rectangleTexture.source.nativeTexture;
+    }
+
+    draw(operation, target) {
+        const ctx = target.ctx;
+        let length = operation.length;
+        for (let i = 0; i < length; i++) {
+            const tx = operation.getTexture(i);
+            const vc = operation.getViewCore(i);
+            const rc = operation.getRenderContext(i);
+
+            //@todo: try to optimize out per-draw transform setting. split translate, transform.
+            ctx.setTransform(rc.ta, rc.tc, rc.tb, rc.td, rc.px, rc.py);
+
+            const rect = (tx === this._rectangleTexture);
+            const info = {operation, target, index: i, rect};
+
+            if (rect) {
+                // Check for gradient.
+                let color = vc._colorUl;
+                let gradient;
+                //@todo: quick single color check.
+                //@todo: cache gradient/fill style (if possible, probably context-specific).
+
+                if (vc._colorUl === vc._colorUr) {
+                    if (vc._colorBl === vc._colorBr) {
+                        if (vc._colorUl === vc.colorBl) ; else {
+                            // Vertical gradient.
+                            gradient = ctx.createLinearGradient(0, 0, 0, vc.rh);
+                            gradient.addColorStop(0, StageUtils.getRgbaString(vc._colorUl));
+                            gradient.addColorStop(1, StageUtils.getRgbaString(vc._colorBl));
+                        }
+                    }
+                } else {
+                    if (vc._colorUl === vc._colorBl && vc._colorUr === vc._colorBr) {
+                        // Horizontal gradient.
+                        gradient = ctx.createLinearGradient(0, 0, vc.rw, 0);
+                        gradient.addColorStop(0, StageUtils.getRgbaString(vc._colorUl));
+                        gradient.addColorStop(1, StageUtils.getRgbaString(vc._colorBr));
+                    }
+                }
+
+                ctx.fillStyle = (gradient || StageUtils.getRgbaString(color));
+
+                info.gradient = gradient;
+                info.color = color;
+                this._beforeDrawEl(info);
+                ctx.fillRect(0, 0, vc.rw, vc.rh);
+                this._afterDrawEl(info);
+            } else {
+                // @todo: set image smoothing based on the texture.
+
+                //@todo: optimize by registering whether identity texcoords are used.
+                ctx.globalAlpha = rc.alpha;
+                this._beforeDrawEl(info);
+                ctx.drawImage(tx, vc._ulx * tx.w, vc._uly * tx.h, (vc._brx - vc._ulx) * tx.w, (vc._bry - vc._uly) * tx.h, 0, 0, vc.rw, vc.rh);
+                this._afterDrawEl(info);
+                ctx.globalAlpha = 1.0;
+
+                //@todo: colorize does not really work the way we want it to.
+                // if (vc._colorUl !== 0xFFFFFFFF) {
+                //     ctx.globalCompositeOperation = 'multiply';
+                //     ctx.fillStyle = StageUtils.getRgbaString(vc._colorUl);
+                //     ctx.fillRect(0, 0, vc.rw, vc.rh);
+                //     ctx.globalCompositeOperation = 'source-over';
+                // }
+
+            }
+        }
+    }
+
+    _beforeDrawEl(info) {
+    }
+
+    _afterDrawEl(info) {
+    }
+
+}
+
+class C2dRenderer extends Renderer {
 
     constructor(stage) {
-        this.stage = stage;
+        super(stage);
 
         this.setupC2d(this.stage.c2d.canvas);
+    }
+
+    _createDefaultShader(ctx) {
+        return new DefaultShader$2(ctx);
+    }
+
+    _getShaderBaseType() {
+        return C2dShader
+    }
+
+    _getShaderAlternative(shaderType) {
+        return shaderType.getC2d && shaderType.getC2d();
     }
 
     createCoreQuadList(ctx) {
@@ -9281,6 +9184,146 @@ class C2dRenderer {
         canvas$$1.ctx.save();
     }
 
+    getPatchId() {
+        return "c2d";
+    }
+}
+
+class NodePlatform {
+    
+    init(stage) {
+        this.stage = stage;
+        this._looping = false;
+        this._awaitingLoop = false;
+    }
+
+    startLoop() {
+        this._looping = true;
+        if (!this._awaitingLoop) {
+            this.loop();
+        }
+    }
+
+    stopLoop() {
+        this._looping = false;
+    }
+
+    loop() {
+        let self = this;
+        let lp = function() {
+            self._awaitingLoop = false;
+            if (self._looping) {
+                self.stage.drawFrame();
+                if (self.changes) {
+                    // We depend on blit to limit to 60fps.
+                    setImmediate(lp);
+                } else {
+                    setTimeout(lp, 16);
+                }
+                self._awaitingLoop = true;
+            }
+        };
+        setTimeout(lp, 16);
+    }
+
+    uploadGlTexture(gl, textureSource, source, options) {
+        gl.texImage2D(gl.TEXTURE_2D, 0, options.internalFormat, textureSource.w, textureSource.h, 0, options.format, options.type, source);
+    }
+
+    loadSrcTexture({src}, cb) {
+        if (/^https?:\/\//i.test(src)) {
+            // URL. Download first.
+            let mod = null;
+            if (src.toLowerCase().indexOf("https:") === 0) {
+                mod = https;
+            } else {
+                mod = http;
+            }
+
+            mod.get(src, function(res) {
+                if (res.statusCode !== 200) {
+                    return cb(new Error("Status code " + res.statusCode + " for " + src));
+                }
+
+                let total = [];
+                res.on('data', (d) => {
+                    total.push(d);
+                });
+                res.on('end', () => {
+                    let buf = Buffer.concat(total);
+                    this.parseImage(buf, cb);
+                });
+            }).on('error', function(err) {
+                cb(err);
+            });
+        } else {
+            // File system.
+            fs.readFile(src, (err, res) => {
+                if (err) {
+                    console.error('Error loading image', src, err);
+                } else {
+                    this.parseImage(res, cb);
+                }
+            });
+        }
+    }
+    
+    parseImage(data, cb) {
+        let img = new canvas.Image();
+        img.src = data;
+        let buf = img.rawData;
+        cb(null, {source: buf, w: img.width, h: img.height, premultiplyAlpha: false, flipBlueRed: true});
+    }
+
+    createWebGLContext(w, h) {
+        let options = {width: w, height: h, title: "WebGL"};
+        const windowOptions = this.stage.getOption('window');
+        if (windowOptions) {
+            options = Object.assign(options, windowOptions);
+        }
+        let gl = gles2.init(options);
+        return gl;
+    }
+
+    getWebGLCanvas() {
+        return;
+    }
+
+    getTextureOptionsForDrawingCanvas(canvas$$1) {
+        let options = {};
+        options.source = canvas$$1.toBuffer('raw');
+        options.w = canvas$$1.width;
+        options.h = canvas$$1.height;
+        options.premultiplyAlpha = false;
+        options.flipBlueRed = true;
+        return options;
+    }
+
+    getHrTime() {
+        let hrTime = process.hrtime();
+        return 1e3 * hrTime[0] + (hrTime[1] / 1e6);
+    }
+
+    getDrawingCanvas() {
+        // We can't reuse this canvas because textures may load async.
+        return new canvas.Canvas(0, 0);
+    }
+
+    nextFrame(changes) {
+        this.changes = changes;
+        gles2.nextFrame(changes);
+    }
+
+    registerKeyHandler(keyhandler) {
+        console.warn("No support for key handling");
+    }
+
+}
+
+class PlatformLoader {
+    static load(options) {
+        return NodePlatform;
+    }
 }
 
 class TextureManager {
@@ -9575,7 +9618,8 @@ class CoreContext {
 }
 
 class TransitionSettings {
-    constructor() {
+    constructor(stage) {
+        this.stage = stage;
         this._timingFunction = 'ease';
         this._timingFunctionImpl = StageUtils.getTimingFunction(this._timingFunction);
         this.delay = 0;
@@ -9597,7 +9641,7 @@ class TransitionSettings {
     }
 
     patch(settings) {
-        Base.patchObject(this, settings);
+        this.stage.patchObject(this, settings);
     }
 }
 
@@ -9617,7 +9661,7 @@ class TransitionManager {
          */
         this.active = new Set();
 
-        this.defaultTransitionSettings = new TransitionSettings();
+        this.defaultTransitionSettings = new TransitionSettings(this.stage);
     }
 
     progress() {
@@ -9639,8 +9683,8 @@ class TransitionManager {
     }
 
     createSettings(settings) {
-        let transitionSettings = new TransitionSettings();
-        Base.patchObject(transitionSettings, settings);
+        let transitionSettings = new TransitionSettings(this.stage);
+        transitionSettings.patch(settings);
         return transitionSettings;
     }
 
@@ -9653,11 +9697,9 @@ class TransitionManager {
     }
 }
 
-class AnimationActionItems {
-    
-    constructor(action) {
-        this._action = action;
-        
+class MultiSpline {
+
+    constructor() {
         this._clear();
     }
 
@@ -9676,8 +9718,8 @@ class AnimationActionItems {
 
         this._length = 0;
     }
-    
-    parse(def) {
+
+    parse(rgba, def) {
         let i, n;
         if (!Utils.isObjectLiteral(def)) {
             def = {0: def};
@@ -9695,7 +9737,7 @@ class AnimationActionItems {
 
                 let p = parseFloat(key);
 
-                if (key == "sm") {
+                if (key === "sm") {
                     defaultSmoothness = obj.v;
                 } else if (!isNaN(p) && p >= 0 && p <= 2) {
                     obj.p = p;
@@ -9714,7 +9756,7 @@ class AnimationActionItems {
         n = items.length;
 
         for (i = 0; i < n; i++) {
-            let last = (i == n - 1);
+            let last = (i === n - 1);
             if (!items[i].hasOwnProperty('pe')) {
                 // Progress.
                 items[i].pe = last ? (items[i].p <= 1 ? 1 : 2 /* support onetotwo stop */) : items[i + 1].p;
@@ -9733,7 +9775,6 @@ class AnimationActionItems {
         }
 
         // Color merger: we need to split/combine RGBA components.
-        const rgba = (this._action.hasColorProperty());
 
         // Calculate bezier helper values.;
         for (i = 0; i < n; i++) {
@@ -9753,8 +9794,8 @@ class AnimationActionItems {
                         items[i].s = rgba ? [0, 0, 0, 0] : 0;
                     } else {
                         if (rgba) {
-                            const nc = StageUtils.getRgbaComponents(ni.lv);
-                            const pc = StageUtils.getRgbaComponents(pi.lv);
+                            const nc = MultiSpline.getRgbaComponents(ni.lv);
+                            const pc = MultiSpline.getRgbaComponents(pi.lv);
                             const d = 1 / (ni.p - pi.p);
                             items[i].s = [
                                 d * (nc[0] - pc[0]),
@@ -9790,9 +9831,9 @@ class AnimationActionItems {
 
                     // Generate spline.;
                     if (rgba) {
-                        items[i].v = StageUtils.getSplineRgbaValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
+                        items[i].v = MultiSpline.getSplineRgbaValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
                     } else {
-                        items[i].v = StageUtils.getSplineValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
+                        items[i].v = MultiSpline.getSplineValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
                     }
 
                     items[i].f = true;
@@ -9806,7 +9847,7 @@ class AnimationActionItems {
 
         for (i = 0, n = items.length; i < n; i++) {
             this._add(items[i]);
-        }        
+        }
     }
 
     _add(item) {
@@ -9823,7 +9864,7 @@ class AnimationActionItems {
         this._se.push(item.se || 0);
         this._length++;
     }
-    
+
     _getItem(p) {
         const n = this._length;
         if (!n) {
@@ -9840,12 +9881,12 @@ class AnimationActionItems {
             }
         }
 
-        return n - 1;        
+        return n - 1;
     }
 
     getValue(p) {
         const i = this._getItem(p);
-        if (i == -1) {
+        if (i === -1) {
             return undefined;
         } else {
             if (this._f[i]) {
@@ -9861,11 +9902,234 @@ class AnimationActionItems {
         return this._length;
     }
 
+    static getRgbaComponents(argb) {
+        let r = ((argb / 65536) | 0) % 256;
+        let g = ((argb / 256) | 0) % 256;
+        let b = argb % 256;
+        let a = ((argb / 16777216) | 0);
+        return [r, g, b, a];
+    };
+
+    static getSplineValueFunction(v1, v2, p1, p2, o1, i2, s1, s2) {
+        // Normalize slopes because we use a spline that goes from 0 to 1.
+        let dp = p2 - p1;
+        s1 *= dp;
+        s2 *= dp;
+
+        let helpers = MultiSpline.getSplineHelpers(v1, v2, o1, i2, s1, s2);
+        if (!helpers) {
+            return function (p) {
+                if (p === 0) return v1;
+                if (p === 1) return v2;
+
+                return v2 * p + v1 * (1 - p);
+            };
+        } else {
+            return function (p) {
+                if (p === 0) return v1;
+                if (p === 1) return v2;
+                return MultiSpline.calculateSpline(helpers, p);
+            };
+        }
+    };
+
+    static getSplineRgbaValueFunction(v1, v2, p1, p2, o1, i2, s1, s2) {
+        // Normalize slopes because we use a spline that goes from 0 to 1.
+        let dp = p2 - p1;
+        s1[0] *= dp;
+        s1[1] *= dp;
+        s1[2] *= dp;
+        s1[3] *= dp;
+        s2[0] *= dp;
+        s2[1] *= dp;
+        s2[2] *= dp;
+        s2[3] *= dp;
+
+        let cv1 = MultiSpline.getRgbaComponents(v1);
+        let cv2 = MultiSpline.getRgbaComponents(v2);
+
+        let helpers = [
+            MultiSpline.getSplineHelpers(cv1[0], cv2[0], o1, i2, s1[0], s2[0]),
+            MultiSpline.getSplineHelpers(cv1[1], cv2[1], o1, i2, s1[1], s2[1]),
+            MultiSpline.getSplineHelpers(cv1[2], cv2[2], o1, i2, s1[2], s2[2]),
+            MultiSpline.getSplineHelpers(cv1[3], cv2[3], o1, i2, s1[3], s2[3])
+        ];
+
+        if (!helpers[0]) {
+            return function (p) {
+                // Linear.
+                if (p === 0) return v1;
+                if (p === 1) return v2;
+
+                return MultiSpline.mergeColors(v2, v1, p);
+            };
+        } else {
+            return function (p) {
+                if (p === 0) return v1;
+                if (p === 1) return v2;
+
+                return MultiSpline.getArgbNumber([
+                    Math.min(255, MultiSpline.calculateSpline(helpers[0], p)),
+                    Math.min(255, MultiSpline.calculateSpline(helpers[1], p)),
+                    Math.min(255, MultiSpline.calculateSpline(helpers[2], p)),
+                    Math.min(255, MultiSpline.calculateSpline(helpers[3], p))
+                ]);
+            };
+        }
+
+    };
+
+    /**
+     * Creates helpers to be used in the spline function.
+     * @param {number} v1
+     *   From value.
+     * @param {number} v2
+     *   To value.
+     * @param {number} o1
+     *   From smoothness (0 = linear, 1 = smooth).
+     * @param {number} s1
+     *   From slope (0 = horizontal, infinite = vertical).
+     * @param {number} i2
+     *   To smoothness.
+     * @param {number} s2
+     *   To slope.
+     * @returns {Number[]}
+     *   The helper values to be supplied to the spline function.
+     *   If the configuration is actually linear, null is returned.
+     */
+    static getSplineHelpers(v1, v2, o1, i2, s1, s2) {
+        if (!o1 && !i2) {
+            // Linear.
+            return null;
+        }
+
+        // Cubic bezier points.
+        // http://cubic-bezier.com/
+        let csx = o1;
+        let csy = v1 + s1 * o1;
+        let cex = 1 - i2;
+        let cey = v2 - s2 * i2;
+
+        let xa = 3 * csx - 3 * cex + 1;
+        let xb = -6 * csx + 3 * cex;
+        let xc = 3 * csx;
+
+        let ya = 3 * csy - 3 * cey + v2 - v1;
+        let yb = 3 * (cey + v1) - 6 * csy;
+        let yc = 3 * (csy - v1);
+        let yd = v1;
+
+        return [xa, xb, xc, ya, yb, yc, yd];
+    };
+
+    /**
+     * Calculates the intermediate spline value based on the specified helpers.
+     * @param {number[]} helpers
+     *   Obtained from getSplineHelpers.
+     * @param {number} p
+     * @return {number}
+     */
+    static calculateSpline(helpers, p) {
+        let xa = helpers[0];
+        let xb = helpers[1];
+        let xc = helpers[2];
+        let ya = helpers[3];
+        let yb = helpers[4];
+        let yc = helpers[5];
+        let yd = helpers[6];
+
+        if (xa === -2 && ya === -2 && xc === 0 && yc === 0) {
+            // Linear.
+            return p;
+        }
+
+        // Find t for p.
+        let t = 0.5, cbx, dx;
+
+        for (let it = 0; it < 20; it++) {
+            // Cubic bezier function: f(t)=t*(t*(t*a+b)+c).
+            cbx = t * (t * (t * xa + xb) + xc);
+
+            dx = p - cbx;
+            if (dx > -1e-8 && dx < 1e-8) {
+                // Solution found!
+                return t * (t * (t * ya + yb) + yc) + yd;
+            }
+
+            // Cubic bezier derivative function: f'(t)=t*(t*(3*a)+2*b)+c
+            let cbxd = t * (t * (3 * xa) + 2 * xb) + xc;
+
+            if (cbxd > 1e-10 && cbxd < 1e-10) {
+                // Problematic. Fall back to binary search method.
+                break;
+            }
+
+            t += dx / cbxd;
+        }
+
+        // Fallback: binary search method. This is more reliable when there are near-0 slopes.
+        let minT = 0;
+        let maxT = 1;
+        for (let it = 0; it < 20; it++) {
+            t = 0.5 * (minT + maxT);
+
+            // Cubic bezier function: f(t)=t*(t*(t*a+b)+c)+d.
+            cbx = t * (t * (t * xa + xb) + xc);
+
+            dx = p - cbx;
+            if (dx > -1e-8 && dx < 1e-8) {
+                // Solution found!
+                return t * (t * (t * ya + yb) + yc) + yd;
+            }
+
+            if (dx < 0) {
+                maxT = t;
+            } else {
+                minT = t;
+            }
+        }
+
+        return t;
+    };
+
+    static mergeColors(c1, c2, p) {
+        let r1 = ((c1 / 65536) | 0) % 256;
+        let g1 = ((c1 / 256) | 0) % 256;
+        let b1 = c1 % 256;
+        let a1 = ((c1 / 16777216) | 0);
+
+        let r2 = ((c2 / 65536) | 0) % 256;
+        let g2 = ((c2 / 256) | 0) % 256;
+        let b2 = c2 % 256;
+        let a2 = ((c2 / 16777216) | 0);
+
+        let r = r1 * p + r2 * (1 - p) | 0;
+        let g = g1 * p + g2 * (1 - p) | 0;
+        let b = b1 * p + b2 * (1 - p) | 0;
+        let a = a1 * p + a2 * (1 - p) | 0;
+
+        return a * 16777216 + r * 65536 + g * 256 + b;
+    };
+
+    static getArgbNumber(rgba) {
+        rgba[0] = Math.max(0, Math.min(255, rgba[0]));
+        rgba[1] = Math.max(0, Math.min(255, rgba[1]));
+        rgba[2] = Math.max(0, Math.min(255, rgba[2]));
+        rgba[3] = Math.max(0, Math.min(255, rgba[3]));
+        let v = ((rgba[3] | 0) << 24) + ((rgba[0] | 0) << 16) + ((rgba[1] | 0) << 8) + (rgba[2] | 0);
+        if (v < 0) {
+            v = 0xFFFFFFFF + v + 1;
+        }
+        return v;
+    };
 }
 
 class AnimationActionSettings {
 
-    constructor() {
+    constructor(animationSettings) {
+
+        this.animationSettings = animationSettings;
+
         /**
          * The selector that selects the views.
          * @type {string}
@@ -9874,10 +10138,10 @@ class AnimationActionSettings {
 
         /**
          * The value items, ordered by progress offset.
-         * @type {AnimationActionItems}
+         * @type {MultiSpline}
          * @private;
          */
-        this._items = new AnimationActionItems(this);
+        this._items = new MultiSpline();
 
         /**
          * The affected properties (paths).
@@ -9984,7 +10248,7 @@ class AnimationActionSettings {
     }
 
     set value(v) {
-        this._items.parse(v);
+        this._items.parse(this.hasColorProperty(), v);
     }
 
     set v(v) {
@@ -10014,7 +10278,7 @@ class AnimationActionSettings {
     }
 
     patch(settings) {
-        Base.patchObject(this, settings);
+        this.animationSettings.stage.patchObject(this, settings);
     }
 
     hasColorProperty() {
@@ -10028,7 +10292,9 @@ class AnimationActionSettings {
 AnimationActionSettings.prototype.isAnimationActionSettings = true;
 
 class AnimationSettings {
-    constructor() {
+    constructor(stage) {
+        this.stage = stage;
+
         /**
          * @type {AnimationActionSettings[]}
          */
@@ -10104,7 +10370,7 @@ class AnimationSettings {
     }
 
     patch(settings) {
-        Base.patchObject(this, settings);
+        this.stage.patchObject(this, settings);
     }
 }
 
@@ -10528,8 +10794,8 @@ class AnimationManager {
     }
 
     createSettings(settings) {
-        const animationSettings = new AnimationSettings();
-        Base.patchObject(animationSettings, settings);
+        const animationSettings = new AnimationSettings(this.stage);
+        animationSettings.patch(settings);
         return animationSettings;
     }
 
@@ -10564,11 +10830,11 @@ class Stage extends EventEmitter {
         super();
         this._setOptions(options);
 
-        // Platform adapter should be injected before creating the stage.
-        this.adapter = new Stage.ADAPTER();
+        const platformType = PlatformLoader.load(options);
+        this.platform = new platformType();
 
-        if (this.adapter.init) {
-            this.adapter.init(this);
+        if (this.platform.init) {
+            this.platform.init(this);
         }
 
         this.gl = undefined;
@@ -10582,10 +10848,10 @@ class Stage extends EventEmitter {
                 this.c2d = context;
             }
         } else {
-            if (!Stage.isWebglSupported() || this.getOption('canvas2d')) {
-                this.c2d = this.adapter.createCanvasContext(this.getOption('w'), this.getOption('h'));
+            if (!Utils.isWeb && (!Stage.isWebglSupported() || this.getOption('canvas2d'))) {
+                this.c2d = this.platform.createCanvasContext(this.getOption('w'), this.getOption('h'));
             } else {
-                this.gl = this.adapter.createWebGLContext(this.getOption('w'), this.getOption('h'));
+                this.gl = this.platform.createWebGLContext(this.getOption('w'), this.getOption('h'));
             }
         }
 
@@ -10612,8 +10878,6 @@ class Stage extends EventEmitter {
 
         this.textureManager = new TextureManager(this);
 
-        this.ctx = new CoreContext(this);
-
         this._destroyed = false;
 
         this.startTime = 0;
@@ -10626,6 +10890,8 @@ class Stage extends EventEmitter {
 
         // Never clean up because we use it all the time.
         this.rectangleTexture.source.permanent = true;
+
+        this.ctx = new CoreContext(this);
 
         this._updateSourceTextures = new Set();
     }
@@ -10693,6 +10959,7 @@ class Stage extends EventEmitter {
         opt('autostart', true);
         opt('precision', 1);
         opt('canvas2d', false);
+        opt('platform', undefined);
     }
 
     setApplication(app) {
@@ -10702,14 +10969,14 @@ class Stage extends EventEmitter {
     init() {
         this.application.setAsRoot();
         if (this.getOption('autostart')) {
-            this.adapter.startLoop();
+            this.platform.startLoop();
         }
     }
 
     destroy() {
         if (!this._destroyed) {
             this.application.destroy();
-            this.adapter.stopLoop();
+            this.platform.stopLoop();
             this.ctx.destroy();
             this.textureManager.destroy();
             this._renderer.destroy();
@@ -10718,14 +10985,14 @@ class Stage extends EventEmitter {
     }
 
     stop() {
-        this.adapter.stopLoop();
+        this.platform.stopLoop();
     }
 
     resume() {
         if (this._destroyed) {
             throw new Error("Already destroyed");
         }
-        this.adapter.startLoop();
+        this.platform.startLoop();
     }
 
     get root() {
@@ -10761,7 +11028,7 @@ class Stage extends EventEmitter {
 
     drawFrame() {
         this.startTime = this.currentTime;
-        this.currentTime = this.adapter.getHrTime();
+        this.currentTime = this.platform.getHrTime();
 
         if (this._options.fixedDt) {
             this.dt = this._options.fixedDt;
@@ -10792,7 +11059,7 @@ class Stage extends EventEmitter {
             this._updatingFrame = false;
         }
 
-        this.adapter.nextFrame(changes);
+        this.platform.nextFrame(changes);
 
         this.emit('frameEnd');
 
@@ -10890,7 +11157,16 @@ class Stage extends EventEmitter {
     }
 
     getDrawingCanvas() {
-        return this.adapter.getDrawingCanvas();
+        return this.platform.getDrawingCanvas();
+    }
+
+    patchObject(object, settings) {
+        settings = Base.preparePatchSettings(settings, this.getPatchId());
+        Base.patchObject(object, settings);
+    }
+
+    getPatchId() {
+        return this.renderer.getPatchId();
     }
 
 }
@@ -11217,7 +11493,7 @@ class Application extends Component {
 
         this.__keymap = this.getOption('keys');
         if (this.__keymap) {
-            this.stage.adapter.registerKeyHandler((e) => {
+            this.stage.platform.registerKeyHandler((e) => {
                 this._receiveKeydown(e);
             });
         }
@@ -11484,7 +11760,7 @@ class StaticCanvasTexture extends Texture {
                 if (err) {
                     return cb(err);
                 }
-                cb(null, this.stage.adapter.getTextureOptionsForDrawingCanvas(canvas$$1));
+                cb(null, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas$$1));
             }, this.stage);
         }
     }
@@ -11514,7 +11790,7 @@ class Tools {
         if (fill === undefined) fill = true;
         if (strokeWidth === undefined) strokeWidth = 0;
 
-        let canvas$$1 = stage.adapter.getDrawingCanvas();
+        let canvas$$1 = stage.platform.getDrawingCanvas();
         let ctx = canvas$$1.getContext('2d');
         ctx.imageSmoothingEnabled = true;
 
@@ -11570,7 +11846,7 @@ class Tools {
     }
 
     static createShadowRect(stage, w, h, radius, blur, margin) {
-        let canvas$$1 = stage.adapter.getDrawingCanvas();
+        let canvas$$1 = stage.platform.getDrawingCanvas();
         let ctx = canvas$$1.getContext('2d');
         ctx.imageSmoothingEnabled = true;
 
@@ -11615,7 +11891,7 @@ class Tools {
     }
 
     static createSvg(cb, stage, url, w, h) {
-        let canvas$$1 = stage.adapter.getDrawingCanvas();
+        let canvas$$1 = stage.platform.getDrawingCanvas();
         let ctx = canvas$$1.getContext('2d');
         ctx.imageSmoothingEnabled = true;
 
@@ -12356,7 +12632,8 @@ class ListItems extends ObjectListWrapper {
 
 }
 
-class LinearBlurShader extends DefaultShader {
+class LinearBlurShader extends DefaultShader$1 {
+
     constructor(context) {
         super(context);
 
@@ -12396,15 +12673,10 @@ class LinearBlurShader extends DefaultShader {
         return (this._kernelRadius === 0);
     }
 
-    static getWebGLImpl() {
-        return WebGLLinearBlurShaderImpl;
-    }
-}
-class WebGLLinearBlurShaderImpl extends WebGLDefaultShaderImpl {
     setupUniforms(operation) {
         super.setupUniforms(operation);
-        this._setUniform("direction", this.shader._direction, this.gl.uniform2fv);
-        this._setUniform("kernelRadius", this.shader._kernelRadius, this.gl.uniform1i);
+        this._setUniform("direction", this._direction, this.gl.uniform2fv);
+        this._setUniform("kernelRadius", this._kernelRadius, this.gl.uniform1i);
 
         const w = operation.getRenderWidth();
         const h = operation.getRenderHeight();
@@ -12412,7 +12684,7 @@ class WebGLLinearBlurShaderImpl extends WebGLDefaultShaderImpl {
     }
 }
 
-WebGLLinearBlurShaderImpl.fragmentShaderSource = `
+LinearBlurShader.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -12473,28 +12745,18 @@ WebGLLinearBlurShaderImpl.fragmentShaderSource = `
 /**
  * 4x4 box blur shader which works in conjunction with a 50% rescale.
  */
-class BoxBlurShader extends DefaultShader {
+class BoxBlurShader extends DefaultShader$1 {
 
-    constructor(ctx) {
-        super(ctx);
-    }
-
-    static getWebGLImpl() {
-        return WebGLBoxBlurShaderImpl;
-    }
-
-}
-
-class WebGLBoxBlurShaderImpl extends WebGLDefaultShaderImpl {
     setupUniforms(operation) {
         super.setupUniforms(operation);
         const dx = 1.0 / operation.getTextureWidth(0);
         const dy = 1.0 / operation.getTextureHeight(0);
         this._setUniform("stepTextureCoord", new Float32Array([dx, dy]), this.gl.uniform2fv);
     }
+
 }
 
-WebGLBoxBlurShaderImpl.vertexShaderSource = `
+BoxBlurShader.vertexShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -12519,7 +12781,7 @@ WebGLBoxBlurShaderImpl.vertexShaderSource = `
     }
 `;
 
-WebGLBoxBlurShaderImpl.fragmentShaderSource = `
+BoxBlurShader.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -12535,7 +12797,179 @@ WebGLBoxBlurShaderImpl.fragmentShaderSource = `
     }
 `;
 
+class BlurShader extends DefaultShader$2 {
+
+    constructor(context) {
+        super(context);
+        this._kernelRadius = 1;
+    }
+
+    get kernelRadius() {
+        return this._kernelRadius;
+    }
+
+    set kernelRadius(v) {
+        this._kernelRadius = v;
+        this.redraw();
+    }
+
+    useDefault() {
+        return this._amount === 0;
+    }
+
+    _beforeDrawEl({target}) {
+        target.ctx.filter = "blur(" + this._kernelRadius + "px)";
+    }
+
+    _afterDrawEl({target}) {
+        target.ctx.filter = "";
+    }
+
+}
+
 class FastBlurComponent extends Component {
+    static _template() {
+        return {
+            Wrap: {type: WebGLFastBlurComponent, _$c2d: {type: C2dFastBlurComponent}}
+        }
+    }
+
+    get wrap() {
+        return this.tag("Wrap");
+    }
+
+    set content(v) {
+        return this.wrap.content = v;
+    }
+
+    get content() {
+        return this.wrap.content;
+    }
+
+    set padding(v) {
+        this.wrap._paddingX = v;
+        this.wrap._paddingY = v;
+        this.wrap._updateBlurSize();
+    }
+
+    set paddingX(v) {
+        this.wrap._paddingX = v;
+        this.wrap._updateBlurSize();
+    }
+
+    set paddingY(v) {
+        this.wrap._paddingY = v;
+        this.wrap._updateBlurSize();
+    }
+
+    set amount(v) {
+        return this.wrap.amount = v;
+    }
+
+    get amount() {
+        return this.wrap.amount;
+    }
+
+    set shader(v) {
+        this.wrap.shader = v;
+    }
+
+    _onResize() {
+        this.wrap.w = this.renderWidth;
+        this.wrap.h = this.renderHeight;
+    }
+}
+
+
+class C2dFastBlurComponent extends Component {
+
+    static _template() {
+        return {
+            Textwrap: {shader: {type: BlurShader}, Content: {}}
+        }
+    }
+
+    constructor(stage) {
+        super(stage);
+        this._textwrap = this.sel("Textwrap");
+        this._wrapper = this.sel("Textwrap>Content");
+
+        this._amount = 0;
+        this._paddingX = 0;
+        this._paddingY = 0;
+
+    }
+
+    static getSpline() {
+        if (!this._multiSpline) {
+            this._multiSpline = new MultiSpline();
+            this._multiSpline.parse(false, {0: 0, 0.25: 1.5, 0.5: 5.5, 0.75: 18, 1: 39});
+        }
+        return this._multiSpline;
+    }
+
+    get content() {
+        return this.sel('Textwrap>Content');
+    }
+
+    set content(v) {
+        this.sel('Textwrap>Content').patch(v, true);
+    }
+
+    set padding(v) {
+        this._paddingX = v;
+        this._paddingY = v;
+        this._updateBlurSize();
+    }
+
+    set paddingX(v) {
+        this._paddingX = v;
+        this._updateBlurSize();
+    }
+
+    set paddingY(v) {
+        this._paddingY = v;
+        this._updateBlurSize();
+    }
+
+    _updateBlurSize() {
+        let w = this.renderWidth;
+        let h = this.renderHeight;
+
+        let paddingX = this._paddingX;
+        let paddingY = this._paddingY;
+
+        this._wrapper.x = paddingX;
+        this._textwrap.x = -paddingX;
+
+        this._wrapper.y = paddingY;
+        this._textwrap.y = -paddingY;
+
+        this._textwrap.w = w + paddingX * 2;
+        this._textwrap.h = h + paddingY * 2;
+    }
+
+    get amount() {
+        return this._amount;
+    }
+
+    /**
+     * Sets the amount of blur. A value between 0 and 4. Goes up exponentially for blur.
+     * Best results for non-fractional values.
+     * @param v;
+     */
+    set amount(v) {
+        this._amount = v;
+        this._textwrap.shader.kernelRadius = C2dFastBlurComponent._amountToKernelRadius(v);
+    }
+
+    static _amountToKernelRadius(v) {
+        return C2dFastBlurComponent.getSpline().getValue(Math.min(1, v * 0.25));
+    }
+
+}
+
+class WebGLFastBlurComponent extends Component {
 
     static _template() {
         const onUpdate = function(view, viewCore) {
@@ -12552,7 +12986,7 @@ class FastBlurComponent extends Component {
         };
 
         return {
-            Textwrap: {rtt: false, renderOffscreen: true, Content: {}},
+            Textwrap: {rtt: true, renderOffscreen: true, Content: {}},
             Layers: {
                 L0: {rtt: true, onUpdate: onUpdate, renderOffscreen: true, visible: false, Content: {shader: {type: BoxBlurShader}}},
                 L1: {rtt: true, onUpdate: onUpdate, renderOffscreen: true, visible: false, Content: {shader: {type: BoxBlurShader}}},
@@ -12576,12 +13010,9 @@ class FastBlurComponent extends Component {
     }
 
     _build() {
-        const ctx = this.stage.ctx;
-
         const filterShaderSettings = [{x:1,y:0,kernelRadius:1},{x:0,y:1,kernelRadius:1},{x:1.5,y:0,kernelRadius:1},{x:0,y:1.5,kernelRadius:1}];
         const filterShaders = filterShaderSettings.map(s => {
-            const shader = new LinearBlurShader(ctx);
-            shader.patch(s);
+            const shader = Shader.create(this.stage, Object.assign({type: LinearBlurShader}, s));
             return shader;
         });
 
@@ -12732,9 +13163,8 @@ class FastBlurComponent extends Component {
     }
 
     static _states() {
-        const p = FastBlurComponent.prototype;
+        const p = WebGLFastBlurComponent.prototype;
         return {
-            _construct: p._construct,
             _firstActive: p._build
         }
     }
@@ -12744,7 +13174,7 @@ class FastBlurComponent extends Component {
 /**
  * Shader that combines two textures into one output.
  */
-class FastBlurOutputShader extends DefaultShader {
+class FastBlurOutputShader extends DefaultShader$1 {
 
     constructor(ctx) {
         super(ctx);
@@ -12767,21 +13197,14 @@ class FastBlurOutputShader extends DefaultShader {
         this.redraw();
     }
 
-    static getWebGLImpl() {
-        return WebGLFastBlurOutputShaderImpl;
-    }
-}
-
-class WebGLFastBlurOutputShaderImpl extends WebGLDefaultShaderImpl {
-
     setupUniforms(operation) {
         super.setupUniforms(operation);
-        this._setUniform("a", this.shader._a, this.gl.uniform1f);
+        this._setUniform("a", this._a, this.gl.uniform1f);
         this._setUniform("uSampler2", 1, this.gl.uniform1i);
     }
 
     beforeDraw(operation) {
-        let glTexture = this.shader._otherTextureSource ? this.shader._otherTextureSource.nativeTexture : null;
+        let glTexture = this._otherTextureSource ? this._otherTextureSource.nativeTexture : null;
 
         let gl = this.gl;
         gl.activeTexture(gl.TEXTURE1);
@@ -12790,7 +13213,7 @@ class WebGLFastBlurOutputShaderImpl extends WebGLDefaultShaderImpl {
     }
 }
 
-WebGLFastBlurOutputShaderImpl.fragmentShaderSource = `
+FastBlurOutputShader.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -13077,13 +13500,97 @@ class BorderComponent extends Component {
 
 }
 
+class GrayscaleShader extends DefaultShader$2 {
+
+    constructor(context) {
+        super(context);
+        this._amount = 1;
+    }
+
+    static getWebGL() {
+        return GrayscaleShader$1;
+    }
+
+
+    set amount(v) {
+        this._amount = v;
+        this.redraw();
+    }
+
+    get amount() {
+        return this._amount;
+    }
+
+    useDefault() {
+        return this._amount === 0;
+    }
+
+    _beforeDrawEl({target}) {
+        target.ctx.filter = "grayscale(" + this._amount + ")";
+    }
+
+    _afterDrawEl({target}) {
+        target.ctx.filter = "";
+    }
+
+}
+
+class GrayscaleShader$1 extends DefaultShader$1 {
+
+    constructor(context) {
+        super(context);
+        this._amount = 1;
+    }
+
+    static getC2d() {
+        return GrayscaleShader;
+    }
+
+
+    set amount(v) {
+        this._amount = v;
+        this.redraw();
+    }
+
+    get amount() {
+        return this._amount;
+    }
+
+    useDefault() {
+        return this._amount === 0;
+    }
+
+    setupUniforms(operation) {
+        super.setupUniforms(operation);
+        this._setUniform("amount", this._amount, this.gl.uniform1f);
+    }
+
+}
+
+GrayscaleShader$1.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    uniform sampler2D uSampler;
+    uniform float amount;
+    void main(void){
+        vec4 color = texture2D(uSampler, vTextureCoord) * vColor;
+        float grayness = 0.2 * color.r + 0.6 * color.g + 0.2 * color.b;
+        gl_FragColor = vec4(amount * vec3(grayness, grayness, grayness) + (1.0 - amount) * color.rgb, color.a);
+    }
+`;
+
 /**
  * This shader can be used to fix a problem that is known as 'gradient banding'.
  */
-class DitheringShader extends DefaultShader {
+class DitheringShader extends DefaultShader$1 {
 
     constructor(ctx) {
         super(ctx);
+
+        this._noiseTexture = new NoiseTexture(ctx.stage);
 
         this._graining = 1/256;
 
@@ -13100,23 +13607,6 @@ class DitheringShader extends DefaultShader {
         this.redraw();
     }
 
-    useDefault() {
-        return this._graining === 0;
-    }
-
-
-    static getWebGLImpl() {
-        return WebGLDitheringShaderImpl;
-    }
-}
-class WebGLDitheringShaderImpl extends WebGLDefaultShaderImpl {
-
-    constructor(shader) {
-        super(shader);
-
-        this._noiseTexture = new NoiseTexture(shader.ctx.stage);
-    }
-
     setExtraAttribsInBuffer(operation) {
         // Make sure that the noise texture is uploaded to the GPU.
         this._noiseTexture.load();
@@ -13128,13 +13618,13 @@ class WebGLDitheringShaderImpl extends WebGLDefaultShaderImpl {
 
         for (let i = 0; i < length; i++) {
 
-            // Calculate ǹoise texture coordinates so that it spans the full view.
+            // Calculate noise texture coordinates so that it spans the full view.
             let brx = operation.getViewWidth(i) / this._noiseTexture.getRenderWidth();
             let bry = operation.getViewHeight(i) / this._noiseTexture.getRenderHeight();
 
             let ulx = 0;
             let uly = 0;
-            if (this.shader._random) {
+            if (this._random) {
                 ulx = Math.random();
                 uly = Math.random();
 
@@ -13190,7 +13680,7 @@ class WebGLDitheringShaderImpl extends WebGLDefaultShaderImpl {
     setupUniforms(operation) {
         super.setupUniforms(operation);
         this._setUniform("uNoiseSampler", 1, this.gl.uniform1i);
-        this._setUniform("graining", 2 * this.shader._graining, this.gl.uniform1f);
+        this._setUniform("graining", 2 * this._graining, this.gl.uniform1f);
     }
 
     enableAttribs() {
@@ -13205,6 +13695,10 @@ class WebGLDitheringShaderImpl extends WebGLDefaultShaderImpl {
         gl.disableVertexAttribArray(this._attrib("aNoiseTextureCoord"));
     }
 
+    useDefault() {
+        return this._graining === 0;
+    }
+
     afterDraw(operation) {
         if (this._random) {
             this.redraw();
@@ -13213,7 +13707,7 @@ class WebGLDitheringShaderImpl extends WebGLDefaultShaderImpl {
 
 }
 
-WebGLDitheringShaderImpl.vertexShaderSource = `
+DitheringShader.vertexShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -13234,7 +13728,7 @@ WebGLDitheringShaderImpl.vertexShaderSource = `
     }
 `;
 
-WebGLDitheringShaderImpl.fragmentShaderSource = `
+DitheringShader.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -13251,499 +13745,7 @@ WebGLDitheringShaderImpl.fragmentShaderSource = `
     }
 `;
 
-class RadialGradientShader extends DefaultShader {
-    
-    constructor(context) {
-        super(context);
-        
-        this._x = 0;
-        this._y = 0;
-
-        this.color = 0xFFFF0000;
-
-        this._radiusX = 100;
-        this._radiusY = 100;
-    }
-
-    set x(v) {
-        this._x = v;
-        this.redraw();
-    }
-
-    set y(v) {
-        this._y = v;
-        this.redraw();
-    }
-
-    set radiusX(v) {
-        this._radiusX = v;
-        this.redraw();
-    }
-
-    get radiusX() {
-        return this._radiusX;
-    }
-
-    set radiusY(v) {
-        this._radiusY = v;
-        this.redraw();
-    }
-
-    get radiusY() {
-        return this._radiusY;
-    }
-
-    set radius(v) {
-        this.radiusX = v;
-        this.radiusY = v;
-    }
-
-    get color() {
-        return this._color;
-    }
-
-    set color(v) {
-        if (this._color !== v) {
-            const col = StageUtils.getRgbaComponentsNormalized(v);
-            col[0] = col[0] * col[3];
-            col[1] = col[1] * col[3];
-            col[2] = col[2] * col[3];
-
-            this._rawColor = new Float32Array(col);
-
-            this.redraw();
-
-            this._color = v;
-        }
-    }
-
-    static getWebGLImpl() {
-        return WebGLRadialGradientShaderImpl;
-    }
-
-}
-class WebGLRadialGradientShaderImpl extends WebGLDefaultShaderImpl {
-
-    setupUniforms(operation) {
-        super.setupUniforms(operation);
-        // We substract half a pixel to get a better cutoff effect.
-        const rtc = operation.getNormalRenderTextureCoords(this.shader._x, this.shader._y);
-        this._setUniform("center", new Float32Array(rtc), this.gl.uniform2fv);
-
-        this._setUniform("radius", 2 * this.shader._radiusX / operation.getRenderWidth(), this.gl.uniform1f);
-
-
-        // Radial gradient shader is expected to be used on a single view. That view's alpha is used.
-        this._setUniform("alpha", operation.getViewCore(0).renderContext.alpha, this.gl.uniform1f);
-
-        this._setUniform("color", this.shader._rawColor, this.gl.uniform4fv);
-        this._setUniform("aspectRatio", (this.shader._radiusX/this.shader._radiusY) * operation.getRenderHeight()/operation.getRenderWidth(), this.gl.uniform1f);
-    }
-
-}
-
-WebGLRadialGradientShaderImpl.vertexShaderSource = `
-    #ifdef GL_ES
-    precision lowp float;
-    #endif
-    attribute vec2 aVertexPosition;
-    attribute vec2 aTextureCoord;
-    attribute vec4 aColor;
-    uniform vec2 projection;
-    uniform vec2 center;
-    uniform float aspectRatio;
-    varying vec2 pos;
-    varying vec2 vTextureCoord;
-    varying vec4 vColor;
-    void main(void){
-        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);
-        vTextureCoord = aTextureCoord;
-        vColor = aColor;
-        gl_Position.y = -sign(projection.y) * gl_Position.y;
-        pos = gl_Position.xy - center;
-        pos.y = pos.y * aspectRatio;
-    }
-`;
-
-WebGLRadialGradientShaderImpl.fragmentShaderSource = `
-    #ifdef GL_ES
-    precision lowp float;
-    #endif
-    varying vec2 vTextureCoord;
-    varying vec4 vColor;
-    varying vec2 pos;
-    uniform sampler2D uSampler;
-    uniform float radius;
-    uniform vec4 color;
-    uniform float alpha;
-    void main(void){
-        float dist = length(pos);
-        gl_FragColor = mix(color * alpha, texture2D(uSampler, vTextureCoord) * vColor, min(1.0, dist / radius));
-    }
-`;
-
-/**
- * @see https://github.com/pixijs/pixi-filters/tree/master/filters/pixelate/src
- */
-class PixelateShader extends DefaultShader {
-
-    constructor(ctx) {
-        super(ctx);
-
-        this._size = new Float32Array([4, 4]);
-    }
-
-    get x() {
-        return this._size[0];
-    }
-
-    set x(v) {
-        this._size[0] = v;
-        this.redraw();
-    }
-
-    get y() {
-        return this._size[1];
-    }
-
-    set y(v) {
-        this._size[1] = v;
-        this.redraw();
-    }
-
-    get size() {
-        return this._size[0];
-    }
-
-    set size(v) {
-        this._size[0] = v;
-        this._size[1] = v;
-        this.redraw();
-    }
-
-    useDefault() {
-        return ((this._size[0] === 0) && (this._size[1] === 0));
-    }
-
-    static getWebGLImpl() {
-        return WebGLPixelateShaderImpl;
-    }
-}
-class WebGLPixelateShaderImpl extends WebGLDefaultShaderImpl {
-    setupUniforms(operation) {
-        super.setupUniforms(operation);
-        let gl = this.gl;
-        this._setUniform("size", new Float32Array(this.shader._size), gl.uniform2fv);
-    }
-
-    getExtraAttribBytesPerVertex() {
-        return 8;
-    }
-
-    enableAttribs() {
-        super.enableAttribs();
-        this.gl.enableVertexAttribArray(this._attrib("aTextureRes"));
-    }
-
-    disableAttribs() {
-        super.disableAttribs();
-        this.gl.disableVertexAttribArray(this._attrib("aTextureRes"));
-    }
-
-    setExtraAttribsInBuffer(operation) {
-        let offset = operation.extraAttribsDataByteOffset / 4;
-        let floats = operation.quads.floats;
-
-        let length = operation.length;
-        for (let i = 0; i < length; i++) {
-            let w = operation.quads.getTextureWidth(operation.index + i);
-            let h = operation.quads.getTextureHeight(operation.index + i);
-
-            floats[offset] = w;
-            floats[offset + 1] = h;
-            floats[offset + 2] = w;
-            floats[offset + 3] = h;
-            floats[offset + 4] = w;
-            floats[offset + 5] = h;
-            floats[offset + 6] = w;
-            floats[offset + 7] = h;
-
-            offset += 8;
-        }
-    }
-
-    beforeDraw(operation) {
-        let gl = this.gl;
-        gl.vertexAttribPointer(this._attrib("aTextureRes"), 2, gl.FLOAT, false, this.getExtraAttribBytesPerVertex(), this.getVertexAttribPointerOffset(operation));
-    }
-}
-
-WebGLPixelateShaderImpl.vertexShaderSource = `
-    #ifdef GL_ES
-    precision lowp float;
-    #endif
-    attribute vec2 aVertexPosition;
-    attribute vec2 aTextureCoord;
-    attribute vec4 aColor;
-    attribute vec2 aTextureRes;
-    uniform vec2 projection;
-    varying vec2 vTextureCoord;
-    varying vec4 vColor;
-    varying vec2 vTextureRes;
-    void main(void){
-        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);
-        vTextureCoord = aTextureCoord;
-        vColor = aColor;
-        vTextureRes = aTextureRes;
-        gl_Position.y = -sign(projection.y) * gl_Position.y;
-    }
-`;
-
-WebGLPixelateShaderImpl.fragmentShaderSource = `
-    #ifdef GL_ES
-    precision lowp float;
-    #endif
-    varying vec2 vTextureCoord;
-    varying vec4 vColor;
-    varying vec2 vTextureRes;
-
-    uniform vec2 size;
-    uniform sampler2D uSampler;
-    
-    vec2 mapCoord( vec2 coord )
-    {
-        coord *= vTextureRes.xy;
-        return coord;
-    }
-    
-    vec2 unmapCoord( vec2 coord )
-    {
-        coord /= vTextureRes.xy;
-        return coord;
-    }
-    
-    vec2 pixelate(vec2 coord, vec2 size)
-    {
-        return floor( coord / size ) * size;
-    }
-    
-    void main(void)
-    {
-        vec2 coord = mapCoord(vTextureCoord);
-        coord = pixelate(coord, size);
-        coord = unmapCoord(coord);
-        gl_FragColor = texture2D(uSampler, coord) * vColor;
-    }
-`;
-
-class InversionShader extends DefaultShader {
-    static getWebGLImpl() {
-        return WebGLInversionShaderImpl;
-    }
-}
-class WebGLInversionShaderImpl extends WebGLDefaultShaderImpl {
-}
-
-WebGLInversionShaderImpl.fragmentShaderSource = `
-    #ifdef GL_ES
-    precision lowp float;
-    #endif
-    varying vec2 vTextureCoord;
-    varying vec4 vColor;
-    uniform sampler2D uSampler;
-    void main(void){
-        vec4 color = texture2D(uSampler, vTextureCoord);
-        color.rgb = 1.0 - color.rgb; 
-        gl_FragColor = color * vColor;
-    }
-`;
-
-class GrayscaleShader extends DefaultShader {
-    constructor(context) {
-        super(context);
-        this._amount = 1;
-    }
-
-    set amount(v) {
-        this._amount = v;
-        this.redraw();
-    }
-
-    get amount() {
-        return this._amount;
-    }
-
-    useDefault() {
-        return this._amount === 0;
-    }
-
-    static getWebGLImpl() {
-        return WebGLGrayscaleShaderImpl;
-    }
-}
-class WebGLGrayscaleShaderImpl extends WebGLDefaultShaderImpl {
-    setupUniforms(operation) {
-        super.setupUniforms(operation);
-        this._setUniform("amount", this.shader._amount, this.gl.uniform1f);
-    }
-}
-
-WebGLGrayscaleShaderImpl.fragmentShaderSource = `
-    #ifdef GL_ES
-    precision lowp float;
-    #endif
-    varying vec2 vTextureCoord;
-    varying vec4 vColor;
-    uniform sampler2D uSampler;
-    uniform float amount;
-    void main(void){
-        vec4 color = texture2D(uSampler, vTextureCoord) * vColor;
-        float grayness = 0.2 * color.r + 0.6 * color.g + 0.2 * color.b;
-        gl_FragColor = vec4(amount * vec3(grayness, grayness, grayness) + (1.0 - amount) * color.rgb, color.a);
-    }
-`;
-
-class OutlineShader extends DefaultShader {
-
-    constructor(ctx) {
-        super(ctx);
-        this._width = 5;
-        this._col = 0xFFFFFFFF;
-        this._color = [1,1,1,1];
-    }
-
-    set width(v) {
-        this._width = v;
-        this.redraw();
-    }
-
-    get color() {
-        return this._col;
-    }
-
-    set color(v) {
-        if (this._col !== v) {
-            const col = StageUtils.getRgbaComponentsNormalized(v);
-            col[0] = col[0] * col[3];
-            col[1] = col[1] * col[3];
-            col[2] = col[2] * col[3];
-
-            this._color = col;
-
-            this.redraw();
-
-            this._col = v;
-        }
-    }
-
-    useDefault() {
-        return (this._width === 0 || this._col[3] === 0);
-    }
-
-    static getWebGLImpl() {
-        return WebGLOutlineShaderImpl;
-    }
-}
-class WebGLOutlineShaderImpl extends WebGLDefaultShaderImpl {
-
-    setupUniforms(operation) {
-        super.setupUniforms(operation);
-        let gl = this.gl;
-        this._setUniform("color", new Float32Array(this.shader._color), gl.uniform4fv);
-    }
-
-    enableAttribs() {
-        super.enableAttribs();
-        this.gl.enableVertexAttribArray(this._attrib("aCorner"));
-    }
-
-    disableAttribs() {
-        super.disableAttribs();
-        this.gl.disableVertexAttribArray(this._attrib("aCorner"));
-    }
-
-    setExtraAttribsInBuffer(operation) {
-        let offset = operation.extraAttribsDataByteOffset / 4;
-        let floats = operation.quads.floats;
-
-        let length = operation.length;
-
-        for (let i = 0; i < length; i++) {
-
-            const viewCore = operation.getViewCore(i);
-
-            // We are setting attributes such that if the value is < 0 or > 1, a border should be drawn.
-            const ddw = this.shader._width / viewCore.rw;
-            const dw = ddw / (1 - 2 * ddw);
-            const ddh = this.shader._width / viewCore.rh;
-            const dh = ddh / (1 - 2 * ddh);
-
-            // Specify all corner points.
-            floats[offset] = -dw;
-            floats[offset + 1] = -dh;
-
-            floats[offset + 2] = 1 + dw;
-            floats[offset + 3] = -dh;
-
-            floats[offset + 4] = 1 + dw;
-            floats[offset + 5] = 1 + dh;
-
-            floats[offset + 6] = -dw;
-            floats[offset + 7] = 1 + dh;
-
-            offset += 8;
-        }
-    }
-
-    beforeDraw(operation) {
-        let gl = this.gl;
-        gl.vertexAttribPointer(this._attrib("aCorner"), 2, gl.FLOAT, false, 8, this.getVertexAttribPointerOffset(operation));
-    }
-
-    getExtraAttribBytesPerVertex() {
-        return 8;
-    }
-
-}
-
-WebGLOutlineShaderImpl.vertexShaderSource = `
-    #ifdef GL_ES
-    precision lowp float;
-    #endif
-    attribute vec2 aVertexPosition;
-    attribute vec2 aTextureCoord;
-    attribute vec4 aColor;
-    attribute vec2 aCorner;
-    uniform vec2 projection;
-    varying vec2 vTextureCoord;
-    varying vec2 vCorner;
-    varying vec4 vColor;
-    void main(void){
-        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);
-        vTextureCoord = aTextureCoord;
-        vCorner = aCorner;
-        vColor = aColor;
-        gl_Position.y = -sign(projection.y) * gl_Position.y;
-    }
-`;
-
-WebGLOutlineShaderImpl.fragmentShaderSource = `
-    #ifdef GL_ES
-    precision lowp float;
-    #endif
-    varying vec2 vTextureCoord;
-    varying vec4 vColor;
-    varying vec2 vCorner;
-    uniform vec4 color;
-    uniform sampler2D uSampler;
-    void main(void){
-        vec2 m = min(vCorner, 1.0 - vCorner);
-        float value = step(0.0, min(m.x, m.y));
-        gl_FragColor = mix(color, texture2D(uSampler, vTextureCoord) * vColor, value);
-    }
-`;
-
-class CircularPushShader extends DefaultShader {
+class CircularPushShader extends DefaultShader$1 {
 
     constructor(ctx) {
         super(ctx);
@@ -13877,38 +13879,23 @@ class CircularPushShader extends DefaultShader {
         this.redraw();
     }
 
+    setupUniforms(operation) {
+        super.setupUniforms(operation);
+        this._setUniform("aspectRatio", this._aspectRatio, this.gl.uniform1f);
+        this._setUniform("offsetX", this._offsetX, this.gl.uniform1f);
+        this._setUniform("offsetY", this._offsetY, this.gl.uniform1f);
+        this._setUniform("amount", this._amount, this.gl.uniform1f);
+        this._setUniform("offset", this._offset, this.gl.uniform1f);
+        this._setUniform("buckets", this._buckets, this.gl.uniform1f);
+        this._setUniform("uValueSampler", 1, this.gl.uniform1i);
+    }
+
     useDefault() {
         return this._amount === 0;
     }
 
-    static getWebGLImpl() {
-        return WebGLCircularPushShaderImpl;
-    }
-
-}
-
-class WebGLCircularPushShaderImpl extends WebGLDefaultShaderImpl {
-
-    constructor(context) {
-        super(context);
-    }
-
-    setupUniforms(operation) {
-        super.setupUniforms(operation);
-        const shader = this.shader;
-
-        this._setUniform("aspectRatio", shader._aspectRatio, this.gl.uniform1f);
-        this._setUniform("offsetX", shader._offsetX, this.gl.uniform1f);
-        this._setUniform("offsetY", shader._offsetY, this.gl.uniform1f);
-        this._setUniform("amount", shader._amount, this.gl.uniform1f);
-        this._setUniform("offset", shader._offset, this.gl.uniform1f);
-        this._setUniform("buckets", shader._buckets, this.gl.uniform1f);
-        this._setUniform("uValueSampler", 1, this.gl.uniform1i);
-    }
-
     beforeDraw(operation) {
         const gl = this.gl;
-        const shader = this.shader;
         gl.activeTexture(gl.TEXTURE1);
         if (!this._valuesTexture) {
             this._valuesTexture = gl.createTexture();
@@ -13926,22 +13913,20 @@ class WebGLCircularPushShaderImpl extends WebGLDefaultShaderImpl {
         }
 
         // Upload new values.
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.ALPHA, shader._buckets, 1, 0, gl.ALPHA, gl.UNSIGNED_BYTE, shader._values);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.ALPHA, this._buckets, 1, 0, gl.ALPHA, gl.UNSIGNED_BYTE, this._values);
         gl.activeTexture(gl.TEXTURE0);
     }
 
     cleanup() {
-        super.cleanup();
         if (this._valuesTexture) {
             this.gl.deleteTexture(this._valuesTexture);
-            this._valuesTexture = null;
         }
     }
 
 
 }
 
-WebGLCircularPushShaderImpl.vertexShaderSource = `
+CircularPushShader.vertexShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -13967,7 +13952,7 @@ WebGLCircularPushShaderImpl.vertexShaderSource = `
     }
 `;
 
-WebGLCircularPushShaderImpl.fragmentShaderSource = `
+CircularPushShader.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -13989,7 +13974,311 @@ WebGLCircularPushShaderImpl.fragmentShaderSource = `
     }
 `;
 
-class RadialFilterShader extends DefaultShader {
+class InversionShader extends DefaultShader$1 {
+}
+
+InversionShader.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    uniform sampler2D uSampler;
+    void main(void){
+        vec4 color = texture2D(uSampler, vTextureCoord);
+        color.rgb = 1.0 - color.rgb; 
+        gl_FragColor = color * vColor;
+    }
+`;
+
+class OutlineShader extends DefaultShader$1 {
+
+    constructor(ctx) {
+        super(ctx);
+        this._width = 5;
+        this._col = 0xFFFFFFFF;
+        this._color = [1,1,1,1];
+    }
+
+    set width(v) {
+        this._width = v;
+        this.redraw();
+    }
+
+    get color() {
+        return this._col;
+    }
+
+    set color(v) {
+        if (this._col !== v) {
+            const col = StageUtils.getRgbaComponentsNormalized(v);
+            col[0] = col[0] * col[3];
+            col[1] = col[1] * col[3];
+            col[2] = col[2] * col[3];
+
+            this._color = col;
+
+            this.redraw();
+
+            this._col = v;
+        }
+    }
+
+    useDefault() {
+        return (this._width === 0 || this._col[3] === 0);
+    }
+
+    setupUniforms(operation) {
+        super.setupUniforms(operation);
+        let gl = this.gl;
+        this._setUniform("color", new Float32Array(this._color), gl.uniform4fv);
+    }
+
+    enableAttribs() {
+        super.enableAttribs();
+        this.gl.enableVertexAttribArray(this._attrib("aCorner"));
+    }
+
+    disableAttribs() {
+        super.disableAttribs();
+        this.gl.disableVertexAttribArray(this._attrib("aCorner"));
+    }
+
+    setExtraAttribsInBuffer(operation) {
+        let offset = operation.extraAttribsDataByteOffset / 4;
+        let floats = operation.quads.floats;
+
+        let length = operation.length;
+
+        for (let i = 0; i < length; i++) {
+
+            const viewCore = operation.getViewCore(i);
+
+            // We are setting attributes such that if the value is < 0 or > 1, a border should be drawn.
+            const ddw = this._width / viewCore.rw;
+            const dw = ddw / (1 - 2 * ddw);
+            const ddh = this._width / viewCore.rh;
+            const dh = ddh / (1 - 2 * ddh);
+
+            // Specify all corner points.
+            floats[offset] = -dw;
+            floats[offset + 1] = -dh;
+
+            floats[offset + 2] = 1 + dw;
+            floats[offset + 3] = -dh;
+
+            floats[offset + 4] = 1 + dw;
+            floats[offset + 5] = 1 + dh;
+
+            floats[offset + 6] = -dw;
+            floats[offset + 7] = 1 + dh;
+
+            offset += 8;
+        }
+    }
+
+    beforeDraw(operation) {
+        let gl = this.gl;
+        gl.vertexAttribPointer(this._attrib("aCorner"), 2, gl.FLOAT, false, 8, this.getVertexAttribPointerOffset(operation));
+    }
+
+    getExtraAttribBytesPerVertex() {
+        return 8;
+    }
+
+}
+
+OutlineShader.vertexShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    attribute vec2 aVertexPosition;
+    attribute vec2 aTextureCoord;
+    attribute vec4 aColor;
+    attribute vec2 aCorner;
+    uniform vec2 projection;
+    varying vec2 vTextureCoord;
+    varying vec2 vCorner;
+    varying vec4 vColor;
+    void main(void){
+        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);
+        vTextureCoord = aTextureCoord;
+        vCorner = aCorner;
+        vColor = aColor;
+        gl_Position.y = -sign(projection.y) * gl_Position.y;
+    }
+`;
+
+OutlineShader.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    varying vec2 vCorner;
+    uniform vec4 color;
+    uniform sampler2D uSampler;
+    void main(void){
+        vec2 m = min(vCorner, 1.0 - vCorner);
+        float value = step(0.0, min(m.x, m.y));
+        gl_FragColor = mix(color, texture2D(uSampler, vTextureCoord) * vColor, value);
+    }
+`;
+
+/**
+ * @see https://github.com/pixijs/pixi-filters/tree/master/filters/pixelate/src
+ */
+class PixelateShader extends DefaultShader$1 {
+
+    constructor(ctx) {
+        super(ctx);
+
+        this._size = new Float32Array([4, 4]);
+    }
+
+    get x() {
+        return this._size[0];
+    }
+
+    set x(v) {
+        this._size[0] = v;
+        this.redraw();
+    }
+
+    get y() {
+        return this._size[1];
+    }
+
+    set y(v) {
+        this._size[1] = v;
+        this.redraw();
+    }
+
+    get size() {
+        return this._size[0];
+    }
+
+    set size(v) {
+        this._size[0] = v;
+        this._size[1] = v;
+        this.redraw();
+    }
+
+    useDefault() {
+        return ((this._size[0] === 0) && (this._size[1] === 0));
+    }
+
+    static getWebGLImpl() {
+        return WebGLPixelateShaderImpl;
+    }
+
+    setupUniforms(operation) {
+        super.setupUniforms(operation);
+        let gl = this.gl;
+        this._setUniform("size", new Float32Array(this._size), gl.uniform2fv);
+    }
+
+    getExtraAttribBytesPerVertex() {
+        return 8;
+    }
+
+    enableAttribs() {
+        super.enableAttribs();
+        this.gl.enableVertexAttribArray(this._attrib("aTextureRes"));
+    }
+
+    disableAttribs() {
+        super.disableAttribs();
+        this.gl.disableVertexAttribArray(this._attrib("aTextureRes"));
+    }
+
+    setExtraAttribsInBuffer(operation) {
+        let offset = operation.extraAttribsDataByteOffset / 4;
+        let floats = operation.quads.floats;
+
+        let length = operation.length;
+        for (let i = 0; i < length; i++) {
+            let w = operation.quads.getTextureWidth(operation.index + i);
+            let h = operation.quads.getTextureHeight(operation.index + i);
+
+            floats[offset] = w;
+            floats[offset + 1] = h;
+            floats[offset + 2] = w;
+            floats[offset + 3] = h;
+            floats[offset + 4] = w;
+            floats[offset + 5] = h;
+            floats[offset + 6] = w;
+            floats[offset + 7] = h;
+
+            offset += 8;
+        }
+    }
+
+    beforeDraw(operation) {
+        let gl = this.gl;
+        gl.vertexAttribPointer(this._attrib("aTextureRes"), 2, gl.FLOAT, false, this.getExtraAttribBytesPerVertex(), this.getVertexAttribPointerOffset(operation));
+    }
+}
+
+PixelateShader.vertexShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    attribute vec2 aVertexPosition;
+    attribute vec2 aTextureCoord;
+    attribute vec4 aColor;
+    attribute vec2 aTextureRes;
+    uniform vec2 projection;
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    varying vec2 vTextureRes;
+    void main(void){
+        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);
+        vTextureCoord = aTextureCoord;
+        vColor = aColor;
+        vTextureRes = aTextureRes;
+        gl_Position.y = -sign(projection.y) * gl_Position.y;
+    }
+`;
+
+PixelateShader.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    varying vec2 vTextureRes;
+
+    uniform vec2 size;
+    uniform sampler2D uSampler;
+    
+    vec2 mapCoord( vec2 coord )
+    {
+        coord *= vTextureRes.xy;
+        return coord;
+    }
+    
+    vec2 unmapCoord( vec2 coord )
+    {
+        coord /= vTextureRes.xy;
+        return coord;
+    }
+    
+    vec2 pixelate(vec2 coord, vec2 size)
+    {
+        return floor( coord / size ) * size;
+    }
+    
+    void main(void)
+    {
+        vec2 coord = mapCoord(vTextureCoord);
+        coord = pixelate(coord, size);
+        coord = unmapCoord(coord);
+        gl_FragColor = texture2D(uSampler, coord) * vColor;
+    }
+`;
+
+class RadialFilterShader extends DefaultShader$1 {
     constructor(context) {
         super(context);
         this._radius = 0;
@@ -14018,23 +14307,16 @@ class RadialFilterShader extends DefaultShader {
         return this._radius === 0;
     }
 
-    static getWebGLImpl() {
-        return WebGLRadialFilterShaderImpl;
-    }
-
-}
-class WebGLRadialFilterShaderImpl extends WebGLDefaultShaderImpl {
-
     setupUniforms(operation) {
         super.setupUniforms(operation);
         // We substract half a pixel to get a better cutoff effect.
-        this._setUniform("radius", 2 * (this.shader._radius - 0.5) / operation.getRenderWidth(), this.gl.uniform1f);
-        this._setUniform("cutoff", 0.5 * operation.getRenderWidth() / this.shader._cutoff, this.gl.uniform1f);
+        this._setUniform("radius", 2 * (this._radius - 0.5) / operation.getRenderWidth(), this.gl.uniform1f);
+        this._setUniform("cutoff", 0.5 * operation.getRenderWidth() / this._cutoff, this.gl.uniform1f);
     }
 
 }
 
-WebGLRadialFilterShaderImpl.vertexShaderSource = `
+RadialFilterShader.vertexShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -14054,7 +14336,7 @@ WebGLRadialFilterShaderImpl.vertexShaderSource = `
     }
 `;
 
-WebGLRadialFilterShaderImpl.fragmentShaderSource = `
+RadialFilterShader.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -14071,138 +14353,129 @@ WebGLRadialFilterShaderImpl.fragmentShaderSource = `
     }
 `;
 
-class NodeAdapter {
+class RadialGradientShader extends DefaultShader$1 {
     
-    init(stage) {
-        this.stage = stage;
-        this._looping = false;
-        this._awaitingLoop = false;
+    constructor(context) {
+        super(context);
+        
+        this._x = 0;
+        this._y = 0;
+
+        this.color = 0xFFFF0000;
+
+        this._radiusX = 100;
+        this._radiusY = 100;
     }
 
-    startLoop() {
-        this._looping = true;
-        if (!this._awaitingLoop) {
-            this.loop();
+    set x(v) {
+        this._x = v;
+        this.redraw();
+    }
+
+    set y(v) {
+        this._y = v;
+        this.redraw();
+    }
+
+    set radiusX(v) {
+        this._radiusX = v;
+        this.redraw();
+    }
+
+    get radiusX() {
+        return this._radiusX;
+    }
+
+    set radiusY(v) {
+        this._radiusY = v;
+        this.redraw();
+    }
+
+    get radiusY() {
+        return this._radiusY;
+    }
+
+    set radius(v) {
+        this.radiusX = v;
+        this.radiusY = v;
+    }
+
+    get color() {
+        return this._color;
+    }
+
+    set color(v) {
+        if (this._color !== v) {
+            const col = StageUtils.getRgbaComponentsNormalized(v);
+            col[0] = col[0] * col[3];
+            col[1] = col[1] * col[3];
+            col[2] = col[2] * col[3];
+
+            this._rawColor = new Float32Array(col);
+
+            this.redraw();
+
+            this._color = v;
         }
     }
 
-    stopLoop() {
-        this._looping = false;
-    }
+    setupUniforms(operation) {
+        super.setupUniforms(operation);
+        // We substract half a pixel to get a better cutoff effect.
+        const rtc = operation.getNormalRenderTextureCoords(this._x, this._y);
+        this._setUniform("center", new Float32Array(rtc), this.gl.uniform2fv);
 
-    loop() {
-        let self = this;
-        let lp = function() {
-            self._awaitingLoop = false;
-            if (self._looping) {
-                self.stage.drawFrame();
-                if (self.changes) {
-                    // We depend on blit to limit to 60fps.
-                    setImmediate(lp);
-                } else {
-                    setTimeout(lp, 16);
-                }
-                self._awaitingLoop = true;
-            }
-        };
-        setTimeout(lp, 16);
-    }
+        this._setUniform("radius", 2 * this._radiusX / operation.getRenderWidth(), this.gl.uniform1f);
 
-    uploadGlTexture(gl, textureSource, source, options) {
-        gl.texImage2D(gl.TEXTURE_2D, 0, options.internalFormat, textureSource.w, textureSource.h, 0, options.format, options.type, source);
-    }
 
-    loadSrcTexture({src}, cb) {
-        if (/^https?:\/\//i.test(src)) {
-            // URL. Download first.
-            let mod = null;
-            if (src.toLowerCase().indexOf("https:") === 0) {
-                mod = https;
-            } else {
-                mod = http;
-            }
+        // Radial gradient shader is expected to be used on a single view. That view's alpha is used.
+        this._setUniform("alpha", operation.getViewCore(0).renderContext.alpha, this.gl.uniform1f);
 
-            mod.get(src, function(res) {
-                if (res.statusCode !== 200) {
-                    return cb(new Error("Status code " + res.statusCode + " for " + src));
-                }
-
-                let total = [];
-                res.on('data', (d) => {
-                    total.push(d);
-                });
-                res.on('end', () => {
-                    let buf = Buffer.concat(total);
-                    this.parseImage(buf, cb);
-                });
-            }).on('error', function(err) {
-                cb(err);
-            });
-        } else {
-            // File system.
-            fs.readFile(src, (err, res) => {
-                if (err) {
-                    console.error('Error loading image', src, err);
-                } else {
-                    this.parseImage(res, cb);
-                }
-            });
-        }
-    }
-    
-    parseImage(data, cb) {
-        let img = new canvas.Image();
-        img.src = data;
-        let buf = img.rawData;
-        cb(null, {source: buf, w: img.width, h: img.height, premultiplyAlpha: false, flipBlueRed: true});
-    }
-
-    createWebGLContext(w, h) {
-        let options = {width: w, height: h, title: "WebGL"};
-        const windowOptions = this.stage.getOption('window');
-        if (windowOptions) {
-            options = Object.assign(options, windowOptions);
-        }
-        let gl = gles2.init(options);
-        return gl;
-    }
-
-    getWebGLCanvas() {
-        return;
-    }
-
-    getTextureOptionsForDrawingCanvas(canvas$$1) {
-        let options = {};
-        options.source = canvas$$1.toBuffer('raw');
-        options.w = canvas$$1.width;
-        options.h = canvas$$1.height;
-        options.premultiplyAlpha = false;
-        options.flipBlueRed = true;
-        return options;
-    }
-
-    getHrTime() {
-        let hrTime = process.hrtime();
-        return 1e3 * hrTime[0] + (hrTime[1] / 1e6);
-    }
-
-    getDrawingCanvas() {
-        // We can't reuse this canvas because textures may load async.
-        return new canvas.Canvas(0, 0);
-    }
-
-    nextFrame(changes) {
-        this.changes = changes;
-        gles2.nextFrame(changes);
-    }
-
-    registerKeyHandler(keyhandler) {
-        console.warn("No support for key handling");
+        this._setUniform("color", this._rawColor, this.gl.uniform4fv);
+        this._setUniform("aspectRatio", (this._radiusX/this._radiusY) * operation.getRenderHeight()/operation.getRenderWidth(), this.gl.uniform1f);
     }
 
 }
 
-Stage.ADAPTER = NodeAdapter;
+RadialGradientShader.vertexShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    attribute vec2 aVertexPosition;
+    attribute vec2 aTextureCoord;
+    attribute vec4 aColor;
+    uniform vec2 projection;
+    uniform vec2 center;
+    uniform float aspectRatio;
+    varying vec2 pos;
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    void main(void){
+        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);
+        vTextureCoord = aTextureCoord;
+        vColor = aColor;
+        gl_Position.y = -sign(projection.y) * gl_Position.y;
+        pos = gl_Position.xy - center;
+        pos.y = pos.y * aspectRatio;
+    }
+`;
+
+RadialGradientShader.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    varying vec2 pos;
+    uniform sampler2D uSampler;
+    uniform float radius;
+    uniform vec4 color;
+    uniform float alpha;
+    void main(void){
+        float dist = length(pos);
+        gl_FragColor = mix(color * alpha, texture2D(uSampler, vTextureCoord) * vColor, min(1.0, dist / radius));
+    }
+`;
 
 const lightning = {
     Application,
@@ -14210,7 +14483,6 @@ const lightning = {
     Base,
     Utils,
     StageUtils,
-    DefaultShader,
     View,
     Tools,
     Stage,
@@ -14218,6 +14490,26 @@ const lightning = {
     ViewTexturizer,
     Texture,
     EventEmitter,
+    shaders: {
+        Grayscale: GrayscaleShader$1,
+        BoxBlur: BoxBlurShader,
+        Dithering: DitheringShader,
+        CircularPush: CircularPushShader,
+        Inversion: InversionShader,
+        LinearBlur: LinearBlurShader,
+        Outline: OutlineShader,
+        Pixelate: PixelateShader,
+        RadialFilter: RadialFilterShader,
+        RadialGradient: RadialGradientShader,
+        WebGLShader,
+        WebGLDefaultShader: DefaultShader$1,
+        C2dShader,
+        C2dDefaultShader: DefaultShader$2,
+        c2d: {
+            Grayscale: GrayscaleShader,
+            Blur: BlurShader
+        }
+    },
     textures: {
         RectangleTexture,
         NoiseTexture,
@@ -14236,22 +14528,7 @@ const lightning = {
         SmoothScaleComponent,
         BorderComponent,
         ListComponent: ListView
-    },
-    shaders: {
-        DitheringShader,
-        RadialGradientShader,
-        PixelateShader,
-        InversionShader,
-        GrayscaleShader,
-        OutlineShader,
-        CircularPushShader,
-        RadialFilterShader,
-        LinearBlurShader,
-        BoxBlurShader: LinearBlurShader
     }
 };
-
-// Legacy.
-window.wuf = lightning;
 
 module.exports = lightning;

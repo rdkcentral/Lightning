@@ -4,7 +4,7 @@ import canvas from "canvas";
 import http from "http";
 import https from "https";
 
-export default class NodeAdapter {
+export default class NodePlatform {
     
     init(stage) {
         this.stage = stage;

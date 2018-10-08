@@ -1,5 +1,8 @@
+const resolve = require('./rollup.plugin.resolver');
+
 export default {
-    input: './src/lightning-web.mjs',
+    input: './lightning.mjs',
+    plugins: [resolve("web")],
     output: {
         file: './dist/lightning-web.js',
         format: 'iife',

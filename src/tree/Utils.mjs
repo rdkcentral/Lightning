@@ -170,3 +170,4 @@ export default class Utils {
 }
 
 Utils.isNode = (typeof window === "undefined");
+Utils.isWeb = (typeof window !== "undefined");

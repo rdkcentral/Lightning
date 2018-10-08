@@ -1,8 +1,9 @@
+const resolve = require('./rollup.plugin.resolver');
 const compiler = require('rollup-plugin-closure-compiler')
 
 export default {
-    input: './src/lightning-web.mjs',
-    plugins: [compiler({
+    input: './lightning.mjs',
+    plugins: [resolve("web"), compiler({
         compilation_level: "SIMPLE",
         language_out: "ECMASCRIPT_2015"
     })],

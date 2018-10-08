@@ -7,6 +7,7 @@ import EventEmitter from "../EventEmitter.mjs";
 import Utils from "./Utils.mjs";
 import WebGLRenderer from "../renderer/webgl/WebGLRenderer.mjs";
 import C2dRenderer from "../renderer/c2d/C2dRenderer.mjs";
+import PlatformLoader from "../platforms/PlatformLoader.dev.mjs";
 
 export default class Stage extends EventEmitter {
 
@@ -14,11 +15,11 @@ export default class Stage extends EventEmitter {
         super();
         this._setOptions(options);
 
-        // Platform adapter should be injected before creating the stage.
-        this.adapter = new Stage.ADAPTER();
+        const platformType = PlatformLoader.load(options);
+        this.platform = new platformType();
 
-        if (this.adapter.init) {
-            this.adapter.init(this);
+        if (this.platform.init) {
+            this.platform.init(this);
         }
 
         this.gl = undefined;
@@ -32,10 +33,10 @@ export default class Stage extends EventEmitter {
                 this.c2d = context;
             }
         } else {
-            if (!Stage.isWebglSupported() || this.getOption('canvas2d')) {
-                this.c2d = this.adapter.createCanvasContext(this.getOption('w'), this.getOption('h'));
+            if (!Utils.isWeb && (!Stage.isWebglSupported() || this.getOption('canvas2d'))) {
+                this.c2d = this.platform.createCanvasContext(this.getOption('w'), this.getOption('h'));
             } else {
-                this.gl = this.adapter.createWebGLContext(this.getOption('w'), this.getOption('h'));
+                this.gl = this.platform.createWebGLContext(this.getOption('w'), this.getOption('h'));
             }
         }
 
@@ -143,6 +144,7 @@ export default class Stage extends EventEmitter {
         opt('autostart', true);
         opt('precision', 1);
         opt('canvas2d', false);
+        opt('platform', undefined);
     }
 
     setApplication(app) {
@@ -152,14 +154,14 @@ export default class Stage extends EventEmitter {
     init() {
         this.application.setAsRoot();
         if (this.getOption('autostart')) {
-            this.adapter.startLoop();
+            this.platform.startLoop();
         }
     }
 
     destroy() {
         if (!this._destroyed) {
             this.application.destroy();
-            this.adapter.stopLoop();
+            this.platform.stopLoop();
             this.ctx.destroy();
             this.textureManager.destroy();
             this._renderer.destroy();
@@ -168,14 +170,14 @@ export default class Stage extends EventEmitter {
     }
 
     stop() {
-        this.adapter.stopLoop();
+        this.platform.stopLoop();
     }
 
     resume() {
         if (this._destroyed) {
             throw new Error("Already destroyed");
         }
-        this.adapter.startLoop();
+        this.platform.startLoop();
     }
 
     get root() {
@@ -211,7 +213,7 @@ export default class Stage extends EventEmitter {
 
     drawFrame() {
         this.startTime = this.currentTime;
-        this.currentTime = this.adapter.getHrTime();
+        this.currentTime = this.platform.getHrTime();
 
         if (this._options.fixedDt) {
             this.dt = this._options.fixedDt;
@@ -242,7 +244,7 @@ export default class Stage extends EventEmitter {
             this._updatingFrame = false;
         }
 
-        this.adapter.nextFrame(changes);
+        this.platform.nextFrame(changes);
 
         this.emit('frameEnd');
 
@@ -340,7 +342,7 @@ export default class Stage extends EventEmitter {
     }
 
     getDrawingCanvas() {
-        return this.adapter.getDrawingCanvas();
+        return this.platform.getDrawingCanvas();
     }
 
     patchObject(object, settings) {

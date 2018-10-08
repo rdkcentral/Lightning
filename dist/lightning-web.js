@@ -252,188 +252,6 @@ var lng = (function () {
             }
         };
 
-        static getSplineValueFunction(v1, v2, p1, p2, o1, i2, s1, s2) {
-            // Normalize slopes because we use a spline that goes from 0 to 1.
-            let dp = p2 - p1;
-            s1 *= dp;
-            s2 *= dp;
-
-            let helpers = StageUtils.getSplineHelpers(v1, v2, o1, i2, s1, s2);
-            if (!helpers) {
-                return function (p) {
-                    if (p == 0) return v1;
-                    if (p == 1) return v2;
-
-                    return v2 * p + v1 * (1 - p);
-                };
-            } else {
-                return function (p) {
-                    if (p == 0) return v1;
-                    if (p == 1) return v2;
-                    return StageUtils.calculateSpline(helpers, p);
-                };
-            }
-        };
-
-        static getSplineRgbaValueFunction(v1, v2, p1, p2, o1, i2, s1, s2) {
-            // Normalize slopes because we use a spline that goes from 0 to 1.
-            let dp = p2 - p1;
-            s1[0] *= dp;
-            s1[1] *= dp;
-            s1[2] *= dp;
-            s1[3] *= dp;
-            s2[0] *= dp;
-            s2[1] *= dp;
-            s2[2] *= dp;
-            s2[3] *= dp;
-
-            let cv1 = StageUtils.getRgbaComponents(v1);
-            let cv2 = StageUtils.getRgbaComponents(v2);
-
-            let helpers = [
-                StageUtils.getSplineHelpers(cv1[0], cv2[0], o1, i2, s1[0], s2[0]),
-                StageUtils.getSplineHelpers(cv1[1], cv2[1], o1, i2, s1[1], s2[1]),
-                StageUtils.getSplineHelpers(cv1[2], cv2[2], o1, i2, s1[2], s2[2]),
-                StageUtils.getSplineHelpers(cv1[3], cv2[3], o1, i2, s1[3], s2[3])
-            ];
-
-            if (!helpers[0]) {
-                return function (p) {
-                    // Linear.
-                    if (p == 0) return v1;
-                    if (p == 1) return v2;
-
-                    return StageUtils.mergeColors(v2, v1, p);
-                };
-            } else {
-                return function (p) {
-                    if (p == 0) return v1;
-                    if (p == 1) return v2;
-
-                    return StageUtils.getArgbNumber([
-                        Math.min(255, StageUtils.calculateSpline(helpers[0], p)),
-                        Math.min(255, StageUtils.calculateSpline(helpers[1], p)),
-                        Math.min(255, StageUtils.calculateSpline(helpers[2], p)),
-                        Math.min(255, StageUtils.calculateSpline(helpers[3], p))
-                    ]);
-                };
-            }
-
-        };
-
-        /**
-         * Creates helpers to be used in the spline function.
-         * @param {number} v1
-         *   From value.
-         * @param {number} v2
-         *   To value.
-         * @param {number} o1
-         *   From smoothness (0 = linear, 1 = smooth).
-         * @param {number} s1
-         *   From slope (0 = horizontal, infinite = vertical).
-         * @param {number} i2
-         *   To smoothness.
-         * @param {number} s2
-         *   To slope.
-         * @returns {Number[]}
-         *   The helper values to be supplied to the spline function.
-         *   If the configuration is actually linear, null is returned.
-         */
-        static getSplineHelpers(v1, v2, o1, i2, s1, s2) {
-            if (!o1 && !i2) {
-                // Linear.
-                return null;
-            }
-
-            // Cubic bezier points.
-            // http://cubic-bezier.com/
-            let csx = o1;
-            let csy = v1 + s1 * o1;
-            let cex = 1 - i2;
-            let cey = v2 - s2 * i2;
-
-            // Helper letiables.
-            let xa = 3 * csx - 3 * cex + 1;
-            let xb = -6 * csx + 3 * cex;
-            let xc = 3 * csx;
-
-            let ya = 3 * csy - 3 * cey + v2 - v1;
-            let yb = 3 * (cey + v1) - 6 * csy;
-            let yc = 3 * (csy - v1);
-            let yd = v1;
-
-            return [xa, xb, xc, ya, yb, yc, yd];
-        };
-
-        /**
-         * Calculates the intermediate spline value based on the specified helpers.
-         * @param {number[]} helpers
-         *   Obtained from getSplineHelpers.
-         * @param {number} p
-         * @return {number}
-         */
-        static calculateSpline(helpers, p) {
-            let xa = helpers[0];
-            let xb = helpers[1];
-            let xc = helpers[2];
-            let ya = helpers[3];
-            let yb = helpers[4];
-            let yc = helpers[5];
-            let yd = helpers[6];
-
-            if (xa == -2 && ya == -2 && xc == 0 && yc == 0) {
-                // Linear.
-                return p;
-            }
-
-            // Find t for p.
-            let t = 0.5, cbx, dx;
-
-            for (let it = 0; it < 20; it++) {
-                // Cubic bezier function: f(t)=t*(t*(t*a+b)+c).
-                cbx = t * (t * (t * xa + xb) + xc);
-
-                dx = p - cbx;
-                if (dx > -1e-8 && dx < 1e-8) {
-                    // Solution found!
-                    return t * (t * (t * ya + yb) + yc) + yd;
-                }
-
-                // Cubic bezier derivative function: f'(t)=t*(t*(3*a)+2*b)+c
-                let cbxd = t * (t * (3 * xa) + 2 * xb) + xc;
-
-                if (cbxd > 1e-10 && cbxd < 1e-10) {
-                    // Problematic. Fall back to binary search method.
-                    break;
-                }
-
-                t += dx / cbxd;
-            }
-
-            // Fallback: binary search method. This is more reliable when there are near-0 slopes.
-            let minT = 0;
-            let maxT = 1;
-            for (let it = 0; it < 20; it++) {
-                t = 0.5 * (minT + maxT);
-
-                // Cubic bezier function: f(t)=t*(t*(t*a+b)+c)+d.
-                cbx = t * (t * (t * xa + xb) + xc);
-
-                dx = p - cbx;
-                if (dx > -1e-8 && dx < 1e-8) {
-                    // Solution found!
-                    return t * (t * (t * ya + yb) + yc) + yd;
-                }
-
-                if (dx < 0) {
-                    maxT = t;
-                } else {
-                    minT = t;
-                }
-            }
-
-            return t;
-        };
     }
 
     class Utils {
@@ -608,6 +426,7 @@ var lng = (function () {
     }
 
     Utils.isNode = (typeof window === "undefined");
+    Utils.isWeb = (typeof window !== "undefined");
 
     class TextureSource {
 
@@ -3757,9 +3576,9 @@ var lng = (function () {
                 }
             }
 
-            const adapter = this.stage.adapter;
+            const platform = this.stage.platform;
             return function(cb) {
-                return adapter.loadSrcTexture({src: src, hasAlpha: hasAlpha}, cb);
+                return platform.loadSrcTexture({src: src, hasAlpha: hasAlpha}, cb);
             }
         }
 
@@ -4481,11 +4300,11 @@ var lng = (function () {
                 args.fontFace = this.stage.getOption('defaultFontFace');
             }
 
-            const canvas = this.stage.adapter.getDrawingCanvas();
+            const canvas = this.stage.platform.getDrawingCanvas();
             return function(cb) {
                 const renderer = new TextTextureRenderer(this.stage, canvas, args);
                 renderer.draw();
-                cb(null, this.stage.adapter.getTextureOptionsForDrawingCanvas(canvas));
+                cb(null, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas));
             }
         }
 
@@ -8948,7 +8767,7 @@ var lng = (function () {
             texOptions.type = texOptions.type || gl.UNSIGNED_BYTE;
             texOptions.internalFormat = texOptions.internalFormat || texOptions.format;
 
-            this.stage.adapter.uploadGlTexture(gl, textureSource, source, texOptions);
+            this.stage.platform.uploadGlTexture(gl, textureSource, source, texOptions);
 
             glTexture.params = Utils.cloneObjShallow(texParams);
             glTexture.options = Utils.cloneObjShallow(texOptions);
@@ -9363,6 +9182,456 @@ var lng = (function () {
         }
     }
 
+    class ImageWorker {
+
+        constructor(options = {}) {
+            this._items = new Map();
+            this._id = 0;
+
+            this._initWorker();
+        }
+
+        _initWorker() {
+            const code = `(${createWorker.toString()})()`;
+            const blob = new Blob([code.replace('"use strict";', '')]); // firefox adds "use strict"; to any function which might block worker execution so knock it off
+            const blobURL = (window.URL ? URL : webkitURL).createObjectURL(blob, {
+                type: 'application/javascript; charset=utf-8'
+            });
+            this._worker = new Worker(blobURL);
+
+            this._worker.postMessage({type: 'config', config: {path: window.location.href}});
+
+            this._worker.onmessage = (e) => {
+                if (e.data && e.data.id) {
+                    const id = e.data.id;
+                    const item = this._items.get(id);
+                    if (item) {
+                        if (e.data.type == 'data') {
+                            this.finish(item, e.data.info);
+                        } else {
+                            this.error(item, e.data.info);
+                        }
+                    }
+                }
+            };
+        }
+
+        create(src) {
+            const id = ++this._id;
+            const item = new ImageWorkerImage(this, id, src);
+            this._items.set(id, item);
+            this._worker.postMessage({type: "add", id: id, src: src});
+            return item;
+        }
+
+        cancel(image) {
+            this._worker.postMessage({type: "cancel", id: image.id});
+            this._items.delete(image.id);
+        }
+
+        error(image, info) {
+            image.error(info);
+            this._items.delete(image.id);
+        }
+
+        finish(image, info) {
+            image.load(info);
+            this._items.delete(image.id);
+        }
+
+    }
+
+    class ImageWorkerImage {
+
+        constructor(manager, id, src) {
+            this._manager = manager;
+            this._id = id;
+            this._src = src;
+            this._onError = null;
+            this._onLoad = null;
+        }
+
+        get id() {
+            return this._id;
+        }
+
+        get src() {
+            return this._src;
+        }
+
+        set onError(f) {
+            this._onError = f;
+        }
+
+        set onLoad(f) {
+            this._onLoad = f;
+        }
+
+        cancel() {
+            this._manager.cancel(this);
+        }
+
+        load(info) {
+            if (this._onLoad) {
+                this._onLoad(info);
+            }
+        }
+
+        error(info) {
+            if (this._onError) {
+                this._onError(info);
+            }
+        }
+
+    }
+
+    const createWorker = function() {
+        class ImageWorkerServer {
+
+            constructor() {
+                this.items = new Map();
+
+                onmessage = (e) => {
+                    if (e.data.type == 'config') {
+                        this.config = e.data.config;
+
+                        const base = this.config.path;
+                        const parts = base.split("/");
+                        parts.pop();
+                        this._relativeBase = parts.join("/") + "/";
+
+                    } else if (e.data.type == 'add') {
+                        this.add(e.data.id, e.data.src);
+                    } else if (e.data.type == 'cancel') {
+                        this.cancel(e.data.id);
+                    }
+                };
+            }
+
+            static isPathAbsolute(path) {
+                return /^(?:\/|[a-z]+:\/\/)/.test(path);
+            }
+
+            add(id, src) {
+                // Convert relative URLs.
+                if (!ImageWorkerServer.isPathAbsolute(src)) {
+                    src = this._relativeBase + src;
+                    console.log('convert to relative: ' + src);
+                }
+
+                if (src.substr(0,2) === "//") {
+                    // This doesn't work for image workers.
+                    src = "http:" + src;
+                }
+
+                const item = new ImageWorkerServerItem(id, src);
+                item.onFinish = (result) => {
+                    this.finish(item, result);
+                };
+                item.onError = (info) => {
+                    this.error(item, info);
+                };
+                this.items.set(id, item);
+                item.start();
+            }
+
+            cancel(id) {
+                const item = this.items.get(id);
+                if (item) {
+                    item.cancel();
+                    this.items.delete(id);
+                }
+            }
+
+            finish(item, {imageBitmap, hasAlphaChannel}) {
+                postMessage({
+                    type: "data",
+                    id: item.id,
+                    info: {
+                        imageBitmap,
+                        hasAlphaChannel
+                    }
+                }, [imageBitmap]);
+                this.items.delete(item.id);
+            }
+
+            error(item, {type, message}) {
+                postMessage({
+                    type: "error",
+                    id: item.id,
+                    info: {
+                        type,
+                        message
+                    }
+                });
+                this.items.delete(item.id);
+            }
+        }
+
+        class ImageWorkerServerItem {
+
+            constructor(id, src) {
+                this._onError = undefined;
+                this._onFinish = undefined;
+                this._id = id;
+                this._src = src;
+                this._xhr = undefined;
+                this._mimeType = undefined;
+                this._canceled = false;
+            }
+
+            get id() {
+                return this._id;
+            }
+
+            set onFinish(f) {
+                this._onFinish = f;
+            }
+
+            set onError(f) {
+                this._onError = f;
+            }
+
+            start() {
+                this._xhr = new XMLHttpRequest();
+                this._xhr.open("GET", this._src, true);
+                this._xhr.responseType = "blob";
+
+                this._xhr.onerror = oEvent => {
+                    this.error({type: "connection", message: "Connection error"});
+                };
+
+                this._xhr.onload = oEvent => {
+                    const blob = this._xhr.response;
+                    this._mimeType = blob.type;
+
+                    this._createImageBitmap(blob);
+                };
+
+                this._xhr.send();
+
+            }
+
+            _createImageBitmap(blob) {
+                createImageBitmap(blob, {premultiplyAlpha: 'premultiply', colorSpaceConversion: 'none', imageOrientation: 'none'}).then(imageBitmap => {
+                    this.finish({
+                        imageBitmap,
+                        hasAlphaChannel: this._hasAlphaChannel()
+                    });
+                }).catch(e => {
+                    this.error({type: "parse", message: "Error parsing image data"});
+                });
+            }
+
+            _hasAlphaChannel() {
+                // When using unaccelerated rendering image (https://github.com/WebPlatformForEmbedded/WPEWebKit/blob/wpe-20170728/Source/WebCore/html/ImageBitmap.cpp#L52),
+                // everything including JPG images are in RGBA format. Upload is way faster when using an alpha channel.
+                return true;
+
+                // @todo: after hardware acceleration is fixed and re-enabled, JPG should be uploaded in RGB to get the best possible performance and memory usage.
+                // return (this._mimeType.indexOf("image/png") !== -1);
+            }
+
+            cancel() {
+                if (this._canceled) return;
+                if (this._xhr) {
+                    this._xhr.abort();
+                }
+                this._canceled = true;
+            }
+
+            error(type, message) {
+                if (!this._canceled && this._onError) {
+                    this._onError({type, message});
+                }
+            }
+
+            finish(info) {
+                if (!this._canceled && this._onFinish) {
+                    this._onFinish(info);
+                }
+            }
+
+        }
+
+        const worker = new ImageWorkerServer();
+    };
+
+    /**
+     * Platform-specific functionality.
+     * Copyright Metrological, 2017;
+     */
+    class WebPlatform {
+
+        init(stage) {
+            this.stage = stage;
+            this._looping = false;
+            this._awaitingLoop = false;
+
+            if (this.stage.getOption("useImageWorker")) {
+                if (!window.createImageBitmap || !window.Worker) {
+                    console.warn("Can't use image worker because browser does not have createImageBitmap and Web Worker support");
+                } else {
+                    this._imageWorker = new ImageWorker();
+                }
+            }
+        }
+
+        startLoop() {
+            this._looping = true;
+            if (!this._awaitingLoop) {
+                this.loop();
+            }
+        }
+
+        stopLoop() {
+            this._looping = false;
+        }
+
+        loop() {
+            let self = this;
+            let lp = function() {
+                self._awaitingLoop = false;
+                if (self._looping) {
+                    self.stage.drawFrame();
+                    requestAnimationFrame(lp);
+                    self._awaitingLoop = true;
+                }
+            };
+            requestAnimationFrame(lp);
+        }
+
+        uploadGlTexture(gl, textureSource, source, options) {
+            if (source instanceof ImageData || source instanceof HTMLImageElement || source instanceof HTMLCanvasElement || source instanceof HTMLVideoElement || (window.ImageBitmap && source instanceof ImageBitmap)) {
+                // Web-specific data types.
+                gl.texImage2D(gl.TEXTURE_2D, 0, options.internalFormat, options.format, options.type, source);
+            } else {
+                gl.texImage2D(gl.TEXTURE_2D, 0, options.internalFormat, textureSource.w, textureSource.h, 0, options.format, options.type, source);
+            }
+        }
+
+        loadSrcTexture({src, hasAlpha}, cb) {
+            let cancelCb = undefined;
+            let isPng = (src.indexOf(".png") >= 0);
+            if (this._imageWorker) {
+                // WPE-specific image parser.
+                const image = this._imageWorker.create(src);
+                image.onError = function(err) {
+                    return cb("Image load error");
+                };
+                image.onLoad = function({imageBitmap, hasAlphaChannel}) {
+                    cb(null, {
+                        source: imageBitmap,
+                        renderInfo: {src: src},
+                        hasAlpha: hasAlphaChannel,
+                        premultiplyAlpha: true
+                    });
+                };
+                cancelCb = function() {
+                    image.cancel();
+                };
+            } else {
+                let image = new Image();
+                if (!(src.substr(0,5) == "data:")) {
+                    // Base64.
+                    image.crossOrigin = "Anonymous";
+                }
+                image.onerror = function(err) {
+                    // Ignore error message when cancelled.
+                    if (image.src) {
+                        return cb("Image load error");
+                    }
+                };
+                image.onload = function() {
+                    cb(null, {
+                        source: image,
+                        renderInfo: {src: src},
+                        hasAlpha: isPng || hasAlpha
+                    });
+                };
+                image.src = src;
+
+                cancelCb = function() {
+                    image.removeAttribute('src');
+                };
+            }
+
+            return cancelCb;
+        }
+
+        createWebGLContext(w, h) {
+            let canvas = this.stage.getOption('canvas') || document.createElement('canvas');
+
+            if (w && h) {
+                canvas.width = w;
+                canvas.height = h;
+            }
+
+            let opts = {
+                alpha: true,
+                antialias: false,
+                premultipliedAlpha: true,
+                stencil: true,
+                preserveDrawingBuffer: false
+            };
+
+            let gl = canvas.getContext('webgl', opts) || canvas.getContext('experimental-webgl', opts);
+            if (!gl) {
+                throw new Error('This browser does not support webGL.');
+            }
+
+            return gl;
+        }
+
+        createCanvasContext(w, h) {
+            let canvas = this.stage.getOption('canvas') || document.createElement('canvas');
+
+            if (w && h) {
+                canvas.width = w;
+                canvas.height = h;
+            }
+
+            let c2d = canvas.getContext('2d');
+            if (!c2d) {
+                throw new Error('This browser does not support 2d canvas.');
+            }
+
+            return c2d;
+        }
+
+        getHrTime() {
+            return window.performance ? window.performance.now() : (new Date()).getTime();
+        }
+
+        getDrawingCanvas() {
+            // We can't reuse this canvas because textures may load async.
+            return document.createElement('canvas');
+        }
+
+        getTextureOptionsForDrawingCanvas(canvas) {
+            let options = {};
+            options.source = canvas;
+            return options;
+        }
+
+        nextFrame(changes) {
+            /* WebGL blits automatically */
+        }
+
+        registerKeyHandler(keyhandler) {
+            window.addEventListener('keydown', e => {
+                keyhandler({keyCode: e.keyCode});
+            });
+        }
+
+    }
+
+    class PlatformLoader {
+        static load(options) {
+            return WebPlatform;
+        }
+    }
+
     class TextureManager {
 
         constructor(stage) {
@@ -9734,11 +10003,9 @@ var lng = (function () {
         }
     }
 
-    class AnimationActionItems {
-        
-        constructor(action) {
-            this._action = action;
-            
+    class MultiSpline {
+
+        constructor() {
             this._clear();
         }
 
@@ -9757,8 +10024,8 @@ var lng = (function () {
 
             this._length = 0;
         }
-        
-        parse(def) {
+
+        parse(rgba, def) {
             let i, n;
             if (!Utils.isObjectLiteral(def)) {
                 def = {0: def};
@@ -9776,7 +10043,7 @@ var lng = (function () {
 
                     let p = parseFloat(key);
 
-                    if (key == "sm") {
+                    if (key === "sm") {
                         defaultSmoothness = obj.v;
                     } else if (!isNaN(p) && p >= 0 && p <= 2) {
                         obj.p = p;
@@ -9795,7 +10062,7 @@ var lng = (function () {
             n = items.length;
 
             for (i = 0; i < n; i++) {
-                let last = (i == n - 1);
+                let last = (i === n - 1);
                 if (!items[i].hasOwnProperty('pe')) {
                     // Progress.
                     items[i].pe = last ? (items[i].p <= 1 ? 1 : 2 /* support onetotwo stop */) : items[i + 1].p;
@@ -9814,7 +10081,6 @@ var lng = (function () {
             }
 
             // Color merger: we need to split/combine RGBA components.
-            const rgba = (this._action.hasColorProperty());
 
             // Calculate bezier helper values.;
             for (i = 0; i < n; i++) {
@@ -9834,8 +10100,8 @@ var lng = (function () {
                             items[i].s = rgba ? [0, 0, 0, 0] : 0;
                         } else {
                             if (rgba) {
-                                const nc = StageUtils.getRgbaComponents(ni.lv);
-                                const pc = StageUtils.getRgbaComponents(pi.lv);
+                                const nc = MultiSpline.getRgbaComponents(ni.lv);
+                                const pc = MultiSpline.getRgbaComponents(pi.lv);
                                 const d = 1 / (ni.p - pi.p);
                                 items[i].s = [
                                     d * (nc[0] - pc[0]),
@@ -9871,9 +10137,9 @@ var lng = (function () {
 
                         // Generate spline.;
                         if (rgba) {
-                            items[i].v = StageUtils.getSplineRgbaValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
+                            items[i].v = MultiSpline.getSplineRgbaValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
                         } else {
-                            items[i].v = StageUtils.getSplineValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
+                            items[i].v = MultiSpline.getSplineValueFunction(items[i].v, items[i].ve, items[i].p, items[i].pe, items[i].sm, items[i].sme, items[i].s, items[i].se);
                         }
 
                         items[i].f = true;
@@ -9887,7 +10153,7 @@ var lng = (function () {
 
             for (i = 0, n = items.length; i < n; i++) {
                 this._add(items[i]);
-            }        
+            }
         }
 
         _add(item) {
@@ -9904,7 +10170,7 @@ var lng = (function () {
             this._se.push(item.se || 0);
             this._length++;
         }
-        
+
         _getItem(p) {
             const n = this._length;
             if (!n) {
@@ -9921,12 +10187,12 @@ var lng = (function () {
                 }
             }
 
-            return n - 1;        
+            return n - 1;
         }
 
         getValue(p) {
             const i = this._getItem(p);
-            if (i == -1) {
+            if (i === -1) {
                 return undefined;
             } else {
                 if (this._f[i]) {
@@ -9942,6 +10208,226 @@ var lng = (function () {
             return this._length;
         }
 
+        static getRgbaComponents(argb) {
+            let r = ((argb / 65536) | 0) % 256;
+            let g = ((argb / 256) | 0) % 256;
+            let b = argb % 256;
+            let a = ((argb / 16777216) | 0);
+            return [r, g, b, a];
+        };
+
+        static getSplineValueFunction(v1, v2, p1, p2, o1, i2, s1, s2) {
+            // Normalize slopes because we use a spline that goes from 0 to 1.
+            let dp = p2 - p1;
+            s1 *= dp;
+            s2 *= dp;
+
+            let helpers = MultiSpline.getSplineHelpers(v1, v2, o1, i2, s1, s2);
+            if (!helpers) {
+                return function (p) {
+                    if (p === 0) return v1;
+                    if (p === 1) return v2;
+
+                    return v2 * p + v1 * (1 - p);
+                };
+            } else {
+                return function (p) {
+                    if (p === 0) return v1;
+                    if (p === 1) return v2;
+                    return MultiSpline.calculateSpline(helpers, p);
+                };
+            }
+        };
+
+        static getSplineRgbaValueFunction(v1, v2, p1, p2, o1, i2, s1, s2) {
+            // Normalize slopes because we use a spline that goes from 0 to 1.
+            let dp = p2 - p1;
+            s1[0] *= dp;
+            s1[1] *= dp;
+            s1[2] *= dp;
+            s1[3] *= dp;
+            s2[0] *= dp;
+            s2[1] *= dp;
+            s2[2] *= dp;
+            s2[3] *= dp;
+
+            let cv1 = MultiSpline.getRgbaComponents(v1);
+            let cv2 = MultiSpline.getRgbaComponents(v2);
+
+            let helpers = [
+                MultiSpline.getSplineHelpers(cv1[0], cv2[0], o1, i2, s1[0], s2[0]),
+                MultiSpline.getSplineHelpers(cv1[1], cv2[1], o1, i2, s1[1], s2[1]),
+                MultiSpline.getSplineHelpers(cv1[2], cv2[2], o1, i2, s1[2], s2[2]),
+                MultiSpline.getSplineHelpers(cv1[3], cv2[3], o1, i2, s1[3], s2[3])
+            ];
+
+            if (!helpers[0]) {
+                return function (p) {
+                    // Linear.
+                    if (p === 0) return v1;
+                    if (p === 1) return v2;
+
+                    return MultiSpline.mergeColors(v2, v1, p);
+                };
+            } else {
+                return function (p) {
+                    if (p === 0) return v1;
+                    if (p === 1) return v2;
+
+                    return MultiSpline.getArgbNumber([
+                        Math.min(255, MultiSpline.calculateSpline(helpers[0], p)),
+                        Math.min(255, MultiSpline.calculateSpline(helpers[1], p)),
+                        Math.min(255, MultiSpline.calculateSpline(helpers[2], p)),
+                        Math.min(255, MultiSpline.calculateSpline(helpers[3], p))
+                    ]);
+                };
+            }
+
+        };
+
+        /**
+         * Creates helpers to be used in the spline function.
+         * @param {number} v1
+         *   From value.
+         * @param {number} v2
+         *   To value.
+         * @param {number} o1
+         *   From smoothness (0 = linear, 1 = smooth).
+         * @param {number} s1
+         *   From slope (0 = horizontal, infinite = vertical).
+         * @param {number} i2
+         *   To smoothness.
+         * @param {number} s2
+         *   To slope.
+         * @returns {Number[]}
+         *   The helper values to be supplied to the spline function.
+         *   If the configuration is actually linear, null is returned.
+         */
+        static getSplineHelpers(v1, v2, o1, i2, s1, s2) {
+            if (!o1 && !i2) {
+                // Linear.
+                return null;
+            }
+
+            // Cubic bezier points.
+            // http://cubic-bezier.com/
+            let csx = o1;
+            let csy = v1 + s1 * o1;
+            let cex = 1 - i2;
+            let cey = v2 - s2 * i2;
+
+            let xa = 3 * csx - 3 * cex + 1;
+            let xb = -6 * csx + 3 * cex;
+            let xc = 3 * csx;
+
+            let ya = 3 * csy - 3 * cey + v2 - v1;
+            let yb = 3 * (cey + v1) - 6 * csy;
+            let yc = 3 * (csy - v1);
+            let yd = v1;
+
+            return [xa, xb, xc, ya, yb, yc, yd];
+        };
+
+        /**
+         * Calculates the intermediate spline value based on the specified helpers.
+         * @param {number[]} helpers
+         *   Obtained from getSplineHelpers.
+         * @param {number} p
+         * @return {number}
+         */
+        static calculateSpline(helpers, p) {
+            let xa = helpers[0];
+            let xb = helpers[1];
+            let xc = helpers[2];
+            let ya = helpers[3];
+            let yb = helpers[4];
+            let yc = helpers[5];
+            let yd = helpers[6];
+
+            if (xa === -2 && ya === -2 && xc === 0 && yc === 0) {
+                // Linear.
+                return p;
+            }
+
+            // Find t for p.
+            let t = 0.5, cbx, dx;
+
+            for (let it = 0; it < 20; it++) {
+                // Cubic bezier function: f(t)=t*(t*(t*a+b)+c).
+                cbx = t * (t * (t * xa + xb) + xc);
+
+                dx = p - cbx;
+                if (dx > -1e-8 && dx < 1e-8) {
+                    // Solution found!
+                    return t * (t * (t * ya + yb) + yc) + yd;
+                }
+
+                // Cubic bezier derivative function: f'(t)=t*(t*(3*a)+2*b)+c
+                let cbxd = t * (t * (3 * xa) + 2 * xb) + xc;
+
+                if (cbxd > 1e-10 && cbxd < 1e-10) {
+                    // Problematic. Fall back to binary search method.
+                    break;
+                }
+
+                t += dx / cbxd;
+            }
+
+            // Fallback: binary search method. This is more reliable when there are near-0 slopes.
+            let minT = 0;
+            let maxT = 1;
+            for (let it = 0; it < 20; it++) {
+                t = 0.5 * (minT + maxT);
+
+                // Cubic bezier function: f(t)=t*(t*(t*a+b)+c)+d.
+                cbx = t * (t * (t * xa + xb) + xc);
+
+                dx = p - cbx;
+                if (dx > -1e-8 && dx < 1e-8) {
+                    // Solution found!
+                    return t * (t * (t * ya + yb) + yc) + yd;
+                }
+
+                if (dx < 0) {
+                    maxT = t;
+                } else {
+                    minT = t;
+                }
+            }
+
+            return t;
+        };
+
+        static mergeColors(c1, c2, p) {
+            let r1 = ((c1 / 65536) | 0) % 256;
+            let g1 = ((c1 / 256) | 0) % 256;
+            let b1 = c1 % 256;
+            let a1 = ((c1 / 16777216) | 0);
+
+            let r2 = ((c2 / 65536) | 0) % 256;
+            let g2 = ((c2 / 256) | 0) % 256;
+            let b2 = c2 % 256;
+            let a2 = ((c2 / 16777216) | 0);
+
+            let r = r1 * p + r2 * (1 - p) | 0;
+            let g = g1 * p + g2 * (1 - p) | 0;
+            let b = b1 * p + b2 * (1 - p) | 0;
+            let a = a1 * p + a2 * (1 - p) | 0;
+
+            return a * 16777216 + r * 65536 + g * 256 + b;
+        };
+
+        static getArgbNumber(rgba) {
+            rgba[0] = Math.max(0, Math.min(255, rgba[0]));
+            rgba[1] = Math.max(0, Math.min(255, rgba[1]));
+            rgba[2] = Math.max(0, Math.min(255, rgba[2]));
+            rgba[3] = Math.max(0, Math.min(255, rgba[3]));
+            let v = ((rgba[3] | 0) << 24) + ((rgba[0] | 0) << 16) + ((rgba[1] | 0) << 8) + (rgba[2] | 0);
+            if (v < 0) {
+                v = 0xFFFFFFFF + v + 1;
+            }
+            return v;
+        };
     }
 
     class AnimationActionSettings {
@@ -9958,10 +10444,10 @@ var lng = (function () {
 
             /**
              * The value items, ordered by progress offset.
-             * @type {AnimationActionItems}
+             * @type {MultiSpline}
              * @private;
              */
-            this._items = new AnimationActionItems(this);
+            this._items = new MultiSpline();
 
             /**
              * The affected properties (paths).
@@ -10068,7 +10554,7 @@ var lng = (function () {
         }
 
         set value(v) {
-            this._items.parse(v);
+            this._items.parse(this.hasColorProperty(), v);
         }
 
         set v(v) {
@@ -10650,11 +11136,11 @@ var lng = (function () {
             super();
             this._setOptions(options);
 
-            // Platform adapter should be injected before creating the stage.
-            this.adapter = new Stage.ADAPTER();
+            const platformType = PlatformLoader.load(options);
+            this.platform = new platformType();
 
-            if (this.adapter.init) {
-                this.adapter.init(this);
+            if (this.platform.init) {
+                this.platform.init(this);
             }
 
             this.gl = undefined;
@@ -10668,10 +11154,10 @@ var lng = (function () {
                     this.c2d = context;
                 }
             } else {
-                if (!Stage.isWebglSupported() || this.getOption('canvas2d')) {
-                    this.c2d = this.adapter.createCanvasContext(this.getOption('w'), this.getOption('h'));
+                if (!Utils.isWeb && (!Stage.isWebglSupported() || this.getOption('canvas2d'))) {
+                    this.c2d = this.platform.createCanvasContext(this.getOption('w'), this.getOption('h'));
                 } else {
-                    this.gl = this.adapter.createWebGLContext(this.getOption('w'), this.getOption('h'));
+                    this.gl = this.platform.createWebGLContext(this.getOption('w'), this.getOption('h'));
                 }
             }
 
@@ -10779,6 +11265,7 @@ var lng = (function () {
             opt('autostart', true);
             opt('precision', 1);
             opt('canvas2d', false);
+            opt('platform', undefined);
         }
 
         setApplication(app) {
@@ -10788,14 +11275,14 @@ var lng = (function () {
         init() {
             this.application.setAsRoot();
             if (this.getOption('autostart')) {
-                this.adapter.startLoop();
+                this.platform.startLoop();
             }
         }
 
         destroy() {
             if (!this._destroyed) {
                 this.application.destroy();
-                this.adapter.stopLoop();
+                this.platform.stopLoop();
                 this.ctx.destroy();
                 this.textureManager.destroy();
                 this._renderer.destroy();
@@ -10804,14 +11291,14 @@ var lng = (function () {
         }
 
         stop() {
-            this.adapter.stopLoop();
+            this.platform.stopLoop();
         }
 
         resume() {
             if (this._destroyed) {
                 throw new Error("Already destroyed");
             }
-            this.adapter.startLoop();
+            this.platform.startLoop();
         }
 
         get root() {
@@ -10847,7 +11334,7 @@ var lng = (function () {
 
         drawFrame() {
             this.startTime = this.currentTime;
-            this.currentTime = this.adapter.getHrTime();
+            this.currentTime = this.platform.getHrTime();
 
             if (this._options.fixedDt) {
                 this.dt = this._options.fixedDt;
@@ -10878,7 +11365,7 @@ var lng = (function () {
                 this._updatingFrame = false;
             }
 
-            this.adapter.nextFrame(changes);
+            this.platform.nextFrame(changes);
 
             this.emit('frameEnd');
 
@@ -10976,7 +11463,7 @@ var lng = (function () {
         }
 
         getDrawingCanvas() {
-            return this.adapter.getDrawingCanvas();
+            return this.platform.getDrawingCanvas();
         }
 
         patchObject(object, settings) {
@@ -11312,7 +11799,7 @@ var lng = (function () {
 
             this.__keymap = this.getOption('keys');
             if (this.__keymap) {
-                this.stage.adapter.registerKeyHandler((e) => {
+                this.stage.platform.registerKeyHandler((e) => {
                     this._receiveKeydown(e);
                 });
             }
@@ -11579,7 +12066,7 @@ var lng = (function () {
                     if (err) {
                         return cb(err);
                     }
-                    cb(null, this.stage.adapter.getTextureOptionsForDrawingCanvas(canvas));
+                    cb(null, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas));
                 }, this.stage);
             }
         }
@@ -11609,7 +12096,7 @@ var lng = (function () {
             if (fill === undefined) fill = true;
             if (strokeWidth === undefined) strokeWidth = 0;
 
-            let canvas = stage.adapter.getDrawingCanvas();
+            let canvas = stage.platform.getDrawingCanvas();
             let ctx = canvas.getContext('2d');
             ctx.imageSmoothingEnabled = true;
 
@@ -11665,7 +12152,7 @@ var lng = (function () {
         }
 
         static createShadowRect(stage, w, h, radius, blur, margin) {
-            let canvas = stage.adapter.getDrawingCanvas();
+            let canvas = stage.platform.getDrawingCanvas();
             let ctx = canvas.getContext('2d');
             ctx.imageSmoothingEnabled = true;
 
@@ -11710,7 +12197,7 @@ var lng = (function () {
         }
 
         static createSvg(cb, stage, url, w, h) {
-            let canvas = stage.adapter.getDrawingCanvas();
+            let canvas = stage.platform.getDrawingCanvas();
             let ctx = canvas.getContext('2d');
             ctx.imageSmoothingEnabled = true;
 
@@ -12716,6 +13203,15 @@ var lng = (function () {
             this._amount = 0;
             this._paddingX = 0;
             this._paddingY = 0;
+
+        }
+
+        static getSpline() {
+            if (!this._multiSpline) {
+                this._multiSpline = new MultiSpline();
+                this._multiSpline.parse(false, {0: 0, 0.25: 1.5, 0.5: 5.5, 0.75: 18, 1: 39});
+            }
+            return this._multiSpline;
         }
 
         get content() {
@@ -12774,31 +13270,7 @@ var lng = (function () {
         }
 
         static _amountToKernelRadius(v) {
-            const min = Math.floor(v);
-            const remainder = v - min;
-            const base = C2dFastBlurComponent._amountToKernelRadiusStep(min);
-            if (remainder > 0) {
-                const next = C2dFastBlurComponent._amountToKernelRadiusStep(min + 1);
-                return base + (next - base) * remainder;
-            } else {
-                return base;
-            }
-        }
-
-        static _amountToKernelRadiusStep(i) {
-            switch(i) {
-                case 0:
-                    return 0;
-                case 1:
-                    return 1.5;
-                case 2:
-                    return 5.5;
-                case 3:
-                    return 18;
-                case 4:
-                    return 39;
-            }
-
+            return C2dFastBlurComponent.getSpline().getValue(Math.min(1, v * 0.25));
         }
 
     }
@@ -14311,452 +14783,6 @@ var lng = (function () {
     }
 `;
 
-    class ImageWorker {
-
-        constructor(options = {}) {
-            this._items = new Map();
-            this._id = 0;
-
-            this._initWorker();
-        }
-
-        _initWorker() {
-            const code = `(${createWorker.toString()})()`;
-            const blob = new Blob([code.replace('"use strict";', '')]); // firefox adds "use strict"; to any function which might block worker execution so knock it off
-            const blobURL = (window.URL ? URL : webkitURL).createObjectURL(blob, {
-                type: 'application/javascript; charset=utf-8'
-            });
-            this._worker = new Worker(blobURL);
-
-            this._worker.postMessage({type: 'config', config: {path: window.location.href}});
-
-            this._worker.onmessage = (e) => {
-                if (e.data && e.data.id) {
-                    const id = e.data.id;
-                    const item = this._items.get(id);
-                    if (item) {
-                        if (e.data.type == 'data') {
-                            this.finish(item, e.data.info);
-                        } else {
-                            this.error(item, e.data.info);
-                        }
-                    }
-                }
-            };
-        }
-
-        create(src) {
-            const id = ++this._id;
-            const item = new ImageWorkerImage(this, id, src);
-            this._items.set(id, item);
-            this._worker.postMessage({type: "add", id: id, src: src});
-            return item;
-        }
-
-        cancel(image) {
-            this._worker.postMessage({type: "cancel", id: image.id});
-            this._items.delete(image.id);
-        }
-
-        error(image, info) {
-            image.error(info);
-            this._items.delete(image.id);
-        }
-
-        finish(image, info) {
-            image.load(info);
-            this._items.delete(image.id);
-        }
-
-    }
-
-    class ImageWorkerImage {
-
-        constructor(manager, id, src) {
-            this._manager = manager;
-            this._id = id;
-            this._src = src;
-            this._onError = null;
-            this._onLoad = null;
-        }
-
-        get id() {
-            return this._id;
-        }
-
-        get src() {
-            return this._src;
-        }
-
-        set onError(f) {
-            this._onError = f;
-        }
-
-        set onLoad(f) {
-            this._onLoad = f;
-        }
-
-        cancel() {
-            this._manager.cancel(this);
-        }
-
-        load(info) {
-            if (this._onLoad) {
-                this._onLoad(info);
-            }
-        }
-
-        error(info) {
-            if (this._onError) {
-                this._onError(info);
-            }
-        }
-
-    }
-
-    const createWorker = function() {
-        class ImageWorkerServer {
-
-            constructor() {
-                this.items = new Map();
-
-                onmessage = (e) => {
-                    if (e.data.type == 'config') {
-                        this.config = e.data.config;
-
-                        const base = this.config.path;
-                        const parts = base.split("/");
-                        parts.pop();
-                        this._relativeBase = parts.join("/") + "/";
-
-                    } else if (e.data.type == 'add') {
-                        this.add(e.data.id, e.data.src);
-                    } else if (e.data.type == 'cancel') {
-                        this.cancel(e.data.id);
-                    }
-                };
-            }
-
-            static isPathAbsolute(path) {
-                return /^(?:\/|[a-z]+:\/\/)/.test(path);
-            }
-
-            add(id, src) {
-                // Convert relative URLs.
-                if (!ImageWorkerServer.isPathAbsolute(src)) {
-                    src = this._relativeBase + src;
-                    console.log('convert to relative: ' + src);
-                }
-
-                if (src.substr(0,2) === "//") {
-                    // This doesn't work for image workers.
-                    src = "http:" + src;
-                }
-
-                const item = new ImageWorkerServerItem(id, src);
-                item.onFinish = (result) => {
-                    this.finish(item, result);
-                };
-                item.onError = (info) => {
-                    this.error(item, info);
-                };
-                this.items.set(id, item);
-                item.start();
-            }
-
-            cancel(id) {
-                const item = this.items.get(id);
-                if (item) {
-                    item.cancel();
-                    this.items.delete(id);
-                }
-            }
-
-            finish(item, {imageBitmap, hasAlphaChannel}) {
-                postMessage({
-                    type: "data",
-                    id: item.id,
-                    info: {
-                        imageBitmap,
-                        hasAlphaChannel
-                    }
-                }, [imageBitmap]);
-                this.items.delete(item.id);
-            }
-
-            error(item, {type, message}) {
-                postMessage({
-                    type: "error",
-                    id: item.id,
-                    info: {
-                        type,
-                        message
-                    }
-                });
-                this.items.delete(item.id);
-            }
-        }
-
-        class ImageWorkerServerItem {
-
-            constructor(id, src) {
-                this._onError = undefined;
-                this._onFinish = undefined;
-                this._id = id;
-                this._src = src;
-                this._xhr = undefined;
-                this._mimeType = undefined;
-                this._canceled = false;
-            }
-
-            get id() {
-                return this._id;
-            }
-
-            set onFinish(f) {
-                this._onFinish = f;
-            }
-
-            set onError(f) {
-                this._onError = f;
-            }
-
-            start() {
-                this._xhr = new XMLHttpRequest();
-                this._xhr.open("GET", this._src, true);
-                this._xhr.responseType = "blob";
-
-                this._xhr.onerror = oEvent => {
-                    this.error({type: "connection", message: "Connection error"});
-                };
-
-                this._xhr.onload = oEvent => {
-                    const blob = this._xhr.response;
-                    this._mimeType = blob.type;
-
-                    this._createImageBitmap(blob);
-                };
-
-                this._xhr.send();
-
-            }
-
-            _createImageBitmap(blob) {
-                createImageBitmap(blob, {premultiplyAlpha: 'premultiply', colorSpaceConversion: 'none', imageOrientation: 'none'}).then(imageBitmap => {
-                    this.finish({
-                        imageBitmap,
-                        hasAlphaChannel: this._hasAlphaChannel()
-                    });
-                }).catch(e => {
-                    this.error({type: "parse", message: "Error parsing image data"});
-                });
-            }
-
-            _hasAlphaChannel() {
-                // When using unaccelerated rendering image (https://github.com/WebPlatformForEmbedded/WPEWebKit/blob/wpe-20170728/Source/WebCore/html/ImageBitmap.cpp#L52),
-                // everything including JPG images are in RGBA format. Upload is way faster when using an alpha channel.
-                return true;
-
-                // @todo: after hardware acceleration is fixed and re-enabled, JPG should be uploaded in RGB to get the best possible performance and memory usage.
-                // return (this._mimeType.indexOf("image/png") !== -1);
-            }
-
-            cancel() {
-                if (this._canceled) return;
-                if (this._xhr) {
-                    this._xhr.abort();
-                }
-                this._canceled = true;
-            }
-
-            error(type, message) {
-                if (!this._canceled && this._onError) {
-                    this._onError({type, message});
-                }
-            }
-
-            finish(info) {
-                if (!this._canceled && this._onFinish) {
-                    this._onFinish(info);
-                }
-            }
-
-        }
-
-        const worker = new ImageWorkerServer();
-    };
-
-    /**
-     * Platform-specific functionality.
-     * Copyright Metrological, 2017;
-     */
-    class WebAdapter {
-
-        init(stage) {
-            this.stage = stage;
-            this._looping = false;
-            this._awaitingLoop = false;
-
-            if (this.stage.getOption("useImageWorker")) {
-                if (!window.createImageBitmap || !window.Worker) {
-                    console.warn("Can't use image worker because browser does not have createImageBitmap and Web Worker support");
-                } else {
-                    this._imageWorker = new ImageWorker();
-                }
-            }
-        }
-
-        startLoop() {
-            this._looping = true;
-            if (!this._awaitingLoop) {
-                this.loop();
-            }
-        }
-
-        stopLoop() {
-            this._looping = false;
-        }
-
-        loop() {
-            let self = this;
-            let lp = function() {
-                self._awaitingLoop = false;
-                if (self._looping) {
-                    self.stage.drawFrame();
-                    requestAnimationFrame(lp);
-                    self._awaitingLoop = true;
-                }
-            };
-            requestAnimationFrame(lp);
-        }
-
-        uploadGlTexture(gl, textureSource, source, options) {
-            if (source instanceof ImageData || source instanceof HTMLImageElement || source instanceof HTMLCanvasElement || source instanceof HTMLVideoElement || (window.ImageBitmap && source instanceof ImageBitmap)) {
-                // Web-specific data types.
-                gl.texImage2D(gl.TEXTURE_2D, 0, options.internalFormat, options.format, options.type, source);
-            } else {
-                gl.texImage2D(gl.TEXTURE_2D, 0, options.internalFormat, textureSource.w, textureSource.h, 0, options.format, options.type, source);
-            }
-        }
-
-        loadSrcTexture({src, hasAlpha}, cb) {
-            let cancelCb = undefined;
-            let isPng = (src.indexOf(".png") >= 0);
-            if (this._imageWorker) {
-                // WPE-specific image parser.
-                const image = this._imageWorker.create(src);
-                image.onError = function(err) {
-                    return cb("Image load error");
-                };
-                image.onLoad = function({imageBitmap, hasAlphaChannel}) {
-                    cb(null, {
-                        source: imageBitmap,
-                        renderInfo: {src: src},
-                        hasAlpha: hasAlphaChannel,
-                        premultiplyAlpha: true
-                    });
-                };
-                cancelCb = function() {
-                    image.cancel();
-                };
-            } else {
-                let image = new Image();
-                if (!(src.substr(0,5) == "data:")) {
-                    // Base64.
-                    image.crossOrigin = "Anonymous";
-                }
-                image.onerror = function(err) {
-                    // Ignore error message when cancelled.
-                    if (image.src) {
-                        return cb("Image load error");
-                    }
-                };
-                image.onload = function() {
-                    cb(null, {
-                        source: image,
-                        renderInfo: {src: src},
-                        hasAlpha: isPng || hasAlpha
-                    });
-                };
-                image.src = src;
-
-                cancelCb = function() {
-                    image.removeAttribute('src');
-                };
-            }
-
-            return cancelCb;
-        }
-
-        createWebGLContext(w, h) {
-            let canvas = this.stage.getOption('canvas') || document.createElement('canvas');
-
-            if (w && h) {
-                canvas.width = w;
-                canvas.height = h;
-            }
-
-            let opts = {
-                alpha: true,
-                antialias: false,
-                premultipliedAlpha: true,
-                stencil: true,
-                preserveDrawingBuffer: false
-            };
-
-            let gl = canvas.getContext('webgl', opts) || canvas.getContext('experimental-webgl', opts);
-            if (!gl) {
-                throw new Error('This browser does not support webGL.');
-            }
-
-            return gl;
-        }
-
-        createCanvasContext(w, h) {
-            let canvas = this.stage.getOption('canvas') || document.createElement('canvas');
-
-            if (w && h) {
-                canvas.width = w;
-                canvas.height = h;
-            }
-
-            let c2d = canvas.getContext('2d');
-            if (!c2d) {
-                throw new Error('This browser does not support 2d canvas.');
-            }
-
-            return c2d;
-        }
-
-        getHrTime() {
-            return window.performance ? window.performance.now() : (new Date()).getTime();
-        }
-
-        getDrawingCanvas() {
-            // We can't reuse this canvas because textures may load async.
-            return document.createElement('canvas');
-        }
-
-        getTextureOptionsForDrawingCanvas(canvas) {
-            let options = {};
-            options.source = canvas;
-            return options;
-        }
-
-        nextFrame(changes) {
-            /* WebGL blits automatically */
-        }
-
-        registerKeyHandler(keyhandler) {
-            window.addEventListener('keydown', e => {
-                keyhandler({keyCode: e.keyCode});
-            });
-        }
-
-    }
-
-    Stage.ADAPTER = WebAdapter;
-
     const lightning = {
         Application,
         Component,
@@ -14810,9 +14836,6 @@ var lng = (function () {
             ListComponent: ListView
         }
     };
-
-    // Legacy.
-    window.wuf = lightning;
 
     return lightning;
 

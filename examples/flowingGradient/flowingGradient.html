@@ -6,10 +6,6 @@
 <body>
 <script type="module">
     import FlowingGradientExample from "./FlowingGradientExample.mjs";
-    import Stage from '../../src/tree/Stage.mjs';
-    import WebAdapter from '../../src/browser/WebAdapter.mjs';
-
-    Stage.ADAPTER = WebAdapter;
 
     window.onload = function() {
         const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000}};

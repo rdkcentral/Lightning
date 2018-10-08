@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+
+    <script src="../../../dist/lightning-web.js"></script>
+    <script src="../../../devtools/lightning-inspect.js"></script>
+</head>
+<body>
+    <script type="module">
+        //attachInspector(lng)
+
+        window.onload = function() {
+            class BasicUsageExample extends lng.Application {
+                static _template() {
+                    return {
+                        Bg: {
+                            src: "../../rockies.jpeg", scale: 1,
+                        },
+                        Primary: {
+                            Main: {rect: true, renderToTexture: true, w: 900, h: 900, colorLeft: 0x000000FF, colorRight: 0xFF0000FF
+                            },
+                            App: {alpha: 0.5, rect: true, w: 100, h: 100, scale: 1, texture: {type: lng.textures.NoiseTexture, x: 0, y: 0, w: 1000, h: 1000}}
+                        },
+                        Overlay: {}
+                    }
+                }
+
+                static _states() {
+                    return {
+                        "_handleLeft": function() {
+                            this.tag('Primary').setSmooth('x', this.tag('Primary').getSmooth('x') - 100)
+                        },
+                        "_handleRight": function() {
+                            this.tag('Primary').setSmooth('x', this.tag('Primary').getSmooth('x') + 100)
+                        },
+                        "_handleUp": function() {
+                            this.tag('Primary').setSmooth('y', this.tag('Primary').getSmooth('y') - 100)
+                        },
+                        "_handleDown": function() {
+                            this.tag('Primary').setSmooth('y', this.tag('Primary').getSmooth('y') + 100)
+                        }
+                    }
+                }
+            }
+
+            const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000, canvas2d: false, useImageWorker: false}, debug: true}
+            options.keys = {
+                38: "Up",
+                40: "Down",
+                37: "Left",
+                39: "Right",
+                13: "Enter",
+                9: "Back",
+                8: "Back",
+                93: "Back",
+                174: "Back",
+                175: "Menu",
+                83: "Search"
+            };
+
+            const app = new BasicUsageExample(options);
+
+            document.body.appendChild(app.stage.getCanvas());
+        }
+    </script>
+</body>
+</html>

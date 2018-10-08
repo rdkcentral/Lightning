@@ -1,13 +1,12 @@
-import Application from '../../src/application/Application.mjs';
-import NoiseTexture from '../../src/textures/NoiseTexture.mjs';
+import lng from '../../lightning.mjs';
 
 import FlowingGradientShader from "./FlowingGradientShader.mjs";
 
-export default class FlowingGradientExample extends Application {
+export default class FlowingGradientExample extends lng.Application {
 
     static _template() {
         return {
-            Shader: {shader: {type: FlowingGradientShader, random: true, graining: 0.04}, texture: {type: NoiseTexture}, w: 1600, h: 1000}
+            Shader: {shader: {type: FlowingGradientShader, random: false, graining: 0.01}, texture: {type: lng.textures.NoiseTexture}, w: 1600, h: 1000}
         }
     }
 

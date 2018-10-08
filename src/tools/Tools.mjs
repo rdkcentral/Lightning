@@ -25,7 +25,7 @@ export default class Tools {
         if (fill === undefined) fill = true;
         if (strokeWidth === undefined) strokeWidth = 0;
 
-        let canvas = stage.adapter.getDrawingCanvas();
+        let canvas = stage.platform.getDrawingCanvas();
         let ctx = canvas.getContext('2d');
         ctx.imageSmoothingEnabled = true;
 
@@ -81,7 +81,7 @@ export default class Tools {
     }
 
     static createShadowRect(stage, w, h, radius, blur, margin) {
-        let canvas = stage.adapter.getDrawingCanvas();
+        let canvas = stage.platform.getDrawingCanvas();
         let ctx = canvas.getContext('2d');
         ctx.imageSmoothingEnabled = true;
 
@@ -126,7 +126,7 @@ export default class Tools {
     }
 
     static createSvg(cb, stage, url, w, h) {
-        let canvas = stage.adapter.getDrawingCanvas();
+        let canvas = stage.platform.getDrawingCanvas();
         let ctx = canvas.getContext('2d');
         ctx.imageSmoothingEnabled = true;
 

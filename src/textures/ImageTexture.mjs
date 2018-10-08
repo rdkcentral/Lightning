@@ -50,9 +50,9 @@ export default class ImageTexture extends Texture {
             }
         }
 
-        const adapter = this.stage.adapter;
+        const platform = this.stage.platform;
         return function(cb) {
-            return adapter.loadSrcTexture({src: src, hasAlpha: hasAlpha}, cb);
+            return platform.loadSrcTexture({src: src, hasAlpha: hasAlpha}, cb);
         }
     }
 

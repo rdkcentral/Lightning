@@ -2,13 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-
-    <script src="../../devtools/lightning-inspect.js"></script>
-
 </head>
 <body>
     <script type="module">
-        import lng from '../../src/lightning-web.mjs'
+        import lng from '../../../lightning.mjs'
         //attachInspector(lng)
 
         window.onload = function() {
@@ -16,7 +13,7 @@
                 static _template() {
                     return {
                         Bg: {
-                            src: "../rockies.jpeg", scale: 1,
+                            src: "../../rockies.jpeg", scale: 1,
                         },
                         Primary: {
                             Main: {rect: true, renderToTexture: true, w: 900, h: 900, colorLeft: 0x000000FF, colorRight: 0xFF0000FF

@@ -136,7 +136,7 @@ export default class WebGLRenderer extends Renderer {
         texOptions.type = texOptions.type || gl.UNSIGNED_BYTE;
         texOptions.internalFormat = texOptions.internalFormat || texOptions.format;
 
-        this.stage.adapter.uploadGlTexture(gl, textureSource, source, texOptions);
+        this.stage.platform.uploadGlTexture(gl, textureSource, source, texOptions);
 
         glTexture.params = Utils.cloneObjShallow(texParams);
         glTexture.options = Utils.cloneObjShallow(texOptions);

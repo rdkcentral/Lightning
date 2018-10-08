@@ -21,7 +21,7 @@ export default class Application extends Component {
 
         this.__keymap = this.getOption('keys');
         if (this.__keymap) {
-            this.stage.adapter.registerKeyHandler((e) => {
+            this.stage.platform.registerKeyHandler((e) => {
                 this._receiveKeydown(e);
             });
         }
