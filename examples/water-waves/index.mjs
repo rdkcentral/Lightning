@@ -1,4 +1,4 @@
-import lng from "../../src/lightning-node.mjs"
+import lng from "../../lightning.mjs"
 import WaterWaveShader from "./WaterWaveShader"
 
 class AppExample extends lng.Application {
@@ -9,6 +9,7 @@ class AppExample extends lng.Application {
     }
 }
 
-const options = {stage: {w:1280, h: 720, clearColor: 0xFF000000}}
+import NodePlatform from "../../src/platforms/node/NodePlatform.mjs";
+const options = {stage: {w:1280, h: 720, clearColor: 0xFF000000, platform: NodePlatform}}
 const app = new AppExample(options);
 

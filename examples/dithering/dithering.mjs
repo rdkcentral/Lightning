@@ -1,4 +1,4 @@
-const lng = require('../../lng')
+import lng from '../../lightning.mjs';
 
 class DitheringExample extends lng.Application {
 
@@ -11,6 +11,7 @@ class DitheringExample extends lng.Application {
 
 }
 
-const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000}}
+import NodePlatform from "../../src/platforms/node/NodePlatform.mjs";
+const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000, platform: NodePlatform}}
 const app = new DitheringExample(options);
 

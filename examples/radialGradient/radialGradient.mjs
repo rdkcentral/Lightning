@@ -1,4 +1,4 @@
-import lng from "../../src/lightning-node"
+import lng from "../../lightning"
 
 const Application = lng.Application
 const Utils = lng.Utils
@@ -13,7 +13,8 @@ export default class RadialGradientExample extends lng.Application {
 
 }
 
-const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000}}
+import NodePlatform from "../../src/platforms/node/NodePlatform.mjs";
+const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000, platform: NodePlatform}}
 const app = new RadialGradientExample(options);
 
 

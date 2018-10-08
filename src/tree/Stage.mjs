@@ -33,7 +33,7 @@ export default class Stage extends EventEmitter {
                 this.c2d = context;
             }
         } else {
-            if (!Utils.isWeb && (!Stage.isWebglSupported() || this.getOption('canvas2d'))) {
+            if (Utils.isWeb && (!Stage.isWebglSupported() || this.getOption('canvas2d'))) {
                 this.c2d = this.platform.createCanvasContext(this.getOption('w'), this.getOption('h'));
             } else {
                 this.gl = this.platform.createWebGLContext(this.getOption('w'), this.getOption('h'));

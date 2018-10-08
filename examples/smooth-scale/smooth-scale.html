@@ -6,7 +6,7 @@
 </head>
 <body>
 <script type="module">
-    import lng from '../../src/lightning-web.mjs'
+    import lng from '../../lightning.mjs'
     attachInspector(lng)
     window.onload = function() {
         class SmoothScaleExample extends lng.Application {
@@ -19,7 +19,7 @@
             }
         }
 
-        const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000, canvas2d: true}}
+        const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000, canvas2d: false}}
         const app = new SmoothScaleExample(options);
         document.body.appendChild(app.stage.getCanvas());
 
