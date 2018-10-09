@@ -264,6 +264,10 @@ export default class TextureSource {
         return this._nativeTexture;
     }
 
+    clearNativeTexture() {
+        this._nativeTexture = null;
+    }
+
     /**
      * Used for result textures.
      */

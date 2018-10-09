@@ -146,7 +146,6 @@ export default class WebGLRenderer extends Renderer {
 
     freeTextureSource(textureSource) {
         this.stage.gl.deleteTexture(textureSource.nativeTexture);
-        textureSource.nativeTexture = null;
     }
 
     addQuad(renderState, quads, index) {

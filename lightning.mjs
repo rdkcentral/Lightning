@@ -8,6 +8,7 @@ import ViewCore from "./src/tree/core/ViewCore.mjs";
 import ViewTexturizer from "./src/tree/core/ViewTexturizer.mjs";
 import Texture from "./src/tree/Texture.mjs";
 import Tools from "./src/tools/Tools.mjs";
+
 import RectangleTexture from "./src/textures/RectangleTexture.mjs";
 import NoiseTexture from "./src/textures/NoiseTexture.mjs";
 import TextTexture from "./src/textures/TextTexture.mjs";
@@ -15,6 +16,8 @@ import ImageTexture from "./src/textures/ImageTexture.mjs";
 import HtmlTexture from "./src/textures/HtmlTexture.mjs";
 import StaticTexture from "./src/textures/StaticTexture.mjs";
 import StaticCanvasTexture from "./src/textures/StaticCanvasTexture.mjs";
+import SourceTexture from "./src/textures/SourceTexture.mjs";
+
 import ObjectListProxy from "./src/tools/ObjectListProxy.mjs";
 import ObjectListWrapper from "./src/tools/ObjectListWrapper.mjs";
 import ListComponent from "./src/components/ListComponent.mjs";
@@ -84,6 +87,7 @@ const lightning = {
         HtmlTexture,
         StaticTexture,
         StaticCanvasTexture,
+        SourceTexture
     },
     misc: {
         ObjectListProxy,

@@ -693,6 +693,10 @@ var lng = (function () {
             return this._nativeTexture;
         }
 
+        clearNativeTexture() {
+            this._nativeTexture = null;
+        }
+
         /**
          * Used for result textures.
          */
@@ -8777,7 +8781,6 @@ var lng = (function () {
 
         freeTextureSource(textureSource) {
             this.stage.gl.deleteTexture(textureSource.nativeTexture);
-            textureSource.nativeTexture = null;
         }
 
         addQuad(renderState, quads, index) {
@@ -9770,6 +9773,7 @@ var lng = (function () {
 
         _nativeFreeTextureSource(textureSource) {
             this.stage.renderer.freeTextureSource(textureSource);
+            textureSource.clearNativeTexture();
         }
 
     }
@@ -11154,7 +11158,7 @@ var lng = (function () {
                     this.c2d = context;
                 }
             } else {
-                if (!Utils.isWeb && (!Stage.isWebglSupported() || this.getOption('canvas2d'))) {
+                if (Utils.isWeb && (!Stage.isWebglSupported() || this.getOption('canvas2d'))) {
                     this.c2d = this.platform.createCanvasContext(this.getOption('w'), this.getOption('h'));
                 } else {
                     this.gl = this.platform.createWebGLContext(this.getOption('w'), this.getOption('h'));
@@ -11848,7 +11852,18 @@ var lng = (function () {
             this.__updateFocus();
         }
 
-        __updateFocus(maxRecursion = 100) {
+        __updateFocus() {
+            if (this.__updateFocusRec()) {
+                // Performance optimization: do not gather settings if no handler is defined.
+                if (this._handleFocusSettings !== Application.prototype._handleFocusSettings) {
+                    if (!Application.booting) {
+                        this.updateFocusSettings();
+                    }
+                }
+            }
+        }
+
+        __updateFocusRec(maxRecursion = 100) {
             const newFocusPath = this.__getFocusPath();
             const newFocusedComponent = newFocusPath[newFocusPath.length - 1];
             const prevFocusedComponent = this._focusPath ? this._focusPath[this._focusPath.length - 1] : undefined;
@@ -11861,6 +11876,7 @@ var lng = (function () {
                 for (let i = 0, n = this._focusPath.length; i < n; i++) {
                     this._focusPath[i].__focus(newFocusedComponent, undefined);
                 }
+                return true;
             } else {
                 let m = Math.min(this._focusPath.length, newFocusPath.length);
                 let index;
@@ -11896,13 +11912,10 @@ var lng = (function () {
                         throw new Error("Max recursion count reached in focus update");
                     }
                     this.__updateFocus(maxRecursion);
-                }
-            }
 
-            // Performance optimization: do not gather settings if no handler is defined.
-            if (this._handleFocusSettings !== Application.prototype._handleFocusSettings) {
-                if (!Application.booting) {
-                    this.updateFocusSettings();
+                    return true;
+                } else {
+                    return false;
                 }
             }
         }
@@ -13665,6 +13678,8 @@ var lng = (function () {
                 view._borderRight.h = rh + view._borderTop.h + view._borderBottom.h;
                 view._borderRight.y = -view._borderTop.h;
             };
+
+            this.borderWidth = 1;
         }
 
         get content() {
@@ -14824,6 +14839,7 @@ var lng = (function () {
             HtmlTexture,
             StaticTexture,
             StaticCanvasTexture,
+            SourceTexture
         },
         misc: {
             ObjectListProxy,

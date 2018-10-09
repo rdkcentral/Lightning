@@ -35,6 +35,8 @@ export default class BorderComponent extends Component {
             view._borderRight.h = rh + view._borderTop.h + view._borderBottom.h;
             view._borderRight.y = -view._borderTop.h;
         }
+
+        this.borderWidth = 1;
     }
 
     get content() {

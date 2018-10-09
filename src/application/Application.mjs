@@ -70,7 +70,18 @@ export default class Application extends Component {
         this.__updateFocus();
     }
 
-    __updateFocus(maxRecursion = 100) {
+    __updateFocus() {
+        if (this.__updateFocusRec()) {
+            // Performance optimization: do not gather settings if no handler is defined.
+            if (this._handleFocusSettings !== Application.prototype._handleFocusSettings) {
+                if (!Application.booting) {
+                    this.updateFocusSettings();
+                }
+            }
+        }
+    }
+
+    __updateFocusRec(maxRecursion = 100) {
         const newFocusPath = this.__getFocusPath();
         const newFocusedComponent = newFocusPath[newFocusPath.length - 1];
         const prevFocusedComponent = this._focusPath ? this._focusPath[this._focusPath.length - 1] : undefined;
@@ -83,6 +94,7 @@ export default class Application extends Component {
             for (let i = 0, n = this._focusPath.length; i < n; i++) {
                 this._focusPath[i].__focus(newFocusedComponent, undefined);
             }
+            return true;
         } else {
             let m = Math.min(this._focusPath.length, newFocusPath.length);
             let index;
@@ -118,13 +130,10 @@ export default class Application extends Component {
                     throw new Error("Max recursion count reached in focus update");
                 }
                 this.__updateFocus(maxRecursion);
-            }
-        }
 
-        // Performance optimization: do not gather settings if no handler is defined.
-        if (this._handleFocusSettings !== Application.prototype._handleFocusSettings) {
-            if (!Application.booting) {
-                this.updateFocusSettings();
+                return true;
+            } else {
+                return false;
             }
         }
     }

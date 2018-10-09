@@ -138,6 +138,7 @@ export default class TextureManager {
 
     _nativeFreeTextureSource(textureSource) {
         this.stage.renderer.freeTextureSource(textureSource);
+        textureSource.clearNativeTexture();
     }
 
 }
