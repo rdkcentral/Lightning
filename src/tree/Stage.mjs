@@ -133,7 +133,7 @@ export default class Stage extends EventEmitter {
         opt('srcBasePath', null);
         opt('textureMemory', 18e6);
         opt('renderTextureMemory', 12e6);
-        opt('bufferMemory', 8e6);
+        opt('bufferMemory', 2e6);
         opt('textRenderIssueMargin', 0);
         opt('clearColor', [0, 0, 0, 0]);
         opt('defaultFontFace', 'Sans-Serif');

@@ -2827,7 +2827,7 @@ var lng = (function () {
 
             if (name.charAt(0) === "_") {
                 // Disallow patching private variables.
-                if (name.charAt(1) === "$") ; else {
+                if (name.charAt(1) === "$") ; else if (name !== "__create") {
                     console.error("Patch of private property '" + name + "' is not allowed");
                 }
             } else if (name !== "type") {
@@ -11258,7 +11258,7 @@ var lng = (function () {
             opt('srcBasePath', null);
             opt('textureMemory', 18e6);
             opt('renderTextureMemory', 12e6);
-            opt('bufferMemory', 8e6);
+            opt('bufferMemory', 2e6);
             opt('textRenderIssueMargin', 0);
             opt('clearColor', [0, 0, 0, 0]);
             opt('defaultFontFace', 'Sans-Serif');
@@ -12229,6 +12229,185 @@ var lng = (function () {
 
     }
 
+    class ObjMerger {
+
+        static isMf(f) {
+            return Utils.isFunction(f) && f.__mf;
+        }
+
+        static mf(f) {
+            // Set as merge function.
+            f.__mf = true;
+            return f;
+        }
+
+        static merge(a, b) {
+            const aks = Object.keys(a);
+            const bks = Object.keys(b);
+
+            if (!bks.length) {
+                return a;
+            }
+
+            // Create index array for all elements.
+            const ai = {};
+            const bi = {};
+            for (let i = 0, n = bks.length; i < n; i++) {
+                const key = bks[i];
+                ai[key] = -1;
+                bi[key] = i;
+            }
+            for (let i = 0, n = aks.length; i < n; i++) {
+                const key = aks[i];
+                ai[key] = i;
+                if (bi[key] === undefined) {
+                    bi[key] = -1;
+                }
+            }
+
+            const aksl = aks.length;
+
+            const result = {};
+            for (let i = 0, n = bks.length; i < n; i++) {
+                const key = bks[i];
+
+                // Prepend all items in a that are not in b - before the now added b attribute.
+                const aIndex = ai[key];
+                let curIndex = aIndex;
+                while(--curIndex >= 0) {
+                    const akey = aks[curIndex];
+                    if (bi[akey] !== -1) {
+                        // Already found? Stop processing.
+                        // Not yet found but exists in b? Also stop processing: wait until we find it in b.
+                        break;
+                    }
+                }
+                while(++curIndex < aIndex) {
+                    const akey = aks[curIndex];
+                    result[akey] = a[akey];
+                }
+
+                const bv = b[key];
+                const av = a[key];
+                let r;
+                if (this.isMf(bv)) {
+                    r = bv(av);
+                } else {
+                    if (!Utils.isObjectLiteral(av) || !Utils.isObjectLiteral(bv)) {
+                        r = bv;
+                    } else {
+                        r = ObjMerger.merge(av, bv);
+                    }
+                }
+
+                // When marked as undefined, property is deleted.
+                if (r !== undefined) {
+                    result[key] = r;
+                }
+            }
+
+            // Append remaining final items in a.
+            let curIndex = aksl;
+            while(--curIndex >= 0) {
+                const akey = aks[curIndex];
+                if (bi[akey] !== -1) {
+                    break;
+                }
+            }
+            while(++curIndex < aksl) {
+                const akey = aks[curIndex];
+                result[akey] = a[akey];
+            }
+
+            return result;
+        }
+
+    }
+
+    /**
+     * Manages the list of children for a view.
+     */
+
+    class ObjectListProxy extends ObjectList {
+
+        constructor(target) {
+            super();
+            this._target = target;
+        }
+
+        onAdd(item, index) {
+            this._target.addAt(item, index);
+        }
+
+        onRemove(item, index) {
+            this._target.removeAt(index);
+        }
+
+        onSync(removed, added, order) {
+            this._target._setByArray(order);
+        }
+
+        onSet(item, index) {
+            this._target.setAt(item, index);
+        }
+
+        onMove(item, fromIndex, toIndex) {
+            this._target.setAt(item, toIndex);
+        }
+
+        createItem(object) {
+            return this._target.createItem(object);
+        }
+
+        isItem(object) {
+            return this._target.isItem(object);
+        }
+
+    }
+
+    /**
+     * Manages the list of children for a view.
+     */
+
+    class ObjectListWrapper extends ObjectListProxy {
+
+        constructor(target, wrap) {
+            super(target);
+            this._wrap = wrap;
+        }
+
+        wrap(item) {
+            let wrapper = this._wrap(item);
+            item._wrapper = wrapper;
+            return wrapper;
+        }
+
+        onAdd(item, index) {
+            item = this.wrap(item);
+            super.onAdd(item, index);
+        }
+
+        onRemove(item, index) {
+            super.onRemove(item, index);
+        }
+
+        onSync(removed, added, order) {
+            added.forEach(a => this.wrap(a));
+            order = order.map(a => a._wrapper);
+            super.onSync(removed, added, order);
+        }
+
+        onSet(item, index) {
+            item = this.wrap(item);
+            super.onSet(item, index);
+        }
+
+        onMove(item, fromIndex, toIndex) {
+            super.onMove(item, fromIndex, toIndex);
+        }
+
+    }
+
     class NoiseTexture extends Texture {
 
         _getLookupId() {
@@ -12380,90 +12559,6 @@ var lng = (function () {
                 cb(null, this._options);
             }
         }
-    }
-
-    /**
-     * Manages the list of children for a view.
-     */
-
-    class ObjectListProxy extends ObjectList {
-
-        constructor(target) {
-            super();
-            this._target = target;
-        }
-
-        onAdd(item, index) {
-            this._target.addAt(item, index);
-        }
-
-        onRemove(item, index) {
-            this._target.removeAt(index);
-        }
-
-        onSync(removed, added, order) {
-            this._target._setByArray(order);
-        }
-
-        onSet(item, index) {
-            this._target.setAt(item, index);
-        }
-
-        onMove(item, fromIndex, toIndex) {
-            this._target.setAt(item, toIndex);
-        }
-
-        createItem(object) {
-            return this._target.createItem(object);
-        }
-
-        isItem(object) {
-            return this._target.isItem(object);
-        }
-
-    }
-
-    /**
-     * Manages the list of children for a view.
-     */
-
-    class ObjectListWrapper extends ObjectListProxy {
-
-        constructor(target, wrap) {
-            super(target);
-            this._wrap = wrap;
-        }
-
-        wrap(item) {
-            let wrapper = this._wrap(item);
-            item._wrapper = wrapper;
-            return wrapper;
-        }
-
-        onAdd(item, index) {
-            item = this.wrap(item);
-            super.onAdd(item, index);
-        }
-
-        onRemove(item, index) {
-            super.onRemove(item, index);
-        }
-
-        onSync(removed, added, order) {
-            added.forEach(a => this.wrap(a));
-            order = order.map(a => a._wrapper);
-            super.onSync(removed, added, order);
-        }
-
-        onSet(item, index) {
-            item = this.wrap(item);
-            super.onSet(item, index);
-        }
-
-        onMove(item, fromIndex, toIndex) {
-            super.onMove(item, fromIndex, toIndex);
-        }
-
     }
 
     class ListView extends Component {
@@ -14798,6 +14893,246 @@ var lng = (function () {
     }
 `;
 
+    class Light3dShader extends DefaultShader$1 {
+
+        constructor(ctx) {
+            super(ctx);
+
+            this._strength = 0.5;
+            this._ambient = 0.5;
+            this._fudge = 0.4;
+
+            this._rx = 0;
+            this._ry = 0;
+
+            this._z = 0;
+            this._pivotX = NaN;
+            this._pivotY = NaN;
+            this._pivotZ = 0;
+
+            this._lightY = 0;
+            this._lightZ = 0;
+        }
+
+        setupUniforms(operation) {
+            super.setupUniforms(operation);
+
+            let vr = operation.shaderOwner;
+            let view = vr.view;
+
+            let pivotX = isNaN(this._pivotX) ? view.pivotX * vr.rw : this._pivotX;
+            let pivotY = isNaN(this._pivotY) ? view.pivotY * vr.rh : this._pivotY;
+            let coords = vr.getRenderTextureCoords(pivotX, pivotY);
+
+            // Counter normal rotation.
+
+            let rz = -Math.atan2(vr._renderContext.tc, vr._renderContext.ta);
+
+            let gl = this.gl;
+            this._setUniform("pivot", new Float32Array([coords[0], coords[1], this._pivotZ]), gl.uniform3fv);
+            this._setUniform("rot", new Float32Array([this._rx, this._ry, rz]), gl.uniform3fv);
+
+            this._setUniform("z", this._z, gl.uniform1f);
+            this._setUniform("lightY", this.lightY, gl.uniform1f);
+            this._setUniform("lightZ", this.lightZ, gl.uniform1f);
+            this._setUniform("strength", this._strength, gl.uniform1f);
+            this._setUniform("ambient", this._ambient, gl.uniform1f);
+            this._setUniform("fudge", this._fudge, gl.uniform1f);
+        }
+
+        set strength(v) {
+            this._strength = v;
+            this.redraw();
+        }
+
+        get strength() {
+            return this._strength;
+        }
+
+        set ambient(v) {
+            this._ambient = v;
+            this.redraw();
+        }
+
+        get ambient() {
+            return this._ambient;
+        }
+
+        set fudge(v) {
+            this._fudge = v;
+            this.redraw();
+        }
+
+        get fudge() {
+            return this._fudge;
+        }
+
+        get rx() {
+            return this._rx;
+        }
+
+        set rx(v) {
+            this._rx = v;
+            this.redraw();
+        }
+
+        get ry() {
+            return this._ry;
+        }
+
+        set ry(v) {
+            this._ry = v;
+            this.redraw();
+        }
+
+        get z() {
+            return this._z;
+        }
+
+        set z(v) {
+            this._z = v;
+            this.redraw();
+        }
+
+        get pivotX() {
+            return this._pivotX;
+        }
+
+        set pivotX(v) {
+            this._pivotX = v + 1;
+            this.redraw();
+        }
+
+        get pivotY() {
+            return this._pivotY;
+        }
+
+        set pivotY(v) {
+            this._pivotY = v + 1;
+            this.redraw();
+        }
+
+        get lightY() {
+            return this._lightY;
+        }
+
+        set lightY(v) {
+            this._lightY = v;
+            this.redraw();
+        }
+
+        get pivotZ() {
+            return this._pivotZ;
+        }
+
+        set pivotZ(v) {
+            this._pivotZ = v;
+            this.redraw();
+        }
+
+        get lightZ() {
+            return this._lightZ;
+        }
+
+        set lightZ(v) {
+            this._lightZ = v;
+            this.redraw();
+        }
+
+        useDefault() {
+            return (this._rx === 0 && this._ry === 0 && this._z === 0 && this._strength === 0 && this._ambient === 1);
+        }
+
+    }
+
+    Light3dShader.vertexShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    attribute vec2 aVertexPosition;
+    attribute vec2 aTextureCoord;
+    attribute vec4 aColor;
+    uniform vec2 projection;
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+
+    uniform float fudge;
+    uniform float strength;
+    uniform float ambient;
+    uniform float z;
+    uniform float lightY;
+    uniform float lightZ;
+    uniform vec3 pivot;
+    uniform vec3 rot;
+    varying vec3 pos;
+
+    void main(void) {
+        pos = vec3(aVertexPosition.xy, z);
+        
+        pos -= pivot;
+        
+        // Undo XY rotation
+        mat2 iRotXy = mat2( cos(rot.z), sin(rot.z), 
+                           -sin(rot.z), cos(rot.z));
+        pos.xy = iRotXy * pos.xy;
+        
+        // Perform 3d rotations
+        gl_Position.x = cos(rot.x) * pos.x - sin(rot.x) * pos.z;
+        gl_Position.y = pos.y;
+        gl_Position.z = sin(rot.x) * pos.x + cos(rot.x) * pos.z;
+        
+        pos.x = gl_Position.x;
+        pos.y = cos(rot.y) * gl_Position.y - sin(rot.y) * gl_Position.z;
+        pos.z = sin(rot.y) * gl_Position.y + cos(rot.y) * gl_Position.z;
+        
+        // Redo XY rotation
+        iRotXy[0][1] = -iRotXy[0][1];
+        iRotXy[1][0] = -iRotXy[1][0];
+        pos.xy = iRotXy * pos.xy; 
+
+        // Undo translate to pivot position
+        pos.xyz += pivot;
+
+        pos = vec3(pos.x * projection.x - 1.0, pos.y * -abs(projection.y) + 1.0, pos.z * projection.x);
+        
+        // Set depth perspective
+        float perspective = 1.0 + fudge * pos.z;
+
+        pos.z += lightZ * projection.x;
+
+        // Map coords to gl coordinate space.
+        // Set z to 0 because we don't want to perform z-clipping
+        gl_Position = vec4(pos.xy, 0.0, perspective);
+
+        // Correct light source position.
+        pos.y += lightY * abs(projection.y);
+
+        vTextureCoord = aTextureCoord;
+        vColor = aColor;
+        
+        gl_Position.y = -sign(projection.y) * gl_Position.y;
+    }
+`;
+
+    Light3dShader.fragmentShaderSource = `
+    #ifdef GL_ES
+    precision lowp float;
+    #endif
+    varying vec2 vTextureCoord;
+    varying vec4 vColor;
+    varying vec3 pos;
+    uniform sampler2D uSampler;
+    uniform float ambient;
+    uniform float strength;
+    void main(void){
+        vec4 rgba = texture2D(uSampler, vTextureCoord);
+        float d = length(pos);
+        float n = 1.0 / max(0.1, d);
+        rgba.rgb = rgba.rgb * (strength * n + ambient);
+        gl_FragColor = rgba * vColor;
+    }
+`;
+
     const lightning = {
         Application,
         Component,
@@ -14822,6 +15157,7 @@ var lng = (function () {
             Pixelate: PixelateShader,
             RadialFilter: RadialFilterShader,
             RadialGradient: RadialGradientShader,
+            Light3d: Light3dShader,
             WebGLShader,
             WebGLDefaultShader: DefaultShader$1,
             C2dShader,
@@ -14841,15 +15177,16 @@ var lng = (function () {
             StaticCanvasTexture,
             SourceTexture
         },
-        misc: {
-            ObjectListProxy,
-            ObjectListWrapper,
-        },
         components: {
             FastBlurComponent,
             SmoothScaleComponent,
             BorderComponent,
             ListComponent: ListView
+        },
+        tools: {
+            ObjMerger,
+            ObjectListProxy,
+            ObjectListWrapper
         }
     };
 

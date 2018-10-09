@@ -7,7 +7,11 @@ import View from "./src/tree/View.mjs";
 import ViewCore from "./src/tree/core/ViewCore.mjs";
 import ViewTexturizer from "./src/tree/core/ViewTexturizer.mjs";
 import Texture from "./src/tree/Texture.mjs";
+
 import Tools from "./src/tools/Tools.mjs";
+import ObjMerger from "./src/tools/ObjMerger.mjs";
+import ObjectListProxy from "./src/tools/ObjectListProxy.mjs";
+import ObjectListWrapper from "./src/tools/ObjectListWrapper.mjs";
 
 import RectangleTexture from "./src/textures/RectangleTexture.mjs";
 import NoiseTexture from "./src/textures/NoiseTexture.mjs";
@@ -18,8 +22,6 @@ import StaticTexture from "./src/textures/StaticTexture.mjs";
 import StaticCanvasTexture from "./src/textures/StaticCanvasTexture.mjs";
 import SourceTexture from "./src/textures/SourceTexture.mjs";
 
-import ObjectListProxy from "./src/tools/ObjectListProxy.mjs";
-import ObjectListWrapper from "./src/tools/ObjectListWrapper.mjs";
 import ListComponent from "./src/components/ListComponent.mjs";
 import FastBlurComponent from "./src/components/FastBlurComponent.mjs";
 import SmoothScaleComponent from "./src/components/SmoothScaleComponent.mjs";
@@ -38,6 +40,7 @@ import OutlineShader from "./src/renderer/webgl/shaders/OutlineShader.mjs";
 import PixelateShader from "./src/renderer/webgl/shaders/PixelateShader.mjs";
 import RadialFilterShader from "./src/renderer/webgl/shaders/RadialFilterShader.mjs";
 import RadialGradientShader from "./src/renderer/webgl/shaders/RadialGradientShader.mjs";
+import Light3dShader from "./src/renderer/webgl/shaders/Light3dShader.mjs";
 
 import C2dShader from "./src/renderer/c2d/C2dShader.mjs";
 import C2dDefaultShader from "./src/renderer/c2d/shaders/DefaultShader.mjs";
@@ -70,6 +73,7 @@ const lightning = {
         Pixelate: PixelateShader,
         RadialFilter: RadialFilterShader,
         RadialGradient: RadialGradientShader,
+        Light3d: Light3dShader,
         WebGLShader,
         WebGLDefaultShader,
         C2dShader,
@@ -89,15 +93,16 @@ const lightning = {
         StaticCanvasTexture,
         SourceTexture
     },
-    misc: {
-        ObjectListProxy,
-        ObjectListWrapper,
-    },
     components: {
         FastBlurComponent,
         SmoothScaleComponent,
         BorderComponent,
         ListComponent
+    },
+    tools: {
+        ObjMerger,
+        ObjectListProxy,
+        ObjectListWrapper
     }
 };
 

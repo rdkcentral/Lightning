@@ -38,7 +38,7 @@ export default class Base {
             // Disallow patching private variables.
             if (name.charAt(1) === "$") {
                 // Ignore patchId.
-            } else {
+            } else if (name !== "__create") {
                 console.error("Patch of private property '" + name + "' is not allowed");
             }
         } else if (name !== "type") {
