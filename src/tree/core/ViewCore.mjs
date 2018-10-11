@@ -1592,11 +1592,6 @@ export default class ViewCore {
                         renderState.isCachingTexturizer = true;
                     }
 
-                    // We can already release the current texture to the pool, as it will be rebuild anyway.
-                    // In case of multiple layers of 'filtering', this may save us from having to create one
-                    //  render-to-texture layer.
-                    this._texturizer.releaseRenderTexture();
-
                     renderState.setRenderTextureInfo(renderTextureInfo);
                     renderState.setScissor(undefined);
 
