@@ -108,6 +108,10 @@ export default class TextureSource {
         });
     }
 
+    hasEnabledViews() {
+        return this.textures.size > 0;
+    }
+
     forEachActiveView(cb) {
         this.textures.forEach(texture => {
             texture.views.forEach(view => {

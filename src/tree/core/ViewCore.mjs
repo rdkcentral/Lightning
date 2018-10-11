@@ -1578,6 +1578,7 @@ export default class ViewCore {
                          *
                          * The rule is, that caching for a specific render texture is only enabled if:
                          * - There were no render updates since last frame (ViewCore.hasRenderUpdates === 0)
+                         * - The result texture is being used by other views, OR:
                          * - There are no ancestors that are being cached during this frame (CoreRenderState.isCachingTexturizer)
                          *   If an ancestor is cached anyway, it's probably not necessary to keep deeper caches. If the top level is to
                          *   change while a lower one is not, that lower level will be cached instead.
@@ -1683,8 +1684,13 @@ export default class ViewCore {
                         renderState.setShader(this.activeShader, this._shaderOwner);
                         renderState.setScissor(this._scissor);
 
-                        const fillingCache = !!(renderTextureInfo && renderTextureInfo.cache);
-                        renderState.setTexturizer(this._texturizer, (!updateResultTexture || fillingCache));
+                        const fillingCache = !!(renderTextureInfo && renderTextureInfo.cache) || this._texturizer.resultTextureInUse();
+
+                        // Cache if:
+                        // - regenerating while nothing changed
+                        // - OR other views are using the result texture
+                        // - AND not already filling cache in upper level
+                        renderState.setTexturizer(this._texturizer, fillingCache);
                         this._stashTexCoords();
                         if (!this._texturizer.colorize) this._stashColors();
                         this.renderState.addQuad(this);

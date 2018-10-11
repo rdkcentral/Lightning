@@ -66,6 +66,10 @@ export default class ViewTexturizer {
         return this._resultTextureSource;
     }
 
+    resultTextureInUse() {
+        return this._resultTextureSource && this._resultTextureSource.hasEnabledViews();
+    }
+
     updateResultTexture() {
         let resultTexture = this.getResultTexture();
         if (this._resultTextureSource) {

@@ -537,6 +537,10 @@ var lng = (function () {
             });
         }
 
+        hasEnabledViews() {
+            return this.textures.size > 0;
+        }
+
         forEachActiveView(cb) {
             this.textures.forEach(texture => {
                 texture.views.forEach(view => {
@@ -805,6 +809,10 @@ var lng = (function () {
                 this.updateResultTexture();
             }
             return this._resultTextureSource;
+        }
+
+        resultTextureInUse() {
+            return this._resultTextureSource && this._resultTextureSource.hasEnabledViews();
         }
 
         updateResultTexture() {
@@ -2462,6 +2470,7 @@ var lng = (function () {
                              *
                              * The rule is, that caching for a specific render texture is only enabled if:
                              * - There were no render updates since last frame (ViewCore.hasRenderUpdates === 0)
+                             * - The result texture is being used by other views, OR:
                              * - There are no ancestors that are being cached during this frame (CoreRenderState.isCachingTexturizer)
                              *   If an ancestor is cached anyway, it's probably not necessary to keep deeper caches. If the top level is to
                              *   change while a lower one is not, that lower level will be cached instead.
@@ -2475,11 +2484,6 @@ var lng = (function () {
                             renderTextureInfo.cache = true;
                             renderState.isCachingTexturizer = true;
                         }
-
-                        // We can already release the current texture to the pool, as it will be rebuild anyway.
-                        // In case of multiple layers of 'filtering', this may save us from having to create one
-                        //  render-to-texture layer.
-                        this._texturizer.releaseRenderTexture();
 
                         renderState.setRenderTextureInfo(renderTextureInfo);
                         renderState.setScissor(undefined);
@@ -2572,8 +2576,13 @@ var lng = (function () {
                             renderState.setShader(this.activeShader, this._shaderOwner);
                             renderState.setScissor(this._scissor);
 
-                            const fillingCache = !!(renderTextureInfo && renderTextureInfo.cache);
-                            renderState.setTexturizer(this._texturizer, (!updateResultTexture || fillingCache));
+                            const fillingCache = !!(renderTextureInfo && renderTextureInfo.cache) || this._texturizer.resultTextureInUse();
+
+                            // Cache if:
+                            // - regenerating while nothing changed
+                            // - OR other views are using the result texture
+                            // - AND not already filling cache in upper level
+                            renderState.setTexturizer(this._texturizer, fillingCache);
                             this._stashTexCoords();
                             if (!this._texturizer.colorize) this._stashColors();
                             this.renderState.addQuad(this);
@@ -3175,6 +3184,12 @@ var lng = (function () {
             if (!this.views.has(v)) {
                 this.views.add(v);
 
+                if (this.views.size === 1) {
+                    if (this._source) {
+                        this._source.addTexture(this);
+                    }
+                }
+
                 if (v.withinBoundsMargin) {
                     this.incWithinBoundsCount();
                 }
@@ -3183,6 +3198,12 @@ var lng = (function () {
 
         removeView(v) {
             if (this.views.delete(v)) {
+                if (this.views.size === 0) {
+                    if (this._source) {
+                        this._source.removeTexture(this);
+                    }
+                }
+
                 if (v.withinBoundsMargin) {
                     this.decWithinBoundsCount();
                 }
@@ -3211,15 +3232,9 @@ var lng = (function () {
                 this._updateSource();
             }
 
-            if (this._source) {
-                this._source.addTexture(this);
-            }
         }
 
         becomesUnused() {
-            if (this._source) {
-                this._source.removeTexture(this);
-            }
         }
 
         isUsed() {

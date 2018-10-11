@@ -99,6 +99,12 @@ export default class Texture {
         if (!this.views.has(v)) {
             this.views.add(v);
 
+            if (this.views.size === 1) {
+                if (this._source) {
+                    this._source.addTexture(this);
+                }
+            }
+
             if (v.withinBoundsMargin) {
                 this.incWithinBoundsCount();
             }
@@ -107,6 +113,12 @@ export default class Texture {
 
     removeView(v) {
         if (this.views.delete(v)) {
+            if (this.views.size === 0) {
+                if (this._source) {
+                    this._source.removeTexture(this);
+                }
+            }
+
             if (v.withinBoundsMargin) {
                 this.decWithinBoundsCount();
             }
@@ -135,15 +147,9 @@ export default class Texture {
             this._updateSource();
         }
 
-        if (this._source) {
-            this._source.addTexture(this);
-        }
     }
 
     becomesUnused() {
-        if (this._source) {
-            this._source.removeTexture(this);
-        }
     }
 
     isUsed() {
