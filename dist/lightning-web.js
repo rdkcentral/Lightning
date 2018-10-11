@@ -7436,7 +7436,7 @@ var lng = (function () {
                     if (handled) return;
                 }
             }
-            if (bubble && this.cparent) {
+            if ((this._passSignals || bubble) && this.cparent) {
                 // Bubble up.
                 this.cparent.signal(event, args, bubble);
             }
@@ -7451,6 +7451,10 @@ var lng = (function () {
                 this._throwError("Signals: specify an object with signal-to-fire mappings");
             }
             this.__signals = Object.assign(this.__signals || {}, v);
+        }
+
+        get _passSignals() {
+            return false;
         }
 
         /**
@@ -13044,6 +13048,10 @@ var lng = (function () {
             this.checkStarted(0);
         }
 
+        get _passSignals() {
+            return true;
+        }
+
     }
 
     class LinearBlurShader extends DefaultShader$1 {
@@ -13244,6 +13252,7 @@ var lng = (function () {
     class FastBlurComponent extends Component {
         static _template() {
             return {
+                passSignals: true,
                 Wrap: {type: WebGLFastBlurComponent, _$c2d: {type: C2dFastBlurComponent}}
             }
         }
@@ -13292,6 +13301,11 @@ var lng = (function () {
             this.wrap.w = this.renderWidth;
             this.wrap.h = this.renderHeight;
         }
+
+        get _passSignals() {
+            return true;
+        }
+
     }
 
 
@@ -13387,7 +13401,7 @@ var lng = (function () {
 
         static _template() {
             const onUpdate = function(view, viewCore) {
-                if ((viewCore._recalc & 2)) {
+                if ((viewCore._recalc & (2 + 128))) {
                     const rw = viewCore.rw;
                     const rh = viewCore.rh;
                     let cur = viewCore;
@@ -13432,6 +13446,8 @@ var lng = (function () {
 
             this._setLayerTexture(this.getLayerContents(0), this._textwrap.getTexture(), []);
             this._setLayerTexture(this.getLayerContents(1), this.getLayer(0).getTexture(), [filterShaders[0], filterShaders[1]]);
+
+            // Notice that 1.5 filters should be applied before 1.0 filters.
             this._setLayerTexture(this.getLayerContents(2), this.getLayer(1).getTexture(), [filterShaders[0], filterShaders[1], filterShaders[2], filterShaders[3]]);
             this._setLayerTexture(this.getLayerContents(3), this.getLayer(2).getTexture(), [filterShaders[0], filterShaders[1], filterShaders[2], filterShaders[3]]);
         }
@@ -13736,6 +13752,10 @@ var lng = (function () {
             }
         }
 
+        get _passSignals() {
+            return true;
+        }
+
     }
 
     class BorderComponent extends Component {
@@ -13749,7 +13769,7 @@ var lng = (function () {
                     Bottom: {rect: true, visible: false},
                     Left: {rect: true, visible: false, mountX: 1}
                 }
-            }
+            };
         }
 
         constructor(stage) {
@@ -13851,7 +13871,7 @@ var lng = (function () {
         get colorBorderLeft() {
             return this._borderLeft.color;
         }
-        
+
         set colorBorder(v) {
             this.colorBorderTop = v;
             this.colorBorderRight = v;
@@ -13905,13 +13925,17 @@ var lng = (function () {
 
         set borderLeft(settings) {
             this.borderLeft.patch(settings);
-        }    
+        }
 
         set borders(settings) {
             this.borderTop = settings;
             this.borderLeft = settings;
             this.borderBottom = settings;
             this.borderRight = settings;
+        }
+
+        get _passSignals() {
+            return true;
         }
 
     }

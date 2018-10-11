@@ -91,4 +91,8 @@ export default class SmoothScaleComponent extends Component {
         }
     }
 
+    get _passSignals() {
+        return true;
+    }
+
 }

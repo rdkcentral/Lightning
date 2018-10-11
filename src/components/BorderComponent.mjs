@@ -11,7 +11,7 @@ export default class BorderComponent extends Component {
                 Bottom: {rect: true, visible: false},
                 Left: {rect: true, visible: false, mountX: 1}
             }
-        }
+        };
     }
 
     constructor(stage) {
@@ -34,7 +34,7 @@ export default class BorderComponent extends Component {
             view._borderRight.x = rw;
             view._borderRight.h = rh + view._borderTop.h + view._borderBottom.h;
             view._borderRight.y = -view._borderTop.h;
-        }
+        };
 
         this.borderWidth = 1;
     }
@@ -113,7 +113,7 @@ export default class BorderComponent extends Component {
     get colorBorderLeft() {
         return this._borderLeft.color;
     }
-    
+
     set colorBorder(v) {
         this.colorBorderTop = v;
         this.colorBorderRight = v;
@@ -167,13 +167,17 @@ export default class BorderComponent extends Component {
 
     set borderLeft(settings) {
         this.borderLeft.patch(settings);
-    }    
+    }
 
     set borders(settings) {
         this.borderTop = settings;
         this.borderLeft = settings;
         this.borderBottom = settings;
         this.borderRight = settings;
+    }
+
+    get _passSignals() {
+        return true;
     }
 
 }

@@ -9,6 +9,7 @@ import MultiSpline from "../tools/MultiSpline.mjs";
 export default class FastBlurComponent extends Component {
     static _template() {
         return {
+            passSignals: true,
             Wrap: {type: WebGLFastBlurComponent, _$c2d: {type: C2dFastBlurComponent}}
         }
     }
@@ -57,6 +58,11 @@ export default class FastBlurComponent extends Component {
         this.wrap.w = this.renderWidth;
         this.wrap.h = this.renderHeight;
     }
+
+    get _passSignals() {
+        return true;
+    }
+
 }
 
 
@@ -152,7 +158,7 @@ class WebGLFastBlurComponent extends Component {
 
     static _template() {
         const onUpdate = function(view, viewCore) {
-            if ((viewCore._recalc & 2)) {
+            if ((viewCore._recalc & (2 + 128))) {
                 const rw = viewCore.rw;
                 const rh = viewCore.rh;
                 let cur = viewCore;
@@ -197,6 +203,8 @@ class WebGLFastBlurComponent extends Component {
 
         this._setLayerTexture(this.getLayerContents(0), this._textwrap.getTexture(), []);
         this._setLayerTexture(this.getLayerContents(1), this.getLayer(0).getTexture(), [filterShaders[0], filterShaders[1]]);
+
+        // Notice that 1.5 filters should be applied before 1.0 filters.
         this._setLayerTexture(this.getLayerContents(2), this.getLayer(1).getTexture(), [filterShaders[0], filterShaders[1], filterShaders[2], filterShaders[3]]);
         this._setLayerTexture(this.getLayerContents(3), this.getLayer(2).getTexture(), [filterShaders[0], filterShaders[1], filterShaders[2], filterShaders[3]]);
     }

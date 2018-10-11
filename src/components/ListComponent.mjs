@@ -485,6 +485,10 @@ class ListItems extends ObjectListWrapper {
         this.checkStarted(0);
     }
 
+    get _passSignals() {
+        return true;
+    }
+
 }
 
 import Utils from "../tree/Utils.mjs";

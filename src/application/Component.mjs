@@ -23,6 +23,8 @@ export default class Component extends View {
 
         this.__signals = undefined;
 
+        this.__passSignals = undefined;
+
         this.__construct();
 
         // Quick-apply template.
@@ -354,7 +356,7 @@ export default class Component extends View {
                 if (handled) return;
             }
         }
-        if (bubble && this.cparent) {
+        if ((this._passSignals || (this.__passSignals && this.__passSignals[event]) || bubble) && this.cparent) {
             // Bubble up.
             this.cparent.signal(event, args, bubble);
         }
@@ -369,6 +371,18 @@ export default class Component extends View {
             this._throwError("Signals: specify an object with signal-to-fire mappings");
         }
         this.__signals = Object.assign(this.__signals || {}, v);
+    }
+
+    get passSignals() {
+        return this.__passSignals || {};
+    }
+
+    set passSignals(v) {
+        this.__passSignals = Object.assign(this.__passSignals || {}, v);
+    }
+
+    get _passSignals() {
+        return false;
     }
 
     /**
