@@ -356,8 +356,15 @@ export default class Component extends View {
                 if (handled) return;
             }
         }
-        if ((this._passSignals || (this.__passSignals && this.__passSignals[event]) || bubble) && this.cparent) {
+
+        let passSignal = (this.__passSignals && this.__passSignals[event]);
+        const cparent = this.cparent;
+        if (cparent && (cparent._passSignals || passSignal || bubble)) {
             // Bubble up.
+            if (passSignal && passSignal !== true) {
+                // Replace signal name.
+                event = passSignal;
+            }
             this.cparent.signal(event, args, bubble);
         }
     }

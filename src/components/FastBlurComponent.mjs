@@ -152,6 +152,10 @@ class C2dFastBlurComponent extends Component {
         return C2dFastBlurComponent.getSpline().getValue(Math.min(1, v * 0.25));
     }
 
+    get _passSignals() {
+        return true;
+    }
+
 }
 
 class WebGLFastBlurComponent extends Component {
@@ -354,6 +358,10 @@ class WebGLFastBlurComponent extends Component {
         return {
             _firstActive: p._build
         }
+    }
+
+    get _passSignals() {
+        return true;
     }
 
 }

@@ -7112,6 +7112,8 @@ class Component extends View {
 
         this.__signals = undefined;
 
+        this.__passSignals = undefined;
+
         this.__construct();
 
         // Quick-apply template.
@@ -7443,8 +7445,15 @@ class Component extends View {
                 if (handled) return;
             }
         }
-        if ((this._passSignals || bubble) && this.cparent) {
+
+        let passSignal = (this.__passSignals && this.__passSignals[event]);
+        const cparent = this.cparent;
+        if (cparent && (cparent._passSignals || passSignal || bubble)) {
             // Bubble up.
+            if (passSignal && passSignal !== true) {
+                // Replace signal name.
+                event = passSignal;
+            }
             this.cparent.signal(event, args, bubble);
         }
     }
@@ -7458,6 +7467,14 @@ class Component extends View {
             this._throwError("Signals: specify an object with signal-to-fire mappings");
         }
         this.__signals = Object.assign(this.__signals || {}, v);
+    }
+
+    get passSignals() {
+        return this.__passSignals || {};
+    }
+
+    set passSignals(v) {
+        this.__passSignals = Object.assign(this.__passSignals || {}, v);
     }
 
     get _passSignals() {
@@ -13089,6 +13106,10 @@ class C2dFastBlurComponent extends Component {
         return C2dFastBlurComponent.getSpline().getValue(Math.min(1, v * 0.25));
     }
 
+    get _passSignals() {
+        return true;
+    }
+
 }
 
 class WebGLFastBlurComponent extends Component {
@@ -13291,6 +13312,10 @@ class WebGLFastBlurComponent extends Component {
         return {
             _firstActive: p._build
         }
+    }
+
+    get _passSignals() {
+        return true;
     }
 
 }
