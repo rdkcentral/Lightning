@@ -764,7 +764,6 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
     const _performUpdateSource = Texture.prototype._performUpdateSource
     Texture.prototype._performUpdateSource = function() {
         _performUpdateSource.apply(this, arguments)
-        const nonDefaults = this.getNonDefaults()
         this.views.forEach(v => {
             updateTextureAttribs(v)
         })

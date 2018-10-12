@@ -7,6 +7,8 @@ import StageUtils from "./StageUtils.mjs";
 import ViewCore from "./core/ViewCore.mjs";
 import Base from "./Base.mjs";
 
+import TextureSource from "./TextureSource.mjs";
+
 import Utils from "./Utils.mjs";
 import EventEmitter from "../EventEmitter.mjs";
 import Shader from "./Shader.mjs";
@@ -1718,6 +1720,11 @@ export default class View {
 
     set onAfterUpdate(f) {
         this.__core.onAfterUpdate = f;
+    }
+
+    forceUpdate() {
+        // Make sure that the update loop is run.
+        this.__core._setHasUpdates();
     }
 
     get shader() {

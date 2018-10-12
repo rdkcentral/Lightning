@@ -79,7 +79,7 @@ export default class TextureManager {
         let usedTextureMemoryBefore = this._usedTextureMemory;
         for (let i = 0, n = this._uploadedTextureSources.length; i < n; i++) {
             let ts = this._uploadedTextureSources[i];
-            if (ts.allowCleanup() && !ts.isResultTexture) {
+            if (ts.allowCleanup()) {
                 this._freeManagedTextureSource(ts);
             } else {
                 remainingTextureSources.push(ts);

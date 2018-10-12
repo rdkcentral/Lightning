@@ -142,11 +142,7 @@ export default class Texture {
     }
 
     becomesUsed() {
-        if (this._mustUpdate) {
-            // Generate the source for this texture, setting the _source property.
-            this._updateSource();
-        }
-
+        this.load();
     }
 
     becomesUnused() {
@@ -283,11 +279,7 @@ export default class Texture {
 
     load() {
         if (!this.isLoaded()) {
-            this._performUpdateSource(true);
-            this.stage.removeUpdateSourceTexture(this);
-            if (this._source) {
-                this._source.load();
-            }
+            this.source.load();
         }
     }
 

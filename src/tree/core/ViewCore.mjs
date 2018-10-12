@@ -1238,7 +1238,8 @@ export default class ViewCore {
 
             // Calculate a bbox for this view.
             let sx, sy, ex, ey;
-            if (this._isComplex) {
+            const rComplex = (r.tb != 0) || (r.tc != 0) || (r.ta < 0) || (r.td < 0);
+            if (rComplex) {
                 sx = Math.min(0, this._rw * r.ta, this._rw * r.ta + this._rh * r.tb, this._rh * r.tb) + r.px;
                 ex = Math.max(0, this._rw * r.ta, this._rw * r.ta + this._rh * r.tb, this._rh * r.tb) + r.px;
                 sy = Math.min(0, this._rw * r.tc, this._rw * r.tc + this._rh * r.td, this._rh * r.td) + r.py;
@@ -1250,7 +1251,7 @@ export default class ViewCore {
                 ey = r.py + r.td * this._rh;
             }
 
-            if (this._rwhEstimate && (this._isComplex || this._localTa < 1 || this._localTb < 1)) {
+            if (this._rwhEstimate && (rComplex || this._localTa < 1 || this._localTb < 1)) {
                 // If we are dealing with a non-identity matrix, we must extend the bbox so that withinBounds and;
                 //  scissors will include the complete range of (positive) dimensions up to rw,rh.
                 const nx = this._x * pr.ta + this._y * pr.tb + pr.px;
@@ -1297,7 +1298,7 @@ export default class ViewCore {
                 // After calcs may change render coords, scissor and/or recBoundsMargin.
                 if (this._onAfterCalcs(this.view)) {
                     // Recalculate bbox.
-                    if (this._isComplex) {
+                    if (rComplex) {
                         sx = Math.min(0, this._rw * r.ta, this._rw * r.ta + this._rh * r.tb, this._rh * r.tb) + r.px;
                         ex = Math.max(0, this._rw * r.ta, this._rw * r.ta + this._rh * r.tb, this._rh * r.tb) + r.px;
                         sy = Math.min(0, this._rw * r.tc, this._rw * r.tc + this._rh * r.td, this._rh * r.td) + r.py;
@@ -1309,7 +1310,7 @@ export default class ViewCore {
                         ey = r.py + r.td * this._rh;
                     }
 
-                    if (this._rwhEstimate && (this._isComplex || this._localTa < 1 || this._localTb < 1)) {
+                    if (this._rwhEstimate && (rComplex || this._localTa < 1 || this._localTb < 1)) {
                         const nx = this._x * pr.ta + this._y * pr.tb + pr.px;
                         const ny = this._x * pr.tc + this._y * pr.td + pr.py;
                         if (nx < sx) sx = nx;
@@ -1572,14 +1573,14 @@ export default class ViewCore {
                         cache: false
                     };
 
-                    if (!renderState.isCachingTexturizer && (this._hasRenderUpdates === 0)) {
+                    if (this._texturizer.hasResultTexture() || (!renderState.isCachingTexturizer && (this._hasRenderUpdates === 0))) {
                         /**
                          * We don't always cache render textures.
                          *
                          * The rule is, that caching for a specific render texture is only enabled if:
+                         * - There is a result texture to be updated.
                          * - There were no render updates since last frame (ViewCore.hasRenderUpdates === 0)
-                         * - The result texture is being used by other views, OR:
-                         * - There are no ancestors that are being cached during this frame (CoreRenderState.isCachingTexturizer)
+                         * - AND there are no ancestors that are being cached during this frame (CoreRenderState.isCachingTexturizer)
                          *   If an ancestor is cached anyway, it's probably not necessary to keep deeper caches. If the top level is to
                          *   change while a lower one is not, that lower level will be cached instead.
                          *
@@ -1591,6 +1592,15 @@ export default class ViewCore {
                          */
                         renderTextureInfo.cache = true;
                         renderState.isCachingTexturizer = true;
+                    }
+
+                    if (!this._texturizer.hasResultTexture()) {
+                        // We can already release the current texture to the pool, as it will be rebuild anyway.
+                        // In case of multiple layers of 'filtering', this may save us from having to create one
+                        //  render-to-texture layer.
+                        // Notice that we don't do this when there is a result texture, as any other view may rely on
+                        //  that result texture being filled.
+                        this._texturizer.releaseRenderTexture();
                     }
 
                     renderState.setRenderTextureInfo(renderTextureInfo);
@@ -1684,13 +1694,9 @@ export default class ViewCore {
                         renderState.setShader(this.activeShader, this._shaderOwner);
                         renderState.setScissor(this._scissor);
 
-                        const fillingCache = !!(renderTextureInfo && renderTextureInfo.cache) || this._texturizer.resultTextureInUse();
+                        const cache = !!(renderTextureInfo && renderTextureInfo.cache);
 
-                        // Cache if:
-                        // - regenerating while nothing changed
-                        // - OR other views are using the result texture
-                        // - AND not already filling cache in upper level
-                        renderState.setTexturizer(this._texturizer, fillingCache);
+                        renderState.setTexturizer(this._texturizer, cache);
                         this._stashTexCoords();
                         if (!this._texturizer.colorize) this._stashColors();
                         this.renderState.addQuad(this);
@@ -1698,7 +1704,7 @@ export default class ViewCore {
                         this._unstashTexCoords();
                         renderState.setTexturizer(null);
 
-                        if (fillingCache) {
+                        if (cache) {
                             // Allow siblings to cache.
                             renderState.isCachingTexturizer = false;
                         }

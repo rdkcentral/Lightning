@@ -46,4 +46,7 @@ export default class Renderer {
     getPatchId() {
     }
 
+    copyRenderTexture(renderTexture, nativeTexture, options) {
+        console.warn('copyRenderTexture not supported by renderer');
+    }
 }

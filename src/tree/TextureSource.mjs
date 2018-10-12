@@ -131,7 +131,7 @@ export default class TextureSource {
     }
 
     allowCleanup() {
-        return !this.permanent && (!this.isUsed()) && !this.isResultTexture;
+        return !this.permanent && (!this.isUsed());
     }
 
     becomesUsed() {

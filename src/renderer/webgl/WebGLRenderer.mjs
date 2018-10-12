@@ -250,4 +250,21 @@ export default class WebGLRenderer extends Renderer {
     getPatchId() {
         return "webgl";
     }
+
+    copyRenderTexture(renderTexture, nativeTexture, options) {
+        const gl = this.stage.gl;
+        gl.bindTexture(gl.TEXTURE_2D, nativeTexture);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, renderTexture.framebuffer);
+        const precision = renderTexture.precision;
+        gl.copyTexSubImage2D(
+            gl.TEXTURE_2D,
+            0,
+            precision * (options.sx || 0),
+            precision * (options.sy || 0),
+            precision * (options.x || 0),
+            precision * (options.y || 0),
+            precision * (options.w || renderTexture.ow),
+            precision * (options.h || renderTexture.oh));
+    }
+
 }

@@ -560,7 +560,7 @@ var lng = (function () {
         }
 
         allowCleanup() {
-            return !this.permanent && (!this.isUsed()) && !this.isResultTexture;
+            return !this.permanent && (!this.isUsed());
         }
 
         becomesUsed() {
@@ -811,6 +811,10 @@ var lng = (function () {
             return this._resultTextureSource;
         }
 
+        hasResultTexture() {
+            return !!this._resultTextureSource;
+        }
+
         resultTextureInUse() {
             return this._resultTextureSource && this._resultTextureSource.hasEnabledViews();
         }
@@ -866,7 +870,7 @@ var lng = (function () {
             }
         }
 
-        // Reuses the specified texture as the render texture.
+        // Reuses the specified texture as the render texture (in ancestor).
         reuseTextureAsRenderTexture(nativeTexture) {
             if (this._renderTexture !== nativeTexture) {
                 this.releaseRenderTexture();
@@ -2130,7 +2134,8 @@ var lng = (function () {
 
                 // Calculate a bbox for this view.
                 let sx, sy, ex, ey;
-                if (this._isComplex) {
+                const rComplex = (r.tb != 0) || (r.tc != 0) || (r.ta < 0) || (r.td < 0);
+                if (rComplex) {
                     sx = Math.min(0, this._rw * r.ta, this._rw * r.ta + this._rh * r.tb, this._rh * r.tb) + r.px;
                     ex = Math.max(0, this._rw * r.ta, this._rw * r.ta + this._rh * r.tb, this._rh * r.tb) + r.px;
                     sy = Math.min(0, this._rw * r.tc, this._rw * r.tc + this._rh * r.td, this._rh * r.td) + r.py;
@@ -2142,7 +2147,7 @@ var lng = (function () {
                     ey = r.py + r.td * this._rh;
                 }
 
-                if (this._rwhEstimate && (this._isComplex || this._localTa < 1 || this._localTb < 1)) {
+                if (this._rwhEstimate && (rComplex || this._localTa < 1 || this._localTb < 1)) {
                     // If we are dealing with a non-identity matrix, we must extend the bbox so that withinBounds and;
                     //  scissors will include the complete range of (positive) dimensions up to rw,rh.
                     const nx = this._x * pr.ta + this._y * pr.tb + pr.px;
@@ -2189,7 +2194,7 @@ var lng = (function () {
                     // After calcs may change render coords, scissor and/or recBoundsMargin.
                     if (this._onAfterCalcs(this.view)) {
                         // Recalculate bbox.
-                        if (this._isComplex) {
+                        if (rComplex) {
                             sx = Math.min(0, this._rw * r.ta, this._rw * r.ta + this._rh * r.tb, this._rh * r.tb) + r.px;
                             ex = Math.max(0, this._rw * r.ta, this._rw * r.ta + this._rh * r.tb, this._rh * r.tb) + r.px;
                             sy = Math.min(0, this._rw * r.tc, this._rw * r.tc + this._rh * r.td, this._rh * r.td) + r.py;
@@ -2201,7 +2206,7 @@ var lng = (function () {
                             ey = r.py + r.td * this._rh;
                         }
 
-                        if (this._rwhEstimate && (this._isComplex || this._localTa < 1 || this._localTb < 1)) {
+                        if (this._rwhEstimate && (rComplex || this._localTa < 1 || this._localTb < 1)) {
                             const nx = this._x * pr.ta + this._y * pr.tb + pr.px;
                             const ny = this._x * pr.tc + this._y * pr.td + pr.py;
                             if (nx < sx) sx = nx;
@@ -2464,14 +2469,14 @@ var lng = (function () {
                             cache: false
                         };
 
-                        if (!renderState.isCachingTexturizer && (this._hasRenderUpdates === 0)) {
+                        if (this._texturizer.hasResultTexture() || (!renderState.isCachingTexturizer && (this._hasRenderUpdates === 0))) {
                             /**
                              * We don't always cache render textures.
                              *
                              * The rule is, that caching for a specific render texture is only enabled if:
+                             * - There is a result texture to be updated.
                              * - There were no render updates since last frame (ViewCore.hasRenderUpdates === 0)
-                             * - The result texture is being used by other views, OR:
-                             * - There are no ancestors that are being cached during this frame (CoreRenderState.isCachingTexturizer)
+                             * - AND there are no ancestors that are being cached during this frame (CoreRenderState.isCachingTexturizer)
                              *   If an ancestor is cached anyway, it's probably not necessary to keep deeper caches. If the top level is to
                              *   change while a lower one is not, that lower level will be cached instead.
                              *
@@ -2483,6 +2488,15 @@ var lng = (function () {
                              */
                             renderTextureInfo.cache = true;
                             renderState.isCachingTexturizer = true;
+                        }
+
+                        if (!this._texturizer.hasResultTexture()) {
+                            // We can already release the current texture to the pool, as it will be rebuild anyway.
+                            // In case of multiple layers of 'filtering', this may save us from having to create one
+                            //  render-to-texture layer.
+                            // Notice that we don't do this when there is a result texture, as any other view may rely on
+                            //  that result texture being filled.
+                            this._texturizer.releaseRenderTexture();
                         }
 
                         renderState.setRenderTextureInfo(renderTextureInfo);
@@ -2576,13 +2590,9 @@ var lng = (function () {
                             renderState.setShader(this.activeShader, this._shaderOwner);
                             renderState.setScissor(this._scissor);
 
-                            const fillingCache = !!(renderTextureInfo && renderTextureInfo.cache) || this._texturizer.resultTextureInUse();
+                            const cache = !!(renderTextureInfo && renderTextureInfo.cache);
 
-                            // Cache if:
-                            // - regenerating while nothing changed
-                            // - OR other views are using the result texture
-                            // - AND not already filling cache in upper level
-                            renderState.setTexturizer(this._texturizer, fillingCache);
+                            renderState.setTexturizer(this._texturizer, cache);
                             this._stashTexCoords();
                             if (!this._texturizer.colorize) this._stashColors();
                             this.renderState.addQuad(this);
@@ -2590,7 +2600,7 @@ var lng = (function () {
                             this._unstashTexCoords();
                             renderState.setTexturizer(null);
 
-                            if (fillingCache) {
+                            if (cache) {
                                 // Allow siblings to cache.
                                 renderState.isCachingTexturizer = false;
                             }
@@ -3227,11 +3237,7 @@ var lng = (function () {
         }
 
         becomesUsed() {
-            if (this._mustUpdate) {
-                // Generate the source for this texture, setting the _source property.
-                this._updateSource();
-            }
-
+            this.load();
         }
 
         becomesUnused() {
@@ -3368,11 +3374,7 @@ var lng = (function () {
 
         load() {
             if (!this.isLoaded()) {
-                this._performUpdateSource(true);
-                this.stage.removeUpdateSourceTexture(this);
-                if (this._source) {
-                    this._source.load();
-                }
+                this.source.load();
             }
         }
 
@@ -6796,6 +6798,11 @@ var lng = (function () {
             this.__core.onAfterUpdate = f;
         }
 
+        forceUpdate() {
+            // Make sure that the update loop is run.
+            this.__core._setHasUpdates();
+        }
+
         get shader() {
             return this.__core.shader;
         }
@@ -8677,6 +8684,9 @@ var lng = (function () {
         getPatchId() {
         }
 
+        copyRenderTexture(renderTexture, nativeTexture, options) {
+            console.warn('copyRenderTexture not supported by renderer');
+        }
     }
 
     class WebGLRenderer extends Renderer {
@@ -8921,6 +8931,23 @@ var lng = (function () {
         getPatchId() {
             return "webgl";
         }
+
+        copyRenderTexture(renderTexture, nativeTexture, options) {
+            const gl = this.stage.gl;
+            gl.bindTexture(gl.TEXTURE_2D, nativeTexture);
+            gl.bindFramebuffer(gl.FRAMEBUFFER, renderTexture.framebuffer);
+            const precision = renderTexture.precision;
+            gl.copyTexSubImage2D(
+                gl.TEXTURE_2D,
+                0,
+                precision * (options.sx || 0),
+                precision * (options.sy || 0),
+                precision * (options.x || 0),
+                precision * (options.y || 0),
+                precision * (options.w || renderTexture.ow),
+                precision * (options.h || renderTexture.oh));
+        }
+
     }
 
     class C2dCoreQuadList extends CoreQuadList {
@@ -9750,7 +9777,7 @@ var lng = (function () {
             let usedTextureMemoryBefore = this._usedTextureMemory;
             for (let i = 0, n = this._uploadedTextureSources.length; i < n; i++) {
                 let ts = this._uploadedTextureSources[i];
-                if (ts.allowCleanup() && !ts.isResultTexture) {
+                if (ts.allowCleanup()) {
                     this._freeManagedTextureSource(ts);
                 } else {
                     remainingTextureSources.push(ts);
@@ -9937,6 +9964,8 @@ var lng = (function () {
             const texture = this.stage.renderer.createRenderTexture(w, h, pw, ph);
             texture.id = this._renderTextureId++;
             texture.f = this.stage.frameCounter;
+            texture.ow = w;
+            texture.oh = h;
             texture.w = pw;
             texture.h = ph;
             this._renderTexturePixels += pw * ph;
@@ -9955,6 +9984,10 @@ var lng = (function () {
         _freeRenderTexture(nativeTexture) {
             this.stage.renderer.freeRenderTexture(nativeTexture);
             this._renderTexturePixels -= nativeTexture.w * nativeTexture.h;
+        }
+
+        copyRenderTexture(renderTexture, nativeTexture, options) {
+            this.stage.renderer.copyRenderTexture(renderTexture, nativeTexture, options);
         }
 
         forceZSort(viewCore) {

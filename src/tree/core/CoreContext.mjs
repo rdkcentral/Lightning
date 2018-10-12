@@ -122,6 +122,8 @@ export default class CoreContext {
         const texture = this.stage.renderer.createRenderTexture(w, h, pw, ph);
         texture.id = this._renderTextureId++;
         texture.f = this.stage.frameCounter;
+        texture.ow = w;
+        texture.oh = h;
         texture.w = pw;
         texture.h = ph;
         this._renderTexturePixels += pw * ph;
@@ -140,6 +142,10 @@ export default class CoreContext {
     _freeRenderTexture(nativeTexture) {
         this.stage.renderer.freeRenderTexture(nativeTexture);
         this._renderTexturePixels -= nativeTexture.w * nativeTexture.h;
+    }
+
+    copyRenderTexture(renderTexture, nativeTexture, options) {
+        this.stage.renderer.copyRenderTexture(renderTexture, nativeTexture, options);
     }
 
     forceZSort(viewCore) {

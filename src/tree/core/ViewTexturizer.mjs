@@ -66,6 +66,10 @@ export default class ViewTexturizer {
         return this._resultTextureSource;
     }
 
+    hasResultTexture() {
+        return !!this._resultTextureSource;
+    }
+
     resultTextureInUse() {
         return this._resultTextureSource && this._resultTextureSource.hasEnabledViews();
     }
@@ -121,7 +125,7 @@ export default class ViewTexturizer {
         }
     }
 
-    // Reuses the specified texture as the render texture.
+    // Reuses the specified texture as the render texture (in ancestor).
     reuseTextureAsRenderTexture(nativeTexture) {
         if (this._renderTexture !== nativeTexture) {
             this.releaseRenderTexture();
