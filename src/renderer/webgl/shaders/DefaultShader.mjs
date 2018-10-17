@@ -9,7 +9,7 @@ export default class DefaultShader extends WebGLShader {
         gl.enableVertexAttribArray(this._attrib("aVertexPosition"));
 
         if (this._attrib("aTextureCoord") !== -1) {
-            gl.vertexAttribPointer(this._attrib("aTextureCoord"), 2, gl.FLOAT, true, 20, 2 * 4);
+            gl.vertexAttribPointer(this._attrib("aTextureCoord"), 2, gl.FLOAT, false, 20, 2 * 4);
             gl.enableVertexAttribArray(this._attrib("aTextureCoord"));
         }
 
