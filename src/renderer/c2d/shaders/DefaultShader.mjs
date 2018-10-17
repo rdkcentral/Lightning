@@ -17,7 +17,8 @@ export default class DefaultShader extends C2dShader {
             const rc = operation.getRenderContext(i);
 
             //@todo: try to optimize out per-draw transform setting. split translate, transform.
-            ctx.setTransform(rc.ta, rc.tc, rc.tb, rc.td, rc.px, rc.py);
+            const precision = this.ctx.stage.getRenderPrecision();
+            ctx.setTransform(rc.ta * precision, rc.tc * precision, rc.tb * precision, rc.td * precision, rc.px * precision, rc.py * precision);
 
             const rect = (tx === this._rectangleTexture);
             const info = {operation, target, index: i, rect};
