@@ -91,9 +91,7 @@ export default class Stage extends EventEmitter {
         }
 
         try {
-            var canvas = document.createElement('canvas');
-            return !!window.WebGLRenderingContext &&
-                (canvas.getContext('webgl') || canvas.getContext('experimental-webgl'));
+            return !!window.WebGLRenderingContext;
         } catch(e) {
             return false;
         }
