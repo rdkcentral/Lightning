@@ -279,7 +279,9 @@ export default class Texture {
 
     load() {
         if (!this.isLoaded()) {
-            this.source.load();
+            if (this.source) {
+                this.source.load();
+            }
         }
     }
 
