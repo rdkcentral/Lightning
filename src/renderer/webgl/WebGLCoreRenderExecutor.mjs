@@ -55,6 +55,7 @@ export default class WebGLCoreRenderExecutor extends CoreRenderExecutor {
         gl.enable(gl.BLEND);
         gl.disable(gl.DEPTH_TEST);
 
+        this._stopShaderProgram();
         this._setupBuffers();
     }
 
