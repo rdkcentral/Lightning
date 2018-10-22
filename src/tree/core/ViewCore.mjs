@@ -1800,6 +1800,11 @@ export default class ViewCore {
 
                 this._zIndexedChildren = mergeResult;
             }
+        } else {
+            if (a.length > ptr) {
+                // Slice old (unnecessary) part off array.
+                a.splice(ptr);
+            }
         }
 
         this._zSort = false;
