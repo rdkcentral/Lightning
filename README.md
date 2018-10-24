@@ -99,7 +99,7 @@ All views are positioned absolutely, relative to the parent view, using `x` and 
 
 A view has dimensions, gettable by the renderWidth and renderHeight properties. They can be set by specifying the w, h properties. If w, h are not set, the renderWidth corresponds to the (displayed) texture width. By default, both w and h are 0. The view dimensions are used for both positioning (mount, pivot) as well as for rendering the texture. 
 
-The `mount` specifies the point within the view dimensions that is specified by the x, y coordinates. Mount 0 corresponds the upper-left corner, 1 to the bottom-right corner. `mountX` and `mountY` can also be set separately, so (1,0) corresponds to the upper-right corner and (0,1) to the bottom-right corner.
+The `mount` specifies the point within the view dimensions that is specified by the x, y coordinates. Mount 0 corresponds the upper-left corner, 1 to the bottom-right corner. `mountX` and `mountY` can also be set separately, so (1,0) corresponds to the upper-right corner and (0,1) to the bottom-left corner.
 
 The `pivot` (pivot,pivotX,pivotY) specifies the point within the view dimensions that is the origin for `rotation` and `scale` transformations.
 {PROVIDE EXAMPLE}
