@@ -429,8 +429,17 @@ export default class TextTexture extends Texture {
         const canvas = this.stage.platform.getDrawingCanvas();
         return function(cb) {
             const renderer = new TextTextureRenderer(this.stage, canvas, args);
-            renderer.draw();
-            cb(null, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas));
+            const p = renderer.draw();
+
+            if (p) {
+                p.then(() => {
+                    cb(null, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas));
+                }).catch((err) => {
+                    cb(err);
+                });
+            } else {
+                cb(null, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas));
+            }
         }
     }
 
