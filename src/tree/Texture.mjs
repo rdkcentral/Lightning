@@ -142,10 +142,15 @@ export default class Texture {
     }
 
     becomesUsed() {
-        this.load();
+        if (this.source) {
+            this.source.incActiveTextureCount();
+        }
     }
 
     becomesUnused() {
+        if (this.source) {
+            this.source.decActiveTextureCount();
+        }
     }
 
     isUsed() {
@@ -278,8 +283,9 @@ export default class Texture {
     }
 
     load() {
-        if (!this.isLoaded()) {
-            if (this.source) {
+        // Make sure that source is up to date.
+        if (this.source) {
+            if (!this.isLoaded()) {
                 this.source.load();
             }
         }

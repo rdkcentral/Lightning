@@ -1,11 +1,10 @@
-
 export default class TextureSource {
 
     constructor(manager, loader = undefined) {
         this.id = TextureSource.id++;
 
         this.manager = manager;
-        
+
         this.stage = manager.stage;
 
         /**
@@ -13,6 +12,13 @@ export default class TextureSource {
          * @type {Set<Texture>}
          */
         this.textures = new Set();
+
+        /**
+         * The number of active textures (textures that have at least one active view).
+         * @type {number}
+         * @private
+         */
+        this._activeTextureCount = 0;
 
         /**
          * The factory for the source of this texture.
@@ -68,7 +74,7 @@ export default class TextureSource {
          * @type {object}
          * @private
          */
-        this._loadError = undefined
+        this._loadError = undefined;
 
     }
 
@@ -79,18 +85,24 @@ export default class TextureSource {
     addTexture(v) {
         if (!this.textures.has(v)) {
             this.textures.add(v);
-
-            if (this.textures.size === 1) {
-                this.becomesUsed();
-            }
         }
     }
 
     removeTexture(v) {
-        if (this.textures.delete(v)) {
-            if (this.textures.size === 0) {
-                this.becomesUnused();
-            }
+        this.textures.delete(v);
+    }
+
+    incActiveTextureCount() {
+        this._activeTextureCount++;
+        if (this._activeTextureCount === 1) {
+            this.becomesUsed();
+        }
+    }
+
+    decActiveTextureCount() {
+        this._activeTextureCount--;
+        if (this._activeTextureCount === 0) {
+            this.becomesUnused();
         }
     }
 
@@ -135,15 +147,7 @@ export default class TextureSource {
     }
 
     becomesUsed() {
-        if (this.lookupId) {
-            if (!this.manager.textureSourceHashmap.has(this.lookupId)) {
-                this.manager.textureSourceHashmap.set(this.lookupId, this);
-            }
-        }
-
-        if (!this.isLoaded()) {
-            this.load();
-        }
+        this.load();
     }
 
     becomesUnused() {
@@ -164,6 +168,10 @@ export default class TextureSource {
         return this.loadingSince > 0;
     }
 
+    isError() {
+        return !!this._loadError;
+    }
+
     reload() {
         this.free();
         if (this.isUsed()) {
@@ -175,6 +183,12 @@ export default class TextureSource {
         if (this.isResultTexture) {
             // View result texture source, for which the loading is managed by the core.
             return;
+        }
+
+        if (this.lookupId) {
+            if (!this.manager.textureSourceHashmap.has(this.lookupId)) {
+                this.manager.textureSourceHashmap.set(this.lookupId, this);
+            }
         }
 
         if (!this._nativeTexture && !this.isLoading()) {
@@ -237,12 +251,12 @@ export default class TextureSource {
 
     onLoad() {
         if (this.isUsed()) {
-            this.forEachActiveView(function(view) {
+            this.forEachActiveView(function (view) {
                 view.onTextureSourceLoaded();
             });
         }
     }
-    
+
     forceRenderUpdate() {
         // Userland should call this method after changing the nativeTexture manually outside of the framework
         //  (using tex[Sub]Image2d for example).
@@ -252,14 +266,14 @@ export default class TextureSource {
             this._nativeTexture.update = this.stage.frameCounter;
         }
 
-        this.forEachActiveView(function(view) {
+        this.forEachActiveView(function (view) {
             view.forceRenderUpdate();
         });
 
     }
 
     forceUpdateRenderCoords() {
-        this.forEachActiveView(function(view) {
+        this.forEachActiveView(function (view) {
             view._updateTextureCoords();
         });
     }
