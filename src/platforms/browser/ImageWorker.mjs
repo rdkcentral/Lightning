@@ -143,10 +143,10 @@ const createWorker = function() {
             const item = new ImageWorkerServerItem(id, src);
             item.onFinish = (result) => {
                 this.finish(item, result);
-            }
+            };
             item.onError = (info) => {
                 this.error(item, info);
-            }
+            };
             this.items.set(id, item);
             item.start();
         }
