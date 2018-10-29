@@ -175,7 +175,7 @@ class WebGLFastBlurComponent extends Component {
         };
 
         return {
-            Textwrap: {rtt: true, renderOffscreen: true, Content: {}},
+            Textwrap: {rtt: true, forceZIndexContext: true, renderOffscreen: true, Content: {}},
             Layers: {
                 L0: {rtt: true, onUpdate: onUpdate, renderOffscreen: true, visible: false, Content: {shader: {type: BoxBlurShader}}},
                 L1: {rtt: true, onUpdate: onUpdate, renderOffscreen: true, visible: false, Content: {shader: {type: BoxBlurShader}}},

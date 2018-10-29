@@ -4,7 +4,7 @@ export default class SmoothScaleComponent extends Component {
 
     static _template() {
         return {
-            ContentWrap: {renderOffscreen: true, onAfterUpdate: SmoothScaleComponent._updateDimensions,
+            ContentWrap: {renderOffscreen: true, forceZIndexContext: true, onAfterUpdate: SmoothScaleComponent._updateDimensions,
                 Content: {}
             },
             Scale: {visible: false}
