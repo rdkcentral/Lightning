@@ -3,18 +3,11 @@
 <head>
     <meta charset="UTF-8" />
 
-    <script src="./WebGLStateManager.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/96/three.js"></script>
 </head>
 <body>
-    <canvas width="900" height="900" id="canvas"></canvas>
-
     <script type="module">
         import lng from '../../lightning.mjs'
-
-        const canvas = document.getElementById('canvas')
-        let gl = canvas.getContext('webgl')
-        gl = WebGLStateManager.enable(gl, "app")
 
         window.start = function() {
 
@@ -34,7 +27,7 @@
                 }
 
                 _initThreeJs() {
-                    gl.switchState("three");
+                    this.stage.gl.switchState("three");
                     this._camera = new THREE.PerspectiveCamera( 70, 900 / 900, 0.01, 10 );
                     this._camera.position.z = 1;
 
@@ -46,21 +39,21 @@
                     this._mesh = new THREE.Mesh( this._geometry, this._material );
                     this._scene.add( this._mesh );
 
-                    this._renderer = new THREE.WebGLRenderer( { antialias: true, canvas: canvas, context: gl } );
+                    this._renderer = new THREE.WebGLRenderer( { antialias: true, canvas: this.stage.getCanvas(), context: this.stage.gl } );
                     this._renderer.setSize( 900, 900 );
 
                     this._bufferTexture = new THREE.WebGLRenderTarget( 900, 900, { minFilter: THREE.LinearFilter, magFilter: THREE.NearestFilter});
                 }
 
                 _renderThreeJs() {
-                    gl.switchState("three");
+                    this.stage.gl.switchState("three");
 
                     this._mesh.rotation.x += 0.01;
                     this._mesh.rotation.y += 0.02;
 
                     this._renderer.render( this._scene, this._camera, this._bufferTexture );
 
-                    gl.switchState("app");
+                    this.stage.gl.switchState("lightning");
                     const texture = this._renderer.properties.get(this._bufferTexture.texture).__webglTexture;
                     if (texture && texture.test) {
                         this._txtr.texture.options = {source: texture, w: 900, h: 900}
@@ -91,8 +84,10 @@
                 }
 
             }
-            const options = {stage: {clearColor: 0xFF000000, canvas: canvas, context: gl}}
+            const options = {stage: {clearColor: 0xFF000000, w: 900, h: 900}}
             const app = new AppExample(options);
+
+            document.body.appendChild(app.stage.getCanvas());
         }
 
         setTimeout(start, 400);

@@ -8,6 +8,7 @@ import Utils from "./Utils.mjs";
 import WebGLRenderer from "../renderer/webgl/WebGLRenderer.mjs";
 import C2dRenderer from "../renderer/c2d/C2dRenderer.mjs";
 import PlatformLoader from "../platforms/PlatformLoader.dev.mjs";
+import WebGLStateManager from "../tools/WebGLStateManager.mjs";
 
 export default class Stage extends EventEmitter {
 
@@ -38,6 +39,15 @@ export default class Stage extends EventEmitter {
             } else {
                 this.gl = this.platform.createWebGLContext(this.getOption('w'), this.getOption('h'));
             }
+        }
+
+        if (this.gl) {
+            // Wrap in WebGLStateManager.
+            // This prevents unnecessary double WebGL commands from being executed, and allows context switching.
+            // Context switching is necessary when reusing the same context for Three.js.
+            // Note that the user must make sure that the WebGL context is untouched before creating the application,
+            //  when manually passing over a canvas or context in the options.
+            WebGLStateManager.enable(this.gl, "lightning")
         }
 
         this._mode = this.gl ? 0 : 1;
