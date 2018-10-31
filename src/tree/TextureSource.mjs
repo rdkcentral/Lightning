@@ -143,20 +143,36 @@ export default class TextureSource {
     }
 
     allowCleanup() {
-        return !this.permanent && (!this.isUsed());
+        return !this.permanent && !this.isUsed();
     }
 
     becomesUsed() {
+        // Even while the texture is being loaded, make sure it is on the lookup map so that others can reuse it.
         this.load();
     }
 
     becomesUnused() {
+        this.cancel();
+    }
+
+    cancel() {
         if (this.isLoading()) {
             if (this._cancelCb) {
                 this._cancelCb(this);
 
                 this.loadingSince = 0;
             }
+        }
+
+        this._checkRemoveFromLookupMap();
+    }
+
+    _checkRemoveFromLookupMap() {
+        if (!this.permanent && (this.textures.size === 0)) {
+            // Normally, texture sources are removed automatically upon the next garbage collection.
+            // In case of manually loading textures, that are not yet uploaded to the gpu, we need to make sure to remove
+            // them manually in case of cancel or error.
+            this.manager.removeFromLookupMap(this);
         }
     }
 
@@ -180,15 +196,10 @@ export default class TextureSource {
     }
 
     load() {
+        // From the moment of loading (when a texture source becomes used by active views)
         if (this.isResultTexture) {
             // View result texture source, for which the loading is managed by the core.
             return;
-        }
-
-        if (this.lookupId) {
-            if (!this.manager.textureSourceHashmap.has(this.lookupId)) {
-                this.manager.textureSourceHashmap.set(this.lookupId, this);
-            }
         }
 
         if (!this._nativeTexture && !this.isLoading()) {
@@ -203,6 +214,7 @@ export default class TextureSource {
                 }
                 if (err) {
                     // Emit txError.
+                    this._checkRemoveFromLookupMap();
                     this.onError(err);
                 } else if (options && options.source) {
                     this.loadingSince = 0;
@@ -246,7 +258,7 @@ export default class TextureSource {
     }
 
     isUsed() {
-        return (this.textures.size > 0);
+        return this._activeTextureCount > 0;
     }
 
     onLoad() {

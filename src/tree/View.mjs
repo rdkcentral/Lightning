@@ -359,6 +359,12 @@ export default class View {
 
     _setActiveFlag() {
         this.__active = true;
+
+        // This must happen before enabling the texture, because it may already be loaded or load directly.
+        if (this.__texture) {
+            this.__texture.incActiveCount();
+        }
+
         if (this.__texture) {
             this._enableTexture();
         }
@@ -366,6 +372,10 @@ export default class View {
     }
 
     _unsetActiveFlag() {
+        if (this.__texture) {
+            this.__texture.decActiveCount();
+        }
+
         this.__active = false;
         if (this.__texture) {
             this._disableTexture();
@@ -1317,11 +1327,6 @@ export default class View {
     _enableWithinBoundsMargin() {
         // Iff enabled, this toggles the active flag.
         if (this.__enabled) {
-            // This must happen before enabling the texture, because it may already be loaded or load directly.
-            if (this.__texture) {
-                this.__texture.incWithinBoundsCount();
-            }
-
             this._setActiveFlag();
         }
     }
@@ -1330,10 +1335,6 @@ export default class View {
         // Iff active, this toggles the active flag.
         if (this.__active) {
             this._unsetActiveFlag();
-
-            if (this.__texture) {
-                this.__texture.decWithinBoundsCount();
-            }
         }
     }
 

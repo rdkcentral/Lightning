@@ -17,10 +17,10 @@ export default class Texture {
         this.views = new Set();
 
         /**
-         * The number of enabled views that are 'within bounds'.
+         * The number of enabled views that are active.
          * @type {number}
          */
-        this._withinBoundsCount = 0;
+        this._activeCount = 0;
 
         /**
          * The associated texture source.
@@ -105,8 +105,8 @@ export default class Texture {
                 }
             }
 
-            if (v.withinBoundsMargin) {
-                this.incWithinBoundsCount();
+            if (v.active) {
+                this.incActiveCount();
             }
         }
     }
@@ -119,24 +119,27 @@ export default class Texture {
                 }
             }
 
-            if (v.withinBoundsMargin) {
-                this.decWithinBoundsCount();
+            if (v.active) {
+                this.decActiveCount();
             }
         }
     }
 
-    incWithinBoundsCount() {
-        this._withinBoundsCount++;
+    incActiveCount() {
+        // Ensure that texture source's activeCount has transferred ownership.
+        const source = this.source;
 
-        if (this._withinBoundsCount === 1) {
+        this._activeCount++;
+        if (this._activeCount === 1) {
             this.becomesUsed();
         }
     }
 
-    decWithinBoundsCount() {
-        this._withinBoundsCount--;
+    decActiveCount() {
+        const source = this.source;
 
-        if (!this._withinBoundsCount) {
+        this._activeCount--;
+        if (!this._activeCount) {
             this.becomesUnused();
         }
     }
@@ -154,7 +157,7 @@ export default class Texture {
     }
 
     isUsed() {
-        return this._withinBoundsCount > 0;
+        return this._activeCount > 0;
     }
 
     /**
@@ -247,15 +250,26 @@ export default class Texture {
 
         this._source = newSource;
 
-        if (oldSource) {
-            oldSource.removeTexture(this);
+        if (this.views.size) {
+            if (oldSource) {
+                if (this._activeCount) {
+                    oldSource.decActiveTextureCount();
+                }
+
+                oldSource.removeTexture(this);
+            }
+
+            if (newSource) {
+                // Must happen before setDisplayedTexture to ensure sprite map texcoords are used.
+                newSource.addTexture(this);
+                if (this._activeCount) {
+                    newSource.incActiveTextureCount();
+                }
+            }
         }
 
         if (this.isUsed()) {
             if (newSource) {
-                // Must happen before setDisplayedTexture to ensure sprite map texcoords are used.
-                newSource.addTexture(this);
-
                 if (newSource.isLoaded()) {
                     this.views.forEach(view => {
                         if (view.active) {

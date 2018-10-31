@@ -29,6 +29,8 @@ export default class TextureManager {
         for (let i = 0, n = this._uploadedTextureSources.length; i < n; i++) {
             this._nativeFreeTextureSource(this._uploadedTextureSources[i]);
         }
+        
+        this.textureSourceHashmap.clear();
     }
 
     getReusableTextureSource(id) {
@@ -68,6 +70,21 @@ export default class TextureManager {
         this._usedTextureMemory += textureSource.w * textureSource.h;
 
         this._uploadedTextureSources.push(textureSource);
+        
+        this.addToLookupMap(textureSource);
+    }
+    
+    addToLookupMap(textureSource) {
+        const lookupId = textureSource.lookupId;
+        if (lookupId) {
+            if (!this.textureSourceHashmap.has(lookupId)) {
+                this.textureSourceHashmap.set(lookupId, textureSource);
+            }
+        }
+    }
+    
+    removeFromLookupMap(textureSource) {
+        this.textureSourceHashmap.delete(textureSource.lookupId);
     }
 
     isFull() {
@@ -99,11 +116,7 @@ export default class TextureManager {
         // Should be reloaded.
         textureSource.loadingSince = null;
 
-        if (textureSource.lookupId) {
-            // Delete it from the texture source hashmap to allow GC to collect it.
-            // If it is still referenced somewhere, we'll re-add it later.
-            this.textureSourceHashmap.delete(textureSource.lookupId);
-        }
+        this.removeFromLookupMap(textureSource);
     }
 
     /**
@@ -125,11 +138,9 @@ export default class TextureManager {
         // Should be reloaded.
         textureSource.loadingSince = null;
 
-        if (textureSource.lookupId) {
-            // Delete it from the texture source hashmap to allow GC to collect it.
-            // If it is still referenced somewhere, we'll re-add it later.
-            this.textureSourceHashmap.delete(textureSource.lookupId);
-        }
+        // Delete it from the texture source hashmap to allow GC to collect it.
+        // If it is still referenced somewhere, we'll re-add it later.
+        this.removeFromLookupMap(textureSource);
     }
 
     _nativeUploadTextureSource(textureSource, options) {
