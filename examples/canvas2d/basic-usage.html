@@ -57,9 +57,9 @@
 
             const app = new BasicUsageExample(options);
 
-            // app.animation({duration: 6, repeat: -1, actions: [
-            //         {t: '.Image', p: 'rotation', v: {sm: 0, 0: 0, 1: 2 * Math.PI}}
-            //     ]}).start()
+            app.animation({duration: 6, repeat: -1, actions: [
+                    {t: '.Image', p: 'rotation', v: {sm: 0, 0: 0, 1: 2 * Math.PI}}
+                ]}).start()
 
             document.body.appendChild(app.stage.getCanvas());
         }

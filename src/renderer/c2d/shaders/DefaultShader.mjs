@@ -65,6 +65,7 @@ export default class DefaultShader extends C2dShader {
                 //@todo: optimize by registering whether identity texcoords are used.
                 ctx.globalAlpha = rc.alpha;
                 this._beforeDrawEl(info);
+                //@todo: test if rounding works better.
                 ctx.drawImage(tx, vc._ulx * tx.w, vc._uly * tx.h, (vc._brx - vc._ulx) * tx.w, (vc._bry - vc._uly) * tx.h, 0, 0, vc.rw, vc.rh);
                 this._afterDrawEl(info);
                 ctx.globalAlpha = 1.0;

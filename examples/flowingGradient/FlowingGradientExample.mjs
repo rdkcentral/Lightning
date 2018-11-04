@@ -48,7 +48,7 @@ export default class FlowingGradientExample extends lng.Application {
                 this.stage.on('frameStart', this._frameStartListener)
             },
             _disable: function() {
-                this.stage.on('frameEnd', this._frameStartListener)
+                this.stage.off('frameStart', this._frameStartListener)
             }
         }
     }

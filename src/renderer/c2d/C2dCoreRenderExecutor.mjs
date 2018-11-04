@@ -28,14 +28,15 @@ export default class C2dCoreRenderExecutor extends CoreRenderExecutor {
         }
 
         const renderTexture = ctx.canvas;
-        
         if (!clearColor[0] && !clearColor[1] && !clearColor[2] && !clearColor[3]) {
             ctx.clearRect(0, 0, renderTexture.width, renderTexture.height);
         } else {
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.fillStyle = StageUtils.getRgbaStringFromArray(clearColor);
             // Do not use fillRect because it produces artifacts.
+            ctx.beginPath();
             ctx.rect(0, 0, renderTexture.width, renderTexture.height);
+            ctx.closePath();
             ctx.fill();
         }
     }
