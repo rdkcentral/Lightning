@@ -31,7 +31,7 @@ export default class GrayscaleShader extends DefaultShader {
     }
 
     _afterDrawEl({target}) {
-        target.ctx.filter = "";
+        target.ctx.filter = "none";
     }
 
 }
