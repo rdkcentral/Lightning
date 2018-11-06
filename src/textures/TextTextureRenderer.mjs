@@ -1,3 +1,6 @@
+import StageUtils from "../tree/StageUtils.mjs";
+import Utils from "../tree/Utils.mjs";
+
 export default class TextTextureRenderer {
 
     constructor(stage, canvas, settings) {
@@ -25,7 +28,7 @@ export default class TextTextureRenderer {
     };
 
     static _isFontFace(fontFace, isLoaded = false) {
-        return window.FontFace && (fontFace instanceof window.FontFace) && (!isLoaded || (fontFace.status === "loaded"));
+        return (Utils.isWeb && window.FontFace && (fontFace instanceof window.FontFace)) && (!isLoaded || (fontFace.status === "loaded"));
     }
 
     _load() {
@@ -334,4 +337,3 @@ export default class TextTextureRenderer {
     
 }
 
-import StageUtils from "../tree/StageUtils.mjs";

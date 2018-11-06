@@ -3355,9 +3355,7 @@ var lng = (function () {
             if (force || this.isUsed()) {
                 this._mustUpdate = false;
                 let source = this._getTextureSource();
-                if (source) {
-                    this._replaceTextureSource(source);
-                }
+                this._replaceTextureSource(source);
             }
         }
 
@@ -3380,19 +3378,21 @@ var lng = (function () {
 
             this._source = newSource;
 
-            if (oldSource) {
-                if (this._activeCount) {
-                    oldSource.decActiveTextureCount();
+            if (this.views.size) {
+                if (oldSource) {
+                    if (this._activeCount) {
+                        oldSource.decActiveTextureCount();
+                    }
+
+                    oldSource.removeTexture(this);
                 }
 
-                oldSource.removeTexture(this);
-            }
-
-            if (this.views.size) {
-                // Must happen before setDisplayedTexture to ensure sprite map texcoords are used.
-                newSource.addTexture(this);
-                if (this._activeCount) {
-                    newSource.incActiveTextureCount();
+                if (newSource) {
+                    // Must happen before setDisplayedTexture to ensure sprite map texcoords are used.
+                    newSource.addTexture(this);
+                    if (this._activeCount) {
+                        newSource.incActiveTextureCount();
+                    }
                 }
             }
 
@@ -3695,7 +3695,7 @@ var lng = (function () {
         };
 
         static _isFontFace(fontFace, isLoaded = false) {
-            return window.FontFace && (fontFace instanceof window.FontFace) && (!isLoaded || (fontFace.status === "loaded"));
+            return (Utils.isWeb && window.FontFace && (fontFace instanceof window.FontFace)) && (!isLoaded || (fontFace.status === "loaded"));
         }
 
         _load() {
@@ -9117,14 +9117,15 @@ var lng = (function () {
             }
 
             const renderTexture = ctx.canvas;
-            
             if (!clearColor[0] && !clearColor[1] && !clearColor[2] && !clearColor[3]) {
                 ctx.clearRect(0, 0, renderTexture.width, renderTexture.height);
             } else {
                 ctx.setTransform(1, 0, 0, 1, 0, 0);
                 ctx.fillStyle = StageUtils.getRgbaStringFromArray(clearColor);
                 // Do not use fillRect because it produces artifacts.
+                ctx.beginPath();
                 ctx.rect(0, 0, renderTexture.width, renderTexture.height);
+                ctx.closePath();
                 ctx.fill();
             }
         }
@@ -9246,6 +9247,7 @@ var lng = (function () {
                     //@todo: optimize by registering whether identity texcoords are used.
                     ctx.globalAlpha = rc.alpha;
                     this._beforeDrawEl(info);
+                    //@todo: test if rounding works better.
                     ctx.drawImage(tx, vc._ulx * tx.w, vc._uly * tx.h, (vc._brx - vc._ulx) * tx.w, (vc._bry - vc._uly) * tx.h, 0, 0, vc.rw, vc.rh);
                     this._afterDrawEl(info);
                     ctx.globalAlpha = 1.0;
@@ -10346,6 +10348,9 @@ var lng = (function () {
                     /* UNPACK_COLORSPACE_CONVERSION_WEBGL */
                     return 4;
                     //@todo: support WebGL2 properties, see https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/pixelStorei
+                case 0x9245:
+                    /* UNPACK_FLIP_BLUE_RED */
+                    return 5;
                 default:
                     // Shouldn't happen.
                     throw new Error('Unknown pixelstorei: ' + pname);
@@ -15085,7 +15090,7 @@ var lng = (function () {
         }
 
         _afterDrawEl({target}) {
-            target.ctx.filter = "";
+            target.ctx.filter = "none";
         }
 
     }
