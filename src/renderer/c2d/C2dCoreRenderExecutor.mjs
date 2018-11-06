@@ -24,7 +24,7 @@ export default class C2dCoreRenderExecutor extends CoreRenderExecutor {
 
         let clearColor = [0, 0, 0, 0];
         if (this._mainRenderTexture.ctx === ctx) {
-            clearColor = this.ctx.stage.getClearColor()
+            clearColor = this.ctx.stage.getClearColor();
         }
 
         const renderTexture = ctx.canvas;

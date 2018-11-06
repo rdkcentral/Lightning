@@ -3,6 +3,19 @@
 <head>
     <meta charset="UTF-8" />
     <script src="../../devtools/lightning-inspect.js"></script>
+
+    <style>
+        @font-face {
+            font-family: Roboto;
+            src: url(./Roboto-Regular.ttf) format('truetype');
+        }
+        @font-face {
+            font-family: Roboto;
+            font-weight: bold;
+            src: url(./Roboto-Bold.ttf) format('truetype');
+        }
+
+    </style>
 </head>
 <body>
     <script type="module">
@@ -12,9 +25,8 @@
         window.onload = function() {
             class BasicUsageExample extends lng.Application {
                 static _template() {
-                    const ff = new FontFace("robota", "url(./roboto-light.ttf?v=3)");
                     return {
-                        Text: {text: {fontFace: "Arial", fontSize: 80, text: "hello", wordWrapWidth: 700}},
+                        Text: {text: {fontFace: "Roboto", fontSize: 80, text: "hello", wordWrapWidth: 700}},
                         // Text2: {y: 100, text: {text:"hello world", fontStyle: 'bold', fontFace: ff}},
                         // Text3: {y: 200, text: {text:"hello world", fontStyle: 'bold', fontFace: ff, cutSx: 100, cutEx: 150}},
                         // Text4: {y: 300, text: {text:"hello world lorem ipsum dolor set amet", fontStyle: 'bold', fontFace: ff, wordWrapWidth: 50}}
@@ -27,7 +39,7 @@
                             setTimeout(() => {
                                 this.tag("Text").visible = true;
                                 this.tag("Text").text = "hello world";
-                                this.tag("Text").text.fontFace = new FontFace("robota", "url(./roboto-light.ttf?v=3)");
+                                this.tag("Text").text.fontStyle = 'bold';
                             }, 1000)
                             this.tag("Text").on('txLoaded', (a) => {
                                 console.log('texture loaded');
