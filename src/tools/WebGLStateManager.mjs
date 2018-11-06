@@ -525,6 +525,9 @@ class WebGLState {
                 /* UNPACK_COLORSPACE_CONVERSION_WEBGL */
                 return 4;
                 //@todo: support WebGL2 properties, see https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/pixelStorei
+            case 0x9245:
+                /* UNPACK_FLIP_BLUE_RED */
+                return 5;
             default:
                 // Shouldn't happen.
                 throw new Error('Unknown pixelstorei: ' + pname);
