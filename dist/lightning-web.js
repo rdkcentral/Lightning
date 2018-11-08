@@ -3682,27 +3682,35 @@ var lng = (function () {
         };
 
         setFontProperties() {
-            let ff = this._settings.fontFace;
-            let fonts;
-            if (TextTextureRenderer._isFontFace(ff, true)) {
-                fonts = `"${ff.family}"`;
-            } else {
-                fonts = '"' + (Array.isArray(ff) ? this._settings.fontFace.join('","') : ff) + '"';
-            }
-
-            this._context.font = `${this._settings.fontStyle} ${this._settings.fontSize * this.getPrecision()}px ${fonts}`;
+            this._context.font = this._getFontSetting();
             this._context.textBaseline = this._settings.textBaseline;
         };
 
-        static _isFontFace(fontFace, isLoaded = false) {
-            return (Utils.isWeb && window.FontFace && (fontFace instanceof window.FontFace)) && (!isLoaded || (fontFace.status === "loaded"));
+        _getFontSetting() {
+            let ff = this._settings.fontFace;
+            let fonts;
+            fonts = '"' + (Array.isArray(ff) ? this._settings.fontFace.join('","') : ff) + '"';
+            return `${this._settings.fontStyle} ${this._settings.fontSize * this.getPrecision()}px ${fonts}`
         }
 
         _load() {
-            if (TextTextureRenderer._isFontFace(this._settings.fontFace, false)) {
-                return this._settings.fontFace.load().catch(err => {
-                    console.warn('Font load error', err, this._settings.fontFace);
-                });
+            if (Utils.isWeb && document.fonts) {
+                const fontSetting = this._getFontSetting();
+                try {
+                    if (!document.fonts.check(fontSetting, this._settings.text)) {
+                        // Use a promise that waits for loading.
+                        return document.fonts.load(fontSetting, this._settings.text).catch(err => {
+                            // Just load the fallback font.
+                            console.warn('Font load error', err, fontSetting);
+                        }).then(() => {
+                            if (!document.fonts.check(fontSetting, this._settings.text)) {
+                                console.warn('Font not found', fontSetting);
+                            }
+                        });
+                    }
+                } catch(e) {
+                    console.warn("Can't check font loading for " + fontSetting);
+                }
             }
         }
 
@@ -3710,22 +3718,11 @@ var lng = (function () {
             // We do not use a promise so that loading is performed syncronous when possible.
             const loadPromise = this._load();
             if (!loadPromise) {
-                this._performDraw();
+                this._draw();
             } else {
-                return this._load().then(() => {
-                    this._performDraw();
+                return loadPromise.then(() => {
+                    this._draw();
                 });
-            }
-        }
-
-        _performDraw() {
-            const isFontFace = TextTextureRenderer._isFontFace(this._settings.fontFace, true);
-            if (isFontFace) {
-                document.fonts.add(this._settings.fontFace);
-            }
-            this._draw();
-            if (isFontFace) {
-                document.fonts.delete(this._settings.fontFace);
             }
         }
 
@@ -4430,8 +4427,8 @@ var lng = (function () {
                 args.fontFace = this.stage.getOption('defaultFontFace');
             }
 
-            const canvas = this.stage.platform.getDrawingCanvas();
             return function(cb) {
+                const canvas = this.stage.platform.getDrawingCanvas();
                 const renderer = new TextTextureRenderer(this.stage, canvas, args);
                 const p = renderer.draw();
 

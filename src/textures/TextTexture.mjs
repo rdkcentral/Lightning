@@ -426,8 +426,8 @@ export default class TextTexture extends Texture {
             args.fontFace = this.stage.getOption('defaultFontFace');
         }
 
-        const canvas = this.stage.platform.getDrawingCanvas();
         return function(cb) {
+            const canvas = this.stage.platform.getDrawingCanvas();
             const renderer = new TextTextureRenderer(this.stage, canvas, args);
             const p = renderer.draw();
 
