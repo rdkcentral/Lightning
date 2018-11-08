@@ -24,7 +24,7 @@ export default class StageUtils {
         let r = Math.floor(color[0] * 255);
         let g = Math.floor(color[1] * 255);
         let b = Math.floor(color[2] * 255);
-        let a = Math.floor(color[3] * 255);
+        let a = Math.floor(color[3] * 255) / 255;
         return 'rgba(' + r + ',' + g + ',' + b + ',' + a.toFixed(4) + ')';
     };
 

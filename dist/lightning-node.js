@@ -34,7 +34,7 @@ class StageUtils {
         let r = Math.floor(color[0] * 255);
         let g = Math.floor(color[1] * 255);
         let b = Math.floor(color[2] * 255);
-        let a = Math.floor(color[3] * 255);
+        let a = Math.floor(color[3] * 255) / 255;
         return 'rgba(' + r + ',' + g + ',' + b + ',' + a.toFixed(4) + ')';
     };
 
@@ -4438,7 +4438,7 @@ class TextTexture extends Texture {
             const renderer = new TextTextureRenderer(this.stage, canvas$$1, args);
             const p = renderer.draw();
 
-            if (p && (p instanceof Promise)) {
+            if (p) {
                 p.then(() => {
                     cb(null, Object.assign({renderInfo: renderer.renderInfo}, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas$$1)));
                 }).catch((err) => {
@@ -9120,16 +9120,18 @@ class C2dCoreRenderExecutor extends CoreRenderExecutor {
         }
 
         const renderTexture = ctx.canvas;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
         if (!clearColor[0] && !clearColor[1] && !clearColor[2] && !clearColor[3]) {
             ctx.clearRect(0, 0, renderTexture.width, renderTexture.height);
         } else {
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.fillStyle = StageUtils.getRgbaStringFromArray(clearColor);
             // Do not use fillRect because it produces artifacts.
+            ctx.globalCompositeOperation = 'copy';
             ctx.beginPath();
             ctx.rect(0, 0, renderTexture.width, renderTexture.height);
             ctx.closePath();
             ctx.fill();
+            ctx.globalCompositeOperation = 'source-over';
         }
     }
     
@@ -9158,7 +9160,9 @@ class C2dCoreRenderExecutor extends CoreRenderExecutor {
 
             let precision = this.ctx.stage.getRenderPrecision();
             if (area) {
+                ctx.beginPath();
                 ctx.rect(Math.round(area[0] * precision), Math.round(area[1] * precision), Math.round(area[2] * precision), Math.round(area[3] * precision));
+                ctx.closePath();
                 ctx.clip();
             }
             ctx._scissor = area;
@@ -9241,9 +9245,11 @@ class DefaultShader$2 extends C2dShader {
 
                 info.gradient = gradient;
                 info.color = color;
+                ctx.globalAlpha = rc.alpha;
                 this._beforeDrawEl(info);
                 ctx.fillRect(0, 0, vc.rw, vc.rh);
                 this._afterDrawEl(info);
+                ctx.globalAlpha = 1.0;
             } else {
                 // @todo: set image smoothing based on the texture.
 

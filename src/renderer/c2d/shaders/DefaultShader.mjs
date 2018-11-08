@@ -56,9 +56,11 @@ export default class DefaultShader extends C2dShader {
 
                 info.gradient = gradient;
                 info.color = color;
+                ctx.globalAlpha = rc.alpha;
                 this._beforeDrawEl(info);
                 ctx.fillRect(0, 0, vc.rw, vc.rh);
                 this._afterDrawEl(info);
+                ctx.globalAlpha = 1.0;
             } else {
                 // @todo: set image smoothing based on the texture.
 

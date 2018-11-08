@@ -28,16 +28,18 @@ export default class C2dCoreRenderExecutor extends CoreRenderExecutor {
         }
 
         const renderTexture = ctx.canvas;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
         if (!clearColor[0] && !clearColor[1] && !clearColor[2] && !clearColor[3]) {
             ctx.clearRect(0, 0, renderTexture.width, renderTexture.height);
         } else {
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.fillStyle = StageUtils.getRgbaStringFromArray(clearColor);
             // Do not use fillRect because it produces artifacts.
+            ctx.globalCompositeOperation = 'copy';
             ctx.beginPath();
             ctx.rect(0, 0, renderTexture.width, renderTexture.height);
             ctx.closePath();
             ctx.fill();
+            ctx.globalCompositeOperation = 'source-over';
         }
     }
     
@@ -66,7 +68,9 @@ export default class C2dCoreRenderExecutor extends CoreRenderExecutor {
 
             let precision = this.ctx.stage.getRenderPrecision();
             if (area) {
+                ctx.beginPath();
                 ctx.rect(Math.round(area[0] * precision), Math.round(area[1] * precision), Math.round(area[2] * precision), Math.round(area[3] * precision));
+                ctx.closePath();
                 ctx.clip();
             }
             ctx._scissor = area;
