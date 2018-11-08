@@ -42,7 +42,7 @@
                                 this.tag("Text").text.fontStyle = 'bold';
                             }, 1000)
                             this.tag("Text").on('txLoaded', (a) => {
-                                console.log('texture loaded');
+                                console.log('texture loaded', a.source.renderInfo);
                             });
                             // this.tag("Text2").on('txLoaded', (a) => {
                             //     console.log('texture 2 loaded');

@@ -3953,8 +3953,7 @@ class TextTextureRenderer {
             this._context.translate(cutSx, cutSy);
         }
 
-        let canvas$$1 = this._canvas;
-        return {renderInfo: renderInfo, canvas: canvas$$1};
+        this.renderInfo = renderInfo;
     };
 
     /**
@@ -4439,14 +4438,14 @@ class TextTexture extends Texture {
             const renderer = new TextTextureRenderer(this.stage, canvas$$1, args);
             const p = renderer.draw();
 
-            if (p) {
+            if (p && (p instanceof Promise)) {
                 p.then(() => {
-                    cb(null, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas$$1));
+                    cb(null, Object.assign({renderInfo: renderer.renderInfo}, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas$$1)));
                 }).catch((err) => {
                     cb(err);
                 });
             } else {
-                cb(null, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas$$1));
+                cb(null, Object.assign({renderInfo: renderer.renderInfo}, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas$$1)));
             }
         }
     }

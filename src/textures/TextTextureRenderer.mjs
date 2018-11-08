@@ -279,8 +279,7 @@ export default class TextTextureRenderer {
             this._context.translate(cutSx, cutSy);
         }
 
-        let canvas = this._canvas;
-        return {renderInfo: renderInfo, canvas: canvas};
+        this.renderInfo = renderInfo;
     };
 
     /**
