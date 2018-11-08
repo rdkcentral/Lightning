@@ -4431,7 +4431,7 @@ var lng = (function () {
                 const renderer = new TextTextureRenderer(this.stage, canvas, args);
                 const p = renderer.draw();
 
-                if (p && (p instanceof Promise)) {
+                if (p) {
                     p.then(() => {
                         cb(null, Object.assign({renderInfo: renderer.renderInfo}, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas)));
                     }).catch((err) => {
