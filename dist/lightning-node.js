@@ -91,10 +91,10 @@ class StageUtils {
         let b2 = c2 % 256;
         let a2 = ((c2 / 16777216) | 0);
 
-        let r = r1 * p + r2 * (1 - p) | 0;
-        let g = g1 * p + g2 * (1 - p) | 0;
-        let b = b1 * p + b2 * (1 - p) | 0;
-        let a = a1 * p + a2 * (1 - p) | 0;
+        let r = r1 * p + r2 * (1 - p);
+        let g = g1 * p + g2 * (1 - p);
+        let b = b1 * p + b2 * (1 - p);
+        let a = a1 * p + a2 * (1 - p);
 
         return Math.round(a) * 16777216 + Math.round(r) * 65536 + Math.round(g) * 256 + Math.round(b);
     };
@@ -11332,10 +11332,10 @@ class MultiSpline {
         let b2 = c2 % 256;
         let a2 = ((c2 / 16777216) | 0);
 
-        let r = r1 * p + r2 * (1 - p) | 0;
-        let g = g1 * p + g2 * (1 - p) | 0;
-        let b = b1 * p + b2 * (1 - p) | 0;
-        let a = a1 * p + a2 * (1 - p) | 0;
+        let r = r1 * p + r2 * (1 - p);
+        let g = g1 * p + g2 * (1 - p);
+        let b = b1 * p + b2 * (1 - p);
+        let a = a1 * p + a2 * (1 - p);
 
         return Math.round(a) * 16777216 + Math.round(r) * 65536 + Math.round(g) * 256 + Math.round(b);
     };
