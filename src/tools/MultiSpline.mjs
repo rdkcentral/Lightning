@@ -411,7 +411,7 @@ export default class MultiSpline {
         let b = b1 * p + b2 * (1 - p) | 0;
         let a = a1 * p + a2 * (1 - p) | 0;
 
-        return a * 16777216 + r * 65536 + g * 256 + b;
+        return Math.round(a) * 16777216 + Math.round(r) * 65536 + Math.round(g) * 256 + Math.round(b);
     };
 
     static getArgbNumber(rgba) {

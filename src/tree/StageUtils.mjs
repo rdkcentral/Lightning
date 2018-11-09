@@ -12,6 +12,13 @@ export default class StageUtils {
         return (r << 16) + (g << 8) + b + (((a * 255) | 0) * 16777216);
     };
 
+    static getRgbString(color) {
+        let r = ((color / 65536) | 0) % 256;
+        let g = ((color / 256) | 0) % 256;
+        let b = color % 256;
+        return 'rgb(' + r + ',' + g + ',' + b + ')';
+    };
+
     static getRgbaString(color) {
         let r = ((color / 65536) | 0) % 256;
         let g = ((color / 256) | 0) % 256;
@@ -79,7 +86,7 @@ export default class StageUtils {
         let b = b1 * p + b2 * (1 - p) | 0;
         let a = a1 * p + a2 * (1 - p) | 0;
 
-        return a * 16777216 + r * 65536 + g * 256 + b;
+        return Math.round(a) * 16777216 + Math.round(r) * 65536 + Math.round(g) * 256 + Math.round(b);
     };
 
     static mergeMultiColors(c, p) {
@@ -98,7 +105,7 @@ export default class StageUtils {
         }
 
         t = 1 / t;
-        return ((a * t) | 0) * 16777216 + ((r * t) | 0) * 65536 + ((g * t) | 0) * 256 + ((b * t) | 0);
+        return Math.round(a * t) * 16777216 + Math.round(r * t) * 65536 + Math.round(g * t) * 256 + Math.round(b * t);
     };
 
     static mergeMultiColorsEqual(c) {
@@ -117,7 +124,7 @@ export default class StageUtils {
         }
 
         t = 1 / t;
-        return ((a * t) | 0) * 16777216 + ((r * t) | 0) * 65536 + ((g * t) | 0) * 256 + ((b * t) | 0);
+        return Math.round(a * t) * 16777216 + Math.round(r * t) * 65536 + Math.round(g * t) * 256 + Math.round(b * t);
     };
 
     static mergeColorAlpha(c, alpha) {
