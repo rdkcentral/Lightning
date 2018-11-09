@@ -14,6 +14,10 @@ export default class C2dRenderer extends Renderer {
         this.setupC2d(this.stage.c2d.canvas);
     }
 
+    destroy() {
+        this._tintTexture = undefined;
+    }
+
     _createDefaultShader(ctx) {
         return new DefaultShader(ctx);
     }
@@ -101,5 +105,19 @@ export default class C2dRenderer extends Renderer {
 
     getPatchId() {
         return "c2d";
+    }
+
+    getTintTexture(w, h) {
+        if (!this._tintTexture) {
+            const tempTexture = document.createElement('canvas');
+            tempTexture.width = Math.ceil(1024);
+            tempTexture.height = Math.ceil(1024);
+            tempTexture.ctx = tempTexture.getContext('2d');
+            this._tintTexture = tempTexture;
+        } else {
+            this._tintTexture.ctx.clearRect(0, 0, w, h);
+        }
+
+        return this._tintTexture;
     }
 }

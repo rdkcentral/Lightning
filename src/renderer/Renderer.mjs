@@ -5,6 +5,9 @@ export default class Renderer {
         this._defaultShader = undefined;
     }
 
+    destroy() {
+    }
+
     getDefaultShader(ctx = this.stage.ctx) {
         if (!this._defaultShader) {
             this._defaultShader = this._createDefaultShader(ctx);

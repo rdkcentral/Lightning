@@ -54,14 +54,13 @@ export default class DefaultShader extends C2dShader {
                 const sourceW = (stc ? 1 : (vc._brx - vc._ulx)) * tx.w;
                 const sourceH = (stc ? 1 : (vc._bry - vc._uly)) * tx.h;
 
-                if (!white) {
+                let colorize = !white && sourceW <= 1024 && sourceH <= 1024;
+                if (colorize) {
                     // @todo: cache the tint texture for better performance.
 
                     // Draw to intermediate texture with background color/gradient.
-                    const tempTexture = document.createElement('canvas');
-                    tempTexture.width = Math.ceil(sourceW);
-                    tempTexture.height = Math.ceil(sourceH);
-                    tempTexture.ctx = tempTexture.getContext('2d');
+                    // This prevents us from having to create a lot of render texture canvases.
+                    const tempTexture = this.ctx.stage.renderer.getTintTexture(Math.ceil(sourceW), Math.ceil(sourceH));
 
                     let alphaMixRect = (vc._colorUl < 0xFF000000) || (vc._colorUr < 0xFF000000) || (vc._colorBl < 0xFF000000) || (vc._colorBr < 0xFF000000);
 

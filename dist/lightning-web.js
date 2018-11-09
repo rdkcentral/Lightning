@@ -8774,6 +8774,9 @@ var lng = (function () {
             this._defaultShader = undefined;
         }
 
+        destroy() {
+        }
+
         getDefaultShader(ctx = this.stage.ctx) {
             if (!this._defaultShader) {
                 this._defaultShader = this._createDefaultShader(ctx);
@@ -9293,14 +9296,13 @@ var lng = (function () {
                     const sourceW = (stc ? 1 : (vc._brx - vc._ulx)) * tx.w;
                     const sourceH = (stc ? 1 : (vc._bry - vc._uly)) * tx.h;
 
-                    if (!white) {
+                    let colorize = !white && sourceW <= 1024 && sourceH <= 1024;
+                    if (colorize) {
                         // @todo: cache the tint texture for better performance.
 
                         // Draw to intermediate texture with background color/gradient.
-                        const tempTexture = document.createElement('canvas');
-                        tempTexture.width = Math.ceil(sourceW);
-                        tempTexture.height = Math.ceil(sourceH);
-                        tempTexture.ctx = tempTexture.getContext('2d');
+                        // This prevents us from having to create a lot of render texture canvases.
+                        const tempTexture = this.ctx.stage.renderer.getTintTexture(Math.ceil(sourceW), Math.ceil(sourceH));
 
                         let alphaMixRect = (vc._colorUl < 0xFF000000) || (vc._colorUr < 0xFF000000) || (vc._colorBl < 0xFF000000) || (vc._colorBr < 0xFF000000);
 
@@ -9411,6 +9413,10 @@ var lng = (function () {
             this.setupC2d(this.stage.c2d.canvas);
         }
 
+        destroy() {
+            this._tintTexture = undefined;
+        }
+
         _createDefaultShader(ctx) {
             return new DefaultShader$2(ctx);
         }
@@ -9498,6 +9504,20 @@ var lng = (function () {
 
         getPatchId() {
             return "c2d";
+        }
+
+        getTintTexture(w, h) {
+            if (!this._tintTexture) {
+                const tempTexture = document.createElement('canvas');
+                tempTexture.width = Math.ceil(1024);
+                tempTexture.height = Math.ceil(1024);
+                tempTexture.ctx = tempTexture.getContext('2d');
+                this._tintTexture = tempTexture;
+            } else {
+                this._tintTexture.ctx.clearRect(0, 0, w, h);
+            }
+
+            return this._tintTexture;
         }
     }
 
@@ -11086,7 +11106,8 @@ var lng = (function () {
             this.renderExec.execute();
         }
 
-        allocateRenderTexture(w, h, prec = this.stage.getRenderPrecision()) {
+        allocateRenderTexture(w, h) {
+            let prec = this.stage.getRenderPrecision();
             let pw = Math.max(1, Math.round(w * prec));
             let ph = Math.max(1, Math.round(h * prec));
 

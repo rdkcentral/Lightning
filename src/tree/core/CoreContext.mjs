@@ -74,7 +74,8 @@ export default class CoreContext {
         this.renderExec.execute();
     }
 
-    allocateRenderTexture(w, h, prec = this.stage.getRenderPrecision()) {
+    allocateRenderTexture(w, h) {
+        let prec = this.stage.getRenderPrecision();
         let pw = Math.max(1, Math.round(w * prec));
         let ph = Math.max(1, Math.round(h * prec));
 
