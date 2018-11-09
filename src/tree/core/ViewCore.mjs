@@ -1048,6 +1048,14 @@ export default class ViewCore {
         }
     }
 
+    isWhite() {
+        return (this._colorUl === 0xFFFFFFFF) && (this._colorUr === 0xFFFFFFFF) && (this._colorBl === 0xFFFFFFFF) && (this._colorBr === 0xFFFFFFFF);
+    }
+
+    hasSimpleTexCoords() {
+        return (this._ulx === 0) && (this._uly === 0) && (this._brx === 1) && (this._bry === 1);
+    }
+
     _stashTexCoords() {
         this._stashedTexCoords = [this._ulx, this._uly, this._brx, this._bry];
         this._ulx = 0;
@@ -1700,7 +1708,7 @@ export default class ViewCore {
                         renderState.setTexturizer(this._texturizer, cache);
                         this._stashTexCoords();
                         if (!this._texturizer.colorize) this._stashColors();
-                        this.renderState.addQuad(this);
+                        this.renderState.addQuad(this, true);
                         if (!this._texturizer.colorize) this._unstashColors();
                         this._unstashTexCoords();
                         renderState.setTexturizer(null);

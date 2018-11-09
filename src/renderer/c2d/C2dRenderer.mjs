@@ -76,7 +76,9 @@ export default class C2dRenderer extends Renderer {
     addQuad(renderState, quads, index) {
         // Render context changes while traversing so we save it by ref.
         const viewCore = quads.quadViews[index];
-        quads.renderContexts[index] = viewCore._renderContext;
+        quads.setRenderContext(index, viewCore._renderContext);
+        quads.setWhite(index, viewCore.isWhite());
+        quads.setSimpleTc(index, viewCore.hasSimpleTexCoords());
     }
 
     isRenderTextureReusable(renderState, renderTextureInfo) {
@@ -92,9 +94,6 @@ export default class C2dRenderer extends Renderer {
         canvas.ctx = ctx;
 
         ctx._scissor = null;
-
-        // Set basic settings.
-        // ...
 
         // Save base state so we can restore the defaults later.
         canvas.ctx.save();

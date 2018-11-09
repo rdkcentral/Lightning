@@ -15,6 +15,13 @@ var lng = (function () {
             return (r << 16) + (g << 8) + b + (((a * 255) | 0) * 16777216);
         };
 
+        static getRgbString(color) {
+            let r = ((color / 65536) | 0) % 256;
+            let g = ((color / 256) | 0) % 256;
+            let b = color % 256;
+            return 'rgb(' + r + ',' + g + ',' + b + ')';
+        };
+
         static getRgbaString(color) {
             let r = ((color / 65536) | 0) % 256;
             let g = ((color / 256) | 0) % 256;
@@ -77,10 +84,10 @@ var lng = (function () {
             let b2 = c2 % 256;
             let a2 = ((c2 / 16777216) | 0);
 
-            let r = r1 * p + r2 * (1 - p) | 0;
-            let g = g1 * p + g2 * (1 - p) | 0;
-            let b = b1 * p + b2 * (1 - p) | 0;
-            let a = a1 * p + a2 * (1 - p) | 0;
+            let r = Math.round(r1 * p + r2 * (1 - p));
+            let g = Math.round(g1 * p + g2 * (1 - p));
+            let b = Math.round(b1 * p + b2 * (1 - p));
+            let a = Math.round(a1 * p + a2 * (1 - p));
 
             return a * 16777216 + r * 65536 + g * 256 + b;
         };
@@ -101,7 +108,7 @@ var lng = (function () {
             }
 
             t = 1 / t;
-            return ((a * t) | 0) * 16777216 + ((r * t) | 0) * 65536 + ((g * t) | 0) * 256 + ((b * t) | 0);
+            return Math.round(a * t) * 16777216 + Math.round(r * t) * 65536 + Math.round(g * t) * 256 + Math.round(b * t);
         };
 
         static mergeMultiColorsEqual(c) {
@@ -120,7 +127,7 @@ var lng = (function () {
             }
 
             t = 1 / t;
-            return ((a * t) | 0) * 16777216 + ((r * t) | 0) * 65536 + ((g * t) | 0) * 256 + ((b * t) | 0);
+            return Math.round(a * t) * 16777216 + Math.round(r * t) * 65536 + Math.round(g * t) * 256 + Math.round(b * t);
         };
 
         static mergeColorAlpha(c, alpha) {
@@ -1971,6 +1978,14 @@ var lng = (function () {
             }
         }
 
+        isWhite() {
+            return (this._colorUl === 0xFFFFFFFF) && (this._colorUr === 0xFFFFFFFF) && (this._colorBl === 0xFFFFFFFF) && (this._colorBr === 0xFFFFFFFF);
+        }
+
+        hasSimpleTexCoords() {
+            return (this._ulx === 0) && (this._uly === 0) && (this._brx === 1) && (this._bry === 1);
+        }
+
         _stashTexCoords() {
             this._stashedTexCoords = [this._ulx, this._uly, this._brx, this._bry];
             this._ulx = 0;
@@ -2623,7 +2638,7 @@ var lng = (function () {
                             renderState.setTexturizer(this._texturizer, cache);
                             this._stashTexCoords();
                             if (!this._texturizer.colorize) this._stashColors();
-                            this.renderState.addQuad(this);
+                            this.renderState.addQuad(this, true);
                             if (!this._texturizer.colorize) this._unstashColors();
                             this._unstashTexCoords();
                             renderState.setTexturizer(null);
@@ -9072,17 +9087,55 @@ var lng = (function () {
             super(ctx);
 
             this.renderContexts = [];
+            this.modes = [];
+        }
+
+        setRenderContext(index, v) {
+            this.renderContexts[index] = v;
+        }
+
+        setSimpleTc(index, v) {
+            if (v) {
+                this.modes[index] |= 1;
+            } else {
+                this.modes[index] -= (this.modes[index] & 1);
+            }
+        }
+
+        setWhite(index, v) {
+            if (v) {
+                this.modes[index] |= 2;
+            } else {
+                this.modes[index] -= (this.modes[index] & 2);
+            }
         }
 
         getRenderContext(index) {
             return this.renderContexts[index];
         }
+
+        getSimpleTc(index) {
+            return (this.modes[index] & 1);
+        }
+
+        getWhite(index) {
+            return (this.modes[index] & 2);
+        }
+
     }
 
     class C2dCoreQuadOperation extends CoreQuadOperation {
 
         getRenderContext(index) {
             return this.quads.getRenderContext(this.index + index);
+        }
+
+        getSimpleTc(index) {
+            return this.quads.getSimpleTc(this.index + index);
+        }
+
+        getWhite(index) {
+            return this.quads.getWhite(this.index + index);
         }
 
     }
@@ -9201,6 +9254,8 @@ var lng = (function () {
                 const tx = operation.getTexture(i);
                 const vc = operation.getViewCore(i);
                 const rc = operation.getRenderContext(i);
+                const white = operation.getWhite(i);
+                const stc = operation.getSimpleTc(i);
 
                 //@todo: try to optimize out per-draw transform setting. split translate, transform.
                 const precision = this.ctx.stage.getRenderPrecision();
@@ -9211,33 +9266,12 @@ var lng = (function () {
 
                 if (rect) {
                     // Check for gradient.
-                    let color = vc._colorUl;
-                    let gradient;
-                    //@todo: quick single color check.
-                    //@todo: cache gradient/fill style (if possible, probably context-specific).
-
-                    if (vc._colorUl === vc._colorUr) {
-                        if (vc._colorBl === vc._colorBr) {
-                            if (vc._colorUl === vc.colorBl) ; else {
-                                // Vertical gradient.
-                                gradient = ctx.createLinearGradient(0, 0, 0, vc.rh);
-                                gradient.addColorStop(0, StageUtils.getRgbaString(vc._colorUl));
-                                gradient.addColorStop(1, StageUtils.getRgbaString(vc._colorBl));
-                            }
-                        }
+                    if (white) {
+                        ctx.fillStyle = 'white';
                     } else {
-                        if (vc._colorUl === vc._colorBl && vc._colorUr === vc._colorBr) {
-                            // Horizontal gradient.
-                            gradient = ctx.createLinearGradient(0, 0, vc.rw, 0);
-                            gradient.addColorStop(0, StageUtils.getRgbaString(vc._colorUl));
-                            gradient.addColorStop(1, StageUtils.getRgbaString(vc._colorBr));
-                        }
+                        this._setColorGradient(ctx, vc);
                     }
 
-                    ctx.fillStyle = (gradient || StageUtils.getRgbaString(color));
-
-                    info.gradient = gradient;
-                    info.color = color;
                     ctx.globalAlpha = rc.alpha;
                     this._beforeDrawEl(info);
                     ctx.fillRect(0, 0, vc.rw, vc.rh);
@@ -9246,24 +9280,107 @@ var lng = (function () {
                 } else {
                     // @todo: set image smoothing based on the texture.
 
-                    //@todo: optimize by registering whether identity texcoords are used.
+                    // @todo: optimize by registering whether identity texcoords are used.
                     ctx.globalAlpha = rc.alpha;
                     this._beforeDrawEl(info);
-                    //@todo: test if rounding works better.
-                    ctx.drawImage(tx, vc._ulx * tx.w, vc._uly * tx.h, (vc._brx - vc._ulx) * tx.w, (vc._bry - vc._uly) * tx.h, 0, 0, vc.rw, vc.rh);
+
+                    // @todo: test if rounding yields better performance.
+
+                    // Notice that simple texture coords can be turned on even though vc._ulx etc are not simple, because
+                    //  we are rendering a render-to-texture (texcoords were stashed). Same is true for 'white' color btw.
+                    const sourceX = stc ? 0 : (vc._ulx * tx.w);
+                    const sourceY = stc ? 0 : (vc._uly * tx.h);
+                    const sourceW = (stc ? 1 : (vc._brx - vc._ulx)) * tx.w;
+                    const sourceH = (stc ? 1 : (vc._bry - vc._uly)) * tx.h;
+
+                    if (!white) {
+                        // @todo: cache the tint texture for better performance.
+                        // Use 'tag' and 'retainFrame' for auto-caching without problems.
+                        // Tag is a string identifying the texture situation (id, update, sourceW, sourceH, fill gradient).
+
+                        // Draw to intermediate texture with background color/gradient.
+
+                        const tempTexture = this.ctx.allocateRenderTexture(Math.ceil(sourceW), Math.ceil(sourceH), 1);
+                        tempTexture.ctx.clearRect(0, 0, tempTexture.w, tempTexture.h);
+
+                        const alphaMixRect = (vc._colorUl < 0xFF000000) || (vc._colorUr < 0xFF000000) || (vc._colorBl < 0xFF000000) || (vc._colorBr < 0xFF000000);
+
+                        if (alphaMixRect) {
+                            // The background image must be fully opacit for consistent results.
+                            // Semi-transparent tinting over a semi-transparent texture is NOT supported.
+                            // It would only be possible using per-pixel manipulation and that's simply too slow.
+
+                            tempTexture.ctx.drawImage(tx, sourceX, sourceY, sourceW, sourceH, 0, 0, sourceW, sourceH);
+                            tempTexture.ctx.globalCompositeOperation = 'multiply';
+                            this._setColorGradient(tempTexture.ctx, vc, sourceW, sourceH, false);
+                            tempTexture.ctx.fillRect(0, 0, sourceW, sourceH);
+
+                            // Alpha-mix the texture.
+                            this._setColorGradient(tempTexture.ctx, vc, sourceW, sourceH, true);
+                            tempTexture.ctx.globalCompositeOperation = 'destination-in';
+                            tempTexture.ctx.fillRect(0, 0, sourceW, sourceH);
+                        } else {
+                            this._setColorGradient(tempTexture.ctx, vc, sourceW, sourceH, false);
+                            tempTexture.ctx.fillRect(0, 0, sourceW, sourceH);
+                            tempTexture.ctx.globalCompositeOperation = 'multiply';
+                            tempTexture.ctx.drawImage(tx, sourceX, sourceY, sourceW, sourceH, 0, 0, sourceW, sourceH);
+
+                            // Alpha-mix the texture.
+                            tempTexture.ctx.globalCompositeOperation = 'destination-in';
+                            tempTexture.ctx.drawImage(tx, sourceX, sourceY, sourceW, sourceH, 0, 0, sourceW, sourceH);
+                        }
+
+                        // Actually draw result.
+                        tempTexture.ctx.globalCompositeOperation = 'source-over';
+                        ctx.fillStyle = 'white';
+                        ctx.drawImage(tempTexture, 0, 0, sourceW, sourceH, 0, 0, vc.rw, vc.rh);
+
+                        this.ctx.releaseRenderTexture(tempTexture);
+                    } else {
+                        ctx.drawImage(tx, sourceX, sourceY, sourceW, sourceH, 0, 0, vc.rw, vc.rh);
+                    }
                     this._afterDrawEl(info);
                     ctx.globalAlpha = 1.0;
-
-                    //@todo: colorize does not really work the way we want it to.
-                    // if (vc._colorUl !== 0xFFFFFFFF) {
-                    //     ctx.globalCompositeOperation = 'multiply';
-                    //     ctx.fillStyle = StageUtils.getRgbaString(vc._colorUl);
-                    //     ctx.fillRect(0, 0, vc.rw, vc.rh);
-                    //     ctx.globalCompositeOperation = 'source-over';
-                    // }
-
                 }
             }
+        }
+
+        _setColorGradient(ctx, vc, w = vc.rw, h = vc.rh, transparency = true) {
+            let color = vc._colorUl;
+            let gradient;
+            //@todo: quick single color check.
+            //@todo: cache gradient/fill style (if possible, probably context-specific).
+
+            if (vc._colorUl === vc._colorUr) {
+                if (vc._colorBl === vc._colorBr) {
+                    if (vc._colorUl === vc.colorBl) ; else {
+                        // Vertical gradient.
+                        gradient = ctx.createLinearGradient(0, 0, 0, h);
+                        if (transparency) {
+                            gradient.addColorStop(0, StageUtils.getRgbaString(vc._colorUl));
+                            gradient.addColorStop(1, StageUtils.getRgbaString(vc._colorBl));
+                        } else {
+                            gradient.addColorStop(0, StageUtils.getRgbString(vc._colorUl));
+                            gradient.addColorStop(1, StageUtils.getRgbString(vc._colorBl));
+
+                        }
+                    }
+                }
+            } else {
+                if (vc._colorUl === vc._colorBl && vc._colorUr === vc._colorBr) {
+                    // Horizontal gradient.
+                    gradient = ctx.createLinearGradient(0, 0, w, 0);
+                    if (transparency) {
+                        gradient.addColorStop(0, StageUtils.getRgbaString(vc._colorUl));
+                        gradient.addColorStop(1, StageUtils.getRgbaString(vc._colorBr));
+                    } else {
+                        gradient.addColorStop(0, StageUtils.getRgbString(vc._colorUl));
+                        gradient.addColorStop(1, StageUtils.getRgbString(vc._colorBr));
+                    }
+                }
+            }
+
+            ctx.fillStyle = (gradient || StageUtils.getRgbaString(color));
         }
 
         _beforeDrawEl(info) {
@@ -9344,7 +9461,9 @@ var lng = (function () {
         addQuad(renderState, quads, index) {
             // Render context changes while traversing so we save it by ref.
             const viewCore = quads.quadViews[index];
-            quads.renderContexts[index] = viewCore._renderContext;
+            quads.setRenderContext(index, viewCore._renderContext);
+            quads.setWhite(index, viewCore.isWhite());
+            quads.setSimpleTc(index, viewCore.hasSimpleTexCoords());
         }
 
         isRenderTextureReusable(renderState, renderTextureInfo) {
@@ -9360,9 +9479,6 @@ var lng = (function () {
             canvas.ctx = ctx;
 
             ctx._scissor = null;
-
-            // Set basic settings.
-            // ...
 
             // Save base state so we can restore the defaults later.
             canvas.ctx.save();
@@ -10958,8 +11074,7 @@ var lng = (function () {
             this.renderExec.execute();
         }
 
-        allocateRenderTexture(w, h) {
-            let prec = this.stage.getRenderPrecision();
+        allocateRenderTexture(w, h, prec = this.stage.getRenderPrecision()) {
             let pw = Math.max(1, Math.round(w * prec));
             let ph = Math.max(1, Math.round(h * prec));
 
@@ -11219,10 +11334,10 @@ var lng = (function () {
                                 const pc = MultiSpline.getRgbaComponents(pi.lv);
                                 const d = 1 / (ni.p - pi.p);
                                 items[i].s = [
-                                    d * (nc[0] - pc[0]),
-                                    d * (nc[1] - pc[1]),
-                                    d * (nc[2] - pc[2]),
-                                    d * (nc[3] - pc[3])
+                                    Math.round(d * (nc[0] - pc[0])),
+                                    Math.round(d * (nc[1] - pc[1])),
+                                    Math.round(d * (nc[2] - pc[2])),
+                                    Math.round(d * (nc[3] - pc[3]))
                                 ];
                             } else {
                                 items[i].s = (ni.lv - pi.lv) / (ni.p - pi.p);
