@@ -1712,13 +1712,13 @@ export default class ViewCore {
                         if (!this._texturizer.colorize) this._unstashColors();
                         this._unstashTexCoords();
                         renderState.setTexturizer(null);
-
-                        if (cache) {
-                            // Allow siblings to cache.
-                            renderState.isCachingTexturizer = false;
-                        }
                     }
                 }
+            }
+
+            if (renderTextureInfo && renderTextureInfo.cache) {
+                // Allow siblings to cache.
+                renderState.isCachingTexturizer = false;
             }
 
             this._hasRenderUpdates = 0;

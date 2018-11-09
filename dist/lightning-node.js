@@ -91,12 +91,12 @@ class StageUtils {
         let b2 = c2 % 256;
         let a2 = ((c2 / 16777216) | 0);
 
-        let r = Math.round(r1 * p + r2 * (1 - p));
-        let g = Math.round(g1 * p + g2 * (1 - p));
-        let b = Math.round(b1 * p + b2 * (1 - p));
-        let a = Math.round(a1 * p + a2 * (1 - p));
+        let r = r1 * p + r2 * (1 - p) | 0;
+        let g = g1 * p + g2 * (1 - p) | 0;
+        let b = b1 * p + b2 * (1 - p) | 0;
+        let a = a1 * p + a2 * (1 - p) | 0;
 
-        return a * 16777216 + r * 65536 + g * 256 + b;
+        return Math.round(a) * 16777216 + Math.round(r) * 65536 + Math.round(g) * 256 + Math.round(b);
     };
 
     static mergeMultiColors(c, p) {
@@ -2649,13 +2649,13 @@ class ViewCore {
                         if (!this._texturizer.colorize) this._unstashColors();
                         this._unstashTexCoords();
                         renderState.setTexturizer(null);
-
-                        if (cache) {
-                            // Allow siblings to cache.
-                            renderState.isCachingTexturizer = false;
-                        }
                     }
                 }
+            }
+
+            if (renderTextureInfo && renderTextureInfo.cache) {
+                // Allow siblings to cache.
+                renderState.isCachingTexturizer = false;
             }
 
             this._hasRenderUpdates = 0;
@@ -9302,13 +9302,12 @@ class DefaultShader$2 extends C2dShader {
 
                 if (!white) {
                     // @todo: cache the tint texture for better performance.
-                    // Use 'tag' and 'retainFrame' for auto-caching without problems.
-                    // Tag is a string identifying the texture situation (id, update, sourceW, sourceH, fill gradient).
 
                     // Draw to intermediate texture with background color/gradient.
-
-                    const tempTexture = this.ctx.allocateRenderTexture(Math.ceil(sourceW), Math.ceil(sourceH), 1);
-                    tempTexture.ctx.clearRect(0, 0, tempTexture.w, tempTexture.h);
+                    const tempTexture = document.createElement('canvas');
+                    tempTexture.width = Math.ceil(sourceW);
+                    tempTexture.height = Math.ceil(sourceH);
+                    tempTexture.ctx = tempTexture.getContext('2d');
 
                     const alphaMixRect = (vc._colorUl < 0xFF000000) || (vc._colorUr < 0xFF000000) || (vc._colorBl < 0xFF000000) || (vc._colorBr < 0xFF000000);
 
@@ -9317,6 +9316,7 @@ class DefaultShader$2 extends C2dShader {
                         // Semi-transparent tinting over a semi-transparent texture is NOT supported.
                         // It would only be possible using per-pixel manipulation and that's simply too slow.
 
+                        tempTexture.ctx.globalCompositeOperation = 'copy';
                         tempTexture.ctx.drawImage(tx, sourceX, sourceY, sourceW, sourceH, 0, 0, sourceW, sourceH);
                         tempTexture.ctx.globalCompositeOperation = 'multiply';
                         this._setColorGradient(tempTexture.ctx, vc, sourceW, sourceH, false);
@@ -9328,6 +9328,7 @@ class DefaultShader$2 extends C2dShader {
                         tempTexture.ctx.fillRect(0, 0, sourceW, sourceH);
                     } else {
                         this._setColorGradient(tempTexture.ctx, vc, sourceW, sourceH, false);
+                        tempTexture.ctx.globalCompositeOperation = 'copy';
                         tempTexture.ctx.fillRect(0, 0, sourceW, sourceH);
                         tempTexture.ctx.globalCompositeOperation = 'multiply';
                         tempTexture.ctx.drawImage(tx, sourceX, sourceY, sourceW, sourceH, 0, 0, sourceW, sourceH);
@@ -9341,8 +9342,6 @@ class DefaultShader$2 extends C2dShader {
                     tempTexture.ctx.globalCompositeOperation = 'source-over';
                     ctx.fillStyle = 'white';
                     ctx.drawImage(tempTexture, 0, 0, sourceW, sourceH, 0, 0, vc.rw, vc.rh);
-
-                    this.ctx.releaseRenderTexture(tempTexture);
                 } else {
                     ctx.drawImage(tx, sourceX, sourceY, sourceW, sourceH, 0, 0, vc.rw, vc.rh);
                 }
@@ -11028,10 +11027,10 @@ class MultiSpline {
                             const pc = MultiSpline.getRgbaComponents(pi.lv);
                             const d = 1 / (ni.p - pi.p);
                             items[i].s = [
-                                Math.round(d * (nc[0] - pc[0])),
-                                Math.round(d * (nc[1] - pc[1])),
-                                Math.round(d * (nc[2] - pc[2])),
-                                Math.round(d * (nc[3] - pc[3]))
+                                d * (nc[0] - pc[0]),
+                                d * (nc[1] - pc[1]),
+                                d * (nc[2] - pc[2]),
+                                d * (nc[3] - pc[3])
                             ];
                         } else {
                             items[i].s = (ni.lv - pi.lv) / (ni.p - pi.p);
@@ -11338,7 +11337,7 @@ class MultiSpline {
         let b = b1 * p + b2 * (1 - p) | 0;
         let a = a1 * p + a2 * (1 - p) | 0;
 
-        return a * 16777216 + r * 65536 + g * 256 + b;
+        return Math.round(a) * 16777216 + Math.round(r) * 65536 + Math.round(g) * 256 + Math.round(b);
     };
 
     static getArgbNumber(rgba) {
@@ -14167,7 +14166,7 @@ class BlurShader extends DefaultShader$2 {
     }
 
     _afterDrawEl({target}) {
-        target.ctx.filter = "";
+        target.ctx.filter = "none";
     }
 
 }
@@ -14236,6 +14235,8 @@ class C2dFastBlurComponent extends Component {
 
     static _template() {
         return {
+            forceZIndexContext: true,
+            rtt: true,
             Textwrap: {shader: {type: BlurShader}, Content: {}}
         }
     }

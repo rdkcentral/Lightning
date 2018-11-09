@@ -56,13 +56,12 @@ export default class DefaultShader extends C2dShader {
 
                 if (!white) {
                     // @todo: cache the tint texture for better performance.
-                    // Use 'tag' and 'retainFrame' for auto-caching without problems.
-                    // Tag is a string identifying the texture situation (id, update, sourceW, sourceH, fill gradient).
 
                     // Draw to intermediate texture with background color/gradient.
-
-                    const tempTexture = this.ctx.allocateRenderTexture(Math.ceil(sourceW), Math.ceil(sourceH), 1);
-                    tempTexture.ctx.clearRect(0, 0, tempTexture.w, tempTexture.h);
+                    const tempTexture = document.createElement('canvas');
+                    tempTexture.width = Math.ceil(sourceW);
+                    tempTexture.height = Math.ceil(sourceH);
+                    tempTexture.ctx = tempTexture.getContext('2d');
 
                     const alphaMixRect = (vc._colorUl < 0xFF000000) || (vc._colorUr < 0xFF000000) || (vc._colorBl < 0xFF000000) || (vc._colorBr < 0xFF000000);
 
@@ -71,6 +70,7 @@ export default class DefaultShader extends C2dShader {
                         // Semi-transparent tinting over a semi-transparent texture is NOT supported.
                         // It would only be possible using per-pixel manipulation and that's simply too slow.
 
+                        tempTexture.ctx.globalCompositeOperation = 'copy';
                         tempTexture.ctx.drawImage(tx, sourceX, sourceY, sourceW, sourceH, 0, 0, sourceW, sourceH);
                         tempTexture.ctx.globalCompositeOperation = 'multiply';
                         this._setColorGradient(tempTexture.ctx, vc, sourceW, sourceH, false);
@@ -82,6 +82,7 @@ export default class DefaultShader extends C2dShader {
                         tempTexture.ctx.fillRect(0, 0, sourceW, sourceH);
                     } else {
                         this._setColorGradient(tempTexture.ctx, vc, sourceW, sourceH, false);
+                        tempTexture.ctx.globalCompositeOperation = 'copy';
                         tempTexture.ctx.fillRect(0, 0, sourceW, sourceH);
                         tempTexture.ctx.globalCompositeOperation = 'multiply';
                         tempTexture.ctx.drawImage(tx, sourceX, sourceY, sourceW, sourceH, 0, 0, sourceW, sourceH);
@@ -95,8 +96,6 @@ export default class DefaultShader extends C2dShader {
                     tempTexture.ctx.globalCompositeOperation = 'source-over';
                     ctx.fillStyle = 'white';
                     ctx.drawImage(tempTexture, 0, 0, sourceW, sourceH, 0, 0, vc.rw, vc.rh);
-
-                    this.ctx.releaseRenderTexture(tempTexture);
                 } else {
                     ctx.drawImage(tx, sourceX, sourceY, sourceW, sourceH, 0, 0, vc.rw, vc.rh);
                 }

@@ -70,6 +70,8 @@ class C2dFastBlurComponent extends Component {
 
     static _template() {
         return {
+            forceZIndexContext: true,
+            rtt: true,
             Textwrap: {shader: {type: C2dBlurShader}, Content: {}}
         }
     }

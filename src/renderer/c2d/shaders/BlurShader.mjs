@@ -25,7 +25,7 @@ export default class BlurShader extends DefaultShader {
     }
 
     _afterDrawEl({target}) {
-        target.ctx.filter = "";
+        target.ctx.filter = "none";
     }
 
 }
