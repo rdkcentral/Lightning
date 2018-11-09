@@ -9307,7 +9307,7 @@ var lng = (function () {
                         if (alphaMixRect) {
                             // If colors have identical transparency, apply it to the globalAlpha instead and unset alphaMixRect.
                             let alpha = ((vc._colorUl / 16777216) | 0);
-                            if ((alpha === (vc._colorUr / 16777216) | 0) && (alpha === (vc._colorBl / 16777216) | 0) && (alpha === (vc._colorBr / 16777216) | 0)) {
+                            if ((alpha === ((vc._colorUr / 16777216) | 0)) && (alpha === ((vc._colorBl / 16777216) | 0)) && (alpha === ((vc._colorBr / 16777216) | 0))) {
                                 alphaMixRect = false;
                                 ctx.globalAlpha *= alpha;
                             }
@@ -9388,7 +9388,11 @@ var lng = (function () {
                 }
             }
 
-            ctx.fillStyle = (gradient || StageUtils.getRgbaString(color));
+            if (gradient) {
+                ctx.fillStyle = gradient;
+            } else {
+                ctx.fillStyle = transparency ? StageUtils.getRgbaString(color) : StageUtils.getRgbString(color);
+            }
         }
 
         _beforeDrawEl(info) {
