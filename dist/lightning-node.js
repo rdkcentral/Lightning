@@ -9309,7 +9309,16 @@ class DefaultShader$2 extends C2dShader {
                     tempTexture.height = Math.ceil(sourceH);
                     tempTexture.ctx = tempTexture.getContext('2d');
 
-                    const alphaMixRect = (vc._colorUl < 0xFF000000) || (vc._colorUr < 0xFF000000) || (vc._colorBl < 0xFF000000) || (vc._colorBr < 0xFF000000);
+                    let alphaMixRect = (vc._colorUl < 0xFF000000) || (vc._colorUr < 0xFF000000) || (vc._colorBl < 0xFF000000) || (vc._colorBr < 0xFF000000);
+
+                    if (alphaMixRect) {
+                        // If colors have identical transparency, apply it to the globalAlpha instead and unset alphaMixRect.
+                        let alpha = ((vc._colorUl / 16777216) | 0);
+                        if ((alpha === (vc._colorUr / 16777216) | 0) && (alpha === (vc._colorBl / 16777216) | 0) && (alpha === (vc._colorBr / 16777216) | 0)) {
+                            alphaMixRect = false;
+                            ctx.globalAlpha *= alpha;
+                        }
+                    }
 
                     if (alphaMixRect) {
                         // The background image must be fully opacit for consistent results.
