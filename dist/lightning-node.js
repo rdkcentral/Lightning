@@ -12160,6 +12160,14 @@ class Stage extends EventEmitter {
         return this._mode;
     }
 
+    isWebgl() {
+        return this.mode === 0;
+    }
+
+    isC2d() {
+        return this.mode === 1;
+    }
+
     getOption(name) {
         return this._options[name];
     }
