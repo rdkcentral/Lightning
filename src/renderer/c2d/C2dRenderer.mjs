@@ -108,10 +108,16 @@ export default class C2dRenderer extends Renderer {
     }
 
     getTintTexture(w, h) {
-        if (!this._tintTexture) {
+        if (!this._tintTexture || this._tintTexture.width < w || this._tintTexture.height < h) {
             const tempTexture = document.createElement('canvas');
-            tempTexture.width = Math.ceil(1024);
-            tempTexture.height = Math.ceil(1024);
+            let nw = Math.ceil(w / 256) * 256;
+            let nh = Math.ceil(h / 256) * 256;
+            if (this._tintTexture) {
+                nw = Math.max(nw, this._tintTexture.width);
+                nh = Math.max(nh, this._tintTexture.height);
+            }
+            tempTexture.width = nw;
+            tempTexture.height = nh;
             tempTexture.ctx = tempTexture.getContext('2d');
             this._tintTexture = tempTexture;
         } else {
@@ -120,4 +126,5 @@ export default class C2dRenderer extends Renderer {
 
         return this._tintTexture;
     }
+
 }

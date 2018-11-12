@@ -2176,7 +2176,7 @@ var lng = (function () {
 
                 // Calculate a bbox for this view.
                 let sx, sy, ex, ey;
-                const rComplex = (r.tb != 0) || (r.tc != 0) || (r.ta < 0) || (r.td < 0);
+                const rComplex = (r.tb !== 0) || (r.tc !== 0) || (r.ta < 0) || (r.td < 0);
                 if (rComplex) {
                     sx = Math.min(0, this._rw * r.ta, this._rw * r.ta + this._rh * r.tb, this._rh * r.tb) + r.px;
                     ex = Math.max(0, this._rw * r.ta, this._rw * r.ta + this._rh * r.tb, this._rh * r.tb) + r.px;
@@ -9296,7 +9296,7 @@ var lng = (function () {
                     const sourceW = (stc ? 1 : (vc._brx - vc._ulx)) * tx.w;
                     const sourceH = (stc ? 1 : (vc._bry - vc._uly)) * tx.h;
 
-                    let colorize = !white && sourceW <= 1024 && sourceH <= 1024;
+                    let colorize = !white;
                     if (colorize) {
                         // @todo: cache the tint texture for better performance.
 
@@ -9507,10 +9507,16 @@ var lng = (function () {
         }
 
         getTintTexture(w, h) {
-            if (!this._tintTexture) {
+            if (!this._tintTexture || this._tintTexture.width < w || this._tintTexture.height < h) {
                 const tempTexture = document.createElement('canvas');
-                tempTexture.width = Math.ceil(1024);
-                tempTexture.height = Math.ceil(1024);
+                let nw = Math.ceil(w / 256) * 256;
+                let nh = Math.ceil(h / 256) * 256;
+                if (this._tintTexture) {
+                    nw = Math.max(nw, this._tintTexture.width);
+                    nh = Math.max(nh, this._tintTexture.height);
+                }
+                tempTexture.width = nw;
+                tempTexture.height = nh;
                 tempTexture.ctx = tempTexture.getContext('2d');
                 this._tintTexture = tempTexture;
             } else {
@@ -9519,6 +9525,7 @@ var lng = (function () {
 
             return this._tintTexture;
         }
+
     }
 
     class ImageWorker {

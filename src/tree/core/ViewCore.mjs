@@ -1246,7 +1246,7 @@ export default class ViewCore {
 
             // Calculate a bbox for this view.
             let sx, sy, ex, ey;
-            const rComplex = (r.tb != 0) || (r.tc != 0) || (r.ta < 0) || (r.td < 0);
+            const rComplex = (r.tb !== 0) || (r.tc !== 0) || (r.ta < 0) || (r.td < 0);
             if (rComplex) {
                 sx = Math.min(0, this._rw * r.ta, this._rw * r.ta + this._rh * r.tb, this._rh * r.tb) + r.px;
                 ex = Math.max(0, this._rw * r.ta, this._rw * r.ta + this._rh * r.tb, this._rh * r.tb) + r.px;

@@ -54,7 +54,7 @@ export default class DefaultShader extends C2dShader {
                 const sourceW = (stc ? 1 : (vc._brx - vc._ulx)) * tx.w;
                 const sourceH = (stc ? 1 : (vc._bry - vc._uly)) * tx.h;
 
-                let colorize = !white && sourceW <= 1024 && sourceH <= 1024;
+                let colorize = !white;
                 if (colorize) {
                     // @todo: cache the tint texture for better performance.
 
