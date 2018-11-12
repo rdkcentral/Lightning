@@ -21,9 +21,21 @@ export default class TextTextureRenderer {
 
     _getFontSetting() {
         let ff = this._settings.fontFace;
-        let fonts;
-        fonts = '"' + (Array.isArray(ff) ? this._settings.fontFace.join('","') : ff) + '"';
-        return `${this._settings.fontStyle} ${this._settings.fontSize * this.getPrecision()}px ${fonts}`
+
+        if (!Array.isArray(ff)) {
+            ff = [ff];
+        }
+
+        let ffs = [];
+        for (let i = 0, n = ff.length; i < n; i++) {
+            if (ff[i] === "serif" || ff[i] === "sans-serif") {
+                ffs.push(ff[i]);
+            } else {
+                ffs.push(`"${ff[i]}"`);
+            }
+        }
+
+        return `${this._settings.fontStyle} ${this._settings.fontSize * this.getPrecision()}px ${ffs.join(",")}`
     }
 
     _load() {
