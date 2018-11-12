@@ -2444,6 +2444,8 @@ var lng = (function () {
         }
 
         _renderSimple() {
+            this._hasRenderUpdates = 0;
+
             if (this._zSort) {
                 this.sortZIndexedChildren();
             }
@@ -2473,12 +2475,17 @@ var lng = (function () {
                         }
                     }
                 }
-
-                this._hasRenderUpdates = 0;
             }
         }
 
         _renderAdvanced() {
+            const hasRenderUpdates = this._hasRenderUpdates;
+
+            // We must clear the hasRenderUpdates flag before rendering, because updating result textures in combination
+            // with z-indexing may trigger render updates on a render branch that is 'half done'.
+            // We need to ensure that the full render branch is marked for render updates, not only half (leading to freeze).
+            this._hasRenderUpdates = 0;
+
             if (this._zSort) {
                 this.sortZIndexedChildren();
             }
@@ -2492,9 +2499,8 @@ var lng = (function () {
                 if (this._useRenderToTexture) {
                     if (this._rw === 0 || this._rh === 0) {
                         // Ignore this branch and don't draw anything.
-                        this._hasRenderUpdates = 0;
                         return;
-                    } else if (!this._texturizer.hasRenderTexture() || (this._hasRenderUpdates >= 3)) {
+                    } else if (!this._texturizer.hasRenderTexture() || (hasRenderUpdates >= 3)) {
                         // Switch to default shader for building up the render texture.
                         renderState.setShader(renderState.defaultShader, this);
 
@@ -2511,7 +2517,7 @@ var lng = (function () {
                             cache: false
                         };
 
-                        if (this._texturizer.hasResultTexture() || (!renderState.isCachingTexturizer && (this._hasRenderUpdates < 3))) {
+                        if (this._texturizer.hasResultTexture() || (!renderState.isCachingTexturizer && (hasRenderUpdates < 3))) {
                             /**
                              * We don't always cache render textures.
                              *
@@ -2650,8 +2656,6 @@ var lng = (function () {
                     // Allow siblings to cache.
                     renderState.isCachingTexturizer = false;
                 }
-
-                this._hasRenderUpdates = 0;
             }
         }
 
@@ -3703,9 +3707,21 @@ var lng = (function () {
 
         _getFontSetting() {
             let ff = this._settings.fontFace;
-            let fonts;
-            fonts = '"' + (Array.isArray(ff) ? this._settings.fontFace.join('","') : ff) + '"';
-            return `${this._settings.fontStyle} ${this._settings.fontSize * this.getPrecision()}px ${fonts}`
+
+            if (!Array.isArray(ff)) {
+                ff = [ff];
+            }
+
+            let ffs = [];
+            for (let i = 0, n = ff.length; i < n; i++) {
+                if (ff[i] === "serif" || ff[i] === "sans-serif") {
+                    ffs.push(ff[i]);
+                } else {
+                    ffs.push(`"${ff[i]}"`);
+                }
+            }
+
+            return `${this._settings.fontStyle} ${this._settings.fontSize * this.getPrecision()}px ${ffs.join(",")}`
         }
 
         _load() {
@@ -9304,43 +9320,25 @@ var lng = (function () {
                         // This prevents us from having to create a lot of render texture canvases.
                         const tempTexture = this.ctx.stage.renderer.getTintTexture(Math.ceil(sourceW), Math.ceil(sourceH));
 
-                        let alphaMixRect = (vc._colorUl < 0xFF000000) || (vc._colorUr < 0xFF000000) || (vc._colorBl < 0xFF000000) || (vc._colorBr < 0xFF000000);
-
-                        if (alphaMixRect) {
-                            // If colors have identical transparency, apply it to the globalAlpha instead and unset alphaMixRect.
-                            let alpha = ((vc._colorUl / 16777216) | 0);
-                            if ((alpha === ((vc._colorUr / 16777216) | 0)) && (alpha === ((vc._colorBl / 16777216) | 0)) && (alpha === ((vc._colorBr / 16777216) | 0))) {
-                                alphaMixRect = false;
-                                ctx.globalAlpha *= alpha;
-                            }
+                        // Notice that we don't support (non-rect) gradients, only color tinting for c2d. We'll just take the average color.
+                        let color = vc._colorUl;
+                        if (vc._colorUl !== vc._colorUr || vc._colorUr !== vc._colorBl || vc._colorBr !== vc._colorBl) {
+                            color = StageUtils.mergeMultiColorsEqual([vc._colorUl, vc._colorUr, vc._colorBl, vc._colorBr]);
                         }
 
-                        if (alphaMixRect) {
-                            // The background image must be fully opacit for consistent results.
-                            // Semi-transparent tinting over a semi-transparent texture is NOT supported.
-                            // It would only be possible using per-pixel manipulation and that's simply too slow.
+                        const alpha = ((color / 16777216) | 0);
+                        ctx.globalAlpha *= alpha;
 
-                            tempTexture.ctx.globalCompositeOperation = 'copy';
-                            tempTexture.ctx.drawImage(tx, sourceX, sourceY, sourceW, sourceH, 0, 0, sourceW, sourceH);
-                            tempTexture.ctx.globalCompositeOperation = 'multiply';
-                            this._setColorGradient(tempTexture.ctx, vc, sourceW, sourceH, false);
-                            tempTexture.ctx.fillRect(0, 0, sourceW, sourceH);
+                        tempTexture.ctx.fillStyle = StageUtils.getRgbString(color);
+                        this._setColorGradient(tempTexture.ctx, vc, sourceW, sourceH, false);
+                        tempTexture.ctx.globalCompositeOperation = 'copy';
+                        tempTexture.ctx.fillRect(0, 0, sourceW, sourceH);
+                        tempTexture.ctx.globalCompositeOperation = 'multiply';
+                        tempTexture.ctx.drawImage(tx, sourceX, sourceY, sourceW, sourceH, 0, 0, sourceW, sourceH);
 
-                            // Alpha-mix the texture.
-                            this._setColorGradient(tempTexture.ctx, vc, sourceW, sourceH, true);
-                            tempTexture.ctx.globalCompositeOperation = 'destination-in';
-                            tempTexture.ctx.fillRect(0, 0, sourceW, sourceH);
-                        } else {
-                            this._setColorGradient(tempTexture.ctx, vc, sourceW, sourceH, false);
-                            tempTexture.ctx.globalCompositeOperation = 'copy';
-                            tempTexture.ctx.fillRect(0, 0, sourceW, sourceH);
-                            tempTexture.ctx.globalCompositeOperation = 'multiply';
-                            tempTexture.ctx.drawImage(tx, sourceX, sourceY, sourceW, sourceH, 0, 0, sourceW, sourceH);
-
-                            // Alpha-mix the texture.
-                            tempTexture.ctx.globalCompositeOperation = 'destination-in';
-                            tempTexture.ctx.drawImage(tx, sourceX, sourceY, sourceW, sourceH, 0, 0, sourceW, sourceH);
-                        }
+                        // Alpha-mix the texture.
+                        tempTexture.ctx.globalCompositeOperation = 'destination-in';
+                        tempTexture.ctx.drawImage(tx, sourceX, sourceY, sourceW, sourceH, 0, 0, sourceW, sourceH);
 
                         // Actually draw result.
                         tempTexture.ctx.globalCompositeOperation = 'source-over';
@@ -11090,7 +11088,7 @@ var lng = (function () {
             }
 
             // Clear flag to identify if anything changes before the next frame.
-            this.root._parent._hasRenderUpdates = false;
+            this.root._parent._hasRenderUpdates = 0;
 
             this.render();
 
@@ -12542,7 +12540,7 @@ var lng = (function () {
             opt('bufferMemory', 2e6);
             opt('textRenderIssueMargin', 0);
             opt('clearColor', [0, 0, 0, 0]);
-            opt('defaultFontFace', 'Sans-Serif');
+            opt('defaultFontFace', 'sans-serif');
             opt('fixedDt', 0);
             opt('useTextureAtlas', false);
             opt('debugTextureAtlas', false);

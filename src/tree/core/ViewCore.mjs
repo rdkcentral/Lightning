@@ -1514,6 +1514,8 @@ export default class ViewCore {
     }
 
     _renderSimple() {
+        this._hasRenderUpdates = 0;
+
         if (this._zSort) {
             this.sortZIndexedChildren();
         }
@@ -1543,12 +1545,17 @@ export default class ViewCore {
                     }
                 }
             }
-
-            this._hasRenderUpdates = 0;
         }
     }
 
     _renderAdvanced() {
+        const hasRenderUpdates = this._hasRenderUpdates;
+
+        // We must clear the hasRenderUpdates flag before rendering, because updating result textures in combination
+        // with z-indexing may trigger render updates on a render branch that is 'half done'.
+        // We need to ensure that the full render branch is marked for render updates, not only half (leading to freeze).
+        this._hasRenderUpdates = 0;
+
         if (this._zSort) {
             this.sortZIndexedChildren();
         }
@@ -1562,9 +1569,8 @@ export default class ViewCore {
             if (this._useRenderToTexture) {
                 if (this._rw === 0 || this._rh === 0) {
                     // Ignore this branch and don't draw anything.
-                    this._hasRenderUpdates = 0;
                     return;
-                } else if (!this._texturizer.hasRenderTexture() || (this._hasRenderUpdates >= 3)) {
+                } else if (!this._texturizer.hasRenderTexture() || (hasRenderUpdates >= 3)) {
                     // Switch to default shader for building up the render texture.
                     renderState.setShader(renderState.defaultShader, this);
 
@@ -1581,7 +1587,7 @@ export default class ViewCore {
                         cache: false
                     };
 
-                    if (this._texturizer.hasResultTexture() || (!renderState.isCachingTexturizer && (this._hasRenderUpdates < 3))) {
+                    if (this._texturizer.hasResultTexture() || (!renderState.isCachingTexturizer && (hasRenderUpdates < 3))) {
                         /**
                          * We don't always cache render textures.
                          *
@@ -1720,8 +1726,6 @@ export default class ViewCore {
                 // Allow siblings to cache.
                 renderState.isCachingTexturizer = false;
             }
-
-            this._hasRenderUpdates = 0;
         }
     }
 

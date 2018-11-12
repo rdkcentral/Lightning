@@ -51,7 +51,7 @@ export default class CoreContext {
         }
 
         // Clear flag to identify if anything changes before the next frame.
-        this.root._parent._hasRenderUpdates = false;
+        this.root._parent._hasRenderUpdates = 0;
 
         this.render();
 
