@@ -7297,7 +7297,11 @@ class Component extends View {
         // We need a different template function per patch id.
         const patchId = stage.getPatchId();
         const name = "_templateFunc_" + patchId;
-        if (!this[name]) {
+
+        // Be careful with class-based static inheritance.
+        const hasName = '__has' + name;
+        if (this[hasName] !== this) {
+            this[hasName] = this;
             this[name] = this.parseTemplate(patchId ? "_$" + patchId : patchId, this._template());
         }
         return this[name];
