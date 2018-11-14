@@ -9479,7 +9479,11 @@ var lng = (function () {
         }
 
         _tintTexture(target, source, color) {
-            target.ctx.fillStyle = '#' + color.toString(16);
+            let col = color.toString(16);
+            while (col.length < 6) {
+                col = "0" + col;
+            }
+            target.ctx.fillStyle = '#' + col;
             target.ctx.globalCompositeOperation = 'copy';
             target.ctx.fillRect(0, 0, source.w, source.h);
             target.ctx.globalCompositeOperation = 'multiply';

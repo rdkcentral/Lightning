@@ -16,9 +16,10 @@
                 static _template() {
                     return {
                         Wrap: {
-                            x: 100, y: 10, _$c2d: {x: 500},
+                            x: 100, y: 10, _$c2d: {x: 500},visible: false,
                             Image: {color: 0xAAFF0000, texture: {type: lng.textures.ImageTexture, src: "../rockies.jpeg"/*, x: 150, y: 50, w: 200, h: 100*/}}
-                        }
+                        },
+                        Text: {color: 0xff00B74F, text: {text: "hello world"}}
                     }
                 }
 
@@ -35,6 +36,10 @@
                         },
                         "_handleDown": function() {
                             this.tag('Image').setSmooth('y', this.tag('Image').getSmooth('y') + 100)
+                        },
+                        _handleEnter: function() {
+                            anim.stop();
+                            this.stage.gc();
                         }
                     }
                 }
@@ -57,9 +62,11 @@
 
             const app = new BasicUsageExample(options);
 
-            app.animation({duration: 6, repeat: -1, actions: [
-                    {t: '.Image', p: 'rotation', v: {sm: 0, 0: 0, 1: 2 * Math.PI}}
-                ]}).start()
+            const anim = app.animation({duration: 6, repeat: -1, actions: [
+                    {t: '.Image', p: 'rotation', v: {sm: 0, 0: 0, 1: 2 * Math.PI}},
+//                    {t: '.Image', p: 'color', v: {sm: 0, 0: 0xFFFF0000, 1: 0xAA00FF00}}
+                ]})
+            anim.start()
 
             document.body.appendChild(app.stage.getCanvas());
         }
