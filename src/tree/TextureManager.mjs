@@ -9,7 +9,7 @@ export default class TextureManager {
          * The currently used amount of texture memory.
          * @type {number}
          */
-        this._usedTextureMemory = 0;
+        this._usedMemory = 0;
 
         /**
          * All uploaded texture sources.
@@ -25,12 +25,17 @@ export default class TextureManager {
 
     }
 
+    get usedMemory() {
+        return this._usedMemory;
+    }
+
     destroy() {
         for (let i = 0, n = this._uploadedTextureSources.length; i < n; i++) {
             this._nativeFreeTextureSource(this._uploadedTextureSources[i]);
         }
         
         this.textureSourceHashmap.clear();
+        this._usedMemory = 0;
     }
 
     getReusableTextureSource(id) {
@@ -56,6 +61,8 @@ export default class TextureManager {
     uploadTextureSource(textureSource, options) {
         if (textureSource.isLoaded()) return;
 
+        this._addMemoryUsage(textureSource.w * textureSource.h);
+
         // Load texture.
         const nativeTexture = this._nativeUploadTextureSource(textureSource, options);
 
@@ -67,11 +74,14 @@ export default class TextureManager {
 
         nativeTexture.update = this.stage.frameCounter;
 
-        this._usedTextureMemory += textureSource.w * textureSource.h;
-
         this._uploadedTextureSources.push(textureSource);
         
         this.addToLookupMap(textureSource);
+    }
+
+    _addMemoryUsage(delta) {
+        this._usedMemory += delta;
+        this.stage.addMemoryUsage(delta);
     }
     
     addToLookupMap(textureSource) {
@@ -87,13 +97,8 @@ export default class TextureManager {
         this.textureSourceHashmap.delete(textureSource.lookupId);
     }
 
-    isFull() {
-        return this._usedTextureMemory >= this.stage.getOption('textureMemory');
-    }
-
     freeUnusedTextureSources() {
         let remainingTextureSources = [];
-        let usedTextureMemoryBefore = this._usedTextureMemory;
         for (let i = 0, n = this._uploadedTextureSources.length; i < n; i++) {
             let ts = this._uploadedTextureSources[i];
             if (ts.allowCleanup()) {
@@ -104,13 +109,12 @@ export default class TextureManager {
         }
 
         this._uploadedTextureSources = remainingTextureSources;
-        console.log('freed ' + ((usedTextureMemoryBefore - this._usedTextureMemory) / 1e6).toFixed(2) + 'M texture pixels from GPU memory. Remaining: ' + this._usedTextureMemory);
     }
 
     _freeManagedTextureSource(textureSource) {
         if (textureSource.isLoaded()) {
-            this._usedTextureMemory -= textureSource.w * textureSource.h;
             this._nativeFreeTextureSource(textureSource);
+            this._addMemoryUsage(-textureSource.w * textureSource.h);
         }
 
         // Should be reloaded.
@@ -129,7 +133,7 @@ export default class TextureManager {
 
         if (textureSource.isLoaded()) {
             if (managed) {
-                this._usedTextureMemory -= textureSource.w * textureSource.h;
+                this._addMemoryUsage(-textureSource.w * textureSource.h);
                 this._uploadedTextureSources.splice(index, 1);
             }
             this._nativeFreeTextureSource(textureSource);

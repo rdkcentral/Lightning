@@ -5,6 +5,9 @@ export default class Renderer {
         this._defaultShader = undefined;
     }
 
+    gc(aggressive) {
+    }
+
     destroy() {
     }
 

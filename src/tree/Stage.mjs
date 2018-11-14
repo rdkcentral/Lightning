@@ -16,6 +16,9 @@ export default class Stage extends EventEmitter {
         super();
         this._setOptions(options);
 
+        this._usedMemory = 0;
+        this._lastGcFrame = 0;
+
         const platformType = PlatformLoader.load(options);
         this.platform = new platformType();
 
@@ -147,8 +150,7 @@ export default class Stage extends EventEmitter {
         opt('w', 1280);
         opt('h', 720);
         opt('srcBasePath', null);
-        opt('textureMemory', 18e6);
-        opt('renderTextureMemory', 12e6);
+        opt('memoryPressure', 24e6);
         opt('bufferMemory', 2e6);
         opt('textRenderIssueMargin', 0);
         opt('clearColor', [0, 0, 0, 0]);
@@ -238,10 +240,6 @@ export default class Stage extends EventEmitter {
         }
 
         this.emit('frameStart');
-
-        if (this.textureManager.isFull()) {
-            this.textureManager.freeUnusedTextureSources();
-        }
 
         if (this._updateSourceTextures.size) {
             this._updateSourceTextures.forEach(texture => {
@@ -333,12 +331,42 @@ export default class Stage extends EventEmitter {
         return this.h / this._options.precision;
     }
 
+    addMemoryUsage(delta) {
+        this._usedMemory += delta;
+        if (this._lastGcFrame !== this.frameCounter) {
+            if (this._usedMemory > this.getOption('memoryPressure')) {
+                this.gc(false);
+                if (this._usedMemory > this.getOption('memoryPressure') - 2e6) {
+                    // Too few released. Aggressive cleanup.
+                    this.gc(true);
+                }
+            }
+        }
+    }
+
+    get usedMemory() {
+        return this._usedMemory;
+    }
+
+    gc(aggressive) {
+        if (this._lastGcFrame !== this.frameCounter) {
+            this._lastGcFrame = this.frameCounter;
+            const memoryUsageBefore = this._usedMemory;
+            this.gcTextureMemory(aggressive);
+            this.gcRenderTextureMemory(aggressive);
+            this.renderer.gc(aggressive);
+
+            console.log(`GC${aggressive ? "[aggressive]" : ""}! Frame ${this._lastGcFrame} Freed ${((memoryUsageBefore - this._usedMemory) / 1e6).toFixed(2)}MP from GPU memory. Remaining: ${(this._usedMemory / 1e6).toFixed(2)}MP`);
+            const other = this._usedMemory - this.textureManager.usedMemory - this.ctx.usedMemory;
+            console.log(` Textures: ${(this.textureManager.usedMemory / 1e6).toFixed(2)}MP, Render Textures: ${(this.ctx.usedMemory / 1e6).toFixed(2)}MP, Renderer caches: ${(other / 1e6).toFixed(2)}MP`);
+        }
+    }
+
     gcTextureMemory(aggressive = false) {
-        console.log("GC texture memory" + (aggressive ? " (aggressive)" : ""));
         if (aggressive && this.ctx.root.visible) {
             // Make sure that ALL textures are cleaned;
             this.ctx.root.visible = false;
-            this.textureManager.freeUnusedTextureSources();
+            this.textureManager.freeUnusedTextureSources(0);
             this.ctx.root.visible = true;
         } else {
             this.textureManager.freeUnusedTextureSources();
@@ -346,7 +374,6 @@ export default class Stage extends EventEmitter {
     }
 
     gcRenderTextureMemory(aggressive = false) {
-        console.log("GC texture render memory" + (aggressive ? " (aggressive)" : ""));
         if (aggressive && this.root.visible) {
             // Make sure that ALL render textures are cleaned;
             this.root.visible = false;
@@ -359,6 +386,10 @@ export default class Stage extends EventEmitter {
 
     getDrawingCanvas() {
         return this.platform.getDrawingCanvas();
+    }
+
+    preparePatchSettings(settings) {
+        return Base.preparePatchSettings(settings, this.getPatchId());
     }
 
     patchObject(object, settings) {

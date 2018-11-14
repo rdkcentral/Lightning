@@ -1910,6 +1910,7 @@ export default class View {
     }
 
     set transitions(object) {
+        object = this.stage.preparePatchSettings(object);
         let keys = Object.keys(object);
         keys.forEach(property => {
             this.transition(property, object[property]);
@@ -1917,6 +1918,7 @@ export default class View {
     }
 
     set smooth(object) {
+        object = this.stage.preparePatchSettings(object);
         let keys = Object.keys(object);
         keys.forEach(property => {
             let value = object[property];

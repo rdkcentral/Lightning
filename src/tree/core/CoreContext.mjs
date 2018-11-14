@@ -13,7 +13,7 @@ export default class CoreContext {
         this.renderExec = this.stage.renderer.createCoreRenderExecutor(this);
         this.renderExec.init();
 
-        this._renderTexturePixels = 0;
+        this._usedMemory = 0;
         this._renderTexturePool = [];
 
         this._renderTextureId = 1;
@@ -21,8 +21,13 @@ export default class CoreContext {
         this._zSorts = [];
     }
 
+    get usedMemory() {
+        return this._usedMemory;
+    }
+
     destroy() {
         this._renderTexturePool.forEach(texture => this._freeRenderTexture(texture));
+        this._usedMemory = 0;
     }
 
     hasRenderUpdates() {
@@ -74,6 +79,11 @@ export default class CoreContext {
         this.renderExec.execute();
     }
 
+    _addMemoryUsage(delta) {
+        this._usedMemory += delta;
+        this.stage.addMemoryUsage(delta);
+    }
+
     allocateRenderTexture(w, h) {
         let prec = this.stage.getRenderPrecision();
         let pw = Math.max(1, Math.round(w * prec));
@@ -100,8 +110,6 @@ export default class CoreContext {
     }
 
     freeUnusedRenderTextures(maxAge = 60) {
-        const prevMem = this._renderTexturePixels;
-
         // Clean up all textures that are no longer used.
         // This cache is short-lived because it is really just meant to supply running shaders that are
         // updated during a number of frames.
@@ -114,11 +122,11 @@ export default class CoreContext {
             }
             return true;
         });
-
-        console.warn("GC render texture memory" + (maxAge ? "" : " (aggressive)") + ": " + prevMem + "px > " + this._renderTexturePixels + "px");
     }
 
     _createRenderTexture(w, h, pw, ph) {
+        this._addMemoryUsage(pw * ph);
+
         const texture = this.stage.renderer.createRenderTexture(w, h, pw, ph);
         texture.id = this._renderTextureId++;
         texture.f = this.stage.frameCounter;
@@ -126,22 +134,13 @@ export default class CoreContext {
         texture.oh = h;
         texture.w = pw;
         texture.h = ph;
-        this._renderTexturePixels += pw * ph;
-
-        if (this._renderTexturePixels > this.stage.getOption('renderTextureMemory')) {
-            this.freeUnusedRenderTextures();
-
-            if (this._renderTexturePixels > this.stage.getOption('renderTextureMemory')) {
-                this.freeUnusedRenderTextures(0);
-            }
-        }
 
         return texture;
     }
 
     _freeRenderTexture(nativeTexture) {
         this.stage.renderer.freeRenderTexture(nativeTexture);
-        this._renderTexturePixels -= nativeTexture.w * nativeTexture.h;
+        this._addMemoryUsage(-nativeTexture.w * nativeTexture.h);
     }
 
     copyRenderTexture(renderTexture, nativeTexture, options) {
