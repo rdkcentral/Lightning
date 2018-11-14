@@ -5,17 +5,20 @@ import CoreRenderState from "../../tree/core/CoreRenderState.mjs";
 import DefaultShader from "./shaders/DefaultShader.mjs";
 import C2dShader from "./C2dShader.mjs";
 import Renderer from "../Renderer.mjs";
+import TextureTintManager from "./C2dTextureTintManager.js";
 
 export default class C2dRenderer extends Renderer {
 
     constructor(stage) {
         super(stage);
 
+        this.tintManager = new TextureTintManager(stage);
+
         this.setupC2d(this.stage.c2d.canvas);
     }
 
     destroy() {
-        this._tintTexture = undefined;
+        this.tintManager.destroy();
     }
 
     _createDefaultShader(ctx) {
@@ -54,9 +57,13 @@ export default class C2dRenderer extends Renderer {
         return canvas;
     }
     
-    freeRenderTexture(glTexture) {
+    freeRenderTexture(nativeTexture) {
+        this.tintManager.delete(nativeTexture);
     }
 
+    gc(aggressive) {
+        this.tintManager.gc(aggressive);
+    }
 
     uploadTextureSource(textureSource, options) {
         // For canvas, we do not need to upload.
@@ -75,6 +82,7 @@ export default class C2dRenderer extends Renderer {
     }
 
     freeTextureSource(textureSource) {
+        this.tintManager.delete(textureSource.nativeTexture);
     }
 
     addQuad(renderState, quads, index) {
@@ -105,26 +113,6 @@ export default class C2dRenderer extends Renderer {
 
     getPatchId() {
         return "c2d";
-    }
-
-    getTintTexture(w, h) {
-        if (!this._tintTexture || this._tintTexture.width < w || this._tintTexture.height < h) {
-            const tempTexture = document.createElement('canvas');
-            let nw = Math.ceil(w / 256) * 256;
-            let nh = Math.ceil(h / 256) * 256;
-            if (this._tintTexture) {
-                nw = Math.max(nw, this._tintTexture.width);
-                nh = Math.max(nh, this._tintTexture.height);
-            }
-            tempTexture.width = nw;
-            tempTexture.height = nh;
-            tempTexture.ctx = tempTexture.getContext('2d');
-            this._tintTexture = tempTexture;
-        } else {
-            this._tintTexture.ctx.clearRect(0, 0, w, h);
-        }
-
-        return this._tintTexture;
     }
 
 }

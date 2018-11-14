@@ -7129,6 +7129,7 @@ var lng = (function () {
         }
 
         set transitions(object) {
+            object = this.stage.preparePatchSettings(object);
             let keys = Object.keys(object);
             keys.forEach(property => {
                 this.transition(property, object[property]);
@@ -7136,6 +7137,7 @@ var lng = (function () {
         }
 
         set smooth(object) {
+            object = this.stage.preparePatchSettings(object);
             let keys = Object.keys(object);
             keys.forEach(property => {
                 let value = object[property];
@@ -8794,6 +8796,9 @@ var lng = (function () {
             this._defaultShader = undefined;
         }
 
+        gc(aggressive) {
+        }
+
         destroy() {
         }
 
@@ -9268,6 +9273,7 @@ var lng = (function () {
         constructor(ctx) {
             super(ctx);
             this._rectangleTexture = ctx.stage.rectangleTexture.source.nativeTexture;
+            this._tintManager = this.ctx.stage.renderer.tintManager;
         }
 
         draw(operation, target) {
@@ -9322,7 +9328,6 @@ var lng = (function () {
 
                         // Draw to intermediate texture with background color/gradient.
                         // This prevents us from having to create a lot of render texture canvases.
-                        const tempTexture = this.ctx.stage.renderer.getTintTexture(Math.ceil(sourceW), Math.ceil(sourceH));
 
                         // Notice that we don't support (non-rect) gradients, only color tinting for c2d. We'll just take the average color.
                         let color = vc._colorUl;
@@ -9330,25 +9335,17 @@ var lng = (function () {
                             color = StageUtils.mergeMultiColorsEqual([vc._colorUl, vc._colorUr, vc._colorBl, vc._colorBr]);
                         }
 
-                        const alpha = ((color / 16777216) | 0);
+                        const alpha = ((color / 16777216) | 0) / 255.0;
                         ctx.globalAlpha *= alpha;
 
-                        tempTexture.ctx.fillStyle = StageUtils.getRgbString(color);
-                        this._setColorGradient(tempTexture.ctx, vc, sourceW, sourceH, false);
-                        tempTexture.ctx.globalCompositeOperation = 'copy';
-                        tempTexture.ctx.fillRect(0, 0, sourceW, sourceH);
-                        tempTexture.ctx.globalCompositeOperation = 'multiply';
-                        tempTexture.ctx.drawImage(tx, sourceX, sourceY, sourceW, sourceH, 0, 0, sourceW, sourceH);
-
-                        // Alpha-mix the texture.
-                        tempTexture.ctx.globalCompositeOperation = 'destination-in';
-                        tempTexture.ctx.drawImage(tx, sourceX, sourceY, sourceW, sourceH, 0, 0, sourceW, sourceH);
+                        const rgb = color & 0x00FFFFFF;
+                        const tintTexture = this._tintManager.getTintTexture(tx, rgb);
 
                         // Actually draw result.
-                        tempTexture.ctx.globalCompositeOperation = 'source-over';
                         ctx.fillStyle = 'white';
-                        ctx.drawImage(tempTexture, 0, 0, sourceW, sourceH, 0, 0, vc.rw, vc.rh);
+                        ctx.drawImage(tintTexture, sourceX, sourceY, sourceW, sourceH, 0, 0, vc.rw, vc.rh);
                     } else {
+                        ctx.fillStyle = 'white';
                         ctx.drawImage(tx, sourceX, sourceY, sourceW, sourceH, 0, 0, vc.rw, vc.rh);
                     }
                     this._afterDrawEl(info);
@@ -9407,16 +9404,218 @@ var lng = (function () {
 
     }
 
+    class C2dTextureTintManager {
+
+        constructor(stage) {
+            this.stage = stage;
+            this._usedMemory = 0;
+            this._cachedNativeTextures = new Set();
+        }
+
+        destroy() {
+            this.gc(true);
+        }
+
+        _addMemoryUsage(delta) {
+            this._usedMemory += delta;
+
+            this.stage.addMemoryUsage(delta);
+        }
+
+        delete(nativeTexture) {
+            // Should be called when native texture is cleaned up.
+            if (this._hasCache(nativeTexture)) {
+                const cache = this._getCache(nativeTexture);
+                const prevMemUsage = cache.memoryUsage;
+                cache.clear();
+                this._cachedNativeTextures.delete(nativeTexture);
+                this._addMemoryUsage(cache.memoryUsage - prevMemUsage);
+            }
+        }
+
+        getTintTexture(nativeTexture, color) {
+            const frame = this.stage.frameCounter;
+
+            this._cachedNativeTextures.add(nativeTexture);
+
+            const cache = this._getCache(nativeTexture);
+
+            const item = cache.get(color);
+            item.lf = frame;
+
+            if (item.tx) {
+                if (nativeTexture.update > item.u) {
+                    // Native texture was updated in the mean time: renew.
+                    this._tintTexture(item.tx, nativeTexture, color);
+                }
+
+                return item.tx;
+            } else {
+                const before = cache.memoryUsage;
+
+                // Find blanco tint texture.
+                let target = cache.reuseTexture(frame);
+                if (target) {
+                    target.ctx.clearRect(0, 0, target.width, target.height);
+                } else {
+                    // Allocate new.
+                    target = document.createElement('canvas');
+                    target.width = nativeTexture.w;
+                    target.height = nativeTexture.h;
+                    target.ctx = target.getContext('2d');
+                }
+
+                this._tintTexture(target, nativeTexture, color);
+                cache.set(color, target, frame);
+
+                const after = cache.memoryUsage;
+
+                if (after !== before) {
+                    this._addMemoryUsage(after - before);
+                }
+
+                return target;
+            }
+        }
+
+        _tintTexture(target, source, color) {
+            target.ctx.fillStyle = '#' + color.toString(16);
+            target.ctx.globalCompositeOperation = 'copy';
+            target.ctx.fillRect(0, 0, source.w, source.h);
+            target.ctx.globalCompositeOperation = 'multiply';
+            target.ctx.drawImage(source, 0, 0, source.w, source.h, 0, 0, target.width, target.height);
+
+            // Alpha-mix the texture.
+            target.ctx.globalCompositeOperation = 'destination-in';
+            target.ctx.drawImage(source, 0, 0, source.w, source.h, 0, 0, target.width, target.height);
+        }
+
+        _hasCache(nativeTexture) {
+            return !!nativeTexture._tintCache;
+        }
+
+        _getCache(nativeTexture) {
+            if (!nativeTexture._tintCache) {
+                nativeTexture._tintCache = new C2dTintCache(nativeTexture);
+            }
+            return nativeTexture._tintCache;
+        }
+
+        gc(aggressive = false) {
+            const frame = this.stage.frameCounter;
+            let delta = 0;
+            this._cachedNativeTextures.forEach(texture => {
+                const cache = this._getCache(texture);
+                if (aggressive) {
+                    delta += cache.memoryUsage;
+                    texture.clear();
+                } else {
+                    const before = cache.memoryUsage;
+                    cache.cleanup(frame);
+                    cache.releaseBlancoTextures();
+                    delta += (cache.memoryUsage - before);
+                }
+            });
+
+            if (aggressive) {
+                this._cachedNativeTextures.clear();
+            }
+
+            if (delta) {
+                this._addMemoryUsage(delta);
+            }
+        }
+
+    }
+
+    class C2dTintCache {
+
+        constructor(nativeTexture) {
+            this._tx = nativeTexture;
+            this._colors = new Map();
+            this._blancoTextures = null;
+            this._lastCleanupFrame = 0;
+            this._memTextures = 0;
+        }
+
+        get memoryUsage() {
+            return this._memTextures * this._tx.w * this._tx.h;
+        }
+
+        releaseBlancoTextures() {
+            this._memTextures -= this._blancoTextures.length;
+            this._blancoTextures = [];
+        }
+
+        clear() {
+            // Dereference the textures.
+            this._blancoTextures = null;
+            this._colors.clear();
+            this._memTextures = 0;
+        }
+
+        get(color) {
+            let item = this._colors.get(color);
+            if (!item) {
+                item = {lf: -1, tx: undefined, u: -1};
+                this._colors.set(color, item);
+            }
+            return item;
+        }
+
+        set(color, texture, frame) {
+            const item = this.get(color);
+            item.lf = frame;
+            item.tx = texture;
+            item.u = frame;
+            this._memTextures++;
+        }
+
+        cleanup(frame) {
+            // We only need to clean up once per frame.
+            if (this._lastCleanupFrame !== frame) {
+
+                // We limit blanco textures reuse to one frame only to prevent memory usage growth.
+                this._blancoTextures = [];
+
+                this._colors.forEach((item, color) => {
+                    // Clean up entries that were not used last frame.
+                    if (item.lf < frame - 1) {
+                        if (item.tx) {
+                            // Keep as reusable blanco texture.
+                            this._blancoTextures.push(item.tx);
+                        }
+                        this._colors.delete(color);
+                    }
+                });
+
+                this._lastCleanupFrame = frame;
+            }
+        }
+
+        reuseTexture(frame) {
+            // Try to reuse textures, because creating them every frame is expensive.
+            this.cleanup(frame);
+            if (this._blancoTextures && this._blancoTextures.length) {
+                this._memTextures--;
+                return this._blancoTextures.pop();
+            }
+        }
+
+    }
+
     class C2dRenderer extends Renderer {
 
         constructor(stage) {
             super(stage);
 
+            this.tintManager = new C2dTextureTintManager(stage);
+
             this.setupC2d(this.stage.c2d.canvas);
         }
 
         destroy() {
-            this._tintTexture = undefined;
+            this.tintManager.destroy();
         }
 
         _createDefaultShader(ctx) {
@@ -9455,9 +9654,13 @@ var lng = (function () {
             return canvas;
         }
         
-        freeRenderTexture(glTexture) {
+        freeRenderTexture(nativeTexture) {
+            this.tintManager.delete(nativeTexture);
         }
 
+        gc(aggressive) {
+            this.tintManager.gc(aggressive);
+        }
 
         uploadTextureSource(textureSource, options) {
             // For canvas, we do not need to upload.
@@ -9476,6 +9679,7 @@ var lng = (function () {
         }
 
         freeTextureSource(textureSource) {
+            this.tintManager.delete(textureSource.nativeTexture);
         }
 
         addQuad(renderState, quads, index) {
@@ -9506,26 +9710,6 @@ var lng = (function () {
 
         getPatchId() {
             return "c2d";
-        }
-
-        getTintTexture(w, h) {
-            if (!this._tintTexture || this._tintTexture.width < w || this._tintTexture.height < h) {
-                const tempTexture = document.createElement('canvas');
-                let nw = Math.ceil(w / 256) * 256;
-                let nh = Math.ceil(h / 256) * 256;
-                if (this._tintTexture) {
-                    nw = Math.max(nw, this._tintTexture.width);
-                    nh = Math.max(nh, this._tintTexture.height);
-                }
-                tempTexture.width = nw;
-                tempTexture.height = nh;
-                tempTexture.ctx = tempTexture.getContext('2d');
-                this._tintTexture = tempTexture;
-            } else {
-                this._tintTexture.ctx.clearRect(0, 0, w, h);
-            }
-
-            return this._tintTexture;
         }
 
     }
@@ -10895,7 +11079,7 @@ var lng = (function () {
              * The currently used amount of texture memory.
              * @type {number}
              */
-            this._usedTextureMemory = 0;
+            this._usedMemory = 0;
 
             /**
              * All uploaded texture sources.
@@ -10911,12 +11095,17 @@ var lng = (function () {
 
         }
 
+        get usedMemory() {
+            return this._usedMemory;
+        }
+
         destroy() {
             for (let i = 0, n = this._uploadedTextureSources.length; i < n; i++) {
                 this._nativeFreeTextureSource(this._uploadedTextureSources[i]);
             }
             
             this.textureSourceHashmap.clear();
+            this._usedMemory = 0;
         }
 
         getReusableTextureSource(id) {
@@ -10942,6 +11131,8 @@ var lng = (function () {
         uploadTextureSource(textureSource, options) {
             if (textureSource.isLoaded()) return;
 
+            this._addMemoryUsage(textureSource.w * textureSource.h);
+
             // Load texture.
             const nativeTexture = this._nativeUploadTextureSource(textureSource, options);
 
@@ -10953,11 +11144,14 @@ var lng = (function () {
 
             nativeTexture.update = this.stage.frameCounter;
 
-            this._usedTextureMemory += textureSource.w * textureSource.h;
-
             this._uploadedTextureSources.push(textureSource);
             
             this.addToLookupMap(textureSource);
+        }
+
+        _addMemoryUsage(delta) {
+            this._usedMemory += delta;
+            this.stage.addMemoryUsage(delta);
         }
         
         addToLookupMap(textureSource) {
@@ -10973,13 +11167,8 @@ var lng = (function () {
             this.textureSourceHashmap.delete(textureSource.lookupId);
         }
 
-        isFull() {
-            return this._usedTextureMemory >= this.stage.getOption('textureMemory');
-        }
-
         freeUnusedTextureSources() {
             let remainingTextureSources = [];
-            let usedTextureMemoryBefore = this._usedTextureMemory;
             for (let i = 0, n = this._uploadedTextureSources.length; i < n; i++) {
                 let ts = this._uploadedTextureSources[i];
                 if (ts.allowCleanup()) {
@@ -10990,13 +11179,12 @@ var lng = (function () {
             }
 
             this._uploadedTextureSources = remainingTextureSources;
-            console.log('freed ' + ((usedTextureMemoryBefore - this._usedTextureMemory) / 1e6).toFixed(2) + 'M texture pixels from GPU memory. Remaining: ' + this._usedTextureMemory);
         }
 
         _freeManagedTextureSource(textureSource) {
             if (textureSource.isLoaded()) {
-                this._usedTextureMemory -= textureSource.w * textureSource.h;
                 this._nativeFreeTextureSource(textureSource);
+                this._addMemoryUsage(-textureSource.w * textureSource.h);
             }
 
             // Should be reloaded.
@@ -11015,7 +11203,7 @@ var lng = (function () {
 
             if (textureSource.isLoaded()) {
                 if (managed) {
-                    this._usedTextureMemory -= textureSource.w * textureSource.h;
+                    this._addMemoryUsage(-textureSource.w * textureSource.h);
                     this._uploadedTextureSources.splice(index, 1);
                 }
                 this._nativeFreeTextureSource(textureSource);
@@ -11054,7 +11242,7 @@ var lng = (function () {
             this.renderExec = this.stage.renderer.createCoreRenderExecutor(this);
             this.renderExec.init();
 
-            this._renderTexturePixels = 0;
+            this._usedMemory = 0;
             this._renderTexturePool = [];
 
             this._renderTextureId = 1;
@@ -11062,8 +11250,13 @@ var lng = (function () {
             this._zSorts = [];
         }
 
+        get usedMemory() {
+            return this._usedMemory;
+        }
+
         destroy() {
             this._renderTexturePool.forEach(texture => this._freeRenderTexture(texture));
+            this._usedMemory = 0;
         }
 
         hasRenderUpdates() {
@@ -11115,6 +11308,11 @@ var lng = (function () {
             this.renderExec.execute();
         }
 
+        _addMemoryUsage(delta) {
+            this._usedMemory += delta;
+            this.stage.addMemoryUsage(delta);
+        }
+
         allocateRenderTexture(w, h) {
             let prec = this.stage.getRenderPrecision();
             let pw = Math.max(1, Math.round(w * prec));
@@ -11141,8 +11339,6 @@ var lng = (function () {
         }
 
         freeUnusedRenderTextures(maxAge = 60) {
-            const prevMem = this._renderTexturePixels;
-
             // Clean up all textures that are no longer used.
             // This cache is short-lived because it is really just meant to supply running shaders that are
             // updated during a number of frames.
@@ -11155,11 +11351,11 @@ var lng = (function () {
                 }
                 return true;
             });
-
-            console.warn("GC render texture memory" + (maxAge ? "" : " (aggressive)") + ": " + prevMem + "px > " + this._renderTexturePixels + "px");
         }
 
         _createRenderTexture(w, h, pw, ph) {
+            this._addMemoryUsage(pw * ph);
+
             const texture = this.stage.renderer.createRenderTexture(w, h, pw, ph);
             texture.id = this._renderTextureId++;
             texture.f = this.stage.frameCounter;
@@ -11167,22 +11363,13 @@ var lng = (function () {
             texture.oh = h;
             texture.w = pw;
             texture.h = ph;
-            this._renderTexturePixels += pw * ph;
-
-            if (this._renderTexturePixels > this.stage.getOption('renderTextureMemory')) {
-                this.freeUnusedRenderTextures();
-
-                if (this._renderTexturePixels > this.stage.getOption('renderTextureMemory')) {
-                    this.freeUnusedRenderTextures(0);
-                }
-            }
 
             return texture;
         }
 
         _freeRenderTexture(nativeTexture) {
             this.stage.renderer.freeRenderTexture(nativeTexture);
-            this._renderTexturePixels -= nativeTexture.w * nativeTexture.h;
+            this._addMemoryUsage(-nativeTexture.w * nativeTexture.h);
         }
 
         copyRenderTexture(renderTexture, nativeTexture, options) {
@@ -12408,6 +12595,9 @@ var lng = (function () {
             super();
             this._setOptions(options);
 
+            this._usedMemory = 0;
+            this._lastGcFrame = 0;
+
             const platformType = PlatformLoader.load(options);
             this.platform = new platformType();
 
@@ -12539,8 +12729,7 @@ var lng = (function () {
             opt('w', 1280);
             opt('h', 720);
             opt('srcBasePath', null);
-            opt('textureMemory', 18e6);
-            opt('renderTextureMemory', 12e6);
+            opt('memoryPressure', 24e6);
             opt('bufferMemory', 2e6);
             opt('textRenderIssueMargin', 0);
             opt('clearColor', [0, 0, 0, 0]);
@@ -12630,10 +12819,6 @@ var lng = (function () {
             }
 
             this.emit('frameStart');
-
-            if (this.textureManager.isFull()) {
-                this.textureManager.freeUnusedTextureSources();
-            }
 
             if (this._updateSourceTextures.size) {
                 this._updateSourceTextures.forEach(texture => {
@@ -12725,12 +12910,42 @@ var lng = (function () {
             return this.h / this._options.precision;
         }
 
+        addMemoryUsage(delta) {
+            this._usedMemory += delta;
+            if (this._lastGcFrame !== this.frameCounter) {
+                if (this._usedMemory > this.getOption('memoryPressure')) {
+                    this.gc(false);
+                    if (this._usedMemory > this.getOption('memoryPressure') - 2e6) {
+                        // Too few released. Aggressive cleanup.
+                        this.gc(true);
+                    }
+                }
+            }
+        }
+
+        get usedMemory() {
+            return this._usedMemory;
+        }
+
+        gc(aggressive) {
+            if (this._lastGcFrame !== this.frameCounter) {
+                this._lastGcFrame = this.frameCounter;
+                const memoryUsageBefore = this._usedMemory;
+                this.gcTextureMemory(aggressive);
+                this.gcRenderTextureMemory(aggressive);
+                this.renderer.gc(aggressive);
+
+                console.log(`GC${aggressive ? "[aggressive]" : ""}! Frame ${this._lastGcFrame} Freed ${((memoryUsageBefore - this._usedMemory) / 1e6).toFixed(2)}MP from GPU memory. Remaining: ${(this._usedMemory / 1e6).toFixed(2)}MP`);
+                const other = this._usedMemory - this.textureManager.usedMemory - this.ctx.usedMemory;
+                console.log(` Textures: ${(this.textureManager.usedMemory / 1e6).toFixed(2)}MP, Render Textures: ${(this.ctx.usedMemory / 1e6).toFixed(2)}MP, Renderer caches: ${(other / 1e6).toFixed(2)}MP`);
+            }
+        }
+
         gcTextureMemory(aggressive = false) {
-            console.log("GC texture memory" + (aggressive ? " (aggressive)" : ""));
             if (aggressive && this.ctx.root.visible) {
                 // Make sure that ALL textures are cleaned;
                 this.ctx.root.visible = false;
-                this.textureManager.freeUnusedTextureSources();
+                this.textureManager.freeUnusedTextureSources(0);
                 this.ctx.root.visible = true;
             } else {
                 this.textureManager.freeUnusedTextureSources();
@@ -12738,7 +12953,6 @@ var lng = (function () {
         }
 
         gcRenderTextureMemory(aggressive = false) {
-            console.log("GC texture render memory" + (aggressive ? " (aggressive)" : ""));
             if (aggressive && this.root.visible) {
                 // Make sure that ALL render textures are cleaned;
                 this.root.visible = false;
@@ -12751,6 +12965,10 @@ var lng = (function () {
 
         getDrawingCanvas() {
             return this.platform.getDrawingCanvas();
+        }
+
+        preparePatchSettings(settings) {
+            return Base.preparePatchSettings(settings, this.getPatchId());
         }
 
         patchObject(object, settings) {

@@ -5,7 +5,8 @@ export default class DefaultShader extends C2dShader {
 
     constructor(ctx) {
         super(ctx);
-        this._rectangleTexture = ctx.stage.rectangleTexture.source.nativeTexture
+        this._rectangleTexture = ctx.stage.rectangleTexture.source.nativeTexture;
+        this._tintManager = this.ctx.stage.renderer.tintManager;
     }
 
     draw(operation, target) {
@@ -60,7 +61,6 @@ export default class DefaultShader extends C2dShader {
 
                     // Draw to intermediate texture with background color/gradient.
                     // This prevents us from having to create a lot of render texture canvases.
-                    const tempTexture = this.ctx.stage.renderer.getTintTexture(Math.ceil(sourceW), Math.ceil(sourceH));
 
                     // Notice that we don't support (non-rect) gradients, only color tinting for c2d. We'll just take the average color.
                     let color = vc._colorUl;
@@ -68,25 +68,17 @@ export default class DefaultShader extends C2dShader {
                         color = StageUtils.mergeMultiColorsEqual([vc._colorUl, vc._colorUr, vc._colorBl, vc._colorBr]);
                     }
 
-                    const alpha = ((color / 16777216) | 0);
+                    const alpha = ((color / 16777216) | 0) / 255.0;
                     ctx.globalAlpha *= alpha;
 
-                    tempTexture.ctx.fillStyle = StageUtils.getRgbString(color);
-                    this._setColorGradient(tempTexture.ctx, vc, sourceW, sourceH, false);
-                    tempTexture.ctx.globalCompositeOperation = 'copy';
-                    tempTexture.ctx.fillRect(0, 0, sourceW, sourceH);
-                    tempTexture.ctx.globalCompositeOperation = 'multiply';
-                    tempTexture.ctx.drawImage(tx, sourceX, sourceY, sourceW, sourceH, 0, 0, sourceW, sourceH);
-
-                    // Alpha-mix the texture.
-                    tempTexture.ctx.globalCompositeOperation = 'destination-in';
-                    tempTexture.ctx.drawImage(tx, sourceX, sourceY, sourceW, sourceH, 0, 0, sourceW, sourceH);
+                    const rgb = color & 0x00FFFFFF;
+                    const tintTexture = this._tintManager.getTintTexture(tx, rgb);
 
                     // Actually draw result.
-                    tempTexture.ctx.globalCompositeOperation = 'source-over';
                     ctx.fillStyle = 'white';
-                    ctx.drawImage(tempTexture, 0, 0, sourceW, sourceH, 0, 0, vc.rw, vc.rh);
+                    ctx.drawImage(tintTexture, sourceX, sourceY, sourceW, sourceH, 0, 0, vc.rw, vc.rh);
                 } else {
+                    ctx.fillStyle = 'white';
                     ctx.drawImage(tx, sourceX, sourceY, sourceW, sourceH, 0, 0, vc.rw, vc.rh);
                 }
                 this._afterDrawEl(info);
