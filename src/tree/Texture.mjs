@@ -88,7 +88,7 @@ export default class Texture {
     }
 
     get source() {
-        if (this._mustUpdate) {
+        if (this._mustUpdate || this.stage.hasUpdateSourceTexture(this)) {
             this._performUpdateSource(true);
             this.stage.removeUpdateSourceTexture(this);
         }

@@ -3235,7 +3235,7 @@ var lng = (function () {
         }
 
         get source() {
-            if (this._mustUpdate) {
+            if (this._mustUpdate || this.stage.hasUpdateSourceTexture(this)) {
                 this._performUpdateSource(true);
                 this.stage.removeUpdateSourceTexture(this);
             }
@@ -12810,6 +12810,10 @@ var lng = (function () {
             if (this._updateSourceTextures) {
                 this._updateSourceTextures.delete(texture);
             }
+        }
+
+        hasUpdateSourceTexture(texture) {
+            return (this._updateSourceTextures && this._updateSourceTextures.has(texture));
         }
 
         drawFrame() {

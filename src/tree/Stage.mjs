@@ -229,6 +229,10 @@ export default class Stage extends EventEmitter {
         }
     }
 
+    hasUpdateSourceTexture(texture) {
+        return (this._updateSourceTextures && this._updateSourceTextures.has(texture));
+    }
+
     drawFrame() {
         this.startTime = this.currentTime;
         this.currentTime = this.platform.getHrTime();
