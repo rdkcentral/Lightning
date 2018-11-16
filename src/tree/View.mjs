@@ -1801,7 +1801,7 @@ export default class View {
     }
 
     patch(settings, createMode = false) {
-        Base.preparePatchSettings(settings, this.stage.getPatchId());
+        settings = Base.preparePatchSettings(settings, this.stage.getPatchId());
 
         let paths = Object.keys(settings);
 

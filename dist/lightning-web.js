@@ -2882,6 +2882,8 @@ var lng = (function () {
         static preparePatchSettings(settings, patchId) {
             if (patchId) {
                 return this._preparePatchSettings(settings, "_$" + patchId);
+            } else {
+                return settings;
             }
         }
 
@@ -7022,7 +7024,7 @@ var lng = (function () {
         }
 
         patch(settings, createMode = false) {
-            Base.preparePatchSettings(settings, this.stage.getPatchId());
+            settings = Base.preparePatchSettings(settings, this.stage.getPatchId());
 
             let paths = Object.keys(settings);
 

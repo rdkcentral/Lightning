@@ -20,6 +20,8 @@ export default class Base {
     static preparePatchSettings(settings, patchId) {
         if (patchId) {
             return this._preparePatchSettings(settings, "_$" + patchId);
+        } else {
+            return settings;
         }
     }
 
