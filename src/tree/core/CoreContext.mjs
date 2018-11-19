@@ -93,7 +93,8 @@ export default class CoreContext {
         const n = this._renderTexturePool.length;
         for (let i = n - 1; i >= 0; i--) {
             const texture = this._renderTexturePool[i];
-            if (texture.w === pw && texture.h === ph) {
+            // We don't want to reuse the same render textures within the same frame because that will create gpu stalls.
+            if (texture.w === pw && texture.h === ph && (texture.update !== this.stage.frameCounter)) {
                 texture.f = this.stage.frameCounter;
                 this._renderTexturePool.splice(i, 1);
                 return texture;
