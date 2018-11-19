@@ -1747,11 +1747,11 @@ export default class ViewCore {
         let ptr = 0;
         const a = this._zIndexedChildren;
 
+        // Notice that items may occur multiple times due to z-index changing.
         const b = [];
         for (let i = 0; i < n; i++) {
             if (a[i]._zParent === this) {
                 if (a[i]._zIndexResort) {
-                    a[i]._zIndexResort = false;
                     b.push(a[i]);
                 } else {
                     if (ptr !== i) {
@@ -1764,6 +1764,10 @@ export default class ViewCore {
 
         const m = b.length;
         if (m) {
+            for (let j = 0; j < m; j++) {
+                b[j]._zIndexResort = false;
+            }
+
             b.sort(ViewCore.sortZIndexedChildren);
             const n = ptr;
             if (!n) {
