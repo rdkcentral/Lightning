@@ -2684,11 +2684,11 @@ class ViewCore {
         let ptr = 0;
         const a = this._zIndexedChildren;
 
+        // Notice that items may occur multiple times due to z-index changing.
         const b = [];
         for (let i = 0; i < n; i++) {
             if (a[i]._zParent === this) {
                 if (a[i]._zIndexResort) {
-                    a[i]._zIndexResort = false;
                     b.push(a[i]);
                 } else {
                     if (ptr !== i) {
@@ -2701,6 +2701,10 @@ class ViewCore {
 
         const m = b.length;
         if (m) {
+            for (let j = 0; j < m; j++) {
+                b[j]._zIndexResort = false;
+            }
+
             b.sort(ViewCore.sortZIndexedChildren);
             const n = ptr;
             if (!n) {
@@ -11022,7 +11026,8 @@ class CoreContext {
         const n = this._renderTexturePool.length;
         for (let i = n - 1; i >= 0; i--) {
             const texture = this._renderTexturePool[i];
-            if (texture.w === pw && texture.h === ph) {
+            // We don't want to reuse the same render textures within the same frame because that will create gpu stalls.
+            if (texture.w === pw && texture.h === ph && (texture.update !== this.stage.frameCounter)) {
                 texture.f = this.stage.frameCounter;
                 this._renderTexturePool.splice(i, 1);
                 return texture;
@@ -14492,10 +14497,6 @@ class FastBlurComponent extends Component {
 
     get amount() {
         return this.wrap.amount;
-    }
-
-    set shader(v) {
-        this.wrap.shader = v;
     }
 
     _onResize() {

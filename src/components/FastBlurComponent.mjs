@@ -50,10 +50,6 @@ export default class FastBlurComponent extends Component {
         return this.wrap.amount;
     }
 
-    set shader(v) {
-        this.wrap.shader = v;
-    }
-
     _onResize() {
         this.wrap.w = this.renderWidth;
         this.wrap.h = this.renderHeight;
