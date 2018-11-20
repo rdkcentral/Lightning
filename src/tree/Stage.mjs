@@ -9,6 +9,7 @@ import WebGLRenderer from "../renderer/webgl/WebGLRenderer.mjs";
 import C2dRenderer from "../renderer/c2d/C2dRenderer.mjs";
 import PlatformLoader from "../platforms/PlatformLoader.dev.mjs";
 import WebGLStateManager from "../tools/WebGLStateManager.mjs";
+import Shader from "./Shader.mjs";
 
 export default class Stage extends EventEmitter {
 
@@ -296,8 +297,16 @@ export default class Stage extends EventEmitter {
         return this._clearColor;
     }
 
-    createView() {
-        return new View(this);
+    createView(settings) {
+        if (settings) {
+            return this.view(settings);
+        } else {
+            return new View(this);
+        }
+    }
+
+    createShader(settings) {
+        return Shader.create(this, settings);
     }
 
     view(settings) {

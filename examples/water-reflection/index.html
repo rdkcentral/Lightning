@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+
+</head>
+<body>
+<script type="module">
+    import lng from '../../lightning.mjs'
+    import WaterWaveShader from "./WaterWaveShader.mjs"
+
+    window.onload = function() {
+        class AppExample extends lng.Application {
+            static _template() {
+                return {
+                    Tx: {y: 0, w: 1920, h: 1080, rtt: false,
+                        Top: {src: "./city-land.jpg", pivot: 0, scale: 1, y: 720+50, mountY: 1, w: 1920, x: 0},
+                        Bottom: {src: "./city-land.jpg", shader: {type: WaterWaveShader, horizon: 720}, pivot: 0, scale: 1, y: 720+50, w: 1920, h: 310},
+                    }
+                }
+            }
+        }
+
+        const options = {stage: {w:1920, h: 1080, clearColor: 0xFF000000}}
+        const app = new AppExample(options);
+
+        document.body.appendChild(app.stage.getCanvas());
+
+
+    }
+</script>
+</body>
+</html>

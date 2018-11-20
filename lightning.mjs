@@ -24,6 +24,7 @@ import SourceTexture from "./src/textures/SourceTexture.mjs";
 
 import ListComponent from "./src/components/ListComponent.mjs";
 import FastBlurComponent from "./src/components/FastBlurComponent.mjs";
+import BloomComponent from "./src/components/BloomComponent.mjs";
 import SmoothScaleComponent from "./src/components/SmoothScaleComponent.mjs";
 import BorderComponent from "./src/components/BorderComponent.mjs";
 import EventEmitter from "./src/EventEmitter.mjs";
@@ -95,6 +96,7 @@ const lightning = {
     },
     components: {
         FastBlurComponent,
+        BloomComponent,
         SmoothScaleComponent,
         BorderComponent,
         ListComponent
