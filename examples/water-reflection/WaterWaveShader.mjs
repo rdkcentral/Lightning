@@ -130,11 +130,11 @@ WaterWaveShader.fragmentShaderSource = `
         // Calculate top-down normal.
         vec2 delta = vec2(0.0, 0.0);
         vec2 xy = vec2(x, z);
-        addNormal(xy, 0.025, t, 10., 10.0, 1.85*M_PI, delta);
-        addNormal(xy, 0.025, t, 15., 12.0, -0.4*M_PI, delta);
-        addNormal(xy, 0.025, t, 05., 8.0, 0.4*M_PI, delta);
+        addNormal(xy, 0.0125, t, 6., 5.0, 1.85*M_PI, delta);
+        addNormal(xy, 0.0225, t, 8., 6.0, -0.4*M_PI, delta);
+        addNormal(xy, 0.0125, t, 5., 4.0, 0.4*M_PI, delta);
 
-        addRipple(xy, 0.05, vec2(0.0, 60.0), 15.0, 3.0, 0.35, 1.0, t, delta);
+        addRipple(xy, 0.5, vec2(0.0, 50.0), 10.0, 3.0, 0.35, 1.0, t, delta);
         vec3 normal = normalize(vec3(delta.x, -1.0, delta.y));
         
         // Reflection.

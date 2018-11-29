@@ -46,7 +46,7 @@ export default class BloomComponent extends Component {
     }
 
     _build() {
-        const filterShaderSettings = [{x:1,y:0,kernelRadius:1},{x:0,y:1,kernelRadius:1},{x:1.5,y:0,kernelRadius:1},{x:0,y:1.5,kernelRadius:1}];
+        const filterShaderSettings = [{x:1,y:0,kernelRadius:3},{x:0,y:1,kernelRadius:3},{x:1.5,y:0,kernelRadius:3},{x:0,y:1.5,kernelRadius:3}];
         const filterShaders = filterShaderSettings.map(s => {
             const shader = this.stage.createShader(Object.assign({type: LinearBlurShader}, s));
             return shader;
@@ -196,7 +196,9 @@ BloomBaseShader.fragmentShaderSource = `
     uniform sampler2D uSampler;
     void main(void){
         vec4 color = texture2D(uSampler, vTextureCoord) * vColor;
-        color = color * step(0.95, max(max(color.r, color.g), color.b));
+        float m = max(max(color.r, color.g), color.b);
+        float c = max(0.0, (m - 0.80)) * 5.0;
+        color = color * c;
         gl_FragColor = color;
     }
 `;
