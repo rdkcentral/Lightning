@@ -65,9 +65,9 @@ export default class OutlineShader extends DefaultShader {
             const viewCore = operation.getViewCore(i);
 
             // We are setting attributes such that if the value is < 0 or > 1, a border should be drawn.
-            const ddw = this._width / viewCore.rw;
+            const ddw = this._width / viewCore.lw;
             const dw = ddw / (1 - 2 * ddw);
-            const ddh = this._width / viewCore.rh;
+            const ddh = this._width / viewCore.lh;
             const dh = ddh / (1 - 2 * ddh);
 
             // Specify all corner points.

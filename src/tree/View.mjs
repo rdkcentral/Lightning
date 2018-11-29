@@ -1633,6 +1633,10 @@ export default class View {
         return this.childList.a(o);
     }
 
+    get p() {
+        return this.__parent;
+    }
+
     get parent() {
         return this.__parent;
     }
@@ -1709,6 +1713,22 @@ export default class View {
         } else {
             this.texture.patch(v);
         }
+    }
+
+    get flex() {
+        return this.__core.flex;
+    }
+
+    set flex(v) {
+        this.__core.flex = v;
+    }
+
+    get flexItem() {
+        return this.__core.flexItem;
+    }
+
+    set flexItem(v) {
+        this.__core.flexItem = v;
     }
 
     set onUpdate(f) {

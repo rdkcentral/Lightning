@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+
+</head>
+<body>
+    <script type="module">
+        import lng from '../../lightning.mjs';
+        class BorderExample extends lng.Application {
+            static _template() {
+                return {
+                    Wrapper: {x: 100, y: 100, flex: {direction: 'row', alignItems: 'stretch'},
+                        Left: {rect: true, w: 10},
+                        Center: {rect: true, color: 0x55ff0000, flex: {direction: 'column', alignItems: 'stretch'},
+                            Top: {rect: true, h: 10},
+                            Middle: {
+                                flexItem: {grow: 1},
+                                flex: {direction: 'row', justifyContent: 'space-evenly'},
+                                w: 300,
+                                // Height is fit from contents.
+                                Line1: {text: {text: "hello1"}},
+                                Line2: {text: {text: "hello2"}}
+                            },
+                            Bottom: {rect: true, h: 10},
+                        },
+                        Right: {rect: true, w: 10}
+                    }
+                }
+            }
+
+            static _states() {
+                return {
+                    _init: function() {
+                        // this.tag("Middle").animation({duration: 10, repeat: -1, actions: [
+                        //         {p: 'w', v: {0: 300, 0.5: 900, 1: 300}},
+                        //     ]}).start();
+                    }
+                }
+            }
+        }
+
+        const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000, canvas2d: false}};
+        const app = new BorderExample(options);
+        document.body.appendChild(app.stage.getCanvas());
+    </script>
+</body>
+</html>

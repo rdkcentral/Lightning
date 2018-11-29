@@ -257,6 +257,8 @@ export default class Stage extends EventEmitter {
 
         const changes = this.ctx.hasRenderUpdates();
 
+//        this.ctx.layout();
+
         if (changes) {
             this._updatingFrame = true;
             this.ctx.frame();
