@@ -5,7 +5,7 @@ import CoreRenderState from "../../tree/core/CoreRenderState.mjs";
 import DefaultShader from "./shaders/DefaultShader.mjs";
 import C2dShader from "./C2dShader.mjs";
 import Renderer from "../Renderer.mjs";
-import TextureTintManager from "./C2dTextureTintManager.js";
+import TextureTintManager from "./C2dTextureTintManager.mjs";
 
 export default class C2dRenderer extends Renderer {
 

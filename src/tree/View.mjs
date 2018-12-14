@@ -1715,22 +1715,6 @@ export default class View {
         }
     }
 
-    get flex() {
-        return this.__core.flex;
-    }
-
-    set flex(v) {
-        this.__core.flex = v;
-    }
-
-    get flexItem() {
-        return this.__core.flexItem;
-    }
-
-    set flexItem(v) {
-        this.__core.flexItem = v;
-    }
-
     set onUpdate(f) {
         this.__core.onUpdate = f;
     }

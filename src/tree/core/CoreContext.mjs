@@ -63,10 +63,6 @@ export default class CoreContext {
         return true;
     }
 
-    layout() {
-        this.root.layout();
-    }
-
     update() {
         this.updateTreeOrder = 0;
 

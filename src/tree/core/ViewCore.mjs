@@ -1,6 +1,3 @@
-import FlexContainer from "./flex/FlexContainer.mjs";
-import FlexItem from "./flex/FlexItem.mjs";
-
 /**
  * Graphical calculations / VBO buffer filling.
  */
@@ -138,53 +135,6 @@ export default class ViewCore {
         this._clipbox = false;
 
         this.render = this._renderSimple;
-
-        // Layout.
-        this._hasLayoutUpdates = 0;
-        this._flex = undefined;
-        this._flexItem = undefined;
-        this._lx = 0;
-        this._ly = 0;
-        this._lw = 0;
-        this._lh = 0;
-
-    }
-
-    get flex() {
-        if (!this._flex) {
-            this._flex = new FlexContainer(this);
-        }
-        return this._flex;
-    }
-
-    set flex(v) {
-        if (!v && !!this._flex) {
-            this._flex = undefined;
-
-            // Switch all children to absolute (immediate) positioning.
-            if (this._children) {
-                for (let i = 0, n = this._children.length; i < n; i++) {
-                    this._children[i]._layoutAbsolute();
-                }
-            }
-        } else {
-            this.flex.patch(v);
-        }
-    }
-
-    get flexItem() {
-        if (!this._flexItem) {
-            this._flexItem = new FlexItem(this);
-        }
-        return this._flexItem;
-    }
-
-    set flexItem(v) {
-        if (!v && !!this._flexItem) {
-            this._flexItem = undefined;
-        } else {
-            this.flexItem.patch(v);
-        }
     }
 
     get x() {
@@ -193,14 +143,7 @@ export default class ViewCore {
 
     set x(v) {
         if (this._x !== v) {
-            if (this._isFlexItem()) {
-                this._setHasFlexLayoutUpdates();
-            } else {
-                // Absolute positioned. Immediately propagate.
-                this._updateLocalTranslateDelta(v - this._x, 0);
-                this._lx = v;
-            }
-
+            this._updateLocalTranslateDelta(v - this._x, 0);
             this._x = v;
         }
     }
@@ -211,14 +154,7 @@ export default class ViewCore {
 
     set y(v) {
         if (this._y !== v) {
-            if (this._isFlexItem()) {
-                this._setHasFlexLayoutUpdates();
-            } else {
-                // Absolute positioned. Immediately propagate.
-                this._updateLocalTranslateDelta(0, v - this._y);
-                this._ly = v;
-            }
-
+            this._updateLocalTranslateDelta(0, v - this._y);
             this._y = v;
         }
     }
@@ -408,17 +344,16 @@ export default class ViewCore {
                 this._scaleY
             );
         }
-
         this._updateLocalTranslate();
     };
 
     _updateLocalTranslate() {
-        let pivotXMul = this._pivotX * this._lw;
-        let pivotYMul = this._pivotY * this._lh;
-        let px = this._lx - (pivotXMul * this.localTa + pivotYMul * this.localTb) + pivotXMul;
-        let py = this._ly - (pivotXMul * this.localTc + pivotYMul * this.localTd) + pivotYMul;
-        px -= this._mountX * this._lw;
-        py -= this._mountY * this._lh;
+        let pivotXMul = this._pivotX * this.rw;
+        let pivotYMul = this._pivotY * this.rh;
+        let px = this._x - (pivotXMul * this.localTa + pivotYMul * this.localTb) + pivotXMul;
+        let py = this._y - (pivotXMul * this.localTc + pivotYMul * this.localTd) + pivotYMul;
+        px -= this._mountX * this.rw;
+        py -= this._mountY * this.rh;
         this._setLocalTranslate(
             px,
             py
@@ -444,7 +379,7 @@ export default class ViewCore {
             // Ignore if 'world invisible'. Render updates will be reset to 3 for every view that becomes visible.
             let p = this;
             p._hasRenderUpdates = Math.max(type, p._hasRenderUpdates);
-            while ((p = p._parent) && (p._hasRenderUpdates != 3)) {
+            while ((p = p._parent) && (p._hasRenderUpdates !== 3)) {
                 p._hasRenderUpdates = 3;
             }
         }
@@ -476,35 +411,15 @@ export default class ViewCore {
         }
     }
 
-    _setHasFlexLayoutUpdates() {
-        this._hasLayoutUpdates = 2;
-        let p = this._parent;
-        while(p && !p._hasLayoutUpdates) {
-            p._hasLayoutUpdates = 1;
-            p = p._parent;
-        }
-    }
-
     setParent(parent) {
         if (parent !== this._parent) {
             let prevIsZContext = this.isZContext();
-            let prevIsFlexItem = this._isFlexItem();
             let prevParent = this._parent;
             this._parent = parent;
 
             if (prevParent) {
                 // When views are deleted, the render texture must be re-rendered.
                 prevParent.setHasRenderUpdates(3);
-
-                if (prevParent._isFlexContainer()) {
-                    // Children change: flex container must re-layout.
-                    prevParent._setHasFlexLayoutUpdates();
-                }
-            }
-
-            if (prevIsFlexItem && !this._isFlexItem()) {
-                // Goes into 'absolute' (immediate) layout mode.
-                this._updateAbsoluteLayout();
             }
 
             this._setRecalc(1 + 2 + 4);
@@ -512,11 +427,6 @@ export default class ViewCore {
             if (this._parent) {
                 // Force parent to propagate hasUpdates flag.
                 this._parent._setHasUpdates();
-
-                if (this._isFlexItem()) {
-                    // Children change: flex container must re-layout.
-                    this._parent._setHasFlexLayoutUpdates();
-                }
             }
 
             if (this._zIndex === 0) {
@@ -608,11 +518,6 @@ export default class ViewCore {
         this._children.splice(fromIndex, 1);
         this._children.splice(toIndex, 0, c);
 
-        // Flexbox.
-        if (this._isFlexContainer()) {
-            this._setHasFlexLayoutUpdates();
-        }
-
         // Tree order changed: must resort!;
         this._zIndexResort = true;
         if (this._zParent) {
@@ -657,14 +562,6 @@ export default class ViewCore {
         this._localAlpha = a;
     };
 
-    _isFlexItem() {
-        return !!(this._parent && (this._parent._isFlexContainer()));
-    }
-
-    _isFlexContainer() {
-        return !!this._flex
-    }
-
     setDimensions(w, h, isEstimate) {
         if (this._rw !== w || this._rh !== h) {
             this._rw = w;
@@ -673,82 +570,18 @@ export default class ViewCore {
             // In case of an estimation, the update loop should perform different bound checks.
             this._rwhEstimate = isEstimate;
 
-            if (this._isFlexItem()) {
-                this._setHasFlexLayoutUpdates();
-            } else {
-                // Propagate immediately to propagate w,h so that textures are immediately rendered.
-                this._updateAbsoluteLayoutDims();
+            this._setRecalc(2);
+            if (this._texturizer) {
+                this._texturizer.releaseRenderTexture();
+                this._texturizer.updateResultTexture();
             }
-
+            // Due to width/height change: update the translation vector.
+            this._updateLocalTranslate();
             return true;
         } else {
             return false;
         }
     };
-
-    layout() {
-        //@todo: if flexbox, layout flexbox.
-        if (this._flex) {
-            console.log('flexbox!');
-        }
-
-        //@todo: if parent is flexbox, then layout already done. Just skip to children.
-
-        //@todo: ignore invisible children if parent not a flex container.
-        // But take care to detect when it becomes visibile + full subtree.
-
-        if (this._hasLayoutUpdates) {
-            if (this._hasLayoutUpdates === 2) {
-                //@todo: layout.
-                this._hasLayoutUpdates = 0;
-            }
-            if (this._children) {
-                for (let i = 0, n = this._children.length; i < n; i++) {
-                    this._children[i].layout();
-                }
-            }
-        }
-    }
-
-    _updateAbsoluteLayout() {
-        // Absolute positioned layout (default).
-        this._updateAbsoluteLayoutPos();
-        this._updateAbsoluteLayoutDims();
-    }
-
-    _updateAbsoluteLayoutPos() {
-        const x = this._x;
-        const y = this._y;
-        const updatedPos = (x !== this._lx || y !== this._ly);
-        if (updatedPos) {
-            this._lx = x;
-            this._ly = y;
-
-            this._updateLocalTranslate();
-        }
-    }
-
-    _updateAbsoluteLayoutDims() {
-        const updatedDims = (this._rw !== this._lw || this._rh !== this._lh);
-        if (updatedDims) {
-            this._lw = this._rw;
-            this._lh = this._rh;
-
-            this._lwhEstimate = this._rwhEstimate;
-
-            // Due to width/height change: update the translation vector.
-            this._updateLocalTranslate();
-
-            if (updatedDims) {
-                if (this._texturizer) {
-                    this._texturizer.releaseRenderTexture();
-                    this._texturizer.updateResultTexture();
-                }
-            }
-        }
-
-        // Note that we don't need to recalc if only the estimate has changed.
-    }
 
     setTextureCoords(ulx, uly, brx, bry) {
         this.setHasRenderUpdates(3);
@@ -796,9 +629,6 @@ export default class ViewCore {
         this._parent._boundsMargin = null;
 
         this._setRecalc(1 + 2 + 4);
-
-        // Force first layout updates.
-        this._setHasFlexLayoutUpdates();
     };
 
     isAncestorOf(c) {
@@ -1416,8 +1246,8 @@ export default class ViewCore {
 
             const r = this._renderContext;
             
-            const lw = this._lw;
-            const lh = this._lh;
+            const lw = this._rw;
+            const lh = this._rh;
             
             // Calculate a bbox for this view.
             let sx, sy, ex, ey;
@@ -1493,7 +1323,7 @@ export default class ViewCore {
                         ey = r.py + r.td * lh;
                     }
 
-                    if (this._lwhEstimate && (rComplex || this._localTa < 1 || this._localTb < 1)) {
+                    if (this._rwhEstimate && (rComplex || this._localTa < 1 || this._localTb < 1)) {
                         const nx = this._x * pr.ta + this._y * pr.tb + pr.px;
                         const ny = this._x * pr.tc + this._y * pr.td + pr.py;
                         if (nx < sx) sx = nx;
@@ -1698,7 +1528,7 @@ export default class ViewCore {
         if (this._outOfBounds < 2 && this._renderContext.alpha) {
             let renderState = this.renderState;
 
-            if ((this._outOfBounds === 0) && this._displayedTextureSource && !this._lwhEstimate) {
+            if ((this._outOfBounds === 0) && this._displayedTextureSource) {
                 renderState.setShader(this.activeShader, this._shaderOwner);
                 renderState.setScissor(this._scissor);
                 this.renderState.addQuad(this);
@@ -1742,7 +1572,7 @@ export default class ViewCore {
             let renderTextureInfo;
             let prevRenderTextureInfo;
             if (this._useRenderToTexture) {
-                if (this._lw === 0 || this._lh === 0) {
+                if (this._rw === 0 || this._rh === 0) {
                     // Ignore this branch and don't draw anything.
                     return;
                 } else if (!this._texturizer.hasRenderTexture() || (hasRenderUpdates >= 3)) {
@@ -1754,8 +1584,8 @@ export default class ViewCore {
                     renderTextureInfo = {
                         nativeTexture: null,
                         offset: 0,  // Set by CoreRenderState.
-                        w: this._lw,
-                        h: this._lh,
+                        w: this._rw,
+                        h: this._rh,
                         empty: true,
                         cleared: false,
                         ignore: false,
@@ -1795,7 +1625,7 @@ export default class ViewCore {
                     renderState.setRenderTextureInfo(renderTextureInfo);
                     renderState.setScissor(undefined);
 
-                    if (this._displayedTextureSource && !this._lwhEstimate) {
+                    if (this._displayedTextureSource) {
                         let r = this._renderContext;
 
                         // Use an identity context for drawing the displayed texture to the render texture.
@@ -1810,7 +1640,7 @@ export default class ViewCore {
                     mustRenderChildren = false;
                 }
             } else {
-                if ((this._outOfBounds === 0) && this._displayedTextureSource && !this._lwhEstimate) {
+                if ((this._outOfBounds === 0) && this._displayedTextureSource) {
                     renderState.setShader(this.activeShader, this._shaderOwner);
                     renderState.setScissor(this._scissor);
                     this.renderState.addQuad(this);
@@ -2026,14 +1856,6 @@ export default class ViewCore {
         return this._rh;
     }
 
-    get lw() {
-        return this._lw;
-    }
-
-    get lh() {
-        return this._lh;
-    }
-
     get view() {
         return this._view;
     }
@@ -2055,12 +1877,12 @@ export default class ViewCore {
         return [
             w.px,
             w.py,
-            w.px + this._lw * w.ta,
-            w.py + this._lw * w.tc,
-            w.px + this._lw * w.ta + this._lh * w.tb,
-            w.py + this._lw * w.tc + this._lh * w.td,
-            w.px + this._lh * w.tb,
-            w.py + this._lh * w.td
+            w.px + this._rw * w.ta,
+            w.py + this._rw * w.tc,
+            w.px + this._rw * w.ta + this._rh * this.tb,
+            w.py + this._rw * w.tc + this._rh * this.td,
+            w.px + this._rh * this.tb,
+            w.py + this._rh * this.td
         ]
     };
 

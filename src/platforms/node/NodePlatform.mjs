@@ -55,7 +55,7 @@ export default class NodePlatform {
                 mod = http;
             }
 
-            mod.get(src, function(res) {
+            mod.get(src, (res) => {
                 if (res.statusCode !== 200) {
                     return cb(new Error("Status code " + res.statusCode + " for " + src));
                 }
