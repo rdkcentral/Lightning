@@ -36,7 +36,7 @@ export default class DefaultShader extends C2dShader {
 
                 ctx.globalAlpha = rc.alpha;
                 this._beforeDrawEl(info);
-                ctx.fillRect(0, 0, vc.lw, vc.lh);
+                ctx.fillRect(0, 0, vc.w, vc.h);
                 this._afterDrawEl(info);
                 ctx.globalAlpha = 1.0;
             } else {
@@ -76,10 +76,10 @@ export default class DefaultShader extends C2dShader {
 
                     // Actually draw result.
                     ctx.fillStyle = 'white';
-                    ctx.drawImage(tintTexture, sourceX, sourceY, sourceW, sourceH, 0, 0, vc.lw, vc.lh);
+                    ctx.drawImage(tintTexture, sourceX, sourceY, sourceW, sourceH, 0, 0, vc.w, vc.h);
                 } else {
                     ctx.fillStyle = 'white';
-                    ctx.drawImage(tx, sourceX, sourceY, sourceW, sourceH, 0, 0, vc.lw, vc.lh);
+                    ctx.drawImage(tx, sourceX, sourceY, sourceW, sourceH, 0, 0, vc.w, vc.h);
                 }
                 this._afterDrawEl(info);
                 ctx.globalAlpha = 1.0;
@@ -87,7 +87,7 @@ export default class DefaultShader extends C2dShader {
         }
     }
 
-    _setColorGradient(ctx, vc, w = vc.lw, h = vc.lh, transparency = true) {
+    _setColorGradient(ctx, vc, w = vc.w, h = vc.h, transparency = true) {
         let color = vc._colorUl;
         let gradient;
         //@todo: quick single color check.

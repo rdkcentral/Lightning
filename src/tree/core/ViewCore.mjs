@@ -41,9 +41,9 @@ export default class ViewCore {
 
         this._isComplex = false;
 
-        this._rw = 0;
-        this._rh = 0;
-        this._rwhEstimate = false;
+        this._w = 0;
+        this._h = 0;
+        this._dimsEstimate = false;
 
         this._clipping = false;
 
@@ -163,25 +163,10 @@ export default class ViewCore {
         return this._w;
     }
 
-    set w(v) {
-        if (this._w !== v) {
-            // We don't support negative dimensions because we'd need to sacrifice some update-loop optimizations.
-            this._w = Math.max(0, v);
-            this._view._updateDimensions();
-        }
-    }
-
     get h() {
         return this._h;
     }
 
-    set h(v) {
-        if (this._h !== v) {
-            this._h = Math.max(0, v);
-            this._view._updateDimensions();
-        }
-    }
-    
     get scaleX() {
         return this._scaleX;
     }
@@ -348,12 +333,12 @@ export default class ViewCore {
     };
 
     _updateLocalTranslate() {
-        let pivotXMul = this._pivotX * this.rw;
-        let pivotYMul = this._pivotY * this.rh;
+        let pivotXMul = this._pivotX * this._w;
+        let pivotYMul = this._pivotY * this._h;
         let px = this._x - (pivotXMul * this.localTa + pivotYMul * this.localTb) + pivotXMul;
         let py = this._y - (pivotXMul * this.localTc + pivotYMul * this.localTd) + pivotYMul;
-        px -= this._mountX * this.rw;
-        py -= this._mountY * this.rh;
+        px -= this._mountX * this._w;
+        py -= this._mountY * this._h;
         this._setLocalTranslate(
             px,
             py
@@ -563,12 +548,12 @@ export default class ViewCore {
     };
 
     setDimensions(w, h, isEstimate) {
-        if (this._rw !== w || this._rh !== h) {
-            this._rw = w;
-            this._rh = h;
+        if (this._w !== w || this._h !== h) {
+            this._w = w;
+            this._h = h;
 
             // In case of an estimation, the update loop should perform different bound checks.
-            this._rwhEstimate = isEstimate;
+            this._dimsEstimate = isEstimate;
 
             this._setRecalc(2);
             if (this._texturizer) {
@@ -619,7 +604,7 @@ export default class ViewCore {
         this.ctx.root = this;
 
         // Set scissor area of 'fake parent' to stage's viewport.
-        this._parent._viewport = [0, 0, this.ctx.stage.rw, this.ctx.stage.rh];
+        this._parent._viewport = [0, 0, this.ctx.stage.coordsWidth, this.ctx.stage.coordsHeight];
         this._parent._scissor = this._parent._viewport;
 
         // We use a default of 100px bounds margin to detect images around the edges.
@@ -1246,8 +1231,8 @@ export default class ViewCore {
 
             const r = this._renderContext;
             
-            const lw = this._rw;
-            const lh = this._rh;
+            const lw = this._w;
+            const lh = this._h;
             
             // Calculate a bbox for this view.
             let sx, sy, ex, ey;
@@ -1264,7 +1249,7 @@ export default class ViewCore {
                 ey = r.py + r.td * lh;
             }
 
-            if (this._lwhEstimate && (rComplex || this._localTa < 1 || this._localTb < 1)) {
+            if (this._dimsEstimate && (rComplex || this._localTa < 1 || this._localTb < 1)) {
                 // If we are dealing with a non-identity matrix, we must extend the bbox so that withinBounds and;
                 //  scissors will include the complete range of (positive) dimensions up to lw,lh.
                 const nx = this._x * pr.ta + this._y * pr.tb + pr.px;
@@ -1323,7 +1308,7 @@ export default class ViewCore {
                         ey = r.py + r.td * lh;
                     }
 
-                    if (this._rwhEstimate && (rComplex || this._localTa < 1 || this._localTb < 1)) {
+                    if (this._dimsEstimate && (rComplex || this._localTa < 1 || this._localTb < 1)) {
                         const nx = this._x * pr.ta + this._y * pr.tb + pr.px;
                         const ny = this._x * pr.tc + this._y * pr.td + pr.py;
                         if (nx < sx) sx = nx;
@@ -1572,7 +1557,7 @@ export default class ViewCore {
             let renderTextureInfo;
             let prevRenderTextureInfo;
             if (this._useRenderToTexture) {
-                if (this._rw === 0 || this._rh === 0) {
+                if (this._w === 0 || this._h === 0) {
                     // Ignore this branch and don't draw anything.
                     return;
                 } else if (!this._texturizer.hasRenderTexture() || (hasRenderUpdates >= 3)) {
@@ -1584,8 +1569,8 @@ export default class ViewCore {
                     renderTextureInfo = {
                         nativeTexture: null,
                         offset: 0,  // Set by CoreRenderState.
-                        w: this._rw,
-                        h: this._rh,
+                        w: this._w,
+                        h: this._h,
                         empty: true,
                         cleared: false,
                         ignore: false,
@@ -1848,14 +1833,6 @@ export default class ViewCore {
         return this._localTd;
     };
 
-    get rw() {
-        return this._rw;
-    }
-
-    get rh() {
-        return this._rh;
-    }
-
     get view() {
         return this._view;
     }
@@ -1877,12 +1854,12 @@ export default class ViewCore {
         return [
             w.px,
             w.py,
-            w.px + this._rw * w.ta,
-            w.py + this._rw * w.tc,
-            w.px + this._rw * w.ta + this._rh * this.tb,
-            w.py + this._rw * w.tc + this._rh * this.td,
-            w.px + this._rh * this.tb,
-            w.py + this._rh * this.td
+            w.px + this._w * w.ta,
+            w.py + this._w * w.tc,
+            w.px + this._w * w.ta + this._h * w.tb,
+            w.py + this._w * w.tc + this._h * w.td,
+            w.px + this._h * w.tb,
+            w.py + this._h * w.td
         ]
     };
 

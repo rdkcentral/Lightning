@@ -164,25 +164,25 @@ export default class WebGLRenderer extends Renderer {
             floats[offset++] = viewCore._ulx;
             floats[offset++] = viewCore._uly;
             uints[offset++] = mca(viewCore._colorUl, r.alpha);
-            floats[offset++] = r.px + viewCore._rw * r.ta;
-            floats[offset++] = r.py + viewCore._rw * r.tc;
+            floats[offset++] = r.px + viewCore._w * r.ta;
+            floats[offset++] = r.py + viewCore._w * r.tc;
             floats[offset++] = viewCore._brx;
             floats[offset++] = viewCore._uly;
             uints[offset++] = mca(viewCore._colorUr, r.alpha);
-            floats[offset++] = r.px + viewCore._rw * r.ta + viewCore._rh * r.tb;
-            floats[offset++] = r.py + viewCore._rw * r.tc + viewCore._rh * r.td;
+            floats[offset++] = r.px + viewCore._w * r.ta + viewCore._h * r.tb;
+            floats[offset++] = r.py + viewCore._w * r.tc + viewCore._h * r.td;
             floats[offset++] = viewCore._brx;
             floats[offset++] = viewCore._bry;
             uints[offset++] = mca(viewCore._colorBr, r.alpha);
-            floats[offset++] = r.px + viewCore._rh * r.tb;
-            floats[offset++] = r.py + viewCore._rh * r.td;
+            floats[offset++] = r.px + viewCore._h * r.tb;
+            floats[offset++] = r.py + viewCore._h * r.td;
             floats[offset++] = viewCore._ulx;
             floats[offset++] = viewCore._bry;
             uints[offset] = mca(viewCore._colorBl, r.alpha);
         } else {
             // Simple.
-            let cx = r.px + viewCore._rw * r.ta;
-            let cy = r.py + viewCore._rh * r.td;
+            let cx = r.px + viewCore._w * r.ta;
+            let cy = r.py + viewCore._h * r.td;
 
             floats[offset++] = r.px;
             floats[offset++] = r.py;

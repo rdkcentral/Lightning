@@ -24,15 +24,15 @@ export default class BorderComponent extends Component {
 
         this.onAfterUpdate = function (view) {
             const content = view.childList.first;
-            let rw = view.core.rw || content.renderWidth;
-            let rh = view.core.rh || content.renderHeight;
-            view._borderTop.w = rw;
-            view._borderBottom.y = rh;
-            view._borderBottom.w = rw;
-            view._borderLeft.h = rh + view._borderTop.h + view._borderBottom.h;
+            let w = view.core.w || content.renderWidth;
+            let h = view.core.h || content.renderHeight;
+            view._borderTop.w = w;
+            view._borderBottom.y = h;
+            view._borderBottom.w = w;
+            view._borderLeft.h = h + view._borderTop.h + view._borderBottom.h;
             view._borderLeft.y = -view._borderTop.h;
-            view._borderRight.x = rw;
-            view._borderRight.h = rh + view._borderTop.h + view._borderBottom.h;
+            view._borderRight.x = w;
+            view._borderRight.h = h + view._borderTop.h + view._borderBottom.h;
             view._borderRight.y = -view._borderTop.h;
         };
 

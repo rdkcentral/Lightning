@@ -37,7 +37,7 @@ export default class WebGLCoreRenderExecutor extends CoreRenderExecutor {
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, allIndices, gl.STATIC_DRAW);
 
         // The matrix that causes the [0,0 - W,H] box to map to [-1,-1 - 1,1] in the end results.
-        this._projection = new Float32Array([2/this.ctx.stage.rw, -2/this.ctx.stage.rh]);
+        this._projection = new Float32Array([2/this.ctx.stage.coordsWidth, -2/this.ctx.stage.coordsHeight]);
 
     }
 

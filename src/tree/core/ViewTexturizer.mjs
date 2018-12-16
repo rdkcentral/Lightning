@@ -140,7 +140,7 @@ export default class ViewTexturizer {
 
     getRenderTexture() {
         if (!this._renderTexture) {
-            this._renderTexture = this.ctx.allocateRenderTexture(this._core._rw, this._core._rh);
+            this._renderTexture = this.ctx.allocateRenderTexture(this._core._w, this._core._h);
             this._renderTextureReused = false;
         }
         return this._renderTexture;

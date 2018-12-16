@@ -336,11 +336,11 @@ export default class Stage extends EventEmitter {
         return this._options.h;
     }
 
-    get rw() {
+    get coordsWidth() {
         return this.w / this._options.precision;
     }
 
-    get rh() {
+    get coordsHeight() {
         return this.h / this._options.precision;
     }
 

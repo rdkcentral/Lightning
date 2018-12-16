@@ -161,13 +161,13 @@ class WebGLFastBlurComponent extends Component {
     static _template() {
         const onUpdate = function(view, viewCore) {
             if ((viewCore._recalc & (2 + 128))) {
-                const rw = viewCore.rw;
-                const rh = viewCore.rh;
+                const w = viewCore.w;
+                const h = viewCore.h;
                 let cur = viewCore;
                 do {
                     cur = cur._children[0];
-                    cur._view.w = rw;
-                    cur._view.h = rh;
+                    cur._view.w = w;
+                    cur._view.h = h;
                 } while(cur._children);
             }
         };

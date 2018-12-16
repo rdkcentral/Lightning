@@ -105,6 +105,9 @@ export default class View {
          */
         this.__childList = null;
 
+        this._w = 0;
+
+        this._h = 0;
     }
 
     get id() {
@@ -413,8 +416,8 @@ export default class View {
     }
 
     _getRenderWidth() {
-        if (this.__core.w) {
-            return this.__core.w;
+        if (this._w) {
+            return this._w;
         } else if (this.__displayedTexture) {
             return this.__displayedTexture.getRenderWidth();
         } else if (this.__texture) {
@@ -426,8 +429,8 @@ export default class View {
     };
 
     _getRenderHeight() {
-        if (this.__core.h) {
-            return this.__core.h;
+        if (this._h) {
+            return this._h;
         } else if (this.__displayedTexture) {
             return this.__displayedTexture.getRenderHeight();
         } else if (this.__texture) {
@@ -441,7 +444,7 @@ export default class View {
     get renderWidth() {
         if (this.__enabled) {
             // Render width is only maintained if this view is enabled.
-            return this.__core._rw;
+            return this.__core.w;
         } else {
             return this._getRenderWidth();
         }
@@ -449,7 +452,7 @@ export default class View {
 
     get renderHeight() {
         if (this.__enabled) {
-            return this.__core._rh;
+            return this.__core.h;
         } else {
             return this._getRenderHeight();
         }
@@ -620,23 +623,30 @@ export default class View {
     };
 
     _updateDimensions() {
-        let rw = this._getRenderWidth();
-        let rh = this._getRenderHeight();
+        let w = this._getRenderWidth();
+        let h = this._getRenderHeight();
 
         let unknownSize = false;
-        if (!rw || !rh) {
+        if (!w || !h) {
             if (!this.__displayedTexture && this.__texture) {
-                // Texture size unknown.
-                unknownSize = true;
-
                 // We use a 'max width' replacement instead in the ViewCore calcs.
                 // This makes sure that it is able to determine withinBounds.
-                rw = rw || this.__texture.mw;
-                rh = rh || this.__texture.mh;
+                w = w || this.__texture.mw;
+                h = h || this.__texture.mh;
+
+                if (!w) {
+                    unknownSize = true;
+                    w = 2048;
+                }
+
+                if (!h) {
+                    unknownSize = true;
+                    h = 2048;
+                }
             }
         }
 
-        if (this.__core.setDimensions(rw, rh, unknownSize)) {
+        if (this.__core.setDimensions(w, h, unknownSize)) {
             this._onResize();
         }
     }
@@ -1366,19 +1376,31 @@ export default class View {
     }
 
     get w() {
-        return this.__core.w;
+        return this._w;
     }
 
     set w(v) {
-        this.__core.w = v;
+        if (this._w !== v) {
+            if (this._w < 0) {
+                throw new Error("Negative width is not supported");
+            }
+            this._w = v;
+            this._updateDimensions();
+        }
     }
 
     get h() {
-        return this.__core.h;
+        return this._h;
     }
 
     set h(v) {
-        this.__core.h = v;
+        if (this._h !== v) {
+            if (this._h < 0) {
+                throw new Error("Negative height is not supported");
+            }
+            this._h = v;
+            this._updateDimensions();
+        }
     }
 
     get scaleX() {
