@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+
+    <script src="../../devtools/lightning-inspect.js"></script>
+</head>
+<body>
+    <script type="module">
+        import lng from '../../lightning.mjs';
+        import TestShader from './TestShader.mjs';
+        // attachInspector(lng)
+
+        window.onload = function() {
+            class App extends lng.Application {
+                static _template() {
+                    return {
+                        Coords: {shader: {type: TestShader}, src: "./rockies.jpeg"},
+                        Test: {src: "./rockies.jpeg"}
+                    }
+                }
+                static _states() {
+                    return {
+                        _init: function() {
+                            const n = 100 * 100;
+                            const source = new Float32Array(n * 4);
+                            for (let i = 0; i < n * 4; i++) {
+                                const y = Math.floor(i / 100);
+                                const x = i - y * 100;
+                                source[i] = x;
+                                source[i+1] = y;
+                                source[i+2] = 0;
+                                source[i+3] = 0;
+                            }
+
+                            const gl = this.stage.gl;
+                            gl.getExtension('OES_texture_float');
+
+                            // this.tag("Coords").texture = new lng.textures.StaticTexture(this.stage);
+                            // this.tag("Coords").texture.options = {source: new Float32Array(source.buffer), w: 100, h: 100, texOptions: {type: gl.FLOAT, format: gl.RGBA}};
+                            // this.tag("Coords").loadTexture();
+                        },
+                        _handleKey: function() {
+                            this.stage.forceRenderUpdate();
+                        }
+                    }
+                }
+            }
+
+            const options = {stage: {w: 1280, h: 720, clearColor: 0xFF000000, canvas2d: false, useImageWorker: false}, debug: false};
+            options.keys = {
+                38: "Up",
+                40: "Down",
+                37: "Left",
+                39: "Right",
+                13: "Enter",
+                9: "Back",
+                8: "Back",
+                93: "Back",
+                174: "Back",
+                175: "Menu",
+                83: "Search"
+            };
+
+            const app = new App(options);
+
+            document.body.appendChild(app.stage.getCanvas());
+
+
+        }
+
+
+    </script>
+</body>
+</html>

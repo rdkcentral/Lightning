@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+
+    <script src="../../devtools/lightning-inspect.js"></script>
+</head>
+<body>
+    <script type="module">
+        import lng from '../../lightning.mjs'
+        // attachInspector(lng)
+
+        class DiffShader extends lng.shaders.WebGLDefaultShader {
+            constructor(ctx) {
+                super(ctx)
+                this._scale = 5;
+            }
+
+            set scale(v) {
+                this._scale = v;
+            }
+
+            get scale() {
+                return this._scale;
+            }
+
+            setupUniforms(operation) {
+                super.setupUniforms(operation);
+                this._setUniform("scale",this._scale, this.gl.uniform1f, false);
+            }
+
+            static get fragmentShaderSource() {
+                return `
+#ifdef GL_ES
+precision lowp float;
+#endif
+varying vec2 vTextureCoord;
+varying vec4 vColor;
+uniform sampler2D uSampler;
+uniform float scale;
+void main(void){
+    vec2 coords = (vTextureCoord - 0.5) * scale;
+    vec2 diff = vec2(coords.y, -coords.x + coords.y*(1.0-coords.x*coords.x));
+    coords = -0.004 * diff + vTextureCoord;
+    gl_FragColor = texture2D(uSampler, coords) * vColor;
+}`;
+            }
+        }
+
+        window.onload = function() {
+            class App extends lng.Application {
+                static _template() {
+                    return {
+                        Content: {rtt: true, w: 1280, h: 720,
+                            Prev: {shader: {type: DiffShader}},
+                            Samsung: {alpha: 1.0, x: 640, y: 360, mount: 0.5, scale:1.5, w:468,h:290, src: "./samsung-tv.png",
+                                Screen: {colorLeft: 0xFFFFAAAA,colorRight: 0xFFAAAAFF, src: "../../examples/rockies.jpeg", x: 11, y: 10, w: 446, h: 253}
+                            }
+                        }
+                    }
+                }
+
+                _step() {
+                    const content = this.tag("Content");
+                    const prev = this.tag("Prev");
+
+                    if (content.getTexture().nativeTexture && prev.texture.source.nativeTexture) {
+                        this.stage.ctx.copyRenderTexture(content.getTexture().nativeTexture, prev.texture.source.nativeTexture, {
+                            sx: 0,
+                            sy: 0,
+                            x: 0,
+                            y: 0,
+                            w: 1280,
+                            h: 720
+                        });
+                    }
+
+                    prev.forceRenderUpdate();
+                }
+
+                static _states() {
+                    return {
+                        _construct: function() {
+                            this._handler = () => this._step();
+                        },
+                        _init: function() {
+                            const n = 1280 * 720;
+                            const source = new Uint32Array(n);
+                            for (let i = 0; i < n; i++) {
+                                source[i] = 0x00000000;
+                            }
+
+                            this.tag("Prev").texture = new lng.textures.StaticTexture(this.stage);
+                            this.tag("Prev").texture.options = {source: new Uint8Array(source.buffer), w: 1280, h: 720};
+
+                            this.tag("Samsung").animation({
+                                duration: 10,
+                                repeat: -1,
+                                actions: [
+                                    {p: 'rotation', v: {sm: 0, 0: 0, 1: 2 * Math.PI}}
+                                ]
+                            }).start();
+
+                            this.tag("Prev").animation({
+                                duration: 5,
+                                repeat: -1,
+                                actions: [
+                                    {p: 'shader.scale', v: {0: 3, 0.5: 7, 1: 3}}
+                                ]
+                            }).start();
+
+                        },
+                        _active: function() {
+                            this.stage.on('frameEnd', this._handler);
+                        },
+                        _inactive: function() {
+                            this.stage.off('frameEnd', this._handler);
+                        },
+                        _handleLeft: function() {
+                            this.tag('Samsung').setSmooth('x', this.tag('Samsung').getSmooth('x') - 100)
+                        },
+                        _handleRight: function() {
+                            this.tag('Samsung').setSmooth('x', this.tag('Samsung').getSmooth('x') + 100)
+                        },
+                        _handleUp: function() {
+                            this.tag('Samsung').setSmooth('y', this.tag('Samsung').getSmooth('y') - 100)
+                        },
+                        _handleDown: function() {
+                            this.tag('Samsung').setSmooth('y', this.tag('Samsung').getSmooth('y') + 100)
+                        },
+                        _handleKey: function(e) {
+                            if(e.keyCode === 65) {
+                                this.tag("Samsung").visible = false;
+                                this.tag('Samsung').setSmooth('rotation', this.tag('Samsung').getSmooth('rotation') - 0.1)
+                            } else if (e.keyCode === 83) {
+                                this.tag("Samsung").visible = true;
+                                this.tag('Samsung').setSmooth('rotation', this.tag('Samsung').getSmooth('rotation') + 0.1)
+                            }
+                        }
+                    }
+                }
+            }
+
+            const options = {stage: {w: 1280, h: 720, clearColor: 0xFF000000, canvas2d: false, useImageWorker: false}, debug: false};
+            options.keys = {
+                38: "Up",
+                40: "Down",
+                37: "Left",
+                39: "Right",
+                13: "Enter",
+                9: "Back",
+                8: "Back",
+                93: "Back",
+                174: "Back",
+                175: "Menu",
+                83: "Search"
+            };
+
+            const app = new App(options);
+
+            document.body.appendChild(app.stage.getCanvas());
+        }
+    </script>
+</body>
+</html>

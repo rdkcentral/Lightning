@@ -12332,6 +12332,7 @@ class Stage extends EventEmitter {
             }
         } else {
             if (Utils.isWeb && (!Stage.isWebglSupported() || this.getOption('canvas2d'))) {
+                console.log('Using canvas2d renderer');
                 this.c2d = this.platform.createCanvasContext(this.getOption('w'), this.getOption('h'));
             } else {
                 this.gl = this.platform.createWebGLContext(this.getOption('w'), this.getOption('h'));
