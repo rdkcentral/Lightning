@@ -269,6 +269,7 @@ class StageUtils {
 }
 
 class Utils {
+
     static isFunction(value) {
         return typeof value === 'function';
     }
@@ -286,7 +287,7 @@ class Utils {
     }
 
     static isString(value) {
-        return typeof value == 'string';
+        return typeof value === 'string';
     }
 
     static clone(v) {
@@ -317,12 +318,12 @@ class Utils {
 
     static isObject(value) {
         let type = typeof value;
-        return !!value && (type == 'object' || type == 'function');
+        return !!value && (type === 'object' || type === 'function');
     }
 
     static isPlainObject(value) {
         let type = typeof value;
-        return !!value && (type == 'object');
+        return !!value && (type === 'object');
     }
 
     static isObjectLiteral(value){
@@ -334,7 +335,7 @@ class Utils {
     }
 
     static getModuloIndex(index, len) {
-        if (len == 0) return index;
+        if (len === 0) return index;
         while (index < 0) {
             index += Math.ceil(-index / len) * len;
         }
@@ -437,10 +438,12 @@ class Utils {
     static isUcChar(charcode) {
         return charcode >= 65 && charcode <= 90;
     }
+
 }
 
 Utils.isNode = (typeof window === "undefined");
 Utils.isWeb = (typeof window !== "undefined");
+Utils.isWPE = Utils.isWeb && (navigator.userAgent.indexOf("WPE") !== -1);
 
 class TextureSource {
 
@@ -12452,7 +12455,7 @@ class Stage extends EventEmitter {
         opt('fixedDt', 0);
         opt('useTextureAtlas', false);
         opt('debugTextureAtlas', false);
-        opt('useImageWorker', false);
+        opt('useImageWorker', true);
         opt('autostart', true);
         opt('precision', 1);
         opt('canvas2d', false);

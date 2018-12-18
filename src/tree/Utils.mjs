@@ -1,4 +1,5 @@
 export default class Utils {
+
     static isFunction(value) {
         return typeof value === 'function';
     }
@@ -16,7 +17,7 @@ export default class Utils {
     }
 
     static isString(value) {
-        return typeof value == 'string';
+        return typeof value === 'string';
     }
 
     static clone(v) {
@@ -47,12 +48,12 @@ export default class Utils {
 
     static isObject(value) {
         let type = typeof value;
-        return !!value && (type == 'object' || type == 'function');
+        return !!value && (type === 'object' || type === 'function');
     }
 
     static isPlainObject(value) {
         let type = typeof value;
-        return !!value && (type == 'object');
+        return !!value && (type === 'object');
     }
 
     static isObjectLiteral(value){
@@ -64,7 +65,7 @@ export default class Utils {
     }
 
     static getModuloIndex(index, len) {
-        if (len == 0) return index;
+        if (len === 0) return index;
         while (index < 0) {
             index += Math.ceil(-index / len) * len;
         }
@@ -167,7 +168,9 @@ export default class Utils {
     static isUcChar(charcode) {
         return charcode >= 65 && charcode <= 90;
     }
+
 }
 
 Utils.isNode = (typeof window === "undefined");
 Utils.isWeb = (typeof window !== "undefined");
+Utils.isWPE = Utils.isWeb && (navigator.userAgent.indexOf("WPE") !== -1);

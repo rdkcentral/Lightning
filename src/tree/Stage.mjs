@@ -159,7 +159,7 @@ export default class Stage extends EventEmitter {
         opt('fixedDt', 0);
         opt('useTextureAtlas', false);
         opt('debugTextureAtlas', false);
-        opt('useImageWorker', false);
+        opt('useImageWorker', true);
         opt('autostart', true);
         opt('precision', 1);
         opt('canvas2d', false);
