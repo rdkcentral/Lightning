@@ -42,7 +42,7 @@ export default class SizeShrinker {
             const desiredShrink = flexItem.shrink * amountPerShrink;
             const actualShrink = Math.min(remainingShrink, desiredShrink);
 
-            flexItem._resizeMainAxis(flexItem._getMainAxisLayoutSizeWithPaddingAndMargin() - actualShrink);
+            flexItem._resizeMainAxis(flexItem._getMainAxisLayoutSize() - actualShrink);
 
             this._shrunkSize += actualShrink;
             this._toBeShrunk -= actualShrink;
@@ -52,7 +52,7 @@ export default class SizeShrinker {
     }
 
     _getItemShrinkableSize(item) {
-        return item.flexItem._getMainAxisLayoutSizeWithPaddingAndMargin() - item.flexItem._getMainAxisMinSizeWithPaddingAndMargin();
+        return item.flexItem._getMainAxisLayoutSize() - item.flexItem._getMainAxisMinSize();
     }
 
     _getShrinkableItems() {
@@ -62,11 +62,16 @@ export default class SizeShrinker {
     }
 
     _isShrinkableItem(item) {
-        const size = item.flexItem._getMainAxisLayoutSizeWithPaddingAndMargin();
-        const minSize = item.flexItem._getMainAxisMinSizeWithPaddingAndMargin();
-        const canShrinkFurther = (size > minSize);
         const isShrinkable = (item.flexItem.shrink > 0);
-        return canShrinkFurther && isShrinkable;
+        if (!isShrinkable) {
+            // Prevent getting min size because it may cause an unnecessary layout.
+            return false;
+        }
+
+        const size = item.flexItem._getMainAxisLayoutSize();
+        const minSize = item.flexItem._getMainAxisMinSize();
+        const canShrinkFurther = (size > minSize);
+        return canShrinkFurther;
     }
 
     _getTotalShrinkAmount() {

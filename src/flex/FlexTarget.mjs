@@ -29,12 +29,13 @@ export default class FlexTarget {
     }
 
     get flexLayout() {
-        return this.flex._layout;
+        return this.flex ? this.flex._layout : null;
     }
 
     layoutFlexTree() {
-        this.flexLayout.updateLayoutTree();
-        this.flexLayout.updateItemCoords();
+        if (this.isFlexEnabled() && this.isChanged()) {
+            this.flexLayout.layoutTree();
+        }
     }
 
     resetNonFlexLayout() {
@@ -98,20 +99,17 @@ export default class FlexTarget {
         }
     }
 
-    get flexItemDisabled() {
-        return this._flexItemDisabled;
-    }
-
     _enableFlex() {
         this._flex = new FlexContainer(this);
         this._checkEnabled();
-
+        this._setRecalc();
         this._enableChildrenAsFlexItems();
     }
 
     _disableFlex() {
         this._flex = null;
         this._checkEnabled();
+        this._setRecalc();
         this._disableChildrenAsFlexItems();
     }
 
@@ -138,11 +136,13 @@ export default class FlexTarget {
     _enableFlexItem() {
         this._ensureFlexItem();
         this._checkEnabled();
+        this._setRecalc();
     }
 
     _disableFlexItem() {
         // We leave the flexItem object because it may contain custom settings.
         this._checkEnabled();
+        this._setRecalc();
     }
 
     _ensureFlexItem() {
@@ -189,14 +189,14 @@ export default class FlexTarget {
         const target = this._target;
         target.x = 0;
         target.y = 0;
-        target.w = this.originalWidth;
-        target.h = this.originalHeight;
+        target.w = this._originalWidth;
+        target.h = this._originalHeight;
     }
 
     _setupTargetForFlex() {
         const target = this._target;
-        this.originalWidth = target.w;
-        this.originalHeight = target.h;
+        this._originalWidth = target.w;
+        this._originalHeight = target.h;
     }
     
     setParent(from, to) {
@@ -262,34 +262,52 @@ export default class FlexTarget {
         this.target.setLayout(x, y, w, h);
     }
 
+    mustUpdateDeferred() {
+        this._recalc = 2;
+        this._target.triggerLayout();
+    }
+
     mustUpdate() {
         this._setRecalc();
     }
 
+    isChanged() {
+        return this._recalc > 0;
+    }
+
     _setRecalc() {
-        this._recalc = 2;
-        let cur = this;
-        while(true) {
-            const newCur = cur.flexParent;
-            if (!newCur || newCur._recalc) {
-                break;
-            }
-            cur = newCur;
-            cur._recalc = 1;
+        if (this.isEnabled() && (this._recalc !== 2)) {
+            this._recalc = 2;
+            let cur = this;
+            do {
+                const newCur = cur.flexParent;
+                if (!newCur) {
+                    break;
+                }
+
+                if (newCur._recalc) {
+                    // Change already known.
+                    return;
+                }
+
+                newCur._recalc = 1;
+
+                cur = newCur;
+
+                // We do not have to re-layout the upper flex tree because the content changes won't affect it.
+            } while(!cur.isFlexNotSizedByToContents());
+
+            const flexLayoutRoot = cur;
+            flexLayoutRoot._target.triggerLayout();
         }
-        const flexTreeRoot = cur;
-        flexTreeRoot._target.triggerLayout();
     }
 
     clearRecalcFlag() {
         this._recalc = 0;
     }
 
-    /**
-     * @pre target is a flex item.
-     */
-    isFlexTreeRoot() {
-        return !this.flexParent;
+    isFlexNotSizedByToContents() {
+        return !this._flex._isFitToContents();
     }
 
     get originalWidth() {

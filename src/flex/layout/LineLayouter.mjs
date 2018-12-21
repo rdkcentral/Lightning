@@ -18,10 +18,16 @@ export default class LineLayouter {
     }
 
     get mainAxisMinSize() {
+        if (this._mainAxisMinSize === -1) {
+            this._mainAxisMinSize = this._getMainAxisMinSize();
+        }
         return this._mainAxisMinSize;
     }
 
     get crossAxisMinSize() {
+        if (this._crossAxisMinSize === -1) {
+            this._crossAxisMinSize = this._getCrossAxisMinSize();
+        }
         return this._crossAxisMinSize;
     }
 
@@ -39,10 +45,6 @@ export default class LineLayouter {
             const item = items[i];
 
             this._layoutFlexItem(item);
-
-            const itemCrossAxisMinSize = item.flexItem._getCrossAxisMinSizeWithPaddingAndMargin();
-
-            this._crossAxisMinSize = Math.max(this._crossAxisMinSize, itemCrossAxisMinSize);
 
             // Get predicted main axis size.
             const itemMainAxisSize = item.flexItem._getMainAxisLayoutSizeWithPaddingAndMargin();
@@ -67,7 +69,11 @@ export default class LineLayouter {
 
     _layoutFlexItem(item) {
         if (item.isFlexEnabled()) {
-            item.flexLayout.updateLayoutTree();
+            if (item.isFlexNotSizedByToContents()) {
+                item.flexLayout.deferLayout();
+            } else {
+                item.flexLayout.updateTreeLayout();
+            }
         } else {
             item.resetNonFlexLayout();
         }
@@ -79,8 +85,8 @@ export default class LineLayouter {
         this._maxMainAxisPos = 0;
         this._lines = [];
 
-        this._mainAxisMinSize = 0;
-        this._crossAxisMinSize = 0;
+        this._mainAxisMinSize = -1;
+        this._crossAxisMinSize = -1;
         this._mainAxisContentSize = 0;
     }
 
@@ -117,5 +123,24 @@ export default class LineLayouter {
         }
     }
 
+    _getCrossAxisMinSize() {
+        let crossAxisMinSize = 0;
+        const items = this._layout.items;
+        for (let i = 0, n = items.length; i < n; i++) {
+            const item = items[i];
+            const itemCrossAxisMinSize = item.flexItem._getCrossAxisMinSizeWithPaddingAndMargin();
+            crossAxisMinSize = Math.max(crossAxisMinSize, itemCrossAxisMinSize);
+        }
+        return crossAxisMinSize;
+    }
+
+    _getMainAxisMinSize() {
+        if (this._lines.length === 1) {
+            return this._lines[0].getMainAxisMinSize();
+        } else {
+            // Wrapping lines: specified width is used as min width (in accordance to W3C flexbox).
+            return this._layout.mainAxisSize;
+        }
+    }
 
 }

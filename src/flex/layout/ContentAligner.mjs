@@ -41,6 +41,10 @@ export default class ContentAligner {
 
             aligner.align();
 
+            if (aligner.recursiveResizeOccured) {
+                lines[i].setItemPositions();
+            }
+
             currentPos += finalCrossAxisLayoutSize;
             currentPos += spacingBetween;
         }

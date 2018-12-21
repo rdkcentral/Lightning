@@ -13,7 +13,7 @@ export default class LineLayout {
 
     performLayout() {
         this._setItemSizes();
-        this._setItemPositions();
+        this.setItemPositions();
 
         this._calcLayoutInfo();
     }
@@ -38,7 +38,7 @@ export default class LineLayout {
         this._availableSpace += shrinker.getShrunkSize();
     }
 
-    _setItemPositions() {
+    setItemPositions() {
         const positioner = new ItemPositioner(this);
         positioner.position();
     }

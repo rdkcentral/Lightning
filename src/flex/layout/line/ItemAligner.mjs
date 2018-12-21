@@ -19,11 +19,16 @@ export default class ItemAligner {
     }
 
     align() {
+        this._recursiveResizeOccured = false;
         const items = this._line._items;
         for (let i = 0, n = items.length; i < n; i++) {
             const item = items[i];
             this._alignItem(item);
         }
+    }
+
+    get recursiveResizeOccured() {
+        return this._recursiveResizeOccured;
     }
 
     _preventStretch(item) {
@@ -56,8 +61,23 @@ export default class ItemAligner {
             case "stretch":
                 flexItem._setCrossAxisLayoutPos(this._crossAxisLayoutOffset);
 
-                const sizeWithoutMargin = this._crossAxisLayoutSize - flexItem._getCrossAxisMargin();
-                flexItem._resizeCrossAxis(sizeWithoutMargin);
+                const mainAxisLayoutSizeBeforeResize = flexItem._getMainAxisLayoutSize();
+                const size = this._crossAxisLayoutSize - flexItem._getCrossAxisMargin() - flexItem._getCrossAxisPadding();
+                flexItem._resizeCrossAxis(size);
+                const mainAxisLayoutSizeAfterResize = flexItem._getMainAxisLayoutSize();
+
+                const recursiveResize = (mainAxisLayoutSizeAfterResize !== mainAxisLayoutSizeBeforeResize);
+                if (recursiveResize) {
+                    // Recursive resize can happen when this flex item has the opposite direction than the container
+                    // and is wrapping and auto-sizing. Due to item/content stretching the main axis size of the flex
+                    // item may decrease. If it does so, we must re-justify-content the complete line.
+                    // Notice that we don't account for changes to the (if autosized) main axis size caused by recursive
+                    // resize, which may cause the container's main axis to not shrink to the contents properly.
+                    // This is by design, because if we had re-run the main axis layout, we could run into issues such
+                    // as slow layout or endless loops.
+                    this._recursiveResizeOccured = true;
+                }
+
                 break;
         }
     }

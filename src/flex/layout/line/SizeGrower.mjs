@@ -18,7 +18,7 @@ export default class SizeGrower {
                 const flexItem = item.flexItem;
                 const actualGrow = flexItem.grow * amountPerGrow;
                 this._grownSize += actualGrow;
-                const finalSize = item.flexItem._getMainAxisLayoutSizeWithPaddingAndMargin() + actualGrow;
+                const finalSize = item.flexItem._getMainAxisLayoutSize() + actualGrow;
                 item.flexItem._resizeMainAxis(finalSize);
             }
         }

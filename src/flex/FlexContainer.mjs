@@ -149,6 +149,12 @@ export default class FlexContainer {
         Base.patchObject(this, settings);
     }
 
+    _isFitToContents() {
+        const layout = this._layout;
+        return layout.isMainAxisFitToContents() || layout.isCrossAxisFitToContents();
+    }
+
+
 }
 
 FlexContainer.ALIGN_ITEMS = ["flex-start", "flex-end", "center", "stretch"];

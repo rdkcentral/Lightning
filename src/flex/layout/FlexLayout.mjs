@@ -11,17 +11,35 @@ export default class FlexLayout {
     constructor(flexContainer) {
         this._flexContainer = flexContainer;
 
-        this._lines = null;
-
-        this._mainAxisMinSize = 0;
-        this._crossAxisMinSize = 0;
+        this._lineLayouter = new LineLayouter(this);
 
         this._resizingMainAxis = false;
         this._resizingCrossAxis = false;
+
+        /**
+         * While layouting the tree, if a certain flex container branch does not fit it's contents then the layout of
+         * it can be deferred (because it's guaranteed that its contents won't affect the upper branch).
+         *
+         * This enables the update loop to improve performance: updating its layout may not be needed at all (if it
+         * is out of bounds or invisible).
+         * @type {boolean}
+         */
+        this._deferLayout = false;
     }
 
-    updateLayoutTree() {
-        this.item.clearRecalcFlag();
+    layoutTree() {
+        const isSubTree = this.item.flexParent;
+        if (isSubTree) {
+            // Use the dimensions set by the parent flex tree.
+            this._updateTreeLayoutWithCurrentAxes();
+        } else {
+            this.updateTreeLayout();
+        }
+        this.updateItemCoords();
+    }
+
+    updateTreeLayout() {
+        this.resetDeferredLayout();
         this._setInitialAxisSizes();
         this._layoutAxes();
     }
@@ -29,6 +47,25 @@ export default class FlexLayout {
     updateItemCoords() {
         const updater = new ItemCoordinatesUpdater(this);
         updater.finalize();
+    }
+
+    _updateTreeLayoutWithCurrentAxes() {
+        this.resetDeferredLayout();
+        this._layoutAxes();
+    }
+
+    deferLayout() {
+        this._deferLayout = true;
+        this.item.resetNonFlexLayout();
+        this.item.mustUpdateDeferred();
+    }
+
+    isLayoutDeferred() {
+        return this._deferLayout;
+    }
+
+    resetDeferredLayout() {
+        this._deferLayout = false;
     }
 
     _setInitialAxisSizes() {
@@ -52,19 +89,17 @@ export default class FlexLayout {
     }
 
     _layoutLines() {
-        const lineLayouter = new LineLayouter(this);
-        lineLayouter.layoutLines();
+        this._lineLayouter.layoutLines();
+    }
 
-        this._lines = lineLayouter.lines;
-        this._mainAxisMinSize = lineLayouter.mainAxisMinSize;
-        this._crossAxisMinSize = lineLayouter.crossAxisMinSize;
-        this._mainAxisContentSize = lineLayouter.mainAxisContentSize;
+    get _lines() {
+        return this._lineLayouter.lines;
     }
 
     _fitMainAxisSizeToContents() {
         if (!this._resizingMainAxis) {
             if (this.isMainAxisFitToContents()) {
-                this.mainAxisSize = this._mainAxisContentSize;
+                this.mainAxisSize = this._lineLayouter.mainAxisContentSize;
             }
         }
     }
@@ -110,20 +145,29 @@ export default class FlexLayout {
 
     getAxisMinSize(horizontal) {
         if (this._horizontal === horizontal) {
-            return this._mainAxisMinSize;
+            return this._getMainAxisMinSize();
         } else {
             return this._getCrossAxisMinSize();
         }
     }
 
-    _getCrossAxisMinSize() {
-        return this._crossAxisMinSize;
+    _getMainAxisMinSize() {
+        if (this.isLayoutDeferred()) {
+            // We need info about the contents, so we can't defer layout.
+            this.updateTreeLayout();
+        }
+        return this._lineLayouter.mainAxisMinSize;
     }
 
-    resizeMainAxis(sizeWithPadding) {
-        this._resizingMainAxis = true;
+    _getCrossAxisMinSize() {
+        if (this.isLayoutDeferred()) {
+            this.updateTreeLayout();
+        }
+        return this._lineLayouter.crossAxisMinSize;
+    }
 
-        const size = sizeWithPadding - this._getMainAxisPadding();
+    resizeMainAxis(size) {
+        this._resizingMainAxis = true;
 
         if (this.mainAxisSize !== size) {
             this.mainAxisSize = size;
@@ -133,10 +177,8 @@ export default class FlexLayout {
         this._resizingMainAxis = false;
     }
 
-    resizeCrossAxis(sizeWithPadding) {
+    resizeCrossAxis(size) {
         this._resizingCrossAxis = true;
-
-        const size = sizeWithPadding - this._getCrossAxisPadding();
 
         if (this.crossAxisSize !== size) {
             this.crossAxisSize = size;

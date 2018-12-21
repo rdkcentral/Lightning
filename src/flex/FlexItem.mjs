@@ -84,6 +84,10 @@ export default class FlexItem {
         this._changed();
     }
 
+    /**
+     * @note margins behave slightly different than in HTML with regard to shrinking.
+     * In HTML, (outer) margins can be removed when shrinking. In this engine, they will not shrink at all.
+     */
     set margin(v) {
         this.marginLeft = v;
         this.marginTop = v;
