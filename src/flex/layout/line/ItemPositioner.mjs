@@ -26,14 +26,6 @@ export default class ItemPositioner {
     }
 
     _getSpacing() {
-        if (this._layout.isMainAxisFitToContents()) {
-            // The main axis will fit the contents, so there are no spacings.
-            return {
-                spacingBefore: 0,
-                spacingBetween: 0
-            }
-        }
-
         const remainingSpace = this._line._availableSpace;
         let mode = this._layout._flexContainer.justifyContent;
         const numberOfItems = this._line._items.length;
