@@ -634,14 +634,8 @@ export default class View {
                 w = w || this.__texture.mw;
                 h = h || this.__texture.mh;
 
-                if (!w) {
+                if (!w || !h) {
                     unknownSize = true;
-                    w = 2048;
-                }
-
-                if (!h) {
-                    unknownSize = true;
-                    h = 2048;
                 }
             }
         }

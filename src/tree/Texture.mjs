@@ -62,14 +62,14 @@ export default class Texture {
 
         /**
          * The (maximum) expected texture source width. Used for within bounds determination while texture is not yet loaded.
-         * If not set, 2048 is used by View.updateDimensions.
+         * If not set, 2048 is used by ViewCore.update.
          * @type {number}
          */
         this.mw = 0;
 
         /**
          * The (maximum) expected texture source height. Used for within bounds determination while texture is not yet loaded.
-         * If not set, 2048 is used by View.updateDimensions.
+         * If not set, 2048 is used by ViewCore.update.
          * @type {number}
          */
         this.mh = 0;

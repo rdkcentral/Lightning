@@ -20,8 +20,8 @@ export default class FlexLayout {
          * While layouting the tree, if a certain flex container branch does not fit it's contents then the layout of
          * it can be deferred (because it's guaranteed that its contents won't affect the upper branch).
          *
-         * This enables the update loop to improve performance: updating its layout may not be needed at all (if it
-         * is out of bounds or invisible).
+         * This enables the update loop to improve performance: updating its layout may not be needed at all (if the
+         * dimensions after layouting the parent flex container are not changed since the last update).
          * @type {boolean}
          */
         this._deferLayout = false;
@@ -39,7 +39,7 @@ export default class FlexLayout {
     }
 
     updateTreeLayout() {
-        this.resetDeferredLayout();
+        this._resetDeferredLayout();
         this._setInitialAxisSizes();
         this._layoutAxes();
     }
@@ -50,7 +50,7 @@ export default class FlexLayout {
     }
 
     _updateTreeLayoutWithCurrentAxes() {
-        this.resetDeferredLayout();
+        this._resetDeferredLayout();
         this._layoutAxes();
     }
 
@@ -63,7 +63,7 @@ export default class FlexLayout {
         return this._deferLayout;
     }
 
-    resetDeferredLayout() {
+    _resetDeferredLayout() {
         this._deferLayout = false;
     }
 

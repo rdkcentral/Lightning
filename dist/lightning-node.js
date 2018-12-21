@@ -1397,8 +1397,8 @@ class FlexLayout {
          * While layouting the tree, if a certain flex container branch does not fit it's contents then the layout of
          * it can be deferred (because it's guaranteed that its contents won't affect the upper branch).
          *
-         * This enables the update loop to improve performance: updating its layout may not be needed at all (if it
-         * is out of bounds or invisible).
+         * This enables the update loop to improve performance: updating its layout may not be needed at all (if the
+         * dimensions after layouting the parent flex container are not changed since the last update).
          * @type {boolean}
          */
         this._deferLayout = false;
@@ -1416,7 +1416,7 @@ class FlexLayout {
     }
 
     updateTreeLayout() {
-        this.resetDeferredLayout();
+        this._resetDeferredLayout();
         this._setInitialAxisSizes();
         this._layoutAxes();
     }
@@ -1427,7 +1427,7 @@ class FlexLayout {
     }
 
     _updateTreeLayoutWithCurrentAxes() {
-        this.resetDeferredLayout();
+        this._resetDeferredLayout();
         this._layoutAxes();
     }
 
@@ -1440,7 +1440,7 @@ class FlexLayout {
         return this._deferLayout;
     }
 
-    resetDeferredLayout() {
+    _resetDeferredLayout() {
         this._deferLayout = false;
     }
 
@@ -3070,7 +3070,7 @@ class ViewCore {
         if (this.hasFlexLayout()) {
             return this._layout.originalHeight;
         } else {
-            return this._w;
+            return this._h;
         }
     }
 
@@ -3470,8 +3470,8 @@ class ViewCore {
 
         if (this._w !== w || this._h !== h) {
             if (this.hasFlexLayout()) {
-                this._layout.originalWidth = this._dimsUnknown ? 0 : w;
-                this._layout.originalHeight = this._dimsUnknown ? 0 : h;
+                this._layout.originalWidth = w;
+                this._layout.originalHeight = h;
             } else {
                 this._updateDimensions(w, h);
             }
@@ -4040,11 +4040,8 @@ class ViewCore {
 
         if (this._recalc & (256 + 128)) {
             // If fixed dimensions, wait for layout until within bounds check performed.
-            if (this._layout && this._layout.isFitToContents()) {
+            if (this._layout) {
                 this._layout.layoutFlexTree();
-                if (this._recalc & 256) {
-                    this._recalc -= 256;
-                }
             }
         }
 
@@ -4166,27 +4163,27 @@ class ViewCore {
 
             const r = this._renderContext;
             
-            const lw = this._w;
-            const lh = this._h;
+            const bboxW = this._dimsUnknown ? 2048 : this._w;
+            const bboxH = this._dimsUnknown ? 2048 : this._h;
             
             // Calculate a bbox for this view.
             let sx, sy, ex, ey;
             const rComplex = (r.tb !== 0) || (r.tc !== 0) || (r.ta < 0) || (r.td < 0);
             if (rComplex) {
-                sx = Math.min(0, lw * r.ta, lw * r.ta + lh * r.tb, lh * r.tb) + r.px;
-                ex = Math.max(0, lw * r.ta, lw * r.ta + lh * r.tb, lh * r.tb) + r.px;
-                sy = Math.min(0, lw * r.tc, lw * r.tc + lh * r.td, lh * r.td) + r.py;
-                ey = Math.max(0, lw * r.tc, lw * r.tc + lh * r.td, lh * r.td) + r.py;
+                sx = Math.min(0, bboxW * r.ta, bboxW * r.ta + bboxH * r.tb, bboxH * r.tb) + r.px;
+                ex = Math.max(0, bboxW * r.ta, bboxW * r.ta + bboxH * r.tb, bboxH * r.tb) + r.px;
+                sy = Math.min(0, bboxW * r.tc, bboxW * r.tc + bboxH * r.td, bboxH * r.td) + r.py;
+                ey = Math.max(0, bboxW * r.tc, bboxW * r.tc + bboxH * r.td, bboxH * r.td) + r.py;
             } else {
                 sx = r.px;
-                ex = r.px + r.ta * lw;
+                ex = r.px + r.ta * bboxW;
                 sy = r.py;
-                ey = r.py + r.td * lh;
+                ey = r.py + r.td * bboxH;
             }
 
             if (this._dimsUnknown && (rComplex || this._localTa < 1 || this._localTb < 1)) {
-                // If we are dealing with a non-identity matrix, we must extend the bbox so that withinBounds and;
-                //  scissors will include the complete range of (positive) dimensions up to lw,lh.
+                // If we are dealing with a non-identity matrix, we must extend the bbox so that withinBounds and
+                //  scissors will include the complete range of (positive) dimensions up to ,lh.
                 const nx = this._x * pr.ta + this._y * pr.tb + pr.px;
                 const ny = this._x * pr.tc + this._y * pr.td + pr.py;
                 if (nx < sx) sx = nx;
@@ -4232,15 +4229,15 @@ class ViewCore {
                 if (this._onAfterCalcs(this.view)) {
                     // Recalculate bbox.
                     if (rComplex) {
-                        sx = Math.min(0, lw * r.ta, lw * r.ta + lh * r.tb, lh * r.tb) + r.px;
-                        ex = Math.max(0, lw * r.ta, lw * r.ta + lh * r.tb, lh * r.tb) + r.px;
-                        sy = Math.min(0, lw * r.tc, lw * r.tc + lh * r.td, lh * r.td) + r.py;
-                        ey = Math.max(0, lw * r.tc, lw * r.tc + lh * r.td, lh * r.td) + r.py;
+                        sx = Math.min(0, bboxW * r.ta, bboxW * r.ta + bboxH * r.tb, bboxH * r.tb) + r.px;
+                        ex = Math.max(0, bboxW * r.ta, bboxW * r.ta + bboxH * r.tb, bboxH * r.tb) + r.px;
+                        sy = Math.min(0, bboxW * r.tc, bboxW * r.tc + bboxH * r.td, bboxH * r.td) + r.py;
+                        ey = Math.max(0, bboxW * r.tc, bboxW * r.tc + bboxH * r.td, bboxH * r.td) + r.py;
                     } else {
                         sx = r.px;
-                        ex = r.px + r.ta * lw;
+                        ex = r.px + r.ta * bboxW;
                         sy = r.py;
-                        ey = r.py + r.td * lh;
+                        ey = r.py + r.td * bboxH;
                     }
 
                     if (this._dimsUnknown && (rComplex || this._localTa < 1 || this._localTb < 1)) {
@@ -4341,18 +4338,10 @@ class ViewCore {
             if (this._useRenderToTexture) {
                 // Set viewport necessary for children scissor calculation.
                 if (this._viewport) {
-                    this._viewport[2] = lw;
-                    this._viewport[3] = lh;
+                    this._viewport[2] = bboxW;
+                    this._viewport[3] = bboxH;
                 } else {
-                    this._viewport = [0, 0, lw, lh];
-                }
-            }
-
-            if (this._outOfBounds < 2) {
-                if (this._recalc & (256 + 128)) {
-                    if (this._layout) {
-                        this._layout.layoutFlexTree();
-                    }
+                    this._viewport = [0, 0, bboxW, bboxH];
                 }
             }
 
@@ -5216,14 +5205,14 @@ class Texture {
 
         /**
          * The (maximum) expected texture source width. Used for within bounds determination while texture is not yet loaded.
-         * If not set, 2048 is used by View.updateDimensions.
+         * If not set, 2048 is used by ViewCore.update.
          * @type {number}
          */
         this.mw = 0;
 
         /**
          * The (maximum) expected texture source height. Used for within bounds determination while texture is not yet loaded.
-         * If not set, 2048 is used by View.updateDimensions.
+         * If not set, 2048 is used by ViewCore.update.
          * @type {number}
          */
         this.mh = 0;
@@ -7880,14 +7869,8 @@ class View {
                 w = w || this.__texture.mw;
                 h = h || this.__texture.mh;
 
-                if (!w) {
+                if (!w || !h) {
                     unknownSize = true;
-                    w = 2048;
-                }
-
-                if (!h) {
-                    unknownSize = true;
-                    h = 2048;
                 }
             }
         }
