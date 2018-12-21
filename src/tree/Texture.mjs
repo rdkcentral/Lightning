@@ -457,12 +457,26 @@ export default class Texture {
         }
     }
 
+    _isAutosizeTexture() {
+        return true;
+    }
+
     getRenderWidth() {
+        if (!this._isAutosizeTexture()) {
+            // In case of the rectangle texture, we'd prefer to not cause a 1x1 w,h as it would interfere with flex layout fit-to-contents.
+            return 0;
+        }
+
         // If dimensions are unknown (texture not yet loaded), use maximum width as a fallback as render width to allow proper bounds checking.
         return (this._w || (this._source ? this._source.getRenderWidth() - this._x : 0)) / this._precision;
     }
 
     getRenderHeight() {
+        if (!this._isAutosizeTexture()) {
+            // In case of the rectangle texture, we'd prefer to not cause a 1x1 w,h as it would interfere with flex layout fit-to-contents.
+            return 0;
+        }
+
         return (this._h || (this._source ? this._source.getRenderHeight() - this._y : 0)) / this._precision;
     }
 

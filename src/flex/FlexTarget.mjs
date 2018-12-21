@@ -39,8 +39,6 @@ export default class FlexTarget {
     }
 
     resetNonFlexLayout() {
-        this.x = 0;
-        this.y = 0;
         this.w = this.originalWidth;
         this.h = this.originalHeight;
     }
@@ -143,6 +141,14 @@ export default class FlexTarget {
         // We leave the flexItem object because it may contain custom settings.
         this._checkEnabled();
         this._setRecalc();
+
+        // Offsets have been changed. We can't recover them, so we'll just clear them instead.
+        this._resetOffsets();
+    }
+
+    _resetOffsets() {
+        this.x = 0;
+        this.y = 0;
     }
 
     _ensureFlexItem() {
@@ -259,7 +265,12 @@ export default class FlexTarget {
     }
 
     setLayout(x, y, w, h) {
-        this.target.setLayout(x, y, w, h);
+        if (this.isFlexItemEnabled()) {
+            this.target.setLayout(x, y, w, h);
+        } else {
+            // Reuse the x,y 'settings'.
+            this.target.setLayoutDims(w, h);
+        }
     }
 
     mustUpdateDeferred() {

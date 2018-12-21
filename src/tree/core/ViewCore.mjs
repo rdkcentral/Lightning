@@ -1,6 +1,4 @@
-/**
- * Graphical calculations / VBO buffer filling.
- */
+import FlexTarget from "../../flex/FlexTarget.mjs";
 
 export default class ViewCore {
 
@@ -43,7 +41,7 @@ export default class ViewCore {
 
         this._w = 0;
         this._h = 0;
-        this._dimsEstimate = false;
+        this._dimsUnknown = false;
 
         this._clipping = false;
 
@@ -135,6 +133,8 @@ export default class ViewCore {
         this._clipbox = false;
 
         this.render = this._renderSimple;
+
+        this._layout = null;
     }
 
     get x() {
@@ -143,6 +143,16 @@ export default class ViewCore {
 
     set x(v) {
         if (this._x !== v) {
+            if (this.hasFlexLayout()) {
+                this._layout.x = v;
+            } else {
+                this._setX(v);
+            }
+        }
+    }
+
+    _setX(v) {
+        if (v !== this._x) {
             this._updateLocalTranslateDelta(v - this._x, 0);
             this._x = v;
         }
@@ -154,10 +164,21 @@ export default class ViewCore {
 
     set y(v) {
         if (this._y !== v) {
+            if (this.hasFlexLayout()) {
+                this._layout.y = v;
+            } else {
+                this._setY(v);
+            }
+        }
+    }
+
+    _setY(v) {
+        if (v !== this._y) {
             this._updateLocalTranslateDelta(0, v - this._y);
             this._y = v;
         }
     }
+
 
     get w() {
         return this._w;
@@ -306,6 +327,10 @@ export default class ViewCore {
             this._visible = v;
             this._updateLocalAlpha();
             this._view._updateEnabledFlag();
+
+            if (this.hasFlexLayout()) {
+                this.layout.setVisible(v);
+            }
         }
     }
 
@@ -376,6 +401,7 @@ export default class ViewCore {
      *   2: translate
      *   4: transform
      * 128: becomes visible
+     * 256: flex layout updated
      */
     _setRecalc(type) {
         this._recalc |= type;
@@ -401,6 +427,11 @@ export default class ViewCore {
             let prevIsZContext = this.isZContext();
             let prevParent = this._parent;
             this._parent = parent;
+
+            // Notify flex layout engine.
+            if (this._layout || (parent && parent.isFlexContainer())) {
+                this.layout.setParent(prevParent, parent);
+            }
 
             if (prevParent) {
                 // When views are deleted, the render texture must be re-rendered.
@@ -522,7 +553,7 @@ export default class ViewCore {
     };
 
     _setLocalTranslate(x, y) {
-        this._setRecalc(2);
+        this._triggerRecalcTranslate();
         this._localPx = x;
         this._localPy = y;
     };
@@ -548,25 +579,36 @@ export default class ViewCore {
     };
 
     setDimensions(w, h, isEstimate) {
+        // In case of an estimation, the update loop should perform different bound checks.
+        this._dimsUnknown = isEstimate;
+
+        if (this._w !== w || this._h !== h) {
+            if (this.hasFlexLayout()) {
+                this._layout.originalWidth = w;
+                this._layout.originalHeight = h;
+            } else {
+                this._updateDimensions(w, h);
+            }
+            return true;
+        } else {
+            return false;
+        }
+    };
+
+    _updateDimensions(w, h) {
         if (this._w !== w || this._h !== h) {
             this._w = w;
             this._h = h;
 
-            // In case of an estimation, the update loop should perform different bound checks.
-            this._dimsEstimate = isEstimate;
-
-            this._setRecalc(2);
+            this._triggerRecalcTranslate();
             if (this._texturizer) {
                 this._texturizer.releaseRenderTexture();
                 this._texturizer.updateResultTexture();
             }
             // Due to width/height change: update the translation vector.
             this._updateLocalTranslate();
-            return true;
-        } else {
-            return false;
         }
-    };
+    }
 
     setTextureCoords(ulx, uly, brx, bry) {
         this.setHasRenderUpdates(3);
@@ -1093,7 +1135,7 @@ export default class ViewCore {
         this._boundsMargin = v ? v.slice() : undefined;
 
         // We force recalc in order to set all boundsMargin recursively during the next update.
-        this._setRecalc(2);
+        this._triggerRecalcTranslate();
     }
 
     get boundsMargin() {
@@ -1102,6 +1144,10 @@ export default class ViewCore {
 
     update() {
         this._recalc |= this._parent._pRecalc;
+
+        if (this._recalc & 256) {
+            this._layout.layoutFlexTree();
+        }
 
         if (this._onUpdate) {
             // Block all 'upwards' updates when changing things in this branch.
@@ -1249,7 +1295,7 @@ export default class ViewCore {
                 ey = r.py + r.td * lh;
             }
 
-            if (this._dimsEstimate && (rComplex || this._localTa < 1 || this._localTb < 1)) {
+            if (this._dimsUnknown && (rComplex || this._localTa < 1 || this._localTb < 1)) {
                 // If we are dealing with a non-identity matrix, we must extend the bbox so that withinBounds and;
                 //  scissors will include the complete range of (positive) dimensions up to lw,lh.
                 const nx = this._x * pr.ta + this._y * pr.tb + pr.px;
@@ -1308,7 +1354,7 @@ export default class ViewCore {
                         ey = r.py + r.td * lh;
                     }
 
-                    if (this._dimsEstimate && (rComplex || this._localTa < 1 || this._localTb < 1)) {
+                    if (this._dimsUnknown && (rComplex || this._localTa < 1 || this._localTb < 1)) {
                         const nx = this._x * pr.ta + this._y * pr.tb + pr.px;
                         const ny = this._x * pr.tc + this._y * pr.td + pr.py;
                         if (nx < sx) sx = nx;
@@ -1878,6 +1924,74 @@ export default class ViewCore {
             w.py + w.tc * relX + w.td * relY
         ]
     }
+
+
+    get layout() {
+        this._ensureLayout();
+        return this._layout;
+    }
+
+    get flex() {
+        return this._layout ? this._layout.flex : null;
+    }
+
+    set flex(v) {
+        this.layout.flex = v;
+    }
+
+    get flexItem() {
+        return this._layout ? this._layout.flexItem : null;
+    }
+
+    set flexItem(v) {
+        this.layout.flexItem = v;
+    }
+
+    isFlexItem() {
+        return !!this._layout && this._layout.isFlexItemEnabled();
+    }
+
+    isFlexContainer() {
+        return !!this._layout && this._layout.isFlexEnabled();
+    }
+
+    enableFlexLayout() {
+        this._ensureLayout();
+    }
+
+    _ensureLayout() {
+        if (!this._layout) {
+            this._layout = new FlexTarget(this);
+        }
+    }
+
+    disableFlexLayout() {
+        this._triggerRecalcTranslate();
+    }
+
+    hasFlexLayout() {
+        return (this._layout && this._layout.isEnabled());
+    }
+
+    setLayout(x, y, w, h) {
+        this._setX(x);
+        this._setY(y);
+        this.setLayoutDims(w, h);
+    }
+
+    setLayoutDims(w, h) {
+        this._updateDimensions(w, h);
+    }
+
+
+    triggerLayout() {
+        this._setRecalc(256);
+    }
+
+    _triggerRecalcTranslate() {
+        this._setRecalc(2);
+    }
+
 }
 
 class ViewCoreContext {

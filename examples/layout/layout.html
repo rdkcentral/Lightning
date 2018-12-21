@@ -7,24 +7,18 @@
 <body>
     <script type="module">
         import lng from '../../lightning.mjs';
-        class BorderExample extends lng.Application {
+        class LayoutExample extends lng.Application {
             static _template() {
                 return {
-                    Wrapper: {x: 100, y: 100, flex: {direction: 'row', alignItems: 'stretch'},
-                        Left: {rect: true, w: 10},
-                        Center: {rect: true, color: 0x55ff0000, flex: {direction: 'column', alignItems: 'stretch'},
-                            Top: {rect: true, h: 10},
-                            Middle: {
-                                flexItem: {grow: 1},
-                                flex: {direction: 'row', justifyContent: 'space-evenly'},
-                                w: 300,
-                                // Height is fit from contents.
-                                Line1: {text: {text: "hello1"}},
-                                Line2: {text: {text: "hello2"}}
-                            },
-                            Bottom: {rect: true, h: 10},
-                        },
-                        Right: {rect: true, w: 10}
+                    Main: {x: 100, w: 500, y: 100, flex: {direction: 'row', padding: 50, wrap: true}, rect: true, color: 0xFFFFF000,
+                        Item1: {w: 100, h: 150, flexItem: {margin: 10}, rect: true, color: 0xFFF00000},
+                        Item2: {w: 100, h: 150, flexItem: {margin: 10}, rect: true, color: 0xFFF00000},
+                        Item3: {w: 100, h: 150, flexItem: {margin: 10}, rect: true, color: 0xFFF00000},
+                        Item4: {w: 100, h: 150, flexItem: {margin: 10}, rect: true, color: 0xFFF00000},
+                        Item5: {w: 100, h: 150, flexItem: {margin: 10}, rect: true, color: 0xFFF00000},
+                        Item6: {w: 100, h: 150, flexItem: {margin: 10}, rect: true, color: 0xFFF00000},
+                        Item7: {w: 100, h: 150, flexItem: {margin: 10}, rect: true, color: 0xFFF00000},
+                        Item8: {w: 150, h: 100, flexItem: {margin: 10, alignSelf: 'stretch', grow: 1}, rect: true, color: 0xFF00FF00}
                     }
                 }
             }
@@ -41,7 +35,7 @@
         }
 
         const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000, canvas2d: false}};
-        const app = new BorderExample(options);
+        const app = new LayoutExample(options);
         document.body.appendChild(app.stage.getCanvas());
     </script>
 </body>

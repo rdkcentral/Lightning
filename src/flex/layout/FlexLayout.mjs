@@ -28,7 +28,7 @@ export default class FlexLayout {
     }
 
     layoutTree() {
-        const isSubTree = this.item.flexParent;
+        const isSubTree = (this.item.flexParent !== null);
         if (isSubTree) {
             // Use the dimensions set by the parent flex tree.
             this._updateTreeLayoutWithCurrentAxes();

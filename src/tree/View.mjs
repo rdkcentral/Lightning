@@ -2035,6 +2035,22 @@ export default class View {
         return t;
     }
 
+    get flex() {
+        return this.__core.flex;
+    }
+
+    set flex(v) {
+        this.__core.flex = v;
+    }
+
+    get flexItem() {
+        return this.__core.flexItem;
+    }
+
+    set flexItem(v) {
+        this.__core.flexItem = v;
+    }
+
     static isColorProperty(property) {
         return property.indexOf("color") >= 0;
     }
