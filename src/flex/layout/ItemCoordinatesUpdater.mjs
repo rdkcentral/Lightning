@@ -84,8 +84,17 @@ export default class ItemCoordinatesUpdater {
             y += flexItem._getVerticalMarginOffset();
         }
 
-        item.clearRecalcFlag();
+        const flexLayout = item.flexLayout;
+        if (flexLayout && flexLayout.isLayoutDeferred()) {
+            const dimsChanged = (item.target.w !== w || item.target.h !== h);
 
+            if (dimsChanged) {
+                // Dimensions have changed! Update is needed but it can be deferred.
+                item.mustUpdateDeferred();
+            }
+        } else {
+            item.clearRecalcFlag();
+        }
         item.setLayout(x, y, w, h);
     }
 

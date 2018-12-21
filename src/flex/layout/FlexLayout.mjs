@@ -57,7 +57,6 @@ export default class FlexLayout {
     deferLayout() {
         this._deferLayout = true;
         this.item.resetNonFlexLayout();
-        this.item.mustUpdateDeferred();
     }
 
     isLayoutDeferred() {
@@ -151,41 +150,44 @@ export default class FlexLayout {
         }
     }
 
-    _getMainAxisMinSize() {
+    _ensureLayout() {
         if (this.isLayoutDeferred()) {
-            // We need info about the contents, so we can't defer layout.
             this.updateTreeLayout();
         }
+    }
+
+    _getMainAxisMinSize() {
+        this._ensureLayout();
         return this._lineLayouter.mainAxisMinSize;
     }
 
     _getCrossAxisMinSize() {
-        if (this.isLayoutDeferred()) {
-            this.updateTreeLayout();
-        }
+        this._ensureLayout();
         return this._lineLayouter.crossAxisMinSize;
     }
 
     resizeMainAxis(size) {
-        this._resizingMainAxis = true;
-
         if (this.mainAxisSize !== size) {
             this.mainAxisSize = size;
 
-            this._layoutAxes();
+            if (!this._deferLayout) {
+                this._resizingMainAxis = true;
+                this._layoutAxes();
+                this._resizingMainAxis = false;
+            }
         }
-        this._resizingMainAxis = false;
     }
 
     resizeCrossAxis(size) {
-        this._resizingCrossAxis = true;
-
         if (this.crossAxisSize !== size) {
             this.crossAxisSize = size;
 
-            this._layoutCrossAxis();
+            if (!this._deferLayout) {
+                this._resizingCrossAxis = true;
+                this._layoutCrossAxis();
+                this._resizingCrossAxis = false;
+            }
         }
-        this._resizingCrossAxis = false;
     }
 
     getParentFlexContainer() {

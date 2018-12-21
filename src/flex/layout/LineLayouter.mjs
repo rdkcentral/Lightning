@@ -106,13 +106,6 @@ export default class LineLayouter {
         if (this._mainAxisContentSize === 0 || (this._curMainAxisPos > this._mainAxisContentSize)) {
             this._mainAxisContentSize = this._curMainAxisPos;
         }
-
-        if (line.isOnlyLine()) {
-            this._mainAxisMinSize = line.getMainAxisMinSize();
-        } else {
-            // Wrapping lines: specified width is used as min width (in accordance to W3C flexbox).
-            this._mainAxisMinSize = this._layout.mainAxisSize;
-        }
     }
 
     _getAvailableMainAxisLayoutSpace() {
