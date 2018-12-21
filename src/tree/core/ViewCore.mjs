@@ -142,13 +142,7 @@ export default class ViewCore {
     }
 
     set x(v) {
-        if (this._x !== v) {
-            if (this.hasFlexLayout()) {
-                this._layout.x = v;
-            } else {
-                this._setX(v);
-            }
-        }
+        this._setX(v);
     }
 
     _setX(v) {
@@ -163,13 +157,7 @@ export default class ViewCore {
     }
 
     set y(v) {
-        if (this._y !== v) {
-            if (this.hasFlexLayout()) {
-                this._layout.y = v;
-            } else {
-                this._setY(v);
-            }
-        }
+        this._setY(v);
     }
 
     _setY(v) {
