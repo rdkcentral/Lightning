@@ -172,8 +172,24 @@ export default class ViewCore {
         return this._w;
     }
 
+    getRenderWidth() {
+        if (this.hasFlexLayout()) {
+            return this._layout.originalWidth;
+        } else {
+            return this._w;
+        }
+    }
+
     get h() {
         return this._h;
+    }
+
+    getRenderHeight() {
+        if (this.hasFlexLayout()) {
+            return this._layout.originalHeight;
+        } else {
+            return this._h;
+        }
     }
 
     get scaleX() {
@@ -572,8 +588,8 @@ export default class ViewCore {
 
         if (this._w !== w || this._h !== h) {
             if (this.hasFlexLayout()) {
-                this._layout.originalWidth = w;
-                this._layout.originalHeight = h;
+                this._layout.originalWidth = this._dimsUnknown ? 0 : w;
+                this._layout.originalHeight = this._dimsUnknown ? 0 : h;
             } else {
                 this._updateDimensions(w, h);
             }
@@ -1143,11 +1159,11 @@ export default class ViewCore {
         let w = this._worldContext;
         const visible = (pw.alpha && this._localAlpha);
 
-        if (visible) {
-            if (this._recalc & 256) {
-                // If fixed dimensions, wait for layout until within bounds check performed.
-                if (this._layout && this._layout.isFitToContents()) {
-                    this._layout.layoutFlexTree();
+        if (this._recalc & (256 + 128)) {
+            // If fixed dimensions, wait for layout until within bounds check performed.
+            if (this._layout && this._layout.isFitToContents()) {
+                this._layout.layoutFlexTree();
+                if (this._recalc & 256) {
                     this._recalc -= 256;
                 }
             }
@@ -1453,9 +1469,11 @@ export default class ViewCore {
                 }
             }
 
-            if (visible && this._outOfBounds < 2) {
-                if (this._recalc & 256) {
-                    this._layout.layoutFlexTree();
+            if (this._outOfBounds < 2) {
+                if (this._recalc & (256 + 128)) {
+                    if (this._layout) {
+                        this._layout.layoutFlexTree();
+                    }
                 }
             }
 

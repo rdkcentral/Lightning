@@ -317,8 +317,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         }
     });
 
-    ViewCore.prototype.$w = ViewCore.prototype._w;
-    Object.defineProperty(ViewCore.prototype, '_w', {
+    View.prototype.$w = View.prototype._w;
+    Object.defineProperty(View.prototype, '_w', {
         get: function() {
             return this.$w;
         },
@@ -330,8 +330,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         }
     });
 
-    ViewCore.prototype.$h = ViewCore.prototype._h;
-    Object.defineProperty(ViewCore.prototype, '_h', {
+    View.prototype.$h = View.prototype._h;
+    Object.defineProperty(View.prototype, '_h', {
         get: function() {
             return this.$h;
         },
@@ -344,36 +344,36 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
     });
 
     ViewCore.prototype.updateLeft = function() {
-        var mx = this._mountX * this._rw;
+        var mx = this._mountX * this._w;
         var x = this._x - mx;
         this.dhtml().style.left = x + 'px';
     };
 
     ViewCore.prototype.updateTop = function() {
-        var my = this._mountY * this._rh;
+        var my = this._mountY * this._h;
         var y = this._y - my;
         this.dhtml().style.top = y + 'px';
     };
 
-    ViewCore.prototype.__rw = 0;
-    Object.defineProperty(ViewCore.prototype, '_rw', {
+    ViewCore.prototype.__w = 0;
+    Object.defineProperty(ViewCore.prototype, '_w', {
         get: function() {
-            return this.__rw;
+            return this.__w;
         },
         set: function(v) {
-            this.__rw = v;
+            this.__w = v;
             this.dhtml().style.width = v + 'px';
             this.updateLeft();
         }
     });
 
-    ViewCore.prototype.__rh = 0;
-    Object.defineProperty(ViewCore.prototype, '_rh', {
+    ViewCore.prototype.__h = 0;
+    Object.defineProperty(ViewCore.prototype, '_h', {
         get: function() {
-            return this.__rh;
+            return this.__h;
         },
         set: function(v) {
-            this.__rh = v;
+            this.__h = v;
             this.dhtml().style.height = v + 'px';
             this.updateTop();
         }

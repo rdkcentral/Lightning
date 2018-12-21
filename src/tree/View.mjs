@@ -444,7 +444,7 @@ export default class View {
     get renderWidth() {
         if (this.__enabled) {
             // Render width is only maintained if this view is enabled.
-            return this.__core.w;
+            return this.__core.getRenderWidth();
         } else {
             return this._getRenderWidth();
         }
@@ -452,7 +452,7 @@ export default class View {
 
     get renderHeight() {
         if (this.__enabled) {
-            return this.__core.h;
+            return this.__core.getRenderHeight();
         } else {
             return this._getRenderHeight();
         }
