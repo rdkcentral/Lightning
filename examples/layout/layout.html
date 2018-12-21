@@ -10,15 +10,20 @@
         class LayoutExample extends lng.Application {
             static _template() {
                 return {
-                    Main: {x: 100, w: 500, y: 100, flex: {direction: 'row', padding: 50, wrap: true}, rect: true, color: 0xFFFFF000,
+                    Main: {x: 100, w: 500, h: 100, y: 100, flex: {direction: 'row', padding: 50, wrap: true}, rect: true, color: 0xFFFFF000,
                         Item1: {w: 110, h: 150, flexItem: {margin: 10}, rect: true, color: 0xFFF00000},
                         Item2: {w: 120, h: 150, flexItem: {margin: 10}, rect: true, color: 0xFFF00000},
                         Item3: {w: 130, h: 150, flexItem: {margin: 10}, rect: true, color: 0xFFF00000},
-                        Item4: {w: 140, h: 150, flexItem: {margin: 10}, rect: true, color: 0xFFF00000},
-                        Item5: {w: 150, h: 150, flexItem: {margin: 10}, rect: true, color: 0xFFF00000},
-                        Item6: {w: 160, h: 150, flexItem: {margin: 10}, rect: true, color: 0xFFF00000},
-                        Item7: {w: 170, h: 150, flexItem: {margin: 10}, rect: true, color: 0xFFF00000},
-                        Item8: {w: 300, h: 100, flexItem: {margin: 10, alignSelf: 'stretch', grow: 1}, rect: true, color: 0xFF00FF00}
+                        Item8: {w: 300, h: 100, flexItem: {margin: 10, alignSelf: 'stretch', grow: 1}, rect: true, color: 0xFF00FF00},
+                        Sub: {w: 400, h: 300, flex: {direction: 'column'},
+                            children: [
+                                {text: {text: "hello world"}},
+                                {text: {text: "hello world"}},
+                                {text: {text: "hello world"}},
+                                {text: {text: "hello world"}},
+                                {text: {text: "hello world"}},
+                            ]
+                        }
                     }
                 }
             }
@@ -28,6 +33,7 @@
                     _init: function() {
                         this.tag("Main").animation({duration: 10, repeat: -1, actions: [
                                 {p: 'w', v: {0: 100, 0.5: 600, 1: 100}},
+                                {p: 'x', v: {0: 100, 0.5: -100, 1: 100}},
                             ]}).start();
                     }
                 }

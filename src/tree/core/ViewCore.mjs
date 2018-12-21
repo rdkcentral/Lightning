@@ -1133,10 +1133,6 @@ export default class ViewCore {
     update() {
         this._recalc |= this._parent._pRecalc;
 
-        if (this._recalc & 256) {
-            this._layout.layoutFlexTree();
-        }
-
         if (this._onUpdate) {
             // Block all 'upwards' updates when changing things in this branch.
             this._hasUpdates = true;
@@ -1146,6 +1142,16 @@ export default class ViewCore {
         const pw = this._parent._worldContext;
         let w = this._worldContext;
         const visible = (pw.alpha && this._localAlpha);
+
+        if (visible) {
+            if (this._recalc & 256) {
+                // If fixed dimensions, wait for layout until within bounds check performed.
+                if (this._layout && this._layout.isFitToContents()) {
+                    this._layout.layoutFlexTree();
+                    this._recalc -= 256;
+                }
+            }
+        }
 
         /**
          * We must update if:
@@ -1444,6 +1450,12 @@ export default class ViewCore {
                     this._viewport[3] = lh;
                 } else {
                     this._viewport = [0, 0, lw, lh];
+                }
+            }
+
+            if (visible && this._outOfBounds < 2) {
+                if (this._recalc & 256) {
+                    this._layout.layoutFlexTree();
                 }
             }
 

@@ -183,6 +183,10 @@ export default class FlexTarget {
         return this.isFlexEnabled() || this.isFlexItemEnabled();
     }
 
+    isFitToContents() {
+        return this._flex && this._flex.isFitToContents();
+    }
+
     isFlexEnabled() {
         return this._flex !== null;
     }
@@ -318,7 +322,7 @@ export default class FlexTarget {
     }
 
     isFlexNotSizedByToContents() {
-        return !this._flex._isFitToContents();
+        return !this._flex.isFitToContents();
     }
 
     get originalWidth() {

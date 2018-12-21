@@ -149,7 +149,7 @@ export default class FlexContainer {
         Base.patchObject(this, settings);
     }
 
-    _isFitToContents() {
+    isFitToContents() {
         const layout = this._layout;
         return layout.isMainAxisFitToContents() || layout.isCrossAxisFitToContents();
     }
