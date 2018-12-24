@@ -1122,10 +1122,6 @@ var lng = (function () {
             this._layout = layout;
         }
 
-        get _flexContainer() {
-            return this._layout._flexContainer;
-        }
-
         get lines() {
             return this._lines;
         }
@@ -1182,7 +1178,7 @@ var lng = (function () {
 
         _layoutFlexItem(item) {
             if (item.isFlexEnabled()) {
-                if (item.isFlexNotSizedByToContents()) {
+                if (!item.isFlexSizedByContents()) {
                     item.flexLayout.deferLayout();
                 } else {
                     item.flexLayout.updateTreeLayout();
@@ -1556,14 +1552,6 @@ var lng = (function () {
             return this.item.isFlexItemEnabled() ? this.item.flexItem.ctr : null;
         }
 
-        _getMainAxisPadding() {
-            return FlexUtils.getTotalPadding(this.item, this._horizontal);
-        }
-
-        _getCrossAxisPadding() {
-            return FlexUtils.getTotalPadding(this.item, !this._horizontal);
-        }
-
         _getHorizontalPadding() {
             return FlexUtils.getTotalPadding(this.item, true);
         }
@@ -1772,10 +1760,6 @@ var lng = (function () {
 
         get paddingBottom() {
             return this._paddingBottom;
-        }
-        
-        get _items() {
-            return this._item.target.children;
         }
 
         patch(settings) {
@@ -2045,6 +2029,8 @@ var lng = (function () {
             this.w = 0;
             this.h = 0;
 
+            this._originalX = 0;
+            this._originalY = 0;
             this._originalWidth = 0;
             this._originalHeight = 0;
 
@@ -2210,10 +2196,6 @@ var lng = (function () {
             return this.isFlexEnabled() || this.isFlexItemEnabled();
         }
 
-        isFitToContents() {
-            return this._flex && this._flex.isFitToContents();
-        }
-
         isFlexEnabled() {
             return this._flex !== null;
         }
@@ -2224,16 +2206,18 @@ var lng = (function () {
 
         _restoreTargetToNonFlex() {
             const target = this._target;
-            target.x = 0;
-            target.y = 0;
+            target.x = this._originalX;
+            target.y = this._originalY;
             target.w = this._originalWidth;
             target.h = this._originalHeight;
         }
 
         _setupTargetForFlex() {
             const target = this._target;
-            this._originalWidth = target.w;
-            this._originalHeight = target.h;
+            this._originalX = target._x;
+            this._originalY = target._y;
+            this._originalWidth = target._w;
+            this._originalHeight = target._h;
         }
         
         setParent(from, to) {
@@ -2297,10 +2281,10 @@ var lng = (function () {
 
         setLayout(x, y, w, h) {
             if (this.isFlexItemEnabled()) {
-                this.target.setLayout(x, y, w, h);
+                this.target.setLayout(x + this._originalX, y + this._originalY, w, h);
             } else {
                 // Reuse the x,y 'settings'.
-                this.target.setLayoutDims(w, h);
+                this.target.setLayout(this._originalX, this._originalY, w, h);
             }
         }
 
@@ -2352,17 +2336,33 @@ var lng = (function () {
             return !this._flex.isFitToContents();
         }
 
-        get originalWidth() {
-            return this._originalWidth;
+        get originalX() {
+            return this._originalX;
         }
 
-        get originalHeight() {
-            return this._originalHeight;
+        setOriginalXWithoutUpdatingLayout(v) {
+            this._originalX = v;
+        }
+
+        get originalY() {
+            return this._originalY;
+        }
+
+        setOriginalYWithoutUpdatingLayout(v) {
+            this._originalY = v;
+        }
+
+        get originalWidth() {
+            return this._originalWidth;
         }
 
         set originalWidth(v) {
             this._originalWidth = v;
             this._setRecalc();
+        }
+
+        get originalHeight() {
+            return this._originalHeight;
         }
 
         set originalHeight(v) {
@@ -3004,18 +3004,50 @@ var lng = (function () {
             this._layout = null;
         }
 
+        get offsetX() {
+            if (this.hasFlexLayout()) {
+                return this._layout.originalX;
+            } else {
+                return this._x;
+            }
+        }
+
+        set offsetX(v) {
+            if (this.hasFlexLayout()) {
+                this._x += (v - this._layout.originalX);
+                this._triggerRecalcTranslate();
+                this._layout.setOriginalXWithoutUpdatingLayout(v);
+            } else {
+                this.x = v;
+            }
+        }
+
         get x() {
             return this._x;
         }
 
         set x(v) {
-            this._setX(v);
-        }
-
-        _setX(v) {
             if (v !== this._x) {
                 this._updateLocalTranslateDelta(v - this._x, 0);
                 this._x = v;
+            }
+        }
+
+        get offsetY() {
+            if (this.hasFlexLayout()) {
+                return this._layout.originalY;
+            } else {
+                return this._y;
+            }
+        }
+
+        set offsetY(v) {
+            if (this.hasFlexLayout()) {
+                this._y += (v - this._layout.originalY);
+                this._triggerRecalcTranslate();
+                this._layout.setOriginalYWithoutUpdatingLayout(v);
+            } else {
+                this.y = v;
             }
         }
 
@@ -3024,16 +3056,11 @@ var lng = (function () {
         }
 
         set y(v) {
-            this._setY(v);
-        }
-
-        _setY(v) {
             if (v !== this._y) {
                 this._updateLocalTranslateDelta(0, v - this._y);
                 this._y = v;
             }
         }
-
 
         get w() {
             return this._w;
@@ -4845,15 +4872,10 @@ var lng = (function () {
         }
 
         setLayout(x, y, w, h) {
-            this._setX(x);
-            this._setY(y);
-            this.setLayoutDims(w, h);
-        }
-
-        setLayoutDims(w, h) {
+            this.x = x;
+            this.y = y;
             this._updateDimensions(w, h);
         }
-
 
         triggerLayout() {
             this._setRecalc(256);
@@ -8572,19 +8594,19 @@ var lng = (function () {
         }
 
         get x() {
-            return this.__core.x;
+            return this.__core.offsetX;
         }
 
         set x(v) {
-            this.__core.x = v;
+            this.__core.offsetX = v;
         }
 
         get y() {
-            return this.__core.y;
+            return this.__core.offsetY;
         }
 
         set y(v) {
-            this.__core.y = v;
+            this.__core.offsetY = v;
         }
 
         get w() {

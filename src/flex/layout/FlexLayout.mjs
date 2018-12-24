@@ -135,11 +135,11 @@ export default class FlexLayout {
     }
 
     _hasFixedMainAxisBasis() {
-        return (this._getMainAxisBasis() !== 0);
+        return !FlexUtils.isZeroAxisSize(this.item, this._horizontal);
     }
 
     _hasFixedCrossAxisBasis() {
-        return (this._getCrossAxisBasis() !== 0);
+        return !FlexUtils.isZeroAxisSize(this.item, !this._horizontal);
     }
 
     getAxisMinSize(horizontal) {
@@ -211,11 +211,11 @@ export default class FlexLayout {
     }
 
     _getMainAxisBasis() {
-        return FlexUtils.getAxisSize(this.item, this._horizontal);
+        return FlexUtils.getRelAxisSize(this.item, this._horizontal);
     }
 
     _getCrossAxisBasis() {
-        return FlexUtils.getAxisSize(this.item, !this._horizontal);
+        return FlexUtils.getRelAxisSize(this.item, !this._horizontal);
     }
 
     get _horizontal() {

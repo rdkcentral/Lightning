@@ -25,8 +25,12 @@ export default class FlexContainer {
         return this._item;
     }
 
-    _mustUpdate() {
-        this._item.mustUpdate();
+    _mustUpdateExternal() {
+        this._item.mustUpdateExternal();
+    }
+
+    _mustUpdateInternal() {
+        this._item.mustUpdateInternal();
     }
 
     get direction() {
@@ -39,12 +43,12 @@ export default class FlexContainer {
         this._horizontal = (f === 'row' || f === 'row-reverse');
         this._reverse = (f === 'row-reverse' || f === 'column-reverse');
 
-        this._mustUpdate();
+        this._mustUpdateInternal();
     }
 
     set wrap(v) {
         this._wrap = v;
-        this._mustUpdate();
+        this._mustUpdateInternal();
     }
 
     get wrap() {
@@ -62,7 +66,7 @@ export default class FlexContainer {
         }
         this._alignItems = v;
 
-        this._mustUpdate();
+        this._mustUpdateInternal();
     }
 
     get alignContent() {
@@ -76,7 +80,7 @@ export default class FlexContainer {
         }
         this._alignContent = v;
 
-        this._mustUpdate();
+        this._mustUpdateInternal();
     }
 
     get justifyContent() {
@@ -91,7 +95,7 @@ export default class FlexContainer {
         }
         this._justifyContent = v;
 
-        this._mustUpdate();
+        this._mustUpdateInternal();
     }
 
     set padding(v) {
@@ -107,7 +111,7 @@ export default class FlexContainer {
     
     set paddingLeft(v) {
         this._paddingLeft = v;
-        this._mustUpdate();
+        this._mustUpdateExternal();
     }
     
     get paddingLeft() {
@@ -116,7 +120,7 @@ export default class FlexContainer {
 
     set paddingTop(v) {
         this._paddingTop = v;
-        this._mustUpdate();
+        this._mustUpdateExternal();
     }
 
     get paddingTop() {
@@ -125,7 +129,7 @@ export default class FlexContainer {
 
     set paddingRight(v) {
         this._paddingRight = v;
-        this._mustUpdate();
+        this._mustUpdateExternal();
     }
 
     get paddingRight() {
@@ -134,7 +138,7 @@ export default class FlexContainer {
 
     set paddingBottom(v) {
         this._paddingBottom = v;
-        this._mustUpdate();
+        this._mustUpdateExternal();
     }
 
     get paddingBottom() {

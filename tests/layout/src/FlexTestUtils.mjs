@@ -1,8 +1,6 @@
 import Target from "./Target.mjs";
 import FlexHtmlComparer from "./flexToHtml/Comparer.mjs";
 
-const assert = chai.assert;
-
 export default class FlexTestUtils {
 
     constructor() {
@@ -89,6 +87,17 @@ export default class FlexTestUtils {
         })
     }
 
+    validateAnnotatedFlex(root) {
+        return new Promise((resolve, reject) => {
+            const collector = new AnnotatedStructureMismatchCollector(root);
+            const mismatches = collector.getMismatches();
+            if (mismatches.length) {
+                reject(new Error("Mismatches:\n" + mismatches.join("\n") + "\n\n" + root.toString()));
+            } else {
+                resolve();
+            }
+        })
+    }
 }
 
 class AnnotatedStructureMismatchCollector {

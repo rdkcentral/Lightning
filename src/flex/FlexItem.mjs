@@ -136,7 +136,7 @@ export default class FlexItem {
     }
     
     _changed() {
-        if (this.ctr) this.ctr._mustUpdate();
+        if (this.ctr) this.ctr._mustUpdateInternal();
     }
 
     get ctr() {
@@ -180,7 +180,7 @@ export default class FlexItem {
     }
 
     _getCrossAxisBasis() {
-        return FlexUtils.getAxisSize(this.item, !this.ctr._horizontal);
+        return FlexUtils.getRelAxisSize(this.item, !this.ctr._horizontal);
     }
 
     _resizeCrossAxis(size) {
@@ -229,6 +229,10 @@ export default class FlexItem {
 
     _getCrossAxisLayoutSizeWithPaddingAndMargin() {
         return this._getCrossAxisLayoutSize() + this._getCrossAxisPadding() + this._getCrossAxisMargin();
+    }
+
+    _hasFixedCrossAxisSize() {
+        return !FlexUtils.isZeroAxisSize(this.item, !this.ctr._horizontal);
     }
 
 }

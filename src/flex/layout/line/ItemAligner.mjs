@@ -32,9 +32,9 @@ export default class ItemAligner {
     }
 
     _preventStretch(item) {
-        const isFixedCrossAxisSize = (item.flexItem._getCrossAxisBasis() > 0);
+        const hasFixedCrossAxisSize = item.flexItem._hasFixedCrossAxisSize();
         const forceStretch = (item.flexItem.alignSelf === "stretch");
-        return isFixedCrossAxisSize && !forceStretch;
+        return hasFixedCrossAxisSize && !forceStretch;
     }
 
     _alignItem(item) {

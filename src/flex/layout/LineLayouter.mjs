@@ -65,7 +65,7 @@ export default class LineLayouter {
 
     _layoutFlexItem(item) {
         if (item.isFlexEnabled()) {
-            if (item.isFlexNotSizedByToContents()) {
+            if (!item.isFlexSizedToContents()) {
                 item.flexLayout.deferLayout();
             } else {
                 item.flexLayout.updateTreeLayout();

@@ -15,6 +15,9 @@ export default class Target {
         this._w = 0;
         this._h = 0;
 
+        this._relW = 0;
+        this._relH = 0;
+
         this._visible = true;
 
         this._layout = null;
@@ -92,8 +95,19 @@ export default class Target {
     }
 
     update() {
-        if (this._recalc & 256) {
-            this._layout.layoutFlexTree();
+        if (this.hasFlexLayout()) {
+            if (this._recalc & 256) {
+                this._layout.layoutFlexTree();
+            }
+        } else {
+            if (this._relW) {
+                this._w = this._parent.w * this._relW * 0.01;
+                this._recalc |= 2;
+            }
+            if (this._relH) {
+                this._h = this._parent.h * this._relH * 0.01;
+                this._recalc |= 2;
+            }
         }
 
         if (this._hasUpdates) {
@@ -171,11 +185,14 @@ export default class Target {
     }
 
     set w(v) {
+        this._disableRelW();
         if (this.hasFlexLayout()) {
             this._layout.originalWidth = v;
         } else {
-            this._w = v;
-            this._triggerRecalcTranslate();
+            if (this._w !== v) {
+                this._w = v;
+                this._triggerRecalcTranslate();
+            }
         }
     }
 
@@ -184,11 +201,57 @@ export default class Target {
     }
 
     set h(v) {
+        this._disableRelH();
         if (this.hasFlexLayout()) {
             this._layout.originalHeight = v;
+        } else {
+            if (this._h !== v) {
+                this._h = v;
+                this._triggerRecalcTranslate();
+            }
         }
-        this._h = v;
-        this._triggerRecalcTranslate();
+    }
+
+    get relW() {
+        return this._relW;
+    }
+
+    set relW(v) {
+        if (this._relW !== v) {
+            this._relW = v;
+            if (this.hasFlexLayout()) {
+                this.layout.mustUpdateExternal();
+            } else {
+                this._triggerRecalcTranslate();
+            }
+        }
+    }
+
+    _disableRelW() {
+        this.relW = 0;
+    }
+
+    get relH() {
+        return this._relH;
+    }
+
+    set relH(v) {
+        if (this._relH !== v) {
+            this._relH = v;
+            if (this.hasFlexLayout()) {
+                this.layout.mustUpdateExternal();
+            } else {
+                this._triggerRecalcTranslate();
+            }
+        }
+    }
+
+    _disableRelH() {
+        this.relH = 0;
+    }
+
+    getParent() {
+        return this._parent;
     }
 
     setParent(p) {

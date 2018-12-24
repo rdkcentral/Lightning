@@ -1,7 +1,43 @@
 export default class FlexUtils {
 
-    static getAxisSize(item, horizontal) {
-        return horizontal ? item.originalWidth : item.originalHeight;
+    static getParentAxisSize(item, horizontal) {
+        const target = item.target;
+        const parent = target.getParent();
+        if (!parent) {
+            return 0;
+        } else {
+            if (parent.hasFlexLayout()) {
+                // Use pending layout size.
+                return this.getAxisLayoutSize(parent.layout, horizontal);
+            } else {
+                // Use 'absolute' size.
+                return horizontal ? parent.w : parent.h;
+            }
+        }
+    }
+
+    static getRelAxisSize(item, horizontal) {
+        if (horizontal) {
+            if (item.relW) {
+                return 0.01 * item.relW * this.getParentAxisSize(item, true);
+            } else {
+                return item.originalWidth;
+            }
+        } else {
+            if (item.relH) {
+                return 0.01 * item.relH * this.getParentAxisSize(item, false);
+            } else {
+                return item.originalHeight;
+            }
+        }
+    }
+
+    static isZeroAxisSize(item, horizontal) {
+        if (horizontal) {
+            return !item.originalWidth && !item.relW;
+        } else {
+            return !item.originalHeight && !item.relH;
+        }
     }
 
     static getAxisLayoutPos(item, horizontal) {
@@ -49,7 +85,7 @@ export default class FlexUtils {
             if (isShrinkable) {
                 return 0;
             } else {
-                return this.getAxisSize(item, horizontal);
+                return this.getRelAxisSize(item, horizontal);
             }
         }
     }
