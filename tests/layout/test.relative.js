@@ -18,7 +18,7 @@ describe('relative', function() {
             ]
         });
 
-        flexTestUtils.addMochaTestForAnnotatedStructure('fit-to-contents > relW, relH (0)', {
+        flexTestUtils.addMochaTestForAnnotatedStructure('fit-to-contents containing relW, relH (expect 0)', {
             flex: {},
             r: [0, 0, 0, 0],
             children: [
@@ -159,13 +159,14 @@ describe('relative', function() {
                 return {layouts: [sibling, siblingSub]};
             });
 
+            addUpdateTest('convert leaf to relW', () => {
+                siblingLeaf.relW = 10;
+                siblingLeaf.relH = 20;
+                siblingLeaf.r = [0, 0, 50, 100];
+                return {layouts: [siblingSub]};
+            });
         })
 
-        /*
-fixed sub container
- - change child to relW
- - should update correctly
-         */
     });
 
 });

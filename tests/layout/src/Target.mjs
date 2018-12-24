@@ -220,15 +220,17 @@ export default class Target {
         if (this._relW !== v) {
             this._relW = v;
             if (this.hasFlexLayout()) {
+                this._layout._originalWidth = 0;
                 this.layout.mustUpdateExternal();
             } else {
+                this._w = 0;
                 this._triggerRecalcTranslate();
             }
         }
     }
 
     _disableRelW() {
-        this.relW = 0;
+        this._relW = 0;
     }
 
     get relH() {
@@ -239,15 +241,17 @@ export default class Target {
         if (this._relH !== v) {
             this._relH = v;
             if (this.hasFlexLayout()) {
+                this._layout._originalHeight = 0;
                 this.layout.mustUpdateExternal();
             } else {
+                this._h = 0;
                 this._triggerRecalcTranslate();
             }
         }
     }
 
     _disableRelH() {
-        this.relH = 0;
+        this._relH = 0;
     }
 
     getParent() {

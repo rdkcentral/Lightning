@@ -1,6 +1,6 @@
 export default class FlexUtils {
 
-    static getParentAxisSize(item, horizontal) {
+    static getParentAxisSizeWithPadding(item, horizontal) {
         const target = item.target;
         const parent = target.getParent();
         if (!parent) {
@@ -8,7 +8,7 @@ export default class FlexUtils {
         } else {
             if (parent.hasFlexLayout()) {
                 // Use pending layout size.
-                return this.getAxisLayoutSize(parent.layout, horizontal);
+                return this.getAxisLayoutSize(parent.layout, horizontal) + this.getTotalPadding(parent.layout, horizontal);
             } else {
                 // Use 'absolute' size.
                 return horizontal ? parent.w : parent.h;
@@ -19,13 +19,13 @@ export default class FlexUtils {
     static getRelAxisSize(item, horizontal) {
         if (horizontal) {
             if (item.relW) {
-                return 0.01 * item.relW * this.getParentAxisSize(item, true);
+                return 0.01 * item.relW * this.getParentAxisSizeWithPadding(item, true);
             } else {
                 return item.originalWidth;
             }
         } else {
             if (item.relH) {
-                return 0.01 * item.relH * this.getParentAxisSize(item, false);
+                return 0.01 * item.relH * this.getParentAxisSizeWithPadding(item, false);
             } else {
                 return item.originalHeight;
             }

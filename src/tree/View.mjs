@@ -1375,6 +1375,7 @@ export default class View {
 
     set w(v) {
         if (this._w !== v) {
+            this.__core.disableRelW();
             if (this._w < 0) {
                 throw new Error("Negative width is not supported");
             }
@@ -1383,18 +1384,37 @@ export default class View {
         }
     }
 
+    get relW() {
+        return this.__core.relW;
+    }
+
+    set relW(v) {
+        this._w = 0;
+        this.__core.relW = v;
+    }
+
     get h() {
         return this._h;
     }
 
     set h(v) {
         if (this._h !== v) {
+            this.__core.disableRelH();
             if (this._h < 0) {
                 throw new Error("Negative height is not supported");
             }
             this._h = v;
             this._updateDimensions();
         }
+    }
+
+    get relH() {
+        return this.__core.relH;
+    }
+
+    set relH(v) {
+        this._h = 0;
+        this.__core.relH = v;
     }
 
     get scaleX() {

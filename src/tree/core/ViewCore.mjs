@@ -82,6 +82,10 @@ export default class ViewCore {
         this._y = 0;
         this._w = 0;
         this._h = 0;
+
+        this._relW = 0;
+        this._relH = 0;
+
         this._scaleX = 1;
         this._scaleY = 1;
         this._pivotX = 0.5;
@@ -217,6 +221,48 @@ export default class ViewCore {
         } else {
             return this._h;
         }
+    }
+
+    get relW() {
+        return this._relW;
+    }
+
+    set relW(v) {
+        if (this._relW !== v) {
+            this._relW = v;
+            if (this.hasFlexLayout()) {
+                this._layout._originalWidth = 0;
+                this.layout.mustUpdateExternal();
+            } else {
+                this._w = 0;
+                this._triggerRecalcTranslate();
+            }
+        }
+    }
+
+    disableRelW() {
+        this._relW = 0;
+    }
+
+    get relH() {
+        return this._relH;
+    }
+
+    set relH(v) {
+        if (this._relH !== v) {
+            this._relH = v;
+            if (this.hasFlexLayout()) {
+                this._layout._originalHeight = 0;
+                this.layout.mustUpdateExternal();
+            } else {
+                this._h = 0;
+                this._triggerRecalcTranslate();
+            }
+        }
+    }
+
+    disableRelH() {
+        this._relH = 0;
     }
 
     get scaleX() {
@@ -451,6 +497,10 @@ export default class ViewCore {
             p._hasUpdates = true;
             p = p._parent;
         }
+    }
+
+    getParent() {
+        return this._parent;
     }
 
     setParent(parent) {
@@ -1186,10 +1236,18 @@ export default class ViewCore {
         let w = this._worldContext;
         const visible = (pw.alpha && this._localAlpha);
 
-        if (this._recalc & (256 + 128)) {
-            // If fixed dimensions, wait for layout until within bounds check performed.
-            if (this._layout) {
+        if (this._layout && this._layout.isEnabled()) {
+            if (this._recalc & 256) {
                 this._layout.layoutFlexTree();
+            }
+        } else {
+            if (this._relW) {
+                this._w = this._parent.w * this._relW * 0.01;
+                this._recalc |= 2;
+            }
+            if (this._relH) {
+                this._h = this._parent.h * this._relH * 0.01;
+                this._recalc |= 2;
             }
         }
 

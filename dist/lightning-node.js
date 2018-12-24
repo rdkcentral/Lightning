@@ -634,8 +634,44 @@ class ContentAligner {
 
 class FlexUtils {
 
-    static getAxisSize(item, horizontal) {
-        return horizontal ? item.originalWidth : item.originalHeight;
+    static getParentAxisSizeWithPadding(item, horizontal) {
+        const target = item.target;
+        const parent = target.getParent();
+        if (!parent) {
+            return 0;
+        } else {
+            if (parent.hasFlexLayout()) {
+                // Use pending layout size.
+                return this.getAxisLayoutSize(parent.layout, horizontal) + this.getTotalPadding(parent.layout, horizontal);
+            } else {
+                // Use 'absolute' size.
+                return horizontal ? parent.w : parent.h;
+            }
+        }
+    }
+
+    static getRelAxisSize(item, horizontal) {
+        if (horizontal) {
+            if (item.relW) {
+                return 0.01 * item.relW * this.getParentAxisSizeWithPadding(item, true);
+            } else {
+                return item.originalWidth;
+            }
+        } else {
+            if (item.relH) {
+                return 0.01 * item.relH * this.getParentAxisSizeWithPadding(item, false);
+            } else {
+                return item.originalHeight;
+            }
+        }
+    }
+
+    static isZeroAxisSize(item, horizontal) {
+        if (horizontal) {
+            return !item.originalWidth && !item.relW;
+        } else {
+            return !item.originalHeight && !item.relH;
+        }
     }
 
     static getAxisLayoutPos(item, horizontal) {
@@ -683,7 +719,7 @@ class FlexUtils {
             if (isShrinkable) {
                 return 0;
             } else {
-                return this.getAxisSize(item, horizontal);
+                return this.getRelAxisSize(item, horizontal);
             }
         }
     }
@@ -967,9 +1003,9 @@ class ItemAligner {
     }
 
     _preventStretch(item) {
-        const isFixedCrossAxisSize = (item.flexItem._getCrossAxisBasis() > 0);
+        const hasFixedCrossAxisSize = item.flexItem._hasFixedCrossAxisSize();
         const forceStretch = (item.flexItem.alignSelf === "stretch");
-        return isFixedCrossAxisSize && !forceStretch;
+        return hasFixedCrossAxisSize && !forceStretch;
     }
 
     _alignItem(item) {
@@ -1185,7 +1221,7 @@ class LineLayouter {
 
     _layoutFlexItem(item) {
         if (item.isFlexEnabled()) {
-            if (!item.isFlexSizedByContents()) {
+            if (!item.isFlexSizedToContents()) {
                 item.flexLayout.deferLayout();
             } else {
                 item.flexLayout.updateTreeLayout();
@@ -1500,11 +1536,11 @@ class FlexLayout {
     }
 
     _hasFixedMainAxisBasis() {
-        return (this._getMainAxisBasis() !== 0);
+        return !FlexUtils.isZeroAxisSize(this.item, this._horizontal);
     }
 
     _hasFixedCrossAxisBasis() {
-        return (this._getCrossAxisBasis() !== 0);
+        return !FlexUtils.isZeroAxisSize(this.item, !this._horizontal);
     }
 
     getAxisMinSize(horizontal) {
@@ -1576,11 +1612,11 @@ class FlexLayout {
     }
 
     _getMainAxisBasis() {
-        return FlexUtils.getAxisSize(this.item, this._horizontal);
+        return FlexUtils.getRelAxisSize(this.item, this._horizontal);
     }
 
     _getCrossAxisBasis() {
-        return FlexUtils.getAxisSize(this.item, !this._horizontal);
+        return FlexUtils.getRelAxisSize(this.item, !this._horizontal);
     }
 
     get _horizontal() {
@@ -1653,8 +1689,12 @@ class FlexContainer {
         return this._item;
     }
 
-    _mustUpdate() {
-        this._item.mustUpdate();
+    _mustUpdateExternal() {
+        this._item.mustUpdateExternal();
+    }
+
+    _mustUpdateInternal() {
+        this._item.mustUpdateInternal();
     }
 
     get direction() {
@@ -1667,12 +1707,12 @@ class FlexContainer {
         this._horizontal = (f === 'row' || f === 'row-reverse');
         this._reverse = (f === 'row-reverse' || f === 'column-reverse');
 
-        this._mustUpdate();
+        this._mustUpdateInternal();
     }
 
     set wrap(v) {
         this._wrap = v;
-        this._mustUpdate();
+        this._mustUpdateInternal();
     }
 
     get wrap() {
@@ -1690,7 +1730,7 @@ class FlexContainer {
         }
         this._alignItems = v;
 
-        this._mustUpdate();
+        this._mustUpdateInternal();
     }
 
     get alignContent() {
@@ -1704,7 +1744,7 @@ class FlexContainer {
         }
         this._alignContent = v;
 
-        this._mustUpdate();
+        this._mustUpdateInternal();
     }
 
     get justifyContent() {
@@ -1719,7 +1759,7 @@ class FlexContainer {
         }
         this._justifyContent = v;
 
-        this._mustUpdate();
+        this._mustUpdateInternal();
     }
 
     set padding(v) {
@@ -1735,7 +1775,7 @@ class FlexContainer {
     
     set paddingLeft(v) {
         this._paddingLeft = v;
-        this._mustUpdate();
+        this._mustUpdateExternal();
     }
     
     get paddingLeft() {
@@ -1744,7 +1784,7 @@ class FlexContainer {
 
     set paddingTop(v) {
         this._paddingTop = v;
-        this._mustUpdate();
+        this._mustUpdateExternal();
     }
 
     get paddingTop() {
@@ -1753,7 +1793,7 @@ class FlexContainer {
 
     set paddingRight(v) {
         this._paddingRight = v;
-        this._mustUpdate();
+        this._mustUpdateExternal();
     }
 
     get paddingRight() {
@@ -1762,7 +1802,7 @@ class FlexContainer {
 
     set paddingBottom(v) {
         this._paddingBottom = v;
-        this._mustUpdate();
+        this._mustUpdateExternal();
     }
 
     get paddingBottom() {
@@ -1919,7 +1959,7 @@ class FlexItem {
     }
     
     _changed() {
-        if (this.ctr) this.ctr._mustUpdate();
+        if (this.ctr) this.ctr._mustUpdateInternal();
     }
 
     get ctr() {
@@ -1963,7 +2003,7 @@ class FlexItem {
     }
 
     _getCrossAxisBasis() {
-        return FlexUtils.getAxisSize(this.item, !this.ctr._horizontal);
+        return FlexUtils.getRelAxisSize(this.item, !this.ctr._horizontal);
     }
 
     _resizeCrossAxis(size) {
@@ -2014,6 +2054,10 @@ class FlexItem {
         return this._getCrossAxisLayoutSize() + this._getCrossAxisPadding() + this._getCrossAxisMargin();
     }
 
+    _hasFixedCrossAxisSize() {
+        return !FlexUtils.isZeroAxisSize(this.item, !this.ctr._horizontal);
+    }
+
 }
 
 
@@ -2059,8 +2103,8 @@ class FlexTarget {
     }
 
     resetNonFlexLayout() {
-        this.w = this.originalWidth;
-        this.h = this.originalHeight;
+        this.w = FlexUtils.getRelAxisSize(this, true);
+        this.h = FlexUtils.getRelAxisSize(this, false);
     }
 
     get target() {
@@ -2097,7 +2141,7 @@ class FlexTarget {
                 const parent = this.flexParent;
                 if (parent) {
                     parent._clearFlexItemsCache();
-                    parent._setRecalc();
+                    parent.mustUpdateInternal();
                 }
             }
         } else {
@@ -2111,7 +2155,7 @@ class FlexTarget {
                 const parent = this.flexParent;
                 if (parent) {
                     parent._clearFlexItemsCache();
-                    parent._setRecalc();
+                    parent.mustUpdateInternal();
                 }
             }
         }
@@ -2120,14 +2164,14 @@ class FlexTarget {
     _enableFlex() {
         this._flex = new FlexContainer(this);
         this._checkEnabled();
-        this._setRecalc();
+        this.mustUpdateExternal();
         this._enableChildrenAsFlexItems();
     }
 
     _disableFlex() {
+        this.mustUpdateExternal();
         this._flex = null;
         this._checkEnabled();
-        this._setRecalc();
         this._disableChildrenAsFlexItems();
     }
 
@@ -2154,13 +2198,16 @@ class FlexTarget {
     _enableFlexItem() {
         this._ensureFlexItem();
         this._checkEnabled();
-        this._setRecalc();
+        this.flexParent.mustUpdateInternal();
     }
 
     _disableFlexItem() {
         // We leave the flexItem object because it may contain custom settings.
         this._checkEnabled();
-        this._setRecalc();
+        const flexParent = this.flexParent;
+        if (flexParent) {
+            this.flexParent.mustUpdateInternal();
+        }
 
         // Offsets have been changed. We can't recover them, so we'll just clear them instead.
         this._resetOffsets();
@@ -2279,7 +2326,7 @@ class FlexTarget {
 
     _changedChildren() {
         this._clearFlexItemsCache();
-        this.mustUpdate();
+        this.mustUpdateInternal();
     }
 
     _clearFlexItemsCache() {
@@ -2300,7 +2347,15 @@ class FlexTarget {
         this._target.triggerLayout();
     }
 
-    mustUpdate() {
+    mustUpdateExternal() {
+        const parent = this.flexParent;
+        if (parent) {
+            parent._setRecalc();
+        }
+        this._setRecalc();
+    }
+
+    mustUpdateInternal() {
         this._setRecalc();
     }
 
@@ -2309,38 +2364,47 @@ class FlexTarget {
     }
 
     _setRecalc() {
-        if (this.isEnabled() && (this._recalc !== 2)) {
+        if (this.isFlexEnabled()) {
+            const prevRecalc = this._recalc;
             this._recalc = 2;
-            let cur = this;
-            do {
-                const newCur = cur.flexParent;
-                if (!newCur) {
-                    break;
-                }
 
-                if (newCur._recalc) {
-                    // Change already known.
-                    return;
-                }
-
-                newCur._recalc = 1;
-
-                cur = newCur;
-
-                // We do not have to re-layout the upper flex tree because the content changes won't affect it.
-            } while(!cur.isFlexNotSizedByToContents());
-
-            const flexLayoutRoot = cur;
-            flexLayoutRoot._target.triggerLayout();
+            if (prevRecalc === 0) {
+                this._setRecalcAncestorsUntilRootFound();
+            }
         }
+    }
+
+    _setRecalcAncestorsUntilRootFound() {
+        let cur = this;
+
+        while(cur.isFlexSizedToContents()) {
+
+            const newCur = cur.flexParent;
+            if (!newCur) {
+                break;
+            }
+
+            if (newCur._recalc) {
+                // Change already known.
+                return;
+            }
+
+            newCur._recalc = 1;
+
+            cur = newCur;
+
+            // We do not have to re-layout the upper flex tree because the content changes won't affect it.
+        }
+        const flexLayoutRoot = cur;
+        flexLayoutRoot._target.triggerLayout();
     }
 
     clearRecalcFlag() {
         this._recalc = 0;
     }
 
-    isFlexNotSizedByToContents() {
-        return !this._flex.isFitToContents();
+    isFlexSizedToContents() {
+        return this._flex.isFitToContents();
     }
 
     get originalX() {
@@ -2364,8 +2428,10 @@ class FlexTarget {
     }
 
     set originalWidth(v) {
-        this._originalWidth = v;
-        this._setRecalc();
+        if (this._originalWidth !== v) {
+            this._originalWidth = v;
+            this.mustUpdateExternal();
+        }
     }
 
     get originalHeight() {
@@ -2373,8 +2439,18 @@ class FlexTarget {
     }
 
     set originalHeight(v) {
-        this._originalHeight = v;
-        this._setRecalc();
+        if (this._originalHeight !== v) {
+            this._originalHeight = v;
+            this.mustUpdateExternal();
+        }
+    }
+
+    get relW() {
+        return this._target.relW;
+    }
+
+    get relH() {
+        return this._target.relH;
     }
 }
 
@@ -2956,6 +3032,10 @@ class ViewCore {
         this._y = 0;
         this._w = 0;
         this._h = 0;
+
+        this._relW = 0;
+        this._relH = 0;
+
         this._scaleX = 1;
         this._scaleY = 1;
         this._pivotX = 0.5;
@@ -3091,6 +3171,48 @@ class ViewCore {
         } else {
             return this._h;
         }
+    }
+
+    get relW() {
+        return this._relW;
+    }
+
+    set relW(v) {
+        if (this._relW !== v) {
+            this._relW = v;
+            if (this.hasFlexLayout()) {
+                this._layout._originalWidth = 0;
+                this.layout.mustUpdateExternal();
+            } else {
+                this._w = 0;
+                this._triggerRecalcTranslate();
+            }
+        }
+    }
+
+    disableRelW() {
+        this._relW = 0;
+    }
+
+    get relH() {
+        return this._relH;
+    }
+
+    set relH(v) {
+        if (this._relH !== v) {
+            this._relH = v;
+            if (this.hasFlexLayout()) {
+                this._layout._originalHeight = 0;
+                this.layout.mustUpdateExternal();
+            } else {
+                this._h = 0;
+                this._triggerRecalcTranslate();
+            }
+        }
+    }
+
+    disableRelH() {
+        this._relH = 0;
     }
 
     get scaleX() {
@@ -3325,6 +3447,10 @@ class ViewCore {
             p._hasUpdates = true;
             p = p._parent;
         }
+    }
+
+    getParent() {
+        return this._parent;
     }
 
     setParent(parent) {
@@ -4057,10 +4183,18 @@ class ViewCore {
         let w = this._worldContext;
         const visible = (pw.alpha && this._localAlpha);
 
-        if (this._recalc & (256 + 128)) {
-            // If fixed dimensions, wait for layout until within bounds check performed.
-            if (this._layout) {
+        if (this._layout && this._layout.isEnabled()) {
+            if (this._recalc & 256) {
                 this._layout.layoutFlexTree();
+            }
+        } else {
+            if (this._relW) {
+                this._w = this._parent.w * this._relW * 0.01;
+                this._recalc |= 2;
+            }
+            if (this._relH) {
+                this._h = this._parent.h * this._relH * 0.01;
+                this._recalc |= 2;
             }
         }
 
@@ -8622,6 +8756,7 @@ class View {
 
     set w(v) {
         if (this._w !== v) {
+            this.__core.disableRelW();
             if (this._w < 0) {
                 throw new Error("Negative width is not supported");
             }
@@ -8630,18 +8765,37 @@ class View {
         }
     }
 
+    get relW() {
+        return this.__core.relW;
+    }
+
+    set relW(v) {
+        this._w = 0;
+        this.__core.relW = v;
+    }
+
     get h() {
         return this._h;
     }
 
     set h(v) {
         if (this._h !== v) {
+            this.__core.disableRelH();
             if (this._h < 0) {
                 throw new Error("Negative height is not supported");
             }
             this._h = v;
             this._updateDimensions();
         }
+    }
+
+    get relH() {
+        return this.__core.relH;
+    }
+
+    set relH(v) {
+        this._h = 0;
+        this.__core.relH = v;
     }
 
     get scaleX() {
