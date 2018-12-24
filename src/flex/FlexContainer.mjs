@@ -140,10 +140,6 @@ export default class FlexContainer {
     get paddingBottom() {
         return this._paddingBottom;
     }
-    
-    get _items() {
-        return this._item.target.children;
-    }
 
     patch(settings) {
         Base.patchObject(this, settings);

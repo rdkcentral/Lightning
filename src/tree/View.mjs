@@ -1354,19 +1354,19 @@ export default class View {
     }
 
     get x() {
-        return this.__core.x;
+        return this.__core.offsetX;
     }
 
     set x(v) {
-        this.__core.x = v;
+        this.__core.offsetX = v;
     }
 
     get y() {
-        return this.__core.y;
+        return this.__core.offsetY;
     }
 
     set y(v) {
-        this.__core.y = v;
+        this.__core.offsetY = v;
     }
 
     get w() {

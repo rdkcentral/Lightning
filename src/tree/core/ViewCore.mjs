@@ -137,18 +137,50 @@ export default class ViewCore {
         this._layout = null;
     }
 
+    get offsetX() {
+        if (this.hasFlexLayout()) {
+            return this._layout.originalX;
+        } else {
+            return this._x;
+        }
+    }
+
+    set offsetX(v) {
+        if (this.hasFlexLayout()) {
+            this._x += (v - this._layout.originalX);
+            this._triggerRecalcTranslate();
+            this._layout.setOriginalXWithoutUpdatingLayout(v);
+        } else {
+            this.x = v;
+        }
+    }
+
     get x() {
         return this._x;
     }
 
     set x(v) {
-        this._setX(v);
-    }
-
-    _setX(v) {
         if (v !== this._x) {
             this._updateLocalTranslateDelta(v - this._x, 0);
             this._x = v;
+        }
+    }
+
+    get offsetY() {
+        if (this.hasFlexLayout()) {
+            return this._layout.originalY;
+        } else {
+            return this._y;
+        }
+    }
+
+    set offsetY(v) {
+        if (this.hasFlexLayout()) {
+            this._y += (v - this._layout.originalY);
+            this._triggerRecalcTranslate();
+            this._layout.setOriginalYWithoutUpdatingLayout(v);
+        } else {
+            this.y = v;
         }
     }
 
@@ -157,16 +189,11 @@ export default class ViewCore {
     }
 
     set y(v) {
-        this._setY(v);
-    }
-
-    _setY(v) {
         if (v !== this._y) {
             this._updateLocalTranslateDelta(0, v - this._y);
             this._y = v;
         }
     }
-
 
     get w() {
         return this._w;
@@ -1981,15 +2008,10 @@ export default class ViewCore {
     }
 
     setLayout(x, y, w, h) {
-        this._setX(x);
-        this._setY(y);
-        this.setLayoutDims(w, h);
-    }
-
-    setLayoutDims(w, h) {
+        this.x = x;
+        this.y = y;
         this._updateDimensions(w, h);
     }
-
 
     triggerLayout() {
         this._setRecalc(256);

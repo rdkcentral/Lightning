@@ -9,10 +9,6 @@ export default class LineLayouter {
         this._layout = layout;
     }
 
-    get _flexContainer() {
-        return this._layout._flexContainer;
-    }
-
     get lines() {
         return this._lines;
     }

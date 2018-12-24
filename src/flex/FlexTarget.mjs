@@ -18,6 +18,8 @@ export default class FlexTarget {
         this.w = 0;
         this.h = 0;
 
+        this._originalX = 0;
+        this._originalY = 0;
         this._originalWidth = 0;
         this._originalHeight = 0;
 
@@ -183,10 +185,6 @@ export default class FlexTarget {
         return this.isFlexEnabled() || this.isFlexItemEnabled();
     }
 
-    isFitToContents() {
-        return this._flex && this._flex.isFitToContents();
-    }
-
     isFlexEnabled() {
         return this._flex !== null;
     }
@@ -197,16 +195,18 @@ export default class FlexTarget {
 
     _restoreTargetToNonFlex() {
         const target = this._target;
-        target.x = 0;
-        target.y = 0;
+        target.x = this._originalX;
+        target.y = this._originalY;
         target.w = this._originalWidth;
         target.h = this._originalHeight;
     }
 
     _setupTargetForFlex() {
         const target = this._target;
-        this._originalWidth = target.w;
-        this._originalHeight = target.h;
+        this._originalX = target._x;
+        this._originalY = target._y;
+        this._originalWidth = target._w;
+        this._originalHeight = target._h;
     }
     
     setParent(from, to) {
@@ -270,10 +270,10 @@ export default class FlexTarget {
 
     setLayout(x, y, w, h) {
         if (this.isFlexItemEnabled()) {
-            this.target.setLayout(x, y, w, h);
+            this.target.setLayout(x + this._originalX, y + this._originalY, w, h);
         } else {
             // Reuse the x,y 'settings'.
-            this.target.setLayoutDims(w, h);
+            this.target.setLayout(this._originalX, this._originalY, w, h);
         }
     }
 
@@ -325,17 +325,33 @@ export default class FlexTarget {
         return !this._flex.isFitToContents();
     }
 
-    get originalWidth() {
-        return this._originalWidth;
+    get originalX() {
+        return this._originalX;
     }
 
-    get originalHeight() {
-        return this._originalHeight;
+    setOriginalXWithoutUpdatingLayout(v) {
+        this._originalX = v;
+    }
+
+    get originalY() {
+        return this._originalY;
+    }
+
+    setOriginalYWithoutUpdatingLayout(v) {
+        this._originalY = v;
+    }
+
+    get originalWidth() {
+        return this._originalWidth;
     }
 
     set originalWidth(v) {
         this._originalWidth = v;
         this._setRecalc();
+    }
+
+    get originalHeight() {
+        return this._originalHeight;
     }
 
     set originalHeight(v) {

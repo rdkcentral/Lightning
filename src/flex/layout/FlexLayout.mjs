@@ -194,14 +194,6 @@ export default class FlexLayout {
         return this.item.isFlexItemEnabled() ? this.item.flexItem.ctr : null;
     }
 
-    _getMainAxisPadding() {
-        return FlexUtils.getTotalPadding(this.item, this._horizontal);
-    }
-
-    _getCrossAxisPadding() {
-        return FlexUtils.getTotalPadding(this.item, !this._horizontal);
-    }
-
     _getHorizontalPadding() {
         return FlexUtils.getTotalPadding(this.item, true);
     }
