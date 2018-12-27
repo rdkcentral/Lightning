@@ -645,14 +645,14 @@ var lng = (function () {
 
         static getRelAxisSize(item, horizontal) {
             if (horizontal) {
-                if (item.relW) {
-                    return 0.01 * item.relW * this.getParentAxisSizeWithPadding(item, true);
+                if (item.funcW) {
+                    return item.funcW(this.getParentAxisSizeWithPadding(item, true));
                 } else {
                     return item.originalWidth;
                 }
             } else {
-                if (item.relH) {
-                    return 0.01 * item.relH * this.getParentAxisSizeWithPadding(item, false);
+                if (item.funcH) {
+                    return item.funcH(this.getParentAxisSizeWithPadding(item, false));
                 } else {
                     return item.originalHeight;
                 }
@@ -661,9 +661,9 @@ var lng = (function () {
 
         static isZeroAxisSize(item, horizontal) {
             if (horizontal) {
-                return !item.originalWidth && !item.relW;
+                return !item.originalWidth && !item.funcW;
             } else {
-                return !item.originalHeight && !item.relH;
+                return !item.originalHeight && !item.funcH;
             }
         }
 
@@ -2438,18 +2438,18 @@ var lng = (function () {
             }
         }
 
-        get relW() {
-            return this._target.relW;
+        get funcW() {
+            return this._target.funcW;
         }
 
-        get relH() {
-            return this._target.relH;
+        get funcH() {
+            return this._target.funcH;
         }
     }
 
     class TextureSource {
 
-        constructor(manager, loader = undefined) {
+        constructor(manager, loader = null) {
             this.id = TextureSource.id++;
 
             this.manager = manager;
@@ -2523,7 +2523,7 @@ var lng = (function () {
              * @type {object}
              * @private
              */
-            this._loadError = undefined;
+            this._loadError = null;
 
         }
 
@@ -2655,7 +2655,7 @@ var lng = (function () {
                 this.loadingSince = (new Date()).getTime();
                 this._cancelCb = this.loader((err, options) => {
                     // Clear callback to avoid memory leaks.
-                    this._cancelCb = undefined;
+                    this._cancelCb = null;
 
                     if (this.manager.stage.destroyed) {
                         // Ignore async load when stage is destroyed.
@@ -2701,7 +2701,7 @@ var lng = (function () {
             }
 
             // Must be cleared when reload is succesful.
-            this._loadError = undefined;
+            this._loadError = null;
 
             this.onLoad();
         }
@@ -2957,7 +2957,7 @@ var lng = (function () {
 
             this._parent = null;
 
-            this._onUpdate = undefined;
+            this._onUpdate = null;
 
             this._pRecalc = 0;
 
@@ -2967,9 +2967,9 @@ var lng = (function () {
 
             this._localAlpha = 1;
 
-            this._onAfterCalcs = undefined;
+            this._onAfterCalcs = null;
 
-            this._onAfterUpdate = undefined;
+            this._onAfterUpdate = null;
 
             // All local translation/transform updates: directly propagated from x/y/w/h/scale/whatever.
             this._localPx = 0;
@@ -3011,7 +3011,7 @@ var lng = (function () {
 
             this.renderState = this.ctx.renderState;
 
-            this._scissor = undefined;
+            this._scissor = null;
 
             // The ancestor ViewCore that owns the inherited shader. Null if none is active (default shader).
             this._shaderOwner = null;
@@ -3026,8 +3026,8 @@ var lng = (function () {
             this._w = 0;
             this._h = 0;
 
-            this._relW = 0;
-            this._relH = 0;
+            this._funcW = null;
+            this._funcH = null;
 
             this._scaleX = 1;
             this._scaleY = 1;
@@ -3069,13 +3069,13 @@ var lng = (function () {
 
             this._useRenderToTexture = false;
 
-            this._boundsMargin = undefined;
+            this._boundsMargin = null;
 
-            this._recBoundsMargin = undefined;
+            this._recBoundsMargin = null;
 
             this._withinBoundsMargin = false;
 
-            this._viewport = undefined;
+            this._viewport = null;
 
             this._clipbox = false;
 
@@ -3166,13 +3166,13 @@ var lng = (function () {
             }
         }
 
-        get relW() {
-            return this._relW;
+        get funcW() {
+            return this._funcW;
         }
 
-        set relW(v) {
-            if (this._relW !== v) {
-                this._relW = v;
+        set funcW(v) {
+            if (this._funcW !== v) {
+                this._funcW = v;
                 if (this.hasFlexLayout()) {
                     this._layout._originalWidth = 0;
                     this.layout.mustUpdateExternal();
@@ -3183,17 +3183,17 @@ var lng = (function () {
             }
         }
 
-        disableRelW() {
-            this._relW = 0;
+        disableFuncW() {
+            this._funcW = null;
         }
 
-        get relH() {
-            return this._relH;
+        get funcH() {
+            return this._funcH;
         }
 
-        set relH(v) {
-            if (this._relH !== v) {
-                this._relH = v;
+        set funcH(v) {
+            if (this._funcH !== v) {
+                this._funcH = v;
                 if (this.hasFlexLayout()) {
                     this._layout._originalHeight = 0;
                     this.layout.mustUpdateExternal();
@@ -3204,8 +3204,8 @@ var lng = (function () {
             }
         }
 
-        disableRelH() {
-            this._relH = 0;
+        disableFuncH() {
+            this._funcH = null;
         }
 
         get scaleX() {
@@ -3606,17 +3606,16 @@ var lng = (function () {
             // In case of an estimation, the update loop should perform different bound checks.
             this._dimsUnknown = isEstimate;
 
-            if (this._w !== w || this._h !== h) {
-                if (this.hasFlexLayout()) {
-                    this._layout.originalWidth = w;
-                    this._layout.originalHeight = h;
-                } else {
-                    this._updateDimensions(w, h);
-                }
-                return true;
+            if (this.hasFlexLayout()) {
+                this._layout.originalWidth = w;
+                this._layout.originalHeight = h;
             } else {
-                return false;
+                if (this._w !== w || this._h !== h) {
+                    this._updateDimensions(w, h);
+                    return true;
+                }
             }
+            return false;
         };
 
         _updateDimensions(w, h) {
@@ -3673,11 +3672,8 @@ var lng = (function () {
             this._parent._viewport = [0, 0, this.ctx.stage.coordsWidth, this.ctx.stage.coordsHeight];
             this._parent._scissor = this._parent._viewport;
 
-            // We use a default of 100px bounds margin to detect images around the edges.
-            this._parent._recBoundsMargin = [100, 100, 100, 100];
-
-            // Default: no bounds margin.
-            this._parent._boundsMargin = null;
+            // When recBoundsMargin is null, the defaults are used (100 for all sides).
+            this._parent._recBoundsMargin = null;
 
             this._setRecalc(1 + 2 + 4);
         };
@@ -4149,11 +4145,10 @@ var lng = (function () {
         set boundsMargin(v) {
 
             /**
-             *  undefined: inherit
-             *  null: no margin
+             *  null: inherit from parent.
              *  number[4]: specific margins: left, top, right, bottom.
              */
-            this._boundsMargin = v ? v.slice() : undefined;
+            this._boundsMargin = v ? v.slice() : null;
 
             // We force recalc in order to set all boundsMargin recursively during the next update.
             this._triggerRecalcTranslate();
@@ -4181,13 +4176,21 @@ var lng = (function () {
                     this._layout.layoutFlexTree();
                 }
             } else {
-                if (this._relW) {
-                    this._w = this._parent.w * this._relW * 0.01;
-                    this._recalc |= 2;
-                }
-                if (this._relH) {
-                    this._h = this._parent.h * this._relH * 0.01;
-                    this._recalc |= 2;
+                if (this._recalc & 2) {
+                    if (this._funcW) {
+                        const w = this._funcW(this._parent.w);
+                        if (w !== this._w) {
+                            this._w = w;
+                            this._recalc |= 2;
+                        }
+                    }
+                    if (this._funcH) {
+                        const h = this._funcH(this._parent.h);
+                        if (h !== this._h) {
+                            this._h = h;
+                            this._recalc |= 2;
+                        }
+                    }
                 }
             }
 
@@ -4363,8 +4366,7 @@ var lng = (function () {
                 }
 
                 // Calculate the outOfBounds margin.
-                if (this._boundsMargin !== undefined) {
-                    // Reuse parent's recBoundsMargin.
+                if (this._boundsMargin) {
                     this._recBoundsMargin = this._boundsMargin;
                 } else {
                     this._recBoundsMargin = this._parent._recBoundsMargin;
@@ -4434,13 +4436,19 @@ var lng = (function () {
                             }
 
                             withinMargin = (this._outOfBounds === 0);
-                            if (!withinMargin && !!this._recBoundsMargin) {
+                            if (!withinMargin) {
                                 // Re-test, now with margins.
-                                withinMargin = !((ex < this._scissor[0] - this._recBoundsMargin[2]) ||
-                                (ey < this._scissor[1] - this._recBoundsMargin[3]) ||
-                                (sx > this._scissor[0] + this._scissor[2] + this._recBoundsMargin[0]) ||
-                                (sy > this._scissor[1] + this._scissor[3] + this._recBoundsMargin[1]));
-
+                                if (this._recBoundsMargin) {
+                                    withinMargin = !((ex < this._scissor[0] - this._recBoundsMargin[2]) ||
+                                        (ey < this._scissor[1] - this._recBoundsMargin[3]) ||
+                                        (sx > this._scissor[0] + this._scissor[2] + this._recBoundsMargin[0]) ||
+                                        (sy > this._scissor[1] + this._scissor[3] + this._recBoundsMargin[1]));
+                                } else {
+                                    withinMargin = !((ex < this._scissor[0] - 100) ||
+                                        (ey < this._scissor[1] - 100) ||
+                                        (sx > this._scissor[0] + this._scissor[2] + 100) ||
+                                        (sy > this._scissor[1] + this._scissor[3] + 100));
+                                }
                                 if (withinMargin && this._outOfBounds === 2) {
                                     // Children must be visited because they may contain views that are within margin, so must be visible.
                                     this._outOfBounds = 1;
@@ -4686,7 +4694,7 @@ var lng = (function () {
                         }
 
                         renderState.setRenderTextureInfo(renderTextureInfo);
-                        renderState.setScissor(undefined);
+                        renderState.setScissor(null);
 
                         if (this._displayedTextureSource) {
                             let r = this._renderContext;
@@ -5052,7 +5060,6 @@ var lng = (function () {
     }
 
     ViewCoreContext.IDENTITY = new ViewCoreContext();
-
     ViewCore.sortZIndexedChildren = function(a,b) {
         return (a._zIndex === b._zIndex ? a._updateTreeOrder - b._updateTreeOrder : a._zIndex - b._zIndex);
     };
@@ -5311,7 +5318,7 @@ var lng = (function () {
              * Should not be changed.
              * @type {TextureSource}
              */
-            this._source = undefined;
+            this._source = null;
 
             /**
              * The texture clipping x-offset.
@@ -5422,8 +5429,7 @@ var lng = (function () {
         }
 
         decActiveCount() {
-            const source = this.source;
-
+            const source = this.source; // Force updating the source.
             this._activeCount--;
             if (!this._activeCount) {
                 this.becomesUnused();
@@ -5448,11 +5454,11 @@ var lng = (function () {
 
         /**
          * Returns the lookup id for the current texture settings, to be able to reuse it.
-         * @returns {string|undefined}
+         * @returns {string|null}
          */
         _getLookupId() {
             // Default: do not reuse texture.
-            return undefined;
+            return null;
         }
 
         /**
@@ -5518,7 +5524,7 @@ var lng = (function () {
         }
 
         _getTextureSource() {
-            let source = undefined;
+            let source = null;
             if (this._getIsValid()) {
                 const lookupId = this._getLookupId();
                 if (lookupId) {
@@ -5531,7 +5537,7 @@ var lng = (function () {
             return source;
         }
 
-        _replaceTextureSource(newSource = undefined) {
+        _replaceTextureSource(newSource = null) {
             let oldSource = this._source;
 
             this._source = newSource;
@@ -5741,12 +5747,12 @@ var lng = (function () {
             }
         }
 
-        _isAutosizeTexture() {
+        isAutosizeTexture() {
             return true;
         }
 
         getRenderWidth() {
-            if (!this._isAutosizeTexture()) {
+            if (!this.isAutosizeTexture()) {
                 // In case of the rectangle texture, we'd prefer to not cause a 1x1 w,h as it would interfere with flex layout fit-to-contents.
                 return 0;
             }
@@ -5756,7 +5762,7 @@ var lng = (function () {
         }
 
         getRenderHeight() {
-            if (!this._isAutosizeTexture()) {
+            if (!this.isAutosizeTexture()) {
                 // In case of the rectangle texture, we'd prefer to not cause a 1x1 w,h as it would interfere with flex layout fit-to-contents.
                 return 0;
             }
@@ -7948,8 +7954,8 @@ var lng = (function () {
                 }
             }
 
-            const prevSource = this.__core.displayedTextureSource ? this.__core.displayedTextureSource._source : undefined;
-            const sourceChanged = (v ? v._source : undefined) !== prevSource;
+            const prevSource = this.__core.displayedTextureSource ? this.__core.displayedTextureSource._source : null;
+            const sourceChanged = (v ? v._source : null) !== prevSource;
 
             this.__displayedTexture = v;
             this._updateDimensions();
@@ -8010,7 +8016,7 @@ var lng = (function () {
                     w = w || this.__texture.mw;
                     h = h || this.__texture.mh;
 
-                    if (!w || !h) {
+                    if ((!w || !h) && this.__texture.isAutosizeTexture()) {
                         unknownSize = true;
                     }
                 }
@@ -8717,8 +8723,8 @@ var lng = (function () {
         }
 
         set boundsMargin(v) {
-            if (!Array.isArray(v) && v !== null && v !== undefined) {
-                throw new Error("boundsMargin should be an array of left-top-right-bottom values, null (no margin) or undefined (inherit margin)");
+            if (!Array.isArray(v) && v !== null) {
+                throw new Error("boundsMargin should be an array of left-top-right-bottom values or null (inherit margin)");
             }
             this.__core.boundsMargin = v;
         }
@@ -8748,23 +8754,19 @@ var lng = (function () {
         }
 
         set w(v) {
-            if (this._w !== v) {
-                this.__core.disableRelW();
-                if (this._w < 0) {
+            if (Utils.isFunction(v)) {
+                this._w = 0;
+                this.__core.funcW = v;
+            } else {
+                if (v < 0) {
                     throw new Error("Negative width is not supported");
                 }
-                this._w = v;
-                this._updateDimensions();
+                if (this._w !== v) {
+                    this.__core.disableFuncW();
+                    this._w = v;
+                    this._updateDimensions();
+                }
             }
-        }
-
-        get relW() {
-            return this.__core.relW;
-        }
-
-        set relW(v) {
-            this._w = 0;
-            this.__core.relW = v;
         }
 
         get h() {
@@ -8772,23 +8774,19 @@ var lng = (function () {
         }
 
         set h(v) {
-            if (this._h !== v) {
-                this.__core.disableRelH();
-                if (this._h < 0) {
+            if (Utils.isFunction(v)) {
+                this._h = 0;
+                this.__core.funcH = v;
+            } else {
+                if (v < 0) {
                     throw new Error("Negative height is not supported");
                 }
-                this._h = v;
-                this._updateDimensions();
+                if (this._h !== v) {
+                    this.__core.disableFuncH();
+                    this._h = v;
+                    this._updateDimensions();
+                }
             }
-        }
-
-        get relH() {
-            return this.__core.relH;
-        }
-
-        set relH(v) {
-            this._h = 0;
-            this.__core.relH = v;
         }
 
         get scaleX() {
@@ -9067,6 +9065,7 @@ var lng = (function () {
         set mw(v) {
             if (this.texture) {
                 this.texture.mw = v;
+                this._updateDimensions();
             } else {
                 this._throwError('Please set mw after setting a texture.');
             }
@@ -9075,6 +9074,7 @@ var lng = (function () {
         set mh(v) {
             if (this.texture) {
                 this.texture.mh = v;
+                this._updateDimensions();
             } else {
                 this._throwError('Please set mh after setting a texture.');
             }
@@ -9110,7 +9110,7 @@ var lng = (function () {
             if (this.texture && (this.texture instanceof TextTexture)) {
                 return this.texture;
             } else {
-                return undefined;
+                return null;
             }
         }
 
@@ -9311,8 +9311,8 @@ var lng = (function () {
             return this.stage.animations.createAnimation(this, settings);
         }
 
-        transition(property, settings) {
-            if (settings === undefined) {
+        transition(property, settings = null) {
+            if (settings === null) {
                 return this._getTransition(property);
             } else {
                 this._setTransition(property, settings);
@@ -13477,6 +13477,19 @@ var lng = (function () {
         }
 
         frame() {
+            this._update();
+
+            this._performForcedZSorts();
+
+            // Clear flag to identify if anything changes before the next frame.
+            this.root._parent._hasRenderUpdates = 0;
+
+            this.render();
+
+            return true;
+        }
+
+        _update() {
             this.update();
 
             // Due to the boundsVisibility flag feature (and onAfterUpdate hook), it is possible that other views were
@@ -13485,10 +13498,15 @@ var lng = (function () {
             if (this.root._hasUpdates) {
                 this.update();
             }
+        }
 
+        /**
+         * Certain ViewCore items may be forced to zSort to strip out references to prevent memleaks..
+         */
+        _performForcedZSorts() {
             const n = this._zSorts.length;
             if (n) {
-                // Forced z-sorts (ViewCore may force a z-sort in order to free memory/prevent memory leakd).
+                // Forced z-sorts (ViewCore may force a z-sort in order to free memory/prevent memory leaks).
                 for (let i = 0, n = this._zSorts.length; i < n; i++) {
                     if (this._zSorts[i].zSort) {
                         this._zSorts[i].sortZIndexedChildren();
@@ -13496,13 +13514,6 @@ var lng = (function () {
                 }
                 this._zSorts = [];
             }
-
-            // Clear flag to identify if anything changes before the next frame.
-            this.root._parent._hasRenderUpdates = 0;
-
-            this.render();
-
-            return true;
         }
 
         update() {
@@ -13513,11 +13524,19 @@ var lng = (function () {
 
         render() {
             // Obtain a sequence of the quad operations.
+            this._fillRenderState();
+
+            // Now run them with the render executor.
+            this._performRender();
+        }
+
+        _fillRenderState() {
             this.renderState.reset();
             this.root.render();
             this.renderState.finish();
+        }
 
-            // Now run them with the render executor.
+        _performRender() {
             this.renderExec.execute();
         }
 
@@ -14796,7 +14815,7 @@ var lng = (function () {
             }
         }
 
-        _isAutosizeTexture() {
+        isAutosizeTexture() {
             return false;
         }
     }
@@ -14822,8 +14841,8 @@ var lng = (function () {
                 this.platform.init(this);
             }
 
-            this.gl = undefined;
-            this.c2d = undefined;
+            this.gl = null;
+            this.c2d = null;
 
             const context = this.getOption('context');
             if (context) {
@@ -14942,8 +14961,8 @@ var lng = (function () {
                 }
             };
 
-            opt('canvas', undefined);
-            opt('context', undefined);
+            opt('canvas', null);
+            opt('context', null);
             opt('w', 1280);
             opt('h', 720);
             opt('srcBasePath', null);
@@ -14959,7 +14978,7 @@ var lng = (function () {
             opt('autostart', true);
             opt('precision', 1);
             opt('canvas2d', false);
-            opt('platform', undefined);
+            opt('platform', null);
         }
 
         setApplication(app) {
@@ -15079,9 +15098,9 @@ var lng = (function () {
 
         setClearColor(clearColor) {
             this.forceRenderUpdate();
-            if (clearColor === null || clearColor === undefined) {
+            if (clearColor === null) {
                 // Do not clear.
-                this._clearColor = undefined;
+                this._clearColor = null;
             } else if (Array.isArray(clearColor)) {
                 this._clearColor = clearColor;
             } else {

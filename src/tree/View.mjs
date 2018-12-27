@@ -572,8 +572,8 @@ export default class View {
             }
         }
 
-        const prevSource = this.__core.displayedTextureSource ? this.__core.displayedTextureSource._source : undefined;
-        const sourceChanged = (v ? v._source : undefined) !== prevSource;
+        const prevSource = this.__core.displayedTextureSource ? this.__core.displayedTextureSource._source : null;
+        const sourceChanged = (v ? v._source : null) !== prevSource;
 
         this.__displayedTexture = v;
         this._updateDimensions();
@@ -634,7 +634,7 @@ export default class View {
                 w = w || this.__texture.mw;
                 h = h || this.__texture.mh;
 
-                if (!w || !h) {
+                if ((!w || !h) && this.__texture.isAutosizeTexture()) {
                     unknownSize = true;
                 }
             }
@@ -1343,8 +1343,8 @@ export default class View {
     }
 
     set boundsMargin(v) {
-        if (!Array.isArray(v) && v !== null && v !== undefined) {
-            throw new Error("boundsMargin should be an array of left-top-right-bottom values, null (no margin) or undefined (inherit margin)");
+        if (!Array.isArray(v) && v !== null) {
+            throw new Error("boundsMargin should be an array of left-top-right-bottom values or null (inherit margin)");
         }
         this.__core.boundsMargin = v;
     }
@@ -1685,6 +1685,7 @@ export default class View {
     set mw(v) {
         if (this.texture) {
             this.texture.mw = v;
+            this._updateDimensions();
         } else {
             this._throwError('Please set mw after setting a texture.');
         }
@@ -1693,6 +1694,7 @@ export default class View {
     set mh(v) {
         if (this.texture) {
             this.texture.mh = v;
+            this._updateDimensions();
         } else {
             this._throwError('Please set mh after setting a texture.');
         }
@@ -1728,7 +1730,7 @@ export default class View {
         if (this.texture && (this.texture instanceof TextTexture)) {
             return this.texture;
         } else {
-            return undefined;
+            return null;
         }
     }
 
@@ -1931,8 +1933,8 @@ export default class View {
         return this.stage.animations.createAnimation(this, settings);
     }
 
-    transition(property, settings) {
-        if (settings === undefined) {
+    transition(property, settings = null) {
+        if (settings === null) {
             return this._getTransition(property);
         } else {
             this._setTransition(property, settings);

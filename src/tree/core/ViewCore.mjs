@@ -14,7 +14,7 @@ export default class ViewCore {
 
         this._parent = null;
 
-        this._onUpdate = undefined;
+        this._onUpdate = null;
 
         this._pRecalc = 0;
 
@@ -24,9 +24,9 @@ export default class ViewCore {
 
         this._localAlpha = 1;
 
-        this._onAfterCalcs = undefined;
+        this._onAfterCalcs = null;
 
-        this._onAfterUpdate = undefined;
+        this._onAfterUpdate = null;
 
         // All local translation/transform updates: directly propagated from x/y/w/h/scale/whatever.
         this._localPx = 0;
@@ -68,7 +68,7 @@ export default class ViewCore {
 
         this.renderState = this.ctx.renderState;
 
-        this._scissor = undefined;
+        this._scissor = null;
 
         // The ancestor ViewCore that owns the inherited shader. Null if none is active (default shader).
         this._shaderOwner = null;
@@ -126,15 +126,15 @@ export default class ViewCore {
 
         this._useRenderToTexture = false;
 
-        this._boundsMargin = undefined;
+        this._boundsMargin = null;
 
-        this._recBoundsMargin = undefined;
+        this._recBoundsMargin = null;
 
         this._withinBoundsMargin = false;
 
-        this._viewport = undefined;
+        this._viewport = null;
 
-        this._clipbox = false;
+        this._clipbox = true;
 
         this.render = this._renderSimple;
 
@@ -729,11 +729,8 @@ export default class ViewCore {
         this._parent._viewport = [0, 0, this.ctx.stage.coordsWidth, this.ctx.stage.coordsHeight];
         this._parent._scissor = this._parent._viewport;
 
-        // We use a default of 100px bounds margin to detect images around the edges.
-        this._parent._recBoundsMargin = [100, 100, 100, 100];
-
-        // Default: no bounds margin.
-        this._parent._boundsMargin = null;
+        // When recBoundsMargin is null, the defaults are used (100 for all sides).
+        this._parent._recBoundsMargin = null;
 
         this._setRecalc(1 + 2 + 4);
     };
@@ -1208,11 +1205,10 @@ export default class ViewCore {
     set boundsMargin(v) {
 
         /**
-         *  undefined: inherit
-         *  null: no margin
+         *  null: inherit from parent.
          *  number[4]: specific margins: left, top, right, bottom.
          */
-        this._boundsMargin = v ? v.slice() : undefined;
+        this._boundsMargin = v ? v.slice() : null;
 
         // We force recalc in order to set all boundsMargin recursively during the next update.
         this._triggerRecalcTranslate();
@@ -1240,18 +1236,20 @@ export default class ViewCore {
                 this._layout.layoutFlexTree();
             }
         } else {
-            if (this._funcW) {
-                const w = this._funcW(this._parent.w);
-                if (w !== this._w) {
-                    this._w = w;
-                    this._recalc |= 2;
+            if (this._recalc & 2) {
+                if (this._funcW) {
+                    const w = this._funcW(this._parent.w);
+                    if (w !== this._w) {
+                        this._w = w;
+                        this._recalc |= 2;
+                    }
                 }
-            }
-            if (this._funcH) {
-                const h = this._funcH(this._parent.h);
-                if (h !== this._h) {
-                    this._h = h;
-                    this._recalc |= 2;
+                if (this._funcH) {
+                    const h = this._funcH(this._parent.h);
+                    if (h !== this._h) {
+                        this._h = h;
+                        this._recalc |= 2;
+                    }
                 }
             }
         }
@@ -1428,8 +1426,7 @@ export default class ViewCore {
             }
 
             // Calculate the outOfBounds margin.
-            if (this._boundsMargin !== undefined) {
-                // Reuse parent's recBoundsMargin.
+            if (this._boundsMargin) {
                 this._recBoundsMargin = this._boundsMargin;
             } else {
                 this._recBoundsMargin = this._parent._recBoundsMargin;
@@ -1492,20 +1489,26 @@ export default class ViewCore {
                             }
 
                             if (this._outOfBounds) {
-                                if (this._clipping || this._useRenderToTexture || this._clipbox) {
+                                if (this._clipping || this._useRenderToTexture || (this._clipbox && (bboxW && bboxH))) {
                                     this._outOfBounds = 2;
                                 }
                             }
                         }
 
                         withinMargin = (this._outOfBounds === 0);
-                        if (!withinMargin && !!this._recBoundsMargin) {
+                        if (!withinMargin) {
                             // Re-test, now with margins.
-                            withinMargin = !((ex < this._scissor[0] - this._recBoundsMargin[2]) ||
-                            (ey < this._scissor[1] - this._recBoundsMargin[3]) ||
-                            (sx > this._scissor[0] + this._scissor[2] + this._recBoundsMargin[0]) ||
-                            (sy > this._scissor[1] + this._scissor[3] + this._recBoundsMargin[1]))
-
+                            if (this._recBoundsMargin) {
+                                withinMargin = !((ex < this._scissor[0] - this._recBoundsMargin[2]) ||
+                                    (ey < this._scissor[1] - this._recBoundsMargin[3]) ||
+                                    (sx > this._scissor[0] + this._scissor[2] + this._recBoundsMargin[0]) ||
+                                    (sy > this._scissor[1] + this._scissor[3] + this._recBoundsMargin[1]))
+                            } else {
+                                withinMargin = !((ex < this._scissor[0] - 100) ||
+                                    (ey < this._scissor[1] - 100) ||
+                                    (sx > this._scissor[0] + this._scissor[2] + 100) ||
+                                    (sy > this._scissor[1] + this._scissor[3] + 100))
+                            }
                             if (withinMargin && this._outOfBounds === 2) {
                                 // Children must be visited because they may contain views that are within margin, so must be visible.
                                 this._outOfBounds = 1;
@@ -1751,7 +1754,7 @@ export default class ViewCore {
                     }
 
                     renderState.setRenderTextureInfo(renderTextureInfo);
-                    renderState.setScissor(undefined);
+                    renderState.setScissor(null);
 
                     if (this._displayedTextureSource) {
                         let r = this._renderContext;
@@ -2117,7 +2120,6 @@ class ViewCoreContext {
 }
 
 ViewCoreContext.IDENTITY = new ViewCoreContext();
-
 ViewCore.sortZIndexedChildren = function(a,b) {
     return (a._zIndex === b._zIndex ? a._updateTreeOrder - b._updateTreeOrder : a._zIndex - b._zIndex);
 }

@@ -13,7 +13,7 @@ export default class RectangleTexture extends Texture {
         }
     }
 
-    _isAutosizeTexture() {
+    isAutosizeTexture() {
         return false;
     }
 }

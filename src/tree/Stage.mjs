@@ -27,8 +27,8 @@ export default class Stage extends EventEmitter {
             this.platform.init(this);
         }
 
-        this.gl = undefined;
-        this.c2d = undefined;
+        this.gl = null;
+        this.c2d = null;
 
         const context = this.getOption('context');
         if (context) {
@@ -147,8 +147,8 @@ export default class Stage extends EventEmitter {
             }
         }
 
-        opt('canvas', undefined);
-        opt('context', undefined);
+        opt('canvas', null);
+        opt('context', null);
         opt('w', 1280);
         opt('h', 720);
         opt('srcBasePath', null);
@@ -164,7 +164,7 @@ export default class Stage extends EventEmitter {
         opt('autostart', true);
         opt('precision', 1);
         opt('canvas2d', false);
-        opt('platform', undefined);
+        opt('platform', null);
     }
 
     setApplication(app) {
@@ -284,9 +284,9 @@ export default class Stage extends EventEmitter {
 
     setClearColor(clearColor) {
         this.forceRenderUpdate();
-        if (clearColor === null || clearColor === undefined) {
+        if (clearColor === null) {
             // Do not clear.
-            this._clearColor = undefined;
+            this._clearColor = null;
         } else if (Array.isArray(clearColor)) {
             this._clearColor = clearColor;
         } else {
