@@ -385,11 +385,11 @@ export default class FlexTarget {
         }
     }
 
-    get relW() {
-        return this._target.relW;
+    get funcW() {
+        return this._target.funcW;
     }
 
-    get relH() {
-        return this._target.relH;
+    get funcH() {
+        return this._target.funcH;
     }
 }

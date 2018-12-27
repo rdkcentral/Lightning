@@ -18,14 +18,14 @@ export default class FlexUtils {
 
     static getRelAxisSize(item, horizontal) {
         if (horizontal) {
-            if (item.relW) {
-                return 0.01 * item.relW * this.getParentAxisSizeWithPadding(item, true);
+            if (item.funcW) {
+                return item.funcW(this.getParentAxisSizeWithPadding(item, true));
             } else {
                 return item.originalWidth;
             }
         } else {
-            if (item.relH) {
-                return 0.01 * item.relH * this.getParentAxisSizeWithPadding(item, false);
+            if (item.funcH) {
+                return item.funcH(this.getParentAxisSizeWithPadding(item, false));
             } else {
                 return item.originalHeight;
             }
@@ -34,9 +34,9 @@ export default class FlexUtils {
 
     static isZeroAxisSize(item, horizontal) {
         if (horizontal) {
-            return !item.originalWidth && !item.relW;
+            return !item.originalWidth && !item.funcW;
         } else {
-            return !item.originalHeight && !item.relH;
+            return !item.originalHeight && !item.funcH;
         }
     }
 

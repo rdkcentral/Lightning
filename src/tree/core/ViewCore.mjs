@@ -83,8 +83,8 @@ export default class ViewCore {
         this._w = 0;
         this._h = 0;
 
-        this._relW = 0;
-        this._relH = 0;
+        this._funcW = null;
+        this._funcH = null;
 
         this._scaleX = 1;
         this._scaleY = 1;
@@ -223,13 +223,13 @@ export default class ViewCore {
         }
     }
 
-    get relW() {
-        return this._relW;
+    get funcW() {
+        return this._funcW;
     }
 
-    set relW(v) {
-        if (this._relW !== v) {
-            this._relW = v;
+    set funcW(v) {
+        if (this._funcW !== v) {
+            this._funcW = v;
             if (this.hasFlexLayout()) {
                 this._layout._originalWidth = 0;
                 this.layout.mustUpdateExternal();
@@ -240,17 +240,17 @@ export default class ViewCore {
         }
     }
 
-    disableRelW() {
-        this._relW = 0;
+    disableFuncW() {
+        this._funcW = null;
     }
 
-    get relH() {
-        return this._relH;
+    get funcH() {
+        return this._funcH;
     }
 
-    set relH(v) {
-        if (this._relH !== v) {
-            this._relH = v;
+    set funcH(v) {
+        if (this._funcH !== v) {
+            this._funcH = v;
             if (this.hasFlexLayout()) {
                 this._layout._originalHeight = 0;
                 this.layout.mustUpdateExternal();
@@ -261,8 +261,8 @@ export default class ViewCore {
         }
     }
 
-    disableRelH() {
-        this._relH = 0;
+    disableFuncH() {
+        this._funcH = null;
     }
 
     get scaleX() {
@@ -663,17 +663,16 @@ export default class ViewCore {
         // In case of an estimation, the update loop should perform different bound checks.
         this._dimsUnknown = isEstimate;
 
-        if (this._w !== w || this._h !== h) {
-            if (this.hasFlexLayout()) {
-                this._layout.originalWidth = w;
-                this._layout.originalHeight = h;
-            } else {
-                this._updateDimensions(w, h);
-            }
-            return true;
+        if (this.hasFlexLayout()) {
+            this._layout.originalWidth = w;
+            this._layout.originalHeight = h;
         } else {
-            return false;
+            if (this._w !== w || this._h !== h) {
+                this._updateDimensions(w, h);
+                return true;
+            }
         }
+        return false;
     };
 
     _updateDimensions(w, h) {
@@ -1241,13 +1240,19 @@ export default class ViewCore {
                 this._layout.layoutFlexTree();
             }
         } else {
-            if (this._relW) {
-                this._w = this._parent.w * this._relW * 0.01;
-                this._recalc |= 2;
+            if (this._funcW) {
+                const w = this._funcW(this._parent.w);
+                if (w !== this._w) {
+                    this._w = w;
+                    this._recalc |= 2;
+                }
             }
-            if (this._relH) {
-                this._h = this._parent.h * this._relH * 0.01;
-                this._recalc |= 2;
+            if (this._funcH) {
+                const h = this._funcH(this._parent.h);
+                if (h !== this._h) {
+                    this._h = h;
+                    this._recalc |= 2;
+                }
             }
         }
 

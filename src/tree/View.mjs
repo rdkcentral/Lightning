@@ -1374,23 +1374,19 @@ export default class View {
     }
 
     set w(v) {
-        if (this._w !== v) {
-            this.__core.disableRelW();
-            if (this._w < 0) {
+        if (Utils.isFunction(v)) {
+            this._w = 0;
+            this.__core.funcW = v;
+        } else {
+            if (v < 0) {
                 throw new Error("Negative width is not supported");
             }
-            this._w = v;
-            this._updateDimensions();
+            if (this._w !== v) {
+                this.__core.disableFuncW();
+                this._w = v;
+                this._updateDimensions();
+            }
         }
-    }
-
-    get relW() {
-        return this.__core.relW;
-    }
-
-    set relW(v) {
-        this._w = 0;
-        this.__core.relW = v;
     }
 
     get h() {
@@ -1398,23 +1394,19 @@ export default class View {
     }
 
     set h(v) {
-        if (this._h !== v) {
-            this.__core.disableRelH();
-            if (this._h < 0) {
+        if (Utils.isFunction(v)) {
+            this._h = 0;
+            this.__core.funcH = v;
+        } else {
+            if (v < 0) {
                 throw new Error("Negative height is not supported");
             }
-            this._h = v;
-            this._updateDimensions();
+            if (this._h !== v) {
+                this.__core.disableFuncH();
+                this._h = v;
+                this._updateDimensions();
+            }
         }
-    }
-
-    get relH() {
-        return this.__core.relH;
-    }
-
-    set relH(v) {
-        this._h = 0;
-        this.__core.relH = v;
     }
 
     get scaleX() {
