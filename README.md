@@ -115,8 +115,8 @@ For the `x`, `y`, `w` and `h` properties can be set to a Function, that calculat
 
 This gives you the power to align items relative to the parent, purely based on the dimensions of the parent.
 
-### Flexbox
-Lightning contains a layout engine based on the HTML Flexbox specification. If you are not familiar with it, MDN contains an [https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Flexible_Box_Layout/Basic_Concepts_of_Flexbox](excellent introduction).
+#### Flexbox
+Lightning contains a layout engine based on the HTML Flexbox specification. If you are not familiar with it, MDN contains an [excellent introduction](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Flexible_Box_Layout/Basic_Concepts_of_Flexbox).
 
 Flexbox can be turned on on a View by setting the flex property: `{flex: {}}`.
 This turns all immediate children to flex items.
