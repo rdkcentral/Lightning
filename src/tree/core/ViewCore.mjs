@@ -1674,15 +1674,15 @@ export default class ViewCore {
         if (this._optFlags & 1) {
             const x = this._funcX(this._parent.w);
             if (x !== this._x) {
+                this._localPx += (x - this._x);
                 this._x = x;
-                this._localPx = x;
             }
         }
         if (this._optFlags & 2) {
             const y = this._funcY(this._parent.h);
             if (y !== this._y) {
+                this._localPy += (y - this._y);
                 this._y = y;
-                this._localPy = x;
             }
         }
 

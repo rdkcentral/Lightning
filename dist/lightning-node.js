@@ -850,9 +850,15 @@ class SizeShrinker {
     }
 
     _getShrinkableItems() {
-        return this._line._items.filter(item => {
-            return this._isShrinkableItem(item);
-        });
+        const shrinkableItems = [];
+        const items = this._line.items;
+        for (let i = this._line.startIndex; i <= this._line.endIndex; i++) {
+            const item = items[i];
+            if (this._isShrinkableItem(item)) {
+                shrinkableItems.push(item);
+            }
+        }
+        return shrinkableItems;
     }
 
     _isShrinkableItem(item) {
@@ -887,7 +893,6 @@ class SizeGrower {
 
     constructor(line) {
         this._line = line;
-        this. _items = this._getGrowableItems();
         this._grownSize = 0;
     }
 
@@ -898,21 +903,18 @@ class SizeGrower {
         if (totalGrow) {
             const amountPerGrow = amount / totalGrow;
 
-            for (let i = 0, n = this._items.length; i < n; i++) {
-                const item = this._items[i];
-                const flexItem = item.flexItem;
-                const actualGrow = flexItem.grow * amountPerGrow;
-                this._grownSize += actualGrow;
-                const finalSize = item.flexItem._getMainAxisLayoutSize() + actualGrow;
-                item.flexItem._resizeMainAxis(finalSize);
+            const items = this._line.items;
+            for (let i = this._line.startIndex; i <= this._line.endIndex; i++) {
+                const item = items[i];
+                if (this._isGrowableItem(item)) {
+                    const flexItem = item.flexItem;
+                    const actualGrow = flexItem.grow * amountPerGrow;
+                    this._grownSize += actualGrow;
+                    const finalSize = item.flexItem._getMainAxisLayoutSize() + actualGrow;
+                    item.flexItem._resizeMainAxis(finalSize);
+                }
             }
         }
-    }
-
-    _getGrowableItems() {
-        return this._line._items.filter(item => {
-            return this._isGrowableItem(item);
-        });
     }
 
     _isGrowableItem(item) {
@@ -921,9 +923,10 @@ class SizeGrower {
 
     _getTotalGrowAmount() {
         let total = 0;
-        for (let i = 0, n = this._line._items.length; i < n; i++) {
-            const flexItem = this._line._items[i].flexItem;
-            total += flexItem.grow;
+        const items = this._line.items;
+        for (let i = this._line.startIndex; i <= this._line.endIndex; i++) {
+            const item = items[i];
+            total += item.flexItem.grow;
         }
         return total;
     }
@@ -936,8 +939,8 @@ class SizeGrower {
 
 class ItemPositioner {
 
-    constructor(lineLayouter) {
-        this._line = lineLayouter;
+    constructor(lineLayout) {
+        this._line = lineLayout;
     }
 
     get _layout() {
@@ -949,8 +952,8 @@ class ItemPositioner {
 
         let currentPos = spacingBefore;
 
-        const items = this._line._items;
-        for (let i = 0, n = items.length; i < n; i++) {
+        const items = this._line.items;
+        for (let i = this._line.startIndex; i <= this._line.endIndex; i++) {
             const item = items[i];
 
             item.flexItem._setMainAxisLayoutPos(currentPos);
@@ -962,7 +965,7 @@ class ItemPositioner {
     _getSpacing() {
         const remainingSpace = this._line._availableSpace;
         let mode = this._layout._flexContainer.justifyContent;
-        const numberOfItems = this._line._items.length;
+        const numberOfItems = this._line.numberOfItems;
 
         return SpacingCalculator.getSpacing(mode, numberOfItems, remainingSpace);
     }
@@ -991,8 +994,8 @@ class ItemAligner {
 
     align() {
         this._recursiveResizeOccured = false;
-        const items = this._line._items;
-        for (let i = 0, n = items.length; i < n; i++) {
+        const items = this._line.items;
+        for (let i = this._line.startIndex; i <= this._line.endIndex; i++) {
             const item = items[i];
             this._alignItem(item);
         }
@@ -1071,16 +1074,17 @@ class ItemAligner {
 
 class LineLayout {
 
-    constructor(layout, items, availableSpace) {
+    constructor(layout, startIndex, endIndex, availableSpace) {
         this._layout = layout;
-        this._items = items;
+        this.items = layout.items;
+        this.startIndex = startIndex;
+        this.endIndex = endIndex;
         this._availableSpace = availableSpace;
     }
 
     performLayout() {
         this._setItemSizes();
         this.setItemPositions();
-
         this._calcLayoutInfo();
     }
 
@@ -1119,15 +1123,19 @@ class LineLayout {
 
     getMainAxisMinSize() {
         let mainAxisMinSize = 0;
-        for (let i = 0, n = this._items.length; i < n; i++) {
-            const item = this._items[i];
+        for (let i = this.startIndex; i <= this.endIndex; i++) {
+            const item = this.items[i];
             mainAxisMinSize += item.flexItem._getMainAxisMinSizeWithPaddingAndMargin();
         }
         return mainAxisMinSize;
     }
+    
+    get numberOfItems() {
+        return this.endIndex - this.startIndex + 1;
+    }
 
     isOnlyLine() {
-        return (this._layout.numberOfItems === this._items.length);
+        return (this._layout.numberOfItems === (1 + (this.endIndex - this.startIndex)));
     }
 
     get crossAxisLayoutSize() {
@@ -1146,8 +1154,8 @@ class LineLayout {
 
     _getCrossAxisMaxLayoutSize() {
         let crossAxisMaxSize = 0;
-        for (let i = 0, n = this._items.length; i < n; i++) {
-            const item = this._items[i];
+        for (let i = this.startIndex; i <= this.endIndex; i++) {
+            const item = this.items[i];
             crossAxisMaxSize = Math.max(crossAxisMaxSize, item.flexItem._getCrossAxisLayoutSizeWithPaddingAndMargin());
         }
         return crossAxisMaxSize;
@@ -1192,8 +1200,10 @@ class LineLayouter {
         const items = this._layout.items;
         const wrap = this._layout.isWrapping();
 
-        let lineItems = [];
-        for (let i = 0, n = items.length; i < n; i++) {
+        let startIndex = 0;
+        let i;
+        const n = items.length;
+        for (i = 0; i < n; i++) {
             const item = items[i];
 
             this._layoutFlexItem(item);
@@ -1201,21 +1211,20 @@ class LineLayouter {
             // Get predicted main axis size.
             const itemMainAxisSize = item.flexItem._getMainAxisLayoutSizeWithPaddingAndMargin();
 
-            if (wrap && lineItems.length) {
+            if (wrap && (i > startIndex)) {
                 const isOverflowing = (this._curMainAxisPos + itemMainAxisSize > this._mainAxisSize);
                 if (isOverflowing) {
-                    this._layoutLine(lineItems);
+                    this._layoutLine(startIndex, i - 1);
                     this._curMainAxisPos = 0;
-                    lineItems = [];
+                    startIndex = i;
                 }
             }
-            lineItems.push(item);
 
             this._addToMainAxisPos(itemMainAxisSize);
         }
 
-        if (lineItems.length) {
-            this._layoutLine(lineItems);
+        if (startIndex < i) {
+            this._layoutLine(startIndex, i - 1);
         }
     }
 
@@ -1249,9 +1258,9 @@ class LineLayouter {
         }
     }
 
-    _layoutLine(lineItems) {
+    _layoutLine(startIndex, endIndex) {
         const availableSpace = this._getAvailableMainAxisLayoutSpace();
-        const line = new LineLayout(this._layout, lineItems, availableSpace);
+        const line = new LineLayout(this._layout, startIndex, endIndex, availableSpace);
         line.performLayout();
         this._lines.push(line);
 
@@ -1990,20 +1999,12 @@ class FlexItem {
         return FlexUtils.setAxisLayoutPos(this.item, this.ctr._horizontal, pos);
     }
 
-    _getCrossAxisLayoutPos() {
-        return FlexUtils.getAxisLayoutPos(this.item, !this.ctr._horizontal);
-    }
-
     _setCrossAxisLayoutPos(pos) {
         return FlexUtils.setAxisLayoutPos(this.item, !this.ctr._horizontal, pos);
     }
 
     _getCrossAxisLayoutSize() {
         return FlexUtils.getAxisLayoutSize(this.item, !this.ctr._horizontal);
-    }
-
-    _getCrossAxisBasis() {
-        return FlexUtils.getRelAxisSize(this.item, !this.ctr._horizontal);
     }
 
     _resizeCrossAxis(size) {
@@ -2202,7 +2203,7 @@ class FlexTarget {
     }
 
     _disableFlexItem() {
-        // We leave the flexItem object because it may contain custom settings.
+        // We keep the flexItem object because it may contain custom settings.
         this._checkEnabled();
         const flexParent = this.flexParent;
         if (flexParent) {
@@ -2334,11 +2335,20 @@ class FlexTarget {
     }
 
     setLayout(x, y, w, h) {
+        let originalX = this._originalX;
+        let originalY = this._originalY;
+        if (this.funcX) {
+            originalX = this.funcX(FlexUtils.getParentAxisSizeWithPadding(this, true));
+        }
+        if (this.funcY) {
+            originalY = this.funcY(FlexUtils.getParentAxisSizeWithPadding(this, false));
+        }
+
         if (this.isFlexItemEnabled()) {
-            this.target.setLayout(x + this._originalX, y + this._originalY, w, h);
+            this.target.setLayout(x + originalX, y + originalY, w, h);
         } else {
             // Reuse the x,y 'settings'.
-            this.target.setLayout(this._originalX, this._originalY, w, h);
+            this.target.setLayout(originalX, originalY, w, h);
         }
     }
 
@@ -2443,6 +2453,14 @@ class FlexTarget {
             this._originalHeight = v;
             this.mustUpdateExternal();
         }
+    }
+
+    get funcX() {
+        return this._target.funcX;
+    }
+
+    get funcY() {
+        return this._target.funcY;
     }
 
     get funcW() {
@@ -2989,8 +3007,6 @@ class ViewCore {
 
         this._isComplex = false;
 
-        this._w = 0;
-        this._h = 0;
         this._dimsUnknown = false;
 
         this._clipping = false;
@@ -3033,6 +3049,9 @@ class ViewCore {
         this._w = 0;
         this._h = 0;
 
+        this._optFlags = 0;
+        this._funcX = null;
+        this._funcY = null;
         this._funcW = null;
         this._funcH = null;
 
@@ -3084,7 +3103,7 @@ class ViewCore {
 
         this._viewport = null;
 
-        this._clipbox = false;
+        this._clipbox = true;
 
         this.render = this._renderSimple;
 
@@ -3092,20 +3111,29 @@ class ViewCore {
     }
 
     get offsetX() {
-        if (this.hasFlexLayout()) {
-            return this._layout.originalX;
+        if (this._funcX) {
+            return this._funcX;
         } else {
-            return this._x;
+            if (this.hasFlexLayout()) {
+                return this._layout.originalX;
+            } else {
+                return this._x;
+            }
         }
     }
 
     set offsetX(v) {
-        if (this.hasFlexLayout()) {
-            this._x += (v - this._layout.originalX);
-            this._triggerRecalcTranslate();
-            this._layout.setOriginalXWithoutUpdatingLayout(v);
+        if (Utils.isFunction(v)) {
+            this.funcX = v;
         } else {
-            this.x = v;
+            this._disableFuncX();
+            if (this.hasFlexLayout()) {
+                this._x += (v - this._layout.originalX);
+                this._triggerRecalcTranslate();
+                this._layout.setOriginalXWithoutUpdatingLayout(v);
+            } else {
+                this.x = v;
+            }
         }
     }
 
@@ -3120,21 +3148,53 @@ class ViewCore {
         }
     }
 
+    get funcX() {
+        return (this._optFlags & 1 ? this._funcX : null);
+    }
+
+    set funcX(v) {
+        if (this._funcX !== v) {
+            this._optFlags |= 1;
+            this._funcX = v;
+            if (this.hasFlexLayout()) {
+                this._layout.setOriginalXWithoutUpdatingLayout(0);
+                this.layout.mustUpdateExternal();
+            } else {
+                this._x = 0;
+                this._triggerRecalcTranslate();
+            }
+        }
+    }
+
+    _disableFuncX() {
+        this._optFlags = this._optFlags & (0xFFFF - 1);
+        this._funcX = null;
+    }
+
     get offsetY() {
-        if (this.hasFlexLayout()) {
-            return this._layout.originalY;
+        if (this._funcY) {
+            return this._funcY;
         } else {
-            return this._y;
+            if (this.hasFlexLayout()) {
+                return this._layout.originalY;
+            } else {
+                return this._y;
+            }
         }
     }
 
     set offsetY(v) {
-        if (this.hasFlexLayout()) {
-            this._y += (v - this._layout.originalY);
-            this._triggerRecalcTranslate();
-            this._layout.setOriginalYWithoutUpdatingLayout(v);
+        if (Utils.isFunction(v)) {
+            this.funcY = v;
         } else {
-            this.y = v;
+            this._disableFuncY();
+            if (this.hasFlexLayout()) {
+                this._y += (v - this._layout.originalY);
+                this._triggerRecalcTranslate();
+                this._layout.setOriginalYWithoutUpdatingLayout(v);
+            } else {
+                this.y = v;
+            }
         }
     }
 
@@ -3147,6 +3207,75 @@ class ViewCore {
             this._updateLocalTranslateDelta(0, v - this._y);
             this._y = v;
         }
+    }
+
+    get funcY() {
+        return (this._optFlags & 2 ? this._funcY : null);
+    }
+
+    set funcY(v) {
+        if (this._funcY !== v) {
+            this._optFlags |= 2;
+            this._funcY = v;
+            if (this.hasFlexLayout()) {
+                this._layout.setOriginalYWithoutUpdatingLayout(0);
+                this.layout.mustUpdateExternal();
+            } else {
+                this._y = 0;
+                this._triggerRecalcTranslate();
+            }
+        }
+    }
+
+    _disableFuncY() {
+        this._optFlags = this._optFlags & (0xFFFF - 2);
+        this._funcY = null;
+    }
+
+    get funcW() {
+        return (this._optFlags & 4 ? this._funcW : null);
+    }
+
+    set funcW(v) {
+        if (this._funcW !== v) {
+            this._optFlags |= 4;
+            this._funcW = v;
+            if (this.hasFlexLayout()) {
+                this._layout._originalWidth = 0;
+                this.layout.mustUpdateExternal();
+            } else {
+                this._w = 0;
+                this._triggerRecalcTranslate();
+            }
+        }
+    }
+
+    disableFuncW() {
+        this._optFlags = this._optFlags & (0xFFFF - 4);
+        this._funcW = null;
+    }
+
+    get funcH() {
+        return (this._optFlags & 8 ? this._funcH : null);
+    }
+
+    set funcH(v) {
+        if (this._funcH !== v) {
+            this._optFlags |= 8;
+            this._funcH = v;
+            if (this.hasFlexLayout()) {
+                this._layout._originalHeight = 0;
+                this.layout.mustUpdateExternal();
+            } else {
+                this._h = 0;
+                this._triggerRecalcTranslate();
+            }
+        }
+    }
+
+    disableFuncH() {
+        this._optFlags = this._optFlags & (0xFFFF - 8);
+        this._funcH = null;
     }
 
     get w() {
@@ -3171,48 +3300,6 @@ class ViewCore {
         } else {
             return this._h;
         }
-    }
-
-    get funcW() {
-        return this._funcW;
-    }
-
-    set funcW(v) {
-        if (this._funcW !== v) {
-            this._funcW = v;
-            if (this.hasFlexLayout()) {
-                this._layout._originalWidth = 0;
-                this.layout.mustUpdateExternal();
-            } else {
-                this._w = 0;
-                this._triggerRecalcTranslate();
-            }
-        }
-    }
-
-    disableFuncW() {
-        this._funcW = null;
-    }
-
-    get funcH() {
-        return this._funcH;
-    }
-
-    set funcH(v) {
-        if (this._funcH !== v) {
-            this._funcH = v;
-            if (this.hasFlexLayout()) {
-                this._layout._originalHeight = 0;
-                this.layout.mustUpdateExternal();
-            } else {
-                this._h = 0;
-                this._triggerRecalcTranslate();
-            }
-        }
-    }
-
-    disableFuncH() {
-        this._funcH = null;
     }
 
     get scaleX() {
@@ -3385,17 +3472,20 @@ class ViewCore {
     };
 
     _updateLocalTranslate() {
+        this._recalcLocalTranslate();
+        this._triggerRecalcTranslate();
+    };
+
+    _recalcLocalTranslate() {
         let pivotXMul = this._pivotX * this._w;
         let pivotYMul = this._pivotY * this._h;
-        let px = this._x - (pivotXMul * this.localTa + pivotYMul * this.localTb) + pivotXMul;
-        let py = this._y - (pivotXMul * this.localTc + pivotYMul * this.localTd) + pivotYMul;
+        let px = this._x - (pivotXMul * this._localTa + pivotYMul * this._localTb) + pivotXMul;
+        let py = this._y - (pivotXMul * this._localTc + pivotYMul * this._localTd) + pivotYMul;
         px -= this._mountX * this._w;
         py -= this._mountY * this._h;
-        this._setLocalTranslate(
-            px,
-            py
-        );
-    };
+        this._localPx = px;
+        this._localPy = py;
+    }
 
     _updateLocalTranslateDelta(dx, dy) {
         this._addLocalTranslate(dx, dy);
@@ -3583,14 +3673,10 @@ class ViewCore {
         this._isComplex = (b !== 0) || (c !== 0) || (a < 0) || (d < 0);
     };
 
-    _setLocalTranslate(x, y) {
-        this._triggerRecalcTranslate();
-        this._localPx = x;
-        this._localPy = y;
-    };
-
     _addLocalTranslate(dx, dy) {
-        this._setLocalTranslate(this._localPx + dx, this._localPy + dy);
+        this._localPx += dx;
+        this._localPy += dy;
+        this._triggerRecalcTranslate();
     }
 
     _setLocalAlpha(a) {
@@ -3631,6 +3717,7 @@ class ViewCore {
             this._h = h;
 
             this._triggerRecalcTranslate();
+
             if (this._texturizer) {
                 this._texturizer.releaseRenderTexture();
                 this._texturizer.updateResultTexture();
@@ -4182,23 +4269,8 @@ class ViewCore {
             if (this._recalc & 256) {
                 this._layout.layoutFlexTree();
             }
-        } else {
-            if (this._recalc & 2) {
-                if (this._funcW) {
-                    const w = this._funcW(this._parent.w);
-                    if (w !== this._w) {
-                        this._w = w;
-                        this._recalc |= 2;
-                    }
-                }
-                if (this._funcH) {
-                    const h = this._funcH(this._parent.h);
-                    if (h !== this._h) {
-                        this._h = h;
-                        this._recalc |= 2;
-                    }
-                }
-            }
+        } else if ((this._recalc & 2) && this._optFlags) {
+            this._applyRelativeDimFuncs();
         }
 
         /**
@@ -4436,7 +4508,7 @@ class ViewCore {
                             }
 
                             if (this._outOfBounds) {
-                                if (this._clipping || this._useRenderToTexture || this._clipbox) {
+                                if (this._clipping || this._useRenderToTexture || (this._clipbox && (bboxW && bboxH))) {
                                     this._outOfBounds = 2;
                                 }
                             }
@@ -4560,6 +4632,44 @@ class ViewCore {
             } else {
                 this.updateTreeOrder();
             }
+        }
+    }
+
+    _applyRelativeDimFuncs() {
+        if (this._optFlags & 1) {
+            const x = this._funcX(this._parent.w);
+            if (x !== this._x) {
+                this._localPx += (x - this._x);
+                this._x = x;
+            }
+        }
+        if (this._optFlags & 2) {
+            const y = this._funcY(this._parent.h);
+            if (y !== this._y) {
+                this._localPy += (y - this._y);
+                this._y = y;
+            }
+        }
+
+        let changedDims = false;
+        if (this._optFlags & 4) {
+            const w = this._funcW(this._parent.w);
+            if (w !== this._w) {
+                this._w = w;
+                changedDims = true;
+            }
+        }
+        if (this._optFlags & 8) {
+            const h = this._funcH(this._parent.h);
+            if (h !== this._h) {
+                this._h = h;
+                changedDims = true;
+            }
+        }
+
+        if (changedDims) {
+            // Recalc mount, scale position.
+            this._recalcLocalTranslate();
         }
     }
 

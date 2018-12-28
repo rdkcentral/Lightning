@@ -11,9 +11,9 @@
             static _template() {
                 return {
                     Main: {x: 100, w: 500, h: 100, y: 100, flex: {direction: 'row', padding: 50, wrap: true}, rect: true, color: 0xFFFFF000,
-                        Rel: {w: (w=>w*0.90), h: (h=>h-20), scale: 1.5, x: (w=> {
-                            return w*0.05
-                        }), y: 10, flexItem: false, color: 0x66FF00FF, rect: true},
+                        // Rel: {w: (w=>w*0.90), h: (h=>h-20), scale: 1.5, x: (w=> {
+                        //     return w*0.05
+                        // }), y: 10, flexItem: false, color: 0x66FF00FF, rect: true},
                         Item1: {w: 110, h: 150, flexItem: {margin: 10}, rect: true, color: 0xFFF00000},
                         Item2: {w: 120, h: 150, flexItem: {margin: 10}, rect: true, color: 0xFFF00000},
                         Item3: {w: 130, h: 150, flexItem: {margin: 10}, rect: true, color: 0xFFF00000},
@@ -30,7 +30,8 @@
                                 {text: {text: "hello world"}},
                                 {text: {text: "hello world"}},
                             ]
-                        }
+                        },
+                        Mounted: {mountX: 1, x: w=>(w-20), w: 50, h: 50, y: 20, rect: true, color: 0xAAFFFFFF, flexItem: false},
                     }
                 }
             }
