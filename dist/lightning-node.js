@@ -445,9 +445,2159 @@ Utils.isNode = (typeof window === "undefined");
 Utils.isWeb = (typeof window !== "undefined");
 Utils.isWPE = Utils.isWeb && (navigator.userAgent.indexOf("WPE") !== -1);
 
+class Base {
+
+    static defaultSetter(obj, name, value) {
+        obj[name] = value;
+    }
+
+    static patchObject(obj, settings) {
+        if (!Utils.isObjectLiteral(settings)) {
+            console.error("Settings must be object literal");
+        } else {
+            let names = Object.keys(settings);
+            for (let i = 0, n = names.length; i < n; i++) {
+                let name = names[i];
+
+                this.patchObjectProperty(obj, name, settings[name]);
+            }
+        }
+    }
+
+    static preparePatchSettings(settings, patchId) {
+        if (patchId) {
+            return this._preparePatchSettings(settings, "_$" + patchId);
+        } else {
+            return settings;
+        }
+    }
+
+    static _preparePatchSettings(settings, patchId) {
+        if (patchId && settings[patchId]) {
+            settings = Object.assign({}, settings, settings[patchId]);
+            delete settings[patchId];
+        }
+        return settings;
+    }
+
+    static patchObjectProperty(obj, name, value) {
+        let setter = obj.setSetting || Base.defaultSetter;
+
+        if (name.charAt(0) === "_") {
+            // Disallow patching private variables.
+            if (name.charAt(1) === "$") ; else if (name !== "__create") {
+                console.error("Patch of private property '" + name + "' is not allowed");
+            }
+        } else if (name !== "type") {
+            // Type is a reserved keyword to specify the class type on creation.
+            if (Utils.isFunction(value) && value.__local) {
+                // Local function (Base.local(s => s.something))
+                value = value.__local(obj);
+            }
+
+            setter(obj, name, value);
+        }
+    }
+
+    static local(func) {
+        // This function can be used as an object setting, which is called with the target object.
+        func.__local = true;
+    }
+
+
+}
+
+class SpacingCalculator {
+
+    static getSpacing(mode, numberOfItems, remainingSpace) {
+        const itemGaps = (numberOfItems - 1);
+        let spacePerGap;
+
+        let spacingBefore, spacingBetween;
+
+        switch(mode) {
+            case "flex-start":
+                spacingBefore = 0;
+                spacingBetween = 0;
+                break;
+            case "flex-end":
+                spacingBefore = remainingSpace;
+                spacingBetween = 0;
+                break;
+            case "center":
+                spacingBefore = remainingSpace / 2;
+                spacingBetween = 0;
+                break;
+            case "space-between":
+                spacingBefore = 0;
+                spacingBetween = Math.max(0, remainingSpace) / itemGaps;
+                break;
+            case "space-around":
+                if (remainingSpace < 0) {
+                    return this.getSpacing("center", numberOfItems, remainingSpace);
+                } else {
+                    spacePerGap = remainingSpace / (itemGaps + 1);
+                    spacingBefore = 0.5 * spacePerGap;
+                    spacingBetween = spacePerGap;
+                }
+                break;
+            case "space-evenly":
+                if (remainingSpace < 0) {
+                    return this.getSpacing("center", numberOfItems, remainingSpace);
+                } else {
+                    spacePerGap = remainingSpace / (itemGaps + 2);
+                    spacingBefore = spacePerGap;
+                    spacingBetween = spacePerGap;
+                }
+                break;
+            case "stretch":
+                spacingBefore = 0;
+                spacingBetween = 0;
+                break;
+            default:
+                throw new Error("Unknown mode: " + mode);
+        }
+
+        return {spacingBefore, spacingBetween}
+    }
+
+}
+
+class ContentAligner {
+
+    constructor(layout) {
+        this._layout = layout;
+        this._totalCrossAxisSize = 0;
+    }
+
+    get _lines() {
+        return this._layout._lines;
+    }
+
+    init() {
+        this._totalCrossAxisSize = this._getTotalCrossAxisSize();
+    }
+
+    align() {
+        const crossAxisSize = this._layout.crossAxisSize;
+        const remainingSpace = crossAxisSize - this._totalCrossAxisSize;
+
+        const {spacingBefore, spacingBetween} = this._getSpacing(remainingSpace);
+
+        const lines = this._lines;
+
+        const mode = this._layout._flexContainer.alignContent;
+        let growSize = 0;
+        if (mode === "stretch" && lines.length && (remainingSpace > 0)) {
+            growSize = remainingSpace / lines.length;
+        }
+
+        let currentPos = spacingBefore;
+        for (let i = 0, n = lines.length; i < n; i++) {
+            const crossAxisLayoutOffset = currentPos;
+            const aligner = lines[i].createItemAligner();
+
+            let finalCrossAxisLayoutSize = lines[i].crossAxisLayoutSize + growSize;
+
+            aligner.setCrossAxisLayoutSize(finalCrossAxisLayoutSize);
+            aligner.setCrossAxisLayoutOffset(crossAxisLayoutOffset);
+
+            aligner.align();
+
+            if (aligner.recursiveResizeOccured) {
+                lines[i].setItemPositions();
+            }
+
+            currentPos += finalCrossAxisLayoutSize;
+            currentPos += spacingBetween;
+        }
+    }
+
+    get totalCrossAxisSize() {
+        return this._totalCrossAxisSize;
+    }
+
+    _getTotalCrossAxisSize() {
+        const lines = this._lines;
+        let total = 0;
+        for (let i = 0, n = lines.length; i < n; i++) {
+            const line = lines[i];
+            total += line.crossAxisLayoutSize;
+        }
+        return total;
+    }
+
+    _getSpacing(remainingSpace) {
+        const mode = this._layout._flexContainer.alignContent;
+        const numberOfItems = this._lines.length;
+        return SpacingCalculator.getSpacing(mode, numberOfItems, remainingSpace);
+    }
+
+}
+
+class FlexUtils {
+
+    static getParentAxisSizeWithPadding(item, horizontal) {
+        const target = item.target;
+        const parent = target.getParent();
+        if (!parent) {
+            return 0;
+        } else {
+            if (parent.hasFlexLayout()) {
+                // Use pending layout size.
+                return this.getAxisLayoutSize(parent.layout, horizontal) + this.getTotalPadding(parent.layout, horizontal);
+            } else {
+                // Use 'absolute' size.
+                return horizontal ? parent.w : parent.h;
+            }
+        }
+    }
+
+    static getRelAxisSize(item, horizontal) {
+        if (horizontal) {
+            if (item.funcW) {
+                return item.funcW(this.getParentAxisSizeWithPadding(item, true));
+            } else {
+                return item.originalWidth;
+            }
+        } else {
+            if (item.funcH) {
+                return item.funcH(this.getParentAxisSizeWithPadding(item, false));
+            } else {
+                return item.originalHeight;
+            }
+        }
+    }
+
+    static isZeroAxisSize(item, horizontal) {
+        if (horizontal) {
+            return !item.originalWidth && !item.funcW;
+        } else {
+            return !item.originalHeight && !item.funcH;
+        }
+    }
+
+    static getAxisLayoutPos(item, horizontal) {
+        return horizontal ? item.x : item.y;
+    }
+
+    static getAxisLayoutSize(item, horizontal) {
+        return horizontal ? item.w : item.h;
+    }
+
+    static setAxisLayoutPos(item, horizontal, pos) {
+        if (horizontal) {
+            item.x = pos;
+        } else {
+            item.y = pos;
+        }
+    }
+
+    static setAxisLayoutSize(item, horizontal, size) {
+        if (horizontal) {
+            item.w = size;
+        } else {
+            item.h = size;
+        }
+    }
+
+    static getAxisMinSize(item, horizontal) {
+        let minSize = this.getPlainAxisMinSize(item, horizontal);
+
+        let flexItemMinSize = 0;
+        if (item.isFlexItemEnabled()) {
+            flexItemMinSize = item._flexItem._getMinSizeSetting(horizontal);
+        }
+
+        const hasLimitedMinSize = (flexItemMinSize > 0);
+        if (hasLimitedMinSize) {
+            minSize = Math.max(minSize, flexItemMinSize);
+        }
+        return minSize;
+    }
+
+    static getPlainAxisMinSize(item, horizontal) {
+        if (item.isFlexEnabled()) {
+            return item._flex._layout.getAxisMinSize(horizontal);
+        } else {
+            const isShrinkable = (item.flexItem.shrink !== 0);
+            if (isShrinkable) {
+                return 0;
+            } else {
+                return this.getRelAxisSize(item, horizontal);
+            }
+        }
+    }
+
+    static resizeAxis(item, horizontal, size) {
+        if (item.isFlexEnabled()) {
+            const isMainAxis = (item._flex._horizontal === horizontal);
+            if (isMainAxis) {
+                item._flex._layout.resizeMainAxis(size);
+            } else {
+                item._flex._layout.resizeCrossAxis(size);
+            }
+        } else {
+            this.setAxisLayoutSize(item, horizontal, size);
+        }
+    }
+
+
+    static getPaddingOffset(item, horizontal) {
+        if (item.isFlexEnabled()) {
+            const flex = item._flex;
+            if (horizontal) {
+                return flex.paddingLeft;
+            } else {
+                return flex.paddingTop;
+            }
+        } else {
+            return 0;
+        }
+    }
+
+    static getTotalPadding(item, horizontal) {
+        if (item.isFlexEnabled()) {
+            const flex = item._flex;
+            if (horizontal) {
+                return flex.paddingRight + flex.paddingLeft;
+            } else {
+                return flex.paddingTop + flex.paddingBottom;
+            }
+        } else {
+            return 0;
+        }
+    }
+
+    static getMarginOffset(item, horizontal) {
+        const flexItem = item.flexItem;
+        if (flexItem) {
+            if (horizontal) {
+                return flexItem.marginLeft;
+            } else {
+                return flexItem.marginTop;
+            }
+        } else {
+            return 0;
+        }
+    }
+
+    static getTotalMargin(item, horizontal) {
+        const flexItem = item.flexItem;
+        if (flexItem) {
+            if (horizontal) {
+                return flexItem.marginRight + flexItem.marginLeft;
+            } else {
+                return flexItem.marginTop + flexItem.marginBottom;
+            }
+        } else {
+            return 0;
+        }
+    }
+
+}
+
+class SizeShrinker {
+
+    constructor(line) {
+        this._line = line;
+        this._amountRemaining = 0;
+        this._shrunkSize = 0;
+    }
+
+    shrink(amount) {
+        this._shrunkSize = 0;
+
+        this._amountRemaining = amount;
+        let totalShrinkAmount = this._getTotalShrinkAmount();
+        if (totalShrinkAmount) {
+            const items = this._line.items;
+            do {
+                let amountPerShrink = this._amountRemaining / totalShrinkAmount;
+                for (let i = this._line.startIndex; i <= this._line.endIndex; i++) {
+                    const item = items[i];
+                    const flexItem = item.flexItem;
+                    const shrinkAmount = flexItem.shrink;
+                    const isShrinkableItem = (shrinkAmount > 0);
+                    if (isShrinkableItem) {
+                        let shrink = shrinkAmount * amountPerShrink;
+                        const minSize = flexItem._getMainAxisMinSize();
+                        const size = flexItem._getMainAxisLayoutSize();
+                        if (size > minSize) {
+                            const maxShrink = size - minSize;
+                            const isFullyShrunk = (shrink >= maxShrink);
+                            if (isFullyShrunk) {
+                                shrink = maxShrink;
+
+                                // Destribute remaining amount over the other flex items.
+                                totalShrinkAmount -= shrinkAmount;
+                            }
+
+                            const finalSize = size - shrink;
+                            flexItem._resizeMainAxis(finalSize);
+
+                            this._shrunkSize += shrink;
+                            this._amountRemaining -= shrink;
+
+                            if (this._amountRemaining === 0) {
+                                return;
+                            }
+                        }
+                    }
+                }
+            } while(totalShrinkAmount && (this._amountRemaining > 0));
+        }
+    }
+
+    _getTotalShrinkAmount() {
+        let total = 0;
+        const items = this._line.items;
+        for (let i = this._line.startIndex; i <= this._line.endIndex; i++) {
+            const item = items[i];
+            const flexItem = item.flexItem;
+
+            if (flexItem.shrink) {
+                const minSize = flexItem._getMainAxisMinSize();
+                const size = flexItem._getMainAxisLayoutSize();
+
+                // Exclude those already fully shrunk.
+                if (size > minSize) {
+                    total += flexItem.shrink;
+                }
+            }
+        }
+        return total;
+    }
+
+    getShrunkSize() {
+        return this._shrunkSize;
+    }
+
+}
+
+class SizeGrower {
+
+    constructor(line) {
+        this._line = line;
+        this._amountRemaining = 0;
+        this._grownSize = 0;
+    }
+
+    grow(amount) {
+        this._grownSize = 0;
+
+        this._amountRemaining = amount;
+        let totalGrowAmount = this._getTotalGrowAmount();
+        if (totalGrowAmount) {
+            const items = this._line.items;
+            do {
+                let amountPerGrow = this._amountRemaining / totalGrowAmount;
+                for (let i = this._line.startIndex; i <= this._line.endIndex; i++) {
+                    const item = items[i];
+                    const flexItem = item.flexItem;
+                    const growAmount = flexItem.grow;
+                    const isGrowableItem = (growAmount > 0);
+                    if (isGrowableItem) {
+                        let grow = growAmount * amountPerGrow;
+                        const maxSize = flexItem._getMainAxisMaxSizeSetting();
+                        const size = flexItem._getMainAxisLayoutSize();
+                        if (maxSize > 0) {
+                            if (size >= maxSize) {
+                                // Already fully grown.
+                                grow = 0;
+                            } else {
+                                const maxGrow = maxSize - size;
+                                const isFullyGrown = (grow >= maxGrow);
+                                if (isFullyGrown) {
+                                    grow = maxGrow;
+
+                                    // Destribute remaining amount over the other flex items.
+                                    totalGrowAmount -= growAmount;
+                                }
+                            }
+                        }
+
+                        if (grow > 0) {
+                            const finalSize = size + grow;
+                            flexItem._resizeMainAxis(finalSize);
+
+                            this._grownSize += grow;
+                            this._amountRemaining -= grow;
+
+                            if (this._amountRemaining === 0) {
+                                return;
+                            }
+                        }
+                    }
+                }
+            } while(totalGrowAmount && (this._amountRemaining > 0));
+        }
+    }
+
+    _getTotalGrowAmount() {
+        let total = 0;
+        const items = this._line.items;
+        for (let i = this._line.startIndex; i <= this._line.endIndex; i++) {
+            const item = items[i];
+            const flexItem = item.flexItem;
+
+            if (flexItem.grow) {
+                const maxSize = flexItem._getMainAxisMaxSizeSetting();
+                const size = flexItem._getMainAxisLayoutSize();
+
+                // Exclude those already fully grown.
+                if (maxSize === 0 || size < maxSize) {
+                    total += flexItem.grow;
+                }
+            }
+        }
+        return total;
+    }
+
+    getGrownSize() {
+        return this._grownSize;
+    }
+
+}
+
+class ItemPositioner {
+
+    constructor(lineLayout) {
+        this._line = lineLayout;
+    }
+
+    get _layout() {
+        return this._line._layout;
+    }
+
+    position() {
+        const {spacingBefore, spacingBetween} = this._getSpacing();
+
+        let currentPos = spacingBefore;
+
+        const items = this._line.items;
+        for (let i = this._line.startIndex; i <= this._line.endIndex; i++) {
+            const item = items[i];
+
+            item.flexItem._setMainAxisLayoutPos(currentPos);
+            currentPos += item.flexItem._getMainAxisLayoutSizeWithPaddingAndMargin();
+            currentPos += spacingBetween;
+        }
+    }
+
+    _getSpacing() {
+        const remainingSpace = this._line._availableSpace;
+        let mode = this._layout._flexContainer.justifyContent;
+        const numberOfItems = this._line.numberOfItems;
+
+        return SpacingCalculator.getSpacing(mode, numberOfItems, remainingSpace);
+    }
+
+}
+
+class ItemAligner {
+
+    constructor(line) {
+        this._line = line;
+        this._crossAxisLayoutSize = 0;
+        this._crossAxisLayoutOffset = 0;
+        this._alignItemsSetting = null;
+        this._recursiveResizeOccured = false;
+    }
+
+    get _flexContainer() {
+        return this._line._layout._flexContainer;
+    }
+
+    setCrossAxisLayoutSize(size) {
+        this._crossAxisLayoutSize = size;
+    }
+
+    setCrossAxisLayoutOffset(offset) {
+        this._crossAxisLayoutOffset = offset;
+    }
+
+    align() {
+        this._alignItemsSetting = this._flexContainer.alignItems;
+
+        this._recursiveResizeOccured = false;
+        const items = this._line.items;
+        for (let i = this._line.startIndex; i <= this._line.endIndex; i++) {
+            const item = items[i];
+            this._alignItem(item);
+        }
+    }
+
+    get recursiveResizeOccured() {
+        return this._recursiveResizeOccured;
+    }
+
+    _preventStretch(item) {
+        const hasFixedCrossAxisSize = item.flexItem._hasFixedCrossAxisSize();
+        const forceStretch = (item.flexItem.alignSelf === "stretch");
+        return hasFixedCrossAxisSize && !forceStretch;
+    }
+
+    _alignItem(item) {
+        let align = item.flexItem.alignSelf || this._alignItemsSetting;
+
+        if (align === "stretch" && this._preventStretch(item)) {
+            align = "flex-start";
+        }
+
+        const flexItem = item.flexItem;
+        switch(align) {
+            case "flex-start":
+                this._alignItemFlexStart(flexItem);
+                break;
+            case "flex-end":
+                this._alignItemFlexEnd(flexItem);
+                break;
+            case "center":
+                this._alignItemFlexCenter(flexItem);
+                break;
+            case "stretch":
+                this._alignItemStretch(flexItem);
+                break;
+        }
+    }
+
+    _alignItemFlexStart(flexItem) {
+        flexItem._setCrossAxisLayoutPos(this._crossAxisLayoutOffset);
+    }
+
+    _alignItemFlexEnd(flexItem) {
+        const itemCrossAxisSize = flexItem._getCrossAxisLayoutSizeWithPaddingAndMargin();
+        flexItem._setCrossAxisLayoutPos(this._crossAxisLayoutOffset + (this._crossAxisLayoutSize - itemCrossAxisSize));
+    }
+
+    _alignItemFlexCenter(flexItem) {
+        const itemCrossAxisSize = flexItem._getCrossAxisLayoutSizeWithPaddingAndMargin();
+        const center = (this._crossAxisLayoutSize - itemCrossAxisSize) / 2;
+        flexItem._setCrossAxisLayoutPos(this._crossAxisLayoutOffset + center);
+    }
+
+    _alignItemStretch(flexItem) {
+        flexItem._setCrossAxisLayoutPos(this._crossAxisLayoutOffset);
+
+        const mainAxisLayoutSizeBeforeResize = flexItem._getMainAxisLayoutSize();
+        let size = this._crossAxisLayoutSize - flexItem._getCrossAxisMargin() - flexItem._getCrossAxisPadding();
+
+        const crossAxisMinSizeSetting = flexItem._getCrossAxisMinSizeSetting();
+        if (crossAxisMinSizeSetting > 0) {
+            size = Math.max(size, crossAxisMinSizeSetting);
+        }
+
+        const crossAxisMaxSizeSetting = flexItem._getCrossAxisMaxSizeSetting();
+        const crossAxisMaxSizeSettingEnabled = (crossAxisMaxSizeSetting > 0);
+        if (crossAxisMaxSizeSettingEnabled) {
+            size = Math.min(size, crossAxisMaxSizeSetting);
+        }
+
+        flexItem._resizeCrossAxis(size);
+        const mainAxisLayoutSizeAfterResize = flexItem._getMainAxisLayoutSize();
+
+        const recursiveResize = (mainAxisLayoutSizeAfterResize !== mainAxisLayoutSizeBeforeResize);
+        if (recursiveResize) {
+            // Recursive resize can happen when this flex item has the opposite direction than the container
+            // and is wrapping and auto-sizing. Due to item/content stretching the main axis size of the flex
+            // item may decrease. If it does so, we must re-justify-content the complete line.
+            // Notice that we don't account for changes to the (if autosized) main axis size caused by recursive
+            // resize, which may cause the container's main axis to not shrink to the contents properly.
+            // This is by design, because if we had re-run the main axis layout, we could run into issues such
+            // as slow layout or endless loops.
+            this._recursiveResizeOccured = true;
+        }
+    }
+}
+
+class LineLayout {
+
+    constructor(layout, startIndex, endIndex, availableSpace) {
+        this._layout = layout;
+        this.items = layout.items;
+        this.startIndex = startIndex;
+        this.endIndex = endIndex;
+        this._availableSpace = availableSpace;
+    }
+
+    performLayout() {
+        this._setItemSizes();
+        this.setItemPositions();
+        this._calcLayoutInfo();
+    }
+
+    _setItemSizes() {
+        if (this._availableSpace > 0) {
+            this._growItemSizes(this._availableSpace);
+        } else if (this._availableSpace < 0) {
+            this._shrinkItemSizes(-this._availableSpace);
+        }
+    }
+
+    _growItemSizes(amount) {
+        const grower = new SizeGrower(this);
+        grower.grow(amount);
+        this._availableSpace -= grower.getGrownSize();
+    }
+
+    _shrinkItemSizes(amount) {
+        const shrinker = new SizeShrinker(this);
+        shrinker.shrink(amount);
+        this._availableSpace += shrinker.getShrunkSize();
+    }
+
+    setItemPositions() {
+        const positioner = new ItemPositioner(this);
+        positioner.position();
+    }
+
+    createItemAligner() {
+        return new ItemAligner(this);
+    }
+
+    _calcLayoutInfo() {
+        this._calcCrossAxisMaxLayoutSize();
+    }
+
+    getMainAxisMinSize() {
+        let mainAxisMinSize = 0;
+        for (let i = this.startIndex; i <= this.endIndex; i++) {
+            const item = this.items[i];
+            mainAxisMinSize += item.flexItem._getMainAxisMinSizeWithPaddingAndMargin();
+        }
+        return mainAxisMinSize;
+    }
+    
+    get numberOfItems() {
+        return this.endIndex - this.startIndex + 1;
+    }
+
+    isOnlyLine() {
+        return (this._layout.numberOfItems === (1 + (this.endIndex - this.startIndex)));
+    }
+
+    get crossAxisLayoutSize() {
+        const noSpecifiedCrossAxisSize = (this._layout.isCrossAxisFitToContents() && !this._layout.resizingCrossAxis);
+        const shouldFitToContents = (!this.isOnlyLine() || noSpecifiedCrossAxisSize);
+        if (shouldFitToContents) {
+            return this._crossAxisMaxLayoutSize;
+        } else {
+            return this._layout.crossAxisSize;
+        }
+    }
+
+    _calcCrossAxisMaxLayoutSize() {
+        this._crossAxisMaxLayoutSize = this._getCrossAxisMaxLayoutSize();
+    }
+
+    _getCrossAxisMaxLayoutSize() {
+        let crossAxisMaxSize = 0;
+        for (let i = this.startIndex; i <= this.endIndex; i++) {
+            const item = this.items[i];
+            crossAxisMaxSize = Math.max(crossAxisMaxSize, item.flexItem._getCrossAxisLayoutSizeWithPaddingAndMargin());
+        }
+        return crossAxisMaxSize;
+    }
+
+
+}
+
+/**
+ * Distributes items over layout lines.
+ */
+class LineLayouter {
+
+    constructor(layout) {
+        this._layout = layout;
+    }
+
+    get lines() {
+        return this._lines;
+    }
+
+    get mainAxisMinSize() {
+        if (this._mainAxisMinSize === -1) {
+            this._mainAxisMinSize = this._getMainAxisMinSize();
+        }
+        return this._mainAxisMinSize;
+    }
+
+    get crossAxisMinSize() {
+        if (this._crossAxisMinSize === -1) {
+            this._crossAxisMinSize = this._getCrossAxisMinSize();
+        }
+        return this._crossAxisMinSize;
+    }
+
+    get mainAxisContentSize() {
+        return this._mainAxisContentSize;
+    }
+
+    layoutLines() {
+        this._setup();
+        const items = this._layout.items;
+        const wrap = this._layout.isWrapping();
+
+        let startIndex = 0;
+        let i;
+        const n = items.length;
+        for (i = 0; i < n; i++) {
+            const item = items[i];
+
+            this._layoutFlexItem(item);
+
+            // Get predicted main axis size.
+            const itemMainAxisSize = item.flexItem._getMainAxisLayoutSizeWithPaddingAndMargin();
+
+            if (wrap && (i > startIndex)) {
+                const isOverflowing = (this._curMainAxisPos + itemMainAxisSize > this._mainAxisSize);
+                if (isOverflowing) {
+                    this._layoutLine(startIndex, i - 1);
+                    this._curMainAxisPos = 0;
+                    startIndex = i;
+                }
+            }
+
+            this._addToMainAxisPos(itemMainAxisSize);
+        }
+
+        if (startIndex < i) {
+            this._layoutLine(startIndex, i - 1);
+        }
+    }
+
+    _layoutFlexItem(item) {
+        if (item.isFlexEnabled()) {
+            if (!item.isFlexSizedToContents()) {
+                item.flexLayout.deferLayout();
+            } else {
+                item.flexLayout.updateTreeLayout();
+            }
+        } else {
+            item.resetLayoutSize();
+        }
+    }
+
+    _setup() {
+        this._mainAxisSize = this._layout.mainAxisSize;
+        this._curMainAxisPos = 0;
+        this._maxMainAxisPos = 0;
+        this._lines = [];
+
+        this._mainAxisMinSize = -1;
+        this._crossAxisMinSize = -1;
+        this._mainAxisContentSize = 0;
+    }
+
+    _addToMainAxisPos(itemMainAxisSize) {
+        this._curMainAxisPos += itemMainAxisSize;
+        if (this._curMainAxisPos > this._maxMainAxisPos) {
+            this._maxMainAxisPos = this._curMainAxisPos;
+        }
+    }
+
+    _layoutLine(startIndex, endIndex) {
+        const availableSpace = this._getAvailableMainAxisLayoutSpace();
+        const line = new LineLayout(this._layout, startIndex, endIndex, availableSpace);
+        line.performLayout();
+        this._lines.push(line);
+
+        if (this._mainAxisContentSize === 0 || (this._curMainAxisPos > this._mainAxisContentSize)) {
+            this._mainAxisContentSize = this._curMainAxisPos;
+        }
+    }
+
+    _getAvailableMainAxisLayoutSpace() {
+        if (!this._layout.resizingMainAxis && this._layout.isMainAxisFitToContents()) {
+            return 0;
+        } else {
+            return this._mainAxisSize - this._curMainAxisPos;
+        }
+    }
+
+    _getCrossAxisMinSize() {
+        let crossAxisMinSize = 0;
+        const items = this._layout.items;
+        for (let i = 0, n = items.length; i < n; i++) {
+            const item = items[i];
+            const itemCrossAxisMinSize = item.flexItem._getCrossAxisMinSizeWithPaddingAndMargin();
+            crossAxisMinSize = Math.max(crossAxisMinSize, itemCrossAxisMinSize);
+        }
+        return crossAxisMinSize;
+    }
+
+    _getMainAxisMinSize() {
+        if (this._lines.length === 1) {
+            return this._lines[0].getMainAxisMinSize();
+        } else {
+            // Wrapping lines: specified width is used as min width (in accordance to W3C flexbox).
+            return this._layout.mainAxisSize;
+        }
+    }
+
+}
+
+class ItemCoordinatesUpdater {
+
+    constructor(layout) {
+        this._layout = layout;
+        this._isReverse = this._flexContainer._reverse;
+        this._horizontalPaddingOffset = this._layout._getHorizontalPaddingOffset();
+        this._verticalPaddingOffset = this._layout._getVerticalPaddingOffset();
+    }
+
+    get _flexContainer() {
+        return this._layout._flexContainer;
+    }
+
+    finalize() {
+        const parentFlex = this._layout.getParentFlexContainer();
+        if (parentFlex) {
+            // We must update it from the parent to set padding offsets and reverse position.
+            const updater = new ItemCoordinatesUpdater(parentFlex._layout);
+            updater._finalizeItemAndChildren(this._flexContainer.item);
+        } else {
+            this._finalizeRoot();
+            this._finalizeItems();
+        }
+    }
+
+    _finalizeRoot() {
+        const item = this._flexContainer.item;
+        let x = FlexUtils.getAxisLayoutPos(item, true);
+        let y = FlexUtils.getAxisLayoutPos(item, false);
+        let w = FlexUtils.getAxisLayoutSize(item, true);
+        let h = FlexUtils.getAxisLayoutSize(item, false);
+
+        w += this._layout._getHorizontalPadding();
+        h += this._layout._getVerticalPadding();
+
+        item.clearRecalcFlag();
+
+        item.setLayout(x, y, w, h);
+    }
+
+    _finalizeItems() {
+        const items = this._layout.items;
+        for (let i = 0, n = items.length; i < n; i++) {
+            const item = items[i];
+            this._finalizeItem(item);
+            const flexLayout = item.flexLayout;
+            if (flexLayout) {
+                if (!flexLayout.isLayoutDeferred()) {
+                    this._finalizeItemChildren(item);
+                }
+            }
+        }
+    }
+
+    _finalizeItemAndChildren(item) {
+        this._finalizeItem(item);
+        this._finalizeItemChildren(item);
+    }
+
+    _finalizeItem(item) {
+        if (this._isReverse) {
+            this._reverseMainAxisLayoutPos(item);
+        }
+
+        let x = FlexUtils.getAxisLayoutPos(item, true);
+        let y = FlexUtils.getAxisLayoutPos(item, false);
+        let w = FlexUtils.getAxisLayoutSize(item, true);
+        let h = FlexUtils.getAxisLayoutSize(item, false);
+
+        x += this._horizontalPaddingOffset;
+        y += this._verticalPaddingOffset;
+
+        const flex = item.flex;
+        if (flex) {
+            w += item._flex._layout._getHorizontalPadding();
+            h += item._flex._layout._getVerticalPadding();
+        }
+
+        const flexItem = item.flexItem;
+        if (flexItem) {
+            x += flexItem._getHorizontalMarginOffset();
+            y += flexItem._getVerticalMarginOffset();
+        }
+
+        const flexLayout = item.flexLayout;
+        if (flexLayout && flexLayout.isLayoutDeferred()) {
+            const dimsChanged = (item.target.w !== w || item.target.h !== h);
+
+            if (dimsChanged) {
+                // Dimensions have changed! Update is needed but it can be deferred.
+                item.mustUpdateDeferred();
+            }
+        } else {
+            item.clearRecalcFlag();
+        }
+        item.setLayout(x, y, w, h);
+    }
+
+    _finalizeItemChildren(item) {
+        const flex = item.flex;
+        if (flex) {
+            const updater = new ItemCoordinatesUpdater(flex._layout);
+            updater._finalizeItems();
+        }
+    }
+
+    _reverseMainAxisLayoutPos(item) {
+        const endPos = (item.flexItem._getMainAxisLayoutPos() + item.flexItem._getMainAxisLayoutSizeWithPaddingAndMargin());
+        const reversedPos = this._layout.mainAxisSize - endPos;
+        item.flexItem._setMainAxisLayoutPos(reversedPos);
+    }
+
+}
+
+/**
+ * Layouts a flex container (and descendants).
+ */
+class FlexLayout {
+
+    constructor(flexContainer) {
+        this._flexContainer = flexContainer;
+
+        this._lineLayouter = new LineLayouter(this);
+
+        this._resizingMainAxis = false;
+        this._resizingCrossAxis = false;
+
+        /**
+         * While layouting the tree, if a certain flex container branch does not fit it's contents then the layout of
+         * it can be deferred (because it's guaranteed that its contents won't affect the upper branch).
+         *
+         * This enables the update loop to improve performance: updating its layout may not be needed at all (if the
+         * dimensions after layouting the parent flex container are not changed since the last update).
+         * @type {boolean}
+         */
+        this._deferLayout = false;
+    }
+
+    layoutTree() {
+        const isSubTree = (this.item.flexParent !== null);
+        if (isSubTree) {
+            // Use the dimensions set by the parent flex tree.
+            this._updateTreeLayoutWithCurrentAxes();
+        } else {
+            this.updateTreeLayout();
+        }
+        this.updateItemCoords();
+    }
+
+    updateTreeLayout() {
+        this._resetDeferredLayout();
+        this._setInitialAxisSizes();
+        this._layoutAxes();
+    }
+
+    updateItemCoords() {
+        const updater = new ItemCoordinatesUpdater(this);
+        updater.finalize();
+    }
+
+    _updateTreeLayoutWithCurrentAxes() {
+        this._resetDeferredLayout();
+        this._layoutAxes();
+    }
+
+    deferLayout() {
+        this._deferLayout = true;
+        this.item.resetLayoutSize();
+    }
+
+    isLayoutDeferred() {
+        return this._deferLayout;
+    }
+
+    _resetDeferredLayout() {
+        this._deferLayout = false;
+    }
+
+    _setInitialAxisSizes() {
+        this.mainAxisSize = this._getMainAxisBasis();
+        this.crossAxisSize = this._getCrossAxisBasis();
+        this._resizingMainAxis = false;
+        this._resizingCrossAxis = false;
+    }
+
+    _layoutAxes() {
+        this._layoutMainAxis();
+        this._layoutCrossAxis();
+    }
+
+    /**
+     * @pre mainAxisSize should exclude padding.
+     */
+    _layoutMainAxis() {
+        this._layoutLines();
+        this._fitMainAxisSizeToContents();
+    }
+
+    _layoutLines() {
+        this._lineLayouter.layoutLines();
+    }
+
+    get _lines() {
+        return this._lineLayouter.lines;
+    }
+
+    _fitMainAxisSizeToContents() {
+        if (!this._resizingMainAxis) {
+            if (this.isMainAxisFitToContents()) {
+                this.mainAxisSize = this._lineLayouter.mainAxisContentSize;
+            }
+        }
+    }
+
+    /**
+     * @pre crossAxisSize should exclude padding.
+     */
+    _layoutCrossAxis() {
+        const aligner = new ContentAligner(this);
+        aligner.init();
+        this._totalCrossAxisSize = aligner.totalCrossAxisSize;
+        this._fitCrossAxisSizeToContents();
+        aligner.align();
+    }
+
+    _fitCrossAxisSizeToContents() {
+        if (!this._resizingCrossAxis) {
+            if (this.isCrossAxisFitToContents()) {
+                this.crossAxisSize = this._totalCrossAxisSize;
+            }
+        }
+    }
+
+    isWrapping() {
+        return this._flexContainer.wrap;
+    }
+
+    isMainAxisFitToContents() {
+        return !this.isWrapping() && !this._hasFixedMainAxisBasis();
+    }
+
+    isCrossAxisFitToContents() {
+        return !this._hasFixedCrossAxisBasis();
+    }
+
+    _hasFixedMainAxisBasis() {
+        return !FlexUtils.isZeroAxisSize(this.item, this._horizontal);
+    }
+
+    _hasFixedCrossAxisBasis() {
+        return !FlexUtils.isZeroAxisSize(this.item, !this._horizontal);
+    }
+
+    getAxisMinSize(horizontal) {
+        if (this._horizontal === horizontal) {
+            return this._getMainAxisMinSize();
+        } else {
+            return this._getCrossAxisMinSize();
+        }
+    }
+
+    _ensureLayout() {
+        if (this.isLayoutDeferred()) {
+            this.updateTreeLayout();
+        }
+    }
+
+    _getMainAxisMinSize() {
+        this._ensureLayout();
+        return this._lineLayouter.mainAxisMinSize;
+    }
+
+    _getCrossAxisMinSize() {
+        this._ensureLayout();
+        return this._lineLayouter.crossAxisMinSize;
+    }
+
+    resizeMainAxis(size) {
+        if (this.mainAxisSize !== size) {
+            this.mainAxisSize = size;
+
+            if (!this._deferLayout) {
+                this._resizingMainAxis = true;
+                this._layoutAxes();
+                this._resizingMainAxis = false;
+            }
+        }
+    }
+
+    resizeCrossAxis(size) {
+        if (this.crossAxisSize !== size) {
+            this.crossAxisSize = size;
+
+            if (!this._deferLayout) {
+                this._resizingCrossAxis = true;
+                this._layoutCrossAxis();
+                this._resizingCrossAxis = false;
+            }
+        }
+    }
+
+    getParentFlexContainer() {
+        return this.item.isFlexItemEnabled() ? this.item.flexItem.ctr : null;
+    }
+
+    _getHorizontalPadding() {
+        return FlexUtils.getTotalPadding(this.item, true);
+    }
+
+    _getVerticalPadding() {
+        return FlexUtils.getTotalPadding(this.item, false);
+    }
+
+    _getHorizontalPaddingOffset() {
+        return FlexUtils.getPaddingOffset(this.item, true);
+    }
+
+    _getVerticalPaddingOffset() {
+        return FlexUtils.getPaddingOffset(this.item, false);
+    }
+
+    _getMainAxisBasis() {
+        return FlexUtils.getRelAxisSize(this.item, this._horizontal);
+    }
+
+    _getCrossAxisBasis() {
+        return FlexUtils.getRelAxisSize(this.item, !this._horizontal);
+    }
+
+    get _horizontal() {
+        return this._flexContainer._horizontal;
+    }
+
+    get _reverse() {
+        return this._flexContainer._reverse;
+    }
+
+    get item() {
+        return this._flexContainer.item;
+    }
+
+    get items() {
+        return this.item.items;
+    }
+
+    get resizingMainAxis() {
+        return this._resizingMainAxis;
+    }
+
+    get resizingCrossAxis() {
+        return this._resizingCrossAxis;
+    }
+
+    get numberOfItems() {
+        return this.items.length;
+    }
+
+    get mainAxisSize() {
+        return FlexUtils.getAxisLayoutSize(this.item, this._horizontal);
+    }
+
+    get crossAxisSize() {
+        return FlexUtils.getAxisLayoutSize(this.item, !this._horizontal);
+    }
+
+    set mainAxisSize(v) {
+        FlexUtils.setAxisLayoutSize(this.item, this._horizontal, v);
+    }
+
+    set crossAxisSize(v) {
+        FlexUtils.setAxisLayoutSize(this.item, !this._horizontal, v);
+    }
+
+}
+
+class FlexContainer {
+
+
+    constructor(item) {
+        this._item = item;
+
+        this._layout = new FlexLayout(this);
+        this._horizontal = true;
+        this._reverse = false;
+        this._wrap = false;
+        this._alignItems = 'stretch';
+        this._justifyContent = 'flex-start';
+        this._alignContent = 'flex-start';
+
+        this._paddingLeft = 0;
+        this._paddingTop = 0;
+        this._paddingRight = 0;
+        this._paddingBottom = 0;
+    }
+
+    get item() {
+        return this._item;
+    }
+
+    _mustUpdateExternal() {
+        this._item.mustUpdateExternal();
+    }
+
+    _mustUpdateInternal() {
+        this._item.mustUpdateInternal();
+    }
+
+    get direction() {
+        return (this._horizontal ? "row" : "column") + (this._reverse ? "-reverse" : "");
+    }
+
+    set direction(f) {
+        if (this.direction === f) return;
+
+        this._horizontal = (f === 'row' || f === 'row-reverse');
+        this._reverse = (f === 'row-reverse' || f === 'column-reverse');
+
+        this._mustUpdateInternal();
+    }
+
+    set wrap(v) {
+        this._wrap = v;
+        this._mustUpdateInternal();
+    }
+
+    get wrap() {
+        return this._wrap;
+    }
+
+    get alignItems() {
+        return this._alignItems;
+    }
+
+    set alignItems(v) {
+        if (this._alignItems === v) return;
+        if (FlexContainer.ALIGN_ITEMS.indexOf(v) === -1) {
+            throw new Error("Unknown alignItems, options: " + FlexContainer.ALIGN_ITEMS.join(","));
+        }
+        this._alignItems = v;
+
+        this._mustUpdateInternal();
+    }
+
+    get alignContent() {
+        return this._alignContent;
+    }
+
+    set alignContent(v) {
+        if (this._alignContent === v) return;
+        if (FlexContainer.ALIGN_CONTENT.indexOf(v) === -1) {
+            throw new Error("Unknown alignContent, options: " + FlexContainer.ALIGN_CONTENT.join(","));
+        }
+        this._alignContent = v;
+
+        this._mustUpdateInternal();
+    }
+
+    get justifyContent() {
+        return this._justifyContent;
+    }
+
+    set justifyContent(v) {
+        if (this._justifyContent === v) return;
+
+        if (FlexContainer.JUSTIFY_CONTENT.indexOf(v) === -1) {
+            throw new Error("Unknown justifyContent, options: " + FlexContainer.JUSTIFY_CONTENT.join(","));
+        }
+        this._justifyContent = v;
+
+        this._mustUpdateInternal();
+    }
+
+    set padding(v) {
+        this.paddingLeft = v;
+        this.paddingTop = v;
+        this.paddingRight = v;
+        this.paddingBottom = v;
+    }
+
+    get padding() {
+        return this.paddingLeft;
+    }
+    
+    set paddingLeft(v) {
+        this._paddingLeft = v;
+        this._mustUpdateExternal();
+    }
+    
+    get paddingLeft() {
+        return this._paddingLeft;
+    }
+
+    set paddingTop(v) {
+        this._paddingTop = v;
+        this._mustUpdateExternal();
+    }
+
+    get paddingTop() {
+        return this._paddingTop;
+    }
+
+    set paddingRight(v) {
+        this._paddingRight = v;
+        this._mustUpdateExternal();
+    }
+
+    get paddingRight() {
+        return this._paddingRight;
+    }
+
+    set paddingBottom(v) {
+        this._paddingBottom = v;
+        this._mustUpdateExternal();
+    }
+
+    get paddingBottom() {
+        return this._paddingBottom;
+    }
+
+    patch(settings) {
+        Base.patchObject(this, settings);
+    }
+
+    isFitToContents() {
+        const layout = this._layout;
+        return layout.isMainAxisFitToContents() || layout.isCrossAxisFitToContents();
+    }
+
+
+}
+
+FlexContainer.ALIGN_ITEMS = ["flex-start", "flex-end", "center", "stretch"];
+FlexContainer.ALIGN_CONTENT = ["flex-start", "flex-end", "center", "space-between", "space-around", "space-evenly", "stretch"];
+FlexContainer.JUSTIFY_CONTENT = ["flex-start", "flex-end", "center", "space-between", "space-around", "space-evenly"];
+
+class FlexItem {
+
+    constructor(item) {
+        this._ctr = null;
+        this._item = item;
+        this._grow = 0;
+        this._shrink = FlexItem.SHRINK_AUTO;
+        this._alignSelf = undefined;
+        this._minWidth = 0;
+        this._minHeight = 0;
+        this._maxWidth = 0;
+        this._maxHeight = 0;
+
+        this._marginLeft = 0;
+        this._marginTop = 0;
+        this._marginRight = 0;
+        this._marginBottom = 0;
+    }
+
+    get item() {
+        return this._item;
+    }
+
+    get grow() {
+        return this._grow;
+    }
+
+    set grow(v) {
+        if (this._grow === v) return;
+
+        this._grow = parseInt(v) || 0;
+
+        this._changed();
+    }
+
+    get shrink() {
+        if (this._shrink === FlexItem.SHRINK_AUTO) {
+            return this._getDefaultShrink();
+        }
+        return this._shrink;
+    }
+
+    _getDefaultShrink() {
+        if (this.item.isFlexEnabled()) {
+            return 1;
+        } else {
+            // All non-flex containers are absolutely positioned items with fixed dimensions, and by default not shrinkable.
+            return 0;
+        }
+    }
+
+    set shrink(v) {
+        if (this._shrink === v) return;
+
+        this._shrink = parseInt(v) || 0;
+
+        this._changed();
+    }
+
+    get alignSelf() {
+        return this._alignSelf;
+    }
+
+    set alignSelf(v) {
+        if (this._alignSelf === v) return;
+
+        if (v === undefined) {
+            this._alignSelf = undefined;
+        }
+        if (FlexContainer.ALIGN_ITEMS.indexOf(v) === -1) {
+            throw new Error("Unknown alignSelf, options: " + FlexContainer.ALIGN_ITEMS.join(","));
+        }
+        this._alignSelf = v;
+
+        this._changed();
+    }
+
+    get minWidth() {
+        return this._minWidth;
+    }
+
+    set minWidth(v) {
+        this._minWidth = Math.max(0, v);
+        this._changed();
+    }
+
+    get minHeight() {
+        return this._minHeight;
+    }
+
+    set minHeight(v) {
+        this._minHeight = Math.max(0, v);
+        this._changed();
+    }
+
+    get maxWidth() {
+        return this._maxWidth;
+    }
+
+    set maxWidth(v) {
+        this._maxWidth = Math.max(0, v);
+        this._changed();
+    }
+
+    get maxHeight() {
+        return this._maxHeight;
+    }
+
+    set maxHeight(v) {
+        this._maxHeight = Math.max(0, v);
+        this._changed();
+    }
+
+    /**
+     * @note margins behave slightly different than in HTML with regard to shrinking.
+     * In HTML, (outer) margins can be removed when shrinking. In this engine, they will not shrink at all.
+     */
+    set margin(v) {
+        this.marginLeft = v;
+        this.marginTop = v;
+        this.marginRight = v;
+        this.marginBottom = v;
+    }
+
+    get margin() {
+        return this.marginLeft;
+    }
+
+    set marginLeft(v) {
+        this._marginLeft = v;
+        this._changed();
+    }
+
+    get marginLeft() {
+        return this._marginLeft;
+    }
+
+    set marginTop(v) {
+        this._marginTop = v;
+        this._changed();
+    }
+
+    get marginTop() {
+        return this._marginTop;
+    }
+
+    set marginRight(v) {
+        this._marginRight = v;
+        this._changed();
+    }
+
+    get marginRight() {
+        return this._marginRight;
+    }
+
+    set marginBottom(v) {
+        this._marginBottom = v;
+        this._changed();
+    }
+
+    get marginBottom() {
+        return this._marginBottom;
+    }
+    
+    _changed() {
+        if (this.ctr) this.ctr._mustUpdateInternal();
+    }
+
+    set ctr(v) {
+        this._ctr = v;
+    }
+
+    get ctr() {
+        return this._ctr;
+    }
+
+    patch(settings) {
+        Base.patchObject(this, settings);
+    }
+
+    _getCrossAxisMinSizeSetting() {
+        return this._getMinSizeSetting(!this.ctr._horizontal);
+    }
+
+    _getCrossAxisMaxSizeSetting() {
+        return this._getMaxSizeSetting(!this.ctr._horizontal);
+    }
+
+    _getMainAxisMaxSizeSetting() {
+        return this._getMaxSizeSetting(this.ctr._horizontal);
+    }
+
+    _getMinSizeSetting(horizontal) {
+        if (horizontal) {
+            return this._minWidth;
+        } else {
+            return this._minHeight;
+        }
+    }
+
+    _getMaxSizeSetting(horizontal) {
+        if (horizontal) {
+            return this._maxWidth;
+        } else {
+            return this._maxHeight;
+        }
+    }
+
+    _getMainAxisMinSize() {
+        return FlexUtils.getAxisMinSize(this.item, this.ctr._horizontal);
+    }
+
+    _getCrossAxisMinSize() {
+        return FlexUtils.getAxisMinSize(this.item, !this.ctr._horizontal);
+    }
+
+    _getMainAxisLayoutSize() {
+        return FlexUtils.getAxisLayoutSize(this.item, this.ctr._horizontal);
+    }
+
+    _getMainAxisLayoutPos() {
+        return FlexUtils.getAxisLayoutPos(this.item, this.ctr._horizontal);
+    }
+
+    _setMainAxisLayoutPos(pos) {
+        return FlexUtils.setAxisLayoutPos(this.item, this.ctr._horizontal, pos);
+    }
+
+    _setCrossAxisLayoutPos(pos) {
+        return FlexUtils.setAxisLayoutPos(this.item, !this.ctr._horizontal, pos);
+    }
+
+    _getCrossAxisLayoutSize() {
+        return FlexUtils.getAxisLayoutSize(this.item, !this.ctr._horizontal);
+    }
+
+    _resizeCrossAxis(size) {
+        return FlexUtils.resizeAxis(this.item, !this.ctr._horizontal, size);
+    }
+
+    _resizeMainAxis(size) {
+        return FlexUtils.resizeAxis(this.item, this.ctr._horizontal, size);
+    }
+
+    _getMainAxisPadding() {
+        return FlexUtils.getTotalPadding(this.item, this.ctr._horizontal);
+    }
+
+    _getCrossAxisPadding() {
+        return FlexUtils.getTotalPadding(this.item, !this.ctr._horizontal);
+    }
+
+    _getMainAxisMargin() {
+        return FlexUtils.getTotalMargin(this.item, this.ctr._horizontal);
+    }
+
+    _getCrossAxisMargin() {
+        return FlexUtils.getTotalMargin(this.item, !this.ctr._horizontal);
+    }
+
+    _getHorizontalMarginOffset() {
+        return FlexUtils.getMarginOffset(this.item, true);
+    }
+
+    _getVerticalMarginOffset() {
+        return FlexUtils.getMarginOffset(this.item, false);
+    }
+
+    _getMainAxisMinSizeWithPaddingAndMargin() {
+        return this._getMainAxisMinSize() + this._getMainAxisPadding() + this._getMainAxisMargin();
+    }
+
+    _getCrossAxisMinSizeWithPaddingAndMargin() {
+        return this._getCrossAxisMinSize() + this._getCrossAxisPadding() + this._getCrossAxisMargin();
+    }
+
+    _getMainAxisLayoutSizeWithPaddingAndMargin() {
+        return this._getMainAxisLayoutSize() + this._getMainAxisPadding() + this._getMainAxisMargin();
+    }
+
+    _getCrossAxisLayoutSizeWithPaddingAndMargin() {
+        return this._getCrossAxisLayoutSize() + this._getCrossAxisPadding() + this._getCrossAxisMargin();
+    }
+
+    _hasFixedCrossAxisSize() {
+        return !FlexUtils.isZeroAxisSize(this.item, !this.ctr._horizontal);
+    }
+
+}
+
+
+FlexItem.SHRINK_AUTO = -1;
+
+/**
+ * This is the connection between the render tree with the layout tree of this flex container/item.
+ */
+class FlexTarget {
+
+    constructor(target) {
+        this._target = target;
+
+        this._recalc = 0;
+        
+        this._enabled = false;
+
+        this.x = 0;
+        this.y = 0;
+        this.w = 0;
+        this.h = 0;
+
+        this._originalX = 0;
+        this._originalY = 0;
+        this._originalWidth = 0;
+        this._originalHeight = 0;
+
+        this._flex = null;
+        this._flexItem = null;
+        this._flexItemDisabled = false;
+
+        this._items = null;
+    }
+
+    get flexLayout() {
+        return this.flex ? this.flex._layout : null;
+    }
+
+    layoutFlexTree() {
+        if (this.isFlexEnabled() && this.isChanged()) {
+            this.flexLayout.layoutTree();
+        }
+    }
+
+    resetLayoutSize() {
+        let w = FlexUtils.getRelAxisSize(this, true);
+        let h = FlexUtils.getRelAxisSize(this, false);
+        const flexItem = this._flexItem;
+        if (flexItem._minWidth) {
+            w = Math.max(flexItem._minWidth, w);
+        }
+        if (flexItem._maxWidth) {
+            w = Math.min(flexItem._maxWidth, w);
+        }
+        if (flexItem._minHeight) {
+            h = Math.max(flexItem._minHeight, h);
+        }
+        if (flexItem._maxHeight) {
+            h = Math.min(flexItem._maxHeight, h);
+        }
+        this.w = w;
+        this.h = h;
+    }
+
+    get target() {
+        return this._target;
+    }
+
+    get flex() {
+        return this._flex;
+    }
+
+    set flex(v) {
+        if (!v) {
+            if (this.isFlexEnabled()) {
+                this._disableFlex();
+            }
+        } else {
+            if (!this.isFlexEnabled()) {
+                this._enableFlex();
+            }
+            this._flex.patch(v);
+        }
+    }
+
+    get flexItem() {
+        this._ensureFlexItem();
+        return this._flexItem;
+    }
+
+    set flexItem(v) {
+        if (v === false) {
+            if (!this._flexItemDisabled) {
+                const parent = this.flexParent;
+                this._flexItemDisabled = true;
+                this._checkEnabled();
+                if (parent) {
+                    parent._clearFlexItemsCache();
+                    parent.mustUpdateInternal();
+                }
+            }
+        } else {
+            this._ensureFlexItem();
+
+            this._flexItem.patch(v);
+
+            if (this._flexItemDisabled) {
+                this._flexItemDisabled = false;
+                this._checkEnabled();
+                const parent = this.flexParent;
+                if (parent) {
+                    parent._clearFlexItemsCache();
+                    parent.mustUpdateInternal();
+                }
+            }
+        }
+    }
+
+    _enableFlex() {
+        this._flex = new FlexContainer(this);
+        this._checkEnabled();
+        this.mustUpdateExternal();
+        this._enableChildrenAsFlexItems();
+    }
+
+    _disableFlex() {
+        this.mustUpdateExternal();
+        this._flex = null;
+        this._checkEnabled();
+        this._disableChildrenAsFlexItems();
+    }
+
+    _enableChildrenAsFlexItems() {
+        const children = this._target._children;
+        if (children) {
+            for (let i = 0, n = children.length; i < n; i++) {
+                const child = children[i];
+                child.layout._enableFlexItem();
+            }
+        }
+    }
+
+    _disableChildrenAsFlexItems() {
+        const children = this._target._children;
+        if (children) {
+            for (let i = 0, n = children.length; i < n; i++) {
+                const child = children[i];
+                child.layout._disableFlexItem();
+            }
+        }
+    }
+
+    _enableFlexItem() {
+        this._ensureFlexItem();
+        const flexParent = this._target._parent._layout;
+        this._flexItem.ctr = flexParent._flex;
+        flexParent.mustUpdateInternal();
+        this._checkEnabled();
+    }
+
+    _disableFlexItem() {
+        if (this._flexItem) {
+            this._flexItem.ctr = null;
+        }
+
+        // We keep the flexItem object because it may contain custom settings.
+        this._checkEnabled();
+
+        // Offsets have been changed. We can't recover them, so we'll just clear them instead.
+        this._resetOffsets();
+    }
+
+    _resetOffsets() {
+        this.x = 0;
+        this.y = 0;
+    }
+
+    _ensureFlexItem() {
+        if (!this._flexItem) {
+            this._flexItem = new FlexItem(this);
+        }
+    }
+
+    _checkEnabled() {
+        const enabled = this.isEnabled();
+        if (this._enabled !== enabled) {
+            if (enabled) {
+                this._enable();
+            } else {
+                this._disable();
+            }
+            this._enabled = enabled;
+        }
+    }
+    
+    _enable() {
+        this._setupTargetForFlex();
+        this._target.enableFlexLayout();
+    }
+
+    _disable() {
+        this._restoreTargetToNonFlex();
+        this._target.disableFlexLayout();
+    }
+
+    isEnabled() {
+        return this.isFlexEnabled() || this.isFlexItemEnabled();
+    }
+
+    isFlexEnabled() {
+        return this._flex !== null;
+    }
+
+    isFlexItemEnabled() {
+        return this.flexParent !== null;
+    }
+
+    _restoreTargetToNonFlex() {
+        const target = this._target;
+        target.x = this._originalX;
+        target.y = this._originalY;
+        target.w = this._originalWidth;
+        target.h = this._originalHeight;
+    }
+
+    _setupTargetForFlex() {
+        const target = this._target;
+        this._originalX = target._x;
+        this._originalY = target._y;
+        this._originalWidth = target._w;
+        this._originalHeight = target._h;
+    }
+    
+    setParent(from, to) {
+        if (from && from.isFlexContainer()) {
+            from._layout._changedChildren();
+        }
+
+        if (to && to.isFlexContainer()) {
+            this._enableFlexItem();
+            to._layout._changedChildren();
+        }
+        this._checkEnabled();
+    }
+
+    get flexParent() {
+        if (this._flexItemDisabled) {
+            return null;
+        }
+
+        const parent = this._target._parent;
+        if (parent && parent.isFlexContainer()) {
+            return parent._layout;
+        }
+        return null;
+    }
+
+    setVisible(v) {
+        const parent = this.flexParent;
+        if (parent) {
+            parent._changedChildren();
+        }
+    }
+
+    get items() {
+        if (!this._items) {
+            this._items = this._getFlexItems();
+        }
+        return this._items;
+    }
+
+    _getFlexItems() {
+        const items = [];
+        const children = this._target._children;
+        if (children) {
+            for (let i = 0, n = children.length; i < n; i++) {
+                const item = children[i];
+                if (item.visible) {
+                    if (item.isFlexItem()) {
+                        items.push(item.layout);
+                    }
+                }
+            }
+        }
+        return items;
+    }
+
+    _changedChildren() {
+        this._clearFlexItemsCache();
+        this.mustUpdateInternal();
+    }
+
+    _clearFlexItemsCache() {
+        this._items = null;
+    }
+
+    setLayout(x, y, w, h) {
+        let originalX = this._originalX;
+        let originalY = this._originalY;
+        if (this.funcX) {
+            originalX = this.funcX(FlexUtils.getParentAxisSizeWithPadding(this, true));
+        }
+        if (this.funcY) {
+            originalY = this.funcY(FlexUtils.getParentAxisSizeWithPadding(this, false));
+        }
+
+        if (this.isFlexItemEnabled()) {
+            this.target.setLayout(x + originalX, y + originalY, w, h);
+        } else {
+            // Reuse the x,y 'settings'.
+            this.target.setLayout(originalX, originalY, w, h);
+        }
+    }
+
+    mustUpdateDeferred() {
+        this._recalc = 2;
+        this._target.triggerLayout();
+    }
+
+    mustUpdateExternal() {
+        const parent = this.flexParent;
+        if (parent) {
+            parent._setRecalc();
+        }
+        this._setRecalc();
+    }
+
+    mustUpdateInternal() {
+        this._setRecalc();
+    }
+
+    isChanged() {
+        return this._recalc > 0;
+    }
+
+    _setRecalc() {
+        if (this.isFlexEnabled()) {
+            const prevRecalc = this._recalc;
+            this._recalc = 2;
+
+            if (prevRecalc === 0) {
+                this._setRecalcAncestorsUntilRootFound();
+            }
+        }
+    }
+
+    _setRecalcAncestorsUntilRootFound() {
+        let cur = this;
+
+        while(cur.isFlexSizedToContents()) {
+
+            const newCur = cur.flexParent;
+            if (!newCur) {
+                break;
+            }
+
+            if (newCur._recalc) {
+                // Change already known.
+                return;
+            }
+
+            newCur._recalc = 1;
+
+            cur = newCur;
+
+            // We do not have to re-layout the upper flex tree because the content changes won't affect it.
+        }
+        const flexLayoutRoot = cur;
+        flexLayoutRoot._target.triggerLayout();
+    }
+
+    clearRecalcFlag() {
+        this._recalc = 0;
+    }
+
+    isFlexSizedToContents() {
+        return this._flex.isFitToContents();
+    }
+
+    get originalX() {
+        return this._originalX;
+    }
+
+    setOriginalXWithoutUpdatingLayout(v) {
+        this._originalX = v;
+    }
+
+    get originalY() {
+        return this._originalY;
+    }
+
+    setOriginalYWithoutUpdatingLayout(v) {
+        this._originalY = v;
+    }
+
+    get originalWidth() {
+        return this._originalWidth;
+    }
+
+    set originalWidth(v) {
+        if (this._originalWidth !== v) {
+            this._originalWidth = v;
+            this.mustUpdateExternal();
+        }
+    }
+
+    get originalHeight() {
+        return this._originalHeight;
+    }
+
+    set originalHeight(v) {
+        if (this._originalHeight !== v) {
+            this._originalHeight = v;
+            this.mustUpdateExternal();
+        }
+    }
+
+    get funcX() {
+        return this._target.funcX;
+    }
+
+    get funcY() {
+        return this._target.funcY;
+    }
+
+    get funcW() {
+        return this._target.funcW;
+    }
+
+    get funcH() {
+        return this._target.funcH;
+    }
+}
+
 class TextureSource {
 
-    constructor(manager, loader = undefined) {
+    constructor(manager, loader = null) {
         this.id = TextureSource.id++;
 
         this.manager = manager;
@@ -521,7 +2671,7 @@ class TextureSource {
          * @type {object}
          * @private
          */
-        this._loadError = undefined;
+        this._loadError = null;
 
     }
 
@@ -653,7 +2803,7 @@ class TextureSource {
             this.loadingSince = (new Date()).getTime();
             this._cancelCb = this.loader((err, options) => {
                 // Clear callback to avoid memory leaks.
-                this._cancelCb = undefined;
+                this._cancelCb = null;
 
                 if (this.manager.stage.destroyed) {
                     // Ignore async load when stage is destroyed.
@@ -699,7 +2849,7 @@ class TextureSource {
         }
 
         // Must be cleared when reload is succesful.
-        this._loadError = undefined;
+        this._loadError = null;
 
         this.onLoad();
     }
@@ -941,10 +3091,6 @@ class ViewTexturizer {
 
 }
 
-/**
- * Graphical calculations / VBO buffer filling.
- */
-
 class ViewCore {
 
     constructor(view) {
@@ -959,7 +3105,7 @@ class ViewCore {
 
         this._parent = null;
 
-        this._onUpdate = undefined;
+        this._onUpdate = null;
 
         this._pRecalc = 0;
 
@@ -969,9 +3115,9 @@ class ViewCore {
 
         this._localAlpha = 1;
 
-        this._onAfterCalcs = undefined;
+        this._onAfterCalcs = null;
 
-        this._onAfterUpdate = undefined;
+        this._onAfterUpdate = null;
 
         // All local translation/transform updates: directly propagated from x/y/w/h/scale/whatever.
         this._localPx = 0;
@@ -984,9 +3130,7 @@ class ViewCore {
 
         this._isComplex = false;
 
-        this._w = 0;
-        this._h = 0;
-        this._dimsEstimate = false;
+        this._dimsUnknown = false;
 
         this._clipping = false;
 
@@ -1013,7 +3157,7 @@ class ViewCore {
 
         this.renderState = this.ctx.renderState;
 
-        this._scissor = undefined;
+        this._scissor = null;
 
         // The ancestor ViewCore that owns the inherited shader. Null if none is active (default shader).
         this._shaderOwner = null;
@@ -1027,6 +3171,13 @@ class ViewCore {
         this._y = 0;
         this._w = 0;
         this._h = 0;
+
+        this._optFlags = 0;
+        this._funcX = null;
+        this._funcY = null;
+        this._funcW = null;
+        this._funcH = null;
+
         this._scaleX = 1;
         this._scaleY = 1;
         this._pivotX = 0.5;
@@ -1067,17 +3218,46 @@ class ViewCore {
 
         this._useRenderToTexture = false;
 
-        this._boundsMargin = undefined;
+        this._boundsMargin = null;
 
-        this._recBoundsMargin = undefined;
+        this._recBoundsMargin = null;
 
         this._withinBoundsMargin = false;
 
-        this._viewport = undefined;
+        this._viewport = null;
 
-        this._clipbox = false;
+        this._clipbox = true;
 
         this.render = this._renderSimple;
+
+        this._layout = null;
+    }
+
+    get offsetX() {
+        if (this._funcX) {
+            return this._funcX;
+        } else {
+            if (this.hasFlexLayout()) {
+                return this._layout.originalX;
+            } else {
+                return this._x;
+            }
+        }
+    }
+
+    set offsetX(v) {
+        if (Utils.isFunction(v)) {
+            this.funcX = v;
+        } else {
+            this._disableFuncX();
+            if (this.hasFlexLayout()) {
+                this._x += (v - this._layout.originalX);
+                this._triggerRecalcTranslate();
+                this._layout.setOriginalXWithoutUpdatingLayout(v);
+            } else {
+                this.x = v;
+            }
+        }
     }
 
     get x() {
@@ -1085,9 +3265,59 @@ class ViewCore {
     }
 
     set x(v) {
-        if (this._x !== v) {
+        if (v !== this._x) {
             this._updateLocalTranslateDelta(v - this._x, 0);
             this._x = v;
+        }
+    }
+
+    get funcX() {
+        return (this._optFlags & 1 ? this._funcX : null);
+    }
+
+    set funcX(v) {
+        if (this._funcX !== v) {
+            this._optFlags |= 1;
+            this._funcX = v;
+            if (this.hasFlexLayout()) {
+                this._layout.setOriginalXWithoutUpdatingLayout(0);
+                this.layout.mustUpdateExternal();
+            } else {
+                this._x = 0;
+                this._triggerRecalcTranslate();
+            }
+        }
+    }
+
+    _disableFuncX() {
+        this._optFlags = this._optFlags & (0xFFFF - 1);
+        this._funcX = null;
+    }
+
+    get offsetY() {
+        if (this._funcY) {
+            return this._funcY;
+        } else {
+            if (this.hasFlexLayout()) {
+                return this._layout.originalY;
+            } else {
+                return this._y;
+            }
+        }
+    }
+
+    set offsetY(v) {
+        if (Utils.isFunction(v)) {
+            this.funcY = v;
+        } else {
+            this._disableFuncY();
+            if (this.hasFlexLayout()) {
+                this._y += (v - this._layout.originalY);
+                this._triggerRecalcTranslate();
+                this._layout.setOriginalYWithoutUpdatingLayout(v);
+            } else {
+                this.y = v;
+            }
         }
     }
 
@@ -1096,18 +3326,103 @@ class ViewCore {
     }
 
     set y(v) {
-        if (this._y !== v) {
+        if (v !== this._y) {
             this._updateLocalTranslateDelta(0, v - this._y);
             this._y = v;
         }
+    }
+
+    get funcY() {
+        return (this._optFlags & 2 ? this._funcY : null);
+    }
+
+    set funcY(v) {
+        if (this._funcY !== v) {
+            this._optFlags |= 2;
+            this._funcY = v;
+            if (this.hasFlexLayout()) {
+                this._layout.setOriginalYWithoutUpdatingLayout(0);
+                this.layout.mustUpdateExternal();
+            } else {
+                this._y = 0;
+                this._triggerRecalcTranslate();
+            }
+        }
+    }
+
+    _disableFuncY() {
+        this._optFlags = this._optFlags & (0xFFFF - 2);
+        this._funcY = null;
+    }
+
+    get funcW() {
+        return (this._optFlags & 4 ? this._funcW : null);
+    }
+
+    set funcW(v) {
+        if (this._funcW !== v) {
+            this._optFlags |= 4;
+            this._funcW = v;
+            if (this.hasFlexLayout()) {
+                this._layout._originalWidth = 0;
+                this.layout.mustUpdateExternal();
+            } else {
+                this._w = 0;
+                this._triggerRecalcTranslate();
+            }
+        }
+    }
+
+    disableFuncW() {
+        this._optFlags = this._optFlags & (0xFFFF - 4);
+        this._funcW = null;
+    }
+
+    get funcH() {
+        return (this._optFlags & 8 ? this._funcH : null);
+    }
+
+    set funcH(v) {
+        if (this._funcH !== v) {
+            this._optFlags |= 8;
+            this._funcH = v;
+            if (this.hasFlexLayout()) {
+                this._layout._originalHeight = 0;
+                this.layout.mustUpdateExternal();
+            } else {
+                this._h = 0;
+                this._triggerRecalcTranslate();
+            }
+        }
+    }
+
+    disableFuncH() {
+        this._optFlags = this._optFlags & (0xFFFF - 8);
+        this._funcH = null;
     }
 
     get w() {
         return this._w;
     }
 
+    getRenderWidth() {
+        if (this.hasFlexLayout()) {
+            return this._layout.originalWidth;
+        } else {
+            return this._w;
+        }
+    }
+
     get h() {
         return this._h;
+    }
+
+    getRenderHeight() {
+        if (this.hasFlexLayout()) {
+            return this._layout.originalHeight;
+        } else {
+            return this._h;
+        }
     }
 
     get scaleX() {
@@ -1249,6 +3564,10 @@ class ViewCore {
             this._visible = v;
             this._updateLocalAlpha();
             this._view._updateEnabledFlag();
+
+            if (this.hasFlexLayout()) {
+                this.layout.setVisible(v);
+            }
         }
     }
 
@@ -1276,17 +3595,20 @@ class ViewCore {
     };
 
     _updateLocalTranslate() {
+        this._recalcLocalTranslate();
+        this._triggerRecalcTranslate();
+    };
+
+    _recalcLocalTranslate() {
         let pivotXMul = this._pivotX * this._w;
         let pivotYMul = this._pivotY * this._h;
-        let px = this._x - (pivotXMul * this.localTa + pivotYMul * this.localTb) + pivotXMul;
-        let py = this._y - (pivotXMul * this.localTc + pivotYMul * this.localTd) + pivotYMul;
+        let px = this._x - (pivotXMul * this._localTa + pivotYMul * this._localTb) + pivotXMul;
+        let py = this._y - (pivotXMul * this._localTc + pivotYMul * this._localTd) + pivotYMul;
         px -= this._mountX * this._w;
         py -= this._mountY * this._h;
-        this._setLocalTranslate(
-            px,
-            py
-        );
-    };
+        this._localPx = px;
+        this._localPy = py;
+    }
 
     _updateLocalTranslateDelta(dx, dy) {
         this._addLocalTranslate(dx, dy);
@@ -1319,6 +3641,7 @@ class ViewCore {
      *   2: translate
      *   4: transform
      * 128: becomes visible
+     * 256: flex layout updated
      */
     _setRecalc(type) {
         this._recalc |= type;
@@ -1339,11 +3662,20 @@ class ViewCore {
         }
     }
 
+    getParent() {
+        return this._parent;
+    }
+
     setParent(parent) {
         if (parent !== this._parent) {
             let prevIsZContext = this.isZContext();
             let prevParent = this._parent;
             this._parent = parent;
+
+            // Notify flex layout engine.
+            if (this._layout || (parent && parent.isFlexContainer())) {
+                this.layout.setParent(prevParent, parent);
+            }
 
             if (prevParent) {
                 // When views are deleted, the render texture must be re-rendered.
@@ -1464,14 +3796,10 @@ class ViewCore {
         this._isComplex = (b !== 0) || (c !== 0) || (a < 0) || (d < 0);
     };
 
-    _setLocalTranslate(x, y) {
-        this._setRecalc(2);
-        this._localPx = x;
-        this._localPy = y;
-    };
-
     _addLocalTranslate(dx, dy) {
-        this._setLocalTranslate(this._localPx + dx, this._localPy + dy);
+        this._localPx += dx;
+        this._localPy += dy;
+        this._triggerRecalcTranslate();
     }
 
     _setLocalAlpha(a) {
@@ -1491,25 +3819,36 @@ class ViewCore {
     };
 
     setDimensions(w, h, isEstimate) {
+        // In case of an estimation, the update loop should perform different bound checks.
+        this._dimsUnknown = isEstimate;
+
+        if (this.hasFlexLayout()) {
+            this._layout.originalWidth = w;
+            this._layout.originalHeight = h;
+        } else {
+            if (this._w !== w || this._h !== h) {
+                this._updateDimensions(w, h);
+                return true;
+            }
+        }
+        return false;
+    };
+
+    _updateDimensions(w, h) {
         if (this._w !== w || this._h !== h) {
             this._w = w;
             this._h = h;
 
-            // In case of an estimation, the update loop should perform different bound checks.
-            this._dimsEstimate = isEstimate;
+            this._triggerRecalcTranslate();
 
-            this._setRecalc(2);
             if (this._texturizer) {
                 this._texturizer.releaseRenderTexture();
                 this._texturizer.updateResultTexture();
             }
             // Due to width/height change: update the translation vector.
             this._updateLocalTranslate();
-            return true;
-        } else {
-            return false;
         }
-    };
+    }
 
     setTextureCoords(ulx, uly, brx, bry) {
         this.setHasRenderUpdates(3);
@@ -1550,11 +3889,8 @@ class ViewCore {
         this._parent._viewport = [0, 0, this.ctx.stage.coordsWidth, this.ctx.stage.coordsHeight];
         this._parent._scissor = this._parent._viewport;
 
-        // We use a default of 100px bounds margin to detect images around the edges.
-        this._parent._recBoundsMargin = [100, 100, 100, 100];
-
-        // Default: no bounds margin.
-        this._parent._boundsMargin = null;
+        // When recBoundsMargin is null, the defaults are used (100 for all sides).
+        this._parent._recBoundsMargin = null;
 
         this._setRecalc(1 + 2 + 4);
     };
@@ -2026,14 +4362,13 @@ class ViewCore {
     set boundsMargin(v) {
 
         /**
-         *  undefined: inherit
-         *  null: no margin
+         *  null: inherit from parent.
          *  number[4]: specific margins: left, top, right, bottom.
          */
-        this._boundsMargin = v ? v.slice() : undefined;
+        this._boundsMargin = v ? v.slice() : null;
 
         // We force recalc in order to set all boundsMargin recursively during the next update.
-        this._setRecalc(2);
+        this._triggerRecalcTranslate();
     }
 
     get boundsMargin() {
@@ -2052,6 +4387,14 @@ class ViewCore {
         const pw = this._parent._worldContext;
         let w = this._worldContext;
         const visible = (pw.alpha && this._localAlpha);
+
+        if (this._layout && this._layout.isEnabled()) {
+            if (this._recalc & 256) {
+                this._layout.layoutFlexTree();
+            }
+        } else if ((this._recalc & 2) && this._optFlags) {
+            this._applyRelativeDimFuncs();
+        }
 
         /**
          * We must update if:
@@ -2171,27 +4514,27 @@ class ViewCore {
 
             const r = this._renderContext;
             
-            const lw = this._w;
-            const lh = this._h;
+            const bboxW = this._dimsUnknown ? 2048 : this._w;
+            const bboxH = this._dimsUnknown ? 2048 : this._h;
             
             // Calculate a bbox for this view.
             let sx, sy, ex, ey;
             const rComplex = (r.tb !== 0) || (r.tc !== 0) || (r.ta < 0) || (r.td < 0);
             if (rComplex) {
-                sx = Math.min(0, lw * r.ta, lw * r.ta + lh * r.tb, lh * r.tb) + r.px;
-                ex = Math.max(0, lw * r.ta, lw * r.ta + lh * r.tb, lh * r.tb) + r.px;
-                sy = Math.min(0, lw * r.tc, lw * r.tc + lh * r.td, lh * r.td) + r.py;
-                ey = Math.max(0, lw * r.tc, lw * r.tc + lh * r.td, lh * r.td) + r.py;
+                sx = Math.min(0, bboxW * r.ta, bboxW * r.ta + bboxH * r.tb, bboxH * r.tb) + r.px;
+                ex = Math.max(0, bboxW * r.ta, bboxW * r.ta + bboxH * r.tb, bboxH * r.tb) + r.px;
+                sy = Math.min(0, bboxW * r.tc, bboxW * r.tc + bboxH * r.td, bboxH * r.td) + r.py;
+                ey = Math.max(0, bboxW * r.tc, bboxW * r.tc + bboxH * r.td, bboxH * r.td) + r.py;
             } else {
                 sx = r.px;
-                ex = r.px + r.ta * lw;
+                ex = r.px + r.ta * bboxW;
                 sy = r.py;
-                ey = r.py + r.td * lh;
+                ey = r.py + r.td * bboxH;
             }
 
-            if (this._dimsEstimate && (rComplex || this._localTa < 1 || this._localTb < 1)) {
-                // If we are dealing with a non-identity matrix, we must extend the bbox so that withinBounds and;
-                //  scissors will include the complete range of (positive) dimensions up to lw,lh.
+            if (this._dimsUnknown && (rComplex || this._localTa < 1 || this._localTb < 1)) {
+                // If we are dealing with a non-identity matrix, we must extend the bbox so that withinBounds and
+                //  scissors will include the complete range of (positive) dimensions up to ,lh.
                 const nx = this._x * pr.ta + this._y * pr.tb + pr.px;
                 const ny = this._x * pr.tc + this._y * pr.td + pr.py;
                 if (nx < sx) sx = nx;
@@ -2225,8 +4568,7 @@ class ViewCore {
             }
 
             // Calculate the outOfBounds margin.
-            if (this._boundsMargin !== undefined) {
-                // Reuse parent's recBoundsMargin.
+            if (this._boundsMargin) {
                 this._recBoundsMargin = this._boundsMargin;
             } else {
                 this._recBoundsMargin = this._parent._recBoundsMargin;
@@ -2237,18 +4579,18 @@ class ViewCore {
                 if (this._onAfterCalcs(this.view)) {
                     // Recalculate bbox.
                     if (rComplex) {
-                        sx = Math.min(0, lw * r.ta, lw * r.ta + lh * r.tb, lh * r.tb) + r.px;
-                        ex = Math.max(0, lw * r.ta, lw * r.ta + lh * r.tb, lh * r.tb) + r.px;
-                        sy = Math.min(0, lw * r.tc, lw * r.tc + lh * r.td, lh * r.td) + r.py;
-                        ey = Math.max(0, lw * r.tc, lw * r.tc + lh * r.td, lh * r.td) + r.py;
+                        sx = Math.min(0, bboxW * r.ta, bboxW * r.ta + bboxH * r.tb, bboxH * r.tb) + r.px;
+                        ex = Math.max(0, bboxW * r.ta, bboxW * r.ta + bboxH * r.tb, bboxH * r.tb) + r.px;
+                        sy = Math.min(0, bboxW * r.tc, bboxW * r.tc + bboxH * r.td, bboxH * r.td) + r.py;
+                        ey = Math.max(0, bboxW * r.tc, bboxW * r.tc + bboxH * r.td, bboxH * r.td) + r.py;
                     } else {
                         sx = r.px;
-                        ex = r.px + r.ta * lw;
+                        ex = r.px + r.ta * bboxW;
                         sy = r.py;
-                        ey = r.py + r.td * lh;
+                        ey = r.py + r.td * bboxH;
                     }
 
-                    if (this._dimsEstimate && (rComplex || this._localTa < 1 || this._localTb < 1)) {
+                    if (this._dimsUnknown && (rComplex || this._localTa < 1 || this._localTb < 1)) {
                         const nx = this._x * pr.ta + this._y * pr.tb + pr.px;
                         const ny = this._x * pr.tc + this._y * pr.td + pr.py;
                         if (nx < sx) sx = nx;
@@ -2289,20 +4631,26 @@ class ViewCore {
                             }
 
                             if (this._outOfBounds) {
-                                if (this._clipping || this._useRenderToTexture || this._clipbox) {
+                                if (this._clipping || this._useRenderToTexture || (this._clipbox && (bboxW && bboxH))) {
                                     this._outOfBounds = 2;
                                 }
                             }
                         }
 
                         withinMargin = (this._outOfBounds === 0);
-                        if (!withinMargin && !!this._recBoundsMargin) {
+                        if (!withinMargin) {
                             // Re-test, now with margins.
-                            withinMargin = !((ex < this._scissor[0] - this._recBoundsMargin[2]) ||
-                            (ey < this._scissor[1] - this._recBoundsMargin[3]) ||
-                            (sx > this._scissor[0] + this._scissor[2] + this._recBoundsMargin[0]) ||
-                            (sy > this._scissor[1] + this._scissor[3] + this._recBoundsMargin[1]));
-
+                            if (this._recBoundsMargin) {
+                                withinMargin = !((ex < this._scissor[0] - this._recBoundsMargin[2]) ||
+                                    (ey < this._scissor[1] - this._recBoundsMargin[3]) ||
+                                    (sx > this._scissor[0] + this._scissor[2] + this._recBoundsMargin[0]) ||
+                                    (sy > this._scissor[1] + this._scissor[3] + this._recBoundsMargin[1]));
+                            } else {
+                                withinMargin = !((ex < this._scissor[0] - 100) ||
+                                    (ey < this._scissor[1] - 100) ||
+                                    (sx > this._scissor[0] + this._scissor[2] + 100) ||
+                                    (sy > this._scissor[1] + this._scissor[3] + 100));
+                            }
                             if (withinMargin && this._outOfBounds === 2) {
                                 // Children must be visited because they may contain views that are within margin, so must be visible.
                                 this._outOfBounds = 1;
@@ -2346,10 +4694,10 @@ class ViewCore {
             if (this._useRenderToTexture) {
                 // Set viewport necessary for children scissor calculation.
                 if (this._viewport) {
-                    this._viewport[2] = lw;
-                    this._viewport[3] = lh;
+                    this._viewport[2] = bboxW;
+                    this._viewport[3] = bboxH;
                 } else {
-                    this._viewport = [0, 0, lw, lh];
+                    this._viewport = [0, 0, bboxW, bboxH];
                 }
             }
 
@@ -2407,6 +4755,44 @@ class ViewCore {
             } else {
                 this.updateTreeOrder();
             }
+        }
+    }
+
+    _applyRelativeDimFuncs() {
+        if (this._optFlags & 1) {
+            const x = this._funcX(this._parent.w);
+            if (x !== this._x) {
+                this._localPx += (x - this._x);
+                this._x = x;
+            }
+        }
+        if (this._optFlags & 2) {
+            const y = this._funcY(this._parent.h);
+            if (y !== this._y) {
+                this._localPy += (y - this._y);
+                this._y = y;
+            }
+        }
+
+        let changedDims = false;
+        if (this._optFlags & 4) {
+            const w = this._funcW(this._parent.w);
+            if (w !== this._w) {
+                this._w = w;
+                changedDims = true;
+            }
+        }
+        if (this._optFlags & 8) {
+            const h = this._funcH(this._parent.h);
+            if (h !== this._h) {
+                this._h = h;
+                changedDims = true;
+            }
+        }
+
+        if (changedDims) {
+            // Recalc mount, scale position.
+            this._recalcLocalTranslate();
         }
     }
 
@@ -2548,7 +4934,7 @@ class ViewCore {
                     }
 
                     renderState.setRenderTextureInfo(renderTextureInfo);
-                    renderState.setScissor(undefined);
+                    renderState.setScissor(null);
 
                     if (this._displayedTextureSource) {
                         let r = this._renderContext;
@@ -2818,6 +5204,69 @@ class ViewCore {
             w.py + w.tc * relX + w.td * relY
         ]
     }
+
+
+    get layout() {
+        this._ensureLayout();
+        return this._layout;
+    }
+
+    get flex() {
+        return this._layout ? this._layout.flex : null;
+    }
+
+    set flex(v) {
+        this.layout.flex = v;
+    }
+
+    get flexItem() {
+        return this._layout ? this._layout.flexItem : null;
+    }
+
+    set flexItem(v) {
+        this.layout.flexItem = v;
+    }
+
+    isFlexItem() {
+        return !!this._layout && this._layout.isFlexItemEnabled();
+    }
+
+    isFlexContainer() {
+        return !!this._layout && this._layout.isFlexEnabled();
+    }
+
+    enableFlexLayout() {
+        this._ensureLayout();
+    }
+
+    _ensureLayout() {
+        if (!this._layout) {
+            this._layout = new FlexTarget(this);
+        }
+    }
+
+    disableFlexLayout() {
+        this._triggerRecalcTranslate();
+    }
+
+    hasFlexLayout() {
+        return (this._layout && this._layout.isEnabled());
+    }
+
+    setLayout(x, y, w, h) {
+        this.x = x;
+        this.y = y;
+        this._updateDimensions(w, h);
+    }
+
+    triggerLayout() {
+        this._setRecalc(256);
+    }
+
+    _triggerRecalcTranslate() {
+        this._setRecalc(2);
+    }
+
 }
 
 class ViewCoreContext {
@@ -2851,72 +5300,9 @@ class ViewCoreContext {
 }
 
 ViewCoreContext.IDENTITY = new ViewCoreContext();
-
 ViewCore.sortZIndexedChildren = function(a,b) {
     return (a._zIndex === b._zIndex ? a._updateTreeOrder - b._updateTreeOrder : a._zIndex - b._zIndex);
 };
-
-class Base {
-
-    static defaultSetter(obj, name, value) {
-        obj[name] = value;
-    }
-
-    static patchObject(obj, settings) {
-        if (!Utils.isObjectLiteral(settings)) {
-            console.error("Settings must be object literal");
-        } else {
-            let names = Object.keys(settings);
-            for (let i = 0, n = names.length; i < n; i++) {
-                let name = names[i];
-
-                this.patchObjectProperty(obj, name, settings[name]);
-            }
-        }
-    }
-
-    static preparePatchSettings(settings, patchId) {
-        if (patchId) {
-            return this._preparePatchSettings(settings, "_$" + patchId);
-        } else {
-            return settings;
-        }
-    }
-
-    static _preparePatchSettings(settings, patchId) {
-        if (patchId && settings[patchId]) {
-            settings = Object.assign({}, settings, settings[patchId]);
-            delete settings[patchId];
-        }
-        return settings;
-    }
-
-    static patchObjectProperty(obj, name, value) {
-        let setter = obj.setSetting || Base.defaultSetter;
-
-        if (name.charAt(0) === "_") {
-            // Disallow patching private variables.
-            if (name.charAt(1) === "$") ; else if (name !== "__create") {
-                console.error("Patch of private property '" + name + "' is not allowed");
-            }
-        } else if (name !== "type") {
-            // Type is a reserved keyword to specify the class type on creation.
-            if (Utils.isFunction(value) && value.__local) {
-                // Local function (Base.local(s => s.something))
-                value = value.__local(obj);
-            }
-
-            setter(obj, name, value);
-        }
-    }
-
-    static local(func) {
-        // This function can be used as an object setting, which is called with the target object.
-        func.__local = true;
-    }
-
-
-}
 
 /**
  * This is a partial (and more efficient) implementation of the event emitter.
@@ -3172,7 +5558,7 @@ class Texture {
          * Should not be changed.
          * @type {TextureSource}
          */
-        this._source = undefined;
+        this._source = null;
 
         /**
          * The texture clipping x-offset.
@@ -3207,14 +5593,14 @@ class Texture {
 
         /**
          * The (maximum) expected texture source width. Used for within bounds determination while texture is not yet loaded.
-         * If not set, 2048 is used by View.updateDimensions.
+         * If not set, 2048 is used by ViewCore.update.
          * @type {number}
          */
         this.mw = 0;
 
         /**
          * The (maximum) expected texture source height. Used for within bounds determination while texture is not yet loaded.
-         * If not set, 2048 is used by View.updateDimensions.
+         * If not set, 2048 is used by ViewCore.update.
          * @type {number}
          */
         this.mh = 0;
@@ -3283,8 +5669,7 @@ class Texture {
     }
 
     decActiveCount() {
-        const source = this.source;
-
+        const source = this.source; // Force updating the source.
         this._activeCount--;
         if (!this._activeCount) {
             this.becomesUnused();
@@ -3309,11 +5694,11 @@ class Texture {
 
     /**
      * Returns the lookup id for the current texture settings, to be able to reuse it.
-     * @returns {string|undefined}
+     * @returns {string|null}
      */
     _getLookupId() {
         // Default: do not reuse texture.
-        return undefined;
+        return null;
     }
 
     /**
@@ -3379,7 +5764,7 @@ class Texture {
     }
 
     _getTextureSource() {
-        let source = undefined;
+        let source = null;
         if (this._getIsValid()) {
             const lookupId = this._getLookupId();
             if (lookupId) {
@@ -3392,7 +5777,7 @@ class Texture {
         return source;
     }
 
-    _replaceTextureSource(newSource = undefined) {
+    _replaceTextureSource(newSource = null) {
         let oldSource = this._source;
 
         this._source = newSource;
@@ -3602,12 +5987,26 @@ class Texture {
         }
     }
 
+    isAutosizeTexture() {
+        return true;
+    }
+
     getRenderWidth() {
+        if (!this.isAutosizeTexture()) {
+            // In case of the rectangle texture, we'd prefer to not cause a 1x1 w,h as it would interfere with flex layout fit-to-contents.
+            return 0;
+        }
+
         // If dimensions are unknown (texture not yet loaded), use maximum width as a fallback as render width to allow proper bounds checking.
         return (this._w || (this._source ? this._source.getRenderWidth() - this._x : 0)) / this._precision;
     }
 
     getRenderHeight() {
+        if (!this.isAutosizeTexture()) {
+            // In case of the rectangle texture, we'd prefer to not cause a 1x1 w,h as it would interfere with flex layout fit-to-contents.
+            return 0;
+        }
+
         return (this._h || (this._source ? this._source.getRenderHeight() - this._y : 0)) / this._precision;
     }
 
@@ -5667,7 +8066,7 @@ class View {
     get renderWidth() {
         if (this.__enabled) {
             // Render width is only maintained if this view is enabled.
-            return this.__core.w;
+            return this.__core.getRenderWidth();
         } else {
             return this._getRenderWidth();
         }
@@ -5675,7 +8074,7 @@ class View {
 
     get renderHeight() {
         if (this.__enabled) {
-            return this.__core.h;
+            return this.__core.getRenderHeight();
         } else {
             return this._getRenderHeight();
         }
@@ -5795,8 +8194,8 @@ class View {
             }
         }
 
-        const prevSource = this.__core.displayedTextureSource ? this.__core.displayedTextureSource._source : undefined;
-        const sourceChanged = (v ? v._source : undefined) !== prevSource;
+        const prevSource = this.__core.displayedTextureSource ? this.__core.displayedTextureSource._source : null;
+        const sourceChanged = (v ? v._source : null) !== prevSource;
 
         this.__displayedTexture = v;
         this._updateDimensions();
@@ -5857,14 +8256,8 @@ class View {
                 w = w || this.__texture.mw;
                 h = h || this.__texture.mh;
 
-                if (!w) {
+                if ((!w || !h) && this.__texture.isAutosizeTexture()) {
                     unknownSize = true;
-                    w = 2048;
-                }
-
-                if (!h) {
-                    unknownSize = true;
-                    h = 2048;
                 }
             }
         }
@@ -6570,8 +8963,8 @@ class View {
     }
 
     set boundsMargin(v) {
-        if (!Array.isArray(v) && v !== null && v !== undefined) {
-            throw new Error("boundsMargin should be an array of left-top-right-bottom values, null (no margin) or undefined (inherit margin)");
+        if (!Array.isArray(v) && v !== null) {
+            throw new Error("boundsMargin should be an array of left-top-right-bottom values or null (inherit margin)");
         }
         this.__core.boundsMargin = v;
     }
@@ -6581,19 +8974,19 @@ class View {
     }
 
     get x() {
-        return this.__core.x;
+        return this.__core.offsetX;
     }
 
     set x(v) {
-        this.__core.x = v;
+        this.__core.offsetX = v;
     }
 
     get y() {
-        return this.__core.y;
+        return this.__core.offsetY;
     }
 
     set y(v) {
-        this.__core.y = v;
+        this.__core.offsetY = v;
     }
 
     get w() {
@@ -6601,12 +8994,18 @@ class View {
     }
 
     set w(v) {
-        if (this._w !== v) {
-            if (this._w < 0) {
+        if (Utils.isFunction(v)) {
+            this._w = 0;
+            this.__core.funcW = v;
+        } else {
+            if (v < 0) {
                 throw new Error("Negative width is not supported");
             }
-            this._w = v;
-            this._updateDimensions();
+            if (this._w !== v) {
+                this.__core.disableFuncW();
+                this._w = v;
+                this._updateDimensions();
+            }
         }
     }
 
@@ -6615,12 +9014,18 @@ class View {
     }
 
     set h(v) {
-        if (this._h !== v) {
-            if (this._h < 0) {
+        if (Utils.isFunction(v)) {
+            this._h = 0;
+            this.__core.funcH = v;
+        } else {
+            if (v < 0) {
                 throw new Error("Negative height is not supported");
             }
-            this._h = v;
-            this._updateDimensions();
+            if (this._h !== v) {
+                this.__core.disableFuncH();
+                this._h = v;
+                this._updateDimensions();
+            }
         }
     }
 
@@ -6900,6 +9305,7 @@ class View {
     set mw(v) {
         if (this.texture) {
             this.texture.mw = v;
+            this._updateDimensions();
         } else {
             this._throwError('Please set mw after setting a texture.');
         }
@@ -6908,6 +9314,7 @@ class View {
     set mh(v) {
         if (this.texture) {
             this.texture.mh = v;
+            this._updateDimensions();
         } else {
             this._throwError('Please set mh after setting a texture.');
         }
@@ -6943,7 +9350,7 @@ class View {
         if (this.texture && (this.texture instanceof TextTexture)) {
             return this.texture;
         } else {
-            return undefined;
+            return null;
         }
     }
 
@@ -7144,8 +9551,8 @@ class View {
         return this.stage.animations.createAnimation(this, settings);
     }
 
-    transition(property, settings) {
-        if (settings === undefined) {
+    transition(property, settings = null) {
+        if (settings === null) {
             return this._getTransition(property);
         } else {
             this._setTransition(property, settings);
@@ -7252,6 +9659,22 @@ class View {
         let t = this._getTransition(property);
         t.start(v);
         return t;
+    }
+
+    get flex() {
+        return this.__core.flex;
+    }
+
+    set flex(v) {
+        this.__core.flex = v;
+    }
+
+    get flexItem() {
+        return this.__core.flexItem;
+    }
+
+    set flexItem(v) {
+        this.__core.flexItem = v;
     }
 
     static isColorProperty(property) {
@@ -10981,6 +13404,19 @@ class CoreContext {
     }
 
     frame() {
+        this._update();
+
+        this._performForcedZSorts();
+
+        // Clear flag to identify if anything changes before the next frame.
+        this.root._parent._hasRenderUpdates = 0;
+
+        this.render();
+
+        return true;
+    }
+
+    _update() {
         this.update();
 
         // Due to the boundsVisibility flag feature (and onAfterUpdate hook), it is possible that other views were
@@ -10989,10 +13425,15 @@ class CoreContext {
         if (this.root._hasUpdates) {
             this.update();
         }
+    }
 
+    /**
+     * Certain ViewCore items may be forced to zSort to strip out references to prevent memleaks..
+     */
+    _performForcedZSorts() {
         const n = this._zSorts.length;
         if (n) {
-            // Forced z-sorts (ViewCore may force a z-sort in order to free memory/prevent memory leakd).
+            // Forced z-sorts (ViewCore may force a z-sort in order to free memory/prevent memory leaks).
             for (let i = 0, n = this._zSorts.length; i < n; i++) {
                 if (this._zSorts[i].zSort) {
                     this._zSorts[i].sortZIndexedChildren();
@@ -11000,13 +13441,6 @@ class CoreContext {
             }
             this._zSorts = [];
         }
-
-        // Clear flag to identify if anything changes before the next frame.
-        this.root._parent._hasRenderUpdates = 0;
-
-        this.render();
-
-        return true;
     }
 
     update() {
@@ -11017,11 +13451,19 @@ class CoreContext {
 
     render() {
         // Obtain a sequence of the quad operations.
+        this._fillRenderState();
+
+        // Now run them with the render executor.
+        this._performRender();
+    }
+
+    _fillRenderState() {
         this.renderState.reset();
         this.root.render();
         this.renderState.finish();
+    }
 
-        // Now run them with the render executor.
+    _performRender() {
         this.renderExec.execute();
     }
 
@@ -12300,6 +14742,9 @@ class RectangleTexture extends Texture {
         }
     }
 
+    isAutosizeTexture() {
+        return false;
+    }
 }
 
 /**
@@ -12323,8 +14768,8 @@ class Stage extends EventEmitter {
             this.platform.init(this);
         }
 
-        this.gl = undefined;
-        this.c2d = undefined;
+        this.gl = null;
+        this.c2d = null;
 
         const context = this.getOption('context');
         if (context) {
@@ -12335,6 +14780,7 @@ class Stage extends EventEmitter {
             }
         } else {
             if (Utils.isWeb && (!Stage.isWebglSupported() || this.getOption('canvas2d'))) {
+                console.log('Using canvas2d renderer');
                 this.c2d = this.platform.createCanvasContext(this.getOption('w'), this.getOption('h'));
             } else {
                 this.gl = this.platform.createWebGLContext(this.getOption('w'), this.getOption('h'));
@@ -12442,8 +14888,8 @@ class Stage extends EventEmitter {
             }
         };
 
-        opt('canvas', undefined);
-        opt('context', undefined);
+        opt('canvas', null);
+        opt('context', null);
         opt('w', 1280);
         opt('h', 720);
         opt('srcBasePath', null);
@@ -12459,7 +14905,7 @@ class Stage extends EventEmitter {
         opt('autostart', true);
         opt('precision', 1);
         opt('canvas2d', false);
-        opt('platform', undefined);
+        opt('platform', null);
     }
 
     setApplication(app) {
@@ -12579,9 +15025,9 @@ class Stage extends EventEmitter {
 
     setClearColor(clearColor) {
         this.forceRenderUpdate();
-        if (clearColor === null || clearColor === undefined) {
+        if (clearColor === null) {
             // Do not clear.
-            this._clearColor = undefined;
+            this._clearColor = null;
         } else if (Array.isArray(clearColor)) {
             this._clearColor = clearColor;
         } else {

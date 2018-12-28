@@ -35,6 +35,19 @@ export default class CoreContext {
     }
 
     frame() {
+        this._update();
+
+        this._performForcedZSorts();
+
+        // Clear flag to identify if anything changes before the next frame.
+        this.root._parent._hasRenderUpdates = 0;
+
+        this.render();
+
+        return true;
+    }
+
+    _update() {
         this.update();
 
         // Due to the boundsVisibility flag feature (and onAfterUpdate hook), it is possible that other views were
@@ -43,10 +56,15 @@ export default class CoreContext {
         if (this.root._hasUpdates) {
             this.update();
         }
+    }
 
+    /**
+     * Certain ViewCore items may be forced to zSort to strip out references to prevent memleaks..
+     */
+    _performForcedZSorts() {
         const n = this._zSorts.length;
         if (n) {
-            // Forced z-sorts (ViewCore may force a z-sort in order to free memory/prevent memory leakd).
+            // Forced z-sorts (ViewCore may force a z-sort in order to free memory/prevent memory leaks).
             for (let i = 0, n = this._zSorts.length; i < n; i++) {
                 if (this._zSorts[i].zSort) {
                     this._zSorts[i].sortZIndexedChildren();
@@ -54,13 +72,6 @@ export default class CoreContext {
             }
             this._zSorts = [];
         }
-
-        // Clear flag to identify if anything changes before the next frame.
-        this.root._parent._hasRenderUpdates = 0;
-
-        this.render();
-
-        return true;
     }
 
     update() {
@@ -71,11 +82,19 @@ export default class CoreContext {
 
     render() {
         // Obtain a sequence of the quad operations.
+        this._fillRenderState();
+
+        // Now run them with the render executor.
+        this._performRender();
+    }
+
+    _fillRenderState() {
         this.renderState.reset();
         this.root.render();
         this.renderState.finish();
+    }
 
-        // Now run them with the render executor.
+    _performRender() {
         this.renderExec.execute();
     }
 

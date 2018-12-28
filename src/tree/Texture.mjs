@@ -27,7 +27,7 @@ export default class Texture {
          * Should not be changed.
          * @type {TextureSource}
          */
-        this._source = undefined;
+        this._source = null;
 
         /**
          * The texture clipping x-offset.
@@ -62,14 +62,14 @@ export default class Texture {
 
         /**
          * The (maximum) expected texture source width. Used for within bounds determination while texture is not yet loaded.
-         * If not set, 2048 is used by View.updateDimensions.
+         * If not set, 2048 is used by ViewCore.update.
          * @type {number}
          */
         this.mw = 0;
 
         /**
          * The (maximum) expected texture source height. Used for within bounds determination while texture is not yet loaded.
-         * If not set, 2048 is used by View.updateDimensions.
+         * If not set, 2048 is used by ViewCore.update.
          * @type {number}
          */
         this.mh = 0;
@@ -138,8 +138,7 @@ export default class Texture {
     }
 
     decActiveCount() {
-        const source = this.source;
-
+        const source = this.source; // Force updating the source.
         this._activeCount--;
         if (!this._activeCount) {
             this.becomesUnused();
@@ -164,11 +163,11 @@ export default class Texture {
 
     /**
      * Returns the lookup id for the current texture settings, to be able to reuse it.
-     * @returns {string|undefined}
+     * @returns {string|null}
      */
     _getLookupId() {
         // Default: do not reuse texture.
-        return undefined;
+        return null;
     }
 
     /**
@@ -234,7 +233,7 @@ export default class Texture {
     }
 
     _getTextureSource() {
-        let source = undefined;
+        let source = null;
         if (this._getIsValid()) {
             const lookupId = this._getLookupId();
             if (lookupId) {
@@ -247,7 +246,7 @@ export default class Texture {
         return source;
     }
 
-    _replaceTextureSource(newSource = undefined) {
+    _replaceTextureSource(newSource = null) {
         let oldSource = this._source;
 
         this._source = newSource;
@@ -457,12 +456,26 @@ export default class Texture {
         }
     }
 
+    isAutosizeTexture() {
+        return true;
+    }
+
     getRenderWidth() {
+        if (!this.isAutosizeTexture()) {
+            // In case of the rectangle texture, we'd prefer to not cause a 1x1 w,h as it would interfere with flex layout fit-to-contents.
+            return 0;
+        }
+
         // If dimensions are unknown (texture not yet loaded), use maximum width as a fallback as render width to allow proper bounds checking.
         return (this._w || (this._source ? this._source.getRenderWidth() - this._x : 0)) / this._precision;
     }
 
     getRenderHeight() {
+        if (!this.isAutosizeTexture()) {
+            // In case of the rectangle texture, we'd prefer to not cause a 1x1 w,h as it would interfere with flex layout fit-to-contents.
+            return 0;
+        }
+
         return (this._h || (this._source ? this._source.getRenderHeight() - this._y : 0)) / this._precision;
     }
 

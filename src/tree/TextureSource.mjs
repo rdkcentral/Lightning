@@ -1,6 +1,6 @@
 export default class TextureSource {
 
-    constructor(manager, loader = undefined) {
+    constructor(manager, loader = null) {
         this.id = TextureSource.id++;
 
         this.manager = manager;
@@ -74,7 +74,7 @@ export default class TextureSource {
          * @type {object}
          * @private
          */
-        this._loadError = undefined;
+        this._loadError = null;
 
     }
 
@@ -206,7 +206,7 @@ export default class TextureSource {
             this.loadingSince = (new Date()).getTime();
             this._cancelCb = this.loader((err, options) => {
                 // Clear callback to avoid memory leaks.
-                this._cancelCb = undefined;
+                this._cancelCb = null;
 
                 if (this.manager.stage.destroyed) {
                     // Ignore async load when stage is destroyed.
@@ -252,7 +252,7 @@ export default class TextureSource {
         }
 
         // Must be cleared when reload is succesful.
-        this._loadError = undefined;
+        this._loadError = null;
 
         this.onLoad();
     }

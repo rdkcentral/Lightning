@@ -1,6 +1,4 @@
-/**
- * Graphical calculations / VBO buffer filling.
- */
+import FlexTarget from "../../flex/FlexTarget.mjs";
 
 export default class ViewCore {
 
@@ -16,7 +14,7 @@ export default class ViewCore {
 
         this._parent = null;
 
-        this._onUpdate = undefined;
+        this._onUpdate = null;
 
         this._pRecalc = 0;
 
@@ -26,9 +24,9 @@ export default class ViewCore {
 
         this._localAlpha = 1;
 
-        this._onAfterCalcs = undefined;
+        this._onAfterCalcs = null;
 
-        this._onAfterUpdate = undefined;
+        this._onAfterUpdate = null;
 
         // All local translation/transform updates: directly propagated from x/y/w/h/scale/whatever.
         this._localPx = 0;
@@ -41,9 +39,7 @@ export default class ViewCore {
 
         this._isComplex = false;
 
-        this._w = 0;
-        this._h = 0;
-        this._dimsEstimate = false;
+        this._dimsUnknown = false;
 
         this._clipping = false;
 
@@ -70,7 +66,7 @@ export default class ViewCore {
 
         this.renderState = this.ctx.renderState;
 
-        this._scissor = undefined;
+        this._scissor = null;
 
         // The ancestor ViewCore that owns the inherited shader. Null if none is active (default shader).
         this._shaderOwner = null;
@@ -84,6 +80,13 @@ export default class ViewCore {
         this._y = 0;
         this._w = 0;
         this._h = 0;
+
+        this._optFlags = 0;
+        this._funcX = null;
+        this._funcY = null;
+        this._funcW = null;
+        this._funcH = null;
+
         this._scaleX = 1;
         this._scaleY = 1;
         this._pivotX = 0.5;
@@ -124,17 +127,46 @@ export default class ViewCore {
 
         this._useRenderToTexture = false;
 
-        this._boundsMargin = undefined;
+        this._boundsMargin = null;
 
-        this._recBoundsMargin = undefined;
+        this._recBoundsMargin = null;
 
         this._withinBoundsMargin = false;
 
-        this._viewport = undefined;
+        this._viewport = null;
 
-        this._clipbox = false;
+        this._clipbox = true;
 
         this.render = this._renderSimple;
+
+        this._layout = null;
+    }
+
+    get offsetX() {
+        if (this._funcX) {
+            return this._funcX;
+        } else {
+            if (this.hasFlexLayout()) {
+                return this._layout.originalX;
+            } else {
+                return this._x;
+            }
+        }
+    }
+
+    set offsetX(v) {
+        if (Utils.isFunction(v)) {
+            this.funcX = v;
+        } else {
+            this._disableFuncX();
+            if (this.hasFlexLayout()) {
+                this._x += (v - this._layout.originalX);
+                this._triggerRecalcTranslate();
+                this._layout.setOriginalXWithoutUpdatingLayout(v);
+            } else {
+                this.x = v;
+            }
+        }
     }
 
     get x() {
@@ -142,9 +174,59 @@ export default class ViewCore {
     }
 
     set x(v) {
-        if (this._x !== v) {
+        if (v !== this._x) {
             this._updateLocalTranslateDelta(v - this._x, 0);
             this._x = v;
+        }
+    }
+
+    get funcX() {
+        return (this._optFlags & 1 ? this._funcX : null);
+    }
+
+    set funcX(v) {
+        if (this._funcX !== v) {
+            this._optFlags |= 1;
+            this._funcX = v;
+            if (this.hasFlexLayout()) {
+                this._layout.setOriginalXWithoutUpdatingLayout(0);
+                this.layout.mustUpdateExternal();
+            } else {
+                this._x = 0;
+                this._triggerRecalcTranslate();
+            }
+        }
+    }
+
+    _disableFuncX() {
+        this._optFlags = this._optFlags & (0xFFFF - 1);
+        this._funcX = null;
+    }
+
+    get offsetY() {
+        if (this._funcY) {
+            return this._funcY;
+        } else {
+            if (this.hasFlexLayout()) {
+                return this._layout.originalY;
+            } else {
+                return this._y;
+            }
+        }
+    }
+
+    set offsetY(v) {
+        if (Utils.isFunction(v)) {
+            this.funcY = v;
+        } else {
+            this._disableFuncY();
+            if (this.hasFlexLayout()) {
+                this._y += (v - this._layout.originalY);
+                this._triggerRecalcTranslate();
+                this._layout.setOriginalYWithoutUpdatingLayout(v);
+            } else {
+                this.y = v;
+            }
         }
     }
 
@@ -153,18 +235,103 @@ export default class ViewCore {
     }
 
     set y(v) {
-        if (this._y !== v) {
+        if (v !== this._y) {
             this._updateLocalTranslateDelta(0, v - this._y);
             this._y = v;
         }
+    }
+
+    get funcY() {
+        return (this._optFlags & 2 ? this._funcY : null);
+    }
+
+    set funcY(v) {
+        if (this._funcY !== v) {
+            this._optFlags |= 2;
+            this._funcY = v;
+            if (this.hasFlexLayout()) {
+                this._layout.setOriginalYWithoutUpdatingLayout(0);
+                this.layout.mustUpdateExternal();
+            } else {
+                this._y = 0;
+                this._triggerRecalcTranslate();
+            }
+        }
+    }
+
+    _disableFuncY() {
+        this._optFlags = this._optFlags & (0xFFFF - 2);
+        this._funcY = null;
+    }
+
+    get funcW() {
+        return (this._optFlags & 4 ? this._funcW : null);
+    }
+
+    set funcW(v) {
+        if (this._funcW !== v) {
+            this._optFlags |= 4;
+            this._funcW = v;
+            if (this.hasFlexLayout()) {
+                this._layout._originalWidth = 0;
+                this.layout.mustUpdateExternal();
+            } else {
+                this._w = 0;
+                this._triggerRecalcTranslate();
+            }
+        }
+    }
+
+    disableFuncW() {
+        this._optFlags = this._optFlags & (0xFFFF - 4);
+        this._funcW = null;
+    }
+
+    get funcH() {
+        return (this._optFlags & 8 ? this._funcH : null);
+    }
+
+    set funcH(v) {
+        if (this._funcH !== v) {
+            this._optFlags |= 8;
+            this._funcH = v;
+            if (this.hasFlexLayout()) {
+                this._layout._originalHeight = 0;
+                this.layout.mustUpdateExternal();
+            } else {
+                this._h = 0;
+                this._triggerRecalcTranslate();
+            }
+        }
+    }
+
+    disableFuncH() {
+        this._optFlags = this._optFlags & (0xFFFF - 8);
+        this._funcH = null;
     }
 
     get w() {
         return this._w;
     }
 
+    getRenderWidth() {
+        if (this.hasFlexLayout()) {
+            return this._layout.originalWidth;
+        } else {
+            return this._w;
+        }
+    }
+
     get h() {
         return this._h;
+    }
+
+    getRenderHeight() {
+        if (this.hasFlexLayout()) {
+            return this._layout.originalHeight;
+        } else {
+            return this._h;
+        }
     }
 
     get scaleX() {
@@ -306,6 +473,10 @@ export default class ViewCore {
             this._visible = v;
             this._updateLocalAlpha();
             this._view._updateEnabledFlag();
+
+            if (this.hasFlexLayout()) {
+                this.layout.setVisible(v);
+            }
         }
     }
 
@@ -333,17 +504,20 @@ export default class ViewCore {
     };
 
     _updateLocalTranslate() {
+        this._recalcLocalTranslate();
+        this._triggerRecalcTranslate();
+    };
+
+    _recalcLocalTranslate() {
         let pivotXMul = this._pivotX * this._w;
         let pivotYMul = this._pivotY * this._h;
-        let px = this._x - (pivotXMul * this.localTa + pivotYMul * this.localTb) + pivotXMul;
-        let py = this._y - (pivotXMul * this.localTc + pivotYMul * this.localTd) + pivotYMul;
+        let px = this._x - (pivotXMul * this._localTa + pivotYMul * this._localTb) + pivotXMul;
+        let py = this._y - (pivotXMul * this._localTc + pivotYMul * this._localTd) + pivotYMul;
         px -= this._mountX * this._w;
         py -= this._mountY * this._h;
-        this._setLocalTranslate(
-            px,
-            py
-        );
-    };
+        this._localPx = px;
+        this._localPy = py;
+    }
 
     _updateLocalTranslateDelta(dx, dy) {
         this._addLocalTranslate(dx, dy);
@@ -376,6 +550,7 @@ export default class ViewCore {
      *   2: translate
      *   4: transform
      * 128: becomes visible
+     * 256: flex layout updated
      */
     _setRecalc(type) {
         this._recalc |= type;
@@ -396,11 +571,20 @@ export default class ViewCore {
         }
     }
 
+    getParent() {
+        return this._parent;
+    }
+
     setParent(parent) {
         if (parent !== this._parent) {
             let prevIsZContext = this.isZContext();
             let prevParent = this._parent;
             this._parent = parent;
+
+            // Notify flex layout engine.
+            if (this._layout || (parent && parent.isFlexContainer())) {
+                this.layout.setParent(prevParent, parent);
+            }
 
             if (prevParent) {
                 // When views are deleted, the render texture must be re-rendered.
@@ -521,14 +705,10 @@ export default class ViewCore {
         this._isComplex = (b !== 0) || (c !== 0) || (a < 0) || (d < 0);
     };
 
-    _setLocalTranslate(x, y) {
-        this._setRecalc(2);
-        this._localPx = x;
-        this._localPy = y;
-    };
-
     _addLocalTranslate(dx, dy) {
-        this._setLocalTranslate(this._localPx + dx, this._localPy + dy);
+        this._localPx += dx;
+        this._localPy += dy;
+        this._triggerRecalcTranslate();
     }
 
     _setLocalAlpha(a) {
@@ -548,25 +728,36 @@ export default class ViewCore {
     };
 
     setDimensions(w, h, isEstimate) {
+        // In case of an estimation, the update loop should perform different bound checks.
+        this._dimsUnknown = isEstimate;
+
+        if (this.hasFlexLayout()) {
+            this._layout.originalWidth = w;
+            this._layout.originalHeight = h;
+        } else {
+            if (this._w !== w || this._h !== h) {
+                this._updateDimensions(w, h);
+                return true;
+            }
+        }
+        return false;
+    };
+
+    _updateDimensions(w, h) {
         if (this._w !== w || this._h !== h) {
             this._w = w;
             this._h = h;
 
-            // In case of an estimation, the update loop should perform different bound checks.
-            this._dimsEstimate = isEstimate;
+            this._triggerRecalcTranslate();
 
-            this._setRecalc(2);
             if (this._texturizer) {
                 this._texturizer.releaseRenderTexture();
                 this._texturizer.updateResultTexture();
             }
             // Due to width/height change: update the translation vector.
             this._updateLocalTranslate();
-            return true;
-        } else {
-            return false;
         }
-    };
+    }
 
     setTextureCoords(ulx, uly, brx, bry) {
         this.setHasRenderUpdates(3);
@@ -607,11 +798,8 @@ export default class ViewCore {
         this._parent._viewport = [0, 0, this.ctx.stage.coordsWidth, this.ctx.stage.coordsHeight];
         this._parent._scissor = this._parent._viewport;
 
-        // We use a default of 100px bounds margin to detect images around the edges.
-        this._parent._recBoundsMargin = [100, 100, 100, 100];
-
-        // Default: no bounds margin.
-        this._parent._boundsMargin = null;
+        // When recBoundsMargin is null, the defaults are used (100 for all sides).
+        this._parent._recBoundsMargin = null;
 
         this._setRecalc(1 + 2 + 4);
     };
@@ -1086,14 +1274,13 @@ export default class ViewCore {
     set boundsMargin(v) {
 
         /**
-         *  undefined: inherit
-         *  null: no margin
+         *  null: inherit from parent.
          *  number[4]: specific margins: left, top, right, bottom.
          */
-        this._boundsMargin = v ? v.slice() : undefined;
+        this._boundsMargin = v ? v.slice() : null;
 
         // We force recalc in order to set all boundsMargin recursively during the next update.
-        this._setRecalc(2);
+        this._triggerRecalcTranslate();
     }
 
     get boundsMargin() {
@@ -1112,6 +1299,14 @@ export default class ViewCore {
         const pw = this._parent._worldContext;
         let w = this._worldContext;
         const visible = (pw.alpha && this._localAlpha);
+
+        if (this._layout && this._layout.isEnabled()) {
+            if (this._recalc & 256) {
+                this._layout.layoutFlexTree();
+            }
+        } else if ((this._recalc & 2) && this._optFlags) {
+            this._applyRelativeDimFuncs();
+        }
 
         /**
          * We must update if:
@@ -1231,27 +1426,27 @@ export default class ViewCore {
 
             const r = this._renderContext;
             
-            const lw = this._w;
-            const lh = this._h;
+            const bboxW = this._dimsUnknown ? 2048 : this._w;
+            const bboxH = this._dimsUnknown ? 2048 : this._h;
             
             // Calculate a bbox for this view.
             let sx, sy, ex, ey;
             const rComplex = (r.tb !== 0) || (r.tc !== 0) || (r.ta < 0) || (r.td < 0);
             if (rComplex) {
-                sx = Math.min(0, lw * r.ta, lw * r.ta + lh * r.tb, lh * r.tb) + r.px;
-                ex = Math.max(0, lw * r.ta, lw * r.ta + lh * r.tb, lh * r.tb) + r.px;
-                sy = Math.min(0, lw * r.tc, lw * r.tc + lh * r.td, lh * r.td) + r.py;
-                ey = Math.max(0, lw * r.tc, lw * r.tc + lh * r.td, lh * r.td) + r.py;
+                sx = Math.min(0, bboxW * r.ta, bboxW * r.ta + bboxH * r.tb, bboxH * r.tb) + r.px;
+                ex = Math.max(0, bboxW * r.ta, bboxW * r.ta + bboxH * r.tb, bboxH * r.tb) + r.px;
+                sy = Math.min(0, bboxW * r.tc, bboxW * r.tc + bboxH * r.td, bboxH * r.td) + r.py;
+                ey = Math.max(0, bboxW * r.tc, bboxW * r.tc + bboxH * r.td, bboxH * r.td) + r.py;
             } else {
                 sx = r.px;
-                ex = r.px + r.ta * lw;
+                ex = r.px + r.ta * bboxW;
                 sy = r.py;
-                ey = r.py + r.td * lh;
+                ey = r.py + r.td * bboxH;
             }
 
-            if (this._dimsEstimate && (rComplex || this._localTa < 1 || this._localTb < 1)) {
-                // If we are dealing with a non-identity matrix, we must extend the bbox so that withinBounds and;
-                //  scissors will include the complete range of (positive) dimensions up to lw,lh.
+            if (this._dimsUnknown && (rComplex || this._localTa < 1 || this._localTb < 1)) {
+                // If we are dealing with a non-identity matrix, we must extend the bbox so that withinBounds and
+                //  scissors will include the complete range of (positive) dimensions up to ,lh.
                 const nx = this._x * pr.ta + this._y * pr.tb + pr.px;
                 const ny = this._x * pr.tc + this._y * pr.td + pr.py;
                 if (nx < sx) sx = nx;
@@ -1285,8 +1480,7 @@ export default class ViewCore {
             }
 
             // Calculate the outOfBounds margin.
-            if (this._boundsMargin !== undefined) {
-                // Reuse parent's recBoundsMargin.
+            if (this._boundsMargin) {
                 this._recBoundsMargin = this._boundsMargin;
             } else {
                 this._recBoundsMargin = this._parent._recBoundsMargin;
@@ -1297,18 +1491,18 @@ export default class ViewCore {
                 if (this._onAfterCalcs(this.view)) {
                     // Recalculate bbox.
                     if (rComplex) {
-                        sx = Math.min(0, lw * r.ta, lw * r.ta + lh * r.tb, lh * r.tb) + r.px;
-                        ex = Math.max(0, lw * r.ta, lw * r.ta + lh * r.tb, lh * r.tb) + r.px;
-                        sy = Math.min(0, lw * r.tc, lw * r.tc + lh * r.td, lh * r.td) + r.py;
-                        ey = Math.max(0, lw * r.tc, lw * r.tc + lh * r.td, lh * r.td) + r.py;
+                        sx = Math.min(0, bboxW * r.ta, bboxW * r.ta + bboxH * r.tb, bboxH * r.tb) + r.px;
+                        ex = Math.max(0, bboxW * r.ta, bboxW * r.ta + bboxH * r.tb, bboxH * r.tb) + r.px;
+                        sy = Math.min(0, bboxW * r.tc, bboxW * r.tc + bboxH * r.td, bboxH * r.td) + r.py;
+                        ey = Math.max(0, bboxW * r.tc, bboxW * r.tc + bboxH * r.td, bboxH * r.td) + r.py;
                     } else {
                         sx = r.px;
-                        ex = r.px + r.ta * lw;
+                        ex = r.px + r.ta * bboxW;
                         sy = r.py;
-                        ey = r.py + r.td * lh;
+                        ey = r.py + r.td * bboxH;
                     }
 
-                    if (this._dimsEstimate && (rComplex || this._localTa < 1 || this._localTb < 1)) {
+                    if (this._dimsUnknown && (rComplex || this._localTa < 1 || this._localTb < 1)) {
                         const nx = this._x * pr.ta + this._y * pr.tb + pr.px;
                         const ny = this._x * pr.tc + this._y * pr.td + pr.py;
                         if (nx < sx) sx = nx;
@@ -1349,20 +1543,26 @@ export default class ViewCore {
                             }
 
                             if (this._outOfBounds) {
-                                if (this._clipping || this._useRenderToTexture || this._clipbox) {
+                                if (this._clipping || this._useRenderToTexture || (this._clipbox && (bboxW && bboxH))) {
                                     this._outOfBounds = 2;
                                 }
                             }
                         }
 
                         withinMargin = (this._outOfBounds === 0);
-                        if (!withinMargin && !!this._recBoundsMargin) {
+                        if (!withinMargin) {
                             // Re-test, now with margins.
-                            withinMargin = !((ex < this._scissor[0] - this._recBoundsMargin[2]) ||
-                            (ey < this._scissor[1] - this._recBoundsMargin[3]) ||
-                            (sx > this._scissor[0] + this._scissor[2] + this._recBoundsMargin[0]) ||
-                            (sy > this._scissor[1] + this._scissor[3] + this._recBoundsMargin[1]))
-
+                            if (this._recBoundsMargin) {
+                                withinMargin = !((ex < this._scissor[0] - this._recBoundsMargin[2]) ||
+                                    (ey < this._scissor[1] - this._recBoundsMargin[3]) ||
+                                    (sx > this._scissor[0] + this._scissor[2] + this._recBoundsMargin[0]) ||
+                                    (sy > this._scissor[1] + this._scissor[3] + this._recBoundsMargin[1]))
+                            } else {
+                                withinMargin = !((ex < this._scissor[0] - 100) ||
+                                    (ey < this._scissor[1] - 100) ||
+                                    (sx > this._scissor[0] + this._scissor[2] + 100) ||
+                                    (sy > this._scissor[1] + this._scissor[3] + 100))
+                            }
                             if (withinMargin && this._outOfBounds === 2) {
                                 // Children must be visited because they may contain views that are within margin, so must be visible.
                                 this._outOfBounds = 1;
@@ -1406,10 +1606,10 @@ export default class ViewCore {
             if (this._useRenderToTexture) {
                 // Set viewport necessary for children scissor calculation.
                 if (this._viewport) {
-                    this._viewport[2] = lw;
-                    this._viewport[3] = lh;
+                    this._viewport[2] = bboxW;
+                    this._viewport[3] = bboxH;
                 } else {
-                    this._viewport = [0, 0, lw, lh];
+                    this._viewport = [0, 0, bboxW, bboxH];
                 }
             }
 
@@ -1467,6 +1667,44 @@ export default class ViewCore {
             } else {
                 this.updateTreeOrder();
             }
+        }
+    }
+
+    _applyRelativeDimFuncs() {
+        if (this._optFlags & 1) {
+            const x = this._funcX(this._parent.w);
+            if (x !== this._x) {
+                this._localPx += (x - this._x);
+                this._x = x;
+            }
+        }
+        if (this._optFlags & 2) {
+            const y = this._funcY(this._parent.h);
+            if (y !== this._y) {
+                this._localPy += (y - this._y);
+                this._y = y;
+            }
+        }
+
+        let changedDims = false;
+        if (this._optFlags & 4) {
+            const w = this._funcW(this._parent.w);
+            if (w !== this._w) {
+                this._w = w;
+                changedDims = true;
+            }
+        }
+        if (this._optFlags & 8) {
+            const h = this._funcH(this._parent.h);
+            if (h !== this._h) {
+                this._h = h;
+                changedDims = true;
+            }
+        }
+
+        if (changedDims) {
+            // Recalc mount, scale position.
+            this._recalcLocalTranslate();
         }
     }
 
@@ -1608,7 +1846,7 @@ export default class ViewCore {
                     }
 
                     renderState.setRenderTextureInfo(renderTextureInfo);
-                    renderState.setScissor(undefined);
+                    renderState.setScissor(null);
 
                     if (this._displayedTextureSource) {
                         let r = this._renderContext;
@@ -1878,6 +2116,69 @@ export default class ViewCore {
             w.py + w.tc * relX + w.td * relY
         ]
     }
+
+
+    get layout() {
+        this._ensureLayout();
+        return this._layout;
+    }
+
+    get flex() {
+        return this._layout ? this._layout.flex : null;
+    }
+
+    set flex(v) {
+        this.layout.flex = v;
+    }
+
+    get flexItem() {
+        return this._layout ? this._layout.flexItem : null;
+    }
+
+    set flexItem(v) {
+        this.layout.flexItem = v;
+    }
+
+    isFlexItem() {
+        return !!this._layout && this._layout.isFlexItemEnabled();
+    }
+
+    isFlexContainer() {
+        return !!this._layout && this._layout.isFlexEnabled();
+    }
+
+    enableFlexLayout() {
+        this._ensureLayout();
+    }
+
+    _ensureLayout() {
+        if (!this._layout) {
+            this._layout = new FlexTarget(this);
+        }
+    }
+
+    disableFlexLayout() {
+        this._triggerRecalcTranslate();
+    }
+
+    hasFlexLayout() {
+        return (this._layout && this._layout.isEnabled());
+    }
+
+    setLayout(x, y, w, h) {
+        this.x = x;
+        this.y = y;
+        this._updateDimensions(w, h);
+    }
+
+    triggerLayout() {
+        this._setRecalc(256);
+    }
+
+    _triggerRecalcTranslate() {
+        this._setRecalc(2);
+    }
+
 }
 
 class ViewCoreContext {
@@ -1911,9 +2212,9 @@ class ViewCoreContext {
 }
 
 ViewCoreContext.IDENTITY = new ViewCoreContext();
-
 ViewCore.sortZIndexedChildren = function(a,b) {
     return (a._zIndex === b._zIndex ? a._updateTreeOrder - b._updateTreeOrder : a._zIndex - b._zIndex);
 }
 
 import ViewTexturizer from "./ViewTexturizer.mjs";
+import Utils from "../Utils.mjs";

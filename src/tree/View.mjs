@@ -444,7 +444,7 @@ export default class View {
     get renderWidth() {
         if (this.__enabled) {
             // Render width is only maintained if this view is enabled.
-            return this.__core.w;
+            return this.__core.getRenderWidth();
         } else {
             return this._getRenderWidth();
         }
@@ -452,7 +452,7 @@ export default class View {
 
     get renderHeight() {
         if (this.__enabled) {
-            return this.__core.h;
+            return this.__core.getRenderHeight();
         } else {
             return this._getRenderHeight();
         }
@@ -572,8 +572,8 @@ export default class View {
             }
         }
 
-        const prevSource = this.__core.displayedTextureSource ? this.__core.displayedTextureSource._source : undefined;
-        const sourceChanged = (v ? v._source : undefined) !== prevSource;
+        const prevSource = this.__core.displayedTextureSource ? this.__core.displayedTextureSource._source : null;
+        const sourceChanged = (v ? v._source : null) !== prevSource;
 
         this.__displayedTexture = v;
         this._updateDimensions();
@@ -634,14 +634,8 @@ export default class View {
                 w = w || this.__texture.mw;
                 h = h || this.__texture.mh;
 
-                if (!w) {
+                if ((!w || !h) && this.__texture.isAutosizeTexture()) {
                     unknownSize = true;
-                    w = 2048;
-                }
-
-                if (!h) {
-                    unknownSize = true;
-                    h = 2048;
                 }
             }
         }
@@ -1349,8 +1343,8 @@ export default class View {
     }
 
     set boundsMargin(v) {
-        if (!Array.isArray(v) && v !== null && v !== undefined) {
-            throw new Error("boundsMargin should be an array of left-top-right-bottom values, null (no margin) or undefined (inherit margin)");
+        if (!Array.isArray(v) && v !== null) {
+            throw new Error("boundsMargin should be an array of left-top-right-bottom values or null (inherit margin)");
         }
         this.__core.boundsMargin = v;
     }
@@ -1360,19 +1354,19 @@ export default class View {
     }
 
     get x() {
-        return this.__core.x;
+        return this.__core.offsetX;
     }
 
     set x(v) {
-        this.__core.x = v;
+        this.__core.offsetX = v;
     }
 
     get y() {
-        return this.__core.y;
+        return this.__core.offsetY;
     }
 
     set y(v) {
-        this.__core.y = v;
+        this.__core.offsetY = v;
     }
 
     get w() {
@@ -1380,12 +1374,18 @@ export default class View {
     }
 
     set w(v) {
-        if (this._w !== v) {
-            if (this._w < 0) {
+        if (Utils.isFunction(v)) {
+            this._w = 0;
+            this.__core.funcW = v;
+        } else {
+            if (v < 0) {
                 throw new Error("Negative width is not supported");
             }
-            this._w = v;
-            this._updateDimensions();
+            if (this._w !== v) {
+                this.__core.disableFuncW();
+                this._w = v;
+                this._updateDimensions();
+            }
         }
     }
 
@@ -1394,12 +1394,18 @@ export default class View {
     }
 
     set h(v) {
-        if (this._h !== v) {
-            if (this._h < 0) {
+        if (Utils.isFunction(v)) {
+            this._h = 0;
+            this.__core.funcH = v;
+        } else {
+            if (v < 0) {
                 throw new Error("Negative height is not supported");
             }
-            this._h = v;
-            this._updateDimensions();
+            if (this._h !== v) {
+                this.__core.disableFuncH();
+                this._h = v;
+                this._updateDimensions();
+            }
         }
     }
 
@@ -1679,6 +1685,7 @@ export default class View {
     set mw(v) {
         if (this.texture) {
             this.texture.mw = v;
+            this._updateDimensions();
         } else {
             this._throwError('Please set mw after setting a texture.');
         }
@@ -1687,6 +1694,7 @@ export default class View {
     set mh(v) {
         if (this.texture) {
             this.texture.mh = v;
+            this._updateDimensions();
         } else {
             this._throwError('Please set mh after setting a texture.');
         }
@@ -1722,7 +1730,7 @@ export default class View {
         if (this.texture && (this.texture instanceof TextTexture)) {
             return this.texture;
         } else {
-            return undefined;
+            return null;
         }
     }
 
@@ -1925,8 +1933,8 @@ export default class View {
         return this.stage.animations.createAnimation(this, settings);
     }
 
-    transition(property, settings) {
-        if (settings === undefined) {
+    transition(property, settings = null) {
+        if (settings === null) {
             return this._getTransition(property);
         } else {
             this._setTransition(property, settings);
@@ -2033,6 +2041,22 @@ export default class View {
         let t = this._getTransition(property);
         t.start(v);
         return t;
+    }
+
+    get flex() {
+        return this.__core.flex;
+    }
+
+    set flex(v) {
+        this.__core.flex = v;
+    }
+
+    get flexItem() {
+        return this.__core.flexItem;
+    }
+
+    set flexItem(v) {
+        this.__core.flexItem = v;
     }
 
     static isColorProperty(property) {

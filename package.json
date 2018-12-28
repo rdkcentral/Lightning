@@ -9,6 +9,7 @@
     "wpe-webgl": "https://github.com/WebPlatformForEmbedded/node-wpe-webgl.git"
   },
   "devDependencies": {
+    "benchmark": "^2.1.4",
     "rollup-plugin-closure-compiler": "^0.1.0"
   },
   "repository": {

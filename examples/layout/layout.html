@@ -7,24 +7,23 @@
 <body>
     <script type="module">
         import lng from '../../lightning.mjs';
-        class BorderExample extends lng.Application {
+        class LayoutExample extends lng.Application {
             static _template() {
                 return {
-                    Wrapper: {x: 100, y: 100, flex: {direction: 'row', alignItems: 'stretch'},
-                        Left: {rect: true, w: 10},
-                        Center: {rect: true, color: 0x55ff0000, flex: {direction: 'column', alignItems: 'stretch'},
-                            Top: {rect: true, h: 10},
-                            Middle: {
-                                flexItem: {grow: 1},
-                                flex: {direction: 'row', justifyContent: 'space-evenly'},
-                                w: 300,
-                                // Height is fit from contents.
-                                Line1: {text: {text: "hello1"}},
-                                Line2: {text: {text: "hello2"}}
-                            },
-                            Bottom: {rect: true, h: 10},
+                    Main: {x: 100, w: 500, y: 100, flex: {direction: 'row', padding: 20, wrap: true}, rect: true, color: 0xFFFFF000,
+                        Item1: {w: 110, h: 150, flexItem: {margin: 10}, rect: true, color: 0xFFFF0000},
+                        Item2: {w: 120, h: 150, flexItem: {margin: 10}, rect: true, color: 0xFFFF00FF},
+                        Item3: {w: 130, h: 150, flexItem: {margin: 10}, rect: true, color: 0xFF00FFFF},
+                        Item4: {w: 100, h: 50, flexItem: {margin: 10, alignSelf: 'stretch', grow: 1, maxWidth: 200, maxHeight: 100}, rect: true, color: 0xFF00FF00},
+                        Sub: {flex: {direction: 'column'},
+                            children: [
+                                {text: {text: "line 1"}},
+                                {text: {text: "line 2"}},
+                                {text: {text: "line 3"}},
+                                {text: {text: "line 4"}}
+                            ]
                         },
-                        Right: {rect: true, w: 10}
+                        Mounted: {mountX: 1, x: w=>(w), scale: 1, w: w=>(w * 0.1), h: 50, y: 0, rect: true, color: 0xAA000000, flexItem: false},
                     }
                 }
             }
@@ -32,17 +31,24 @@
             static _states() {
                 return {
                     _init: function() {
-                        // this.tag("Middle").animation({duration: 10, repeat: -1, actions: [
-                        //         {p: 'w', v: {0: 300, 0.5: 900, 1: 300}},
-                        //     ]}).start();
+                        this.tag("Main").animation({duration: 10, repeat: -1, actions: [
+                                {p: 'w', v: {0: 150, 0.5: 800, 1: 150}}
+                            ]}).start();
                     }
                 }
             }
         }
 
         const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000, canvas2d: false}};
-        const app = new BorderExample(options);
+        const app = new LayoutExample(options);
         document.body.appendChild(app.stage.getCanvas());
+
+        setTimeout(() => {
+            console.profile('start');
+            setTimeout(() => {
+                console.profileEnd();
+            }, 6000)
+        }, 2000)
     </script>
 </body>
 </html>
