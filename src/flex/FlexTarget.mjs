@@ -141,7 +141,7 @@ export default class FlexTarget {
     }
 
     _disableFlexItem() {
-        // We leave the flexItem object because it may contain custom settings.
+        // We keep the flexItem object because it may contain custom settings.
         this._checkEnabled();
         const flexParent = this.flexParent;
         if (flexParent) {
@@ -273,11 +273,20 @@ export default class FlexTarget {
     }
 
     setLayout(x, y, w, h) {
+        let originalX = this._originalX;
+        let originalY = this._originalY;
+        if (this.funcX) {
+            originalX = this.funcX(FlexUtils.getParentAxisSizeWithPadding(this, true));
+        }
+        if (this.funcY) {
+            originalY = this.funcY(FlexUtils.getParentAxisSizeWithPadding(this, false));
+        }
+
         if (this.isFlexItemEnabled()) {
-            this.target.setLayout(x + this._originalX, y + this._originalY, w, h);
+            this.target.setLayout(x + originalX, y + originalY, w, h);
         } else {
             // Reuse the x,y 'settings'.
-            this.target.setLayout(this._originalX, this._originalY, w, h);
+            this.target.setLayout(originalX, originalY, w, h);
         }
     }
 
@@ -383,6 +392,14 @@ export default class FlexTarget {
             this._originalHeight = v;
             this.mustUpdateExternal();
         }
+    }
+
+    get funcX() {
+        return this._target.funcX;
+    }
+
+    get funcY() {
+        return this._target.funcY;
     }
 
     get funcW() {

@@ -39,8 +39,6 @@ export default class ViewCore {
 
         this._isComplex = false;
 
-        this._w = 0;
-        this._h = 0;
         this._dimsUnknown = false;
 
         this._clipping = false;
@@ -83,6 +81,9 @@ export default class ViewCore {
         this._w = 0;
         this._h = 0;
 
+        this._optFlags = 0;
+        this._funcX = null;
+        this._funcY = null;
         this._funcW = null;
         this._funcH = null;
 
@@ -142,20 +143,29 @@ export default class ViewCore {
     }
 
     get offsetX() {
-        if (this.hasFlexLayout()) {
-            return this._layout.originalX;
+        if (this._funcX) {
+            return this._funcX;
         } else {
-            return this._x;
+            if (this.hasFlexLayout()) {
+                return this._layout.originalX;
+            } else {
+                return this._x;
+            }
         }
     }
 
     set offsetX(v) {
-        if (this.hasFlexLayout()) {
-            this._x += (v - this._layout.originalX);
-            this._triggerRecalcTranslate();
-            this._layout.setOriginalXWithoutUpdatingLayout(v);
+        if (Utils.isFunction(v)) {
+            this.funcX = v;
         } else {
-            this.x = v;
+            this._disableFuncX();
+            if (this.hasFlexLayout()) {
+                this._x += (v - this._layout.originalX);
+                this._triggerRecalcTranslate();
+                this._layout.setOriginalXWithoutUpdatingLayout(v);
+            } else {
+                this.x = v;
+            }
         }
     }
 
@@ -170,21 +180,53 @@ export default class ViewCore {
         }
     }
 
+    get funcX() {
+        return (this._optFlags & 1 ? this._funcX : null);
+    }
+
+    set funcX(v) {
+        if (this._funcX !== v) {
+            this._optFlags |= 1;
+            this._funcX = v;
+            if (this.hasFlexLayout()) {
+                this._layout.setOriginalXWithoutUpdatingLayout(0);
+                this.layout.mustUpdateExternal();
+            } else {
+                this._x = 0;
+                this._triggerRecalcTranslate();
+            }
+        }
+    }
+
+    _disableFuncX() {
+        this._optFlags = this._optFlags & (0xFFFF - 1);
+        this._funcX = null;
+    }
+
     get offsetY() {
-        if (this.hasFlexLayout()) {
-            return this._layout.originalY;
+        if (this._funcY) {
+            return this._funcY;
         } else {
-            return this._y;
+            if (this.hasFlexLayout()) {
+                return this._layout.originalY;
+            } else {
+                return this._y;
+            }
         }
     }
 
     set offsetY(v) {
-        if (this.hasFlexLayout()) {
-            this._y += (v - this._layout.originalY);
-            this._triggerRecalcTranslate();
-            this._layout.setOriginalYWithoutUpdatingLayout(v);
+        if (Utils.isFunction(v)) {
+            this.funcY = v;
         } else {
-            this.y = v;
+            this._disableFuncY();
+            if (this.hasFlexLayout()) {
+                this._y += (v - this._layout.originalY);
+                this._triggerRecalcTranslate();
+                this._layout.setOriginalYWithoutUpdatingLayout(v);
+            } else {
+                this.y = v;
+            }
         }
     }
 
@@ -197,6 +239,75 @@ export default class ViewCore {
             this._updateLocalTranslateDelta(0, v - this._y);
             this._y = v;
         }
+    }
+
+    get funcY() {
+        return (this._optFlags & 2 ? this._funcY : null);
+    }
+
+    set funcY(v) {
+        if (this._funcY !== v) {
+            this._optFlags |= 2;
+            this._funcY = v;
+            if (this.hasFlexLayout()) {
+                this._layout.setOriginalYWithoutUpdatingLayout(0);
+                this.layout.mustUpdateExternal();
+            } else {
+                this._y = 0;
+                this._triggerRecalcTranslate();
+            }
+        }
+    }
+
+    _disableFuncY() {
+        this._optFlags = this._optFlags & (0xFFFF - 2);
+        this._funcY = null;
+    }
+
+    get funcW() {
+        return (this._optFlags & 4 ? this._funcW : null);
+    }
+
+    set funcW(v) {
+        if (this._funcW !== v) {
+            this._optFlags |= 4;
+            this._funcW = v;
+            if (this.hasFlexLayout()) {
+                this._layout._originalWidth = 0;
+                this.layout.mustUpdateExternal();
+            } else {
+                this._w = 0;
+                this._triggerRecalcTranslate();
+            }
+        }
+    }
+
+    disableFuncW() {
+        this._optFlags = this._optFlags & (0xFFFF - 4);
+        this._funcW = null;
+    }
+
+    get funcH() {
+        return (this._optFlags & 8 ? this._funcH : null);
+    }
+
+    set funcH(v) {
+        if (this._funcH !== v) {
+            this._optFlags |= 8;
+            this._funcH = v;
+            if (this.hasFlexLayout()) {
+                this._layout._originalHeight = 0;
+                this.layout.mustUpdateExternal();
+            } else {
+                this._h = 0;
+                this._triggerRecalcTranslate();
+            }
+        }
+    }
+
+    disableFuncH() {
+        this._optFlags = this._optFlags & (0xFFFF - 8);
+        this._funcH = null;
     }
 
     get w() {
@@ -221,48 +332,6 @@ export default class ViewCore {
         } else {
             return this._h;
         }
-    }
-
-    get funcW() {
-        return this._funcW;
-    }
-
-    set funcW(v) {
-        if (this._funcW !== v) {
-            this._funcW = v;
-            if (this.hasFlexLayout()) {
-                this._layout._originalWidth = 0;
-                this.layout.mustUpdateExternal();
-            } else {
-                this._w = 0;
-                this._triggerRecalcTranslate();
-            }
-        }
-    }
-
-    disableFuncW() {
-        this._funcW = null;
-    }
-
-    get funcH() {
-        return this._funcH;
-    }
-
-    set funcH(v) {
-        if (this._funcH !== v) {
-            this._funcH = v;
-            if (this.hasFlexLayout()) {
-                this._layout._originalHeight = 0;
-                this.layout.mustUpdateExternal();
-            } else {
-                this._h = 0;
-                this._triggerRecalcTranslate();
-            }
-        }
-    }
-
-    disableFuncH() {
-        this._funcH = null;
     }
 
     get scaleX() {
@@ -435,17 +504,20 @@ export default class ViewCore {
     };
 
     _updateLocalTranslate() {
+        this._recalcLocalTranslate();
+        this._triggerRecalcTranslate();
+    };
+
+    _recalcLocalTranslate() {
         let pivotXMul = this._pivotX * this._w;
         let pivotYMul = this._pivotY * this._h;
-        let px = this._x - (pivotXMul * this.localTa + pivotYMul * this.localTb) + pivotXMul;
-        let py = this._y - (pivotXMul * this.localTc + pivotYMul * this.localTd) + pivotYMul;
+        let px = this._x - (pivotXMul * this._localTa + pivotYMul * this._localTb) + pivotXMul;
+        let py = this._y - (pivotXMul * this._localTc + pivotYMul * this._localTd) + pivotYMul;
         px -= this._mountX * this._w;
         py -= this._mountY * this._h;
-        this._setLocalTranslate(
-            px,
-            py
-        );
-    };
+        this._localPx = px;
+        this._localPy = py;
+    }
 
     _updateLocalTranslateDelta(dx, dy) {
         this._addLocalTranslate(dx, dy);
@@ -633,14 +705,10 @@ export default class ViewCore {
         this._isComplex = (b !== 0) || (c !== 0) || (a < 0) || (d < 0);
     };
 
-    _setLocalTranslate(x, y) {
-        this._triggerRecalcTranslate();
-        this._localPx = x;
-        this._localPy = y;
-    };
-
     _addLocalTranslate(dx, dy) {
-        this._setLocalTranslate(this._localPx + dx, this._localPy + dy);
+        this._localPx += dx;
+        this._localPy += dy;
+        this._triggerRecalcTranslate();
     }
 
     _setLocalAlpha(a) {
@@ -681,6 +749,7 @@ export default class ViewCore {
             this._h = h;
 
             this._triggerRecalcTranslate();
+
             if (this._texturizer) {
                 this._texturizer.releaseRenderTexture();
                 this._texturizer.updateResultTexture();
@@ -1235,23 +1304,8 @@ export default class ViewCore {
             if (this._recalc & 256) {
                 this._layout.layoutFlexTree();
             }
-        } else {
-            if (this._recalc & 2) {
-                if (this._funcW) {
-                    const w = this._funcW(this._parent.w);
-                    if (w !== this._w) {
-                        this._w = w;
-                        this._recalc |= 2;
-                    }
-                }
-                if (this._funcH) {
-                    const h = this._funcH(this._parent.h);
-                    if (h !== this._h) {
-                        this._h = h;
-                        this._recalc |= 2;
-                    }
-                }
-            }
+        } else if ((this._recalc & 2) && this._optFlags) {
+            this._applyRelativeDimFuncs();
         }
 
         /**
@@ -1613,6 +1667,44 @@ export default class ViewCore {
             } else {
                 this.updateTreeOrder();
             }
+        }
+    }
+
+    _applyRelativeDimFuncs() {
+        if (this._optFlags & 1) {
+            const x = this._funcX(this._parent.w);
+            if (x !== this._x) {
+                this._x = x;
+                this._localPx = x;
+            }
+        }
+        if (this._optFlags & 2) {
+            const y = this._funcY(this._parent.h);
+            if (y !== this._y) {
+                this._y = y;
+                this._localPy = x;
+            }
+        }
+
+        let changedDims = false;
+        if (this._optFlags & 4) {
+            const w = this._funcW(this._parent.w);
+            if (w !== this._w) {
+                this._w = w;
+                changedDims = true;
+            }
+        }
+        if (this._optFlags & 8) {
+            const h = this._funcH(this._parent.h);
+            if (h !== this._h) {
+                this._h = h;
+                changedDims = true;
+            }
+        }
+
+        if (changedDims) {
+            // Recalc mount, scale position.
+            this._recalcLocalTranslate();
         }
     }
 
@@ -2125,3 +2217,4 @@ ViewCore.sortZIndexedChildren = function(a,b) {
 }
 
 import ViewTexturizer from "./ViewTexturizer.mjs";
+import Utils from "../Utils.mjs";

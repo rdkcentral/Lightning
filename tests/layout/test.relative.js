@@ -7,18 +7,19 @@ describe('relative', function() {
     this.timeout(0);
     describe('absolute', () => {
 
-        flexTestUtils.addMochaTestForAnnotatedStructure('simple relW, relH', {
+        flexTestUtils.addMochaTestForAnnotatedStructure('func x, y, w, h', {
             flex: {},
             w: 200,
             h: 400,
             r: [0, 0, 200, 400],
             children: [
-                {w: (w=>0.3*w), h: (h=>0.2*h+5), r: [0, 0, 60, 85]},
-                {w: (w=>0.2*w), h: (h=>0.1*h), r: [60, 0, 40, 40]}
+                {offsetX: (w=>0.1*w), offsetY: (h=>0.15*h), w: (w=>0.3*w), h: (h=>0.2*h+5), r: [20, 60, 60, 85]},
+                {w: (w=>0.2*w), h: (h=>0.1*h), r: [60, 0, 40, 40]},
+                {flexItem: false, offsetX: (w=>0.2*w), offsetY: (h=>0.2*h), w: (w=>0.2*w), h: (h=>0.2*h+5), r: [40, 80, 40, 85]},
             ]
         });
 
-        flexTestUtils.addMochaTestForAnnotatedStructure('fit-to-contents containing relW, relH (expect 0)', {
+        flexTestUtils.addMochaTestForAnnotatedStructure('fit-to-contents containing funcW, funcH (expect 0)', {
             flex: {},
             r: [0, 0, 0, 0],
             children: [
@@ -46,9 +47,9 @@ describe('relative', function() {
                                 }
                             ]
                         },
-                        {w: (w=>w*0.20), h: (h=>h*0.20), flex: {}, r: [400, 0, 160, 40],
+                        {w: (w=>w*0.20), h: (h=>h*0.20), flex: {padding: 10}, r: [400, 0, 180, 60],
                             children: [
-                                {flex: {}, r: [0, 0, 10, 40],
+                                {flex: {}, r: [10, 10, 10, 40],
                                     children: [
                                         {w: 10, h: 10, r: [0, 0, 10, 10]},
                                         {flexItem: false, w: (w=>w*0.50), h: (h=>h*0.50), x: 0, y: 0, r: [0, 0, 5, 20]}
@@ -136,30 +137,34 @@ describe('relative', function() {
                 level2.r = [0, 0, 240, 16];
                 leaf.r = [0, 0, 48, 16];
                 abs.r = [0, 0, 120, 8];
-                sibling.r = [300, 0, 240, 80];
-                siblingSub.r = [0, 0, 10, 80];
+                sibling.r = [300, 0, 260, 100];
+                siblingSub.r = [10, 10, 10, 80];
                 siblingAbs.r = [0, 0, 5, 40];
                 return {layouts: [leaf, level2, level1, root, sibling, siblingSub]};
             });
 
-            addUpdateTest('convert siblingSub to relW,relH', () => {
+            addUpdateTest('convert siblingSub to funcW,funcH', () => {
+                siblingSub.offsetX = (w=>w*0.1);
+                siblingSub.offsetY = (h=>h*0.1);
                 siblingSub.w = (w=>w*0.25);
                 siblingSub.h = (h=>h*0.25);
-                siblingSub.r = [0, 0, 60, 20];
-                siblingAbs.r = [0, 0, 30, 10];
+                siblingSub.r = [36, 20, 65, 25];
+                siblingAbs.r = [0, 0, 32.5, 12.5];
                 return {layouts: [sibling, siblingSub]};
             });
 
             addUpdateTest('convert siblingSub to fixed w,h', () => {
+                siblingSub.offsetX = 1;
+                siblingSub.offsetY = 1;
                 siblingSub.w = 500;
                 siblingSub.h = 500;
                 siblingSub.flexItem.shrink = 0;
-                siblingSub.r = [0, 0, 500, 500];
+                siblingSub.r = [11, 11, 500, 500];
                 siblingAbs.r = [0, 0, 250, 250];
                 return {layouts: [sibling, siblingSub]};
             });
 
-            addUpdateTest('convert leaf to relW', () => {
+            addUpdateTest('convert leaf to funcW', () => {
                 siblingLeaf.w = (w=>w*0.10);
                 siblingLeaf.h = (h=>h*0.20);
                 siblingLeaf.r = [0, 0, 50, 100];

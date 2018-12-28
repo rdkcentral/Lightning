@@ -167,20 +167,12 @@ export default class FlexItem {
         return FlexUtils.setAxisLayoutPos(this.item, this.ctr._horizontal, pos);
     }
 
-    _getCrossAxisLayoutPos() {
-        return FlexUtils.getAxisLayoutPos(this.item, !this.ctr._horizontal);
-    }
-
     _setCrossAxisLayoutPos(pos) {
         return FlexUtils.setAxisLayoutPos(this.item, !this.ctr._horizontal, pos);
     }
 
     _getCrossAxisLayoutSize() {
         return FlexUtils.getAxisLayoutSize(this.item, !this.ctr._horizontal);
-    }
-
-    _getCrossAxisBasis() {
-        return FlexUtils.getRelAxisSize(this.item, !this.ctr._horizontal);
     }
 
     _resizeCrossAxis(size) {

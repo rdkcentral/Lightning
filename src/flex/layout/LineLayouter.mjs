@@ -31,10 +31,6 @@ export default class LineLayouter {
         return this._mainAxisContentSize;
     }
 
-    get items() {
-        return this._layout.items;
-    }
-
     layoutLines() {
         this._setup();
         const items = this._layout.items;

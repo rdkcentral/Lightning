@@ -81,8 +81,8 @@ suite.add('update', function() {
 /*
 Results:
 
-28-12-2018 (nodejs 8.14)
+28-12-2018 (nodejs 8.14, clean startup)
 update: 6143, 6306, 5819, 5879, 5958
-fill coods: 31658, 32678, 28330, 30886, 29847
+fill coords: 31658, 32678, 28330, 30886, 29847
 
  */

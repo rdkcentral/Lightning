@@ -15,6 +15,10 @@ export default class Target {
         this._w = 0;
         this._h = 0;
 
+        this._optFlags = 0;
+
+        this._funcX = null;
+        this._funcY = null;
         this._funcW = null;
         this._funcH = null;
 
@@ -99,15 +103,29 @@ export default class Target {
             if (this._recalc & 256) {
                 this._layout.layoutFlexTree();
             }
-        } else {
-            if (this._funcW) {
+        } else if (this._optFlags) {
+            if (this._optFlags & 1) {
+                const x = this._funcX(this._parent.w);
+                if (x !== this._x) {
+                    this._x = x;
+                    this._recalc |= 2;
+                }
+            }
+            if (this._optFlags & 2) {
+                const y = this._funcY(this._parent.h);
+                if (y !== this._y) {
+                    this._y = y;
+                    this._recalc |= 2;
+                }
+            }
+            if (this._optFlags & 4) {
                 const w = this._funcW(this._parent.w);
                 if (w !== this._w) {
                     this._w = w;
                     this._recalc |= 2;
                 }
             }
-            if (this._funcH) {
+            if (this._optFlags & 8) {
                 const h = this._funcH(this._parent.h);
                 if (h !== this._h) {
                     this._h = h;
@@ -129,20 +147,29 @@ export default class Target {
     }
 
     get offsetX() {
-        if (this.hasFlexLayout()) {
-            return this._layout.originalX;
+        if (this._funcX) {
+            return this._funcX;
         } else {
-            return this._x;
+            if (this.hasFlexLayout()) {
+                return this._layout.originalX;
+            } else {
+                return this._x;
+            }
         }
     }
 
     set offsetX(v) {
-        if (this.hasFlexLayout()) {
-            this._x += (v - this._layout.originalX);
-            this._triggerRecalcTranslate();
-            this._layout.setOriginalXWithoutUpdatingLayout(v);
+        if (Utils.isFunction(v)) {
+            this.funcX = v;
         } else {
-            this.x = v;
+            this._disableFuncX();
+            if (this.hasFlexLayout()) {
+                this._x += (v - this._layout.originalX);
+                this._triggerRecalcTranslate();
+                this._layout.setOriginalXWithoutUpdatingLayout(v);
+            } else {
+                this.x = v;
+            }
         }
     }
 
@@ -157,21 +184,53 @@ export default class Target {
         }
     }
 
+    get funcX() {
+        return (this._optFlags & 1 ? this._funcX : null);
+    }
+
+    set funcX(v) {
+        if (this._funcX !== v) {
+            this._optFlags |= 1;
+            this._funcX = v;
+            if (this.hasFlexLayout()) {
+                this._layout.setOriginalXWithoutUpdatingLayout(0);
+                this.layout.mustUpdateExternal();
+            } else {
+                this._x = 0;
+                this._triggerRecalcTranslate();
+            }
+        }
+    }
+
+    _disableFuncX() {
+        this._optFlags = this._optFlags & (0xFFFF - 1);
+        this._funcX = null;
+    }
+
     get offsetY() {
-        if (this.hasFlexLayout()) {
-            return this._layout.originalY;
+        if (this._funcY) {
+            return this._funcY;
         } else {
-            return this._y;
+            if (this.hasFlexLayout()) {
+                return this._layout.originalY;
+            } else {
+                return this._y;
+            }
         }
     }
 
     set offsetY(v) {
-        if (this.hasFlexLayout()) {
-            this._y += (v - this._layout.originalY);
-            this._triggerRecalcTranslate();
-            this._layout.setOriginalYWithoutUpdatingLayout(v);
+        if (Utils.isFunction(v)) {
+            this.funcY = v;
         } else {
-            this.y = v;
+            this._disableFuncY();
+            if (this.hasFlexLayout()) {
+                this._y += (v - this._layout.originalY);
+                this._triggerRecalcTranslate();
+                this._layout.setOriginalYWithoutUpdatingLayout(v);
+            } else {
+                this.y = v;
+            }
         }
     }
 
@@ -186,6 +245,29 @@ export default class Target {
         }
     }
 
+    get funcY() {
+        return (this._optFlags & 2 ? this._funcY : null);
+    }
+
+    set funcY(v) {
+        if (this._funcY !== v) {
+            this._optFlags |= 2;
+            this._funcY = v;
+            if (this.hasFlexLayout()) {
+                this._layout.setOriginalYWithoutUpdatingLayout(0);
+                this.layout.mustUpdateExternal();
+            } else {
+                this._y = 0;
+                this._triggerRecalcTranslate();
+            }
+        }
+    }
+
+    _disableFuncY() {
+        this._optFlags = this._optFlags & (0xFFFF - 2);
+        this._funcY = null;
+    }
+
     get w() {
         return this._w;
     }
@@ -194,7 +276,7 @@ export default class Target {
         if (Utils.isFunction(v)) {
             this.funcW = v;
         } else {
-            this._disableFuncW();
+            this.disableFuncW();
             if (this.hasFlexLayout()) {
                 this._layout.originalWidth = v;
             } else {
@@ -214,7 +296,7 @@ export default class Target {
         if (Utils.isFunction(v)) {
             this.funcH = v;
         } else {
-            this._disableFuncH();
+            this.disableFuncH();
             if (this.hasFlexLayout()) {
                 this._layout.originalHeight = v;
             } else {
@@ -227,11 +309,12 @@ export default class Target {
     }
 
     get funcW() {
-        return this._funcW;
+        return (this._optFlags & 4 ? this._funcW : null);
     }
 
     set funcW(v) {
         if (this._funcW !== v) {
+            this._optFlags |= 4;
             this._funcW = v;
             if (this.hasFlexLayout()) {
                 this._layout._originalWidth = 0;
@@ -243,16 +326,18 @@ export default class Target {
         }
     }
 
-    _disableFuncW() {
+    disableFuncW() {
+        this._optFlags = this._optFlags & (0xFFFF - 4);
         this._funcW = null;
     }
 
     get funcH() {
-        return this._funcH;
+        return (this._optFlags & 8 ? this._funcH : null);
     }
 
     set funcH(v) {
         if (this._funcH !== v) {
+            this._optFlags |= 8;
             this._funcH = v;
             if (this.hasFlexLayout()) {
                 this._layout._originalHeight = 0;
@@ -264,7 +349,8 @@ export default class Target {
         }
     }
 
-    _disableFuncH() {
+    disableFuncH() {
+        this._optFlags = this._optFlags & (0xFFFF - 8);
         this._funcH = null;
     }
 
