@@ -694,12 +694,14 @@ var lng = (function () {
         static getAxisMinSize(item, horizontal) {
             let minSize = this.getPlainAxisMinSize(item, horizontal);
 
-            const hasLimitedMinSize = (item.isFlexItemEnabled() && item.flexItem.minSize > 0);
+            let flexItemMinSize = 0;
+            if (item.isFlexItemEnabled()) {
+                flexItemMinSize = item._flexItem._getMinSizeSetting(horizontal);
+            }
+
+            const hasLimitedMinSize = (flexItemMinSize > 0);
             if (hasLimitedMinSize) {
-                const isMainAxis = (item.flexItem.ctr._horizontal === horizontal);
-                if (isMainAxis) {
-                    minSize = Math.max(minSize, item.flexItem.minSize);
-                }
+                minSize = Math.max(minSize, flexItemMinSize);
             }
             return minSize;
         }
@@ -789,89 +791,70 @@ var lng = (function () {
 
         constructor(line) {
             this._line = line;
-            this._items = this._getShrinkableItems();
-            this._toBeShrunk = 0;
+            this._amountRemaining = 0;
             this._shrunkSize = 0;
         }
 
         shrink(amount) {
             this._shrunkSize = 0;
 
-            this._toBeShrunk = amount;
-            let items = this._items.concat([]);
-            if (items.length) {
-                let totalShrink = this._getTotalShrinkAmount();
-                let shrinkFullyHandled = false;
+            this._amountRemaining = amount;
+            let totalShrinkAmount = this._getTotalShrinkAmount();
+            if (totalShrinkAmount) {
+                const items = this._line.items;
                 do {
-                    const amountPerShrink = this._toBeShrunk / totalShrink;
-                    let remainingShrinkableItemsPointer = 0;
-                    const prevItemCount = items.length;
-                    for (let i = 0, n = items.length; i < n; i++) {
+                    let amountPerShrink = this._amountRemaining / totalShrinkAmount;
+                    for (let i = this._line.startIndex; i <= this._line.endIndex; i++) {
                         const item = items[i];
-                        const remainingShrink = this._shrinkItemAndGetRemainingShrink(item, amountPerShrink);
-                        if (remainingShrink > 0) {
-                            // Strip out items that are no longer shrinkable.
-                            items[remainingShrinkableItemsPointer++] = item;
-                        } else {
-                            totalShrink -= items[i].flexItem.shrink;
+                        const flexItem = item.flexItem;
+                        const shrinkAmount = flexItem.shrink;
+                        const isShrinkableItem = (shrinkAmount > 0);
+                        if (isShrinkableItem) {
+                            let shrink = shrinkAmount * amountPerShrink;
+                            const minSize = flexItem._getMainAxisMinSize();
+                            const size = flexItem._getMainAxisLayoutSize();
+                            if (size > minSize) {
+                                const maxShrink = size - minSize;
+                                const isFullyShrunk = (shrink >= maxShrink);
+                                if (isFullyShrunk) {
+                                    shrink = maxShrink;
+
+                                    // Destribute remaining amount over the other flex items.
+                                    totalShrinkAmount -= shrinkAmount;
+                                }
+
+                                const finalSize = size - shrink;
+                                flexItem._resizeMainAxis(finalSize);
+
+                                this._shrunkSize += shrink;
+                                this._amountRemaining -= shrink;
+
+                                if (this._amountRemaining === 0) {
+                                    return;
+                                }
+                            }
                         }
                     }
-                    items.splice(remainingShrinkableItemsPointer);
-                    shrinkFullyHandled = (items.length === prevItemCount);
-                } while(!shrinkFullyHandled && items.length);
+                } while(totalShrinkAmount && (this._amountRemaining > 0));
             }
-        }
-
-        _shrinkItemAndGetRemainingShrink(item, amountPerShrink) {
-            const remainingShrink = this._getItemShrinkableSize(item);
-            if (remainingShrink > 0) {
-                const flexItem = item.flexItem;
-                const desiredShrink = flexItem.shrink * amountPerShrink;
-                const actualShrink = Math.min(remainingShrink, desiredShrink);
-
-                flexItem._resizeMainAxis(flexItem._getMainAxisLayoutSize() - actualShrink);
-
-                this._shrunkSize += actualShrink;
-                this._toBeShrunk -= actualShrink;
-
-                return remainingShrink - actualShrink;
-            }
-        }
-
-        _getItemShrinkableSize(item) {
-            return item.flexItem._getMainAxisLayoutSize() - item.flexItem._getMainAxisMinSize();
-        }
-
-        _getShrinkableItems() {
-            const shrinkableItems = [];
-            const items = this._line.items;
-            for (let i = this._line.startIndex; i <= this._line.endIndex; i++) {
-                const item = items[i];
-                if (this._isShrinkableItem(item)) {
-                    shrinkableItems.push(item);
-                }
-            }
-            return shrinkableItems;
-        }
-
-        _isShrinkableItem(item) {
-            const isShrinkable = (item.flexItem.shrink > 0);
-            if (!isShrinkable) {
-                // Prevent getting min size because it may cause an unnecessary layout.
-                return false;
-            }
-
-            const size = item.flexItem._getMainAxisLayoutSize();
-            const minSize = item.flexItem._getMainAxisMinSize();
-            const canShrinkFurther = (size > minSize);
-            return canShrinkFurther;
         }
 
         _getTotalShrinkAmount() {
             let total = 0;
-            for (let i = 0, n = this._items.length; i < n; i++) {
-                const flexItem = this._items[i].flexItem;
-                total += flexItem.shrink;
+            const items = this._line.items;
+            for (let i = this._line.startIndex; i <= this._line.endIndex; i++) {
+                const item = items[i];
+                const flexItem = item.flexItem;
+
+                if (flexItem.shrink) {
+                    const minSize = flexItem._getMainAxisMinSize();
+                    const size = flexItem._getMainAxisLayoutSize();
+
+                    // Exclude those already fully shrunk.
+                    if (size > minSize) {
+                        total += flexItem.shrink;
+                    }
+                }
             }
             return total;
         }
@@ -886,32 +869,59 @@ var lng = (function () {
 
         constructor(line) {
             this._line = line;
+            this._amountRemaining = 0;
             this._grownSize = 0;
         }
 
         grow(amount) {
             this._grownSize = 0;
 
-            const totalGrow = this._getTotalGrowAmount();
-            if (totalGrow) {
-                const amountPerGrow = amount / totalGrow;
-
+            this._amountRemaining = amount;
+            let totalGrowAmount = this._getTotalGrowAmount();
+            if (totalGrowAmount) {
                 const items = this._line.items;
-                for (let i = this._line.startIndex; i <= this._line.endIndex; i++) {
-                    const item = items[i];
-                    if (this._isGrowableItem(item)) {
+                do {
+                    let amountPerGrow = this._amountRemaining / totalGrowAmount;
+                    for (let i = this._line.startIndex; i <= this._line.endIndex; i++) {
+                        const item = items[i];
                         const flexItem = item.flexItem;
-                        const actualGrow = flexItem.grow * amountPerGrow;
-                        this._grownSize += actualGrow;
-                        const finalSize = item.flexItem._getMainAxisLayoutSize() + actualGrow;
-                        item.flexItem._resizeMainAxis(finalSize);
-                    }
-                }
-            }
-        }
+                        const growAmount = flexItem.grow;
+                        const isGrowableItem = (growAmount > 0);
+                        if (isGrowableItem) {
+                            let grow = growAmount * amountPerGrow;
+                            const maxSize = flexItem._getMainAxisMaxSizeSetting();
+                            const size = flexItem._getMainAxisLayoutSize();
+                            if (maxSize > 0) {
+                                if (size >= maxSize) {
+                                    // Already fully grown.
+                                    grow = 0;
+                                } else {
+                                    const maxGrow = maxSize - size;
+                                    const isFullyGrown = (grow >= maxGrow);
+                                    if (isFullyGrown) {
+                                        grow = maxGrow;
 
-        _isGrowableItem(item) {
-            return (item.flexItem.grow > 0);
+                                        // Destribute remaining amount over the other flex items.
+                                        totalGrowAmount -= growAmount;
+                                    }
+                                }
+                            }
+
+                            if (grow > 0) {
+                                const finalSize = size + grow;
+                                flexItem._resizeMainAxis(finalSize);
+
+                                this._grownSize += grow;
+                                this._amountRemaining -= grow;
+
+                                if (this._amountRemaining === 0) {
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                } while(totalGrowAmount && (this._amountRemaining > 0));
+            }
         }
 
         _getTotalGrowAmount() {
@@ -919,7 +929,17 @@ var lng = (function () {
             const items = this._line.items;
             for (let i = this._line.startIndex; i <= this._line.endIndex; i++) {
                 const item = items[i];
-                total += item.flexItem.grow;
+                const flexItem = item.flexItem;
+
+                if (flexItem.grow) {
+                    const maxSize = flexItem._getMainAxisMaxSizeSetting();
+                    const size = flexItem._getMainAxisLayoutSize();
+
+                    // Exclude those already fully grown.
+                    if (maxSize === 0 || size < maxSize) {
+                        total += flexItem.grow;
+                    }
+                }
             }
             return total;
         }
@@ -971,6 +991,8 @@ var lng = (function () {
             this._line = line;
             this._crossAxisLayoutSize = 0;
             this._crossAxisLayoutOffset = 0;
+            this._alignItemsSetting = null;
+            this._recursiveResizeOccured = false;
         }
 
         get _flexContainer() {
@@ -986,6 +1008,8 @@ var lng = (function () {
         }
 
         align() {
+            this._alignItemsSetting = this._flexContainer.alignItems;
+
             this._recursiveResizeOccured = false;
             const items = this._line.items;
             for (let i = this._line.startIndex; i <= this._line.endIndex; i++) {
@@ -1005,7 +1029,7 @@ var lng = (function () {
         }
 
         _alignItem(item) {
-            let align = item.flexItem.alignSelf || this._flexContainer.alignItems;
+            let align = item.flexItem.alignSelf || this._alignItemsSetting;
 
             if (align === "stretch" && this._preventStretch(item)) {
                 align = "flex-start";
@@ -1047,7 +1071,19 @@ var lng = (function () {
             flexItem._setCrossAxisLayoutPos(this._crossAxisLayoutOffset);
 
             const mainAxisLayoutSizeBeforeResize = flexItem._getMainAxisLayoutSize();
-            const size = this._crossAxisLayoutSize - flexItem._getCrossAxisMargin() - flexItem._getCrossAxisPadding();
+            let size = this._crossAxisLayoutSize - flexItem._getCrossAxisMargin() - flexItem._getCrossAxisPadding();
+
+            const crossAxisMinSizeSetting = flexItem._getCrossAxisMinSizeSetting();
+            if (crossAxisMinSizeSetting > 0) {
+                size = Math.max(size, crossAxisMinSizeSetting);
+            }
+
+            const crossAxisMaxSizeSetting = flexItem._getCrossAxisMaxSizeSetting();
+            const crossAxisMaxSizeSettingEnabled = (crossAxisMaxSizeSetting > 0);
+            if (crossAxisMaxSizeSettingEnabled) {
+                size = Math.min(size, crossAxisMaxSizeSetting);
+            }
+
             flexItem._resizeCrossAxis(size);
             const mainAxisLayoutSizeAfterResize = flexItem._getMainAxisLayoutSize();
 
@@ -1229,7 +1265,7 @@ var lng = (function () {
                     item.flexLayout.updateTreeLayout();
                 }
             } else {
-                item.resetNonFlexLayout();
+                item.resetLayoutSize();
             }
         }
 
@@ -1459,7 +1495,7 @@ var lng = (function () {
 
         deferLayout() {
             this._deferLayout = true;
-            this.item.resetNonFlexLayout();
+            this.item.resetLayoutSize();
         }
 
         isLayoutDeferred() {
@@ -1830,11 +1866,15 @@ var lng = (function () {
     class FlexItem {
 
         constructor(item) {
+            this._ctr = null;
             this._item = item;
             this._grow = 0;
             this._shrink = FlexItem.SHRINK_AUTO;
             this._alignSelf = undefined;
-            this._minSize = 0;
+            this._minWidth = 0;
+            this._minHeight = 0;
+            this._maxWidth = 0;
+            this._maxHeight = 0;
 
             this._marginLeft = 0;
             this._marginTop = 0;
@@ -1900,12 +1940,39 @@ var lng = (function () {
             this._changed();
         }
 
-        get minSize() {
-            return this._minSize;
+        get minWidth() {
+            return this._minWidth;
         }
 
-        set minSize(v) {
-            this._minSize = v;
+        set minWidth(v) {
+            this._minWidth = Math.max(0, v);
+            this._changed();
+        }
+
+        get minHeight() {
+            return this._minHeight;
+        }
+
+        set minHeight(v) {
+            this._minHeight = Math.max(0, v);
+            this._changed();
+        }
+
+        get maxWidth() {
+            return this._maxWidth;
+        }
+
+        set maxWidth(v) {
+            this._maxWidth = Math.max(0, v);
+            this._changed();
+        }
+
+        get maxHeight() {
+            return this._maxHeight;
+        }
+
+        set maxHeight(v) {
+            this._maxHeight = Math.max(0, v);
             this._changed();
         }
 
@@ -1964,12 +2031,44 @@ var lng = (function () {
             if (this.ctr) this.ctr._mustUpdateInternal();
         }
 
+        set ctr(v) {
+            this._ctr = v;
+        }
+
         get ctr() {
-            return this._item.target._parent ? this._item.target._parent.layout._flex : undefined;
+            return this._ctr;
         }
 
         patch(settings) {
             Base.patchObject(this, settings);
+        }
+
+        _getCrossAxisMinSizeSetting() {
+            return this._getMinSizeSetting(!this.ctr._horizontal);
+        }
+
+        _getCrossAxisMaxSizeSetting() {
+            return this._getMaxSizeSetting(!this.ctr._horizontal);
+        }
+
+        _getMainAxisMaxSizeSetting() {
+            return this._getMaxSizeSetting(this.ctr._horizontal);
+        }
+
+        _getMinSizeSetting(horizontal) {
+            if (horizontal) {
+                return this._minWidth;
+            } else {
+                return this._minHeight;
+            }
+        }
+
+        _getMaxSizeSetting(horizontal) {
+            if (horizontal) {
+                return this._maxWidth;
+            } else {
+                return this._maxHeight;
+            }
         }
 
         _getMainAxisMinSize() {
@@ -2096,9 +2195,24 @@ var lng = (function () {
             }
         }
 
-        resetNonFlexLayout() {
-            this.w = FlexUtils.getRelAxisSize(this, true);
-            this.h = FlexUtils.getRelAxisSize(this, false);
+        resetLayoutSize() {
+            let w = FlexUtils.getRelAxisSize(this, true);
+            let h = FlexUtils.getRelAxisSize(this, false);
+            const flexItem = this._flexItem;
+            if (flexItem._minWidth) {
+                w = Math.max(flexItem._minWidth, w);
+            }
+            if (flexItem._maxWidth) {
+                w = Math.min(flexItem._maxWidth, w);
+            }
+            if (flexItem._minHeight) {
+                h = Math.max(flexItem._minHeight, h);
+            }
+            if (flexItem._maxHeight) {
+                h = Math.min(flexItem._maxHeight, h);
+            }
+            this.w = w;
+            this.h = h;
         }
 
         get target() {
@@ -2130,9 +2244,9 @@ var lng = (function () {
         set flexItem(v) {
             if (v === false) {
                 if (!this._flexItemDisabled) {
+                    const parent = this.flexParent;
                     this._flexItemDisabled = true;
                     this._checkEnabled();
-                    const parent = this.flexParent;
                     if (parent) {
                         parent._clearFlexItemsCache();
                         parent.mustUpdateInternal();
@@ -2191,17 +2305,19 @@ var lng = (function () {
 
         _enableFlexItem() {
             this._ensureFlexItem();
+            const flexParent = this._target._parent._layout;
+            this._flexItem.ctr = flexParent._flex;
+            flexParent.mustUpdateInternal();
             this._checkEnabled();
-            this.flexParent.mustUpdateInternal();
         }
 
         _disableFlexItem() {
+            if (this._flexItem) {
+                this._flexItem.ctr = null;
+            }
+
             // We keep the flexItem object because it may contain custom settings.
             this._checkEnabled();
-            const flexParent = this.flexParent;
-            if (flexParent) {
-                this.flexParent.mustUpdateInternal();
-            }
 
             // Offsets have been changed. We can't recover them, so we'll just clear them instead.
             this._resetOffsets();
@@ -2249,7 +2365,7 @@ var lng = (function () {
         }
 
         isFlexItemEnabled() {
-            return (this.flexParent !== null) && !this._flexItemDisabled;
+            return this.flexParent !== null;
         }
 
         _restoreTargetToNonFlex() {
@@ -2274,13 +2390,17 @@ var lng = (function () {
             }
 
             if (to && to.isFlexContainer()) {
-                this._ensureFlexItem();
+                this._enableFlexItem();
                 to._layout._changedChildren();
             }
             this._checkEnabled();
         }
 
         get flexParent() {
+            if (this._flexItemDisabled) {
+                return null;
+            }
+
             const parent = this._target._parent;
             if (parent && parent.isFlexContainer()) {
                 return parent._layout;

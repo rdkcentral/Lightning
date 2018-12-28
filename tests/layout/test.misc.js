@@ -5,6 +5,17 @@ const flexTestUtils = new FlexTestUtils();
 // These tests must be performed separately from HTML because we want it to behave differently (more consistently) than HTML.
 describe('layout', () => {
     describe('sizing', () => {
+        flexTestUtils.addMochaTestForAnnotatedStructure('overrule dimensions', {
+            flex: {},
+            r: [0, 0, 670, 300],
+            children: [
+                {w: 200, h: 300, flexItem: {minWidth: 300}, r: [0, 0, 300, 300]},
+                {w: 300, h: 300, flexItem: {maxWidth: 170}, r: [300, 0, 170, 300]},
+                {w: 100, h: 100, flexItem: {minHeight: 120}, r: [470, 0, 100, 120]},
+                {w: 100, h: 300, flexItem: {maxHeight: 200}, r: [570, 0, 100, 200]},
+            ]
+        });
+
         flexTestUtils.addMochaTestForAnnotatedStructure('shrink minWidth', {
             flex: {},
             r: [0, 0, 200, 300],

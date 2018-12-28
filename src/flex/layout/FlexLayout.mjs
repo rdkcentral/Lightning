@@ -56,7 +56,7 @@ export default class FlexLayout {
 
     deferLayout() {
         this._deferLayout = true;
-        this.item.resetNonFlexLayout();
+        this.item.resetLayoutSize();
     }
 
     isLayoutDeferred() {
