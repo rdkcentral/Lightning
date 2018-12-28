@@ -31,13 +31,19 @@ export default class LineLayouter {
         return this._mainAxisContentSize;
     }
 
+    get items() {
+        return this._layout.items;
+    }
+
     layoutLines() {
         this._setup();
         const items = this._layout.items;
         const wrap = this._layout.isWrapping();
 
-        let lineItems = [];
-        for (let i = 0, n = items.length; i < n; i++) {
+        let startIndex = 0;
+        let i;
+        const n = items.length;
+        for (i = 0; i < n; i++) {
             const item = items[i];
 
             this._layoutFlexItem(item);
@@ -45,21 +51,20 @@ export default class LineLayouter {
             // Get predicted main axis size.
             const itemMainAxisSize = item.flexItem._getMainAxisLayoutSizeWithPaddingAndMargin();
 
-            if (wrap && lineItems.length) {
+            if (wrap && (i > startIndex)) {
                 const isOverflowing = (this._curMainAxisPos + itemMainAxisSize > this._mainAxisSize);
                 if (isOverflowing) {
-                    this._layoutLine(lineItems);
+                    this._layoutLine(startIndex, i - 1);
                     this._curMainAxisPos = 0;
-                    lineItems = [];
+                    startIndex = i;
                 }
             }
-            lineItems.push(item);
 
             this._addToMainAxisPos(itemMainAxisSize);
         }
 
-        if (lineItems.length) {
-            this._layoutLine(lineItems);
+        if (startIndex < i) {
+            this._layoutLine(startIndex, i - 1);
         }
     }
 
@@ -93,9 +98,9 @@ export default class LineLayouter {
         }
     }
 
-    _layoutLine(lineItems) {
+    _layoutLine(startIndex, endIndex) {
         const availableSpace = this._getAvailableMainAxisLayoutSpace();
-        const line = new LineLayout(this._layout, lineItems, availableSpace);
+        const line = new LineLayout(this._layout, startIndex, endIndex, availableSpace);
         line.performLayout();
         this._lines.push(line);
 

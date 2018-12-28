@@ -56,9 +56,15 @@ export default class SizeShrinker {
     }
 
     _getShrinkableItems() {
-        return this._line._items.filter(item => {
-            return this._isShrinkableItem(item);
-        });
+        const shrinkableItems = [];
+        const items = this._line.items;
+        for (let i = this._line.startIndex; i <= this._line.endIndex; i++) {
+            const item = items[i];
+            if (this._isShrinkableItem(item)) {
+                shrinkableItems.push(item);
+            }
+        }
+        return shrinkableItems;
     }
 
     _isShrinkableItem(item) {

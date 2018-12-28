@@ -38,7 +38,7 @@ class App extends lng.Application {
                 this.tag("Items").children = items.map((item, i) => {
                     const col = i % 4;
                     const row = Math.floor(i / 4);
-                    return {type: GridItem, data: item, x: col * 300, y: row * 500}
+                    return {type: GridItem, data: item, x: col * 300, y: row * 500, clipbox: (i % 2 === 0)}
                 });
             }
         }
@@ -56,7 +56,7 @@ class GridItem extends lng.Component {
 
     set data(item) {
         this.tag("Background").color = item.color;
-        //this.tag("Title").text.text = item.title;
+        this.tag("Title").text.text = item.title;
     }
 }
 
@@ -72,10 +72,17 @@ var suite = new Benchmark.Suite;
 suite.add('update', function() {
     app.scrollDown();
     stage.ctx._update();
-// }).add('fill coords', function() {
-//     stage.ctx._fillRenderState();
-// }).add('render', function() {
-//     stage.ctx._performRender();
+}).add('fill coords', function() {
+    stage.ctx._fillRenderState();
 }).on('cycle', function(event) {
     console.log(String(event.target));
 }).run({async:false});
+
+/*
+Results:
+
+28-12-2018 (nodejs 8.14)
+update: 6143, 6306, 5819, 5879, 5958
+fill coods: 31658, 32678, 28330, 30886, 29847
+
+ */

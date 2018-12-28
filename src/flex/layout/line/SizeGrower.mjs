@@ -2,7 +2,6 @@ export default class SizeGrower {
 
     constructor(line) {
         this._line = line;
-        this. _items = this._getGrowableItems();
         this._grownSize = 0;
     }
 
@@ -13,21 +12,18 @@ export default class SizeGrower {
         if (totalGrow) {
             const amountPerGrow = amount / totalGrow;
 
-            for (let i = 0, n = this._items.length; i < n; i++) {
-                const item = this._items[i];
-                const flexItem = item.flexItem;
-                const actualGrow = flexItem.grow * amountPerGrow;
-                this._grownSize += actualGrow;
-                const finalSize = item.flexItem._getMainAxisLayoutSize() + actualGrow;
-                item.flexItem._resizeMainAxis(finalSize);
+            const items = this._line.items;
+            for (let i = this._line.startIndex; i <= this._line.endIndex; i++) {
+                const item = items[i];
+                if (this._isGrowableItem(item)) {
+                    const flexItem = item.flexItem;
+                    const actualGrow = flexItem.grow * amountPerGrow;
+                    this._grownSize += actualGrow;
+                    const finalSize = item.flexItem._getMainAxisLayoutSize() + actualGrow;
+                    item.flexItem._resizeMainAxis(finalSize);
+                }
             }
         }
-    }
-
-    _getGrowableItems() {
-        return this._line._items.filter(item => {
-            return this._isGrowableItem(item);
-        });
     }
 
     _isGrowableItem(item) {
@@ -36,9 +32,10 @@ export default class SizeGrower {
 
     _getTotalGrowAmount() {
         let total = 0;
-        for (let i = 0, n = this._line._items.length; i < n; i++) {
-            const flexItem = this._line._items[i].flexItem;
-            total += flexItem.grow;
+        const items = this._line.items;
+        for (let i = this._line.startIndex; i <= this._line.endIndex; i++) {
+            const item = items[i];
+            total += item.flexItem.grow;
         }
         return total;
     }

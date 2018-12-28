@@ -20,8 +20,8 @@ export default class ItemAligner {
 
     align() {
         this._recursiveResizeOccured = false;
-        const items = this._line._items;
-        for (let i = 0, n = items.length; i < n; i++) {
+        const items = this._line.items;
+        for (let i = this._line.startIndex; i <= this._line.endIndex; i++) {
             const item = items[i];
             this._alignItem(item);
         }

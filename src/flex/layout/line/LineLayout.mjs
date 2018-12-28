@@ -5,16 +5,17 @@ import ItemAligner from "./ItemAligner.mjs";
 
 export default class LineLayout {
 
-    constructor(layout, items, availableSpace) {
+    constructor(layout, startIndex, endIndex, availableSpace) {
         this._layout = layout;
-        this._items = items;
+        this.items = layout.items;
+        this.startIndex = startIndex;
+        this.endIndex = endIndex;
         this._availableSpace = availableSpace;
     }
 
     performLayout() {
         this._setItemSizes();
         this.setItemPositions();
-
         this._calcLayoutInfo();
     }
 
@@ -53,15 +54,19 @@ export default class LineLayout {
 
     getMainAxisMinSize() {
         let mainAxisMinSize = 0;
-        for (let i = 0, n = this._items.length; i < n; i++) {
-            const item = this._items[i];
+        for (let i = this.startIndex; i <= this.endIndex; i++) {
+            const item = this.items[i];
             mainAxisMinSize += item.flexItem._getMainAxisMinSizeWithPaddingAndMargin();
         }
         return mainAxisMinSize;
     }
+    
+    get numberOfItems() {
+        return this.endIndex - this.startIndex + 1;
+    }
 
     isOnlyLine() {
-        return (this._layout.numberOfItems === this._items.length);
+        return (this._layout.numberOfItems === (1 + (this.endIndex - this.startIndex)));
     }
 
     get crossAxisLayoutSize() {
@@ -80,8 +85,8 @@ export default class LineLayout {
 
     _getCrossAxisMaxLayoutSize() {
         let crossAxisMaxSize = 0;
-        for (let i = 0, n = this._items.length; i < n; i++) {
-            const item = this._items[i];
+        for (let i = this.startIndex; i <= this.endIndex; i++) {
+            const item = this.items[i];
             crossAxisMaxSize = Math.max(crossAxisMaxSize, item.flexItem._getCrossAxisLayoutSizeWithPaddingAndMargin());
         }
         return crossAxisMaxSize;

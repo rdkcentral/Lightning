@@ -2,8 +2,8 @@ import SpacingCalculator from "../SpacingCalculator.mjs";
 
 export default class ItemPositioner {
 
-    constructor(lineLayouter) {
-        this._line = lineLayouter;
+    constructor(lineLayout) {
+        this._line = lineLayout;
     }
 
     get _layout() {
@@ -15,8 +15,8 @@ export default class ItemPositioner {
 
         let currentPos = spacingBefore;
 
-        const items = this._line._items;
-        for (let i = 0, n = items.length; i < n; i++) {
+        const items = this._line.items;
+        for (let i = this._line.startIndex; i <= this._line.endIndex; i++) {
             const item = items[i];
 
             item.flexItem._setMainAxisLayoutPos(currentPos);
@@ -28,7 +28,7 @@ export default class ItemPositioner {
     _getSpacing() {
         const remainingSpace = this._line._availableSpace;
         let mode = this._layout._flexContainer.justifyContent;
-        const numberOfItems = this._line._items.length;
+        const numberOfItems = this._line.numberOfItems;
 
         return SpacingCalculator.getSpacing(mode, numberOfItems, remainingSpace);
     }
