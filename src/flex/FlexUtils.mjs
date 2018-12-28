@@ -67,12 +67,14 @@ export default class FlexUtils {
     static getAxisMinSize(item, horizontal) {
         let minSize = this.getPlainAxisMinSize(item, horizontal);
 
-        const hasLimitedMinSize = (item.isFlexItemEnabled() && item.flexItem.minSize > 0);
+        let flexItemMinSize = 0;
+        if (item.isFlexItemEnabled()) {
+            flexItemMinSize = item._flexItem._getMinSizeSetting(horizontal);
+        }
+
+        const hasLimitedMinSize = (flexItemMinSize > 0);
         if (hasLimitedMinSize) {
-            const isMainAxis = (item.flexItem.ctr._horizontal === horizontal);
-            if (isMainAxis) {
-                minSize = Math.max(minSize, item.flexItem.minSize);
-            }
+            minSize = Math.max(minSize, flexItemMinSize);
         }
         return minSize;
     }

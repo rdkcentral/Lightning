@@ -340,5 +340,44 @@ describe('layout', () => {
                 }
             ]
         });
+
+        flexTestUtils.addMochaTestForAnnotatedStructure('row,column,row, flex item disabled.', {
+            flex: {padding: 10},
+            w: 500,
+            h: 400,
+            r: [0, 0, 520, 420],
+            children: [
+                {w: 200, h: 200, r: [10, 10, 200, 200]},
+                {
+                    flex: {direction: 'column'}, flexItem: false, w:(w=>w*0.5), h:(h=>h*0.5), r: [0, 0, 260, 210],
+                    children: [
+                        {w: 100, h: 100, r: [0, 0, 100, 100]},
+                        {w: 100, h: 100, flexItem: {grow: 1}, r: [0, 100, 100, 110]}
+                    ]
+                }
+            ]
+        });
+
+        flexTestUtils.addMochaTestForAnnotatedStructure('multi-level shrink', {
+            w: 300,
+            flex: {padding: 10},
+            r: [0, 0, 320, 150],
+            children: [
+                {
+                    r: [10, 10, 300, 130],
+                    w: 400, flex: {padding: 10},
+                    children: [
+                        {
+                            r: [10, 10, 280, 110],
+                            w: 500, flex: {padding: 5, justifyContent: 'center'},
+                            children: [
+                                {w: 100, h: 100, r: [40, 5, 100, 100]},
+                                {w: 100, h: 100, r: [140, 5, 100, 100]}
+                            ]
+                        }
+                    ]
+                }
+            ]
+        });
     });
 });

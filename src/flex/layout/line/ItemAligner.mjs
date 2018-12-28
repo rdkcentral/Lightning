@@ -1,9 +1,13 @@
+import FlexUtils from "../../FlexUtils.mjs";
+
 export default class ItemAligner {
 
     constructor(line) {
         this._line = line;
         this._crossAxisLayoutSize = 0;
         this._crossAxisLayoutOffset = 0;
+        this._alignItemsSetting = null;
+        this._recursiveResizeOccured = false;
     }
 
     get _flexContainer() {
@@ -19,6 +23,8 @@ export default class ItemAligner {
     }
 
     align() {
+        this._alignItemsSetting = this._flexContainer.alignItems;
+
         this._recursiveResizeOccured = false;
         const items = this._line.items;
         for (let i = this._line.startIndex; i <= this._line.endIndex; i++) {
@@ -38,7 +44,7 @@ export default class ItemAligner {
     }
 
     _alignItem(item) {
-        let align = item.flexItem.alignSelf || this._flexContainer.alignItems;
+        let align = item.flexItem.alignSelf || this._alignItemsSetting;
 
         if (align === "stretch" && this._preventStretch(item)) {
             align = "flex-start";
@@ -80,7 +86,19 @@ export default class ItemAligner {
         flexItem._setCrossAxisLayoutPos(this._crossAxisLayoutOffset);
 
         const mainAxisLayoutSizeBeforeResize = flexItem._getMainAxisLayoutSize();
-        const size = this._crossAxisLayoutSize - flexItem._getCrossAxisMargin() - flexItem._getCrossAxisPadding();
+        let size = this._crossAxisLayoutSize - flexItem._getCrossAxisMargin() - flexItem._getCrossAxisPadding();
+
+        const crossAxisMinSizeSetting = flexItem._getCrossAxisMinSizeSetting();
+        if (crossAxisMinSizeSetting > 0) {
+            size = Math.max(size, crossAxisMinSizeSetting);
+        }
+
+        const crossAxisMaxSizeSetting = flexItem._getCrossAxisMaxSizeSetting();
+        const crossAxisMaxSizeSettingEnabled = (crossAxisMaxSizeSetting > 0);
+        if (crossAxisMaxSizeSettingEnabled) {
+            size = Math.min(size, crossAxisMaxSizeSetting);
+        }
+
         flexItem._resizeCrossAxis(size);
         const mainAxisLayoutSizeAfterResize = flexItem._getMainAxisLayoutSize();
 

@@ -5,11 +5,15 @@ import FlexContainer from "./FlexContainer.mjs";
 export default class FlexItem {
 
     constructor(item) {
+        this._ctr = null;
         this._item = item;
         this._grow = 0;
         this._shrink = FlexItem.SHRINK_AUTO;
         this._alignSelf = undefined;
-        this._minSize = 0;
+        this._minWidth = 0;
+        this._minHeight = 0;
+        this._maxWidth = 0;
+        this._maxHeight = 0;
 
         this._marginLeft = 0;
         this._marginTop = 0;
@@ -75,12 +79,39 @@ export default class FlexItem {
         this._changed();
     }
 
-    get minSize() {
-        return this._minSize;
+    get minWidth() {
+        return this._minWidth;
     }
 
-    set minSize(v) {
-        this._minSize = v;
+    set minWidth(v) {
+        this._minWidth = Math.max(0, v);
+        this._changed();
+    }
+
+    get minHeight() {
+        return this._minHeight;
+    }
+
+    set minHeight(v) {
+        this._minHeight = Math.max(0, v);
+        this._changed();
+    }
+
+    get maxWidth() {
+        return this._maxWidth;
+    }
+
+    set maxWidth(v) {
+        this._maxWidth = Math.max(0, v);
+        this._changed();
+    }
+
+    get maxHeight() {
+        return this._maxHeight;
+    }
+
+    set maxHeight(v) {
+        this._maxHeight = Math.max(0, v);
         this._changed();
     }
 
@@ -139,12 +170,44 @@ export default class FlexItem {
         if (this.ctr) this.ctr._mustUpdateInternal();
     }
 
+    set ctr(v) {
+        this._ctr = v;
+    }
+
     get ctr() {
-        return this._item.target._parent ? this._item.target._parent.layout._flex : undefined;
+        return this._ctr;
     }
 
     patch(settings) {
         Base.patchObject(this, settings);
+    }
+
+    _getCrossAxisMinSizeSetting() {
+        return this._getMinSizeSetting(!this.ctr._horizontal);
+    }
+
+    _getCrossAxisMaxSizeSetting() {
+        return this._getMaxSizeSetting(!this.ctr._horizontal);
+    }
+
+    _getMainAxisMaxSizeSetting() {
+        return this._getMaxSizeSetting(this.ctr._horizontal);
+    }
+
+    _getMinSizeSetting(horizontal) {
+        if (horizontal) {
+            return this._minWidth;
+        } else {
+            return this._minHeight;
+        }
+    }
+
+    _getMaxSizeSetting(horizontal) {
+        if (horizontal) {
+            return this._maxWidth;
+        } else {
+            return this._maxHeight;
+        }
     }
 
     _getMainAxisMinSize() {

@@ -75,9 +75,9 @@ export default class FlexTarget {
     set flexItem(v) {
         if (v === false) {
             if (!this._flexItemDisabled) {
+                const parent = this.flexParent;
                 this._flexItemDisabled = true;
                 this._checkEnabled();
-                const parent = this.flexParent;
                 if (parent) {
                     parent._clearFlexItemsCache();
                     parent.mustUpdateInternal();
@@ -136,17 +136,19 @@ export default class FlexTarget {
 
     _enableFlexItem() {
         this._ensureFlexItem();
+        const flexParent = this._target._parent._layout;
+        this._flexItem.ctr = flexParent._flex;
+        flexParent.mustUpdateInternal();
         this._checkEnabled();
-        this.flexParent.mustUpdateInternal();
     }
 
     _disableFlexItem() {
+        if (this._flexItem) {
+            this._flexItem.ctr = null;
+        }
+
         // We keep the flexItem object because it may contain custom settings.
         this._checkEnabled();
-        const flexParent = this.flexParent;
-        if (flexParent) {
-            this.flexParent.mustUpdateInternal();
-        }
 
         // Offsets have been changed. We can't recover them, so we'll just clear them instead.
         this._resetOffsets();
@@ -219,13 +221,17 @@ export default class FlexTarget {
         }
 
         if (to && to.isFlexContainer()) {
-            this._ensureFlexItem();
+            this._enableFlexItem();
             to._layout._changedChildren();
         }
         this._checkEnabled();
     }
 
     get flexParent() {
+        if (this._flexItemDisabled) {
+            return null;
+        }
+
         const parent = this._target._parent;
         if (parent && parent.isFlexContainer()) {
             return parent._layout;

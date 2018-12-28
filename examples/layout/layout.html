@@ -42,6 +42,13 @@
         const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000, canvas2d: false}};
         const app = new LayoutExample(options);
         document.body.appendChild(app.stage.getCanvas());
+
+        setTimeout(() => {
+            console.profile('start');
+            setTimeout(() => {
+                console.profileEnd();
+            }, 6000)
+        }, 2000)
     </script>
 </body>
 </html>

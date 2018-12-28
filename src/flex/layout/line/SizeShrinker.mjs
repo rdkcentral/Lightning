@@ -2,89 +2,70 @@ export default class SizeShrinker {
 
     constructor(line) {
         this._line = line;
-        this._items = this._getShrinkableItems();
-        this._toBeShrunk = 0;
+        this._amountRemaining = 0;
         this._shrunkSize = 0;
     }
 
     shrink(amount) {
         this._shrunkSize = 0;
 
-        this._toBeShrunk = amount;
-        let items = this._items.concat([]);
-        if (items.length) {
-            let totalShrink = this._getTotalShrinkAmount();
-            let shrinkFullyHandled = false;
+        this._amountRemaining = amount;
+        let totalShrinkAmount = this._getTotalShrinkAmount();
+        if (totalShrinkAmount) {
+            const items = this._line.items;
             do {
-                const amountPerShrink = this._toBeShrunk / totalShrink;
-                let remainingShrinkableItemsPointer = 0;
-                const prevItemCount = items.length;
-                for (let i = 0, n = items.length; i < n; i++) {
+                let amountPerShrink = this._amountRemaining / totalShrinkAmount;
+                for (let i = this._line.startIndex; i <= this._line.endIndex; i++) {
                     const item = items[i];
-                    const remainingShrink = this._shrinkItemAndGetRemainingShrink(item, amountPerShrink);
-                    if (remainingShrink > 0) {
-                        // Strip out items that are no longer shrinkable.
-                        items[remainingShrinkableItemsPointer++] = item;
-                    } else {
-                        totalShrink -= items[i].flexItem.shrink;
+                    const flexItem = item.flexItem;
+                    const shrinkAmount = flexItem.shrink;
+                    const isShrinkableItem = (shrinkAmount > 0);
+                    if (isShrinkableItem) {
+                        let shrink = shrinkAmount * amountPerShrink;
+                        const minSize = flexItem._getMainAxisMinSize();
+                        const size = flexItem._getMainAxisLayoutSize();
+                        if (size > minSize) {
+                            const maxShrink = size - minSize;
+                            const isFullyShrunk = (shrink >= maxShrink);
+                            if (isFullyShrunk) {
+                                shrink = maxShrink;
+
+                                // Destribute remaining amount over the other flex items.
+                                totalShrinkAmount -= shrinkAmount;
+                            }
+
+                            const finalSize = size - shrink;
+                            flexItem._resizeMainAxis(finalSize);
+
+                            this._shrunkSize += shrink;
+                            this._amountRemaining -= shrink;
+
+                            if (this._amountRemaining === 0) {
+                                return;
+                            }
+                        }
                     }
                 }
-                items.splice(remainingShrinkableItemsPointer);
-                shrinkFullyHandled = (items.length === prevItemCount);
-            } while(!shrinkFullyHandled && items.length);
+            } while(totalShrinkAmount && (this._amountRemaining > 0));
         }
-    }
-
-    _shrinkItemAndGetRemainingShrink(item, amountPerShrink) {
-        const remainingShrink = this._getItemShrinkableSize(item);
-        if (remainingShrink > 0) {
-            const flexItem = item.flexItem;
-            const desiredShrink = flexItem.shrink * amountPerShrink;
-            const actualShrink = Math.min(remainingShrink, desiredShrink);
-
-            flexItem._resizeMainAxis(flexItem._getMainAxisLayoutSize() - actualShrink);
-
-            this._shrunkSize += actualShrink;
-            this._toBeShrunk -= actualShrink;
-
-            return remainingShrink - actualShrink;
-        }
-    }
-
-    _getItemShrinkableSize(item) {
-        return item.flexItem._getMainAxisLayoutSize() - item.flexItem._getMainAxisMinSize();
-    }
-
-    _getShrinkableItems() {
-        const shrinkableItems = [];
-        const items = this._line.items;
-        for (let i = this._line.startIndex; i <= this._line.endIndex; i++) {
-            const item = items[i];
-            if (this._isShrinkableItem(item)) {
-                shrinkableItems.push(item);
-            }
-        }
-        return shrinkableItems;
-    }
-
-    _isShrinkableItem(item) {
-        const isShrinkable = (item.flexItem.shrink > 0);
-        if (!isShrinkable) {
-            // Prevent getting min size because it may cause an unnecessary layout.
-            return false;
-        }
-
-        const size = item.flexItem._getMainAxisLayoutSize();
-        const minSize = item.flexItem._getMainAxisMinSize();
-        const canShrinkFurther = (size > minSize);
-        return canShrinkFurther;
     }
 
     _getTotalShrinkAmount() {
         let total = 0;
-        for (let i = 0, n = this._items.length; i < n; i++) {
-            const flexItem = this._items[i].flexItem;
-            total += flexItem.shrink;
+        const items = this._line.items;
+        for (let i = this._line.startIndex; i <= this._line.endIndex; i++) {
+            const item = items[i];
+            const flexItem = item.flexItem;
+
+            if (flexItem.shrink) {
+                const minSize = flexItem._getMainAxisMinSize();
+                const size = flexItem._getMainAxisLayoutSize();
+
+                // Exclude those already fully shrunk.
+                if (size > minSize) {
+                    total += flexItem.shrink;
+                }
+            }
         }
         return total;
     }

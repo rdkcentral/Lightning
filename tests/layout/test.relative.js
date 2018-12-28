@@ -19,6 +19,24 @@ describe('relative', function() {
             ]
         });
 
+        flexTestUtils.addMochaTestForAnnotatedStructure('flex relative to absolute parent', {
+            w: 600, h: 800,
+            r: [0, 0, 600, 800],
+            children: [
+                {
+                    flex: {},
+                    w: w=>w/3,
+                    h: h=>h/2,
+                    r: [0, 0, 200, 400],
+                    children: [
+                        {offsetX: (w=>0.1*w), offsetY: (h=>0.15*h), w: (w=>0.3*w), h: (h=>0.2*h+5), r: [20, 60, 60, 85]},
+                        {w: (w=>0.2*w), h: (h=>0.1*h), r: [60, 0, 40, 40]},
+                        {flexItem: false, offsetX: (w=>0.2*w), offsetY: (h=>0.2*h), w: (w=>0.2*w), h: (h=>0.2*h+5), r: [40, 80, 40, 85]},
+                    ]
+                }
+            ]
+        });
+
         flexTestUtils.addMochaTestForAnnotatedStructure('fit-to-contents containing funcW, funcH (expect 0)', {
             flex: {},
             r: [0, 0, 0, 0],
