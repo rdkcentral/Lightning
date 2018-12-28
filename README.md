@@ -95,13 +95,51 @@ On every requestAnimationFrame call, ideally at 60fps, the render tree is checke
 * Render everything to screen using WebGL calls
 
 ### Layouting / Positioning
-All views are positioned absolutely, relative to the parent view, using `x` and `y`. The framework was designed for fixed width/height viewports, but if you need more complex positioning such as floating or relative widths/heights, have a look at the calculation cycle hooks `onUpdate`, and `onAfterUpdate`.
+Lightning contains an advanced layout engine under the hood. It supports:
+* Absolute positioning
+* Relative positioning
+* Flexbox
 
-A view has dimensions, gettable by the renderWidth and renderHeight properties. They can be set by specifying the w, h properties. If w, h are not set, the renderWidth corresponds to the (displayed) texture width. By default, both w and h are 0. The view dimensions are used for both positioning (mount, pivot) as well as for rendering the texture. 
+#### Absolute positioning
+In Lightning, everything is positioned absolutely, just like `position:absolute` does for CSS. You define the xy-coordinates relative to the parent. Any scaling, rotation, etc. from the parent is applied to everything in the subtree.
 
-The `mount` specifies the point within the view dimensions that is specified by the x, y coordinates. Mount 0 corresponds the upper-left corner, 1 to the bottom-right corner. `mountX` and `mountY` can also be set separately, so (1,0) corresponds to the upper-right corner and (0,1) to the bottom-left corner.
+A view can have a width and height associated with it. They can be set by specifying the `w`, `h` properties. If w, h are not set, the renderWidth corresponds to the (displayed) texture width. By default, both w and h are 0. The view dimensions are used for both positioning (mount, pivot) as well as for rendering the texture.
 
-The `pivot` (pivot,pivotX,pivotY) specifies the point within the view dimensions that is the origin for `rotation` and `scale` transformations.
+The `mount` specifies the point within the view dimensions that is specified by the `x`, `y` coordinates. Mount 0 corresponds the upper-left corner, 1 to the bottom-right corner. `mountX` and `mountY` can also be set separately, so (1,0) corresponds to the upper-right corner and (0,1) to the bottom-left corner.
+
+The `pivot` (`pivotX`,`pivotY`), also with a value between 0 and 1, specifies the point within the view dimensions that is the origin for `rotation` and `scale` transformations.
+
+#### Relative positioning
+For the `x`, `y`, `w` and `h` properties can be set to a Function, that calculates it relative to the width or height of the parent view:
+`{x: (w=>w*0.3), y: (h=>0.3*h), w: (w=>w*0.4), h: (h=>h*0.4), ...}`
+
+This gives you the power to align items relative to the parent, purely based on the dimensions of the parent.
+
+### Flexbox
+Lightning contains a layout engine based on the HTML Flexbox specification. If you are not familiar with it, MDN contains an [https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Flexible_Box_Layout/Basic_Concepts_of_Flexbox](excellent introduction).
+
+Flexbox can be turned on on a View by setting the flex property: `{flex: {}}`.
+This turns all immediate children to flex items.
+
+{PROVIDE EXAMPLE} 
+
+Lightning flexbox behaves almost identical to CSS Flexbox, but without the quirks:
+* When on a flex container, no width or height has been set (set to 0), it always takes the contents size (in contrast to CSS which differs per axis).
+* That makes behavior of columns/rows symmetrical.
+* We don't support the flex-basis property.
+* In Lightning, a child of a flex container (a flex item) can be made to behave as an absolutely positioned item by setting `flexItem:false`.
+
+A complete list of support flexbox properties.
+
+FlexContainer
+`alignItems`
+    By default flex items that have width or height are set to 'flex-start' (flexItem.alignSelf can be set to overrule this behavior).
+
+FlexItem
+`shrink`
+    By default flex items that are not flex containers are not shrunk (flexItem.shrink can be set to overrule this behavior).
+
+
 {PROVIDE EXAMPLE}
 
 ### View properties
