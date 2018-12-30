@@ -311,11 +311,6 @@ export default class FlexTarget {
         }
     }
 
-    mustUpdateDeferred() {
-        this._recalc = 2;
-        this._target.triggerLayout();
-    }
-
     mustUpdateExternal() {
         const parent = this.flexParent;
         if (parent) {
@@ -363,7 +358,7 @@ export default class FlexTarget {
             cur = newCur;
 
             // We do not have to re-layout the upper flex tree because the content changes won't affect it.
-        };
+        }
 
         const flexLayoutRoot = cur;
         flexLayoutRoot._target.triggerLayout();

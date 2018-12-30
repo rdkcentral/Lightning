@@ -16,15 +16,6 @@ export default class FlexLayout {
         this._resizingMainAxis = false;
         this._resizingCrossAxis = false;
 
-        /**
-         * While layouting the tree, if a certain flex container branch does not fit it's contents then the layout of
-         * it can be deferred (because it's guaranteed that its contents won't affect the upper branch).
-         *
-         * This enables the update loop to improve performance: updating its layout may not be needed at all (if the
-         * dimensions after layouting the parent flex container are not changed since the last update).
-         * @type {boolean}
-         */
-        this._deferLayout = false;
     }
 
     layoutTree() {
@@ -39,7 +30,6 @@ export default class FlexLayout {
     }
 
     updateTreeLayout() {
-        this._resetDeferredLayout();
         this._setInitialAxisSizes();
         this._layoutAxes();
     }
@@ -50,21 +40,7 @@ export default class FlexLayout {
     }
 
     _updateTreeLayoutWithCurrentAxes() {
-        this._resetDeferredLayout();
         this._layoutAxes();
-    }
-
-    deferLayout() {
-        this._deferLayout = true;
-        this.item.resetLayoutSize();
-    }
-
-    isLayoutDeferred() {
-        return this._deferLayout;
-    }
-
-    _resetDeferredLayout() {
-        this._deferLayout = false;
     }
 
     _setInitialAxisSizes() {
@@ -150,19 +126,11 @@ export default class FlexLayout {
         }
     }
 
-    _ensureLayout() {
-        if (this.isLayoutDeferred()) {
-            this.updateTreeLayout();
-        }
-    }
-
     _getMainAxisMinSize() {
-        this._ensureLayout();
         return this._lineLayouter.mainAxisMinSize;
     }
 
     _getCrossAxisMinSize() {
-        this._ensureLayout();
         return this._lineLayouter.crossAxisMinSize;
     }
 

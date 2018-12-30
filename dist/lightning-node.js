@@ -1269,11 +1269,7 @@ class LineLayouter {
 
     _layoutFlexItem(item) {
         if (item.isFlexEnabled()) {
-            if (!item.isFlexSizedToContents()) {
-                item.flexLayout.deferLayout();
-            } else {
-                item.flexLayout.updateTreeLayout();
-            }
+            item.flexLayout.updateTreeLayout();
         } else {
             item.resetLayoutSize();
         }
@@ -1385,9 +1381,7 @@ class ItemCoordinatesUpdater {
             this._finalizeItem(item);
             const flexLayout = item.flexLayout;
             if (flexLayout) {
-                if (!flexLayout.isLayoutDeferred()) {
-                    this._finalizeItemChildren(item);
-                }
+                this._finalizeItemChildren(item);
             }
         }
     }
@@ -1423,7 +1417,7 @@ class ItemCoordinatesUpdater {
         }
 
         const flexLayout = item.flexLayout;
-        if (flexLayout && flexLayout.isLayoutDeferred()) {
+        if (flexLayout) {
             const dimsChanged = (item.target.w !== w || item.target.h !== h);
 
             if (dimsChanged) {
