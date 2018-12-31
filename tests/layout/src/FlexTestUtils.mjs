@@ -98,6 +98,18 @@ export default class FlexTestUtils {
             }
         })
     }
+
+    checkUpdatedTargets(updatedTargets, expectedTargets) {
+        const updatedSet = new Set(updatedTargets);
+        const expectedSet = new Set(expectedTargets);
+        const missing = [...expectedSet].filter(x => !updatedSet.has(x));
+        chai.assert(!missing.length, "has missing updated targets: " + missing.map(target => target._target.getLocationString()));
+        const unexpected = [...updatedSet].filter(x => !expectedSet.has(x));
+        chai.assert(!unexpected.length, "has unexpected updated targets: " + unexpected.map(target => target._target.getLocationString()));
+
+        const sameLength = expectedTargets.length === updatedTargets.length;
+        chai.assert(sameLength, "the number of target updates mismatches: " + updatedTargets.length + " while we expected " + expectedTargets.length);
+    }
 }
 
 class AnnotatedStructureMismatchCollector {

@@ -35,6 +35,10 @@ export default class FlexTarget {
         return this.flex ? this.flex._layout : null;
     }
 
+    isLayoutRoot() {
+        return this.flexParent === null;
+    }
+
     layoutFlexTree() {
         if (this.isFlexEnabled() && this.isChanged()) {
             this.flexLayout.layoutTree();
@@ -341,13 +345,8 @@ export default class FlexTarget {
     _setRecalcAncestorsUntilRootFound() {
         let cur = this;
 
-        while(cur.isFlexSizedToContents()) {
-
-            const newCur = cur.flexParent;
-            if (!newCur) {
-                break;
-            }
-
+        let newCur;
+        while(newCur = cur.flexParent) {
             if (newCur._recalc) {
                 // Change already known.
                 return;
@@ -366,10 +365,6 @@ export default class FlexTarget {
 
     clearRecalcFlag() {
         this._recalc = 0;
-    }
-
-    isFlexSizedToContents() {
-        return this._flex.isFitToContents();
     }
 
     get originalX() {

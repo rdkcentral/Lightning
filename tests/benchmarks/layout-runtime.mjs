@@ -46,16 +46,16 @@ const app = new LayoutExample(options);
 let total = 0;
 let measurements = 0;
 
-// function test2() {
-//     app.tag("Main").w+=0.001;
-//     app.stage.ctx._update();
-// }
-//
-// const start = app.stage.platform.getHrTime();
-// for (let i = 0; i < 10000; i++) {
-//     test2();
-// }
-// app.tag("Main").w=200;
+function test2() {
+    app.tag("Main").w+=0.001;
+    app.stage.ctx._update();
+}
+
+const start = app.stage.platform.getHrTime();
+for (let i = 0; i < 1000; i++) {
+    test2();
+}
+app.tag("Main").w=200;
 
 // const end = app.stage.platform.getHrTime();
 // console.log((end-start)+'ms');

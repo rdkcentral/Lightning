@@ -77,6 +77,10 @@ export default class Target {
         return (this._layout && this._layout.isEnabled());
     }
 
+    isFlexLayoutRoot() {
+        return this._layout && this._layout.isEnabled() && this._layout.isLayoutRoot();
+    }
+
     triggerLayout() {
         this._setRecalc(256);
     }
@@ -99,11 +103,13 @@ export default class Target {
     }
 
     update() {
-        if (this.hasFlexLayout()) {
-            if (this._recalc & 256) {
+        if (this._recalc & 256) {
+            if (this.isFlexLayoutRoot()) {
                 this._layout.layoutFlexTree();
             }
-        } else if (this._optFlags) {
+        }
+
+        if (this._optFlags && !this.hasFlexLayout()) {
             if (this._optFlags & 1) {
                 const x = this._funcX(this._parent.w);
                 if (x !== this._x) {
@@ -474,6 +480,14 @@ export default class Target {
     toString() {
         const obj = this.toJson();
         return JSON.stringify(obj, null, 2);
+    }
+
+    getLocationString() {
+        let i;
+        i = this._parent ? this._parent._children.indexOf(this) : "R";
+        let str = this._parent ? this._parent.getLocationString(): "";
+        str += "[" + i + "]";
+        return str;
     }
 
 }

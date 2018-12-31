@@ -104,7 +104,7 @@ describe('relative', function() {
                             if (tests && tests.layouts) {
                                 const updatedTargets = layoutSpy.thisValues.map(flexLayout => flexLayout.item);
                                 const expectedTargets = tests.layouts.map(target => target._layout);
-                                chai.expect(updatedTargets).to.have.same.members(expectedTargets);
+                                flexTestUtils.checkUpdatedTargets(updatedTargets, expectedTargets);
                             }
                         }).finally(() => {
                             FlexLayout.prototype._layoutAxes.restore();
