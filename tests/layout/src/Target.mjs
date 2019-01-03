@@ -77,10 +77,6 @@ export default class Target {
         return (this._layout && this._layout.isEnabled());
     }
 
-    isFlexLayoutRoot() {
-        return this._layout && this._layout.isEnabled() && this._layout.isLayoutRoot();
-    }
-
     triggerLayout() {
         this._setRecalc(256);
     }

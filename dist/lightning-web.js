@@ -2236,10 +2236,6 @@ var lng = (function () {
             return this.flex ? this.flex._layout : null;
         }
 
-        isLayoutRoot() {
-            return this.flexParent === null;
-        }
-
         layoutFlexTree() {
             if (this.isFlexEnabled() && this.isChanged()) {
                 this.flexLayout.layoutTree();
