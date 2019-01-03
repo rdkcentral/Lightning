@@ -10,6 +10,12 @@ export default class FlexTarget {
     constructor(target) {
         this._target = target;
 
+        /**
+         * Possible values (only in case of container):
+         * bit 0: has changed or contains items with changes
+         * bit 1: width changed
+         * bit 2: height changed
+         */
         this._recalc = 0;
         
         this._enabled = false;
@@ -79,7 +85,7 @@ export default class FlexTarget {
                 this._checkEnabled();
                 if (parent) {
                     parent._clearFlexItemsCache();
-                    parent.mustUpdateInternal();
+                    parent.changedContents();
                 }
             }
         } else {
@@ -93,7 +99,7 @@ export default class FlexTarget {
                 const parent = this.flexParent;
                 if (parent) {
                     parent._clearFlexItemsCache();
-                    parent.mustUpdateInternal();
+                    parent.changedContents();
                 }
             }
         }
@@ -102,12 +108,12 @@ export default class FlexTarget {
     _enableFlex() {
         this._flex = new FlexContainer(this);
         this._checkEnabled();
-        this.mustUpdateExternal();
+        this.changedDimensions();
         this._enableChildrenAsFlexItems();
     }
 
     _disableFlex() {
-        this.mustUpdateExternal();
+        this.changedDimensions();
         this._flex = null;
         this._checkEnabled();
         this._disableChildrenAsFlexItems();
@@ -137,7 +143,7 @@ export default class FlexTarget {
         this._ensureFlexItem();
         const flexParent = this._target._parent._layout;
         this._flexItem.ctr = flexParent._flex;
-        flexParent.mustUpdateInternal();
+        flexParent.changedContents();
         this._checkEnabled();
     }
 
@@ -270,7 +276,7 @@ export default class FlexTarget {
 
     _changedChildren() {
         this._clearFlexItemsCache();
-        this.mustUpdateInternal();
+        this.changedContents();
     }
 
     _clearFlexItemsCache() {
@@ -295,52 +301,103 @@ export default class FlexTarget {
         }
     }
 
-    mustUpdateExternal() {
-        const parent = this.flexParent;
-        if (parent) {
-            parent._setRecalc();
-        }
-        this._setRecalc();
+    changedDimensions(changeWidth = true, changeHeight = true) {
+        this._updateRecalc(changeWidth, changeHeight);
     }
 
-    mustUpdateInternal() {
-        this._setRecalc();
+    changedContents() {
+        this._updateRecalc();
+    }
+
+    forceLayout() {
+        this._updateRecalc();
     }
 
     isChanged() {
         return this._recalc > 0;
     }
 
-    _setRecalc() {
+    _updateRecalc(changeExternalWidth = false, changeExternalHeight = false) {
         if (this.isFlexEnabled()) {
-            const prevRecalc = this._recalc;
-            this._recalc = 2;
+            const layout = this._flex._layout;
 
-            if (prevRecalc === 0) {
-                this._setRecalcAncestorsUntilRootFound();
+            // When something internal changes, it can have effect on the external dimensions.
+            changeExternalWidth = changeExternalWidth || layout.isAxisFitToContents(true);
+            changeExternalHeight = changeExternalHeight || layout.isAxisFitToContents(false);
+        }
+
+        const recalc = 1 + (changeExternalWidth ? 2 : 0) + (changeExternalHeight ? 4 : 0);
+        const newRecalcFlags = this.getNewRecalcFlags(recalc);
+        this._recalc |= recalc;
+        if (newRecalcFlags > 1) {
+            if (this.flexParent) {
+                this.flexParent._updateRecalcBottomUp(recalc);
+            } else {
+                this._target.triggerLayout();
             }
+        } else {
+            this._target.triggerLayout();
         }
     }
 
-    _setRecalcAncestorsUntilRootFound() {
-        let cur = this;
+    getNewRecalcFlags(flags) {
+        return (7 - this._recalc) & flags;
+    }
 
-        let newCur;
-        while(newCur = cur.flexParent) {
-            if (newCur._recalc) {
-                // Change already known.
-                return;
+    _updateRecalcBottomUp(childRecalc) {
+        const newRecalc = this._getRecalcFromChangedChildRecalc(childRecalc);
+        const newRecalcFlags = this.getNewRecalcFlags(newRecalc);
+        this._recalc |= newRecalc;
+        if (newRecalcFlags > 1) {
+            const flexParent = this.flexParent;
+            if (flexParent) {
+                flexParent._updateRecalcBottomUp(newRecalc);
+            } else {
+                this._target.triggerLayout();
             }
+        } else {
+            this._target.triggerLayout();
+        }
+    }
 
-            newCur._recalc = 1;
+    _getRecalcFromChangedChildRecalc(childRecalc) {
+        const layout = this._flex._layout;
 
-            cur = newCur;
+        const mainAxisRecalcFlag = layout._horizontal ? 1 : 2;
+        const crossAxisRecalcFlag = layout._horizontal ? 2 : 1;
 
-            // We do not have to re-layout the upper flex tree because the content changes won't affect it.
+        const crossAxisDimensionsChangedInChild = (childRecalc & crossAxisRecalcFlag);
+        if (!crossAxisDimensionsChangedInChild) {
+            const mainAxisDimensionsChangedInChild = (childRecalc & mainAxisRecalcFlag);
+            if (mainAxisDimensionsChangedInChild) {
+                const mainAxisIsWrapping = layout.isWrapping();
+                if (mainAxisIsWrapping) {
+                    const crossAxisIsFitToContents = layout.isCrossAxisFitToContents();
+                    if (crossAxisIsFitToContents) {
+                        // Special case: due to wrapping, the cross axis size may be changed.
+                        childRecalc += crossAxisRecalcFlag;
+                    }
+                }
+            }
         }
 
-        const flexLayoutRoot = cur;
-        flexLayoutRoot._target.triggerLayout();
+        let isWidthDynamic = layout.isAxisFitToContents(true);
+        let isHeightDynamic = layout.isAxisFitToContents(false);
+
+        if (layout.shrunk) {
+            // If during previous layout this container was 'shrunk', any changes may change the 'min axis size' of the
+            // contents, leading to a different axis size on this container even when it was not 'fit to contents'.
+            if (layout._horizontal) {
+                isWidthDynamic = true;
+            } else {
+                isHeightDynamic = true;
+            }
+        }
+
+        const localRecalc = 1 + (isWidthDynamic ? 2 : 0) + (isHeightDynamic ? 4 : 0);
+
+        const combinedRecalc = childRecalc & localRecalc;
+        return combinedRecalc;
     }
 
     clearRecalcFlag() {
@@ -370,7 +427,7 @@ export default class FlexTarget {
     set originalWidth(v) {
         if (this._originalWidth !== v) {
             this._originalWidth = v;
-            this.mustUpdateExternal();
+            this.changedDimensions(true, false);
         }
     }
 
@@ -381,7 +438,7 @@ export default class FlexTarget {
     set originalHeight(v) {
         if (this._originalHeight !== v) {
             this._originalHeight = v;
-            this.mustUpdateExternal();
+            this.changedDimensions(false, true);
         }
     }
 

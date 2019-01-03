@@ -25,12 +25,12 @@ export default class FlexContainer {
         return this._item;
     }
 
-    _mustUpdateExternal() {
-        this._item.mustUpdateExternal();
+    _changedDimensions() {
+        this._item.changedDimensions();
     }
 
-    _mustUpdateInternal() {
-        this._item.mustUpdateInternal();
+    _changedContents() {
+        this._item.changedContents();
     }
 
     get direction() {
@@ -43,12 +43,12 @@ export default class FlexContainer {
         this._horizontal = (f === 'row' || f === 'row-reverse');
         this._reverse = (f === 'row-reverse' || f === 'column-reverse');
 
-        this._mustUpdateInternal();
+        this._changedContents();
     }
 
     set wrap(v) {
         this._wrap = v;
-        this._mustUpdateInternal();
+        this._changedContents();
     }
 
     get wrap() {
@@ -66,7 +66,7 @@ export default class FlexContainer {
         }
         this._alignItems = v;
 
-        this._mustUpdateInternal();
+        this._changedContents();
     }
 
     get alignContent() {
@@ -80,7 +80,7 @@ export default class FlexContainer {
         }
         this._alignContent = v;
 
-        this._mustUpdateInternal();
+        this._changedContents();
     }
 
     get justifyContent() {
@@ -95,7 +95,7 @@ export default class FlexContainer {
         }
         this._justifyContent = v;
 
-        this._mustUpdateInternal();
+        this._changedContents();
     }
 
     set padding(v) {
@@ -111,7 +111,7 @@ export default class FlexContainer {
     
     set paddingLeft(v) {
         this._paddingLeft = v;
-        this._mustUpdateExternal();
+        this._changedDimensions();
     }
     
     get paddingLeft() {
@@ -120,7 +120,7 @@ export default class FlexContainer {
 
     set paddingTop(v) {
         this._paddingTop = v;
-        this._mustUpdateExternal();
+        this._changedDimensions();
     }
 
     get paddingTop() {
@@ -129,7 +129,7 @@ export default class FlexContainer {
 
     set paddingRight(v) {
         this._paddingRight = v;
-        this._mustUpdateExternal();
+        this._changedDimensions();
     }
 
     get paddingRight() {
@@ -138,7 +138,7 @@ export default class FlexContainer {
 
     set paddingBottom(v) {
         this._paddingBottom = v;
-        this._mustUpdateExternal();
+        this._changedDimensions();
     }
 
     get paddingBottom() {

@@ -104,9 +104,7 @@ export default class Target {
 
     update() {
         if (this._recalc & 256) {
-            if (this.isFlexLayoutRoot()) {
-                this._layout.layoutFlexTree();
-            }
+            this._layout.layoutFlexTree();
         }
 
         if (this._optFlags && !this.hasFlexLayout()) {
@@ -200,7 +198,7 @@ export default class Target {
             this._funcX = v;
             if (this.hasFlexLayout()) {
                 this._layout.setOriginalXWithoutUpdatingLayout(0);
-                this.layout.mustUpdateExternal();
+                this._layout.forceLayout();
             } else {
                 this._x = 0;
                 this._triggerRecalcTranslate();
@@ -261,7 +259,7 @@ export default class Target {
             this._funcY = v;
             if (this.hasFlexLayout()) {
                 this._layout.setOriginalYWithoutUpdatingLayout(0);
-                this.layout.mustUpdateExternal();
+                this._layout.forceLayout();
             } else {
                 this._y = 0;
                 this._triggerRecalcTranslate();
@@ -324,7 +322,7 @@ export default class Target {
             this._funcW = v;
             if (this.hasFlexLayout()) {
                 this._layout._originalWidth = 0;
-                this.layout.mustUpdateExternal();
+                this.layout.changedDimensions(true, false);
             } else {
                 this._w = 0;
                 this._triggerRecalcTranslate();
@@ -347,7 +345,7 @@ export default class Target {
             this._funcH = v;
             if (this.hasFlexLayout()) {
                 this._layout._originalHeight = 0;
-                this.layout.mustUpdateExternal();
+                this.layout.changedDimensions(false, true);
             } else {
                 this._h = 0;
                 this._triggerRecalcTranslate();

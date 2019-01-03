@@ -85,7 +85,7 @@ export default class FlexItem {
 
     set minWidth(v) {
         this._minWidth = Math.max(0, v);
-        this._item.mustUpdateExternal();
+        this._item.changedDimensions(true, false);
     }
 
     get minHeight() {
@@ -94,7 +94,7 @@ export default class FlexItem {
 
     set minHeight(v) {
         this._minHeight = Math.max(0, v);
-        this._item.mustUpdateExternal();
+        this._item.changedDimensions(false, true);
     }
 
     get maxWidth() {
@@ -103,7 +103,7 @@ export default class FlexItem {
 
     set maxWidth(v) {
         this._maxWidth = Math.max(0, v);
-        this._item.mustUpdateExternal();
+        this._item.changedDimensions(true, false);
     }
 
     get maxHeight() {
@@ -112,7 +112,7 @@ export default class FlexItem {
 
     set maxHeight(v) {
         this._maxHeight = Math.max(0, v);
-        this._item.mustUpdateExternal();
+        this._item.changedDimensions(false, true);
     }
 
     /**
@@ -167,7 +167,7 @@ export default class FlexItem {
     }
     
     _changed() {
-        if (this.ctr) this.ctr._mustUpdateInternal();
+        if (this.ctr) this.ctr._changedContents();
     }
 
     set ctr(v) {

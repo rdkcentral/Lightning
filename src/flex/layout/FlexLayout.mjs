@@ -16,6 +16,11 @@ export default class FlexLayout {
         this._resizingMainAxis = false;
         this._resizingCrossAxis = false;
 
+        this._shrunk = false;
+    }
+
+    get shrunk() {
+        return this._shrunk;
     }
 
     layoutTree() {
@@ -52,6 +57,7 @@ export default class FlexLayout {
         }
         this._resizingMainAxis = false;
         this._resizingCrossAxis = false;
+        this._shrunk = false;
     }
 
     _layoutAxes() {
@@ -148,6 +154,9 @@ export default class FlexLayout {
 
     resizeMainAxis(size) {
         if (this.mainAxisSize !== size) {
+            const isShrinking = (size < this.mainAxisSize);
+            this._shrunk = isShrinking;
+
             this.mainAxisSize = size;
 
             this._resizingMainAxis = true;

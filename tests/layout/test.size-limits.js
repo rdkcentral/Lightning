@@ -85,24 +85,30 @@ describe('layout', () => {
             ]
         });
 
-        describe('updates', () => {
+        describe('updates', function() {
+            this.timeout(0);
+
             let root;
 
             const getRoot = () => root;
             const addUpdateTest = (name, setup, show = false) => {
-                flexTestUtils.addUpdateTest(getRoot, name, setup, show);
+                flexTestUtils.addAnnotatedUpdateTest(getRoot, name, setup, show);
             };
 
             describe('changing minWidth in shrink situation', () => {
                 before(() => {
                     const structure = {
-                        children: [
+                        r: [0, 0, 200, 200], flex: {}, w: 200, h: 200, children: [
                             {
-                                w: 200, h: 200, children: [
+                                r: [0, 0, 400, 200], w: 600, h: 200, flex: {}, children: [
                                     {
-                                        flex: {}, w: 500, h: 200, children: [
+                                        r: [0, 0, 400, 200], flex: {}, w: 500, h: 200, children: [
                                             {
-                                                flex: {}, w: 100, flexItem: {shrink: 1, minWidth: 400}
+                                                r: [0, 0, 400, 200], flex: {}, w: 500, h: 200, children: [
+                                                    {
+                                                        r: [0, 0, 400, 200], flex: {}, w: 100, flexItem: {minWidth: 400}
+                                                    }
+                                                ]
                                             }
                                         ]
                                     }
@@ -116,13 +122,17 @@ describe('layout', () => {
 
                 describe('initial', () => {
                     it ('layouts', () => {
-                        return flexTestUtils.validateLayout(root);
+                        return flexTestUtils.validateAnnotatedFlex(root);
                     });
                 });
 
                 addUpdateTest('change minSize', () => {
-                    root.children[0].children[0].children[0].flexItem.minWidth = 300;
-                });
+                    root.children[0].children[0].children[0].children[0].flexItem.minWidth = 300;
+                    root.children[0].children[0].children[0].children[0].r = [0, 0, 300, 200];
+                    root.children[0].children[0].children[0].r = [0, 0, 300, 200];
+                    root.children[0].children[0].r = [0, 0, 300, 200];
+                    root.children[0].r = [0, 0, 300, 200];
+                },true);
 
             });
         });

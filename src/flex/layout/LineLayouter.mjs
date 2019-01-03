@@ -7,6 +7,9 @@ export default class LineLayouter {
 
     constructor(layout) {
         this._layout = layout;
+        this._mainAxisMinSize = -1;
+        this._crossAxisMinSize = -1;
+        this._mainAxisContentSize = 0;
     }
 
     get lines() {

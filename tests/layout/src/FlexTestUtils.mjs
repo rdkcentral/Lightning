@@ -133,6 +133,28 @@ export default class FlexTestUtils {
             });
         });
     }
+
+    addAnnotatedUpdateTest(getRoot, name, setup, show = false) {
+        describe(name, () => {
+            it('layouts', () => {
+                const root = getRoot();
+                const tests = setup(root);
+
+               const layoutSpy = sinon.spy(FlexLayout.prototype, '_layoutAxes');
+
+                root.update();
+                return this.validateAnnotatedFlex(root, {resultVisible: show}).then(() => {
+                    if (tests && tests.layouts) {
+                       const updatedTargets = layoutSpy.thisValues.map(flexLayout => flexLayout.item);
+                       const expectedTargets = tests.layouts.map(target => target._layout);
+                       this.checkUpdatedTargets(updatedTargets, expectedTargets);
+                    }
+                }).finally(() => {
+                   FlexLayout.prototype._layoutAxes.restore();
+                });
+            });
+        });
+    }
 }
 
 class AnnotatedStructureMismatchCollector {
