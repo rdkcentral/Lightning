@@ -6,9 +6,10 @@ export default class FlexUtils {
         if (!parent) {
             return 0;
         } else {
-            if (parent.hasFlexLayout()) {
+            const flexParent = item.flexParent;
+            if (flexParent) {
                 // Use pending layout size.
-                return this.getAxisLayoutSize(parent.layout, horizontal) + this.getTotalPadding(parent.layout, horizontal);
+                return this.getAxisLayoutSize(flexParent, horizontal) + this.getTotalPadding(flexParent, horizontal);
             } else {
                 // Use 'absolute' size.
                 return horizontal ? parent.w : parent.h;
@@ -19,17 +20,34 @@ export default class FlexUtils {
     static getRelAxisSize(item, horizontal) {
         if (horizontal) {
             if (item.funcW) {
-                return item.funcW(this.getParentAxisSizeWithPadding(item, true));
+                if (this._allowRelAxisSizeFunction(item, true)) {
+                    return item.funcW(this.getParentAxisSizeWithPadding(item, true));
+                } else {
+                    return 0;
+                }
             } else {
                 return item.originalWidth;
             }
         } else {
             if (item.funcH) {
-                return item.funcH(this.getParentAxisSizeWithPadding(item, false));
+                if (this._allowRelAxisSizeFunction(item, false)) {
+                    return item.funcH(this.getParentAxisSizeWithPadding(item, false));
+                } else {
+                    return 0;
+                }
             } else {
                 return item.originalHeight;
             }
         }
+    }
+
+    static _allowRelAxisSizeFunction(item, horizontal) {
+        const flexParent = item.flexParent;
+        if (flexParent && flexParent._flex._layout.isAxisFitToContents(horizontal)) {
+            // We don't allow relative width on fit-to-contents because it leads to conflicts.
+            return false;
+        }
+        return true;
     }
 
     static isZeroAxisSize(item, horizontal) {

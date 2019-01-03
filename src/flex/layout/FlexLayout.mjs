@@ -102,6 +102,14 @@ export default class FlexLayout {
         return this._flexContainer.wrap;
     }
 
+    isAxisFitToContents(horizontal) {
+        if (this._horizontal === horizontal) {
+            return this.isMainAxisFitToContents();
+        } else {
+            return this.isCrossAxisFitToContents();
+        }
+    }
+
     isMainAxisFitToContents() {
         return !this.isWrapping() && !this._hasFixedMainAxisBasis();
     }
@@ -138,11 +146,9 @@ export default class FlexLayout {
         if (this.mainAxisSize !== size) {
             this.mainAxisSize = size;
 
-            if (!this._deferLayout) {
-                this._resizingMainAxis = true;
-                this._layoutAxes();
-                this._resizingMainAxis = false;
-            }
+            this._resizingMainAxis = true;
+            this._layoutAxes();
+            this._resizingMainAxis = false;
         }
     }
 
@@ -150,11 +156,9 @@ export default class FlexLayout {
         if (this.crossAxisSize !== size) {
             this.crossAxisSize = size;
 
-            if (!this._deferLayout) {
-                this._resizingCrossAxis = true;
-                this._layoutCrossAxis();
-                this._resizingCrossAxis = false;
-            }
+            this._resizingCrossAxis = true;
+            this._layoutCrossAxis();
+            this._resizingCrossAxis = false;
         }
     }
 

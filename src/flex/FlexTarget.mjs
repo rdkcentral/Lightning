@@ -45,26 +45,6 @@ export default class FlexTarget {
         }
     }
 
-    resetLayoutSize() {
-        let w = FlexUtils.getRelAxisSize(this, true);
-        let h = FlexUtils.getRelAxisSize(this, false);
-        const flexItem = this._flexItem;
-        if (flexItem._minWidth) {
-            w = Math.max(flexItem._minWidth, w);
-        }
-        if (flexItem._maxWidth) {
-            w = Math.min(flexItem._maxWidth, w);
-        }
-        if (flexItem._minHeight) {
-            h = Math.max(flexItem._minHeight, h);
-        }
-        if (flexItem._maxHeight) {
-            h = Math.min(flexItem._maxHeight, h);
-        }
-        this.w = w;
-        this.h = h;
-    }
-
     get target() {
         return this._target;
     }

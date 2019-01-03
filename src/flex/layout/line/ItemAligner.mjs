@@ -1,5 +1,3 @@
-import FlexUtils from "../../FlexUtils.mjs";
-
 export default class ItemAligner {
 
     constructor(line) {
@@ -8,10 +6,15 @@ export default class ItemAligner {
         this._crossAxisLayoutOffset = 0;
         this._alignItemsSetting = null;
         this._recursiveResizeOccured = false;
+        this._isCrossAxisFitToContents = false;
+    }
+
+    get _layout() {
+        return this._line._layout;
     }
 
     get _flexContainer() {
-        return this._line._layout._flexContainer;
+        return this._layout._flexContainer;
     }
 
     setCrossAxisLayoutSize(size) {
@@ -25,6 +28,8 @@ export default class ItemAligner {
     align() {
         this._alignItemsSetting = this._flexContainer.alignItems;
 
+        this._isCrossAxisFitToContents = this._layout.isAxisFitToContents(!this._flexContainer._horizontal);
+
         this._recursiveResizeOccured = false;
         const items = this._line.items;
         for (let i = this._line.startIndex; i <= this._line.endIndex; i++) {
@@ -37,20 +42,21 @@ export default class ItemAligner {
         return this._recursiveResizeOccured;
     }
 
-    _preventStretch(item) {
-        const hasFixedCrossAxisSize = item.flexItem._hasFixedCrossAxisSize();
-        const forceStretch = (item.flexItem.alignSelf === "stretch");
-        return hasFixedCrossAxisSize && !forceStretch;
-    }
-
     _alignItem(item) {
-        let align = item.flexItem.alignSelf || this._alignItemsSetting;
+        const flexItem = item.flexItem;
+        let align = flexItem.alignSelf || this._alignItemsSetting;
 
-        if (align === "stretch" && this._preventStretch(item)) {
+        if (align === "stretch" && this._preventStretch(flexItem)) {
             align = "flex-start";
         }
 
-        const flexItem = item.flexItem;
+        if (align !== "stretch" && !this._isCrossAxisFitToContents) {
+            if (flexItem._hasRelCrossAxisSize()) {
+                // As cross axis size might have changed, we need to recalc the relative flex item's size.
+                flexItem._resetCrossAxisLayoutSize();
+            }
+        }
+
         switch(align) {
             case "flex-start":
                 this._alignItemFlexStart(flexItem);
@@ -114,4 +120,11 @@ export default class ItemAligner {
             this._recursiveResizeOccured = true;
         }
     }
+
+    _preventStretch(flexItem) {
+        const hasFixedCrossAxisSize = flexItem._hasFixedCrossAxisSize();
+        const forceStretch = (flexItem.alignSelf === "stretch");
+        return hasFixedCrossAxisSize && !forceStretch;
+    }
+
 }

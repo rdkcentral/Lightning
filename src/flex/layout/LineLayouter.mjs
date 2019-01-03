@@ -68,7 +68,7 @@ export default class LineLayouter {
         if (item.isFlexEnabled()) {
             item.flexLayout.updateTreeLayout();
         } else {
-            item.resetLayoutSize();
+            item.flexItem._resetLayoutSize();
         }
     }
 

@@ -38,11 +38,94 @@ describe('relative', function() {
         });
 
         flexTestUtils.addMochaTestForAnnotatedStructure('fit-to-contents containing funcW, funcH (expect 0)', {
+            w: 100,
+            h: 100,
             flex: {},
-            r: [0, 0, 0, 0],
+            r: [0, 0, 100, 100],
             children: [
-                {w: (w=>0.3*w), h: (h=>0.2*h), r: [0, 0, 0, 0]},
-                {w: (w=>0.2*w), h: (h=>0.1*h), r: [0, 0, 0, 0]}
+                {
+                    flex: {}, flexItem: {grow: 1},
+                    r: [0, 0, 100, 100],
+                    children: [
+                        {w: (w=>0.3*w), h: (h=>0.2*h), r: [0, 0, 0, 0]},
+                        {w: (w=>0.2*w), h: (h=>0.1*h), r: [0, 0, 0, 0]}
+                    ]
+                }
+            ]
+        });
+
+        /*
+        Relative size problems:
+        - when we use a relative function for one flex item on the cross axis
+        - and then have our container 'grow' in the cross axis direction
+        - we must not include the flex item's dynamic size in the cross axis layout calcs
+        - we must update the flex item's axis size based on the new cross axis size
+         */
+        flexTestUtils.addMochaTestForAnnotatedStructure('dynamic main axis situation', {
+            w: 100,
+            h: 300,
+            flex: {direction: 'column'},
+            r: [0, 0, 100, 300],
+            children: [
+                {
+                    flex: {}, w: 100, h: 200, flexItem: {grow: 1},
+                    r: [0, 0, 100, 300],
+                    children: [
+                        {w: 50, h: 100, r: [0, 0, 50, 300], flexItem: {alignSelf: 'stretch'}},
+                        {w: 50, h: (h => h * 2), r: [50, 0, 50, 600]}
+                    ]
+                }
+            ]
+        });
+
+        flexTestUtils.addMochaTestForAnnotatedStructure('dynamic main axis situation', {
+            w: 100,
+            h: 300,
+            flex: {direction: 'column'},
+            r: [0, 0, 100, 300],
+            children: [
+                {
+                    flex: {direction: 'column'}, w: 100, h: 200, flexItem: {grow: 1},
+                    r: [0, 0, 100, 300],
+                    children: [
+                        {w: 100, h: 100, r: [0, 0, 100, 100]},
+                        {w: 100, h: (h => h * 1.5), r: [0, 100, 100, 450]}
+                    ]
+                }
+            ]
+        });
+
+        flexTestUtils.addMochaTestForAnnotatedStructure('dynamic main axis situation - with grow', {
+            w: 100,
+            h: 300,
+            flex: {direction: 'column'},
+            r: [0, 0, 100, 300],
+            children: [
+                {
+                    flex: {direction: 'column'}, w: 100, h: 200, flexItem: {grow: 1},
+                    r: [0, 0, 100, 300],
+                    children: [
+                        {w: 100, h: 100, r: [0, 0, 100, 100]},
+                        {w: 100, h: (h => h * 0.1), r: [0, 100, 100, 200], flexItem: {grow: 1}}
+                    ]
+                }
+            ]
+        });
+
+        flexTestUtils.addMochaTestForAnnotatedStructure('dynamic main axis situation - with ignored grow', {
+            w: 100,
+            h: 300,
+            flex: {direction: 'column'},
+            r: [0, 0, 100, 300],
+            children: [
+                {
+                    flex: {direction: 'column'}, w: 100, h: 200, flexItem: {grow: 1},
+                    r: [0, 0, 100, 300],
+                    children: [
+                        {w: 100, h: 100, r: [0, 0, 100, 100]},
+                        {w: 100, h: (h => h * 1.5), r: [0, 100, 100, 450], flexItem: {grow: 1}}
+                    ]
+                }
             ]
         });
 

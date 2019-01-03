@@ -85,7 +85,7 @@ export default class FlexItem {
 
     set minWidth(v) {
         this._minWidth = Math.max(0, v);
-        this._changed();
+        this._item.mustUpdateExternal();
     }
 
     get minHeight() {
@@ -94,7 +94,7 @@ export default class FlexItem {
 
     set minHeight(v) {
         this._minHeight = Math.max(0, v);
-        this._changed();
+        this._item.mustUpdateExternal();
     }
 
     get maxWidth() {
@@ -103,7 +103,7 @@ export default class FlexItem {
 
     set maxWidth(v) {
         this._maxWidth = Math.max(0, v);
-        this._changed();
+        this._item.mustUpdateExternal();
     }
 
     get maxHeight() {
@@ -112,7 +112,7 @@ export default class FlexItem {
 
     set maxHeight(v) {
         this._maxHeight = Math.max(0, v);
-        this._changed();
+        this._item.mustUpdateExternal();
     }
 
     /**
@@ -180,6 +180,41 @@ export default class FlexItem {
 
     patch(settings) {
         Base.patchObject(this, settings);
+    }
+
+    _resetLayoutSize() {
+        this._resetHorizontalAxisLayoutSize();
+        this._resetVerticalAxisLayoutSize();
+    }
+
+    _resetCrossAxisLayoutSize() {
+        if (this.ctr._horizontal) {
+            this._resetVerticalAxisLayoutSize();
+        } else {
+            this._resetHorizontalAxisLayoutSize();
+        }
+    }
+
+    _resetHorizontalAxisLayoutSize() {
+        let w = FlexUtils.getRelAxisSize(this.item, true);
+        if (this._minWidth) {
+            w = Math.max(this._minWidth, w);
+        }
+        if (this._maxWidth) {
+            w = Math.min(this._maxWidth, w);
+        }
+        FlexUtils.setAxisLayoutSize(this.item, true, w);
+    }
+
+    _resetVerticalAxisLayoutSize() {
+        let h = FlexUtils.getRelAxisSize(this.item, false);
+        if (this._minHeight) {
+            h = Math.max(this._minHeight, h);
+        }
+        if (this._maxHeight) {
+            h = Math.min(this._maxHeight, h);
+        }
+        FlexUtils.setAxisLayoutSize(this.item, false, h);
     }
 
     _getCrossAxisMinSizeSetting() {
@@ -288,6 +323,10 @@ export default class FlexItem {
 
     _hasFixedCrossAxisSize() {
         return !FlexUtils.isZeroAxisSize(this.item, !this.ctr._horizontal);
+    }
+
+    _hasRelCrossAxisSize() {
+        return !!(this.ctr._horizontal ? this.item.funcH : this.item.funcW);
     }
 
 }
