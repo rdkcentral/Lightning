@@ -1,5 +1,6 @@
 import Target from "./Target.mjs";
 import FlexHtmlComparer from "./flexToHtml/Comparer.mjs";
+import FlexLayout from "../../../src/flex/layout/FlexLayout.mjs";
 
 export default class FlexTestUtils {
 
@@ -109,6 +110,28 @@ export default class FlexTestUtils {
 
         const sameLength = expectedTargets.length === updatedTargets.length;
         chai.assert(sameLength, "the number of target updates mismatches: " + updatedTargets.length + " while we expected " + expectedTargets.length);
+    }
+
+    addUpdateTest(getRoot, name, setup, show = false) {
+        describe(name, () => {
+            it('layouts', () => {
+                const root = getRoot();
+                const tests = setup(root);
+
+                const layoutSpy = sinon.spy(FlexLayout.prototype, '_layoutAxes');
+
+                root.update();
+                return this.validateLayout(root, {resultVisible: show}).then(() => {
+                    if (tests && tests.layouts) {
+                        const updatedTargets = layoutSpy.thisValues.map(flexLayout => flexLayout.item);
+                        const expectedTargets = tests.layouts.map(target => target._layout);
+                        this.checkUpdatedTargets(updatedTargets, expectedTargets);
+                    }
+                }).finally(() => {
+                    FlexLayout.prototype._layoutAxes.restore();
+                });
+            });
+        });
     }
 }
 

@@ -9,27 +9,11 @@ describe('layout', () => {
         this.timeout(0);
 
         let root;
+
+        const getRoot = () => root;
         const addUpdateTest = (name, setup, show = false) => {
-            describe(name, () => {
-                it('layouts', () => {
-                    const tests = setup(root);
-
-                    const layoutSpy = sinon.spy(FlexLayout.prototype, '_layoutAxes');
-
-                    root.update();
-                    return flexTestUtils.validateLayout(root, {resultVisible: show}).then(() => {
-                        if (tests && tests.layouts) {
-                            const updatedTargets = layoutSpy.thisValues.map(flexLayout => flexLayout.item);
-                            const expectedTargets = tests.layouts.map(target => target._layout);
-                            flexTestUtils.checkUpdatedTargets(updatedTargets, expectedTargets);
-                        }
-                    }).finally(() => {
-                        FlexLayout.prototype._layoutAxes.restore();
-                    });
-                });
-            });
+            flexTestUtils.addUpdateTest(getRoot, name, setup, show);
         };
-
 
         describe('deferred/smart updates', () => {
             let subject, sibling;
@@ -233,7 +217,6 @@ describe('layout', () => {
                 target.visible = true;
             });
         });
-
 
     });
 });

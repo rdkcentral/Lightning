@@ -85,6 +85,48 @@ describe('layout', () => {
             ]
         });
 
+        describe('updates', () => {
+            let root;
+
+            const getRoot = () => root;
+            const addUpdateTest = (name, setup, show = false) => {
+                flexTestUtils.addUpdateTest(getRoot, name, setup, show);
+            };
+
+            describe('changing minWidth in shrink situation', () => {
+                before(() => {
+                    const structure = {
+                        children: [
+                            {
+                                w: 200, h: 200, children: [
+                                    {
+                                        flex: {}, w: 500, h: 200, children: [
+                                            {
+                                                flex: {}, w: 100, flexItem: {shrink: 1, minWidth: 400}
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    };
+                    root = flexTestUtils.buildFlexFromStructure(structure);
+                    root.update();
+                });
+
+                describe('initial', () => {
+                    it ('layouts', () => {
+                        return flexTestUtils.validateLayout(root);
+                    });
+                });
+
+                addUpdateTest('change minSize', () => {
+                    root.children[0].children[0].children[0].flexItem.minWidth = 300;
+                });
+
+            });
+        });
+
     });
 
 });

@@ -52,7 +52,7 @@ function test2() {
 }
 
 const start = app.stage.platform.getHrTime();
-for (let i = 0; i < 1000; i++) {
+for (let i = 0; i < 10000; i++) {
     test2();
 }
 app.tag("Main").w=200;

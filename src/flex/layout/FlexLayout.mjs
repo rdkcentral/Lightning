@@ -44,8 +44,12 @@ export default class FlexLayout {
     }
 
     _setInitialAxisSizes() {
-        this.mainAxisSize = this._getMainAxisBasis();
-        this.crossAxisSize = this._getCrossAxisBasis();
+        if (this.item.isFlexItemEnabled()) {
+            this.item.flexItem._resetLayoutSize();
+        } else {
+            this.mainAxisSize = this._getMainAxisBasis();
+            this.crossAxisSize = this._getCrossAxisBasis();
+        }
         this._resizingMainAxis = false;
         this._resizingCrossAxis = false;
     }

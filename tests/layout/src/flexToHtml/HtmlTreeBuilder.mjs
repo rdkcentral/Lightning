@@ -91,11 +91,11 @@ export default class HtmlTreeBuilder {
         div.style.flexShrink = flexItem.shrink;
         div.style.alignSelf = flexItem.alignSelf;
 
-        if (flexItem.minWidth && flexItem.flexParent) {
+        if (flexItem.minWidth && flexItem.item.flexParent) {
             div.style.minWidth = flexItem.minWidth;
         }
 
-        if (flexItem.minHeight && flexItem.flexParent) {
+        if (flexItem.minHeight && flexItem.item.flexParent) {
             div.style.minHeight = flexItem.minHeight;
         }
     }
