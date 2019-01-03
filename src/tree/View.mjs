@@ -1378,9 +1378,7 @@ export default class View {
             this._w = 0;
             this.__core.funcW = v;
         } else {
-            if (v < 0) {
-                throw new Error("Negative width is not supported");
-            }
+            v = Math.max(v, 0);
             if (this._w !== v) {
                 this.__core.disableFuncW();
                 this._w = v;
@@ -1398,9 +1396,7 @@ export default class View {
             this._h = 0;
             this.__core.funcH = v;
         } else {
-            if (v < 0) {
-                throw new Error("Negative height is not supported");
-            }
+            v = Math.max(v, 0);
             if (this._h !== v) {
                 this.__core.disableFuncH();
                 this._h = v;
