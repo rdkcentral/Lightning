@@ -88,10 +88,13 @@ export default class FlexTestUtils {
         })
     }
 
-    validateAnnotatedFlex(root) {
+    validateAnnotatedFlex(root, options) {
         return new Promise((resolve, reject) => {
             const collector = new AnnotatedStructureMismatchCollector(root);
             const mismatches = collector.getMismatches();
+            if (options && options.showHtml) {
+                this._addVisibleTestResult(root);
+            }
             if (mismatches.length) {
                 reject(new Error("Mismatches:\n" + mismatches.join("\n") + "\n\n" + root.toString()));
             } else {
@@ -118,7 +121,10 @@ export default class FlexTestUtils {
                 const root = getRoot();
                 const tests = setup(root);
 
-                const layoutSpy = sinon.spy(FlexLayout.prototype, '_layoutAxes');
+                let layoutSpy;
+                if (tests && tests.layouts) {
+                    layoutSpy = sinon.spy(FlexLayout.prototype, '_layoutMainAxis');
+                }
 
                 root.update();
                 return this.validateLayout(root, {resultVisible: show}).then(() => {
@@ -128,7 +134,9 @@ export default class FlexTestUtils {
                         this.checkUpdatedTargets(updatedTargets, expectedTargets);
                     }
                 }).finally(() => {
-                    FlexLayout.prototype._layoutAxes.restore();
+                    if (tests && tests.layouts) {
+                        FlexLayout.prototype._layoutMainAxis.restore();
+                    }
                 });
             });
         });
@@ -140,7 +148,10 @@ export default class FlexTestUtils {
                 const root = getRoot();
                 const tests = setup(root);
 
-               const layoutSpy = sinon.spy(FlexLayout.prototype, '_layoutAxes');
+                let layoutSpy;
+                if (tests && tests.layouts) {
+                    layoutSpy = sinon.spy(FlexLayout.prototype, '_layoutMainAxis');
+                }
 
                 root.update();
                 return this.validateAnnotatedFlex(root, {resultVisible: show}).then(() => {
@@ -150,7 +161,9 @@ export default class FlexTestUtils {
                        this.checkUpdatedTargets(updatedTargets, expectedTargets);
                     }
                 }).finally(() => {
-                   FlexLayout.prototype._layoutAxes.restore();
+                    if (tests && tests.layouts) {
+                        FlexLayout.prototype._layoutMainAxis.restore();
+                    }
                 });
             });
         });

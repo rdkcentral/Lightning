@@ -47,13 +47,13 @@ export default class SizeGrower {
                             this._grownSize += grow;
                             this._amountRemaining -= grow;
 
-                            if (this._amountRemaining === 0) {
+                            if (Math.abs(this._amountRemaining) < 10e-6) {
                                 return;
                             }
                         }
                     }
                 }
-            } while(totalGrowAmount && (this._amountRemaining > 0));
+            } while(totalGrowAmount && (Math.abs(this._amountRemaining) > 10e-6));
         }
     }
 

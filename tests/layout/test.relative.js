@@ -211,7 +211,7 @@ describe('relative', function() {
                 leaf.r = [0, 0, 32, 8];
                 abs.r = [0, 0, 80, 4];
                 sibling.r[0] = 200;
-                return {layouts: [leaf, level2, level1, root]};
+                return {layouts: [leaf, sibling, level2, level1, root]};
             });
 
             addUpdateTest('update root w,h', () => {

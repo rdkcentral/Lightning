@@ -396,8 +396,16 @@ export default class FlexTarget {
         return combinedRecalc;
     }
 
+    get recalc() {
+        return this._recalc;
+    }
+
     clearRecalcFlag() {
         this._recalc = 0;
+    }
+
+    enableLocalRecalcFlag() {
+        this._recalc = 1;
     }
 
     get originalX() {

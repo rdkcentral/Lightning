@@ -44,12 +44,34 @@ export default class ItemCoordinatesUpdater {
         const items = this._layout.items;
         for (let i = 0, n = items.length; i < n; i++) {
             const item = items[i];
+            const validCache = this._validateItemCache(item);
+
+            // Notice that we must also finalize a cached items, as it's coordinates may have changed.
             this._finalizeItem(item);
-            const flexLayout = item.flexLayout;
-            if (flexLayout) {
+
+            if (!validCache) {
                 this._finalizeItemChildren(item);
             }
         }
+    }
+
+    _validateItemCache(item) {
+        if (item.recalc === 0) {
+            if (item.isFlexEnabled()) {
+                const layout = item._flex._layout;
+
+                const dimensionsMatchPreviousResult = (item.w === item.target.w && item.h === item.target.h);
+                if (dimensionsMatchPreviousResult) {
+                    // Cache is valid.
+                    return true;
+                } else {
+                    const crossAxisSize = layout.crossAxisSize;
+                    layout.performResizeMainAxis(layout.mainAxisSize);
+                    layout.performResizeCrossAxis(crossAxisSize);
+                }
+            }
+        }
+        return false;
     }
 
     _finalizeItemAndChildren(item) {
@@ -87,7 +109,7 @@ export default class ItemCoordinatesUpdater {
     }
 
     _finalizeItemChildren(item) {
-        const flex = item.flex;
+        const flex = item._flex;
         if (flex) {
             const updater = new ItemCoordinatesUpdater(flex._layout);
             updater._finalizeItems();

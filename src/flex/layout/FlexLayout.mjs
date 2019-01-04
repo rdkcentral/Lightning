@@ -16,6 +16,9 @@ export default class FlexLayout {
         this._resizingMainAxis = false;
         this._resizingCrossAxis = false;
 
+        this._cachedMainAxisSizeAfterLayout = 0;
+        this._cachedCrossAxisSizeAfterLayout = 0;
+
         this._shrunk = false;
     }
 
@@ -23,11 +26,15 @@ export default class FlexLayout {
         return this._shrunk;
     }
 
+    get recalc() {
+        return this.item.recalc;
+    }
+
     layoutTree() {
         const isSubTree = (this.item.flexParent !== null);
         if (isSubTree) {
             // Use the dimensions set by the parent flex tree.
-            this._updateTreeLayoutWithCurrentAxes();
+            this._updateSubTreeLayout();
         } else {
             this.updateTreeLayout();
         }
@@ -35,8 +42,34 @@ export default class FlexLayout {
     }
 
     updateTreeLayout() {
+        if (this.recalc) {
+            this._performUpdateLayoutTree();
+        } else {
+            this._performUpdateLayoutTreeFromCache();
+        }
+    }
+
+    _performUpdateLayoutTree() {
         this._setInitialAxisSizes();
         this._layoutAxes();
+        this._refreshLayoutCache();
+    }
+
+    _refreshLayoutCache() {
+        this._cachedMainAxisSizeAfterLayout = this.mainAxisSize;
+        this._cachedCrossAxisSizeAfterLayout = this.crossAxisSize;
+    }
+
+    _performUpdateLayoutTreeFromCache() {
+        const sizeMightHaveChanged = (this.item.funcW || this.item.funcH);
+        if (sizeMightHaveChanged) {
+            // Update after all.
+            this.item.enableLocalRecalcFlag();
+            this._performUpdateLayoutTree();
+        } else {
+            this.mainAxisSize = this._cachedMainAxisSizeAfterLayout;
+            this.crossAxisSize = this._cachedCrossAxisSizeAfterLayout;
+        }
     }
 
     updateItemCoords() {
@@ -44,8 +77,12 @@ export default class FlexLayout {
         updater.finalize();
     }
 
-    _updateTreeLayoutWithCurrentAxes() {
-        this._layoutAxes();
+    _updateSubTreeLayout() {
+        // The dimensions of this container are guaranteed not to have changed.
+        // That's why we can safely 'reuse' those and re-layout the contents.
+        const crossAxisSize = this.crossAxisSize;
+        this._layoutMainAxis();
+        this.performResizeCrossAxis(crossAxisSize);
     }
 
     _setInitialAxisSizes() {
@@ -154,25 +191,70 @@ export default class FlexLayout {
 
     resizeMainAxis(size) {
         if (this.mainAxisSize !== size) {
-            const isShrinking = (size < this.mainAxisSize);
-            this._shrunk = isShrinking;
-
-            this.mainAxisSize = size;
-
-            this._resizingMainAxis = true;
-            this._layoutAxes();
-            this._resizingMainAxis = false;
+            if (this.recalc > 0) {
+                this.performResizeMainAxis(size);
+            } else {
+                if (this._checkValidCacheMainAxisResize()) {
+                    this.mainAxisSize = size;
+                    this._fitCrossAxisSizeToContents();
+                } else {
+                    // Cache miss.
+                    this.item.enableLocalRecalcFlag();
+                    this.performResizeMainAxis(size);
+                }
+            }
         }
+    }
+
+    _checkValidCacheMainAxisResize(size) {
+        const isFinalMainAxisSize = (size === this.targetMainAxisSize);
+        if (isFinalMainAxisSize) {
+            return true;
+        }
+        const canIgnoreCacheMiss = !this.isCrossAxisFitToContents();
+        if (canIgnoreCacheMiss) {
+            // Allow other main axis resizes and check if final resize matches the target main axis size
+            //  (ItemCoordinatesUpdater).
+            return true;
+        }
+        return false;
+    }
+
+    performResizeMainAxis(size) {
+        const isShrinking = (size < this.mainAxisSize);
+        this._shrunk = isShrinking;
+
+        this.mainAxisSize = size;
+
+        this._resizingMainAxis = true;
+        this._layoutAxes();
+        this._resizingMainAxis = false;
     }
 
     resizeCrossAxis(size) {
         if (this.crossAxisSize !== size) {
-            this.crossAxisSize = size;
-
-            this._resizingCrossAxis = true;
-            this._layoutCrossAxis();
-            this._resizingCrossAxis = false;
+            if (this.recalc > 0) {
+                this.performResizeCrossAxis(size);
+            } else {
+                this.crossAxisSize = size;
+            }
         }
+    }
+
+    performResizeCrossAxis(size) {
+        this.crossAxisSize = size;
+
+        this._resizingCrossAxis = true;
+        this._layoutCrossAxis();
+        this._resizingCrossAxis = false;
+    }
+
+    get targetMainAxisSize() {
+        return this._horizontal ? this.item.target.w : this.item.target.h;
+    }
+
+    get targetCrossAxisSize() {
+        return this._horizontal ? this.item.target.h : this.item.target.w;
     }
 
     getParentFlexContainer() {

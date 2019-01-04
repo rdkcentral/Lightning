@@ -40,13 +40,13 @@ export default class SizeShrinker {
                             this._shrunkSize += shrink;
                             this._amountRemaining -= shrink;
 
-                            if (this._amountRemaining === 0) {
+                            if (Math.abs(this._amountRemaining) < 10e-6) {
                                 return;
                             }
                         }
                     }
                 }
-            } while(totalShrinkAmount && (this._amountRemaining > 0));
+            } while(totalShrinkAmount && (Math.abs(this._amountRemaining) > 10e-6));
         }
     }
 

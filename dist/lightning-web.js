@@ -850,13 +850,13 @@ var lng = (function () {
                                 this._shrunkSize += shrink;
                                 this._amountRemaining -= shrink;
 
-                                if (this._amountRemaining === 0) {
+                                if (Math.abs(this._amountRemaining) < 10e-6) {
                                     return;
                                 }
                             }
                         }
                     }
-                } while(totalShrinkAmount && (this._amountRemaining > 0));
+                } while(totalShrinkAmount && (Math.abs(this._amountRemaining) > 10e-6));
             }
         }
 
@@ -935,13 +935,13 @@ var lng = (function () {
                                 this._grownSize += grow;
                                 this._amountRemaining -= grow;
 
-                                if (this._amountRemaining === 0) {
+                                if (Math.abs(this._amountRemaining) < 10e-6) {
                                     return;
                                 }
                             }
                         }
                     }
-                } while(totalGrowAmount && (this._amountRemaining > 0));
+                } while(totalGrowAmount && (Math.abs(this._amountRemaining) > 10e-6));
             }
         }
 
@@ -1407,12 +1407,34 @@ var lng = (function () {
             const items = this._layout.items;
             for (let i = 0, n = items.length; i < n; i++) {
                 const item = items[i];
+                const validCache = this._validateItemCache(item);
+
+                // Notice that we must also finalize a cached items, as it's coordinates may have changed.
                 this._finalizeItem(item);
-                const flexLayout = item.flexLayout;
-                if (flexLayout) {
+
+                if (!validCache) {
                     this._finalizeItemChildren(item);
                 }
             }
+        }
+
+        _validateItemCache(item) {
+            if (item.recalc === 0) {
+                if (item.isFlexEnabled()) {
+                    const layout = item._flex._layout;
+
+                    const dimensionsMatchPreviousResult = (item.w === item.target.w && item.h === item.target.h);
+                    if (dimensionsMatchPreviousResult) {
+                        // Cache is valid.
+                        return true;
+                    } else {
+                        const crossAxisSize = layout.crossAxisSize;
+                        layout.performResizeMainAxis(layout.mainAxisSize);
+                        layout.performResizeCrossAxis(crossAxisSize);
+                    }
+                }
+            }
+            return false;
         }
 
         _finalizeItemAndChildren(item) {
@@ -1450,7 +1472,7 @@ var lng = (function () {
         }
 
         _finalizeItemChildren(item) {
-            const flex = item.flex;
+            const flex = item._flex;
             if (flex) {
                 const updater = new ItemCoordinatesUpdater(flex._layout);
                 updater._finalizeItems();
@@ -1478,6 +1500,9 @@ var lng = (function () {
             this._resizingMainAxis = false;
             this._resizingCrossAxis = false;
 
+            this._cachedMainAxisSizeAfterLayout = 0;
+            this._cachedCrossAxisSizeAfterLayout = 0;
+
             this._shrunk = false;
         }
 
@@ -1485,11 +1510,15 @@ var lng = (function () {
             return this._shrunk;
         }
 
+        get recalc() {
+            return this.item.recalc;
+        }
+
         layoutTree() {
             const isSubTree = (this.item.flexParent !== null);
             if (isSubTree) {
                 // Use the dimensions set by the parent flex tree.
-                this._updateTreeLayoutWithCurrentAxes();
+                this._updateSubTreeLayout();
             } else {
                 this.updateTreeLayout();
             }
@@ -1497,8 +1526,34 @@ var lng = (function () {
         }
 
         updateTreeLayout() {
+            if (this.recalc) {
+                this._performUpdateLayoutTree();
+            } else {
+                this._performUpdateLayoutTreeFromCache();
+            }
+        }
+
+        _performUpdateLayoutTree() {
             this._setInitialAxisSizes();
             this._layoutAxes();
+            this._refreshLayoutCache();
+        }
+
+        _refreshLayoutCache() {
+            this._cachedMainAxisSizeAfterLayout = this.mainAxisSize;
+            this._cachedCrossAxisSizeAfterLayout = this.crossAxisSize;
+        }
+
+        _performUpdateLayoutTreeFromCache() {
+            const sizeMightHaveChanged = (this.item.funcW || this.item.funcH);
+            if (sizeMightHaveChanged) {
+                // Update after all.
+                this.item.enableLocalRecalcFlag();
+                this._performUpdateLayoutTree();
+            } else {
+                this.mainAxisSize = this._cachedMainAxisSizeAfterLayout;
+                this.crossAxisSize = this._cachedCrossAxisSizeAfterLayout;
+            }
         }
 
         updateItemCoords() {
@@ -1506,8 +1561,12 @@ var lng = (function () {
             updater.finalize();
         }
 
-        _updateTreeLayoutWithCurrentAxes() {
-            this._layoutAxes();
+        _updateSubTreeLayout() {
+            // The dimensions of this container are guaranteed not to have changed.
+            // That's why we can safely 'reuse' those and re-layout the contents.
+            const crossAxisSize = this.crossAxisSize;
+            this._layoutMainAxis();
+            this.performResizeCrossAxis(crossAxisSize);
         }
 
         _setInitialAxisSizes() {
@@ -1616,25 +1675,70 @@ var lng = (function () {
 
         resizeMainAxis(size) {
             if (this.mainAxisSize !== size) {
-                const isShrinking = (size < this.mainAxisSize);
-                this._shrunk = isShrinking;
-
-                this.mainAxisSize = size;
-
-                this._resizingMainAxis = true;
-                this._layoutAxes();
-                this._resizingMainAxis = false;
+                if (this.recalc > 0) {
+                    this.performResizeMainAxis(size);
+                } else {
+                    if (this._checkValidCacheMainAxisResize()) {
+                        this.mainAxisSize = size;
+                        this._fitCrossAxisSizeToContents();
+                    } else {
+                        // Cache miss.
+                        this.item.enableLocalRecalcFlag();
+                        this.performResizeMainAxis(size);
+                    }
+                }
             }
+        }
+
+        _checkValidCacheMainAxisResize(size) {
+            const isFinalMainAxisSize = (size === this.targetMainAxisSize);
+            if (isFinalMainAxisSize) {
+                return true;
+            }
+            const canIgnoreCacheMiss = !this.isCrossAxisFitToContents();
+            if (canIgnoreCacheMiss) {
+                // Allow other main axis resizes and check if final resize matches the target main axis size
+                //  (ItemCoordinatesUpdater).
+                return true;
+            }
+            return false;
+        }
+
+        performResizeMainAxis(size) {
+            const isShrinking = (size < this.mainAxisSize);
+            this._shrunk = isShrinking;
+
+            this.mainAxisSize = size;
+
+            this._resizingMainAxis = true;
+            this._layoutAxes();
+            this._resizingMainAxis = false;
         }
 
         resizeCrossAxis(size) {
             if (this.crossAxisSize !== size) {
-                this.crossAxisSize = size;
-
-                this._resizingCrossAxis = true;
-                this._layoutCrossAxis();
-                this._resizingCrossAxis = false;
+                if (this.recalc > 0) {
+                    this.performResizeCrossAxis(size);
+                } else {
+                    this.crossAxisSize = size;
+                }
             }
+        }
+
+        performResizeCrossAxis(size) {
+            this.crossAxisSize = size;
+
+            this._resizingCrossAxis = true;
+            this._layoutCrossAxis();
+            this._resizingCrossAxis = false;
+        }
+
+        get targetMainAxisSize() {
+            return this._horizontal ? this.item.target.w : this.item.target.h;
+        }
+
+        get targetCrossAxisSize() {
+            return this._horizontal ? this.item.target.h : this.item.target.w;
         }
 
         getParentFlexContainer() {
@@ -2591,8 +2695,16 @@ var lng = (function () {
             return combinedRecalc;
         }
 
+        get recalc() {
+            return this._recalc;
+        }
+
         clearRecalcFlag() {
             this._recalc = 0;
+        }
+
+        enableLocalRecalcFlag() {
+            this._recalc = 1;
         }
 
         get originalX() {

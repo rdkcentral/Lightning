@@ -61,17 +61,17 @@ describe('layout', () => {
 
             addUpdateTest('change from root', () => {
                 root.w = 600;
-                return {layouts: [root, sibling, sibling]}
+                return {layouts: [root, sibling]}
             });
 
             addUpdateTest('change to dynamic width', () => {
                 subject.w = 0;
-                return {layouts: [root, sibling, sibling, subject, subject]}
+                return {layouts: [root, subject, subject]}
             });
 
             addUpdateTest('change from root', () => {
                 root.w = 700;
-                return {layouts: [root, sibling, sibling, subject, subject]}
+                return {layouts: [root, sibling, subject]}
             });
 
             addUpdateTest('change offset of root', () => {
