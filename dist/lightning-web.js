@@ -3448,7 +3448,7 @@ var lng = (function () {
                 this._funcX = v;
                 if (this.hasFlexLayout()) {
                     this._layout.setOriginalXWithoutUpdatingLayout(0);
-                    this.layout.changedDimensions();
+                    this.layout.forceLayout();
                 } else {
                     this._x = 0;
                     this._triggerRecalcTranslate();
@@ -3509,7 +3509,7 @@ var lng = (function () {
                 this._funcY = v;
                 if (this.hasFlexLayout()) {
                     this._layout.setOriginalYWithoutUpdatingLayout(0);
-                    this.layout.changedDimensions();
+                    this.layout.forceLayout();
                 } else {
                     this._y = 0;
                     this._triggerRecalcTranslate();
@@ -3532,7 +3532,7 @@ var lng = (function () {
                 this._funcW = v;
                 if (this.hasFlexLayout()) {
                     this._layout._originalWidth = 0;
-                    this.layout.changedDimensions();
+                    this.layout.changedDimensions(true, false);
                 } else {
                     this._w = 0;
                     this._triggerRecalcTranslate();
@@ -3555,7 +3555,7 @@ var lng = (function () {
                 this._funcH = v;
                 if (this.hasFlexLayout()) {
                     this._layout._originalHeight = 0;
-                    this.layout.changedDimensions();
+                    this.layout.changedDimensions(false, true);
                 } else {
                     this._h = 0;
                     this._triggerRecalcTranslate();
