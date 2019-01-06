@@ -2926,9 +2926,9 @@ var lng = (function () {
 
                     this.loadingSince = 0;
                 }
-            }
 
-            this._checkRemoveFromLookupMap();
+                this._checkRemoveFromLookupMap();
+            }
         }
 
         _checkRemoveFromLookupMap() {
@@ -3005,9 +3005,8 @@ var lng = (function () {
                 // Texture managed by caller.
                 this._nativeTexture = source;
 
-                // Used by CoreRenderState for optimizations.
-                this.w = source.w;
-                this.h = source.h;
+                this.w = this.w || source.w;
+                this.h = this.h || source.h;
 
                 // WebGLTexture objects are by default;
                 this.permanent = options.hasOwnProperty('permanent') ? options.permanent : true;
