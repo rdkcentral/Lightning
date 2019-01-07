@@ -1279,7 +1279,7 @@ export default class View {
 
         if (this.clipping) settings.clipping = this.clipping;
 
-        if (this.clipbox) settings.clipbox = this.clipbox;
+        if (!this.clipbox) settings.clipbox = this.clipbox;
 
         if (this.__texture) {
             let tnd = this.__texture.getNonDefaults();
@@ -1674,8 +1674,9 @@ export default class View {
     }
 
     set src(v) {
-        this.texture = new ImageTexture(this.stage);
-        this.texture.src = v;
+        const texture = new ImageTexture(this.stage);
+        texture.src = v;
+        this.texture = texture;
     }
 
     set mw(v) {

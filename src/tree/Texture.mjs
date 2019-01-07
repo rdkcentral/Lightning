@@ -131,6 +131,10 @@ export default class Texture {
         // Ensure that texture source's activeCount has transferred ownership.
         const source = this.source;
 
+        if (source) {
+            this._checkForNewerReusableTextureSource();
+        }
+
         this._activeCount++;
         if (this._activeCount === 1) {
             this.becomesUsed();
@@ -148,6 +152,19 @@ export default class Texture {
     becomesUsed() {
         if (this.source) {
             this.source.incActiveTextureCount();
+        }
+    }
+
+    _checkForNewerReusableTextureSource() {
+        // When this source became unused and cleaned up, it may have disappeared from the reusable texture map.
+        // In the meantime another texture may have been generated loaded with the same lookup id.
+        // If this is the case, use that one instead to make sure only one active texture source per lookup id exists.
+        const source = this.source;
+        if (!source.isLoaded()) {
+            const reusable = this._getReusableTextureSource();
+            if (reusable && reusable.isLoaded() && (reusable !== source)) {
+                this._replaceTextureSource(reusable);
+            }
         }
     }
 
@@ -236,14 +253,21 @@ export default class Texture {
         let source = null;
         if (this._getIsValid()) {
             const lookupId = this._getLookupId();
-            if (lookupId) {
-                source = this.manager.getReusableTextureSource(lookupId);
-            }
+            source = this._getReusableTextureSource(lookupId);
             if (!source) {
                 source = this.manager.getTextureSource(this._getSourceLoader(), lookupId);
             }
         }
         return source;
+    }
+
+    _getReusableTextureSource(lookupId = this._getLookupId()) {
+        if (this._getIsValid()) {
+            if (lookupId) {
+                return this.manager.getReusableTextureSource(lookupId);
+            }
+        }
+        return null;
     }
 
     _replaceTextureSource(newSource = null) {

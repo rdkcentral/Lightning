@@ -160,19 +160,10 @@ export default class TextureSource {
             if (this._cancelCb) {
                 this._cancelCb(this);
 
-                this.loadingSince = 0;
+                // Clear callback to avoid memory leaks.
+                this._cancelCb = null;
             }
-
-            this._checkRemoveFromLookupMap();
-        }
-    }
-
-    _checkRemoveFromLookupMap() {
-        if (!this.permanent && (this.textures.size === 0)) {
-            // Normally, texture sources are removed automatically upon the next garbage collection.
-            // In case of manually loading textures, that are not yet uploaded to the gpu, we need to make sure to remove
-            // them manually in case of cancel or error.
-            this.manager.removeFromLookupMap(this);
+            this.loadingSince = 0;
         }
     }
 
@@ -205,20 +196,22 @@ export default class TextureSource {
         if (!this._nativeTexture && !this.isLoading()) {
             this.loadingSince = (new Date()).getTime();
             this._cancelCb = this.loader((err, options) => {
-                // Clear callback to avoid memory leaks.
-                this._cancelCb = null;
+                // Ignore loads that come in after a cancel.
+                if (this.isLoading()) {
+                    // Clear callback to avoid memory leaks.
+                    this._cancelCb = null;
 
-                if (this.manager.stage.destroyed) {
-                    // Ignore async load when stage is destroyed.
-                    return;
-                }
-                if (err) {
-                    // Emit txError.
-                    this._checkRemoveFromLookupMap();
-                    this.onError(err);
-                } else if (options && options.source) {
-                    this.loadingSince = 0;
-                    this.setSource(options);
+                    if (this.manager.stage.destroyed) {
+                        // Ignore async load when stage is destroyed.
+                        return;
+                    }
+                    if (err) {
+                        // Emit txError.
+                        this.onError(err);
+                    } else if (options && options.source) {
+                        this.loadingSince = 0;
+                        this.setSource(options);
+                    }
                 }
             }, this);
         }
@@ -323,6 +316,7 @@ export default class TextureSource {
 
     onError(e) {
         this._loadError = e;
+        this.loadingSince = 0;
         console.error('texture load error', e, this.lookupId);
         this.forEachActiveView(view => view.onTextureSourceLoadError(e));
     }

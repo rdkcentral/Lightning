@@ -2924,19 +2924,10 @@ var lng = (function () {
                 if (this._cancelCb) {
                     this._cancelCb(this);
 
-                    this.loadingSince = 0;
+                    // Clear callback to avoid memory leaks.
+                    this._cancelCb = null;
                 }
-
-                this._checkRemoveFromLookupMap();
-            }
-        }
-
-        _checkRemoveFromLookupMap() {
-            if (!this.permanent && (this.textures.size === 0)) {
-                // Normally, texture sources are removed automatically upon the next garbage collection.
-                // In case of manually loading textures, that are not yet uploaded to the gpu, we need to make sure to remove
-                // them manually in case of cancel or error.
-                this.manager.removeFromLookupMap(this);
+                this.loadingSince = 0;
             }
         }
 
@@ -2969,20 +2960,22 @@ var lng = (function () {
             if (!this._nativeTexture && !this.isLoading()) {
                 this.loadingSince = (new Date()).getTime();
                 this._cancelCb = this.loader((err, options) => {
-                    // Clear callback to avoid memory leaks.
-                    this._cancelCb = null;
+                    // Ignore loads that come in after a cancel.
+                    if (this.isLoading()) {
+                        // Clear callback to avoid memory leaks.
+                        this._cancelCb = null;
 
-                    if (this.manager.stage.destroyed) {
-                        // Ignore async load when stage is destroyed.
-                        return;
-                    }
-                    if (err) {
-                        // Emit txError.
-                        this._checkRemoveFromLookupMap();
-                        this.onError(err);
-                    } else if (options && options.source) {
-                        this.loadingSince = 0;
-                        this.setSource(options);
+                        if (this.manager.stage.destroyed) {
+                            // Ignore async load when stage is destroyed.
+                            return;
+                        }
+                        if (err) {
+                            // Emit txError.
+                            this.onError(err);
+                        } else if (options && options.source) {
+                            this.loadingSince = 0;
+                            this.setSource(options);
+                        }
                     }
                 }, this);
             }
@@ -3087,6 +3080,7 @@ var lng = (function () {
 
         onError(e) {
             this._loadError = e;
+            this.loadingSince = 0;
             console.error('texture load error', e, this.lookupId);
             this.forEachActiveView(view => view.onTextureSourceLoadError(e));
         }
@@ -5828,6 +5822,10 @@ var lng = (function () {
             // Ensure that texture source's activeCount has transferred ownership.
             const source = this.source;
 
+            if (source) {
+                this._checkForNewerReusableTextureSource();
+            }
+
             this._activeCount++;
             if (this._activeCount === 1) {
                 this.becomesUsed();
@@ -5845,6 +5843,19 @@ var lng = (function () {
         becomesUsed() {
             if (this.source) {
                 this.source.incActiveTextureCount();
+            }
+        }
+
+        _checkForNewerReusableTextureSource() {
+            // When this source became unused and cleaned up, it may have disappeared from the reusable texture map.
+            // In the meantime another texture may have been generated loaded with the same lookup id.
+            // If this is the case, use that one instead to make sure only one active texture source per lookup id exists.
+            const source = this.source;
+            if (!source.isLoaded()) {
+                const reusable = this._getReusableTextureSource();
+                if (reusable && reusable.isLoaded() && (reusable !== source)) {
+                    this._replaceTextureSource(reusable);
+                }
             }
         }
 
@@ -5933,14 +5944,21 @@ var lng = (function () {
             let source = null;
             if (this._getIsValid()) {
                 const lookupId = this._getLookupId();
-                if (lookupId) {
-                    source = this.manager.getReusableTextureSource(lookupId);
-                }
+                source = this._getReusableTextureSource(lookupId);
                 if (!source) {
                     source = this.manager.getTextureSource(this._getSourceLoader(), lookupId);
                 }
             }
             return source;
+        }
+
+        _getReusableTextureSource(lookupId = this._getLookupId()) {
+            if (this._getIsValid()) {
+                if (lookupId) {
+                    return this.manager.getReusableTextureSource(lookupId);
+                }
+            }
+            return null;
         }
 
         _replaceTextureSource(newSource = null) {
@@ -9065,7 +9083,7 @@ var lng = (function () {
 
             if (this.clipping) settings.clipping = this.clipping;
 
-            if (this.clipbox) settings.clipbox = this.clipbox;
+            if (!this.clipbox) settings.clipbox = this.clipbox;
 
             if (this.__texture) {
                 let tnd = this.__texture.getNonDefaults();
@@ -9460,8 +9478,9 @@ var lng = (function () {
         }
 
         set src(v) {
-            this.texture = new ImageTexture(this.stage);
-            this.texture.src = v;
+            const texture = new ImageTexture(this.stage);
+            texture.src = v;
+            this.texture = texture;
         }
 
         set mw(v) {
@@ -12726,6 +12745,8 @@ var lng = (function () {
                 image.src = src;
 
                 cancelCb = function() {
+                    image.onerror = null;
+                    image.onload = null;
                     image.removeAttribute('src');
                 };
             }
@@ -13804,11 +13825,12 @@ var lng = (function () {
                 }
             }
         }
-        
-        removeFromLookupMap(textureSource) {
-            this.textureSourceHashmap.delete(textureSource.lookupId);
-        }
 
+        gc() {
+            this.freeUnusedTextureSources();
+            this._cleanupLookupMap();
+        }
+        
         freeUnusedTextureSources() {
             let remainingTextureSources = [];
             for (let i = 0, n = this._uploadedTextureSources.length; i < n; i++) {
@@ -13821,6 +13843,8 @@ var lng = (function () {
             }
 
             this._uploadedTextureSources = remainingTextureSources;
+
+            this._cleanupLookupMap();
         }
 
         _freeManagedTextureSource(textureSource) {
@@ -13831,8 +13855,15 @@ var lng = (function () {
 
             // Should be reloaded.
             textureSource.loadingSince = null;
+        }
 
-            this.removeFromLookupMap(textureSource);
+        _cleanupLookupMap() {
+            // We keep those that still have value (are being loaded or already loaded, or are likely to be reused).
+            this.textureSourceHashmap.forEach((textureSource, lookupId) => {
+                if (!(textureSource.isLoaded() || textureSource.isLoading()) && !textureSource.isUsed()) {
+                    this.textureSourceHashmap.delete(lookupId);
+                }
+            });
         }
 
         /**
@@ -15623,10 +15654,10 @@ var lng = (function () {
             if (aggressive && this.ctx.root.visible) {
                 // Make sure that ALL textures are cleaned;
                 this.ctx.root.visible = false;
-                this.textureManager.freeUnusedTextureSources(0);
+                this.textureManager.gc();
                 this.ctx.root.visible = true;
             } else {
-                this.textureManager.freeUnusedTextureSources();
+                this.textureManager.gc();
             }
         }
 
@@ -16307,6 +16338,7 @@ var lng = (function () {
             ctx.arcTo(x, y + h, x, y + h - radius[3], radius[3]);
             ctx.lineTo(x, y + radius[0]);
             ctx.arcTo(x, y, x + radius[0], y, radius[0]);
+            ctx.closePath();
 
             if (fill) {
                 if (Utils.isNumber(fillColor)) {
@@ -16375,6 +16407,7 @@ var lng = (function () {
             ctx.arcTo(x, y + h, x, y + h - radius[3], radius[3]);
             ctx.lineTo(x, y + radius[0]);
             ctx.arcTo(x, y, x + radius[0], y, radius[0]);
+            ctx.closePath();
             ctx.fill();
 
             return canvas;

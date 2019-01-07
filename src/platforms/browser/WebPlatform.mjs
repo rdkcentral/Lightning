@@ -96,6 +96,8 @@ export default class WebPlatform {
             image.src = src;
 
             cancelCb = function() {
+                image.onerror = null;
+                image.onload = null;
                 image.removeAttribute('src');
             }
         }

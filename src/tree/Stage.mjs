@@ -380,10 +380,10 @@ export default class Stage extends EventEmitter {
         if (aggressive && this.ctx.root.visible) {
             // Make sure that ALL textures are cleaned;
             this.ctx.root.visible = false;
-            this.textureManager.freeUnusedTextureSources(0);
+            this.textureManager.gc();
             this.ctx.root.visible = true;
         } else {
-            this.textureManager.freeUnusedTextureSources();
+            this.textureManager.gc();
         }
     }
 

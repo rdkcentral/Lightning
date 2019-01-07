@@ -92,11 +92,12 @@ export default class TextureManager {
             }
         }
     }
-    
-    removeFromLookupMap(textureSource) {
-        this.textureSourceHashmap.delete(textureSource.lookupId);
-    }
 
+    gc() {
+        this.freeUnusedTextureSources();
+        this._cleanupLookupMap();
+    }
+    
     freeUnusedTextureSources() {
         let remainingTextureSources = [];
         for (let i = 0, n = this._uploadedTextureSources.length; i < n; i++) {
@@ -109,6 +110,8 @@ export default class TextureManager {
         }
 
         this._uploadedTextureSources = remainingTextureSources;
+
+        this._cleanupLookupMap();
     }
 
     _freeManagedTextureSource(textureSource) {
@@ -119,8 +122,15 @@ export default class TextureManager {
 
         // Should be reloaded.
         textureSource.loadingSince = null;
+    }
 
-        this.removeFromLookupMap(textureSource);
+    _cleanupLookupMap() {
+        // We keep those that still have value (are being loaded or already loaded, or are likely to be reused).
+        this.textureSourceHashmap.forEach((textureSource, lookupId) => {
+            if (!(textureSource.isLoaded() || textureSource.isLoading()) && !textureSource.isUsed()) {
+                this.textureSourceHashmap.delete(lookupId);
+            }
+        });
     }
 
     /**
