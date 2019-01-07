@@ -44,6 +44,7 @@ export default class Tools {
         ctx.arcTo(x, y + h, x, y + h - radius[3], radius[3]);
         ctx.lineTo(x, y + radius[0]);
         ctx.arcTo(x, y, x + radius[0], y, radius[0]);
+        ctx.closePath();
 
         if (fill) {
             if (Utils.isNumber(fillColor)) {
@@ -112,6 +113,7 @@ export default class Tools {
         ctx.arcTo(x, y + h, x, y + h - radius[3], radius[3]);
         ctx.lineTo(x, y + radius[0]);
         ctx.arcTo(x, y, x + radius[0], y, radius[0]);
+        ctx.closePath();
         ctx.fill();
 
         return canvas;
