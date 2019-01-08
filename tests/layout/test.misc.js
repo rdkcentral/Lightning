@@ -1,4 +1,5 @@
 import FlexTestUtils from "./src/FlexTestUtils.mjs";
+import lng from "../../lightning.mjs";
 
 const flexTestUtils = new FlexTestUtils();
 
@@ -84,6 +85,49 @@ describe('layout', () => {
         ]
     });
 
+    describe('get layout', () => {
+        let app, stage;
+        before(() => {
+            class TestApplication extends lng.Application {}
+            app = new TestApplication({stage: {w: 500, h: 500, clearColor: 0xFFFF0000, autostart: false}});
+            stage = app.stage;
+            document.body.appendChild(stage.getCanvas());
+        });
+
+        describe('getting final coords', () => {
+            before(() => {
+                const view = app.stage.createView({
+                    Item: {
+                        w: 300, flex: {padding: 5},
+                        children: [
+                            {flexItem: {shrink: 1, minWidth: 50}, w: 100, h: 100},
+                            {w: 100, h: 100},
+                            {w: 100, h: 100},
+                            {w: 100, h: 100}
+                        ]
+                    }
+                });
+                app.children = [view];
+            });
+
+            it('should not update coords yet', () => {
+                const child = app.tag("Item").children[3];
+                chai.assert(child.finalX === 0, "final X not updated until update");
+            });
+
+            it('should update after update', () => {
+                stage.update();
+                const child = app.tag("Item").children[3];
+                chai.assert(child.finalX === 255, "final X updated");
+                chai.assert(child.finalY === 5, "final Y updated");
+                chai.assert(child.finalW === 100, "final W updated");
+                chai.assert(child.finalH === 100, "final H updated");
+
+                const item = app.tag("Item");
+                chai.assert(item.finalH === 110, "final H updated");
+            });
+        });
+    });
 
 });
 

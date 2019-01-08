@@ -415,6 +415,10 @@ export default class Stage extends EventEmitter {
         return this.renderer.getPatchId();
     }
 
+    update() {
+        this.ctx.update()
+    }
+
 }
 
 import View from "./View.mjs";

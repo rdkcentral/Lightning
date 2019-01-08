@@ -8264,6 +8264,22 @@ var lng = (function () {
             }
         }
 
+        get finalX() {
+            return this.__core.x;
+        }
+
+        get finalY() {
+            return this.__core.y;
+        }
+
+        get finalW() {
+            return this.__core.w;
+        }
+
+        get finalH() {
+            return this.__core.h;
+        }
+
         textureIsLoaded() {
             return this.__texture && this.__texture.isLoaded();
         }
@@ -13937,7 +13953,7 @@ var lng = (function () {
         }
 
         frame() {
-            this._update();
+            this.update();
 
             this._performForcedZSorts();
 
@@ -13949,14 +13965,14 @@ var lng = (function () {
             return true;
         }
 
-        _update() {
-            this.update();
+        update() {
+            this._update();
 
             // Due to the boundsVisibility flag feature (and onAfterUpdate hook), it is possible that other views were
             // changed during the update loop (for example due to the txLoaded event). We process these changes immediately
             // (but not recursively to prevent infinite loops).
             if (this.root._hasUpdates) {
-                this.update();
+                this._update();
             }
         }
 
@@ -13976,7 +13992,7 @@ var lng = (function () {
             }
         }
 
-        update() {
+        _update() {
             this.updateTreeOrder = 0;
 
             this.root.update();
@@ -15687,6 +15703,10 @@ var lng = (function () {
 
         getPatchId() {
             return this.renderer.getPatchId();
+        }
+
+        update() {
+            this.ctx.update();
         }
 
     }

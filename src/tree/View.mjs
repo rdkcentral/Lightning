@@ -458,6 +458,22 @@ export default class View {
         }
     }
 
+    get finalX() {
+        return this.__core.x;
+    }
+
+    get finalY() {
+        return this.__core.y;
+    }
+
+    get finalW() {
+        return this.__core.w;
+    }
+
+    get finalH() {
+        return this.__core.h;
+    }
+
     textureIsLoaded() {
         return this.__texture && this.__texture.isLoaded();
     }
