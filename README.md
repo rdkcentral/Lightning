@@ -232,5 +232,13 @@ An application can be composed into components. A component extends the `lng.Com
 
 ## Tools
 
+## Examples
+
+For hosting the examples from a webserver the .mjs MIME type needs to be enabled on server side. In case of Apache2 the MIME type is enabled in **/etc/apache2/mods-enabled/mime.conf**:
+
+```
+    AddType application/javascript .mjs
+```
+
 ### View types
 The View class may be subclassed to add additional functionality (`BorderView`, `FastBlurView`, `SmoothScaleView`)
