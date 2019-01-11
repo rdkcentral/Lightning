@@ -101,14 +101,14 @@ export default class Component extends View {
             } else {
                 if (key === "text") {
                     const propKey = cursor + "__text";
-                    loc.push(`${propKey} = ${cursor}.enableTextTexture()`);
+                    loc.push(`const ${propKey} = ${cursor}.enableTextTexture()`);
                     this.parseTemplatePropRec(value, context, propKey);
                 } else if (key === "texture" && Utils.isObjectLiteral(value)) {
                     const propKey = cursor + "__texture";
                     const type = value.type;
                     if (type) {
                         store.push(type);
-                        loc.push(`${propKey} = new store[${store.length - 1}](${cursor}.stage)`);
+                        loc.push(`const ${propKey} = new store[${store.length - 1}](${cursor}.stage)`);
                         this.parseTemplatePropRec(value, context, propKey);
                         loc.push(`${cursor}["${key}"] = ${propKey}`);
                     } else {
