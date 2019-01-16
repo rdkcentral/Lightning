@@ -34,8 +34,8 @@ export default class TransitionManager {
     }
 
     createSettings(settings) {
-        let transitionSettings = new TransitionSettings(this.stage);
-        transitionSettings.patch(settings);
+        const transitionSettings = new TransitionSettings();
+        Base.patchObject(transitionSettings, settings);
         return transitionSettings;
     }
 

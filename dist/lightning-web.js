@@ -457,28 +457,12 @@ var lng = (function () {
             }
         }
 
-        static preparePatchSettings(settings, patchId) {
-            if (patchId) {
-                return this._preparePatchSettings(settings, "_$" + patchId);
-            } else {
-                return settings;
-            }
-        }
-
-        static _preparePatchSettings(settings, patchId) {
-            if (patchId && settings[patchId]) {
-                settings = Object.assign({}, settings, settings[patchId]);
-                delete settings[patchId];
-            }
-            return settings;
-        }
-
         static patchObjectProperty(obj, name, value) {
             let setter = obj.setSetting || Base.defaultSetter;
 
             if (name.charAt(0) === "_") {
                 // Disallow patching private variables.
-                if (name.charAt(1) === "$") ; else if (name !== "__create") {
+                if (name !== "__create") {
                     console.error("Patch of private property '" + name + "' is not allowed");
                 }
             } else if (name !== "type") {
@@ -5617,7 +5601,7 @@ var lng = (function () {
                 }
 
                 if (shader) {
-                    stage.patchObject(shader, v);
+                    Base.patchObject(shader, v);
                 }
             } else if (v === null) {
                 shader = stage.ctx.renderState.defaultShader;
@@ -5665,7 +5649,7 @@ var lng = (function () {
         }
 
         patch(settings) {
-            this.ctx.stage.patchObject(this, settings);
+            Base.patchObject(this, settings);
         }
 
         useDefault() {
@@ -6195,7 +6179,7 @@ var lng = (function () {
         }
 
         patch(settings) {
-            this.stage.patchObject(this, settings);
+            Base.patchObject(this, settings);
         }
 
     }
@@ -8335,7 +8319,7 @@ var lng = (function () {
                 }
 
                 if (texture) {
-                    this.stage.patchObject(texture, v);
+                    Base.patchObject(texture, v);
                 }
             } else if (!v) {
                 texture = null;
@@ -8820,7 +8804,7 @@ var lng = (function () {
             let t = this.mtag(tag);
             let n = t.length;
             for (let i = 0; i < n; i++) {
-                this.stage.patchObject(t[i], settings);
+                Base.patchObject(t[i], settings);
             }
         }
 
@@ -9652,8 +9636,6 @@ var lng = (function () {
         }
 
         patch(settings, createMode = false) {
-            settings = Base.preparePatchSettings(settings, this.stage.getPatchId());
-
             let paths = Object.keys(settings);
 
             if (settings.hasOwnProperty("__create")) {
@@ -9759,7 +9741,6 @@ var lng = (function () {
         }
 
         set transitions(object) {
-            object = this.stage.preparePatchSettings(object);
             let keys = Object.keys(object);
             keys.forEach(property => {
                 this.transition(property, object[property]);
@@ -9767,7 +9748,6 @@ var lng = (function () {
         }
 
         set smooth(object) {
-            object = this.stage.preparePatchSettings(object);
             let keys = Object.keys(object);
             keys.forEach(property => {
                 let value = object[property];
@@ -9926,7 +9906,7 @@ var lng = (function () {
             this.__construct();
 
             // Quick-apply template.
-            const func = this.constructor.getTemplateFunc(stage);
+            const func = this.constructor.getTemplateFunc();
             func.f(this, func.a);
 
         }
@@ -9934,29 +9914,26 @@ var lng = (function () {
         /**
          * Returns a high-performance template patcher.
          */
-        static getTemplateFunc(stage) {
+        static getTemplateFunc() {
             // We need a different template function per patch id.
-            const patchId = stage.getPatchId();
-            const name = "_templateFunc_" + patchId;
+            const name = "_templateFunc";
 
             // Be careful with class-based static inheritance.
             const hasName = '__has' + name;
             if (this[hasName] !== this) {
                 this[hasName] = this;
-                this[name] = this.parseTemplate(patchId ? "_$" + patchId : patchId, this._template());
+                this[name] = this.parseTemplate(this._template());
             }
             return this[name];
         }
 
-        static parseTemplate(patchId, obj) {
+        static parseTemplate(obj) {
             const context = {
-                patchId: patchId,
                 loc: [],
                 store: [],
                 rid: 0
             };
 
-            obj = Base._preparePatchSettings(obj, patchId);
             this.parseTemplateRec(obj, context, "view");
 
             const code = context.loc.join(";\n");
@@ -9973,8 +9950,6 @@ var lng = (function () {
                 if (Utils.isUcChar(key.charCodeAt(0))) {
                     // Value must be expanded as well.
                     if (Utils.isObjectLiteral(value)) {
-                        value = Base._preparePatchSettings(value, context.patchId);
-
                         // Ref.
                         const childCursor = `r${key.replace(/[^a-z0-9]/gi, "") + context.rid}`;
                         let type = value.type ? value.type : View;
@@ -9999,14 +9974,14 @@ var lng = (function () {
                 } else {
                     if (key === "text") {
                         const propKey = cursor + "__text";
-                        loc.push(`${propKey} = ${cursor}.enableTextTexture()`);
+                        loc.push(`const ${propKey} = ${cursor}.enableTextTexture()`);
                         this.parseTemplatePropRec(value, context, propKey);
                     } else if (key === "texture" && Utils.isObjectLiteral(value)) {
                         const propKey = cursor + "__texture";
                         const type = value.type;
                         if (type) {
                             store.push(type);
-                            loc.push(`${propKey} = new store[${store.length - 1}](${cursor}.stage)`);
+                            loc.push(`const ${propKey} = new store[${store.length - 1}](${cursor}.stage)`);
                             this.parseTemplatePropRec(value, context, propKey);
                             loc.push(`${cursor}["${key}"] = ${propKey}`);
                         } else {
@@ -11474,7 +11449,7 @@ var lng = (function () {
                 return new convertedShaderType(ctx);
             } else {
                 const shader = new shaderType(ctx);
-                this.stage.patchObject(this, settings);
+                Base.patchObject(this, settings);
                 return shader;
             }
         }
@@ -11484,9 +11459,6 @@ var lng = (function () {
 
         _getShaderAlternative(shaderType) {
             return this.getDefaultShader();
-        }
-
-        getPatchId() {
         }
 
         copyRenderTexture(renderTexture, nativeTexture, options) {
@@ -11731,10 +11703,6 @@ var lng = (function () {
                 }
             }
             renderState.quads.dataLength = offset;
-        }
-
-        getPatchId() {
-            return "webgl";
         }
 
         copyRenderTexture(renderTexture, nativeTexture, options) {
@@ -12356,10 +12324,6 @@ var lng = (function () {
 
             // Save base state so we can restore the defaults later.
             canvas.ctx.save();
-        }
-
-        getPatchId() {
-            return "c2d";
         }
 
     }
@@ -14115,7 +14079,7 @@ var lng = (function () {
         }
 
         patch(settings) {
-            this.stage.patchObject(this, settings);
+            Base.patchObject(this, settings);
         }
     }
 
@@ -14157,8 +14121,8 @@ var lng = (function () {
         }
 
         createSettings(settings) {
-            let transitionSettings = new TransitionSettings(this.stage);
-            transitionSettings.patch(settings);
+            const transitionSettings = new TransitionSettings();
+            Base.patchObject(transitionSettings, settings);
             return transitionSettings;
         }
 
@@ -14752,7 +14716,7 @@ var lng = (function () {
         }
 
         patch(settings) {
-            this.animationSettings.stage.patchObject(this, settings);
+            Base.patchObject(this, settings);
         }
 
         hasColorProperty() {
@@ -14766,9 +14730,7 @@ var lng = (function () {
     AnimationActionSettings.prototype.isAnimationActionSettings = true;
 
     class AnimationSettings {
-        constructor(stage) {
-            this.stage = stage;
-
+        constructor() {
             /**
              * @type {AnimationActionSettings[]}
              */
@@ -14844,8 +14806,9 @@ var lng = (function () {
         }
 
         patch(settings) {
-            this.stage.patchObject(this, settings);
+            Base.patchObject(this, settings);
         }
+
     }
 
     AnimationSettings.STOP_METHODS = {
@@ -15268,8 +15231,8 @@ var lng = (function () {
         }
 
         createSettings(settings) {
-            const animationSettings = new AnimationSettings(this.stage);
-            animationSettings.patch(settings);
+            const animationSettings = new AnimationSettings();
+            Base.patchObject(animationSettings, settings);
             return animationSettings;
         }
 
@@ -15690,19 +15653,6 @@ var lng = (function () {
 
         getDrawingCanvas() {
             return this.platform.getDrawingCanvas();
-        }
-
-        preparePatchSettings(settings) {
-            return Base.preparePatchSettings(settings, this.getPatchId());
-        }
-
-        patchObject(object, settings) {
-            settings = Base.preparePatchSettings(settings, this.getPatchId());
-            Base.patchObject(object, settings);
-        }
-
-        getPatchId() {
-            return this.renderer.getPatchId();
         }
 
         update() {

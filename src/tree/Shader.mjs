@@ -1,4 +1,5 @@
 import Utils from "./Utils.mjs";
+import Base from "./Base.mjs";
 
 export default class Shader {
 
@@ -24,7 +25,7 @@ export default class Shader {
             }
 
             if (shader) {
-                stage.patchObject(shader, v);
+                Base.patchObject(shader, v);
             }
         } else if (v === null) {
             shader = stage.ctx.renderState.defaultShader;
@@ -72,7 +73,7 @@ export default class Shader {
     }
 
     patch(settings) {
-        this.ctx.stage.patchObject(this, settings);
+        Base.patchObject(this, settings);
     }
 
     useDefault() {

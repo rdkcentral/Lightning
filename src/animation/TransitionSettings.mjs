@@ -1,4 +1,5 @@
 import StageUtils from "../tree/StageUtils.mjs";
+import Base from "../tree/Base.mjs";
 
 export default class TransitionSettings {
     constructor(stage) {
@@ -24,7 +25,7 @@ export default class TransitionSettings {
     }
 
     patch(settings) {
-        this.stage.patchObject(this, settings);
+        Base.patchObject(this, settings);
     }
 }
 

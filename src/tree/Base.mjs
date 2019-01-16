@@ -17,30 +17,12 @@ export default class Base {
         }
     }
 
-    static preparePatchSettings(settings, patchId) {
-        if (patchId) {
-            return this._preparePatchSettings(settings, "_$" + patchId);
-        } else {
-            return settings;
-        }
-    }
-
-    static _preparePatchSettings(settings, patchId) {
-        if (patchId && settings[patchId]) {
-            settings = Object.assign({}, settings, settings[patchId]);
-            delete settings[patchId];
-        }
-        return settings;
-    }
-
     static patchObjectProperty(obj, name, value) {
         let setter = obj.setSetting || Base.defaultSetter;
 
         if (name.charAt(0) === "_") {
             // Disallow patching private variables.
-            if (name.charAt(1) === "$") {
-                // Ignore patchId.
-            } else if (name !== "__create") {
+            if (name !== "__create") {
                 console.error("Patch of private property '" + name + "' is not allowed");
             }
         } else if (name !== "type") {

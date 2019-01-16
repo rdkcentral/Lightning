@@ -247,10 +247,6 @@ export default class WebGLRenderer extends Renderer {
         renderState.quads.dataLength = offset;
     }
 
-    getPatchId() {
-        return "webgl";
-    }
-
     copyRenderTexture(renderTexture, nativeTexture, options) {
         const gl = this.stage.gl;
         gl.bindTexture(gl.TEXTURE_2D, nativeTexture);

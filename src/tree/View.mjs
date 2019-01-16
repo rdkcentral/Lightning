@@ -7,8 +7,6 @@ import StageUtils from "./StageUtils.mjs";
 import ViewCore from "./core/ViewCore.mjs";
 import Base from "./Base.mjs";
 
-import TextureSource from "./TextureSource.mjs";
-
 import Utils from "./Utils.mjs";
 import EventEmitter from "../EventEmitter.mjs";
 import Shader from "./Shader.mjs";
@@ -529,7 +527,7 @@ export default class View {
             }
 
             if (texture) {
-                this.stage.patchObject(texture, v);
+                Base.patchObject(texture, v);
             }
         } else if (!v) {
             texture = null;
@@ -1016,7 +1014,7 @@ export default class View {
         let t = this.mtag(tag);
         let n = t.length;
         for (let i = 0; i < n; i++) {
-            this.stage.patchObject(t[i], settings);
+            Base.patchObject(t[i], settings);
         }
     }
 
@@ -1848,8 +1846,6 @@ export default class View {
     }
 
     patch(settings, createMode = false) {
-        settings = Base.preparePatchSettings(settings, this.stage.getPatchId());
-
         let paths = Object.keys(settings);
 
         if (settings.hasOwnProperty("__create")) {
@@ -1957,7 +1953,6 @@ export default class View {
     }
 
     set transitions(object) {
-        object = this.stage.preparePatchSettings(object);
         let keys = Object.keys(object);
         keys.forEach(property => {
             this.transition(property, object[property]);
@@ -1965,7 +1960,6 @@ export default class View {
     }
 
     set smooth(object) {
-        object = this.stage.preparePatchSettings(object);
         let keys = Object.keys(object);
         keys.forEach(property => {
             let value = object[property];

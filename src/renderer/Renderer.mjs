@@ -37,7 +37,7 @@ export default class Renderer {
             return new convertedShaderType(ctx);
         } else {
             const shader = new shaderType(ctx);
-            this.stage.patchObject(this, settings);
+            Base.patchObject(this, settings);
             return shader;
         }
     }
@@ -49,10 +49,9 @@ export default class Renderer {
         return this.getDefaultShader();
     }
 
-    getPatchId() {
-    }
-
     copyRenderTexture(renderTexture, nativeTexture, options) {
         console.warn('copyRenderTexture not supported by renderer');
     }
 }
+
+import Base from "../tree/Base.mjs";

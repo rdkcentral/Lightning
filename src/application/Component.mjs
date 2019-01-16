@@ -28,7 +28,7 @@ export default class Component extends View {
         this.__construct();
 
         // Quick-apply template.
-        const func = this.constructor.getTemplateFunc(stage);
+        const func = this.constructor.getTemplateFunc();
         func.f(this, func.a);
 
     }
@@ -36,29 +36,26 @@ export default class Component extends View {
     /**
      * Returns a high-performance template patcher.
      */
-    static getTemplateFunc(stage) {
+    static getTemplateFunc() {
         // We need a different template function per patch id.
-        const patchId = stage.getPatchId();
-        const name = "_templateFunc_" + patchId;
+        const name = "_templateFunc";
 
         // Be careful with class-based static inheritance.
         const hasName = '__has' + name;
         if (this[hasName] !== this) {
             this[hasName] = this;
-            this[name] = this.parseTemplate(patchId ? "_$" + patchId : patchId, this._template());
+            this[name] = this.parseTemplate(this._template());
         }
         return this[name];
     }
 
-    static parseTemplate(patchId, obj) {
+    static parseTemplate(obj) {
         const context = {
-            patchId: patchId,
             loc: [],
             store: [],
             rid: 0
         };
 
-        obj = Base._preparePatchSettings(obj, patchId);
         this.parseTemplateRec(obj, context, "view");
 
         const code = context.loc.join(";\n");
@@ -75,8 +72,6 @@ export default class Component extends View {
             if (Utils.isUcChar(key.charCodeAt(0))) {
                 // Value must be expanded as well.
                 if (Utils.isObjectLiteral(value)) {
-                    value = Base._preparePatchSettings(value, context.patchId);
-
                     // Ref.
                     const childCursor = `r${key.replace(/[^a-z0-9]/gi, "") + context.rid}`;
                     let type = value.type ? value.type : View;

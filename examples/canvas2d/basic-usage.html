@@ -16,7 +16,7 @@
                 static _template() {
                     return {
                         Wrap: {
-                            x: 100, y: 10, _$c2d: {x: 500},visible: false,
+                            x: 100, y: 10,
                             Image: {color: 0xAAFF0000, texture: {type: lng.textures.ImageTexture, src: "../rockies.jpeg"/*, x: 150, y: 50, w: 200, h: 100*/}}
                         },
                         Text: {color: 0xff00B74F, text: {text: "hello world"}}
@@ -25,6 +25,13 @@
 
                 static _states() {
                     return {
+                        _init() {
+                            if (this.stage.c2d) {
+                                this.patch({
+                                    Wrap: {x: 500}
+                                });
+                            }
+                        },
                         "_handleLeft": function() {
                             this.tag('Image').setSmooth('x', this.tag('Image').getSmooth('x') - 100)
                         },

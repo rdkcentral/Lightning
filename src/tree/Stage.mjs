@@ -402,19 +402,6 @@ export default class Stage extends EventEmitter {
         return this.platform.getDrawingCanvas();
     }
 
-    preparePatchSettings(settings) {
-        return Base.preparePatchSettings(settings, this.getPatchId());
-    }
-
-    patchObject(object, settings) {
-        settings = Base.preparePatchSettings(settings, this.getPatchId());
-        Base.patchObject(object, settings);
-    }
-
-    getPatchId() {
-        return this.renderer.getPatchId();
-    }
-
     update() {
         this.ctx.update()
     }
@@ -428,4 +415,3 @@ import CoreContext from "./core/CoreContext.mjs";
 import TransitionManager from "../animation/TransitionManager.mjs";
 import AnimationManager from "../animation/AnimationManager.mjs";
 import RectangleTexture from "../textures/RectangleTexture.mjs";
-import Base from "./Base.mjs";

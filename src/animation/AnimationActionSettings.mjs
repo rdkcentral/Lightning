@@ -152,7 +152,7 @@ export default class AnimationActionSettings {
     }
 
     patch(settings) {
-        this.animationSettings.stage.patchObject(this, settings);
+        Base.patchObject(this, settings);
     }
 
     hasColorProperty() {
@@ -169,3 +169,4 @@ import MultiSpline from "../tools/MultiSpline.mjs";
 import View from "../tree/View.mjs";
 import StageUtils from "../tree/StageUtils.mjs";
 import Utils from "../tree/Utils.mjs";
+import Base from "../tree/Base.mjs";
