@@ -9916,6 +9916,7 @@ class Component extends View {
         const func = this.constructor.getTemplateFunc();
         func.f(this, func.a);
 
+        this.__build();
     }
 
     /**
@@ -10094,6 +10095,10 @@ class Component extends View {
 
     __construct() {
         this.fire('_construct');
+    }
+
+    __build() {
+        this.fire('_build');
     }
 
     __init() {
@@ -17095,8 +17100,7 @@ class BlurShader extends DefaultShader$2 {
 class FastBlurComponent extends Component {
     static _template() {
         return {
-            passSignals: true,
-            Wrap: {type: WebGLFastBlurComponent, _$c2d: {type: C2dFastBlurComponent}}
+            passSignals: true
         }
     }
 
@@ -17143,6 +17147,16 @@ class FastBlurComponent extends Component {
 
     get _passSignals() {
         return true;
+    }
+
+    static _states() {
+        return {
+            _build() {
+                this.patch({
+                    Wrap: {type: this.stage.gl ? WebGLFastBlurComponent : C2dFastBlurComponent}
+                }, true);
+            }
+        }
     }
 
 }

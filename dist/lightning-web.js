@@ -9909,6 +9909,7 @@ var lng = (function () {
             const func = this.constructor.getTemplateFunc();
             func.f(this, func.a);
 
+            this.__build();
         }
 
         /**
@@ -10087,6 +10088,10 @@ var lng = (function () {
 
         __construct() {
             this.fire('_construct');
+        }
+
+        __build() {
+            this.fire('_build');
         }
 
         __init() {
@@ -17430,8 +17435,7 @@ var lng = (function () {
     class FastBlurComponent extends Component {
         static _template() {
             return {
-                passSignals: true,
-                Wrap: {type: WebGLFastBlurComponent, _$c2d: {type: C2dFastBlurComponent}}
+                passSignals: true
             }
         }
 
@@ -17478,6 +17482,16 @@ var lng = (function () {
 
         get _passSignals() {
             return true;
+        }
+
+        static _states() {
+            return {
+                _build() {
+                    this.patch({
+                        Wrap: {type: this.stage.gl ? WebGLFastBlurComponent : C2dFastBlurComponent}
+                    }, true);
+                }
+            }
         }
 
     }
