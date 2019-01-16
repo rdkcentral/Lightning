@@ -31,6 +31,7 @@ export default class Component extends View {
         const func = this.constructor.getTemplateFunc();
         func.f(this, func.a);
 
+        this.__build();
     }
 
     /**
@@ -209,6 +210,10 @@ export default class Component extends View {
 
     __construct() {
         this.fire('_construct');
+    }
+
+    __build() {
+        this.fire('_build');
     }
 
     __init() {

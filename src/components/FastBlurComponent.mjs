@@ -9,8 +9,7 @@ import MultiSpline from "../tools/MultiSpline.mjs";
 export default class FastBlurComponent extends Component {
     static _template() {
         return {
-            passSignals: true,
-            Wrap: {type: WebGLFastBlurComponent, _$c2d: {type: C2dFastBlurComponent}}
+            passSignals: true
         }
     }
 
@@ -57,6 +56,16 @@ export default class FastBlurComponent extends Component {
 
     get _passSignals() {
         return true;
+    }
+
+    static _states() {
+        return {
+            _build() {
+                this.patch({
+                    Wrap: {type: this.stage.gl ? WebGLFastBlurComponent : C2dFastBlurComponent}
+                }, true);
+            }
+        }
     }
 
 }
