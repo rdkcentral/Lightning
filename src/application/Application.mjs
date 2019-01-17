@@ -71,12 +71,12 @@ export default class Application extends Component {
     }
 
     __updateFocus() {
-        if (this.__updateFocusRec()) {
-            // Performance optimization: do not gather settings if no handler is defined.
-            if (this._handleFocusSettings !== Application.prototype._handleFocusSettings) {
-                if (!Application.booting) {
-                    this.updateFocusSettings();
-                }
+        this.__updateFocusRec();
+
+        // Performance optimization: do not gather settings if no handler is defined.
+        if (this._handleFocusSettings !== Application.prototype._handleFocusSettings) {
+            if (!Application.booting) {
+                this.updateFocusSettings();
             }
         }
     }
