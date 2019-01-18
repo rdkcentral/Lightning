@@ -1,6 +1,6 @@
 import View from "../tree/View.mjs";
 import Utils from "../tree/Utils.mjs";
-import Base from "../tree/Base.mjs";
+import StateMachine from "./StateMachine.mjs";
 
 export default class Component extends View {
 
@@ -15,7 +15,7 @@ export default class Component extends View {
         }
 
         // Start with root state;
-        this.__state = "";
+        this._initStateMachine();
 
         this.__initialized = false;
         this.__firstActive = false;
@@ -157,7 +157,7 @@ export default class Component extends View {
 
     _onSetup() {
         if (!this.__initialized) {
-            this.fire('_setup');
+            this._fire('setup');
         }
     }
 
@@ -167,37 +167,37 @@ export default class Component extends View {
             this.__initialized = true;
         }
 
-        this.fire('_attach');
+        this._fire('attach');
     }
 
     _onDetach() {
-        this.fire('_detach');
+        this._fire('detach');
     }
 
     _onEnabled() {
         if (!this.__firstEnable) {
-            this.fire('_firstEnable');
+            this._fire('firstEnable');
             this.__firstEnable = true;
         }
 
-        this.fire('_enable');
+        this._fire('enable');
     }
 
     _onDisabled() {
-        this.fire('_disable');
+        this._fire('disable');
     }
 
     _onActive() {
         if (!this.__firstActive) {
-            this.fire('_firstActive');
+            this._fire('firstActive');
             this.__firstActive = true;
         }
 
-        this.fire('_active');
+        this._fire('active');
     }
 
     _onInactive() {
-        this.fire('_inactive');
+        this._fire('inactive');
     }
 
     get application() {
@@ -209,35 +209,35 @@ export default class Component extends View {
     }
 
     __construct() {
-        this.fire('_construct');
+        this._fire('construct');
     }
 
     __build() {
-        this.fire('_build');
+        this._fire('build');
     }
 
     __init() {
-        this.fire('_init');
+        this._fire('init');
     }
 
     __focus(newTarget, prevTarget) {
-        this.fire('_focus', {newTarget: newTarget, prevTarget: prevTarget});
+        this._fire('focus', [newTarget, prevTarget]);
     }
 
     __unfocus(newTarget) {
-        this.fire('_unfocus', {newTarget: newTarget});
+        this._fire('unfocus', [newTarget]);
     }
 
     __focusBranch(target) {
-        this.fire('_focusBranch', {target: target});
+        this._fire('focusBranch', [target]);
     }
 
     __unfocusBranch(target, newTarget) {
-        this.fire('_unfocusBranch', {target:target, newTarget:newTarget});
+        this._fire('unfocusBranch', [target, newTarget]);
     }
 
     __focusChange(target, newTarget) {
-        this.fire('_focusChange', {target:target, newTarget:newTarget});
+        this._fire('focusChange', [target, newTarget]);
     }
 
     _getFocused() {
@@ -247,24 +247,6 @@ export default class Component extends View {
 
     _setFocusSettings(settings) {
         // Override to add custom settings. See Application._handleFocusSettings().
-    }
-
-    _getStates() {
-        // Be careful with class-based static inheritance.
-        if (this.constructor.__hasStates !== this.constructor) {
-            this.constructor.__hasStates = this.constructor;
-
-            this.constructor.__states = this.constructor._states();
-            if (!Utils.isObjectLiteral(this.constructor.__states)) {
-                this._throwError("States object empty");
-            }
-        }
-
-        return this.constructor.__states;
-    }
-
-    static _states() {
-        return {}
     }
 
     _getTemplate() {
@@ -316,20 +298,6 @@ export default class Component extends View {
     }
 
     /**
-     * Fires the specified event on the state machine.
-     * @param event
-     * @param {object} args
-     * @return {boolean}
-     *   True iff the state machine could find and execute a handler for the event (event and condition matched).
-     */
-    fire(event, args = {}) {
-        if (!Utils.isObjectLiteral(args)) {
-            this._throwError("Fire: args must be object");
-        }
-        return this.application.stateManager.fire(this, event, args);
-    }
-
-    /**
      * Signals the parent of the specified event.
      * A parent/ancestor that wishes to handle the signal should set the 'signals' property on this component.
      * @param {string} event
@@ -356,7 +324,7 @@ export default class Component extends View {
                     fireEvent = event;
                 }
 
-                const handled = this.cparent.fire(fireEvent, args);
+                const handled = this.cparent._fire(fireEvent, args);
                 if (handled) return;
             }
         }
@@ -421,7 +389,7 @@ export default class Component extends View {
                     fireEvent = event;
                 }
 
-                const handled = this.fire(fireEvent, args);
+                const handled = this._fire(fireEvent, args);
                 if (handled) {
                     // Skip propagation
                     return;
@@ -478,3 +446,10 @@ export default class Component extends View {
 }
 
 Component.prototype.isComponent = true;
+
+StateMachine.mixin(Component, {
+    logInfoFunction: Component.prototype.getLocationString,
+    onAfterPrimaryFire: function() {
+        this.application.updateFocusPath();
+    }
+});

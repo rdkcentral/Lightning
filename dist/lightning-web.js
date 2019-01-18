@@ -9880,6 +9880,432 @@ var lng = (function () {
     // Setters reused when referencing view (subobject) properties by a property path, as used in a transition or animation ('x', 'texture.x', etc).
     View.PROP_SETTERS = new Map();
 
+    class StateMachine {
+
+        constructor(config) {
+            this._initStateMachine(config);
+        }
+
+        /**
+         * Initializes the state machine instance on the target.
+         * @param {object} [config]
+         */
+        _initStateMachine(config) {
+            this._type = this.constructor;
+            this._currentState = this._sm_getStateByPath("");
+            this._setStateCounter = 0;
+            this._sm_config = config;
+
+            const context = {newState: "", prevState: null, sharedState: null, currentFire: null};
+            this._sm_callEnter(this._currentState, [], context);
+        }
+
+        /**
+         * Returns the current state path (for example "Initialized_Loading").
+         * @returns {string}
+         */
+        _getState() {
+            return this._currentState.__path;
+        }
+
+        /**
+         * Returns true iff statePath is (an ancestor of) currentStatePath.
+         * @param {string} statePath
+         * @param {string} currentStatePath
+         * @returns {Boolean}
+         */
+        _inState(statePath, currentStatePath = this._currentState.__path) {
+            const state = this._sm_getStateByPath(statePath);
+            const currentState = this._sm_getStateByPath(currentStatePath);
+            const level = state.__level;
+            const stateAtLevel = StateMachine._getStateAtLevel(currentState, level);
+            return (stateAtLevel === state);
+        }
+        
+        _getCurrentFire() {
+            return this._currentFire;
+        }
+
+        /**
+         * Fires the specified event on the state machine.
+         * @param {string} event
+         * @param {*[]} [args];
+         * @param {string} [statePath]
+         *   The state path to call fire on. By default, the current path.
+         * @return {*}
+         *   The return value of the matching event handler.
+         */
+        _fire(event, args = [], statePath = undefined) {
+            const state = statePath !== undefined ? this._sm_getStateByPath(statePath) : this._currentState;
+            const handlerInfo = state[event];
+            if (handlerInfo) {
+                const prevCurrentFire = this._currentFire;
+                const currentFire = {s: handlerInfo.s, e: event, a: args, m: handlerInfo.m};
+                this._currentFire = currentFire;
+
+                const currentFireLevel = this._fireLevel;
+
+                let result;
+
+                try {
+                    this._sm_preFire();
+
+                    // DEBUGGING? Step in here for the handler!
+                    result = handlerInfo.m.apply(this, args);
+
+                    if (result === StateMachine.FIRE_NOT_HANDLED) {
+                        if (this._sm_debug()) console.log(`${StateMachine._getLogPrefix()}[FIRE_NOT_HANDLED]`);
+                        const parentState = handlerInfo.s.__parent;
+                        if (parentState) {
+                            result = this._fire(event, args, parentState.__path);
+                        }
+                    }
+
+                    this._currentFire = prevCurrentFire;
+
+                    this._sm_postFire(currentFire);
+                } finally {
+                    // Make sure that the fire level is recovered (even if there were errors).
+                    this._fireLevel = currentFireLevel;
+                }
+
+                return result;
+            } else {
+                if (handlerInfo === undefined) {
+                    // This will make lookups faster in the future.
+                    this._type._sm_rootState[event] = null;
+                }
+                return StateMachine.FIRE_NOT_HANDLED;
+            }
+        }
+
+        /**
+         * Fires the specified event on the state machine.
+         * @param {object[]} events
+         *   Either a single event, or an array of events ({event: 'name', args: *}.
+         *   The event is fired that has a match in the deepest state.
+         *   If multiple events match in the deepest state, the first specified one has priority.
+         * @param {string} [statePath]
+         *   The state path to call fire on. By default, the current path.
+         * @return {*}
+         *   The return value of the matching event handler.
+         */
+        _fireMultiple(events, statePath = undefined) {
+            const state = statePath !== undefined ? this._sm_getStateByPath(statePath) : this._currentState;
+
+            const handlerState = this._sm_getDeepestHandlerState(events, state);
+            if (handlerState) {
+                for (let i = 0, n = events.length; i < n; i++) {
+                    const event = events[i].event;
+                    const handlerInfo = state[event];
+                    if (handlerInfo && handlerInfo.s === handlerState) {
+                        const result = this._fire(event, events[i].args, state.__path);
+                        if (result !== StateMachine.FIRE_NOT_HANDLED) {
+                            return result;
+                        }
+                    }
+                }
+
+                if (handlerState.__parent) {
+                    // All handlers for this level returned FIRE_NOT_HANDLED, so try parent as well.
+                    return this._fireMultiple(events, handlerState);
+                }
+            }
+            return StateMachine.FIRE_NOT_HANDLED;
+        }
+
+        /**
+         * Switches to the specified state.
+         * @param {string} statePath
+         *   Substates are seperated by a underscores (for example "Initialized_Loading").
+         * @param {*[]} [args]
+         *   Args that are supplied in $enter and $exit events.
+         */
+        _setState(statePath, args = []) {
+            const setStateId = ++this._setStateCounter;
+            this._setStateId = setStateId;
+
+            if (this._currentState.__path !== statePath) {
+                if (this._sm_debug()) console.log(`${StateMachine._getLogPrefix()} ╚>${statePath}`);
+
+                const newState = this._sm_getStateByPath(statePath);
+                const sharedState = StateMachine._getSharedState(this._currentState, newState);
+
+                const sharedLevel = sharedState.__level;
+                const exitStates = StateMachine._getStatesUntilLevel(this._currentState, sharedLevel);
+                const enterStates = StateMachine._getStatesUntilLevel(newState, sharedLevel).reverse();
+
+                const context = {newState: newState.__path, prevState: this._currentState.__path, sharedState: sharedState.__path, currentFire: this._currentFire};
+
+                for (let i = 0, n = exitStates.length; i < n; i++) {
+                    this._currentState = exitStates[i];
+                    this._sm_callExit(this._currentState, args, context);
+                    const stateChangeOverridden = (this._setStateId !== setStateId);
+                    if (stateChangeOverridden) {
+                        return;
+                    }
+                }
+
+                for (let i = 0, n = enterStates.length; i < n; i++) {
+                    this._currentState = enterStates[i];
+                    this._sm_callEnter(this._currentState, args, context);
+                    const stateChangeOverridden = (this._setStateId !== setStateId);
+                    if (stateChangeOverridden) {
+                        return;
+                    }
+                }
+
+                this._currentState = newState;
+                this._fire('changedState', [args, context]);
+            }
+        }
+
+        _sm_getDeepestHandlerState(events, state) {
+            let result;
+            for (let i = 0, n = events.length; i < n; i++) {
+                const event = events[i].event;
+                const handlerInfo = state[event];
+                if (handlerInfo) {
+                    const eventLevel = handlerInfo.s.__level;
+                    if (!result || eventLevel < result.__level) {
+                        result = handlerInfo.s;
+                    }
+                }
+            }
+            return result;
+        }
+
+        get FIRE_NOT_HANDLED() {
+            return StateMachine.FIRE_NOT_HANDLED;
+        }
+
+        static _getLogPrefix(char = "║") {
+            let v = char;
+            for (let i = 0; i < StateMachine._fireLevel - 1; i++) {
+                v = v + " ";
+            }
+            return v;
+        }
+
+        _sm_getExtraLogInfo() {
+            const infoFunction = this._sm_getLogInfoFunction();
+            if (this._sm_getLogInfoFunction()) {
+                return infoFunction.apply(this, []);
+            } else {
+                return "";
+            }
+        }
+
+        _sm_preFire() {
+            StateMachine._fireLevel++;
+            if (this._sm_debug()) console.log(`${StateMachine._getLogPrefix(StateMachine._fireLevel === 1 ? "╬" : "║")} FIRE ${this._currentFire.e} (state "${this._currentState.__path}") [${this._currentFire.m.name}] @ "${this._type.name} ${this._sm_getExtraLogInfo()}"`);
+        }
+
+        _sm_postFire(currentFire) {
+            StateMachine._fireLevel--;
+
+            if (StateMachine._fireLevel === 0) {
+                const func = this._sm_getOnAfterPrimaryFire();
+                if (func) {
+                    func.apply(this, [currentFire]);
+                }
+            }
+        }
+
+        _sm_callEnter(state, args, context) {
+            const p = state.__path;
+            const methodName = `\$${p ? p + "_" : ""}enter`;
+            if (this[methodName]) {
+                this[methodName]({args, context});
+            }
+        }
+
+        _sm_callExit(state, args, context) {
+            const p = state.__path;
+            const methodName = `\$${p ? p + "_" : ""}exit`;
+            if (this[methodName]) {
+                this[methodName]({args, context});
+            }
+        }
+
+        _sm_getStateByPath(statePath) {
+            const map = StateMachine._getStateMap(this._type);
+            if (map[statePath]) {
+                return map[statePath];
+            } else {
+                return StateMachine._ensureState(this._type, statePath);
+            }
+        }
+
+        _getConfig(name) {
+            if (this._sm_config) {
+                if (this._sm_config.hasOwnProperty(name)) {
+                    return this._sm_config[name];
+                }
+            }
+
+            if (this._type._sm_config) {
+                if (this._type._sm_config.hasOwnProperty(name)) {
+                    return this._type._sm_config[name];
+                }
+            }
+        }
+
+        _sm_debug() {
+            return this._getConfig('debug');
+        }
+
+        _sm_getLogInfoFunction() {
+            return this._getConfig('logInfoFunction');
+        }
+
+        _sm_getOnAfterPrimaryFire() {
+            return this._getConfig('onAfterPrimaryFire');
+        }
+
+        static _getStatesUntilLevel(state, level) {
+            const states = [];
+            while (state.__level > level) {
+                states.push(state);
+                state = state.__parent;
+            }
+            return states;
+        }
+
+        static _getSharedState(state1, state2) {
+            const state1Array = StateMachine._getAncestorStates(state1);
+            const state2Array = StateMachine._getAncestorStates(state2);
+            const n = Math.min(state1Array.length, state2Array.length);
+            for (let i = 0; i < n; i++) {
+                if (state1Array[i] !== state2Array[i]) {
+                    return state1Array[i - 1];
+                }
+            }
+            return state1Array[n - 1];
+        }
+
+        static _getAncestorStates(state) {
+            const result = [];
+            do {
+                result.push(state);
+            } while(state = state.__parent);
+            return result.reverse();
+        }
+
+        static _getStateAtLevel(state, level) {
+            if (level > state.__level) {
+                return undefined;
+            }
+
+            while(level < state.__level) {
+                state = state.__parent;
+            }
+            return state;
+        }
+
+        static _getStateMap(type) {
+            if (type.hasOwnProperty('_sm_stateMap')) {
+                return type._sm_stateMap;
+            }
+
+            // We always need a 'root' state.
+            type._sm_stateMap = {};
+            type._sm_rootState = this._addState(type, null, "");
+            this._fillStateMapRecursive(type);
+            return type._sm_stateMap;
+        }
+
+        static _fillStateMapRecursive(type) {
+            const names = this._getPropertyEventMethodNames(type);
+            for (let i = 0, n = names.length; i < n; i++) {
+                const name = names[i];
+                const parts = name.substr(1).split("_");
+                const event = parts.pop();
+                const statePath = parts.join("_");
+                let state;
+                if (statePath !== "") {
+                    state = this._ensureState(type, statePath);
+                } else {
+                    state = type._sm_rootState;
+                }
+                const method = type.prototype[name];
+                state[event] = {m: method, s: state};
+            }
+        }
+
+        static _getPropertyEventMethodNames(type) {
+            const properties = [];
+
+            let current = type;
+            while(current.prototype) {
+                const names = Object.getOwnPropertyNames(current.prototype);
+                for (let i = 0, n = names.length; i < n; i++) {
+                    const name = names[i];
+                    const isEventHandler = name.charAt(0) === "$" && (name.length > 0);
+                    if (isEventHandler) {
+                        properties.push(name);
+                    }
+                }
+                current = Object.getPrototypeOf(current);
+            }
+
+            return properties;
+        }
+
+        static _ensureState(type, statePath) {
+            let result = type._sm_stateMap[statePath];
+            if (!result) {
+                const statePathArray = statePath.split("_");
+                let current = type._sm_rootState;
+                let currentPath = "";
+                for (let i = 0, n = statePathArray.length; i < n; i++) {
+                    currentPath += (currentPath ? "_" : "") + statePathArray[i];
+                    let sub = type._sm_stateMap[currentPath];
+                    if (!sub) {
+                        sub = this._addState(type, current, statePathArray[i]);
+                    }
+                    current = sub;
+                }
+                result = current;
+            }
+            return result;
+        }
+
+        static _addState(type, parentState, name) {
+            const newState = Object.create(parentState);
+            newState.__name = name;
+            newState.__subs = {};
+            if (parentState) {
+                parentState.__subs[name] = newState;
+            }
+            const parentPath = (parentState ? parentState.__path : "");
+            let path = (parentPath ? parentPath + "_" : "") + name;
+            newState.__path = path;
+            newState.__level = parentState ? parentState.__level + 1 : 0;
+            newState.__parent = parentState;
+            type._sm_stateMap[path] = newState;
+            return newState;
+        }
+
+        static mixin(type, config) {
+            type._sm_config = config;
+
+            const names = Object.getOwnPropertyNames(StateMachine.prototype);
+            for (let i = 0, n = names.length; i < n; i++) {
+                const name = names[i];
+                if (name !== "constructor") {
+                    const descriptor = Object.getOwnPropertyDescriptor(StateMachine.prototype, name);
+                    Object.defineProperty(type.prototype, name, descriptor);
+                }
+            }
+        }
+
+    }
+
+    StateMachine._fireLevel = 0;
+    StateMachine._lastPrimaryFireId = 0;
+    StateMachine.FIRE_NOT_HANDLED = Symbol("FIRE_NOT_HANDLED");
+
     class Component extends View {
 
         constructor(stage, properties) {
@@ -9893,7 +10319,7 @@ var lng = (function () {
             }
 
             // Start with root state;
-            this.__state = "";
+            this._initStateMachine();
 
             this.__initialized = false;
             this.__firstActive = false;
@@ -10035,7 +10461,7 @@ var lng = (function () {
 
         _onSetup() {
             if (!this.__initialized) {
-                this.fire('_setup');
+                this._fire('setup');
             }
         }
 
@@ -10045,37 +10471,37 @@ var lng = (function () {
                 this.__initialized = true;
             }
 
-            this.fire('_attach');
+            this._fire('attach');
         }
 
         _onDetach() {
-            this.fire('_detach');
+            this._fire('detach');
         }
 
         _onEnabled() {
             if (!this.__firstEnable) {
-                this.fire('_firstEnable');
+                this._fire('firstEnable');
                 this.__firstEnable = true;
             }
 
-            this.fire('_enable');
+            this._fire('enable');
         }
 
         _onDisabled() {
-            this.fire('_disable');
+            this._fire('disable');
         }
 
         _onActive() {
             if (!this.__firstActive) {
-                this.fire('_firstActive');
+                this._fire('firstActive');
                 this.__firstActive = true;
             }
 
-            this.fire('_active');
+            this._fire('active');
         }
 
         _onInactive() {
-            this.fire('_inactive');
+            this._fire('inactive');
         }
 
         get application() {
@@ -10087,35 +10513,35 @@ var lng = (function () {
         }
 
         __construct() {
-            this.fire('_construct');
+            this._fire('construct');
         }
 
         __build() {
-            this.fire('_build');
+            this._fire('build');
         }
 
         __init() {
-            this.fire('_init');
+            this._fire('init');
         }
 
         __focus(newTarget, prevTarget) {
-            this.fire('_focus', {newTarget: newTarget, prevTarget: prevTarget});
+            this._fire('focus', [newTarget, prevTarget]);
         }
 
         __unfocus(newTarget) {
-            this.fire('_unfocus', {newTarget: newTarget});
+            this._fire('unfocus', [newTarget]);
         }
 
         __focusBranch(target) {
-            this.fire('_focusBranch', {target: target});
+            this._fire('focusBranch', [target]);
         }
 
         __unfocusBranch(target, newTarget) {
-            this.fire('_unfocusBranch', {target:target, newTarget:newTarget});
+            this._fire('unfocusBranch', [target, newTarget]);
         }
 
         __focusChange(target, newTarget) {
-            this.fire('_focusChange', {target:target, newTarget:newTarget});
+            this._fire('focusChange', [target, newTarget]);
         }
 
         _getFocused() {
@@ -10125,24 +10551,6 @@ var lng = (function () {
 
         _setFocusSettings(settings) {
             // Override to add custom settings. See Application._handleFocusSettings().
-        }
-
-        _getStates() {
-            // Be careful with class-based static inheritance.
-            if (this.constructor.__hasStates !== this.constructor) {
-                this.constructor.__hasStates = this.constructor;
-
-                this.constructor.__states = this.constructor._states();
-                if (!Utils.isObjectLiteral(this.constructor.__states)) {
-                    this._throwError("States object empty");
-                }
-            }
-
-            return this.constructor.__states;
-        }
-
-        static _states() {
-            return {}
         }
 
         _getTemplate() {
@@ -10194,20 +10602,6 @@ var lng = (function () {
         }
 
         /**
-         * Fires the specified event on the state machine.
-         * @param event
-         * @param {object} args
-         * @return {boolean}
-         *   True iff the state machine could find and execute a handler for the event (event and condition matched).
-         */
-        fire(event, args = {}) {
-            if (!Utils.isObjectLiteral(args)) {
-                this._throwError("Fire: args must be object");
-            }
-            return this.application.stateManager.fire(this, event, args);
-        }
-
-        /**
          * Signals the parent of the specified event.
          * A parent/ancestor that wishes to handle the signal should set the 'signals' property on this component.
          * @param {string} event
@@ -10234,7 +10628,7 @@ var lng = (function () {
                         fireEvent = event;
                     }
 
-                    const handled = this.cparent.fire(fireEvent, args);
+                    const handled = this.cparent._fire(fireEvent, args);
                     if (handled) return;
                 }
             }
@@ -10299,7 +10693,7 @@ var lng = (function () {
                         fireEvent = event;
                     }
 
-                    const handled = this.fire(fireEvent, args);
+                    const handled = this._fire(fireEvent, args);
                     if (handled) {
                         // Skip propagation
                         return;
@@ -10356,6 +10750,13 @@ var lng = (function () {
     }
 
     Component.prototype.isComponent = true;
+
+    StateMachine.mixin(Component, {
+        logInfoFunction: Component.prototype.getLocationString,
+        onAfterPrimaryFire: function() {
+            this.application.updateFocusPath();
+        }
+    });
 
     class CoreQuadList {
 
@@ -15666,307 +16067,6 @@ var lng = (function () {
 
     }
 
-    class StateManager {
-
-        constructor() {
-            this._fireLevel = 0;
-            this._logPrefix = "";
-            this._debug = false;
-        }
-
-        get debug() {
-            return this._debug;
-        }
-
-        set debug(v) {
-            this._debug = v;
-        }
-
-        /**
-         * Fires the specified event on the state machine.
-         * @param {Component} component
-         * @param {string|object[]} event
-         *   Either a single event, or an array of events ({event: 'name', args: *}.
-         *   In case of an array, the event is fired that had a match in the deepest state.
-         *   If multiple events match in the deepest state, the first specified one has priority.
-         * @param {*} args;
-         * @return {boolean}
-         *   True iff the state machine could find and execute a handler for the event (event and condition matched).
-         */
-        fire(component, event, args) {
-            // After an event is fired (by external means), the action may cause other events to be triggered. We
-            // distinguish between primary and indirect events because we have to perform some operations after primary
-            // events only.
-
-            // Purely for logging.
-            const primaryEvent = (this._fireLevel === 0);
-            this._fireLevel++;
-
-            if (this.debug) {
-                if (!primaryEvent) {
-                    this._logPrefix += " ";
-                } else {
-                    this._logPrefix = "";
-                }
-            }
-
-            let found;
-            try {
-                if (Array.isArray(event)) {
-                    found = this._mfire(component, event, args);
-                } else {
-                    found = this._fire(component, event, args);
-                }
-
-                if (found && primaryEvent) {
-                    // Update focus.
-                    component.application.__updateFocus();
-                }
-            } catch(e) {
-                console.error(`${component.constructor.name} "${component.state}".${event} ${component.getLocationString()}`);
-                console.error(e.stack);
-            }
-
-            this._fireLevel--;
-
-            if (this.debug) {
-                this._logPrefix = this._logPrefix.substr(0, this._logPrefix.length - 1);
-            }
-
-            return !!found;
-        }
-
-        _fire(component, event, args) {
-            if (Utils.isUcChar(event.charCodeAt(0))) {
-                component._throwError("Event may not start with an upper case character: " + event);
-            }
-
-            const paths = this._getStatePaths(component, component.state);
-            for (let i = 0, n = paths.length; i < n; i++) {
-                const result = this._attemptFirePathEvent(component, paths[i], event, args);
-                if (result) {
-                    return result;
-                }
-            }
-        }
-
-        _mfire(component, events) {
-            const paths = this._getStatePaths(component, component.state);
-            for (let j = 0, m = paths.length; j < m; j++) {
-                for (let i = 0, n = events.length; i < n; i++) {
-                    const result = this._attemptFirePathEvent(component, paths[j], events[i].event, events[i].args);
-                    if (result) {
-                        return result;
-                    }
-                }
-            }
-        }
-
-        _attemptFirePathEvent(component, path, event, args) {
-            const result = StateManager._getStateAction(path, event);
-            if (result) {
-                let validAction = (result.s !== undefined);
-                let newState = result.s;
-                if (result.a) {
-                    if (this.debug) {
-                        console.log(`${this._logPrefix}${component.constructor.name} "${component.state}".${event} ${component.getLocationString()}`);
-                    }
-                    newState = result.a.call(component, args);
-                    validAction = (newState !== false);
-                    if (!validAction) {
-                        if (this.debug) {
-                            console.log(`${this._logPrefix}[PASS THROUGH]`);
-                        }
-                    }
-                }
-                if (validAction) {
-                    result.event = event;
-                    result.args = args;
-                    result.s = newState;
-                    result.p = path;
-
-                    const prevState = component.state;
-
-                    if (Utils.isString(newState)) {
-                        this._setState(component, StateManager._ucfirst(newState), {event: event, args: args, prevState: prevState, newState: newState});
-                    }
-
-                    return result;
-                }
-            }
-        }
-
-        static _ucfirst(str) {
-            return str.charAt(0).toUpperCase() + str.substr(1);
-        }
-
-        _getStatePaths(component, state) {
-            const states = component._getStates();
-
-            if (state == "") return [states];
-            const parts = state.split(".");
-
-            let cursor = states;
-            const path = [cursor];
-            for (let i = 0, n = parts.length; i < n; i++) {
-                const key = StateManager._ucfirst(parts[i]);
-                if (!cursor.hasOwnProperty(key)) {
-                    component._throwError("State path not found: '" + state + "'");
-                }
-                cursor = cursor[key];
-                path.push(cursor);
-            }
-            return path.reverse();
-        }
-
-        /**
-         * Returns the active's edge action and state.
-         * @param {string} state
-         * @param event
-         * @return {object}
-         * @private;
-         */
-        static _getStateAction(state, event) {
-            if (!state.hasOwnProperty(event)) {
-                return null;
-            }
-            const def = state[event];
-
-            if (Utils.isFunction(def)) {
-                // Action.
-                return {a: def, s: undefined}
-            } else if (Utils.isString(def)) {
-                // State.
-                return {a: undefined, s: def}
-            }
-
-            return null;
-        }
-
-
-        _setState(component, newState, eargs) {
-            if (this.debug) {
-                console.log(`${this._logPrefix}╚>"${newState !== component.state ? newState : ""}"`);
-            }
-
-            if (newState !== component.state) {
-                this._fireLevel++;
-                if (this.debug) {
-                    this._logPrefix += " ";
-                }
-
-                const paths = this._getStatePaths(component, component.state);
-
-                // Switch state to new state.
-                const newPaths = this._getStatePaths(component, newState);
-
-                const info = StateManager._compareStatePaths(paths, newPaths);
-                const exit = info.exit.reverse();
-                const enter = info.enter;
-                const state = component.state;
-                for (let i = 0, n = exit.length; i < n; i++) {
-                    component.__state = StateManager._getSuperState(state, i);
-                    const def = StateManager._getStateAction(exit[i], "_exit");
-                    if (def) {
-                        if (this.debug) {
-                            console.log(`${this._logPrefix}${component.constructor.name} "${component.state}"._exit ${component.getLocationString()}`);
-                        }
-                        let stateSwitch = StateManager._executeAction(def, component, eargs);
-                        if (stateSwitch === false) {
-                            if (this.debug) {
-                                console.log(`${this._logPrefix}[CANCELED]`);
-                            }
-                        } else if (stateSwitch) {
-                            const info = this._setState(
-                                component,
-                                stateSwitch,
-                                eargs
-                            );
-
-                            this._fireLevel--;
-                            if (this.debug) {
-                                this._logPrefix = this._logPrefix.substr(0, this._logPrefix.length - 1);
-                            }
-
-                            return info;
-                        }
-                    }
-                }
-
-                component.__state = StateManager._getSuperState(state, exit.length);
-
-                for (let i = 0, n = enter.length; i < n; i++) {
-                    component.__state = StateManager._getSuperState(newState, (n - (i + 1)));
-                    const def = StateManager._getStateAction(enter[i], "_enter");
-                    if (def) {
-                        if (this.debug) {
-                            console.log(`${this._logPrefix}${component.constructor.name} "${newState}"._enter ${component.getLocationString()}`);
-                        }
-                        let stateSwitch = StateManager._executeAction(def, component, eargs);
-                        if (stateSwitch === false) {
-                            if (this.debug) {
-                                console.log(`${this._logPrefix}[CANCELED]`);
-                            }
-                        } else if (stateSwitch) {
-                            const info = this._setState(
-                                component,
-                                stateSwitch,
-                                eargs
-                            );
-
-                            this._fireLevel--;
-                            if (this.debug) {
-                                this._logPrefix = this._logPrefix.substr(0, this._logPrefix.length - 1);
-                            }
-
-                            return info;
-                        }
-                    }
-                }
-
-                this._fireLevel--;
-                if (this.debug) {
-                    this._logPrefix = this._logPrefix.substr(0, this._logPrefix.length - 1);
-                }
-            }
-
-        }
-
-        static _executeAction(action, component, args) {
-            let newState;
-            if (action.a) {
-                newState = action.a.call(component, args);
-            }
-            if (newState === undefined) {
-                newState = action.s;
-            }
-            return newState;
-        }
-
-        static _getSuperState(state, levels) {
-            if (levels === 0) {
-                return state;
-            }
-            return state.split(".").slice(0, -levels).join(".");
-        }
-
-        /**
-         * Returns the exit states and enter states when switching states (in natural branch order).
-         */
-        static _compareStatePaths(current, newPaths) {
-            current = current.reverse();
-            newPaths = newPaths.reverse();
-            const n = Math.min(current.length, newPaths.length);
-            let pos;
-            for (pos = 0; pos < n; pos++) {
-                if (current[pos] !== newPaths[pos]) break;
-            }
-
-            return {exit: current.slice(pos), enter: newPaths.slice(pos)}
-        }
-
-    }
-
     class Application extends Component {
 
         constructor(options = {}, properties) {
@@ -16021,10 +16121,6 @@ var lng = (function () {
             this._setOptions(Application._temp_options);
             delete Application._temp_options;
 
-            // We must create the state manager before the first 'fire' ever: the 'construct' event.
-            this.stateManager = new StateManager();
-            this.stateManager.debug = this.__options.debug;
-
             super.__construct();
         }
 
@@ -16038,12 +16134,12 @@ var lng = (function () {
         }
 
         __updateFocus() {
-            if (this.__updateFocusRec()) {
-                // Performance optimization: do not gather settings if no handler is defined.
-                if (this._handleFocusSettings !== Application.prototype._handleFocusSettings) {
-                    if (!Application.booting) {
-                        this.updateFocusSettings();
-                    }
+            this.__updateFocusRec();
+
+            // Performance optimization: do not gather settings if no handler is defined.
+            if (this._handleFocusSettings !== Application.prototype._handleFocusSettings) {
+                if (!Application.booting) {
+                    this.updateFocusSettings();
                 }
             }
         }
@@ -16073,7 +16169,7 @@ var lng = (function () {
 
                 if (this._focusPath.length !== newFocusPath.length || index !== newFocusPath.length) {
                     if (this.__options.debug) {
-                        console.log(this.stateManager._logPrefix + '* FOCUS ' + newFocusedComponent.getLocationString());
+                        console.log(StateMachine._getLogPrefix() + ' FOCUS ' + newFocusedComponent.getLocationString());
                     }
                     // Unfocus events.
                     for (let i = this._focusPath.length - 1; i >= index; i--) {
@@ -16175,14 +16271,14 @@ var lng = (function () {
             if (Array.isArray(event)) {
                 // Multiple events.
                 for (let i = 0; i < n; i++) {
-                    if (path[i].fire(event)) {
+                    if (path[i]._fireMultiple(event) !== path[i].FIRE_NOT_HANDLED) {
                         return true;
                     }
                 }
             } else {
                 // Single event.
                 for (let i = 0; i < n; i++) {
-                    if (path[i].fire(event, args)) {
+                    if (path[i]._fire(event, args) !== path[i].FIRE_NOT_HANDLED) {
                         return true;
                     }
                 }
@@ -16199,14 +16295,14 @@ var lng = (function () {
             if (Array.isArray(event)) {
                 // Multiple events.
                 for (let i = n - 1; i >= 0; i--) {
-                    if (path[i].fire(event)) {
+                    if (path[i]._fireMultiple(event) !== path[i].FIRE_NOT_HANDLED) {
                         return true;
                     }
                 }
             } else {
                 // Single event.
                 for (let i = n - 1; i >= 0; i--) {
-                    if (path[i].fire(event, args)) {
+                    if (path[i]._fire(event, args) !== path[i].FIRE_NOT_HANDLED) {
                         return true;
                     }
                 }
@@ -16217,12 +16313,12 @@ var lng = (function () {
         _receiveKeydown(e) {
             const obj = {keyCode: e.keyCode};
             if (this.__keymap[e.keyCode]) {
-                if (!this.stage.application.focusTopDownEvent([{event: "_capture" + this.__keymap[e.keyCode], args: obj}, {event: "_captureKey", args: obj}])) {
-                    this.stage.application.focusBottomUpEvent([{event: "_handle" + this.__keymap[e.keyCode], args: obj}, {event: "_handleKey", args: obj}]);
+                if (!this.stage.application.focusTopDownEvent([{event: "capture" + this.__keymap[e.keyCode], args: obj}, {event: "captureKey", args: obj}])) {
+                    this.stage.application.focusBottomUpEvent([{event: "handle" + this.__keymap[e.keyCode], args: obj}, {event: "handleKey", args: obj}]);
                 }
             } else {
-                if (!this.stage.application.focusTopDownEvent("_captureKey", obj)) {
-                    this.stage.application.focusBottomUpEvent("_handleKey", obj);
+                if (!this.stage.application.focusTopDownEvent("captureKey", obj)) {
+                    this.stage.application.focusBottomUpEvent("handleKey", obj);
                 }
             }
         }

@@ -1,4 +1,5 @@
 import Component from "./Component.mjs";
+import StateMachine from "./StateMachine.mjs";
 
 export default class Application extends Component {
 
@@ -54,10 +55,6 @@ export default class Application extends Component {
         this._setOptions(Application._temp_options);
         delete Application._temp_options;
 
-        // We must create the state manager before the first 'fire' ever: the 'construct' event.
-        this.stateManager = new StateManager();
-        this.stateManager.debug = this.__options.debug;
-
         super.__construct();
     }
 
@@ -106,7 +103,7 @@ export default class Application extends Component {
 
             if (this._focusPath.length !== newFocusPath.length || index !== newFocusPath.length) {
                 if (this.__options.debug) {
-                    console.log(this.stateManager._logPrefix + '* FOCUS ' + newFocusedComponent.getLocationString());
+                    console.log(StateMachine._getLogPrefix() + ' FOCUS ' + newFocusedComponent.getLocationString());
                 }
                 // Unfocus events.
                 for (let i = this._focusPath.length - 1; i >= index; i--) {
@@ -208,14 +205,14 @@ export default class Application extends Component {
         if (Array.isArray(event)) {
             // Multiple events.
             for (let i = 0; i < n; i++) {
-                if (path[i].fire(event)) {
+                if (path[i]._fireMultiple(event) !== path[i].FIRE_NOT_HANDLED) {
                     return true;
                 }
             }
         } else {
             // Single event.
             for (let i = 0; i < n; i++) {
-                if (path[i].fire(event, args)) {
+                if (path[i]._fire(event, args) !== path[i].FIRE_NOT_HANDLED) {
                     return true;
                 }
             }
@@ -232,14 +229,14 @@ export default class Application extends Component {
         if (Array.isArray(event)) {
             // Multiple events.
             for (let i = n - 1; i >= 0; i--) {
-                if (path[i].fire(event)) {
+                if (path[i]._fireMultiple(event) !== path[i].FIRE_NOT_HANDLED) {
                     return true;
                 }
             }
         } else {
             // Single event.
             for (let i = n - 1; i >= 0; i--) {
-                if (path[i].fire(event, args)) {
+                if (path[i]._fire(event, args) !== path[i].FIRE_NOT_HANDLED) {
                     return true;
                 }
             }
@@ -250,12 +247,12 @@ export default class Application extends Component {
     _receiveKeydown(e) {
         const obj = {keyCode: e.keyCode}
         if (this.__keymap[e.keyCode]) {
-            if (!this.stage.application.focusTopDownEvent([{event: "_capture" + this.__keymap[e.keyCode], args: obj}, {event: "_captureKey", args: obj}])) {
-                this.stage.application.focusBottomUpEvent([{event: "_handle" + this.__keymap[e.keyCode], args: obj}, {event: "_handleKey", args: obj}]);
+            if (!this.stage.application.focusTopDownEvent([{event: "capture" + this.__keymap[e.keyCode], args: obj}, {event: "captureKey", args: obj}])) {
+                this.stage.application.focusBottomUpEvent([{event: "handle" + this.__keymap[e.keyCode], args: obj}, {event: "handleKey", args: obj}]);
             }
         } else {
-            if (!this.stage.application.focusTopDownEvent("_captureKey", obj)) {
-                this.stage.application.focusBottomUpEvent("_handleKey", obj);
+            if (!this.stage.application.focusTopDownEvent("captureKey", obj)) {
+                this.stage.application.focusBottomUpEvent("handleKey", obj);
             }
         }
     }
@@ -269,4 +266,3 @@ export default class Application extends Component {
 }
 
 import Stage from "../tree/Stage.mjs";
-import StateManager from "./StateManager.mjs";
