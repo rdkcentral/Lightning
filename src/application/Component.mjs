@@ -39,11 +39,15 @@ export default class Component extends View {
         this._onStateChange = Component.prototype.__onStateChange;
     }
 
+    get state() {
+        return this._getState();
+    }
+
     __onStateChange() {
         this.application.updateFocusPath();
     }
 
-    _updateFocusPath() {
+    _refocus() {
         this.application.updateFocusPath();
     }
 
@@ -244,10 +248,6 @@ export default class Component extends View {
         return this.stage.application;
     }
 
-    get state() {
-        return this.__state;
-    }
-
     __construct() {
         this._construct();
     }
@@ -323,18 +323,13 @@ export default class Component extends View {
      * Signals the parent of the specified event.
      * A parent/ancestor that wishes to handle the signal should set the 'signals' property on this component.
      * @param {string} event
-     * @param {boolean} bubble
      * @param {...*} args
      */
-    signal(event, bubble = false, ...args) {
-        if (!Utils.isObjectLiteral(args)) {
-            this._throwError("Signal: args must be object");
-        }
+    signal(event, ...args) {
+        this._signal(event, false, ...args);
+    }
 
-        if (!args._source) {
-            args = Object.assign({_source: this}, args);
-        }
-
+    _signal(event, bubble = false, ...args) {
         if (this.__signals && this.cparent) {
             let fireEvent = this.__signals[event];
             if (fireEvent === false) {

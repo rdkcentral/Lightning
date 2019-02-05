@@ -9915,6 +9915,16 @@ var lng = (function () {
         }
 
         /**
+         * Returns the index of the state with the specified name in the array.
+         * @param {Class[]} states
+         * @param {string} name
+         * @returns {number}
+         */
+        static getStatesIndex(states, name) {
+            return states.findIndex(state => state.name === name);
+        }
+
+        /**
          * Calls the specified method if it exists.
          * @param {string} event
          * @param {*...} args
@@ -10595,11 +10605,15 @@ var lng = (function () {
             this._onStateChange = Component.prototype.__onStateChange;
         }
 
+        get state() {
+            return this._getState();
+        }
+
         __onStateChange() {
             this.application.updateFocusPath();
         }
 
-        _updateFocusPath() {
+        _refocus() {
             this.application.updateFocusPath();
         }
 
@@ -10800,10 +10814,6 @@ var lng = (function () {
             return this.stage.application;
         }
 
-        get state() {
-            return this.__state;
-        }
-
         __construct() {
             this._construct();
         }
@@ -10879,18 +10889,13 @@ var lng = (function () {
          * Signals the parent of the specified event.
          * A parent/ancestor that wishes to handle the signal should set the 'signals' property on this component.
          * @param {string} event
-         * @param {boolean} bubble
          * @param {...*} args
          */
-        signal(event, bubble = false, ...args) {
-            if (!Utils.isObjectLiteral(args)) {
-                this._throwError("Signal: args must be object");
-            }
+        signal(event, ...args) {
+            this._signal(event, false, ...args);
+        }
 
-            if (!args._source) {
-                args = Object.assign({_source: this}, args);
-            }
-
+        _signal(event, bubble = false, ...args) {
             if (this.__signals && this.cparent) {
                 let fireEvent = this.__signals[event];
                 if (fireEvent === false) {
@@ -16427,7 +16432,7 @@ var lng = (function () {
 
                 if (this._focusPath.length !== newFocusPath.length || index !== newFocusPath.length) {
                     if (this.__options.debug) {
-                        console.log(StateMachine._getLogPrefix() + ' FOCUS ' + newFocusedComponent.getLocationString());
+                        console.log('FOCUS ' + newFocusedComponent.getLocationString());
                     }
                     // Unfocus events.
                     for (let i = this._focusPath.length - 1; i >= index; i--) {
@@ -16566,13 +16571,14 @@ var lng = (function () {
             const obj = {keyCode: e.keyCode};
             if (this.__keymap[e.keyCode]) {
                 if (!this.stage.application.focusTopDownEvent(["_capture" + this.__keymap[e.keyCode], "_captureKey"], obj)) {
-                    this.stage.application.focusTopDownEvent(["_handle" + this.__keymap[e.keyCode], "_handleKey"], obj);
+                    this.stage.application.focusBottomUpEvent(["_handle" + this.__keymap[e.keyCode], "_handleKey"], obj);
                 }
             } else {
                 if (!this.stage.application.focusTopDownEvent(["_captureKey"], obj)) {
                     this.stage.application.focusBottomUpEvent(["_handleKey"], obj);
                 }
             }
+            this.updateFocusPath();
         }
 
         destroy() {
@@ -17975,7 +17981,7 @@ var lng = (function () {
             this._paddingY = 0;
         }
 
-        _build() {
+        _buildLayers() {
             const filterShaderSettings = [{x:1,y:0,kernelRadius:1},{x:0,y:1,kernelRadius:1},{x:1.5,y:0,kernelRadius:1},{x:0,y:1.5,kernelRadius:1}];
             const filterShaders = filterShaderSettings.map(s => {
                 const shader = Shader.create(this.stage, Object.assign({type: LinearBlurShader}, s));
@@ -18131,7 +18137,7 @@ var lng = (function () {
         }
 
         _firstActive() {
-            this._build();
+            this._buildLayers();
         }
 
         get _passSignals() {

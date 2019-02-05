@@ -103,7 +103,7 @@ export default class Application extends Component {
 
             if (this._focusPath.length !== newFocusPath.length || index !== newFocusPath.length) {
                 if (this.__options.debug) {
-                    console.log(StateMachine._getLogPrefix() + ' FOCUS ' + newFocusedComponent.getLocationString());
+                    console.log('FOCUS ' + newFocusedComponent.getLocationString());
                 }
                 // Unfocus events.
                 for (let i = this._focusPath.length - 1; i >= index; i--) {
@@ -242,13 +242,14 @@ export default class Application extends Component {
         const obj = {keyCode: e.keyCode}
         if (this.__keymap[e.keyCode]) {
             if (!this.stage.application.focusTopDownEvent(["_capture" + this.__keymap[e.keyCode], "_captureKey"], obj)) {
-                this.stage.application.focusTopDownEvent(["_handle" + this.__keymap[e.keyCode], "_handleKey"], obj)
+                this.stage.application.focusBottomUpEvent(["_handle" + this.__keymap[e.keyCode], "_handleKey"], obj)
             }
         } else {
             if (!this.stage.application.focusTopDownEvent(["_captureKey"], obj)) {
                 this.stage.application.focusBottomUpEvent(["_handleKey"], obj);
             }
         }
+        this.updateFocusPath();
     }
 
     destroy() {

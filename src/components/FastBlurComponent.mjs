@@ -201,7 +201,7 @@ class WebGLFastBlurComponent extends Component {
         this._paddingY = 0;
     }
 
-    _build() {
+    _buildLayers() {
         const filterShaderSettings = [{x:1,y:0,kernelRadius:1},{x:0,y:1,kernelRadius:1},{x:1.5,y:0,kernelRadius:1},{x:0,y:1.5,kernelRadius:1}];
         const filterShaders = filterShaderSettings.map(s => {
             const shader = Shader.create(this.stage, Object.assign({type: LinearBlurShader}, s));
@@ -357,7 +357,7 @@ class WebGLFastBlurComponent extends Component {
     }
 
     _firstActive() {
-        this._build();
+        this._buildLayers();
     }
 
     get _passSignals() {
