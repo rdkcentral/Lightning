@@ -89,7 +89,7 @@ export default class Application extends Component {
 
             // Focus events.
             for (let i = 0, n = this._focusPath.length; i < n; i++) {
-                this._focusPath[i].__focus(newFocusedComponent, undefined);
+                this._focusPath[i]._focus(newFocusedComponent, undefined);
             }
             return true;
         } else {
@@ -107,19 +107,19 @@ export default class Application extends Component {
                 }
                 // Unfocus events.
                 for (let i = this._focusPath.length - 1; i >= index; i--) {
-                    this._focusPath[i].__unfocus(newFocusedComponent, prevFocusedComponent);
+                    this._focusPath[i]._unfocus(newFocusedComponent, prevFocusedComponent);
                 }
 
                 this._focusPath = newFocusPath;
 
                 // Focus events.
                 for (let i = index, n = this._focusPath.length; i < n; i++) {
-                    this._focusPath[i].__focus(newFocusedComponent, prevFocusedComponent);
+                    this._focusPath[i]._focus(newFocusedComponent, prevFocusedComponent);
                 }
 
                 // Focus changed events.
                 for (let i = 0; i < index; i++) {
-                    this._focusPath[i].__focusChange(newFocusedComponent, prevFocusedComponent);
+                    this._focusPath[i]._focusChange(newFocusedComponent, prevFocusedComponent);
                 }
 
                 // Focus events could trigger focus changes.
@@ -141,7 +141,7 @@ export default class Application extends Component {
 
         // Get focus settings. These can be used for dynamic application-wide settings that depend on the;
         // focus directly (such as the application background).
-        const focusSettings = {}
+        const focusSettings = {};
         for (let i = 0, n = this._focusPath.length; i < n; i++) {
             this._focusPath[i]._setFocusSettings(focusSettings);
         }
@@ -199,60 +199,54 @@ export default class Application extends Component {
     /**
      * Injects an event in the state machines, top-down from application to focused component.
      */
-    focusTopDownEvent(event, args) {
+    focusTopDownEvent(events, ...args) {
         const path = this.focusPath;
         const n = path.length;
-        if (Array.isArray(event)) {
-            // Multiple events.
-            for (let i = 0; i < n; i++) {
-                if (path[i]._fireMultiple(event) !== path[i].FIRE_NOT_HANDLED) {
-                    return true;
-                }
-            }
-        } else {
-            // Single event.
-            for (let i = 0; i < n; i++) {
-                if (path[i]._fire(event, args) !== path[i].FIRE_NOT_HANDLED) {
+
+        // Multiple events.
+        for (let i = 0; i < n; i++) {
+            const event = path[i]._getMostSpecificHandledMember(events);
+            if (event !== undefined) {
+                const returnValue = path[i][event](...args);
+                if (returnValue !== false) {
                     return true;
                 }
             }
         }
+
         return false;
     }
 
     /**
      * Injects an event in the state machines, bottom-up from focused component to application.
      */
-    focusBottomUpEvent(event, args) {
+    focusBottomUpEvent(events, ...args) {
         const path = this.focusPath;
         const n = path.length;
-        if (Array.isArray(event)) {
-            // Multiple events.
-            for (let i = n - 1; i >= 0; i--) {
-                if (path[i]._fireMultiple(event) !== path[i].FIRE_NOT_HANDLED) {
-                    return true;
-                }
-            }
-        } else {
-            // Single event.
-            for (let i = n - 1; i >= 0; i--) {
-                if (path[i]._fire(event, args) !== path[i].FIRE_NOT_HANDLED) {
+
+        // Multiple events.
+        for (let i = n - 1; i >= 0; i--) {
+            const event = path[i]._getMostSpecificHandledMember(events);
+            if (event !== undefined) {
+                const returnValue = path[i][event](...args);
+                if (returnValue !== false) {
                     return true;
                 }
             }
         }
+
         return false;
     }
 
     _receiveKeydown(e) {
         const obj = {keyCode: e.keyCode}
         if (this.__keymap[e.keyCode]) {
-            if (!this.stage.application.focusTopDownEvent([{event: "capture" + this.__keymap[e.keyCode], args: obj}, {event: "captureKey", args: obj}])) {
-                this.stage.application.focusBottomUpEvent([{event: "handle" + this.__keymap[e.keyCode], args: obj}, {event: "handleKey", args: obj}]);
+            if (!this.stage.application.focusTopDownEvent(["_capture" + this.__keymap[e.keyCode], "_captureKey"], obj)) {
+                this.stage.application.focusTopDownEvent(["_handle" + this.__keymap[e.keyCode], "_handleKey"], obj)
             }
         } else {
-            if (!this.stage.application.focusTopDownEvent("captureKey", obj)) {
-                this.stage.application.focusBottomUpEvent("handleKey", obj);
+            if (!this.stage.application.focusTopDownEvent(["_captureKey"], obj)) {
+                this.stage.application.focusBottomUpEvent(["_handleKey"], obj);
             }
         }
     }

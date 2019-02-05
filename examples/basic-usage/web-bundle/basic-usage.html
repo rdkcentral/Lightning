@@ -26,22 +26,22 @@
                     }
                 }
 
-                static _states() {
-                    return {
-                        "_handleLeft": function() {
-                            this.tag('Primary').setSmooth('x', this.tag('Primary').getSmooth('x') - 100)
-                        },
-                        "_handleRight": function() {
-                            this.tag('Primary').setSmooth('x', this.tag('Primary').getSmooth('x') + 100)
-                        },
-                        "_handleUp": function() {
-                            this.tag('Primary').setSmooth('y', this.tag('Primary').getSmooth('y') - 100)
-                        },
-                        "_handleDown": function() {
-                            this.tag('Primary').setSmooth('y', this.tag('Primary').getSmooth('y') + 100)
-                        }
-                    }
+                $handleLeft() {
+                    this.tag('Primary').setSmooth('x', this.tag('Primary').getSmooth('x') - 100)
                 }
+
+                $handleRight() {
+                    this.tag('Primary').setSmooth('x', this.tag('Primary').getSmooth('x') + 100)
+                }
+
+                $handleUp() {
+                    this.tag('Primary').setSmooth('y', this.tag('Primary').getSmooth('y') - 100)
+                }
+
+                $handleDown() {
+                    this.tag('Primary').setSmooth('y', this.tag('Primary').getSmooth('y') + 100)
+                }
+
             }
 
             const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000, canvas2d: false, useImageWorker: false}, debug: true}

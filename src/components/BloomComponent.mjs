@@ -171,11 +171,8 @@ export default class BloomComponent extends Component {
         }
     }
 
-    static _states() {
-        const p = BloomComponent.prototype
-        return {
-            _firstActive: p._build
-        }
+    _firstActive() {
+        this._build();
     }
 
     get _passSignals() {

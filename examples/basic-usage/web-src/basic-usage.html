@@ -25,21 +25,34 @@
                     }
                 }
 
+                _handleLeft() {
+                    this.tag('Primary').setSmooth('x', this.tag('Primary').getSmooth('x') - 100)
+                }
+
+                _handleRight() {
+                    this.tag('Primary').setSmooth('x', this.tag('Primary').getSmooth('x') + 100)
+                    this._setState("Loading");
+                }
+
+                _handleUp() {
+                    this.tag('Primary').setSmooth('y', this.tag('Primary').getSmooth('y') - 100)
+                }
+
+                _handleDown() {
+                    this.tag('Primary').setSmooth('y', this.tag('Primary').getSmooth('y') + 100)
+                }
+
                 static _states() {
-                    return {
-                        "_handleLeft": function() {
-                            this.tag('Primary').setSmooth('x', this.tag('Primary').getSmooth('x') - 100)
-                        },
-                        "_handleRight": function() {
-                            this.tag('Primary').setSmooth('x', this.tag('Primary').getSmooth('x') + 100)
-                        },
-                        "_handleUp": function() {
-                            this.tag('Primary').setSmooth('y', this.tag('Primary').getSmooth('y') - 100)
-                        },
-                        "_handleDown": function() {
-                            this.tag('Primary').setSmooth('y', this.tag('Primary').getSmooth('y') + 100)
+                    return [
+                        class Loading extends this {
+                            $enter() {
+                                console.log('entering loading state');
+                            }
+                            _handleKey() {
+                                // Ignore.
+                            }
                         }
-                    }
+                    ]
                 }
             }
 

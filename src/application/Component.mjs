@@ -2,6 +2,9 @@ import View from "../tree/View.mjs";
 import Utils from "../tree/Utils.mjs";
 import StateMachine from "./StateMachine.mjs";
 
+/**
+ * @extends StateMachine
+ */
 export default class Component extends View {
 
     constructor(stage, properties) {
@@ -13,9 +16,6 @@ export default class Component extends View {
         if (Utils.isObjectLiteral(properties)) {
             Object.assign(this, properties);
         }
-
-        // Start with root state;
-        this._initStateMachine();
 
         this.__initialized = false;
         this.__firstActive = false;
@@ -31,7 +31,20 @@ export default class Component extends View {
         const func = this.constructor.getTemplateFunc();
         func.f(this, func.a);
 
-        this.__build();
+        this._build();
+    }
+
+    __start() {
+        StateMachine.setupStateMachine(this);
+        this._onStateChange = Component.prototype.__onStateChange;
+    }
+
+    __onStateChange() {
+        this.application.updateFocusPath();
+    }
+
+    _updateFocusPath() {
+        this.application.updateFocusPath();
     }
 
     /**
@@ -157,8 +170,11 @@ export default class Component extends View {
 
     _onSetup() {
         if (!this.__initialized) {
-            this._fire('setup');
+            this._setup();
         }
+    }
+
+    _setup() {
     }
 
     _onAttach() {
@@ -167,37 +183,61 @@ export default class Component extends View {
             this.__initialized = true;
         }
 
-        this._fire('attach');
+        this._attach();
+    }
+
+    _attach() {
     }
 
     _onDetach() {
-        this._fire('detach');
+        this._detach();
+    }
+
+    _detach() {
     }
 
     _onEnabled() {
         if (!this.__firstEnable) {
-            this._fire('firstEnable');
+            this._firstEnable();
             this.__firstEnable = true;
         }
 
-        this._fire('enable');
+        this._enable();
+    }
+
+    _firstEnable() {
+    }
+
+    _enable() {
     }
 
     _onDisabled() {
-        this._fire('disable');
+        this._disable();
+    }
+
+    _disable() {
     }
 
     _onActive() {
         if (!this.__firstActive) {
-            this._fire('firstActive');
+            this._firstActive();
             this.__firstActive = true;
         }
 
-        this._fire('active');
+        this._active();
+    }
+
+    _firstActive() {
+    }
+
+    _active() {
     }
 
     _onInactive() {
-        this._fire('inactive');
+        this._inactive();
+    }
+
+    _inactive() {
     }
 
     get application() {
@@ -209,35 +249,29 @@ export default class Component extends View {
     }
 
     __construct() {
-        this._fire('construct');
+        this._construct();
+    }
+    
+    _construct() {
     }
 
-    __build() {
-        this._fire('build');
+    _build() {
     }
-
+    
     __init() {
-        this._fire('init');
+        this._init();
     }
 
-    __focus(newTarget, prevTarget) {
-        this._fire('focus', [newTarget, prevTarget]);
+    _init() {
     }
 
-    __unfocus(newTarget) {
-        this._fire('unfocus', [newTarget]);
+    _focus(newTarget, prevTarget) {
     }
 
-    __focusBranch(target) {
-        this._fire('focusBranch', [target]);
+    _unfocus(newTarget) {
     }
 
-    __unfocusBranch(target, newTarget) {
-        this._fire('unfocusBranch', [target, newTarget]);
-    }
-
-    __focusChange(target, newTarget) {
-        this._fire('focusChange', [target, newTarget]);
+    _focusChange(target, newTarget) {
     }
 
     _getFocused() {
@@ -247,18 +281,6 @@ export default class Component extends View {
 
     _setFocusSettings(settings) {
         // Override to add custom settings. See Application._handleFocusSettings().
-    }
-
-    _getTemplate() {
-        if (this.constructor.__hasTemplate !== this.constructor) {
-            this.constructor.__hasTemplate = this.constructor;
-
-            this.constructor.__template = this.constructor._template();
-            if (!Utils.isObjectLiteral(this.constructor.__template)) {
-                this._throwError("Template object empty");
-            }
-        }
-        return this.constructor.__template;
     }
 
     static _template() {
@@ -301,10 +323,10 @@ export default class Component extends View {
      * Signals the parent of the specified event.
      * A parent/ancestor that wishes to handle the signal should set the 'signals' property on this component.
      * @param {string} event
-     * @param {object} args
      * @param {boolean} bubble
+     * @param {...*} args
      */
-    signal(event, args = {}, bubble = false) {
+    signal(event, bubble = false, ...args) {
         if (!Utils.isObjectLiteral(args)) {
             this._throwError("Signal: args must be object");
         }
@@ -324,8 +346,9 @@ export default class Component extends View {
                     fireEvent = event;
                 }
 
-                const handled = this.cparent._fire(fireEvent, args);
-                if (handled) return;
+                if (this.cparent._hasMethod(fireEvent)) {
+                    return this.cparent[fireEvent](...args);
+                }
             }
         }
 
@@ -337,7 +360,7 @@ export default class Component extends View {
                 // Replace signal name.
                 event = passSignal;
             }
-            this.cparent.signal(event, args, bubble);
+            return this.cparent.signal(event, args, bubble);
         }
     }
 
@@ -370,15 +393,7 @@ export default class Component extends View {
      * @warn handling a broadcast will stop it from propagating; to continue propagation return false from the state
      * event handler.
      */
-    broadcast(event, args = {}) {
-        if (!Utils.isObjectLiteral(args)) {
-            this._throwError("Broadcast: args must be object");
-        }
-
-        if (!args._source) {
-            args = Object.assign({_source: this}, args);
-        }
-
+    broadcast(event, ...args) {
         if (this.__broadcasts) {
             let fireEvent = this.__broadcasts[event];
             if (fireEvent === false) {
@@ -389,10 +404,8 @@ export default class Component extends View {
                     fireEvent = event;
                 }
 
-                const handled = this._fire(fireEvent, args);
-                if (handled) {
-                    // Skip propagation
-                    return;
+                if (this._hasMethod(fireEvent)) {
+                    this[fireEvent](...args);
                 }
             }
         }
@@ -446,10 +459,3 @@ export default class Component extends View {
 }
 
 Component.prototype.isComponent = true;
-
-StateMachine.mixin(Component, {
-    logInfoFunction: Component.prototype.getLocationString,
-    onAfterPrimaryFire: function() {
-        this.application.updateFocusPath();
-    }
-});

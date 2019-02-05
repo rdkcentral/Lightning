@@ -14,6 +14,7 @@ import Shader from "./Shader.mjs";
 export default class View {
 
     constructor(stage) {
+        this.__start();
 
         // EventEmitter constructor.
         this._hasEventListeners = false;
@@ -106,6 +107,9 @@ export default class View {
         this._w = 0;
 
         this._h = 0;
+    }
+
+    __start() {
     }
 
     get id() {

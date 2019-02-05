@@ -58,14 +58,10 @@ export default class FastBlurComponent extends Component {
         return true;
     }
 
-    static _states() {
-        return {
-            _build() {
-                this.patch({
-                    Wrap: {type: this.stage.gl ? WebGLFastBlurComponent : C2dFastBlurComponent}
-                }, true);
-            }
-        }
+    _build() {
+        this.patch({
+            Wrap: {type: this.stage.gl ? WebGLFastBlurComponent : C2dFastBlurComponent}
+        }, true);
     }
 
 }
@@ -360,11 +356,8 @@ class WebGLFastBlurComponent extends Component {
         }
     }
 
-    static _states() {
-        const p = WebGLFastBlurComponent.prototype
-        return {
-            _firstActive: p._build
-        }
+    _firstActive() {
+        this._build();
     }
 
     get _passSignals() {
