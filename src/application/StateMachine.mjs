@@ -29,16 +29,6 @@ export default class StateMachine {
     }
 
     /**
-     * Returns the index of the state with the specified name in the array.
-     * @param {Class[]} states
-     * @param {string} name
-     * @returns {number}
-     */
-    static getStatesIndex(states, name) {
-        return states.findIndex(state => state.name === name);
-    }
-
-    /**
      * Calls the specified method if it exists.
      * @param {string} event
      * @param {*...} args
