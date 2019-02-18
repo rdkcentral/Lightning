@@ -14,6 +14,10 @@ export default class BorderComponent extends Component {
         };
     }
 
+    get _signalProxy() {
+        return true;
+    }
+
     constructor(stage) {
         super(stage);
 
@@ -174,10 +178,6 @@ export default class BorderComponent extends Component {
         this.borderLeft = settings;
         this.borderBottom = settings;
         this.borderRight = settings;
-    }
-
-    get _passSignals() {
-        return true;
     }
 
 }

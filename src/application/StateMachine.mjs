@@ -35,7 +35,7 @@ export default class StateMachine {
      */
     fire(event, ...args) {
         if (this._hasMethod(event)) {
-            this[event](...args);
+            return this[event](...args);
         }
     }
 
@@ -67,7 +67,7 @@ export default class StateMachine {
      * Returns true if the specified class member is defined for the currently set state.
      * @param {string} name
      * @returns {boolean}
-     * @private
+     * @protected
      */
     _hasMember(name) {
         return !!this.constructor.prototype[name];
@@ -77,7 +77,7 @@ export default class StateMachine {
      * Returns true if the specified class member is a method for the currently set state.
      * @param {string} name
      * @returns {boolean}
-     * @private
+     * @protected
      */
     _hasMethod(name) {
         const member = this.constructor.prototype[name];
@@ -104,13 +104,15 @@ export default class StateMachine {
                 newState = this._sm.getStateByPath(statePath);
             }
 
+            const prevState = this._state;
+
             const hasDifferentEnterMethod = (newState.prototype.$enter !== this._state.prototype.$enter);
             const hasDifferentExitMethod = (newState.prototype.$exit !== this._state.prototype.$exit);
             if (hasDifferentEnterMethod || hasDifferentExitMethod) {
                 const sharedState = StateMachine._getSharedState(this._state, newState);
                 const context = {
                     newState: newState.__path,
-                    prevState: this._state.__path,
+                    prevState: prevState.__path,
                     sharedState: sharedState.__path
                 };
                 const sharedLevel = sharedState.__level;
@@ -146,7 +148,7 @@ export default class StateMachine {
             if (this._changedState) {
                 const context = {
                     newState: newState.__path,
-                    prevState: this._state.__path
+                    prevState: prevState.__path
                 };
 
                 if (args) {
@@ -159,7 +161,7 @@ export default class StateMachine {
             if (this._onStateChange) {
                 const context = {
                     newState: newState.__path,
-                    prevState: this._state.__path
+                    prevState: prevState.__path
                 };
                 this._onStateChange(context);
             }
@@ -602,7 +604,7 @@ class StateMachineType {
     }
 
     static _isStateLocalMember(memberName) {
-        return memberName.startsWith("$");
+        return (memberName === "$enter") || (memberName === "$exit");
     }
 
     getStateByPath(statePath) {

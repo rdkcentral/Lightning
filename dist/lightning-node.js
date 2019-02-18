@@ -9922,23 +9922,13 @@ class StateMachine {
     }
 
     /**
-     * Returns the index of the state with the specified name in the array.
-     * @param {Class[]} states
-     * @param {string} name
-     * @returns {number}
-     */
-    static getStatesIndex(states, name) {
-        return states.findIndex(state => state.name === name);
-    }
-
-    /**
      * Calls the specified method if it exists.
      * @param {string} event
      * @param {*...} args
      */
     fire(event, ...args) {
         if (this._hasMethod(event)) {
-            this[event](...args);
+            return this[event](...args);
         }
     }
 
@@ -9970,7 +9960,7 @@ class StateMachine {
      * Returns true if the specified class member is defined for the currently set state.
      * @param {string} name
      * @returns {boolean}
-     * @private
+     * @protected
      */
     _hasMember(name) {
         return !!this.constructor.prototype[name];
@@ -9980,7 +9970,7 @@ class StateMachine {
      * Returns true if the specified class member is a method for the currently set state.
      * @param {string} name
      * @returns {boolean}
-     * @private
+     * @protected
      */
     _hasMethod(name) {
         const member = this.constructor.prototype[name];
@@ -10007,13 +9997,15 @@ class StateMachine {
                 newState = this._sm.getStateByPath(statePath);
             }
 
+            const prevState = this._state;
+
             const hasDifferentEnterMethod = (newState.prototype.$enter !== this._state.prototype.$enter);
             const hasDifferentExitMethod = (newState.prototype.$exit !== this._state.prototype.$exit);
             if (hasDifferentEnterMethod || hasDifferentExitMethod) {
                 const sharedState = StateMachine._getSharedState(this._state, newState);
                 const context = {
                     newState: newState.__path,
-                    prevState: this._state.__path,
+                    prevState: prevState.__path,
                     sharedState: sharedState.__path
                 };
                 const sharedLevel = sharedState.__level;
@@ -10049,7 +10041,7 @@ class StateMachine {
             if (this._changedState) {
                 const context = {
                     newState: newState.__path,
-                    prevState: this._state.__path
+                    prevState: prevState.__path
                 };
 
                 if (args) {
@@ -10062,7 +10054,7 @@ class StateMachine {
             if (this._onStateChange) {
                 const context = {
                     newState: newState.__path,
-                    prevState: this._state.__path
+                    prevState: prevState.__path
                 };
                 this._onStateChange(context);
             }
@@ -10505,7 +10497,7 @@ class StateMachineType {
     }
 
     static _isStateLocalMember(memberName) {
-        return memberName.startsWith("$");
+        return (memberName === "$enter") || (memberName === "$exit");
     }
 
     getStateByPath(statePath) {
@@ -10892,46 +10884,6 @@ class Component extends View {
         return ancestor;
     }
 
-    /**
-     * Signals the parent of the specified event.
-     * A parent/ancestor that wishes to handle the signal should set the 'signals' property on this component.
-     * @param {string} event
-     * @param {...*} args
-     */
-    signal(event, ...args) {
-        this._signal(event, false, ...args);
-    }
-
-    _signal(event, bubble = false, ...args) {
-        if (this.__signals && this.cparent) {
-            let fireEvent = this.__signals[event];
-            if (fireEvent === false) {
-                // Ignore event, even when bubbling.
-                return;
-            }
-            if (fireEvent) {
-                if (fireEvent === true) {
-                    fireEvent = event;
-                }
-
-                if (this.cparent._hasMethod(fireEvent)) {
-                    return this.cparent[fireEvent](...args);
-                }
-            }
-        }
-
-        let passSignal = (this.__passSignals && this.__passSignals[event]);
-        const cparent = this.cparent;
-        if (cparent && (cparent._passSignals || passSignal || bubble)) {
-            // Bubble up.
-            if (passSignal && passSignal !== true) {
-                // Replace signal name.
-                event = passSignal;
-            }
-            return this.cparent.signal(event, args, bubble);
-        }
-    }
-
     get signals() {
         return this.__signals;
     }
@@ -10940,7 +10892,24 @@ class Component extends View {
         if (!Utils.isObjectLiteral(v)) {
             this._throwError("Signals: specify an object with signal-to-fire mappings");
         }
-        this.__signals = Object.assign(this.__signals || {}, v);
+        this.__signals = v;
+    }
+
+    set alterSignals(v) {
+        if (!Utils.isObjectLiteral(v)) {
+            this._throwError("Signals: specify an object with signal-to-fire mappings");
+        }
+        if (!this.__signals) {
+            this.__signals = {};
+        }
+        for (let key in v) {
+            const d = v[key];
+            if (d === undefined) {
+                delete this.__signals[key];
+            } else {
+                this.__signals[key] = v;
+            }
+        }
     }
 
     get passSignals() {
@@ -10951,44 +10920,102 @@ class Component extends View {
         this.__passSignals = Object.assign(this.__passSignals || {}, v);
     }
 
-    get _passSignals() {
-        return false;
+    set alterPassSignals(v) {
+        if (!Utils.isObjectLiteral(v)) {
+            this._throwError("Signals: specify an object with signal-to-fire mappings");
+        }
+        if (!this.__passSignals) {
+            this.__passSignals = {};
+        }
+        for (let key in v) {
+            const d = v[key];
+            if (d === undefined) {
+                delete this.__passSignals[key];
+            } else {
+                this.__passSignals[key] = v;
+            }
+        }
     }
 
     /**
-     * Fires the specified event downwards.
-     * A descendant that wishes to handle the signal should set the '_broadcasts' property on this component.
-     * @warn handling a broadcast will stop it from propagating; to continue propagation return false from the state
-     * event handler.
+     * Signals the parent of the specified event.
+     * A parent/ancestor that wishes to handle the signal should set the 'signals' property on this component.
+     * @param {string} event
+     * @param {...*} args
      */
-    broadcast(event, ...args) {
-        if (this.__broadcasts) {
-            let fireEvent = this.__broadcasts[event];
-            if (fireEvent === false) {
-                return;
+    signal(event, ...args) {
+        return this._signal(event, args);
+    }
+
+    _signal(event, args) {
+        const signalParent = this._getParentSignalHandler();
+        if (signalParent) {
+            if (this.__signals) {
+                let fireEvent = this.__signals[event];
+                if (fireEvent === false) {
+                    // Ignore event.
+                    return;
+                }
+                if (fireEvent) {
+                    if (fireEvent === true) {
+                        fireEvent = event;
+                    }
+
+                    if (signalParent._hasMethod(fireEvent)) {
+                        return signalParent[fireEvent](...args);
+                    }
+                }
             }
-            if (fireEvent) {
-                if (fireEvent === true) {
-                    fireEvent = event;
+
+            let passSignal = (signalParent.__passSignals && signalParent.__passSignals[event]);
+            if (passSignal) {
+                // Bubble up.
+                if (passSignal && passSignal !== true) {
+                    // Replace signal name.
+                    event = passSignal;
                 }
 
-                if (this._hasMethod(fireEvent)) {
-                    this[fireEvent](...args);
-                }
+                return signalParent._signal(event, args);
             }
         }
+    }
 
-        // Propagate down.
-        const subs = [];
-        Component.collectSubComponents(subs, this);
-        for (let i = 0, n = subs.length; i < n; i++) {
-            subs[i].broadcast(event, args);
+    _getParentSignalHandler() {
+        return this.cparent ? this.cparent._getSignalHandler() : null;
+    }
+
+    _getSignalHandler() {
+        if (this._signalProxy) {
+            return this.cparent ? this.cparent._getSignalHandler() : null;
+        }
+        return this;
+    }
+
+    get _signalProxy() {
+        return false;
+    }
+
+    fireAncestors(name, ...args) {
+        if (!name.startsWith('$')) {
+            throw new Error("Ancestor event name must be prefixed by dollar sign.");
+        }
+
+        return this._fireAncestors(name, args);
+    }
+
+    _fireAncestors(name, args) {
+        if (this._hasMethod(name)) {
+            return this.fire(name, ...args);
+        } else {
+            const signalParent = this._getParentSignalHandler();
+            if (signalParent) {
+                return signalParent._fireAncestors(name, args);
+            }
         }
     }
 
     static collectSubComponents(subs, view) {
         if (view.hasChildren()) {
-            // We must use the private property because direct children access may be disallowed.
             const childList = view.__childList;
             for (let i = 0, n = childList.length; i < n; i++) {
                 const child = childList.getAt(i);
@@ -10999,17 +11026,6 @@ class Component extends View {
                 }
             }
         }
-    }
-
-    get broadcasts() {
-        return this.__broadcasts;
-    }
-
-    set broadcasts(v) {
-        if (!Utils.isObjectLiteral(v)) {
-            this._throwError("Broadcasts: specify an object with broadcast-to-fire mappings");
-        }
-        this.__broadcasts = Object.assign(this.__broadcasts || {}, v);
     }
 
     static getComponent(view) {
@@ -17250,7 +17266,7 @@ class ListItems extends ObjectListWrapper {
         this.checkStarted(0);
     }
 
-    get _passSignals() {
+    get _signalProxy() {
         return true;
     }
 
@@ -17453,9 +17469,7 @@ class BlurShader extends DefaultShader$2 {
 
 class FastBlurComponent extends Component {
     static _template() {
-        return {
-            passSignals: true
-        }
+        return {}
     }
 
     get wrap() {
@@ -17499,7 +17513,7 @@ class FastBlurComponent extends Component {
         this.wrap.h = this.renderHeight;
     }
 
-    get _passSignals() {
+    get _signalProxy() {
         return true;
     }
 
@@ -17600,7 +17614,7 @@ class C2dFastBlurComponent extends Component {
         return C2dFastBlurComponent.getSpline().getValue(Math.min(1, v * 0.25));
     }
 
-    get _passSignals() {
+    get _signalProxy() {
         return true;
     }
 
@@ -17632,6 +17646,10 @@ class WebGLFastBlurComponent extends Component {
             },
             Result: {shader: {type: FastBlurOutputShader}, visible: false}
         }
+    }
+
+    get _signalProxy() {
+        return true;
     }
 
     constructor(stage) {
@@ -17805,10 +17823,6 @@ class WebGLFastBlurComponent extends Component {
         this._buildLayers();
     }
 
-    get _passSignals() {
-        return true;
-    }
-
 }
 
 /**
@@ -17900,6 +17914,10 @@ class BloomComponent extends Component {
                 L3: {rtt: true, onUpdate: onUpdate, scale: 16, pivot: 0, visible: false, Content: {shader: {type: BoxBlurShader}}}
             }
         }
+    }
+
+    get _signalProxy() {
+        return true;
     }
 
     constructor(stage) {
@@ -18043,10 +18061,6 @@ class BloomComponent extends Component {
         this._build();
     }
 
-    get _passSignals() {
-        return true;
-    }
-
 }
 
 class BloomBaseShader extends DefaultShader$1 {
@@ -18159,7 +18173,7 @@ class SmoothScaleComponent extends Component {
         }
     }
 
-    get _passSignals() {
+    get _signalProxy() {
         return true;
     }
 
@@ -18177,6 +18191,10 @@ class BorderComponent extends Component {
                 Left: {rect: true, visible: false, mountX: 1}
             }
         };
+    }
+
+    get _signalProxy() {
+        return true;
     }
 
     constructor(stage) {
@@ -18339,10 +18357,6 @@ class BorderComponent extends Component {
         this.borderLeft = settings;
         this.borderBottom = settings;
         this.borderRight = settings;
-    }
-
-    get _passSignals() {
-        return true;
     }
 
 }

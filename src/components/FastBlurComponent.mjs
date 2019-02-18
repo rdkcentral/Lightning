@@ -8,9 +8,7 @@ import MultiSpline from "../tools/MultiSpline.mjs";
 
 export default class FastBlurComponent extends Component {
     static _template() {
-        return {
-            passSignals: true
-        }
+        return {}
     }
 
     get wrap() {
@@ -54,7 +52,7 @@ export default class FastBlurComponent extends Component {
         this.wrap.h = this.renderHeight;
     }
 
-    get _passSignals() {
+    get _signalProxy() {
         return true;
     }
 
@@ -155,7 +153,7 @@ class C2dFastBlurComponent extends Component {
         return C2dFastBlurComponent.getSpline().getValue(Math.min(1, v * 0.25));
     }
 
-    get _passSignals() {
+    get _signalProxy() {
         return true;
     }
 
@@ -187,6 +185,10 @@ class WebGLFastBlurComponent extends Component {
             },
             Result: {shader: {type: FastBlurOutputShader}, visible: false}
         }
+    }
+
+    get _signalProxy() {
+        return true;
     }
 
     constructor(stage) {
@@ -358,10 +360,6 @@ class WebGLFastBlurComponent extends Component {
 
     _firstActive() {
         this._buildLayers();
-    }
-
-    get _passSignals() {
-        return true;
     }
 
 }

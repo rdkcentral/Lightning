@@ -34,6 +34,10 @@ export default class BloomComponent extends Component {
         }
     }
 
+    get _signalProxy() {
+        return true;
+    }
+
     constructor(stage) {
         super(stage);
         this._textwrap = this.sel("Textwrap");
@@ -173,10 +177,6 @@ export default class BloomComponent extends Component {
 
     _firstActive() {
         this._build();
-    }
-
-    get _passSignals() {
-        return true;
     }
 
 }

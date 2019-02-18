@@ -485,7 +485,7 @@ class ListItems extends ObjectListWrapper {
         this.checkStarted(0);
     }
 
-    get _passSignals() {
+    get _signalProxy() {
         return true;
     }
 
