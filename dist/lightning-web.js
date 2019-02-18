@@ -1183,13 +1183,9 @@ var lng = (function () {
             return this.endIndex - this.startIndex + 1;
         }
 
-        isOnlyLine() {
-            return (this._layout.numberOfItems === (1 + (this.endIndex - this.startIndex)));
-        }
-
         get crossAxisLayoutSize() {
             const noSpecifiedCrossAxisSize = (this._layout.isCrossAxisFitToContents() && !this._layout.resizingCrossAxis);
-            const shouldFitToContents = (!this.isOnlyLine() || noSpecifiedCrossAxisSize);
+            const shouldFitToContents = (this._layout.isWrapping() || noSpecifiedCrossAxisSize);
             if (shouldFitToContents) {
                 return this._crossAxisMaxLayoutSize;
             } else {
