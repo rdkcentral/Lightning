@@ -2490,8 +2490,7 @@ class FlexTarget {
         const target = this._target;
         target.x = this._originalX;
         target.y = this._originalY;
-        target.w = this._originalWidth;
-        target.h = this._originalHeight;
+        target.setDimensions(this._originalWidth, this._originalHeight);
     }
 
     _setupTargetForFlex() {
@@ -3965,7 +3964,7 @@ class ViewCore {
         this._localAlpha = a;
     };
 
-    setDimensions(w, h, isEstimate) {
+    setDimensions(w, h, isEstimate = this._dimsUnknown) {
         // In case of an estimation, the update loop should perform different bound checks.
         this._dimsUnknown = isEstimate;
 

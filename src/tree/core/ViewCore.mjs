@@ -727,7 +727,7 @@ export default class ViewCore {
         this._localAlpha = a;
     };
 
-    setDimensions(w, h, isEstimate) {
+    setDimensions(w, h, isEstimate = this._dimsUnknown) {
         // In case of an estimation, the update loop should perform different bound checks.
         this._dimsUnknown = isEstimate;
 

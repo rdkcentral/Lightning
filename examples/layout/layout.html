@@ -28,14 +28,14 @@
                 }
             }
 
-            static _states() {
-                return {
-                    _init: function() {
-                        this.tag("Main").animation({duration: 10, repeat: -1, actions: [
-                                {p: 'w', v: {0: 150, 0.5: 800, 1: 150}}
-                            ]}).start();
-                    }
-                }
+            _init() {
+                this.tag("Main").animation({duration: 2, actions: [
+                        {p: 'w', v: {0: 150, 0.5: 800, 1: 150}}
+                    ]}).start();
+
+                setTimeout(() => {
+                    this.tag("Main").children = [];
+                }, 3000);
             }
         }
 

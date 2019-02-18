@@ -280,11 +280,15 @@ export default class Target {
             if (this.hasFlexLayout()) {
                 this._layout.originalWidth = v;
             } else {
-                if (this._w !== v) {
-                    this._w = v;
-                    this._triggerRecalcTranslate();
-                }
+                this._setW(v);
             }
+        }
+    }
+
+    _setW(v) {
+        if (this._w !== v) {
+            this._w = v;
+            this._triggerRecalcTranslate();
         }
     }
 
@@ -300,12 +304,21 @@ export default class Target {
             if (this.hasFlexLayout()) {
                 this._layout.originalHeight = v;
             } else {
-                if (this._h !== v) {
-                    this._h = v;
-                    this._triggerRecalcTranslate();
-                }
+                this._setH(v);
             }
         }
+    }
+
+    _setH(v) {
+        if (this._h !== v) {
+            this._h = v;
+            this._triggerRecalcTranslate();
+        }
+    }
+
+    setDimensions(w, h) {
+        this._setW(w);
+        this._setH(h);
     }
 
     get funcW() {
