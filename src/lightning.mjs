@@ -108,4 +108,8 @@ const lightning = {
     }
 };
 
+if (Utils.isWeb) {
+    window.lng = lightning;
+}
+
 export default lightning;
