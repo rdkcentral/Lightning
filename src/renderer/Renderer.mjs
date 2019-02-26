@@ -26,7 +26,7 @@ export default class Renderer {
     }
 
     createShader(ctx, settings) {
-        const shaderType = settings.type || DefaultShader;
+        const shaderType = settings.type;
         // If shader type is not correct, use a different platform.
         if (!this.isValidShaderType(shaderType)) {
             const convertedShaderType = this._getShaderAlternative(shaderType);

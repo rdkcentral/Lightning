@@ -11996,7 +11996,7 @@ var lng = (function () {
 
     }
 
-    class DefaultShader$1 extends WebGLShader {
+    class DefaultShader extends WebGLShader {
 
         enableAttribs() {
             // Enables the attribs in the shader program.
@@ -12060,7 +12060,7 @@ var lng = (function () {
 
     }
 
-    DefaultShader$1.vertexShaderSource = `
+    DefaultShader.vertexShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -12078,7 +12078,7 @@ var lng = (function () {
     }
 `;
 
-    DefaultShader$1.fragmentShaderSource = `
+    DefaultShader.fragmentShaderSource = `
     #ifdef GL_ES
     precision lowp float;
     #endif
@@ -12118,7 +12118,7 @@ var lng = (function () {
         }
 
         createShader(ctx, settings) {
-            const shaderType = settings.type || DefaultShader;
+            const shaderType = settings.type;
             // If shader type is not correct, use a different platform.
             if (!this.isValidShaderType(shaderType)) {
                 const convertedShaderType = this._getShaderAlternative(shaderType);
@@ -12158,7 +12158,7 @@ var lng = (function () {
         }
 
         _createDefaultShader(ctx) {
-            return new DefaultShader$1(ctx);
+            return new DefaultShader(ctx);
         }
 
         _getShaderBaseType() {
@@ -12562,7 +12562,7 @@ var lng = (function () {
 
     }
 
-    class DefaultShader$2 extends C2dShader {
+    class DefaultShader$1 extends C2dShader {
 
         constructor(ctx) {
             super(ctx);
@@ -12917,7 +12917,7 @@ var lng = (function () {
         }
 
         _createDefaultShader(ctx) {
-            return new DefaultShader$2(ctx);
+            return new DefaultShader$1(ctx);
         }
 
         _getShaderBaseType() {
@@ -14544,10 +14544,6 @@ var lng = (function () {
 
             // Should be reloaded.
             textureSource.loadingSince = null;
-
-            // Delete it from the texture source hashmap to allow GC to collect it.
-            // If it is still referenced somewhere, we'll re-add it later.
-            this.removeFromLookupMap(textureSource);
         }
 
         _nativeUploadTextureSource(textureSource, options) {
@@ -17602,7 +17598,7 @@ var lng = (function () {
 
     }
 
-    class LinearBlurShader extends DefaultShader$1 {
+    class LinearBlurShader extends DefaultShader {
 
         constructor(context) {
             super(context);
@@ -17715,7 +17711,7 @@ var lng = (function () {
     /**
      * 4x4 box blur shader which works in conjunction with a 50% rescale.
      */
-    class BoxBlurShader extends DefaultShader$1 {
+    class BoxBlurShader extends DefaultShader {
 
         setupUniforms(operation) {
             super.setupUniforms(operation);
@@ -17767,7 +17763,7 @@ var lng = (function () {
     }
 `;
 
-    class BlurShader extends DefaultShader$2 {
+    class BlurShader extends DefaultShader$1 {
 
         constructor(context) {
             super(context);
@@ -18158,7 +18154,7 @@ var lng = (function () {
     /**
      * Shader that combines two textures into one output.
      */
-    class FastBlurOutputShader extends DefaultShader$1 {
+    class FastBlurOutputShader extends DefaultShader {
 
         constructor(ctx) {
             super(ctx);
@@ -18393,7 +18389,7 @@ var lng = (function () {
 
     }
 
-    class BloomBaseShader extends DefaultShader$1 {
+    class BloomBaseShader extends DefaultShader {
     }
 
     BloomBaseShader.fragmentShaderSource = `
@@ -18691,7 +18687,7 @@ var lng = (function () {
 
     }
 
-    class GrayscaleShader extends DefaultShader$2 {
+    class GrayscaleShader extends DefaultShader$1 {
 
         constructor(context) {
             super(context);
@@ -18726,7 +18722,7 @@ var lng = (function () {
 
     }
 
-    class GrayscaleShader$1 extends DefaultShader$1 {
+    class GrayscaleShader$1 extends DefaultShader {
 
         constructor(context) {
             super(context);
@@ -18776,7 +18772,7 @@ var lng = (function () {
     /**
      * This shader can be used to fix a problem that is known as 'gradient banding'.
      */
-    class DitheringShader extends DefaultShader$1 {
+    class DitheringShader extends DefaultShader {
 
         constructor(ctx) {
             super(ctx);
@@ -18936,7 +18932,7 @@ var lng = (function () {
     }
 `;
 
-    class CircularPushShader extends DefaultShader$1 {
+    class CircularPushShader extends DefaultShader {
 
         constructor(ctx) {
             super(ctx);
@@ -19165,7 +19161,7 @@ var lng = (function () {
     }
 `;
 
-    class InversionShader extends DefaultShader$1 {
+    class InversionShader extends DefaultShader {
     }
 
     InversionShader.fragmentShaderSource = `
@@ -19182,7 +19178,7 @@ var lng = (function () {
     }
 `;
 
-    class OutlineShader extends DefaultShader$1 {
+    class OutlineShader extends DefaultShader {
 
         constructor(ctx) {
             super(ctx);
@@ -19319,7 +19315,7 @@ var lng = (function () {
     /**
      * @see https://github.com/pixijs/pixi-filters/tree/master/filters/pixelate/src
      */
-    class PixelateShader extends DefaultShader$1 {
+    class PixelateShader extends DefaultShader {
 
         constructor(ctx) {
             super(ctx);
@@ -19469,7 +19465,7 @@ var lng = (function () {
     }
 `;
 
-    class RadialFilterShader extends DefaultShader$1 {
+    class RadialFilterShader extends DefaultShader {
         constructor(context) {
             super(context);
             this._radius = 0;
@@ -19544,7 +19540,7 @@ var lng = (function () {
     }
 `;
 
-    class RadialGradientShader extends DefaultShader$1 {
+    class RadialGradientShader extends DefaultShader {
         
         constructor(context) {
             super(context);
@@ -19668,7 +19664,7 @@ var lng = (function () {
     }
 `;
 
-    class Light3dShader extends DefaultShader$1 {
+    class Light3dShader extends DefaultShader {
 
         constructor(ctx) {
             super(ctx);
@@ -19934,9 +19930,9 @@ var lng = (function () {
             RadialGradient: RadialGradientShader,
             Light3d: Light3dShader,
             WebGLShader,
-            WebGLDefaultShader: DefaultShader$1,
+            WebGLDefaultShader: DefaultShader,
             C2dShader,
-            C2dDefaultShader: DefaultShader$2,
+            C2dDefaultShader: DefaultShader$1,
             c2d: {
                 Grayscale: GrayscaleShader,
                 Blur: BlurShader

@@ -155,7 +155,7 @@ export default class WebPlatform {
     }
 
     getTextureOptionsForDrawingCanvas(canvas) {
-        let options = {}
+        let options = {};
         options.source = canvas;
         return options;
     }

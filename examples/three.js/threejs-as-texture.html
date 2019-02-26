@@ -7,7 +7,7 @@
 </head>
 <body>
     <script type="module">
-        import lng from '../../lightning.mjs'
+        import lng from '../../src/lightning.mjs'
 
         window.start = function() {
 
@@ -63,24 +63,23 @@
                     this.forceRenderUpdate();
                 }
 
-                static _states() {
-                    return {
-                        _construct: function() {
-                            this._initThreeJs();
-                            this._listener = () => {
-                                this._renderThreeJs();
-                            }
-                        },
-                        _setup: function() {
-                            this._txtr = this.tag("Blur").content.tag("Texture")
-                        },
-                        _attach: function() {
-                            this.stage.on('frameStart', this._listener);
-                        },
-                        _detach: function() {
-                            this.stage.removeListener('frameStart', this._listener);
-                        }
+                _construct() {
+                    this._initThreeJs();
+                    this._listener = () => {
+                        this._renderThreeJs();
                     }
+                }
+
+                _setup() {
+                    this._txtr = this.tag("Blur").content.tag("Texture")
+                }
+
+                _attach() {
+                    this.stage.on('frameStart', this._listener);
+                }
+
+                _detach() {
+                    this.stage.removeListener('frameStart', this._listener);
                 }
 
             }

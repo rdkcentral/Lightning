@@ -76,7 +76,7 @@ export default class Tools {
 
         let factory = (cb, stage) => {
             cb(null, this.createShadowRect(stage, w, h, radius, blur, margin));
-        }
+        };
         let id = 'shadow' + [w, h, blur, margin].concat(radius).join(",");
         return Tools.getCanvasTexture(factory, id);
     }

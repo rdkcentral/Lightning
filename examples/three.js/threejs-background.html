@@ -8,7 +8,7 @@
 </head>
 <body>
     <script type="module">
-        import lng from '../../lightning.mjs'
+        import lng from '../../src/lightning.mjs'
 
         window.start = function() {
 
@@ -53,24 +53,22 @@
                     this.stage.gl.switchState("app");
                 }
 
-                static _states() {
-                    return {
-                        _construct: function() {
-                            this._initThreeJs();
-                            this._listener = () => {
-                                this._renderThreeJs();
-                            }
-                        },
-                        _attach: function() {
-                            this.tag("Texture").animation({duration: 2, repeat: -1, actions: [
-                                {p:'rotation', v: {sm: 0, 0: 0, 1: 2*Math.PI}}
-                            ]}).start();
-                            this.stage.on('frameStart', this._listener);
-                        },
-                        _detach: function() {
-                            this.stage.removeListener('frameStart', this._listener);
-                        }
+                _construct() {
+                    this._initThreeJs();
+                    this._listener = () => {
+                        this._renderThreeJs();
                     }
+                }
+
+                _attach() {
+                    this.tag("Texture").animation({duration: 2, repeat: -1, actions: [
+                            {p:'rotation', v: {sm: 0, 0: 0, 1: 2*Math.PI}}
+                        ]}).start();
+                    this.stage.on('frameStart', this._listener);
+                }
+
+                _detach() {
+                    this.stage.removeListener('frameStart', this._listener);
                 }
 
             }

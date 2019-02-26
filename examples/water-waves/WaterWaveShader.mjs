@@ -1,4 +1,4 @@
-import lng from '../../lightning.mjs'
+import lng from '../../src/lightning.mjs'
 export default class WaterWaveShader extends lng.shaders.WebGLDefaultShader {
 
     constructor(context) {

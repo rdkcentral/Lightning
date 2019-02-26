@@ -151,10 +151,6 @@ export default class TextureManager {
 
         // Should be reloaded.
         textureSource.loadingSince = null;
-
-        // Delete it from the texture source hashmap to allow GC to collect it.
-        // If it is still referenced somewhere, we'll re-add it later.
-        this.removeFromLookupMap(textureSource);
     }
 
     _nativeUploadTextureSource(textureSource, options) {

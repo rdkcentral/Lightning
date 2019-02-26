@@ -3,7 +3,7 @@ const path = require('path');
 module.exports = function localResolver(platform) {
     return {
         resolveId(importee, importer) {
-            if (importee.indexOf('./') === -1) {
+            if (importee.indexOf('.' + path.sep) === -1) {
                 return null;
             }
 
@@ -11,7 +11,7 @@ module.exports = function localResolver(platform) {
                 return null;
             }
 
-            const filename = importee.split('/').pop();
+            const filename = importee.split(path.sep).pop();
 
             const endsWith = ".dev.mjs";
             if (filename.lastIndexOf(endsWith) === (filename.length - endsWith.length)) {

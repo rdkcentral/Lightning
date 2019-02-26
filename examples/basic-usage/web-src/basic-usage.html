@@ -6,7 +6,7 @@
 </head>
 <body style="margin: 0; padding: 0">
     <script type="module">
-        import lng from '../../../lightning.mjs';
+        import lng from '../../../src/lightning.mjs';
         //attachInspector(lng)
 
         window.onload = function() {
@@ -42,18 +42,6 @@
                     this.tag('Primary').setSmooth('y', this.tag('Primary').getSmooth('y') + 100)
                 }
 
-                static _states() {
-                    return [
-                        class Loading extends this {
-                            $enter() {
-                                console.log('entering loading state');
-                            }
-                            _handleKey() {
-                                // Ignore.
-                            }
-                        }
-                    ]
-                }
             }
 
             const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000, canvas2d: false, useImageWorker: false}, debug: true}
