@@ -25,7 +25,7 @@ No memory leaks. Smart GPU memory management.
 You can download the latest version of lightning-web.js from the repository here: https://github.com/WebPlatformForEmbedded/Lightning (dist/lightning-web.js).
 
 ### Node.js
-See the [Lightning-node](https://github.com/WebPlatformForEmbedded/Lightning-node/blob/master/package.json) module.
+See the [Lightning-node](https://github.com/WebPlatformForEmbedded/Lightning-node) module.
 
 ## Basic usage
 See examples/basic-usage/web-bundle
