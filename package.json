@@ -3,8 +3,12 @@
   "name": "wpe-lightning",
   "version": "1.0.0",
   "license": "apache",
-  "devDependencies": {
-    "rollup": "^0.67.0"
+  "scripts": {
+    "postinstall": "rollup -c"
+  },
+  "dependencies": {
+    "rollup": "^0.67.0",
+    "rollup-plugin-closure-compiler": "^0.1.0"
   },
   "repository": {
     "type": "git",
