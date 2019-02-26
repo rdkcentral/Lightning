@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "license": "apache",
   "devDependencies": {
-    "rollup-plugin-closure-compiler": "^0.1.0"
+    "rollup": "^0.67.0"
   },
   "repository": {
     "type": "git",
