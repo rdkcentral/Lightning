@@ -1,5 +1,10 @@
 window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturizer, Texture}) {
 
+    const isAlreadyAttached = window.hasOwnProperty('mutationCounter');
+    if (isAlreadyAttached) {
+        return;
+    }
+
     window.mutationCounter = 0;
     window.mutatingChildren = false;
     var observer = new MutationObserver(function(mutations) {
@@ -157,7 +162,7 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
     View.prototype.dhtml = function() {
         if (!this.debugElement) {
             this.debugElement = document.createElement('DIV');
-            this.debugElement.setAttribute('type', this.constructor.name)
+            this.debugElement.setAttribute('type', this.constructor.name);
             this.debugElement.view = this;
             this.debugElement.style.position = 'absolute';
 
@@ -262,15 +267,16 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
     };
 
     if (typeof Component !== "undefined") {
-        Component.prototype.___state = Component.prototype.__state;
-        Object.defineProperty(View.prototype, '__state', {
+        Object.defineProperty(Component.prototype, '_state', {
             get: function() {
-                return this.___state;
+                return this.__state;
             },
             set: function(v) {
-                if (this.___state !== v) {
-                    val(this, 'state', v, "");
-                    this.___state = v;
+                if (this.__state !== v) {
+                    if (this.__state !== null) { // Ignore initial.
+                        val(this, 'state', v ? v.__path : "", "");
+                    }
+                    this.__state = v;
                 }
             }
         });

@@ -5,8 +5,10 @@ export default class StateMachine {
     }
 
     static setupStateMachine(target) {
-        const router = StateMachine.create(target.constructor);
+        const targetConstructor = target.constructor;
+        const router = StateMachine.create(targetConstructor);
         Object.setPrototypeOf(target, router.prototype);
+        target.constructor = targetConstructor;
         target._initStateMachine();
     }
 
@@ -303,7 +305,6 @@ class StateMachineType {
                 if (!this.constructor.hasOwnProperty('_isRouter')) {
                     throw new Error(`You need to extend ${type.name}.original instead of ${type.name}.`);
                 }
-                this._initStateMachine();
             }
         };
         router._isRouter = true;

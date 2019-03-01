@@ -14,14 +14,14 @@ import Shader from "./Shader.mjs";
 export default class View {
 
     constructor(stage) {
+        this.stage = stage;
+
+        this.__id = View.id++;
+
         this.__start();
 
         // EventEmitter constructor.
         this._hasEventListeners = false;
-
-        this.__id = View.id++;
-
-        this.stage = stage;
 
         this.__core = new ViewCore(this);
 
