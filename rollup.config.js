@@ -1,4 +1,11 @@
-import web from './rollup.web.config.js'
-import webMin from './rollup.web.min.config.js'
+const resolve = require('./rollup.plugin.resolver');
 
-export default [web, webMin]
+export default {
+    input: './src/lightning.mjs',
+    plugins: [resolve("web")],
+    output: {
+        file: './dist/lightning-web.js',
+        format: 'iife',
+        name: 'lng'
+    }
+};
