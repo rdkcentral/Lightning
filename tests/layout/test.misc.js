@@ -1,5 +1,5 @@
 import FlexTestUtils from "./src/FlexTestUtils.mjs";
-import lng from "../../lightning.mjs";
+import lng from "../../src/lightning.mjs";
 
 const flexTestUtils = new FlexTestUtils();
 

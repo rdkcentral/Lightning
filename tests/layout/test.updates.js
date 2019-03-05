@@ -153,6 +153,22 @@ describe('layout', () => {
                 root.children[0].w = 300;
             });
 
+            addUpdateTest('update main y offset (1)', () => {
+                root.children[0].offsetY = 50;
+            });
+
+            addUpdateTest('update main y offset (2)', () => {
+                root.children[0].offsetY = 0;
+            });
+
+            addUpdateTest('update sub y offset (1)', () => {
+                root.children[0].children[0].offsetY = 50;
+            });
+
+            addUpdateTest('update sub y offset (2)', () => {
+                root.children[0].children[0].offsetY = 0;
+            });
+
             addUpdateTest('update padding', () => {
                 root.children[0].children[0].flex.padding = 10;
             });

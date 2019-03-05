@@ -160,8 +160,7 @@ export default class ViewCore {
         } else {
             this._disableFuncX();
             if (this.hasFlexLayout()) {
-                this._x += (v - this._layout.originalX);
-                this._triggerRecalcTranslate();
+                this.x += (v - this._layout.originalX);
                 this._layout.setOriginalXWithoutUpdatingLayout(v);
             } else {
                 this.x = v;
@@ -221,8 +220,7 @@ export default class ViewCore {
         } else {
             this._disableFuncY();
             if (this.hasFlexLayout()) {
-                this._y += (v - this._layout.originalY);
-                this._triggerRecalcTranslate();
+                this.y += (v - this._layout.originalY);
                 this._layout.setOriginalYWithoutUpdatingLayout(v);
             } else {
                 this.y = v;
