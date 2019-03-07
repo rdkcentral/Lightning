@@ -20,7 +20,7 @@ export default class Stage extends EventEmitter {
         this._usedMemory = 0;
         this._lastGcFrame = 0;
 
-        const platformType = PlatformLoader.load(options);
+        const platformType = Stage.platform ? Stage.platform : PlatformLoader.load(options);
         this.platform = new platformType();
 
         if (this.platform.init) {

@@ -3,6 +3,7 @@
   "name": "wpe-lightning",
   "version": "1.0.0",
   "license": "apache",
+  "main": "src/lightning.mjs",
   "scripts": {
     "postinstall": "rollup -c"
   },
