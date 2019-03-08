@@ -656,10 +656,23 @@ class StateMachineType {
             if (!isInheritedFromParent) {
                 const subStates = state._states();
                 subStates.forEach(subState => {
-                    this._addState(subState, state, subState.name, stateMap);
+                    const stateName = StateMachineType._getStateName(subState);
+                    this._addState(subState, state, stateName, stateMap);
                 });
             }
         }
+    }
+
+    static _getStateName(state) {
+        const name = state.name;
+
+        const index = name.indexOf('$');
+        if (index > 0) {
+            // Strip off rollup name suffix.
+            return name.substr(0, index);
+        }
+
+        return name;
     }
 
     _addStaticStateProperty(state, parentState) {
