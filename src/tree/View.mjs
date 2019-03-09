@@ -2071,7 +2071,7 @@ export default class View {
     }
 
     static isColorProperty(property) {
-        return property.indexOf("color") >= 0;
+        return property.toLowerCase().indexOf("color") >= 0;
     }
 
     static getMerger(property) {

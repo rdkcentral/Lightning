@@ -56,6 +56,7 @@ export default class Transition extends EventEmitter {
 
     stop() {
         // Just stop where the transition is at.
+        this.emit('stop');
         this.manager.removeActive(this);
     }
 
