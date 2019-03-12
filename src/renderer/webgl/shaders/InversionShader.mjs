@@ -12,7 +12,7 @@ InversionShader.fragmentShaderSource = `
     uniform sampler2D uSampler;
     void main(void){
         vec4 color = texture2D(uSampler, vTextureCoord);
-        color.rgb = 1.0 - color.rgb; 
+        color.rgb = (1.0 * color.a - color.rgb); 
         gl_FragColor = color * vColor;
     }
 `;
