@@ -1,0 +1,66 @@
+<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><title>Patch · Lightning</title><meta name="viewport" content="width=device-width"/><meta name="generator" content="Docusaurus"/><meta name="description" content="&lt;p&gt;&lt;code&gt;.patch(object : Object, createMode : Boolean)&lt;/code&gt; allows you to patch a part of the render tree. It is able to set multiple properties for multiple views in a single statement.&lt;/p&gt;
+"/><meta name="docsearch:language" content="en"/><meta property="og:title" content="Patch · Lightning"/><meta property="og:type" content="website"/><meta property="og:url" content="https://webplatformforembedded.github.io/Lightning//Lightning/index.html"/><meta property="og:description" content="&lt;p&gt;&lt;code&gt;.patch(object : Object, createMode : Boolean)&lt;/code&gt; allows you to patch a part of the render tree. It is able to set multiple properties for multiple views in a single statement.&lt;/p&gt;
+"/><meta property="og:image" content="https://webplatformforembedded.github.io/Lightning//Lightning/img/LngDocs_LogoCompact.png"/><meta name="twitter:card" content="summary"/><meta name="twitter:image" content="https://webplatformforembedded.github.io/Lightning//Lightning/img/LngDocs_LogoCompact.png"/><link rel="shortcut icon" href="/Lightning/img/favicon.png"/><link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css"/><script type="text/javascript" src="https://buttons.github.io/buttons.js"></script><script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/highlight.min.js"></script><script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.3/ace.js"></script><script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.3/mode-javascript.js"></script><script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.3/theme-monokai.js"></script><script type="text/javascript" src="/Lightning-SDK/js/init.js"></script><link rel="stylesheet" href="/Lightning/css/main.css"/><script src="/Lightning/js/codetabs.js"></script></head><body class="sideNavVisible separateOnPageNav"><div class="fixedHeaderContainer"><div class="headerWrapper wrapper"><header><a href="/Lightning/"><img class="logo" src="/Lightning/img/LngDocs_Logo330x93.png" alt="Lightning"/></a><div class="navigationWrapper navigationSlider"><nav class="slidingNav"><ul class="nav-site nav-site-internal"><li class=""><a href="/Lightning/docs/introduction" target="_self">Docs</a></li><li class=""><a href="https://github.com/WebPlatformForEmbedded/Lightning" target="_self">GitHub</a></li></ul></nav></div></header></div></div><div class="navPusher"><div class="docMainWrapper wrapper"><div class="container mainContainer"><div class="wrapper"><div class="post"><header class="postHeader"><h1 class="postHeaderTitle">Patch</h1></header><article><div><span><p><code>.patch(object : Object, createMode : Boolean)</code> allows you to patch a part of the render tree. It is able to set multiple properties for multiple views in a single statement.</p>
+<pre><code class="hljs css language-js"><span class="hljs-keyword">this</span>.patch({
+    <span class="hljs-attr">Parent</span>: {
+        <span class="hljs-attr">x</span>: <span class="hljs-number">150</span>, <span class="hljs-attr">alpha</span>: <span class="hljs-number">0.5</span>,
+        <span class="hljs-attr">Child</span>: {
+            <span class="hljs-attr">x</span>: <span class="hljs-number">100</span>, <span class="hljs-attr">y</span>: <span class="hljs-number">100</span>
+        }
+    }
+});
+</code></pre>
+<p>A patch object has an identical structure to the template. A patch can also be called directly on a sub element:</p>
+<pre><code class="hljs css language-js"><span class="hljs-keyword">this</span>.tag(<span class="hljs-string">"Parent"</span>).patch(
+    x: <span class="hljs-number">150</span>, <span class="hljs-attr">alpha</span>: <span class="hljs-number">0.5</span>,
+    <span class="hljs-attr">Child</span>: {
+        <span class="hljs-attr">x</span>: <span class="hljs-number">100</span>, <span class="hljs-attr">y</span>: <span class="hljs-number">100</span>
+    }
+});
+</code></pre>
+<h1><a class="anchor" aria-hidden="true" id="adding-new-elements"></a><a href="#adding-new-elements" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Adding new elements</h1>
+<p>By default, only properties of existing elements can be changed. If one of <em>element references</em> is unknown, an error is thrown. This is done to protect you from using the wrong references accidentally, creating new unnecessary elements. If you'd like to allow creating new elements in your patch, you can supply true as the createMode argument.</p>
+<h1><a class="anchor" aria-hidden="true" id="removing-elements"></a><a href="#removing-elements" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Removing elements</h1>
+<p>You can remove an element by setting undefined instead of the settings object:</p>
+<pre><code class="hljs css language-js"><span class="hljs-keyword">this</span>.tag(<span class="hljs-string">"Parent"</span>).patch(
+    x: <span class="hljs-number">150</span>, <span class="hljs-attr">alpha</span>: <span class="hljs-number">0.5</span>,
+    <span class="hljs-attr">Child</span>: <span class="hljs-literal">undefined</span>
+});
+</code></pre>
+<h1><a class="anchor" aria-hidden="true" id="live-demo"></a><a href="#live-demo" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Live demo</h1>
+<p>Below an example of how to <code>.patch()</code> an object x-position. Use the left or right key to move the object to its new position.</p>
+<pre><code class="hljs css language-jsLightning"><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">BasicUsageExample</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">lng</span>.<span class="hljs-title">Application</span> {</span>
+    <span class="hljs-keyword">static</span> _template() {
+        <span class="hljs-keyword">return</span> {
+<span class="hljs-symbol">            LilLightning:</span>{ <span class="hljs-string">x:</span> <span class="hljs-number">100</span>, <span class="hljs-string">y:</span> <span class="hljs-number">100</span>, <span class="hljs-string">src:</span> <span class="hljs-string">'/Lightning-SDK/img/LngDocs_LilLightningIdle.png'</span> }
+        }
+    }
+    
+    _handleLeft(){
+        <span class="hljs-keyword">this</span>.tag(<span class="hljs-string">'LilLightning'</span>).patch({ <span class="hljs-string">x:</span> <span class="hljs-number">100</span> });
+    }
+     
+    _handleRight(){
+        <span class="hljs-keyword">this</span>.tag(<span class="hljs-string">'LilLightning'</span>).patch({ <span class="hljs-string">x:</span> <span class="hljs-number">400</span> });
+    }
+}
+
+
+const options = {<span class="hljs-string">stage:</span> {<span class="hljs-string">w:</span> window.innerWidth, <span class="hljs-string">h:</span> window.innerHeight, <span class="hljs-string">clearColor:</span> <span class="hljs-number">0x00000000</span>, <span class="hljs-string">canvas2d:</span> <span class="hljs-literal">false</span>, <span class="hljs-string">useImageWorker:</span> <span class="hljs-literal">false</span>}, <span class="hljs-string">debug:</span> <span class="hljs-literal">true</span>}
+options.keys = {
+<span class="hljs-symbol">    38:</span> <span class="hljs-string">"Up"</span>,
+<span class="hljs-symbol">    40:</span> <span class="hljs-string">"Down"</span>,
+<span class="hljs-symbol">    37:</span> <span class="hljs-string">"Left"</span>,
+<span class="hljs-symbol">    39:</span> <span class="hljs-string">"Right"</span>,
+<span class="hljs-symbol">    13:</span> <span class="hljs-string">"Enter"</span>,
+<span class="hljs-symbol">    9:</span> <span class="hljs-string">"Back"</span>,
+<span class="hljs-symbol">    8:</span> <span class="hljs-string">"Back"</span>,
+<span class="hljs-symbol">    93:</span> <span class="hljs-string">"Back"</span>,
+<span class="hljs-symbol">    174:</span> <span class="hljs-string">"Back"</span>,
+<span class="hljs-symbol">    175:</span> <span class="hljs-string">"Menu"</span>,
+<span class="hljs-symbol">    83:</span> <span class="hljs-string">"Search"</span>
+};
+const app = <span class="hljs-keyword">new</span> BasicUsageExample(options);
+document.body.appendChild(app.stage.getCanvas());
+</code></pre>
+</span></div></article></div><div class="docs-prevnext"></div></div></div><nav class="onPageNav"></nav></div><footer class="nav-footer" id="footer"><section class="sitemap"><a href="/Lightning/" class="nav-home"><img src="/Lightning/img/LngDocs_LogoCompact.png" alt="Lightning" width="18" height="54"/></a><div><h5>Docs</h5><a href="/Lightning/docs/gettingstarted">Getting Started </a><a href="/Lightning/docs/renderEngine/overview"> Render Engine </a><a href="/Lightning/docs/transitions/overview"> Transitions </a><a href="/Lightning/docs/animations/overview"> Animations </a><a href="/Lightning/docs/components/overview"> Components </a><a href="/Lightning/docs/focus/updatefocus"> Focus </a></div><div><h5>Github</h5><a href="https://github.com/WebPlatformForEmbedded/Lightning-SDK">Lightning-SDK on GitHub</a><a class="github-button" href="https://github.com/WebPlatformForEmbedded/Lightning-SDK" data-icon="octicon-star" data-show-count="true" aria-label="Star WebPlatformForEmbedded/Lightning-SDK on GitHub">Star</a></div></section><section class="copyright">Copyright © 2019 Metrological</section></footer></div><script src="http://localhost:undefined/livereload.js"></script></body></html>
