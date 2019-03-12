@@ -22,9 +22,9 @@ window.onload = function() {
 
 		iframeDoc.open();
 		iframeDoc.write('<style type="text/css" media="screen">body {padding: 0; margin:0}</style>');
-		iframeDoc.write('\<script src="/Lightning-SDK/js/lightning/lib/lightning-web.js" type="text/javascript" charset="utf-8">\<\/script>');
-		iframeDoc.write('\<script src="/Lightning-SDK/js/canvasExample.js" type="text/javascript" charset="utf-8">\<\/script>');
-		iframeDoc.write('\<script src="/Lightning-SDK/js/lightning/src/ux.js" type="module" charset="utf-8">\<\/script>');
+		iframeDoc.write('\<script src="/Lightning/js/lightning/lib/lightning-web.js" type="text/javascript" charset="utf-8">\<\/script>');
+		iframeDoc.write('\<script src="/Lightning/js/canvasExample.js" type="text/javascript" charset="utf-8">\<\/script>');
+		iframeDoc.write('\<script src="/Lightning/js/lightning/src/ux.js" type="module" charset="utf-8">\<\/script>');
 		iframeDoc.write('\<script>window.onload = function() {'+code+' resizeCanvas();}\<\/script>');
 		iframeDoc.close();
 	}
