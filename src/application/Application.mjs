@@ -46,7 +46,15 @@ export default class Application extends Component {
         }
 
         opt('debug', false);
-        opt('keys', {});
+        opt('keys', {
+            38: "Up",
+            40: "Down",
+            37: "Left",
+            39: "Right",
+            13: "Enter",
+            9: "Back",
+            27: "Exit"
+        });
     }
 
     __construct() {
