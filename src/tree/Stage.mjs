@@ -149,8 +149,8 @@ export default class Stage extends EventEmitter {
 
         opt('canvas', null);
         opt('context', null);
-        opt('w', 1280);
-        opt('h', 720);
+        opt('w', 1920);
+        opt('h', 1080);
         opt('srcBasePath', null);
         opt('memoryPressure', 24e6);
         opt('bufferMemory', 2e6);
@@ -158,8 +158,6 @@ export default class Stage extends EventEmitter {
         opt('clearColor', [0, 0, 0, 0]);
         opt('defaultFontFace', 'sans-serif');
         opt('fixedDt', 0);
-        opt('useTextureAtlas', false);
-        opt('debugTextureAtlas', false);
         opt('useImageWorker', true);
         opt('autostart', true);
         opt('precision', 1);
