@@ -58,7 +58,7 @@
 <li>when a key has been pressed</li>
 <li>when <code>_refocus()</code> has been called on any component</li>
 </ul>
-<p>A common way to delegate focus is to make use of <a href="/Lightning/docs/components/statemachine/statemachine"><code>states</code></a>, overriding <code>_getFocused()</code> method within each state class:</p>
+<p>A common way to delegate focus is to use <a href="/Lightning/docs/components/statemachine/statemachine"><code>states</code></a>, overriding <code>_getFocused()</code> method within each state class:</p>
 <pre><code class="hljs css language-js"><span class="hljs-keyword">static</span> _states() {
     <span class="hljs-keyword">return</span> [
         <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Buttons</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">this</span> </span>{
