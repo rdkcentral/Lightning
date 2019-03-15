@@ -7,6 +7,12 @@ export default class ImageWorker {
         this._initWorker();
     }
 
+    destroy() {
+        if (this._worker) {
+            this._worker.terminate();
+        }
+    }
+
     _initWorker() {
         const code = `(${createWorker.toString()})()`;
         const blob = new Blob([code.replace('"use strict";', '')]); // firefox adds "use strict"; to any function which might block worker execution so knock it off

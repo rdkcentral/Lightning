@@ -261,11 +261,24 @@ export default class Application extends Component {
     }
 
     destroy() {
+        if (!this._destroyed) {
+            this._destroy();
+            this.stage.destroy();
+            this._destroyed = true;
+        }
+    }
+
+    _destroy() {
         // This forces the _detach, _disabled and _active events to be called.
         this.stage.root = undefined;
         this._updateAttachedFlag();
         this._updateEnabledFlag();
     }
+
+    getCanvas() {
+        return this.stage.getCanvas();
+    }
+
 }
 
 import Stage from "../tree/Stage.mjs";

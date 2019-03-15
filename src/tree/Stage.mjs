@@ -78,8 +78,6 @@ export default class Stage extends EventEmitter {
 
         this.textureManager = new TextureManager(this);
 
-        this._destroyed = false;
-
         this.startTime = 0;
         this.currentTime = 0;
         this.dt = 0;
@@ -177,14 +175,11 @@ export default class Stage extends EventEmitter {
     }
 
     destroy() {
-        if (!this._destroyed) {
-            this.application.destroy();
-            this.platform.stopLoop();
-            this.ctx.destroy();
-            this.textureManager.destroy();
-            this._renderer.destroy();
-            this._destroyed = true;
-        }
+        this.platform.stopLoop();
+        this.platform.destroy();
+        this.ctx.destroy();
+        this.textureManager.destroy();
+        this._renderer.destroy();
     }
 
     stop() {
@@ -192,9 +187,6 @@ export default class Stage extends EventEmitter {
     }
 
     resume() {
-        if (this._destroyed) {
-            throw new Error("Already destroyed");
-        }
         this.platform.startLoop();
     }
 

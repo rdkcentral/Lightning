@@ -21,6 +21,12 @@ export default class WebPlatform {
         }
     }
 
+    destroy() {
+        if (this._imageWorker) {
+            this._imageWorker.destroy();
+        }
+    }
+
     startLoop() {
         this._looping = true;
         if (!this._awaitingLoop) {
