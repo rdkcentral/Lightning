@@ -25,6 +25,7 @@ export default class WebPlatform {
         if (this._imageWorker) {
             this._imageWorker.destroy();
         }
+        this._removeKeyHandler();
     }
 
     startLoop() {
@@ -171,9 +172,16 @@ export default class WebPlatform {
     }
 
     registerKeyHandler(keyhandler) {
-        window.addEventListener('keydown', e => {
+        this._keyListener = e => {
             keyhandler({keyCode: e.keyCode});
-        });
+        };
+        window.addEventListener('keydown', this._keyListener);
+    }
+
+    _removeKeyHandler() {
+        if (this._keyListener) {
+            window.removeEventListener('keydown', this._keyListener);
+        }
     }
 
 }

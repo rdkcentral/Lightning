@@ -270,7 +270,7 @@ export default class Application extends Component {
 
     _destroy() {
         // This forces the _detach, _disabled and _active events to be called.
-        this.stage.root = undefined;
+        this.stage.setApplication(undefined);
         this._updateAttachedFlag();
         this._updateEnabledFlag();
     }
