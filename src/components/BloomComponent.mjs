@@ -84,7 +84,7 @@ export default class BloomComponent extends Component {
     }
 
     set content(v) {
-        this.sel('Textwrap.Content').patch(v, true);
+        this.sel('Textwrap.Content').patch(v);
     }
 
     set padding(v) {
