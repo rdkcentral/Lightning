@@ -2,24 +2,24 @@ import EventEmitter from "../EventEmitter.mjs";
 
 export default class Transition extends EventEmitter {
 
-    constructor(manager, settings, view, property) {
+    constructor(manager, settings, element, property) {
         super();
 
         this.manager = manager;
 
         this._settings = settings;
 
-        this._view = view;
-        this._getter = View.getGetter(property);
-        this._setter = View.getSetter(property);
+        this._element = element;
+        this._getter = Element.getGetter(property);
+        this._setter = Element.getSetter(property);
 
         this._merger = settings.merger;
 
         if (!this._merger) {
-            this._merger = View.getMerger(property);
+            this._merger = Element.getMerger(property);
         }
 
-        this._startValue = this._getter(this._view);
+        this._startValue = this._getter(this._element);
         this._targetValue = this._startValue;
 
         this._p = 1;
@@ -27,10 +27,10 @@ export default class Transition extends EventEmitter {
     }
 
     start(targetValue) {
-        this._startValue = this._getter(this._view);
+        this._startValue = this._getter(this._element);
 
         if (!this.isAttached()) {
-            // We don't support transitions on non-attached views. Just set value without invoking listeners.
+            // We don't support transitions on non-attached elements. Just set value without invoking listeners.
             this._targetValue = targetValue;
             this._p = 1;
             this._updateDrawValue();
@@ -70,13 +70,13 @@ export default class Transition extends EventEmitter {
 
     reset(targetValue, p) {
         if (!this.isAttached()) {
-            // We don't support transitions on non-attached views. Just set value without invoking listeners.
-            this._startValue = this._getter(this._view);
+            // We don't support transitions on non-attached elements. Just set value without invoking listeners.
+            this._startValue = this._getter(this._element);
             this._targetValue = targetValue;
             this._p = 1;
             this._updateDrawValue();
         } else {
-            this._startValue = this._getter(this._view);
+            this._startValue = this._getter(this._element);
             this._targetValue = targetValue;
             this._p = p;
             this.add();
@@ -84,7 +84,7 @@ export default class Transition extends EventEmitter {
     }
 
     _updateDrawValue() {
-        this._setter(this._view, this.getDrawValue());
+        this._setter(this._element, this.getDrawValue());
     }
 
     add() {
@@ -92,7 +92,7 @@ export default class Transition extends EventEmitter {
     }
 
     isAttached() {
-        return this._view.attached;
+        return this._element.attached;
     }
 
     isRunning() {
@@ -184,8 +184,8 @@ export default class Transition extends EventEmitter {
         return this._delayLeft;
     }
 
-    get view() {
-        return this._view;
+    get element() {
+        return this._element;
     }
 
     get settings() {
@@ -200,4 +200,4 @@ export default class Transition extends EventEmitter {
 
 Transition.prototype.isTransition = true;
 
-import View from "../tree/View.mjs";
+import Element from "../tree/Element.mjs";

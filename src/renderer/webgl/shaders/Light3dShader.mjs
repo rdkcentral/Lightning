@@ -25,10 +25,10 @@ export default class Light3dShader extends DefaultShader {
         super.setupUniforms(operation);
 
         let vr = operation.shaderOwner;
-        let view = vr.view;
+        let element = vr.element;
 
-        let pivotX = isNaN(this._pivotX) ? view.pivotX * vr.w : this._pivotX;
-        let pivotY = isNaN(this._pivotY) ? view.pivotY * vr.h : this._pivotY;
+        let pivotX = isNaN(this._pivotX) ? element.pivotX * vr.w : this._pivotX;
+        let pivotY = isNaN(this._pivotY) ? element.pivotY * vr.h : this._pivotY;
         let coords = vr.getRenderTextureCoords(pivotX, pivotY);
 
         // Counter normal rotation.

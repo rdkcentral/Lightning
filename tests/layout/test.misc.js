@@ -96,7 +96,7 @@ describe('layout', () => {
 
         describe('getting final coords', () => {
             before(() => {
-                const view = app.stage.createView({
+                const element = app.stage.createElement({
                     Item: {
                         w: 300, flex: {padding: 5},
                         children: [
@@ -107,7 +107,7 @@ describe('layout', () => {
                         ]
                     }
                 });
-                app.children = [view];
+                app.children = [element];
             });
 
             it('should not update coords yet', () => {

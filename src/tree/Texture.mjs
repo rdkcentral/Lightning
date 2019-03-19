@@ -11,13 +11,13 @@ export default class Texture {
         this.id = Texture.id++;
 
         /**
-         * All enabled views that use this texture object (either as texture or displayedTexture).
-         * @type {Set<View>}
+         * All enabled elements that use this texture object (either as texture or displayedTexture).
+         * @type {Set<Element>}
          */
-        this.views = new Set();
+        this.elements = new Set();
 
         /**
-         * The number of enabled views that are active.
+         * The number of enabled elements that are active.
          * @type {number}
          */
         this._activeCount = 0;
@@ -62,14 +62,14 @@ export default class Texture {
 
         /**
          * The (maximum) expected texture source width. Used for within bounds determination while texture is not yet loaded.
-         * If not set, 2048 is used by ViewCore.update.
+         * If not set, 2048 is used by ElementCore.update.
          * @type {number}
          */
         this.mw = 0;
 
         /**
          * The (maximum) expected texture source height. Used for within bounds determination while texture is not yet loaded.
-         * If not set, 2048 is used by ViewCore.update.
+         * If not set, 2048 is used by ElementCore.update.
          * @type {number}
          */
         this.mh = 0;
@@ -97,11 +97,11 @@ export default class Texture {
         return this._source;
     }
 
-    addView(v) {
-        if (!this.views.has(v)) {
-            this.views.add(v);
+    addElement(v) {
+        if (!this.elements.has(v)) {
+            this.elements.add(v);
 
-            if (this.views.size === 1) {
+            if (this.elements.size === 1) {
                 if (this._source) {
                     this._source.addTexture(this);
                 }
@@ -113,9 +113,9 @@ export default class Texture {
         }
     }
 
-    removeView(v) {
-        if (this.views.delete(v)) {
-            if (this.views.size === 0) {
+    removeElement(v) {
+        if (this.elements.delete(v)) {
+            if (this.elements.size === 0) {
                 if (this._source) {
                     this._source.removeTexture(this);
                 }
@@ -202,7 +202,7 @@ export default class Texture {
      *     - flipBlueRed: boolean
      *     - renderInfo: object
      * The loader itself may return a Function that is called when loading of the texture is cancelled. This can be used
-     * to stop fetching an image when it is no longer in view, for example.
+     * to stop fetching an image when it is no longer in element, for example.
      */
     _getSourceLoader() {
         throw new Error("Texture.generate must be implemented.");
@@ -224,7 +224,7 @@ export default class Texture {
      * This must be called when the texture source must be re-generated.
      */
     _changed() {
-        // If no view is actively using this texture, ignore it altogether.
+        // If no element is actively using this texture, ignore it altogether.
         if (this.isUsed()) {
             this._updateSource();
         } else {
@@ -275,7 +275,7 @@ export default class Texture {
 
         this._source = newSource;
 
-        if (this.views.size) {
+        if (this.elements.size) {
             if (oldSource) {
                 if (this._activeCount) {
                     oldSource.decActiveTextureCount();
@@ -296,25 +296,25 @@ export default class Texture {
         if (this.isUsed()) {
             if (newSource) {
                 if (newSource.isLoaded()) {
-                    this.views.forEach(view => {
-                        if (view.active) {
-                            view._setDisplayedTexture(this);
+                    this.elements.forEach(element => {
+                        if (element.active) {
+                            element._setDisplayedTexture(this);
                         }
                     });
                 } else {
                     const loadError = newSource.loadError;
                     if (loadError) {
-                        this.views.forEach(view => {
-                            if (view.active) {
-                                view.onTextureSourceLoadError(loadError);
+                        this.elements.forEach(element => {
+                            if (element.active) {
+                                element.onTextureSourceLoadError(loadError);
                             }
                         });
                     }
                 }
             } else {
-                this.views.forEach(view => {
-                    if (view.active) {
-                        view._setDisplayedTexture(null);
+                this.elements.forEach(element => {
+                    if (element.active) {
+                        element._setDisplayedTexture(null);
                     }
                 });
             }
@@ -378,20 +378,20 @@ export default class Texture {
         }
 
         let self = this;
-        this.views.forEach(function(view) {
+        this.elements.forEach(function(element) {
             // Ignore if not the currently displayed texture.
-            if (view.displayedTexture === self) {
-                view.onDisplayedTextureClippingChanged();
+            if (element.displayedTexture === self) {
+                element.onDisplayedTextureClippingChanged();
             }
         });
     }
 
     updatePrecision() {
         let self = this;
-        this.views.forEach(function(view) {
+        this.elements.forEach(function(element) {
             // Ignore if not the currently displayed texture.
-            if (view.displayedTexture === self) {
-                view.onPrecisionChanged();
+            if (element.displayedTexture === self) {
+                element.onPrecisionChanged();
             }
         });
     }

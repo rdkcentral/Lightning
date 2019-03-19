@@ -5,7 +5,7 @@ export default class AnimationActionSettings {
         this.animationSettings = animationSettings;
 
         /**
-         * The selector that selects the views.
+         * The selector that selects the elements.
          * @type {string}
          */
         this._selector = "";
@@ -43,12 +43,12 @@ export default class AnimationActionSettings {
         }
     }
 
-    apply(view, p, factor) {
-        const views = this.getAnimatedViews(view);
+    apply(element, p, factor) {
+        const elements = this.getAnimatedElements(element);
 
         let v = this._items.getValue(p);
 
-        if (v === undefined || !views.length) {
+        if (v === undefined || !elements.length) {
             return;
         }
 
@@ -68,34 +68,34 @@ export default class AnimationActionSettings {
         // Apply transformation to all components.;
         const n = this._propSetters.length;
 
-        const m = views.length;
+        const m = elements.length;
         for (let j = 0; j < m; j++) {
             for (let i = 0; i < n; i++) {
-                this._propSetters[i](views[j], v);
+                this._propSetters[i](elements[j], v);
             }
         }
     }
     
-    getAnimatedViews(view) {
-        return view.select(this._selector);
+    getAnimatedElements(element) {
+        return element.select(this._selector);
     }
 
-    reset(view) {
-        const views = this.getAnimatedViews(view);
+    reset(element) {
+        const elements = this.getAnimatedElements(element);
 
         let v = this.getResetValue();
 
-        if (v === undefined || !views.length) {
+        if (v === undefined || !elements.length) {
             return;
         }
 
         // Apply transformation to all components.
         const n = this._propSetters.length;
 
-        const m = views.length;
+        const m = elements.length;
         for (let j = 0; j < m; j++) {
             for (let i = 0; i < n; i++) {
-                this._propSetters[i](views[j], v);
+                this._propSetters[i](elements[j], v);
             }
         }
     }
@@ -138,7 +138,7 @@ export default class AnimationActionSettings {
 
         v.forEach((prop) => {
             this._props.push(prop);
-            this._propSetters.push(View.getSetter(prop));
+            this._propSetters.push(Element.getSetter(prop));
         });
     }
 
@@ -157,7 +157,7 @@ export default class AnimationActionSettings {
 
     hasColorProperty() {
         if (this._hasColorProperty === undefined) {
-            this._hasColorProperty = this._props.length ? View.isColorProperty(this._props[0]) : false;
+            this._hasColorProperty = this._props.length ? Element.isColorProperty(this._props[0]) : false;
         }
         return this._hasColorProperty;
     }
@@ -166,7 +166,7 @@ export default class AnimationActionSettings {
 AnimationActionSettings.prototype.isAnimationActionSettings = true;
 
 import MultiSpline from "../tools/MultiSpline.mjs";
-import View from "../tree/View.mjs";
+import Element from "../tree/Element.mjs";
 import StageUtils from "../tree/StageUtils.mjs";
 import Utils from "../tree/Utils.mjs";
 import Base from "../tree/Base.mjs";

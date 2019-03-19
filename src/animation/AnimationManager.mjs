@@ -31,7 +31,7 @@ export default class AnimationManager {
         }
     }
 
-    createAnimation(view, settings) {
+    createAnimation(element, settings) {
         if (Utils.isObjectLiteral(settings)) {
             // Convert plain object to proper settings object.
             settings = this.createSettings(settings);
@@ -40,7 +40,7 @@ export default class AnimationManager {
         return new Animation(
             this,
             settings,
-            view
+            element
         );
     }
 

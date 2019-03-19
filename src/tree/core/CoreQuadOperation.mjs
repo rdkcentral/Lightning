@@ -21,20 +21,20 @@ export default class CoreQuadOperation {
         return this.quads.getTexture(this.index + index);
     }
 
-    getViewCore(index) {
-        return this.quads.getViewCore(this.index + index);
+    getElementCore(index) {
+        return this.quads.getElementCore(this.index + index);
     }
 
-    getView(index) {
-        return this.quads.getView(this.index + index);
+    getElement(index) {
+        return this.quads.getElement(this.index + index);
     }
 
-    getViewWidth(index) {
-        return this.getView(index).renderWidth;
+    getElementWidth(index) {
+        return this.getElement(index).renderWidth;
     }
 
-    getViewHeight(index) {
-        return this.getView(index).renderHeight;
+    getElementHeight(index) {
+        return this.getElement(index).renderHeight;
     }
 
     getTextureWidth(index) {

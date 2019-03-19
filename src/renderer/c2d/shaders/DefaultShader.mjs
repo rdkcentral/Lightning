@@ -14,7 +14,7 @@ export default class DefaultShader extends C2dShader {
         let length = operation.length;
         for (let i = 0; i < length; i++) {
             const tx = operation.getTexture(i);
-            const vc = operation.getViewCore(i);
+            const vc = operation.getElementCore(i);
             const rc = operation.getRenderContext(i);
             const white = operation.getWhite(i);
             const stc = operation.getSimpleTc(i);

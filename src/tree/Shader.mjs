@@ -9,10 +9,10 @@ export default class Shader {
         this.ctx = coreContext;
 
         /**
-         * The (enabled) views that use this shader.
-         * @type {Set<ViewCore>}
+         * The (enabled) elements that use this shader.
+         * @type {Set<ElementCore>}
          */
-        this._views = new Set();
+        this._elements = new Set();
     }
 
     static create(stage, v) {
@@ -55,20 +55,20 @@ export default class Shader {
         return undefined;
     }
 
-    addView(viewCore) {
-        this._views.add(viewCore);
+    addElement(elementCore) {
+        this._elements.add(elementCore);
     }
 
-    removeView(viewCore) {
-        this._views.delete(viewCore);
-        if (!this._views) {
+    removeElement(elementCore) {
+        this._elements.delete(elementCore);
+        if (!this._elements) {
             this.cleanup();
         }
     }
 
     redraw() {
-        this._views.forEach(viewCore => {
-            viewCore.setHasRenderUpdates(2);
+        this._elements.forEach(elementCore => {
+            elementCore.setHasRenderUpdates(2);
         });
     }
 
@@ -89,7 +89,7 @@ export default class Shader {
     }
 
     cleanup() {
-        // Called when no more enabled views have this shader.
+        // Called when no more enabled elements have this shader.
     }
 
     get isShader() {

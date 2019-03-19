@@ -1,5 +1,5 @@
 /**
- * Manages the list of children for a view.
+ * Manages the list of children for an element.
  */
 
 import ObjectListProxy from "./ObjectListProxy.mjs";

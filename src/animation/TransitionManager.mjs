@@ -7,7 +7,7 @@ export default class TransitionManager {
 
         /**
          * All transitions that are running and attached.
-         * (we don't support transitions on un-attached views to prevent memory leaks)
+         * (we don't support transitions on un-attached elements to prevent memory leaks)
          * @type {Set<Transition>}
          */
         this.active = new Set();

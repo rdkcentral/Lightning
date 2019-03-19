@@ -37,9 +37,9 @@ export default class DitheringShader extends DefaultShader {
 
         for (let i = 0; i < length; i++) {
 
-            // Calculate noise texture coordinates so that it spans the full view.
-            let brx = operation.getViewWidth(i) / this._noiseTexture.getRenderWidth();
-            let bry = operation.getViewHeight(i) / this._noiseTexture.getRenderHeight();
+            // Calculate noise texture coordinates so that it spans the full element.
+            let brx = operation.getElementWidth(i) / this._noiseTexture.getRenderWidth();
+            let bry = operation.getElementHeight(i) / this._noiseTexture.getRenderHeight();
 
             let ulx = 0;
             let uly = 0;

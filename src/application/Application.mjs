@@ -247,7 +247,7 @@ export default class Application extends Component {
     }
 
     _receiveKeydown(e) {
-        const obj = {keyCode: e.keyCode}
+        const obj = e;
         if (this.__keymap[e.keyCode]) {
             if (!this.stage.application.focusTopDownEvent(["_capture" + this.__keymap[e.keyCode], "_captureKey"], obj)) {
                 this.stage.application.focusBottomUpEvent(["_handle" + this.__keymap[e.keyCode], "_handleKey"], obj)

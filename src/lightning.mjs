@@ -3,9 +3,9 @@ import Component from "./application/Component.mjs";
 import Base from "./tree/Base.mjs";
 import Utils from "./tree/Utils.mjs";
 import StageUtils from "./tree/StageUtils.mjs";
-import View from "./tree/View.mjs";
-import ViewCore from "./tree/core/ViewCore.mjs";
-import ViewTexturizer from "./tree/core/ViewTexturizer.mjs";
+import Element from "./tree/Element.mjs";
+import ElementCore from "./tree/core/ElementCore.mjs";
+import ElementTexturizer from "./tree/core/ElementTexturizer.mjs";
 import Texture from "./tree/Texture.mjs";
 
 import Tools from "./tools/Tools.mjs";
@@ -56,11 +56,11 @@ const lightning = {
     Base,
     Utils,
     StageUtils,
-    View,
+    Element,
     Tools,
     Stage,
-    ViewCore,
-    ViewTexturizer,
+    ElementCore,
+    ElementTexturizer,
     Texture,
     EventEmitter,
     shaders: {

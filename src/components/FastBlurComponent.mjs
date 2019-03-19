@@ -162,15 +162,15 @@ class C2dFastBlurComponent extends Component {
 class WebGLFastBlurComponent extends Component {
 
     static _template() {
-        const onUpdate = function(view, viewCore) {
-            if ((viewCore._recalc & (2 + 128))) {
-                const w = viewCore.w;
-                const h = viewCore.h;
-                let cur = viewCore;
+        const onUpdate = function(element, elementCore) {
+            if ((elementCore._recalc & (2 + 128))) {
+                const w = elementCore.w;
+                const h = elementCore.h;
+                let cur = elementCore;
                 do {
                     cur = cur._children[0];
-                    cur._view.w = w;
-                    cur._view.h = h;
+                    cur._element.w = w;
+                    cur._element.h = h;
                 } while(cur._children);
             }
         };
@@ -218,19 +218,19 @@ class WebGLFastBlurComponent extends Component {
         this._setLayerTexture(this.getLayerContents(3), this.getLayer(2).getTexture(), [filterShaders[0], filterShaders[1], filterShaders[2], filterShaders[3]]);
     }
 
-    _setLayerTexture(view, texture, steps) {
+    _setLayerTexture(element, texture, steps) {
         if (!steps.length) {
-            view.texture = texture;
+            element.texture = texture;
         } else {
             const step = steps.pop();
-            const child = view.stage.c({rtt: true, shader: step});
+            const child = element.stage.c({rtt: true, shader: step});
 
             // Recurse.
             this._setLayerTexture(child, texture, steps);
 
-            view.childList.add(child);
+            element.childList.add(child);
         }
-        return view;
+        return element;
     }
 
     get content() {
@@ -354,7 +354,7 @@ class WebGLFastBlurComponent extends Component {
     set shader(s) {
         super.shader = s;
         if (!this.renderToTexture) {
-            console.warn("FastBlurView: please enable renderToTexture to use with a shader.");
+            console.warn("Please enable renderToTexture to use with a shader.");
         }
     }
 

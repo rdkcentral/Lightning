@@ -1,11 +1,11 @@
 import TextureSource from '../TextureSource.mjs';
 
-export default class ViewTexturizer {
+export default class ElementTexturizer {
 
-    constructor(viewCore) {
+    constructor(elementCore) {
 
-        this._view = viewCore.view;
-        this._core = viewCore;
+        this._element = elementCore.element;
+        this._core = elementCore;
 
         this.ctx = this._core.ctx;
 
@@ -60,7 +60,7 @@ export default class ViewTexturizer {
 
     _getTextureSource() {
         if (!this._resultTextureSource) {
-            this._resultTextureSource = new TextureSource(this._view.stage.textureManager);
+            this._resultTextureSource = new TextureSource(this._element.stage.textureManager);
             this.updateResultTexture();
         }
         return this._resultTextureSource;
@@ -71,7 +71,7 @@ export default class ViewTexturizer {
     }
 
     resultTextureInUse() {
-        return this._resultTextureSource && this._resultTextureSource.hasEnabledViews();
+        return this._resultTextureSource && this._resultTextureSource.hasEnabledElements();
     }
 
     updateResultTexture() {
@@ -83,10 +83,10 @@ export default class ViewTexturizer {
                 this._resultTextureSource.replaceNativeTexture(resultTexture, w, h);
             }
 
-            // Texture will be updated: all views using the source need to be updated as well.
-            this._resultTextureSource.forEachEnabledView(view => {
-                view._updateDimensions();
-                view.core.setHasRenderUpdates(3);
+            // Texture will be updated: all elements using the source need to be updated as well.
+            this._resultTextureSource.forEachEnabledElement(element => {
+                element._updateDimensions();
+                element.core.setHasRenderUpdates(3);
             });
         }
     }

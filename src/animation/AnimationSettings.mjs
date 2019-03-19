@@ -44,24 +44,24 @@ export default class AnimationSettings {
     }
 
     /**
-     * Applies the animation to the specified view, for the specified progress between 0 and 1.
-     * @param {View} view;
+     * Applies the animation to the specified element, for the specified progress between 0 and 1.
+     * @param {Element} element;
      * @param {number} p;
      * @param {number} factor;
      */
-    apply(view, p, factor = 1) {
+    apply(element, p, factor = 1) {
         this._actions.forEach(function(action) {
-            action.apply(view, p, factor);
+            action.apply(element, p, factor);
         });
     }
 
     /**
      * Resets the animation to the reset values.
-     * @param {View} view;
+     * @param {Element} element;
      */
-    reset(view) {
+    reset(element) {
         this._actions.forEach(function(action) {
-            action.reset(view);
+            action.reset(element);
         });
     }
 

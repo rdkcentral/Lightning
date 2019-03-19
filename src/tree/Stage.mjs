@@ -288,11 +288,11 @@ export default class Stage extends EventEmitter {
         return this._clearColor;
     }
 
-    createView(settings) {
+    createElement(settings) {
         if (settings) {
-            return this.view(settings);
+            return this.elements(settings);
         } else {
-            return new View(this);
+            return new Element(this);
         }
     }
 
@@ -300,23 +300,23 @@ export default class Stage extends EventEmitter {
         return Shader.create(this, settings);
     }
 
-    view(settings) {
-        if (settings.isView) return settings;
+    element(settings) {
+        if (settings.isElement) return settings;
 
-        let view;
+        let element;
         if (settings.type) {
-            view = new settings.type(this);
+            element = new settings.type(this);
         } else {
-            view = new View(this);
+            element = new Element(this);
         }
 
-        view.patch(settings, true);
+        element.patch(settings, true);
 
-        return view;
+        return element;
     }
 
     c(settings) {
-        return this.view(settings);
+        return this.element(settings);
     }
 
     get w() {
@@ -398,7 +398,7 @@ export default class Stage extends EventEmitter {
 
 }
 
-import View from "./View.mjs";
+import Element from "./Element.mjs";
 import StageUtils from "./StageUtils.mjs";
 import TextureManager from "./TextureManager.mjs";
 import CoreContext from "./core/CoreContext.mjs";

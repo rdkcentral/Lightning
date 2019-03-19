@@ -63,10 +63,10 @@ describe('textures', function() {
     describe('load', () => {
         describe('visible:false', () => {
             it('should not be loaded', () => {
-                const view = app.stage.createView({
+                const element = app.stage.createElement({
                     Item: {texture: {type: TestTexture, async: false}, visible: false}
                 });
-                app.children = [view];
+                app.children = [element];
                 const texture = app.tag("Item").texture;
 
                 stage.drawFrame();
@@ -76,10 +76,10 @@ describe('textures', function() {
 
         describe('alpha:0', () => {
             it('should not be loaded', () => {
-                const view = app.stage.createView({
+                const element = app.stage.createElement({
                     Item: {texture: {type: TestTexture, async: false}, alpha: 0}
                 });
-                app.children = [view];
+                app.children = [element];
                 const texture = app.tag("Item").texture;
 
                 stage.drawFrame();
@@ -89,10 +89,10 @@ describe('textures', function() {
 
         describe('invalid', () => {
             it('should not be loaded', () => {
-                const view = app.stage.createView({
+                const element = app.stage.createElement({
                     Item: {texture: {type: TestTexture, invalid: true, async: false}, alpha: 0}
                 });
-                app.children = [view];
+                app.children = [element];
                 const texture = app.tag("Item").texture;
 
                 stage.drawFrame();
@@ -103,11 +103,11 @@ describe('textures', function() {
 
         describe('out of bounds', () => {
             it('should not be loaded', () => {
-                const view = app.stage.createView({
+                const element = app.stage.createElement({
                     Item: {x: 700, texture: {type: TestTexture, async: false}}
                 });
 
-                app.children = [view];
+                app.children = [element];
                 const texture = app.tag("Item").texture;
 
                 stage.drawFrame();
@@ -117,11 +117,11 @@ describe('textures', function() {
 
         describe('within bounds margin', () => {
             it('should be loaded', () => {
-                const view = app.stage.createView({
+                const element = app.stage.createElement({
                     Item: {x: 550, texture: {type: TestTexture, async: false}}
                 });
 
-                app.children = [view];
+                app.children = [element];
                 const texture = app.tag("Item").texture;
 
                 stage.drawFrame();
@@ -129,13 +129,13 @@ describe('textures', function() {
             });
         });
 
-        describe('within viewport', () => {
+        describe('within elementport', () => {
             it('should be loaded', () => {
-                const view = app.stage.createView({
+                const element = app.stage.createElement({
                     Item: {x: 550, texture: {type: TestTexture, async: false}}
                 });
 
-                app.children = [view];
+                app.children = [element];
                 const texture = app.tag("Item").texture;
 
                 stage.drawFrame();
@@ -145,11 +145,11 @@ describe('textures', function() {
 
         describe('async', () => {
             it('should load after async', () => {
-                const view = app.stage.createView({
+                const element = app.stage.createElement({
                     Item: {x: 550, texture: {type: TestTexture, async: true}}
                 });
 
-                app.children = [view];
+                app.children = [element];
                 const texture = app.tag("Item").texture;
 
                 stage.drawFrame();
@@ -172,11 +172,11 @@ describe('textures', function() {
     describe('cancel', () => {
         describe('trigger visibility while loading', () => {
             it('should cancel', () => {
-                const view = app.stage.createView({
+                const element = app.stage.createElement({
                     Item: {x: 550, texture: {type: TestTexture, async: true}}
                 });
 
-                app.children = [view];
+                app.children = [element];
                 const texture = app.tag("Item").texture;
 
                 stage.drawFrame();
@@ -192,11 +192,11 @@ describe('textures', function() {
 
         describe('visible after cancel', () => {
             it('should recover load', () => {
-                const view = app.stage.createView({
+                const element = app.stage.createElement({
                     Item: {x: 550, texture: {type: TestTexture, async: true}}
                 });
 
-                app.children = [view];
+                app.children = [element];
                 const texture = app.tag("Item").texture;
 
                 stage.drawFrame();
@@ -218,11 +218,11 @@ describe('textures', function() {
 
         describe('visible after cancel (previous load fired)', () => {
             it('should recover load', () => {
-                const view = app.stage.createView({
+                const element = app.stage.createElement({
                     Item: {x: 550, texture: {type: TestTexture, async: true}}
                 });
 
-                app.children = [view];
+                app.children = [element];
                 const texture = app.tag("Item").texture;
 
                 stage.drawFrame();
@@ -244,11 +244,11 @@ describe('textures', function() {
 
         describe('visible after cancel (both loads fired)', () => {
             it('should recover load', () => {
-                const view = app.stage.createView({
+                const element = app.stage.createElement({
                     Item: {x: 550, texture: {type: TestTexture, async: true}}
                 });
 
-                app.children = [view];
+                app.children = [element];
                 const texture = app.tag("Item").texture;
 
                 stage.drawFrame();
@@ -274,10 +274,10 @@ describe('textures', function() {
     describe('lookup id', () => {
         describe('not active', () => {
             it('should not be added to reusable sources', () => {
-                const view = app.stage.createView({
+                const element = app.stage.createElement({
                     Item: {texture: {type: TestTexture, lookupId: "test1"}, visible: false}
                 });
-                app.children = [view];
+                app.children = [element];
 
                 stage.drawFrame();
                 chai.assert(!stage.textureManager.getReusableTextureSource("test1"), "lookup id should not be known");
@@ -286,11 +286,11 @@ describe('textures', function() {
 
         describe('active', () => {
             it('should be added to reusable sources', () => {
-                const view = app.stage.createView({
+                const element = app.stage.createElement({
                     Item: {texture: {type: TestTexture, lookupId: "test1"}, visible: true}
                 });
 
-                app.children = [view];
+                app.children = [element];
 
                 stage.drawFrame();
                 chai.assert(!!stage.textureManager.getReusableTextureSource("test1"), "lookup id should be known");
@@ -302,11 +302,11 @@ describe('textures', function() {
 
         describe('on GC', () => {
             it ('should clear lookup id', () => {
-                const view = app.stage.createView({
+                const element = app.stage.createElement({
                     Item: {texture: {type: TestTexture, lookupId: "test1"}, visible: true}
                 });
 
-                app.children = [view];
+                app.children = [element];
 
                 stage.drawFrame();
 
@@ -326,11 +326,11 @@ describe('textures', function() {
 
         describe('previously removed texture source', () => {
             it ('should reuse newer texture source with new lookup id', () => {
-                const view = app.stage.createView({
+                const element = app.stage.createElement({
                     Item: {texture: {type: TestTexture, lookupId: "test1"}, visible: true}
                 });
 
-                app.children = [view];
+                app.children = [element];
 
                 stage.drawFrame();
 
@@ -346,8 +346,8 @@ describe('textures', function() {
                 chai.assert(!app.tag("Item").texture.source.isLoaded(), "texture no longer loaded");
 
                 // Now create new texture source.
-                const newView = app.stage.createView({ref: "NewItem", texture: {type: TestTexture, lookupId: "test1"}, visible: true});
-                app.childList.a(newView);
+                const newElement = app.stage.createElement({ref: "NewItem", texture: {type: TestTexture, lookupId: "test1"}, visible: true});
+                app.childList.a(newElement);
                 stage.drawFrame();
 
                 const prevSource = app.tag("Item").texture.source;
@@ -374,11 +374,11 @@ describe('textures', function() {
 
     describe('error', () => {
         it('should not load', () => {
-            const view = app.stage.createView({
+            const element = app.stage.createElement({
                 Item: {texture: {type: TestTexture, lookupId: "test1", async: true, error: new Error("Texture Error")}, visible: true}
             });
 
-            app.children = [view];
+            app.children = [element];
             stage.drawFrame();
 
             const texture = app.tag("Item").texture;

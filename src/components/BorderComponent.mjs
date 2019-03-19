@@ -26,18 +26,18 @@ export default class BorderComponent extends Component {
         this._borderBottom = this.tag("Bottom");
         this._borderLeft = this.tag("Left");
 
-        this.onAfterUpdate = function (view) {
-            const content = view.childList.first;
-            let w = view.core.w || content.renderWidth;
-            let h = view.core.h || content.renderHeight;
-            view._borderTop.w = w;
-            view._borderBottom.y = h;
-            view._borderBottom.w = w;
-            view._borderLeft.h = h + view._borderTop.h + view._borderBottom.h;
-            view._borderLeft.y = -view._borderTop.h;
-            view._borderRight.x = w;
-            view._borderRight.h = h + view._borderTop.h + view._borderBottom.h;
-            view._borderRight.y = -view._borderTop.h;
+        this.onAfterUpdate = function (element) {
+            const content = element.childList.first;
+            let w = element.core.w || content.renderWidth;
+            let h = element.core.h || content.renderHeight;
+            element._borderTop.w = w;
+            element._borderBottom.y = h;
+            element._borderBottom.w = w;
+            element._borderLeft.h = h + element._borderTop.h + element._borderBottom.h;
+            element._borderLeft.y = -element._borderTop.h;
+            element._borderRight.x = w;
+            element._borderRight.h = h + element._borderTop.h + element._borderBottom.h;
+            element._borderRight.y = -element._borderTop.h;
         };
 
         this.borderWidth = 1;

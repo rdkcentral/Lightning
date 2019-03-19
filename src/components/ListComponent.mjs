@@ -1,6 +1,6 @@
 import Component from "../application/Component.mjs";
 
-export default class ListView extends Component {
+export default class ListComponent extends Component {
 
     constructor(stage) {
         super(stage);
@@ -427,7 +427,7 @@ import ObjectListWrapper from "../tools/ObjectListWrapper.mjs";
 class ListItems extends ObjectListWrapper {
     constructor(list) {
         let wrap = (item => {
-            let parent = item.stage.createView();
+            let parent = item.stage.createElement();
             parent.add(item);
             parent.visible = false;
             return parent;

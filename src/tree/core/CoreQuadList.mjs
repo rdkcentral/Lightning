@@ -6,7 +6,7 @@ export default class CoreQuadList {
 
         this.quadTextures = [];
 
-        this.quadViews = [];
+        this.quadElements = [];
     }
 
     get length() {
@@ -15,16 +15,16 @@ export default class CoreQuadList {
 
     reset() {
         this.quadTextures = [];
-        this.quadViews = [];
+        this.quadElements = [];
         this.dataLength = 0;
     }
 
-    getView(index) {
-        return this.quadViews[index]._view;
+    getElement(index) {
+        return this.quadElements[index]._element;
     }
 
-    getViewCore(index) {
-        return this.quadViews[index];
+    getElementCore(index) {
+        return this.quadElements[index];
     }
 
     getTexture(index) {
@@ -37,7 +37,7 @@ export default class CoreQuadList {
             // Render texture;
             return nativeTexture.w;
         } else {
-            return this.quadViews[index]._displayedTextureSource.w;
+            return this.quadElements[index]._displayedTextureSource.w;
         }
     }
 
@@ -47,7 +47,7 @@ export default class CoreQuadList {
             // Render texture;
             return nativeTexture.h;
         } else {
-            return this.quadViews[index]._displayedTextureSource.h;
+            return this.quadElements[index]._displayedTextureSource.h;
         }
     }
 

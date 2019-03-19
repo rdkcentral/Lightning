@@ -4,26 +4,26 @@
  */
 
 import StageUtils from "./StageUtils.mjs";
-import ViewCore from "./core/ViewCore.mjs";
+import ElementCore from "./core/ElementCore.mjs";
 import Base from "./Base.mjs";
 
 import Utils from "./Utils.mjs";
 import EventEmitter from "../EventEmitter.mjs";
 import Shader from "./Shader.mjs";
 
-export default class View {
+export default class Element {
 
     constructor(stage) {
         this.stage = stage;
 
-        this.__id = View.id++;
+        this.__id = Element.id++;
 
         this.__start();
 
         // EventEmitter constructor.
         this._hasEventListeners = false;
 
-        this.__core = new ViewCore(this);
+        this.__core = new ElementCore(this);
 
         /**
          * A reference that can be used while merging trees.
@@ -32,25 +32,25 @@ export default class View {
         this.__ref = null;
 
         /**
-         * A view is attached if it is a descendant of the stage root.
+         * An element is attached if it is a descendant of the stage root.
          * @type {boolean}
          */
         this.__attached = false;
 
         /**
-         * A view is enabled when it is attached and it is visible (worldAlpha > 0).
+         * An element is enabled when it is attached and it is visible (worldAlpha > 0).
          * @type {boolean}
          */
         this.__enabled = false;
 
         /**
-         * A view is active when it is enabled and it is within bounds.
+         * An element is active when it is enabled and it is within bounds.
          * @type {boolean}
          */
         this.__active = false;
 
         /**
-         * @type {View}
+         * @type {Element}
          */
         this.__parent = null;
 
@@ -67,21 +67,21 @@ export default class View {
         this.__displayedTexture = null;
 
         /**
-         * Tags that can be used to identify/search for a specific view.
+         * Tags that can be used to identify/search for a specific element.
          * @type {String[]}
          */
         this.__tags = null;
 
         /**
          * The tree's tags mapping.
-         * This contains all views for all known tags, at all times.
+         * This contains all elements for all known tags, at all times.
          * @type {Map}
          */
         this.__treeTags = null;
 
         /**
          * Cache for the tag/mtag methods.
-         * @type {Map<String,View[]>}
+         * @type {Map<String,Element[]>}
          */
         this.__tagsCache = null;
 
@@ -93,14 +93,14 @@ export default class View {
         this.__tagToComplex = null;
 
         /**
-         * Creates a tag context: tagged views in this branch will not be reachable from ancestors of this view.
+         * Creates a tag context: tagged elements in this branch will not be reachable from ancestors of this elements.
          * @type {boolean}
          */
         this.__tagRoot = false;
 
         /**
-         * (Lazy-initialised) list of children owned by this view.
-         * @type {ViewChildList}
+         * (Lazy-initialised) list of children owned by this elements.
+         * @type {ElementChildList}
          */
         this.__childList = null;
 
@@ -329,7 +329,7 @@ export default class View {
         this._updateTextureCoords();
 
         if (this.__texture) {
-            this.__texture.addView(this);
+            this.__texture.addElement(this);
         }
 
         if (this.withinBoundsMargin) {
@@ -337,7 +337,7 @@ export default class View {
         }
 
         if (this.__core.shader) {
-            this.__core.shader.addView(this.__core);
+            this.__core.shader.addElement(this.__core);
         }
 
     }
@@ -348,15 +348,15 @@ export default class View {
         }
 
         if (this.__texture) {
-            this.__texture.removeView(this);
+            this.__texture.removeElement(this);
         }
 
         if (this.__core.shader) {
-            this.__core.shader.removeView(this.__core);
+            this.__core.shader.removeElement(this.__core);
         }
 
         if (this._texturizer) {
-            this.texturizer.filters.forEach(filter => filter.removeView(this.__core));
+            this.texturizer.filters.forEach(filter => filter.removeElement(this.__core));
         }
 
         this.__enabled = false;
@@ -423,7 +423,7 @@ export default class View {
         } else if (this.__displayedTexture) {
             return this.__displayedTexture.getRenderWidth();
         } else if (this.__texture) {
-            // Texture already loaded, but not yet updated (probably because this view is not active).
+            // Texture already loaded, but not yet updated (probably because this element is not active).
             return this.__texture.getRenderWidth();
         } else {
             return 0;
@@ -436,7 +436,7 @@ export default class View {
         } else if (this.__displayedTexture) {
             return this.__displayedTexture.getRenderHeight();
         } else if (this.__texture) {
-            // Texture already loaded, but not yet updated (probably because this view is not active).
+            // Texture already loaded, but not yet updated (probably because this element is not active).
             return this.__texture.getRenderHeight();
         } else {
             return 0;
@@ -445,7 +445,7 @@ export default class View {
 
     get renderWidth() {
         if (this.__enabled) {
-            // Render width is only maintained if this view is enabled.
+            // Render width is only maintained if this element is enabled.
             return this.__core.getRenderWidth();
         } else {
             return this._getRenderWidth();
@@ -485,7 +485,7 @@ export default class View {
             this.__texture.load();
 
             if (!this.__texture.isUsed() || !this._isEnabled()) {
-                // Loading the texture will have no effect on the dimensions of this view.
+                // Loading the texture will have no effect on the dimensions of this element.
                 // Manually update them, so that calcs can be performed immediately in userland.
                 this._updateDimensions();
             }
@@ -493,7 +493,7 @@ export default class View {
     }
 
     _enableTextureError() {
-        // txError event should automatically be re-triggered when a view becomes active.
+        // txError event should automatically be re-triggered when a element becomes active.
         const loadError = this.__texture.loadError;
         if (loadError) {
             this.emit('txError', loadError, this.__texture._source);
@@ -553,7 +553,7 @@ export default class View {
 
             if (this.__texture) {
                 if (this.__enabled) {
-                    this.__texture.addView(this);
+                    this.__texture.addElement(this);
 
                     if (this.withinBoundsMargin) {
                         if (this.__texture.isLoaded()) {
@@ -569,7 +569,7 @@ export default class View {
             }
 
             if (prevTexture && prevTexture !== this.__displayedTexture) {
-                prevTexture.removeView(this);
+                prevTexture.removeElement(this);
             }
 
             this._updateDimensions();
@@ -586,7 +586,7 @@ export default class View {
         if (prevTexture && (v !== prevTexture)) {
             if (this.__texture !== prevTexture) {
                 // The old displayed texture is deprecated.
-                prevTexture.removeView(this);
+                prevTexture.removeElement(this);
             }
         }
 
@@ -616,7 +616,7 @@ export default class View {
     }
 
     onTextureSourceLoaded() {
-        // This function is called when view is enabled, but we only want to set displayed texture for active views.
+        // This function is called when element is enabled, but we only want to set displayed texture for active elements.
         if (this.active) {
             // We may be dealing with a texture reloading, so we must force update.
             this._setDisplayedTexture(this.__texture);
@@ -647,7 +647,7 @@ export default class View {
         let unknownSize = false;
         if (!w || !h) {
             if (!this.__displayedTexture && this.__texture) {
-                // We use a 'max width' replacement instead in the ViewCore calcs.
+                // We use a 'max width' replacement instead in the ElementCore calcs.
                 // This makes sure that it is able to determine withinBounds.
                 w = w || this.__texture.mw;
                 h = h || this.__texture.mh;
@@ -957,9 +957,9 @@ export default class View {
     }
 
     /**
-     * Returns one of the views from the subtree that have this tag.
+     * Returns one of the elements from the subtree that have this tag.
      * @param {string} tag
-     * @returns {View}
+     * @returns {Element}
      */
     _tag(tag) {
         let res = this.mtag(tag);
@@ -975,9 +975,9 @@ export default class View {
     }
 
     /**
-     * Returns all views from the subtree that have this tag.
+     * Returns all elements from the subtree that have this tag.
      * @param {string} tag
-     * @returns {View[]}
+     * @returns {Element[]}
      */
     mtag(tag) {
         let res = null;
@@ -1159,7 +1159,7 @@ export default class View {
 
     toString() {
         let obj = this.getSettings();
-        return View.getPrettyString(obj, "");
+        return Element.getPrettyString(obj, "");
     };
 
     static getPrettyString(obj, indent) {
@@ -1185,7 +1185,7 @@ export default class View {
                 for (let i = 0, n = refs.length; i < n; i++) {
                     childStr += `\n${indent}  "${refs[i]}":`
                     delete children[refs[i]].ref;
-                    childStr += View.getPrettyString(children[refs[i]], indent + "  ") + (i < n - 1 ? "," : "");
+                    childStr += Element.getPrettyString(children[refs[i]], indent + "  ") + (i < n - 1 ? "," : "");
                 }
                 let isEmpty = (str === "{}");
                 str = str.substr(0, str.length - 1) + (isEmpty ? "" : ",") + childStr + "\n" + indent + "}";
@@ -1193,7 +1193,7 @@ export default class View {
                 let n = children.length;
                 childStr = "[";
                 for (let i = 0; i < n; i++) {
-                    childStr += View.getPrettyString(children[i], indent + "  ") + (i < n - 1 ? "," : "") + "\n";
+                    childStr += Element.getPrettyString(children[i], indent + "  ") + (i < n - 1 ? "," : "") + "\n";
                 }
                 childStr += indent + "]}";
                 let isEmpty = (str === "{}");
@@ -1238,7 +1238,7 @@ export default class View {
     getNonDefaults() {
         let settings = {};
 
-        if (this.constructor !== View) {
+        if (this.constructor !== Element) {
             settings.type = this.constructor.name;
         }
 
@@ -1325,19 +1325,19 @@ export default class View {
     };
 
     static getGetter(propertyPath) {
-        let getter = View.PROP_GETTERS.get(propertyPath);
+        let getter = Element.PROP_GETTERS.get(propertyPath);
         if (!getter) {
             getter = new Function('obj', 'return obj.' + propertyPath);
-            View.PROP_GETTERS.set(propertyPath, getter);
+            Element.PROP_GETTERS.set(propertyPath, getter);
         }
         return getter;
     }
 
     static getSetter(propertyPath) {
-        let setter = View.PROP_SETTERS.get(propertyPath);
+        let setter = Element.PROP_SETTERS.get(propertyPath);
         if (!setter) {
             setter = new Function('obj', 'v', 'obj.' + propertyPath + ' = v');
-            View.PROP_SETTERS.set(propertyPath, setter);
+            Element.PROP_SETTERS.set(propertyPath, setter);
         }
         return setter;
     }
@@ -1643,7 +1643,7 @@ export default class View {
 
     get _children() {
         if (!this.__childList) {
-            this.__childList = new ViewChildList(this, false);
+            this.__childList = new ElementChildList(this, false);
         }
         return this.__childList;
     }
@@ -1732,8 +1732,8 @@ export default class View {
             this.texture = new TextTexture(this.stage);
 
             if (!this.texture.w && !this.texture.h) {
-                // Inherit dimensions from view.
-                // This allows userland to set dimensions of the View and then later specify the text.
+                // Inherit dimensions from element.
+                // This allows userland to set dimensions of the Element and then later specify the text.
                 this.texture.w = this.w;
                 this.texture.h = this.h;
             }
@@ -1782,17 +1782,24 @@ export default class View {
     }
 
     set shader(v) {
-        const shader = Shader.create(this.stage, v);
-
-        if (shader) {
-            if (this.__enabled && this.__core.shader) {
-                this.__core.shader.removeView(this);
+        if (Utils.isObjectLiteral(v) && !v.type) {
+            // Setting properties on an existing shader.
+            if (this.shader) {
+                this.shader.patch(v);
             }
+        } else {
+            const shader = Shader.create(this.stage, v);
 
-            this.__core.shader = shader;
+            if (shader) {
+                if (this.__enabled && this.__core.shader) {
+                    this.__core.shader.removeElement(this);
+                }
 
-            if (this.__enabled && this.__core.shader) {
-                this.__core.shader.addView(this);
+                this.__core.shader = shader;
+
+                if (this.__enabled && this.__core.shader) {
+                    this.__core.shader.addElement(this);
+                }
             }
         }
     }
@@ -1888,7 +1895,7 @@ export default class View {
                                 } else if (Utils.isObject(v)) {
                                     c = v;
                                 }
-                                if (c.isView) {
+                                if (c.isElement) {
                                     c.ref = path;
                                 }
 
@@ -1904,8 +1911,8 @@ export default class View {
                             }
                         } else if (Utils.isObjectLiteral(v)) {
                             child.patch(v, createMode);
-                        } else if (v.isView) {
-                            // Replace view by new view.
+                        } else if (v.isElement) {
+                            // Replace element by new element.
                             v.ref = path;
                             this.childList.replace(v, child);
                         } else {
@@ -1918,17 +1925,17 @@ export default class View {
                 }
             } else {
                 // Select path.
-                const views = this.select(path);
+                const elements = this.select(path);
                 if (v === undefined) {
-                    for (let i = 0, n = views.length; i < n; i++) {
-                        if (views[i].parent) {
-                            views[i].parent.childList.remove(views[i]);
+                    for (let i = 0, n = elements.length; i < n; i++) {
+                        if (elements[i].parent) {
+                            elements[i].parent.childList.remove(elements[i]);
                         }
                     }
                 } else if (Utils.isObjectLiteral(v)) {
                     // Recursive path.
-                    for (let i = 0, n = views.length; i < n; i++) {
-                        views[i].patch(v, createMode);
+                    for (let i = 0, n = elements.length; i < n; i++) {
+                        elements[i].patch(v, createMode);
                     }
                 } else {
                     this._throwError("Unexpected value for path: " + path);
@@ -2075,7 +2082,7 @@ export default class View {
     }
 
     static getMerger(property) {
-        if (View.isColorProperty(property)) {
+        if (Element.isColorProperty(property)) {
             return StageUtils.mergeColors;
         } else {
             return StageUtils.mergeNumbers;
@@ -2084,21 +2091,21 @@ export default class View {
 }
 
 // This gives a slight performance benefit compared to extending EventEmitter.
-EventEmitter.addAsMixin(View);
+EventEmitter.addAsMixin(Element);
 
-View.prototype.isView = 1;
+Element.prototype.isElement = 1;
 
-View.id = 1;
+Element.id = 1;
 
-// Getters reused when referencing view (subobject) properties by a property path, as used in a transition or animation ('x', 'texture.x', etc).
-View.PROP_GETTERS = new Map();
+// Getters reused when referencing element (subobject) properties by a property path, as used in a transition or animation ('x', 'texture.x', etc).
+Element.PROP_GETTERS = new Map();
 
-// Setters reused when referencing view (subobject) properties by a property path, as used in a transition or animation ('x', 'texture.x', etc).
-View.PROP_SETTERS = new Map();
+// Setters reused when referencing element (subobject) properties by a property path, as used in a transition or animation ('x', 'texture.x', etc).
+Element.PROP_SETTERS = new Map();
 
 import Texture from "./Texture.mjs";
 import ImageTexture from "../textures/ImageTexture.mjs";
 import TextTexture from "../textures/TextTexture.mjs";
 import SourceTexture from "../textures/SourceTexture.mjs";
 import Transition from "../animation/Transition.mjs";
-import ViewChildList from "./ViewChildList.mjs";
+import ElementChildList from "./ElementChildList.mjs";

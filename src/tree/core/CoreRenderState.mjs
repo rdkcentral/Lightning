@@ -94,7 +94,7 @@ export default class CoreRenderState {
 
     /**
      * Sets the texturizer to be drawn during subsequent addQuads.
-     * @param {ViewTexturizer} texturizer
+     * @param {ElementTexturizer} texturizer
      */
     setTexturizer(texturizer, cache = false) {
         this._texturizer = texturizer;
@@ -109,7 +109,7 @@ export default class CoreRenderState {
         return this._isCachingTexturizer;
     }
 
-    addQuad(viewCore) {
+    addQuad(elementCore) {
         if (!this._quadOperation) {
             this._createQuadOperation();
         } else if (this._check && this._hasChanges()) {
@@ -128,12 +128,12 @@ export default class CoreRenderState {
         }
 
         if (!nativeTexture) {
-            nativeTexture = viewCore._displayedTextureSource.nativeTexture;
+            nativeTexture = elementCore._displayedTextureSource.nativeTexture;
         }
 
         if (this._renderTextureInfo) {
             if (this._shader === this.defaultShader && this._renderTextureInfo.empty) {
-                // The texture might be reusable under some conditions. We will check them in ViewCore.renderer.
+                // The texture might be reusable under some conditions. We will check them in ElementCore.renderer.
                 this._renderTextureInfo.nativeTexture = nativeTexture;
                 this._renderTextureInfo.offset = this.length;
             } else {
@@ -144,7 +144,7 @@ export default class CoreRenderState {
         }
 
         this.quads.quadTextures.push(nativeTexture);
-        this.quads.quadViews.push(viewCore);
+        this.quads.quadElements.push(elementCore);
 
         this._quadOperation.length++;
 

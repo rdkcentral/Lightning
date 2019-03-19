@@ -8,13 +8,13 @@ export default class TextureSource {
         this.stage = manager.stage;
 
         /**
-         * All enabled textures (textures that are used by visible views).
+         * All enabled textures (textures that are used by visible elements).
          * @type {Set<Texture>}
          */
         this.textures = new Set();
 
         /**
-         * The number of active textures (textures that have at least one active view).
+         * The number of active textures (textures that have at least one active element).
          * @type {number}
          * @private
          */
@@ -114,21 +114,21 @@ export default class TextureSource {
         this._isResultTexture = v;
     }
 
-    forEachEnabledView(cb) {
+    forEachEnabledElement(cb) {
         this.textures.forEach(texture => {
-            texture.views.forEach(cb);
+            texture.elements.forEach(cb);
         });
     }
 
-    hasEnabledViews() {
+    hasEnabledElements() {
         return this.textures.size > 0;
     }
 
-    forEachActiveView(cb) {
+    forEachActiveElement(cb) {
         this.textures.forEach(texture => {
-            texture.views.forEach(view => {
-                if (view.active) {
-                    cb(view);
+            texture.elements.forEach(element => {
+                if (element.active) {
+                    cb(element);
                 }
             });
         });
@@ -187,9 +187,9 @@ export default class TextureSource {
     }
 
     load() {
-        // From the moment of loading (when a texture source becomes used by active views)
+        // From the moment of loading (when a texture source becomes used by active elements)
         if (this.isResultTexture) {
-            // View result texture source, for which the loading is managed by the core.
+            // Element result texture source, for which the loading is managed by the core.
             return;
         }
 
@@ -255,8 +255,8 @@ export default class TextureSource {
 
     onLoad() {
         if (this.isUsed()) {
-            this.forEachActiveView(function (view) {
-                view.onTextureSourceLoaded();
+            this.forEachActiveElement(function (element) {
+                element.onTextureSourceLoaded();
             });
         }
     }
@@ -270,15 +270,15 @@ export default class TextureSource {
             this._nativeTexture.update = this.stage.frameCounter;
         }
 
-        this.forEachActiveView(function (view) {
-            view.forceRenderUpdate();
+        this.forEachActiveElement(function (element) {
+            element.forceRenderUpdate();
         });
 
     }
 
     forceUpdateRenderCoords() {
-        this.forEachActiveView(function (view) {
-            view._updateTextureCoords();
+        this.forEachActiveElement(function (element) {
+            element._updateTextureCoords();
         });
     }
 
@@ -301,15 +301,15 @@ export default class TextureSource {
         this.h = h;
 
         if (!prevNativeTexture && this._nativeTexture) {
-            this.forEachActiveView(view => view.onTextureSourceLoaded());
+            this.forEachActiveElement(element => element.onTextureSourceLoaded());
         }
 
         if (!this._nativeTexture) {
-            this.forEachActiveView(view => view._setDisplayedTexture(null));
+            this.forEachActiveElement(element => element._setDisplayedTexture(null));
         }
 
-        // Dimensions must be updated also on enabled views, as it may force it to go within bounds.
-        this.forEachEnabledView(view => view._updateDimensions());
+        // Dimensions must be updated also on enabled elements, as it may force it to go within bounds.
+        this.forEachEnabledElement(element => element._updateDimensions());
 
         // Notice that the sprite map must never contain render textures.
     }
@@ -318,7 +318,7 @@ export default class TextureSource {
         this._loadError = e;
         this.loadingSince = 0;
         console.error('texture load error', e, this.lookupId);
-        this.forEachActiveView(view => view.onTextureSourceLoadError(e));
+        this.forEachActiveElement(element => element.onTextureSourceLoadError(e));
     }
 
     free() {

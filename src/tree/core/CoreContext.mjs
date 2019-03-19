@@ -50,7 +50,7 @@ export default class CoreContext {
     update() {
         this._update();
 
-        // Due to the boundsVisibility flag feature (and onAfterUpdate hook), it is possible that other views were
+        // Due to the boundsVisibility flag feature (and onAfterUpdate hook), it is possible that other elements were
         // changed during the update loop (for example due to the txLoaded event). We process these changes immediately
         // (but not recursively to prevent infinite loops).
         if (this.root._hasUpdates) {
@@ -59,12 +59,12 @@ export default class CoreContext {
     }
 
     /**
-     * Certain ViewCore items may be forced to zSort to strip out references to prevent memleaks..
+     * Certain ElementCore items may be forced to zSort to strip out references to prevent memleaks..
      */
     _performForcedZSorts() {
         const n = this._zSorts.length;
         if (n) {
-            // Forced z-sorts (ViewCore may force a z-sort in order to free memory/prevent memory leaks).
+            // Forced z-sorts (ElementCore may force a z-sort in order to free memory/prevent memory leaks).
             for (let i = 0, n = this._zSorts.length; i < n; i++) {
                 if (this._zSorts[i].zSort) {
                     this._zSorts[i].sortZIndexedChildren();
@@ -167,8 +167,8 @@ export default class CoreContext {
         this.stage.renderer.copyRenderTexture(renderTexture, nativeTexture, options);
     }
 
-    forceZSort(viewCore) {
-        this._zSorts.push(viewCore);
+    forceZSort(elementCore) {
+        this._zSorts.push(elementCore);
     }
 
 }

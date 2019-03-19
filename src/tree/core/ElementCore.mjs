@@ -1,11 +1,11 @@
 import FlexTarget from "../../flex/FlexTarget.mjs";
 
-export default class ViewCore {
+export default class ElementCore {
 
-    constructor(view) {
-        this._view = view;
+    constructor(element) {
+        this._element = element;
 
-        this.ctx = view.stage.ctx;
+        this.ctx = element.stage.ctx;
 
         // The memory layout of the internal variables is affected by their position in the constructor.
         // It boosts performance to order them by usage of cpu-heavy functions (renderSimple and update).
@@ -18,7 +18,7 @@ export default class ViewCore {
 
         this._pRecalc = 0;
 
-        this._worldContext = new ViewCoreContext();
+        this._worldContext = new ElementCoreContext();
 
         this._hasUpdates = false;
 
@@ -68,7 +68,7 @@ export default class ViewCore {
 
         this._scissor = null;
 
-        // The ancestor ViewCore that owns the inherited shader. Null if none is active (default shader).
+        // The ancestor ElementCore that owns the inherited shader. Null if none is active (default shader).
         this._shaderOwner = null;
 
 
@@ -110,17 +110,17 @@ export default class ViewCore {
         this._isRoot = false;
 
         /**
-         * Iff true, during zSort, this view should be 're-sorted' because either:
+         * Iff true, during zSort, this element should be 're-sorted' because either:
          * - zIndex did chang
          * - zParent did change
-         * - view was moved in the render tree
+         * - element was moved in the render tree
          * @type {boolean}
          */
         this._zIndexResort = false;
 
         this._shader = null;
 
-        // View is rendered on another texture.
+        // Element is rendered on another texture.
         this._renderToTextureEnabled = false;
 
         this._texturizer = null;
@@ -457,7 +457,7 @@ export default class ViewCore {
             this._alpha = v;
             this._updateLocalAlpha();
             if ((prev === 0) !== (v === 0)) {
-                this._view._updateEnabledFlag();
+                this._element._updateEnabledFlag();
             }
         }
     }
@@ -470,7 +470,7 @@ export default class ViewCore {
         if (this._visible !== v) {
             this._visible = v;
             this._updateLocalAlpha();
-            this._view._updateEnabledFlag();
+            this._element._updateEnabledFlag();
 
             if (this.hasFlexLayout()) {
                 this.layout.setVisible(v);
@@ -533,7 +533,7 @@ export default class ViewCore {
      */
     setHasRenderUpdates(type) {
         if (this._worldContext.alpha) {
-            // Ignore if 'world invisible'. Render updates will be reset to 3 for every view that becomes visible.
+            // Ignore if 'world invisible'. Render updates will be reset to 3 for every element that becomes visible.
             let p = this;
             p._hasRenderUpdates = Math.max(type, p._hasRenderUpdates);
             while ((p = p._parent) && (p._hasRenderUpdates !== 3)) {
@@ -585,7 +585,7 @@ export default class ViewCore {
             }
 
             if (prevParent) {
-                // When views are deleted, the render texture must be re-rendered.
+                // When elements are deleted, the render texture must be re-rendered.
                 prevParent.setHasRenderUpdates(3);
             }
 
@@ -630,8 +630,8 @@ export default class ViewCore {
         if (!this._zSort && this._zContextUsage > 0) {
             this._zSort = true;
             if (force) {
-                // ZSort must be done, even if this view is invisible.
-                // This is done to prevent memory leaks when removing views from inactive render branches.
+                // ZSort must be done, even if this element is invisible.
+                // This is done to prevent memory leaks when removing element from inactive render branches.
                 this.ctx.forceZSort(this);
             }
         }
@@ -711,7 +711,7 @@ export default class ViewCore {
 
     _setLocalAlpha(a) {
         if (!this._worldContext.alpha && ((this._parent && this._parent._worldContext.alpha) && a)) {
-            // View is becoming visible. We need to force update.
+            // Element is becoming visible. We need to force update.
             this._setRecalc(1 + 128);
         } else {
             this._setRecalc(1);
@@ -781,7 +781,7 @@ export default class ViewCore {
 
     setAsRoot() {
         // Use parent dummy.
-        this._parent = new ViewCore(this._view);
+        this._parent = new ElementCore(this._element);
 
         // After setting root, make sure it's updated.
         this._parent._hasRenderUpdates = 3;
@@ -859,7 +859,7 @@ export default class ViewCore {
 
             this._zParent = newZParent;
 
-            // Newly added view must be marked for resort.
+            // Newly added element must be marked for resort.
             this._zIndexResort = true;
         }
     };
@@ -1123,32 +1123,32 @@ export default class ViewCore {
     }
 
     set clipbox(v) {
-        // In case of out-of-bounds view, all children will also be ignored.
+        // In case of out-of-bounds element, all children will also be ignored.
         // It will save us from executing the update/render loops for those.
         // The optimization will be used immediately during the next frame.
         this._clipbox = v;
     }
 
-    _setShaderOwnerRecursive(viewCore) {
-        this._shaderOwner = viewCore;
+    _setShaderOwnerRecursive(elementCore) {
+        this._shaderOwner = elementCore;
 
         if (this._children && !this._renderToTextureEnabled) {
             for (let i = 0, n = this._children.length; i < n; i++) {
                 let c = this._children[i];
                 if (!c._shader) {
-                    c._setShaderOwnerRecursive(viewCore);
+                    c._setShaderOwnerRecursive(elementCore);
                     c._hasRenderUpdates = 3;
                 }
             }
         }
     };
 
-    _setShaderOwnerChildrenRecursive(viewCore) {
+    _setShaderOwnerChildrenRecursive(elementCore) {
         if (this._children) {
             for (let i = 0, n = this._children.length; i < n; i++) {
                 let c = this._children[i];
                 if (!c._shader) {
-                    c._setShaderOwnerRecursive(viewCore);
+                    c._setShaderOwnerRecursive(elementCore);
                     c._hasRenderUpdates = 3;
                 }
             }
@@ -1181,7 +1181,7 @@ export default class ViewCore {
 
             this._renderToTextureEnabled = true;
 
-            this._renderContext = new ViewCoreContext();
+            this._renderContext = new ElementCoreContext();
 
             // If render to texture is active, a new shader context is started.
             this._setShaderOwnerChildrenRecursive(null);
@@ -1291,7 +1291,7 @@ export default class ViewCore {
         if (this._onUpdate) {
             // Block all 'upwards' updates when changing things in this branch.
             this._hasUpdates = true;
-            this._onUpdate(this.view, this);
+            this._onUpdate(this.elements, this);
         }
 
         const pw = this._parent._worldContext;
@@ -1357,7 +1357,7 @@ export default class ViewCore {
                 if (init) {
                     // First render context build: make sure that it is fully initialized correctly.
                     // Otherwise, if we get into bounds later, the render context would not be initialized correctly.
-                    this._renderContext = new ViewCoreContext();
+                    this._renderContext = new ElementCoreContext();
                 }
 
                 const r = this._renderContext;
@@ -1427,7 +1427,7 @@ export default class ViewCore {
             const bboxW = this._dimsUnknown ? 2048 : this._w;
             const bboxH = this._dimsUnknown ? 2048 : this._h;
             
-            // Calculate a bbox for this view.
+            // Calculate a bbox for this element.
             let sx, sy, ex, ey;
             const rComplex = (r.tb !== 0) || (r.tc !== 0) || (r.ta < 0) || (r.td < 0);
             if (rComplex) {
@@ -1486,7 +1486,7 @@ export default class ViewCore {
 
             if (this._onAfterCalcs) {
                 // After calcs may change render coords, scissor and/or recBoundsMargin.
-                if (this._onAfterCalcs(this.view)) {
+                if (this._onAfterCalcs(this.element)) {
                     // Recalculate bbox.
                     if (rComplex) {
                         sx = Math.min(0, bboxW * r.ta, bboxW * r.ta + bboxH * r.tb, bboxH * r.tb) + r.px;
@@ -1517,11 +1517,11 @@ export default class ViewCore {
 
                 if (this._withinBoundsMargin) {
                     this._withinBoundsMargin = false;
-                    this.view._disableWithinBoundsMargin();
+                    this.element._disableWithinBoundsMargin();
                 }
             } else {
                 if (recalc & 6) {
-                    // Recheck if view is out-of-bounds (all settings that affect this should enable recalc bit 2 or 4).
+                    // Recheck if element is out-of-bounds (all settings that affect this should enable recalc bit 2 or 4).
                     this._outOfBounds = 0;
                     let withinMargin = true;
 
@@ -1562,7 +1562,7 @@ export default class ViewCore {
                                     (sy > this._scissor[1] + this._scissor[3] + 100))
                             }
                             if (withinMargin && this._outOfBounds === 2) {
-                                // Children must be visited because they may contain views that are within margin, so must be visible.
+                                // Children must be visited because they may contain elements that are within margin, so must be visible.
                                 this._outOfBounds = 1;
                             }
                         }
@@ -1572,7 +1572,7 @@ export default class ViewCore {
                         this._withinBoundsMargin = withinMargin;
 
                         if (this._withinBoundsMargin) {
-                            // This may update things (txLoaded events) in the view itself, but also in descendants and ancestors.
+                            // This may update things (txLoaded events) in the element itself, but also in descendants and ancestors.
 
                             // Changes in ancestors should be executed during the next call of the stage update. But we must
                             // take care that the _recalc and _hasUpdates flags are properly registered. That's why we clear
@@ -1581,21 +1581,21 @@ export default class ViewCore {
 
                             // Changes in descendants are automatically executed within the current update loop, though we must
                             // take care to not update the hasUpdates flag unnecessarily in ancestors. We achieve this by making
-                            // sure that the hasUpdates flag of this view is turned on, which blocks it for ancestors.
+                            // sure that the hasUpdates flag of this element is turned on, which blocks it for ancestors.
                             this._hasUpdates = true;
 
                             const recalc = this._recalc;
                             this._recalc = 0;
-                            this.view._enableWithinBoundsMargin();
+                            this.element._enableWithinBoundsMargin();
 
                             if (this._recalc) {
-                                // This view needs to be re-updated now, because we want the dimensions (and other changes) to be updated.
+                                // This element needs to be re-updated now, because we want the dimensions (and other changes) to be updated.
                                 return this.update();
                             }
 
                             this._recalc = recalc;
                         } else {
-                            this.view._disableWithinBoundsMargin();
+                            this.element._disableWithinBoundsMargin();
                         }
                     }
                 }
@@ -1628,7 +1628,7 @@ export default class ViewCore {
                     } else {
                         // Temporarily replace the render coord attribs by the identity matrix.
                         // This allows the children to calculate the render context.
-                        this._renderContext = ViewCoreContext.IDENTITY;
+                        this._renderContext = ElementCoreContext.IDENTITY;
                     }
                 }
 
@@ -1656,7 +1656,7 @@ export default class ViewCore {
             }
 
             if (this._onAfterUpdate) {
-                this._onAfterUpdate(this.view);
+                this._onAfterUpdate(this.elements);
             }
         } else {
             if (this.ctx.updateTreeOrder === -1 || this._updateTreeOrder >= this.ctx.updateTreeOrder) {
@@ -1708,7 +1708,7 @@ export default class ViewCore {
 
     updateOutOfBounds() {
         // Propagate outOfBounds flag to descendants (necessary because of z-indexing).
-        // Invisible views are not drawn anyway. When alpha is updated, so will _outOfBounds.
+        // Invisible elements are not drawn anyway. When alpha is updated, so will _outOfBounds.
         if (this._outOfBounds !== 2 && this._renderContext.alpha > 0) {
 
             // Inherit parent out of boundsness.
@@ -1716,7 +1716,7 @@ export default class ViewCore {
 
             if (this._withinBoundsMargin) {
                 this._withinBoundsMargin = false;
-                this.view._disableWithinBoundsMargin();
+                this.element._disableWithinBoundsMargin();
             }
 
             if (this._children) {
@@ -1819,12 +1819,12 @@ export default class ViewCore {
                          *
                          * The rule is, that caching for a specific render texture is only enabled if:
                          * - There is a result texture to be updated.
-                         * - There were no render updates -within the contents- since last frame (ViewCore.hasRenderUpdates < 3)
+                         * - There were no render updates -within the contents- since last frame (ElementCore.hasRenderUpdates < 3)
                          * - AND there are no ancestors that are being cached during this frame (CoreRenderState.isCachingTexturizer)
                          *   If an ancestor is cached anyway, it's probably not necessary to keep deeper caches. If the top level is to
                          *   change while a lower one is not, that lower level will be cached instead.
                          *
-                         * In case of the fast blur view, this prevents having to cache all blur levels and stages, saving a huge amount
+                         * In case of the fast blur element, this prevents having to cache all blur levels and stages, saving a huge amount
                          * of GPU memory!
                          *
                          * Especially when using multiple stacked layers of the same dimensions that are RTT this will have a very
@@ -1838,7 +1838,7 @@ export default class ViewCore {
                         // We can already release the current texture to the pool, as it will be rebuild anyway.
                         // In case of multiple layers of 'filtering', this may save us from having to create one
                         //  render-to-texture layer.
-                        // Notice that we don't do this when there is a result texture, as any other view may rely on
+                        // Notice that we don't do this when there is a result texture, as any other element may rely on
                         //  that result texture being filled.
                         this._texturizer.releaseRenderTexture();
                     }
@@ -1850,7 +1850,7 @@ export default class ViewCore {
                         let r = this._renderContext;
 
                         // Use an identity context for drawing the displayed texture to the render texture.
-                        this._renderContext = ViewCoreContext.IDENTITY;
+                        this._renderContext = ElementCoreContext.IDENTITY;
 
                         // Add displayed texture source in local coordinates.
                         this.renderState.addQuad(this);
@@ -1962,10 +1962,10 @@ export default class ViewCore {
     sortZIndexedChildren() {
         /**
          * We want to avoid resorting everything. Instead, we do a single pass of the full array:
-         * - filtering out views with a different zParent than this (were removed)
-         * - filtering out, but also gathering (in a temporary array) the views that have zIndexResort flag
+         * - filtering out elements with a different zParent than this (were removed)
+         * - filtering out, but also gathering (in a temporary array) the elements that have zIndexResort flag
          * - then, finally, we merge-sort both the new array and the 'old' one
-         * - view may have been added 'double', so when merge-sorting also check for doubles.
+         * - element may have been added 'double', so when merge-sorting also check for doubles.
          * - if the old one is larger (in size) than it should be, splice off the end of the array.
          */
 
@@ -1994,7 +1994,7 @@ export default class ViewCore {
                 b[j]._zIndexResort = false;
             }
 
-            b.sort(ViewCore.sortZIndexedChildren);
+            b.sort(ElementCore.sortZIndexedChildren);
             const n = ptr;
             if (!n) {
                 ptr = 0;
@@ -2069,8 +2069,8 @@ export default class ViewCore {
         return this._localTd;
     };
 
-    get view() {
-        return this._view;
+    get element() {
+        return this._element;
     }
 
     get renderUpdates() {
@@ -2079,7 +2079,7 @@ export default class ViewCore {
 
     get texturizer() {
         if (!this._texturizer) {
-            this._texturizer = new ViewTexturizer(this);
+            this._texturizer = new ElementTexturizer(this);
         }
         return this._texturizer;
     }
@@ -2179,7 +2179,7 @@ export default class ViewCore {
 
 }
 
-class ViewCoreContext {
+class ElementCoreContext {
 
     constructor() {
         this.alpha = 1;
@@ -2209,10 +2209,10 @@ class ViewCoreContext {
 
 }
 
-ViewCoreContext.IDENTITY = new ViewCoreContext();
-ViewCore.sortZIndexedChildren = function(a,b) {
+ElementCoreContext.IDENTITY = new ElementCoreContext();
+ElementCore.sortZIndexedChildren = function(a, b) {
     return (a._zIndex === b._zIndex ? a._updateTreeOrder - b._updateTreeOrder : a._zIndex - b._zIndex);
 }
 
-import ViewTexturizer from "./ViewTexturizer.mjs";
+import ElementTexturizer from "./ElementTexturizer.mjs";
 import Utils from "../Utils.mjs";

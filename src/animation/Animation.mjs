@@ -3,14 +3,14 @@ import AnimationSettings from "./AnimationSettings.mjs";
 
 export default class Animation extends EventEmitter {
 
-    constructor(manager, settings, view) {
+    constructor(manager, settings, element) {
         super();
 
         this.manager = manager;
 
         this._settings = settings;
 
-        this._view = view;
+        this._element = element;
 
         this._state = Animation.STATES.IDLE;
 
@@ -23,7 +23,7 @@ export default class Animation extends EventEmitter {
     }
 
     start() {
-        if (this._view && this._view.attached) {
+        if (this._element && this._element.attached) {
             this._p = 0;
             this._delayLeft = this.settings.delay;
             this._repeatsLeft = this.settings.repeat;
@@ -31,7 +31,7 @@ export default class Animation extends EventEmitter {
             this.emit('start');
             this.checkActive();
         } else {
-            console.warn("View must be attached before starting animation");
+            console.warn("Element must be attached before starting animation");
         }
     }
 
@@ -132,11 +132,11 @@ export default class Animation extends EventEmitter {
     }
 
     isActive() {
-        return (this._state == Animation.STATES.PLAYING || this._state == Animation.STATES.STOPPING) && this._view && this._view.attached;
+        return (this._state == Animation.STATES.PLAYING || this._state == Animation.STATES.STOPPING) && this._element && this._element.attached;
     }
 
     progress(dt) {
-        if (!this._view) return;
+        if (!this._element) return;
         this._progress(dt);
         this.apply();
     }
@@ -323,12 +323,12 @@ export default class Animation extends EventEmitter {
             if (this._state === Animation.STATES.STOPPING && this.settings.stopMethod === AnimationSettings.STOP_METHODS.FADE) {
                 factor = (1 - this.settings.stopTimingFunctionImpl(this._stopP));
             }
-            this._settings.apply(this._view, this._p, factor);
+            this._settings.apply(this._element, this._p, factor);
         }
     }
 
     reset() {
-        this._settings.reset(this._view);
+        this._settings.reset(this._element);
     }
 
     get state() {
@@ -343,8 +343,8 @@ export default class Animation extends EventEmitter {
         return this._delayLeft;
     }
 
-    get view() {
-        return this._view;
+    get element() {
+        return this._element;
     }
 
     get frame() {

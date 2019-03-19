@@ -1,11 +1,11 @@
-import View from "../tree/View.mjs";
+import Element from "../tree/Element.mjs";
 import Utils from "../tree/Utils.mjs";
 import StateMachine from "./StateMachine.mjs";
 
 /**
  * @extends StateMachine
  */
-export default class Component extends View {
+export default class Component extends Element {
 
     constructor(stage, properties) {
         super(stage);
@@ -74,10 +74,10 @@ export default class Component extends View {
             rid: 0
         };
 
-        this.parseTemplateRec(obj, context, "view");
+        this.parseTemplateRec(obj, context, "element");
 
         const code = context.loc.join(";\n");
-        const f = new Function("view", "store", code);
+        const f = new Function("element", "store", code);
         return {f:f, a:context.store}
     }
 
@@ -92,9 +92,9 @@ export default class Component extends View {
                 if (Utils.isObjectLiteral(value)) {
                     // Ref.
                     const childCursor = `r${key.replace(/[^a-z0-9]/gi, "") + context.rid}`;
-                    let type = value.type ? value.type : View;
-                    if (type === "View") {
-                        loc.push(`const ${childCursor} = view.stage.createView()`);
+                    let type = value.type ? value.type : Element;
+                    if (type === "Element") {
+                        loc.push(`const ${childCursor} = element.stage.createElement()`);
                     } else {
                         store.push(type);
                         loc.push(`const ${childCursor} = new store[${store.length - 1}](${cursor}.stage)`);
@@ -311,8 +311,8 @@ export default class Component extends View {
         }
     }
 
-    getSharedAncestorComponent(view) {
-        let ancestor = this.getSharedAncestor(view);
+    getSharedAncestorComponent(element) {
+        let ancestor = this.getSharedAncestor(element);
         while(ancestor && !ancestor.isComponent) {
             ancestor = ancestor.parent;
         }
@@ -435,23 +435,23 @@ export default class Component extends View {
             throw new Error("Ancestor event name must be prefixed by dollar sign.");
         }
 
-        return this._fireAncestors(name, args);
+        return this._doFireAncestors(name, args);
     }
 
-    _fireAncestors(name, args) {
+    _doFireAncestors(name, args) {
         if (this._hasMethod(name)) {
             return this.fire(name, ...args);
         } else {
             const signalParent = this._getParentSignalHandler();
             if (signalParent) {
-                return signalParent._fireAncestors(name, args);
+                return signalParent._doFireAncestors(name, args);
             }
         }
     }
 
-    static collectSubComponents(subs, view) {
-        if (view.hasChildren()) {
-            const childList = view.__childList;
+    static collectSubComponents(subs, element) {
+        if (element.hasChildren()) {
+            const childList = element.__childList;
             for (let i = 0, n = childList.length; i < n; i++) {
                 const child = childList.getAt(i);
                 if (child.isComponent) {
@@ -463,16 +463,16 @@ export default class Component extends View {
         }
     }
 
-    static getComponent(view) {
-        let parent = view;
+    static getComponent(element) {
+        let parent = element;
         while (parent && !parent.isComponent) {
             parent = parent.parent;
         }
         return parent;
     }
 
-    static getParent(view) {
-        return Component.getComponent(view.parent);
+    static getParent(element) {
+        return Component.getComponent(element.parent);
     }
 
 }

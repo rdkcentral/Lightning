@@ -1,4 +1,4 @@
-window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturizer, Texture}) {
+window.attachInspector = function({Element, ElementCore, Stage, Component, ElementTexturizer, Texture}) {
 
     const isAlreadyAttached = window.hasOwnProperty('mutationCounter');
     if (isAlreadyAttached) {
@@ -15,12 +15,12 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
             if (mutation.type == 'childList') {
 
                 var node = mutation.target;
-                var c = mutation.target.view;
+                var c = mutation.target.element;
             }
 
             if (mutation.type == 'attributes' && mutation.attributeName !== 'style' && mutation.attributeName !== 'class') {
                 var n = mutation.attributeName.toLowerCase();
-                var c = mutation.target.view;
+                var c = mutation.target.element;
 
                 if (c.__ignore_attrib_changes === window.mutationCounter) {
                     // Ignore attribute changes that were caused by actual value modifications by js.
@@ -155,15 +155,15 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         window.mutationCounter++;
     });
 
-    ViewCore.prototype.dhtml = function() {
-        return this._view.dhtml();
+    ElementCore.prototype.dhtml = function() {
+        return this._element.dhtml();
     }
 
-    View.prototype.dhtml = function() {
+    Element.prototype.dhtml = function() {
         if (!this.debugElement) {
             this.debugElement = document.createElement('DIV');
             this.debugElement.setAttribute('type', this.constructor.name);
-            this.debugElement.view = this;
+            this.debugElement.element = this;
             this.debugElement.style.position = 'absolute';
 
             this.debugElement.id = "" + this.id;
@@ -194,10 +194,10 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         return this.debugElement;
     };
 
-    var oView = View;
+    var oElement = Element;
 
-    var oSetParent = oView.prototype._setParent;
-    View.prototype._setParent = function(parent) {
+    var oSetParent = oElement.prototype._setParent;
+    Element.prototype._setParent = function(parent) {
         var prevParent = this.parent;
         oSetParent.apply(this, arguments);
 
@@ -225,8 +225,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         this.root.core.updateDebugTransforms();
     };
 
-    var oAddTag = oView.prototype.addTag;
-    View.prototype.addTag = function(tag) {
+    var oAddTag = oElement.prototype.addTag;
+    Element.prototype.addTag = function(tag) {
         oAddTag.apply(this, arguments);
 
         if (tag) {
@@ -234,8 +234,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         }
     };
 
-    var oRemoveTag = oView.prototype.removeTag;
-    View.prototype.removeTag = function(tag) {
+    var oRemoveTag = oElement.prototype.removeTag;
+    Element.prototype.removeTag = function(tag) {
         oRemoveTag.apply(this, arguments);
 
         if (tag) {
@@ -245,8 +245,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
 
 // Change an attribute due to new value inputs.
     var val = function(c, n, v, dv) {
-        if (c._view) {
-            c = c._view;
+        if (c._element) {
+            c = c._element;
         }
         if (v == dv) {
             c.dhtmlRemoveAttribute(n);
@@ -255,13 +255,13 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         }
     };
 
-    View.prototype.dhtmlRemoveAttribute = function() {
+    Element.prototype.dhtmlRemoveAttribute = function() {
         // We don't want the attribute listeners to be called during the next observer cycle.
         this.__ignore_attrib_changes = window.mutationCounter;
         this.dhtml().removeAttribute.apply(this.dhtml(), arguments);
     };
 
-    View.prototype.dhtmlSetAttribute = function() {
+    Element.prototype.dhtmlSetAttribute = function() {
         this.__ignore_attrib_changes = window.mutationCounter;
         this.dhtml().setAttribute.apply(this.dhtml(), arguments);
     };
@@ -282,8 +282,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         });
     }
 
-    View.prototype.$ref = View.prototype.__ref;
-    Object.defineProperty(View.prototype, '__ref', {
+    Element.prototype.$ref = Element.prototype.__ref;
+    Object.defineProperty(Element.prototype, '__ref', {
         get: function() {
             return this.$ref;
         },
@@ -295,8 +295,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         }
     });
 
-    ViewCore.prototype.$x = ViewCore.prototype._x;
-    Object.defineProperty(ViewCore.prototype, '_x', {
+    ElementCore.prototype.$x = ElementCore.prototype._x;
+    Object.defineProperty(ElementCore.prototype, '_x', {
         get: function() {
             return this.$x;
         },
@@ -309,8 +309,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         }
     });
 
-    ViewCore.prototype.$y = ViewCore.prototype._y;
-    Object.defineProperty(ViewCore.prototype, '_y', {
+    ElementCore.prototype.$y = ElementCore.prototype._y;
+    Object.defineProperty(ElementCore.prototype, '_y', {
         get: function() {
             return this.$y;
         },
@@ -323,8 +323,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         }
     });
 
-    View.prototype.$w = View.prototype._w;
-    Object.defineProperty(View.prototype, '_w', {
+    Element.prototype.$w = Element.prototype._w;
+    Object.defineProperty(Element.prototype, '_w', {
         get: function() {
             return this.$w;
         },
@@ -336,8 +336,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         }
     });
 
-    View.prototype.$h = View.prototype._h;
-    Object.defineProperty(View.prototype, '_h', {
+    Element.prototype.$h = Element.prototype._h;
+    Object.defineProperty(Element.prototype, '_h', {
         get: function() {
             return this.$h;
         },
@@ -349,20 +349,20 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         }
     });
 
-    ViewCore.prototype.updateLeft = function() {
+    ElementCore.prototype.updateLeft = function() {
         var mx = this._mountX * this._w;
         var x = this._x - mx;
         this.dhtml().style.left = x + 'px';
     };
 
-    ViewCore.prototype.updateTop = function() {
+    ElementCore.prototype.updateTop = function() {
         var my = this._mountY * this._h;
         var y = this._y - my;
         this.dhtml().style.top = y + 'px';
     };
 
-    ViewCore.prototype.__w = 0;
-    Object.defineProperty(ViewCore.prototype, '_w', {
+    ElementCore.prototype.__w = 0;
+    Object.defineProperty(ElementCore.prototype, '_w', {
         get: function() {
             return this.__w;
         },
@@ -373,8 +373,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         }
     });
 
-    ViewCore.prototype.__h = 0;
-    Object.defineProperty(ViewCore.prototype, '_h', {
+    ElementCore.prototype.__h = 0;
+    Object.defineProperty(ElementCore.prototype, '_h', {
         get: function() {
             return this.__h;
         },
@@ -385,8 +385,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         }
     });
 
-    ViewCore.prototype.$alpha = 1;
-    Object.defineProperty(ViewCore.prototype, '_alpha', {
+    ElementCore.prototype.$alpha = 1;
+    Object.defineProperty(ElementCore.prototype, '_alpha', {
         get: function() {
             return this.$alpha;
         },
@@ -400,8 +400,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         }
     });
 
-    ViewCore.prototype.$visible = true;
-    Object.defineProperty(ViewCore.prototype, '_visible', {
+    ElementCore.prototype.$visible = true;
+    Object.defineProperty(ElementCore.prototype, '_visible', {
         get: function() {
             return this.$visible;
         },
@@ -415,8 +415,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         }
     });
 
-    ViewCore.prototype.$rotation = 0;
-    Object.defineProperty(ViewCore.prototype, '_rotation', {
+    ElementCore.prototype.$rotation = 0;
+    Object.defineProperty(ElementCore.prototype, '_rotation', {
         get: function() {
             return this.$rotation;
         },
@@ -430,8 +430,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
     });
 
 
-    ViewCore.prototype.$scaleX = 1;
-    Object.defineProperty(ViewCore.prototype, '_scaleX', {
+    ElementCore.prototype.$scaleX = 1;
+    Object.defineProperty(ElementCore.prototype, '_scaleX', {
         get: function() {
             return this.$scaleX;
         },
@@ -444,8 +444,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         }
     });
 
-    ViewCore.prototype.$scaleY = 1;
-    Object.defineProperty(ViewCore.prototype, '_scaleY', {
+    ElementCore.prototype.$scaleY = 1;
+    Object.defineProperty(ElementCore.prototype, '_scaleY', {
         get: function() {
             return this.$scaleY;
         },
@@ -458,8 +458,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         }
     });
 
-    ViewCore.prototype.$pivotX = 0.5;
-    Object.defineProperty(ViewCore.prototype, '_pivotX', {
+    ElementCore.prototype.$pivotX = 0.5;
+    Object.defineProperty(ElementCore.prototype, '_pivotX', {
         get: function() {
             return this.$pivotX;
         },
@@ -472,8 +472,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         }
     });
 
-    ViewCore.prototype.$pivotY = 0.5;
-    Object.defineProperty(ViewCore.prototype, '_pivotY', {
+    ElementCore.prototype.$pivotY = 0.5;
+    Object.defineProperty(ElementCore.prototype, '_pivotY', {
         get: function() {
             return this.$pivotY;
         },
@@ -486,8 +486,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         }
     });
 
-    ViewCore.prototype.$mountX = 0;
-    Object.defineProperty(ViewCore.prototype, '_mountX', {
+    ElementCore.prototype.$mountX = 0;
+    Object.defineProperty(ElementCore.prototype, '_mountX', {
         get: function() {
             return this.$mountX;
         },
@@ -500,8 +500,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         }
     });
 
-    ViewCore.prototype.$mountY = 0;
-    Object.defineProperty(ViewCore.prototype, '_mountY', {
+    ElementCore.prototype.$mountY = 0;
+    Object.defineProperty(ElementCore.prototype, '_mountY', {
         get: function() {
             return this.$mountY;
         },
@@ -514,8 +514,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         }
     });
 
-    ViewCore.prototype.__zIndex = 0;
-    Object.defineProperty(ViewCore.prototype, '_zIndex', {
+    ElementCore.prototype.__zIndex = 0;
+    Object.defineProperty(ElementCore.prototype, '_zIndex', {
         get: function() {
             return this.__zIndex;
         },
@@ -530,8 +530,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         }
     });
 
-    ViewCore.prototype.__forceZIndexContext = false;
-    Object.defineProperty(ViewCore.prototype, '_forceZIndexContext', {
+    ElementCore.prototype.__forceZIndexContext = false;
+    Object.defineProperty(ElementCore.prototype, '_forceZIndexContext', {
         get: function() {
             return this.__forceZIndexContext;
         },
@@ -543,8 +543,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         }
     });
 
-    ViewCore.prototype.__clipping = false;
-    Object.defineProperty(ViewCore.prototype, '_clipping', {
+    ElementCore.prototype.__clipping = false;
+    Object.defineProperty(ElementCore.prototype, '_clipping', {
         get: function() {
             return this.__clipping;
         },
@@ -560,8 +560,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         }
     });
 
-    ViewCore.prototype.__withinBoundsMargin = false;
-    Object.defineProperty(ViewCore.prototype, '_withinBoundsMargin', {
+    ElementCore.prototype.__withinBoundsMargin = false;
+    Object.defineProperty(ElementCore.prototype, '_withinBoundsMargin', {
         get: function() {
             return this.__withinBoundsMargin;
         },
@@ -573,8 +573,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         }
     });
 
-    ViewCore.prototype.__colorUl = 0xFFFFFFFF;
-    Object.defineProperty(ViewCore.prototype, '_colorUl', {
+    ElementCore.prototype.__colorUl = 0xFFFFFFFF;
+    Object.defineProperty(ElementCore.prototype, '_colorUl', {
         get: function() {
             return this.__colorUl;
         },
@@ -587,8 +587,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         }
     });
 
-    ViewCore.prototype.__colorUr = 0xFFFFFFFF;
-    Object.defineProperty(ViewCore.prototype, '_colorUr', {
+    ElementCore.prototype.__colorUr = 0xFFFFFFFF;
+    Object.defineProperty(ElementCore.prototype, '_colorUr', {
         get: function() {
             return this.__colorUr;
         },
@@ -601,8 +601,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         }
     });
 
-    ViewCore.prototype.__colorBl = 0xFFFFFFFF;
-    Object.defineProperty(ViewCore.prototype, '_colorBl', {
+    ElementCore.prototype.__colorBl = 0xFFFFFFFF;
+    Object.defineProperty(ElementCore.prototype, '_colorBl', {
         get: function() {
             return this.__colorBl;
         },
@@ -615,8 +615,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         }
     });
 
-    ViewCore.prototype.__colorBr = 0xFFFFFFFF;
-    Object.defineProperty(ViewCore.prototype, '_colorBr', {
+    ElementCore.prototype.__colorBr = 0xFFFFFFFF;
+    Object.defineProperty(ElementCore.prototype, '_colorBr', {
         get: function() {
             return this.__colorBr;
         },
@@ -629,8 +629,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         }
     });
 
-    View.prototype.$texture = null;
-    Object.defineProperty(View.prototype, '__texture', {
+    Element.prototype.$texture = null;
+    Object.defineProperty(Element.prototype, '__texture', {
         get: function() {
             return this.$texture;
         },
@@ -643,34 +643,34 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
     });
 
 
-    var checkColors = function(viewRenderer) {
-        let view = viewRenderer._view;
-        if (viewRenderer._colorBr === undefined) {
-            // View initialization.
+    var checkColors = function(elementRenderer) {
+        let element = elementRenderer._element;
+        if (elementRenderer._colorBr === undefined) {
+            // Element initialization.
             return;
         }
 
-        if (viewRenderer._colorUl === viewRenderer._colorUr && viewRenderer._colorUl === viewRenderer._colorBl && viewRenderer._colorUl === viewRenderer._colorBr) {
-            if (viewRenderer._colorUl !== 0xffffffff) {
-                view.dhtmlSetAttribute('color', viewRenderer._colorUl.toString(16));
+        if (elementRenderer._colorUl === elementRenderer._colorUr && elementRenderer._colorUl === elementRenderer._colorBl && elementRenderer._colorUl === elementRenderer._colorBr) {
+            if (elementRenderer._colorUl !== 0xffffffff) {
+                element.dhtmlSetAttribute('color', elementRenderer._colorUl.toString(16));
             } else {
-                view.dhtmlRemoveAttribute('color');
+                element.dhtmlRemoveAttribute('color');
             }
-            view.dhtmlRemoveAttribute('colorul');
-            view.dhtmlRemoveAttribute('colorur');
-            view.dhtmlRemoveAttribute('colorbl');
-            view.dhtmlRemoveAttribute('colorbr');
+            element.dhtmlRemoveAttribute('colorul');
+            element.dhtmlRemoveAttribute('colorur');
+            element.dhtmlRemoveAttribute('colorbl');
+            element.dhtmlRemoveAttribute('colorbr');
         } else {
-            val(view, 'colorUr', viewRenderer.colorUr.toString(16), "ffffffff");
-            val(view, 'colorUl', viewRenderer.colorUl.toString(16), "ffffffff");
-            val(view, 'colorBr', viewRenderer.colorBr.toString(16), "ffffffff");
-            val(view, 'colorBl', viewRenderer.colorBl.toString(16), "ffffffff");
-            view.dhtmlRemoveAttribute('color');
+            val(element, 'colorUr', elementRenderer.colorUr.toString(16), "ffffffff");
+            val(element, 'colorUl', elementRenderer.colorUl.toString(16), "ffffffff");
+            val(element, 'colorBr', elementRenderer.colorBr.toString(16), "ffffffff");
+            val(element, 'colorBl', elementRenderer.colorBl.toString(16), "ffffffff");
+            element.dhtmlRemoveAttribute('color');
         }
     };
 
-    ViewTexturizer.prototype.__enabled = false;
-    Object.defineProperty(ViewTexturizer.prototype, '_enabled', {
+    ElementTexturizer.prototype.__enabled = false;
+    Object.defineProperty(ElementTexturizer.prototype, '_enabled', {
         get: function() {
             return this.__enabled;
         },
@@ -682,8 +682,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         }
     });
 
-    ViewTexturizer.prototype.__lazy = false;
-    Object.defineProperty(ViewTexturizer.prototype, '_lazy', {
+    ElementTexturizer.prototype.__lazy = false;
+    Object.defineProperty(ElementTexturizer.prototype, '_lazy', {
         get: function() {
             return this.__lazy;
         },
@@ -695,8 +695,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         }
     });
 
-    ViewTexturizer.prototype.__colorize = false;
-    Object.defineProperty(ViewTexturizer.prototype, '_colorize', {
+    ElementTexturizer.prototype.__colorize = false;
+    Object.defineProperty(ElementTexturizer.prototype, '_colorize', {
         get: function() {
             return this.__colorize;
         },
@@ -708,8 +708,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         }
     });
 
-    ViewTexturizer.prototype.__renderOffscreen = false;
-    Object.defineProperty(ViewTexturizer.prototype, '_renderOffscreen', {
+    ElementTexturizer.prototype.__renderOffscreen = false;
+    Object.defineProperty(ElementTexturizer.prototype, '_renderOffscreen', {
         get: function() {
             return this.__renderOffscreen;
         },
@@ -721,8 +721,8 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         }
     });
 
-    ViewCore.prototype.updateDebugTransforms = function() {
-        const stage = this._view.stage
+    ElementCore.prototype.updateDebugTransforms = function() {
+        const stage = this._element.stage
 
         if (this._pivotX !== 0.5 || this._pivotY !== 0.5) {
             this.dhtml().style.transformOrigin = (this._pivotX * 100) + '% '  + (this._pivotY * 100) + '%';
@@ -734,7 +734,7 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         var sx = this._scaleX;
         var sy = this._scaleY;
 
-        if ((sx !== undefined && sy !== undefined) && (this._view.id === 0)) {
+        if ((sx !== undefined && sy !== undefined) && (this._element.id === 0)) {
             // Root element: must be scaled.
             if (stage.options.w !== stage.options.renderWidth || stage.options.h !== stage.options.renderHeight) {
                 sx *= (stage.options.w / stage.options.renderWidth);
@@ -748,9 +748,9 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
         this.dhtml().style.transform = parts.join(' ');
     };
 
-    var updateTextureAttribs = function(view) {
-        if (view.texture) {
-            const nonDefaults = view.texture.getNonDefaults()
+    var updateTextureAttribs = function(element) {
+        if (element.texture) {
+            const nonDefaults = element.texture.getNonDefaults()
             const keys = Object.keys(nonDefaults)
             keys.forEach(key => {
                 let f = ""
@@ -762,7 +762,7 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
                         f += c
                     }
                 }
-                val(view, `texture-${f}`, nonDefaults[key], false);
+                val(element, `texture-${f}`, nonDefaults[key], false);
             })
         }
     }
@@ -770,13 +770,13 @@ window.attachInspector = function({View, ViewCore, Stage, Component, ViewTexturi
     const _performUpdateSource = Texture.prototype._performUpdateSource
     Texture.prototype._performUpdateSource = function() {
         _performUpdateSource.apply(this, arguments)
-        this.views.forEach(v => {
+        this.elements.forEach(v => {
             updateTextureAttribs(v)
         })
     }
 
-    const _setDisplayedTexture = View.prototype._setDisplayedTexture
-    View.prototype._setDisplayedTexture = function() {
+    const _setDisplayedTexture = Element.prototype._setDisplayedTexture
+    Element.prototype._setDisplayedTexture = function() {
         _setDisplayedTexture.apply(this, arguments)
         updateTextureAttribs(this)
     }
