@@ -59,7 +59,7 @@ export default class FastBlurComponent extends Component {
     _build() {
         this.patch({
             Wrap: {type: this.stage.gl ? WebGLFastBlurComponent : C2dFastBlurComponent}
-        }, true);
+        });
     }
 
 }

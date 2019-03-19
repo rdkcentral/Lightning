@@ -310,7 +310,7 @@ export default class Stage extends EventEmitter {
             element = new Element(this);
         }
 
-        element.patch(settings, true);
+        element.patch(settings);
 
         return element;
     }

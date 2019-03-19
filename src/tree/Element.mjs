@@ -1856,12 +1856,8 @@ export default class Element {
         return this.__core.texturizer;
     }
 
-    patch(settings, createMode = false) {
+    patch(settings) {
         let paths = Object.keys(settings);
-
-        if (settings.hasOwnProperty("__create")) {
-            createMode = settings["__create"];
-        }
 
         for (let i = 0, n = paths.length; i < n; i++) {
             let path = paths[i];
@@ -1876,33 +1872,20 @@ export default class Element {
                     const child = this.getByRef(path);
                     if (!child) {
                         if (v !== undefined) {
-                            let subCreateMode = createMode;
+                            // Add to list immediately.
+                            let c;
                             if (Utils.isObjectLiteral(v)) {
-                                if (v.hasOwnProperty("__create")) {
-                                    subCreateMode = v.__create;
-                                }
+                                // Catch this case to capture createMode flag.
+                                c = this.childList.createItem(v);
+                                c.patch(v);
+                            } else if (Utils.isObject(v)) {
+                                c = v;
+                            }
+                            if (c.isElement) {
+                                c.ref = path;
                             }
 
-                            if (subCreateMode === null) {
-                                // Ignore.
-                            } else if (subCreateMode === true) {
-                                // Add to list immediately.
-                                let c;
-                                if (Utils.isObjectLiteral(v)) {
-                                    // Catch this case to capture createMode flag.
-                                    c = this.childList.createItem(v);
-                                    c.patch(v, subCreateMode);
-                                } else if (Utils.isObject(v)) {
-                                    c = v;
-                                }
-                                if (c.isElement) {
-                                    c.ref = path;
-                                }
-
-                                this.childList.a(c);
-                            } else {
-                                this._throwError("Can't find path: " + path);
-                            }
+                            this.childList.a(c);
                         }
                     } else {
                         if (v === undefined) {
@@ -1910,7 +1893,7 @@ export default class Element {
                                 child.parent.childList.remove(child);
                             }
                         } else if (Utils.isObjectLiteral(v)) {
-                            child.patch(v, createMode);
+                            child.patch(v);
                         } else if (v.isElement) {
                             // Replace element by new element.
                             v.ref = path;
@@ -1935,7 +1918,7 @@ export default class Element {
                 } else if (Utils.isObjectLiteral(v)) {
                     // Recursive path.
                     for (let i = 0, n = elements.length; i < n; i++) {
-                        elements[i].patch(v, createMode);
+                        elements[i].patch(v);
                     }
                 } else {
                     this._throwError("Unexpected value for path: " + path);
@@ -1947,7 +1930,6 @@ export default class Element {
     _throwError(message) {
         throw new Error(this.constructor.name + " (" + this.getLocationString() + "): " + message);
     }
-
 
     animation(settings) {
         return this.stage.animations.createAnimation(this, settings);
