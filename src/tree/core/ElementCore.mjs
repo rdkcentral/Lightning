@@ -1656,7 +1656,7 @@ export default class ElementCore {
             }
 
             if (this._onAfterUpdate) {
-                this._onAfterUpdate(this.elements);
+                this._onAfterUpdate(this.element);
             }
         } else {
             if (this.ctx.updateTreeOrder === -1 || this._updateTreeOrder >= this.ctx.updateTreeOrder) {

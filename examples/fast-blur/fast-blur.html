@@ -16,8 +16,7 @@
                     return {
                         Blur: {type: lng.components.FastBlurComponent, amount: 2, w: 900, h: 900, content: {
                             Sub: {
-                                type: Sub,
-                                signals: {yes: true}
+                                type: Sub
                             },
                             Texture: {
                                 src: "../rockies.jpeg"
@@ -32,17 +31,11 @@
                 $getApi() {
                     return 123;
                 }
-
-                yes(msg) {
-                    console.log('hello', msg);
-                    return 123;
-                }
             }
 
             class Sub extends lng.Component {
                 static _template() {
                     return {
-                        passSignals: {yes: true},
                         SubSub: {type: SubSub}
                     }
                 }
@@ -50,7 +43,6 @@
 
             class SubSub extends lng.Component {
                 _firstActive(){
-                    console.log(this.signal('yes', 'bla'));
                     const api = this.fireAncestors('$getApi');
                 }
             }

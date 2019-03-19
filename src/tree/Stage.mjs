@@ -290,7 +290,7 @@ export default class Stage extends EventEmitter {
 
     createElement(settings) {
         if (settings) {
-            return this.elements(settings);
+            return this.element(settings);
         } else {
             return new Element(this);
         }
