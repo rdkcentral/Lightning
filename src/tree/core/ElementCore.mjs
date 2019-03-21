@@ -1288,16 +1288,6 @@ export default class ElementCore {
     update() {
         this._recalc |= this._parent._pRecalc;
 
-        if (this._onUpdate) {
-            // Block all 'upwards' updates when changing things in this branch.
-            this._hasUpdates = true;
-            this._onUpdate(this.elements, this);
-        }
-
-        const pw = this._parent._worldContext;
-        let w = this._worldContext;
-        const visible = (pw.alpha && this._localAlpha);
-
         if (this._layout && this._layout.isEnabled()) {
             if (this._recalc & 256) {
                 this._layout.layoutFlexTree();
@@ -1305,6 +1295,16 @@ export default class ElementCore {
         } else if ((this._recalc & 2) && this._optFlags) {
             this._applyRelativeDimFuncs();
         }
+
+        if (this._onUpdate) {
+            // Block all 'upwards' updates when changing things in this branch.
+            this._hasUpdates = true;
+            this._onUpdate(this.element, this);
+        }
+
+        const pw = this._parent._worldContext;
+        let w = this._worldContext;
+        const visible = (pw.alpha && this._localAlpha);
 
         /**
          * We must update if:
