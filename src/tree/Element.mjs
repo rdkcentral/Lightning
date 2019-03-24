@@ -1306,18 +1306,25 @@ export default class Element {
             }
         }
 
-        if (this._texturizer) {
+        if (this.shader) {
+            let tnd = this.shader.getNonDefaults();
+            if (Object.keys(tnd).length) {
+                settings.shader = tnd;
+            }
+        }
+
+        if (this._hasTexturizer()) {
             if (this.texturizer.enabled) {
                 settings.renderToTexture = this.texturizer.enabled;
             }
             if (this.texturizer.lazy) {
-                settings.renderToTextureLazy = this._texturizer.lazy;
+                settings.renderToTextureLazy = this.texturizer.lazy;
             }
-            if (this._texturizer.colorize) {
-                settings.colorizeResultTexture = this._texturizer.colorize;
+            if (this.texturizer.colorize) {
+                settings.colorizeResultTexture = this.texturizer.colorize;
             }
-            if (this._texturizer.renderOffscreen) {
-                settings.renderOffscreen = this._texturizer.renderOffscreen;
+            if (this.texturizer.renderOffscreen) {
+                settings.renderOffscreen = this.texturizer.renderOffscreen;
             }
         }
 
@@ -1790,16 +1797,14 @@ export default class Element {
         } else {
             const shader = Shader.create(this.stage, v);
 
-            if (shader) {
-                if (this.__enabled && this.__core.shader) {
-                    this.__core.shader.removeElement(this);
-                }
+            if (this.__enabled && this.__core.shader) {
+                this.__core.shader.removeElement(this.__core);
+            }
 
-                this.__core.shader = shader;
+            this.__core.shader = shader;
 
-                if (this.__enabled && this.__core.shader) {
-                    this.__core.shader.addElement(this);
-                }
+            if (this.__enabled && this.__core.shader) {
+                this.__core.shader.addElement(this.__core);
             }
         }
     }
