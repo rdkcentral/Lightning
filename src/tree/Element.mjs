@@ -80,19 +80,6 @@ export default class Element {
         this.__treeTags = null;
 
         /**
-         * Cache for the tag/mtag methods.
-         * @type {Map<String,Element[]>}
-         */
-        this.__tagsCache = null;
-
-        /**
-         * Tag-to-complex cache (all tags that are part of the complex caches).
-         * This maps tags to cached complex tags in the cache.
-         * @type {Map<String,String[]>}
-         */
-        this.__tagToComplex = null;
-
-        /**
          * Creates a tag context: tagged elements in this branch will not be reachable from ancestors of this elements.
          * @type {boolean}
          */
@@ -711,26 +698,6 @@ export default class Element {
         return this.__core.getCornerPoints();
     }
 
-    /**
-     * Clears the cache(s) for the specified tag.
-     * @param {String} tag
-     */
-    _clearTagsCache(tag) {
-        if (this.__tagsCache) {
-            this.__tagsCache.delete(tag);
-
-            if (this.__tagToComplex) {
-                let s = this.__tagToComplex.get(tag);
-                if (s) {
-                    for (let i = 0, n = s.length; i < n; i++) {
-                        this.__tagsCache.delete(s[i]);
-                    }
-                    this.__tagToComplex.delete(tag);
-                }
-            }
-        }
-    };
-
     _unsetTagsParent() {
         let tags = null;
         let n = 0;
@@ -744,7 +711,6 @@ export default class Element {
                         while (p = p.__parent) {
                             let parentTreeTags = p.__treeTags.get(tag);
                             parentTreeTags.delete(this);
-                            p._clearTagsCache(tag);
 
                             if (p.__tagRoot) {
                                 break;
@@ -768,9 +734,6 @@ export default class Element {
                             tagSet.forEach(function (comp) {
                                 parentTreeTags.delete(comp);
                             });
-
-
-                            p._clearTagsCache(tags[i]);
 
                             if (p.__tagRoot) {
                                 break;
@@ -802,8 +765,6 @@ export default class Element {
 
                             s.add(this);
 
-                            p._clearTagsCache(tag);
-
                             if (p.__tagRoot) {
                                 break;
                             }
@@ -830,8 +791,6 @@ export default class Element {
                         tagSet.forEach(function (comp) {
                             s.add(comp);
                         });
-
-                        p._clearTagsCache(tag);
                     }
                 });
             }
@@ -929,7 +888,6 @@ export default class Element {
 
                 s.add(this);
 
-                p._clearTagsCache(tag);
             } while (!p.__tagRoot && (p = p.__parent));
         }
     }
@@ -945,8 +903,6 @@ export default class Element {
                 let list = p.__treeTags.get(tag);
                 if (list) {
                     list.delete(this);
-
-                    p._clearTagsCache(tag);
                 }
             } while (!p.__tagRoot && (p = p.__parent));
         }
@@ -962,8 +918,17 @@ export default class Element {
      * @returns {Element}
      */
     _tag(tag) {
-        let res = this.mtag(tag);
-        return res[0];
+        if (tag.indexOf(".") !== -1) {
+            return this.mtag(tag)[0];
+        } else {
+            if (this.__treeTags) {
+                let t = this.__treeTags.get(tag);
+                if (t) {
+                    const item = t.values().next();
+                    return item ? item.value : undefined;
+                }
+            }
+        }
     };
 
     get tag() {
@@ -980,38 +945,25 @@ export default class Element {
      * @returns {Element[]}
      */
     mtag(tag) {
-        let res = null;
-        if (this.__tagsCache) {
-            res = this.__tagsCache.get(tag);
-        }
-
-        if (!res) {
-            let idx = tag.indexOf(".");
-            if (idx >= 0) {
-                let parts = tag.split('.');
-                res = this._getByTag(parts[0]);
-                let level = 1;
-                let c = parts.length;
-                while (res.length && level < c) {
-                    let resn = [];
-                    for (let j = 0, n = res.length; j < n; j++) {
-                        resn = resn.concat(res[j]._getByTag(parts[level]));
-                    }
-
-                    res = resn;
-                    level++;
+        let idx = tag.indexOf(".");
+        if (idx >= 0) {
+            let parts = tag.split('.');
+            let res = this._getByTag(parts[0]);
+            let level = 1;
+            let c = parts.length;
+            while (res.length && level < c) {
+                let resn = [];
+                for (let j = 0, n = res.length; j < n; j++) {
+                    resn = resn.concat(res[j]._getByTag(parts[level]));
                 }
-            } else {
-                res = this._getByTag(tag);
-            }
 
-            if (!this.__tagsCache) {
-                this.__tagsCache = new Map();
+                res = resn;
+                level++;
             }
-
-            this.__tagsCache.set(tag, res);
+            return res;
+        } else {
+            return this._getByTag(tag);
         }
-        return res;
     };
 
     stag(tag, settings) {
@@ -1068,12 +1020,7 @@ export default class Element {
         let arrowIdx = path.indexOf(">");
         if (pointIdx === -1 && arrowIdx === -1) {
             // Quick case.
-            if (Utils.isUcChar(path.charCodeAt(0))) {
-                const ref = this.getByRef(path);
-                return ref ? [ref] : [];
-            } else {
-                return this.mtag(path);
-            }
+            return this.mtag(path);
         }
 
         // Detect by first char.
@@ -1085,8 +1032,7 @@ export default class Element {
             isRef = false;
             path = path.substr(1);
         } else {
-            const firstCharcode = path.charCodeAt(0);
-            isRef = Utils.isUcChar(firstCharcode);
+            isRef = false;
         }
 
         return this._selectChilds(path, isRef);
@@ -1868,66 +1814,45 @@ export default class Element {
             let path = paths[i];
             const v = settings[path];
 
-            let pointIdx = path.indexOf(".");
-            let arrowIdx = path.indexOf(">");
-            if (arrowIdx === -1 && pointIdx === -1) {
-                const firstCharCode = path.charCodeAt(0);
-                if (Utils.isUcChar(firstCharCode)) {
-                    // Ref.
-                    const child = this.getByRef(path);
-                    if (!child) {
-                        if (v !== undefined) {
-                            // Add to list immediately.
-                            let c;
-                            if (Utils.isObjectLiteral(v)) {
-                                // Catch this case to capture createMode flag.
-                                c = this.childList.createItem(v);
-                                c.patch(v);
-                            } else if (Utils.isObject(v)) {
-                                c = v;
-                            }
-                            if (c.isElement) {
-                                c.ref = path;
-                            }
+            const firstCharCode = path.charCodeAt(0);
+            if (Utils.isUcChar(firstCharCode)) {
+                // Ref.
+                const child = this.getByRef(path);
+                if (!child) {
+                    if (v !== undefined) {
+                        // Add to list immediately.
+                        let c;
+                        if (Utils.isObjectLiteral(v)) {
+                            // Catch this case to capture createMode flag.
+                            c = this.childList.createItem(v);
+                            c.patch(v);
+                        } else if (Utils.isObject(v)) {
+                            c = v;
+                        }
+                        if (c.isElement) {
+                            c.ref = path;
+                        }
 
-                            this.childList.a(c);
-                        }
-                    } else {
-                        if (v === undefined) {
-                            if (child.parent) {
-                                child.parent.childList.remove(child);
-                            }
-                        } else if (Utils.isObjectLiteral(v)) {
-                            child.patch(v);
-                        } else if (v.isElement) {
-                            // Replace element by new element.
-                            v.ref = path;
-                            this.childList.replace(v, child);
-                        } else {
-                            this._throwError("Unexpected value for path: " + path);
-                        }
+                        this.childList.a(c);
                     }
                 } else {
-                    // Property.
-                    Base.patchObjectProperty(this, path, v);
+                    if (v === undefined) {
+                        if (child.parent) {
+                            child.parent.childList.remove(child);
+                        }
+                    } else if (Utils.isObjectLiteral(v)) {
+                        child.patch(v);
+                    } else if (v.isElement) {
+                        // Replace element by new element.
+                        v.ref = path;
+                        this.childList.replace(v, child);
+                    } else {
+                        this._throwError("Unexpected value for path: " + path);
+                    }
                 }
             } else {
-                // Select path.
-                const elements = this.select(path);
-                if (v === undefined) {
-                    for (let i = 0, n = elements.length; i < n; i++) {
-                        if (elements[i].parent) {
-                            elements[i].parent.childList.remove(elements[i]);
-                        }
-                    }
-                } else if (Utils.isObjectLiteral(v)) {
-                    // Recursive path.
-                    for (let i = 0, n = elements.length; i < n; i++) {
-                        elements[i].patch(v);
-                    }
-                } else {
-                    this._throwError("Unexpected value for path: " + path);
-                }
+                // Property.
+                Base.patchObjectProperty(this, path, v);
             }
         }
     }
