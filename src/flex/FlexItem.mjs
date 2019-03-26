@@ -70,11 +70,12 @@ export default class FlexItem {
 
         if (v === undefined) {
             this._alignSelf = undefined;
+        } else {
+            if (FlexContainer.ALIGN_ITEMS.indexOf(v) === -1) {
+                throw new Error("Unknown alignSelf, options: " + FlexContainer.ALIGN_ITEMS.join(","));
+            }
+            this._alignSelf = v;
         }
-        if (FlexContainer.ALIGN_ITEMS.indexOf(v) === -1) {
-            throw new Error("Unknown alignSelf, options: " + FlexContainer.ALIGN_ITEMS.join(","));
-        }
-        this._alignSelf = v;
 
         this._changed();
     }
