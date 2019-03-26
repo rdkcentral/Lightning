@@ -1,5 +1,4 @@
 import Component from "./Component.mjs";
-import StateMachine from "./StateMachine.mjs";
 
 export default class Application extends Component {
 
