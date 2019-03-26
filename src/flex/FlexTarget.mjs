@@ -69,6 +69,9 @@ export default class FlexTarget {
     }
 
     get flexItem() {
+        if (this._flexItemDisabled) {
+            return false;
+        }
         this._ensureFlexItem();
         return this._flexItem;
     }
