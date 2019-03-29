@@ -125,6 +125,10 @@ export default class Animation extends EventEmitter {
         return this._state === Animation.STATES.STOPPING;
     }
 
+    isFinished() {
+        return this._state === Animation.STATES.FINISHED;
+    }
+
     checkActive() {
         if (this.isActive()) {
             this.manager.addActive(this);
