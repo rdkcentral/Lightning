@@ -51,7 +51,7 @@ export default class Application extends Component {
             37: "Left",
             39: "Right",
             13: "Enter",
-            9: "Back",
+            8: "Back",
             27: "Exit"
         });
     }
