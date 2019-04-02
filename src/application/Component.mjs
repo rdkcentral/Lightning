@@ -402,7 +402,7 @@ export default class Component extends Element {
                 }
             }
 
-            let passSignal = (signalParent.__passSignals && signalParent.__passSignals[event]);
+            let passSignal = (this.__passSignals && this.__passSignals[event]);
             if (passSignal) {
                 // Bubble up.
                 if (passSignal && passSignal !== true) {
