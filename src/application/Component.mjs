@@ -283,6 +283,10 @@ export default class Component extends Element {
         // Override to add custom settings. See Application._handleFocusSettings().
     }
 
+    _handleFocusSettings(settings) {
+        // Override to react on custom settings. See Application._handleFocusSettings().
+    }
+
     static _template() {
         return {}
     }
