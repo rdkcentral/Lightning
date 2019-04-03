@@ -330,6 +330,10 @@ export default class ObjectList {
         return false;
     }
 
+    forEach(f) {
+        this.get().forEach(f);
+    }
+
 }
 
 import Utils from "./Utils.mjs";
