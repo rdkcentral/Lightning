@@ -149,7 +149,7 @@ export default class WebGLRenderer extends Renderer {
     }
 
     addQuad(renderState, quads, index) {
-        let offset = (index * 20 + 20);
+        let offset = (index * 20);
         const elementCore = quads.quadElements[index];
 
         let r = elementCore._renderContext;
@@ -208,7 +208,7 @@ export default class WebGLRenderer extends Renderer {
     }
 
     isRenderTextureReusable(renderState, renderTextureInfo) {
-        let offset = (renderState._renderTextureInfo.offset * 80 + 80) / 4;
+        let offset = (renderState._renderTextureInfo.offset * 80) / 4;
         let floats = renderState.quads.floats;
         let uints = renderState.quads.uints;
         return ((floats[offset] === 0) &&
@@ -235,7 +235,7 @@ export default class WebGLRenderer extends Renderer {
 
     finishRenderState(renderState) {
         // Set extra shader attribute data.
-        let offset = renderState.length * 80 + 80;
+        let offset = renderState.length * 80;
         for (let i = 0, n = renderState.quadOperations.length; i < n; i++) {
             renderState.quadOperations[i].extraAttribsDataByteOffset = offset;
             let extra = renderState.quadOperations[i].shader.getExtraAttribBytesPerVertex() * 4 * renderState.quadOperations[i].length;
