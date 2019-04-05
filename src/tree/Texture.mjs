@@ -30,6 +30,15 @@ export default class Texture {
         this._source = null;
 
         /**
+         * A resize mode can be set to cover or contain a certain area.
+         * It will reset the texture clipping settings.
+         * When manual texture clipping is performed, the resizeMode is reset.
+         * @type {{type: string, width: number, height: number}}
+         * @private
+         */
+        this._resizeMode = null;
+
+        /**
          * The texture clipping x-offset.
          * @type {number}
          */
@@ -153,6 +162,18 @@ export default class Texture {
         if (this.source) {
             this.source.incActiveTextureCount();
         }
+    }
+
+    onLoad() {
+        if (this._resizeMode) {
+            this._applyResizeMode();
+        }
+
+        this.elements.forEach(element => {
+            if (element.active) {
+                element.onTextureSourceLoaded();
+            }
+        });
     }
 
     _checkForNewerReusableTextureSource() {
@@ -344,7 +365,61 @@ export default class Texture {
         }
     }
 
+    set resizeMode({type = "cover", w = 0, h = 0, mountX = 0.5, mountY = 0.5}) {
+        this._resizeMode = {type, w, h, mountX, mountY};
+        if (this.isLoaded()) {
+            this._applyResizeMode();
+        }
+    }
+
+    _clearResizeMode() {
+        this._resizeMode = null;
+    }
+
+    _applyResizeMode() {
+        if (this._resizeMode.type === "cover") {
+            this._applyResizeCover();
+        } else if (this._resizeMode.type === "contain") {
+            this._applyResizeContain();
+        }
+        this._updatePrecision();
+        this._updateClipping();
+    }
+
+    _applyResizeCover() {
+        const scaleX = this._resizeMode.w / this._source.w;
+        const scaleY = this._resizeMode.h / this._source.h;
+        let scale = Math.max(scaleX, scaleY);
+        if (!scale) return;
+        this._precision = 1/scale;
+        if (scaleX && scaleX < scale) {
+            const desiredSize = this._precision * this._resizeMode.w;
+            const choppedOffPixels = this._source.w - desiredSize;
+            this._x = choppedOffPixels * this._resizeMode.mountX;
+            this._w = this._source.w - choppedOffPixels;
+        }
+        if (scaleY && scaleY < scale) {
+            const desiredSize = this._precision * this._resizeMode.h;
+            const choppedOffPixels = this._source.h - desiredSize;
+            this._y = choppedOffPixels * this._resizeMode.mountY;
+            this._h = this._source.h - choppedOffPixels;
+        }
+    }
+
+    _applyResizeContain() {
+        const scaleX = this._resizeMode.w / this._source.w;
+        const scaleY = this._resizeMode.h / this._source.h;
+        let scale = scaleX;
+        if (!scale || scaleY < scale) {
+            scale = scaleY;
+        }
+        if (!scale) return;
+        this._precision = 1/scale;
+    }
+
     enableClipping(x, y, w, h) {
+        this._clearResizeMode();
+
         x *= this._precision;
         y *= this._precision;
         w *= this._precision;
@@ -355,27 +430,25 @@ export default class Texture {
             this._w = w;
             this._h = h;
 
-            this.updateClipping(true);
+            this._updateClipping(true);
         }
     }
 
     disableClipping() {
+        this._clearResizeMode();
+
         if (this._x || this._y || this._w || this._h) {
             this._x = 0;
             this._y = 0;
             this._w = 0;
             this._h = 0;
 
-            this.updateClipping(false);
+            this._updateClipping();
         }
     }
 
-    updateClipping(overrule) {
-        if (overrule === true || overrule === false) {
-            this.clipping = overrule;
-        } else {
-            this.clipping = !!(this._x || this._y || this._w || this._h);
-        }
+    _updateClipping() {
+        this.clipping = !!(this._x || this._y || this._w || this._h);
 
         let self = this;
         this.elements.forEach(function(element) {
@@ -386,7 +459,7 @@ export default class Texture {
         });
     }
 
-    updatePrecision() {
+    _updatePrecision() {
         let self = this;
         this.elements.forEach(function(element) {
             // Ignore if not the currently displayed texture.
@@ -427,10 +500,11 @@ export default class Texture {
         return this._x / this._precision;
     }
     set x(v) {
+        this._clearResizeMode();
         v = v * this._precision;
         if (this._x !== v) {
             this._x = v;
-            this.updateClipping();
+            this._updateClipping();
         }
     }
 
@@ -438,10 +512,11 @@ export default class Texture {
         return this._y / this._precision;
     }
     set y(v) {
+        this._clearResizeMode();
         v = v * this._precision;
         if (this._y !== v) {
             this._y = v;
-            this.updateClipping();
+            this._updateClipping();
         }
     }
 
@@ -450,10 +525,11 @@ export default class Texture {
     }
 
     set w(v) {
+        this._clearResizeMode();
         v = v * this._precision;
         if (this._w !== v) {
             this._w = v;
-            this.updateClipping();
+            this._updateClipping();
         }
     }
 
@@ -462,10 +538,11 @@ export default class Texture {
     }
 
     set h(v) {
+        this._clearResizeMode();
         v = v * this._precision;
         if (this._h !== v) {
             this._h = v;
-            this.updateClipping();
+            this._updateClipping();
         }
     }
 
@@ -474,9 +551,10 @@ export default class Texture {
     }
 
     set precision(v) {
+        this._clearResizeMode();
         if (this._precision !== v) {
             this._precision = v;
-            this.updatePrecision();
+            this._updatePrecision();
         }
     }
 

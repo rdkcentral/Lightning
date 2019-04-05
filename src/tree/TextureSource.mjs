@@ -255,8 +255,8 @@ export default class TextureSource {
 
     onLoad() {
         if (this.isUsed()) {
-            this.forEachActiveElement(function (element) {
-                element.onTextureSourceLoaded();
+            this.textures.forEach(texture => {
+                texture.onLoad();
             });
         }
     }
