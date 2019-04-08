@@ -2017,11 +2017,12 @@ var lng = (function () {
 
             if (v === undefined) {
                 this._alignSelf = undefined;
+            } else {
+                if (FlexContainer.ALIGN_ITEMS.indexOf(v) === -1) {
+                    throw new Error("Unknown alignSelf, options: " + FlexContainer.ALIGN_ITEMS.join(","));
+                }
+                this._alignSelf = v;
             }
-            if (FlexContainer.ALIGN_ITEMS.indexOf(v) === -1) {
-                throw new Error("Unknown alignSelf, options: " + FlexContainer.ALIGN_ITEMS.join(","));
-            }
-            this._alignSelf = v;
 
             this._changed();
         }
@@ -2348,6 +2349,9 @@ var lng = (function () {
         }
 
         get flexItem() {
+            if (this._flexItemDisabled) {
+                return false;
+            }
             this._ensureFlexItem();
             return this._flexItem;
         }
@@ -2751,13 +2755,13 @@ var lng = (function () {
             this.stage = manager.stage;
 
             /**
-             * All enabled textures (textures that are used by visible views).
+             * All enabled textures (textures that are used by visible elements).
              * @type {Set<Texture>}
              */
             this.textures = new Set();
 
             /**
-             * The number of active textures (textures that have at least one active view).
+             * The number of active textures (textures that have at least one active element).
              * @type {number}
              * @private
              */
@@ -2857,21 +2861,21 @@ var lng = (function () {
             this._isResultTexture = v;
         }
 
-        forEachEnabledView(cb) {
+        forEachEnabledElement(cb) {
             this.textures.forEach(texture => {
-                texture.views.forEach(cb);
+                texture.elements.forEach(cb);
             });
         }
 
-        hasEnabledViews() {
+        hasEnabledElements() {
             return this.textures.size > 0;
         }
 
-        forEachActiveView(cb) {
+        forEachActiveElement(cb) {
             this.textures.forEach(texture => {
-                texture.views.forEach(view => {
-                    if (view.active) {
-                        cb(view);
+                texture.elements.forEach(element => {
+                    if (element.active) {
+                        cb(element);
                     }
                 });
             });
@@ -2930,9 +2934,9 @@ var lng = (function () {
         }
 
         load() {
-            // From the moment of loading (when a texture source becomes used by active views)
+            // From the moment of loading (when a texture source becomes used by active elements)
             if (this.isResultTexture) {
-                // View result texture source, for which the loading is managed by the core.
+                // Element result texture source, for which the loading is managed by the core.
                 return;
             }
 
@@ -2998,8 +3002,8 @@ var lng = (function () {
 
         onLoad() {
             if (this.isUsed()) {
-                this.forEachActiveView(function (view) {
-                    view.onTextureSourceLoaded();
+                this.textures.forEach(texture => {
+                    texture.onLoad();
                 });
             }
         }
@@ -3013,15 +3017,15 @@ var lng = (function () {
                 this._nativeTexture.update = this.stage.frameCounter;
             }
 
-            this.forEachActiveView(function (view) {
-                view.forceRenderUpdate();
+            this.forEachActiveElement(function (element) {
+                element.forceRenderUpdate();
             });
 
         }
 
         forceUpdateRenderCoords() {
-            this.forEachActiveView(function (view) {
-                view._updateTextureCoords();
+            this.forEachActiveElement(function (element) {
+                element._updateTextureCoords();
             });
         }
 
@@ -3044,15 +3048,15 @@ var lng = (function () {
             this.h = h;
 
             if (!prevNativeTexture && this._nativeTexture) {
-                this.forEachActiveView(view => view.onTextureSourceLoaded());
+                this.forEachActiveElement(element => element.onTextureSourceLoaded());
             }
 
             if (!this._nativeTexture) {
-                this.forEachActiveView(view => view._setDisplayedTexture(null));
+                this.forEachActiveElement(element => element._setDisplayedTexture(null));
             }
 
-            // Dimensions must be updated also on enabled views, as it may force it to go within bounds.
-            this.forEachEnabledView(view => view._updateDimensions());
+            // Dimensions must be updated also on enabled elements, as it may force it to go within bounds.
+            this.forEachEnabledElement(element => element._updateDimensions());
 
             // Notice that the sprite map must never contain render textures.
         }
@@ -3061,7 +3065,7 @@ var lng = (function () {
             this._loadError = e;
             this.loadingSince = 0;
             console.error('texture load error', e, this.lookupId);
-            this.forEachActiveView(view => view.onTextureSourceLoadError(e));
+            this.forEachActiveElement(element => element.onTextureSourceLoadError(e));
         }
 
         free() {
@@ -3078,12 +3082,12 @@ var lng = (function () {
 
     TextureSource.id = 1;
 
-    class ViewTexturizer {
+    class ElementTexturizer {
 
-        constructor(viewCore) {
+        constructor(elementCore) {
 
-            this._view = viewCore.view;
-            this._core = viewCore;
+            this._element = elementCore.element;
+            this._core = elementCore;
 
             this.ctx = this._core.ctx;
 
@@ -3138,7 +3142,7 @@ var lng = (function () {
 
         _getTextureSource() {
             if (!this._resultTextureSource) {
-                this._resultTextureSource = new TextureSource(this._view.stage.textureManager);
+                this._resultTextureSource = new TextureSource(this._element.stage.textureManager);
                 this.updateResultTexture();
             }
             return this._resultTextureSource;
@@ -3149,7 +3153,7 @@ var lng = (function () {
         }
 
         resultTextureInUse() {
-            return this._resultTextureSource && this._resultTextureSource.hasEnabledViews();
+            return this._resultTextureSource && this._resultTextureSource.hasEnabledElements();
         }
 
         updateResultTexture() {
@@ -3161,10 +3165,10 @@ var lng = (function () {
                     this._resultTextureSource.replaceNativeTexture(resultTexture, w, h);
                 }
 
-                // Texture will be updated: all views using the source need to be updated as well.
-                this._resultTextureSource.forEachEnabledView(view => {
-                    view._updateDimensions();
-                    view.core.setHasRenderUpdates(3);
+                // Texture will be updated: all elements using the source need to be updated as well.
+                this._resultTextureSource.forEachEnabledElement(element => {
+                    element._updateDimensions();
+                    element.core.setHasRenderUpdates(3);
                 });
             }
         }
@@ -3230,12 +3234,12 @@ var lng = (function () {
 
     }
 
-    class ViewCore {
+    class ElementCore {
 
-        constructor(view) {
-            this._view = view;
+        constructor(element) {
+            this._element = element;
 
-            this.ctx = view.stage.ctx;
+            this.ctx = element.stage.ctx;
 
             // The memory layout of the internal variables is affected by their position in the constructor.
             // It boosts performance to order them by usage of cpu-heavy functions (renderSimple and update).
@@ -3248,7 +3252,7 @@ var lng = (function () {
 
             this._pRecalc = 0;
 
-            this._worldContext = new ViewCoreContext();
+            this._worldContext = new ElementCoreContext();
 
             this._hasUpdates = false;
 
@@ -3298,7 +3302,7 @@ var lng = (function () {
 
             this._scissor = null;
 
-            // The ancestor ViewCore that owns the inherited shader. Null if none is active (default shader).
+            // The ancestor ElementCore that owns the inherited shader. Null if none is active (default shader).
             this._shaderOwner = null;
 
 
@@ -3340,17 +3344,17 @@ var lng = (function () {
             this._isRoot = false;
 
             /**
-             * Iff true, during zSort, this view should be 're-sorted' because either:
+             * Iff true, during zSort, this element should be 're-sorted' because either:
              * - zIndex did chang
              * - zParent did change
-             * - view was moved in the render tree
+             * - element was moved in the render tree
              * @type {boolean}
              */
             this._zIndexResort = false;
 
             this._shader = null;
 
-            // View is rendered on another texture.
+            // Element is rendered on another texture.
             this._renderToTextureEnabled = false;
 
             this._texturizer = null;
@@ -3687,7 +3691,7 @@ var lng = (function () {
                 this._alpha = v;
                 this._updateLocalAlpha();
                 if ((prev === 0) !== (v === 0)) {
-                    this._view._updateEnabledFlag();
+                    this._element._updateEnabledFlag();
                 }
             }
         }
@@ -3700,7 +3704,7 @@ var lng = (function () {
             if (this._visible !== v) {
                 this._visible = v;
                 this._updateLocalAlpha();
-                this._view._updateEnabledFlag();
+                this._element._updateEnabledFlag();
 
                 if (this.hasFlexLayout()) {
                     this.layout.setVisible(v);
@@ -3763,7 +3767,7 @@ var lng = (function () {
          */
         setHasRenderUpdates(type) {
             if (this._worldContext.alpha) {
-                // Ignore if 'world invisible'. Render updates will be reset to 3 for every view that becomes visible.
+                // Ignore if 'world invisible'. Render updates will be reset to 3 for every element that becomes visible.
                 let p = this;
                 p._hasRenderUpdates = Math.max(type, p._hasRenderUpdates);
                 while ((p = p._parent) && (p._hasRenderUpdates !== 3)) {
@@ -3815,7 +3819,7 @@ var lng = (function () {
                 }
 
                 if (prevParent) {
-                    // When views are deleted, the render texture must be re-rendered.
+                    // When elements are deleted, the render texture must be re-rendered.
                     prevParent.setHasRenderUpdates(3);
                 }
 
@@ -3860,8 +3864,8 @@ var lng = (function () {
             if (!this._zSort && this._zContextUsage > 0) {
                 this._zSort = true;
                 if (force) {
-                    // ZSort must be done, even if this view is invisible.
-                    // This is done to prevent memory leaks when removing views from inactive render branches.
+                    // ZSort must be done, even if this element is invisible.
+                    // This is done to prevent memory leaks when removing element from inactive render branches.
                     this.ctx.forceZSort(this);
                 }
             }
@@ -3941,7 +3945,7 @@ var lng = (function () {
 
         _setLocalAlpha(a) {
             if (!this._worldContext.alpha && ((this._parent && this._parent._worldContext.alpha) && a)) {
-                // View is becoming visible. We need to force update.
+                // Element is becoming visible. We need to force update.
                 this._setRecalc(1 + 128);
             } else {
                 this._setRecalc(1);
@@ -4011,7 +4015,7 @@ var lng = (function () {
 
         setAsRoot() {
             // Use parent dummy.
-            this._parent = new ViewCore(this._view);
+            this._parent = new ElementCore(this._element);
 
             // After setting root, make sure it's updated.
             this._parent._hasRenderUpdates = 3;
@@ -4086,7 +4090,7 @@ var lng = (function () {
 
                 this._zParent = newZParent;
 
-                // Newly added view must be marked for resort.
+                // Newly added element must be marked for resort.
                 this._zIndexResort = true;
             }
         };
@@ -4350,32 +4354,32 @@ var lng = (function () {
         }
 
         set clipbox(v) {
-            // In case of out-of-bounds view, all children will also be ignored.
+            // In case of out-of-bounds element, all children will also be ignored.
             // It will save us from executing the update/render loops for those.
             // The optimization will be used immediately during the next frame.
             this._clipbox = v;
         }
 
-        _setShaderOwnerRecursive(viewCore) {
-            this._shaderOwner = viewCore;
+        _setShaderOwnerRecursive(elementCore) {
+            this._shaderOwner = elementCore;
 
             if (this._children && !this._renderToTextureEnabled) {
                 for (let i = 0, n = this._children.length; i < n; i++) {
                     let c = this._children[i];
                     if (!c._shader) {
-                        c._setShaderOwnerRecursive(viewCore);
+                        c._setShaderOwnerRecursive(elementCore);
                         c._hasRenderUpdates = 3;
                     }
                 }
             }
         };
 
-        _setShaderOwnerChildrenRecursive(viewCore) {
+        _setShaderOwnerChildrenRecursive(elementCore) {
             if (this._children) {
                 for (let i = 0, n = this._children.length; i < n; i++) {
                     let c = this._children[i];
                     if (!c._shader) {
-                        c._setShaderOwnerRecursive(viewCore);
+                        c._setShaderOwnerRecursive(elementCore);
                         c._hasRenderUpdates = 3;
                     }
                 }
@@ -4408,7 +4412,7 @@ var lng = (function () {
 
                 this._renderToTextureEnabled = true;
 
-                this._renderContext = new ViewCoreContext();
+                this._renderContext = new ElementCoreContext();
 
                 // If render to texture is active, a new shader context is started.
                 this._setShaderOwnerChildrenRecursive(null);
@@ -4515,16 +4519,6 @@ var lng = (function () {
         update() {
             this._recalc |= this._parent._pRecalc;
 
-            if (this._onUpdate) {
-                // Block all 'upwards' updates when changing things in this branch.
-                this._hasUpdates = true;
-                this._onUpdate(this.view, this);
-            }
-
-            const pw = this._parent._worldContext;
-            let w = this._worldContext;
-            const visible = (pw.alpha && this._localAlpha);
-
             if (this._layout && this._layout.isEnabled()) {
                 if (this._recalc & 256) {
                     this._layout.layoutFlexTree();
@@ -4532,6 +4526,16 @@ var lng = (function () {
             } else if ((this._recalc & 2) && this._optFlags) {
                 this._applyRelativeDimFuncs();
             }
+
+            if (this._onUpdate) {
+                // Block all 'upwards' updates when changing things in this branch.
+                this._hasUpdates = true;
+                this._onUpdate(this.element, this);
+            }
+
+            const pw = this._parent._worldContext;
+            let w = this._worldContext;
+            const visible = (pw.alpha && this._localAlpha);
 
             /**
              * We must update if:
@@ -4584,7 +4588,7 @@ var lng = (function () {
                     if (init) {
                         // First render context build: make sure that it is fully initialized correctly.
                         // Otherwise, if we get into bounds later, the render context would not be initialized correctly.
-                        this._renderContext = new ViewCoreContext();
+                        this._renderContext = new ElementCoreContext();
                     }
 
                     const r = this._renderContext;
@@ -4654,7 +4658,7 @@ var lng = (function () {
                 const bboxW = this._dimsUnknown ? 2048 : this._w;
                 const bboxH = this._dimsUnknown ? 2048 : this._h;
                 
-                // Calculate a bbox for this view.
+                // Calculate a bbox for this element.
                 let sx, sy, ex, ey;
                 const rComplex = (r.tb !== 0) || (r.tc !== 0) || (r.ta < 0) || (r.td < 0);
                 if (rComplex) {
@@ -4713,7 +4717,7 @@ var lng = (function () {
 
                 if (this._onAfterCalcs) {
                     // After calcs may change render coords, scissor and/or recBoundsMargin.
-                    if (this._onAfterCalcs(this.view)) {
+                    if (this._onAfterCalcs(this.element)) {
                         // Recalculate bbox.
                         if (rComplex) {
                             sx = Math.min(0, bboxW * r.ta, bboxW * r.ta + bboxH * r.tb, bboxH * r.tb) + r.px;
@@ -4744,11 +4748,11 @@ var lng = (function () {
 
                     if (this._withinBoundsMargin) {
                         this._withinBoundsMargin = false;
-                        this.view._disableWithinBoundsMargin();
+                        this.element._disableWithinBoundsMargin();
                     }
                 } else {
                     if (recalc & 6) {
-                        // Recheck if view is out-of-bounds (all settings that affect this should enable recalc bit 2 or 4).
+                        // Recheck if element is out-of-bounds (all settings that affect this should enable recalc bit 2 or 4).
                         this._outOfBounds = 0;
                         let withinMargin = true;
 
@@ -4789,7 +4793,7 @@ var lng = (function () {
                                         (sy > this._scissor[1] + this._scissor[3] + 100));
                                 }
                                 if (withinMargin && this._outOfBounds === 2) {
-                                    // Children must be visited because they may contain views that are within margin, so must be visible.
+                                    // Children must be visited because they may contain elements that are within margin, so must be visible.
                                     this._outOfBounds = 1;
                                 }
                             }
@@ -4799,7 +4803,7 @@ var lng = (function () {
                             this._withinBoundsMargin = withinMargin;
 
                             if (this._withinBoundsMargin) {
-                                // This may update things (txLoaded events) in the view itself, but also in descendants and ancestors.
+                                // This may update things (txLoaded events) in the element itself, but also in descendants and ancestors.
 
                                 // Changes in ancestors should be executed during the next call of the stage update. But we must
                                 // take care that the _recalc and _hasUpdates flags are properly registered. That's why we clear
@@ -4808,21 +4812,21 @@ var lng = (function () {
 
                                 // Changes in descendants are automatically executed within the current update loop, though we must
                                 // take care to not update the hasUpdates flag unnecessarily in ancestors. We achieve this by making
-                                // sure that the hasUpdates flag of this view is turned on, which blocks it for ancestors.
+                                // sure that the hasUpdates flag of this element is turned on, which blocks it for ancestors.
                                 this._hasUpdates = true;
 
                                 const recalc = this._recalc;
                                 this._recalc = 0;
-                                this.view._enableWithinBoundsMargin();
+                                this.element._enableWithinBoundsMargin();
 
                                 if (this._recalc) {
-                                    // This view needs to be re-updated now, because we want the dimensions (and other changes) to be updated.
+                                    // This element needs to be re-updated now, because we want the dimensions (and other changes) to be updated.
                                     return this.update();
                                 }
 
                                 this._recalc = recalc;
                             } else {
-                                this.view._disableWithinBoundsMargin();
+                                this.element._disableWithinBoundsMargin();
                             }
                         }
                     }
@@ -4855,7 +4859,7 @@ var lng = (function () {
                         } else {
                             // Temporarily replace the render coord attribs by the identity matrix.
                             // This allows the children to calculate the render context.
-                            this._renderContext = ViewCoreContext.IDENTITY;
+                            this._renderContext = ElementCoreContext.IDENTITY;
                         }
                     }
 
@@ -4883,7 +4887,7 @@ var lng = (function () {
                 }
 
                 if (this._onAfterUpdate) {
-                    this._onAfterUpdate(this.view);
+                    this._onAfterUpdate(this.element);
                 }
             } else {
                 if (this.ctx.updateTreeOrder === -1 || this._updateTreeOrder >= this.ctx.updateTreeOrder) {
@@ -4935,7 +4939,7 @@ var lng = (function () {
 
         updateOutOfBounds() {
             // Propagate outOfBounds flag to descendants (necessary because of z-indexing).
-            // Invisible views are not drawn anyway. When alpha is updated, so will _outOfBounds.
+            // Invisible elements are not drawn anyway. When alpha is updated, so will _outOfBounds.
             if (this._outOfBounds !== 2 && this._renderContext.alpha > 0) {
 
                 // Inherit parent out of boundsness.
@@ -4943,7 +4947,7 @@ var lng = (function () {
 
                 if (this._withinBoundsMargin) {
                     this._withinBoundsMargin = false;
-                    this.view._disableWithinBoundsMargin();
+                    this.element._disableWithinBoundsMargin();
                 }
 
                 if (this._children) {
@@ -5046,12 +5050,12 @@ var lng = (function () {
                              *
                              * The rule is, that caching for a specific render texture is only enabled if:
                              * - There is a result texture to be updated.
-                             * - There were no render updates -within the contents- since last frame (ViewCore.hasRenderUpdates < 3)
+                             * - There were no render updates -within the contents- since last frame (ElementCore.hasRenderUpdates < 3)
                              * - AND there are no ancestors that are being cached during this frame (CoreRenderState.isCachingTexturizer)
                              *   If an ancestor is cached anyway, it's probably not necessary to keep deeper caches. If the top level is to
                              *   change while a lower one is not, that lower level will be cached instead.
                              *
-                             * In case of the fast blur view, this prevents having to cache all blur levels and stages, saving a huge amount
+                             * In case of the fast blur element, this prevents having to cache all blur levels and stages, saving a huge amount
                              * of GPU memory!
                              *
                              * Especially when using multiple stacked layers of the same dimensions that are RTT this will have a very
@@ -5065,7 +5069,7 @@ var lng = (function () {
                             // We can already release the current texture to the pool, as it will be rebuild anyway.
                             // In case of multiple layers of 'filtering', this may save us from having to create one
                             //  render-to-texture layer.
-                            // Notice that we don't do this when there is a result texture, as any other view may rely on
+                            // Notice that we don't do this when there is a result texture, as any other element may rely on
                             //  that result texture being filled.
                             this._texturizer.releaseRenderTexture();
                         }
@@ -5077,7 +5081,7 @@ var lng = (function () {
                             let r = this._renderContext;
 
                             // Use an identity context for drawing the displayed texture to the render texture.
-                            this._renderContext = ViewCoreContext.IDENTITY;
+                            this._renderContext = ElementCoreContext.IDENTITY;
 
                             // Add displayed texture source in local coordinates.
                             this.renderState.addQuad(this);
@@ -5189,10 +5193,10 @@ var lng = (function () {
         sortZIndexedChildren() {
             /**
              * We want to avoid resorting everything. Instead, we do a single pass of the full array:
-             * - filtering out views with a different zParent than this (were removed)
-             * - filtering out, but also gathering (in a temporary array) the views that have zIndexResort flag
+             * - filtering out elements with a different zParent than this (were removed)
+             * - filtering out, but also gathering (in a temporary array) the elements that have zIndexResort flag
              * - then, finally, we merge-sort both the new array and the 'old' one
-             * - view may have been added 'double', so when merge-sorting also check for doubles.
+             * - element may have been added 'double', so when merge-sorting also check for doubles.
              * - if the old one is larger (in size) than it should be, splice off the end of the array.
              */
 
@@ -5221,7 +5225,7 @@ var lng = (function () {
                     b[j]._zIndexResort = false;
                 }
 
-                b.sort(ViewCore.sortZIndexedChildren);
+                b.sort(ElementCore.sortZIndexedChildren);
                 const n = ptr;
                 if (!n) {
                     ptr = 0;
@@ -5296,8 +5300,8 @@ var lng = (function () {
             return this._localTd;
         };
 
-        get view() {
-            return this._view;
+        get element() {
+            return this._element;
         }
 
         get renderUpdates() {
@@ -5306,7 +5310,7 @@ var lng = (function () {
 
         get texturizer() {
             if (!this._texturizer) {
-                this._texturizer = new ViewTexturizer(this);
+                this._texturizer = new ElementTexturizer(this);
             }
             return this._texturizer;
         }
@@ -5406,7 +5410,7 @@ var lng = (function () {
 
     }
 
-    class ViewCoreContext {
+    class ElementCoreContext {
 
         constructor() {
             this.alpha = 1;
@@ -5436,8 +5440,8 @@ var lng = (function () {
 
     }
 
-    ViewCoreContext.IDENTITY = new ViewCoreContext();
-    ViewCore.sortZIndexedChildren = function(a,b) {
+    ElementCoreContext.IDENTITY = new ElementCoreContext();
+    ElementCore.sortZIndexedChildren = function(a, b) {
         return (a._zIndex === b._zIndex ? a._updateTreeOrder - b._updateTreeOrder : a._zIndex - b._zIndex);
     };
 
@@ -5578,10 +5582,10 @@ var lng = (function () {
             this.ctx = coreContext;
 
             /**
-             * The (enabled) views that use this shader.
-             * @type {Set<ViewCore>}
+             * The (enabled) elements that use this shader.
+             * @type {Set<ElementCore>}
              */
-            this._views = new Set();
+            this._elements = new Set();
         }
 
         static create(stage, v) {
@@ -5624,20 +5628,20 @@ var lng = (function () {
             return undefined;
         }
 
-        addView(viewCore) {
-            this._views.add(viewCore);
+        addElement(elementCore) {
+            this._elements.add(elementCore);
         }
 
-        removeView(viewCore) {
-            this._views.delete(viewCore);
-            if (!this._views) {
+        removeElement(elementCore) {
+            this._elements.delete(elementCore);
+            if (!this._elements) {
                 this.cleanup();
             }
         }
 
         redraw() {
-            this._views.forEach(viewCore => {
-                viewCore.setHasRenderUpdates(2);
+            this._elements.forEach(elementCore => {
+                elementCore.setHasRenderUpdates(2);
             });
         }
 
@@ -5658,7 +5662,7 @@ var lng = (function () {
         }
 
         cleanup() {
-            // Called when no more enabled views have this shader.
+            // Called when no more enabled elements have this shader.
         }
 
         get isShader() {
@@ -5679,13 +5683,13 @@ var lng = (function () {
             this.id = Texture.id++;
 
             /**
-             * All enabled views that use this texture object (either as texture or displayedTexture).
-             * @type {Set<View>}
+             * All enabled elements that use this texture object (either as texture or displayedTexture).
+             * @type {Set<Element>}
              */
-            this.views = new Set();
+            this.elements = new Set();
 
             /**
-             * The number of enabled views that are active.
+             * The number of enabled elements that are active.
              * @type {number}
              */
             this._activeCount = 0;
@@ -5696,6 +5700,15 @@ var lng = (function () {
              * @type {TextureSource}
              */
             this._source = null;
+
+            /**
+             * A resize mode can be set to cover or contain a certain area.
+             * It will reset the texture clipping settings.
+             * When manual texture clipping is performed, the resizeMode is reset.
+             * @type {{type: string, width: number, height: number}}
+             * @private
+             */
+            this._resizeMode = null;
 
             /**
              * The texture clipping x-offset.
@@ -5730,14 +5743,14 @@ var lng = (function () {
 
             /**
              * The (maximum) expected texture source width. Used for within bounds determination while texture is not yet loaded.
-             * If not set, 2048 is used by ViewCore.update.
+             * If not set, 2048 is used by ElementCore.update.
              * @type {number}
              */
             this.mw = 0;
 
             /**
              * The (maximum) expected texture source height. Used for within bounds determination while texture is not yet loaded.
-             * If not set, 2048 is used by ViewCore.update.
+             * If not set, 2048 is used by ElementCore.update.
              * @type {number}
              */
             this.mh = 0;
@@ -5765,11 +5778,11 @@ var lng = (function () {
             return this._source;
         }
 
-        addView(v) {
-            if (!this.views.has(v)) {
-                this.views.add(v);
+        addElement(v) {
+            if (!this.elements.has(v)) {
+                this.elements.add(v);
 
-                if (this.views.size === 1) {
+                if (this.elements.size === 1) {
                     if (this._source) {
                         this._source.addTexture(this);
                     }
@@ -5781,9 +5794,9 @@ var lng = (function () {
             }
         }
 
-        removeView(v) {
-            if (this.views.delete(v)) {
-                if (this.views.size === 0) {
+        removeElement(v) {
+            if (this.elements.delete(v)) {
+                if (this.elements.size === 0) {
                     if (this._source) {
                         this._source.removeTexture(this);
                     }
@@ -5821,6 +5834,18 @@ var lng = (function () {
             if (this.source) {
                 this.source.incActiveTextureCount();
             }
+        }
+
+        onLoad() {
+            if (this._resizeMode) {
+                this._applyResizeMode();
+            }
+
+            this.elements.forEach(element => {
+                if (element.active) {
+                    element.onTextureSourceLoaded();
+                }
+            });
         }
 
         _checkForNewerReusableTextureSource() {
@@ -5870,7 +5895,7 @@ var lng = (function () {
          *     - flipBlueRed: boolean
          *     - renderInfo: object
          * The loader itself may return a Function that is called when loading of the texture is cancelled. This can be used
-         * to stop fetching an image when it is no longer in view, for example.
+         * to stop fetching an image when it is no longer in element, for example.
          */
         _getSourceLoader() {
             throw new Error("Texture.generate must be implemented.");
@@ -5892,7 +5917,7 @@ var lng = (function () {
          * This must be called when the texture source must be re-generated.
          */
         _changed() {
-            // If no view is actively using this texture, ignore it altogether.
+            // If no element is actively using this texture, ignore it altogether.
             if (this.isUsed()) {
                 this._updateSource();
             } else {
@@ -5943,7 +5968,7 @@ var lng = (function () {
 
             this._source = newSource;
 
-            if (this.views.size) {
+            if (this.elements.size) {
                 if (oldSource) {
                     if (this._activeCount) {
                         oldSource.decActiveTextureCount();
@@ -5964,25 +5989,25 @@ var lng = (function () {
             if (this.isUsed()) {
                 if (newSource) {
                     if (newSource.isLoaded()) {
-                        this.views.forEach(view => {
-                            if (view.active) {
-                                view._setDisplayedTexture(this);
+                        this.elements.forEach(element => {
+                            if (element.active) {
+                                element._setDisplayedTexture(this);
                             }
                         });
                     } else {
                         const loadError = newSource.loadError;
                         if (loadError) {
-                            this.views.forEach(view => {
-                                if (view.active) {
-                                    view.onTextureSourceLoadError(loadError);
+                            this.elements.forEach(element => {
+                                if (element.active) {
+                                    element.onTextureSourceLoadError(loadError);
                                 }
                             });
                         }
                     }
                 } else {
-                    this.views.forEach(view => {
-                        if (view.active) {
-                            view._setDisplayedTexture(null);
+                    this.elements.forEach(element => {
+                        if (element.active) {
+                            element._setDisplayedTexture(null);
                         }
                     });
                 }
@@ -6012,7 +6037,65 @@ var lng = (function () {
             }
         }
 
+        set resizeMode({type = "cover", w = 0, h = 0, clipX = 0.5, clipY = 0.5}) {
+            this._resizeMode = {type, w, h, clipX, clipY};
+            if (this.isLoaded()) {
+                this._applyResizeMode();
+            }
+        }
+
+        get resizeMode() {
+            return this._resizeMode;
+        }
+
+        _clearResizeMode() {
+            this._resizeMode = null;
+        }
+
+        _applyResizeMode() {
+            if (this._resizeMode.type === "cover") {
+                this._applyResizeCover();
+            } else if (this._resizeMode.type === "contain") {
+                this._applyResizeContain();
+            }
+            this._updatePrecision();
+            this._updateClipping();
+        }
+
+        _applyResizeCover() {
+            const scaleX = this._resizeMode.w / this._source.w;
+            const scaleY = this._resizeMode.h / this._source.h;
+            let scale = Math.max(scaleX, scaleY);
+            if (!scale) return;
+            this._precision = 1/scale;
+            if (scaleX && scaleX < scale) {
+                const desiredSize = this._precision * this._resizeMode.w;
+                const choppedOffPixels = this._source.w - desiredSize;
+                this._x = choppedOffPixels * this._resizeMode.clipX;
+                this._w = this._source.w - choppedOffPixels;
+            }
+            if (scaleY && scaleY < scale) {
+                const desiredSize = this._precision * this._resizeMode.h;
+                const choppedOffPixels = this._source.h - desiredSize;
+                this._y = choppedOffPixels * this._resizeMode.clipY;
+                this._h = this._source.h - choppedOffPixels;
+            }
+        }
+
+        _applyResizeContain() {
+            const scaleX = this._resizeMode.w / this._source.w;
+            const scaleY = this._resizeMode.h / this._source.h;
+            let scale = scaleX;
+            if (!scale || scaleY < scale) {
+                scale = scaleY;
+            }
+            if (!scale) return;
+            this._precision = 1/scale;
+        }
+
         enableClipping(x, y, w, h) {
+            this._clearResizeMode();
+
             x *= this._precision;
             y *= this._precision;
             w *= this._precision;
@@ -6023,43 +6106,41 @@ var lng = (function () {
                 this._w = w;
                 this._h = h;
 
-                this.updateClipping(true);
+                this._updateClipping(true);
             }
         }
 
         disableClipping() {
+            this._clearResizeMode();
+
             if (this._x || this._y || this._w || this._h) {
                 this._x = 0;
                 this._y = 0;
                 this._w = 0;
                 this._h = 0;
 
-                this.updateClipping(false);
+                this._updateClipping();
             }
         }
 
-        updateClipping(overrule) {
-            if (overrule === true || overrule === false) {
-                this.clipping = overrule;
-            } else {
-                this.clipping = !!(this._x || this._y || this._w || this._h);
-            }
+        _updateClipping() {
+            this.clipping = !!(this._x || this._y || this._w || this._h);
 
             let self = this;
-            this.views.forEach(function(view) {
+            this.elements.forEach(function(element) {
                 // Ignore if not the currently displayed texture.
-                if (view.displayedTexture === self) {
-                    view.onDisplayedTextureClippingChanged();
+                if (element.displayedTexture === self) {
+                    element.onDisplayedTextureClippingChanged();
                 }
             });
         }
 
-        updatePrecision() {
+        _updatePrecision() {
             let self = this;
-            this.views.forEach(function(view) {
+            this.elements.forEach(function(element) {
                 // Ignore if not the currently displayed texture.
-                if (view.displayedTexture === self) {
-                    view.onPrecisionChanged();
+                if (element.displayedTexture === self) {
+                    element.onPrecisionChanged();
                 }
             });
         }
@@ -6095,10 +6176,11 @@ var lng = (function () {
             return this._x / this._precision;
         }
         set x(v) {
+            this._clearResizeMode();
             v = v * this._precision;
             if (this._x !== v) {
                 this._x = v;
-                this.updateClipping();
+                this._updateClipping();
             }
         }
 
@@ -6106,10 +6188,11 @@ var lng = (function () {
             return this._y / this._precision;
         }
         set y(v) {
+            this._clearResizeMode();
             v = v * this._precision;
             if (this._y !== v) {
                 this._y = v;
-                this.updateClipping();
+                this._updateClipping();
             }
         }
 
@@ -6118,10 +6201,11 @@ var lng = (function () {
         }
 
         set w(v) {
+            this._clearResizeMode();
             v = v * this._precision;
             if (this._w !== v) {
                 this._w = v;
-                this.updateClipping();
+                this._updateClipping();
             }
         }
 
@@ -6130,10 +6214,11 @@ var lng = (function () {
         }
 
         set h(v) {
+            this._clearResizeMode();
             v = v * this._precision;
             if (this._h !== v) {
                 this._h = v;
-                this.updateClipping();
+                this._updateClipping();
             }
         }
 
@@ -6142,9 +6227,10 @@ var lng = (function () {
         }
 
         set precision(v) {
+            this._clearResizeMode();
             if (this._precision !== v) {
                 this._precision = v;
-                this.updatePrecision();
+                this._updatePrecision();
             }
         }
 
@@ -7181,24 +7267,24 @@ var lng = (function () {
 
     class Transition extends EventEmitter {
 
-        constructor(manager, settings, view, property) {
+        constructor(manager, settings, element, property) {
             super();
 
             this.manager = manager;
 
             this._settings = settings;
 
-            this._view = view;
-            this._getter = View.getGetter(property);
-            this._setter = View.getSetter(property);
+            this._element = element;
+            this._getter = Element.getGetter(property);
+            this._setter = Element.getSetter(property);
 
             this._merger = settings.merger;
 
             if (!this._merger) {
-                this._merger = View.getMerger(property);
+                this._merger = Element.getMerger(property);
             }
 
-            this._startValue = this._getter(this._view);
+            this._startValue = this._getter(this._element);
             this._targetValue = this._startValue;
 
             this._p = 1;
@@ -7206,10 +7292,10 @@ var lng = (function () {
         }
 
         start(targetValue) {
-            this._startValue = this._getter(this._view);
+            this._startValue = this._getter(this._element);
 
             if (!this.isAttached()) {
-                // We don't support transitions on non-attached views. Just set value without invoking listeners.
+                // We don't support transitions on non-attached elements. Just set value without invoking listeners.
                 this._targetValue = targetValue;
                 this._p = 1;
                 this._updateDrawValue();
@@ -7249,13 +7335,13 @@ var lng = (function () {
 
         reset(targetValue, p) {
             if (!this.isAttached()) {
-                // We don't support transitions on non-attached views. Just set value without invoking listeners.
-                this._startValue = this._getter(this._view);
+                // We don't support transitions on non-attached elements. Just set value without invoking listeners.
+                this._startValue = this._getter(this._element);
                 this._targetValue = targetValue;
                 this._p = 1;
                 this._updateDrawValue();
             } else {
-                this._startValue = this._getter(this._view);
+                this._startValue = this._getter(this._element);
                 this._targetValue = targetValue;
                 this._p = p;
                 this.add();
@@ -7263,7 +7349,7 @@ var lng = (function () {
         }
 
         _updateDrawValue() {
-            this._setter(this._view, this.getDrawValue());
+            this._setter(this._element, this.getDrawValue());
         }
 
         add() {
@@ -7271,7 +7357,7 @@ var lng = (function () {
         }
 
         isAttached() {
-            return this._view.attached;
+            return this._element.attached;
         }
 
         isRunning() {
@@ -7363,8 +7449,8 @@ var lng = (function () {
             return this._delayLeft;
         }
 
-        get view() {
-            return this._view;
+        get element() {
+            return this._element;
         }
 
         get settings() {
@@ -7711,22 +7797,26 @@ var lng = (function () {
             return false;
         }
 
+        forEach(f) {
+            this.get().forEach(f);
+        }
+
     }
 
     /**
-     * Manages the list of children for a view.
+     * Manages the list of children for an element.
      */
 
-    class ViewChildList extends ObjectList {
+    class ElementChildList extends ObjectList {
 
-        constructor(view) {
+        constructor(element) {
             super();
-            this._view = view;
+            this._element = element;
         }
 
         _connectParent(item) {
             const prevParent = item.parent;
-            if (prevParent && prevParent !== this._view) {
+            if (prevParent && prevParent !== this._element) {
                 // Cleanup in previous child list, without
                 const prevChildList = item.parent.childList;
                 const index = prevChildList.getIndex(item);
@@ -7736,24 +7826,24 @@ var lng = (function () {
                 }
                 prevChildList._items.splice(index, 1);
 
-                // Also clean up view core.
+                // Also clean up element core.
                 prevParent.core.removeChildAt(index);
 
             }
 
-            item._setParent(this._view);
+            item._setParent(this._element);
 
             // We are expecting the caller to sync it to the core.
         }
 
         onAdd(item, index) {
             this._connectParent(item);
-            this._view.core.addChildAt(index, item.core);
+            this._element.core.addChildAt(index, item.core);
         }
 
         onRemove(item, index) {
             item._setParent(null);
-            this._view.core.removeChildAt(index);
+            this._element.core.removeChildAt(index);
         }
 
         onSync(removed, added, order) {
@@ -7764,30 +7854,30 @@ var lng = (function () {
                 this._connectParent(added[i]);
             }
             let gc = i => i.core;
-            this._view.core.syncChildren(removed.map(gc), added.map(gc), order.map(gc));
+            this._element.core.syncChildren(removed.map(gc), added.map(gc), order.map(gc));
         }
 
         onSet(item, index, prevItem) {
             prevItem._setParent(null);
 
             this._connectParent(item);
-            this._view.core.setChildAt(index, item.core);
+            this._element.core.setChildAt(index, item.core);
         }
 
         onMove(item, fromIndex, toIndex) {
-            this._view.core.moveChild(fromIndex, toIndex);
+            this._element.core.moveChild(fromIndex, toIndex);
         }
 
         createItem(object) {
             if (object.type) {
-                return new object.type(this._view.stage);
+                return new object.type(this._element.stage);
             } else {
-                return this._view.stage.createView();
+                return this._element.stage.createElement();
             }
         }
 
         isItem(object) {
-            return object.isView;
+            return object.isElement;
         }
 
     }
@@ -7797,19 +7887,19 @@ var lng = (function () {
      * Copyright Metrological, 2017
      */
 
-    class View {
+    class Element {
 
         constructor(stage) {
             this.stage = stage;
 
-            this.__id = View.id++;
+            this.__id = Element.id++;
 
             this.__start();
 
             // EventEmitter constructor.
             this._hasEventListeners = false;
 
-            this.__core = new ViewCore(this);
+            this.__core = new ElementCore(this);
 
             /**
              * A reference that can be used while merging trees.
@@ -7818,25 +7908,25 @@ var lng = (function () {
             this.__ref = null;
 
             /**
-             * A view is attached if it is a descendant of the stage root.
+             * An element is attached if it is a descendant of the stage root.
              * @type {boolean}
              */
             this.__attached = false;
 
             /**
-             * A view is enabled when it is attached and it is visible (worldAlpha > 0).
+             * An element is enabled when it is attached and it is visible (worldAlpha > 0).
              * @type {boolean}
              */
             this.__enabled = false;
 
             /**
-             * A view is active when it is enabled and it is within bounds.
+             * An element is active when it is enabled and it is within bounds.
              * @type {boolean}
              */
             this.__active = false;
 
             /**
-             * @type {View}
+             * @type {Element}
              */
             this.__parent = null;
 
@@ -7853,40 +7943,27 @@ var lng = (function () {
             this.__displayedTexture = null;
 
             /**
-             * Tags that can be used to identify/search for a specific view.
+             * Tags that can be used to identify/search for a specific element.
              * @type {String[]}
              */
             this.__tags = null;
 
             /**
              * The tree's tags mapping.
-             * This contains all views for all known tags, at all times.
+             * This contains all elements for all known tags, at all times.
              * @type {Map}
              */
             this.__treeTags = null;
 
             /**
-             * Cache for the tag/mtag methods.
-             * @type {Map<String,View[]>}
-             */
-            this.__tagsCache = null;
-
-            /**
-             * Tag-to-complex cache (all tags that are part of the complex caches).
-             * This maps tags to cached complex tags in the cache.
-             * @type {Map<String,String[]>}
-             */
-            this.__tagToComplex = null;
-
-            /**
-             * Creates a tag context: tagged views in this branch will not be reachable from ancestors of this view.
+             * Creates a tag context: tagged elements in this branch will not be reachable from ancestors of this elements.
              * @type {boolean}
              */
             this.__tagRoot = false;
 
             /**
-             * (Lazy-initialised) list of children owned by this view.
-             * @type {ViewChildList}
+             * (Lazy-initialised) list of children owned by this elements.
+             * @type {ElementChildList}
              */
             this.__childList = null;
 
@@ -8115,7 +8192,7 @@ var lng = (function () {
             this._updateTextureCoords();
 
             if (this.__texture) {
-                this.__texture.addView(this);
+                this.__texture.addElement(this);
             }
 
             if (this.withinBoundsMargin) {
@@ -8123,7 +8200,7 @@ var lng = (function () {
             }
 
             if (this.__core.shader) {
-                this.__core.shader.addView(this.__core);
+                this.__core.shader.addElement(this.__core);
             }
 
         }
@@ -8134,15 +8211,15 @@ var lng = (function () {
             }
 
             if (this.__texture) {
-                this.__texture.removeView(this);
+                this.__texture.removeElement(this);
             }
 
             if (this.__core.shader) {
-                this.__core.shader.removeView(this.__core);
+                this.__core.shader.removeElement(this.__core);
             }
 
             if (this._texturizer) {
-                this.texturizer.filters.forEach(filter => filter.removeView(this.__core));
+                this.texturizer.filters.forEach(filter => filter.removeElement(this.__core));
             }
 
             this.__enabled = false;
@@ -8209,7 +8286,7 @@ var lng = (function () {
             } else if (this.__displayedTexture) {
                 return this.__displayedTexture.getRenderWidth();
             } else if (this.__texture) {
-                // Texture already loaded, but not yet updated (probably because this view is not active).
+                // Texture already loaded, but not yet updated (probably because this element is not active).
                 return this.__texture.getRenderWidth();
             } else {
                 return 0;
@@ -8222,7 +8299,7 @@ var lng = (function () {
             } else if (this.__displayedTexture) {
                 return this.__displayedTexture.getRenderHeight();
             } else if (this.__texture) {
-                // Texture already loaded, but not yet updated (probably because this view is not active).
+                // Texture already loaded, but not yet updated (probably because this element is not active).
                 return this.__texture.getRenderHeight();
             } else {
                 return 0;
@@ -8231,7 +8308,7 @@ var lng = (function () {
 
         get renderWidth() {
             if (this.__enabled) {
-                // Render width is only maintained if this view is enabled.
+                // Render width is only maintained if this element is enabled.
                 return this.__core.getRenderWidth();
             } else {
                 return this._getRenderWidth();
@@ -8271,7 +8348,7 @@ var lng = (function () {
                 this.__texture.load();
 
                 if (!this.__texture.isUsed() || !this._isEnabled()) {
-                    // Loading the texture will have no effect on the dimensions of this view.
+                    // Loading the texture will have no effect on the dimensions of this element.
                     // Manually update them, so that calcs can be performed immediately in userland.
                     this._updateDimensions();
                 }
@@ -8279,7 +8356,7 @@ var lng = (function () {
         }
 
         _enableTextureError() {
-            // txError event should automatically be re-triggered when a view becomes active.
+            // txError event should automatically be re-triggered when a element becomes active.
             const loadError = this.__texture.loadError;
             if (loadError) {
                 this.emit('txError', loadError, this.__texture._source);
@@ -8339,7 +8416,7 @@ var lng = (function () {
 
                 if (this.__texture) {
                     if (this.__enabled) {
-                        this.__texture.addView(this);
+                        this.__texture.addElement(this);
 
                         if (this.withinBoundsMargin) {
                             if (this.__texture.isLoaded()) {
@@ -8355,7 +8432,7 @@ var lng = (function () {
                 }
 
                 if (prevTexture && prevTexture !== this.__displayedTexture) {
-                    prevTexture.removeView(this);
+                    prevTexture.removeElement(this);
                 }
 
                 this._updateDimensions();
@@ -8372,7 +8449,7 @@ var lng = (function () {
             if (prevTexture && (v !== prevTexture)) {
                 if (this.__texture !== prevTexture) {
                     // The old displayed texture is deprecated.
-                    prevTexture.removeView(this);
+                    prevTexture.removeElement(this);
                 }
             }
 
@@ -8402,7 +8479,7 @@ var lng = (function () {
         }
 
         onTextureSourceLoaded() {
-            // This function is called when view is enabled, but we only want to set displayed texture for active views.
+            // This function is called when element is enabled, but we only want to set displayed texture for active elements.
             if (this.active) {
                 // We may be dealing with a texture reloading, so we must force update.
                 this._setDisplayedTexture(this.__texture);
@@ -8433,7 +8510,7 @@ var lng = (function () {
             let unknownSize = false;
             if (!w || !h) {
                 if (!this.__displayedTexture && this.__texture) {
-                    // We use a 'max width' replacement instead in the ViewCore calcs.
+                    // We use a 'max width' replacement instead in the ElementCore calcs.
                     // This makes sure that it is able to determine withinBounds.
                     w = w || this.__texture.mw;
                     h = h || this.__texture.mh;
@@ -8497,26 +8574,6 @@ var lng = (function () {
             return this.__core.getCornerPoints();
         }
 
-        /**
-         * Clears the cache(s) for the specified tag.
-         * @param {String} tag
-         */
-        _clearTagsCache(tag) {
-            if (this.__tagsCache) {
-                this.__tagsCache.delete(tag);
-
-                if (this.__tagToComplex) {
-                    let s = this.__tagToComplex.get(tag);
-                    if (s) {
-                        for (let i = 0, n = s.length; i < n; i++) {
-                            this.__tagsCache.delete(s[i]);
-                        }
-                        this.__tagToComplex.delete(tag);
-                    }
-                }
-            }
-        };
-
         _unsetTagsParent() {
             let tags = null;
             let n = 0;
@@ -8530,7 +8587,6 @@ var lng = (function () {
                             while (p = p.__parent) {
                                 let parentTreeTags = p.__treeTags.get(tag);
                                 parentTreeTags.delete(this);
-                                p._clearTagsCache(tag);
 
                                 if (p.__tagRoot) {
                                     break;
@@ -8554,9 +8610,6 @@ var lng = (function () {
                                 tagSet.forEach(function (comp) {
                                     parentTreeTags.delete(comp);
                                 });
-
-
-                                p._clearTagsCache(tags[i]);
 
                                 if (p.__tagRoot) {
                                     break;
@@ -8588,8 +8641,6 @@ var lng = (function () {
 
                                 s.add(this);
 
-                                p._clearTagsCache(tag);
-
                                 if (p.__tagRoot) {
                                     break;
                                 }
@@ -8614,8 +8665,6 @@ var lng = (function () {
                             tagSet.forEach(function (comp) {
                                 s.add(comp);
                             });
-
-                            p._clearTagsCache(tag);
                         }
                     });
                 }
@@ -8713,7 +8762,6 @@ var lng = (function () {
 
                     s.add(this);
 
-                    p._clearTagsCache(tag);
                 } while (!p.__tagRoot && (p = p.__parent));
             }
         }
@@ -8729,8 +8777,6 @@ var lng = (function () {
                     let list = p.__treeTags.get(tag);
                     if (list) {
                         list.delete(this);
-
-                        p._clearTagsCache(tag);
                     }
                 } while (!p.__tagRoot && (p = p.__parent));
             }
@@ -8741,13 +8787,22 @@ var lng = (function () {
         }
 
         /**
-         * Returns one of the views from the subtree that have this tag.
+         * Returns one of the elements from the subtree that have this tag.
          * @param {string} tag
-         * @returns {View}
+         * @returns {Element}
          */
         _tag(tag) {
-            let res = this.mtag(tag);
-            return res[0];
+            if (tag.indexOf(".") !== -1) {
+                return this.mtag(tag)[0];
+            } else {
+                if (this.__treeTags) {
+                    let t = this.__treeTags.get(tag);
+                    if (t) {
+                        const item = t.values().next();
+                        return item ? item.value : undefined;
+                    }
+                }
+            }
         };
 
         get tag() {
@@ -8759,43 +8814,30 @@ var lng = (function () {
         }
 
         /**
-         * Returns all views from the subtree that have this tag.
+         * Returns all elements from the subtree that have this tag.
          * @param {string} tag
-         * @returns {View[]}
+         * @returns {Element[]}
          */
         mtag(tag) {
-            let res = null;
-            if (this.__tagsCache) {
-                res = this.__tagsCache.get(tag);
-            }
-
-            if (!res) {
-                let idx = tag.indexOf(".");
-                if (idx >= 0) {
-                    let parts = tag.split('.');
-                    res = this._getByTag(parts[0]);
-                    let level = 1;
-                    let c = parts.length;
-                    while (res.length && level < c) {
-                        let resn = [];
-                        for (let j = 0, n = res.length; j < n; j++) {
-                            resn = resn.concat(res[j]._getByTag(parts[level]));
-                        }
-
-                        res = resn;
-                        level++;
+            let idx = tag.indexOf(".");
+            if (idx >= 0) {
+                let parts = tag.split('.');
+                let res = this._getByTag(parts[0]);
+                let level = 1;
+                let c = parts.length;
+                while (res.length && level < c) {
+                    let resn = [];
+                    for (let j = 0, n = res.length; j < n; j++) {
+                        resn = resn.concat(res[j]._getByTag(parts[level]));
                     }
-                } else {
-                    res = this._getByTag(tag);
-                }
 
-                if (!this.__tagsCache) {
-                    this.__tagsCache = new Map();
+                    res = resn;
+                    level++;
                 }
-
-                this.__tagsCache.set(tag, res);
+                return res;
+            } else {
+                return this._getByTag(tag);
             }
-            return res;
         };
 
         stag(tag, settings) {
@@ -8852,12 +8894,7 @@ var lng = (function () {
             let arrowIdx = path.indexOf(">");
             if (pointIdx === -1 && arrowIdx === -1) {
                 // Quick case.
-                if (Utils.isUcChar(path.charCodeAt(0))) {
-                    const ref = this.getByRef(path);
-                    return ref ? [ref] : [];
-                } else {
-                    return this.mtag(path);
-                }
+                return this.mtag(path);
             }
 
             // Detect by first char.
@@ -8869,8 +8906,7 @@ var lng = (function () {
                 isRef = false;
                 path = path.substr(1);
             } else {
-                const firstCharcode = path.charCodeAt(0);
-                isRef = Utils.isUcChar(firstCharcode);
+                isRef = false;
             }
 
             return this._selectChilds(path, isRef);
@@ -8943,7 +8979,7 @@ var lng = (function () {
 
         toString() {
             let obj = this.getSettings();
-            return View.getPrettyString(obj, "");
+            return Element.getPrettyString(obj, "");
         };
 
         static getPrettyString(obj, indent) {
@@ -8969,7 +9005,7 @@ var lng = (function () {
                     for (let i = 0, n = refs.length; i < n; i++) {
                         childStr += `\n${indent}  "${refs[i]}":`;
                         delete children[refs[i]].ref;
-                        childStr += View.getPrettyString(children[refs[i]], indent + "  ") + (i < n - 1 ? "," : "");
+                        childStr += Element.getPrettyString(children[refs[i]], indent + "  ") + (i < n - 1 ? "," : "");
                     }
                     let isEmpty = (str === "{}");
                     str = str.substr(0, str.length - 1) + (isEmpty ? "" : ",") + childStr + "\n" + indent + "}";
@@ -8977,7 +9013,7 @@ var lng = (function () {
                     let n = children.length;
                     childStr = "[";
                     for (let i = 0; i < n; i++) {
-                        childStr += View.getPrettyString(children[i], indent + "  ") + (i < n - 1 ? "," : "") + "\n";
+                        childStr += Element.getPrettyString(children[i], indent + "  ") + (i < n - 1 ? "," : "") + "\n";
                     }
                     childStr += indent + "]}";
                     let isEmpty = (str === "{}");
@@ -9022,7 +9058,7 @@ var lng = (function () {
         getNonDefaults() {
             let settings = {};
 
-            if (this.constructor !== View) {
+            if (this.constructor !== Element) {
                 settings.type = this.constructor.name;
             }
 
@@ -9090,18 +9126,25 @@ var lng = (function () {
                 }
             }
 
-            if (this._texturizer) {
+            if (this.shader) {
+                let tnd = this.shader.getNonDefaults();
+                if (Object.keys(tnd).length) {
+                    settings.shader = tnd;
+                }
+            }
+
+            if (this._hasTexturizer()) {
                 if (this.texturizer.enabled) {
                     settings.renderToTexture = this.texturizer.enabled;
                 }
                 if (this.texturizer.lazy) {
-                    settings.renderToTextureLazy = this._texturizer.lazy;
+                    settings.renderToTextureLazy = this.texturizer.lazy;
                 }
-                if (this._texturizer.colorize) {
-                    settings.colorizeResultTexture = this._texturizer.colorize;
+                if (this.texturizer.colorize) {
+                    settings.colorizeResultTexture = this.texturizer.colorize;
                 }
-                if (this._texturizer.renderOffscreen) {
-                    settings.renderOffscreen = this._texturizer.renderOffscreen;
+                if (this.texturizer.renderOffscreen) {
+                    settings.renderOffscreen = this.texturizer.renderOffscreen;
                 }
             }
 
@@ -9109,19 +9152,19 @@ var lng = (function () {
         };
 
         static getGetter(propertyPath) {
-            let getter = View.PROP_GETTERS.get(propertyPath);
+            let getter = Element.PROP_GETTERS.get(propertyPath);
             if (!getter) {
                 getter = new Function('obj', 'return obj.' + propertyPath);
-                View.PROP_GETTERS.set(propertyPath, getter);
+                Element.PROP_GETTERS.set(propertyPath, getter);
             }
             return getter;
         }
 
         static getSetter(propertyPath) {
-            let setter = View.PROP_SETTERS.get(propertyPath);
+            let setter = Element.PROP_SETTERS.get(propertyPath);
             if (!setter) {
                 setter = new Function('obj', 'v', 'obj.' + propertyPath + ' = v');
-                View.PROP_SETTERS.set(propertyPath, setter);
+                Element.PROP_SETTERS.set(propertyPath, setter);
             }
             return setter;
         }
@@ -9427,7 +9470,7 @@ var lng = (function () {
 
         get _children() {
             if (!this.__childList) {
-                this.__childList = new ViewChildList(this, false);
+                this.__childList = new ElementChildList(this, false);
             }
             return this.__childList;
         }
@@ -9516,8 +9559,8 @@ var lng = (function () {
                 this.texture = new TextTexture(this.stage);
 
                 if (!this.texture.w && !this.texture.h) {
-                    // Inherit dimensions from view.
-                    // This allows userland to set dimensions of the View and then later specify the text.
+                    // Inherit dimensions from element.
+                    // This allows userland to set dimensions of the Element and then later specify the text.
                     this.texture.w = this.w;
                     this.texture.h = this.h;
                 }
@@ -9566,17 +9609,22 @@ var lng = (function () {
         }
 
         set shader(v) {
-            const shader = Shader.create(this.stage, v);
+            if (Utils.isObjectLiteral(v) && !v.type) {
+                // Setting properties on an existing shader.
+                if (this.shader) {
+                    this.shader.patch(v);
+                }
+            } else {
+                const shader = Shader.create(this.stage, v);
 
-            if (shader) {
                 if (this.__enabled && this.__core.shader) {
-                    this.__core.shader.removeView(this);
+                    this.__core.shader.removeElement(this.__core);
                 }
 
                 this.__core.shader = shader;
 
                 if (this.__enabled && this.__core.shader) {
-                    this.__core.shader.addView(this);
+                    this.__core.shader.addElement(this.__core);
                 }
             }
         }
@@ -9633,88 +9681,52 @@ var lng = (function () {
             return this.__core.texturizer;
         }
 
-        patch(settings, createMode = false) {
+        patch(settings) {
             let paths = Object.keys(settings);
-
-            if (settings.hasOwnProperty("__create")) {
-                createMode = settings["__create"];
-            }
 
             for (let i = 0, n = paths.length; i < n; i++) {
                 let path = paths[i];
                 const v = settings[path];
 
-                let pointIdx = path.indexOf(".");
-                let arrowIdx = path.indexOf(">");
-                if (arrowIdx === -1 && pointIdx === -1) {
-                    const firstCharCode = path.charCodeAt(0);
-                    if (Utils.isUcChar(firstCharCode)) {
-                        // Ref.
-                        const child = this.getByRef(path);
-                        if (!child) {
-                            if (v !== undefined) {
-                                let subCreateMode = createMode;
-                                if (Utils.isObjectLiteral(v)) {
-                                    if (v.hasOwnProperty("__create")) {
-                                        subCreateMode = v.__create;
-                                    }
-                                }
-
-                                if (subCreateMode === null) ; else if (subCreateMode === true) {
-                                    // Add to list immediately.
-                                    let c;
-                                    if (Utils.isObjectLiteral(v)) {
-                                        // Catch this case to capture createMode flag.
-                                        c = this.childList.createItem(v);
-                                        c.patch(v, subCreateMode);
-                                    } else if (Utils.isObject(v)) {
-                                        c = v;
-                                    }
-                                    if (c.isView) {
-                                        c.ref = path;
-                                    }
-
-                                    this.childList.a(c);
-                                } else {
-                                    this._throwError("Can't find path: " + path);
-                                }
+                const firstCharCode = path.charCodeAt(0);
+                if (Utils.isUcChar(firstCharCode)) {
+                    // Ref.
+                    const child = this.getByRef(path);
+                    if (!child) {
+                        if (v !== undefined) {
+                            // Add to list immediately.
+                            let c;
+                            if (Utils.isObjectLiteral(v)) {
+                                // Catch this case to capture createMode flag.
+                                c = this.childList.createItem(v);
+                                c.patch(v);
+                            } else if (Utils.isObject(v)) {
+                                c = v;
                             }
-                        } else {
-                            if (v === undefined) {
-                                if (child.parent) {
-                                    child.parent.childList.remove(child);
-                                }
-                            } else if (Utils.isObjectLiteral(v)) {
-                                child.patch(v, createMode);
-                            } else if (v.isView) {
-                                // Replace view by new view.
-                                v.ref = path;
-                                this.childList.replace(v, child);
-                            } else {
-                                this._throwError("Unexpected value for path: " + path);
+                            if (c.isElement) {
+                                c.ref = path;
                             }
+
+                            this.childList.a(c);
                         }
                     } else {
-                        // Property.
-                        Base.patchObjectProperty(this, path, v);
+                        if (v === undefined) {
+                            if (child.parent) {
+                                child.parent.childList.remove(child);
+                            }
+                        } else if (Utils.isObjectLiteral(v)) {
+                            child.patch(v);
+                        } else if (v.isElement) {
+                            // Replace element by new element.
+                            v.ref = path;
+                            this.childList.replace(v, child);
+                        } else {
+                            this._throwError("Unexpected value for path: " + path);
+                        }
                     }
                 } else {
-                    // Select path.
-                    const views = this.select(path);
-                    if (v === undefined) {
-                        for (let i = 0, n = views.length; i < n; i++) {
-                            if (views[i].parent) {
-                                views[i].parent.childList.remove(views[i]);
-                            }
-                        }
-                    } else if (Utils.isObjectLiteral(v)) {
-                        // Recursive path.
-                        for (let i = 0, n = views.length; i < n; i++) {
-                            views[i].patch(v, createMode);
-                        }
-                    } else {
-                        this._throwError("Unexpected value for path: " + path);
-                    }
+                    // Property.
+                    Base.patchObjectProperty(this, path, v);
                 }
             }
         }
@@ -9722,7 +9734,6 @@ var lng = (function () {
         _throwError(message) {
             throw new Error(this.constructor.name + " (" + this.getLocationString() + "): " + message);
         }
-
 
         animation(settings) {
             return this.stage.animations.createAnimation(this, settings);
@@ -9857,7 +9868,7 @@ var lng = (function () {
         }
 
         static getMerger(property) {
-            if (View.isColorProperty(property)) {
+            if (Element.isColorProperty(property)) {
                 return StageUtils.mergeColors;
             } else {
                 return StageUtils.mergeNumbers;
@@ -9866,17 +9877,17 @@ var lng = (function () {
     }
 
     // This gives a slight performance benefit compared to extending EventEmitter.
-    EventEmitter.addAsMixin(View);
+    EventEmitter.addAsMixin(Element);
 
-    View.prototype.isView = 1;
+    Element.prototype.isElement = 1;
 
-    View.id = 1;
+    Element.id = 1;
 
-    // Getters reused when referencing view (subobject) properties by a property path, as used in a transition or animation ('x', 'texture.x', etc).
-    View.PROP_GETTERS = new Map();
+    // Getters reused when referencing element (subobject) properties by a property path, as used in a transition or animation ('x', 'texture.x', etc).
+    Element.PROP_GETTERS = new Map();
 
-    // Setters reused when referencing view (subobject) properties by a property path, as used in a transition or animation ('x', 'texture.x', etc).
-    View.PROP_SETTERS = new Map();
+    // Setters reused when referencing element (subobject) properties by a property path, as used in a transition or animation ('x', 'texture.x', etc).
+    Element.PROP_SETTERS = new Map();
 
     class StateMachine {
 
@@ -10571,7 +10582,7 @@ var lng = (function () {
     /**
      * @extends StateMachine
      */
-    class Component extends View {
+    class Component extends Element {
 
         constructor(stage, properties) {
             super(stage);
@@ -10640,10 +10651,10 @@ var lng = (function () {
                 rid: 0
             };
 
-            this.parseTemplateRec(obj, context, "view");
+            this.parseTemplateRec(obj, context, "element");
 
             const code = context.loc.join(";\n");
-            const f = new Function("view", "store", code);
+            const f = new Function("element", "store", code);
             return {f:f, a:context.store}
         }
 
@@ -10658,9 +10669,9 @@ var lng = (function () {
                     if (Utils.isObjectLiteral(value)) {
                         // Ref.
                         const childCursor = `r${key.replace(/[^a-z0-9]/gi, "") + context.rid}`;
-                        let type = value.type ? value.type : View;
-                        if (type === "View") {
-                            loc.push(`const ${childCursor} = view.stage.createView()`);
+                        let type = value.type ? value.type : Element;
+                        if (type === "Element") {
+                            loc.push(`const ${childCursor} = element.stage.createElement()`);
                         } else {
                             store.push(type);
                             loc.push(`const ${childCursor} = new store[${store.length - 1}](${cursor}.stage)`);
@@ -10849,6 +10860,10 @@ var lng = (function () {
             // Override to add custom settings. See Application._handleFocusSettings().
         }
 
+        _handleFocusSettings(settings) {
+            // Override to react on custom settings. See Application._handleFocusSettings().
+        }
+
         static _template() {
             return {}
         }
@@ -10877,8 +10892,8 @@ var lng = (function () {
             }
         }
 
-        getSharedAncestorComponent(view) {
-            let ancestor = this.getSharedAncestor(view);
+        getSharedAncestorComponent(element) {
+            let ancestor = this.getSharedAncestor(element);
             while(ancestor && !ancestor.isComponent) {
                 ancestor = ancestor.parent;
             }
@@ -10968,7 +10983,7 @@ var lng = (function () {
                     }
                 }
 
-                let passSignal = (signalParent.__passSignals && signalParent.__passSignals[event]);
+                let passSignal = (this.__passSignals && this.__passSignals[event]);
                 if (passSignal) {
                     // Bubble up.
                     if (passSignal && passSignal !== true) {
@@ -11001,23 +11016,23 @@ var lng = (function () {
                 throw new Error("Ancestor event name must be prefixed by dollar sign.");
             }
 
-            return this._fireAncestors(name, args);
+            return this._doFireAncestors(name, args);
         }
 
-        _fireAncestors(name, args) {
+        _doFireAncestors(name, args) {
             if (this._hasMethod(name)) {
                 return this.fire(name, ...args);
             } else {
                 const signalParent = this._getParentSignalHandler();
                 if (signalParent) {
-                    return signalParent._fireAncestors(name, args);
+                    return signalParent._doFireAncestors(name, args);
                 }
             }
         }
 
-        static collectSubComponents(subs, view) {
-            if (view.hasChildren()) {
-                const childList = view.__childList;
+        static collectSubComponents(subs, element) {
+            if (element.hasChildren()) {
+                const childList = element.__childList;
                 for (let i = 0, n = childList.length; i < n; i++) {
                     const child = childList.getAt(i);
                     if (child.isComponent) {
@@ -11029,16 +11044,16 @@ var lng = (function () {
             }
         }
 
-        static getComponent(view) {
-            let parent = view;
+        static getComponent(element) {
+            let parent = element;
             while (parent && !parent.isComponent) {
                 parent = parent.parent;
             }
             return parent;
         }
 
-        static getParent(view) {
-            return Component.getComponent(view.parent);
+        static getParent(element) {
+            return Component.getComponent(element.parent);
         }
 
     }
@@ -11053,7 +11068,7 @@ var lng = (function () {
 
             this.quadTextures = [];
 
-            this.quadViews = [];
+            this.quadElements = [];
         }
 
         get length() {
@@ -11062,16 +11077,16 @@ var lng = (function () {
 
         reset() {
             this.quadTextures = [];
-            this.quadViews = [];
+            this.quadElements = [];
             this.dataLength = 0;
         }
 
-        getView(index) {
-            return this.quadViews[index]._view;
+        getElement(index) {
+            return this.quadElements[index]._element;
         }
 
-        getViewCore(index) {
-            return this.quadViews[index];
+        getElementCore(index) {
+            return this.quadElements[index];
         }
 
         getTexture(index) {
@@ -11084,7 +11099,7 @@ var lng = (function () {
                 // Render texture;
                 return nativeTexture.w;
             } else {
-                return this.quadViews[index]._displayedTextureSource.w;
+                return this.quadElements[index]._displayedTextureSource.w;
             }
         }
 
@@ -11094,7 +11109,7 @@ var lng = (function () {
                 // Render texture;
                 return nativeTexture.h;
             } else {
-                return this.quadViews[index]._displayedTextureSource.h;
+                return this.quadElements[index]._displayedTextureSource.h;
             }
         }
 
@@ -11114,35 +11129,11 @@ var lng = (function () {
             this.data = new ArrayBuffer(byteSize);
             this.floats = new Float32Array(this.data);
             this.uints = new Uint32Array(this.data);
-
-            // Set up first quad to the identity quad (reused for filters).
-            let f = this.floats;
-            let u = this.uints;
-            f[0] = -1;
-            f[1] = -1;
-            f[2] = 0;
-            f[3] = 0;
-            u[4] = 0xFFFFFFFF;
-            f[5] = 1;
-            f[6] = -1;
-            f[7] = 1;
-            f[8] = 0;
-            u[9] = 0xFFFFFFFF;
-            f[10] = 1;
-            f[11] = 1;
-            f[12] = 1;
-            f[13] = 1;
-            u[14] = 0xFFFFFFFF;
-            f[15] = -1;
-            f[16] = 1;
-            f[17] = 0;
-            f[18] = 1;
-            u[19] = 0xFFFFFFFF;
         }
 
         getAttribsDataByteOffset(index) {
             // Where this quad can be found in the attribs buffer.
-            return index * 80 + 80;
+            return index * 80;
         }
 
         getQuadContents() {
@@ -11187,20 +11178,20 @@ var lng = (function () {
             return this.quads.getTexture(this.index + index);
         }
 
-        getViewCore(index) {
-            return this.quads.getViewCore(this.index + index);
+        getElementCore(index) {
+            return this.quads.getElementCore(this.index + index);
         }
 
-        getView(index) {
-            return this.quads.getView(this.index + index);
+        getElement(index) {
+            return this.quads.getElement(this.index + index);
         }
 
-        getViewWidth(index) {
-            return this.getView(index).renderWidth;
+        getElementWidth(index) {
+            return this.getElement(index).renderWidth;
         }
 
-        getViewHeight(index) {
-            return this.getView(index).renderHeight;
+        getElementHeight(index) {
+            return this.getElement(index).renderHeight;
         }
 
         getTextureWidth(index) {
@@ -11409,9 +11400,9 @@ var lng = (function () {
         _setupBuffers() {
             let gl = this.gl;
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._quadsBuffer);
-            let view = new DataView(this.renderState.quads.data, 0, this.renderState.quads.dataLength);
+            let element = new DataView(this.renderState.quads.data, 0, this.renderState.quads.dataLength);
             gl.bindBuffer(gl.ARRAY_BUFFER, this._attribsBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, view, gl.DYNAMIC_DRAW);
+            gl.bufferData(gl.ARRAY_BUFFER, element, gl.DYNAMIC_DRAW);
         }
 
         _setupQuadOperation(quadOperation) {
@@ -11602,7 +11593,7 @@ var lng = (function () {
 
         /**
          * Sets the texturizer to be drawn during subsequent addQuads.
-         * @param {ViewTexturizer} texturizer
+         * @param {ElementTexturizer} texturizer
          */
         setTexturizer(texturizer, cache = false) {
             this._texturizer = texturizer;
@@ -11617,7 +11608,7 @@ var lng = (function () {
             return this._isCachingTexturizer;
         }
 
-        addQuad(viewCore) {
+        addQuad(elementCore) {
             if (!this._quadOperation) {
                 this._createQuadOperation();
             } else if (this._check && this._hasChanges()) {
@@ -11636,12 +11627,12 @@ var lng = (function () {
             }
 
             if (!nativeTexture) {
-                nativeTexture = viewCore._displayedTextureSource.nativeTexture;
+                nativeTexture = elementCore._displayedTextureSource.nativeTexture;
             }
 
             if (this._renderTextureInfo) {
                 if (this._shader === this.defaultShader && this._renderTextureInfo.empty) {
-                    // The texture might be reusable under some conditions. We will check them in ViewCore.renderer.
+                    // The texture might be reusable under some conditions. We will check them in ElementCore.renderer.
                     this._renderTextureInfo.nativeTexture = nativeTexture;
                     this._renderTextureInfo.offset = this.length;
                 } else {
@@ -11652,7 +11643,7 @@ var lng = (function () {
             }
 
             this.quads.quadTextures.push(nativeTexture);
-            this.quads.quadViews.push(viewCore);
+            this.quads.quadElements.push(elementCore);
 
             this._quadOperation.length++;
 
@@ -12059,14 +12050,14 @@ var lng = (function () {
                     let tx = operation.getTexture(i);
                     if (glTexture !== tx) {
                         gl.bindTexture(gl.TEXTURE_2D, glTexture);
-                        gl.drawElements(gl.TRIANGLES, 6 * (i - pos), gl.UNSIGNED_SHORT, (pos + operation.index + 1) * 6 * 2);
+                        gl.drawElements(gl.TRIANGLES, 6 * (i - pos), gl.UNSIGNED_SHORT, (pos + operation.index) * 6 * 2);
                         glTexture = tx;
                         pos = i;
                     }
                 }
                 if (pos < length) {
                     gl.bindTexture(gl.TEXTURE_2D, glTexture);
-                    gl.drawElements(gl.TRIANGLES, 6 * (length - pos), gl.UNSIGNED_SHORT, (pos + operation.index + 1) * 6 * 2);
+                    gl.drawElements(gl.TRIANGLES, 6 * (length - pos), gl.UNSIGNED_SHORT, (pos + operation.index) * 6 * 2);
                 }
             }
         }
@@ -12300,10 +12291,10 @@ var lng = (function () {
         }
 
         addQuad(renderState, quads, index) {
-            let offset = (index * 20 + 20);
-            const viewCore = quads.quadViews[index];
+            let offset = (index * 20);
+            const elementCore = quads.quadElements[index];
 
-            let r = viewCore._renderContext;
+            let r = elementCore._renderContext;
 
             let floats = renderState.quads.floats;
             let uints = renderState.quads.uints;
@@ -12312,54 +12303,54 @@ var lng = (function () {
             if (r.tb !== 0 || r.tc !== 0) {
                 floats[offset++] = r.px;
                 floats[offset++] = r.py;
-                floats[offset++] = viewCore._ulx;
-                floats[offset++] = viewCore._uly;
-                uints[offset++] = mca(viewCore._colorUl, r.alpha);
-                floats[offset++] = r.px + viewCore._w * r.ta;
-                floats[offset++] = r.py + viewCore._w * r.tc;
-                floats[offset++] = viewCore._brx;
-                floats[offset++] = viewCore._uly;
-                uints[offset++] = mca(viewCore._colorUr, r.alpha);
-                floats[offset++] = r.px + viewCore._w * r.ta + viewCore._h * r.tb;
-                floats[offset++] = r.py + viewCore._w * r.tc + viewCore._h * r.td;
-                floats[offset++] = viewCore._brx;
-                floats[offset++] = viewCore._bry;
-                uints[offset++] = mca(viewCore._colorBr, r.alpha);
-                floats[offset++] = r.px + viewCore._h * r.tb;
-                floats[offset++] = r.py + viewCore._h * r.td;
-                floats[offset++] = viewCore._ulx;
-                floats[offset++] = viewCore._bry;
-                uints[offset] = mca(viewCore._colorBl, r.alpha);
+                floats[offset++] = elementCore._ulx;
+                floats[offset++] = elementCore._uly;
+                uints[offset++] = mca(elementCore._colorUl, r.alpha);
+                floats[offset++] = r.px + elementCore._w * r.ta;
+                floats[offset++] = r.py + elementCore._w * r.tc;
+                floats[offset++] = elementCore._brx;
+                floats[offset++] = elementCore._uly;
+                uints[offset++] = mca(elementCore._colorUr, r.alpha);
+                floats[offset++] = r.px + elementCore._w * r.ta + elementCore._h * r.tb;
+                floats[offset++] = r.py + elementCore._w * r.tc + elementCore._h * r.td;
+                floats[offset++] = elementCore._brx;
+                floats[offset++] = elementCore._bry;
+                uints[offset++] = mca(elementCore._colorBr, r.alpha);
+                floats[offset++] = r.px + elementCore._h * r.tb;
+                floats[offset++] = r.py + elementCore._h * r.td;
+                floats[offset++] = elementCore._ulx;
+                floats[offset++] = elementCore._bry;
+                uints[offset] = mca(elementCore._colorBl, r.alpha);
             } else {
                 // Simple.
-                let cx = r.px + viewCore._w * r.ta;
-                let cy = r.py + viewCore._h * r.td;
+                let cx = r.px + elementCore._w * r.ta;
+                let cy = r.py + elementCore._h * r.td;
 
                 floats[offset++] = r.px;
                 floats[offset++] = r.py;
-                floats[offset++] = viewCore._ulx;
-                floats[offset++] = viewCore._uly;
-                uints[offset++] = mca(viewCore._colorUl, r.alpha);
+                floats[offset++] = elementCore._ulx;
+                floats[offset++] = elementCore._uly;
+                uints[offset++] = mca(elementCore._colorUl, r.alpha);
                 floats[offset++] = cx;
                 floats[offset++] = r.py;
-                floats[offset++] = viewCore._brx;
-                floats[offset++] = viewCore._uly;
-                uints[offset++] = mca(viewCore._colorUr, r.alpha);
+                floats[offset++] = elementCore._brx;
+                floats[offset++] = elementCore._uly;
+                uints[offset++] = mca(elementCore._colorUr, r.alpha);
                 floats[offset++] = cx;
                 floats[offset++] = cy;
-                floats[offset++] = viewCore._brx;
-                floats[offset++] = viewCore._bry;
-                uints[offset++] = mca(viewCore._colorBr, r.alpha);
+                floats[offset++] = elementCore._brx;
+                floats[offset++] = elementCore._bry;
+                uints[offset++] = mca(elementCore._colorBr, r.alpha);
                 floats[offset++] = r.px;
                 floats[offset++] = cy;
-                floats[offset++] = viewCore._ulx;
-                floats[offset++] = viewCore._bry;
-                uints[offset] = mca(viewCore._colorBl, r.alpha);
+                floats[offset++] = elementCore._ulx;
+                floats[offset++] = elementCore._bry;
+                uints[offset] = mca(elementCore._colorBl, r.alpha);
             }
         }
 
         isRenderTextureReusable(renderState, renderTextureInfo) {
-            let offset = (renderState._renderTextureInfo.offset * 80 + 80) / 4;
+            let offset = (renderState._renderTextureInfo.offset * 80) / 4;
             let floats = renderState.quads.floats;
             let uints = renderState.quads.uints;
             return ((floats[offset] === 0) &&
@@ -12386,7 +12377,7 @@ var lng = (function () {
 
         finishRenderState(renderState) {
             // Set extra shader attribute data.
-            let offset = renderState.length * 80 + 80;
+            let offset = renderState.length * 80;
             for (let i = 0, n = renderState.quadOperations.length; i < n; i++) {
                 renderState.quadOperations[i].extraAttribsDataByteOffset = offset;
                 let extra = renderState.quadOperations[i].shader.getExtraAttribBytesPerVertex() * 4 * renderState.quadOperations[i].length;
@@ -12588,7 +12579,7 @@ var lng = (function () {
             let length = operation.length;
             for (let i = 0; i < length; i++) {
                 const tx = operation.getTexture(i);
-                const vc = operation.getViewCore(i);
+                const vc = operation.getElementCore(i);
                 const rc = operation.getRenderContext(i);
                 const white = operation.getWhite(i);
                 const stc = operation.getSimpleTc(i);
@@ -12995,10 +12986,10 @@ var lng = (function () {
 
         addQuad(renderState, quads, index) {
             // Render context changes while traversing so we save it by ref.
-            const viewCore = quads.quadViews[index];
-            quads.setRenderContext(index, viewCore._renderContext);
-            quads.setWhite(index, viewCore.isWhite());
-            quads.setSimpleTc(index, viewCore.hasSimpleTexCoords());
+            const elementCore = quads.quadElements[index];
+            quads.setRenderContext(index, elementCore._renderContext);
+            quads.setWhite(index, elementCore.isWhite());
+            quads.setSimpleTc(index, elementCore.hasSimpleTexCoords());
         }
 
         isRenderTextureReusable(renderState, renderTextureInfo) {
@@ -13028,6 +13019,12 @@ var lng = (function () {
             this._id = 0;
 
             this._initWorker();
+        }
+
+        destroy() {
+            if (this._worker) {
+                this._worker.terminate();
+            }
         }
 
         _initWorker() {
@@ -13343,6 +13340,13 @@ var lng = (function () {
             }
         }
 
+        destroy() {
+            if (this._imageWorker) {
+                this._imageWorker.destroy();
+            }
+            this._removeKeyHandler();
+        }
+
         startLoop() {
             this._looping = true;
             if (!this._awaitingLoop) {
@@ -13487,9 +13491,16 @@ var lng = (function () {
         }
 
         registerKeyHandler(keyhandler) {
-            window.addEventListener('keydown', e => {
-                keyhandler({keyCode: e.keyCode});
-            });
+            this._keyListener = e => {
+                keyhandler(e);
+            };
+            window.addEventListener('keydown', this._keyListener);
+        }
+
+        _removeKeyHandler() {
+            if (this._keyListener) {
+                window.removeEventListener('keydown', this._keyListener);
+            }
         }
 
     }
@@ -14621,7 +14632,7 @@ var lng = (function () {
         update() {
             this._update();
 
-            // Due to the boundsVisibility flag feature (and onAfterUpdate hook), it is possible that other views were
+            // Due to the boundsVisibility flag feature (and onAfterUpdate hook), it is possible that other elements were
             // changed during the update loop (for example due to the txLoaded event). We process these changes immediately
             // (but not recursively to prevent infinite loops).
             if (this.root._hasUpdates) {
@@ -14630,12 +14641,12 @@ var lng = (function () {
         }
 
         /**
-         * Certain ViewCore items may be forced to zSort to strip out references to prevent memleaks..
+         * Certain ElementCore items may be forced to zSort to strip out references to prevent memleaks..
          */
         _performForcedZSorts() {
             const n = this._zSorts.length;
             if (n) {
-                // Forced z-sorts (ViewCore may force a z-sort in order to free memory/prevent memory leaks).
+                // Forced z-sorts (ElementCore may force a z-sort in order to free memory/prevent memory leaks).
                 for (let i = 0, n = this._zSorts.length; i < n; i++) {
                     if (this._zSorts[i].zSort) {
                         this._zSorts[i].sortZIndexedChildren();
@@ -14738,8 +14749,8 @@ var lng = (function () {
             this.stage.renderer.copyRenderTexture(renderTexture, nativeTexture, options);
         }
 
-        forceZSort(viewCore) {
-            this._zSorts.push(viewCore);
+        forceZSort(elementCore) {
+            this._zSorts.push(elementCore);
         }
 
     }
@@ -14783,7 +14794,7 @@ var lng = (function () {
 
             /**
              * All transitions that are running and attached.
-             * (we don't support transitions on un-attached views to prevent memory leaks)
+             * (we don't support transitions on un-attached elements to prevent memory leaks)
              * @type {Set<Transition>}
              */
             this.active = new Set();
@@ -15258,7 +15269,7 @@ var lng = (function () {
             this.animationSettings = animationSettings;
 
             /**
-             * The selector that selects the views.
+             * The selector that selects the elements.
              * @type {string}
              */
             this._selector = "";
@@ -15296,12 +15307,12 @@ var lng = (function () {
             }
         }
 
-        apply(view, p, factor) {
-            const views = this.getAnimatedViews(view);
+        apply(element, p, factor) {
+            const elements = this.getAnimatedElements(element);
 
             let v = this._items.getValue(p);
 
-            if (v === undefined || !views.length) {
+            if (v === undefined || !elements.length) {
                 return;
             }
 
@@ -15321,34 +15332,34 @@ var lng = (function () {
             // Apply transformation to all components.;
             const n = this._propSetters.length;
 
-            const m = views.length;
+            const m = elements.length;
             for (let j = 0; j < m; j++) {
                 for (let i = 0; i < n; i++) {
-                    this._propSetters[i](views[j], v);
+                    this._propSetters[i](elements[j], v);
                 }
             }
         }
         
-        getAnimatedViews(view) {
-            return view.select(this._selector);
+        getAnimatedElements(element) {
+            return element.select(this._selector);
         }
 
-        reset(view) {
-            const views = this.getAnimatedViews(view);
+        reset(element) {
+            const elements = this.getAnimatedElements(element);
 
             let v = this.getResetValue();
 
-            if (v === undefined || !views.length) {
+            if (v === undefined || !elements.length) {
                 return;
             }
 
             // Apply transformation to all components.
             const n = this._propSetters.length;
 
-            const m = views.length;
+            const m = elements.length;
             for (let j = 0; j < m; j++) {
                 for (let i = 0; i < n; i++) {
-                    this._propSetters[i](views[j], v);
+                    this._propSetters[i](elements[j], v);
                 }
             }
         }
@@ -15391,7 +15402,7 @@ var lng = (function () {
 
             v.forEach((prop) => {
                 this._props.push(prop);
-                this._propSetters.push(View.getSetter(prop));
+                this._propSetters.push(Element.getSetter(prop));
             });
         }
 
@@ -15410,7 +15421,7 @@ var lng = (function () {
 
         hasColorProperty() {
             if (this._hasColorProperty === undefined) {
-                this._hasColorProperty = this._props.length ? View.isColorProperty(this._props[0]) : false;
+                this._hasColorProperty = this._props.length ? Element.isColorProperty(this._props[0]) : false;
             }
             return this._hasColorProperty;
         }
@@ -15460,24 +15471,24 @@ var lng = (function () {
         }
 
         /**
-         * Applies the animation to the specified view, for the specified progress between 0 and 1.
-         * @param {View} view;
+         * Applies the animation to the specified element, for the specified progress between 0 and 1.
+         * @param {Element} element;
          * @param {number} p;
          * @param {number} factor;
          */
-        apply(view, p, factor = 1) {
+        apply(element, p, factor = 1) {
             this._actions.forEach(function(action) {
-                action.apply(view, p, factor);
+                action.apply(element, p, factor);
             });
         }
 
         /**
          * Resets the animation to the reset values.
-         * @param {View} view;
+         * @param {Element} element;
          */
-        reset(view) {
+        reset(element) {
             this._actions.forEach(function(action) {
-                action.reset(view);
+                action.reset(element);
             });
         }
 
@@ -15510,14 +15521,14 @@ var lng = (function () {
 
     class Animation extends EventEmitter {
 
-        constructor(manager, settings, view) {
+        constructor(manager, settings, element) {
             super();
 
             this.manager = manager;
 
             this._settings = settings;
 
-            this._view = view;
+            this._element = element;
 
             this._state = Animation.STATES.IDLE;
 
@@ -15530,7 +15541,7 @@ var lng = (function () {
         }
 
         start() {
-            if (this._view && this._view.attached) {
+            if (this._element && this._element.attached) {
                 this._p = 0;
                 this._delayLeft = this.settings.delay;
                 this._repeatsLeft = this.settings.repeat;
@@ -15538,7 +15549,7 @@ var lng = (function () {
                 this.emit('start');
                 this.checkActive();
             } else {
-                console.warn("View must be attached before starting animation");
+                console.warn("Element must be attached before starting animation");
             }
         }
 
@@ -15632,6 +15643,10 @@ var lng = (function () {
             return this._state === Animation.STATES.STOPPING;
         }
 
+        isFinished() {
+            return this._state === Animation.STATES.FINISHED;
+        }
+
         checkActive() {
             if (this.isActive()) {
                 this.manager.addActive(this);
@@ -15639,11 +15654,11 @@ var lng = (function () {
         }
 
         isActive() {
-            return (this._state == Animation.STATES.PLAYING || this._state == Animation.STATES.STOPPING) && this._view && this._view.attached;
+            return (this._state == Animation.STATES.PLAYING || this._state == Animation.STATES.STOPPING) && this._element && this._element.attached;
         }
 
         progress(dt) {
-            if (!this._view) return;
+            if (!this._element) return;
             this._progress(dt);
             this.apply();
         }
@@ -15830,12 +15845,12 @@ var lng = (function () {
                 if (this._state === Animation.STATES.STOPPING && this.settings.stopMethod === AnimationSettings.STOP_METHODS.FADE) {
                     factor = (1 - this.settings.stopTimingFunctionImpl(this._stopP));
                 }
-                this._settings.apply(this._view, this._p, factor);
+                this._settings.apply(this._element, this._p, factor);
             }
         }
 
         reset() {
-            this._settings.reset(this._view);
+            this._settings.reset(this._element);
         }
 
         get state() {
@@ -15850,8 +15865,8 @@ var lng = (function () {
             return this._delayLeft;
         }
 
-        get view() {
-            return this._view;
+        get element() {
+            return this._element;
         }
 
         get frame() {
@@ -15906,7 +15921,7 @@ var lng = (function () {
             }
         }
 
-        createAnimation(view, settings) {
+        createAnimation(element, settings) {
             if (Utils.isObjectLiteral(settings)) {
                 // Convert plain object to proper settings object.
                 settings = this.createSettings(settings);
@@ -15915,7 +15930,7 @@ var lng = (function () {
             return new Animation(
                 this,
                 settings,
-                view
+                element
             );
         }
 
@@ -16020,8 +16035,6 @@ var lng = (function () {
 
             this.textureManager = new TextureManager(this);
 
-            this._destroyed = false;
-
             this.startTime = 0;
             this.currentTime = 0;
             this.dt = 0;
@@ -16091,8 +16104,8 @@ var lng = (function () {
 
             opt('canvas', null);
             opt('context', null);
-            opt('w', 1280);
-            opt('h', 720);
+            opt('w', 1920);
+            opt('h', 1080);
             opt('srcBasePath', null);
             opt('memoryPressure', 24e6);
             opt('bufferMemory', 2e6);
@@ -16100,8 +16113,6 @@ var lng = (function () {
             opt('clearColor', [0, 0, 0, 0]);
             opt('defaultFontFace', 'sans-serif');
             opt('fixedDt', 0);
-            opt('useTextureAtlas', false);
-            opt('debugTextureAtlas', false);
             opt('useImageWorker', true);
             opt('autostart', true);
             opt('precision', 1);
@@ -16121,14 +16132,11 @@ var lng = (function () {
         }
 
         destroy() {
-            if (!this._destroyed) {
-                this.application.destroy();
-                this.platform.stopLoop();
-                this.ctx.destroy();
-                this.textureManager.destroy();
-                this._renderer.destroy();
-                this._destroyed = true;
-            }
+            this.platform.stopLoop();
+            this.platform.destroy();
+            this.ctx.destroy();
+            this.textureManager.destroy();
+            this._renderer.destroy();
         }
 
         stop() {
@@ -16136,9 +16144,6 @@ var lng = (function () {
         }
 
         resume() {
-            if (this._destroyed) {
-                throw new Error("Already destroyed");
-            }
             this.platform.startLoop();
         }
 
@@ -16240,11 +16245,11 @@ var lng = (function () {
             return this._clearColor;
         }
 
-        createView(settings) {
+        createElement(settings) {
             if (settings) {
-                return this.view(settings);
+                return this.element(settings);
             } else {
-                return new View(this);
+                return new Element(this);
             }
         }
 
@@ -16252,23 +16257,23 @@ var lng = (function () {
             return Shader.create(this, settings);
         }
 
-        view(settings) {
-            if (settings.isView) return settings;
+        element(settings) {
+            if (settings.isElement) return settings;
 
-            let view;
+            let element;
             if (settings.type) {
-                view = new settings.type(this);
+                element = new settings.type(this);
             } else {
-                view = new View(this);
+                element = new Element(this);
             }
 
-            view.patch(settings, true);
+            element.patch(settings);
 
-            return view;
+            return element;
         }
 
         c(settings) {
-            return this.view(settings);
+            return this.element(settings);
         }
 
         get w() {
@@ -16362,6 +16367,8 @@ var lng = (function () {
             super(stage, properties);
             Application.booting = false;
 
+            this.__updateFocusCounter = 0;
+
             // We must construct while the application is not yet attached.
             // That's why we 'init' the stage later (which actually emits the attach event).
             this.stage.init();
@@ -16401,7 +16408,7 @@ var lng = (function () {
                 37: "Left",
                 39: "Right",
                 13: "Enter",
-                9: "Back",
+                8: "Back",
                 27: "Exit"
             });
         }
@@ -16425,28 +16432,31 @@ var lng = (function () {
         }
 
         __updateFocus() {
-            this.__updateFocusRec();
+            const notOverridden = this.__updateFocusRec();
 
-            // Performance optimization: do not gather settings if no handler is defined.
-            if (this._handleFocusSettings !== Application.prototype._handleFocusSettings) {
-                if (!Application.booting) {
-                    this.updateFocusSettings();
-                }
+            if (!Application.booting && notOverridden) {
+                this.updateFocusSettings();
             }
         }
 
-        __updateFocusRec(maxRecursion = 100) {
+        __updateFocusRec() {
+            const updateFocusId = ++this.__updateFocusCounter;
+            this.__updateFocusId = updateFocusId;
+
             const newFocusPath = this.__getFocusPath();
             const newFocusedComponent = newFocusPath[newFocusPath.length - 1];
             const prevFocusedComponent = this._focusPath ? this._focusPath[this._focusPath.length - 1] : undefined;
 
             if (!prevFocusedComponent) {
-                // First focus.
-                this._focusPath = newFocusPath;
-
                 // Focus events.
-                for (let i = 0, n = this._focusPath.length; i < n; i++) {
+                this._focusPath = [];
+                for (let i = 0, n = newFocusPath.length; i < n; i++) {
+                    this._focusPath.push(newFocusPath[i]);
                     this._focusPath[i]._focus(newFocusedComponent, undefined);
+                    const focusOverridden = (this.__updateFocusId !== updateFocusId);
+                    if (focusOverridden) {
+                        return false;
+                    }
                 }
                 return true;
             } else {
@@ -16464,46 +16474,53 @@ var lng = (function () {
                     }
                     // Unfocus events.
                     for (let i = this._focusPath.length - 1; i >= index; i--) {
-                        this._focusPath[i]._unfocus(newFocusedComponent, prevFocusedComponent);
+                        const unfocusedElement = this._focusPath.pop();
+                        unfocusedElement._unfocus(newFocusedComponent, prevFocusedComponent);
+                        const focusOverridden = (this.__updateFocusId !== updateFocusId);
+                        if (focusOverridden) {
+                            return false;
+                        }
                     }
 
-                    this._focusPath = newFocusPath;
-
                     // Focus events.
-                    for (let i = index, n = this._focusPath.length; i < n; i++) {
+                    for (let i = index, n = newFocusPath.length; i < n; i++) {
+                        this._focusPath.push(newFocusPath[i]);
                         this._focusPath[i]._focus(newFocusedComponent, prevFocusedComponent);
+                        const focusOverridden = (this.__updateFocusId !== updateFocusId);
+                        if (focusOverridden) {
+                            return false;
+                        }
                     }
 
                     // Focus changed events.
                     for (let i = 0; i < index; i++) {
                         this._focusPath[i]._focusChange(newFocusedComponent, prevFocusedComponent);
                     }
-
-                    // Focus events could trigger focus changes.
-                    if (maxRecursion-- === 0) {
-                        throw new Error("Max recursion count reached in focus update");
-                    }
-                    this.__updateFocus(maxRecursion);
-
-                    return true;
-                } else {
-                    return false;
                 }
             }
+
+            return true;
         }
 
         updateFocusSettings() {
-            const newFocusPath = this.__getFocusPath();
-            const focusedComponent = newFocusPath[newFocusPath.length - 1];
+            const focusedComponent = this._focusPath[this._focusPath.length - 1];
 
-            // Get focus settings. These can be used for dynamic application-wide settings that depend on the;
+            // Get focus settings. These can be used for dynamic application-wide settings that depend on the
             // focus directly (such as the application background).
             const focusSettings = {};
+            const defaultSetFocusSettings = Component.prototype._setFocusSettings;
             for (let i = 0, n = this._focusPath.length; i < n; i++) {
-                this._focusPath[i]._setFocusSettings(focusSettings);
+                if (this._focusPath[i]._setFocusSettings !== defaultSetFocusSettings) {
+                    this._focusPath[i]._setFocusSettings(focusSettings);
+                }
             }
 
-            this._handleFocusSettings(focusSettings, this.__prevFocusSettings, focusedComponent);
+            const defaultHandleFocusSettings = Component.prototype._handleFocusSettings;
+            for (let i = 0, n = this._focusPath.length; i < n; i++) {
+                if (this._focusPath[i]._handleFocusSettings !== defaultHandleFocusSettings) {
+                    this._focusPath[i]._handleFocusSettings(focusSettings, this.__prevFocusSettings, focusedComponent);
+                }
+            }
 
             this.__prevFocusSettings = focusSettings;
         }
@@ -16596,7 +16613,7 @@ var lng = (function () {
         }
 
         _receiveKeydown(e) {
-            const obj = {keyCode: e.keyCode};
+            const obj = e;
             if (this.__keymap[e.keyCode]) {
                 if (!this.stage.application.focusTopDownEvent(["_capture" + this.__keymap[e.keyCode], "_captureKey"], obj)) {
                     this.stage.application.focusBottomUpEvent(["_handle" + this.__keymap[e.keyCode], "_handleKey"], obj);
@@ -16610,11 +16627,24 @@ var lng = (function () {
         }
 
         destroy() {
+            if (!this._destroyed) {
+                this._destroy();
+                this.stage.destroy();
+                this._destroyed = true;
+            }
+        }
+
+        _destroy() {
             // This forces the _detach, _disabled and _active events to be called.
-            this.stage.root = undefined;
+            this.stage.setApplication(undefined);
             this._updateAttachedFlag();
             this._updateEnabledFlag();
         }
+
+        getCanvas() {
+            return this.stage.getCanvas();
+        }
+
     }
 
     class StaticCanvasTexture extends Texture {
@@ -16894,7 +16924,7 @@ var lng = (function () {
     }
 
     /**
-     * Manages the list of children for a view.
+     * Manages the list of children for an element.
      */
 
     class ObjectListProxy extends ObjectList {
@@ -16935,7 +16965,7 @@ var lng = (function () {
     }
 
     /**
-     * Manages the list of children for a view.
+     * Manages the list of children for an element.
      */
 
     class ObjectListWrapper extends ObjectListProxy {
@@ -17130,7 +17160,7 @@ var lng = (function () {
         }
     }
 
-    class ListView extends Component {
+    class ListComponent extends Component {
 
         constructor(stage) {
             super(stage);
@@ -17555,7 +17585,7 @@ var lng = (function () {
     class ListItems extends ObjectListWrapper {
         constructor(list) {
             let wrap = (item => {
-                let parent = item.stage.createView();
+                let parent = item.stage.createElement();
                 parent.add(item);
                 parent.visible = false;
                 return parent;
@@ -17867,7 +17897,7 @@ var lng = (function () {
         _build() {
             this.patch({
                 Wrap: {type: this.stage.gl ? WebGLFastBlurComponent : C2dFastBlurComponent}
-            }, true);
+            });
         }
 
     }
@@ -17970,15 +18000,15 @@ var lng = (function () {
     class WebGLFastBlurComponent extends Component {
 
         static _template() {
-            const onUpdate = function(view, viewCore) {
-                if ((viewCore._recalc & (2 + 128))) {
-                    const w = viewCore.w;
-                    const h = viewCore.h;
-                    let cur = viewCore;
+            const onUpdate = function(element, elementCore) {
+                if ((elementCore._recalc & (2 + 128))) {
+                    const w = elementCore.w;
+                    const h = elementCore.h;
+                    let cur = elementCore;
                     do {
                         cur = cur._children[0];
-                        cur._view.w = w;
-                        cur._view.h = h;
+                        cur._element.w = w;
+                        cur._element.h = h;
                     } while(cur._children);
                 }
             };
@@ -18026,19 +18056,19 @@ var lng = (function () {
             this._setLayerTexture(this.getLayerContents(3), this.getLayer(2).getTexture(), [filterShaders[0], filterShaders[1], filterShaders[2], filterShaders[3]]);
         }
 
-        _setLayerTexture(view, texture, steps) {
+        _setLayerTexture(element, texture, steps) {
             if (!steps.length) {
-                view.texture = texture;
+                element.texture = texture;
             } else {
                 const step = steps.pop();
-                const child = view.stage.c({rtt: true, shader: step});
+                const child = element.stage.c({rtt: true, shader: step});
 
                 // Recurse.
                 this._setLayerTexture(child, texture, steps);
 
-                view.childList.add(child);
+                element.childList.add(child);
             }
-            return view;
+            return element;
         }
 
         get content() {
@@ -18162,7 +18192,7 @@ var lng = (function () {
         set shader(s) {
             super.shader = s;
             if (!this.renderToTexture) {
-                console.warn("FastBlurView: please enable renderToTexture to use with a shader.");
+                console.warn("Please enable renderToTexture to use with a shader.");
             }
         }
 
@@ -18235,15 +18265,15 @@ var lng = (function () {
     class BloomComponent extends Component {
 
         static _template() {
-            const onUpdate = function(view, viewCore) {
-                if ((viewCore._recalc & (2 + 128))) {
-                    const w = viewCore.w;
-                    const h = viewCore.h;
-                    let cur = viewCore;
+            const onUpdate = function(element, elementCore) {
+                if ((elementCore._recalc & (2 + 128))) {
+                    const w = elementCore.w;
+                    const h = elementCore.h;
+                    let cur = elementCore;
                     do {
                         cur = cur._children[0];
-                        cur._view.w = w;
-                        cur._view.h = h;
+                        cur._element.w = w;
+                        cur._element.h = h;
                     } while(cur._children);
                 }
             };
@@ -18293,19 +18323,19 @@ var lng = (function () {
             this._setLayerTexture(this.getLayerContents(3), this.getLayer(2).getTexture(), [filterShaders[0], filterShaders[1], filterShaders[2], filterShaders[3]]);
         }
 
-        _setLayerTexture(view, texture, steps) {
+        _setLayerTexture(element, texture, steps) {
             if (!steps.length) {
-                view.texture = texture;
+                element.texture = texture;
             } else {
                 const step = steps.pop();
-                const child = view.stage.c({rtt: true, shader: step});
+                const child = element.stage.c({rtt: true, shader: step});
 
                 // Recurse.
                 this._setLayerTexture(child, texture, steps);
 
-                view.childList.add(child);
+                element.childList.add(child);
             }
-            return view;
+            return element;
         }
 
         get content() {
@@ -18313,7 +18343,7 @@ var lng = (function () {
         }
 
         set content(v) {
-            this.sel('Textwrap.Content').patch(v, true);
+            this.sel('Textwrap.Content').patch(v);
         }
 
         set padding(v) {
@@ -18400,7 +18430,7 @@ var lng = (function () {
         set shader(s) {
             super.shader = s;
             if (!this.renderToTexture) {
-                console.warn("FastBlurView: please enable renderToTexture to use with a shader.");
+                console.warn("Please enable renderToTexture to use with a shader.");
             }
         }
 
@@ -18552,18 +18582,18 @@ var lng = (function () {
             this._borderBottom = this.tag("Bottom");
             this._borderLeft = this.tag("Left");
 
-            this.onAfterUpdate = function (view) {
-                const content = view.childList.first;
-                let w = view.core.w || content.renderWidth;
-                let h = view.core.h || content.renderHeight;
-                view._borderTop.w = w;
-                view._borderBottom.y = h;
-                view._borderBottom.w = w;
-                view._borderLeft.h = h + view._borderTop.h + view._borderBottom.h;
-                view._borderLeft.y = -view._borderTop.h;
-                view._borderRight.x = w;
-                view._borderRight.h = h + view._borderTop.h + view._borderBottom.h;
-                view._borderRight.y = -view._borderTop.h;
+            this.onAfterUpdate = function (element) {
+                const content = element.childList.first;
+                let w = element.core.w || content.renderWidth;
+                let h = element.core.h || content.renderHeight;
+                element._borderTop.w = w;
+                element._borderBottom.y = h;
+                element._borderBottom.w = w;
+                element._borderLeft.h = h + element._borderTop.h + element._borderBottom.h;
+                element._borderLeft.y = -element._borderTop.h;
+                element._borderRight.x = w;
+                element._borderRight.h = h + element._borderTop.h + element._borderBottom.h;
+                element._borderRight.y = -element._borderTop.h;
             };
 
             this.borderWidth = 1;
@@ -18826,9 +18856,9 @@ var lng = (function () {
 
             for (let i = 0; i < length; i++) {
 
-                // Calculate noise texture coordinates so that it spans the full view.
-                let brx = operation.getViewWidth(i) / this._noiseTexture.getRenderWidth();
-                let bry = operation.getViewHeight(i) / this._noiseTexture.getRenderHeight();
+                // Calculate noise texture coordinates so that it spans the full element.
+                let brx = operation.getElementWidth(i) / this._noiseTexture.getRenderWidth();
+                let bry = operation.getElementHeight(i) / this._noiseTexture.getRenderHeight();
 
                 let ulx = 0;
                 let uly = 0;
@@ -19183,6 +19213,30 @@ var lng = (function () {
 `;
 
     class InversionShader extends DefaultShader {
+
+        constructor(context) {
+            super(context);
+            this._amount = 1;
+        }
+
+        set amount(v) {
+            this._amount = v;
+            this.redraw();
+        }
+
+        get amount() {
+            return this._amount;
+        }
+
+        useDefault() {
+            return this._amount === 0;
+        }
+
+        setupUniforms(operation) {
+            super.setupUniforms(operation);
+            this._setUniform("amount", this._amount, this.gl.uniform1f);
+        }
+
     }
 
     InversionShader.fragmentShaderSource = `
@@ -19192,9 +19246,10 @@ var lng = (function () {
     varying vec2 vTextureCoord;
     varying vec4 vColor;
     uniform sampler2D uSampler;
+    uniform float amount;
     void main(void){
         vec4 color = texture2D(uSampler, vTextureCoord);
-        color.rgb = (1.0 * color.a - color.rgb); 
+        color.rgb = color.rgb * (1.0 - amount) + amount * (1.0 * color.a - color.rgb); 
         gl_FragColor = color * vColor;
     }
 `;
@@ -19260,12 +19315,12 @@ var lng = (function () {
 
             for (let i = 0; i < length; i++) {
 
-                const viewCore = operation.getViewCore(i);
+                const elementCore = operation.getElementCore(i);
 
                 // We are setting attributes such that if the value is < 0 or > 1, a border should be drawn.
-                const ddw = this._width / viewCore.w;
+                const ddw = this._width / elementCore.w;
                 const dw = ddw / (1 - 2 * ddw);
-                const ddh = this._width / viewCore.h;
+                const ddh = this._width / elementCore.h;
                 const dh = ddh / (1 - 2 * ddh);
 
                 // Specify all corner points.
@@ -19636,8 +19691,8 @@ var lng = (function () {
             this._setUniform("radius", 2 * this._radiusX / operation.getRenderWidth(), this.gl.uniform1f);
 
 
-            // Radial gradient shader is expected to be used on a single view. That view's alpha is used.
-            this._setUniform("alpha", operation.getViewCore(0).renderContext.alpha, this.gl.uniform1f);
+            // Radial gradient shader is expected to be used on a single element. That element's alpha is used.
+            this._setUniform("alpha", operation.getElementCore(0).renderContext.alpha, this.gl.uniform1f);
 
             this._setUniform("color", this._rawColor, this.gl.uniform4fv);
             this._setUniform("aspectRatio", (this._radiusX/this._radiusY) * operation.getRenderHeight()/operation.getRenderWidth(), this.gl.uniform1f);
@@ -19710,10 +19765,10 @@ var lng = (function () {
             super.setupUniforms(operation);
 
             let vr = operation.shaderOwner;
-            let view = vr.view;
+            let element = vr.element;
 
-            let pivotX = isNaN(this._pivotX) ? view.pivotX * vr.w : this._pivotX;
-            let pivotY = isNaN(this._pivotY) ? view.pivotY * vr.h : this._pivotY;
+            let pivotX = isNaN(this._pivotX) ? element.pivotX * vr.w : this._pivotX;
+            let pivotY = isNaN(this._pivotY) ? element.pivotY * vr.h : this._pivotY;
             let coords = vr.getRenderTextureCoords(pivotX, pivotY);
 
             // Counter normal rotation.
@@ -19931,11 +19986,11 @@ var lng = (function () {
         Base,
         Utils,
         StageUtils,
-        View,
+        Element,
         Tools,
         Stage,
-        ViewCore,
-        ViewTexturizer,
+        ElementCore,
+        ElementTexturizer,
         Texture,
         EventEmitter,
         shaders: {
@@ -19974,7 +20029,7 @@ var lng = (function () {
             BloomComponent,
             SmoothScaleComponent,
             BorderComponent,
-            ListComponent: ListView
+            ListComponent
         },
         tools: {
             ObjMerger,

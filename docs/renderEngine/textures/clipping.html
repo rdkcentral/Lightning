@@ -75,34 +75,75 @@
 <tr><td>disableClipping</td><td></td><td>Disables active clipping</td></tr>
 </tbody>
 </table>
+<h2><a class="anchor" aria-hidden="true" id="resize-mode"></a><a href="#resize-mode" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Resize mode</h2>
+<p>Using <code>resizeMode</code>, it's possible to let the clipping be automatically determined from the texture source's width and
+height. This can be convenient when you are unsure about the exact image sizes, but want it to cover a specific area.
+Currently both <code>cover</code> and <code>contain</code> modes are supported. When the texture is loaded, the clipping is automatically
+defined. When the resizeMode of an already loaded texture is changed, it's immediately applied.</p>
+<blockquote>
+<p>resizeMode actually changes the clipping attributes, so you should either set the clipping attributes manually or set
+the resizeMode, but not both.</p>
+</blockquote>
+<h3><a class="anchor" aria-hidden="true" id="cover"></a><a href="#cover" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Cover</h3>
+<p>Using the <code>cover</code> resize mode, it's possible to make sure that a texture covers a specified rectangular area. A part of
+the texture may be clipped. To control which part is clipped you can set the clipX and clipY properties. These are
+values from 0 to 1. To clip the top, set <code>clipY</code> to 0. To clip the bottom, set <code>clipY</code> to 1. By default, (clipX, clipY)
+is set to (0.5, 0.5), which causes an equal amount to be clipped away from left/right or top/bottom.</p>
+<pre><code class="hljs css language-js">Cover: {
+    <span class="hljs-attr">texture</span>: {<span class="hljs-attr">resizeMode</span>: {<span class="hljs-attr">type</span>: <span class="hljs-string">'cover'</span>, <span class="hljs-attr">w</span>: <span class="hljs-number">200</span>, <span class="hljs-attr">h</span>: <span class="hljs-number">200</span>, <span class="hljs-attr">clipY</span>: <span class="hljs-number">0</span>}, <span class="hljs-attr">type</span>: lng.textures.ImageTexture, <span class="hljs-attr">src</span>: <span class="hljs-string">'image.png'</span>}
+}
+</code></pre>
+<h3><a class="anchor" aria-hidden="true" id="contain"></a><a href="#contain" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Contain</h3>
+<p>Using the <code>contain</code> resize mode, it's possible to fit an image in a specified rectangular area. One axis will fit to the
+specified size, the other will be less than specified. To properly align the texture within the area, use a wrapper
+element:</p>
+<pre><code class="hljs css language-js">Wrapper: {
+    <span class="hljs-attr">rect</span>: <span class="hljs-literal">true</span>, <span class="hljs-attr">w</span>: <span class="hljs-number">200</span>, <span class="hljs-attr">h</span>: <span class="hljs-number">200</span>, <span class="hljs-attr">color</span>: <span class="hljs-number">0xFFAAAAAA</span>,
+    <span class="hljs-attr">Contain</span>: {
+        <span class="hljs-attr">x</span>: <span class="hljs-function"><span class="hljs-params">w</span>=&gt;</span>w/<span class="hljs-number">2</span>, <span class="hljs-attr">y</span>: <span class="hljs-function"><span class="hljs-params">h</span>=&gt;</span>h/<span class="hljs-number">2</span>, <span class="hljs-attr">mount</span>: <span class="hljs-number">0.5</span>,
+        <span class="hljs-attr">texture</span>: {<span class="hljs-attr">type</span>: lng.textures.ImageTexture, <span class="hljs-attr">src</span>: <span class="hljs-string">'image.png'</span>, <span class="hljs-attr">resizeMode</span>: {<span class="hljs-attr">type</span>: <span class="hljs-string">'contain'</span>, <span class="hljs-attr">w</span>: <span class="hljs-number">200</span>, <span class="hljs-attr">h</span>: <span class="hljs-number">200</span>}}
+    }
+}
+</code></pre>
 <h2><a class="anchor" aria-hidden="true" id="live-demo"></a><a href="#live-demo" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Live Demo</h2>
-<pre><code class="hljs css language-jsLightning"><span class="hljs-keyword">class</span> TextureDemo extends lng.Application {
-    static <span class="hljs-constructor">_template()</span> {
-        return {
-            MyTexture: {
-                x: <span class="hljs-number">200</span>,
-                y: <span class="hljs-number">200</span>,
-                texture: {<span class="hljs-keyword">type</span>: lng.textures.ImageTexture, src: '/Lightning/img/<span class="hljs-module-access"><span class="hljs-module"><span class="hljs-identifier">LngDocs_LilLightningIdle</span>.</span></span>png'},
-                transitions: {
-                    'texture.x': {duration: <span class="hljs-number">4</span>}
+<pre><code class="hljs css language-jsLightning"><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">TextureDemo</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">lng</span>.<span class="hljs-title">Application</span> {</span>
+    <span class="hljs-keyword">static</span> _template() {
+        <span class="hljs-keyword">return</span> {
+<span class="hljs-symbol">            MyTexture:</span> {
+<span class="hljs-symbol">                x:</span> <span class="hljs-number">200</span>,
+<span class="hljs-symbol">                y:</span> <span class="hljs-number">250</span>,
+<span class="hljs-symbol">                texture:</span> {<span class="hljs-string">type:</span> lng.textures.ImageTexture, <span class="hljs-string">src:</span> <span class="hljs-string">'/Lightning/img/LngDocs_LilLightningIdle.png'</span>},
+<span class="hljs-symbol">                transitions:</span> {
+                    <span class="hljs-string">'texture.x'</span>: {<span class="hljs-string">duration:</span> <span class="hljs-number">4</span>}
                 }
+            },
+<span class="hljs-symbol">            Wrapper:</span> {
+<span class="hljs-symbol">                rect:</span> <span class="hljs-literal">true</span>, <span class="hljs-string">w:</span> <span class="hljs-number">200</span>, <span class="hljs-string">h:</span> <span class="hljs-number">200</span>, <span class="hljs-string">color:</span> <span class="hljs-number">0xFFAAAAAA</span>,
+<span class="hljs-symbol">                Contain:</span> {
+<span class="hljs-symbol">                    x:</span> w=&gt;w<span class="hljs-regexp">/2, y: h=&gt;h/</span><span class="hljs-number">2</span>, <span class="hljs-string">mount:</span> <span class="hljs-number">0.5</span>,
+<span class="hljs-symbol">                    texture:</span> {<span class="hljs-string">type:</span> lng.textures.ImageTexture, <span class="hljs-string">src:</span> <span class="hljs-string">'/Lightning/img/LngDocs_LilLightningIdle.png'</span>, <span class="hljs-string">resizeMode:</span> {<span class="hljs-string">type:</span> <span class="hljs-string">'contain'</span>, <span class="hljs-string">w:</span> <span class="hljs-number">200</span>, <span class="hljs-string">h:</span> <span class="hljs-number">200</span>}}
+                }
+            },
+<span class="hljs-symbol">            Cover:</span> {
+<span class="hljs-symbol">                x:</span> <span class="hljs-number">200</span>, <span class="hljs-string">y:</span> <span class="hljs-number">0</span>,
+<span class="hljs-symbol">                texture:</span> {<span class="hljs-string">type:</span> lng.textures.ImageTexture, <span class="hljs-string">src:</span> <span class="hljs-string">'/Lightning/img/LngDocs_LilLightningIdle.png'</span>, <span class="hljs-string">resizeMode:</span> {<span class="hljs-string">type:</span> <span class="hljs-string">'cover'</span>, <span class="hljs-string">w:</span> <span class="hljs-number">200</span>, <span class="hljs-string">h:</span> <span class="hljs-number">200</span>, <span class="hljs-string">clipY:</span> <span class="hljs-number">0</span>}}
             }
         }
     };
     
-    <span class="hljs-constructor">_init()</span> {
-        const myTexture = this.tag(<span class="hljs-string">"MyTexture"</span>);
-        myTexture.transition('texture.x').on('finish',<span class="hljs-function"> <span class="hljs-params">()</span> =&gt;</span> {
-            const current = myTexture.get<span class="hljs-constructor">Smooth('<span class="hljs-params">texture</span>.<span class="hljs-params">x</span>')</span>;
-            myTexture.set<span class="hljs-constructor">Smooth('<span class="hljs-params">texture</span>.<span class="hljs-params">x</span>', <span class="hljs-params">current</span> ? 0 : 50)</span>;
+    _init() {
+        const myTexture = <span class="hljs-keyword">this</span>.tag(<span class="hljs-string">"MyTexture"</span>);
+        myTexture.transition(<span class="hljs-string">'texture.x'</span>).on(<span class="hljs-string">'finish'</span>, () =&gt; {
+            const current = myTexture.getSmooth(<span class="hljs-string">'texture.x'</span>);
+            myTexture.setSmooth(<span class="hljs-string">'texture.x'</span>, current ? 0 : <span class="hljs-number">50</span>);
         })
-        myTexture.set<span class="hljs-constructor">Smooth('<span class="hljs-params">texture</span>.<span class="hljs-params">x</span>', 50)</span>; 
+        myTexture.setSmooth(<span class="hljs-string">'texture.x'</span>, <span class="hljs-number">50</span>); 
     }
 }
 
-const options = {stage: {w: window.innerWidth, h: window.innerHeight, useImageWorker: <span class="hljs-literal">false</span>}};
-const app = <span class="hljs-keyword">new</span> <span class="hljs-constructor">TextureDemo(<span class="hljs-params">options</span>)</span>;
-document.body.append<span class="hljs-constructor">Child(<span class="hljs-params">app</span>.<span class="hljs-params">stage</span>.<span class="hljs-params">getCanvas</span>()</span>);
+const options = {<span class="hljs-string">stage:</span> {<span class="hljs-string">w:</span> window.innerWidth, <span class="hljs-string">h:</span> window.innerHeight, <span class="hljs-string">useImageWorker:</span> <span class="hljs-literal">false</span>}};
+const app = <span class="hljs-keyword">new</span> TextureDemo(options);
+document.body.appendChild(app.stage.getCanvas());
 
 </code></pre>
-</span></div></article></div><div class="docs-prevnext"><a class="docs-prev button" href="/Lightning/docs/renderEngine/textures/custom"><span class="arrow-prev">← </span><span>Custom</span></a><a class="docs-next button" href="/Lightning/docs/transitions/overview"><span>Transitions</span><span class="arrow-next"> →</span></a></div></div></div><nav class="onPageNav"><ul class="toc-headings"><li><a href="#enabling-clipping">Enabling clipping</a></li><li><a href="#attributes">Attributes</a></li><li><a href="#methods">Methods</a></li><li><a href="#live-demo">Live Demo</a></li></ul></nav></div><footer class="nav-footer" id="footer"><section class="sitemap"><a href="/Lightning/" class="nav-home"><img src="/Lightning/img/Lightning.png" alt="Lightning" width="54" height="54"/></a><div><h5>Docs</h5><a href="/Lightning/docs/gettingStarted/web">Getting Started </a><a href="/Lightning/docs/renderEngine/overview"> Render Engine </a><a href="/Lightning/docs/transitions/overview"> Transitions </a><a href="/Lightning/docs/animations/overview"> Animations </a><a href="/Lightning/docs/components/overview"> Components </a><a href="/Lightning/docs/focus/focus"> Focus </a></div><div><h5>Github</h5><a href="https://github.com/WebPlatformForEmbedded/Lightning">Lightning on GitHub</a><a class="github-button" href="https://github.com/WebPlatformForEmbedded/Lightning" data-icon="octicon-star" data-show-count="true" aria-label="Star WebPlatformForEmbedded/Lightning on GitHub">Star</a></div></section><section class="copyright">Copyright © 2019 Metrological</section></footer></div></body></html>
+</span></div></article></div><div class="docs-prevnext"><a class="docs-prev button" href="/Lightning/docs/renderEngine/textures/custom"><span class="arrow-prev">← </span><span>Custom</span></a><a class="docs-next button" href="/Lightning/docs/transitions/overview"><span>Transitions</span><span class="arrow-next"> →</span></a></div></div></div><nav class="onPageNav"><ul class="toc-headings"><li><a href="#enabling-clipping">Enabling clipping</a></li><li><a href="#attributes">Attributes</a></li><li><a href="#methods">Methods</a></li><li><a href="#resize-mode">Resize mode</a><ul class="toc-headings"><li><a href="#cover">Cover</a></li><li><a href="#contain">Contain</a></li></ul></li><li><a href="#live-demo">Live Demo</a></li></ul></nav></div><footer class="nav-footer" id="footer"><section class="sitemap"><a href="/Lightning/" class="nav-home"><img src="/Lightning/img/Lightning.png" alt="Lightning" width="54" height="54"/></a><div><h5>Docs</h5><a href="/Lightning/docs/gettingStarted/web">Getting Started </a><a href="/Lightning/docs/renderEngine/overview"> Render Engine </a><a href="/Lightning/docs/transitions/overview"> Transitions </a><a href="/Lightning/docs/animations/overview"> Animations </a><a href="/Lightning/docs/components/overview"> Components </a><a href="/Lightning/docs/focus/focus"> Focus </a></div><div><h5>Github</h5><a href="https://github.com/WebPlatformForEmbedded/Lightning">Lightning on GitHub</a><a class="github-button" href="https://github.com/WebPlatformForEmbedded/Lightning" data-icon="octicon-star" data-show-count="true" aria-label="Star WebPlatformForEmbedded/Lightning on GitHub">Star</a></div></section><section class="copyright">Copyright © 2019 Metrological</section></footer></div></body></html>
