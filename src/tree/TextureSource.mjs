@@ -78,6 +78,11 @@ export default class TextureSource {
 
     }
 
+    isVolatile() {
+        // Textures sources without a lookup id are regarded as volatile: they are removed whenever no longer used.
+        return this.lookupId === null;
+    }
+
     get loadError() {
         return this._loadError;
     }
@@ -89,7 +94,14 @@ export default class TextureSource {
     }
 
     removeTexture(v) {
-        this.textures.delete(v);
+        if (this.textures.delete(v)) {
+            if (this.textures.size === 0) {
+                if (this.isLoaded() && this.isVolatile()) {
+                    // Texture no longer used by visible textures: free.
+                    this.free();
+                }
+            }
+        }
     }
 
     incActiveTextureCount() {
@@ -322,7 +334,9 @@ export default class TextureSource {
     }
 
     free() {
-        this.manager.freeTextureSource(this);
+        if (this.isLoaded()) {
+            this.manager.freeTextureSource(this);
+        }
     }
 
     _isNativeTexture(source) {

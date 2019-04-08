@@ -129,7 +129,7 @@ describe('textures', function() {
             });
         });
 
-        describe('within elementport', () => {
+        describe('within viewport', () => {
             it('should be loaded', () => {
                 const element = app.stage.createElement({
                     Item: {x: 550, texture: {type: TestTexture, async: false}}
@@ -269,6 +269,13 @@ describe('textures', function() {
             });
         });
 
+        describe('becomes invisible', () => {
+            it('should clean up texture', () => {
+                app.tag("Item").visible = false;
+                const texture = app.tag("Item").texture;
+                chai.assert(!texture.isLoaded(), "Texture must no longer be loaded");
+            });
+        });
     });
 
     describe('lookup id', () => {
@@ -294,13 +301,23 @@ describe('textures', function() {
 
                 stage.drawFrame();
                 chai.assert(!!stage.textureManager.getReusableTextureSource("test1"), "lookup id should be known");
+            });
+        });
 
-                // Clean up.
-                stage.textureManager.textureSourceHashmap.clear();
+        describe('becomes invisible', () => {
+            it('should keep texture', () => {
+                app.tag("Item").visible = false;
+                const texture = app.tag("Item").texture;
+                chai.assert(texture.isLoaded(), "Texture must still be loaded");
             });
         });
 
         describe('on GC', () => {
+            before(() => {
+                // Clean up.
+                stage.textureManager.textureSourceHashmap.clear();
+            });
+
             it ('should clear lookup id', () => {
                 const element = app.stage.createElement({
                     Item: {texture: {type: TestTexture, lookupId: "test1"}, visible: true}
@@ -370,6 +387,7 @@ describe('textures', function() {
                 chai.assert(!stage.textureManager.getReusableTextureSource("test1"), "lookup id should be removed");
             });
         });
+
     });
 
     describe('error', () => {
