@@ -419,6 +419,18 @@ class StateMachineType {
         }
     }
 
+    static _supportsSpread() {
+        if (this.__supportsSpread === undefined) {
+            this.__supportsSpread = false;
+            try {
+                const func = new Function("return [].concat(...arguments);");
+                func();
+                this.__supportsSpread = true;
+            } catch(e) {}
+        }
+        return this.__supportsSpread;
+    }
+
     _addMethodRouter(member, descriptors, aliases) {
         const code = [
             // The line ensures that, while debugging, your IDE won't open many tabs.
@@ -426,11 +438,16 @@ class StateMachineType {
             "const i = this._stateIndex;"
         ];
         let cur = aliases[0];
+        const supportsSpread = StateMachineType._supportsSpread();
         for (let i = 1, n = aliases.length; i < n; i++) {
             const alias = aliases[i];
             if (alias !== cur) {
                 if (cur) {
-                    code.push(`if (i < ${i}) return this["${cur}"](...arguments); else`);
+                    if (supportsSpread) {
+                        code.push(`if (i < ${i}) return this["${cur}"](...arguments); else`);
+                    } else {
+                        code.push(`if (i < ${i}) return this["${cur}"].apply(this, arguments); else`);
+                    }
                 } else {
                     code.push(`if (i < ${i}) return ; else`);
                 }
@@ -438,7 +455,11 @@ class StateMachineType {
             cur = alias;
         }
         if (cur) {
-            code.push(`return this["${cur}"](...arguments);`);
+            if (supportsSpread) {
+                code.push(`return this["${cur}"](...arguments);`);
+            } else {
+                code.push(`return this["${cur}"].apply(this, arguments);`);
+            }
         } else {
             code.push(`;`);
         }
