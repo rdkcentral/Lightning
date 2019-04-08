@@ -365,11 +365,15 @@ export default class Texture {
         }
     }
 
-    set resizeMode({type = "cover", w = 0, h = 0, mountX = 0.5, mountY = 0.5}) {
-        this._resizeMode = {type, w, h, mountX, mountY};
+    set resizeMode({type = "cover", w = 0, h = 0, clipX = 0.5, clipY = 0.5}) {
+        this._resizeMode = {type, w, h, clipX, clipY};
         if (this.isLoaded()) {
             this._applyResizeMode();
         }
+    }
+
+    get resizeMode() {
+        return this._resizeMode;
     }
 
     _clearResizeMode() {
@@ -395,13 +399,13 @@ export default class Texture {
         if (scaleX && scaleX < scale) {
             const desiredSize = this._precision * this._resizeMode.w;
             const choppedOffPixels = this._source.w - desiredSize;
-            this._x = choppedOffPixels * this._resizeMode.mountX;
+            this._x = choppedOffPixels * this._resizeMode.clipX;
             this._w = this._source.w - choppedOffPixels;
         }
         if (scaleY && scaleY < scale) {
             const desiredSize = this._precision * this._resizeMode.h;
             const choppedOffPixels = this._source.h - desiredSize;
-            this._y = choppedOffPixels * this._resizeMode.mountY;
+            this._y = choppedOffPixels * this._resizeMode.clipY;
             this._h = this._source.h - choppedOffPixels;
         }
     }
