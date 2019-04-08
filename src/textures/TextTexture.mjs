@@ -380,6 +380,11 @@ export default class TextTexture extends Texture {
     _getLookupId() {
         let parts = [];
 
+        if (this.text.length > 1) {
+            // We only cache 1 character texts.
+            return null;
+        }
+
         if (this.w !== 0) parts.push("w " + this.w);
         if (this.h !== 0) parts.push("h " + this.h);
         if (this.fontStyle !== "normal") parts.push("fS" + this.fontStyle);
