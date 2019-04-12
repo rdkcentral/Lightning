@@ -77,6 +77,7 @@ export default class Stage extends EventEmitter {
         this.animations = new AnimationManager(this);
 
         this.textureManager = new TextureManager(this);
+        this.textureThrottler = new TextureThrottler(this);
 
         this.startTime = 0;
         this.currentTime = 0;
@@ -248,6 +249,8 @@ export default class Stage extends EventEmitter {
 
         const changes = this.ctx.hasRenderUpdates();
 
+        this.textureThrottler.processSome();
+
         if (changes) {
             this._updatingFrame = true;
             this.ctx.frame();
@@ -401,6 +404,7 @@ export default class Stage extends EventEmitter {
 import Element from "./Element.mjs";
 import StageUtils from "./StageUtils.mjs";
 import TextureManager from "./TextureManager.mjs";
+import TextureThrottler from "./TextureThrottler.mjs";
 import CoreContext from "./core/CoreContext.mjs";
 import TransitionManager from "../animation/TransitionManager.mjs";
 import AnimationManager from "../animation/AnimationManager.mjs";

@@ -184,7 +184,7 @@ export default class TextureSource {
     }
 
     isLoading() {
-        return this.loadingSince > 0;
+        return (this.loadingSince > 0);
     }
 
     isError() {
@@ -221,12 +221,22 @@ export default class TextureSource {
                         // Emit txError.
                         this.onError(err);
                     } else if (options && options.source) {
-                        this.loadingSince = 0;
-                        this.setSource(options);
+                        if (options.throttle !== false) {
+                            const textureThrottler = this.stage.textureThrottler;
+                            this._cancelCb = textureThrottler.genericCancelCb;
+                            textureThrottler.add(this, options);
+                        } else {
+                            this.processLoadedSource(options);
+                        }
                     }
                 }
             }, this);
         }
+    }
+
+    processLoadedSource(options) {
+        this.loadingSince = 0;
+        this.setSource(options);
     }
 
     setSource(options) {
