@@ -249,12 +249,18 @@ export default class Stage extends EventEmitter {
 
         const changes = this.ctx.hasRenderUpdates();
 
-        this.textureThrottler.processSome();
-
         if (changes) {
             this._updatingFrame = true;
-            this.ctx.frame();
+            this.ctx.update();
+
+            // Update may cause textures to be loaded in sync, so by processing them here we may be able to show them
+            // during the current frame already.
+            this.textureThrottler.processSome();
+
+            this.ctx.render();
             this._updatingFrame = false;
+        } else {
+            this.textureThrottler.processSome();
         }
 
         this.platform.nextFrame(changes);

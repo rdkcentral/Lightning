@@ -34,17 +34,11 @@ export default class CoreContext {
         return !!this.root._parent._hasRenderUpdates;
     }
 
-    frame() {
-        this.update();
-
-        this._performForcedZSorts();
-
+    render() {
         // Clear flag to identify if anything changes before the next frame.
         this.root._parent._hasRenderUpdates = 0;
 
-        this.render();
-
-        return true;
+        this._render();
     }
 
     update() {
@@ -56,6 +50,8 @@ export default class CoreContext {
         if (this.root._hasUpdates) {
             this._update();
         }
+
+        this._performForcedZSorts();
     }
 
     /**
@@ -80,7 +76,7 @@ export default class CoreContext {
         this.root.update();
     }
 
-    render() {
+    _render() {
         // Obtain a sequence of the quad operations.
         this._fillRenderState();
 
