@@ -699,26 +699,25 @@ export default class Element {
     }
 
     _unsetTagsParent() {
+        if (this.__tags) {
+            this.__tags.forEach((tag) => {
+                // Remove from treeTags.
+                let p = this;
+                while (p = p.__parent) {
+                    let parentTreeTags = p.__treeTags.get(tag);
+                    parentTreeTags.delete(this);
+
+                    if (p.__tagRoot) {
+                        break;
+                    }
+                }
+            });
+        }
+
         let tags = null;
         let n = 0;
         if (this.__treeTags) {
-            if (this.__tagRoot) {
-                // Just need to remove the 'local' tags.
-                if (this.__tags) {
-                    this.__tags.forEach((tag) => {
-                        // Remove from treeTags.
-                        let p = this;
-                        while (p = p.__parent) {
-                            let parentTreeTags = p.__treeTags.get(tag);
-                            parentTreeTags.delete(this);
-
-                            if (p.__tagRoot) {
-                                break;
-                            }
-                        }
-                    });
-                }
-            } else {
+            if (!this.__tagRoot) {
                 tags = Utils.iteratorToArray(this.__treeTags.keys());
                 n = tags.length;
 
@@ -746,32 +745,32 @@ export default class Element {
     };
 
     _setTagsParent() {
-        if (this.__treeTags && this.__treeTags.size) {
-            if (this.__tagRoot) {
-                // Just copy over the 'local' tags.
-                if (this.__tags) {
-                    this.__tags.forEach((tag) => {
-                        let p = this;
-                        while (p = p.__parent) {
-                            if (!p.__treeTags) {
-                                p.__treeTags = new Map();
-                            }
+        // Just copy over the 'local' tags.
+        if (this.__tags) {
+            this.__tags.forEach((tag) => {
+                let p = this;
+                while (p = p.__parent) {
+                    if (!p.__treeTags) {
+                        p.__treeTags = new Map();
+                    }
 
-                            let s = p.__treeTags.get(tag);
-                            if (!s) {
-                                s = new Set();
-                                p.__treeTags.set(tag, s);
-                            }
+                    let s = p.__treeTags.get(tag);
+                    if (!s) {
+                        s = new Set();
+                        p.__treeTags.set(tag, s);
+                    }
 
-                            s.add(this);
+                    s.add(this);
 
-                            if (p.__tagRoot) {
-                                break;
-                            }
-                        }
-                    });
+                    if (p.__tagRoot) {
+                        break;
+                    }
                 }
-            } else {
+            });
+        }
+
+        if (this.__treeTags && this.__treeTags.size) {
+            if (!this.__tagRoot) {
                 this.__treeTags.forEach((tagSet, tag) => {
                     let p = this;
                     while (!p.__tagRoot && (p = p.__parent)) {
@@ -874,21 +873,23 @@ export default class Element {
             this.__tags.push(tag);
 
             // Add to treeTags hierarchy.
-            let p = this;
-            do {
-                if (!p.__treeTags) {
-                    p.__treeTags = new Map();
-                }
+            let p = this.__parent;
+            if (p) {
+                do {
+                    if (!p.__treeTags) {
+                        p.__treeTags = new Map();
+                    }
 
-                let s = p.__treeTags.get(tag);
-                if (!s) {
-                    s = new Set();
-                    p.__treeTags.set(tag, s);
-                }
+                    let s = p.__treeTags.get(tag);
+                    if (!s) {
+                        s = new Set();
+                        p.__treeTags.set(tag, s);
+                    }
 
-                s.add(this);
+                    s.add(this);
 
-            } while (!p.__tagRoot && (p = p.__parent));
+                } while (!p.__tagRoot && (p = p.__parent));
+            }
         }
     }
 
@@ -898,13 +899,15 @@ export default class Element {
             this.__tags.splice(i, 1);
 
             // Remove from treeTags hierarchy.
-            let p = this;
-            do {
-                let list = p.__treeTags.get(tag);
-                if (list) {
-                    list.delete(this);
-                }
-            } while (!p.__tagRoot && (p = p.__parent));
+            let p = this.__parent;
+            if (p) {
+                do {
+                    let list = p.__treeTags.get(tag);
+                    if (list) {
+                        list.delete(this);
+                    }
+                } while (!p.__tagRoot && (p = p.__parent));
+            }
         }
     }
 
