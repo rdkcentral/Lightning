@@ -198,7 +198,7 @@ export default class TextureSource {
         }
     }
 
-    load() {
+    load(forceSync = false) {
         // From the moment of loading (when a texture source becomes used by active elements)
         if (this.isResultTexture) {
             // Element result texture source, for which the loading is managed by the core.
@@ -221,7 +221,7 @@ export default class TextureSource {
                         // Emit txError.
                         this.onError(err);
                     } else if (options && options.source) {
-                        if (options.throttle !== false) {
+                        if (!forceSync && options.throttle !== false) {
                             const textureThrottler = this.stage.textureThrottler;
                             this._cancelCb = textureThrottler.genericCancelCb;
                             textureThrottler.add(this, options);

@@ -438,12 +438,12 @@ export default class TextTexture extends Texture {
 
             if (p) {
                 p.then(() => {
-                    cb(null, Object.assign({renderInfo: renderer.renderInfo, throttle: false}, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas)));
+                    cb(null, Object.assign({renderInfo: renderer.renderInfo}, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas)));
                 }).catch((err) => {
                     cb(err);
                 });
             } else {
-                cb(null, Object.assign({renderInfo: renderer.renderInfo, throttle: false}, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas)));
+                cb(null, Object.assign({renderInfo: renderer.renderInfo}, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas)));
             }
         }
     }

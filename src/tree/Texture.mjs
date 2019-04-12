@@ -346,7 +346,7 @@ export default class Texture {
         // Make sure that source is up to date.
         if (this.source) {
             if (!this.isLoaded()) {
-                this.source.load();
+                this.source.load(true);
             }
         }
     }
