@@ -80,6 +80,12 @@ export default class CoreContext {
         // Obtain a sequence of the quad operations.
         this._fillRenderState();
 
+        if (this.stage.getOption('readPixelsBeforeDraw')) {
+            const pixels = new Uint8Array(4);
+            const gl = this.stage.gl;
+            gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+        }
+
         // Now run them with the render executor.
         this._performRender();
     }

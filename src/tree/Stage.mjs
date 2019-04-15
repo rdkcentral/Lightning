@@ -162,6 +162,7 @@ export default class Stage extends EventEmitter {
         opt('precision', 1);
         opt('canvas2d', false);
         opt('platform', null);
+        opt('readPixelsBeforeDraw', false);
     }
 
     setApplication(app) {
