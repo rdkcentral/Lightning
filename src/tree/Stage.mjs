@@ -271,6 +271,10 @@ export default class Stage extends EventEmitter {
         this.frameCounter++;
     }
 
+    isUpdatingFrame() {
+        return this._updatingFrame;
+    }
+
     renderFrame() {
         this.ctx.frame();
     }
