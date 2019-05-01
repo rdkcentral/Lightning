@@ -93,7 +93,7 @@ export default class Component extends Element {
                     // Ref.
                     const childCursor = `r${key.replace(/[^a-z0-9]/gi, "") + context.rid}`;
                     let type = value.type ? value.type : Element;
-                    if (type === "Element") {
+                    if (type === Element) {
                         loc.push(`const ${childCursor} = element.stage.createElement()`);
                     } else {
                         store.push(type);
