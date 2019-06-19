@@ -62,7 +62,7 @@ export default class WebGLCoreRenderExecutor extends CoreRenderExecutor {
     _setupBuffers() {
         let gl = this.gl;
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._quadsBuffer);
-        let element = new DataView(this.renderState.quads.data, 0, this.renderState.quads.dataLength);
+        let element = new Float32Array(this.renderState.quads.data, 0, this.renderState.quads.dataLength);
         gl.bindBuffer(gl.ARRAY_BUFFER, this._attribsBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, element, gl.DYNAMIC_DRAW);
     }
