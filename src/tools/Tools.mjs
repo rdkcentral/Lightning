@@ -15,7 +15,6 @@ export default class Tools {
         }
 
         let factory = (cb, stage) => {
-            //cb(null, this.createRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor));
             stage.platform.createRoundRect(cb, stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor);
         };
         let id = 'rect' + [w, h, strokeWidth, strokeColor, fill ? 1 : 0, fillColor].concat(radius).join(",");
@@ -29,7 +28,6 @@ export default class Tools {
         }
 
         let factory = (cb, stage) => {
-            //cb(null, this.createShadowRect(stage, w, h, radius, blur, margin));
             stage.platform.createShadowRect(cb, stage, w, h, radius, blur, margin);
         };
         let id = 'shadow' + [w, h, blur, margin].concat(radius).join(",");
