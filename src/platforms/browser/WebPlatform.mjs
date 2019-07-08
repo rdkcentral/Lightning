@@ -26,6 +26,7 @@ export default class WebPlatform {
             this._imageWorker.destroy();
         }
         this._removeKeyHandler();
+        this._removeTouchHandler();
     }
 
     startLoop() {
@@ -181,6 +182,19 @@ export default class WebPlatform {
     _removeKeyHandler() {
         if (this._keyListener) {
             window.removeEventListener('keydown', this._keyListener);
+        }
+    }
+
+    registerTouchHandler(touchHandler){
+        this._touchListener = e =>{
+            touchHandler(e);
+        }
+        window.addEventListener('touchstart', this._touchListener);
+    }
+
+    _removeTouchHandler(){
+        if(this._touchListener){
+            window.removeEventListener('touchstart', this._touchListener);
         }
     }
 
