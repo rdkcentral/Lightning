@@ -76,6 +76,13 @@ export default class TextureSource {
          */
         this._loadError = null;
 
+        /**
+         *  Hold a reference to the javascript variable which contains the texture, this is not required for WebGL in WebBrowsers but is required for Spark runtime.
+         * @type {object}
+         * @private
+         */
+        this._imageRef = null;
+
     }
 
     get loadError() {
@@ -240,6 +247,9 @@ export default class TextureSource {
 
         this.permanent = !!options.permanent;
 
+        if (options && options.imageRef)
+            this._imageRef = options.imageRef;
+
         if (this._isNativeTexture(source)) {
             // Texture managed by caller.
             this._nativeTexture = source;
@@ -298,6 +308,8 @@ export default class TextureSource {
 
     clearNativeTexture() {
         this._nativeTexture = null;
+        //also clear the reference to the texture variable.
+        this._imageRef = null;
     }
 
     /**
