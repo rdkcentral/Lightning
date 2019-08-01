@@ -116,7 +116,7 @@ export default class WebPlatform {
         if (fill === undefined) fill = true;
         if (strokeWidth === undefined) strokeWidth = 0;
 
-        let canvas = stage.platform.getDrawingCanvas();
+        let canvas = this.getDrawingCanvas();
         let ctx = canvas.getContext('2d');
         ctx.imageSmoothingEnabled = true;
 
@@ -160,7 +160,7 @@ export default class WebPlatform {
     }
 
     createShadowRect(cb, stage, w, h, radius, blur, margin) {
-        let canvas = stage.platform.getDrawingCanvas();
+        let canvas = this.getDrawingCanvas();
         let ctx = canvas.getContext('2d');
         ctx.imageSmoothingEnabled = true;
 
@@ -198,7 +198,7 @@ export default class WebPlatform {
     }
 
     createSvg(cb, stage, url, w, h) {
-        let canvas = stage.platform.getDrawingCanvas();
+        let canvas = this.getDrawingCanvas();
         let ctx = canvas.getContext('2d');
         ctx.imageSmoothingEnabled = true;
 
