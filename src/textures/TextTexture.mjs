@@ -1,4 +1,5 @@
 import Texture from "../tree/Texture.mjs";
+import Utils from "../tree/Utils.mjs";
 
 export default class TextTexture extends Texture {
 
@@ -428,7 +429,12 @@ export default class TextTexture extends Texture {
 
         return function(cb) {
             const canvas = this.stage.platform.getDrawingCanvas();
-            const renderer = new TextTextureRendererSpark(this.stage, canvas, args);
+            let renderer;
+            if (Utils.isWeb) {
+                renderer = new TextTextureRenderer(this.stage, canvas, args);
+            } else {
+                renderer = new TextTextureRendererSpark(this.stage, canvas, args);
+            }
             const p = renderer.draw();
 
             if (p) {
