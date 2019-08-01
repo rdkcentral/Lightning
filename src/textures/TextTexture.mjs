@@ -428,7 +428,7 @@ export default class TextTexture extends Texture {
 
         return function(cb) {
             const canvas = this.stage.platform.getDrawingCanvas();
-            const renderer = new TextTextureRenderer(this.stage, canvas, args);
+            const renderer = new TextTextureRendererSpark(this.stage, canvas, args);
             const p = renderer.draw();
 
             if (p) {
@@ -560,4 +560,4 @@ proto._cutSy = 0;
 proto._cutEy = 0;
 
 
-import TextTextureRenderer from "./TextTextureRenderer.mjs";
+import TextTextureRendererSpark from "../platforms/spark/TextTextureRendererSpark.mjs";
