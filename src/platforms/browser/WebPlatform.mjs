@@ -1,4 +1,5 @@
 import ImageWorker from "./ImageWorker.mjs";
+import StageUtils from "../../tree/StageUtils.mjs";
 
 /**
  * Platform-specific functionality.
