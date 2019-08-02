@@ -158,6 +158,33 @@ export default class ListComponent extends Component {
         this.emit('focus', this.getElement(this.realIndex), this._index, this.realIndex);
     }
 
+    shiftElements(elements) {
+        if (elements && elements.length > 0) {
+            let currentIndex = this._index;
+            for (let index = 0; index < elements.length; index++) {
+                let c = this.itemList.createItem(elements[index]);
+                c.patch(elements[index]);
+                this.itemList.add(c);
+            }
+            this.setIndex(currentIndex, true );
+        }
+    }
+
+    unshiftElements(elements) {
+        if (elements && elements.length > 0) {
+            let currentIndex = this._index;
+            if (this._invertDirection) {
+                elements.reverse();
+            }
+            for (let index = 0; index < elements.length; index++) {
+                let c = this.itemList.createItem(elements[0]);
+                c.patch(elements[index]);
+                this.itemList.addAt(c, 0);
+            }
+            this.setIndex(currentIndex + elements.length, true);
+        }
+    }
+
     getAxisPosition() {
         let target = -this._scrollTransition._targetValue;
 
