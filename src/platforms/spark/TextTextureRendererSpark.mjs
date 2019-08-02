@@ -5,7 +5,7 @@ export default class TextTextureRendererSpark extends TextTextureRenderer {
         let textTextureRender = this;
         let sparkText = sparkscene.create({ t: "text", text:textTextureRender._settings.text, pixelSize:textTextureRender._settings.fontSize*textTextureRender.getPrecision()});
 
-        let drawPromise = new Promise(function(resolve, reject) {
+        let drawPromise = new Promise((resolve, reject) => {
             sparkText.ready.then( function(obj) {
                 let renderInfo = {};
                 renderInfo.w = sparkText.w;
