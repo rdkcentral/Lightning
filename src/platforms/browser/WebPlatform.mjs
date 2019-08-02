@@ -183,5 +183,6 @@ export default class WebPlatform {
             window.removeEventListener('keydown', this._keyListener);
         }
     }
+
 }
 
