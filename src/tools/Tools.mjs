@@ -129,7 +129,7 @@ export default class Tools {
 
     static getSvgTexture(url, w, h) {
         let factory = (cb, stage) => {
-            if (Utils.isWeb) {
+            if (Utils.isSpark) {
                 stage.platform.createSvg(cb, stage, url, w, h);
             } else {
                 this.createSvg(cb, stage, url, w, h);
