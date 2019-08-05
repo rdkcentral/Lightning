@@ -174,3 +174,4 @@ export default class Utils {
 Utils.isNode = (typeof window === "undefined");
 Utils.isWeb = (typeof window !== "undefined");
 Utils.isWPE = Utils.isWeb && (navigator.userAgent.indexOf("WPE") !== -1);
+Utils.isSpark = (typeof window === "undefined") && (typeof sparkscene !== "undefined");
