@@ -308,6 +308,7 @@ export default class TextureSource {
 
     clearNativeTexture() {
         this._nativeTexture = null;
+        //also clear the reference to the texture variable.
         this._imageRef = null;
     }
 
