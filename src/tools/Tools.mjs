@@ -15,8 +15,12 @@ export default class Tools {
         }
 
         let factory = (cb, stage) => {
-            cb(null, this.createRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor));
-        }
+            if (Utils.isSpark) {
+                stage.platform.createRoundRect(cb, stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor);
+            } else {
+                cb(null, this.createRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor));
+            }
+        };
         let id = 'rect' + [w, h, strokeWidth, strokeColor, fill ? 1 : 0, fillColor].concat(radius).join(",");
         return Tools.getCanvasTexture(factory, id);
     }
@@ -75,7 +79,11 @@ export default class Tools {
         }
 
         let factory = (cb, stage) => {
-            cb(null, this.createShadowRect(stage, w, h, radius, blur, margin));
+            if (Utils.isSpark) {
+                stage.platform.createShadowRect(cb, stage, w, h, radius, blur, margin);
+            } else {
+                cb(null, this.createShadowRect(stage, w, h, radius, blur, margin));
+            }
         };
         let id = 'shadow' + [w, h, blur, margin].concat(radius).join(",");
         return Tools.getCanvasTexture(factory, id);
@@ -121,8 +129,12 @@ export default class Tools {
 
     static getSvgTexture(url, w, h) {
         let factory = (cb, stage) => {
-            this.createSvg(cb, stage, url, w, h);
-        }
+            if (Utils.isSpark) {
+                stage.platform.createSvg(cb, stage, url, w, h);
+            } else {
+                this.createSvg(cb, stage, url, w, h);
+            }
+        };
         let id = 'svg' + [w, h, url].join(",");
         return Tools.getCanvasTexture(factory, id);
     }
