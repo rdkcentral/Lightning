@@ -194,6 +194,41 @@ describe('textures', function() {
                 chai.assert(texture.isLoaded(), "Texture must be loaded");
             });
         });
+
+        describe('regression', () => {
+
+            /* FIXME: use chai-spies instead of prototype manipulation,
+               chai needs to be added as node package first */
+            const wrapped = TestTexture.prototype._applyResizeMode;
+            let applyCalls = 0;
+            before(() => {
+                TestTexture.prototype._applyResizeMode = function() {
+                    applyCalls += 1;
+                    wrapped.apply(this);
+                }
+            });
+            after(() => {
+                TestTexture.prototype._applyResizeMode = wrapped;
+            });
+
+            it('should apply resize mode for newly created texture with existing source', () => {
+                const element = app.stage.createElement({
+                    Item: {x: 550, visible: true, texture: {type: TestTexture, resizeMode: {type: 'cover', w: 200, h: 200, clipY: 0}, lookupId: 1}}
+                });
+                app.children = [element]
+                const sourceId = app.tag("Item").texture.source.id
+
+                stage.drawFrame();
+                chai.assert(app.tag("Item").texture.source.isLoaded(), "texture loaded");
+
+                app.tag('Item').patch({texture: {type: TestTexture, resizeMode: {type: 'cover', w: 100, h: 100, clipY: 0}, lookupId: 1}});
+                chai.assert(app.tag("Item").texture._resizeMode.w === 100);
+                chai.assert(app.tag("Item").texture._resizeMode.h === 100);
+                chai.assert(app.tag("Item").texture.source.id === sourceId, 'sources should be the same');
+                chai.assert(applyCalls === 2, 'applyResizeMode apply should have been called for new texture');
+            });
+        });
+
     });
 
     describe('cancel', () => {
