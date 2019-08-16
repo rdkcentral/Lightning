@@ -186,6 +186,10 @@ export default class Texture {
             if (reusable && reusable.isLoaded() && (reusable !== source)) {
                 this._replaceTextureSource(reusable);
             }
+        } else {
+            if (this._resizeMode) {
+                this._applyResizeMode();
+            }
         }
     }
 

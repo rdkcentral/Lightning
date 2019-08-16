@@ -28,6 +28,10 @@ describe('textures', function() {
             this._invalid = v;
         }
 
+        set throttle(bool) {
+            this._throttle = bool;
+        }
+
         _getIsValid() {
             return !this._invalid;
         }
@@ -35,7 +39,7 @@ describe('textures', function() {
         _getSourceLoader() {
             return (cb) => {
                 const canvas = lng.Tools.createRoundRect(this.stage, 100, 100, [30, 30, 30, 30]);
-                const opts = this.stage.platform.getTextureOptionsForDrawingCanvas(canvas);
+                const opts = Object.assign({throttle: this._throttle}, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas));
                 if (this._async) {
                     this.asyncLoad = () => {
                         if (this._error) {
@@ -144,13 +148,14 @@ describe('textures', function() {
         });
 
         describe('async', () => {
-            it('should load after async', () => {
+            it('should load after async [without throttling]', () => {
                 const element = app.stage.createElement({
                     Item: {x: 550, texture: {type: TestTexture, async: true}}
                 });
 
                 app.children = [element];
                 const texture = app.tag("Item").texture;
+                texture.throttle = false;
 
                 stage.drawFrame();
                 chai.assert(!texture.isLoaded(), "Texture must not be loaded");
@@ -166,7 +171,64 @@ describe('textures', function() {
                 stage.drawFrame();
                 chai.assert(texture.isLoaded(), "Texture must be loaded");
             });
+
+            it('should load after async during first frame [with throttling]', () => {
+                const element = app.stage.createElement({
+                    Item: {x: 550, texture: {type: TestTexture, async: true}}
+                });
+
+                app.children = [element];
+                const texture = app.tag("Item").texture;
+
+                stage.drawFrame();
+                chai.assert(!texture.isLoaded(), "Texture must not be loaded");
+
+                chai.assert(app.tag("Item").texture.source.isLoading(), "texture loading");
+                chai.assert(!app.tag("Item").texture.source.isLoaded(), "texture not loaded");
+
+                texture.asyncLoad();
+                stage.drawFrame();
+
+                chai.assert(!app.tag("Item").texture.source.isLoading(), "texture not loading");
+                chai.assert(app.tag("Item").texture.source.isLoaded(), "texture loaded");
+                chai.assert(texture.isLoaded(), "Texture must be loaded");
+            });
         });
+
+        describe('regression', () => {
+
+            /* FIXME: use chai-spies instead of prototype manipulation,
+               chai needs to be added as node package first */
+            const wrapped = TestTexture.prototype._applyResizeMode;
+            let applyCalls = 0;
+            before(() => {
+                TestTexture.prototype._applyResizeMode = function() {
+                    applyCalls += 1;
+                    wrapped.apply(this);
+                }
+            });
+            after(() => {
+                TestTexture.prototype._applyResizeMode = wrapped;
+            });
+
+            it('should apply resize mode for newly created texture with existing source', () => {
+                const element = app.stage.createElement({
+                    Item: {x: 550, visible: true, texture: {type: TestTexture, resizeMode: {type: 'cover', w: 200, h: 200, clipY: 0}, lookupId: 1}}
+                });
+                app.children = [element]
+                const sourceId = app.tag("Item").texture.source.id
+
+                stage.drawFrame();
+                chai.assert(app.tag("Item").texture.source.isLoaded(), "texture loaded");
+
+                app.tag('Item').patch({texture: {type: TestTexture, resizeMode: {type: 'cover', w: 100, h: 100, clipY: 0}, lookupId: 1}});
+                chai.assert(app.tag("Item").texture._resizeMode.w === 100);
+                chai.assert(app.tag("Item").texture._resizeMode.h === 100);
+                chai.assert(app.tag("Item").texture.source.id === sourceId, 'sources should be the same');
+                chai.assert(applyCalls === 2, 'applyResizeMode apply should have been called for new texture');
+            });
+        });
+
     });
 
     describe('cancel', () => {
@@ -191,7 +253,31 @@ describe('textures', function() {
         });
 
         describe('visible after cancel', () => {
-            it('should recover load', () => {
+            it('should recover load [without throttling]', () => {
+                const element = app.stage.createElement({
+                    Item: {x: 550, texture: {type: TestTexture, async: true}}
+                });
+
+                app.children = [element];
+                const texture = app.tag("Item").texture;
+                texture.throttle = false;
+
+                stage.drawFrame();
+                chai.assert(!texture.isLoaded(), "Texture must not yet be loaded");
+
+                app.tag("Item").visible = false;
+                stage.drawFrame();
+
+                texture.asyncLoad();
+                chai.assert(!texture.isLoaded(), "Texture load callback must be ignored");
+
+                app.tag("Item").visible = true;
+                stage.drawFrame();
+                texture.asyncLoad();
+
+                chai.assert(texture.isLoaded(), "Texture must be loaded");
+            });
+            it('should recover load [with throttling]', () => {
                 const element = app.stage.createElement({
                     Item: {x: 550, texture: {type: TestTexture, async: true}}
                 });
@@ -209,15 +295,42 @@ describe('textures', function() {
                 chai.assert(!texture.isLoaded(), "Texture load callback must be ignored");
 
                 app.tag("Item").visible = true;
-                stage.drawFrame();
                 texture.asyncLoad();
+                stage.drawFrame();
 
                 chai.assert(texture.isLoaded(), "Texture must be loaded");
             });
+
+
         });
 
         describe('visible after cancel (previous load fired)', () => {
-            it('should recover load', () => {
+            it('should recover load [without throttling]', () => {
+                const element = app.stage.createElement({
+                    Item: {x: 550, texture: {type: TestTexture, async: true}}
+                });
+
+                app.children = [element];
+                const texture = app.tag("Item").texture;
+                texture.throttle = false;
+
+                stage.drawFrame();
+                chai.assert(!texture.isLoaded(), "Texture must not yet be loaded");
+
+                app.tag("Item").visible = false;
+                stage.drawFrame();
+
+                const prevAsyncLoad = texture.asyncLoad;
+                chai.assert(!texture.isLoaded(), "Texture load callback must be ignored");
+
+                app.tag("Item").visible = true;
+                stage.drawFrame();
+                prevAsyncLoad();
+
+                chai.assert(texture.isLoaded(), "Texture must be loaded");
+            });
+
+            it('should recover load [with throttling]', () => {
                 const element = app.stage.createElement({
                     Item: {x: 550, texture: {type: TestTexture, async: true}}
                 });
@@ -235,21 +348,23 @@ describe('textures', function() {
                 chai.assert(!texture.isLoaded(), "Texture load callback must be ignored");
 
                 app.tag("Item").visible = true;
-                stage.drawFrame();
                 prevAsyncLoad();
+                stage.drawFrame();
 
                 chai.assert(texture.isLoaded(), "Texture must be loaded");
             });
+
         });
 
         describe('visible after cancel (both loads fired)', () => {
-            it('should recover load', () => {
+            it('should recover load [without throttling]', () => {
                 const element = app.stage.createElement({
                     Item: {x: 550, texture: {type: TestTexture, async: true}}
                 });
 
                 app.children = [element];
                 const texture = app.tag("Item").texture;
+                texture.throttle = false;
 
                 stage.drawFrame();
                 chai.assert(!texture.isLoaded(), "Texture must not yet be loaded");
@@ -267,14 +382,50 @@ describe('textures', function() {
 
                 chai.assert(texture.isLoaded(), "Texture must be loaded");
             });
+            it('should recover load [with throttling]', () => {
+                const element = app.stage.createElement({
+                    Item: {x: 550, texture: {type: TestTexture, async: true}}
+                });
+
+                app.children = [element];
+                const texture = app.tag("Item").texture;
+
+                stage.drawFrame();
+                chai.assert(!texture.isLoaded(), "Texture must not yet be loaded");
+
+                app.tag("Item").visible = false;
+                stage.drawFrame();
+
+                const prevAsyncLoad = texture.asyncLoad;
+                chai.assert(!texture.isLoaded(), "Texture load callback must be ignored");
+
+                app.tag("Item").visible = true;
+                prevAsyncLoad();
+                texture.asyncLoad();
+                stage.drawFrame();
+
+                chai.assert(texture.isLoaded(), "Texture must be loaded");
+            });
+
         });
 
         describe('becomes invisible', () => {
-            it('should clean up texture', () => {
+            it('should *not* clean up texture automatically(unconfirmed performance bottleneck)', () => {
+                /* Reason:
+                   https://github.com/WebPlatformForEmbedded/Lightning/commit/c7688785a4430026f3bcc9da5ed77a80ca9f9ab0
+                 */
+
                 app.tag("Item").visible = false;
                 const texture = app.tag("Item").texture;
+                chai.assert(texture.isLoaded(), "Texture must still be loaded");
+            });
+            it('should clean up texture manually', () => {
+                app.tag("Item").visible = false;
+                const texture = app.tag("Item").texture;
+                texture.free();
                 chai.assert(!texture.isLoaded(), "Texture must no longer be loaded");
             });
+
         });
     });
 
@@ -420,6 +571,7 @@ describe('textures', function() {
             chai.assert(texture.source.isLoading(), "texture loading");
             chai.assert(texture.source.isError(), "texture error");
             texture.asyncLoad();
+            stage.drawFrame();
             chai.assert(texture.source.isLoaded(), "texture loaded");
             chai.assert(!texture.source.isLoading(), "texture not loading");
             chai.assert(!texture.source.isError(), "texture not error");
