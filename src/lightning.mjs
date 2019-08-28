@@ -113,4 +113,3 @@ if (Utils.isWeb) {
 }
 
 export default lightning;
-import WaterWaveShader from "./../examples/water-waves/WaterWaveShader.mjs";
