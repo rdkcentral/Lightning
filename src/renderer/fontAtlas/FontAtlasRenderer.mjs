@@ -24,11 +24,11 @@ export default class FontAtlasRenderer extends Renderer {
     }
 
     _getShaderBaseType() {
-        return WFontAtlasShader
+        return FontAtlasShader
     }
 
     _getShaderAlternative(shaderType) {
-        return shaderType.getFontAtlas && shaderType.getFontAtlas();
+        return shaderType.getWebGL && shaderType.getWebGL();
     }
 
     createCoreQuadList(ctx) {
@@ -36,7 +36,7 @@ export default class FontAtlasRenderer extends Renderer {
     }
 
     createCoreQuadOperation(ctx, shader, shaderOwner, renderTextureInfo, scissor, index) {
-        return new WFontAtlasCoreQuadOperation(ctx, shader, shaderOwner, renderTextureInfo, scissor, index);
+        return new FontAtlasCoreQuadOperation(ctx, shader, shaderOwner, renderTextureInfo, scissor, index);
     }
 
     createCoreRenderExecutor(ctx) {
@@ -114,7 +114,7 @@ export default class FontAtlasRenderer extends Renderer {
         let glTexture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, glTexture);
 
-        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_FONTATLAS, format.premultiplyAlpha);
+        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, format.premultiplyAlpha);
 
         if (Utils.isNode) {
             gl.pixelStorei(gl.UNPACK_FLIP_BLUE_RED, !!format.flipBlueRed);
