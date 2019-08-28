@@ -49,6 +49,7 @@ import C2dGrayscaleShader from "./renderer/c2d/shaders/GrayscaleShader.mjs";
 import C2dBlurShader from "./renderer/c2d/shaders/BlurShader.mjs";
 
 import Stage from "./tree/Stage.mjs";
+import WaterWaveShader from "./../examples/WaterWaveShader.mjs";
 
 const lightning = {
     Application,
@@ -79,6 +80,7 @@ const lightning = {
         WebGLDefaultShader,
         C2dShader,
         C2dDefaultShader,
+        WaterWaveShader,
         c2d: {
             Grayscale: C2dGrayscaleShader,
             Blur: C2dBlurShader
