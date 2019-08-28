@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+
+</head>
+<body>
+<script type="module">
+    import lng from '../../src/lightning.mjs'
+    import WaterWaveShader from "./WaterWaveShader.mjs"
+
+    window.onload = function() {
+        class AppExample extends lng.Application {
+            static _template() {
+                return {
+                    Circle: {src: "./pebbles.jpg", color: 0xFFAAAAAA, shader: {type: WaterWaveShader}, pivot: 0, scale: 1, w: 1280, h: 720}
+                }
+            }
+        }
+
+        const options = {stage: {w:1280, h: 720, clearColor: 0xFFFFFFFF}}
+        const app = new AppExample(options);
+
+        document.body.appendChild(app.stage.getCanvas());
+
+
+    }
+</script>
+</body>
+</html>
