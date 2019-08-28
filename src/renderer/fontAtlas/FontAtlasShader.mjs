@@ -1,7 +1,7 @@
-import WebGLShaderProgram from "./WebGLShaderProgram.mjs";
+import FontAtlasShaderProgram from "./FontAtlasShaderProgram.mjs";
 import Shader from "../../tree/Shader.mjs";
 
-export default class WebGLShader extends Shader {
+export default class FontAtlasShader extends Shader {
 
     constructor(ctx) {
         super(ctx);
@@ -10,7 +10,7 @@ export default class WebGLShader extends Shader {
 
         this._program = stage.renderer.shaderPrograms.get(this.constructor);
         if (!this._program) {
-            this._program = new WebGLShaderProgram(this.constructor.vertexShaderSource, this.constructor.fragmentShaderSource);
+            this._program = new FontAtlasShaderProgram(this.constructor.vertexShaderSource, this.constructor.fragmentShaderSource);
 
             // Let the vbo context perform garbage collection.
             stage.renderer.shaderPrograms.set(this.constructor, this._program);

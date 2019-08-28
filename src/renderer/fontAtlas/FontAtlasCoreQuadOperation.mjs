@@ -1,6 +1,6 @@
 import CoreQuadOperation from "../../tree/core/CoreQuadOperation.mjs";
 
-export default class WebGLCoreQuadOperation extends CoreQuadOperation {
+export default class FontAtlasCoreQuadOperation extends CoreQuadOperation {
 
     constructor(ctx, shader, shaderOwner, renderTextureInfo, scissor, index) {
         super(ctx, shader, shaderOwner, renderTextureInfo, scissor, index);

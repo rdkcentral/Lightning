@@ -1,6 +1,6 @@
 import CoreQuadList from "../../tree/core/CoreQuadList.mjs";
 
-export default class WebGLCoreQuadList extends CoreQuadList {
+export default class FontAtlasCoreQuadList extends CoreQuadList {
 
     constructor(ctx) {
         super(ctx);

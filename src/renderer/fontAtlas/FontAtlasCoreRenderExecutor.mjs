@@ -1,6 +1,6 @@
 import CoreRenderExecutor from "../../tree/core/CoreRenderExecutor.mjs";
 
-export default class WebGLCoreRenderExecutor extends CoreRenderExecutor {
+export default class FontAtlasCoreRenderExecutor extends CoreRenderExecutor {
 
     constructor(ctx) {
         super(ctx)
@@ -18,7 +18,7 @@ export default class WebGLCoreRenderExecutor extends CoreRenderExecutor {
 
         let maxQuads = Math.floor(this.renderState.quads.data.byteLength / 80);
 
-        // Init webgl arrays.
+        // Init FontAtlas arrays.
         let allIndices = new Uint16Array(maxQuads * 6);
 
         // fill the indices with the quads to draw.
@@ -83,7 +83,7 @@ export default class WebGLCoreRenderExecutor extends CoreRenderExecutor {
     }
 
     /**
-     * @param {WebGLShader} shader;
+     * @param {FontAtlasShader} shader;
      * @param {CoreQuadOperation} operation;
      */
     _useShaderProgram(shader, operation) {
