@@ -627,6 +627,15 @@ export default class Element {
         this._updateDimensions();
     };
 
+    onDimensionsChanged(w, h) {
+        if (this.texture instanceof TextTexture) {
+            this.texture.w = w;
+            this.texture.h = h;
+            this.w = w;
+            this.h = h;
+        }
+    }
+
     _updateDimensions() {
         let w = this._getRenderWidth();
         let h = this._getRenderHeight();
