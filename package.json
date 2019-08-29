@@ -8,7 +8,8 @@
     "postinstall": "rollup -c"
   },
   "dependencies": {
-    "rollup": "^0.67.0"
+    "rollup": "^0.67.0",
+    "rollup-plugin-license": "^0.10.0"
   },
   "repository": {
     "type": "git",
