@@ -1703,6 +1703,8 @@ export default class ElementCore {
         if (changedDims) {
             // Recalc mount, scale position.
             this._recalcLocalTranslate();
+
+            this.element.onDimensionsChanged(this._w, this._h);
         }
     }
 
