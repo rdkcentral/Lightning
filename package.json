@@ -1,14 +1,15 @@
 {
   "author": "Metrological, Bas van Meurs <b.van.meurs@metrological.com>",
   "name": "wpe-lightning",
-  "version": "1.0.4",
+  "version": "1.0.9",
   "license": "apache",
   "main": "src/lightning.mjs",
   "scripts": {
     "postinstall": "rollup -c"
   },
   "dependencies": {
-    "rollup": "^0.67.0"
+    "rollup": "^0.67.0",
+    "rollup-plugin-license": "^0.10.0"
   },
   "repository": {
     "type": "git",

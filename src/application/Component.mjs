@@ -44,11 +44,17 @@ export default class Component extends Element {
     }
 
     __onStateChange() {
-        this.application.updateFocusPath();
+        /* FIXME: Workaround for case, where application was shut but component still lives */
+        if (this.application) {
+            this.application.updateFocusPath();
+        }
     }
 
     _refocus() {
-        this.application.updateFocusPath();
+        /* FIXME: Workaround for case, where application was shut but component still lives */
+        if (this.application) {
+            this.application.updateFocusPath();
+        }
     }
 
     /**
