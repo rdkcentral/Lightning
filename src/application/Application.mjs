@@ -22,9 +22,14 @@ export default class Application extends Component {
         this.updateFocusSettings();
 
         this.__keymap = this.getOption('keys');
+
         if (this.__keymap) {
-            this.stage.platform.registerKeyHandler((e) => {
+            this.stage.platform.registerKeydownHandler((e) => {
                 this._receiveKeydown(e);
+            });
+
+            this.stage.platform.registerKeyupHandler((e) => {
+                this._receiveKeyup(e);
             });
         }
     }
@@ -260,12 +265,34 @@ export default class Application extends Component {
     _receiveKeydown(e) {
         const obj = e;
         if (this.__keymap[e.keyCode]) {
-            if (!this.stage.application.focusTopDownEvent(["_capture" + this.__keymap[e.keyCode], "_captureKey"], obj)) {
-                this.stage.application.focusBottomUpEvent(["_handle" + this.__keymap[e.keyCode], "_handleKey"], obj)
+            if (!this.stage.application.focusTopDownEvent([`_capture${this.__keymap[e.keyCode]}`, "_captureKey"], obj)) {
+                this.stage.application.focusBottomUpEvent([`_handle${this.__keymap[e.keyCode]}`, "_handleKey"], obj)
             }
         } else {
             if (!this.stage.application.focusTopDownEvent(["_captureKey"], obj)) {
                 this.stage.application.focusBottomUpEvent(["_handleKey"], obj);
+            }
+        }
+        this.updateFocusPath();
+    }
+
+    /**
+     * Keyup listener
+     * To take away some confusion we add `Release` to the event to prevent ending up with method names like:
+     *  _handleLeftUp / _handleUpUp / _handleEnterUp etc
+     *
+     * @param e
+     * @private
+     */
+    _receiveKeyup(e){
+        const obj = e;
+        if (this.__keymap[e.keyCode]) {
+            if (!this.stage.application.focusTopDownEvent([`_capture${this.__keymap[e.keyCode]}Release`, "_captureKeyRelease"], obj)) {
+                this.stage.application.focusBottomUpEvent([`_handle${this.__keymap[e.keyCode]}Release`, "_handleKeyRelease"], obj)
+            }
+        } else {
+            if (!this.stage.application.focusTopDownEvent(["_captureKeyRelease"], obj)) {
+                this.stage.application.focusBottomUpEvent(["_handleKeyRelease"], obj);
             }
         }
         this.updateFocusPath();
