@@ -446,7 +446,7 @@ export default class Component extends Element {
         }
 
         const parent = this._getParentSignalHandler();
-        if(parent){
+        if (parent) {
             return parent._doFireAncestors(name, args);
         }
     }
