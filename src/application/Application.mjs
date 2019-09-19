@@ -269,10 +269,10 @@ export default class Application extends Component {
         const key = this.__keymap[e.keyCode];
         const path = this.focusPath;
 
-        if(key){
+        if (key) {
             const hasTimer = this.__keypressTimers.has(key);
             // prevent event from getting fired when the timeout is still active
-            if(path[path.length - 1].longpress && hasTimer){
+            if (path[path.length - 1].longpress && hasTimer) {
                 return;
             }
         }
@@ -292,7 +292,7 @@ export default class Application extends Component {
         const focusPath = this.__getFocusPath();
         const consumer = focusPath.pop();
 
-        if(key && consumer.longpress){
+        if (key && consumer.longpress) {
             this._startLongpressTimer(key, consumer);
         }
     }
@@ -321,8 +321,8 @@ export default class Application extends Component {
 
         this.updateFocusPath();
 
-        if(key){
-            if(this.__keypressTimers.has(key)){
+        if (key) {
+            if (this.__keypressTimers.has(key)) {
                 // keyup has fired before end of timeout so we clear it
                 clearTimeout(this.__keypressTimers.get(key));
                 // delete so we can register it again
@@ -357,11 +357,11 @@ export default class Application extends Component {
         const config = element.longpress;
         const lookup = key.toLowerCase();
 
-        if(config[lookup]) {
+        if (config[lookup]) {
             const timeout = config[lookup];
-            if(!Utils.isNumber(timeout)){
+            if (!Utils.isNumber(timeout)) {
                 element._throwError("config value for longpress must be a number")
-            }else{
+            } else {
                 this.__keypressTimers.set(key,setTimeout(()=>{
                     if (!this.stage.application.focusTopDownEvent([`_capture${key}Long`, "_captureKey"], {})) {
                         this.stage.application.focusBottomUpEvent([`_handle${key}Long`, "_handleKey"], {})
