@@ -1,4 +1,5 @@
 import Component from "./Component.mjs";
+import Utils from "../tree/Utils.mjs";
 
 export default class Application extends Component {
 
@@ -13,6 +14,7 @@ export default class Application extends Component {
         Application.booting = false;
 
         this.__updateFocusCounter = 0;
+        this.__keypressTimers = new Map();
 
         // We must construct while the application is not yet attached.
         // That's why we 'init' the stage later (which actually emits the attach event).
@@ -264,16 +266,35 @@ export default class Application extends Component {
 
     _receiveKeydown(e) {
         const obj = e;
-        if (this.__keymap[e.keyCode]) {
-            if (!this.stage.application.focusTopDownEvent([`_capture${this.__keymap[e.keyCode]}`, "_captureKey"], obj)) {
-                this.stage.application.focusBottomUpEvent([`_handle${this.__keymap[e.keyCode]}`, "_handleKey"], obj)
+        const key = this.__keymap[e.keyCode];
+        const path = this.focusPath;
+
+        if(key){
+            const hasTimer = this.__keypressTimers.has(key);
+            // prevent event from getting fired when the timeout is still active
+            if(path[path.length - 1].longpress && hasTimer){
+                return;
+            }
+        }
+
+        if (key) {
+            if (!this.stage.application.focusTopDownEvent([`_capture${key}`, "_captureKey"], obj)) {
+                this.stage.application.focusBottomUpEvent([`_handle${key}`, "_handleKey"], obj)
             }
         } else {
             if (!this.stage.application.focusTopDownEvent(["_captureKey"], obj)) {
                 this.stage.application.focusBottomUpEvent(["_handleKey"], obj);
             }
         }
+
         this.updateFocusPath();
+
+        const focusPath = this.__getFocusPath();
+        const consumer = focusPath.pop();
+
+        if(key && consumer.longpress){
+            this._startLongpressTimer(key, consumer);
+        }
     }
 
     /**
@@ -286,16 +307,71 @@ export default class Application extends Component {
      */
     _receiveKeyup(e){
         const obj = e;
-        if (this.__keymap[e.keyCode]) {
-            if (!this.stage.application.focusTopDownEvent([`_capture${this.__keymap[e.keyCode]}Release`, "_captureKeyRelease"], obj)) {
-                this.stage.application.focusBottomUpEvent([`_handle${this.__keymap[e.keyCode]}Release`, "_handleKeyRelease"], obj)
+        const key = this.__keymap[e.keyCode];
+
+        if (key) {
+            if (!this.stage.application.focusTopDownEvent([`_capture${key}Release`, "_captureKeyRelease"], obj)) {
+                this.stage.application.focusBottomUpEvent([`_handle${key}Release`, "_handleKeyRelease"], obj)
             }
         } else {
             if (!this.stage.application.focusTopDownEvent(["_captureKeyRelease"], obj)) {
                 this.stage.application.focusBottomUpEvent(["_handleKeyRelease"], obj);
             }
         }
+
         this.updateFocusPath();
+
+        if(key){
+            if(this.__keypressTimers.has(key)){
+                // keyup has fired before end of timeout so we clear it
+                clearTimeout(this.__keypressTimers.get(key));
+                // delete so we can register it again
+                this.__keypressTimers.delete(key);
+            }
+        }
+    }
+
+    /**
+     * register and starts a timer for the pressed key. Timer will be cleared when the key is released
+     * before the timer goes off.
+     *
+     * If key is not release (keyup) the longpress handler will be fired.
+     * configuration can be via the Components template:
+     *
+     * static _template(){
+     *     return {
+     *         w:100, h:100,
+     *         longpress:{up:700, down:500}
+     *     }
+     * }     *
+     * // this will get called when up has been pressed for 700ms
+     * _handleUpLong(){
+     *
+     * }
+     *
+     * @param key
+     * @param element
+     * @private
+     */
+    _startLongpressTimer(key, element){
+        const config = element.longpress;
+        const lookup = key.toLowerCase();
+
+        if(config[lookup]) {
+            const timeout = config[lookup];
+            if(!Utils.isNumber(timeout)){
+                element._throwError("config value for longpress must be a number")
+            }else{
+                this.__keypressTimers.set(key,setTimeout(()=>{
+                    if (!this.stage.application.focusTopDownEvent([`_capture${key}Long`, "_captureKey"], {})) {
+                        this.stage.application.focusBottomUpEvent([`_handle${key}Long`, "_handleKey"], {})
+                    }
+
+                    this.__keypressTimers.delete(key);
+                }, timeout || 500 /* prevent 0ms */));
+            }
+        }
+        return;
     }
 
     destroy() {
