@@ -305,7 +305,7 @@ export default class Application extends Component {
      * @param e
      * @private
      */
-    _receiveKeyup(e){
+    _receiveKeyup(e) {
         const obj = e;
         const key = this.__keymap[e.keyCode];
 
@@ -338,14 +338,14 @@ export default class Application extends Component {
      * If key is not release (keyup) the longpress handler will be fired.
      * configuration can be via the Components template:
      *
-     * static _template(){
+     * static _template() {
      *     return {
      *         w:100, h:100,
      *         longpress:{up:700, down:500}
      *     }
      * }     *
      * // this will get called when up has been pressed for 700ms
-     * _handleUpLong(){
+     * _handleUpLong() {
      *
      * }
      *
@@ -353,7 +353,7 @@ export default class Application extends Component {
      * @param element
      * @private
      */
-    _startLongpressTimer(key, element){
+    _startLongpressTimer(key, element) {
         const config = element.longpress;
         const lookup = key.toLowerCase();
 
