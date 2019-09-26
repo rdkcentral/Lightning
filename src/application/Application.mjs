@@ -387,6 +387,12 @@ export default class Application extends Component {
         this.stage.setApplication(undefined);
         this._updateAttachedFlag();
         this._updateEnabledFlag();
+
+        if (this.__keypressTimers) {
+            for (const timer of this.__keypressTimers.values()) {
+                clearTimeout(timer);
+            }
+        }
     }
 
     getCanvas() {
