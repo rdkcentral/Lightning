@@ -10,13 +10,14 @@ export default class Transition extends EventEmitter {
         this._settings = settings;
 
         this._element = element;
-        this._getter = Element.getGetter(property);
-        this._setter = Element.getSetter(property);
+
+        this._getter = element.constructor.getGetter(property);
+        this._setter = element.constructor.getSetter(property);
 
         this._merger = settings.merger;
 
         if (!this._merger) {
-            this._merger = Element.getMerger(property);
+            this._merger = element.constructor.getMerger(property);
         }
 
         this._startValue = this._getter(this._element);
@@ -199,5 +200,3 @@ export default class Transition extends EventEmitter {
 }
 
 Transition.prototype.isTransition = true;
-
-import Element from "../tree/Element.mjs";
