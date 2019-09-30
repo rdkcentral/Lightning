@@ -31,7 +31,7 @@ import EventEmitter from "./EventEmitter.mjs";
 
 import WebGLShader from "./renderer/webgl/WebGLShader.mjs";
 import WebGLDefaultShader from "./renderer/webgl/shaders/DefaultShader.mjs";
-import GrayscaleShader from "./renderer/webgl/shaders/GrayscaleShader.mjs";
+import { WebGLGrayscaleShader } from "./renderer/common/shaders/GrayscaleShader.mjs";
 import BoxBlurShader from "./renderer/webgl/shaders/BoxBlurShader.mjs";
 import DitheringShader from "./renderer/webgl/shaders/DitheringShader.mjs";
 import CircularPushShader from "./renderer/webgl/shaders/CircularPushShader.mjs";
@@ -45,7 +45,7 @@ import Light3dShader from "./renderer/webgl/shaders/Light3dShader.mjs";
 
 import C2dShader from "./renderer/c2d/C2dShader.mjs";
 import C2dDefaultShader from "./renderer/c2d/shaders/DefaultShader.mjs";
-import C2dGrayscaleShader from "./renderer/c2d/shaders/GrayscaleShader.mjs";
+import { C2dGrayscaleShader } from "./renderer/common/shaders/GrayscaleShader.mjs";
 import C2dBlurShader from "./renderer/c2d/shaders/BlurShader.mjs";
 
 import Stage from "./tree/Stage.mjs";
@@ -64,7 +64,7 @@ const lightning = {
     Texture,
     EventEmitter,
     shaders: {
-        Grayscale: GrayscaleShader,
+        Grayscale: WebGLGrayscaleShader,
         BoxBlur: BoxBlurShader,
         Dithering: DitheringShader,
         CircularPush: CircularPushShader,
