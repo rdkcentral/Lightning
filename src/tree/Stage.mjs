@@ -10,6 +10,7 @@ import C2dRenderer from "../renderer/c2d/C2dRenderer.mjs";
 import PlatformLoader from "../platforms/PlatformLoader.dev.mjs";
 import WebGLStateManager from "../tools/WebGLStateManager.mjs";
 import Shader from "./Shader.mjs";
+import SpriteRenderer from "../renderer/sprite/SpriteRenderer.mjs";
 
 export default class Stage extends EventEmitter {
 
@@ -64,7 +65,7 @@ export default class Stage extends EventEmitter {
         }
 
         if (this._mode === 0) {
-            this._renderer = new WebGLRenderer(this);
+            this._renderer = new SpriteRenderer(this);
         } else {
             this._renderer = new C2dRenderer(this);
         }
