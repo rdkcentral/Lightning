@@ -140,6 +140,15 @@ export default class ElementCore {
         this.render = this._renderSimple;
 
         this._layout = null;
+
+        this._bottom = 0;
+        this._left = 0;
+        this._top = 0;
+        this._right = 0;
+
+        this._isSharable = false;
+        
+        this._quadsList = false;
     }
 
     get offsetX() {

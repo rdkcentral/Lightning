@@ -2003,6 +2003,56 @@ export default class Element {
             return StageUtils.mergeNumbers;
         }
     }
+
+    get bottom() {
+        return this.__core.bottom;
+    }
+
+    set bottom(v) {
+        this.__core.bottom = v;
+    }
+
+    get left() {
+        return this.__core.left;
+    }
+
+    set left(v) {
+        this.__core.left = v;
+    }
+    get top() {
+        return this.__core.left;
+    }
+
+    set top(v) {
+        this.__core.top = v;
+    }
+    get right() {
+        return this.__core.right;
+    }
+
+    set right(v) {
+        this.__core.right = v;
+    }
+
+    get isSharable() {
+        return this.__core._isSharable;
+    }
+
+    set isSharable(v) {
+        this.__core._isSharable = v;
+    }
+
+    
+    get quadsList() {
+        return this.__core._quadsList;
+    }
+
+    set quadsList(v) {
+        this.__core._quadsList = v;
+        const texture = new ImageTexture(this.stage);
+        texture.src = v.src;
+        this.texture = texture;
+    }
 }
 
 // This gives a slight performance benefit compared to extending EventEmitter.
