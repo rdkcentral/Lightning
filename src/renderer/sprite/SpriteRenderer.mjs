@@ -9,6 +9,18 @@ class SpriteRenderer extends WebGLRenderer {
     destroy() {
         super.destroy();
     }
+    
+    _createDefaultShader(ctx) {
+        return new DefaultShader(ctx);
+    }
+
+    _getShaderBaseType() {
+        return WebGLShader
+    }
+
+    _getShaderAlternative(shaderType) {
+        return shaderType.getWebGL && shaderType.getWebGL();
+    }
 
     _getShaderAlternative(shaderType) {
         return shaderType.getWebGL && shaderType.getWebGL();
