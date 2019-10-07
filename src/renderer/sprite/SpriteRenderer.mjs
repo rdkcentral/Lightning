@@ -1,6 +1,8 @@
 import WebGLRenderer from "./../webgl/WebGLRenderer.mjs";
 import SpriteQuadList from "./SpriteQuadList.mjs";
 import SpriteRenderState from "./SpriteRenderState.mjs";
+import DefaultShader from "./../webgl/shaders/DefaultShader.mjs";
+import WebGLShader from "./../webgl/WebGLShader.mjs";
 
 class SpriteRenderer extends WebGLRenderer {
 
