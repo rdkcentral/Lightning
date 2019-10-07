@@ -5,7 +5,7 @@
 
 import EventEmitter from "../EventEmitter.mjs";
 import Utils from "./Utils.mjs";
-import WebGLRenderer from "../renderer/webgl/WebGLRenderer.mjs";
+//import WebGLRenderer from "../renderer/webgl/WebGLRenderer.mjs";
 import SpriteRenderer from "../renderer/sprite/SpriteRenderer.mjs";
 import C2dRenderer from "../renderer/c2d/C2dRenderer.mjs";
 import PlatformLoader from "../platforms/PlatformLoader.dev.mjs";
