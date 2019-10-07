@@ -33,7 +33,7 @@ export default class WebGLRenderer extends Renderer {
     }
 
     createCoreQuadList(ctx) {
-        return this.mode == 2 ? new SpriteQuadList(ctx) : new WebGLCoreQuadList(ctx);
+        return new WebGLCoreQuadList(ctx);
     }
 
     createCoreQuadOperation(ctx, shader, shaderOwner, renderTextureInfo, scissor, index) {
