@@ -655,6 +655,9 @@ export default class Element {
             let displayedTexture = this.displayedTexture;
             let displayedTextureSource = this.displayedTexture._source;
 
+            if (this.__core.bottom != undefined && this.__core.left != undefined && this.__core.top != undefined && this.__core.right != undefined) 
+                displayedTexture.enableClipping(this.__core.left, this.__core.bottom, Math.abs(this.__core.right - this.__core.left), Math.abs(this.__core.top - this.__core.bottom));
+            
             let tx1 = 0, ty1 = 0, tx2 = 1.0, ty2 = 1.0;
             if (displayedTexture.clipping) {
                 // Apply texture clipping.
