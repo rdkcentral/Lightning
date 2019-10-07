@@ -1,4 +1,6 @@
 import WebGLRenderer from "./../webgl/WebGLRenderer.mjs";
+import SpriteQuadList from "./SpriteQuadList.mjs";
+import SpriteRenderState from "./SpriteRenderState.mjs";
 
 class SpriteRenderer extends WebGLRenderer {
 
@@ -9,7 +11,7 @@ class SpriteRenderer extends WebGLRenderer {
     destroy() {
         super.destroy();
     }
-    
+
     _createDefaultShader(ctx) {
         return new DefaultShader(ctx);
     }
