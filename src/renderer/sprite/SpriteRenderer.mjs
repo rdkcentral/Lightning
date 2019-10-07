@@ -1,4 +1,4 @@
-import WebGLRenderer from "./../sprite/WebGLRenderer.mjs";
+import WebGLRenderer from "./../webgl/WebGLRenderer.mjs";
 
 class SpriteRenderer extends WebGLRenderer {
 
