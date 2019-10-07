@@ -1,7 +1,7 @@
 import CoreQuadList from "../../tree/core/CoreQuadList.mjs";
 
 
-class SpriteQuadList extends CoreQuadList {
+export default class SpriteQuadList extends CoreQuadList {
 
     constructor(ctx) {
         super(ctx);

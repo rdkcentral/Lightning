@@ -1,6 +1,6 @@
 import CoreRenderState from "../../tree/core/CoreRenderState.mjs";
 
-class SpriteRenderState extends CoreRenderState {
+export default class SpriteRenderState extends CoreRenderState {
     constructor(ctx) {
         super(ctx);
 
