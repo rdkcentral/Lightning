@@ -1,7 +1,6 @@
 import Utils from "../../tree/Utils.mjs";
 import StageUtils from "../../tree/StageUtils.mjs";
 import WebGLCoreQuadList from "./WebGLCoreQuadList.mjs";
-import SpriteQuadList from "./SpriteQuadList.mjs";
 import WebGLCoreQuadOperation from "./WebGLCoreQuadOperation.mjs";
 import WebGLCoreRenderExecutor from "./WebGLCoreRenderExecutor.mjs";
 import CoreRenderState from "../../tree/core/CoreRenderState.mjs";
