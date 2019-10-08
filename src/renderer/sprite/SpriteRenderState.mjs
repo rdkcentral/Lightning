@@ -28,7 +28,7 @@ export default class SpriteRenderState extends CoreRenderState {
         let isNewTexture = false;
         if (!this.sharedTexture || this.sharedTexture != elementCore._displayedTextureSource.nativeTexture) {
             this.sharedTexture = elementCore._displayedTextureSource.nativeTexture;
-            if (elementCore._quadsList.id > (this.quads.sharedTextures.length-1))
+            if (!elementCore._quadsList || elementCore._quadsList.id > (this.quads.sharedTextures.length-1))
                 this.quads.sharedTextures.push(elementCore._displayedTextureSource.nativeTexture);
             
             console.log("Setting SHARED teXture");
@@ -55,7 +55,7 @@ export default class SpriteRenderState extends CoreRenderState {
             }
             this._renderTextureInfo.empty = false;
         }
-        this.quads.quadTextures.push(elementCore._quadsList.id);//this.quads.sharedTextures.length-1);
+        this.quads.quadTextures.push(elementCore._quadsList ? elementCore._quadsList.id : this.quads.sharedTextures.length-1);
 
         this.quads.quadElements.push(elementCore);
 
