@@ -5,22 +5,26 @@ export default class SpriteQuadList extends WebGLCoreQuadList {
     constructor(ctx) {
         super(ctx);
 
-        this.sharedTextures = [];
+        this.quadTextureIds = [];
     }
 
     reset() {
         super.reset();
-        this.sharedTextures = [];
+        this.quadTextureIds = [];
+    }
+
+    get length() {
+        return this.quadTextureIds.length;
     }
 
     getTexture(index) {
-        //console.log("getTexture", this.quadTextures[index], this.sharedTextures[this.quadTextures[index]])
-        return this.sharedTextures[this.quadTextures[index]];
+        //console.log("getTexture", this.quadTextures[index], this.quadTextures[this.quadTextureIds[index]])
+        return this.quadTextures[this.quadTextureIds[index]];
     }
 
     getTextureWidth(index) {
         //console.log("getTextureWidth");
-        let nativeTexture = this.sharedTextures[this.quadTextures[index]];
+        let nativeTexture = this.quadTextures[this.quadTextureIds[index]];
         if (nativeTexture.w) {
             // Render texture;
             return nativeTexture.w;
@@ -31,7 +35,7 @@ export default class SpriteQuadList extends WebGLCoreQuadList {
 
     getTextureHeight(index) {
        // console.log("getTextureHeight");
-        let nativeTexture = this.sharedTextures[this.quadTextures[index]];
+        let nativeTexture = this.quadTextures[this.quadTextureIds[index]];
         if (nativeTexture.h) {
             // Render texture;
             return nativeTexture.h;

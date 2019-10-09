@@ -8,6 +8,10 @@ export default class SpriteRenderState extends CoreRenderState {
         this.sharedTexture = null;
     }
 
+    get length() {
+        return this.quads.quadTextureIds.length;
+    }
+
     addQuad(elementCore) {
         if (!this._quadOperation) {
             this._createQuadOperation();
@@ -28,8 +32,8 @@ export default class SpriteRenderState extends CoreRenderState {
         let isNewTexture = false;
         if (!this.sharedTexture || this.sharedTexture != elementCore._displayedTextureSource.nativeTexture) {
             this.sharedTexture = elementCore._displayedTextureSource.nativeTexture;
-            if (!elementCore._quadsList || elementCore._quadsList.id > (this.quads.sharedTextures.length-1))
-                this.quads.sharedTextures.push(elementCore._displayedTextureSource.nativeTexture);
+            if (!elementCore._quadsList || elementCore._quadsList.id > (this.quads.quadTexture.length-1))
+                this.quads.quadTextures.push(elementCore._displayedTextureSource.nativeTexture);
             
             console.log("Setting SHARED teXture");
             isNewTexture = true;
@@ -55,7 +59,7 @@ export default class SpriteRenderState extends CoreRenderState {
             }
             this._renderTextureInfo.empty = false;
         }
-        this.quads.quadTextures.push(elementCore._quadsList ? elementCore._quadsList.id : this.quads.sharedTextures.length-1);
+        this.quads.quadTextureIds.push(elementCore._quadsList ? elementCore._quadsList.id : this.quads.quadTextures.length-1);
 
         this.quads.quadElements.push(elementCore);
 
@@ -63,7 +67,7 @@ export default class SpriteRenderState extends CoreRenderState {
 
         this.renderer.addQuad(this, this.quads, this.length - 1);
         console.log("addQuad:quads", this.quads.length);
-        console.log("addQuad:sharedTextures:", this.quads.sharedTextures);
+        console.log("addQuad:quadTexturesId:", this.quads.quadTextureIds);
         console.log("addQuad:quadTextures:", this.quads.quadTextures);
         console.log("addQuad:quads", this.quads.quadElements.length);
         console.log("Texture:", nativeTexture);
@@ -74,8 +78,8 @@ export default class SpriteRenderState extends CoreRenderState {
     _isRenderTextureReusable() {
         const offset = this._renderTextureInfo.offset;
         //console.log("_isRenderTextureReusable:offset", this._renderTextureInfo.offset);
-        return (this.quads.sharedTextures[this.quads.quadTextures[offset]].w === this._renderTextureInfo.w) &&
-            (this.quads.sharedTextures[this.quads.quadTextures[offset]].h === this._renderTextureInfo.h) &&
+        return (this.quads.quadTextures[this.quads.quadTexturesIds[offset]].w === this._renderTextureInfo.w) &&
+            (this.quads.quadTextures[this.quads.quadTexturesIds[offset]].h === this._renderTextureInfo.h) &&
             this.renderer.isRenderTextureReusable(this, this._renderTextureInfo)
     }
 }
