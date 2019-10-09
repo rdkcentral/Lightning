@@ -388,10 +388,12 @@ export default class Application extends Component {
         this._updateAttachedFlag();
         this._updateEnabledFlag();
 
-        if (this.__keypressTimers) {
+        if (this.__keypressTimers.size) {
             for (const timer of this.__keypressTimers.values()) {
                 clearTimeout(timer);
             }
+
+            this.__keypressTimers.clear();
         }
     }
 
