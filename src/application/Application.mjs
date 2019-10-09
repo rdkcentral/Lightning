@@ -289,8 +289,7 @@ export default class Application extends Component {
 
         this.updateFocusPath();
 
-        const focusPath = this.__getFocusPath();
-        const consumer = focusPath.pop();
+        const consumer = [...path].pop();
 
         if (key && consumer.longpress) {
             this._startLongpressTimer(key, consumer);
