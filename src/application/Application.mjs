@@ -332,11 +332,11 @@ export default class Application extends Component {
     }
 
     /**
-     * register and starts a timer for the pressed key. Timer will be cleared when the key is released
+     * Registers and starts a timer for the pressed key. Timer will be cleared when the key is released
      * before the timer goes off.
      *
      * If key is not release (keyup) the longpress handler will be fired.
-     * configuration can be via the Components template:
+     * Configuration can be via the Components template:
      *
      * static _template() {
      *     return {

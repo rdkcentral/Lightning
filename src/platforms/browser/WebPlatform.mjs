@@ -172,14 +172,14 @@ export default class WebPlatform {
     }
 
     registerKeydownHandler(keyhandler) {
-        this._keydownListener = e => {
+        this._keydownListener = (e) => {
             keyhandler(e);
         };
         window.addEventListener('keydown', this._keydownListener);
     }
 
     registerKeyupHandler(keyhandler){
-        this._keyupListener = e => {
+        this._keyupListener = (e) => {
             keyhandler(e);
         };
         window.addEventListener('keyup', this._keyupListener);

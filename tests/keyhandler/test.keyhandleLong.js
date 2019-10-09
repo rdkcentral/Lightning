@@ -9,32 +9,32 @@ describe('Longpress handling', function() {
         class TestApp extends lng.Application {
             static _template(){
                 return {
-                    A:{
+                    A: {
                         type: ComponentA,
-                        // configuration how long a key should be pressed before it's longpress counterpart fires
-                        longpress:{up:700, down:600, left:800, right:900}
+                        // Configuration how long a key should be pressed before it's longpress counterpart fires
+                        longpress: {up: 700, down: 600, left: 800, right: 900}
                     }
                 }
             }
-            _getFocused(){
+            _getFocused() {
                 return this.tag("A");
             }
         }
 
-        class ComponentA extends lng.Component{
-            static _template(){
+        class ComponentA extends lng.Component {
+            static _template() {
                 return {}
             }
 
-            _construct(){
+            _construct() {
                 this._handled = [];
             }
 
-            _handleUpLong(){
+            _handleUpLong() {
                 this._handled.push("_handleUpLong");
             }
 
-            get handled(){
+            get handled() {
                 return this._handled;
             }
         }
@@ -48,19 +48,19 @@ describe('Longpress handling', function() {
     describe('Component', function() {
         const repeat = (iterations)=>{
             return new Promise((resolve)=>{
-                const intervalId = setInterval(()=>{
-                    app.application._receiveKeydown({keyCode:38});
-                    if(!iterations){
+                const intervalId = setInterval(() => {
+                    app.application._receiveKeydown({keyCode: 38});
+                    if (!iterations) {
                         clearTimeout(intervalId);
                         resolve();
                     }
                     iterations--;
-                },400)
+                }, 400)
             })
         };
-        it('should handle _handleUpLong after long keypress', function(done){
+        it('should handle _handleUpLong after long keypress', function(done) {
             const a = app.tag("A");
-            repeat(4).then(()=>{
+            repeat(4).then(() => {
                 chai.assert(a.handled.indexOf("_handleUpLong") !== -1);
                 done();
             });

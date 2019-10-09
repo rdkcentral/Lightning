@@ -7,36 +7,36 @@ describe('Key handling', function() {
 
     before(() => {
         class TestApp extends lng.Application {
-            static _template(){
+            static _template() {
                 return {
-                    A:{type: ComponentA}
+                    A: {type: ComponentA}
                 }
             }
-            _getFocused(){
+            _getFocused() {
                 return this.tag("A");
             }
         }
 
         class ComponentA extends lng.Component{
-            _construct(){
+            _construct() {
                 this._handled = [];
             }
 
-            _handleUp(){
+            _handleUp() {
                 this._handled.push("_handleUp");
             }
 
-            _handleUpRelease(){
+            _handleUpRelease() {
                 this._handled.push("_handleUpRelease");
             }
 
-            _captureKey(){
+            _captureKey() {
                 this._handled.push("_captureKey");
                 // bubble
                 return false;
             }
 
-            get handled(){
+            get handled() {
                 return this._handled;
             }
         }
@@ -48,19 +48,19 @@ describe('Key handling', function() {
     });
 
     describe('Component', function() {
-        it('should handle keydown', function(){
+        it('should handle keydown', function() {
             const a = app.tag("A");
             stage.application.focusTopDownEvent(["_handleUp"]);
             chai.assert(a.handled.indexOf("_handleUp") !== -1);
         });
 
-        it('should handle keyup', function(){
+        it('should handle keyup', function() {
             const a = app.tag("A");
             stage.application.focusTopDownEvent(["_handleUpRelease"]);
             chai.assert(a.handled.indexOf("_handleUpRelease") !== -1);
         });
 
-        it('should handle captureKey', function(){
+        it('should handle captureKey', function() {
             const a = app.tag("A");
             stage.application.focusTopDownEvent(["_captureKey"]);
             chai.assert(a.handled.indexOf("_captureKey") !== -1);
