@@ -660,7 +660,7 @@ export default class Element {
                 this.__core.y += this.__core._quadsList.quadData[0].verts[1];
                 displayedTexture.enableClipping(this.__core.left * displayedTextureSource.w, this.__core.bottom * displayedTextureSource.h, Math.abs(this.__core.right - this.__core.left) * displayedTextureSource.w, Math.abs(this.__core.top - this.__core.bottom) * displayedTextureSource.h);
             }
-            
+
             let tx1 = 0, ty1 = 0, tx2 = 1.0, ty2 = 1.0;
             if (displayedTexture.clipping) {
                 // Apply texture clipping.
@@ -2054,20 +2054,23 @@ export default class Element {
     }
 
     set quadsList(v) {
-        this.__core._quadsList = v;
-        if (this.__core._quadsList.quadData) {
-            console.log("this.__core.quadData", this.__core._quadsList.quadData[0]);
-            this.__core.bottom = this.__core._quadsList.quadData[2].uvs[0];
-            this.__core.left = this.__core._quadsList.quadData[2].uvs[1];
-            this.__core.top = this.__core._quadsList.quadData[2].uvs[2];
-            this.__core.right = this.__core._quadsList.quadData[2].uvs[3];
-            console.log(this.__core.bottom, this.__core.left, this.__core.top, this.__core.right);
-
-        }
         const texture = new ImageTexture(this.stage);
         texture.src = v.src;
         texture._renderTexture = this.texturizer.getRenderTexture();
         this.texture = texture;
+        
+        this.__core._quadsList = v;
+        if (v.quadData) {
+            console.log("this.__core.quadData", v.quadData[0]);
+            this.__core.bottom = v.quadData[2].uvs[0];
+            this.__core.left = v.quadData[2].uvs[1];
+            this.__core.top = v.quadData[2].uvs[2];
+            this.__core.right = v.quadData[2].uvs[3];
+
+            this.texture.id = this.__core._quadsList.quadData[2].textureId;
+            console.log(this.__core.bottom, this.__core.left, this.__core.top, this.__core.right);
+
+        }
     }
 }
 
