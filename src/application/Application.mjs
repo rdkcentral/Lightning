@@ -279,7 +279,7 @@ export default class Application extends Component {
 
         if (key) {
             if (!this.stage.application.focusTopDownEvent([`_capture${key}`, "_captureKey"], obj)) {
-                this.stage.application.focusBottomUpEvent([`_handle${key}`, "_handleKey"], obj)
+                this.stage.application.focusBottomUpEvent([`_handle${key}`, "_handleKey"], obj);
             }
         } else {
             if (!this.stage.application.focusTopDownEvent(["_captureKey"], obj)) {
@@ -310,7 +310,7 @@ export default class Application extends Component {
 
         if (key) {
             if (!this.stage.application.focusTopDownEvent([`_capture${key}Release`, "_captureKeyRelease"], obj)) {
-                this.stage.application.focusBottomUpEvent([`_handle${key}Release`, "_handleKeyRelease"], obj)
+                this.stage.application.focusBottomUpEvent([`_handle${key}Release`, "_handleKeyRelease"], obj);
             }
         } else {
             if (!this.stage.application.focusTopDownEvent(["_captureKeyRelease"], obj)) {
