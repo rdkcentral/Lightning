@@ -361,7 +361,7 @@ export default class Application extends Component {
             if (!Utils.isNumber(timeout)) {
                 element._throwError("config value for longpress must be a number");
             } else {
-                this.__keypressTimers.set(key,setTimeout(() => {
+                this.__keypressTimers.set(key, setTimeout(() => {
                     if (!this.stage.application.focusTopDownEvent([`_capture${key}Long`, "_captureKey"], {})) {
                         this.stage.application.focusBottomUpEvent([`_handle${key}Long`, "_handleKey"], {});
                     }
