@@ -10,14 +10,15 @@ describe('Key handling', function() {
             static _template() {
                 return {
                     A: {type: ComponentA}
-                }
+                };
             }
+
             _getFocused() {
                 return this.tag("A");
             }
         }
 
-        class ComponentA extends lng.Component{
+        class ComponentA extends lng.Component {
             _construct() {
                 this._handled = [];
             }
