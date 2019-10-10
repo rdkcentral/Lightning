@@ -655,8 +655,11 @@ export default class Element {
             let displayedTexture = this.displayedTexture;
             let displayedTextureSource = this.displayedTexture._source;
 
-            if (this.__core.bottom != undefined && this.__core.left != undefined && this.__core.top != undefined && this.__core.right != undefined) 
-                displayedTexture.enableClipping(this.__core.left, this.__core.bottom, Math.abs(this.__core.right - this.__core.left), Math.abs(this.__core.top - this.__core.bottom));
+            if (this.__core.bottom != undefined && this.__core.left != undefined && this.__core.top != undefined && this.__core.right != undefined)  {
+                this.__core.x += this.__core._quadsList.quadData[0].verts[0];
+                this.__core.y += this.__core._quadsList.quadData[0].verts[1];
+                displayedTexture.enableClipping(this.__core.left * displayedTextureSource.w, this.__core.bottom * displayedTextureSource.h, Math.abs(this.__core.right - this.__core.left) * displayedTextureSource.w, Math.abs(this.__core.top - this.__core.bottom) * displayedTextureSource.h);
+            }
             
             let tx1 = 0, ty1 = 0, tx2 = 1.0, ty2 = 1.0;
             if (displayedTexture.clipping) {
@@ -2052,8 +2055,18 @@ export default class Element {
 
     set quadsList(v) {
         this.__core._quadsList = v;
+        if (this.__core._quadsList.quadData) {
+            console.log("this.__core.quadData", this.__core._quadsList.quadData[0]);
+            this.__core.bottom = this.__core._quadsList.quadData[2].uvs[0];
+            this.__core.left = this.__core._quadsList.quadData[2].uvs[1];
+            this.__core.top = this.__core._quadsList.quadData[2].uvs[2];
+            this.__core.right = this.__core._quadsList.quadData[2].uvs[3];
+            console.log(this.__core.bottom, this.__core.left, this.__core.top, this.__core.right);
+
+        }
         const texture = new ImageTexture(this.stage);
         texture.src = v.src;
+        texture._renderTexture = this.texturizer.getRenderTexture();
         this.texture = texture;
     }
 }
