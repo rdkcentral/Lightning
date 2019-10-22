@@ -161,7 +161,6 @@ describe('text', function() {
                 chai.assert(texture.source.renderInfo.lines.length === 1);
                 chai.assert(texture.source.renderInfo.w < WRAP_WIDTH);
                 chai.assert(texture.source.renderInfo.w > 0);
-                console.log(texture.source.renderInfo)
                 chai.assert(texture.source.renderInfo.lines[0].substr(-2) == '..');
             });
         });
