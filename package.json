@@ -17,5 +17,10 @@
   },
   "bugs": {
     "url": "https://github.com/WebPlatformForEmbedded/Lightning/issues"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "mocha": "^6.2.1",
+    "sinon": "^7.5.0"
   }
 }
