@@ -5,9 +5,9 @@
   "license": "apache",
   "main": "src/lightning.mjs",
   "scripts": {
-    "postinstall": "rollup -c"
+    "build": "rollup -c"
   },
-  "dependencies": {
+  "devDependencies": {
     "rollup": "^0.67.0",
     "rollup-plugin-license": "^0.10.0"
   },
