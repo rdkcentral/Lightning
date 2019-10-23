@@ -699,6 +699,11 @@ export default class Element {
                 ty2 = Math.min(1, ty2);
             }
 
+            if (displayedTextureSource._flipTextureY) {
+                let tempty = ty2;
+                ty2 = ty1;
+                ty1 = tempty;
+            }
             this.__core.setTextureCoords(tx1, ty1, tx2, ty2);
         }
     }

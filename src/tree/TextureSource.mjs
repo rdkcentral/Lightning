@@ -249,6 +249,11 @@ export default class TextureSource {
 
         if (options && options.imageRef)
             this._imageRef = options.imageRef;
+        if (options && options.flipTextureY) {
+            this._flipTextureY = options.flipTextureY;
+        } else {
+            this._flipTextureY = false;
+        }
 
         if (this._isNativeTexture(source)) {
             // Texture managed by caller.
