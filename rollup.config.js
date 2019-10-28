@@ -1,11 +1,9 @@
-const resolve = require('./rollup.plugin.resolver');
 import license from 'rollup-plugin-license';
 import pkg from './package.json';
 
 export default {
     input: './src/lightning.mjs',
     plugins: [
-        resolve("web"),
 
         /* Add version number to bundle */
         license({

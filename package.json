@@ -5,11 +5,7 @@
   "license": "apache",
   "main": "src/lightning.mjs",
   "scripts": {
-    "postinstall": "rollup -c"
-  },
-  "dependencies": {
-    "rollup": "^0.67.0",
-    "rollup-plugin-license": "^0.10.0"
+    "build": "rollup -c"
   },
   "repository": {
     "type": "git",
@@ -19,6 +15,8 @@
     "url": "https://github.com/WebPlatformForEmbedded/Lightning/issues"
   },
   "devDependencies": {
+    "rollup": "^0.67.0",
+    "rollup-plugin-license": "^0.10.0",
     "chai": "^4.2.0",
     "mocha": "^6.2.1",
     "sinon": "^7.5.0"
