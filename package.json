@@ -3,9 +3,12 @@
   "name": "wpe-lightning",
   "version": "1.2.0",
   "license": "apache",
-  "main": "src/lightning.mjs",
+  "private": true,
+  "main": "dist/lightning.js",
+  "files": ["index.js", "src/**", "dist/**", "devtools/**"],
   "scripts": {
-    "build": "rollup -c"
+    "build": "rollup -c",
+    "release": "npm run build && npm publish --dry-run"
   },
   "repository": {
     "type": "git",
@@ -15,10 +18,11 @@
     "url": "https://github.com/WebPlatformForEmbedded/Lightning/issues"
   },
   "devDependencies": {
-    "rollup": "^0.67.0",
-    "rollup-plugin-license": "^0.10.0",
     "chai": "^4.2.0",
     "mocha": "^6.2.1",
+    "rollup": "^0.67.0",
+    "rollup-plugin-license": "^0.10.0",
+    "rollup-plugin-terser": "^5.1.2",
     "sinon": "^7.5.0"
   }
 }

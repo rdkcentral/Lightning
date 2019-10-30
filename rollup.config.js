@@ -1,7 +1,14 @@
 import license from 'rollup-plugin-license';
-import pkg from './package.json';
+import { terser } from 'rollup-plugin-terser';
 
-export default {
+const TERSER_CONFIG = {
+    keep_classnames: true,
+    keep_fnames: true,
+    sourcemap: true,
+}
+
+export default [{
+    /** lightning.js */
     input: './src/lightning.mjs',
     plugins: [
 
@@ -11,8 +18,28 @@ export default {
           }),
     ],
     output: {
-        file: './dist/lightning-web.js',
+        file: './dist/lightning.js',
         format: 'iife',
         name: 'lng'
     }
-};
+},
+
+{
+    /** lightning.min.js */
+    input: './src/lightning.mjs',
+    plugins: [
+        terser(TERSER_CONFIG),
+
+        /* Add version number to bundle */
+        license({
+            banner: `Lightning v<%= pkg.version %>\n\n https://github.com/WebPlatformForEmbedded/Lightning`,
+          }),
+    ],
+    output: {
+        file: './dist/lightning.min.js',
+        format: 'iife',
+        name: 'lng',
+        sourcemap: true,
+    }
+
+}];
