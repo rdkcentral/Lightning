@@ -4,6 +4,8 @@
   "version": "1.2.0",
   "license": "apache",
   "main": "dist/lightning.js",
+  "module": "src/lightning.mjs",
+  "browser": "dist/lightning.js",
   "files": [
     "index.js",
     "src/**",
