@@ -3,12 +3,16 @@
   "name": "wpe-lightning",
   "version": "1.2.0",
   "license": "apache",
-  "private": true,
   "main": "dist/lightning.js",
-  "files": ["index.js", "src/**", "dist/**", "devtools/**"],
+  "files": [
+    "index.js",
+    "src/**",
+    "dist/**",
+    "devtools/**"
+  ],
   "scripts": {
     "build": "rollup -c",
-    "release": "npm run build && npm publish --dry-run"
+    "release": "npm run build && npm publish"
   },
   "repository": {
     "type": "git",
