@@ -19,7 +19,7 @@ export default [{
     ],
     output: {
         file: './dist/lightning.js',
-        format: 'iife',
+        format: 'umd',
         name: 'lng'
     }
 },
@@ -37,7 +37,7 @@ export default [{
     ],
     output: {
         file: './dist/lightning.min.js',
-        format: 'iife',
+        format: 'umd',
         name: 'lng',
         sourcemap: true,
     }
