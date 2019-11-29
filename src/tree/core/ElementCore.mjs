@@ -1436,7 +1436,6 @@ export default class ElementCore {
     }
 
     update() {
-
         this._recalc |= this._parent._pRecalc;
 
         if (this._layout && this._layout.isEnabled()) {
