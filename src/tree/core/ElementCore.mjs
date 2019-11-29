@@ -1285,7 +1285,158 @@ export default class ElementCore {
         return this._boundsMargin;
     }
 
+    _makeVisible(recalc, context, visible) {
+        if (recalc & 1) {
+            if (!context.alpha && visible) {
+                // Becomes visible.
+                this._hasRenderUpdates = 3;
+            }
+        }
+    }
+
+    _updateAlpha(recalc, context, parentContext, force = false) {
+        if (force || recalc & 1) {
+            context.alpha = parentContext.alpha * this._localAlpha;
+
+            if (context.alpha < 1e-14) {
+                // Tiny rounding errors may cause failing visibility tests.
+                context.alpha = 0;
+            }
+        }
+    }
+
+    _updateCoords(recalc, context, parentContext, force = false) {
+        if (force || recalc & 6) {
+            context.px = parentContext.px + this._localPx * parentContext.ta;
+            context.py = parentContext.py + this._localPy * parentContext.td;
+            if (parentContext.tb !== 0) context.px += this._localPy * parentContext.tb;
+            if (parentContext.tc !== 0) context.py += this._localPx * parentContext.tc;
+        }
+
+        if (force || recalc & 4) {
+            context.ta = this._localTa * parentContext.ta;
+            context.tb = this._localTd * parentContext.tb;
+            context.tc = this._localTa * parentContext.tc;
+            context.td = this._localTd * parentContext.td;
+
+            if (this._isComplex) {
+                context.ta += this._localTc * parentContext.tb;
+                context.tb += this._localTb * parentContext.ta;
+                context.tc += this._localTc * parentContext.td;
+                context.td += this._localTb * parentContext.tc;
+            }
+        }
+    }
+
+    _calculateBoundingBox(context, parentContext, bboxW, bboxH) {
+        // Calculate a bbox for this element.
+        const r = context;
+        const pr = parentContext;
+        const rComplex = (r.tb !== 0) || (r.tc !== 0) || (r.ta < 0) || (r.td < 0);
+        let sx, sy, ex, ey;
+
+        if (rComplex) {
+            sx = Math.min(0, bboxW * r.ta, bboxW * r.ta + bboxH * r.tb, bboxH * r.tb) + r.px;
+            ex = Math.max(0, bboxW * r.ta, bboxW * r.ta + bboxH * r.tb, bboxH * r.tb) + r.px;
+            sy = Math.min(0, bboxW * r.tc, bboxW * r.tc + bboxH * r.td, bboxH * r.td) + r.py;
+            ey = Math.max(0, bboxW * r.tc, bboxW * r.tc + bboxH * r.td, bboxH * r.td) + r.py;
+        } else {
+            sx = r.px;
+            ex = r.px + r.ta * bboxW;
+            sy = r.py;
+            ey = r.py + r.td * bboxH;
+        }
+
+        if (this._dimsUnknown && (rComplex || this._localTa < 1 || this._localTb < 1)) {
+            // If we are dealing with a non-identity matrix, we must extend the bbox so that withinBounds and
+            //  scissors will include the complete range of (positive) dimensions up to ,lh.
+            const nx = this._x * pr.ta + this._y * pr.tb + pr.px;
+            const ny = this._x * pr.tc + this._y * pr.td + pr.py;
+            if (nx < sx) sx = nx;
+            if (ny < sy) sy = ny;
+            if (nx > ex) ex = nx;
+            if (ny > ey) ey = ny;
+        }
+
+        return [sx, sy, ex, ey]
+    }
+
+    _updateClipping(recalc, context, sx, sy, ex, ey) {
+        const r = context;
+        if (recalc & 6 || !this._scissor /* initial */) {
+            // Determine whether we must 'clip'.
+            if (this._clipping && r.isSquare()) {
+                // If the parent renders to a texture, it's scissor should be ignored;
+                const area = this._parent._useRenderToTexture ? this._parent._viewport : this._parent._scissor;
+                if (area) {
+                    // Merge scissor areas.
+                    const lx = Math.max(area[0], sx);
+                    const ly = Math.max(area[1], sy);
+                    this._scissor = [
+                        lx,
+                        ly,
+                        Math.min(area[2] + area[0], ex) - lx,
+                        Math.min(area[3] + area[1], ey) - ly
+                    ];
+                } else {
+                    this._scissor = [sx, sy, ex - sx, ey - sy];
+                }
+            } else {
+                // No clipping: reuse parent scissor.
+                this._scissor = this._parent._useRenderToTexture ? this._parent._viewport : this._parent._scissor;
+            }
+        }
+    }
+
+    _calculateOutOfBounds(bboxW, bboxH, sx, sy, ex, ey) {
+        // Offscreens are always rendered as long as the parent is within bounds.
+        let withinMargin = true;
+        if (!this._renderToTextureEnabled || !this._texturizer || !this._texturizer.renderOffscreen) {
+            if (this._scissor && (this._scissor[2] <= 0 || this._scissor[3] <= 0)) {
+                // Empty scissor area.
+                this._outOfBounds = 2;
+            } else {
+                // Use bbox to check out-of-boundness.
+                if ((this._scissor[0] > ex) ||
+                    (this._scissor[1] > ey) ||
+                    (sx > (this._scissor[0] + this._scissor[2])) ||
+                    (sy > (this._scissor[1] + this._scissor[3]))
+                ) {
+                    this._outOfBounds = 1;
+                }
+
+                if (this._outOfBounds) {
+                    if (this._clipping || this._useRenderToTexture || (this._clipbox && (bboxW && bboxH))) {
+                        this._outOfBounds = 2;
+                    }
+                }
+            }
+
+            withinMargin = (this._outOfBounds === 0);
+            if (!withinMargin) {
+                // Re-test, now with margins.
+                if (this._recBoundsMargin) {
+                    withinMargin = !((ex < this._scissor[0] - this._recBoundsMargin[2]) ||
+                        (ey < this._scissor[1] - this._recBoundsMargin[3]) ||
+                        (sx > this._scissor[0] + this._scissor[2] + this._recBoundsMargin[0]) ||
+                        (sy > this._scissor[1] + this._scissor[3] + this._recBoundsMargin[1]))
+                } else {
+                    withinMargin = !((ex < this._scissor[0] - 100) ||
+                        (ey < this._scissor[1] - 100) ||
+                        (sx > this._scissor[0] + this._scissor[2] + 100) ||
+                        (sy > this._scissor[1] + this._scissor[3] + 100))
+                }
+                if (withinMargin && this._outOfBounds === 2) {
+                    // Children must be visited because they may contain elements that are within margin, so must be visible.
+                    this._outOfBounds = 1;
+                }
+            }
+        }
+        return withinMargin;
+    }
+
     update() {
+
         this._recalc |= this._parent._pRecalc;
 
         if (this._layout && this._layout.isEnabled()) {
@@ -1315,40 +1466,9 @@ export default class ElementCore {
         if (this._hasUpdates || (this._recalc && visible) || (w.alpha && !visible)) {
             let recalc = this._recalc;
 
-            // Update world coords/alpha.
-            if (recalc & 1) {
-                if (!w.alpha && visible) {
-                    // Becomes visible.
-                    this._hasRenderUpdates = 3;
-                }
-                w.alpha = pw.alpha * this._localAlpha;
-
-                if (w.alpha < 1e-14) {
-                    // Tiny rounding errors may cause failing visibility tests.
-                    w.alpha = 0;
-                }
-            }
-
-            if (recalc & 6) {
-                w.px = pw.px + this._localPx * pw.ta;
-                w.py = pw.py + this._localPy * pw.td;
-                if (pw.tb !== 0) w.px += this._localPy * pw.tb;
-                if (pw.tc !== 0) w.py += this._localPx * pw.tc;
-            }
-
-            if (recalc & 4) {
-                w.ta = this._localTa * pw.ta;
-                w.tb = this._localTd * pw.tb;
-                w.tc = this._localTa * pw.tc;
-                w.td = this._localTd * pw.td;
-
-                if (this._isComplex) {
-                    w.ta += this._localTc * pw.tb;
-                    w.tb += this._localTb * pw.ta;
-                    w.tc += this._localTc * pw.td;
-                    w.td += this._localTb * pw.tc;
-                }
-            }
+            this._makeVisible(recalc, w, visible);
+            this._updateAlpha(recalc, w, pw);
+            this._updateCoords(recalc, w, pw)
 
             // Update render coords/alpha.
             const pr = this._parent._renderContext;
@@ -1361,41 +1481,14 @@ export default class ElementCore {
                 }
 
                 const r = this._renderContext;
-
-                // Update world coords/alpha.
-                if (init || (recalc & 1)) {
-                    r.alpha = pr.alpha * this._localAlpha;
-
-                    if (r.alpha < 1e-14) {
-                        r.alpha = 0;
-                    }
-                }
-
-                if (init || (recalc & 6)) {
-                    r.px = pr.px + this._localPx * pr.ta;
-                    r.py = pr.py + this._localPy * pr.td;
-                    if (pr.tb !== 0) r.px += this._localPy * pr.tb;
-                    if (pr.tc !== 0) r.py += this._localPx * pr.tc;
-                }
+                this._updateAlpha(recalc, r, pr, init);
+                this._updateCoords(recalc, r, pr, init);
 
                 if (init) {
                     // We set the recalc toggle, because we must make sure that the scissor is updated.
                     recalc |= 2;
                 }
 
-                if (init || (recalc & 4)) {
-                    r.ta = this._localTa * pr.ta;
-                    r.tb = this._localTd * pr.tb;
-                    r.tc = this._localTa * pr.tc;
-                    r.td = this._localTd * pr.td;
-
-                    if (this._isComplex) {
-                        r.ta += this._localTc * pr.tb;
-                        r.tb += this._localTb * pr.ta;
-                        r.tc += this._localTc * pr.td;
-                        r.td += this._localTb * pr.tc;
-                    }
-                }
             } else {
                 this._renderContext = this._worldContext;
             }
@@ -1427,55 +1520,8 @@ export default class ElementCore {
             const bboxW = this._dimsUnknown ? 2048 : this._w;
             const bboxH = this._dimsUnknown ? 2048 : this._h;
             
-            // Calculate a bbox for this element.
-            let sx, sy, ex, ey;
-            const rComplex = (r.tb !== 0) || (r.tc !== 0) || (r.ta < 0) || (r.td < 0);
-            if (rComplex) {
-                sx = Math.min(0, bboxW * r.ta, bboxW * r.ta + bboxH * r.tb, bboxH * r.tb) + r.px;
-                ex = Math.max(0, bboxW * r.ta, bboxW * r.ta + bboxH * r.tb, bboxH * r.tb) + r.px;
-                sy = Math.min(0, bboxW * r.tc, bboxW * r.tc + bboxH * r.td, bboxH * r.td) + r.py;
-                ey = Math.max(0, bboxW * r.tc, bboxW * r.tc + bboxH * r.td, bboxH * r.td) + r.py;
-            } else {
-                sx = r.px;
-                ex = r.px + r.ta * bboxW;
-                sy = r.py;
-                ey = r.py + r.td * bboxH;
-            }
-
-            if (this._dimsUnknown && (rComplex || this._localTa < 1 || this._localTb < 1)) {
-                // If we are dealing with a non-identity matrix, we must extend the bbox so that withinBounds and
-                //  scissors will include the complete range of (positive) dimensions up to ,lh.
-                const nx = this._x * pr.ta + this._y * pr.tb + pr.px;
-                const ny = this._x * pr.tc + this._y * pr.td + pr.py;
-                if (nx < sx) sx = nx;
-                if (ny < sy) sy = ny;
-                if (nx > ex) ex = nx;
-                if (ny > ey) ey = ny;
-            }
-
-            if (recalc & 6 || !this._scissor /* initial */) {
-                // Determine whether we must 'clip'.
-                if (this._clipping && r.isSquare()) {
-                    // If the parent renders to a texture, it's scissor should be ignored;
-                    const area = this._parent._useRenderToTexture ? this._parent._viewport : this._parent._scissor;
-                    if (area) {
-                        // Merge scissor areas.
-                        const lx = Math.max(area[0], sx);
-                        const ly = Math.max(area[1], sy);
-                        this._scissor = [
-                            lx,
-                            ly,
-                            Math.min(area[2] + area[0], ex) - lx,
-                            Math.min(area[3] + area[1], ey) - ly
-                        ];
-                    } else {
-                        this._scissor = [sx, sy, ex - sx, ey - sy];
-                    }
-                } else {
-                    // No clipping: reuse parent scissor.
-                    this._scissor = this._parent._useRenderToTexture ? this._parent._viewport : this._parent._scissor;
-                }
-            }
+            let [sx, sy, ex, ey] = this._calculateBoundingBox(r, pr, bboxW, bboxH);
+            this._updateClipping(recalc, r, sx, sy, ex, ey);
 
             // Calculate the outOfBounds margin.
             if (this._boundsMargin) {
@@ -1487,27 +1533,7 @@ export default class ElementCore {
             if (this._onAfterCalcs) {
                 // After calcs may change render coords, scissor and/or recBoundsMargin.
                 if (this._onAfterCalcs(this.element)) {
-                    // Recalculate bbox.
-                    if (rComplex) {
-                        sx = Math.min(0, bboxW * r.ta, bboxW * r.ta + bboxH * r.tb, bboxH * r.tb) + r.px;
-                        ex = Math.max(0, bboxW * r.ta, bboxW * r.ta + bboxH * r.tb, bboxH * r.tb) + r.px;
-                        sy = Math.min(0, bboxW * r.tc, bboxW * r.tc + bboxH * r.td, bboxH * r.td) + r.py;
-                        ey = Math.max(0, bboxW * r.tc, bboxW * r.tc + bboxH * r.td, bboxH * r.td) + r.py;
-                    } else {
-                        sx = r.px;
-                        ex = r.px + r.ta * bboxW;
-                        sy = r.py;
-                        ey = r.py + r.td * bboxH;
-                    }
-
-                    if (this._dimsUnknown && (rComplex || this._localTa < 1 || this._localTb < 1)) {
-                        const nx = this._x * pr.ta + this._y * pr.tb + pr.px;
-                        const ny = this._x * pr.tc + this._y * pr.td + pr.py;
-                        if (nx < sx) sx = nx;
-                        if (ny < sy) sy = ny;
-                        if (nx > ex) ex = nx;
-                        if (ny > ey) ey = ny;
-                    }
+                    [sx, sy, ex, ey] = this._calculateBoundingBox(r, pr, bboxW, bboxH);
                 }
             }
 
@@ -1523,50 +1549,7 @@ export default class ElementCore {
                 if (recalc & 6) {
                     // Recheck if element is out-of-bounds (all settings that affect this should enable recalc bit 2 or 4).
                     this._outOfBounds = 0;
-                    let withinMargin = true;
-
-                    // Offscreens are always rendered as long as the parent is within bounds.
-                    if (!this._renderToTextureEnabled || !this._texturizer || !this._texturizer.renderOffscreen) {
-                        if (this._scissor && (this._scissor[2] <= 0 || this._scissor[3] <= 0)) {
-                            // Empty scissor area.
-                            this._outOfBounds = 2;
-                        } else {
-                            // Use bbox to check out-of-boundness.
-                            if ((this._scissor[0] > ex) ||
-                                (this._scissor[1] > ey) ||
-                                (sx > (this._scissor[0] + this._scissor[2])) ||
-                                (sy > (this._scissor[1] + this._scissor[3]))
-                            ) {
-                                this._outOfBounds = 1;
-                            }
-
-                            if (this._outOfBounds) {
-                                if (this._clipping || this._useRenderToTexture || (this._clipbox && (bboxW && bboxH))) {
-                                    this._outOfBounds = 2;
-                                }
-                            }
-                        }
-
-                        withinMargin = (this._outOfBounds === 0);
-                        if (!withinMargin) {
-                            // Re-test, now with margins.
-                            if (this._recBoundsMargin) {
-                                withinMargin = !((ex < this._scissor[0] - this._recBoundsMargin[2]) ||
-                                    (ey < this._scissor[1] - this._recBoundsMargin[3]) ||
-                                    (sx > this._scissor[0] + this._scissor[2] + this._recBoundsMargin[0]) ||
-                                    (sy > this._scissor[1] + this._scissor[3] + this._recBoundsMargin[1]))
-                            } else {
-                                withinMargin = !((ex < this._scissor[0] - 100) ||
-                                    (ey < this._scissor[1] - 100) ||
-                                    (sx > this._scissor[0] + this._scissor[2] + 100) ||
-                                    (sy > this._scissor[1] + this._scissor[3] + 100))
-                            }
-                            if (withinMargin && this._outOfBounds === 2) {
-                                // Children must be visited because they may contain elements that are within margin, so must be visible.
-                                this._outOfBounds = 1;
-                            }
-                        }
-                    }
+                    const withinMargin = this._calculateOutOfBounds(bboxW, bboxH, sx, sy, ex, ey);
 
                     if (this._withinBoundsMargin !== withinMargin) {
                         this._withinBoundsMargin = withinMargin;
@@ -1633,8 +1616,8 @@ export default class ElementCore {
                 }
 
                 if (this._children) {
-                    for (let i = 0, n = this._children.length; i < n; i++) {
-                        this._children[i].update();
+                    for (const ch of this._children) {
+                        ch.update();
                     }
                 }
 
@@ -1643,13 +1626,13 @@ export default class ElementCore {
                 }
             } else {
                 if (this._children) {
-                    for (let i = 0, n = this._children.length; i < n; i++) {
-                        if (this._children[i]._hasUpdates) {
-                            this._children[i].update();
+                    for (const ch of this._children) {
+                        if (ch._hasUpdates) {
+                            ch.update();
                         } else {
                             // Make sure we don't lose the 'inherited' updates.
-                            this._children[i]._recalc |= this._pRecalc;
-                            this._children[i].updateOutOfBounds();
+                            ch._recalc |= this._pRecalc;
+                            ch.updateOutOfBounds();
                         }
                     }
                 }
