@@ -167,6 +167,11 @@ window.attachInspector = function({Element, ElementCore, Stage, Component, Eleme
             this.debugElement.style.position = 'absolute';
 
             this.debugElement.id = "" + this.id;
+
+            // tabindex is required to send keypress events on non-input elements (div). This will be added when get tabindexed() returns true
+            if(this.tabindexed){
+                this.debugElement.setAttribute("tabindex", this.id)
+            } 
             observer.observe(this.debugElement, {attributes: true});
         }
         if (this.stage.root === this && !this.dhtml_root) {
@@ -345,6 +350,20 @@ window.attachInspector = function({Element, ElementCore, Stage, Component, Eleme
             if (this.$h !== v) {
                 val(this, 'h', v, 0);
                 this.$h = v;
+            }
+        }
+    });
+
+    // Custom id attribute support for automated tests (E.g. Cypress)
+    Element.prototype.$debugId = Element.prototype._debugId;
+    Object.defineProperty(Element.prototype, '_debugId', {
+        get: function() {
+            return this.$debugId;
+        },
+        set: function(v) {
+            if (this.$debugId !== v) {
+                val(this, 'id', v, 0);
+                this.$debugId = v;
             }
         }
     });
