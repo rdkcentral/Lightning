@@ -268,14 +268,14 @@ export default class TextTextureRenderer {
             let color = this._settings.highlightColor || 0x00000000;
 
             let hlHeight = (this._settings.highlightHeight * precision || fontSize * 1.5);
-            let offset = (this._settings.highlightOffset !== null ? this._settings.highlightOffset * precision : -0.5 * fontSize);
+            const offset = this._settings.highlightOffset * precision;
             const hlPaddingLeft = (this._settings.highlightPaddingLeft !== null ? this._settings.highlightPaddingLeft * precision : paddingLeft);
             const hlPaddingRight = (this._settings.highlightPaddingRight !== null ? this._settings.highlightPaddingRight * precision : paddingRight);
 
             this._context.fillStyle = StageUtils.getRgbaString(color);
             for (let i = 0; i < drawLines.length; i++) {
                 let drawLine = drawLines[i];
-                this._context.fillRect((drawLine.x - hlPaddingLeft), (drawLine.y + offset), (drawLine.w + hlPaddingRight + hlPaddingLeft), hlHeight);
+                this._context.fillRect((drawLine.x - hlPaddingLeft), (drawLine.y - offsetY + offset), (drawLine.w + hlPaddingRight + hlPaddingLeft), hlHeight);
             }
         }
 
