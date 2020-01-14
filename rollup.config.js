@@ -1,5 +1,6 @@
 import license from 'rollup-plugin-license';
 import { terser } from 'rollup-plugin-terser';
+import babel from 'rollup-plugin-babel';
 
 const TERSER_CONFIG = {
     keep_classnames: true,
@@ -23,7 +24,6 @@ export default [{
         name: 'lng'
     }
 },
-
 {
     /** lightning.min.js */
     input: './src/lightning.mjs',
@@ -33,7 +33,7 @@ export default [{
         /* Add version number to bundle */
         license({
             banner: `Lightning v<%= pkg.version %>\n\n https://github.com/WebPlatformForEmbedded/Lightning`,
-          }),
+        }),
     ],
     output: {
         file: './dist/lightning.min.js',
@@ -42,4 +42,29 @@ export default [{
         sourcemap: true,
     }
 
+},
+{
+    /** lightning-es5.min.js */
+    input: './src/lightning.mjs',
+    plugins: [
+        terser(TERSER_CONFIG),
+        babel({
+            presets: [
+                [
+                '@babel/env',
+                {
+                    spec: true,
+                    debug: false
+                },
+                ],
+            ],
+            plugins: ['@babel/plugin-transform-spread', '@babel/plugin-transform-parameters'],
+        }),
+    ],
+    output: {
+        file: './dist/lightning-es5.min.js',
+        format: 'umd',
+        name: 'lng',
+        sourcemap: true
+    }
 }];
