@@ -44,15 +44,22 @@ export default [{
 
 },
 {
-    /** lightning-es5.min.js */
+    /** lightning.js */
     input: './src/lightning.mjs',
     plugins: [
-        terser(TERSER_CONFIG),
+
+        /* Add version number to bundle */
+        license({
+            banner: `Lightning v<%= pkg.version %>\n\n https://github.com/WebPlatformForEmbedded/Lightning`,
+        }),
         babel({
             presets: [
                 [
                 '@babel/env',
                 {
+                    targets: {
+                        chrome: '44',
+                    },
                     spec: true,
                     debug: false
                 },
@@ -62,9 +69,42 @@ export default [{
         }),
     ],
     output: {
-        file: './dist/lightning-es5.min.js',
+        file: './dist/lightning.es5.js',
+        format: 'umd',
+        name: 'lng'
+    }
+},
+{
+    /** lightning.min.js */
+    input: './src/lightning.mjs',
+    plugins: [
+        terser(TERSER_CONFIG),
+
+        /* Add version number to bundle */
+        license({
+            banner: `Lightning v<%= pkg.version %>\n\n https://github.com/WebPlatformForEmbedded/Lightning`,
+        }),
+        babel({
+            presets: [
+                [
+                '@babel/env',
+                {
+                    targets: {
+                        chrome: '44',
+                    },
+                    spec: true,
+                    debug: false
+                },
+                ],
+            ],
+            plugins: ['@babel/plugin-transform-spread', '@babel/plugin-transform-parameters'],
+        }),
+    ],
+    output: {
+        file: './dist/lightning.es5.min.js',
         format: 'umd',
         name: 'lng',
-        sourcemap: true
+        sourcemap: true,
     }
-}];
+}
+]
