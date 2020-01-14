@@ -12,7 +12,6 @@
     "devtools/**"
   ],
   "scripts": {
-    "postinstall": "npm run build",
     "build": "rollup -c",
     "release": "npm run build && npm publish"
   },
@@ -23,12 +22,18 @@
   "bugs": {
     "url": "https://github.com/WebPlatformForEmbedded/Lightning/issues"
   },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run build && git add dist"
+    }
+  },
   "devDependencies": {
     "@babel/core": "^7.8.3",
     "@babel/plugin-transform-parameters": "^7.8.3",
     "@babel/plugin-transform-spread": "^7.8.3",
     "@babel/preset-env": "^7.8.3",
     "chai": "^4.2.0",
+    "husky": "^4.0.9",
     "mocha": "^6.2.1",
     "rollup": "^0.67.0",
     "rollup-plugin-babel": "^4.3.3",
