@@ -12,6 +12,7 @@
     "devtools/**"
   ],
   "scripts": {
+    "postinstall": "npm run build",
     "build": "rollup -c",
     "release": "npm run build && npm publish"
   },
