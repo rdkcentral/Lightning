@@ -44,7 +44,7 @@ export default [{
 
 },
 {
-    /** lightning.js */
+    /** lightning.es5.js */
     input: './src/lightning.mjs',
     plugins: [
 
@@ -75,7 +75,7 @@ export default [{
     }
 },
 {
-    /** lightning.min.js */
+    /** lightning.es5.min.js */
     input: './src/lightning.mjs',
     plugins: [
         terser(TERSER_CONFIG),
@@ -106,5 +106,32 @@ export default [{
         name: 'lng',
         sourcemap: true,
     }
-}
+},
+{
+    /** lightning-inspect.es5.js */
+    input: './devtools/lightning-inspect.js',
+    plugins: [
+
+        babel({
+            presets: [
+                [
+                '@babel/env',
+                {
+                    targets: {
+                        chrome: '44',
+                    },
+                    spec: true,
+                    debug: false
+                },
+                ],
+            ],
+            plugins: ['@babel/plugin-transform-spread', '@babel/plugin-transform-parameters'],
+        }),
+    ],
+    output: {
+        file: './devtools/lightning-inspect.es5.js',
+        format: 'umd',
+        name: 'lng'
+    }
+},
 ]
