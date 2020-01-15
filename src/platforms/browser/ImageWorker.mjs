@@ -156,7 +156,7 @@ const createWorker = function() {
         }
 
         var item = new ImageWorkerServerItem(id, src);
-        const t = this;
+        var t = this;
         item.onFinish = function(result) {
             t.finish(item, result);
         };
