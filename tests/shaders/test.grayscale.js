@@ -1,6 +1,3 @@
-
-import lng from "../../src/lightning.mjs";
-
 describe('Shaders', function() {
     this.timeout(0);
 

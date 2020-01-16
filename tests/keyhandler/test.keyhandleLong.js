@@ -1,5 +1,3 @@
-import lng from "../../src/lightning.mjs";
-
 describe('Longpress handling', function() {
     this.timeout(0);
     let app;

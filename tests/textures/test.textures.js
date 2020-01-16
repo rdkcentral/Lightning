@@ -1,5 +1,3 @@
-import lng from "../../src/lightning.mjs";
-
 describe('textures', function() {
     this.timeout(0);
 

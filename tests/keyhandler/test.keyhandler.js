@@ -1,5 +1,3 @@
-import lng from "../../src/lightning.mjs";
-
 describe('Key handling', function() {
     this.timeout(0);
     let app;

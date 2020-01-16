@@ -12,6 +12,9 @@
 <script src="../node_modules/mocha/mocha.js"></script>
 
 <script>mocha.setup('bdd')</script>
+
+<script src="../dist/lightning.js"></script>
+
 <script src="textures/test.textures.js" type="module"></script>
 <script src="textures/test.text.js" type="module"></script>
 <script src="keyhandler/test.keyhandler.js" type="module"></script>
@@ -29,6 +32,7 @@
 <script src="layout/test.updates.js" type="module"></script>
 <script src="layout/test.relative.js" type="module"></script>
 <script src="layout/test.layout.js" type="module"></script>
+
 <script type="module">
     mocha.checkLeaks();
     mocha.run();
