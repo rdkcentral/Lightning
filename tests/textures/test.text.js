@@ -1,5 +1,3 @@
-import lng from "../../src/lightning.mjs";
-
 const EXAMPLE_TEXT =
 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin nibh augue, \
 suscipit a, scelerisque sed, lacinia in, mi. Cras vel lorem. Etiam pellentesque \
