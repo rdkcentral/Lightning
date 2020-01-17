@@ -1,4 +1,5 @@
 import WebGLShader from "../WebGLShader.mjs";
+import Utils from "../../../tree/Utils.mjs";
 
 export default class DefaultShader extends WebGLShader {
 
