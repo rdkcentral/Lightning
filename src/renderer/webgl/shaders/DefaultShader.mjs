@@ -54,7 +54,7 @@ export default class DefaultShader extends WebGLShader {
                         let elementPostion = (i > 0) ? (i - 1) : i;
                         const precision = this.ctx.stage.getOption('precision');
                         let vc = operation.getElementCore(elementPostion);
-                        this.ctx.stage.platform.paint(glTexture.options.imageRef, vc._worldContext.px*precision, vc._worldContext.py*precision, vc._colorUl);
+                        this.ctx.stage.platform.paint(gl, glTexture.options.imageRef, vc._worldContext.px*precision, vc._worldContext.py*precision, vc._colorUl);
                     } else {
                         gl.bindTexture(gl.TEXTURE_2D, glTexture);
                         gl.drawElements(gl.TRIANGLES, 6 * (i - pos), gl.UNSIGNED_SHORT, (pos + operation.index) * 6 * 2);
@@ -67,7 +67,7 @@ export default class DefaultShader extends WebGLShader {
                 if (Utils.isSpark && glTexture.options && glTexture.options.imageRef) {
                     const precision = this.ctx.stage.getOption('precision');
                     let vc = operation.getElementCore(pos);
-                    this.ctx.stage.platform.paint(glTexture.options.imageRef, vc._worldContext.px*precision, vc._worldContext.py*precision, vc._colorUl);
+                    this.ctx.stage.platform.paint(gl, glTexture.options.imageRef, vc._worldContext.px*precision, vc._worldContext.py*precision, vc._colorUl);
                 } else {
                     gl.bindTexture(gl.TEXTURE_2D, glTexture);
                     gl.drawElements(gl.TRIANGLES, 6 * (length - pos), gl.UNSIGNED_SHORT, (pos + operation.index) * 6 * 2);
