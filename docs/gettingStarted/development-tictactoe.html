@@ -1,0 +1,474 @@
+<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><title>Developing TicTacToe · Lightning</title><meta name="viewport" content="width=device-width"/><meta name="generator" content="Docusaurus"/><meta name="description" content="##### Game.js"/><meta name="docsearch:language" content="en"/><meta property="og:title" content="Developing TicTacToe · Lightning"/><meta property="og:type" content="website"/><meta property="og:url" content="https://webplatformforembedded.github.io/Lightning//Lightning/"/><meta property="og:description" content="##### Game.js"/><meta property="og:image" content="https://webplatformforembedded.github.io/Lightning//Lightning/img/Lightning.png"/><meta name="twitter:card" content="summary"/><meta name="twitter:image" content="https://webplatformforembedded.github.io/Lightning//Lightning/img/Lightning.png"/><link rel="shortcut icon" href="/Lightning/img/favicon.png"/><link rel="stylesheet" href="https://cdn.jsdelivr.net/docsearch.js/1/docsearch.min.css"/><link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css"/><script type="text/javascript" src="https://buttons.github.io/buttons.js"></script><script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/highlight.min.js"></script><script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.3/ace.js"></script><script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.3/mode-javascript.js"></script><script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.3/theme-monokai.js"></script><script type="text/javascript" src="/Lightning/js/init.js"></script><script src="/Lightning/js/scrollSpy.js"></script><link rel="stylesheet" href="/Lightning/css/main.css"/><script src="/Lightning/js/codetabs.js"></script></head><body class="sideNavVisible separateOnPageNav"><div class="fixedHeaderContainer"><div class="headerWrapper wrapper"><header><a href="/Lightning/"><img class="logo" src="/Lightning/img/Lightning.png" alt="Lightning"/><h2 class="headerTitleWithLogo">Lightning</h2></a><div class="navigationWrapper navigationSlider"><nav class="slidingNav"><ul class="nav-site nav-site-internal"><li class="siteNavGroupActive"><a href="/Lightning/docs/introduction/introduction" target="_self">Docs</a></li><li class=""><a href="https://github.com/WebPlatformForEmbedded/Lightning" target="_self">GitHub</a></li><li class="navSearchWrapper reactNavSearchWrapper"><input type="text" id="search_input_react" placeholder="Search" title="Search"/></li></ul></nav></div></header></div></div><div class="navPusher"><div class="docMainWrapper wrapper"><div class="docsNavContainer" id="docsNav"><nav class="toc"><div class="toggleNav"><section class="navWrapper wrapper"><div class="navBreadcrumb wrapper"><div class="navToggle" id="navToggler"><div class="hamburger-menu"><div class="line1"></div><div class="line2"></div><div class="line3"></div></div></div><h2><i>›</i><span>Getting Started</span></h2><div class="tocToggler" id="tocToggler"><i class="icon-toc"></i></div></div><div class="navGroups"><div class="navGroup"><h3 class="navGroupCategoryTitle collapsible">Introduction<span class="arrow"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="#565656" d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"></path><path d="M0 0h24v24H0z" fill="none"></path></svg></span></h3><ul class="hide"><li class="navListItem"><a class="navItem" href="/Lightning/docs/introduction/introduction">Introduction</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/introduction/alternatives">Alternatives</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle collapsible">Getting Started<span class="arrow"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="#565656" d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"></path><path d="M0 0h24v24H0z" fill="none"></path></svg></span></h3><ul class="hide"><li class="navListItem"><a class="navItem" href="/Lightning/docs/gettingStarted/setup">Setting up your environment</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/gettingStarted/start-development">Start Development</a></li><li class="navListItem navListItemActive"><a class="navItem" href="/Lightning/docs/gettingStarted/development-tictactoe">Developing TicTacToe</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/gettingStarted/run-test-deploy">Run, Test &amp; Deploy</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle collapsible">Render Engine<span class="arrow"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="#565656" d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"></path><path d="M0 0h24v24H0z" fill="none"></path></svg></span></h3><ul class="hide"><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/overview">Render Engine</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/renderTree">Render Tree</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/template">Template</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/elements/positioning">Positioning</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/elements/rendering">Rendering</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/elements/transforms">Transforms</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/elements/children">Children</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/tags">Tags</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/patching">Patch</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/clipping">Clipping</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/flexbox">Flexbox</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/events">Events</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle collapsible">Texture Types<span class="arrow"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="#565656" d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"></path><path d="M0 0h24v24H0z" fill="none"></path></svg></span></h3><ul class="hide"><li class="navListItem"><a class="navItem" href="/Lightning/docs/textures/overview">Overview</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/textures/rectangle">Rectangle</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/textures/image">Image</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/textures/text">Text</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/textures/toolbox">Toolbox</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/textures/canvas">Canvas</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/textures/custom">Custom</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle collapsible">Transitions<span class="arrow"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="#565656" d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"></path><path d="M0 0h24v24H0z" fill="none"></path></svg></span></h3><ul class="hide"><li class="navListItem"><a class="navItem" href="/Lightning/docs/transitions/overview">Transitions</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/transitions/attributes">Attributes</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/transitions/methods">Methods</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/transitions/events">Events</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle collapsible">Animations<span class="arrow"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="#565656" d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"></path><path d="M0 0h24v24H0z" fill="none"></path></svg></span></h3><ul class="hide"><li class="navListItem"><a class="navItem" href="/Lightning/docs/animations/overview">Animations</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/animations/attributes">Attributes</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/animations/actions">Actions</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/animations/action_value">Action value</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/animations/action_value_smoothing">Value smoothing</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/animations/methods">Methods</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/animations/events">Events</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle collapsible">Principles<span class="arrow"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="#565656" d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"></path><path d="M0 0h24v24H0z" fill="none"></path></svg></span></h3><ul class="hide"><li class="navListItem"><a class="navItem" href="/Lightning/docs/components/overview">Components</a></li><div class="navGroup subNavGroup"><h4 class="navGroupSubcategoryTitle">State Machine</h4><ul><li class="navListItem"><a class="navItem" href="/Lightning/docs/components/statemachine/statemachine">Overview</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/components/statemachine/switchingstates">Switching states</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/components/statemachine/nestingstates">Nesting states</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/components/statemachine/events">Events</a></li></ul></div><div class="navGroup subNavGroup"><h4 class="navGroupSubcategoryTitle">Communication</h4><ul><li class="navListItem"><a class="navItem" href="/Lightning/docs/components/communication/signal">Signal</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/components/communication/fireancestors">Fire Ancestors</a></li></ul></div><li class="navListItem"><a class="navItem" href="/Lightning/docs/focus/focus">Focus</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/focus/keyhandler">Key Handling</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle collapsible">Code Snippets<span class="arrow"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="#565656" d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"></path><path d="M0 0h24v24H0z" fill="none"></path></svg></span></h3><ul class="hide"><li class="navListItem"><a class="navItem" href="/Lightning/docs/player/player">Player example</a></li></ul></div></div></section></div><script>
+            var coll = document.getElementsByClassName('collapsible');
+            var checkActiveCategory = true;
+            for (var i = 0; i < coll.length; i++) {
+              var links = coll[i].nextElementSibling.getElementsByTagName('*');
+              if (checkActiveCategory){
+                for (var j = 0; j < links.length; j++) {
+                  if (links[j].classList.contains('navListItemActive')){
+                    coll[i].nextElementSibling.classList.toggle('hide');
+                    coll[i].childNodes[1].classList.toggle('rotate');
+                    checkActiveCategory = false;
+                    break;
+                  }
+                }
+              }
+
+              coll[i].addEventListener('click', function() {
+                var arrow = this.childNodes[1];
+                arrow.classList.toggle('rotate');
+                var content = this.nextElementSibling;
+                content.classList.toggle('hide');
+              });
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+              createToggler('#navToggler', '#docsNav', 'docsSliderActive');
+              createToggler('#tocToggler', 'body', 'tocActive');
+
+              var headings = document.querySelector('.toc-headings');
+              headings && headings.addEventListener('click', function(event) {
+                var el = event.target;
+                while(el !== headings){
+                  if (el.tagName === 'A') {
+                    document.body.classList.remove('tocActive');
+                    break;
+                  } else{
+                    el = el.parentNode;
+                  }
+                }
+              }, false);
+
+              function createToggler(togglerSelector, targetSelector, className) {
+                var toggler = document.querySelector(togglerSelector);
+                var target = document.querySelector(targetSelector);
+
+                if (!toggler) {
+                  return;
+                }
+
+                toggler.onclick = function(event) {
+                  event.preventDefault();
+
+                  target.classList.toggle(className);
+                };
+              }
+            });
+        </script></nav></div><div class="container mainContainer docsContainer"><div class="wrapper"><div class="post"><header class="postHeader"><h1 id="__docusaurus" class="postHeaderTitle">Developing TicTacToe</h1></header><article><div><span><h5><a class="anchor" aria-hidden="true" id="gamejs"></a><a href="#gamejs" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Game.js</h5>
+<p>In our <code>src</code> folder we create a new file called <code>Game.js</code> and populate it with the following code;
+We wont be going to explain every line in detail but will highlight some parts:</p>
+<pre><code class="hljs css language-javascript"><span class="hljs-keyword">import</span> { Lightning } <span class="hljs-keyword">from</span> <span class="hljs-string">"wpe-lightning-sdk"</span>;
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Game</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Lightning</span>.<span class="hljs-title">Component</span> </span>{
+    <span class="hljs-keyword">static</span> _template(){
+        <span class="hljs-keyword">return</span> {
+            <span class="hljs-attr">Game</span>:{
+                <span class="hljs-attr">PlayerPosition</span>:{
+                    <span class="hljs-attr">rect</span>: <span class="hljs-literal">true</span>, <span class="hljs-attr">w</span>: <span class="hljs-number">250</span>, <span class="hljs-attr">h</span>: <span class="hljs-number">250</span>, <span class="hljs-attr">color</span>: <span class="hljs-number">0x40ffffff</span>,
+                    <span class="hljs-attr">x</span>: <span class="hljs-number">425</span>, <span class="hljs-attr">y</span>: <span class="hljs-number">125</span>
+                },
+                <span class="hljs-attr">Field</span>:{
+                    <span class="hljs-attr">x</span>: <span class="hljs-number">400</span>, <span class="hljs-attr">y</span>: <span class="hljs-number">100</span>,
+                    <span class="hljs-attr">children</span>:[
+                        {<span class="hljs-attr">rect</span>: <span class="hljs-literal">true</span>, <span class="hljs-attr">w</span>:<span class="hljs-number">1</span>, <span class="hljs-attr">h</span>:<span class="hljs-number">5</span>, <span class="hljs-attr">y</span>:<span class="hljs-number">300</span>},
+                        {<span class="hljs-attr">rect</span>: <span class="hljs-literal">true</span>, <span class="hljs-attr">w</span>:<span class="hljs-number">1</span>, <span class="hljs-attr">h</span>:<span class="hljs-number">5</span>, <span class="hljs-attr">y</span>:<span class="hljs-number">600</span>},
+                        {<span class="hljs-attr">rect</span>: <span class="hljs-literal">true</span>, <span class="hljs-attr">h</span>:<span class="hljs-number">1</span>, <span class="hljs-attr">w</span>:<span class="hljs-number">5</span>, <span class="hljs-attr">x</span>:<span class="hljs-number">300</span>, <span class="hljs-attr">y</span>:<span class="hljs-number">0</span>},
+                        {<span class="hljs-attr">rect</span>: <span class="hljs-literal">true</span>, <span class="hljs-attr">h</span>:<span class="hljs-number">1</span>, <span class="hljs-attr">w</span>:<span class="hljs-number">5</span>, <span class="hljs-attr">x</span>:<span class="hljs-number">600</span>, <span class="hljs-attr">y</span>:<span class="hljs-number">0</span>}
+                    ]
+                },
+                <span class="hljs-attr">Markers</span>:{
+                    <span class="hljs-attr">x</span>: <span class="hljs-number">400</span>, <span class="hljs-attr">y</span>: <span class="hljs-number">100</span>
+                },
+                <span class="hljs-attr">ScoreBoard</span>:{ <span class="hljs-attr">x</span>: <span class="hljs-number">100</span>, <span class="hljs-attr">y</span>: <span class="hljs-number">170</span>,
+                    <span class="hljs-attr">Player</span>:{
+                        <span class="hljs-attr">text</span>:{<span class="hljs-attr">text</span>:<span class="hljs-string">'Player 0'</span>, <span class="hljs-attr">fontSize</span>:<span class="hljs-number">29</span>, <span class="hljs-attr">fontFace</span>:<span class="hljs-string">'Pixel'</span>}
+                    },
+                    <span class="hljs-attr">Ai</span>:{ <span class="hljs-attr">y</span>: <span class="hljs-number">40</span>,
+                        <span class="hljs-attr">text</span>:{<span class="hljs-attr">text</span>:<span class="hljs-string">'Computer 0'</span>, <span class="hljs-attr">fontSize</span>:<span class="hljs-number">29</span>, <span class="hljs-attr">fontFace</span>:<span class="hljs-string">'Pixel'</span>}
+                    }
+                }
+            },
+            <span class="hljs-attr">Notification</span>:{
+                <span class="hljs-attr">x</span>: <span class="hljs-number">100</span>, <span class="hljs-attr">y</span>:<span class="hljs-number">170</span>, <span class="hljs-attr">text</span>:{<span class="hljs-attr">fontSize</span>:<span class="hljs-number">70</span>, <span class="hljs-attr">fontFace</span>:<span class="hljs-string">'Pixel'</span>}, <span class="hljs-attr">alpha</span>: <span class="hljs-number">0</span>
+            }
+        }
+    }
+}
+</code></pre>
+<p>We've added a <code>Game</code> component which acts as a wrapper for the Game board an score board so it will be easy
+to hide all the contents at once.</p>
+<ol>
+<li>PlayerPosition, this is a focus indicator of which tile the player currently is</li>
+<li>Field, the outlines of the game field</li>
+<li>Markers, the placed [ X ] / [ 0 ]</li>
+<li>ScoreBoard, the current score for player and computer</li>
+<li>Notification, the endgame notification (player wins, tie etc), in a real world app we probably would
+move the Notification handler to a different (higher) level so we multiple component can make use of it.</li>
+</ol>
+<p>It's also possible to (instead instancing a component via type) populate the <code>children</code> within the template.
+This will populate the <code>Field</code> Component with 5 lines (rectangles) we also draw two 1px by 5px component and 2 components
+5px by 1px components.</p>
+<pre><code class="hljs css language-javascript">Field:{
+    <span class="hljs-attr">x</span>: <span class="hljs-number">400</span>, <span class="hljs-attr">y</span>: <span class="hljs-number">100</span>,
+    <span class="hljs-attr">children</span>:[
+        {<span class="hljs-attr">rect</span>: <span class="hljs-literal">true</span>, <span class="hljs-attr">w</span>:<span class="hljs-number">1</span>, <span class="hljs-attr">h</span>:<span class="hljs-number">5</span>, <span class="hljs-attr">y</span>:<span class="hljs-number">300</span>},
+        {<span class="hljs-attr">rect</span>: <span class="hljs-literal">true</span>, <span class="hljs-attr">w</span>:<span class="hljs-number">1</span>, <span class="hljs-attr">h</span>:<span class="hljs-number">5</span>, <span class="hljs-attr">y</span>:<span class="hljs-number">600</span>},
+        {<span class="hljs-attr">rect</span>: <span class="hljs-literal">true</span>, <span class="hljs-attr">h</span>:<span class="hljs-number">1</span>, <span class="hljs-attr">w</span>:<span class="hljs-number">5</span>, <span class="hljs-attr">x</span>:<span class="hljs-number">300</span>, <span class="hljs-attr">y</span>:<span class="hljs-number">0</span>},
+        {<span class="hljs-attr">rect</span>: <span class="hljs-literal">true</span>, <span class="hljs-attr">h</span>:<span class="hljs-number">1</span>, <span class="hljs-attr">w</span>:<span class="hljs-number">5</span>, <span class="hljs-attr">x</span>:<span class="hljs-number">600</span>, <span class="hljs-attr">y</span>:<span class="hljs-number">0</span>}
+    ]
+}
+</code></pre>
+<p>Let's start adding some logic, we start by adding a new lifecycle event called <code>construct</code></p>
+<pre><code class="hljs css language-javascript">_construct(){
+    <span class="hljs-comment">// current player tile index</span>
+    <span class="hljs-keyword">this</span>._index = <span class="hljs-number">0</span>;
+    
+    <span class="hljs-comment">// computer score</span>
+    <span class="hljs-keyword">this</span>._aiScore = <span class="hljs-number">0</span>;
+    
+    <span class="hljs-comment">// player score</span>
+    <span class="hljs-keyword">this</span>._playerScore = <span class="hljs-number">0</span>;
+} 
+</code></pre>
+<p>Next lifecycle event we add is <code>active</code> this will be called when a component <code>visible</code> property is true,
+<code>alpha</code> higher then 0 and positioned in the renderable screen.</p>
+<pre><code class="hljs css language-javascript">_active(){
+    <span class="hljs-keyword">this</span>._reset();
+    
+    <span class="hljs-comment">// we iterate over the outlines of the field and do a nice</span>
+    <span class="hljs-comment">// transition of the width / height, so it looks like the </span>
+    <span class="hljs-comment">// lines are being drawn realtime.</span>
+    
+    <span class="hljs-keyword">this</span>.tag(<span class="hljs-string">"Field"</span>).children.forEach(<span class="hljs-function">(<span class="hljs-params">el, idx</span>)=&gt;</span>{
+        el.setSmooth(idx&lt;<span class="hljs-number">2</span>?<span class="hljs-string">"w"</span>:<span class="hljs-string">"h"</span>, <span class="hljs-number">900</span>, {<span class="hljs-attr">duration</span>:<span class="hljs-number">0.7</span>, <span class="hljs-attr">delay</span>:idx*<span class="hljs-number">0.15</span>})
+    })
+}
+</code></pre>
+<p>The <code>setSmooth</code> function creates a transition for a give property with the provided value:
+Look in the documentation to read more about <a href="https://webplatformforembedded.github.io/Lightning/docs/transitions/overview#starting-a-transition">smoothing</a>.</p>
+<p>We add the <code>_reset()</code> method which fills all available tiles with <code>e</code> for empty, render the tiles and change the state back to root state.</p>
+<p>For the tile we use an array of 9 elements that we can use to all sorts of logic with (rendering / checking for winner / decide next move for the computer etc..)</p>
+<pre><code class="hljs css language-javascript">_reset(){
+    <span class="hljs-comment">// reset tiles</span>
+    <span class="hljs-keyword">this</span>._tiles = [
+        <span class="hljs-string">'e'</span>,<span class="hljs-string">'e'</span>,<span class="hljs-string">'e'</span>,<span class="hljs-string">'e'</span>,<span class="hljs-string">'e'</span>,<span class="hljs-string">'e'</span>,<span class="hljs-string">'e'</span>,<span class="hljs-string">'e'</span>,<span class="hljs-string">'e'</span>
+    ];
+
+    <span class="hljs-comment">// force render</span>
+    <span class="hljs-keyword">this</span>.render(<span class="hljs-keyword">this</span>._tiles);
+
+    <span class="hljs-comment">// change back to rootstate</span>
+    <span class="hljs-keyword">this</span>._setState(<span class="hljs-string">""</span>);
+}
+</code></pre>
+<p>Next is our <code>render</code> method that accepts a set of tiles and draw some text based on the tile value.</p>
+<blockquote>
+<p>e =&gt; empty / x =&gt; Player / 0 =&gt; computer</p>
+</blockquote>
+<pre><code class="hljs css language-javascript">render(tiles){
+    <span class="hljs-keyword">this</span>.tag(<span class="hljs-string">"Markers"</span>).children = tiles.map(<span class="hljs-function">(<span class="hljs-params">el, idx</span>)=&gt;</span>{
+        <span class="hljs-keyword">return</span> {
+            <span class="hljs-attr">x</span>: idx%<span class="hljs-number">3</span>*<span class="hljs-number">300</span> + <span class="hljs-number">110</span>,
+            <span class="hljs-attr">y</span>: ~~(idx/<span class="hljs-number">3</span>)*<span class="hljs-number">300</span> + <span class="hljs-number">90</span>,
+            <span class="hljs-attr">text</span>:{<span class="hljs-attr">text</span>:el === <span class="hljs-string">"e"</span>?<span class="hljs-string">''</span>:<span class="hljs-string">`<span class="hljs-subst">${el}</span>`</span>, <span class="hljs-attr">fontSize</span>:<span class="hljs-number">100</span>},
+        }
+    });
+}
+</code></pre>
+<p>Now that we have a good setup for rendering tiles and showing outlines on <code>active</code> we can proceed to implement remote control handling.</p>
+<p>Since we're working with a 3x3 playfield we check (on remotecontrol <code>up</code> ) if the new index we want to focus on is larger or
+equal then zero, if we so we call the (to be implemented) <code>setIndex()</code> function.</p>
+<pre><code class="hljs css language-javascript">_handleUp(){
+    <span class="hljs-keyword">let</span> idx = <span class="hljs-keyword">this</span>._index;
+    <span class="hljs-keyword">if</span>(idx<span class="hljs-number">-3</span> &gt;= <span class="hljs-number">0</span>){
+        <span class="hljs-keyword">this</span>._setIndex(idx<span class="hljs-number">-3</span>);
+    }
+}
+</code></pre>
+<p>The logic for pressing <code>down</code> is mostly equal to the <code>up</code> but we check if the new index
+is not larger then the amount of available tiles.</p>
+<pre><code class="hljs css language-javascript">_handleDown(){
+    <span class="hljs-keyword">let</span> idx = <span class="hljs-keyword">this</span>._index;
+    <span class="hljs-keyword">if</span>(idx+<span class="hljs-number">3</span> &lt;= <span class="hljs-keyword">this</span>._tiles.length - <span class="hljs-number">1</span>){
+        <span class="hljs-keyword">this</span>._setIndex(idx+<span class="hljs-number">3</span>);
+    }
+}
+</code></pre>
+<p>We don't want continues navigation so we check if we're on the most left tile of a column, if so
+we block navigation. Lets say we're on the second row, second column (which is tile index 4)
+and we press <code>left</code>, we check if the remainder is truthy <code>4%3 === 1</code> and call <code>setIndex</code> with the new index.
+If we're on the second row, first column (which is tile index 3) the remainder of <code>3%3</code> is 0 which
+so we don't match the condition and will not call <code>setIndex()</code>.</p>
+<pre><code class="hljs css language-javascript">_handleLeft(){
+    <span class="hljs-keyword">let</span> idx = <span class="hljs-keyword">this</span>._index;
+    <span class="hljs-keyword">if</span>(idx%<span class="hljs-number">3</span>){
+        <span class="hljs-keyword">this</span>._setIndex(idx - <span class="hljs-number">1</span>);
+    }
+}
+</code></pre>
+<p>The logic for pressing <code>right</code> is mostly the same but check if the <code>index</code> of the new tile
+where we're navigating to has a remainder.</p>
+<pre><code class="hljs css language-javascript">_handleRight(){
+    <span class="hljs-keyword">const</span> newIndex = <span class="hljs-keyword">this</span>._index + <span class="hljs-number">1</span>;
+    <span class="hljs-keyword">if</span>(newIndex%<span class="hljs-number">3</span>){
+        <span class="hljs-keyword">this</span>._setIndex(newIndex);
+    }
+}
+</code></pre>
+<p>And the <code>setIndex()</code> function which does a transition of the <code>PlayerPosition</code> component to the new tile
+and stores the new index for future use.</p>
+<pre><code class="hljs css language-javascript">_setIndex(idx){
+    <span class="hljs-keyword">this</span>.tag(<span class="hljs-string">"PlayerPosition"</span>).patch({
+        <span class="hljs-attr">smooth</span>:{
+            <span class="hljs-attr">x</span>: idx%<span class="hljs-number">3</span>*<span class="hljs-number">300</span> + <span class="hljs-number">425</span>,
+            <span class="hljs-attr">y</span>: ~~(idx/<span class="hljs-number">3</span>)*<span class="hljs-number">300</span> + <span class="hljs-number">125</span>
+        }
+    });
+    <span class="hljs-keyword">this</span>._index = idx;
+}
+</code></pre>
+<p>If we run our game you can see that the outlines of the <code>Field</code> will be drawn and we can navigate over the
+game tiles. The next thing we need to do is the actual capturing of a tile by placing your marker on remote <code>enter</code> press.</p>
+<p>On <code>enter</code> we first check if we're on an empty tile, if so we place our <code>X</code> marker and if the function's return value
+is <code>true</code> we set the <code>Game</code> component in a <code>Computer</code> state (which means it's the computers turn to play)</p>
+<pre><code class="hljs css language-javascript">_handleEnter(){
+    <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>._tiles[<span class="hljs-keyword">this</span>._index] === <span class="hljs-string">"e"</span>){
+        <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.place(<span class="hljs-keyword">this</span>._index, <span class="hljs-string">"X"</span>)){
+            <span class="hljs-keyword">this</span>._setState(<span class="hljs-string">"Computer"</span>);
+        }
+    }
+}
+</code></pre>
+<p>The <code>place()</code> function will be called (as stated above) when a user presses <code>ok</code> or <code>enter</code> on the remote control:</p>
+<ol>
+<li>we update the tile value</li>
+<li>we render the new field</li>
+<li>We check if we have a winner (We will go over the Utils in a short moment)</li>
+<li>If we have a Winner we set the app to <code>End</code> state and <code>Winner</code> sub state</li>
+<li>and return false, so the _handleEnter logic will not go to <code>Computer</code> state</li>
+<li>If we don't have a winner we return true so the <code>Game</code> can go to <code>Computer</code> state</li>
+</ol>
+<pre><code class="hljs css language-javascript">place(index, marker){
+    <span class="hljs-keyword">this</span>._tiles[index] = marker;
+    <span class="hljs-keyword">this</span>.render(<span class="hljs-keyword">this</span>._tiles);
+
+    <span class="hljs-keyword">const</span> winner = Utils.getWinner(<span class="hljs-keyword">this</span>._tiles);
+    <span class="hljs-keyword">if</span>(winner){
+        <span class="hljs-keyword">this</span>._setState(<span class="hljs-string">"End.Winner"</span>,[{winner}]);
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+    }
+
+    <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+}
+</code></pre>
+<blockquote>
+<p>in a real world game we would implement the logic of checking for a winner a changing to Computer state on a different level to make the app a bit more robust.</p>
+</blockquote>
+<p>Next thing that we're going to do is model the statemachine. The first state that we're going to add is the <code>Computer</code>
+state which means it's the computers turn to play.</p>
+<p>in the <code>$enter()</code> hook we</p>
+<ol>
+<li>We calculate the new position the computer can move to</li>
+<li>If the <code>return</code> value is <code>-1</code> it means there are no possible moves left and we force the <code>Game</code> Component in a <code>Tie</code> state because we don't have a winner</li>
+<li>We create a random timeout to give a player a feeling that it's really playing against a human opponent.</li>
+<li>We hide the <code>PlayerPosition</code> indicator</li>
+<li>When the timeout expires we call <code>place()</code> with th <code>0</code> marker and go back to the root state `_setState(&quot;&quot;)</li>
+</ol>
+<p>By adding <code>_captureKey()</code> we make that every keypress will be captured, but you can still perform some <code>keyCode</code>
+specific logic.</p>
+<p>When we <code>$exit()</code> the <code>Computer</code> state we show the <code>PlayerPosition</code> indicator again, the player knows it is its turn to play.</p>
+<pre><code class="hljs css language-javascript"><span class="hljs-keyword">static</span> _states(){
+    <span class="hljs-keyword">return</span> [
+        <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Computer</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">this</span> </span>{
+            $enter(){
+                <span class="hljs-keyword">const</span> position = Utils.AI(<span class="hljs-keyword">this</span>._tiles);
+                <span class="hljs-keyword">if</span>(position === <span class="hljs-number">-1</span>){
+                    <span class="hljs-keyword">this</span>._setState(<span class="hljs-string">"End.Tie"</span>);
+                    <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+                }
+
+                setTimeout(<span class="hljs-function"><span class="hljs-params">()</span>=&gt;</span>{
+                    <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.place(position,<span class="hljs-string">"0"</span>)){
+                        <span class="hljs-keyword">this</span>._setState(<span class="hljs-string">""</span>);
+                    }
+                }, ~~(<span class="hljs-built_in">Math</span>.random()*<span class="hljs-number">1200</span>)+<span class="hljs-number">200</span>);
+
+                <span class="hljs-keyword">this</span>.tag(<span class="hljs-string">"PlayerPosition"</span>).setSmooth(<span class="hljs-string">"alpha"</span>,<span class="hljs-number">0</span>);
+            }
+
+            <span class="hljs-comment">// make sure we don't handle</span>
+            <span class="hljs-comment">// any keypresses when the computer is playing</span>
+            _captureKey({keyCode){ }
+
+            $exit(){
+                <span class="hljs-keyword">this</span>.tag(<span class="hljs-string">"PlayerPosition"</span>).setSmooth(<span class="hljs-string">"alpha"</span>,<span class="hljs-number">1</span>);
+            }
+        }
+    ]
+}
+</code></pre>
+<p>Next state that we're adding is the <code>End</code> state with the sub state <code>Winner</code> and <code>Tie</code>.
+First we add some shared logic between the <code>Winner</code> and <code>Tie</code> state.</p>
+<p>We wait for a user to press <code>enter / ok</code> in the <code>End</code> state and then we reset the <code>Game</code> (in reset() we also go back to root state)
+so this will make sure the <code>$exit()</code> hook will be called and that's where we show the complete <code>Game</code> component again
+and we hide the notification.</p>
+<pre><code class="hljs css language-javascript"><span class="hljs-keyword">static</span> _states(){
+    <span class="hljs-keyword">return</span> [
+        <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Computer</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">this</span> </span>{
+            <span class="hljs-comment">// we hide the code for now</span>
+        },
+        <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">End</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">this</span></span>{
+            _handleEnter(){
+                <span class="hljs-keyword">this</span>._reset();
+            }
+            $exit(){
+                <span class="hljs-keyword">this</span>.patch({
+                    <span class="hljs-attr">Game</span>:{
+                        <span class="hljs-attr">smooth</span>:{<span class="hljs-attr">alpha</span>:<span class="hljs-number">1</span>}
+                    },
+                    <span class="hljs-attr">Notification</span>: {
+                        <span class="hljs-attr">text</span>:{<span class="hljs-attr">text</span>:<span class="hljs-string">''</span>},
+                        <span class="hljs-attr">smooth</span>:{<span class="hljs-attr">alpha</span>:<span class="hljs-number">0</span>}
+                    }
+                });
+            }
+            <span class="hljs-keyword">static</span> _states(){
+                <span class="hljs-keyword">return</span> [
+                
+                ]
+            }
+        }
+    ]
+}
+</code></pre>
+<p>We add a new <code>_states</code> object so we can start adding sub states.</p>
+<p>When we <code>$enter()</code> the <code>End.Winner</code> state we</p>
+<ol>
+<li>Check if the winner is <code>X</code> so we increase to the player score</li>
+<li>If not, we increase the computer score</li>
+<li>Next we do a big <a href="https://webplatformforembedded.github.io/Lightning/docs/renderEngine/patching">patch</a> of the template in which we
+hide the Game field, updated the text of the scoreboard, update the <code>Notification</code> text and show the <code>Notification</code> Component</li>
+</ol>
+<p>When we <code>$enter()</code> the <code>End.Tie</code> state we</p>
+<ol>
+<li>Hide the Game field</li>
+<li>Update the <code>Notification</code> text</li>
+<li>And show the <code>Notification</code> Component</li>
+</ol>
+<pre><code class="hljs css language-javascript"><span class="hljs-keyword">static</span> _states(){
+    <span class="hljs-keyword">return</span> [
+        <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Computer</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">this</span> </span>{
+            <span class="hljs-comment">// we hide the code for now</span>
+        },
+        <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">End</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">this</span></span>{
+            <span class="hljs-comment">// we hide the code for now</span>
+            <span class="hljs-keyword">static</span> _states(){
+                <span class="hljs-keyword">return</span> [
+                   <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Winner</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">this</span> </span>{
+                       $enter(args, {winner}){
+                           <span class="hljs-keyword">if</span>(winner === <span class="hljs-string">'X'</span>){
+                               <span class="hljs-keyword">this</span>._playerScore+=<span class="hljs-number">1</span>;
+                           }<span class="hljs-keyword">else</span>{
+                               <span class="hljs-keyword">this</span>._aiScore+=<span class="hljs-number">1</span>;
+                           }
+                           <span class="hljs-keyword">this</span>.patch({
+                               <span class="hljs-attr">Game</span>:{
+                                   <span class="hljs-attr">smooth</span>:{<span class="hljs-attr">alpha</span>:<span class="hljs-number">0</span>},
+                                   <span class="hljs-attr">ScoreBoard</span>:{
+                                       <span class="hljs-attr">Player</span>:{<span class="hljs-attr">text</span>:{<span class="hljs-attr">text</span>:<span class="hljs-string">`Player <span class="hljs-subst">${<span class="hljs-keyword">this</span>._playerScore}</span>`</span>}},
+                                       <span class="hljs-attr">Ai</span>:{<span class="hljs-attr">text</span>:{<span class="hljs-attr">text</span>:<span class="hljs-string">`Computer <span class="hljs-subst">${<span class="hljs-keyword">this</span>._aiScore}</span>`</span>}},
+                                   }
+                               },
+                               <span class="hljs-attr">Notification</span>: {
+                                   <span class="hljs-attr">text</span>:{<span class="hljs-attr">text</span>:<span class="hljs-string">`<span class="hljs-subst">${winner===<span class="hljs-string">'X'</span>?<span class="hljs-string">`Player`</span>:<span class="hljs-string">`Computer`</span>}</span> wins (press enter to continue)`</span>},
+                                   <span class="hljs-attr">smooth</span>:{<span class="hljs-attr">alpha</span>:<span class="hljs-number">1</span>}
+                               }
+                           });
+                       }
+                   },
+                   <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Tie</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">this</span> </span>{
+                       $enter(){
+                           <span class="hljs-keyword">this</span>.patch({
+                               <span class="hljs-attr">Game</span>: {
+                                   <span class="hljs-attr">smooth</span>: {<span class="hljs-attr">alpha</span>: <span class="hljs-number">0</span>}
+                               },
+                               <span class="hljs-attr">Notification</span>: {
+                                   <span class="hljs-attr">text</span>:{<span class="hljs-attr">text</span>:<span class="hljs-string">`Tie :( (press enter to try again)`</span>},
+                                   <span class="hljs-attr">smooth</span>:{<span class="hljs-attr">alpha</span>:<span class="hljs-number">1</span>}
+                               }
+                           });
+                       }
+                   }
+                ]
+            }
+        }
+    ]
+}
+</code></pre>
+<p>Now that we have modeled most of our game components it's time to start adding the the logic for the <code>Computer</code> controlled player.</p>
+<h5><a class="anchor" aria-hidden="true" id="gameutilsjs"></a><a href="#gameutilsjs" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>GameUtils.js</h5>
+<p>Inside our <code>src</code> folder we add a <code>lib</code> folder and create a new file <code>GameUtils.js</code> and add the following function.</p>
+<p>We test the current state of the game against a set of winning patterns by normalizing
+the actual pattern values and testing them against a provided regular expression.</p>
+<pre><code class="hljs css language-javascript"><span class="hljs-keyword">const</span> getMatchingPatterns = <span class="hljs-function">(<span class="hljs-params">regex, tiles</span>) =&gt;</span> {
+    <span class="hljs-keyword">const</span> patterns = [
+        [<span class="hljs-number">0</span>, <span class="hljs-number">1</span>, <span class="hljs-number">2</span>], [<span class="hljs-number">3</span>, <span class="hljs-number">4</span>, <span class="hljs-number">5</span>], [<span class="hljs-number">6</span>, <span class="hljs-number">7</span>, <span class="hljs-number">8</span>], [<span class="hljs-number">0</span>, <span class="hljs-number">3</span>, <span class="hljs-number">6</span>],
+        [<span class="hljs-number">1</span>, <span class="hljs-number">4</span>, <span class="hljs-number">7</span>], [<span class="hljs-number">2</span>, <span class="hljs-number">5</span>, <span class="hljs-number">8</span>], [<span class="hljs-number">0</span>, <span class="hljs-number">4</span>, <span class="hljs-number">8</span>], [<span class="hljs-number">2</span>, <span class="hljs-number">4</span>, <span class="hljs-number">6</span>]
+    ];
+    <span class="hljs-keyword">return</span> patterns.reduce(<span class="hljs-function">(<span class="hljs-params">sets, pattern</span>) =&gt;</span> {
+        <span class="hljs-keyword">const</span> normalized = pattern.map(<span class="hljs-function">(<span class="hljs-params">tileIndex</span>) =&gt;</span> {
+            <span class="hljs-keyword">return</span> tiles[tileIndex];
+        }).join(<span class="hljs-string">""</span>);
+        <span class="hljs-keyword">if</span> (regex.test(normalized)) {
+            sets.push(pattern);
+        }
+        <span class="hljs-keyword">return</span> sets;
+    }, []);
+};
+</code></pre>
+<p>Next we add <code>getFutureWinningIndex</code> which checks if there is a potential upcoming winning move
+for itself (computer) or it's opponent (the player). We give priority to returning the index
+for the computer's winning move over blocking a potential win for the player.</p>
+<pre><code class="hljs css language-javascript"><span class="hljs-keyword">const</span> getFutureWinningIndex = <span class="hljs-function">(<span class="hljs-params">tiles</span>) =&gt;</span> {
+    <span class="hljs-keyword">let</span> index = <span class="hljs-number">-1</span>;
+    <span class="hljs-keyword">const</span> player = <span class="hljs-regexp">/(ex{2}|x{2}e|xex)/i</span>;
+    <span class="hljs-keyword">const</span> ai = <span class="hljs-regexp">/(e0{2}|0{2}e|0e0)/i</span>;
+
+    <span class="hljs-comment">// since we're testing for ai we give prio to letting ourself win</span>
+    <span class="hljs-comment">// instead of blocking the potential win for the player</span>
+    <span class="hljs-keyword">const</span> <span class="hljs-keyword">set</span> = [
+        ...getMatchingPatterns(player, tiles),
+        ...getMatchingPatterns(ai, tiles)
+    ];
+
+    if (<span class="hljs-keyword">set</span>.length) {
+        <span class="hljs-keyword">set</span>.pop().forEach((tileIndex) =&gt; {
+            <span class="hljs-keyword">if</span> (tiles[tileIndex] === <span class="hljs-string">'e'</span>) {
+                index = tileIndex;
+            }
+        });
+    }
+
+    <span class="hljs-keyword">return</span> index;
+};
+</code></pre>
+<p>We finished all the logic for the <code>Game</code> and now it's time to test it (something we normally do during development ;) )</p>
+</span></div></article></div><div class="docs-prevnext"><a class="docs-prev button" href="/Lightning/docs/gettingStarted/start-development"><span class="arrow-prev">← </span><span>Start Development</span></a><a class="docs-next button" href="/Lightning/docs/gettingStarted/run-test-deploy"><span>Run, Test &amp; Deploy</span><span class="arrow-next"> →</span></a></div></div></div><nav class="onPageNav"></nav></div><footer class="nav-footer" id="footer"><section class="sitemap"><a href="/Lightning/" class="nav-home"><img src="/Lightning/img/Lightning.png" alt="Lightning" width="54" height="54"/></a><div><h5>Docs</h5><a href="/Lightning/docs/gettingStarted/web">Getting Started </a><a href="/Lightning/docs/renderEngine/overview"> Render Engine </a><a href="/Lightning/docs/transitions/overview"> Transitions </a><a href="/Lightning/docs/animations/overview"> Animations </a><a href="/Lightning/docs/components/overview"> Components </a><a href="/Lightning/docs/focus/focus"> Focus </a></div><div><h5>Github</h5><a href="https://github.com/WebPlatformForEmbedded/Lightning">Lightning on GitHub</a><a class="github-button" href="https://github.com/WebPlatformForEmbedded/Lightning" data-icon="octicon-star" data-show-count="true" aria-label="Star WebPlatformForEmbedded/Lightning on GitHub">Star</a></div></section><section class="copyright">Copyright © 2020 Metrological</section></footer></div><script type="text/javascript" src="https://cdn.jsdelivr.net/docsearch.js/1/docsearch.min.js"></script><script>
+                document.addEventListener('keyup', function(e) {
+                  if (e.target !== document.body) {
+                    return;
+                  }
+                  // keyCode for '/' (slash)
+                  if (e.keyCode === 191) {
+                    const search = document.getElementById('search_input_react');
+                    search && search.focus();
+                  }
+                });
+              </script><script>
+              var search = docsearch({
+                
+                apiKey: '179838a002f57515518528efffdaf0fa',
+                indexName: 'webplatformforembedded_lightning',
+                inputSelector: '#search_input_react',
+                algoliaOptions: {}
+              });
+            </script></body></html>

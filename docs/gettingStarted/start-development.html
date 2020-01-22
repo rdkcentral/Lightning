@@ -1,0 +1,443 @@
+<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><title>Start Development · Lightning</title><meta name="viewport" content="width=device-width"/><meta name="generator" content="Docusaurus"/><meta name="description" content="We start by creating a new `App.js` file (the one we&#x27;ve referenced in our `index.js` file but at this moment is "/><meta name="docsearch:language" content="en"/><meta property="og:title" content="Start Development · Lightning"/><meta property="og:type" content="website"/><meta property="og:url" content="https://webplatformforembedded.github.io/Lightning//Lightning/"/><meta property="og:description" content="We start by creating a new `App.js` file (the one we&#x27;ve referenced in our `index.js` file but at this moment is "/><meta property="og:image" content="https://webplatformforembedded.github.io/Lightning//Lightning/img/Lightning.png"/><meta name="twitter:card" content="summary"/><meta name="twitter:image" content="https://webplatformforembedded.github.io/Lightning//Lightning/img/Lightning.png"/><link rel="shortcut icon" href="/Lightning/img/favicon.png"/><link rel="stylesheet" href="https://cdn.jsdelivr.net/docsearch.js/1/docsearch.min.css"/><link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css"/><script type="text/javascript" src="https://buttons.github.io/buttons.js"></script><script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/highlight.min.js"></script><script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.3/ace.js"></script><script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.3/mode-javascript.js"></script><script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.3/theme-monokai.js"></script><script type="text/javascript" src="/Lightning/js/init.js"></script><script src="/Lightning/js/scrollSpy.js"></script><link rel="stylesheet" href="/Lightning/css/main.css"/><script src="/Lightning/js/codetabs.js"></script></head><body class="sideNavVisible separateOnPageNav"><div class="fixedHeaderContainer"><div class="headerWrapper wrapper"><header><a href="/Lightning/"><img class="logo" src="/Lightning/img/Lightning.png" alt="Lightning"/><h2 class="headerTitleWithLogo">Lightning</h2></a><div class="navigationWrapper navigationSlider"><nav class="slidingNav"><ul class="nav-site nav-site-internal"><li class="siteNavGroupActive"><a href="/Lightning/docs/introduction/introduction" target="_self">Docs</a></li><li class=""><a href="https://github.com/WebPlatformForEmbedded/Lightning" target="_self">GitHub</a></li><li class="navSearchWrapper reactNavSearchWrapper"><input type="text" id="search_input_react" placeholder="Search" title="Search"/></li></ul></nav></div></header></div></div><div class="navPusher"><div class="docMainWrapper wrapper"><div class="docsNavContainer" id="docsNav"><nav class="toc"><div class="toggleNav"><section class="navWrapper wrapper"><div class="navBreadcrumb wrapper"><div class="navToggle" id="navToggler"><div class="hamburger-menu"><div class="line1"></div><div class="line2"></div><div class="line3"></div></div></div><h2><i>›</i><span>Getting Started</span></h2><div class="tocToggler" id="tocToggler"><i class="icon-toc"></i></div></div><div class="navGroups"><div class="navGroup"><h3 class="navGroupCategoryTitle collapsible">Introduction<span class="arrow"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="#565656" d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"></path><path d="M0 0h24v24H0z" fill="none"></path></svg></span></h3><ul class="hide"><li class="navListItem"><a class="navItem" href="/Lightning/docs/introduction/introduction">Introduction</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/introduction/alternatives">Alternatives</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle collapsible">Getting Started<span class="arrow"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="#565656" d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"></path><path d="M0 0h24v24H0z" fill="none"></path></svg></span></h3><ul class="hide"><li class="navListItem"><a class="navItem" href="/Lightning/docs/gettingStarted/setup">Setting up your environment</a></li><li class="navListItem navListItemActive"><a class="navItem" href="/Lightning/docs/gettingStarted/start-development">Start Development</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/gettingStarted/development-tictactoe">Developing TicTacToe</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/gettingStarted/run-test-deploy">Run, Test &amp; Deploy</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle collapsible">Render Engine<span class="arrow"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="#565656" d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"></path><path d="M0 0h24v24H0z" fill="none"></path></svg></span></h3><ul class="hide"><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/overview">Render Engine</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/renderTree">Render Tree</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/template">Template</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/elements/positioning">Positioning</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/elements/rendering">Rendering</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/elements/transforms">Transforms</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/elements/children">Children</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/tags">Tags</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/patching">Patch</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/clipping">Clipping</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/flexbox">Flexbox</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/events">Events</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle collapsible">Texture Types<span class="arrow"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="#565656" d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"></path><path d="M0 0h24v24H0z" fill="none"></path></svg></span></h3><ul class="hide"><li class="navListItem"><a class="navItem" href="/Lightning/docs/textures/overview">Overview</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/textures/rectangle">Rectangle</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/textures/image">Image</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/textures/text">Text</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/textures/toolbox">Toolbox</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/textures/canvas">Canvas</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/textures/custom">Custom</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle collapsible">Transitions<span class="arrow"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="#565656" d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"></path><path d="M0 0h24v24H0z" fill="none"></path></svg></span></h3><ul class="hide"><li class="navListItem"><a class="navItem" href="/Lightning/docs/transitions/overview">Transitions</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/transitions/attributes">Attributes</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/transitions/methods">Methods</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/transitions/events">Events</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle collapsible">Animations<span class="arrow"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="#565656" d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"></path><path d="M0 0h24v24H0z" fill="none"></path></svg></span></h3><ul class="hide"><li class="navListItem"><a class="navItem" href="/Lightning/docs/animations/overview">Animations</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/animations/attributes">Attributes</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/animations/actions">Actions</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/animations/action_value">Action value</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/animations/action_value_smoothing">Value smoothing</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/animations/methods">Methods</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/animations/events">Events</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle collapsible">Principles<span class="arrow"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="#565656" d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"></path><path d="M0 0h24v24H0z" fill="none"></path></svg></span></h3><ul class="hide"><li class="navListItem"><a class="navItem" href="/Lightning/docs/components/overview">Components</a></li><div class="navGroup subNavGroup"><h4 class="navGroupSubcategoryTitle">State Machine</h4><ul><li class="navListItem"><a class="navItem" href="/Lightning/docs/components/statemachine/statemachine">Overview</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/components/statemachine/switchingstates">Switching states</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/components/statemachine/nestingstates">Nesting states</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/components/statemachine/events">Events</a></li></ul></div><div class="navGroup subNavGroup"><h4 class="navGroupSubcategoryTitle">Communication</h4><ul><li class="navListItem"><a class="navItem" href="/Lightning/docs/components/communication/signal">Signal</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/components/communication/fireancestors">Fire Ancestors</a></li></ul></div><li class="navListItem"><a class="navItem" href="/Lightning/docs/focus/focus">Focus</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/focus/keyhandler">Key Handling</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle collapsible">Code Snippets<span class="arrow"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="#565656" d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"></path><path d="M0 0h24v24H0z" fill="none"></path></svg></span></h3><ul class="hide"><li class="navListItem"><a class="navItem" href="/Lightning/docs/player/player">Player example</a></li></ul></div></div></section></div><script>
+            var coll = document.getElementsByClassName('collapsible');
+            var checkActiveCategory = true;
+            for (var i = 0; i < coll.length; i++) {
+              var links = coll[i].nextElementSibling.getElementsByTagName('*');
+              if (checkActiveCategory){
+                for (var j = 0; j < links.length; j++) {
+                  if (links[j].classList.contains('navListItemActive')){
+                    coll[i].nextElementSibling.classList.toggle('hide');
+                    coll[i].childNodes[1].classList.toggle('rotate');
+                    checkActiveCategory = false;
+                    break;
+                  }
+                }
+              }
+
+              coll[i].addEventListener('click', function() {
+                var arrow = this.childNodes[1];
+                arrow.classList.toggle('rotate');
+                var content = this.nextElementSibling;
+                content.classList.toggle('hide');
+              });
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+              createToggler('#navToggler', '#docsNav', 'docsSliderActive');
+              createToggler('#tocToggler', 'body', 'tocActive');
+
+              var headings = document.querySelector('.toc-headings');
+              headings && headings.addEventListener('click', function(event) {
+                var el = event.target;
+                while(el !== headings){
+                  if (el.tagName === 'A') {
+                    document.body.classList.remove('tocActive');
+                    break;
+                  } else{
+                    el = el.parentNode;
+                  }
+                }
+              }, false);
+
+              function createToggler(togglerSelector, targetSelector, className) {
+                var toggler = document.querySelector(togglerSelector);
+                var target = document.querySelector(targetSelector);
+
+                if (!toggler) {
+                  return;
+                }
+
+                toggler.onclick = function(event) {
+                  event.preventDefault();
+
+                  target.classList.toggle(className);
+                };
+              }
+            });
+        </script></nav></div><div class="container mainContainer docsContainer"><div class="wrapper"><div class="post"><header class="postHeader"><h1 id="__docusaurus" class="postHeaderTitle">Start Development</h1></header><article><div><span><p>We start by creating a new <code>App.js</code> file (the one we've referenced in our <code>index.js</code> file but at this moment is
+missing in our project folder). This is where we start importing the Lightning App framework via our SDK and Utils.</p>
+<pre><code class="hljs css language-javascript"><span class="hljs-keyword">import</span> { Lightning, Utils } <span class="hljs-keyword">from</span> <span class="hljs-string">"wpe-lightning-sdk"</span>;
+</code></pre>
+<p>After the import we create a new default <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/export">export</a> for our App Component.</p>
+<pre><code class="hljs css language-javascript"><span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">App</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Lightning</span>.<span class="hljs-title">Component</span> </span>{ 
+
+}
+</code></pre>
+<p>Inside our class declaration we define a new member <code>getFonts</code> that we're going to use. Get fonts returns an array of object with properties for all the different fonts our app uses.
+For this app We've downloaded a <a href="https://dl.dafont.com/dl/?f=vcr_osd_mono">pixel</a> font but feel free to use any font(s) you like.</p>
+<pre><code class="hljs css language-javascript"><span class="hljs-keyword">static</span> getFonts() {
+    <span class="hljs-keyword">return</span> [
+        {<span class="hljs-attr">family</span>: <span class="hljs-string">'pixel'</span>, <span class="hljs-attr">url</span>: Utils.asset(<span class="hljs-string">'fonts/pixel.ttf'</span>), <span class="hljs-attr">descriptor</span>: {}}
+    ];
+}
+</code></pre>
+<p>After including the font we start by defining the root template of our app on which we will be attaching the components that are needed in our app.
+For now we specify the <a href="https://webplatformforembedded.github.io/Lightning/docs/textures/rectangle">rect</a> property which will use <code>Lightning.texture.RectangleTexture</code> to draw a black rectangle of 1920px by 1080px</p>
+<blockquote>
+<p>Colors are <a href="https://ifpb.github.io/javascript-guide/ecma/expression-and-operator/argb.html">ARGB</a> values</p>
+</blockquote>
+<pre><code class="hljs css language-javascript"><span class="hljs-keyword">static</span> _template(){ 
+    <span class="hljs-keyword">return</span> {
+        <span class="hljs-attr">rect</span>: <span class="hljs-literal">true</span>, <span class="hljs-attr">color</span>: <span class="hljs-number">0xff000000</span>, <span class="hljs-attr">w</span>: <span class="hljs-number">1920</span>, <span class="hljs-attr">h</span>: <span class="hljs-number">1080</span>
+    }
+}
+</code></pre>
+<p>Now we add an empty implementation of the <a href="https://webplatformforembedded.github.io/Lightning/docs/components/statemachine/statemachine#setting-up-the-state-machine">statemachine</a> which we will be starting to fill soon.</p>
+<pre><code class="hljs css language-javascript"><span class="hljs-keyword">static</span> _states(){
+    <span class="hljs-keyword">return</span> [
+    
+    ]
+}
+</code></pre>
+<p>Lets take a step back for a brief moment and think about the different Views / Components we want to create for a game like <code>Tic Tac Toe</code>
+We probably need a:</p>
+<ol>
+<li>A <code>Splash</code> screen to display a logo, or when you're creating a different type of app acts as a placeholder up until all external request are fulfilled and assets are preloaded (if that is a requirement)</li>
+<li>A <code>Main</code> screen on which the user of the app lands after the <code>splash</code> screen hides. In the <code>main</code> screen we also render a menu which has some interaction with the <code>remote control</code></li>
+<li>A <code>Game</code> screen. This screen will hold all the components which are needed to display our Tic Tac Toe game.</li>
+<li>A <code>Menu</code> Component with <code>Item</code> Components.</li>
+</ol>
+<p>Also we need something like a <code>Utils</code> library which holds the Ai related logic because we're creating a Game which
+can be played against a computer controlled player.</p>
+<hr>
+<h4><a class="anchor" aria-hidden="true" id="splashjs"></a><a href="#splashjs" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Splash.js</h4>
+<p>Inside the <code>src</code> folder we create a new file <code>Splash.js</code>. After the file is created we open the file
+and import the <code>Lightning</code> framework from the SDK.</p>
+<pre><code class="hljs css language-javascript"><span class="hljs-keyword">import</span> { Lightning } <span class="hljs-keyword">from</span> <span class="hljs-string">"wpe-lightning-sdk"</span>;
+</code></pre>
+<p>Next, export your Component class so the <code>App</code> can import it.</p>
+<pre><code class="hljs css language-javascript"><span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Splash</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Lightning</span>.<span class="hljs-title">Component</span> </span>{
+
+}
+</code></pre>
+<p>Inside the class definition we create the <code>template</code> (For now we stick to a simple text label that will be fading in and out for a couple of seconds)</p>
+<pre><code class="hljs css language-javascript"><span class="hljs-keyword">static</span> _template(){
+    <span class="hljs-keyword">return</span> {
+        <span class="hljs-attr">Logo</span>:{
+            <span class="hljs-attr">x</span>: <span class="hljs-number">960</span>, <span class="hljs-attr">y</span>: <span class="hljs-number">540</span>, <span class="hljs-attr">mount</span>:<span class="hljs-number">0.5</span>,
+            <span class="hljs-attr">text</span>:{<span class="hljs-attr">text</span>:<span class="hljs-string">'LOADING..'</span>, <span class="hljs-attr">fontFace</span>:<span class="hljs-string">'pixel'</span>}
+        }
+    }
+}
+</code></pre>
+<p>Lets briefly go over every line inside the template definition to get a bit of understanding what is going on.</p>
+<pre><code class="hljs css language-javascript"><span class="hljs-keyword">return</span> {
+    <span class="hljs-attr">Logo</span>:{}
+}
+</code></pre>
+<p>We add a new empty <code>Component</code> to our render-tree with the reference (name) <code>Logo</code>. A component's reference name
+must always start with an uppercase character. We use the name to get a reference for the component so we can
+manipulate it's properties in the future:</p>
+<pre><code class="hljs css language-javascript"><span class="hljs-comment">// set x position</span>
+<span class="hljs-keyword">this</span>.tag(<span class="hljs-string">"Logo"</span>).x = <span class="hljs-number">200</span>;
+
+<span class="hljs-comment">// change alpha</span>
+<span class="hljs-keyword">this</span>.tag(<span class="hljs-string">"Logo"</span>).alpha = <span class="hljs-number">0.5</span>;
+
+<span class="hljs-comment">// store a reference </span>
+<span class="hljs-keyword">const</span> logo = <span class="hljs-keyword">this</span>.tag(<span class="hljs-string">"Logo"</span>);
+</code></pre>
+<p>Next we see the components properties, we position the component 960px on the x-axis and 540 on the y-axis.
+By settings the <a href="https://webplatformforembedded.github.io/Lightning/docs/renderEngine/elements/positioning#mount">mount</a> property we the component to exactly align in the center, no matter the future dimensions of the property.</p>
+<pre><code class="hljs css language-javascript">x: <span class="hljs-number">960</span>, <span class="hljs-attr">y</span>: <span class="hljs-number">540</span>, <span class="hljs-attr">mount</span>:<span class="hljs-number">0.5</span>,
+</code></pre>
+<p>By setting the <code>text</code> property we force the component to be of type <code>Lightning.texture.TextTexture</code>, this
+means we can start adding <a href="https://webplatformforembedded.github.io/Lightning/docs/textures/text">text properties</a> (see our documentation for all the possible text properties)</p>
+<pre><code class="hljs css language-javascript">text:{<span class="hljs-attr">text</span>:<span class="hljs-string">'LOADING..'</span>, <span class="hljs-attr">fontFace</span>:<span class="hljs-string">'pixel'</span>}
+</code></pre>
+<p>Now that we've successfully set up our <code>Splash template</code> we start by adding our first <a href="https://webplatformforembedded.github.io/Lightning/docs/components/overview#component-events">lifecycle event</a></p>
+<pre><code class="hljs css language-javascript">_init() {
+
+}
+</code></pre>
+<p>The <code>init</code> hook will be called when a component is attached for the first time. Inside the _init hook
+we will start defining our <a href="https://webplatformforembedded.github.io/Lightning/docs/animations/overview">animation</a> (Go to the animation part of our documentation)</p>
+<pre><code class="hljs css language-javascript">_init(){
+    <span class="hljs-comment">// create animation and store a reference, so we can start / stop / pause </span>
+    <span class="hljs-keyword">this</span>._pulse = <span class="hljs-keyword">this</span>.tag(<span class="hljs-string">"Logo"</span>).animation({
+        <span class="hljs-attr">duration</span>: <span class="hljs-number">4</span>, <span class="hljs-attr">repeat</span>: <span class="hljs-number">0</span>, <span class="hljs-attr">actions</span>:[
+            {<span class="hljs-attr">p</span>:<span class="hljs-string">'alpha'</span>, <span class="hljs-attr">v</span>:{<span class="hljs-number">0</span>:<span class="hljs-number">0</span>, <span class="hljs-number">1</span>:<span class="hljs-number">0.5</span>, <span class="hljs-number">1</span>:<span class="hljs-number">0</span>}}
+        ]
+    });
+    
+    <span class="hljs-comment">// add a finish eventlistener, so we can send a signal</span>
+    <span class="hljs-comment">// to the parent when the animation is completed</span>
+    <span class="hljs-keyword">this</span>._pulse.on(<span class="hljs-string">"finish"</span>, ()=&gt;{
+        <span class="hljs-keyword">this</span>.signal(<span class="hljs-string">"loaded"</span>);
+    })
+    
+    <span class="hljs-comment">// start the animation</span>
+    <span class="hljs-keyword">this</span>._pulse.start();
+}
+</code></pre>
+<p>Next we add a <code>active</code> hook to our component, this will be called when a component is activated, visible
+and on screen. Inside the <code>active</code> hook we start our animation.</p>
+<pre><code class="hljs css language-javascript">_active(){
+    <span class="hljs-keyword">this</span>._pulse.start();
+}
+
+</code></pre>
+<p>Now that our <code>Splash</code> Component is ready we open the <code>App.js</code> file and start adding our component to the root template.
+We import our new component:</p>
+<pre><code class="hljs css language-javascript"><span class="hljs-keyword">import</span> Splash <span class="hljs-keyword">from</span> <span class="hljs-string">"./Splash.js"</span>;
+</code></pre>
+<p>And add the component to the template. To add an instance of defined <code>Component</code> we use the <code>type</code> attribute in
+our template definition.</p>
+<pre><code class="hljs css language-javascript"><span class="hljs-keyword">static</span> _template() {
+    <span class="hljs-keyword">return</span> {
+        <span class="hljs-attr">rect</span>: <span class="hljs-literal">true</span>, <span class="hljs-attr">color</span>: <span class="hljs-number">0xff000000</span>, <span class="hljs-attr">w</span>: <span class="hljs-number">1920</span>, <span class="hljs-attr">h</span>: <span class="hljs-number">1080</span>,
+        <span class="hljs-attr">Splash</span>: {
+            <span class="hljs-attr">type</span>: Splash, <span class="hljs-attr">signals</span>: {<span class="hljs-attr">loaded</span>: <span class="hljs-literal">true</span>}, <span class="hljs-attr">alpha</span>: <span class="hljs-number">0</span>
+        }
+    };
+}
+</code></pre>
+<p>One new thing we see in our splash implementation is the use of the <code>signals</code> property.</p>
+<blockquote>
+<p>A <a href="https://webplatformforembedded.github.io/Lightning/docs/components/communication/signal">Signal</a> tells the parent component that some event happened on this component.</p>
+</blockquote>
+<hr>
+<h4><a class="anchor" aria-hidden="true" id="mainjs"></a><a href="#mainjs" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Main.js</h4>
+<p>Next stop, is creating the <code>Main</code> component which will be shown at the moment the <code>Splash</code> component sends the <code>loaded</code> signal.
+The <code>Main</code>'s responsibility will be showing a <code>Menu</code> Component in his template and accepting remote control presses so a user can navigate through the menu items.
+We create a new file called <code>Main.js</code> inside our <code>src</code> and add the following code:</p>
+<pre><code class="hljs"><span class="hljs-keyword">import</span> { <span class="hljs-type">Lightning</span> } from <span class="hljs-string">"wpe-lightning-sdk"</span>;
+
+export <span class="hljs-keyword">default</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Main</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Lightning</span>.<span class="hljs-title">Component</span> </span>{
+    static _template(){
+        <span class="hljs-keyword">return</span> {
+        
+        }
+    }
+}
+</code></pre>
+<h5><a class="anchor" aria-hidden="true" id="menujs"></a><a href="#menujs" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Menu.js</h5>
+<p>We add a new folder inside our <code>src</code> folder called <code>menu</code>. In a real world app you may want to structure your re-useable components a bit differently.
+Inside the <code>menu</code> folder we create a new file called <code>Menu.js</code> and populate it with the following content:</p>
+<pre><code class="hljs css language-javascript"><span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Menu</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Lightning</span>.<span class="hljs-title">Component</span></span>{
+    <span class="hljs-keyword">static</span> _template(){
+        <span class="hljs-keyword">return</span> {
+            <span class="hljs-comment">// we define a empty holder for our items of </span>
+            <span class="hljs-comment">// position it 40px relative to the component position </span>
+            <span class="hljs-comment">// so we have some space for our focus indicator</span>
+            <span class="hljs-attr">Items</span>:{
+                <span class="hljs-attr">x</span>:<span class="hljs-number">40</span>
+            },
+            <span class="hljs-comment">// Create a text component that indicates </span>
+            which item has focus
+            <span class="hljs-attr">FocusIndicator</span>:{<span class="hljs-attr">y</span>:<span class="hljs-number">5</span>,
+                <span class="hljs-attr">text</span>:{<span class="hljs-attr">text</span>:<span class="hljs-string">'&gt;'</span>, <span class="hljs-attr">fontFace</span>:<span class="hljs-string">'pixel'</span>}
+            }
+        }
+    }
+}
+</code></pre>
+<p>Next step is adding an <code>init</code>, <code>active</code> and <code>inactive</code> hook in which we create and start our animation. An <code>index</code> property is also created which holds the index of the focused menu item.</p>
+<pre><code class="hljs css language-javascript">_init(){
+    <span class="hljs-comment">// create a blinking animation </span>
+    <span class="hljs-keyword">this</span>._blink = <span class="hljs-keyword">this</span>.tag(<span class="hljs-string">"FocusIndicator"</span>).animation({
+        <span class="hljs-attr">duration</span>:<span class="hljs-number">0.5</span>, <span class="hljs-attr">repeat</span>:<span class="hljs-number">-1</span>, <span class="hljs-attr">actions</span>:[
+            {<span class="hljs-attr">p</span>:<span class="hljs-string">'x'</span>, <span class="hljs-attr">v</span>:{<span class="hljs-number">0</span>:<span class="hljs-number">0</span>, <span class="hljs-number">0.5</span>:<span class="hljs-number">-40</span>,<span class="hljs-number">1</span>:<span class="hljs-number">0</span>}}
+        ]
+    });
+
+    <span class="hljs-comment">// current focused menu index</span>
+    <span class="hljs-keyword">this</span>._index = <span class="hljs-number">0</span>;
+}
+
+_active(){
+    <span class="hljs-keyword">this</span>._blink.start();
+}
+
+_inactive(){
+    <span class="hljs-keyword">this</span>._blink.stop();
+}
+</code></pre>
+<p>Let's take a small sidestep by going back to <code>Main.js</code>, and define the items we want to show in our <code>Menu</code>.
+We alter the template to the following, we import our menu component and add an <code>items</code> property to the implementation.</p>
+<blockquote>
+<p>There is a little trick you can use inside the instance of a <code>Component</code> when you add it to template.
+By adding non-lightning properties (just like items in this example) the property will be directly available in <code>Component</code> definition (this.items).
+If you define a setter (set items(v){} ) the setter will be automatically called upon initialization.</p>
+</blockquote>
+<pre><code class="hljs css language-javascript"><span class="hljs-keyword">import</span> { Lightning } <span class="hljs-keyword">from</span> <span class="hljs-string">"wpe-lightning-sdk"</span>;
+<span class="hljs-keyword">import</span> Menu <span class="hljs-keyword">from</span> <span class="hljs-string">"./menu/Menu.js"</span>;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Main</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Lightning</span>.<span class="hljs-title">Component</span> </span>{
+    <span class="hljs-keyword">static</span> _template(){
+        <span class="hljs-keyword">return</span> {
+            <span class="hljs-attr">Menu</span>:{
+                <span class="hljs-attr">x</span>: <span class="hljs-number">600</span>, <span class="hljs-attr">y</span>:<span class="hljs-number">400</span>,
+                <span class="hljs-attr">type</span>: Menu, <span class="hljs-attr">items</span>:[
+                    {<span class="hljs-attr">label</span>:<span class="hljs-string">'START NEW GAME'</span>,<span class="hljs-attr">action</span>:<span class="hljs-string">'start'</span>},
+                    {<span class="hljs-attr">label</span>:<span class="hljs-string">'CONTINUE'</span>,<span class="hljs-attr">action</span>:<span class="hljs-string">'continue'</span>},
+                    {<span class="hljs-attr">label</span>:<span class="hljs-string">'ABOUT'</span>,<span class="hljs-attr">action</span>:<span class="hljs-string">'about'</span>},
+                    {<span class="hljs-attr">label</span>:<span class="hljs-string">'EXIT'</span>, <span class="hljs-attr">action</span>:<span class="hljs-string">'exit'</span>}
+                ]
+            }
+        }
+    }
+}
+</code></pre>
+<p>Now we go back to <code>Menu.js</code> and implement the items creation. <code>Lightning</code> support multiple ways of creating and adding
+components to the template. In this example we add the <code>children</code> accessor and feed it with an array of objects which will
+be automatically created by <code>Lightning</code>.</p>
+<p>As noted before the <code>items</code> setter will be automatically called, so we can use the map function to return a new array of objects.
+We also specify the type (which at this moment is not existing).</p>
+<pre><code class="hljs css language-javascript"><span class="hljs-keyword">set</span> items(v){
+    <span class="hljs-keyword">this</span>.tag(<span class="hljs-string">"Items"</span>).children = v.map(<span class="hljs-function">(<span class="hljs-params">el, idx</span>)=&gt;</span>{
+        <span class="hljs-keyword">return</span> {<span class="hljs-attr">type</span>: Item, <span class="hljs-attr">action</span>: el.action, <span class="hljs-attr">label</span>: el.label, <span class="hljs-attr">y</span>: idx*<span class="hljs-number">90</span>}
+    })
+}
+</code></pre>
+<p>To actually add items we need to create the new Component <code>Item</code>. So we start by creating a new file in our menu folder called <code>Item.js</code> and add the following code:</p>
+<pre><code class="hljs css language-javascript"><span class="hljs-keyword">import</span> { Lightning } <span class="hljs-keyword">from</span> <span class="hljs-string">"wpe-lightning-sdk"</span>;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Item</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Lightning</span>.<span class="hljs-title">Component</span></span>{
+
+    <span class="hljs-keyword">static</span> _template(){
+        <span class="hljs-keyword">return</span> {
+            <span class="hljs-attr">text</span>:{<span class="hljs-attr">text</span>:<span class="hljs-string">''</span>, <span class="hljs-attr">fontFace</span>:<span class="hljs-string">'pixel'</span>, <span class="hljs-attr">fontSize</span>:<span class="hljs-number">50</span>}
+        }
+    }
+    
+    <span class="hljs-comment">// will be automatically called</span>
+    <span class="hljs-keyword">set</span> label(v){
+        <span class="hljs-keyword">this</span>.text.text = v;
+    }
+    
+    <span class="hljs-comment">// will be automatically called</span>
+    <span class="hljs-keyword">set</span> action(v){
+        <span class="hljs-keyword">this</span>._action = v;
+    }
+    
+    <span class="hljs-comment">// will be automatically called</span>
+    <span class="hljs-keyword">get</span> action(){
+        <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>._action;
+    }
+}
+</code></pre>
+<p>Now we go back to <code>Menu.js</code> and import the <code>Item</code> Component.</p>
+<pre><code class="hljs css language-javascript"><span class="hljs-keyword">import</span> Item <span class="hljs-keyword">from</span> <span class="hljs-string">"./Item.js"</span>;
+</code></pre>
+<p>Now that we have a <code>Menu</code> component which can be filled with <code>Item</code>s it's time to start adding logic to our component.
+We add an accessor to get the children inside the Items wrapper.</p>
+<pre><code class="hljs css language-javascript"><span class="hljs-keyword">get</span> items(){
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.tag(<span class="hljs-string">"Items"</span>).children;
+}
+</code></pre>
+<p>Next we add an accessor to quickly grab the active (focused) item.</p>
+<pre><code class="hljs css language-javascript"><span class="hljs-keyword">get</span> activeItem(){
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.items[<span class="hljs-keyword">this</span>._index];
+}
+</code></pre>
+<p>Now we declare the <code>_setIndex</code> function, this will accept an <code>index</code> argument changes the position of the focus indicator and it stores the new index.</p>
+<pre><code class="hljs css language-javascript">_setIndex(idx){
+    <span class="hljs-comment">// since it's a one time transition we use smooth</span>
+    <span class="hljs-keyword">this</span>.tag(<span class="hljs-string">"FocusIndicator"</span>).setSmooth(<span class="hljs-string">"y"</span>, idx*<span class="hljs-number">90</span> + <span class="hljs-number">5</span>);
+    
+    <span class="hljs-comment">// store new index</span>
+    <span class="hljs-keyword">this</span>._index = idx;
+}
+</code></pre>
+<p>At this point we're done with our <code>Menu</code> logic and it's time to start letting our <code>App</code> component know when the <code>Splash</code> has send a <code>loaded</code> signal.</p>
+<hr>
+<h5><a class="anchor" aria-hidden="true" id="appjs"></a><a href="#appjs" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>App.js</h5>
+<p>First we add a new state to our empty state machine called <code>Splash</code>. And force our app to go into that state upon <code>setup</code> via <code>_setState()</code>.</p>
+<blockquote>
+<p>The $enter() and $exit() will be automatically called upon when a component enters that state or exits that state so you can do some proper clean up if needed.
+In this specific case we want to make sure that our Splash component shows / hides.</p>
+</blockquote>
+<pre><code class="hljs css language-javascript">_setup(){
+    <span class="hljs-keyword">this</span>._setState(<span class="hljs-string">"Splash"</span>);
+}
+
+<span class="hljs-keyword">static</span> _states() {
+    <span class="hljs-keyword">return</span> [
+        <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Splash</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">this</span> </span>{
+            $enter() {
+                <span class="hljs-keyword">this</span>.tag(<span class="hljs-string">"Splash"</span>).setSmooth(<span class="hljs-string">"alpha"</span>, <span class="hljs-number">1</span>);
+            }
+            $exit() {
+                <span class="hljs-keyword">this</span>.tag(<span class="hljs-string">"Splash"</span>).setSmooth(<span class="hljs-string">"alpha"</span>, <span class="hljs-number">0</span>);
+            }
+            <span class="hljs-comment">// because we have defined 'loaded'</span>
+            loaded() {
+                <span class="hljs-keyword">this</span>._setState(<span class="hljs-string">"Main"</span>);
+            }
+        }
+    ]
+</code></pre>
+<p>Take notice of the <code>loaded()</code> function, because the function is nested in the <code>Splash</code> state this function will only be called when <code>Splash</code> fires the <code>loaded</code> signal while the app is in the <code>Splash</code> state.
+If it's not in the <code>Splash</code> state it will not be called unless there is a loaded function in a different state or root state.
+This pattern will prevent a lot of If/else statements throughout your code.</p>
+<p>Now add a new state to our App's statemachine implementation called <code>Main</code> (to save some space We've hidden the Splash state implementation, but it will still be there)</p>
+<pre><code class="hljs css language-javascript">_setup(){
+    <span class="hljs-keyword">this</span>._setState(<span class="hljs-string">"Splash"</span>);
+}
+
+<span class="hljs-keyword">static</span> _states() {
+    <span class="hljs-keyword">return</span> [
+        <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Splash</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">this</span> </span>{...},
+        <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Main</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">this</span> </span>{
+            $enter() {
+                <span class="hljs-keyword">this</span>.tag(<span class="hljs-string">"Main"</span>).patch({
+                    <span class="hljs-attr">smooth</span>:{<span class="hljs-attr">alpha</span>:<span class="hljs-number">1</span>, <span class="hljs-attr">y</span>:<span class="hljs-number">0</span>}
+                });
+            }    
+            $exit() {
+                <span class="hljs-keyword">this</span>.tag(<span class="hljs-string">"Main"</span>).patch({
+                    <span class="hljs-attr">smooth</span>:{<span class="hljs-attr">alpha</span>:<span class="hljs-number">0</span>, <span class="hljs-attr">y</span>:<span class="hljs-number">100</span>}
+                });
+            }    
+            <span class="hljs-comment">// change focus path to main</span>
+            <span class="hljs-comment">// component which handles the remotecontrol</span>
+            _getFocused() {
+                <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.tag(<span class="hljs-string">"Main"</span>);
+            }
+        }
+    ]
+</code></pre>
+<p>As defined before we add the <code>$enter()</code> and <code>$exit()</code> hooks to hide / show the <code>Main</code> component. Also we see the
+<code>_getFocused</code> popping up for the first time.</p>
+<blockquote>
+<p>The focus path is determined by calling the _getFocused() method of the app object. By default, or if undefined is returned, the focus path stops here and the app is the active component (and the focus path only contains the app itself).
+When _getFocused() returns a child component however, that one is also added to the focus path, and its _getFocused() method is also invoked. This process may repeat recursively until the active component is found.</p>
+<p>To put it another way: the components may delegate focus to descendants.</p>
+</blockquote>
+<p>You can read more in the documentation about <a href="https://webplatformforembedded.github.io/Lightning/docs/focus/focus#__docusaurus">focus</a> and <a href="https://webplatformforembedded.github.io/Lightning/docs/focus/keyhandle">remote control</a> key handling</p>
+<p>When our app is in the <code>Main</code> state we delegate the focus to our <code>Main</code> component, which in essence means:
+<code>Telling Lightning which component is the active component - and should handle key events</code></p>
+<p>Now that we have delegated the focus to the <code>Main</code> component we can open <code>Menu.js</code> again and start implementing the remote control handling:</p>
+<p>Let's implement our first remote control handler. If this component has focus and the user presses the <code>up</code> button, <code>_handleUp()</code> will be called.
+Inside the function we will call the <code>_setIndex</code> which we still need to declare.</p>
+<pre><code class="hljs css language-javascript">_handleUp(){
+    <span class="hljs-keyword">this</span>._setIndex(<span class="hljs-built_in">Math</span>.max(<span class="hljs-number">0</span>, --<span class="hljs-keyword">this</span>._index));
+}
+</code></pre>
+<p>And we implement the opposite logic if a user presses <code>down</code> on the remote;</p>
+<pre><code class="hljs css language-javascript">_handleDown(){
+    <span class="hljs-keyword">this</span>._setIndex(<span class="hljs-built_in">Math</span>.min(++<span class="hljs-keyword">this</span>._index, <span class="hljs-keyword">this</span>.items.length - <span class="hljs-number">1</span>));
+}
+</code></pre>
+<p>Next stop, building the Actual game!</p>
+</span></div></article></div><div class="docs-prevnext"><a class="docs-prev button" href="/Lightning/docs/gettingStarted/setup"><span class="arrow-prev">← </span><span>Setting up your environment</span></a><a class="docs-next button" href="/Lightning/docs/gettingStarted/development-tictactoe"><span class="function-name-prevnext">Developing TicTacToe</span><span class="arrow-next"> →</span></a></div></div></div><nav class="onPageNav"></nav></div><footer class="nav-footer" id="footer"><section class="sitemap"><a href="/Lightning/" class="nav-home"><img src="/Lightning/img/Lightning.png" alt="Lightning" width="54" height="54"/></a><div><h5>Docs</h5><a href="/Lightning/docs/gettingStarted/web">Getting Started </a><a href="/Lightning/docs/renderEngine/overview"> Render Engine </a><a href="/Lightning/docs/transitions/overview"> Transitions </a><a href="/Lightning/docs/animations/overview"> Animations </a><a href="/Lightning/docs/components/overview"> Components </a><a href="/Lightning/docs/focus/focus"> Focus </a></div><div><h5>Github</h5><a href="https://github.com/WebPlatformForEmbedded/Lightning">Lightning on GitHub</a><a class="github-button" href="https://github.com/WebPlatformForEmbedded/Lightning" data-icon="octicon-star" data-show-count="true" aria-label="Star WebPlatformForEmbedded/Lightning on GitHub">Star</a></div></section><section class="copyright">Copyright © 2020 Metrological</section></footer></div><script type="text/javascript" src="https://cdn.jsdelivr.net/docsearch.js/1/docsearch.min.js"></script><script>
+                document.addEventListener('keyup', function(e) {
+                  if (e.target !== document.body) {
+                    return;
+                  }
+                  // keyCode for '/' (slash)
+                  if (e.keyCode === 191) {
+                    const search = document.getElementById('search_input_react');
+                    search && search.focus();
+                  }
+                });
+              </script><script>
+              var search = docsearch({
+                
+                apiKey: '179838a002f57515518528efffdaf0fa',
+                indexName: 'webplatformforembedded_lightning',
+                inputSelector: '#search_input_react',
+                algoliaOptions: {}
+              });
+            </script></body></html>
