@@ -407,6 +407,11 @@ export default class Stage extends EventEmitter {
         this.ctx.update()
     }
 
+    addServiceProvider(serviceprovider) {
+        if (Utils.isSpark) {
+            this.platform.addServiceProvider(serviceprovider);
+        }
+    }
 }
 
 import Element from "./Element.mjs";
