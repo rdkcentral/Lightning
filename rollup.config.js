@@ -58,7 +58,7 @@ export default [{
                 '@babel/env',
                 {
                     targets: {
-                        chrome: '44',
+                        ie: '11',
                     },
                     spec: true,
                     debug: false
@@ -90,7 +90,7 @@ export default [{
                 '@babel/env',
                 {
                     targets: {
-                        chrome: '44',
+                        ie: '11',
                     },
                     spec: true,
                     debug: false
@@ -118,7 +118,7 @@ export default [{
                 '@babel/env',
                 {
                     targets: {
-                        chrome: '44',
+                        ie: '11',
                     },
                     spec: true,
                     debug: false
