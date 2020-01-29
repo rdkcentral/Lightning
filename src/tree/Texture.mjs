@@ -321,6 +321,12 @@ export default class Texture {
         if (this.isUsed()) {
             if (newSource) {
                 if (newSource.isLoaded()) {
+
+                    // Apply resizeMode
+                    if (this._resizeMode) {
+                        this._applyResizeMode();
+                    }
+
                     this.elements.forEach(element => {
                         if (element.active) {
                             element._setDisplayedTexture(this);
