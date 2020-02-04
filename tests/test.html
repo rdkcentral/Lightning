@@ -2,18 +2,24 @@
 <head>
     <meta charset="utf-8">
     <title>Mocha Tests</title>
-    <link href="./lib/mocha.css" rel="stylesheet" />
+    <link href="../node_modules/mocha/mocha.css" rel="stylesheet" />
 </head>
 <body>
 <div id="mocha"></div>
 
-<script src="./lib/chai.js"></script>
-<script src="./lib/sinon-7.2.2.js"></script>
-<script src="./lib/mocha-5.2.0.js"></script>
+<script src="../node_modules/chai/chai.js"></script>
+<script src="../node_modules/sinon/pkg/sinon.js"></script>
+<script src="../node_modules/mocha/mocha.js"></script>
 
 <script>mocha.setup('bdd')</script>
+
+<script src="../dist/lightning.js"></script>
+
 <script src="textures/test.textures.js" type="module"></script>
 <script src="textures/test.text.js" type="module"></script>
+<script src="keyhandler/test.keyhandler.js" type="module"></script>
+<script src="keyhandler/test.keyhandleLong.js" type="module"></script>
+<script src="shaders/test.grayscale.js" type="module"></script>
 
 <script src="layout/test.size-limits.js" type="module"></script>
 <script src="layout/test.multilevel.js" type="module"></script>
@@ -26,6 +32,7 @@
 <script src="layout/test.updates.js" type="module"></script>
 <script src="layout/test.relative.js" type="module"></script>
 <script src="layout/test.layout.js" type="module"></script>
+
 <script type="module">
     mocha.checkLeaks();
     mocha.run();

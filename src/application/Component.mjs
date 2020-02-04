@@ -445,7 +445,10 @@ export default class Component extends Element {
             throw new Error("Ancestor event name must be prefixed by dollar sign.");
         }
 
-        return this._doFireAncestors(name, args);
+        const parent = this._getParentSignalHandler();
+        if (parent) {
+            return parent._doFireAncestors(name, args);
+        }
     }
 
     _doFireAncestors(name, args) {

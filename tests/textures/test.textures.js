@@ -1,5 +1,3 @@
-import lng from "../../src/lightning.mjs";
-
 describe('textures', function() {
     this.timeout(0);
 
@@ -197,6 +195,35 @@ describe('textures', function() {
 
         describe('regression', () => {
 
+            class ImageTexture extends TestTexture {
+
+                constructor(stage) {
+                    super(stage);
+
+                    this._src = undefined;
+                }
+
+                get src() {
+                    return this._src;
+                }
+
+                set src(v) {
+                    if (this._src !== v) {
+                        this._src = v;
+                        this._changed();
+                    }
+                }
+
+                _getIsValid() {
+                    return !!this._src;
+                }
+
+                _getLookupId() {
+                    return this._src;
+                }
+            }
+
+
             /* FIXME: use chai-spies instead of prototype manipulation,
                chai needs to be added as node package first */
             const wrapped = TestTexture.prototype._applyResizeMode;
@@ -226,6 +253,60 @@ describe('textures', function() {
                 chai.assert(app.tag("Item").texture._resizeMode.h === 100);
                 chai.assert(app.tag("Item").texture.source.id === sourceId, 'sources should be the same');
                 chai.assert(applyCalls === 2, 'applyResizeMode apply should have been called for new texture');
+            });
+
+
+
+            it('should apply resizeMode for an invalid texture (that was never loaded) with existing source', () => {
+
+                const imageSrc = "someImage";
+
+                const element = app.stage.createElement({
+                    Item: {x: 200, visible: true, w: 100, h: 100, texture: {type: ImageTexture, src: imageSrc}},
+                    Item2: {x: 10, visible: true, w: 150, h: 150,
+                        Contain: { x: 100, y: 100, mount: 0.5,
+                            texture: {type: ImageTexture, src: "", resizeMode: {type: 'contain', w: 50, h: 50}}
+                        }
+                    }
+                });
+
+                app.children = [element];
+                const container = element.tag("Item2").tag("Contain");
+
+                // Stub _applyResizeMode call on the second ImageTexture
+                const texture = container.texture;
+                texture._applyResizeMode = sinon.spy(texture._applyResizeMode);
+
+                return new Promise( resolve => {
+
+                    const Item1TxLoaded = () => {
+                        app.tag('Item').off("txLoaded", Item1TxLoaded);
+
+                        setTimeout(() => {
+                            // Patch Item2 with same texture as Item
+                            container.patch({texture: {src: imageSrc}});
+                            stage.drawFrame();
+                        });
+
+                    };
+
+                    const Item2TxLoaded = () => {
+                        container.off("txLoaded", Item2TxLoaded);
+                        chai.assert(texture.isValid);
+                        chai.assert(texture._applyResizeMode.called, "_applyResizeMode was never called");
+                        resolve();
+
+                    };
+
+                    // Wait for first texture loading
+                    app.tag('Item').on("txLoaded", Item1TxLoaded);
+                    // Wait for second texture loading
+                    container.on("txLoaded", Item2TxLoaded);
+
+                    stage.drawFrame();
+
+                    chai.assert(!texture.isValid, "Tested behaviour should start with a non loaded texture / non valid");
+                });
             });
         });
 

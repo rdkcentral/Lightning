@@ -171,16 +171,27 @@ export default class WebPlatform {
         /* WebGL blits automatically */
     }
 
-    registerKeyHandler(keyhandler) {
-        this._keyListener = e => {
+    registerKeydownHandler(keyhandler) {
+        this._keydownListener = (e) => {
             keyhandler(e);
         };
-        window.addEventListener('keydown', this._keyListener);
+        window.addEventListener('keydown', this._keydownListener);
+    }
+
+    registerKeyupHandler(keyhandler) {
+        this._keyupListener = (e) => {
+            keyhandler(e);
+        };
+        window.addEventListener('keyup', this._keyupListener);
     }
 
     _removeKeyHandler() {
-        if (this._keyListener) {
-            window.removeEventListener('keydown', this._keyListener);
+        if (this._keydownListener) {
+            window.removeEventListener('keydown', this._keydownListener);
+        }
+
+        if (this._keyupListener) {
+            window.removeEventListener('keyup', this._keyupListener);
         }
     }
 

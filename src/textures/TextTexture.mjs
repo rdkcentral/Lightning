@@ -97,6 +97,17 @@ export default class TextTexture extends Texture {
         }
     }
 
+    get textOverflow() {
+        return this._textOverflow;
+    }
+
+    set textOverflow(v) {
+        if (v != this._textOverflow) {
+            this._textOverflow = v;
+            this._changed();
+        }
+    }
+
     get lineHeight() {
         return this._lineHeight;
     }
@@ -387,6 +398,7 @@ export default class TextTexture extends Texture {
         if (this.fontFace !== null) parts.push("ff" + (Array.isArray(this.fontFace) ? this.fontFace.join(",") : this.fontFace));
         if (this.wordWrap !== true) parts.push("wr" + (this.wordWrap ? 1 : 0));
         if (this.wordWrapWidth !== 0) parts.push("ww" + this.wordWrapWidth);
+        if (this.textOverflow != "") parts.push("to" + this.textOverflow);
         if (this.lineHeight !== null) parts.push("lh" + this.lineHeight);
         if (this.textBaseline !== "alphabetic") parts.push("tb" + this.textBaseline);
         if (this.textAlign !== "left") parts.push("ta" + this.textAlign);
@@ -433,12 +445,13 @@ export default class TextTexture extends Texture {
 
             if (p) {
                 p.then(() => {
-                    cb(null, Object.assign({renderInfo: renderer.renderInfo}, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas)));
+                    /* FIXME: on some platforms (e.g. RPI), throttling text textures cause artifacts */
+                    cb(null, Object.assign({renderInfo: renderer.renderInfo, throttle: false}, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas)));
                 }).catch((err) => {
                     cb(err);
                 });
             } else {
-                cb(null, Object.assign({renderInfo: renderer.renderInfo}, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas)));
+                cb(null, Object.assign({renderInfo: renderer.renderInfo, throttle: false}, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas)));
             }
         }
     }
@@ -453,6 +466,7 @@ export default class TextTexture extends Texture {
         if (this.fontFace !== null) nonDefaults["fontFace"] = this.fontFace;
         if (this.wordWrap !== true) nonDefaults["wordWrap"] = this.wordWrap;
         if (this.wordWrapWidth !== 0) nonDefaults["wordWrapWidth"] = this.wordWrapWidth;
+        if (this.textOverflow != "") nonDefaults["textOverflow"] = this.textOverflow;
         if (this.lineHeight !== null) nonDefaults["lineHeight"] = this.lineHeight;
         if (this.textBaseline !== "alphabetic") nonDefaults["textBaseline"] = this.textBaseline;
         if (this.textAlign !== "left") nonDefaults["textAlign"] = this.textAlign;
@@ -492,6 +506,7 @@ export default class TextTexture extends Texture {
         obj.fontFace = this._fontFace;
         obj.wordWrap = this._wordWrap;
         obj.wordWrapWidth = this._wordWrapWidth;
+        obj.textOverflow = this._textOverflow;
         obj.lineHeight = this._lineHeight;
         obj.textBaseline = this._textBaseline;
         obj.textAlign = this._textAlign;
@@ -534,6 +549,7 @@ proto._fontSize = 40;
 proto._fontFace = null;
 proto._wordWrap = true;
 proto._wordWrapWidth = 0;
+proto._textOverflow = "";
 proto._lineHeight = null;
 proto._textBaseline = "alphabetic";
 proto._textAlign = "left";

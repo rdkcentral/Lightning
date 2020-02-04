@@ -106,6 +106,22 @@ export default class TextTextureRenderer {
             wordWrapWidth = innerWidth
         }
 
+        // Text overflow
+        if (this._settings.textOverflow && !this._settings.wordWrap) {
+            let suffix;
+            switch (this._settings.textOverflow) {
+                case 'clip':
+                    suffix = '';
+                    break;
+                case 'ellipsis':
+                    suffix = this._settings.maxLinesSuffix;
+                    break;
+                default:
+                    suffix = this._settings.textOverflow;
+            }
+            this._settings.text = this.wrapWord(this._settings.text, wordWrapWidth, suffix)
+        }
+
         // word wrap
         // preserve original text
         let linesInfo;
@@ -252,14 +268,14 @@ export default class TextTextureRenderer {
             let color = this._settings.highlightColor || 0x00000000;
 
             let hlHeight = (this._settings.highlightHeight * precision || fontSize * 1.5);
-            let offset = (this._settings.highlightOffset !== null ? this._settings.highlightOffset * precision : -0.5 * fontSize);
+            const offset = this._settings.highlightOffset * precision;
             const hlPaddingLeft = (this._settings.highlightPaddingLeft !== null ? this._settings.highlightPaddingLeft * precision : paddingLeft);
             const hlPaddingRight = (this._settings.highlightPaddingRight !== null ? this._settings.highlightPaddingRight * precision : paddingRight);
 
             this._context.fillStyle = StageUtils.getRgbaString(color);
             for (let i = 0; i < drawLines.length; i++) {
                 let drawLine = drawLines[i];
-                this._context.fillRect((drawLine.x - hlPaddingLeft), (drawLine.y + offset), (drawLine.w + hlPaddingRight + hlPaddingLeft), hlHeight);
+                this._context.fillRect((drawLine.x - hlPaddingLeft), (drawLine.y - offsetY + offset), (drawLine.w + hlPaddingRight + hlPaddingLeft), hlHeight);
             }
         }
 
@@ -293,6 +309,49 @@ export default class TextTextureRenderer {
 
         this.renderInfo = renderInfo;
     };
+
+    wrapWord(word, wordWrapWidth, suffix) {
+        const suffixWidth = this._context.measureText(suffix).width;
+        const wordLen = word.length
+        const wordWidth = this._context.measureText(word).width;
+
+        /* If word fits wrapWidth, do nothing */
+        if (wordWidth <= wordWrapWidth) {
+            return word;
+        }
+
+        /* Make initial guess for text cuttoff */
+        let cutoffIndex = Math.floor((wordWrapWidth * wordLen) / wordWidth);
+        let truncWordWidth = this._context.measureText(word.substring(0, cutoffIndex)).width + suffixWidth;
+
+        /* In case guess was overestimated, shrink it letter by letter. */
+        if (truncWordWidth > wordWrapWidth) {
+            while (cutoffIndex > 0) {
+                truncWordWidth = this._context.measureText(word.substring(0, cutoffIndex)).width + suffixWidth;
+                if (truncWordWidth > wordWrapWidth) {
+                    cutoffIndex -= 1;
+                } else {
+                    break;
+                }
+            }
+
+        /* In case guess was underestimated, extend it letter by letter. */
+        } else {
+            while (cutoffIndex < wordLen) {
+                truncWordWidth = this._context.measureText(word.substring(0, cutoffIndex)).width + suffixWidth;
+                if (truncWordWidth < wordWrapWidth) {
+                    cutoffIndex += 1;
+                } else {
+                    // Finally, when bound is crossed, retract last letter.
+                    cutoffIndex -=1;
+                    break;
+                }
+            }
+        }
+
+        /* If wrapWidth is too short to even contain suffix alone, return empty string */
+        return word.substring(0, cutoffIndex) + (wordWrapWidth >= suffixWidth ? suffix : '');
+    }
 
     /**
      * Applies newlines to a string to have it optimally fit into the horizontal
