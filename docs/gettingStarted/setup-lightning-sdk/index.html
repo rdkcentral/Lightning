@@ -1,0 +1,188 @@
+<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><title>Setup Lightning SDK · Lightning</title><meta name="viewport" content="width=device-width"/><meta name="generator" content="Docusaurus"/><meta name="description" content="We will use the Lightning SDK to power the app which can be found here: https://github.com/WebPlatformForEmbedded/Lightning-SDK/"/><meta name="docsearch:language" content="en"/><meta property="og:title" content="Setup Lightning SDK · Lightning"/><meta property="og:type" content="website"/><meta property="og:url" content="https://webplatformforembedded.github.io/Lightning//Lightning/"/><meta property="og:description" content="We will use the Lightning SDK to power the app which can be found here: https://github.com/WebPlatformForEmbedded/Lightning-SDK/"/><meta property="og:image" content="https://webplatformforembedded.github.io/Lightning//Lightning/img/Lightning.png"/><meta name="twitter:card" content="summary"/><meta name="twitter:image" content="https://webplatformforembedded.github.io/Lightning//Lightning/img/Lightning.png"/><link rel="shortcut icon" href="/Lightning/img/favicon.png"/><link rel="stylesheet" href="https://cdn.jsdelivr.net/docsearch.js/1/docsearch.min.css"/><link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css"/><script type="text/javascript" src="https://buttons.github.io/buttons.js"></script><script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/highlight.min.js"></script><script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.3/ace.js"></script><script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.3/mode-javascript.js"></script><script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.3/theme-monokai.js"></script><script type="text/javascript" src="/Lightning/js/init.js"></script><script src="/Lightning/js/scrollSpy.js"></script><link rel="stylesheet" href="/Lightning/css/main.css"/><script src="/Lightning/js/codetabs.js"></script></head><body class="sideNavVisible separateOnPageNav"><div class="fixedHeaderContainer"><div class="headerWrapper wrapper"><header><a href="/Lightning/"><img class="logo" src="/Lightning/img/Lightning.png" alt="Lightning"/><h2 class="headerTitleWithLogo">Lightning</h2></a><div class="navigationWrapper navigationSlider"><nav class="slidingNav"><ul class="nav-site nav-site-internal"><li class="siteNavGroupActive"><a href="/Lightning/docs/introduction/introduction" target="_self">Docs</a></li><li class=""><a href="https://github.com/WebPlatformForEmbedded/Lightning" target="_self">GitHub</a></li><li class="navSearchWrapper reactNavSearchWrapper"><input type="text" id="search_input_react" placeholder="Search" title="Search"/></li></ul></nav></div></header></div></div><div class="navPusher"><div class="docMainWrapper wrapper"><div class="docsNavContainer" id="docsNav"><nav class="toc"><div class="toggleNav"><section class="navWrapper wrapper"><div class="navBreadcrumb wrapper"><div class="navToggle" id="navToggler"><div class="hamburger-menu"><div class="line1"></div><div class="line2"></div><div class="line3"></div></div></div><h2><i>›</i><span>Getting Started</span></h2><div class="tocToggler" id="tocToggler"><i class="icon-toc"></i></div></div><div class="navGroups"><div class="navGroup"><h3 class="navGroupCategoryTitle collapsible">Introduction<span class="arrow"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="#565656" d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"></path><path d="M0 0h24v24H0z" fill="none"></path></svg></span></h3><ul class="hide"><li class="navListItem"><a class="navItem" href="/Lightning/docs/introduction/introduction">Introduction</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/introduction/alternatives">Alternatives</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle collapsible">Getting Started<span class="arrow"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="#565656" d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"></path><path d="M0 0h24v24H0z" fill="none"></path></svg></span></h3><ul class="hide"><li class="navListItem"><a class="navItem" href="/Lightning/docs/gettingStarted/sdkornot">To SDK or not to SDK?</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/gettingStarted/stage-configuration">Stage Configuration</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/gettingStarted/setup-lightning">Setup Lightning</a></li><li class="navListItem navListItemActive"><a class="navItem" href="/Lightning/docs/gettingStarted/setup-lightning-sdk">Setup Lightning SDK</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/gettingStarted/start-development">Start Development</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/gettingStarted/development-tictactoe">Developing TicTacToe</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/gettingStarted/run-test-deploy">Run, Test &amp; Deploy</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle collapsible">Render Engine<span class="arrow"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="#565656" d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"></path><path d="M0 0h24v24H0z" fill="none"></path></svg></span></h3><ul class="hide"><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/overview">Render Engine</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/renderTree">Render Tree</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/template">Template</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/elements/positioning">Positioning</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/elements/rendering">Rendering</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/elements/transforms">Transforms</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/elements/children">Children</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/tags">Tags</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/patching">Patch</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/clipping">Clipping</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/flexbox">Flexbox</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/renderEngine/events">Events</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle collapsible">Texture Types<span class="arrow"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="#565656" d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"></path><path d="M0 0h24v24H0z" fill="none"></path></svg></span></h3><ul class="hide"><li class="navListItem"><a class="navItem" href="/Lightning/docs/textures/overview">Overview</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/textures/rectangle">Rectangle</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/textures/image">Image</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/textures/text">Text</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/textures/toolbox">Toolbox</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/textures/canvas">Canvas</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/textures/custom">Custom</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle collapsible">Transitions<span class="arrow"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="#565656" d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"></path><path d="M0 0h24v24H0z" fill="none"></path></svg></span></h3><ul class="hide"><li class="navListItem"><a class="navItem" href="/Lightning/docs/transitions/overview">Transitions</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/transitions/attributes">Attributes</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/transitions/methods">Methods</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/transitions/events">Events</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle collapsible">Animations<span class="arrow"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="#565656" d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"></path><path d="M0 0h24v24H0z" fill="none"></path></svg></span></h3><ul class="hide"><li class="navListItem"><a class="navItem" href="/Lightning/docs/animations/overview">Animations</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/animations/attributes">Attributes</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/animations/actions">Actions</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/animations/action_value">Action value</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/animations/action_value_smoothing">Value smoothing</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/animations/methods">Methods</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/animations/events">Events</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle collapsible">Principles<span class="arrow"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="#565656" d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"></path><path d="M0 0h24v24H0z" fill="none"></path></svg></span></h3><ul class="hide"><li class="navListItem"><a class="navItem" href="/Lightning/docs/components/overview">Components</a></li><div class="navGroup subNavGroup"><h4 class="navGroupSubcategoryTitle">State Machine</h4><ul><li class="navListItem"><a class="navItem" href="/Lightning/docs/components/statemachine/statemachine">Overview</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/components/statemachine/switchingstates">Switching states</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/components/statemachine/nestingstates">Nesting states</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/components/statemachine/events">Events</a></li></ul></div><div class="navGroup subNavGroup"><h4 class="navGroupSubcategoryTitle">Communication</h4><ul><li class="navListItem"><a class="navItem" href="/Lightning/docs/components/communication/signal">Signal</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/components/communication/fireancestors">Fire Ancestors</a></li></ul></div><li class="navListItem"><a class="navItem" href="/Lightning/docs/focus/focus">Focus</a></li><li class="navListItem"><a class="navItem" href="/Lightning/docs/focus/keyhandler">Key Handling</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle collapsible">Code Snippets<span class="arrow"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="#565656" d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"></path><path d="M0 0h24v24H0z" fill="none"></path></svg></span></h3><ul class="hide"><li class="navListItem"><a class="navItem" href="/Lightning/docs/player/player">Player example</a></li></ul></div></div></section></div><script>
+            var coll = document.getElementsByClassName('collapsible');
+            var checkActiveCategory = true;
+            for (var i = 0; i < coll.length; i++) {
+              var links = coll[i].nextElementSibling.getElementsByTagName('*');
+              if (checkActiveCategory){
+                for (var j = 0; j < links.length; j++) {
+                  if (links[j].classList.contains('navListItemActive')){
+                    coll[i].nextElementSibling.classList.toggle('hide');
+                    coll[i].childNodes[1].classList.toggle('rotate');
+                    checkActiveCategory = false;
+                    break;
+                  }
+                }
+              }
+
+              coll[i].addEventListener('click', function() {
+                var arrow = this.childNodes[1];
+                arrow.classList.toggle('rotate');
+                var content = this.nextElementSibling;
+                content.classList.toggle('hide');
+              });
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+              createToggler('#navToggler', '#docsNav', 'docsSliderActive');
+              createToggler('#tocToggler', 'body', 'tocActive');
+
+              var headings = document.querySelector('.toc-headings');
+              headings && headings.addEventListener('click', function(event) {
+                var el = event.target;
+                while(el !== headings){
+                  if (el.tagName === 'A') {
+                    document.body.classList.remove('tocActive');
+                    break;
+                  } else{
+                    el = el.parentNode;
+                  }
+                }
+              }, false);
+
+              function createToggler(togglerSelector, targetSelector, className) {
+                var toggler = document.querySelector(togglerSelector);
+                var target = document.querySelector(targetSelector);
+
+                if (!toggler) {
+                  return;
+                }
+
+                toggler.onclick = function(event) {
+                  event.preventDefault();
+
+                  target.classList.toggle(className);
+                };
+              }
+            });
+        </script></nav></div><div class="container mainContainer docsContainer"><div class="wrapper"><div class="post"><header class="postHeader"><h1 id="__docusaurus" class="postHeaderTitle">Setup Lightning SDK</h1></header><article><div><span><p>We will use the Lightning SDK to power the app which can be found here: <a href="https://github.com/WebPlatformForEmbedded/Lightning-SDK/">https://github.com/WebPlatformForEmbedded/Lightning-SDK/</a></p>
+<blockquote>
+<p>This tutorial has been written for Lightning SDK after 22 January 2020, which uses a new approach of the SDK. Make sure you are running the latest version</p>
+</blockquote>
+<p>This <code>getting started with Lightning</code> document will guide you through the first steps of building an app with Lightning.</p>
+<p>This guide consist of 3 main topics:</p>
+<ol>
+<li>Setting up your environment</li>
+<li>Develop your app</li>
+<li>Run, test and deploy</li>
+</ol>
+<p>We have chosen to guide you in creating a fully functioning game called <code>Tic Tac Toe</code>, for those unfamiliar with the
+game I suggest checking out: <a href="https://en.wikipedia.org/wiki/Tic-tac-toe">https://en.wikipedia.org/wiki/Tic-tac-toe</a></p>
+<hr>
+<h3><a class="anchor" aria-hidden="true" id="setting-up-your-environment"></a><a href="#setting-up-your-environment" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Setting up your environment</h3>
+<ol>
+<li>Start by installing the Lightning-CLI (Command-line interface) <code>npm install -g WebPlatformForEmbedded/Lightning-CLI</code></li>
+<li>Navigate to a folder on your machine where you want to place your project</li>
+<li>On the command-line type: <code>lng</code> to see all the available options.</li>
+<li>type <code>lng create</code> to create a new Lightning app</li>
+<li>Type the name <code>TicTacToe</code></li>
+<li>Next fill in the identifier <code>com.company.app.TicTacToe</code> (or something that is more suitable to your situation)</li>
+<li>Choose if you want to enable ESlint or not.</li>
+<li>Next select <code>yes</code> for installing the NPM dependencies</li>
+<li>Choose <code>yes</code> for initializing an empty GIT repository</li>
+</ol>
+<p>After the dependencies are successfully installed you can navigate to the created app folder (in our example <code>cd com.metrological.app.TicTacToe</code>).</p>
+<p>We now have a couple of options:</p>
+<ol>
+<li><code>lng build</code> will create a standalone bundle that you can run in the browser</li>
+<li><code>lng serve</code> will start a local webserver and run the app</li>
+<li><code>lng dev</code> will build the app, start a webserver and watch for changes</li>
+</ol>
+<p>You can use these whenever you want throughout this <code>getting started</code> .</p>
+<h3><a class="anchor" aria-hidden="true" id="app-contents"></a><a href="#app-contents" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>App contents</h3>
+<p>When you inspect the contents in your app folder you will find the following files:</p>
+<ul>
+<li><code>README.md</code> a markdown readme file that can hold instructions for configuration, installation, changelogs etc.</li>
+<li><code>metadata.json</code> this hold the following app related metadata:</li>
+</ul>
+<pre><code class="hljs css language-json">{
+  <span class="hljs-attr">"name"</span>: <span class="hljs-string">"TicTacToe"</span>,
+  <span class="hljs-attr">"identifier"</span>: <span class="hljs-string">"com.metrological.app.TicTacToe"</span>,
+  <span class="hljs-attr">"version"</span>: <span class="hljs-string">"1.0.0"</span>,
+  <span class="hljs-attr">"icon"</span>: <span class="hljs-string">"./static/icon.png"</span>
+}
+</code></pre>
+<ul>
+<li><code>package.json</code> this file holds various <a href="https://nodejs.org/en/knowledge/getting-started/npm/what-is-the-file-package-json/">metadata</a> relevant to the project</li>
+</ul>
+<pre><code class="hljs css language-json">{
+  <span class="hljs-attr">"name"</span>: <span class="hljs-string">"com.metrological.app.TicTacToe"</span>,
+  <span class="hljs-attr">"description"</span>: <span class="hljs-string">"TicTacToe"</span>,
+  <span class="hljs-attr">"dependencies"</span>: {
+    <span class="hljs-attr">"wpe-lightning-sdk"</span>: <span class="hljs-string">"WebPlatformForEmbedded/Lightning-SDK"</span>
+  }
+}
+</code></pre>
+<ul>
+<li><code>package-lock.json</code> is automatically generated for any operations where npm modifies either the node_modules tree, or package.json. <a href="https://docs.npmjs.com/files/package-lock.json">Read more...</a></li>
+<li><code>settings.json</code> which holds app and platform specific settings.</li>
+</ul>
+<pre><code class="hljs css language-json">{
+  <span class="hljs-attr">"appSettings"</span>: {
+    <span class="hljs-attr">"stage"</span>: {
+      <span class="hljs-attr">"clearColor"</span>: <span class="hljs-string">"0x00000000"</span>,
+      <span class="hljs-attr">"useImageWorker"</span>: <span class="hljs-literal">true</span>
+    },
+    <span class="hljs-attr">"debug"</span>: <span class="hljs-literal">false</span>
+  },
+  <span class="hljs-attr">"platformSettings"</span>: {
+    <span class="hljs-attr">"inspector"</span>: <span class="hljs-literal">false</span>,
+    <span class="hljs-attr">"path"</span>: <span class="hljs-string">"./static"</span>,
+    <span class="hljs-attr">"log"</span>: <span class="hljs-literal">false</span>,
+    <span class="hljs-attr">"showVersion"</span>: <span class="hljs-literal">true</span>,
+    <span class="hljs-attr">"imageServerUrl"</span>: <span class="hljs-string">"//cdn.metrological.com/image"</span>,
+    <span class="hljs-attr">"proxyUrl"</span>: <span class="hljs-string">"//cdn.metrological.com/proxy"</span>,
+    <span class="hljs-attr">"textureMode"</span>: <span class="hljs-literal">true</span>
+  }
+}
+</code></pre>
+<ol>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/clearColor">clearColor</a>, specifies the color we use when we call the clear() method</li>
+<li>ImageWorker, if the platform you run the code on support <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API">Web workers</a></li>
+<li>Debug, toggles debug mode on / off</li>
+<li>Inspector, when set to true it will render out a HTML structure inside the DOM so you can inspect why certain elements are maybe rendered off-screen</li>
+<li>path, the path to the static app assets, Utils.asset() will use this folder to lookup assets</li>
+<li>log, toggles app logging on / off</li>
+<li>showVersion, if set to true, will overlay the app's version in the corner (version specified in <code>metadata.json</code>)</li>
+<li>imageServerUrl, if you have an image resizing server set the value to the endpoint</li>
+<li>proxyUrl, if you have access to a proxy server (i.e to cache data to speed up network request) you set the value to the endpoint</li>
+<li>textureMode, specifiy if you want to render video as a texture on the active drawing canvas</li>
+</ol>
+<p>Please refer to the <a href="gettingStarted/stage-configuration.md">stage settings</a> docs page for more information for more options.</p>
+<p>Inside the <code>src</code> folder we can find a file called <code>index.js</code>, this file is responsible for launching your app:</p>
+<pre><code class="hljs css language-javascript"><span class="hljs-keyword">import</span> { Launch } <span class="hljs-keyword">from</span> <span class="hljs-string">'wpe-lightning-sdk'</span>
+<span class="hljs-keyword">import</span> App <span class="hljs-keyword">from</span> <span class="hljs-string">'./App.js'</span>
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">return</span> Launch(App, ...arguments)
+}
+</code></pre>
+<p>This is the first time we really touch the SDK. The SDK has been developed with a modular approach in mind, therefore you can control which of its modules of the SDK you want to use.</p>
+<blockquote>
+<p>Eventually when we bundle and run the game, our bundler (rollup) will add the imported modules to the bundle so we keep an optimized codebase (no un-used code). This method is often referred to as treeshaking.</p>
+</blockquote>
+<ol>
+<li>We import Launch method from the SDK (will act as a bootstrapper)</li>
+<li>Next we import our app from the App.js</li>
+<li>Export a function which upon invocation will Launch the app</li>
+</ol>
+<p>Now that we have a basic setup we can move over to the next phase, the actual development of the App.</p>
+</span></div></article></div><div class="docs-prevnext"><a class="docs-prev button" href="/Lightning/docs/gettingStarted/setup-lightning"><span class="arrow-prev">← </span><span>Setup Lightning</span></a><a class="docs-next button" href="/Lightning/docs/gettingStarted/start-development"><span>Start Development</span><span class="arrow-next"> →</span></a></div></div></div><nav class="onPageNav"></nav></div><footer class="nav-footer" id="footer"><section class="sitemap"><a href="/Lightning/" class="nav-home"><img src="/Lightning/img/Lightning.png" alt="Lightning" width="54" height="54"/></a><div><h5>Docs</h5><a href="/Lightning/docs/gettingStarted/web">Getting Started </a><a href="/Lightning/docs/renderEngine/overview"> Render Engine </a><a href="/Lightning/docs/transitions/overview"> Transitions </a><a href="/Lightning/docs/animations/overview"> Animations </a><a href="/Lightning/docs/components/overview"> Components </a><a href="/Lightning/docs/focus/focus"> Focus </a></div><div><h5>Github</h5><a href="https://github.com/WebPlatformForEmbedded/Lightning">Lightning on GitHub</a><a class="github-button" href="https://github.com/WebPlatformForEmbedded/Lightning" data-icon="octicon-star" data-show-count="true" aria-label="Star WebPlatformForEmbedded/Lightning on GitHub">Star</a></div></section><section class="copyright">Copyright © 2020 Metrological</section></footer></div><script type="text/javascript" src="https://cdn.jsdelivr.net/docsearch.js/1/docsearch.min.js"></script><script>
+                document.addEventListener('keyup', function(e) {
+                  if (e.target !== document.body) {
+                    return;
+                  }
+                  // keyCode for '/' (slash)
+                  if (e.keyCode === 191) {
+                    const search = document.getElementById('search_input_react');
+                    search && search.focus();
+                  }
+                });
+              </script><script>
+              var search = docsearch({
+                
+                apiKey: '179838a002f57515518528efffdaf0fa',
+                indexName: 'webplatformforembedded_lightning',
+                inputSelector: '#search_input_react',
+                algoliaOptions: {}
+              });
+            </script></body></html>
