@@ -135,7 +135,7 @@ export default class WebGLRenderer extends Renderer {
         texOptions.format = texOptions.format || (format.hasAlpha ? gl.RGBA : gl.RGB);
         texOptions.type = texOptions.type || gl.UNSIGNED_BYTE;
         texOptions.internalFormat = texOptions.internalFormat || texOptions.format;
-        if (options.imageRef) {
+        if (options && options.imageRef) {
             texOptions.imageRef = options.imageRef;
         }
 
