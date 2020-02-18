@@ -15,7 +15,7 @@ export default class TextTextureRenderer {
     };
 
     setFontProperties() {
-        this._context.font = this._getFontSetting();
+        this._context.font = Utils.isSpark ? this._stage.platform.getFontSetting(this) : this._getFontSetting();
         this._context.textBaseline = this._settings.textBaseline;
     };
 
