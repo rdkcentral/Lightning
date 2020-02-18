@@ -1,7 +1,7 @@
 {
   "author": "Metrological, Bas van Meurs <b.van.meurs@metrological.com>",
   "name": "wpe-lightning",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "license": "apache",
   "main": "dist/lightning.js",
   "module": "index.js",
