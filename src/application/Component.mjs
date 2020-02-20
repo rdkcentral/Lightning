@@ -488,6 +488,58 @@ export default class Component extends Element {
         return Component.getComponent(element.parent);
     }
 
+    toJSON() {
+        let ref = [`${this.constructor.name}`];
+        const tree = {[ref]: {}};
+
+        if (this.hasChildren()) {
+            Component.collectChildren(
+                tree[ref], this.__childList
+            );
+        }
+        return tree;
+    }
+
+    static collectChildren(tree, children) {
+        const childList = children;
+        for (let i = 0, j = childList.length; i < j; i++) {
+            const element = childList.getAt(i);
+            const ref = `${element.__ref || `Element-${element.id}`}`;
+            const properties = this.getProperties(element);
+
+            tree[ref] = {...properties};
+
+            if (element.hasChildren()) {
+                tree[ref].children = {};
+                this.collectChildren(
+                    tree[ref].children, element.__childList
+                );
+            }
+        }
+    }
+
+    static getProperties(element) {
+        const props = {};
+        const list = [
+            "id", "tag", "ref", "boundsMargin", "x", "y", "w", "h", "scaleX", "scaleY", "scale", "pivotX", "pivotY",
+            "pivot", "mountX", "mountY", "mount", "alpha", "visible", "color", "zIndex", "clipping",
+            "renderToTexture", "renderOfScreen", "!!flex", "!!flexItem"
+        ];
+        let n = list.length;
+
+        while (n--) {
+            let key = list[n];
+            const getBoolean = /^!{2}/;
+            if (getBoolean.test(key)) {
+                key = key.substring(2, key.length);
+                props[key] = !!element[key];
+            } else {
+                props[key] = element[key];
+            }
+        }
+        return {...props, ...element.getNonDefaults()};
+    }
+
 }
 
 Component.prototype.isComponent = true;
