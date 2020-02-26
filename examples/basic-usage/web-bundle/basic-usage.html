@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
 
-    <script src="../../../dist/lightning-web.js"></script>
+    <script type='module' src="../../../index.js"></script>
     <script src="../../../devtools/lightning-inspect.js"></script>
 </head>
 <body>
@@ -12,6 +12,12 @@
 
         window.onload = function() {
             class BasicUsageExample extends lng.Application {
+
+                static _bootstrap() {
+                    // Start app after 3 seconds
+                    return new Promise((resolve) => setTimeout(resolve, 3000))
+                }
+
                 static _template() {
                     return {
                         Bg: {
@@ -46,9 +52,13 @@
 
             const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000, canvas2d: false, useImageWorker: false}, debug: true}
 
-            const app = new BasicUsageExample(options);
+            BasicUsageExample._bootstrap()
+            .then(() => {
+                const app = new BasicUsageExample(options);
+                document.body.appendChild(app.stage.getCanvas());
+            });
 
-            document.body.appendChild(app.stage.getCanvas());
+
         }
     </script>
 </body>

@@ -3,6 +3,9 @@ import Utils from "../tree/Utils.mjs";
 
 export default class Application extends Component {
 
+    static async _bootstrap() {
+    }
+
     constructor(options = {}, properties) {
         // Save options temporarily to avoid having to pass it through the constructor.
         Application._temp_options = options;
