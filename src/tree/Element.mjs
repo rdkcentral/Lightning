@@ -2017,6 +2017,66 @@ export default class Element {
             return StageUtils.mergeNumbers;
         }
     }
+
+    toJSON() {
+        const ref = [`${this.constructor.name}`];
+        const tree = {[ref]: {}};
+
+        if (this.hasChildren()) {
+            Element.collectChildren(tree[ref], this.__childList);
+        } else {
+            tree[ref] = {...Element.getProperties(this)};
+        }
+        return tree;
+    }
+
+    static collectChildren(tree, children) {
+        const childList = children;
+        for (let i = 0, j = childList.length; i < j; i++) {
+            const element = childList.getAt(i);
+            const ref = `${element.__ref || `Element-${element.id}`}`;
+            const properties = this.getProperties(element);
+
+            tree[ref] = {...properties};
+
+            if (element.hasChildren()) {
+                tree[ref].children = {};
+                this.collectChildren(
+                    tree[ref].children, element.__childList
+                );
+            }
+        }
+    }
+
+    static getProperties(element) {
+        const props = {};
+        const list = [
+            "alpha", "active", "attached", "boundsMargin", "color", "clipping", "enabled", "h", "id", "isComponent",
+            "mount", "mountY", "mountX", "pivot", "pivotX", "pivotY", "ref", "renderOfScreen", "renderToTexture", "scale",
+            "scaleX", "scaleY", "state", "tag", "visible", "w", "x", "y", "zIndex",
+            "!!flex", "!!flexItem", "hasFocus()", "hasFinalFocus()"
+        ];
+        let n = list.length;
+
+        while (n--) {
+            let key = list[n];
+            const getBoolean = /^!{2}/;
+            const isFunction = /\(\)$/;
+
+            if (getBoolean.test(key)) {
+                key = key.substring(2, key.length);
+                props[key] = !!element[key];
+            } else if (isFunction.test(key)) {
+                key = key.substring(0, key.length - 2);
+                if (typeof element[key] === "function") {
+                    props[key] = element[key]();
+                }
+            } else {
+                props[key] = element[key];
+            }
+        }
+        return {...props, ...element.getNonDefaults()};
+    }
 }
 
 // This gives a slight performance benefit compared to extending EventEmitter.

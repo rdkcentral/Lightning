@@ -487,7 +487,6 @@ export default class Component extends Element {
     static getParent(element) {
         return Component.getComponent(element.parent);
     }
-
 }
 
 Component.prototype.isComponent = true;
