@@ -1269,7 +1269,7 @@ export default class Element {
             }
         }
 
-        if (this.shader) {
+        if (this.shader && Utils.isFunction(this.shader.getNonDefaults)) {
             let tnd = this.shader.getNonDefaults();
             if (Object.keys(tnd).length) {
                 settings.shader = tnd;
