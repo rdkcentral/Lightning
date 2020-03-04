@@ -88,6 +88,7 @@ export default class TextTextureRenderer {
         const cutEx = this._settings.cutEx * precision;
         const cutSy = this._settings.cutSy * precision;
         const cutEy = this._settings.cutEy * precision;
+        const letterSpacing = this._settings.letterSpacing || 0;
 
         // Set font properties.
         this.setFontProperties();
@@ -126,7 +127,7 @@ export default class TextTextureRenderer {
         // preserve original text
         let linesInfo;
         if (this._settings.wordWrap) {
-            linesInfo = this.wrapText(this._settings.text, wordWrapWidth);
+            linesInfo = this.wrapText(this._settings.text, wordWrapWidth, letterSpacing);
         } else {
             linesInfo = {l: this._settings.text.split(/(?:\r\n|\r|\n)/), n: []};
             let i, n = linesInfo.l.length;
@@ -143,7 +144,7 @@ export default class TextTextureRenderer {
             if (this._settings.maxLinesSuffix) {
                 // Wrap again with max lines suffix enabled.
                 let w = this._settings.maxLinesSuffix ? this._context.measureText(this._settings.maxLinesSuffix).width : 0;
-                let al = this.wrapText(usedLines[usedLines.length - 1], wordWrapWidth - w);
+                let al = this.wrapText(usedLines[usedLines.length - 1], wordWrapWidth - w, letterSpacing);
                 usedLines[usedLines.length - 1] = al.l[0] + this._settings.maxLinesSuffix;
                 otherLines = [al.l.length > 1 ? al.l[1] : ''];
             } else {
@@ -175,7 +176,7 @@ export default class TextTextureRenderer {
         let maxLineWidth = 0;
         let lineWidths = [];
         for (let i = 0; i < lines.length; i++) {
-            let lineWidth = this._context.measureText(lines[i]).width;
+            let lineWidth = this.measureText(lines[i], letterSpacing);
             lineWidths.push(lineWidth);
             maxLineWidth = Math.max(maxLineWidth, lineWidth);
         }
@@ -293,7 +294,17 @@ export default class TextTextureRenderer {
         this._context.fillStyle = StageUtils.getRgbaString(this._settings.textColor);
         for (let i = 0, n = drawLines.length; i < n; i++) {
             let drawLine = drawLines[i];
-            this._context.fillText(drawLine.text, drawLine.x, drawLine.y);
+
+            if (!letterSpacing) {
+                this._context.fillText(drawLine.text, drawLine.x, drawLine.y);
+            } else {
+                const textSplit = drawLine.text.split('');
+                let x = drawLine.x;
+                for (let i = 0, j = textSplit.length; i < j; i++) {
+                    this._context.fillText(textSplit[i], x, drawLine.y);
+                    x += this._context.measureText(textSplit[i]).width + letterSpacing;
+                }
+            }
         }
 
         if (prevShadowSettings) {
@@ -357,7 +368,7 @@ export default class TextTextureRenderer {
      * Applies newlines to a string to have it optimally fit into the horizontal
      * bounds set by the Text object's wordWrapWidth property.
      */
-    wrapText(text, wordWrapWidth) {
+    wrapText(text, wordWrapWidth, letterSpacing) {
         // Greedy wrapping algorithm that will wrap words as the line grows longer.
         // than its horizontal bounds.
         let lines = text.split(/\r?\n/g);
@@ -369,8 +380,8 @@ export default class TextTextureRenderer {
             let spaceLeft = wordWrapWidth;
             let words = lines[i].split(' ');
             for (let j = 0; j < words.length; j++) {
-                let wordWidth = this._context.measureText(words[j]).width;
-                let wordWidthWithSpace = wordWidth + this._context.measureText(' ').width;
+                const wordWidth = this.measureText(words[j], letterSpacing);
+                const wordWidthWithSpace = wordWidth + this._context.measureText(' ').width + letterSpacing;
                 if (j === 0 || wordWidthWithSpace > spaceLeft) {
                     // Skip printing the newline if it's the first word of the line that is.
                     // greater than the word wrap width.
@@ -401,5 +412,14 @@ export default class TextTextureRenderer {
 
         return {l: allLines, n: realNewlines};
     };
+
+    measureText(word, space = 0) {
+        if (!space) {
+            return this._context.measureText(word).width;
+        }
+        return word.split('').reduce((acc, char) => {
+            return acc + this._context.measureText(char).width + space;
+        }, 0);
+    }
     
 }

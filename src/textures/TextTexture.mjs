@@ -372,6 +372,17 @@ export default class TextTexture extends Texture {
         }
     }
 
+    set letterSpacing(v) {
+        if (this._letterSpacing !== v) {
+            this._letterSpacing = v;
+            this._changed();
+        }
+    }
+
+    get letterSpacing() {
+        return this._letterSpacing;
+    }
+
     get precision() {
         return super.precision;
     }
@@ -420,6 +431,7 @@ export default class TextTexture extends Texture {
         if (this.highlightOffset !== null) parts.push("ho" + this.highlightOffset);
         if (this.highlightPaddingLeft !== null) parts.push("hl" + this.highlightPaddingLeft);
         if (this.highlightPaddingRight !== null) parts.push("hr" + this.highlightPaddingRight);
+        if (this.letterSpacing !== null) parts.push("ls" + this.letterSpacing);
 
         if (this.cutSx) parts.push("csx" + this.cutSx);
         if (this.cutEx) parts.push("cex" + this.cutEx);
@@ -438,7 +450,7 @@ export default class TextTexture extends Texture {
             args.fontFace = this.stage.getOption('defaultFontFace');
         }
 
-        return function(cb) {
+        return function (cb) {
             const canvas = this.stage.platform.getDrawingCanvas();
             const renderer = new TextTextureRenderer(this.stage, canvas, args);
             const p = renderer.draw();
@@ -446,15 +458,22 @@ export default class TextTexture extends Texture {
             if (p) {
                 p.then(() => {
                     /* FIXME: on some platforms (e.g. RPI), throttling text textures cause artifacts */
-                    cb(null, Object.assign({renderInfo: renderer.renderInfo, throttle: false}, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas)));
+                    cb(null, Object.assign({
+                        renderInfo: renderer.renderInfo,
+                        throttle: false
+                    }, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas)));
                 }).catch((err) => {
                     cb(err);
                 });
             } else {
-                cb(null, Object.assign({renderInfo: renderer.renderInfo, throttle: false}, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas)));
+                cb(null, Object.assign({
+                    renderInfo: renderer.renderInfo,
+                    throttle: false
+                }, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas)));
             }
-        }
+        };
     }
+
 
     getNonDefaults() {
         const nonDefaults = super.getNonDefaults();
@@ -488,6 +507,7 @@ export default class TextTexture extends Texture {
         if (this.highlightOffset !== 0) nonDefaults["highlightOffset"] = this.highlightOffset;
         if (this.highlightPaddingLeft !== 0) nonDefaults["highlightPaddingLeft"] = this.highlightPaddingLeft;
         if (this.highlightPaddingRight !== 0) nonDefaults["highlightPaddingRight"] = this.highlightPaddingRight;
+        if (this.letterSpacing !== 0) nonDefaults["letterSpacing"] = this.letterSpacing;
 
         if (this.cutSx) nonDefaults["cutSx"] = this.cutSx;
         if (this.cutEx) nonDefaults["cutEx"] = this.cutEx;
@@ -528,6 +548,7 @@ export default class TextTexture extends Texture {
         obj.highlightOffset = this._highlightOffset;
         obj.highlightPaddingLeft = this._highlightPaddingLeft;
         obj.highlightPaddingRight = this._highlightPaddingRight;
+        obj.letterSpacing = this._letterSpacing;
         obj.cutSx = this._cutSx;
         obj.cutEx = this._cutEx;
         obj.cutSy = this._cutSy;
@@ -570,6 +591,7 @@ proto._highlightColor = 0xFF000000;
 proto._highlightOffset = 0;
 proto._highlightPaddingLeft = 0;
 proto._highlightPaddingRight = 0;
+proto._letterSpacing = 0;
 proto._cutSx = 0;
 proto._cutEx = 0;
 proto._cutSy = 0;
