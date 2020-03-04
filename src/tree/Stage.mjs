@@ -268,6 +268,18 @@ export default class Stage extends EventEmitter {
 
         this.platform.nextFrame(changes);
 
+        // GC after frame is drawn
+        if (this._lastGcFrame !== this.frameCounter) {
+            if (this._usedMemory > this.getOption('memoryPressure')) {
+                this.gc(false);
+                if (this._usedMemory > this.getOption('memoryPressure') - 2e6) {
+                    // Too few released. Aggressive cleanup.
+                    this.gc(true);
+                }
+            }
+        }
+
+
         this.emit('frameEnd');
 
         this.frameCounter++;
@@ -353,15 +365,6 @@ export default class Stage extends EventEmitter {
 
     addMemoryUsage(delta) {
         this._usedMemory += delta;
-        if (this._lastGcFrame !== this.frameCounter) {
-            if (this._usedMemory > this.getOption('memoryPressure')) {
-                this.gc(false);
-                if (this._usedMemory > this.getOption('memoryPressure') - 2e6) {
-                    // Too few released. Aggressive cleanup.
-                    this.gc(true);
-                }
-            }
-        }
     }
 
     get usedMemory() {
@@ -375,6 +378,10 @@ export default class Stage extends EventEmitter {
             this.gcTextureMemory(aggressive);
             this.gcRenderTextureMemory(aggressive);
             this.renderer.gc(aggressive);
+
+            if (memoryUsageBefore - this._usedMemory === 0) {
+                return;
+            }
 
             console.log(`GC${aggressive ? "[aggressive]" : ""}! Frame ${this._lastGcFrame} Freed ${((memoryUsageBefore - this._usedMemory) / 1e6).toFixed(2)}MP from GPU memory. Remaining: ${(this._usedMemory / 1e6).toFixed(2)}MP`);
             const other = this._usedMemory - this.textureManager.usedMemory - this.ctx.usedMemory;
