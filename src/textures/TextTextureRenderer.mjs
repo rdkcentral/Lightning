@@ -295,14 +295,14 @@ export default class TextTextureRenderer {
         for (let i = 0, n = drawLines.length; i < n; i++) {
             let drawLine = drawLines[i];
 
-            if (!letterSpacing) {
+            if (letterSpacing === 0) {
                 this._context.fillText(drawLine.text, drawLine.x, drawLine.y);
             } else {
                 const textSplit = drawLine.text.split('');
                 let x = drawLine.x;
                 for (let i = 0, j = textSplit.length; i < j; i++) {
                     this._context.fillText(textSplit[i], x, drawLine.y);
-                    x += this._context.measureText(textSplit[i]).width + letterSpacing;
+                    x += this.measureText(textSplit[i], letterSpacing);
                 }
             }
         }
@@ -381,7 +381,7 @@ export default class TextTextureRenderer {
             let words = lines[i].split(' ');
             for (let j = 0; j < words.length; j++) {
                 const wordWidth = this.measureText(words[j], letterSpacing);
-                const wordWidthWithSpace = wordWidth + this._context.measureText(' ').width + letterSpacing;
+                const wordWidthWithSpace = wordWidth + this.measureText(' ',letterSpacing);
                 if (j === 0 || wordWidthWithSpace > spaceLeft) {
                     // Skip printing the newline if it's the first word of the line that is.
                     // greater than the word wrap width.
