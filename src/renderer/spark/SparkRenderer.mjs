@@ -10,4 +10,11 @@ export default class SparkRenderer extends WebGLRenderer {
     _createDefaultShader(ctx) {
         return new SparkShader(ctx);
     }
+
+    createCoreRenderExecutor(ctx) {
+        global.beginDrawing();
+        let ret = super.createCoreRenderExecutor(ctx);
+        global.endDrawing();
+        return ret;
+    }
 }
