@@ -886,14 +886,16 @@ class WebGLStateManager {
                 if (name.charAt(0) === "$") {
                     name = name.substr(1);
                 }
-                if (gl[name]) {
-                    if (!gl[name].name) {
-                        // We do this for compatibility with the Chrome WebGL Inspector plugin.
-                        gl[name].xname = name;
+                if (gl[name] !== method) {
+                    if (gl[name]) {
+                        if (!gl[name].name) {
+                            // We do this for compatibility with the Chrome WebGL Inspector plugin.
+                            gl[name].xname = name;
+                        }
+                        gl['_' + name] = gl[name];
                     }
-                    gl['_' + name] = gl[name];
+                    gl[name] = method;
                 }
-                gl[name] = method;
             }
         });
 
