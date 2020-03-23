@@ -41,6 +41,7 @@ import OutlineShader from "./renderer/webgl/shaders/OutlineShader.mjs";
 import PixelateShader from "./renderer/webgl/shaders/PixelateShader.mjs";
 import RadialFilterShader from "./renderer/webgl/shaders/RadialFilterShader.mjs";
 import RoundedRectangleShader from "./renderer/webgl/shaders/RoundedRectangleShader.mjs";
+import VignetteShader from "./renderer/webgl/shaders/VignetteShader.mjs";
 import HoleShader from "./renderer/webgl/shaders/HoleShader.mjs";
 import RadialGradientShader from "./renderer/webgl/shaders/RadialGradientShader.mjs";
 import Light3dShader from "./renderer/webgl/shaders/Light3dShader.mjs";
@@ -77,6 +78,7 @@ const lightning = {
         RadialFilter: RadialFilterShader,
         RoundedRectangle: RoundedRectangleShader,
         Hole: HoleShader,
+        Vignette: VignetteShader,
         RadialGradient: RadialGradientShader,
         Light3d: Light3dShader,
         WebGLShader,
