@@ -19,7 +19,7 @@
                                 type: Sub
                             },
                             Texture: {
-                                src: "../rockies.jpeg"
+                                src: "../landscape.jpg"
                             }/*,
                             Hello: {
                                 text: {text: "Hello world", fontSize: 100}
@@ -51,7 +51,7 @@
             const app = new AppExample(options);
 
             const tx = new lng.textures.ImageTexture(app.stage);
-            tx.src = "../rockies.jpeg";
+            tx.src = "../landscape.jpg";
             tx.load()
 
             app.tag("Blur").animation({duration: 5, repeat: -1, actions: [
