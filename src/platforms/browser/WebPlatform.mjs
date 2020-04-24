@@ -21,7 +21,6 @@ import ImageWorker from "./ImageWorker.mjs";
 
 /**
  * Platform-specific functionality.
- * Copyright Metrological, 2017;
  */
 export default class WebPlatform {
 
