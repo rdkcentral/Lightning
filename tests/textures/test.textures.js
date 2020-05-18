@@ -512,7 +512,7 @@ describe('textures', function() {
         describe('becomes invisible', () => {
             it('should *not* clean up texture automatically(unconfirmed performance bottleneck)', () => {
                 /* Reason:
-                   https://github.com/WebPlatformForEmbedded/Lightning/commit/c7688785a4430026f3bcc9da5ed77a80ca9f9ab0
+                   https://github.com/rdkcentral/Lightning/commit/c7688785a4430026f3bcc9da5ed77a80ca9f9ab0
                  */
 
                 app.tag("Item").visible = false;

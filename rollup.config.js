@@ -34,7 +34,7 @@ export default [{
 
         /* Add version number to bundle */
         license({
-            banner: `Lightning v<%= pkg.version %>\n\n https://github.com/WebPlatformForEmbedded/Lightning`,
+            banner: `Lightning v<%= pkg.version %>\n\n https://github.com/rdkcentral/Lightning`,
           }),
     ],
     output: {
@@ -51,7 +51,7 @@ export default [{
 
         /* Add version number to bundle */
         license({
-            banner: `Lightning v<%= pkg.version %>\n\n https://github.com/WebPlatformForEmbedded/Lightning`,
+            banner: `Lightning v<%= pkg.version %>\n\n https://github.com/rdkcentral/Lightning`,
         }),
     ],
     output: {
@@ -69,7 +69,7 @@ export default [{
 
         /* Add version number to bundle */
         license({
-            banner: `Lightning v<%= pkg.version %>\n\n https://github.com/WebPlatformForEmbedded/Lightning`,
+            banner: `Lightning v<%= pkg.version %>\n\n https://github.com/rdkcentral/Lightning`,
         }),
         babel({
             presets: [
@@ -101,7 +101,7 @@ export default [{
 
         /* Add version number to bundle */
         license({
-            banner: `Lightning v<%= pkg.version %>\n\n https://github.com/WebPlatformForEmbedded/Lightning`,
+            banner: `Lightning v<%= pkg.version %>\n\n https://github.com/rdkcentral/Lightning`,
         }),
         babel({
             presets: [

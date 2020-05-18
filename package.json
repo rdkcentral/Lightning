@@ -1,7 +1,7 @@
 {
   "author": "Metrological, Bas van Meurs <b.van.meurs@metrological.com>",
-  "name": "wpe-lightning",
-  "version": "1.7.0",
+  "name": "@lightningjs/core",
+  "version": "1.8.0",
   "license": "apache",
   "main": "dist/lightning.js",
   "module": "index.js",
@@ -13,14 +13,14 @@
   ],
   "scripts": {
     "build": "rollup -c",
-    "release": "npm run build && npm publish"
+    "release": "npm run build && npm publish --access public"
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:WebPlatformForEmbedded/Lightning.git"
+    "url": "git@github.com:rdkcentral/Lightning.git"
   },
   "bugs": {
-    "url": "https://github.com/WebPlatformForEmbedded/Lightning/issues"
+    "url": "https://github.com/rdkcentral/Lightning/issues"
   },
   "devDependencies": {
     "@babel/core": "^7.8.3",
