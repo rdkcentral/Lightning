@@ -173,6 +173,7 @@ export default class Tools {
         img.onError = (err) => {
             cb(err);
         }
+        img.crossOrigin = "Anonymous";
         img.src = url;
     }
 
