@@ -17,10 +17,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:WebPlatformForEmbedded/Lightning.git"
+    "url": "git@github.com:rdkcentral/Lightning.git"
   },
   "bugs": {
-    "url": "https://github.com/WebPlatformForEmbedded/Lightning/issues"
+    "url": "https://github.com/rdkcentral/Lightning/issues"
   },
   "devDependencies": {
     "@babel/core": "^7.8.3",
