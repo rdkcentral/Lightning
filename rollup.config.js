@@ -18,6 +18,7 @@
  */
 
 import license from 'rollup-plugin-license';
+import cleanup from 'rollup-plugin-cleanup';
 import { terser } from 'rollup-plugin-terser';
 import babel from 'rollup-plugin-babel';
 
@@ -27,14 +28,22 @@ const TERSER_CONFIG = {
     sourcemap: true,
 }
 
+const CLEANUP_CONFIG = {
+    comments: 'none',
+    extensions: ['mjs']
+}
+
 export default [{
     /** lightning.js */
     input: './src/lightning.mjs',
     plugins: [
 
+        /* Cleanup comments */
+        cleanup(CLEANUP_CONFIG),
+
         /* Add version number to bundle */
         license({
-            banner: `Lightning v<%= pkg.version %>\n\n https://github.com/WebPlatformForEmbedded/Lightning`,
+            banner: `Lightning v<%= pkg.version %>\n\n https://github.com/rdkcentral/Lightning`,
           }),
     ],
     output: {
@@ -51,7 +60,7 @@ export default [{
 
         /* Add version number to bundle */
         license({
-            banner: `Lightning v<%= pkg.version %>\n\n https://github.com/WebPlatformForEmbedded/Lightning`,
+            banner: `Lightning v<%= pkg.version %>\n\n https://github.com/rdkcentral/Lightning`,
         }),
     ],
     output: {
@@ -67,9 +76,12 @@ export default [{
     input: './src/lightning.mjs',
     plugins: [
 
+        /* Cleanup comments */
+        cleanup(),
+
         /* Add version number to bundle */
         license({
-            banner: `Lightning v<%= pkg.version %>\n\n https://github.com/WebPlatformForEmbedded/Lightning`,
+            banner: `Lightning v<%= pkg.version %>\n\n https://github.com/rdkcentral/Lightning`,
         }),
         babel({
             presets: [
@@ -101,7 +113,7 @@ export default [{
 
         /* Add version number to bundle */
         license({
-            banner: `Lightning v<%= pkg.version %>\n\n https://github.com/WebPlatformForEmbedded/Lightning`,
+            banner: `Lightning v<%= pkg.version %>\n\n https://github.com/rdkcentral/Lightning`,
         }),
         babel({
             presets: [
