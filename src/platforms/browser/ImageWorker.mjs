@@ -40,7 +40,7 @@ export default class ImageWorker {
         });
         this._worker = new Worker(blobURL);
 
-        this._worker.postMessage({type: 'config', config: {path: window.location.href}});
+        this._worker.postMessage({type: 'config', config: {path: window.location.href, protocol: window.location.protocol}});
 
         this._worker.onmessage = (e) => {
             if (e.data && e.data.id) {
@@ -171,7 +171,7 @@ const createWorker = function() {
 
         if (src.substr(0,2) === "//") {
             // This doesn't work for image workers.
-            src = "http:" + src;
+            src = this.config.protocol + src;
         }
 
         var item = new ImageWorkerServerItem(id, src);
