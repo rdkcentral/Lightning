@@ -293,7 +293,7 @@ export default class TextTextureRenderer {
         // Draw lines line by line.
         for (let i = 0, n = renderInfo.lines.length; i < n; i++) {
             linePositionX = 0;
-            linePositionY = (i * renderInfo.lineHeight) + renderInfo.offsetY;
+            linePositionY = (i * renderInfo.lineHeight) + renderInfo.offsetY + (renderInfo.lineHeight - renderInfo.fontSize) / 2;
 
             if (this._settings.textAlign === 'right') {
                 linePositionX += (renderInfo.innerWidth - renderInfo.lineWidths[i]);
