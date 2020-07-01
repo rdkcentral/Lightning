@@ -28,6 +28,10 @@ export default class TextTexture extends Texture {
         this._precision = this.stage.getOption('precision');
     }
 
+    static renderer(stage, canvas, settings) {
+        return new TextTextureRenderer(stage, canvas, settings);
+    }
+
     get text() {
         return this._text;
     }
