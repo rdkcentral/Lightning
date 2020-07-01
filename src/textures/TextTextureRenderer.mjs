@@ -90,13 +90,13 @@ export default class TextTextureRenderer {
         }
     }
 
-    _draw() {
+    _calculateRenderInfo() {
         let renderInfo = {};
 
         const precision = this.getPrecision();
 
-        let paddingLeft = this._settings.paddingLeft * precision;
-        let paddingRight = this._settings.paddingRight * precision;
+        const paddingLeft = this._settings.paddingLeft * precision;
+        const paddingRight = this._settings.paddingRight * precision;
         const fontSize = this._settings.fontSize * precision;
         let offsetY = this._settings.offsetY === null ? null : (this._settings.offsetY * precision);
         let lineHeight = this._settings.lineHeight * precision;
@@ -162,7 +162,7 @@ export default class TextTextureRenderer {
             let otherLines = null;
             if (this._settings.maxLinesSuffix) {
                 // Wrap again with max lines suffix enabled.
-                let w = this._settings.maxLinesSuffix ? this._context.measureText(this._settings.maxLinesSuffix).width : 0;
+                let w = this._settings.maxLinesSuffix ? this.measureText(this._settings.maxLinesSuffix) : 0;
                 let al = this.wrapText(usedLines[usedLines.length - 1], wordWrapWidth - w, letterSpacing);
                 usedLines[usedLines.length - 1] = al.l[0] + this._settings.maxLinesSuffix;
                 otherLines = [al.l.length > 1 ? al.l[1] : ''];
@@ -245,22 +245,44 @@ export default class TextTextureRenderer {
             height = Math.min(height, cutEy - cutSy);
         }
 
+        renderInfo.width = width;
+        renderInfo.innerWidth = innerWidth;
+        renderInfo.height = height;
+        renderInfo.fontSize = fontSize;
+        renderInfo.cutSx = cutSx;
+        renderInfo.cutSy = cutSy;
+        renderInfo.cutEx = cutEx;
+        renderInfo.cutEy = cutEy;
+        renderInfo.lineHeight = lineHeight;
+        renderInfo.lineWidths = lineWidths;
+        renderInfo.offsetY = offsetY;
+        renderInfo.paddingLeft = paddingLeft;
+        renderInfo.paddingRight = paddingRight;
+        renderInfo.letterSpacing = letterSpacing;
+
+        return renderInfo;
+    }
+
+    _draw() {
+        const renderInfo = this._calculateRenderInfo();
+        const precision = this.getPrecision();
+
         // Add extra margin to prevent issue with clipped text when scaling.
-        this._canvas.width = Math.ceil(width + this._stage.getOption('textRenderIssueMargin'));
-        this._canvas.height = Math.ceil(height);
+        this._canvas.width = Math.ceil(renderInfo.width + this._stage.getOption('textRenderIssueMargin'));
+        this._canvas.height = Math.ceil(renderInfo.height);
 
         // Canvas context has been reset.
         this.setFontProperties();
 
-        if (fontSize >= 128) {
+        if (renderInfo.fontSize >= 128) {
             // WpeWebKit bug: must force compositing because cairo-traps-compositor will not work with text first.
             this._context.globalAlpha = 0.01;
             this._context.fillRect(0, 0, 0.01, 0.01);
             this._context.globalAlpha = 1.0;
         }
 
-        if (cutSx || cutSy) {
-            this._context.translate(-cutSx, -cutSy);
+        if (renderInfo.cutSx || renderInfo.cutSy) {
+            this._context.translate(-renderInfo.cutSx, -renderInfo.cutSy);
         }
 
         let linePositionX;
@@ -269,33 +291,33 @@ export default class TextTextureRenderer {
         let drawLines = [];
 
         // Draw lines line by line.
-        for (let i = 0, n = lines.length; i < n; i++) {
+        for (let i = 0, n = renderInfo.lines.length; i < n; i++) {
             linePositionX = 0;
             linePositionY = (i * lineHeight) + offsetY + (lineHeight - fontSize) / 2;
 
             if (this._settings.textAlign === 'right') {
-                linePositionX += (innerWidth - lineWidths[i]);
+                linePositionX += (renderInfo.innerWidth - renderInfo.lineWidths[i]);
             } else if (this._settings.textAlign === 'center') {
-                linePositionX += ((innerWidth - lineWidths[i]) / 2);
+                linePositionX += ((renderInfo.innerWidth - renderInfo.lineWidths[i]) / 2);
             }
-            linePositionX += paddingLeft;
+            linePositionX += renderInfo.paddingLeft;
 
-            drawLines.push({text: lines[i], x: linePositionX, y: linePositionY, w: lineWidths[i]});
+            drawLines.push({text: renderInfo.lines[i], x: linePositionX, y: linePositionY, w: renderInfo.lineWidths[i]});
         }
 
         // Highlight.
         if (this._settings.highlight) {
             let color = this._settings.highlightColor || 0x00000000;
 
-            let hlHeight = (this._settings.highlightHeight * precision || fontSize * 1.5);
+            let hlHeight = (this._settings.highlightHeight * precision || renderInfo.fontSize * 1.5);
             const offset = this._settings.highlightOffset * precision;
-            const hlPaddingLeft = (this._settings.highlightPaddingLeft !== null ? this._settings.highlightPaddingLeft * precision : paddingLeft);
-            const hlPaddingRight = (this._settings.highlightPaddingRight !== null ? this._settings.highlightPaddingRight * precision : paddingRight);
+            const hlPaddingLeft = (this._settings.highlightPaddingLeft !== null ? this._settings.highlightPaddingLeft * precision : renderInfo.paddingLeft);
+            const hlPaddingRight = (this._settings.highlightPaddingRight !== null ? this._settings.highlightPaddingRight * precision : renderInfo.paddingRight);
 
             this._context.fillStyle = StageUtils.getRgbaString(color);
             for (let i = 0; i < drawLines.length; i++) {
                 let drawLine = drawLines[i];
-                this._context.fillRect((drawLine.x - hlPaddingLeft), (drawLine.y - offsetY + offset), (drawLine.w + hlPaddingRight + hlPaddingLeft), hlHeight);
+                this._context.fillRect((drawLine.x - hlPaddingLeft), (drawLine.y - renderInfo.offsetY + offset), (drawLine.w + hlPaddingRight + hlPaddingLeft), hlHeight);
             }
         }
 
@@ -314,14 +336,14 @@ export default class TextTextureRenderer {
         for (let i = 0, n = drawLines.length; i < n; i++) {
             let drawLine = drawLines[i];
 
-            if (letterSpacing === 0) {
+            if (renderInfo.letterSpacing === 0) {
                 this._context.fillText(drawLine.text, drawLine.x, drawLine.y);
             } else {
                 const textSplit = drawLine.text.split('');
                 let x = drawLine.x;
                 for (let i = 0, j = textSplit.length; i < j; i++) {
                     this._context.fillText(textSplit[i], x, drawLine.y);
-                    x += this.measureText(textSplit[i], letterSpacing);
+                    x += this.measureText(textSplit[i], renderInfo.letterSpacing);
                 }
             }
         }
@@ -333,8 +355,8 @@ export default class TextTextureRenderer {
             this._context.shadowBlur = prevShadowSettings[3];
         }
 
-        if (cutSx || cutSy) {
-            this._context.translate(cutSx, cutSy);
+        if (renderInfo.cutSx || renderInfo.cutSy) {
+            this._context.translate(renderInfo.cutSx, renderInfo.cutSy);
         }
 
         this.renderInfo = renderInfo;
