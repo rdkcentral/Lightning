@@ -18,6 +18,7 @@
  */
 
 import DefaultShader from "./DefaultShader.mjs";
+import StageUtils from "../../../tree/StageUtils.mjs";
 
 export default class RoundedRectangleShader extends DefaultShader {
     constructor(context) {
@@ -50,7 +51,7 @@ export default class RoundedRectangleShader extends DefaultShader {
     }
 
     _getNormalizedColor(color) {
-        const utils = Lightning.StageUtils;
+        const utils = StageUtils;
         const col = utils.getRgbaComponentsNormalized(color);
         col[0] *= col[3];
         col[1] *= col[3];
