@@ -221,7 +221,7 @@ window.attachInspector = function({Element, ElementCore, Stage, Component, Eleme
         oSetParent.apply(this, arguments);
 
         if (!window.mutatingChildren) {
-            if (parent) {
+            if (parent && parent.dhtml) {
                 var index = parent._children.getIndex(this);
                 if (index == parent._children.get().length - 1) {
                     parent.dhtml().appendChild(this.dhtml());
@@ -229,7 +229,7 @@ window.attachInspector = function({Element, ElementCore, Stage, Component, Eleme
                     parent.dhtml().insertBefore(this.dhtml(), parent.dhtml().children[index]);
                 }
             } else {
-                if (prevParent) {
+                if (prevParent && prevParent.dhtml) {
                     prevParent.dhtml().removeChild(this.dhtml());
                 }
             }
