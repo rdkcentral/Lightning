@@ -51,8 +51,7 @@ export default class RoundedRectangleShader extends DefaultShader {
     }
 
     _getNormalizedColor(color) {
-        const utils = StageUtils;
-        const col = utils.getRgbaComponentsNormalized(color);
+        const col = StageUtils.getRgbaComponentsNormalized(color);
         col[0] *= col[3];
         col[1] *= col[3];
         col[2] *= col[3];
