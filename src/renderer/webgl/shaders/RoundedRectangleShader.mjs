@@ -24,8 +24,7 @@ export default class RoundedRectangleShader extends DefaultShader {
     constructor(context) {
         super(context);
         this._radius = [1, 1, 1, 1];
-
-        this._stroke = [0, 0, 0, 0];
+        this._stroke = 0;
         this._fillColor = this._getNormalizedColor(0xffffffff);
         this._strokeColor = this._getNormalizedColor(0x00ffffff);
     }
