@@ -9,8 +9,8 @@ export default class VignetteShader extends DefaultShader {
         super(context);
         this._magnitude = 1.3;
         this._intensity = 0.7;
-        this._mountX = 0.0;
-        this._mountY = 0.0;
+        this._pivotX = 0.5;
+        this._pivotY = 0.5;
     }
 
     setupUniforms(operation) {
@@ -18,25 +18,25 @@ export default class VignetteShader extends DefaultShader {
 
         this._setUniform("magnitude", this._magnitude , this.gl.uniform1f);
         this._setUniform("intensity", this._intensity, this.gl.uniform1f);
-        this._setUniform("mountX", this._mountX, this.gl.uniform1f);
-        this._setUniform("mountY", this._mountY, this.gl.uniform1f);
+        this._setUniform("pivotX", this._pivotX, this.gl.uniform1f);
+        this._setUniform("pivotY", this._pivotY, this.gl.uniform1f);
         this.redraw()
     }
-    get mountX() {
-        return this._mountX;
+    get pivotX() {
+        return this._pivotX;
     }
 
-    set mountX(v) {
-        this._mountX = v;
+    set pivotX(v) {
+        this._pivotX = v;
         this.redraw();
     }
 
-    get mountY() {
-        return this._mountY;
+    get pivotY() {
+        return this._pivotY;
     }
 
-    set mountY(v) {
-        this._mountY = v;
+    set pivotY(v) {
+        this._pivotY = v;
         this.redraw();
     }
 
@@ -73,12 +73,12 @@ VignetteShader.fragmentShaderSource = `
 
     uniform float magnitude;
     uniform float intensity;
-    uniform float mountX;
-    uniform float mountY;
+    uniform float pivotX;
+    uniform float pivotY;
 
     void main() {
-        vec2 mount = vec2(mountX, mountY);
-        vec2 uv = vTextureCoord.xy - mount;
+        vec2 pivot = vec2(pivotX, pivotY);
+        vec2 uv = vTextureCoord.xy - pivot + vec2(0.5);
         uv.x = clamp(uv.x, 0.0, 1.0);
         uv.y = clamp(uv.y, 0.0, 1.0);
    
