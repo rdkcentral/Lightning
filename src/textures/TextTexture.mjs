@@ -164,6 +164,17 @@ export default class TextTexture extends Texture {
         }
     }
 
+    get verticalAlign() {
+        return this._verticalAlign;
+    }
+
+    set verticalAlign(v) {
+        if (this._verticalAlign !== v) {
+            this._verticalAlign = v;
+            this._changed();
+        }
+    }
+
     get offsetY() {
         return this._offsetY;
     }
@@ -436,6 +447,7 @@ export default class TextTexture extends Texture {
         if (this.lineHeight !== null) parts.push("lh" + this.lineHeight);
         if (this.textBaseline !== "alphabetic") parts.push("tb" + this.textBaseline);
         if (this.textAlign !== "left") parts.push("ta" + this.textAlign);
+        if (this.verticalAlign !== "top") parts.push("va" + this.verticalAlign);
         if (this.offsetY !== null) parts.push("oy" + this.offsetY);
         if (this.maxLines !== 0) parts.push("ml" + this.maxLines);
         if (this.maxLinesSuffix !== "..") parts.push("ms" + this.maxLinesSuffix);
@@ -512,6 +524,7 @@ export default class TextTexture extends Texture {
         if (this.lineHeight !== null) nonDefaults["lineHeight"] = this.lineHeight;
         if (this.textBaseline !== "alphabetic") nonDefaults["textBaseline"] = this.textBaseline;
         if (this.textAlign !== "left") nonDefaults["textAlign"] = this.textAlign;
+        if (this.verticalAlign !== "top") nonDefaults["verticalAlign"] = this.verticalAlign;
         if (this.offsetY !== null) nonDefaults["offsetY"] = this.offsetY;
         if (this.maxLines !== 0) nonDefaults["maxLines"] = this.maxLines;
         if (this.maxLinesSuffix !== "..") nonDefaults["maxLinesSuffix"] = this.maxLinesSuffix;
@@ -553,6 +566,7 @@ export default class TextTexture extends Texture {
         obj.lineHeight = this._lineHeight;
         obj.textBaseline = this._textBaseline;
         obj.textAlign = this._textAlign;
+        obj.verticalAlign = this._verticalAlign;
         obj.offsetY = this._offsetY;
         obj.maxLines = this._maxLines;
         obj.maxLinesSuffix = this._maxLinesSuffix;
@@ -597,6 +611,7 @@ proto._textOverflow = "";
 proto._lineHeight = null;
 proto._textBaseline = "alphabetic";
 proto._textAlign = "left";
+proto._verticalAlign = "top";
 proto._offsetY = null;
 proto._maxLines = 0;
 proto._maxLinesSuffix = "..";
