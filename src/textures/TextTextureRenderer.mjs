@@ -293,7 +293,15 @@ export default class TextTextureRenderer {
         // Draw lines line by line.
         for (let i = 0, n = renderInfo.lines.length; i < n; i++) {
             linePositionX = 0;
-            linePositionY = (i * renderInfo.lineHeight) + renderInfo.offsetY + (renderInfo.lineHeight - renderInfo.fontSize) / 2;
+
+            // By default, text is aligned to top
+            linePositionY = (i * renderInfo.lineHeight) + renderInfo.offsetY;
+
+            if (this._settings.verticalAlign == 'middle') {
+                linePositionY += (renderInfo.lineHeight - renderInfo.fontSize) / 2;
+            } else if (this._settings.verticalAlign == 'bottom') {
+                linePositionY += renderInfo.lineHeight - renderInfo.fontSize;
+            }
 
             if (this._settings.textAlign === 'right') {
                 linePositionX += (renderInfo.innerWidth - renderInfo.lineWidths[i]);
