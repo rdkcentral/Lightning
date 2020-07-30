@@ -326,6 +326,11 @@ export default class Texture {
                 }
 
                 oldSource.removeTexture(this);
+
+                // for now we free up all replaced TextTexture sources directly
+                if(!oldSource.isUsed() && this instanceof TextTexture){
+                    this.manager.freeTextureSource(oldSource);
+                }
             }
 
             if (newSource) {
@@ -625,3 +630,4 @@ Texture.prototype.isTexture = true;
 Texture.id = 0;
 
 import Base from "./Base.mjs";
+import TextTexture from "../textures/TextTexture.mjs";
