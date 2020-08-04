@@ -29,7 +29,11 @@ export default class TextTexture extends Texture {
     }
 
     static renderer(stage, canvas, settings) {
-        return new TextTextureRenderer(stage, canvas, settings);
+        if (this.renderer == 'advanced') {
+            return new TextTextureRendererAdvanced(stage, canvas, settings);
+        } else {
+            return new TextTextureRenderer(stage, canvas, settings);
+        }
     }
 
     get text() {
@@ -406,6 +410,17 @@ export default class TextTexture extends Texture {
         }
     }
 
+    get advancedRenderer() {
+        return this._advancedRenderer;
+    }
+
+    set advancedRenderer(v) {
+        if (this._advancedRenderer !== v) {
+            this._advancedRenderer = v;
+            this._changed();
+        }
+    }
+
     set letterSpacing(v) {
         if (this._letterSpacing !== v) {
             this._letterSpacing = v;
@@ -485,6 +500,8 @@ export default class TextTexture extends Texture {
         if (this.cutSy) parts.push("csy" + this.cutSy);
         if (this.cutEy) parts.push("cey" + this.cutEy);
 
+        if (this.advancedRenderer) parts.push("aR" + this.advancedRenderer ? 1 : 0);
+
         let id = "TX$" + parts.join("|") + ":" + this.text;
         return id;
     }
@@ -501,7 +518,10 @@ export default class TextTexture extends Texture {
 
         return function (cb) {
             const canvas = this.stage.platform.getDrawingCanvas();
-            const renderer = new TextTextureRenderer(this.stage, canvas, args);
+            const renderer = (args.advancedRenderer)
+              ? new TextTextureRendererAdvanced(this.stage, canvas, args)
+              : new TextTextureRenderer(this.stage, canvas, args);
+            
             const p = renderer.draw();
 
             const texParams = {};
@@ -573,6 +593,8 @@ export default class TextTexture extends Texture {
         if (this.cutEx) nonDefaults["cutEx"] = this.cutEx;
         if (this.cutSy) nonDefaults["cutSy"] = this.cutSy;
         if (this.cutEy) nonDefaults["cutEy"] = this.cutEy;
+
+        if (this.advancedRenderer) nonDefaults["renderer"] = this.advancedRenderer;
         return nonDefaults;
     }
 
@@ -615,6 +637,7 @@ export default class TextTexture extends Texture {
         obj.cutEx = this._cutEx;
         obj.cutSy = this._cutSy;
         obj.cutEy = this._cutEy;
+        obj.advancedRenderer = this._advancedRenderer;
         return obj;
     }
 
@@ -660,6 +683,8 @@ proto._cutSx = 0;
 proto._cutEx = 0;
 proto._cutSy = 0;
 proto._cutEy = 0;
+proto._advancedRenderer = false;
 
 
 import TextTextureRenderer from "./TextTextureRenderer.mjs";
+import TextTextureRendererAdvanced from "./TextTextureRendererAdvanced.mjs";
