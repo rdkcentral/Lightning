@@ -76,8 +76,8 @@ export default class SpinnerShader extends DefaultShader {
         this._setUniform("iTime", Date.now() - this._time, this.gl.uniform1f);
 
         const renderPrecision = this.ctx.stage.getRenderPrecision();
-        this._setUniform('radius', this._radius, this.gl.uniform1f);
-        this._setUniform('width', this._width, this.gl.uniform1f);
+        this._setUniform('radius', this._radius * renderPrecision, this.gl.uniform1f);
+        this._setUniform('width', this._width * renderPrecision, this.gl.uniform1f);
         this._setUniform('period', this._period, this.gl.uniform1f);
         this._setUniform('angle', this._angle, this.gl.uniform1f);
         this._setUniform('smooth', this._smooth, this.gl.uniform1f);
