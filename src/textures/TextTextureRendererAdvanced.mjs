@@ -98,10 +98,10 @@ export default class TextTextureRendererAdvanced {
         const paddingLeft = this._settings.paddingLeft * precision;
         const paddingRight = this._settings.paddingRight * precision;
         const fontSize = this._settings.fontSize * precision;
-        const offsetY = this._settings.offsetY === null ? null : (this._settings.offsetY * precision);
+        // const offsetY = this._settings.offsetY === null ? null : (this._settings.offsetY * precision);
         const lineHeight = this._settings.lineHeight * precision || fontSize;
         const w = this._settings.w != 0 ? this._settings.w * precision : 2048 / precision;
-        const h = this._settings.h * precision;
+        // const h = this._settings.h * precision;
         const wordWrapWidth = this._settings.wordWrapWidth * precision;
         const cutSx = this._settings.cutSx * precision;
         const cutEx = this._settings.cutEx * precision;
@@ -112,20 +112,9 @@ export default class TextTextureRendererAdvanced {
         // Set font properties.
         this.setFontProperties();
 
-        // calculate text width
-        // for (let i = 0; i < lines.length; i++) {
-        //     let lineWidth = this.measureText(lines[i], letterSpacing);
-        // }
-
- 
-        let text = this._settings.text;
-        console.log('text_internal', text);
-        text = this.tokenize(text);
-        text = this.parse(text);
-        text = this.measure(text, letterSpacing);
-
-        renderInfo.text = text;
         renderInfo.w = w;
+        renderInfo.width = w;
+        renderInfo.text = this._settings.text;
         renderInfo.precision = precision;
         renderInfo.fontSize = fontSize;
         renderInfo.lineHeight = lineHeight;
@@ -143,22 +132,50 @@ export default class TextTextureRendererAdvanced {
         renderInfo.paddingRight = this._settings.paddingRight;
         renderInfo.maxLines = this._settings.maxLines;
         renderInfo.maxLinesSuffix = this._settings.maxLinesSuffix;
+        renderInfo.textOverflow = this._settings.textOverflow;
+        renderInfo.wordWrap = this._settings.wordWrap;
+        renderInfo.wordWrapWidth = wordWrapWidth;
+        renderInfo.shadow = this._settings.shadow;
+        renderInfo.shadowColor = this._settings.shadowColor;
+        renderInfo.shadowOffsetX = this._settings.shadowOffsetX;
+        renderInfo.shadowOffsetY = this._settings.shadowOffsetY;
+        renderInfo.shadowBlur = this._settings.shadowBlur;
+        renderInfo.cutSx = cutSx;
+        renderInfo.cutEx = cutEx;
+        renderInfo.cutSy = cutSy;
+        renderInfo.cutEy = cutEy;
+
+        let text = renderInfo.text;
+
+        // Text overflow
+        if (renderInfo.textOverflow && !renderInfo.wordWrap) {
+            let suffix;
+            switch (this._settings.textOverflow) {
+                case 'clip':
+                    suffix = '';
+                    break;
+                case 'ellipsis':
+                    suffix = this._settings.maxLinesSuffix;
+                    break;
+                default:
+                    suffix = this._settings.textOverflow;
+            }
+            text = this.wrapWord(text, wordWrapWidth || renderInfo.w, suffix);
+        }
+
+        text = this.tokenize(text);
+        text = this.parse(text);
+        text = this.measure(text, letterSpacing)
+
 
         // Calculate detailed drawing information
         let x = paddingLeft;
-
-        // Vertical align
-        let vaOffset = 0;
-        if (renderInfo.verticalAlign == 'middle') {
-            vaOffset += (renderInfo.lineHeight - renderInfo.fontSize * precision) / 2;
-        } else if (this._settings.verticalAlign == 'bottom') {
-            vaOffset += renderInfo.lineHeight - renderInfo.fontSize * precision;
-        }
-
         let lineNo = 0;
-        for (const t of renderInfo.text) {
+        let wrapWidth = renderInfo.wordWrap ? (renderInfo.wordWrapWidth || renderInfo.width) : renderInfo.width;
+        //wrapWidth += paddingLeft;
+        for (const t of text) {
             // Wrap text
-            if (x + t.width > renderInfo.w || t.text == '\n') {
+            if (renderInfo.wordWrap && x + t.width > wrapWidth || t.text == '\n') {
                 x = paddingLeft;
                 lineNo += 1;
             }
@@ -169,19 +186,17 @@ export default class TextTextureRendererAdvanced {
             }
 
             t.x = x;
-
-            // Letter by letter detail for letter spacing
-            if (renderInfo.letterSpacing) {
-                t.letters = t.text.split('').map((l) => {return {text: l}});
-                let _x = x;
-                for (let l of t.letters) {
-                    l.x = _x;
-                    _x += this.measureText(l.text, renderInfo.letterSpacing);
-                }
-            }
             x += t.width;
         }
         renderInfo.lineNum = lineNo + 1;
+
+        // Vertical align
+        let vaOffset = 0;
+        if (renderInfo.verticalAlign == 'middle') {
+            vaOffset += (renderInfo.lineHeight - renderInfo.fontSize) / 2;
+        } else if (this._settings.verticalAlign == 'bottom') {
+            vaOffset += renderInfo.lineHeight - renderInfo.fontSize;
+        }
 
         // Calculate lines information
         renderInfo.lines = []
@@ -190,26 +205,79 @@ export default class TextTextureRendererAdvanced {
                 width: 0,
                 x: 0,
                 y: renderInfo.lineHeight * i + vaOffset,
+                text: [],
             }
         }
 
-        for (let t of renderInfo.text) {
-            renderInfo.lines[t.lineNo].width += t.width;
+        for (let t of text) {
+            renderInfo.lines[t.lineNo].text.push(t);
+        }
+
+        // Filter out white spaces at beginning and end of each line
+        for (const l of renderInfo.lines) {
+            if (l.text.length == 0) {
+                continue;
+            }
+
+            const firstWord = l.text[0].text;
+            const lastWord = l.text[l.text.length - 1].text;
+
+            if (firstWord == '\n') {
+                l.text.shift();
+            }
+            if (lastWord == ' ' || lastWord == '\n') {
+                l.text.pop();
+            }
+        }
+
+        // Calculate line width
+        for (let l of renderInfo.lines) {
+            l.width = l.text.reduce((acc, t) => acc + t.width, 0);
+        }
+
+        renderInfo.width = this._settings.w != 0 ? this._settings.w * precision : Math.max(...renderInfo.lines.map((l) => l.width)) + paddingRight;
+
+        // Apply maxLinesSuffix
+        if (renderInfo.maxLines && renderInfo.lineNum > renderInfo.maxLines && renderInfo.maxLinesSuffix) {
+            const index = renderInfo.maxLines - 1;
+            let lastLineText = text.filter((t) => t.lineNo == index);
+            let suffix = renderInfo.maxLinesSuffix;
+            suffix = this.tokenize(suffix);
+            suffix = this.parse(suffix);
+            suffix = this.measure(suffix, renderInfo.letterSpacing)[0];
+            suffix.lineNo = index;
+            lastLineText.push(suffix)
+
+            let _w = lastLineText.reduce((acc, t) => acc + t.width, 0);
+            while (_w > renderInfo.width || lastLineText[lastLineText.length - 2].text == ' ') {
+                lastLineText.splice(lastLineText.length - 2, 1);
+                _w = lastLineText.reduce((acc, t) => acc + t.width, 0);
+                const prev = lastLineText[lastLineText.length - 2]
+                suffix.x = prev.x + prev.width;
+            }
+
+            renderInfo.lines[index].text = lastLineText;
+            renderInfo.lines[index].width = _w;
+        }
+
+        if (this._settings.h) {
+            renderInfo.h = this._settings.h;
+        } else if (renderInfo.maxLines && renderInfo.maxLines < renderInfo.lineNum) {
+            renderInfo.h = renderInfo.maxLines * renderInfo.lineHeight + fontSize / 2;
+        } else {
+            renderInfo.h = renderInfo.lineNum * renderInfo.lineHeight + fontSize / 2;
         }
 
         // Horizontal alignment offset
         if (renderInfo.textAlign == 'center') {
             for (let l of renderInfo.lines) {
-                l.x = (renderInfo.w - l.width) / 2 - paddingLeft;
+                l.x = (renderInfo.width - l.width - paddingLeft) / 2;
             }
         } else if (renderInfo.textAlign == 'right') {
             for (let l of renderInfo.lines) {
-                l.x = renderInfo.w - l.width - paddingLeft;
+                l.x = renderInfo.width - l.width - paddingLeft;
             }
         }
-
-        renderInfo.h = (renderInfo.maxLines ? renderInfo.maxLines : renderInfo.lineNum)  * renderInfo.lineHeight;
-        renderInfo.w = this._settings.w != 0 ? this._settings.w : Math.max(...renderInfo.lines.map((l) => l.width)) + paddingRight;
 
         return renderInfo;
     }
@@ -219,14 +287,34 @@ export default class TextTextureRendererAdvanced {
         const precision = this.getPrecision();
         const paddingLeft = renderInfo.paddingLeft * precision;
 
-        // Set canvas dimension
-        this._canvas.width = Math.ceil(renderInfo.w + this._stage.getOption('textRenderIssueMargin'));
-        this._canvas.height = Math.ceil(renderInfo.h);
+        // Set canvas dimensions
+        let canvasWidth = renderInfo.w || renderInfo.width;
+        if (renderInfo.cutSx || renderInfo.cutEx) {
+            canvasWidth = Math.min(renderInfo.w, renderInfo.cutEx - renderInfo.cutSx);
+        }
+
+        let canvasHeight = renderInfo.h;
+        if (renderInfo.cutSy || renderInfo.cutEy) {
+            canvasHeight = Math.min(renderInfo.h, renderInfo.cutEy - renderInfo.cutSy);
+        }
+
+        this._canvas.width = Math.ceil(canvasWidth + this._stage.getOption('textRenderIssueMargin'));
+        this._canvas.height = Math.ceil(canvasHeight);
 
         // Canvas context has been reset.
         this.setFontProperties();
 
-        this._context.fillStyle = StageUtils.getRgbaString(this._settings.textColor);
+        if (renderInfo.fontSize >= 128) {
+            // WpeWebKit bug: must force compositing because cairo-traps-compositor will not work with text first.
+            this._context.globalAlpha = 0.01;
+            this._context.fillRect(0, 0, 0.01, 0.01);
+            this._context.globalAlpha = 1.0;
+        }
+
+        // Cut
+        if (renderInfo.cutSx || renderInfo.cutSy) {
+            this._context.translate(-renderInfo.cutSx, -renderInfo.cutSy);
+        }
 
         // Highlight
         if (renderInfo.highlight) {
@@ -237,42 +325,68 @@ export default class TextTextureRendererAdvanced {
             const hlPaddingRight = (renderInfo.highlightPaddingRight !== null ? renderInfo.highlightPaddingRight * precision : renderInfo.paddingRight);
 
             this._context.fillStyle = StageUtils.getRgbaString(hlColor);
-            for (let i = 0; i < renderInfo.lines.length; i++) {
+            const lineNum = renderInfo.maxLines ? Math.min(renderInfo.maxLines, renderInfo.lineNum) : renderInfo.lineNum; 
+            for (let i = 0; i < lineNum; i++) {
                 const l = renderInfo.lines[i];
-                if (renderInfo.maxLines && i >= renderInfo.maxLines) {
-                    continue;
-                }
                 this._context.fillRect(l.x - hlPaddingLeft + paddingLeft, l.y + hlOffset, l.width + hlPaddingLeft + hlPaddingRight, hlHeight);
             }
         }
 
-        for (const t of renderInfo.text) {
+        // Text shadow.
+        let prevShadowSettings = null;
+        if (this._settings.shadow) {
+            prevShadowSettings = [this._context.shadowColor, this._context.shadowOffsetX, this._context.shadowOffsetY, this._context.shadowBlur];
 
-            if (t.text == '\n') {
-                continue;
-            }
+            this._context.shadowColor = StageUtils.getRgbaString(this._settings.shadowColor);
+            this._context.shadowOffsetX = this._settings.shadowOffsetX * precision;
+            this._context.shadowOffsetY = this._settings.shadowOffsetY * precision;
+            this._context.shadowBlur = this._settings.shadowBlur * precision;
+        }
 
-            if (renderInfo.maxLines && t.lineNo >= renderInfo.maxLines) {
-                continue;
-            }
+        // Draw text
+        this._context.fillStyle = StageUtils.getRgbaString(this._settings.textColor);
+        for (const line of renderInfo.lines) {
+            for (const t of line.text) {
 
-            this._context.font = t.fontStyle;
-
-            // Draw with letter spacing
-            this._context.fillStyle = StageUtils.getRgbaString(renderInfo.textColor);
-            if (t.letters) {
-                for (let l of t.letters) {
-                    const _x = renderInfo.lines[t.lineNo].x + l.x;
-                    this._context.fillText(l.text, _x, renderInfo.lines[t.lineNo].y + renderInfo.fontSize);
+                if (t.text == '\n') {
+                    continue;
                 }
-            // Standard drawing
-            } else {
-                const _x = renderInfo.lines[t.lineNo].x + t.x;
-                this._context.fillText(t.text, _x, renderInfo.lines[t.lineNo].y + renderInfo.fontSize);
+
+                if (renderInfo.maxLines && t.lineNo >= renderInfo.maxLines) {
+                    continue;
+                }
+
+                this._context.font = t.fontStyle;
+
+                // Draw with letter spacing
+                if (t.letters) {
+                    for (let l of t.letters) {
+                        const _x = renderInfo.lines[t.lineNo].x + t.x + l.x;
+                        this._context.fillText(l.text, _x, renderInfo.lines[t.lineNo].y + renderInfo.fontSize);
+                    }
+                // Standard drawing
+                } else {
+                    const _x = renderInfo.lines[t.lineNo].x + t.x;
+                    this._context.fillText(t.text, _x, renderInfo.lines[t.lineNo].y + renderInfo.fontSize);
+                }
             }
         }
 
-        console.log('render_info', renderInfo);
+        // Reset text shadow
+        if (prevShadowSettings) {
+            this._context.shadowColor = prevShadowSettings[0];
+            this._context.shadowOffsetX = prevShadowSettings[1];
+            this._context.shadowOffsetY = prevShadowSettings[2];
+            this._context.shadowBlur = prevShadowSettings[3];
+        }
+
+        // Reset cut translation
+        if (renderInfo.cutSx || renderInfo.cutSy) {
+            this._context.translate(renderInfo.cutSx, renderInfo.cutSy);
+        }
+        
+        this.renderInfo = renderInfo;
+
     };
 
     measureText(word, space = 0) {
@@ -339,7 +453,61 @@ export default class TextTextureRendererAdvanced {
             }
             p.width = this.measureText(p.text, letterSpacing);
             p.fontStyle = ctx.font;
+
+            // Letter by letter detail for letter spacing
+            if (letterSpacing > 0) {
+                p.letters = p.text.split('').map((l) => {return {text: l}});
+                let _x = 0;
+                for (let l of p.letters) {
+                    l.x = _x;
+                    _x += this.measureText(l.text, letterSpacing);
+                }
+            }
+
         }
         return parsed;
+    }
+
+    wrapWord(word, wordWrapWidth, suffix) {
+        const suffixWidth = this._context.measureText(suffix).width;
+        const wordLen = word.length
+        const wordWidth = this._context.measureText(word).width;
+
+        /* If word fits wrapWidth, do nothing */
+        if (wordWidth <= wordWrapWidth) {
+            return word;
+        }
+
+        /* Make initial guess for text cuttoff */
+        let cutoffIndex = Math.floor((wordWrapWidth * wordLen) / wordWidth);
+        let truncWordWidth = this._context.measureText(word.substring(0, cutoffIndex)).width + suffixWidth;
+
+        /* In case guess was overestimated, shrink it letter by letter. */
+        if (truncWordWidth > wordWrapWidth) {
+            while (cutoffIndex > 0) {
+                truncWordWidth = this._context.measureText(word.substring(0, cutoffIndex)).width + suffixWidth;
+                if (truncWordWidth > wordWrapWidth) {
+                    cutoffIndex -= 1;
+                } else {
+                    break;
+                }
+            }
+
+        /* In case guess was underestimated, extend it letter by letter. */
+        } else {
+            while (cutoffIndex < wordLen) {
+                truncWordWidth = this._context.measureText(word.substring(0, cutoffIndex)).width + suffixWidth;
+                if (truncWordWidth < wordWrapWidth) {
+                    cutoffIndex += 1;
+                } else {
+                    // Finally, when bound is crossed, retract last letter.
+                    cutoffIndex -=1;
+                    break;
+                }
+            }
+        }
+
+        /* If wrapWidth is too short to even contain suffix alone, return empty string */
+        return word.substring(0, cutoffIndex) + (wordWrapWidth >= suffixWidth ? suffix : '')
     }
 }

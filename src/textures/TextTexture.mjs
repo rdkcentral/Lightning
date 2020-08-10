@@ -29,7 +29,7 @@ export default class TextTexture extends Texture {
     }
 
     static renderer(stage, canvas, settings) {
-        if (this.renderer == 'advanced') {
+        if (this.advancedRenderer) {
             return new TextTextureRendererAdvanced(stage, canvas, settings);
         } else {
             return new TextTextureRenderer(stage, canvas, settings);
