@@ -444,15 +444,17 @@ export default class TextTextureRendererAdvanced {
         const ctx = this._context;
         const baseFont = ctx.font;
         for (const p of parsed) {
+            let font = baseFont;
             ctx.font = baseFont;
             if (p.bold) {
-                ctx.font = 'bold '+ ctx.font;
+                font = 'bold ' + font;
             }
             if (p.italic) {
-                ctx.font = 'italic ' + ctx.font;
+                font = 'italic ' + font;
             }
+            ctx.font = font;
             p.width = this.measureText(p.text, letterSpacing);
-            p.fontStyle = ctx.font;
+            p.fontStyle = font;
 
             // Letter by letter detail for letter spacing
             if (letterSpacing > 0) {
