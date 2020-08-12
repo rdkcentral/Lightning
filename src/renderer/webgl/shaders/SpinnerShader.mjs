@@ -175,6 +175,6 @@ SpinnerShader.fragmentShaderSource = `
         }
 
         float s = smoothstep(inner, inner + smooth + 0.00001, pct) * (1.0 - smoothstep(outer, outer + smooth + 0.00001, pct));
-        gl_FragColor = texture2D(uSampler, fragCoord) * (1. - s * fragColor.a) + fragColor * s;
+        gl_FragColor = texture2D(uSampler, fragCoord) * vColor * (1. - s * fragColor.a) + fragColor * s;
     }
 `;
