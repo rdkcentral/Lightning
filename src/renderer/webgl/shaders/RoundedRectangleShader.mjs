@@ -73,7 +73,11 @@ export default class RoundedRectangleShader extends DefaultShader {
 
 RoundedRectangleShader.vertexShaderSource = `
     #ifdef GL_ES
+    # ifdef GL_FRAGMENT_PRECISION_HIGH
+    precision highp float;
+    # else
     precision lowp float;
+    # endif
     #endif
     attribute vec2 aVertexPosition;
     attribute vec2 aTextureCoord;
@@ -93,7 +97,11 @@ RoundedRectangleShader.vertexShaderSource = `
 
 RoundedRectangleShader.fragmentShaderSource = `
     #ifdef GL_ES
+    # ifdef GL_FRAGMENT_PRECISION_HIGH
+    precision highp float;
+    # else
     precision lowp float;
+    # endif
     #endif
 
     #define PI 3.14159265359
