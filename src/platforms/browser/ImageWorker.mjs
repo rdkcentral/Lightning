@@ -144,7 +144,7 @@ const createWorker = function() {
     }
 
     ImageWorkerServer.isPathAbsolute = function(path) {
-        return /^(?:\/|[a-z]+:\/\/)/.test(path);
+        return /^(?:\/|[a-z]+:\/\/)/.test(path) || path.substr(0, 5) == 'data:';
     };
 
     ImageWorkerServer.prototype._receiveMessage = function(e) {
