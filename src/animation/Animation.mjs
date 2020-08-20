@@ -199,7 +199,8 @@ export default class Animation extends EventEmitter {
                     this._repeatsLeft--;
                 }
                 this._p = this.settings.repeatOffset;
-
+                this.emit('progress', this._p);
+                
                 if (this.settings.repeatDelay) {
                     this._delayLeft = this.settings.repeatDelay;
                 }
@@ -207,6 +208,8 @@ export default class Animation extends EventEmitter {
                 this.emit('repeat', this._repeatsLeft);
             } else {
                 this._p = 1;
+                this.emit('progress', this._p);
+                
                 this._state = Animation.STATES.FINISHED;
                 this.emit('finish');
                 if (this.settings.autostop) {
