@@ -107,7 +107,7 @@ export default class WebGLShader extends Shader {
     }
 
     getVertexAttribPointerOffset(operation) {
-        return operation.extraAttribsDataByteOffset - (operation.index + 1) * 4 * this.getExtraAttribBytesPerVertex();
+        return operation.extraAttribsDataByteOffset - operation.index * 4 * this.getExtraAttribBytesPerVertex();
     }
 
     setExtraAttribsInBuffer(operation) {

@@ -81,7 +81,7 @@ export default class WebPlatform {
 
     loadSrcTexture({src, hasAlpha}, cb) {
         let cancelCb = undefined;
-        let isPng = (src.indexOf(".png") >= 0);
+        let isPng = (src.indexOf(".png") >= 0) || src.substr(0, 21) == 'data:image/png;base64';
         if (this._imageWorker) {
             // WPE-specific image parser.
             const image = this._imageWorker.create(src);
