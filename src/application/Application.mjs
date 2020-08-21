@@ -288,17 +288,22 @@ export default class Application extends Component {
         const key = this.__keymap[e.keyCode];
         const path = this.focusPath;
 
+        let keys;
         if (key) {
-            const hasTimer = this.__keypressTimers.has(key);
-            // prevent event from getting fired when the timeout is still active
-            if (path[path.length - 1].longpress && hasTimer) {
-                return;
-            }
+            keys = Array.isArray(key) ? key : [key];
         }
 
-        if (key) {
-            if (!this.stage.application.focusTopDownEvent([`_capture${key}`, "_captureKey"], obj)) {
-                this.stage.application.focusBottomUpEvent([`_handle${key}`, "_handleKey"], obj);
+        if (keys) {
+            for (let i = 0, n = keys.length; i < n; i++) {
+                const hasTimer = this.__keypressTimers.has(keys[i]);
+                // prevent event from getting fired when the timeout is still active
+                if (path[path.length - 1].longpress && hasTimer) {
+                    return;
+                }
+
+                if (!this.stage.application.focusTopDownEvent([`_capture${keys[i]}`, "_captureKey"], obj)) {
+                    this.stage.application.focusBottomUpEvent([`_handle${keys[i]}`, "_handleKey"], obj);
+                }
             }
         } else {
             if (!this.stage.application.focusTopDownEvent(["_captureKey"], obj)) {
@@ -310,8 +315,10 @@ export default class Application extends Component {
 
         const consumer = path[path.length - 1];
 
-        if (key && consumer.longpress) {
-            this._startLongpressTimer(key, consumer);
+        if (keys && consumer.longpress) {
+            for (let i = 0, n = keys.length; i < n; i++) {
+                this._startLongpressTimer(keys[i], consumer);
+            }
         }
     }
 
@@ -327,9 +334,16 @@ export default class Application extends Component {
         const obj = e;
         const key = this.__keymap[e.keyCode];
 
+        let keys;
         if (key) {
-            if (!this.stage.application.focusTopDownEvent([`_capture${key}Release`, "_captureKeyRelease"], obj)) {
-                this.stage.application.focusBottomUpEvent([`_handle${key}Release`, "_handleKeyRelease"], obj);
+            keys = Array.isArray(key) ? key : [key];
+        }
+
+        if (keys) {
+            for (let i = 0, n = keys.length; i < n; i++) {
+                if (!this.stage.application.focusTopDownEvent([`_capture${keys[i]}Release`, "_captureKeyRelease"], obj)) {
+                    this.stage.application.focusBottomUpEvent([`_handle${keys[i]}Release`, "_handleKeyRelease"], obj);
+                }
             }
         } else {
             if (!this.stage.application.focusTopDownEvent(["_captureKeyRelease"], obj)) {
@@ -339,12 +353,14 @@ export default class Application extends Component {
 
         this.updateFocusPath();
 
-        if (key) {
-            if (this.__keypressTimers.has(key)) {
-                // keyup has fired before end of timeout so we clear it
-                clearTimeout(this.__keypressTimers.get(key));
-                // delete so we can register it again
-                this.__keypressTimers.delete(key);
+        if (keys) {
+            for (let i = 0, n = keys.length; i < n; i++) {
+                if (this.__keypressTimers.has(keys[i])) {
+                    // keyup has fired before end of timeout so we clear it
+                    clearTimeout(this.__keypressTimers.get(keys[i]));
+                    // delete so we can register it again
+                    this.__keypressTimers.delete(keys[i]);
+                }
             }
         }
     }
