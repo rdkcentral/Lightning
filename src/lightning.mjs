@@ -60,8 +60,12 @@ import OutlineShader from "./renderer/webgl/shaders/OutlineShader.mjs";
 import PixelateShader from "./renderer/webgl/shaders/PixelateShader.mjs";
 import RadialFilterShader from "./renderer/webgl/shaders/RadialFilterShader.mjs";
 import RoundedRectangleShader from "./renderer/webgl/shaders/RoundedRectangleShader.mjs";
+import VignetteShader from "./renderer/webgl/shaders/VignetteShader.mjs";
+import SpinnerShader from "./renderer/webgl/shaders/SpinnerShader.mjs";
+import HoleShader from "./renderer/webgl/shaders/HoleShader.mjs";
 import RadialGradientShader from "./renderer/webgl/shaders/RadialGradientShader.mjs";
 import Light3dShader from "./renderer/webgl/shaders/Light3dShader.mjs";
+import PerspectiveShader from "./renderer/webgl/shaders/PerspectiveShader.mjs";
 
 import C2dShader from "./renderer/c2d/C2dShader.mjs";
 import C2dDefaultShader from "./renderer/c2d/shaders/DefaultShader.mjs";
@@ -94,8 +98,12 @@ const lightning = {
         Pixelate: PixelateShader,
         RadialFilter: RadialFilterShader,
         RoundedRectangle: RoundedRectangleShader,
+        Hole: HoleShader,
+        Vignette: VignetteShader,
+        Spinner: SpinnerShader,
         RadialGradient: RadialGradientShader,
         Light3d: Light3dShader,
+        Perspective: PerspectiveShader,
         WebGLShader,
         WebGLDefaultShader,
         C2dShader,
