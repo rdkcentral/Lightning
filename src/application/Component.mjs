@@ -55,8 +55,8 @@ export default class Component extends Element {
 
     __start() {
         // we gather bindings before we initialize the statemachine
-        // so we can call also call them from routed setters
-        if(!this.constructor.hasOwnProperty("__bindings")){
+        // so we can call them from routed setters
+        if (!this.constructor.hasOwnProperty("__bindings")) {
             this.constructor.__bindings = Component.translateBindings(
                 Component.getPropertyBinding(this)
             );
@@ -111,7 +111,7 @@ export default class Component extends Element {
 
         const code = context.loc.join(";\n");
         const f = new Function("element", "store", code);
-        return {f:f, a:context.store}
+        return {f: f, a: context.store};
     }
 
     static parseTemplateRec(obj, context, cursor) {
@@ -166,7 +166,7 @@ export default class Component extends Element {
                     // we assume the origin of undefined is due to
                     // property binding so we skip
                     // @todo: default value per property
-                    if(value === undefined){
+                    if (value === undefined) {
                         return;
                     }
 
@@ -214,48 +214,78 @@ export default class Component extends Element {
         });
     }
 
-    static getPropertyBinding(instance){
+    static getPropertyBinding(instance) {
         let template = instance.constructor._template.toString();
         // cleanup so we can simplify our regex pattern
-        template = template.replace(/[\n\s]/g,'');
+        template = template.replace(/[\n\s]/g, '');
 
         const hasBindings = /:\s*this\./ig;
-        if(!hasBindings.test(template)){
+        if (!hasBindings.test(template)) {
             return [];
         }
 
         const getBindings = /([a-z0-9@$_]+):(this\.[a-z0-9@$_.]+)/ig;
         const bindings = template.match(getBindings);
 
-        if(bindings && bindings.length){
-            return bindings.map((binding)=>{
+        if (bindings && bindings.length) {
+            return bindings.map((binding) => {
                 const locator = new RegExp(`([A-Z][A-Za-z0-9_@$]+):\{([^{]*?${binding}[^}]*?)\}`);
                 const obj = locator.exec(template);
-                if(obj && obj.length){
+                if (obj && obj.length) {
                     return {
-                        [`${obj[1]}`]:Utils.stringToObject(obj[2])
-                    }
+                        [`${obj[1]}`]: Utils.stringToObject(binding)
+                    };
                 }
             }).filter(Boolean);
         }
         return [];
     }
 
-    static translateBindings(obj = []){
-        return obj.reduce((bindings, binding)=>{
+    static translateBindings(obj = []) {
+        const combined = new Map();
+        const binds = obj.reduce((bindings, binding) => {
             const tag = Object.keys(binding)[0];
             const value = binding[tag];
-            const getBinding = /this\.([a-zA-Z0-9@$_]+)/;
-            Object.keys(value).forEach((prop)=>{
+            const getBinding = /this\.([a-zA-Z0-9@$_.]+)/;
+            const getGroupName = /([a-zA-Z0-9@$_]+)\./;
+            const getGroupProp = /\.([a-zA-Z0-9@$_]+)/;
+
+            Object.keys(value).forEach((prop) => {
                 const matches = getBinding.exec(value[prop]);
-                if(matches && !bindings.has(prop)){
+                if (matches && matches[1].indexOf(".") !== -1) {
+                    let bucket = [];
+                    let nameMatch = getGroupName.exec(matches[1]);
+
+                    const group = nameMatch ? nameMatch[1] : "root";
+                    if (combined.has(group)) {
+                        bucket = combined.get(group);
+                    }
+
+                    const argProp = getGroupProp.exec(matches[1]);
+                    if (argProp && argProp.length) {
+                        bucket.push({el:prop, arg:argProp[1], tag});
+                        combined.set(group, bucket);
+                    }
+                } else if (matches && !bindings.has(prop)) {
                     const code = `this.tag('${tag}').${prop} = arguments[0];`;
                     bindings.set(matches[1], code);
                 }
             });
-
             return bindings;
         }, new Map());
+
+        if (combined.size) {
+            const loc = [
+                `const _store_ = arguments[0];`
+            ];
+            for (const [setter, props] of combined.entries()) {
+                props.forEach((prop)=>{
+                    loc.push(`this.tag('${prop.tag}').${prop.el} = _store_['${prop.arg}'];`)
+                });
+                binds.set(setter, loc.join(''));
+            }
+        }
+        return binds;
     }
 
     _onSetup() {
@@ -337,13 +367,13 @@ export default class Component extends Element {
     __construct() {
         this._construct();
     }
-    
+
     _construct() {
     }
 
     _build() {
     }
-    
+
     __init() {
         this._init();
     }
@@ -374,7 +404,7 @@ export default class Component extends Element {
     }
 
     static _template() {
-        return {}
+        return {};
     }
 
     hasFinalFocus() {
@@ -393,7 +423,7 @@ export default class Component extends Element {
 
     seekAncestorByType(type) {
         let c = this.cparent;
-        while(c) {
+        while (c) {
             if (c.constructor === type) {
                 return c;
             }
@@ -403,7 +433,7 @@ export default class Component extends Element {
 
     getSharedAncestorComponent(element) {
         let ancestor = this.getSharedAncestor(element);
-        while(ancestor && !ancestor.isComponent) {
+        while (ancestor && !ancestor.isComponent) {
             ancestor = ancestor.parent;
         }
         return ancestor;
