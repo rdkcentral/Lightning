@@ -36,8 +36,37 @@
                         w: this.itemWidth,
                         h: this.itemHeight,
                         x: this.posX,
-                        y: 200
+                        y: 200,
+                    },
+                    ComponentHolder:{
+                        create: this.component
                     }
+                }
+            }
+        }
+
+        class BindObj extends lng.Component{
+            static _template(){
+                return {
+                    Wrapper:{
+                        rect: true,
+                        w: 100,
+                        h: 100,
+                        x: this.data.x,
+                        y: this.data.y
+                    },
+                    ComponentHolder:{
+                        link: this.component
+                    }
+                }
+            }
+
+            // for now we need a static getter
+            // for the template parser not to fail
+            // also serves as default value
+            static get data(){
+                return {
+                    x: 400, y: 200
                 }
             }
         }
@@ -47,22 +76,32 @@
                 return {
                     A:{
                         type: BindProps
+                    },
+                    B:{
+                        type: BindObj
                     }
                 }
             }
 
             _init(){
+                // tag and patch reactive properties
                 this.tag("A").patch({
                     itemHeight: 200,
                     posX:200
                 });
 
+                // animate reactive properties
                 this.tag("A").animation({
                     repeat: -1,
                     duration: 2, actions:[
                         {p:'itemWidth', v:{0: 200, 0.5: 400, 1: 200}}
                     ]
                 }).start();
+
+                // provide an object
+                this.tag("B").data = {
+                    x: 400, y: 600
+                };
             }
         }
 
