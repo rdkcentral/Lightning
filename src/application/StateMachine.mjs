@@ -298,6 +298,11 @@ class StateMachineType {
     constructor(type) {
         this._type = type;
         this._router = null;
+        this._bindings = null;
+
+        if(type.hasOwnProperty("__bindings")){
+            this._bindings = type.__bindings;
+        }
 
         this.init();
     }
@@ -313,6 +318,7 @@ class StateMachineType {
 
         this._addStateMemberDelegatorsToRouter();
 
+        this._addPropertyBindings();
     }
 
     _createRouter() {
@@ -349,9 +355,19 @@ class StateMachineType {
 
     _addStateMemberDelegatorsToRouter() {
         const members = this._getAllMemberNames();
+        const bindings = this._bindings;
 
         members.forEach(member => {
-            this._addMemberRouter(member);
+            let binding = null;
+
+            if(bindings.has(member)){
+                binding = bindings.get(member);
+
+                // reactive logic will be add via router
+                bindings.delete(member);
+            }
+            this._addMemberRouter(member, binding);
+
         });
     }
 
@@ -497,6 +513,36 @@ class StateMachineType {
             set: setter
         };
         Object.defineProperty(this._router.prototype, member, descriptor);
+    }
+
+    _addPropertyBindings(){
+        const members = this._getStateMemberNamesForType(this._type);
+        const bindings = this._bindings;
+
+        if(bindings && bindings.size){
+            for(const [prop, func] of this._bindings.entries()){
+                const code = [
+                    // The line ensures that, while debugging,
+                    // your IDE won't open many tabs.
+                    "//@ sourceURL=PropertyBinding.js",
+                    func
+                ];
+                const functionBody = code.join("\n");
+                const setter = new Function([], functionBody);
+                let proxySetter;
+
+                if(members.indexOf(prop) !== -1){
+                    const desc = this._getDescriptor(this._type, prop);
+                    proxySetter = function(args){
+                        desc.set.call(this, args);
+                        setter.call(this, args);
+                    }
+                }
+                Object.defineProperty(this._router.prototype, prop,{
+                    set: proxySetter?proxySetter:setter
+                });
+            }
+        }
     }
 
     _getGetterRouter(member) {

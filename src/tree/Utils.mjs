@@ -188,6 +188,15 @@ export default class Utils {
         return charcode >= 65 && charcode <= 90;
     }
 
+    static stringToObject(str){
+        const parts = str.split(",");
+        return parts.reduce((acc, val)=>{
+            const [k, v] = val.split(":");
+            acc[k] = v;
+            return acc;
+        }, {});
+    }
+
 }
 
 Utils.isWeb = (typeof window !== "undefined") && (typeof sparkscene === "undefined");

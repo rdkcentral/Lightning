@@ -54,6 +54,14 @@ export default class Component extends Element {
     }
 
     __start() {
+        // we gather bindings before we initialize the statemachine
+        // so we can call also call them from routed setters
+        if(!this.constructor.hasOwnProperty("__bindings")){
+            this.constructor.__bindings = Component.translateBindings(
+                Component.getPropertyBinding(this)
+            );
+        }
+
         StateMachine.setupStateMachine(this);
         this._onStateChange = Component.prototype.__onStateChange;
     }
@@ -110,6 +118,7 @@ export default class Component extends Element {
         const store = context.store;
         const loc = context.loc;
         const keys = Object.keys(obj);
+
         keys.forEach(key => {
             let value = obj[key];
             if (Utils.isUcChar(key.charCodeAt(0))) {
@@ -154,6 +163,13 @@ export default class Component extends Element {
                         this.parseTemplatePropRec(value, context, propKey);
                     }
                 } else {
+                    // we assume the origin of undefined is due to
+                    // property binding so we skip
+                    // @todo: default value per property
+                    if(value === undefined){
+                        return;
+                    }
+
                     // Property;
                     if (Utils.isNumber(value)) {
                         loc.push(`${cursor}["${key}"] = ${value}`);
@@ -177,6 +193,7 @@ export default class Component extends Element {
         const store = context.store;
         const loc = context.loc;
         const keys = Object.keys(obj);
+
         keys.forEach(key => {
             if (key !== "type") {
                 const value = obj[key];
@@ -195,6 +212,50 @@ export default class Component extends Element {
                 }
             }
         });
+    }
+
+    static getPropertyBinding(instance){
+        let template = instance.constructor._template.toString();
+        // cleanup so we can simplify our regex pattern
+        template = template.replace(/[\n\s]/g,'');
+
+        const hasBindings = /:\s*this\./ig;
+        if(!hasBindings.test(template)){
+            return [];
+        }
+
+        const getBindings = /([a-z0-9@$_]+):(this\.[a-z0-9@$_.]+)/ig;
+        const bindings = template.match(getBindings);
+
+        if(bindings && bindings.length){
+            return bindings.map((binding)=>{
+                const locator = new RegExp(`([A-Z][A-Za-z0-9_@$]+):\{([^{]*?${binding}[^}]*?)\}`);
+                const obj = locator.exec(template);
+                if(obj && obj.length){
+                    return {
+                        [`${obj[1]}`]:Utils.stringToObject(obj[2])
+                    }
+                }
+            }).filter(Boolean);
+        }
+        return [];
+    }
+
+    static translateBindings(obj = []){
+        return obj.reduce((bindings, binding)=>{
+            const tag = Object.keys(binding)[0];
+            const value = binding[tag];
+            const getBinding = /this\.([a-zA-Z0-9@$_]+)/;
+            Object.keys(value).forEach((prop)=>{
+                const matches = getBinding.exec(value[prop]);
+                if(matches && !bindings.has(prop)){
+                    const code = `this.tag('${tag}').${prop} = arguments[0];`;
+                    bindings.set(matches[1], code);
+                }
+            });
+
+            return bindings;
+        }, new Map());
     }
 
     _onSetup() {
