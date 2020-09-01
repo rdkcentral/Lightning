@@ -37,10 +37,33 @@
                         h: this.itemHeight,
                         x: this.posX,
                         y: 200,
-                    },
-                    ComponentHolder:{
-                        create: this.component
                     }
+                }
+            }
+
+            _init(){
+                this._setState("Active");
+            }
+
+            set posX(v){
+                // respond to property change
+            }
+
+            static _states(){
+                return [
+                    class Active extends this{
+                        set posX(v){
+                            // respond to property change in Active state
+                        }
+                    }
+                ]
+            }
+        }
+
+        class LinkedType extends lng.Component{
+            static _template(){
+                return {
+                    w: 20, h: 20, x: 400, y: 100, rect: true
                 }
             }
         }
@@ -56,7 +79,7 @@
                         y: this.data.y
                     },
                     ComponentHolder:{
-                        link: this.component
+                        link: this.patcher
                     }
                 }
             }
@@ -83,7 +106,7 @@
                 }
             }
 
-            _init(){
+            _handleUp(){
                 // tag and patch reactive properties
                 this.tag("A").patch({
                     itemHeight: 200,
@@ -103,6 +126,14 @@
                 this.tag("B").data = {
                     x: 20, y: 20
                 };
+            }
+
+            _handleEnter(){
+                this.tag("B").patcher = {
+                    Item:{
+                        type: LinkedType
+                    }
+                }
             }
         }
 
