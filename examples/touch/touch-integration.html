@@ -1,0 +1,129 @@
+<!--
+ If not stated otherwise in this file or this component's LICENSE file the
+ following copyright and licenses apply:
+
+ Copyright 2020 RDK Management
+
+ Licensed under the Apache License, Version 2.0 (the License);
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <script src="../../devtools/lightning-inspect.js"></script>
+</head>
+<body style="margin: 0; padding: 0">
+<script type="module">
+    import lng from '../../src/lightning.mjs';
+    //attachInspector(lng)
+    const rand = (offset, limit)=>{
+        return Math.random() * (limit - offset) + offset;
+    }
+
+    window.onload = function() {
+        class TouchObject extends lng.Component{
+            static _template() {
+                return {
+                    rect: true, w: 800, h: 40, alpha: 0.3
+                }
+            }
+        }
+
+        class Moving extends lng.Component{
+            static _template() {
+                const s = rand(30, 140)
+                return {
+                    rect: true, w: s, h: s, alpha: 0.4
+                }
+            }
+            _init(){
+                const sx = rand(50, 1200);
+                const sy = rand(50, 70)
+                this.animation({
+                    duration:rand(5, 10), repeat:-1, actions:[
+                        {p: 'x', v:{0:sx, 0.5:rand(50, 1200), 1: sx}},
+                        {p: 'y', v:{0:sy, 0.5:rand(50, 700), 1: sy}}
+                    ]
+                }).start();
+            }
+        }
+
+        class BasicUsageExample extends lng.Application {
+            static _template() {
+                return {
+                    Rectangles:{
+
+                    },
+                    Layerd:{
+                        R1:{
+                            rect: true, x: 100, y: 50, w: 350, h: 100, alpha: 0.3, zIndex: 4
+                        },
+                        R2:{
+                            rect: true, x: 350, y: 50, w: 350, h: 150, alpha: 0.6
+                        },
+                        R3:{
+                            rect: true, x: 400, y: 50, w: 400, h: 200, alpha: 0.8
+                        }
+                    },
+                    Item:{
+                        type: TouchObject, x: 50, y: 300
+                    }
+                }
+            }
+            _init(){
+                this.tag("Rectangles").children = new Array(30).fill('').map(()=>{
+                    if(Math.random() > 0.5){
+                        return {
+                            type: Moving
+                        }
+                    }else{
+                        return this.stage.c({
+                            rect: true,
+                            alpha: Math.random(),
+                            w: rand(40, 100),
+                            h: rand(40, 100),
+                            x: rand(50, 1200),
+                            y: rand(300, 700)
+                        });
+                    }
+                })
+            }
+        }
+
+        const options = {stage: {w: 1280, h: 720, clearColor: 0xFF000000, canvas2d: false, useImageWorker: false}, debug: true}
+        const app = new BasicUsageExample(options);
+        document.body.appendChild(app.stage.getCanvas());
+
+        document.addEventListener("touchstart", (event)=>{
+            const {touches} = event;
+            if(touches.length){
+                let {clientX, clientY} = touches[0];
+                const children = app.stage.getChildrenByPosition(~~(clientX), ~~(clientY));
+
+                if(children.length){
+                    const {element} = children.pop();
+                    element.setSmooth("scale", 1.2);
+                    setTimeout(()=>{
+                        element.setSmooth("scale", 1);
+                    },1000)
+                }
+
+            }
+        })
+    }
+
+
+</script>
+</body>
+</html>
