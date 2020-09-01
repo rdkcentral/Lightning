@@ -161,6 +161,7 @@ export default class Tools {
     static createSvg(cb, stage, url, w, h) {
         let canvas = stage.platform.getDrawingCanvas();
         let ctx = canvas.getContext('2d');
+        const setAnonymousCrossOrigin = this.stage.getOption('setAnonymousCrossOrigin');
         ctx.imageSmoothingEnabled = true;
 
         let img = new Image();
@@ -173,7 +174,11 @@ export default class Tools {
         img.onError = (err) => {
             cb(err);
         }
-        img.crossOrigin = "Anonymous";
+
+        if (setAnonymousCrossOrigin) {
+            img.crossOrigin = "Anonymous";
+        }
+
         img.src = url;
     }
 

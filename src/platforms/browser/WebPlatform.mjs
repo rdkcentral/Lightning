@@ -100,8 +100,9 @@ export default class WebPlatform {
                 image.cancel();
             }
         } else {
+            const setAnonymousCrossOrigin = this.stage.getOption('setAnonymousCrossOrigin');
             let image = new Image();
-            if (!(src.substr(0,5) == "data:")) {
+            if (setAnonymousCrossOrigin && !(src.substr(0,5) == "data:")) {
                 // Base64.
                 image.crossOrigin = "Anonymous";
             }
