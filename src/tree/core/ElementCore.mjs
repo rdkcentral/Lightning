@@ -2136,6 +2136,30 @@ export default class ElementCore {
         ]
     }
 
+    collectAtCoord(x, y, children){
+        // return when branch is hidden
+        if (this._renderContext.alpha === 0){
+            return;
+        }
+
+        // if current element is in bound
+        if(this.isInElement(x, y)){
+            children.push(this);
+        }
+
+        if(this._children){
+            const j = this._children.length;
+            for( let i = 0; i < j; i++){
+                this._children[i].collectAtCoord(x, y, children)
+            }
+        }
+        return children.sort(ElementCore.sortZIndexedChildren)
+    }
+
+    isInElement(tx, ty){
+        const c = this.getCornerPoints();
+        return tx > c[0] && tx < c[2] && ty > c[1] && ty < c[7];
+    }
 
     get layout() {
         this._ensureLayout();

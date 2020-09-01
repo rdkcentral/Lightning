@@ -435,6 +435,14 @@ export default class Stage extends EventEmitter {
             this.platform.addServiceProvider(serviceprovider);
         }
     }
+
+    getChildrenByPosition(x, y){
+        const children = [];
+        this.root.core.update();
+        this.root.core.collectAtCoord(x,y,children);
+
+        return children;
+    }
 }
 
 import Element from "./Element.mjs";
