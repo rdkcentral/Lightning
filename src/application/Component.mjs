@@ -263,12 +263,13 @@ export default class Component extends Element {
 
                     const argProp = getGroupProp.exec(matches[1]);
                     if (argProp && argProp.length) {
-                        bucket.push({el:prop, arg:argProp[1], tag});
+                        bucket.push({el: prop, arg: argProp[1], tag});
                         combined.set(group, bucket);
                     }
                 } else if (matches && !bindings.has(prop)) {
-                    const code = `this.tag('${tag}').${prop} = arguments[0];`;
-                    bindings.set(matches[1], code);
+                    let code = `this.tag('${tag}').`;
+                    code += prop === "link" ? "patch(arguments[0]);" : `${prop} = arguments[0];`;
+                    bindings.set( matches[1], code);
                 }
             });
             return bindings;
@@ -279,8 +280,8 @@ export default class Component extends Element {
                 `const _store_ = arguments[0];`
             ];
             for (const [setter, props] of combined.entries()) {
-                props.forEach((prop)=>{
-                    loc.push(`this.tag('${prop.tag}').${prop.el} = _store_['${prop.arg}'];`)
+                props.forEach((prop) => {
+                    loc.push(`this.tag('${prop.tag}').${prop.el} = _store_['${prop.arg}'];`);
                 });
                 binds.set(setter, loc.join(''));
             }

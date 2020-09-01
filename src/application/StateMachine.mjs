@@ -367,14 +367,13 @@ class StateMachineType {
                 bindings.delete(member);
             }
             this._addMemberRouter(member, binding);
-
         });
     }
 
     /**
      * @note We are generating code because it yields much better performance.
      */
-    _addMemberRouter(member) {
+    _addMemberRouter(member, binding = null) {
         const statePaths = Object.keys(this._stateMap);
         const descriptors = [];
         const aliases = [];
@@ -414,7 +413,7 @@ class StateMachineType {
                 this._addMethodRouter(member, descriptors, aliases);
                 break;
             case "getter":
-                this._addGetterSetterRouters(member);
+                this._addGetterSetterRouters(member, binding);
                 break;
             case "property":
                 console.warn("Fixed properties are not supported; please use a getter instead!")
@@ -505,9 +504,9 @@ class StateMachineType {
         Object.defineProperty(this._router.prototype, member, descriptor);
     }
 
-    _addGetterSetterRouters(member) {
+    _addGetterSetterRouters(member, binding) {
         const getter = this._getGetterRouter(member);
-        const setter = this._getSetterRouter(member);
+        const setter = this._getSetterRouter(member, binding);
         const descriptor = {
             get: getter,
             set: setter
@@ -595,7 +594,7 @@ class StateMachineType {
         return router;
     }
 
-    _getSetterRouter(member) {
+    _getSetterRouter(member, binding) {
         const statePaths = Object.keys(this._stateMap);
         const descriptors = [];
         const aliases = [];
@@ -623,6 +622,11 @@ class StateMachineType {
             "//@ sourceURL=StateMachineRouter.js",
             "const i = this._stateIndex;"
         ];
+
+        if(binding){
+            code.push(binding);
+        }
+
         let cur = aliases[0];
         for (let i = 1, n = aliases.length; i < n; i++) {
             const alias = aliases[i];
