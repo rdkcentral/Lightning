@@ -173,7 +173,13 @@ export default class Tools {
         img.onError = (err) => {
             cb(err);
         }
-        img.crossOrigin = "Anonymous";
+
+        // On the PS4 platform setting the `crossOrigin` attribute on images
+        // can cause CORS failures.
+        if (!Utils.isPS4) {
+            img.crossOrigin = "Anonymous";
+        }
+
         img.src = url;
     }
 

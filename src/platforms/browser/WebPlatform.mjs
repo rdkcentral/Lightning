@@ -17,6 +17,7 @@
  * limitations under the License.
  */
 
+import Utils from "../../tree/Utils.mjs";
 import ImageWorker from "./ImageWorker.mjs";
 
 /**
@@ -101,7 +102,10 @@ export default class WebPlatform {
             }
         } else {
             let image = new Image();
-            if (!(src.substr(0,5) == "data:")) {
+
+            // On the PS4 platform setting the `crossOrigin` attribute on
+            // images can cause CORS failures.
+            if (!(src.substr(0,5) == "data:") && !Utils.isPS4) {
                 // Base64.
                 image.crossOrigin = "Anonymous";
             }
