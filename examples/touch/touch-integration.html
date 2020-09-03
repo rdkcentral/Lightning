@@ -20,108 +20,117 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8"/>
     <script src="../../devtools/lightning-inspect.js"></script>
 </head>
 <body style="margin: 0; padding: 0">
 <script type="module">
     import lng from '../../src/lightning.mjs';
-    //attachInspector(lng)
-    const rand = (offset, limit)=>{
-        return Math.random() * (limit - offset) + offset;
-    }
+    import Touch from "./Touch.js";
 
-    window.onload = function() {
-        class TouchObject extends lng.Component{
+    //attachInspector(lng)
+    const rand = (offset, limit) => {
+        return Math.random() * (limit - offset) + offset;
+    };
+
+
+    window.onload = function () {
+        class TouchObject extends lng.Component {
             static _template() {
                 return {
-                    rect: true, w: 800, h: 40, alpha: 0.3
-                }
+                    rect: true, w: 40, h: 40, alpha: 0.3
+                };
+            }
+
+            _handleTouchStart() {
+                this.setSmooth("alpha", 1);
+                setTimeout(() => {
+                    this.setSmooth("alpha", 0.3);
+                }, 700);
             }
         }
 
-        class Moving extends lng.Component{
+        class Moving extends lng.Component {
             static _template() {
-                const s = rand(30, 140)
+                const s = rand(30, 140);
                 return {
-                    rect: true, w: s, h: s, alpha: 0.4
-                }
+                    rect: true, w: s, h: s, alpha: 0.4,
+                    Label: {
+                        mount: 0.5, x: s / 2, y: s + 30,
+                        text: {fontSize: 20}
+                    }
+                };
             }
-            _init(){
-                const sx = rand(50, 1200);
-                const sy = rand(50, 70)
+
+            _init() {
+                this.sx = rand(50, 1900);
+                this.sy = rand(50, 1000);
+                this.currentAlpha = this.alpha;
                 this.animation({
-                    duration:rand(5, 10), repeat:-1, actions:[
-                        {p: 'x', v:{0:sx, 0.5:rand(50, 1200), 1: sx}},
-                        {p: 'y', v:{0:sy, 0.5:rand(50, 700), 1: sy}}
+                    duration: rand(1, 2), repeat: 0, actions: [
+                        {p: 'x', v: {0: rand(50, 1900), 0.5: rand(50, 1200), 1: this.sx}},
+                        {p: 'y', v: {0: rand(50, 710), 0.5: rand(50, 700), 1: this.sy}}
                     ]
                 }).start();
+            }
+
+            _handleTouchEnd() {
+                this.sx = this.x;
+                this.sy = this.y;
+            }
+
+            _handleTouchMove({delta: {x, y}}) {
+                this.x = this.sx + x;
+                this.y = this.sy + y;
+            }
+
+            _handleTouchHover() {
+                this.setSmooth("alpha", 1);
+                setTimeout(() => {
+                    this.setSmooth("alpha", this.currentAlpha);
+                }, 700);
+            }
+
+            set idx(v) {
+                this.tag("Label").text = `${v}`;
             }
         }
 
         class BasicUsageExample extends lng.Application {
             static _template() {
                 return {
-                    Rectangles:{
-
-                    },
-                    Layers:{
-                        R1:{
-                            rect: true, x: 100, y: 50, w: 350, h: 100, alpha: 0.3, zIndex: 4
-                        },
-                        R2:{
-                            rect: true, x: 350, y: 50, w: 350, h: 150, alpha: 0.6
-                        },
-                        R3:{
-                            rect: true, x: 400, y: 50, w: 400, h: 200, alpha: 0.8
+                    Rectangles: {
+                        x: 50, y: 50,
+                        Wrapper: {
+                            clipping: true, w: 1920, h: 700, x: 30, y: 30
                         }
                     },
-                    Item:{
-                        type: TouchObject, x: 50, y: 300
+                    Line: {
+                        rect: true, h: 5, w: 1920, y: 782
+                    },
+                    Item: {
+                        type: TouchObject, x: 50, y: 50
                     }
-                }
+                };
             }
-            _init(){
-                this.tag("Rectangles").children = new Array(30).fill('').map(()=>{
-                    if(Math.random() > 0.5){
-                        return {
-                            type: Moving
-                        }
-                    }else{
-                        return this.stage.c({
-                            rect: true,
-                            alpha: Math.random(),
-                            w: rand(40, 100),
-                            h: rand(40, 100),
-                            x: rand(50, 1200),
-                            y: rand(300, 700)
-                        });
-                    }
-                })
+
+            _init() {
+                Touch.enable(this.stage);
+                this.tag("Wrapper").children = new Array(50).fill('').map((el, idx) => {
+                    return {
+                        type: Moving, idx
+                    };
+                });
             }
         }
 
-        const options = {stage: {w: 1280, h: 720, clearColor: 0xFF000000, canvas2d: false, useImageWorker: false}, debug: true}
+        const options = {
+            stage: {w: 1920, h: 1080, clearColor: 0xFF000000, canvas2d: false, useImageWorker: false},
+            debug: true
+        };
         const app = new BasicUsageExample(options);
         document.body.appendChild(app.stage.getCanvas());
-
-        document.addEventListener("touchstart", (event)=>{
-            const {touches} = event;
-            if(touches.length){
-                let {clientX, clientY} = touches[0];
-                const children = app.stage.getChildrenByPosition(~~(clientX), ~~(clientY));
-
-                if(children.length){
-                    const {element} = children.pop();
-                    element.setSmooth("scale", 1.2);
-                    setTimeout(()=>{
-                        element.setSmooth("scale", 1);
-                    },1000)
-                }
-
-            }
-        })
-    }
+    };
 
 
 </script>
