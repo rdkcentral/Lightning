@@ -368,6 +368,20 @@ window.attachInspector = function({Element, ElementCore, Stage, Component, Eleme
         }
     });
 
+    // Custom id attribute support for automated tests (E.g. Cypress)
+    Element.prototype.$inspectorId = Element.prototype.inpectorId;
+    Object.defineProperty(Element.prototype, 'inspectorId', {
+        get: function () {
+            return this.$inspectorId;
+        },
+        set: function (v) {
+            if (this.$inspectorId !== v) {
+                val(this, 'id', v, 0);
+                this.$inspectorId = v;
+            }
+        }
+    });
+
     ElementCore.prototype.updateLeft = function() {
         var mx = this._mountX * this._w;
         var x = this._x - mx;
