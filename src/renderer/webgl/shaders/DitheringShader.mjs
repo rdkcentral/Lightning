@@ -147,7 +147,11 @@ export default class DitheringShader extends DefaultShader {
 
 DitheringShader.vertexShaderSource = `
     #ifdef GL_ES
+    # ifdef GL_FRAGMENT_PRECISION_HIGH
+    precision highp float;
+    # else
     precision lowp float;
+    # endif
     #endif
     attribute vec2 aVertexPosition;
     attribute vec2 aTextureCoord;
@@ -168,7 +172,11 @@ DitheringShader.vertexShaderSource = `
 
 DitheringShader.fragmentShaderSource = `
     #ifdef GL_ES
+    # ifdef GL_FRAGMENT_PRECISION_HIGH
+    precision highp float;
+    # else
     precision lowp float;
+    # endif
     #endif
     varying vec2 vTextureCoord;
     varying vec2 vNoiseTextureCoord;
