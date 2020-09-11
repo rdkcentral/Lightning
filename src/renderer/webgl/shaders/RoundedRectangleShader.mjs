@@ -74,7 +74,7 @@ export default class RoundedRectangleShader extends DefaultShader {
         this._setUniform('radius', new Float32Array(_radius), this.gl.uniform4fv);
         this._setUniform('strokeColor', new Float32Array(this._strokeColor), this.gl.uniform4fv);
         this._setUniform('fillColor', new Float32Array(this._fillColor), this.gl.uniform4fv);
-        this._setUniform('stroke',  new Float32Array(this._stroke * renderPrecision), this.gl.uniform1f);
+        this._setUniform('stroke',  this._stroke * renderPrecision, this.gl.uniform1f);
         this._setUniform('resolution', new Float32Array([owner._w * renderPrecision, owner._h * renderPrecision]), this.gl.uniform2fv);
     }
 }
