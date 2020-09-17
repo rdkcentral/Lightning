@@ -72,8 +72,8 @@ export default class RoundedRectangleShader extends DefaultShader {
         const renderPrecision = this.ctx.stage.getRenderPrecision();
         const _radius = this._radius.map((r) => (r + 0.5) * renderPrecision)
         this._setUniform('radius', new Float32Array(_radius), this.gl.uniform4fv);
-        this._setUniform('strokeColor', this._strokeColor, this.gl.uniform4fv);
-        this._setUniform('fillColor', this._fillColor, this.gl.uniform4fv);
+        this._setUniform('strokeColor', new Float32Array(this._strokeColor), this.gl.uniform4fv);
+        this._setUniform('fillColor', new Float32Array(this._fillColor), this.gl.uniform4fv);
         this._setUniform('stroke',  this._stroke * renderPrecision, this.gl.uniform1f);
         this._setUniform('resolution', new Float32Array([owner._w * renderPrecision, owner._h * renderPrecision]), this.gl.uniform2fv);
     }
@@ -81,7 +81,11 @@ export default class RoundedRectangleShader extends DefaultShader {
 
 RoundedRectangleShader.vertexShaderSource = `
     #ifdef GL_ES
+    # ifdef GL_FRAGMENT_PRECISION_HIGH
+    precision highp float;
+    # else
     precision lowp float;
+    # endif
     #endif
     attribute vec2 aVertexPosition;
     attribute vec2 aTextureCoord;
@@ -101,7 +105,11 @@ RoundedRectangleShader.vertexShaderSource = `
 
 RoundedRectangleShader.fragmentShaderSource = `
     #ifdef GL_ES
+    # ifdef GL_FRAGMENT_PRECISION_HIGH
+    precision highp float;
+    # else
     precision lowp float;
+    # endif
     #endif
 
     #define PI 3.14159265359

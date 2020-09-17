@@ -73,7 +73,11 @@ export default class LinearBlurShader extends DefaultShader {
 
 LinearBlurShader.fragmentShaderSource = `
     #ifdef GL_ES
+    # ifdef GL_FRAGMENT_PRECISION_HIGH
+    precision highp float;
+    # else
     precision lowp float;
+    # endif
     #endif
     uniform vec2 resolution;
     varying vec2 vTextureCoord;

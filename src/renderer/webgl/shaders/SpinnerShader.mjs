@@ -93,9 +93,12 @@ export default class SpinnerShader extends DefaultShader {
 SpinnerShader.vertexShaderSource = DefaultShader.vertexShaderSource;
 
 SpinnerShader.fragmentShaderSource = `
-
     #ifdef GL_ES
+    # ifdef GL_FRAGMENT_PRECISION_HIGH
+    precision highp float;
+    # else
     precision lowp float;
+    # endif
     #endif
     varying vec2 vTextureCoord;
     varying vec4 vColor;

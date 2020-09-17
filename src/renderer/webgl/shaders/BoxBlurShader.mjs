@@ -35,7 +35,11 @@ export default class BoxBlurShader extends DefaultShader {
 
 BoxBlurShader.vertexShaderSource = `
     #ifdef GL_ES
+    # ifdef GL_FRAGMENT_PRECISION_HIGH
+    precision highp float;
+    # else
     precision lowp float;
+    # endif
     #endif
     uniform vec2 stepTextureCoord;
     attribute vec2 aVertexPosition;
@@ -60,7 +64,11 @@ BoxBlurShader.vertexShaderSource = `
 
 BoxBlurShader.fragmentShaderSource = `
     #ifdef GL_ES
+    # ifdef GL_FRAGMENT_PRECISION_HIGH
+    precision highp float;
+    # else
     precision lowp float;
+    # endif
     #endif
     varying vec2 vTextureCoordUl;
     varying vec2 vTextureCoordUr;

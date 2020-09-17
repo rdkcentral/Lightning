@@ -76,13 +76,15 @@ export default class HoleShader extends DefaultShader {
     }
 
     setupUniforms(operation) {
-        super.setupUniforms(operation)
-        this._setUniform("x", this._x, this.gl.uniform1f);
-        this._setUniform("y", this._y, this.gl.uniform1f);
-        this._setUniform("w", this._w, this.gl.uniform1f);
-        this._setUniform("h", this._h, this.gl.uniform1f);
+        super.setupUniforms(operation);
+
         const owner = operation.shaderOwner;
         const renderPrecision = this.ctx.stage.getRenderPrecision()
+
+        this._setUniform("x", this._x * renderPrecision, this.gl.uniform1f);
+        this._setUniform("y", this._y * renderPrecision, this.gl.uniform1f);
+        this._setUniform("w", this._w * renderPrecision, this.gl.uniform1f);
+        this._setUniform("h", this._h * renderPrecision, this.gl.uniform1f);
         this._setUniform('radius',  (this._radius + .5) * renderPrecision, this.gl.uniform1f);
         this._setUniform('resolution', new Float32Array([owner._w * renderPrecision, owner._h * renderPrecision]), this.gl.uniform2fv);
     }
@@ -95,8 +97,12 @@ export default class HoleShader extends DefaultShader {
 HoleShader.vertexShaderSource = DefaultShader.vertexShaderSource;
 
 HoleShader.fragmentShaderSource = `
-    #ifdef GL_ES
+   #ifdef GL_ES
+    # ifdef GL_FRAGMENT_PRECISION_HIGH
+    precision highp float;
+    # else
     precision lowp float;
+    # endif
     #endif
     varying vec2 vTextureCoord;
     varying vec4 vColor;

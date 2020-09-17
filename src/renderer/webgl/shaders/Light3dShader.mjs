@@ -173,7 +173,11 @@ export default class Light3dShader extends DefaultShader {
 
 Light3dShader.vertexShaderSource = `
     #ifdef GL_ES
+    # ifdef GL_FRAGMENT_PRECISION_HIGH
+    precision highp float;
+    # else
     precision lowp float;
+    # endif
     #endif
     attribute vec2 aVertexPosition;
     attribute vec2 aTextureCoord;
@@ -242,7 +246,11 @@ Light3dShader.vertexShaderSource = `
 
 Light3dShader.fragmentShaderSource = `
     #ifdef GL_ES
+    # ifdef GL_FRAGMENT_PRECISION_HIGH
+    precision highp float;
+    # else
     precision lowp float;
+    # endif
     #endif
     varying vec2 vTextureCoord;
     varying vec4 vColor;
