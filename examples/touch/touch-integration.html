@@ -1,0 +1,138 @@
+<!--
+ If not stated otherwise in this file or this component's LICENSE file the
+ following copyright and licenses apply:
+
+ Copyright 2020 RDK Management
+
+ Licensed under the Apache License, Version 2.0 (the License);
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <script src="../../devtools/lightning-inspect.js"></script>
+</head>
+<body style="margin: 0; padding: 0">
+<script type="module">
+    import lng from '../../src/lightning.mjs';
+    import Touch from "./Touch.js";
+
+    //attachInspector(lng)
+    const rand = (offset, limit) => {
+        return Math.random() * (limit - offset) + offset;
+    };
+
+
+    window.onload = function () {
+        class TouchObject extends lng.Component {
+            static _template() {
+                return {
+                    rect: true, w: 40, h: 40, alpha: 0.3
+                };
+            }
+
+            _handleTouchStart() {
+                this.setSmooth("alpha", 1);
+                setTimeout(() => {
+                    this.setSmooth("alpha", 0.3);
+                }, 700);
+            }
+        }
+
+        class Moving extends lng.Component {
+            static _template() {
+                const s = rand(30, 140);
+                return {
+                    rect: true, w: s, h: s, alpha: 0.4,
+                    Label: {
+                        mount: 0.5, x: s / 2, y: s + 30,
+                        text: {fontSize: 20}
+                    }
+                };
+            }
+
+            _init() {
+                this.sx = rand(50, 1900);
+                this.sy = rand(50, 1000);
+                this.currentAlpha = this.alpha;
+                this.animation({
+                    duration: rand(1, 2), repeat: 0, actions: [
+                        {p: 'x', v: {0: rand(50, 1900), 0.5: rand(50, 1200), 1: this.sx}},
+                        {p: 'y', v: {0: rand(50, 710), 0.5: rand(50, 700), 1: this.sy}}
+                    ]
+                }).start();
+            }
+
+            _handleTouchEnd() {
+                this.sx = this.x;
+                this.sy = this.y;
+            }
+
+            _handleTouchMove({delta: {x, y}}) {
+                this.x = this.sx + x;
+                this.y = this.sy + y;
+            }
+
+            _handleTouchHover() {
+                this.setSmooth("alpha", 1);
+                setTimeout(() => {
+                    this.setSmooth("alpha", this.currentAlpha);
+                }, 700);
+            }
+
+            set idx(v) {
+                this.tag("Label").text = `${v}`;
+            }
+        }
+
+        class BasicUsageExample extends lng.Application {
+            static _template() {
+                return {
+                    Rectangles: {
+                        x: 50, y: 50,
+                        Wrapper: {
+                            clipping: true, w: 1920, h: 700, x: 30, y: 30
+                        }
+                    },
+                    Line: {
+                        rect: true, h: 5, w: 1920, y: 782
+                    },
+                    Item: {
+                        type: TouchObject, x: 50, y: 50
+                    }
+                };
+            }
+
+            _init() {
+                Touch.enable(this.stage);
+                this.tag("Wrapper").children = new Array(50).fill('').map((el, idx) => {
+                    return {
+                        type: Moving, idx
+                    };
+                });
+            }
+        }
+
+        const options = {
+            stage: {w: 1920, h: 1080, clearColor: 0xFF000000, canvas2d: false, useImageWorker: false},
+            debug: true
+        };
+        const app = new BasicUsageExample(options);
+        document.body.appendChild(app.stage.getCanvas());
+    };
+
+
+</script>
+</body>
+</html>
