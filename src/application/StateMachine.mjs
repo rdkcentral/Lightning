@@ -454,7 +454,7 @@ class StateMachineType {
         const code = [
             // The line ensures that, while debugging, your IDE won't open many tabs.
             "//@ sourceURL=StateMachineRouter.js",
-            "const i = this._stateIndex;"
+            "var i = this._stateIndex;"
         ];
         let cur = aliases[0];
         const supportsSpread = StateMachineType._supportsSpread();
@@ -525,7 +525,7 @@ class StateMachineType {
         const code = [
             // The line ensures that, while debugging, your IDE won't open many tabs.
             "//@ sourceURL=StateMachineRouter.js",
-            "const i = this._stateIndex;"
+            "var i = this._stateIndex;"
         ];
         let cur = aliases[0];
         for (let i = 1, n = aliases.length; i < n; i++) {
@@ -575,7 +575,7 @@ class StateMachineType {
         const code = [
             // The line ensures that, while debugging, your IDE won't open many tabs.
             "//@ sourceURL=StateMachineRouter.js",
-            "const i = this._stateIndex;"
+            "var i = this._stateIndex;"
         ];
         let cur = aliases[0];
         for (let i = 1, n = aliases.length; i < n; i++) {
