@@ -50,7 +50,7 @@ export default class Animation extends EventEmitter {
             this.emit('start');
             this.checkActive();
         } else {
-            console.warn("Element must be attached before starting animation");
+            console.warn("[Lightning] Element must be attached before starting animation");
         }
     }
 
