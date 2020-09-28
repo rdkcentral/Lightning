@@ -76,10 +76,10 @@ export default class WebGLShaderProgram {
         this.gl.compileShader(shader);
 
         if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-            console.error(this.constructor.name, 'Type: ' + (type === this.gl.VERTEX_SHADER ? 'vertex shader' : 'fragment shader') );
-            console.error(this.gl.getShaderInfoLog(shader));
+            console.error('[Lightning]', this.constructor.name, 'Type: ' + (type === this.gl.VERTEX_SHADER ? 'vertex shader' : 'fragment shader') );
+            console.error('[Lightning]', this.gl.getShaderInfoLog(shader));
             let idx = 0;
-            console.error("========== source ==========\n" + src.split("\n").map(line => "" + (++idx) + ": " + line).join("\n"));
+            console.error('[Lightning]', "========== source ==========\n" + src.split("\n").map(line => "" + (++idx) + ": " + line).join("\n"));
             return null;
         }
 
