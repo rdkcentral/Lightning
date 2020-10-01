@@ -182,13 +182,12 @@ export default class TextureSource {
     }
 
     cancel() {
-        if (this.isLoading()) {
-            if (this._cancelCb) {
-                this._cancelCb(this);
+        if (this.isLoading() && this._cancelCb) {
+            this._cancelCb(this);
 
-                // Clear callback to avoid memory leaks.
-                this._cancelCb = null;
-            }
+            // Clear callback to avoid memory leaks.
+            this._cancelCb = null;
+            
             this.loadingSince = 0;
         }
     }
