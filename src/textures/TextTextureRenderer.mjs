@@ -294,7 +294,7 @@ export default class TextTextureRenderer {
 
         // Draw lines line by line.
         for (let i = 0, n = renderInfo.lines.length; i < n; i++) {
-            linePositionX = i == 0 ? renderInfo.textIndent : 0;
+            linePositionX = i === 0 ? renderInfo.textIndent : 0;
 
             // By default, text is aligned to top
             linePositionY = (i * renderInfo.lineHeight) + renderInfo.offsetY;
@@ -419,7 +419,7 @@ export default class TextTextureRenderer {
      * Applies newlines to a string to have it optimally fit into the horizontal
      * bounds set by the Text object's wordWrapWidth property.
      */
-    wrapText(text, wordWrapWidth, letterSpacing, indent=0) {
+    wrapText(text, wordWrapWidth, letterSpacing, indent = 0) {
         // Greedy wrapping algorithm that will wrap words as the line grows longer.
         // than its horizontal bounds.
         let lines = text.split(/\r?\n/g);
