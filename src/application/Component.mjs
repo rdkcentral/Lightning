@@ -76,20 +76,16 @@ export default class Component extends Element {
         }
     }
 
-    static bindProperty(name, func = null) {
+    static bindProp(name, func = null) {
         return {__propertyBinding: true, __name: name, __func: func};
     }
 
     __bindProperty(propObj, targetObj, targetProp) {
-        console.log('__bindProperty', targetObj, targetProp, propObj);
-
-        // 1. find binding position: find object and property name to be bound
         const obj = targetObj;
         const prop = targetProp;
         const propName = propObj.__name;
         const func = propObj.__func ? propObj.__func : (context) => context[propName];
 
-        // 2. create setter for given object
         if (!this.hasOwnProperty(propName)) {
             this[`__prop_bindings_${propName}`] = [{__obj: obj, __prop: prop, __func: func}];
             Object.defineProperty(this, propName, {
@@ -184,7 +180,6 @@ export default class Component extends Element {
                         this.parseTemplatePropRec(value, context, propKey);
                     }
                 } else if (Utils.isObjectLiteral(value) && value.__propertyBinding === true) {
-                    // console.log('PROP BINDING DETECTED', key, value)
                     store.push(value)
                     loc.push(`element.__bindProperty(store[${store.length - 1}], ${cursor}, "${key}")`);
                 } else {
