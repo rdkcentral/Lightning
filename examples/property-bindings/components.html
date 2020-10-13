@@ -21,11 +21,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <script src="../../../devtools/lightning-inspect.js"></script>
+    <script src="../../devtools/lightning-inspect.js"></script>
 </head>
 <body style="margin: 0; padding: 0">
     <script type="module">
-        import lng from '../../../src/lightning.mjs';
+        import lng from '../../src/lightning.mjs';
 
         window.onload = function() {
             class TileComponent extends lng.Component {
@@ -34,14 +34,14 @@
                         rect: true,
                         rtt: true,
                         flexItem: {margin: 15},
-                        w: this.bindProperty('size'),
-                        h: this.bindProperty('size'),
+                        w: this.bindProp('size'),
+                        h: this.bindProp('size'),
                         color: 0xff000000,
                         Inner: {
                             w: w => w,
                             h: h => h,
                             shader: {type: lng.shaders.Vignette},
-                            src: this.bindProperty('image'),
+                            src: this.bindProp('image'),
                         }
                     }
                 }

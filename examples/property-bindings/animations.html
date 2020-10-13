@@ -32,14 +32,14 @@
                 static _template() {
                     return {
                         rect: true,
-                        w: this.bindProperty('size'),
-                        h: this.bindProperty('size', (context) => context.size / 4),
+                        w: this.bindProp('size'),
+                        h: this.bindProp('size', (context) => context.size / 4),
                         color: 0xff554433,
                         shader: {type: lng.shaders.Outline},
                         Text: {
                             shader: null,
-                            x: this.bindProperty('size', (context) => context.size - 100),
-                            y: this.bindProperty('size', (context) => context.size / 4 - 50),
+                            x: this.bindProp('size', (context) => context.size - 100),
+                            y: this.bindProp('size', (context) => context.size / 4 - 50),
                             text: {text: 'Hello'}
                         }
                     }

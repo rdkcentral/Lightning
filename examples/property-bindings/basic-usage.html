@@ -21,22 +21,22 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <script src="../../../devtools/lightning-inspect.js"></script>
+    <script src="../../devtools/lightning-inspect.js"></script>
 </head>
 <body style="margin: 0; padding: 0">
     <script type="module">
-        import lng from '../../../src/lightning.mjs';
+        import lng from '../../src/lightning.mjs';
 
         window.onload = function() {
             class BasicUsageExample extends lng.Application {
                 static _template() {
                     return {
                         rect: true,
-                        w: this.bindProperty('size'),
-                        h: this.bindProperty('size', (context) => context.size / 4),
+                        w: this.bindProp('size'),
+                        h: this.bindProp('size', (context) => context.size / 4),
                         color: 0xff443322,
                         Title: {
-                            text: {text: this.bindProperty('title')}
+                            text: {text: this.bindProp('title', (context)=>context.title)}
                         }
                     }
                 }
