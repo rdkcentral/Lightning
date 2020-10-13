@@ -108,6 +108,7 @@ export default class TextTextureRenderer {
         const cutSy = this._settings.cutSy * precision;
         const cutEy = this._settings.cutEy * precision;
         const letterSpacing = this._settings.letterSpacing || 0;
+        const textIndent = this._settings.textIndent * precision;
 
         // Set font properties.
         this.setFontProperties();
@@ -139,14 +140,14 @@ export default class TextTextureRenderer {
                 default:
                     suffix = this._settings.textOverflow;
             }
-            this._settings.text = this.wrapWord(this._settings.text, wordWrapWidth, suffix)
+            this._settings.text = this.wrapWord(this._settings.text, wordWrapWidth - textIndent, suffix)
         }
 
         // word wrap
         // preserve original text
         let linesInfo;
         if (this._settings.wordWrap) {
-            linesInfo = this.wrapText(this._settings.text, wordWrapWidth, letterSpacing);
+            linesInfo = this.wrapText(this._settings.text, wordWrapWidth, letterSpacing, textIndent);
         } else {
             linesInfo = {l: this._settings.text.split(/(?:\r\n|\r|\n)/), n: []};
             let i, n = linesInfo.l.length;
@@ -163,7 +164,7 @@ export default class TextTextureRenderer {
             if (this._settings.maxLinesSuffix) {
                 // Wrap again with max lines suffix enabled.
                 let w = this._settings.maxLinesSuffix ? this.measureText(this._settings.maxLinesSuffix) : 0;
-                let al = this.wrapText(usedLines[usedLines.length - 1], wordWrapWidth - w, letterSpacing);
+                let al = this.wrapText(usedLines[usedLines.length - 1], wordWrapWidth - w, letterSpacing, textIndent);
                 usedLines[usedLines.length - 1] = al.l[0] + this._settings.maxLinesSuffix;
                 otherLines = [al.l.length > 1 ? al.l[1] : ''];
             } else {
@@ -195,7 +196,7 @@ export default class TextTextureRenderer {
         let maxLineWidth = 0;
         let lineWidths = [];
         for (let i = 0; i < lines.length; i++) {
-            let lineWidth = this.measureText(lines[i], letterSpacing);
+            let lineWidth = this.measureText(lines[i], letterSpacing) + (i === 0 ? textIndent : 0);
             lineWidths.push(lineWidth);
             maxLineWidth = Math.max(maxLineWidth, lineWidth);
         }
@@ -259,6 +260,7 @@ export default class TextTextureRenderer {
         renderInfo.paddingLeft = paddingLeft;
         renderInfo.paddingRight = paddingRight;
         renderInfo.letterSpacing = letterSpacing;
+        renderInfo.textIndent = textIndent;
 
         return renderInfo;
     }
@@ -292,7 +294,7 @@ export default class TextTextureRenderer {
 
         // Draw lines line by line.
         for (let i = 0, n = renderInfo.lines.length; i < n; i++) {
-            linePositionX = 0;
+            linePositionX = i === 0 ? renderInfo.textIndent : 0;
 
             // By default, text is aligned to top
             linePositionY = (i * renderInfo.lineHeight) + renderInfo.offsetY;
@@ -417,7 +419,7 @@ export default class TextTextureRenderer {
      * Applies newlines to a string to have it optimally fit into the horizontal
      * bounds set by the Text object's wordWrapWidth property.
      */
-    wrapText(text, wordWrapWidth, letterSpacing) {
+    wrapText(text, wordWrapWidth, letterSpacing, indent = 0) {
         // Greedy wrapping algorithm that will wrap words as the line grows longer.
         // than its horizontal bounds.
         let lines = text.split(/\r?\n/g);
@@ -426,7 +428,7 @@ export default class TextTextureRenderer {
         for (let i = 0; i < lines.length; i++) {
             let resultLines = [];
             let result = '';
-            let spaceLeft = wordWrapWidth;
+            let spaceLeft = wordWrapWidth - indent;
             let words = lines[i].split(' ');
             for (let j = 0; j < words.length; j++) {
                 const wordWidth = this.measureText(words[j], letterSpacing);
@@ -439,7 +441,7 @@ export default class TextTextureRenderer {
                         result = '';
                     }
                     result += words[j];
-                    spaceLeft = wordWrapWidth - wordWidth;
+                    spaceLeft = wordWrapWidth - wordWidth - (j === 0 ? indent : 0);
                 }
                 else {
                     spaceLeft -= wordWidthWithSpace;
