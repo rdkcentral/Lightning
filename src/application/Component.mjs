@@ -76,6 +76,34 @@ export default class Component extends Element {
         }
     }
 
+    static bindProp(name, func = null) {
+        return {__propertyBinding: true, __name: name, __func: func};
+    }
+
+    __bindProperty(propObj, targetObj, targetProp) {
+        // 1. find binding position: find object and property name to be bound
+        const obj = targetObj;
+        const prop = targetProp;
+        const propName = propObj.__name;
+        const func = propObj.__func ? propObj.__func : (context) => context[propName];
+
+        // 2. create setter for given object
+        if (!this.hasOwnProperty(propName)) {
+            this[`__prop_bindings_${propName}`] = [{__obj: obj, __prop: prop, __func: func}];
+            Object.defineProperty(this, propName, {
+                set: (value) => {
+                    this[`__prop_${propName}`] = value;
+                    for (const {__obj, __prop, __func} of this[`__prop_bindings_${propName}`]) {
+                        __obj[__prop] = __func(this);
+                    }
+                },
+                get: () => this[`__prop_${propName}`]
+            });
+        } else {
+            this[`__prop_bindings_${propName}`].push({__obj: obj, __prop: prop, __func: func});
+        }
+    }
+
     /**
      * Returns a high-performance template patcher.
      */
@@ -103,7 +131,7 @@ export default class Component extends Element {
 
         const code = context.loc.join(";\n");
         const f = new Function("element", "store", code);
-        return {f:f, a:context.store}
+        return {f: f, a: context.store};
     }
 
     static parseTemplateRec(obj, context, cursor) {
@@ -153,6 +181,9 @@ export default class Component extends Element {
                         loc.push(`${propKey} = ${cursor}.texture`);
                         this.parseTemplatePropRec(value, context, propKey);
                     }
+                } else if (Utils.isObjectLiteral(value) && value.__propertyBinding === true) {
+                    store.push(value);
+                    loc.push(`element.__bindProperty(store[${store.length - 1}], ${cursor}, "${key}")`);
                 } else {
                     // Property;
                     if (Utils.isNumber(value)) {
@@ -184,6 +215,9 @@ export default class Component extends Element {
                     loc.push(`${cursor}["${key}"] = ${value}`);
                 } else if (Utils.isBoolean(value)) {
                     loc.push(`${cursor}["${key}"] = ${value ? "true" : "false"}`);
+                } else if (Utils.isObject(value) && value.__propertyBinding === true) {
+                    store.push(value);
+                    loc.push(`element.__bindProperty(store[${store.length - 1}], ${cursor}, "${key}")`);
                 } else if (Utils.isObject(value) || Array.isArray(value)) {
                     // Dynamic assignment.
                     // Because literal objects may contain dynamics, we store the full object.
@@ -276,13 +310,13 @@ export default class Component extends Element {
     __construct() {
         this._construct();
     }
-    
+
     _construct() {
     }
 
     _build() {
     }
-    
+
     __init() {
         this._init();
     }
@@ -313,7 +347,7 @@ export default class Component extends Element {
     }
 
     static _template() {
-        return {}
+        return {};
     }
 
     hasFinalFocus() {
@@ -332,7 +366,7 @@ export default class Component extends Element {
 
     seekAncestorByType(type) {
         let c = this.cparent;
-        while(c) {
+        while (c) {
             if (c.constructor === type) {
                 return c;
             }
@@ -342,7 +376,7 @@ export default class Component extends Element {
 
     getSharedAncestorComponent(element) {
         let ancestor = this.getSharedAncestor(element);
-        while(ancestor && !ancestor.isComponent) {
+        while (ancestor && !ancestor.isComponent) {
             ancestor = ancestor.parent;
         }
         return ancestor;
