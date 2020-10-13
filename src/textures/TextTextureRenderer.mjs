@@ -65,15 +65,15 @@ export default class TextTextureRenderer {
                     // Use a promise that waits for loading.
                     return document.fonts.load(fontSetting, this._settings.text).catch(err => {
                         // Just load the fallback font.
-                        console.warn('Font load error', err, fontSetting);
+                        console.warn('[Lightning] Font load error', err, fontSetting);
                     }).then(() => {
                         if (!document.fonts.check(fontSetting, this._settings.text)) {
-                            console.warn('Font not found', fontSetting);
+                            console.warn('[Lightning] Font not found', fontSetting);
                         }
                     });
                 }
             } catch(e) {
-                console.warn("Can't check font loading for " + fontSetting);
+                console.warn("[Lightning] Can't check font loading for " + fontSetting);
             }
         }
     }

@@ -58,7 +58,6 @@ export default class Stage extends EventEmitter {
             }
         } else {
             if (Utils.isWeb && (!Stage.isWebglSupported() || this.getOption('canvas2d'))) {
-                console.log('Using canvas2d renderer');
                 this.c2d = this.platform.createCanvasContext(this.getOption('w'), this.getOption('h'));
             } else {
                 this.gl = this.platform.createWebGLContext(this.getOption('w'), this.getOption('h'));
@@ -193,6 +192,15 @@ export default class Stage extends EventEmitter {
     }
 
     init() {
+
+        if (this.application.getOption('debug') && this.platform._imageWorker) {
+            console.log('[Lightning] Using image worker!');
+        }
+
+        if (this.application.getOption('debug') && this.c2d) {
+            console.log('[Lightning] Using canvas2d renderer');
+        }
+
         this.application.setAsRoot();
         if (this.getOption('autostart')) {
             this.platform.startLoop();
@@ -394,9 +402,11 @@ export default class Stage extends EventEmitter {
             this.gcRenderTextureMemory(aggressive);
             this.renderer.gc(aggressive);
 
-            console.log(`GC${aggressive ? "[aggressive]" : ""}! Frame ${this._lastGcFrame} Freed ${((memoryUsageBefore - this._usedMemory) / 1e6).toFixed(2)}MP from GPU memory. Remaining: ${(this._usedMemory / 1e6).toFixed(2)}MP`);
-            const other = this._usedMemory - this.textureManager.usedMemory - this.ctx.usedMemory;
-            console.log(` Textures: ${(this.textureManager.usedMemory / 1e6).toFixed(2)}MP, Render Textures: ${(this.ctx.usedMemory / 1e6).toFixed(2)}MP, Renderer caches: ${(other / 1e6).toFixed(2)}MP`);
+            if (this.application.getOption('debug')) {
+                console.log(`[Lightning] GC${aggressive ? "[aggressive]" : ""}! Frame ${this._lastGcFrame} Freed ${((memoryUsageBefore - this._usedMemory) / 1e6).toFixed(2)}MP from GPU memory. Remaining: ${(this._usedMemory / 1e6).toFixed(2)}MP`);
+                const other = this._usedMemory - this.textureManager.usedMemory - this.ctx.usedMemory;
+                console.log(`[Lightning] Textures: ${(this.textureManager.usedMemory / 1e6).toFixed(2)}MP, Render Textures: ${(this.ctx.usedMemory / 1e6).toFixed(2)}MP, Renderer caches: ${(other / 1e6).toFixed(2)}MP`);
+            }
         }
     }
 

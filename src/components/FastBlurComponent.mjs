@@ -373,7 +373,7 @@ class WebGLFastBlurComponent extends Component {
     set shader(s) {
         super.shader = s;
         if (!this.renderToTexture) {
-            console.warn("Please enable renderToTexture to use with a shader.");
+            console.warn("[Lightning] Please enable renderToTexture to use with a shader.");
         }
     }
 
