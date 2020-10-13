@@ -386,7 +386,7 @@ class StateMachineType {
             if (descriptor) {
                 const descType = this._getDescriptorType(descriptor);
                 if (type && (type !== descType)) {
-                    console.warn(`Member ${member} in ${this._type.name} has inconsistent types.`);
+                    console.warn(`[Lightning] Member ${member} in ${this._type.name} has inconsistent types.`);
                     return;
                 }
                 type = descType;
@@ -401,7 +401,7 @@ class StateMachineType {
                 this._addGetterSetterRouters(member);
                 break;
             case "property":
-                console.warn("Fixed properties are not supported; please use a getter instead!")
+                console.warn("[Lightning] Fixed properties are not supported; please use a getter instead!")
                 break;
         }
     }

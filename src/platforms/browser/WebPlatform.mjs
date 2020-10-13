@@ -32,9 +32,8 @@ export default class WebPlatform {
 
         if (this.stage.getOption("useImageWorker")) {
             if (!window.createImageBitmap || !window.Worker) {
-                console.warn("Can't use image worker because browser does not have createImageBitmap and Web Worker support");
+                console.warn("[Lightning] Can't use image worker because browser does not have createImageBitmap and Web Worker support");
             } else {
-                console.log('Using image worker!');
                 this._imageWorker = new ImageWorker();
             }
         }

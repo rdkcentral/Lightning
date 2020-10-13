@@ -25,7 +25,7 @@ export default class Base {
 
     static patchObject(obj, settings) {
         if (!Utils.isObjectLiteral(settings)) {
-            console.error("Settings must be object literal");
+            console.error("[Lightning] Settings must be object literal");
         } else {
             let names = Object.keys(settings);
             for (let i = 0, n = names.length; i < n; i++) {
@@ -42,7 +42,7 @@ export default class Base {
         if (name.charAt(0) === "_") {
             // Disallow patching private variables.
             if (name !== "__create") {
-                console.error("Patch of private property '" + name + "' is not allowed");
+                console.error("[Lightning] Patch of private property '" + name + "' is not allowed");
             }
         } else if (name !== "type") {
             // Type is a reserved keyword to specify the class type on creation.

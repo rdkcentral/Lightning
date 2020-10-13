@@ -99,7 +99,7 @@ export default class CircularPushShader extends DefaultShader {
 
     set buckets(v) {
         if (v > 100) {
-            console.warn("CircularPushShader: supports max 100 buckets");
+            console.warn("[Lightning] CircularPushShader: supports max 100 buckets");
             v = 100;
         }
 

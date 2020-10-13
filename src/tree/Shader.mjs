@@ -53,12 +53,12 @@ export default class Shader {
         } else {
             if (v.isShader) {
                 if (!stage.renderer.isValidShaderType(v.constructor)) {
-                    console.error("Invalid shader type");
+                    console.error("[Lightning] Invalid shader type");
                     v = null;
                 }
                 shader = v;
             } else {
-                console.error("Please specify a shader type.");
+                console.error("[Lightning] Please specify a shader type.");
                 return;
             }
         }

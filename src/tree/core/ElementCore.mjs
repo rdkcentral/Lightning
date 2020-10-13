@@ -582,7 +582,7 @@ export default class ElementCore {
 
     _setHasUpdates() {
         let p = this;
-        while(p && !p._hasUpdates) {
+        while (p && !p._hasUpdates) {
             p._hasUpdates = true;
             p = p._parent;
         }
@@ -717,7 +717,7 @@ export default class ElementCore {
         this._localTb = b;
         this._localTc = c;
         this._localTd = d;
-        
+
         // We also regard negative scaling as a complex case, so that we can optimize the non-complex case better.
         this._isComplex = (b !== 0) || (c !== 0) || (a < 0) || (d < 0);
     };
@@ -1442,10 +1442,10 @@ export default class ElementCore {
             this._useRenderToTexture = useRenderToTexture;
 
             const r = this._renderContext;
-            
+
             const bboxW = this._dimsUnknown ? 2048 : this._w;
             const bboxH = this._dimsUnknown ? 2048 : this._h;
-            
+
             // Calculate a bbox for this element.
             let sx, sy, ex, ey;
             const rComplex = (r.tb !== 0) || (r.tc !== 0) || (r.ta < 0) || (r.td < 0);
@@ -1573,12 +1573,12 @@ export default class ElementCore {
                                 withinMargin = !((ex < this._scissor[0] - this._recBoundsMargin[2]) ||
                                     (ey < this._scissor[1] - this._recBoundsMargin[3]) ||
                                     (sx > this._scissor[0] + this._scissor[2] + this._recBoundsMargin[0]) ||
-                                    (sy > this._scissor[1] + this._scissor[3] + this._recBoundsMargin[1]))
+                                    (sy > this._scissor[1] + this._scissor[3] + this._recBoundsMargin[1]));
                             } else {
                                 withinMargin = !((ex < this._scissor[0] - 100) ||
                                     (ey < this._scissor[1] - 100) ||
                                     (sx > this._scissor[0] + this._scissor[2] + 100) ||
-                                    (sy > this._scissor[1] + this._scissor[3] + 100))
+                                    (sy > this._scissor[1] + this._scissor[3] + 100));
                             }
                             if (withinMargin && this._outOfBounds === 2) {
                                 // Children must be visited because they may contain elements that are within margin, so must be visible.
@@ -1643,7 +1643,7 @@ export default class ElementCore {
                         // Optimization.
                         // The world context is already identity: use the world context as render context to prevents the
                         // ancestors from having to update the render context.
-                        this._renderContext = this._worldContext
+                        this._renderContext = this._worldContext;
                     } else {
                         // Temporarily replace the render coord attribs by the identity matrix.
                         // This allows the children to calculate the render context.
@@ -2022,7 +2022,7 @@ export default class ElementCore {
                 let j = 0;
                 do {
                     a[ptr++] = b[j++];
-                } while(j < m);
+                } while (j < m);
 
                 if (a.length > ptr) {
                     // Slice old (unnecessary) part off array.
@@ -2049,7 +2049,7 @@ export default class ElementCore {
                             if (ptr === 0 || (mergeResult[ptr - 1] !== add)) {
                                 mergeResult[ptr++] = add;
                             }
-                        } while(j < m);
+                        } while (j < m);
                         break;
                     } else if (j >= m) {
                         do {
@@ -2057,10 +2057,10 @@ export default class ElementCore {
                             if (ptr === 0 || (mergeResult[ptr - 1] !== add)) {
                                 mergeResult[ptr++] = add;
                             }
-                        } while(i < n);
+                        } while (i < n);
                         break;
                     }
-                } while(true);
+                } while (true);
 
                 this._zIndexedChildren = mergeResult;
             }
@@ -2117,7 +2117,7 @@ export default class ElementCore {
             w.py + this._w * w.tc + this._h * w.td,
             w.px + this._h * w.tb,
             w.py + this._h * w.td
-        ]
+        ];
     };
 
     getRenderTextureCoords(relX, relY) {
@@ -2125,7 +2125,7 @@ export default class ElementCore {
         return [
             r.px + r.ta * relX + r.tb * relY,
             r.py + r.tc * relX + r.td * relY
-        ]
+        ];
     }
 
     getAbsoluteCoords(relX, relY) {
@@ -2133,9 +2133,46 @@ export default class ElementCore {
         return [
             w.px + w.ta * relX + w.tb * relY,
             w.py + w.tc * relX + w.td * relY
-        ]
+        ];
     }
 
+    collectAtCoord(x, y, children) {
+        // return when branch is hidden
+        if (this._renderContext.alpha === 0) {
+            return;
+        }
+
+        if (this.inBound(x, y)) {
+            if (this._scissor) {
+                if (this.inScissor()) {
+                    children.push(this);
+                }
+            } else {
+                children.push(this);
+            }
+        }
+
+        if (this._children) {
+            const j = this._children.length;
+            for (let i = 0; i < j; i++) {
+                this._children[i].collectAtCoord(x, y, children);
+            }
+        }
+
+        return children.sort(ElementCore.sortZIndexedChildren);
+    }
+
+    inBound(tx, ty) {
+        const c = this.getCornerPoints();
+        return tx > c[0] && tx < c[2] && ty > c[1] && ty < c[7];
+    }
+
+    inScissor() {
+        const sc = this._scissor;
+        const c = this.getCornerPoints();
+
+        return c[2] >= sc[0] && c[0] <= sc[0] + sc[2] && c[7] >= sc[1] && c[1] <= sc[1] + sc[3];
+    }
 
     get layout() {
         this._ensureLayout();
@@ -2231,9 +2268,9 @@ class ElementCoreContext {
 }
 
 ElementCoreContext.IDENTITY = new ElementCoreContext();
-ElementCore.sortZIndexedChildren = function(a, b) {
+ElementCore.sortZIndexedChildren = function (a, b) {
     return (a._zIndex === b._zIndex ? a._updateTreeOrder - b._updateTreeOrder : a._zIndex - b._zIndex);
-}
+};
 
 import ElementTexturizer from "./ElementTexturizer.mjs";
 import Utils from "../Utils.mjs";
