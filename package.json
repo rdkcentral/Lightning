@@ -1,7 +1,7 @@
 {
   "author": "Metrological, Bas van Meurs <b.van.meurs@metrological.com>",
-  "name": "wpe-lightning",
-  "version": "1.11.0",
+  "name": "@lightningjs/core",
+  "version": "2.0.0",
   "license": "apache",
   "main": "dist/lightning.js",
   "module": "index.js",
@@ -13,7 +13,7 @@
   ],
   "scripts": {
     "build": "rollup -c",
-    "release": "npm run build && npm publish"
+    "release": "npm run build && npm publish --access public"
   },
   "repository": {
     "type": "git",
