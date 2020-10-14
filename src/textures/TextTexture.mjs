@@ -417,6 +417,17 @@ export default class TextTexture extends Texture {
         return this._letterSpacing;
     }
 
+    set textIndent(v) {
+        if (this._textIndent !== v) {
+            this._textIndent = v;
+            this._changed();
+        }
+    }
+
+    get textIndent() {
+        return this._textIndent;
+    }
+
     get precision() {
         return super.precision;
     }
@@ -467,6 +478,7 @@ export default class TextTexture extends Texture {
         if (this.highlightPaddingLeft !== null) parts.push("hl" + this.highlightPaddingLeft);
         if (this.highlightPaddingRight !== null) parts.push("hr" + this.highlightPaddingRight);
         if (this.letterSpacing !== null) parts.push("ls" + this.letterSpacing);
+        if (this.textIndent !== null) parts.push("ti" + this.textIndent);
 
         if (this.cutSx) parts.push("csx" + this.cutSx);
         if (this.cutEx) parts.push("cex" + this.cutEx);
@@ -544,6 +556,7 @@ export default class TextTexture extends Texture {
         if (this.highlightPaddingLeft !== 0) nonDefaults["highlightPaddingLeft"] = this.highlightPaddingLeft;
         if (this.highlightPaddingRight !== 0) nonDefaults["highlightPaddingRight"] = this.highlightPaddingRight;
         if (this.letterSpacing !== 0) nonDefaults["letterSpacing"] = this.letterSpacing;
+        if (this.textIndent !== 0) nonDefaults["textIndent"] = this.textIndent;
 
         if (this.cutSx) nonDefaults["cutSx"] = this.cutSx;
         if (this.cutEx) nonDefaults["cutEx"] = this.cutEx;
@@ -586,6 +599,7 @@ export default class TextTexture extends Texture {
         obj.highlightPaddingLeft = this._highlightPaddingLeft;
         obj.highlightPaddingRight = this._highlightPaddingRight;
         obj.letterSpacing = this._letterSpacing;
+        obj.textIndent = this._textIndent;
         obj.cutSx = this._cutSx;
         obj.cutEx = this._cutEx;
         obj.cutSy = this._cutSy;
@@ -630,6 +644,7 @@ proto._highlightOffset = 0;
 proto._highlightPaddingLeft = 0;
 proto._highlightPaddingRight = 0;
 proto._letterSpacing = 0;
+proto._textIndent = 0;
 proto._cutSx = 0;
 proto._cutEx = 0;
 proto._cutSy = 0;

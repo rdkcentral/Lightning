@@ -245,7 +245,7 @@ export default class StageUtils {
                 if (str && str.indexOf(s) === 0) {
                     let parts = str.substr(s.length, str.length - s.length - 1).split(",");
                     if (parts.length !== 4) {
-                        console.warn("Unknown timing function: " + str);
+                        console.warn("[Lightning] Unknown timing function: " + str);
 
                         // Fallback: use linear.
                         return function (time) {
@@ -257,7 +257,7 @@ export default class StageUtils {
                     let c = parseFloat(parts[2]);
                     let d = parseFloat(parts[3]);
                     if (isNaN(a) || isNaN(b) || isNaN(c) || isNaN(d)) {
-                        console.warn("Unknown timing function: " + str);
+                        console.warn("[Lightning] Unknown timing function: " + str);
                         // Fallback: use linear.
                         return function (time) {
                             return time
@@ -266,7 +266,7 @@ export default class StageUtils {
 
                     return StageUtils.getTimingBezier(a, b, c, d);
                 } else {
-                    console.warn("Unknown timing function: " + str);
+                    console.warn("[Lightning] Unknown timing function: " + str);
                     // Fallback: use linear.
                     return function (time) {
                         return time

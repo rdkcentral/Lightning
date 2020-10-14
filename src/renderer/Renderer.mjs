@@ -50,7 +50,7 @@ export default class Renderer {
         if (!this.isValidShaderType(shaderType)) {
             const convertedShaderType = this._getShaderAlternative(shaderType);
             if (!convertedShaderType) {
-                console.warn("Shader has no implementation for render target: " + shaderType.name);
+                console.warn("[Lightning] Shader has no implementation for render target: " + shaderType.name);
                 return this._createDefaultShader(ctx);
             }
             return new convertedShaderType(ctx);
@@ -69,7 +69,7 @@ export default class Renderer {
     }
 
     copyRenderTexture(renderTexture, nativeTexture, options) {
-        console.warn('copyRenderTexture not supported by renderer');
+        console.warn('[Lightning] copyRenderTexture not supported by renderer');
     }
 }
 
