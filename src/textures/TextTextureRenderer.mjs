@@ -216,7 +216,8 @@ export default class TextTextureRenderer {
         if (h) {
             height = h;
         } else {
-            height = lineHeight * (lines.length - 1) + 0.5 * fontSize + Math.max(lineHeight, fontSize) + offsetY;
+            const baselineOffset = (this._settings.textBaseline != 'bottom') ? 0.5 * fontSize : 0;
+            height = lineHeight * (lines.length - 1) + baselineOffset + Math.max(lineHeight, fontSize) + offsetY;
         }
 
         if (offsetY === null) {
