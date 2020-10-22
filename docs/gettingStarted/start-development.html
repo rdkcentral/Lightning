@@ -56,7 +56,7 @@
             });
         </script></nav></div><div class="container mainContainer docsContainer"><div class="wrapper"><div class="post"><header class="postHeader"><h1 id="__docusaurus" class="postHeaderTitle">Start Development</h1></header><article><div><span><p>We start by looking at <code>App.js</code> file (the one which is referenced in our <code>index.js</code> file).
 This is where we start importing the Lightning App framework via our SDK and Utils.</p>
-<pre><code class="hljs css language-javascript"><span class="hljs-keyword">import</span> { Lightning, Utils } <span class="hljs-keyword">from</span> <span class="hljs-string">"wpe-lightning-sdk"</span>;
+<pre><code class="hljs css language-javascript"><span class="hljs-keyword">import</span> { Lightning, Utils } <span class="hljs-keyword">from</span> <span class="hljs-string">"@lightningjs/sdk"</span>;
 </code></pre>
 <p>After the import we create a new default <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/export">export</a> for our App Component.</p>
 <pre><code class="hljs css language-javascript"><span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">App</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Lightning</span>.<span class="hljs-title">Component</span> </span>{ 
@@ -103,7 +103,7 @@ can be played against a computer controlled player.</p>
 <h4><a class="anchor" aria-hidden="true" id="splashjs"></a><a href="#splashjs" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Splash.js</h4>
 <p>Inside the <code>src</code> folder we create a new file <code>Splash.js</code>. After the file is created we open the file
 and import the <code>Lightning</code> framework from the SDK.</p>
-<pre><code class="hljs css language-javascript"><span class="hljs-keyword">import</span> { Lightning } <span class="hljs-keyword">from</span> <span class="hljs-string">"wpe-lightning-sdk"</span>;
+<pre><code class="hljs css language-javascript"><span class="hljs-keyword">import</span> { Lightning } <span class="hljs-keyword">from</span> <span class="hljs-string">"@lightningjs/sdk"</span>;
 </code></pre>
 <p>Next, export your Component class so the <code>App</code> can import it.</p>
 <pre><code class="hljs css language-javascript"><span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Splash</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Lightning</span>.<span class="hljs-title">Component</span> </span>{
@@ -201,7 +201,7 @@ our template definition.</p>
 <p>Next stop, is creating the <code>Main</code> component which will be shown at the moment the <code>Splash</code> component sends the <code>loaded</code> signal.
 The <code>Main</code>'s responsibility will be showing a <code>Menu</code> Component in his template and accepting remote control presses so a user can navigate through the menu items.
 We create a new file called <code>Main.js</code> inside our <code>src</code> and add the following code:</p>
-<pre><code class="hljs"><span class="hljs-keyword">import</span> { <span class="hljs-type">Lightning</span> } from <span class="hljs-string">"wpe-lightning-sdk"</span>;
+<pre><code class="hljs"><span class="hljs-keyword">import</span> { <span class="hljs-type">Lightning</span> } from <span class="hljs-string">"@lightningjs/sdk"</span>;
 
 export <span class="hljs-keyword">default</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Main</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Lightning</span>.<span class="hljs-title">Component</span> </span>{
     static _template(){
@@ -260,7 +260,7 @@ We alter the template to the following, we import our menu component and add an 
 By adding non-lightning properties (just like items in this example) the property will be directly available in <code>Component</code> definition (this.items).
 If you define a setter (set items(v){} ) the setter will be automatically called upon initialization.</p>
 </blockquote>
-<pre><code class="hljs css language-javascript"><span class="hljs-keyword">import</span> { Lightning } <span class="hljs-keyword">from</span> <span class="hljs-string">"wpe-lightning-sdk"</span>;
+<pre><code class="hljs css language-javascript"><span class="hljs-keyword">import</span> { Lightning } <span class="hljs-keyword">from</span> <span class="hljs-string">"@lightningjs/sdk"</span>;
 <span class="hljs-keyword">import</span> Menu <span class="hljs-keyword">from</span> <span class="hljs-string">"./menu/Menu.js"</span>;
 
 <span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Main</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Lightning</span>.<span class="hljs-title">Component</span> </span>{
@@ -291,7 +291,7 @@ We also specify the type (which at this moment is not existing).</p>
 }
 </code></pre>
 <p>To actually add items we need to create the new Component <code>Item</code>. So we start by creating a new file in our menu folder called <code>Item.js</code> and add the following code:</p>
-<pre><code class="hljs css language-javascript"><span class="hljs-keyword">import</span> { Lightning } <span class="hljs-keyword">from</span> <span class="hljs-string">"wpe-lightning-sdk"</span>;
+<pre><code class="hljs css language-javascript"><span class="hljs-keyword">import</span> { Lightning } <span class="hljs-keyword">from</span> <span class="hljs-string">"@lightningjs/sdk"</span>;
 
 <span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Item</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Lightning</span>.<span class="hljs-title">Component</span></span>{
 
@@ -405,7 +405,7 @@ This pattern will prevent a lot of If/else statements throughout your code.</p>
 When _getFocused() returns a child component however, that one is also added to the focus path, and its _getFocused() method is also invoked. This process may repeat recursively until the active component is found.</p>
 <p>To put it another way: the components may delegate focus to descendants.</p>
 </blockquote>
-<p>You can read more in the documentation about <a href="https://rdkcentral.github.io/Lightning/docs/focus/focus#__docusaurus">focus</a> and <a href="https://rdkcentral.github.io/Lightning/docs/focus/keyhandler">remote control</a> key handling</p>
+<p>You can read more in the documentation about <a href="https://rdkcentral.github.io/Lightning/docs/focus/focus#__docusaurus">focus</a> and <a href="https://rdkcentral.github.io/Lightning/docs/focus/keyhandle">remote control</a> key handling</p>
 <p>When our app is in the <code>Main</code> state we delegate the focus to our <code>Main</code> component, which in essence means:
 <code>Telling Lightning which component is the active component - and should handle key events</code></p>
 <p>Now that we have delegated the focus to the <code>Main</code> component we can open <code>Menu.js</code> again and start implementing the remote control handling:</p>
@@ -421,7 +421,7 @@ Inside the function we will call the <code>_setIndex</code> which we still need 
 }
 </code></pre>
 <p>Next stop, building the Actual game!</p>
-</span></div></article></div><div class="docs-prevnext"><a class="docs-prev button" href="/Lightning/docs/gettingStarted/setup-lightning-sdk"><span class="arrow-prev">← </span><span>Setup Lightning SDK</span></a><a class="docs-next button" href="/Lightning/docs/gettingStarted/development-tictactoe"><span class="function-name-prevnext">Developing TicTacToe</span><span class="arrow-next"> →</span></a></div></div></div><nav class="onPageNav"></nav></div><footer class="nav-footer" id="footer"><section class="sitemap"><a href="/Lightning/" class="nav-home"><img src="/Lightning/img/Lightning.png" alt="Lightning" width="54" height="54"/></a><div><h5>Docs</h5><a href="/Lightning/docs/gettingStarted/sdkornot">Getting Started </a><a href="/Lightning/docs/renderEngine/overview"> Render Engine </a><a href="/Lightning/docs/transitions/overview"> Transitions </a><a href="/Lightning/docs/animations/overview"> Animations </a><a href="/Lightning/docs/components/overview"> Components </a><a href="/Lightning/docs/focus/focus"> Focus </a></div><div><h5>Github</h5><a href="https://github.com/rdkcentral/Lightning">Lightning on GitHub</a><a class="github-button" href="https://github.com/rdkcentral/Lightning" data-icon="octicon-star" data-show-count="true" aria-label="Star rdkcentral/Lightning on GitHub">Star</a></div></section><section class="copyright">Copyright © 2020 Metrological</section></footer></div><script type="text/javascript" src="https://cdn.jsdelivr.net/docsearch.js/1/docsearch.min.js"></script><script>
+</span></div></article></div><div class="docs-prevnext"><a class="docs-prev button" href="/Lightning/docs/gettingStarted/setup-lightning-sdk"><span class="arrow-prev">← </span><span>Setup Lightning SDK</span></a><a class="docs-next button" href="/Lightning/docs/gettingStarted/development-tictactoe"><span class="function-name-prevnext">Developing TicTacToe</span><span class="arrow-next"> →</span></a></div></div></div><nav class="onPageNav"></nav></div><footer class="nav-footer" id="footer"><section class="sitemap"><a href="/Lightning/" class="nav-home"><img src="/Lightning/img/Lightning.png" alt="Lightning" width="54" height="54"/></a><div><h5>Docs</h5><a href="/Lightning/docs/gettingStarted/web">Getting Started </a><a href="/Lightning/docs/renderEngine/overview"> Render Engine </a><a href="/Lightning/docs/transitions/overview"> Transitions </a><a href="/Lightning/docs/animations/overview"> Animations </a><a href="/Lightning/docs/components/overview"> Components </a><a href="/Lightning/docs/focus/focus"> Focus </a></div><div><h5>Github</h5><a href="https://github.com/rdkcentral/Lightning">Lightning on GitHub</a><a class="github-button" href="https://github.com/rdkcentral/Lightning" data-icon="octicon-star" data-show-count="true" aria-label="Star rdkcentral/Lightning on GitHub">Star</a></div></section><section class="copyright">Copyright © 2020 Metrological</section></footer></div><script type="text/javascript" src="https://cdn.jsdelivr.net/docsearch.js/1/docsearch.min.js"></script><script>
                 document.addEventListener('keyup', function(e) {
                   if (e.target !== document.body) {
                     return;
