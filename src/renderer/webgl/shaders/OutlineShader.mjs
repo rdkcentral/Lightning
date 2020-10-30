@@ -45,7 +45,7 @@ export default class OutlineShader extends DefaultShader {
             col[1] = col[1] * col[3];
             col[2] = col[2] * col[3];
 
-            this._color = col;
+            this._color = new Float32Array(col);
 
             this.redraw();
 
@@ -60,7 +60,7 @@ export default class OutlineShader extends DefaultShader {
     setupUniforms(operation) {
         super.setupUniforms(operation);
         let gl = this.gl;
-        this._setUniform("color", new Float32Array(this._color), gl.uniform4fv);
+        this._setUniform("color", this._color, gl.uniform4fv);
     }
 
     enableAttribs() {
