@@ -47,7 +47,7 @@ export default class Component extends Element {
         this.__construct();
 
         // Quick-apply template.
-        const func = this.constructor.getTemplateFunc();
+        const func = this.constructor.getTemplateFunc(this);
         func.f(this, func.a);
 
         this._build();
@@ -107,7 +107,7 @@ export default class Component extends Element {
     /**
      * Returns a high-performance template patcher.
      */
-    static getTemplateFunc() {
+    static getTemplateFunc(ctx) {
         // We need a different template function per patch id.
         const name = "_templateFunc";
 
@@ -115,7 +115,7 @@ export default class Component extends Element {
         const hasName = '__has' + name;
         if (this[hasName] !== this) {
             this[hasName] = this;
-            this[name] = this.parseTemplate(this._template());
+            this[name] = this.parseTemplate(this._template(ctx));
         }
         return this[name];
     }
