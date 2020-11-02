@@ -125,7 +125,7 @@ export default class C2dTextureTintManager {
             const cache = this._getCache(texture);
             if (aggressive) {
                 delta += cache.memoryUsage;
-                texture.clear();
+                cache.clear();
             } else {
                 const before = cache.memoryUsage;
                 cache.cleanup(frame);

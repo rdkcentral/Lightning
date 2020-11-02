@@ -363,7 +363,7 @@ export default class TextureSource {
     onError(e) {
         this._loadError = e;
         this.loadingSince = 0;
-        console.error('texture load error', e, this.lookupId);
+        console.error('[Lightning] texture load error', e, this.lookupId);
         this.forEachActiveElement(element => element.onTextureSourceLoadError(e));
     }
 

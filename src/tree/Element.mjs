@@ -547,7 +547,7 @@ export default class Element {
                 texture = new SourceTexture(this.stage);
                 texture.textureSource = v;
             } else {
-                console.error("Please specify a texture type.");
+                console.error("[Lightning] Please specify a texture type.");
                 return;
             }
         }

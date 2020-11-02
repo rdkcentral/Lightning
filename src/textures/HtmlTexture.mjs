@@ -85,7 +85,7 @@ export default class HtmlTexture extends Texture {
                 }
                 cb(null, {source: canvas, width: canvas.width, height: canvas.height});
             }).catch(e => {
-                console.error(e);
+                console.error('[Lightning]', e);
             });
         }
     }
