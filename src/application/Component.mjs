@@ -147,10 +147,10 @@ export default class Component extends Element {
                     const childCursor = `r${key.replace(/[^a-z0-9]/gi, "") + context.rid}`;
                     let type = value.type ? value.type : Element;
                     if (type === Element) {
-                        loc.push(`const ${childCursor} = element.stage.createElement()`);
+                        loc.push(`var ${childCursor} = element.stage.createElement()`);
                     } else {
                         store.push(type);
-                        loc.push(`const ${childCursor} = new store[${store.length - 1}](${cursor}.stage)`);
+                        loc.push(`var ${childCursor} = new store[${store.length - 1}](${cursor}.stage)`);
                     }
                     loc.push(`${childCursor}.ref = "${key}"`);
                     context.rid++;
@@ -167,14 +167,14 @@ export default class Component extends Element {
             } else {
                 if (key === "text") {
                     const propKey = cursor + "__text";
-                    loc.push(`const ${propKey} = ${cursor}.enableTextTexture()`);
+                    loc.push(`var ${propKey} = ${cursor}.enableTextTexture()`);
                     this.parseTemplatePropRec(value, context, propKey);
                 } else if (key === "texture" && Utils.isObjectLiteral(value)) {
                     const propKey = cursor + "__texture";
                     const type = value.type;
                     if (type) {
                         store.push(type);
-                        loc.push(`const ${propKey} = new store[${store.length - 1}](${cursor}.stage)`);
+                        loc.push(`var ${propKey} = new store[${store.length - 1}](${cursor}.stage)`);
                         this.parseTemplatePropRec(value, context, propKey);
                         loc.push(`${cursor}["${key}"] = ${propKey}`);
                     } else {
