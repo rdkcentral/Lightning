@@ -24,6 +24,7 @@ export default class LoaderShader extends DefaultShader {
     constructor(context) {
         super(context);
         this._stroke = 4;
+        this._clockwise = false;
         this._sc = 0x00000000;
         this._normalizedSC = this._getNormalizedColor(this._sc);
         this._pc = 0xffffffff;
@@ -67,6 +68,14 @@ export default class LoaderShader extends DefaultShader {
         return this._sc;
     }
 
+    set clockwise(bool) {
+        this._clockwise = bool;
+    }
+
+    get clockwise() {
+        return this._clockwise;
+    }
+
     _getNormalizedColor(color) {
         const col = StageUtils.getRgbaComponentsNormalized(color);
         col[0] *= col[3];
@@ -83,11 +92,13 @@ export default class LoaderShader extends DefaultShader {
         const owner = operation.shaderOwner;
         const now = new Date().getTime();
         const radius = this._radius || (owner._w / 2);
+
         this._setUniform('resolution', new Float32Array([owner._w, owner._h]),  this.gl.uniform2fv);
         this._setUniform('primaryColor', this._normalizedPC, this.gl.uniform4fv);
         this._setUniform('secondaryColor', this._normalizedSC, this.gl.uniform4fv);
         this._setUniform('stroke',  this._stroke, this.gl.uniform1f);
         this._setUniform('radius',  radius, this.gl.uniform1f);
+        this._setUniform('direction',  this._clockwise ? -1 : 1, this.gl.uniform1f);
         this._setUniform('time', (now - this._time) / 1000, this.gl.uniform1f);
 
         if(this._sc !== this._pc || this._stroke !== radius * 0.5) {
@@ -109,6 +120,7 @@ LoaderShader.fragmentShaderSource = `
     uniform vec2 resolution;
     uniform vec4 primaryColor;
     uniform vec4 secondaryColor;
+    uniform float direction;
     uniform float radius;
     uniform float time;
     uniform float stroke;
@@ -126,10 +138,10 @@ LoaderShader.fragmentShaderSource = `
         vec2 center = vTextureCoord.xy * resolution - halfRes;
         
         float c = max(-circleDist(center, radius - stroke), circleDist(center, radius));
-        float rot = -time * 4.0;
+        float rot = -time * 4.0 * direction;
         center *= mat2(cos(rot), sin(rot), -sin(rot), cos(rot));
         
-        float a = atan(center.x,center.y)*PI*0.05 + 0.45;
+        float a = direction * atan(center.x,center.y) * PI * 0.05 + 0.45;
         
         float strokeRad = stroke * 0.5;
         a = max(a, fillMask(circleDist(vec2(center.x, center.y + (radius - strokeRad)), strokeRad)));
