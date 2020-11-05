@@ -99,6 +99,21 @@
                     h: 300,
                     src: 'https://picsum.photos/id/10/300/300',
                     shader: {type: lng.shaders.FadeOut, fade: [0, 40]}
+                },
+                FadeOutText: {
+                    x: 90,
+                    y: 840,
+                    w: 300,
+                    h: 80,
+                    rtt: true,
+                    shader: {type: lng.shaders.FadeOut, right: 40},
+                    Label: {text: {text: 'This piece of text is way to long!', fontSize: 42}}
+                },
+                Title: {
+                    x: 90,
+                    y: 1000,
+                    mountY: 1,
+                    text: {text: 'FadeOut', fontSize: 42}
                 }
             }
         }
