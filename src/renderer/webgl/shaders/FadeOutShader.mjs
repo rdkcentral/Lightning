@@ -125,7 +125,7 @@ FadeOutShader.fragmentShaderSource = `
         float c;
         float t = 0.0;
              
-        if(fade[0] > 0.0 && vTextureCoord.y <= 0.5) {
+        if(fade[0] > 0.0) {
             pos1 = vec2(point.x, point.y);
             pos2 = vec2(point.x, point.y + fade[0]);
             d = pos2 - pos1;
@@ -134,7 +134,7 @@ FadeOutShader.fragmentShaderSource = `
             color = mix(vec4(0.0), color, t);
         }
         
-        if(fade[1] > 0.0 && vTextureCoord.x >= 0.5) {
+        if(fade[1] > 0.0) {
             vec2 pos1 = vec2(point.x - resolution.x - fade[1], vTextureCoord.y);
             vec2 pos2 = vec2(point.x - resolution.x, vTextureCoord.y);
             d = pos1 - pos2;
@@ -143,7 +143,7 @@ FadeOutShader.fragmentShaderSource = `
             color = mix(vec4(0.0), color, t);
         }
         
-        if(fade[2] > 0.0 && vTextureCoord.y >= 0.5) {
+        if(fade[2] > 0.0) {
             vec2 pos1 = vec2(vTextureCoord.x, point.y - resolution.y - fade[2]);
             vec2 pos2 = vec2(vTextureCoord.x, point.y - resolution.y);
             d = pos1 - pos2;
@@ -152,7 +152,7 @@ FadeOutShader.fragmentShaderSource = `
             color = mix(vec4(0.0), color, t);
         }
         
-        if(fade[3] > 0.0 && vTextureCoord.x <= 0.5) {
+        if(fade[3] > 0.0) {
             pos1 = vec2(point.x, point.y);
             pos2 = vec2(point.x + fade[3], point.y);
             d = pos2 - pos1;
