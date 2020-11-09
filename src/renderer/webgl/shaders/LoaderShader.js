@@ -109,7 +109,11 @@ export default class LoaderShader extends DefaultShader {
 
 LoaderShader.fragmentShaderSource = `
     #ifdef GL_ES
+    # ifdef GL_FRAGMENT_PRECISION_HIGH
+    precision highp float;
+    # else
     precision lowp float;
+    # endif
     #endif
     
     #define PI 3.14159265359
