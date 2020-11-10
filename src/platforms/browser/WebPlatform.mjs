@@ -121,7 +121,32 @@ export default class WebPlatform {
                     hasAlpha: isPng || hasAlpha
                 });
             };
-            image.src = src;
+
+            // fetch(src)
+            // .then(response => response.blob())
+            // .then((blob) => {
+            //     const url = URL.createObjectURL(blob)
+            //     if (blob.type == 'image/png') isPng = true;
+            //     image.src = url;
+            // });
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', src, true);
+            xhr.responseType = 'blob';
+            xhr.onload = function(e) {
+                if (this.status == 200) {
+                    const blob = this.response;
+                    const url = URL.createObjectURL(blob)
+                    if (blob.type == 'image/png') isPng = true;
+                    image.src = url;
+                }
+            };
+
+            xhr.onerror = function(e) {
+                 return cb("Image load error");
+            };
+
+            xhr.send();
 
             cancelCb = function() {
                 image.onerror = null;
