@@ -170,7 +170,7 @@ export default class Tools {
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             cb(null, canvas);
         }
-        img.onError = (err) => {
+        img.onerror = (err) => {
             cb(err);
         }
 
