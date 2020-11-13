@@ -96,8 +96,13 @@ export default class RoundedRectangleShader extends DefaultShader {
     }
 
     set strokeColor(argb) {
+        this._sc = argb;
         this._strokeColor = this._getNormalizedColor(argb);
         this.redraw();
+    }
+
+    get strokeColor() {
+        return this._sc;
     }
 
     set fillColor(argb) {
@@ -106,9 +111,17 @@ export default class RoundedRectangleShader extends DefaultShader {
         this.redraw();
     }
 
+    get fillColor() {
+        return this._fc;
+    }
+
     set stroke(num) {
         this._stroke = num;
         this.redraw();
+    }
+
+    get stroke() {
+        return this._stroke;
     }
 
     _getNormalizedColor(color) {
