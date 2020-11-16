@@ -231,10 +231,5 @@ RoundedRectangleShader.fragmentShaderSource = `
         vec4 blend = mix(vec4(1.0) * alpha, tex, blend);     
         vec4 layer1 = mix(vec4(0.0), tex * fillColor, fillMask(b));
         gl_FragColor = mix(layer1, blend * strokeColor, innerBorderMask(b, stroke));
-        
-        // vec4 color = texture2D(uSampler, vTextureCoord) * vColor;
-        // float b = boxDist(vTextureCoord.xy * resolution - halfRes, halfRes - 0.005, r);
-        // vec4 tex = mix(vec4(0.0), color * fillColor, fillMask(b));
-        // gl_FragColor = mix(tex, strokeColor * alpha, innerBorderMask(b, stroke));
     }
 `;
