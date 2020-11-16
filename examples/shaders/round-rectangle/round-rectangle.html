@@ -31,7 +31,8 @@
 <body>
 <script type="module">
     import lng from '../../../src/lightning.mjs';
-
+    const SRC = '../sampleImage.jpg';
+    const SIZE = 300;
     class RoundedRectangleExample extends lng.Application {
         static _template() {
             return {
@@ -39,16 +40,16 @@
                 RoundedRectangle1: {
                     x: 90,
                     y: 90,
-                    w: 300,
-                    h: 300,
+                    w: SIZE,
+                    h: SIZE,
                     rect: true,
                     shader: {type: lng.shaders.RoundedRectangle, radius: 50}
                 },
                 RoundedRectangle2: {
                     x: 480,
                     y: 90,
-                    w: 300,
-                    h: 300,
+                    w: SIZE,
+                    h: SIZE,
                     rect: true,
                     color: 0xffff0000,
                     shader: {type: lng.shaders.RoundedRectangle, radius: [50, 70]}
@@ -56,54 +57,54 @@
                 RoundedRectangle3: {
                     x: 870,
                     y: 90,
-                    w: 300,
-                    h: 300,
+                    w: SIZE,
+                    h: SIZE,
                     rect: true,
                     shader: {type: lng.shaders.RoundedRectangle, radius: [50, 70, 30]}
                 },
                 RoundedRectangle4: {
                     x: 1260,
                     y: 90,
-                    w: 300,
-                    h: 300,
+                    w: SIZE,
+                    h: SIZE,
                     rect: true,
-                    src: 'https://picsum.photos/id/10/300/300',
+                    src: SRC,
                     shader: {type: lng.shaders.RoundedRectangle, radius: [40, 0, 0, 0]}
                 },
                 RoundedRectangle5: {
                     x: 90,
                     y: 480,
-                    w: 300,
-                    h: 300,
+                    w: SIZE,
+                    h: SIZE,
                     rect: true,
                     colorTop: 0xff00ff00,
                     colorBottom: 0xffff0000,
-                    shader: {type: lng.shaders.RoundedRectangle, radius: '75px', stroke: 10, strokeColor: 0xffffffff}
+                    shader: {type: lng.shaders.RoundedRectangle, radius: 75, stroke: 10, strokeColor: 0xffffffff}
                 },
                 RoundedRectangle6: {
                     x: 480,
                     y: 480,
-                    w: 300,
-                    h: 300,
+                    w: SIZE,
+                    h: SIZE,
                     rect: true,
                     colorLeft: 0xff00ff00,
                     colorRight: 0xffff0000,
-                    shader: {type: lng.shaders.RoundedRectangle, radius: '50px 70px', stroke: 15, strokeColor: 0xff0000ff}
+                    shader: {type: lng.shaders.RoundedRectangle, radius: [50, 70], stroke: 15, strokeColor: 0xff0000ff}
                 },
                 RoundedRectangle7: {
                     x: 870,
                     y: 480,
-                    w: 300,
-                    h: 300,
+                    w: SIZE,
+                    h: SIZE,
                     rect: true,
-                    shader: {type: lng.shaders.RoundedRectangle, radius: '50px 70px 30px', stroke: 10, strokeColor: 0xffffffff}
+                    shader: {type: lng.shaders.RoundedRectangle, radius: [50, 70, 30], stroke: 10, strokeColor: 0xffffffff}
                 },
                 RoundedRectangle8: {
                     x: 1260,
                     y: 480,
-                    w: 300,
-                    h: 300,
-                    src: 'https://picsum.photos/id/10/300/300',
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
                     shader: {type: lng.shaders.RoundedRectangle, topLeft: 70, stroke: 10, strokeColor: 0xffffffff}
                 },
                 Title: {
@@ -116,8 +117,8 @@
         }
 
         _init() {
-            this._animationDemo = this.tag('RadialGradient8').animation({duration: 1, repeat: -1, actions: [
-                    {p: 'shader.fillColor', v: {0: 0x00000000, 0.5: 0xff000000, 1: 0x00000000}},
+            this._animationDemo = this.tag('RoundedRectangle8').animation({duration: 2, repeat: -1, actions: [
+                    {p: 'shader.fillColor', v: {0: 0xffffffff, 0.5: 0xff000000, 1: 0xffffffff}},
                     {p: 'shader.topLeft', v: {0: 70, 0.5: 0, 1: 70}}
                 ]});
         }

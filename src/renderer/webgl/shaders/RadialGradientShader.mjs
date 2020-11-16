@@ -31,6 +31,23 @@ export default class RadialGradientShader extends DefaultShader {
         this._radius = 0;
     }
 
+    set radiusX(v) {
+        this.radius = v;
+    }
+
+    get radiusX() {
+        return this._radius;
+    }
+
+    set radiusY(v) {
+        this._radiusY = v;
+        this.redraw();
+    }
+
+    get radiusY() {
+        return this._radiusY;
+    }
+
     set radius(v) {
         this._radius = v;
         this.redraw();
@@ -135,12 +152,11 @@ export default class RadialGradientShader extends DefaultShader {
         this._setUniform('innerColor', this._normalizedIC, this.gl.uniform4fv);
         this._setUniform('fill', StageUtils.getRgbaComponentsNormalized(this._oc)[3], this.gl.uniform1f);
         this._setUniform('outerColor', this._normalizedOC, this.gl.uniform4fv);
-
         this._setUniform('anchor', new Float32Array(this._anchor),  this.gl.uniform2fv);
         this._setUniform('resolution', new Float32Array([owner._w, owner._h]),  this.gl.uniform2fv);
         this._setUniform('alpha', operation.getElementCore(0).renderContext.alpha, this.gl.uniform1f);
-
-        this._setUniform('radius',  (this._radius + .5), this.gl.uniform1f);
+        this._setUniform('radius',  this._radius, this.gl.uniform1f);
+        this._setUniform('radiusY',  (this._radiusY || this._radius), this.gl.uniform1f);
     }
 }
 
@@ -163,13 +179,15 @@ RadialGradientShader.fragmentShaderSource = `
     uniform vec4 innerColor;
     uniform vec4 outerColor;
     uniform float radius;
+    uniform float radiusY;
     uniform float alpha;
     uniform float fill;
+    uniform float aspectRatio;
     
     void main() {
-        vec2 pos = anchor * resolution.xy;
         vec2 point = vTextureCoord.xy * resolution;
-        float d = length((point - (anchor  * resolution)) / (radius * 2.0));
+        vec2 projection = vec2(anchor.x * resolution.x, anchor.y * resolution.y);
+        float d = length((point - projection) / vec2(radius * 2.0, radiusY * 2.0));
         vec4 color = mix(texture2D(uSampler, vTextureCoord) * vColor, outerColor * alpha, fill);
         gl_FragColor = mix(innerColor * alpha, color, smoothstep(0.0, 1.0, d));
     }

@@ -31,7 +31,8 @@
 <body>
 <script type="module">
     import lng from '../../../src/lightning.mjs';
-
+    const SRC = '../sampleImage.jpg';
+    const SIZE = 300;
     class RadialGradientExample extends lng.Application {
         static _template() {
             return {
@@ -39,41 +40,41 @@
                 RadialGradient1: {
                     x: 90,
                     y: 90,
-                    w: 300,
-                    h: 300,
+                    w: SIZE,
+                    h: SIZE,
                     rect: true,
                     shader: {type: lng.shaders.RadialGradient, x: 150, outerColor: 0xffff0000, innerColor: 0xff0000ff}
                 },
                 RadialGradient2: {
                     x: 480,
                     y: 90,
-                    w: 300,
-                    h: 300,
+                    w: SIZE,
+                    h: SIZE,
                     rect: true,
                     color: 0xffff0000,
-                    shader: {type: lng.shaders.RadialGradient, y: 150, color: 0xff0000ff, radius: 100}
+                    shader: {type: lng.shaders.RadialGradient, x: 50, y: 50, radiusX: 30, radiusY: 10, color: 0xff000000}
                 },
                 RadialGradient3: {
                     x: 870,
                     y: 90,
-                    w: 300,
-                    h: 300,
+                    w: SIZE,
+                    h: SIZE,
                     rect: true,
                     shader: {type: lng.shaders.RadialGradient, anchorY: 1, outerColor: 0xffff0000, innerColor: 0xff0000ff}
                 },
                 RadialGradient4: {
                     x: 1260,
                     y: 90,
-                    w: 300,
-                    h: 300,
+                    w: SIZE,
+                    h: SIZE,
                     rect: true,
                     shader: {type: lng.shaders.RadialGradient, anchorX: 1, outerColor: 0xffff0000, innerColor: 0xff0000ff}
                 },
                 RadialGradient5: {
                     x: 90,
                     y: 480,
-                    w: 300,
-                    h: 300,
+                    w: SIZE,
+                    h: SIZE,
                     rect: true,
                     colorTop: 0xff00ff00,
                     colorBottom: 0xffff0000,
@@ -82,8 +83,8 @@
                 RadialGradient6: {
                     x: 480,
                     y: 480,
-                    w: 300,
-                    h: 300,
+                    w: SIZE,
+                    h: SIZE,
                     rect: true,
                     colorLeft: 0xff00ff00,
                     colorRight: 0xffff0000,
@@ -92,17 +93,17 @@
                 RadialGradient7: {
                     x: 870,
                     y: 480,
-                    w: 300,
-                    h: 300,
+                    w: SIZE,
+                    h: SIZE,
                     rect: true,
                     shader: {type: lng.shaders.RadialGradient, anchor: [0.3, 0.9], outerColor: 0xffff0000, innerColor: 0xff0000ff}
                 },
                 RadialGradient8: {
                     x: 1260,
                     y: 480,
-                    w: 300,
-                    h: 300,
-                    src: 'https://picsum.photos/id/10/300/300',
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
                     shader: {type: lng.shaders.RadialGradient, x: 150, innerColor: 0xff0000ff}
                 },
                 Title: {

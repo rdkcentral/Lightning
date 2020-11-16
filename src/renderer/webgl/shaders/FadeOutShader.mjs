@@ -62,9 +62,6 @@ export default class FadeOutShader extends DefaultShader {
     }
 
     set fade(v) {
-        if(typeof v === 'string') {
-            v = v.replace('px', '').split(' ').map(num => +num);
-        }
         if(Array.isArray(v)) {
             if(v.length === 2) {
                 this._fade = [v[0], v[1], v[0], v[1]];

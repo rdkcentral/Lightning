@@ -31,7 +31,8 @@
 <body>
 <script type="module">
     import lng from '../../../src/lightning.mjs';
-
+    const SRC = '../sampleImage.jpg';
+    const SIZE = 300;
     class FadeOutExample extends lng.Application {
         static _template() {
             return {
@@ -39,71 +40,71 @@
                 FadeOut1: {
                     x: 90,
                     y: 90,
-                    w: 300,
-                    h: 300,
-                    src: 'https://picsum.photos/id/10/300/300',
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
                     shader: {type: lng.shaders.FadeOut, top: 40}
                 },
                 FadeOut2: {
                     x: 480,
                     y: 90,
-                    w: 300,
-                    h: 300,
-                    src: 'https://picsum.photos/id/10/300/300',
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
                     shader: {type: lng.shaders.FadeOut, top: 40, right: 40}
                 },
                 FadeOut3: {
                     x: 870,
                     y: 90,
-                    w: 300,
-                    h: 300,
-                    src: 'https://picsum.photos/id/10/300/300',
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
                     shader: {type: lng.shaders.FadeOut, top: 40, right: 40, bottom: 40}
                 },
                 FadeOut4: {
                     x: 1260,
                     y: 90,
-                    w: 300,
-                    h: 300,
-                    src: 'https://picsum.photos/id/10/300/300',
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
                     shader: {type: lng.shaders.FadeOut, top: 40, right: 40, bottom: 40, left: 40}
                 },
                 FadeOut5: {
                     x: 90,
                     y: 480,
-                    w: 300,
-                    h: 300,
-                    src: 'https://picsum.photos/id/10/300/300',
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
                     shader: {type: lng.shaders.FadeOut, fade: 40}
                 },
                 FadeOut6: {
                     x: 480,
                     y: 480,
-                    w: 300,
-                    h: 300,
-                    src: 'https://picsum.photos/id/10/300/300',
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
                     shader: {type: lng.shaders.FadeOut, fade: [40, 0, 40, 0]}
                 },
                 FadeOut7: {
                     x: 870,
                     y: 480,
-                    w: 300,
-                    h: 300,
-                    src: 'https://picsum.photos/id/10/300/300',
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
                     shader: {type: lng.shaders.FadeOut, fade: [0, 40, 0, 40]}
                 },
                 FadeOut8: {
                     x: 1260,
                     y: 480,
-                    w: 300,
-                    h: 300,
-                    src: 'https://picsum.photos/id/10/300/300',
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
                     shader: {type: lng.shaders.FadeOut, fade: [0, 40]}
                 },
                 FadeOutText: {
                     x: 90,
                     y: 840,
-                    w: 300,
+                    w: SIZE,
                     h: 80,
                     rtt: true,
                     shader: {type: lng.shaders.FadeOut, right: 40},

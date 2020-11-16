@@ -20,7 +20,7 @@
 import DefaultShader from "./DefaultShader.mjs";
 import StageUtils from "../../../tree/StageUtils.mjs";
 
-export default class LoaderShader extends DefaultShader {
+export default class SpinnerShader2 extends DefaultShader {
     constructor(context) {
         super(context);
         this._stroke = 4;
@@ -107,7 +107,7 @@ export default class LoaderShader extends DefaultShader {
     }
 }
 
-LoaderShader.fragmentShaderSource = `
+SpinnerShader2.fragmentShaderSource = `
     #ifdef GL_ES
     # ifdef GL_FRAGMENT_PRECISION_HIGH
     precision highp float;

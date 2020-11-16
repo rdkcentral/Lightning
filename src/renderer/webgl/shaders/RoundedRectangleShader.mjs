@@ -23,18 +23,19 @@ import StageUtils from "../../../tree/StageUtils.mjs";
 export default class RoundedRectangleShader extends DefaultShader {
     constructor(context) {
         super(context);
+        this._blend = 0;
         this._radius = [1, 1, 1, 1];
         this._stroke = 0;
         this._fc = 0x00ffffff;
-        this._fillColor = this._getNormalizedColor(0x00ffffff);
+        this._fillColor = this._getNormalizedColor(0xffffffff);
         this._strokeColor = this._getNormalizedColor(0x00ffffff);
     }
 
-    set radius(v) {
-        if(typeof v === 'string') {
-            v = v.split(' ').map(num => parseInt(num, 10));
-        }
+    set blend(p) {
+        this._blend = Math.min(Math.max(p, 0), 1);
+    }
 
+    set radius(v) {
         if(Array.isArray(v)) {
             if(v.length === 2) {
                 this._radius = [v[0], v[1], v[0], v[1]];
@@ -140,7 +141,7 @@ export default class RoundedRectangleShader extends DefaultShader {
         const _radius = this._radius.map((r) => (r + 0.5) * renderPrecision)
         this._setUniform('radius', new Float32Array(_radius), this.gl.uniform4fv);
         this._setUniform('alpha', operation.getElementCore(0).renderContext.alpha, this.gl.uniform1f);
-        this._setUniform('fill', StageUtils.getRgbaComponentsNormalized(this._fc)[3], this.gl.uniform1f);
+        this._setUniform('blend', this._blend, this.gl.uniform1f);
         this._setUniform('strokeColor', this._strokeColor, this.gl.uniform4fv);
         this._setUniform('fillColor', this._fillColor, this.gl.uniform4fv);
         this._setUniform('stroke',  this._stroke * renderPrecision, this.gl.uniform1f);
@@ -194,6 +195,7 @@ RoundedRectangleShader.fragmentShaderSource = `
     uniform vec4 fillColor;
     uniform float alpha;
     uniform float fill;
+    uniform float blend;
     
     float boxDist(vec2 p, vec2 size, float radius){
         size -= vec2(radius);
@@ -213,7 +215,6 @@ RoundedRectangleShader.fragmentShaderSource = `
 
     void main() {
         vec2 halfRes = 0.5 * resolution.xy;
-
         float r = 0.0;
         if (vTextureCoord.x < 0.5 && vTextureCoord.y < 0.5) {
             r = radius[0];
@@ -224,10 +225,16 @@ RoundedRectangleShader.fragmentShaderSource = `
         } else {
             r = radius[3];
         }
-
+        
         float b = boxDist(vTextureCoord.xy * resolution - halfRes, halfRes - 0.005, r);
-        vec4 color = mix(texture2D(uSampler, vTextureCoord) * vColor, fillColor * alpha, fill);
-        vec4 tex = mix(vec4(0.0), color, fillMask(b));
-        gl_FragColor = mix(tex, strokeColor * alpha, innerBorderMask(b, stroke));
+        vec4 tex = texture2D(uSampler, vTextureCoord) * vColor;
+        vec4 blend = mix(vec4(1.0) * alpha, tex, blend);     
+        vec4 layer1 = mix(vec4(0.0), tex * fillColor, fillMask(b));
+        gl_FragColor = mix(layer1, blend * strokeColor, innerBorderMask(b, stroke));
+        
+        // vec4 color = texture2D(uSampler, vTextureCoord) * vColor;
+        // float b = boxDist(vTextureCoord.xy * resolution - halfRes, halfRes - 0.005, r);
+        // vec4 tex = mix(vec4(0.0), color * fillColor, fillMask(b));
+        // gl_FragColor = mix(tex, strokeColor * alpha, innerBorderMask(b, stroke));
     }
 `;

@@ -31,7 +31,8 @@
 <body>
 <script type="module">
     import lng from '../../../src/lightning.mjs';
-
+    const SRC = '../sampleImage.jpg';
+    const SIZE = 300;
     class VignetteExample extends lng.Application {
         static _template() {
             return {
@@ -39,40 +40,40 @@
                 Vignette1: {
                     x: 90,
                     y: 90,
-                    w: 300,
-                    h: 300,
-                    src: 'https://picsum.photos/id/10/300/300',
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
                     shader: {type: lng.shaders.Vignette, magnitude: 3, intensity: 0.3}
                 },
                 Vignette2: {
                     x: 480,
                     y: 90,
-                    w: 300,
-                    h: 300,
-                    src: 'https://picsum.photos/id/10/300/300',
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
                     shader: {type: lng.shaders.Vignette, magnitude: 3, intensity: 0.6}
                 },
                 Vignette3: {
                     x: 870,
                     y: 90,
-                    w: 300,
-                    h: 300,
-                    src: 'https://picsum.photos/id/10/300/300',
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
                     shader: {type: lng.shaders.Vignette, magnitude: 3, intensity: 0.8}
                 },
                 Vignette4: {
                     x: 1260,
                     y: 90,
-                    w: 300,
-                    h: 300,
-                    src: 'https://picsum.photos/id/10/300/300',
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
                     shader: {type: lng.shaders.Vignette, magnitude: 3, intensity: 1}
                 },
                 Vignette5: {
                     x: 90,
                     y: 480,
-                    w: 300,
-                    h: 300,
+                    w: SIZE,
+                    h: SIZE,
                     rect: true,
                     colorTop: 0xff00ff00,
                     colorBottom: 0xffff0000,
@@ -81,8 +82,8 @@
                 Vignette6: {
                     x: 480,
                     y: 480,
-                    w: 300,
-                    h: 300,
+                    w: SIZE,
+                    h: SIZE,
                     rect: true,
                     colorLeft: 0xff00ff00,
                     colorRight: 0xffff0000,
@@ -91,17 +92,17 @@
                 Vignette7: {
                     x: 870,
                     y: 480,
-                    w: 300,
-                    h: 300,
-                    src: 'https://picsum.photos/id/10/300/300',
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
                     shader: {type: lng.shaders.Vignette, magnitude: 9, intensity: 0.7}
                 },
                 Vignette8: {
                     x: 1260,
                     y: 480,
-                    w: 300,
-                    h: 300,
-                    src: 'https://picsum.photos/id/10/300/300',
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
                     shader: {type: lng.shaders.Vignette, magnitude: 10, intensity: 0.7}
                 },
                 Title: {
