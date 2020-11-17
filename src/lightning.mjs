@@ -74,7 +74,7 @@ import { C2dGrayscaleShader } from "./renderer/common/shaders/GrayscaleShader.mj
 import C2dBlurShader from "./renderer/c2d/shaders/BlurShader.mjs";
 
 import Stage from "./tree/Stage.mjs";
-import LoaderShader from './renderer/webgl/shaders/LoaderShader.js';
+import SpinnerShader2 from './renderer/webgl/shaders/SpinnerShader2.mjs';
 
 const lightning = {
     Application,
@@ -100,7 +100,7 @@ const lightning = {
         Pixelate: PixelateShader,
         RadialFilter: RadialFilterShader,
         RoundedRectangle: RoundedRectangleShader,
-        Loader: LoaderShader,
+        Spinner2: SpinnerShader2,
         FadeOut: FadeOutShader,
         Hole: HoleShader,
         Vignette: VignetteShader,

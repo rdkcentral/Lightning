@@ -23,9 +23,11 @@ import StageUtils from "../../../tree/StageUtils.mjs";
 export default class SpinnerShader2 extends DefaultShader {
     constructor(context) {
         super(context);
-        this._stroke = 4;
-        this._clockwise = false;
-        this._sc = 0x00000000;
+        this._period = 1;
+        this._stroke = 0;
+        this._showDot = false;
+        this._clockwise = true;
+        this._sc = 0xff000000;
         this._normalizedSC = this._getNormalizedColor(this._sc);
         this._pc = 0xffffffff;
         this._normalizedPC = this._getNormalizedColor(this._pc);
@@ -44,6 +46,10 @@ export default class SpinnerShader2 extends DefaultShader {
 
     get stroke() {
         return this._stroke;
+    }
+
+    set width(num) {
+        this._width = num;
     }
 
     set time(ts) {
@@ -68,12 +74,28 @@ export default class SpinnerShader2 extends DefaultShader {
         return this._sc;
     }
 
+    set showDot(bool) {
+        this._showDot = bool;
+    }
+
+    get showDot() {
+        return this._showDot;
+    }
+
     set clockwise(bool) {
         this._clockwise = bool;
     }
 
     get clockwise() {
         return this._clockwise;
+    }
+
+    set period(v) {
+        this._period = v;
+    }
+
+    get period() {
+        return this._period;
     }
 
     _getNormalizedColor(color) {
@@ -87,11 +109,19 @@ export default class SpinnerShader2 extends DefaultShader {
     setupUniforms(operation) {
         super.setupUniforms(operation);
         if(!this._time) {
-            this._time = new Date().getTime();
+            this._time = Date.now()
         }
         const owner = operation.shaderOwner;
-        const now = new Date().getTime();
+        const now = Date.now();
         const radius = this._radius || (owner._w / 2);
+
+        if(this._width) {
+            this._stroke = Math.min(Math.max(radius - this._width, 2), radius); //radius - this._width;
+        }
+
+        if(this._stroke === 0) {
+            this._stroke = radius * 0.33;
+        }
 
         this._setUniform('resolution', new Float32Array([owner._w, owner._h]),  this.gl.uniform2fv);
         this._setUniform('primaryColor', this._normalizedPC, this.gl.uniform4fv);
@@ -99,7 +129,10 @@ export default class SpinnerShader2 extends DefaultShader {
         this._setUniform('stroke',  this._stroke, this.gl.uniform1f);
         this._setUniform('radius',  radius, this.gl.uniform1f);
         this._setUniform('direction',  this._clockwise ? -1 : 1, this.gl.uniform1f);
-        this._setUniform('time', (now - this._time) / 1000, this.gl.uniform1f);
+        this._setUniform('blendTexture', !!(owner.element.texture.id !== 0), this.gl.uniform1f);
+        this._setUniform('showDot', !!this._showDot, this.gl.uniform1f);
+        this._setUniform('time', now- this._time, this.gl.uniform1f);
+        this._setUniform('period', this._period, this.gl.uniform1f);
 
         if(this._sc !== this._pc || this._stroke !== radius * 0.5) {
             this.redraw();
@@ -121,6 +154,7 @@ SpinnerShader2.fragmentShaderSource = `
     varying vec2 vTextureCoord;
     varying vec4 vColor;
     
+    uniform sampler2D uSampler;
     uniform vec2 resolution;
     uniform vec4 primaryColor;
     uniform vec4 secondaryColor;
@@ -128,6 +162,9 @@ SpinnerShader2.fragmentShaderSource = `
     uniform float radius;
     uniform float time;
     uniform float stroke;
+    uniform float blendTexture;
+    uniform float showDot;
+    uniform float period;
     
     float circleDist(vec2 p, float radius){
         return length(p) - radius;
@@ -142,15 +179,15 @@ SpinnerShader2.fragmentShaderSource = `
         vec2 center = vTextureCoord.xy * resolution - halfRes;
         
         float c = max(-circleDist(center, radius - stroke), circleDist(center, radius));
-        float rot = -time * 4.0 * direction;
+        float rot = -(time / 1000.0 / period) * 6.0 * direction;
         center *= mat2(cos(rot), sin(rot), -sin(rot), cos(rot));
         
-        float a = direction * atan(center.x,center.y) * PI * 0.05 + 0.45;
+        float a = direction * atan(center.x, center.y) * PI * 0.05 + 0.45;
         
         float strokeRad = stroke * 0.5;
-        a = max(a, fillMask(circleDist(vec2(center.x, center.y + (radius - strokeRad)), strokeRad)));
-        
-        vec4 base = mix(vec4(0.0), secondaryColor * vColor, fillMask(c));
-        gl_FragColor = mix(base, primaryColor * vColor, fillMask(c) * a);
+        a = mix(a, max(a, fillMask(circleDist(vec2(center.x, center.y + (radius - strokeRad)), strokeRad))), showDot);
+        vec4 base = mix(vec4(0.0), texture2D(uSampler, vTextureCoord) * vColor, blendTexture);
+        vec4 secondary = mix(base, secondaryColor * vColor, fillMask(c));
+        gl_FragColor = mix(secondary, primaryColor * vColor, fillMask(c) * a);
     }
 `;

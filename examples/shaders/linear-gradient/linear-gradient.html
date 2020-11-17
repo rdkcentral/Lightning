@@ -31,95 +31,91 @@
 <body>
 <script type="module">
     import lng from '../../../src/lightning.mjs';
-    const SRC = '../sampleImage.jpg';
     const SIZE = 300;
-    class RoundedRectangleExample extends lng.Application {
+    class LinearGradientExample extends lng.Application {
         static _template() {
             return {
                 w: 1920, h: 1080,
-                RoundedRectangle1: {
+                LinearGradient1: {
                     x: 90,
                     y: 90,
                     w: SIZE,
                     h: SIZE,
                     rect: true,
-                    shader: {type: lng.shaders.RoundedRectangle, radius: 50}
+                    shader: {type: lng.shaders.LinearGradient, fromColor: 0xffff0000, toColor: 0xff0000ff}
                 },
-                RoundedRectangle2: {
+                LinearGradient2: {
                     x: 480,
                     y: 90,
                     w: SIZE,
                     h: SIZE,
-                    color: 0xffff0000,
                     rect: true,
-                    shader: {type: lng.shaders.RoundedRectangle, radius: [50, 70]}
+                    shader: {type: lng.shaders.LinearGradient, fromColor: 0xffff0000, toColor: 0xff0000ff, degrees: 45}
                 },
-                RoundedRectangle3: {
+                LinearGradient3: {
                     x: 870,
                     y: 90,
                     w: SIZE,
                     h: SIZE,
                     rect: true,
-                    shader: {type: lng.shaders.RoundedRectangle, radius: [50, 70, 30]}
+                    shader: {type: lng.shaders.LinearGradient, fromColor: 0xffff0000, toColor: 0xff0000ff, from: [0, 0.5], to: [1, 0.5]}
                 },
-                RoundedRectangle4: {
+                LinearGradient4: {
                     x: 1260,
                     y: 90,
                     w: SIZE,
                     h: SIZE,
                     rect: true,
-                    src: SRC,
-                    shader: {type: lng.shaders.RoundedRectangle, radius: [40, 0, 0, 0]}
+                    shader: {type: lng.shaders.LinearGradient, fromColor: 0xffff0000, toColor: 0xff0000ff, to: 0.5}
                 },
-                RoundedRectangle5: {
+                LinearGradient5: {
                     x: 90,
                     y: 480,
                     w: SIZE,
                     h: SIZE,
                     rect: true,
-                    colorTop: 0xff00ff00,
-                    colorBottom: 0xffff0000,
-                    shader: {type: lng.shaders.RoundedRectangle, radius: 75, stroke: 10, strokeColor: 0xffffffff}
+                    shader: {type: lng.shaders.LinearGradient, fromColor: 0xffff0000, toColor: 0xff0000ff, to: 1}
                 },
-                RoundedRectangle6: {
+                LinearGradient6: {
                     x: 480,
                     y: 480,
                     w: SIZE,
                     h: SIZE,
                     rect: true,
-                    colorLeft: 0xff00ff00,
-                    colorRight: 0xffff0000,
-                    shader: {type: lng.shaders.RoundedRectangle, radius: [50, 70], stroke: 15, strokeColor: 0xff0000ff}
+                    shader: {type: lng.shaders.LinearGradient, fromColor: 0xffff0000, toColor: 0xff0000ff, from: [0.4, 0.5], to: [0.6, 0.5]}
                 },
-                RoundedRectangle7: {
+                LinearGradient7: {
                     x: 870,
                     y: 480,
                     w: SIZE,
                     h: SIZE,
                     rect: true,
-                    shader: {type: lng.shaders.RoundedRectangle, radius: [50, 70, 30], stroke: 10, strokeColor: 0xffffffff}
+                    shader: {type: lng.shaders.LinearGradient, fromColor: 0xffff0000, toColor: 0xff0000ff, from: [0, 1], to: 0}
                 },
-                RoundedRectangle8: {
+                LinearGradient8: {
                     x: 1260,
                     y: 480,
                     w: SIZE,
                     h: SIZE,
-                    src: SRC,
-                    shader: {type: lng.shaders.RoundedRectangle, topLeft: 70, stroke: 10, strokeColor: 0xffffffff}
+                    rect: true,
+                    shader: {type: lng.shaders.LinearGradient, fromColor: 0xffff0000, toColor: 0xff0000ff}
                 },
                 Title: {
                     x: 90,
                     y: 1000,
                     mountY: 1,
-                    text: {text: 'RoundRectangle', fontSize: 42}
+                    text: {text: 'LinearGradient', fontSize: 42}
                 }
             }
         }
 
         _init() {
-            this._animationDemo = this.tag('RoundedRectangle8').animation({duration: 2, repeat: -1, actions: [
-                    {p: 'shader.fillColor', v: {0: 0xffffffff, 0.5: 0xff000000, 1: 0xffffffff}},
-                    {p: 'shader.topLeft', v: {0: 70, 0.5: 0, 1: 70}}
+            this._animationDemo = this.animation({duration: 2, repeat: -1, actions: [
+                    {t: 'LinearGradient6', p: 'shader.toX', v: {0: 0, 0.5: 0.4, 1: 0}},
+                    {t: 'LinearGradient6', p: 'shader.fromX', v: {0: 1, 0.5: 0.6, 1: 1}},
+                    {t: 'LinearGradient7', p: 'shader.toY', v: {0: 0, 0.5: 0.5, 1: 0}},
+                    {t: 'LinearGradient7', p: 'shader.fromY', v: {0: 1, 0.5: 0.5, 1: 1}},
+                    {t: 'LinearGradient8', p: 'shader.degrees', v: {0: 0, 1: 360}}
                 ]});
         }
 
@@ -129,7 +125,7 @@
     }
 
     const options = {stage: {w: 1920, h: 1080, clearColor: 0xFF000000, canvas2d: false}};
-    const app = new RoundedRectangleExample(options);
+    const app = new LinearGradientExample(options);
     document.body.appendChild(app.stage.getCanvas());
 
     setTimeout(() => {
