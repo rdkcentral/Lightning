@@ -23,7 +23,7 @@ import StageUtils from "../../../tree/StageUtils.mjs";
 export default class RadialGradientShader extends DefaultShader {
     constructor(context) {
         super(context);
-        this._anchor = [0, 0];
+        this._pivot = [0, 0];
         this._ic = 0xffffffff;
         this._normalizedIC = this._getNormalizedColor(this._ic);
         this._oc = 0x00ffffff;
@@ -91,39 +91,39 @@ export default class RadialGradientShader extends DefaultShader {
         this.redraw();
     }
 
-    set anchor(v) {
+    set pivot(v) {
         if(Array.isArray(v) && v.length === 2) {
-            this._anchor = v;
+            this._pivot = v;
         }
         else if(Array.isArray(v)) {
-            this._anchor = [v[0], v[1] || v[0]];
+            this._pivot = [v[0], v[1] || v[0]];
         }
         else {
-            this._anchor = [v, v];
+            this._pivot = [v, v];
         }
         this.redraw();
     }
 
-    get anchor() {
-        return this._anchor[0];
+    get pivot() {
+        return this._pivot[0];
     }
 
-    set anchorY(f) {
-        this._anchor[1] = f;
+    set pivotY(f) {
+        this._pivot[1] = f;
         this.redraw();
     }
 
-    get anchorY() {
-        return this._anchor[1];
+    get pivotY() {
+        return this._pivot[1];
     }
 
-    set anchorX(f) {
-        this._anchor[0] = f;
+    set pivotX(f) {
+        this._pivot[0] = f;
         this.redraw();
     }
 
-    get anchorX() {
-        return this._anchor[0];
+    get pivotX() {
+        return this._pivot[0];
     }
 
     _getNormalizedColor(color) {
@@ -139,10 +139,10 @@ export default class RadialGradientShader extends DefaultShader {
         const owner = operation.shaderOwner;
 
         if(this._x) {
-            this._anchor[0] = this._x / owner.w;
+            this._pivot[0] = this._x / owner.w;
         }
         if(this._y) {
-            this._anchor[1] = this._y / owner.h;
+            this._pivot[1] = this._y / owner.h;
         }
 
         if(this._radius === 0) {
@@ -152,7 +152,7 @@ export default class RadialGradientShader extends DefaultShader {
         this._setUniform('innerColor', this._normalizedIC, this.gl.uniform4fv);
         this._setUniform('fill', StageUtils.getRgbaComponentsNormalized(this._oc)[3], this.gl.uniform1f);
         this._setUniform('outerColor', this._normalizedOC, this.gl.uniform4fv);
-        this._setUniform('anchor', new Float32Array(this._anchor),  this.gl.uniform2fv);
+        this._setUniform('pivot', new Float32Array(this._anchor),  this.gl.uniform2fv);
         this._setUniform('resolution', new Float32Array([owner._w, owner._h]),  this.gl.uniform2fv);
         this._setUniform('alpha', operation.getElementCore(0).renderContext.alpha, this.gl.uniform1f);
         this._setUniform('radius',  this._radius, this.gl.uniform1f);
@@ -186,10 +186,9 @@ RadialGradientShader.fragmentShaderSource = `
     
     void main() {
         vec2 point = vTextureCoord.xy * resolution;
-        vec2 projection = vec2(anchor.x * resolution.x, anchor.y * resolution.y);
+        vec2 projection = vec2(pivot.x * resolution.x, pivot.y * resolution.y);
         float d = length((point - projection) / vec2(radius * 2.0, radiusY * 2.0));
         vec4 color = mix(texture2D(uSampler, vTextureCoord) * vColor, outerColor * alpha, fill);
         gl_FragColor = mix(innerColor * alpha, color, smoothstep(0.0, 1.0, d));
     }
 `;
-

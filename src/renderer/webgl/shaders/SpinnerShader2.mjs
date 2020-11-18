@@ -27,10 +27,10 @@ export default class SpinnerShader2 extends DefaultShader {
         this._stroke = 0;
         this._showDot = true;
         this._clockwise = true;
-        this._sc = 0xff000000;
-        this._normalizedSC = this._getNormalizedColor(this._sc);
-        this._pc = 0xffffffff;
-        this._normalizedPC = this._getNormalizedColor(this._pc);
+        this._bc = 0xff000000;
+        this._normalizedBC = this._getNormalizedColor(this._bc);
+        this._c = 0xffffffff;
+        this._normalizedC = this._getNormalizedColor(this._c);
     }
 
     set radius(v) {
@@ -52,21 +52,21 @@ export default class SpinnerShader2 extends DefaultShader {
         this._time = ts;
     }
 
-    set primaryColor(argb) {
-        this._pc = argb;
-        this._normalizedPC = this._getNormalizedColor(argb);
+    set color(argb) {
+        this._c = argb;
+        this._normalizedC = this._getNormalizedColor(argb);
     }
 
-    get primaryColor() {
-        return this._pc;
+    get color() {
+        return this._c;
     }
 
-    set secondaryColor(argb) {
-        this._sc = argb;
-        this._normalizedSC = this._getNormalizedColor(argb);
+    set backgroundColor(argb) {
+        this._bc = argb;
+        this._normalizedBC = this._getNormalizedColor(argb);
     }
 
-    get secondaryColor() {
+    get backgroundColor() {
         return this._sc;
     }
 
@@ -116,8 +116,8 @@ export default class SpinnerShader2 extends DefaultShader {
         }
 
         this._setUniform('resolution', new Float32Array([owner._w, owner._h]),  this.gl.uniform2fv);
-        this._setUniform('primaryColor', this._normalizedPC, this.gl.uniform4fv);
-        this._setUniform('secondaryColor', this._normalizedSC, this.gl.uniform4fv);
+        this._setUniform('color', this._normalizedC, this.gl.uniform4fv);
+        this._setUniform('backgroundColor', this._normalizedBC, this.gl.uniform4fv);
         this._setUniform('stroke',  this._stroke, this.gl.uniform1f);
         this._setUniform('radius',  radius, this.gl.uniform1f);
         this._setUniform('direction',  this._clockwise ? -1 : 1, this.gl.uniform1f);
@@ -148,8 +148,8 @@ SpinnerShader2.fragmentShaderSource = `
     
     uniform sampler2D uSampler;
     uniform vec2 resolution;
-    uniform vec4 primaryColor;
-    uniform vec4 secondaryColor;
+    uniform vec4 color;
+    uniform vec4 backgroundColor;
     uniform float direction;
     uniform float radius;
     uniform float time;
@@ -178,7 +178,7 @@ SpinnerShader2.fragmentShaderSource = `
         
         float strokeRad = stroke * 0.5;
         a = mix(a, max(a, fillMask(circleDist(vec2(center.x, center.y + (radius - strokeRad)), strokeRad))), showDot);
-        vec4 base = mix(vec4(0.0), secondaryColor * alpha, fillMask(c));
-        gl_FragColor = mix(base, primaryColor * alpha, fillMask(c) * a);
+        vec4 base = mix(vec4(0.0), backgroundColor * alpha, fillMask(c));
+        gl_FragColor = mix(base, color * alpha, fillMask(c) * a);
     }
 `;
