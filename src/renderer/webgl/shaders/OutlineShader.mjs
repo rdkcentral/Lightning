@@ -45,7 +45,7 @@ export default class OutlineShader extends DefaultShader {
             col[1] = col[1] * col[3];
             col[2] = col[2] * col[3];
 
-            this._color = new Float32Array(col);
+            this._color = col;
 
             this.redraw();
 

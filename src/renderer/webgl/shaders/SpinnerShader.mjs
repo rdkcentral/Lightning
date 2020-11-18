@@ -60,12 +60,12 @@ export default class SpinnerShader extends DefaultShader {
     }
 
     set color(v) {
-        this._color = v//vStageUtils.getRgbaComponentsNormalized(v);
+        this._color = v;
         this.redraw();
     }
 
     set backgroundColor(v) {
-        this._backgroundColor = v//StageUtils.getRgbaComponentsNormalized(v);
+        this._backgroundColor = v;
         this.redraw();
     }
 
