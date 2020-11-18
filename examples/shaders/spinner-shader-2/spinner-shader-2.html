@@ -31,11 +31,10 @@
 <body>
 <script type="module">
     import lng from '../../../src/lightning.mjs';
-    const SRC = '../sampleImage.jpg';
-    const SIZE = 300;
-
     class SpinnerExample extends lng.Application {
         static _template() {
+            const SRC = '../sampleImage.jpg';
+            const SIZE = 300;
             return {
                 w: 1920, h: 1080,
                 SpinnerExample1: {

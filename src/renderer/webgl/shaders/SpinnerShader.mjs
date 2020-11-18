@@ -60,12 +60,12 @@ export default class SpinnerShader extends DefaultShader {
     }
 
     set color(v) {
-        this._color = new Float32Array(StageUtils.getRgbaComponentsNormalized(v));
+        this._color = v//vStageUtils.getRgbaComponentsNormalized(v);
         this.redraw();
     }
 
     set backgroundColor(v) {
-        this._backgroundColor = new Float32Array(StageUtils.getRgbaComponentsNormalized(v));
+        this._backgroundColor = v//StageUtils.getRgbaComponentsNormalized(v);
         this.redraw();
     }
 
@@ -81,8 +81,8 @@ export default class SpinnerShader extends DefaultShader {
         this._setUniform('period', this._period, this.gl.uniform1f);
         this._setUniform('angle', this._angle, this.gl.uniform1f);
         this._setUniform('smooth', this._smooth, this.gl.uniform1f);
-        this._setUniform('color', this._color, this.gl.uniform4fv);
-        this._setUniform('backgroundColor', this._backgroundColor, this.gl.uniform4fv);
+        this._setUniform('color', new Float32Array(StageUtils.getRgbaComponentsNormalized(this._color)), this.gl.uniform4fv);
+        this._setUniform('backgroundColor', new Float32Array(StageUtils.getRgbaComponentsNormalized(this._backgroundColor)), this.gl.uniform4fv);
         this._setUniform('resolution', new Float32Array([owner._w * renderPrecision, owner._h * renderPrecision]), this.gl.uniform2fv)
 
         this.redraw()

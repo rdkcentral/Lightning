@@ -25,7 +25,7 @@ export default class SpinnerShader2 extends DefaultShader {
         super(context);
         this._period = 1;
         this._stroke = 0;
-        this._showDot = false;
+        this._showDot = true;
         this._clockwise = true;
         this._sc = 0xff000000;
         this._normalizedSC = this._getNormalizedColor(this._sc);
@@ -46,10 +46,6 @@ export default class SpinnerShader2 extends DefaultShader {
 
     get stroke() {
         return this._stroke;
-    }
-
-    set width(num) {
-        this._width = num;
     }
 
     set time(ts) {
@@ -115,10 +111,6 @@ export default class SpinnerShader2 extends DefaultShader {
         const now = Date.now();
         const radius = this._radius || (owner._w / 2);
 
-        if(this._width) {
-            this._stroke = Math.min(Math.max(radius - this._width, 2), radius); //radius - this._width;
-        }
-
         if(this._stroke === 0) {
             this._stroke = radius * 0.33;
         }
@@ -129,10 +121,10 @@ export default class SpinnerShader2 extends DefaultShader {
         this._setUniform('stroke',  this._stroke, this.gl.uniform1f);
         this._setUniform('radius',  radius, this.gl.uniform1f);
         this._setUniform('direction',  this._clockwise ? -1 : 1, this.gl.uniform1f);
-        this._setUniform('blendTexture', !!(owner.element.texture.id !== 0), this.gl.uniform1f);
         this._setUniform('showDot', !!this._showDot, this.gl.uniform1f);
         this._setUniform('time', now- this._time, this.gl.uniform1f);
         this._setUniform('period', this._period, this.gl.uniform1f);
+        this._setUniform('alpha', operation.getElementCore(0).renderContext.alpha, this.gl.uniform1f);
 
         if(this._sc !== this._pc || this._stroke !== radius * 0.5) {
             this.redraw();
@@ -162,9 +154,9 @@ SpinnerShader2.fragmentShaderSource = `
     uniform float radius;
     uniform float time;
     uniform float stroke;
-    uniform float blendTexture;
     uniform float showDot;
     uniform float period;
+    uniform float alpha;
     
     float circleDist(vec2 p, float radius){
         return length(p) - radius;
@@ -186,8 +178,7 @@ SpinnerShader2.fragmentShaderSource = `
         
         float strokeRad = stroke * 0.5;
         a = mix(a, max(a, fillMask(circleDist(vec2(center.x, center.y + (radius - strokeRad)), strokeRad))), showDot);
-        vec4 base = mix(vec4(0.0), texture2D(uSampler, vTextureCoord) * vColor, blendTexture);
-        vec4 secondary = mix(base, secondaryColor * vColor, fillMask(c));
-        gl_FragColor = mix(secondary, primaryColor * vColor, fillMask(c) * a);
+        vec4 base = mix(vec4(0.0), secondaryColor * alpha, fillMask(c));
+        gl_FragColor = mix(base, primaryColor * alpha, fillMask(c) * a);
     }
 `;
