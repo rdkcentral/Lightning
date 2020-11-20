@@ -48,10 +48,6 @@ export default class SpinnerShader2 extends DefaultShader {
         return this._stroke;
     }
 
-    set time(ts) {
-        this._time = ts;
-    }
-
     set color(argb) {
         this._c = argb;
         this._normalizedC = this._getNormalizedColor(argb);
@@ -104,11 +100,7 @@ export default class SpinnerShader2 extends DefaultShader {
 
     setupUniforms(operation) {
         super.setupUniforms(operation);
-        if(!this._time) {
-            this._time = Date.now()
-        }
         const owner = operation.shaderOwner;
-        const now = Date.now();
         const radius = this._radius || (owner._w / 2);
 
         if(this._stroke === 0) {
@@ -122,15 +114,17 @@ export default class SpinnerShader2 extends DefaultShader {
         this._setUniform('radius',  radius, this.gl.uniform1f);
         this._setUniform('direction',  this._clockwise ? -1 : 1, this.gl.uniform1f);
         this._setUniform('showDot', !!this._showDot, this.gl.uniform1f);
-        this._setUniform('time', now- this._time, this.gl.uniform1f);
+        this._setUniform('time', Date.now() - SpinnerShader2.spinSync, this.gl.uniform1f);
         this._setUniform('period', this._period, this.gl.uniform1f);
         this._setUniform('alpha', operation.getElementCore(0).renderContext.alpha, this.gl.uniform1f);
 
-        if(this._sc !== this._pc || this._stroke !== radius * 0.5) {
+        if(this._sc !== this._bc || this._stroke !== radius * 0.5) {
             this.redraw();
         }
     }
 }
+
+SpinnerShader2.spinSync = Date.now();
 
 SpinnerShader2.fragmentShaderSource = `
     #ifdef GL_ES

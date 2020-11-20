@@ -152,7 +152,7 @@ export default class RadialGradientShader extends DefaultShader {
         this._setUniform('innerColor', this._normalizedIC, this.gl.uniform4fv);
         this._setUniform('fill', StageUtils.getRgbaComponentsNormalized(this._oc)[3], this.gl.uniform1f);
         this._setUniform('outerColor', this._normalizedOC, this.gl.uniform4fv);
-        this._setUniform('pivot', new Float32Array(this._anchor),  this.gl.uniform2fv);
+        this._setUniform('pivot', new Float32Array(this._pivot),  this.gl.uniform2fv);
         this._setUniform('resolution', new Float32Array([owner._w, owner._h]),  this.gl.uniform2fv);
         this._setUniform('alpha', operation.getElementCore(0).renderContext.alpha, this.gl.uniform1f);
         this._setUniform('radius',  this._radius, this.gl.uniform1f);
@@ -175,7 +175,7 @@ RadialGradientShader.fragmentShaderSource = `
     varying vec4 vColor;
     uniform sampler2D uSampler;
     uniform vec2 resolution;
-    uniform vec2 anchor;
+    uniform vec2 pivot;
     uniform vec4 innerColor;
     uniform vec4 outerColor;
     uniform float radius;
