@@ -31,47 +31,48 @@
 <body>
 <script type="module">
     import lng from '../../../src/lightning.mjs';
-    class RoundedRectangleExample extends lng.Application {
+    class OutlineExample extends lng.Application {
         static _template() {
             const SRC = '../sampleImage.jpg';
             const SIZE = 300;
             return {
                 w: 1920, h: 1080,
-                RoundedRectangle1: {
+                Outline1: {
                     x: 90,
                     y: 90,
                     w: SIZE,
                     h: SIZE,
                     rect: true,
-                    shader: {type: lng.shaders.RoundedRectangle, radius: 50}
+                    color: 0xff00ff00,
+                    shader: {type: lng.shaders.Outline, stroke: 5}
                 },
-                RoundedRectangle2: {
+                Outline2: {
                     x: 480,
                     y: 90,
                     w: SIZE,
                     h: SIZE,
                     color: 0xffff0000,
                     rect: true,
-                    shader: {type: lng.shaders.RoundedRectangle, radius: [50, 70]}
+                    shader: {type: lng.shaders.Outline, stroke: [50, 70]}
                 },
-                RoundedRectangle3: {
+                Outline3: {
                     x: 870,
                     y: 90,
                     w: SIZE,
                     h: SIZE,
                     rect: true,
-                    shader: {type: lng.shaders.RoundedRectangle, radius: [50, 70, 30]}
+                    shader: {type: lng.shaders.Outline, stroke: [10, 50, 70, 30], color: 0xffff00ff}
                 },
-                RoundedRectangle4: {
+                Outline4: {
                     x: 1260,
                     y: 90,
                     w: SIZE,
                     h: SIZE,
                     rect: true,
                     src: SRC,
-                    shader: {type: lng.shaders.RoundedRectangle, radius: [40, 0, 0, 0]}
+                    shader: {type: lng.shaders.Outline, stroke: [40, 0, 0, 0]}
                 },
-                RoundedRectangle5: {
+                Outline5: {
                     x: 90,
                     y: 480,
                     w: SIZE,
@@ -79,9 +80,9 @@
                     rect: true,
                     colorTop: 0xff00ff00,
                     colorBottom: 0xffff0000,
-                    shader: {type: lng.shaders.RoundedRectangle, radius: 75, stroke: 10, strokeColor: 0xffffffff}
+                    shader: {type: lng.shaders.Outline, stroke: 10, color: 0xffffffff}
                 },
-                RoundedRectangle6: {
+                Outline6: {
                     x: 480,
                     y: 480,
                     w: SIZE,
@@ -89,37 +90,38 @@
                     rect: true,
                     colorLeft: 0xff00ff00,
                     colorRight: 0xffff0000,
-                    shader: {type: lng.shaders.RoundedRectangle, radius: [50, 70], stroke: 15, strokeColor: 0xff0000ff}
+                    shader: {type: lng.shaders.Outline, stroke: [50, 70], color: 0xff0000ff}
                 },
-                RoundedRectangle7: {
+                Outline7: {
                     x: 870,
                     y: 480,
                     w: SIZE,
                     h: SIZE,
                     rect: true,
-                    shader: {type: lng.shaders.RoundedRectangle, radius: [50, 70, 30], stroke: 10, strokeColor: 0xffffffff}
+                    shader: {type: lng.shaders.Outline, stroke: [20, 30, 30], color: 0xff00ff00}
                 },
-                RoundedRectangle8: {
+                Outline8: {
                     x: 1260,
                     y: 480,
                     w: SIZE,
                     h: SIZE,
                     src: SRC,
-                    shader: {type: lng.shaders.RoundedRectangle, topLeft: 70, stroke: 10, strokeColor: 0xffffffff}
+                    shader: {type: lng.shaders.Outline, stroke: 10, color: 0xffffffff}
                 },
                 Title: {
                     x: 90,
                     y: 1000,
                     mountY: 1,
-                    text: {text: 'RoundedRectangle', fontSize: 42}
+                    text: {text: 'Outline', fontSize: 42}
                 }
             }
         }
 
         _init() {
-            this._animationDemo = this.tag('RoundedRectangle8').animation({duration: 2, repeat: -1, actions: [
-                    {p: 'shader.fillColor', v: {0: 0xffffffff, 0.5: 0xff000000, 1: 0xffffffff}},
-                    {p: 'shader.topLeft', v: {0: 70, 0.5: 0, 1: 70}}
+            this._animationDemo = this.animation({duration: 0.8, repeat: -1, actions: [
+                    {t: 'Outline7', p: 'shader.left', v: {0: 0, 0.5: 30, 1: 0}},
+                    {t: 'Outline8', p: 'shader.stroke', v: {0: 0, 0.5: 10, 1: 0}},
+                    {t: 'Outline8', p: 'shader.blend', v: {0: 0, 0.5: 1, 1: 0}}
                 ]});
         }
 
@@ -129,7 +131,7 @@
     }
 
     const options = {stage: {w: 1920, h: 1080, clearColor: 0xFF000000, canvas2d: false}};
-    const app = new RoundedRectangleExample(options);
+    const app = new OutlineExample(options);
     document.body.appendChild(app.stage.getCanvas());
 
     setTimeout(() => {
