@@ -1,0 +1,143 @@
+<!--
+ If not stated otherwise in this file or this component's LICENSE file the
+ following copyright and licenses apply:
+
+ Copyright 2020 RDK Management
+
+ Licensed under the Apache License, Version 2.0 (the License);
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <style>
+        body{
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+<script type="module">
+    import lng from '../../../src/lightning.mjs';
+    class SpinnerExample extends lng.Application {
+        static _template() {
+            const SRC = '../sampleImage.jpg';
+            const SIZE = 300;
+            return {
+                w: 1920, h: 1080,
+                SpinnerExample1: {
+                    x: 90,
+                    y: 90,
+                    w: 300,
+                    h: 300,
+                    rect: true,
+                    src: SRC,
+                    shader: {type: lng.shaders.Spinner2, radius: 100, width: 50}
+                },
+                SpinnerExample2: {
+                    x: 450,
+                    y: 90,
+                    w: 80,
+                    h: 80,
+                    src: SRC,
+                    shader: {type: lng.shaders.Spinner2}
+                },
+                SpinnerExample3: {
+                    x: 580,
+                    y: 90,
+                    w: 120,
+                    h: 120,
+                    rect: true,
+                    shader: {type: lng.shaders.Spinner2, color: 0xffff0000, stroke: 15, showDot: true}
+                },
+                SpinnerExample4: {
+                    x: 730,
+                    y: 90,
+                    w: 150,
+                    h: 150,
+                    rect: true,
+                    shader: {type: lng.shaders.Spinner2, color: 0xffff0000, backgroundColor: 0xff0000ff, stroke: 10, showDot: true}
+                },
+                SpinnerExample5: {
+                    x: 90,
+                    y: 480,
+                    w: 150,
+                    h: 150,
+                    rect: true,
+                    shader: {type: lng.shaders.Spinner2, stroke: 10, showDot: true}
+                },
+                SpinnerExample6: {
+                    x: 350,
+                    y: 480,
+                    w: 150,
+                    h: 150,
+                    rect: true,
+                    shader: {type: lng.shaders.Spinner2, stroke: 10, showDot: true}
+                },
+                SpinnerExample7: {
+                    x: 610,
+                    y: 480,
+                    w: 150,
+                    h: 150,
+                    rect: true,
+                    shader: {type: lng.shaders.Spinner2, clockwise: true, stroke: 10, showDot: true}
+                },
+                SpinnerExample8: {
+                    x: 870,
+                    y: 480,
+                    w: 150,
+                    h: 150,
+                    src: SRC,
+                    shader: {type: lng.shaders.Spinner2, stroke: 10, showDot: true}
+                },
+                Title: {
+                    x: 90,
+                    y: 1000,
+                    mountY: 1,
+                    text: {text: 'Spinner', fontSize: 42}
+                }
+            }
+        }
+
+        _init() {
+            this._exampleAnimation = this.animation({duration: 2, repeat: -1, actions: [
+                    {t: 'SpinnerExample5', p: 'shader.stroke', v: {0: 10, 0.5: 20, 1: 10}},
+                    {t: 'SpinnerExample6', p: 'shader.radius', v: {0: 75, 0.5: 40, 1: 75}},
+                    {t: 'SpinnerExample7', p: 'shader.stroke', v: {0: 10, 0.5: 20, 1: 10}},
+                    {t: 'SpinnerExample7', p: 'shader.radius', v: {0: 75, 0.5: 40, 1: 75}},
+                    {t: 'SpinnerExample8', p: 'shader.stroke', v: {0: 10, 0.5: 20, 1: 10}},
+                    {t: 'SpinnerExample8', p: 'shader.radius', v: {0: 75, 0.5: 40, 1: 75}},
+                    {t: 'SpinnerExample8', p: 'shader.color', v: {0: 0xffff0000, 0.5: 0xff0000ff, 1: 0xffff0000}},
+                ]});
+        }
+
+        _active() {
+            this._exampleAnimation.start();
+        }
+    }
+
+    const options = {stage: {w: 1920, h: 1080, clearColor: 0xFF000000, canvas2d: false}};
+    const app = new SpinnerExample(options);
+    document.body.appendChild(app.stage.getCanvas());
+
+    setTimeout(() => {
+        console.profile('start');
+        setTimeout(() => {
+            console.profileEnd();
+        }, 6000)
+    }, 2000)
+</script>
+</body>
+</html>

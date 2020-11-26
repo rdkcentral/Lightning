@@ -60,6 +60,7 @@ import OutlineShader from "./renderer/webgl/shaders/OutlineShader.mjs";
 import PixelateShader from "./renderer/webgl/shaders/PixelateShader.mjs";
 import RadialFilterShader from "./renderer/webgl/shaders/RadialFilterShader.mjs";
 import RoundedRectangleShader from "./renderer/webgl/shaders/RoundedRectangleShader.mjs";
+import FadeOutShader from "./renderer/webgl/shaders/FadeOutShader.mjs";
 import VignetteShader from "./renderer/webgl/shaders/VignetteShader.mjs";
 import SpinnerShader from "./renderer/webgl/shaders/SpinnerShader.mjs";
 import HoleShader from "./renderer/webgl/shaders/HoleShader.mjs";
@@ -73,6 +74,7 @@ import { C2dGrayscaleShader } from "./renderer/common/shaders/GrayscaleShader.mj
 import C2dBlurShader from "./renderer/c2d/shaders/BlurShader.mjs";
 
 import Stage from "./tree/Stage.mjs";
+import SpinnerShader2 from './renderer/webgl/shaders/SpinnerShader2.mjs';
 
 const lightning = {
     Application,
@@ -98,6 +100,8 @@ const lightning = {
         Pixelate: PixelateShader,
         RadialFilter: RadialFilterShader,
         RoundedRectangle: RoundedRectangleShader,
+        Spinner2: SpinnerShader2,
+        FadeOut: FadeOutShader,
         Hole: HoleShader,
         Vignette: VignetteShader,
         Spinner: SpinnerShader,

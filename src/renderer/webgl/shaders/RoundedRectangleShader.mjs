@@ -23,16 +23,34 @@ import StageUtils from "../../../tree/StageUtils.mjs";
 export default class RoundedRectangleShader extends DefaultShader {
     constructor(context) {
         super(context);
+        this._blend = 0;
         this._radius = [1, 1, 1, 1];
         this._stroke = 0;
+        this._fc = 0x00ffffff;
         this._fillColor = this._getNormalizedColor(0xffffffff);
         this._strokeColor = this._getNormalizedColor(0x00ffffff);
     }
 
+    set blend(p) {
+        this._blend = Math.min(Math.max(p, 0), 1);
+    }
+
     set radius(v) {
-        if (Array.isArray(v)) {
-            this._radius = v;
-        } else {
+        if(Array.isArray(v)) {
+            if(v.length === 2) {
+                this._radius = [v[0], v[1], v[0], v[1]];
+            }
+            else if(v.length === 3) {
+                this._radius = [v[0], v[1], v[2], this._radius[3]];
+            }
+            else if (v.length === 4) {
+                this._radius = v;
+            }
+            else {
+                this._radius = [v[0], v[0], v[0], v[0]];
+            }
+        }
+        else {
             this._radius = [v, v, v, v];
         }
         this.redraw();
@@ -42,14 +60,60 @@ export default class RoundedRectangleShader extends DefaultShader {
         return this._radius;
     }
 
+    set topLeft(num) {
+        this._radius[0] = num;
+        this.redraw();
+    }
+
+    get topLeft() {
+        return this._radius[0];
+    }
+
+    set topRight(num) {
+        this._radius[1] = num;
+        this.redraw();
+    }
+
+    get topRight() {
+        return this._radius[1];
+    }
+
+    set bottomRight(num) {
+        this._radius[2] = num;
+        this.redraw();
+    }
+
+    get bottomRight() {
+        return this._radius[2];
+    }
+
+    set bottomLeft(num) {
+        this._radius[3] = num;
+        this.redraw();
+    }
+
+    get bottomLeft() {
+        return this._radius[4];
+    }
+
     set strokeColor(argb) {
+        this._sc = argb;
         this._strokeColor = this._getNormalizedColor(argb);
         this.redraw();
     }
 
+    get strokeColor() {
+        return this._sc;
+    }
+
     set fillColor(argb) {
+        this._fc = argb;
         this._fillColor = this._getNormalizedColor(argb);
         this.redraw();
+    }
+
+    get fillColor() {
+        return this._fc;
     }
 
     set stroke(num) {
@@ -57,23 +121,28 @@ export default class RoundedRectangleShader extends DefaultShader {
         this.redraw();
     }
 
+    get stroke() {
+        return this._stroke;
+    }
+
     _getNormalizedColor(color) {
         const col = StageUtils.getRgbaComponentsNormalized(color);
         col[0] *= col[3];
         col[1] *= col[3];
         col[2] *= col[3];
-        return col;
+        return new Float32Array(col);
     }
 
     setupUniforms(operation) {
         super.setupUniforms(operation);
         const owner = operation.shaderOwner;
-
         const renderPrecision = this.ctx.stage.getRenderPrecision();
         const _radius = this._radius.map((r) => (r + 0.5) * renderPrecision)
         this._setUniform('radius', new Float32Array(_radius), this.gl.uniform4fv);
-        this._setUniform('strokeColor', new Float32Array(this._strokeColor), this.gl.uniform4fv);
-        this._setUniform('fillColor', new Float32Array(this._fillColor), this.gl.uniform4fv);
+        this._setUniform('alpha', operation.getElementCore(0).renderContext.alpha, this.gl.uniform1f);
+        this._setUniform('blend', this._blend, this.gl.uniform1f);
+        this._setUniform('strokeColor', this._strokeColor, this.gl.uniform4fv);
+        this._setUniform('fillColor', this._fillColor, this.gl.uniform4fv);
         this._setUniform('stroke',  this._stroke * renderPrecision, this.gl.uniform1f);
         this._setUniform('resolution', new Float32Array([owner._w * renderPrecision, owner._h * renderPrecision]), this.gl.uniform2fv);
     }
@@ -123,6 +192,9 @@ RoundedRectangleShader.fragmentShaderSource = `
     uniform float stroke;
     uniform vec4 strokeColor;
     uniform vec4 fillColor;
+    uniform float alpha;
+    uniform float fill;
+    uniform float blend;
     
     float boxDist(vec2 p, vec2 size, float radius){
         size -= vec2(radius);
@@ -141,9 +213,7 @@ RoundedRectangleShader.fragmentShaderSource = `
     }
 
     void main() {
-        vec4 color = texture2D(uSampler, vTextureCoord) * vColor;
         vec2 halfRes = 0.5 * resolution.xy;
-
         float r = 0.0;
         if (vTextureCoord.x < 0.5 && vTextureCoord.y < 0.5) {
             r = radius[0];
@@ -154,9 +224,11 @@ RoundedRectangleShader.fragmentShaderSource = `
         } else {
             r = radius[3];
         }
-
+        
         float b = boxDist(vTextureCoord.xy * resolution - halfRes, halfRes - 0.005, r);
-        vec4 tex = mix(vec4(0.0), color * fillColor, fillMask(b));
-        gl_FragColor = mix(tex, vColor * strokeColor, innerBorderMask(b, stroke));
+        vec4 tex = texture2D(uSampler, vTextureCoord) * vColor;
+        vec4 blend = mix(vec4(1.0) * alpha, tex, blend);     
+        vec4 layer1 = mix(vec4(0.0), tex * fillColor, fillMask(b));
+        gl_FragColor = mix(layer1, blend * strokeColor, innerBorderMask(b, stroke));
     }
 `;
