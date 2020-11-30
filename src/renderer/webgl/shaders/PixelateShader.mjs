@@ -27,25 +27,41 @@ export default class PixelateShader extends DefaultShader {
     constructor(ctx) {
         super(ctx);
 
-        this._size = new Float32Array([4, 4]);
+        this._size = [4, 4];
     }
 
     get x() {
-        return this._size[0];
+        return this.w;
     }
 
-    set x(v) {
-        this._size[0] = v;
-        this.redraw();
+    set x(num) {
+        this.w = num;
     }
 
     get y() {
         return this._size[1];
     }
 
-    set y(v) {
-        this._size[1] = v;
+    set y(num) {
+        this.h = num;
+    }
+
+    set w(num) {
+        this._size[0] = num;
         this.redraw();
+    }
+
+    get w() {
+        return this._size[0];
+    }
+
+    set h(num) {
+        this._size[1] = num;
+        this.redraw();
+    }
+
+    get h() {
+        return this._size[1];
     }
 
     get size() {
@@ -53,8 +69,15 @@ export default class PixelateShader extends DefaultShader {
     }
 
     set size(v) {
-        this._size[0] = v;
-        this._size[1] = v;
+        if(Array.isArray(v) && v.length === 2) {
+            this._size = v;
+        }
+        else if(Array.isArray(v)) {
+            this._size = [v[0], v[1] || v[0]];
+        }
+        else {
+            this._size = [v, v];
+        }
         this.redraw();
     }
 
