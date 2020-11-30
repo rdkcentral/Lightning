@@ -63,7 +63,7 @@ import RoundedRectangleShader from "./renderer/webgl/shaders/RoundedRectangleSha
 import FadeOutShader from "./renderer/webgl/shaders/FadeOutShader.mjs";
 import VignetteShader from "./renderer/webgl/shaders/VignetteShader.mjs";
 import SpinnerShader from "./renderer/webgl/shaders/SpinnerShader.mjs";
-import HolePunchShader from "./renderer/webgl/shaders/ViewportShader.mjs";
+import HolePunchShader from "./renderer/webgl/shaders/HolePunchShader.mjs";
 import RadialGradientShader from "./renderer/webgl/shaders/RadialGradientShader.mjs";
 import Light3dShader from "./renderer/webgl/shaders/Light3dShader.mjs";
 import PerspectiveShader from "./renderer/webgl/shaders/PerspectiveShader.mjs";
