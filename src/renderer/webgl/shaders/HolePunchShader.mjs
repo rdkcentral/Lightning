@@ -19,7 +19,7 @@
 
 import DefaultShader from "./DefaultShader.mjs";
 
-export default class ViewportShader extends DefaultShader {
+export default class HolePunchShader extends DefaultShader {
 
     constructor(context) {
         super(context);
@@ -146,9 +146,9 @@ export default class ViewportShader extends DefaultShader {
     }
 }
 
-ViewportShader.vertexShaderSource = DefaultShader.vertexShaderSource;
+HolePunchShader.vertexShaderSource = DefaultShader.vertexShaderSource;
 
-ViewportShader.fragmentShaderSource = `
+HolePunchShader.fragmentShaderSource = `
    #ifdef GL_ES
     # ifdef GL_FRAGMENT_PRECISION_HIGH
     precision highp float;

@@ -1,0 +1,136 @@
+<!--
+ If not stated otherwise in this file or this component's LICENSE file the
+ following copyright and licenses apply:
+
+ Copyright 2020 RDK Management
+
+ Licensed under the Apache License, Version 2.0 (the License);
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <style>
+        body{
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+<script type="module">
+    import lng from '../../../src/lightning.mjs';
+    class InversionExample extends lng.Application {
+        static _template() {
+            const SRC = '../sampleImage.jpg';
+            const SIZE = 300;
+            return {
+                w: 1920, h: 1080, rect: true, color: 0xff000000,
+                Inversion1: {
+                    x: 90,
+                    y: 90,
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
+                    shader: {type: lng.shaders.Inversion}
+                },
+                Inversion2: {
+                    x: 480,
+                    y: 90,
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
+                    shader: {type: lng.shaders.Inversion, amount: 1}
+                },
+                Inversion3: {
+                    x: 870,
+                    y: 90,
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
+                    shader: {type: lng.shaders.Inversion, amount: 2}
+                },
+                Inversion4: {
+                    x: 1260,
+                    y: 90,
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
+                    shader: {type: lng.shaders.Inversion, amount: 3}
+                },
+                Inversion5: {
+                    x: 90,
+                    y: 480,
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
+                    shader: {type: lng.shaders.Inversion, amount: 4}
+                },
+                Inversion6: {
+                    x: 480,
+                    y: 480,
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
+                    shader: {type: lng.shaders.Inversion, amount: 5}
+                },
+                Inversion7: {
+                    x: 870,
+                    y: 480,
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
+                    shader: {type: lng.shaders.Inversion, amount: 6}
+                },
+                Inversion8: {
+                    x: 1260,
+                    y: 480,
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
+                    shader: {type: lng.shaders.Inversion}
+                },
+                Title: {
+                    x: 90,
+                    y: 1000,
+                    mountY: 1,
+                    text: {text: 'Inversion', fontSize: 42}
+                }
+            }
+        }
+
+        _init() {
+            this._animationDemo = this.animation({duration: 2, repeat: -1, actions: [
+                    {t: 'Inversion8', p: 'shader.amount', v: {0: 0, 0.5: 1, 1: 120}}
+                ]});
+        }
+
+        _active() {
+            this._animationDemo.start();
+        }
+    }
+
+    const options = {stage: {w: 1920, h: 1080, clearColor: 0xFF000000, canvas2d: false}};
+    const app = new InversionExample(options);
+    document.body.appendChild(app.stage.getCanvas());
+
+    setTimeout(() => {
+        console.profile('start');
+        setTimeout(() => {
+            console.profileEnd();
+        }, 6000)
+    }, 2000)
+</script>
+</body>
+</html>

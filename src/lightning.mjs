@@ -63,7 +63,7 @@ import RoundedRectangleShader from "./renderer/webgl/shaders/RoundedRectangleSha
 import FadeOutShader from "./renderer/webgl/shaders/FadeOutShader.mjs";
 import VignetteShader from "./renderer/webgl/shaders/VignetteShader.mjs";
 import SpinnerShader from "./renderer/webgl/shaders/SpinnerShader.mjs";
-import ViewportShader from "./renderer/webgl/shaders/ViewportShader.mjs";
+import HolePunchShader from "./renderer/webgl/shaders/ViewportShader.mjs";
 import RadialGradientShader from "./renderer/webgl/shaders/RadialGradientShader.mjs";
 import Light3dShader from "./renderer/webgl/shaders/Light3dShader.mjs";
 import PerspectiveShader from "./renderer/webgl/shaders/PerspectiveShader.mjs";
@@ -102,8 +102,8 @@ const lightning = {
         RoundedRectangle: RoundedRectangleShader,
         Spinner2: SpinnerShader2,
         FadeOut: FadeOutShader,
-        Viewport: ViewportShader,
-        Hole: ViewportShader,
+        HolePunch: HolePunchShader,
+        Hole: HolePunchShader,
         Vignette: VignetteShader,
         Spinner: SpinnerShader,
         RadialGradient: RadialGradientShader,
