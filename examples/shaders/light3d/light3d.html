@@ -1,0 +1,146 @@
+<!--
+ If not stated otherwise in this file or this component's LICENSE file the
+ following copyright and licenses apply:
+
+ Copyright 2020 RDK Management
+
+ Licensed under the Apache License, Version 2.0 (the License);
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <style>
+        body{
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+<script type="module">
+    import lng from '../../../src/lightning.mjs';
+
+    class Light3dExample extends lng.Application {
+        static _template() {
+            const SRC = '../sampleImage.jpg';
+            const SIZE = 300;
+            const rotate45 = Math.PI * 0.25;
+            return {
+                w: 1920, h: 1080, rect: true, color: 0xff000000,
+                Light3d1: {
+                    x: 90,
+                    y: 90,
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
+                    shader: {type: lng.shaders.Light3d, rx: rotate45, strength: 0.3}
+                },
+                Light3d2: {
+                    x: 480,
+                    y: 90,
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
+                    shader: {type: lng.shaders.Light3d, ry: rotate45, strength: 0.5}
+                },
+                Light3d3: {
+                    x: 870,
+                    y: 90,
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
+                    shader: {type: lng.shaders.Light3d, rx: rotate45, pivotX: SIZE, strength: 0.7}
+                },
+                Light3d4: {
+                    x: 1260,
+                    y: 90,
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
+                    shader: {type: lng.shaders.Light3d, ry: rotate45, pivotY: SIZE, strength: 0.9}
+                },
+                Light3d5: {
+                    x: 90,
+                    y: 480,
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
+                    shader: {type: lng.shaders.Light3d, rx: -rotate45, ambient: 0.2}
+                },
+                Light3d6: {
+                    x: 480,
+                    y: 480,
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
+                    shader: {type: lng.shaders.Light3d, ry: -rotate45, ambient: 0.4}
+                },
+                Light3d7: {
+                    x: 870,
+                    y: 480,
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
+                    shader: {type: lng.shaders.Light3d, rx: -rotate45, pivotX: SIZE, ambient: 0.6}
+                },
+                Light3d8: {
+                    x: 1260,
+                    y: 480,
+                    w: SIZE,
+                    h: SIZE,
+                    src: SRC,
+                    shader: {type: lng.shaders.Light3d, ry: -rotate45, pivotY: 0, ambient: 0.8}
+                },
+                Title: {
+                    x: 90,
+                    y: 1000,
+                    mountY: 1,
+                    text: {text: `Light3d`, fontSize: 42}
+                }
+            }
+        }
+
+        _init() {
+            const rotate45 = Math.PI * 0.25;
+            this._animationDemo = this.animation({duration: 2, repeat: -1, actions: [
+                    {t: 'Light3d1' ,p: 'shader.rx', v: {0: rotate45, 0.5: -rotate45, 1.0: rotate45}},
+                    {t: 'Light3d5' ,p: 'shader.rx', v: {0: -rotate45, 0.5: rotate45, 1.0: -rotate45}},
+                    {t: 'Light3d2' ,p: 'shader.ry', v: {0: rotate45, 0.5: -rotate45, 1.0: rotate45}},
+                    {t: 'Light3d6' ,p: 'shader.ry', v: {0: -rotate45, 0.5: rotate45, 1.0: -rotate45}},
+                    {t: 'Light3d3' ,p: 'shader.rx', v: {0: rotate45, 0.5: -rotate45, 1.0: rotate45}},
+                    {t: 'Light3d7' ,p: 'shader.rx', v: {0: -rotate45, 0.5: rotate45, 1.0: -rotate45}},
+                    {t: 'Light3d4' ,p: 'shader.ry', v: {0: rotate45, 0.5: -rotate45, 1.0: rotate45}},
+                    {t: 'Light3d8' ,p: 'shader.ry', v: {0: -rotate45, 0.5: rotate45, 1.0: -rotate45}}
+                ]});
+        }
+
+        _active() {
+            this._animationDemo.start();
+        }
+    }
+
+    const options = {stage: {w: 1920, h: 1080, clearColor: 0xFF000000, canvas2d: false}};
+    const app = new Light3dExample(options);
+    document.body.appendChild(app.stage.getCanvas());
+
+    setTimeout(() => {
+        console.profile('start');
+        setTimeout(() => {
+            console.profileEnd();
+        }, 6000)
+    }, 2000)
+</script>
+</body>
+</html>
