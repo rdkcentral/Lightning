@@ -459,6 +459,10 @@ export default class Component extends Element {
                         fireEvent = event;
                     }
 
+                    if (typeof fireEvent === "function") {
+                        return fireEvent(...args);
+                    }
+
                     if (signalParent._hasMethod(fireEvent)) {
                         return signalParent[fireEvent](...args);
                     }
