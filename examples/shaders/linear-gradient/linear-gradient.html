@@ -1,0 +1,139 @@
+<!--
+ If not stated otherwise in this file or this component's LICENSE file the
+ following copyright and licenses apply:
+
+ Copyright 2020 RDK Management
+
+ Licensed under the Apache License, Version 2.0 (the License);
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <style>
+        body{
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+<script type="module">
+    import lng from '../../../src/lightning.mjs';
+    const SIZE = 300;
+    class LinearGradientExample extends lng.Application {
+        static _template() {
+            return {
+                w: 1920, h: 1080,
+                LinearGradient1: {
+                    x: 90,
+                    y: 90,
+                    w: SIZE,
+                    h: SIZE,
+                    rect: true,
+                    shader: {type: lng.shaders.LinearGradient, fromColor: 0xffff0000, toColor: 0xff0000ff}
+                },
+                LinearGradient2: {
+                    x: 480,
+                    y: 90,
+                    w: SIZE,
+                    h: SIZE,
+                    rect: true,
+                    shader: {type: lng.shaders.LinearGradient, fromColor: 0xffff0000, toColor: 0xff0000ff, degrees: 45}
+                },
+                LinearGradient3: {
+                    x: 870,
+                    y: 90,
+                    w: SIZE,
+                    h: SIZE,
+                    rect: true,
+                    shader: {type: lng.shaders.LinearGradient, fromColor: 0xffff0000, toColor: 0xff0000ff, from: [0, 0.5], to: [1, 0.5]}
+                },
+                LinearGradient4: {
+                    x: 1260,
+                    y: 90,
+                    w: SIZE,
+                    h: SIZE,
+                    rect: true,
+                    shader: {type: lng.shaders.LinearGradient, fromColor: 0xffff0000, toColor: 0xff0000ff, to: 0.5}
+                },
+                LinearGradient5: {
+                    x: 90,
+                    y: 480,
+                    w: SIZE,
+                    h: SIZE,
+                    rect: true,
+                    shader: {type: lng.shaders.LinearGradient, fromColor: 0xffff0000, toColor: 0xff0000ff, to: 1}
+                },
+                LinearGradient6: {
+                    x: 480,
+                    y: 480,
+                    w: SIZE,
+                    h: SIZE,
+                    rect: true,
+                    shader: {type: lng.shaders.LinearGradient, fromColor: 0xffff0000, toColor: 0xff0000ff, from: [0.4, 0.5], to: [0.6, 0.5]}
+                },
+                LinearGradient7: {
+                    x: 870,
+                    y: 480,
+                    w: SIZE,
+                    h: SIZE,
+                    rect: true,
+                    shader: {type: lng.shaders.LinearGradient, fromColor: 0xffff0000, toColor: 0xff0000ff, from: [0, 1], to: 0}
+                },
+                LinearGradient8: {
+                    x: 1260,
+                    y: 480,
+                    w: SIZE,
+                    h: SIZE,
+                    rect: true,
+                    shader: {type: lng.shaders.LinearGradient, fromColor: 0xffff0000, toColor: 0xff0000ff}
+                },
+                Title: {
+                    x: 90,
+                    y: 1000,
+                    mountY: 1,
+                    text: {text: 'LinearGradient', fontSize: 42}
+                }
+            }
+        }
+
+        _init() {
+            this._animationDemo = this.animation({duration: 2, repeat: -1, actions: [
+                    {t: 'LinearGradient6', p: 'shader.toX', v: {0: 0, 0.5: 0.4, 1: 0}},
+                    {t: 'LinearGradient6', p: 'shader.fromX', v: {0: 1, 0.5: 0.6, 1: 1}},
+                    {t: 'LinearGradient7', p: 'shader.toY', v: {0: 0, 0.5: 0.5, 1: 0}},
+                    {t: 'LinearGradient7', p: 'shader.fromY', v: {0: 1, 0.5: 0.5, 1: 1}},
+                    {t: 'LinearGradient8', p: 'shader.degrees', v: {0: 0, 1: 360}}
+                ]});
+        }
+
+        _active() {
+            this._animationDemo.start();
+        }
+    }
+
+    const options = {stage: {w: 1920, h: 1080, clearColor: 0xFF000000, canvas2d: false}};
+    const app = new LinearGradientExample(options);
+    document.body.appendChild(app.stage.getCanvas());
+
+    setTimeout(() => {
+        console.profile('start');
+        setTimeout(() => {
+            console.profileEnd();
+        }, 6000)
+    }, 2000)
+</script>
+</body>
+</html>
