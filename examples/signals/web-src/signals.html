@@ -29,41 +29,47 @@
         //attachInspector(lng)
 
         window.onload = function() {
-            class BasicUsageExample extends lng.Application {
+            class Box extends lng.Component {
                 static _template() {
+                    return {
+                        w: 300,
+                        h: 300,
+                        rect: true,
+                        color: 0xffffff00,
+                    }
+                }
+
+                _init() {
+                    this.signal('signalHandler1')
+                    this.signal('signalHandler2')
+                }
+            }
+
+            class BasicUsageExample extends lng.Application {
+                static _template(ctx) {
                     return {
                         w: 900,
                         h: 900,
                         Bg: {
                             src: "../../landscape.jpg", scale: 1,
                         },
-                        Primary: {
-                            Main: {rect: true, renderToTexture: true, w: 900, h: 900, colorLeft: 0x000000FF, colorRight: 0xFF0000FF
-                            },
-                            App: {alpha: 0.5, rect: true, w: 100, h: 100, scale: 1, texture: {type: lng.textures.NoiseTexture, x: 0, y: 0, w: 1000, h: 1000}}
-                        },
-                        Overlay: {},
+                        Box: {
+                            type: Box,
+                            x: w => w / 2,
+                            y: h => h / 2,
+                            mount: 0.5,
+                            signals: {
+                                signalHandler1: ctx.signalHandler1,
+                                signalHandler2: () => console.log('signalHandler2'),
+                            }
+                        }
 
                     }
                 }
 
-                _handleLeft() {
-                    this.tag('Primary').setSmooth('x', this.tag('Primary').getSmooth('x') - 100)
+                signalHandler1(e) {
+                    console.log('signalHandler1')
                 }
-
-                _handleRight() {
-                    this.tag('Primary').setSmooth('x', this.tag('Primary').getSmooth('x') + 100)
-                    this._setState("Loading");
-                }
-
-                _handleUp() {
-                    this.tag('Primary').setSmooth('y', this.tag('Primary').getSmooth('y') - 100)
-                }
-
-                _handleDown() {
-                    this.tag('Primary').setSmooth('y', this.tag('Primary').getSmooth('y') + 100)
-                }
-
             }
 
             const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000, canvas2d: false, useImageWorker: false}, debug: true}
