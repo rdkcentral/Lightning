@@ -30,6 +30,22 @@
         //attachInspector(lng)
 
         window.onload = function() {
+            class SubBox extends lng.Component {
+                static _template() {
+                    return {
+                        w: 50,
+                        h: 50,
+                        rect: true,
+                        color: 0xff33ffff,
+                    }
+                }
+
+                _init() {
+                    this.signal('passSignal1')
+                    this.signal('passSignal2')
+                }
+            }
+
             class Box extends lng.Component {
                 static _template() {
                     return {
@@ -37,12 +53,21 @@
                         h: 300,
                         rect: true,
                         color: 0xffffff00,
+                        SubBox: {
+                            type: SubBox,
+                            passSignals: {
+                                passSignal1: true,
+                                passSignal2: 'renamedPassSignal2'
+                            }
+                        }
                     }
                 }
 
                 _init() {
                     this.signal('signalHandler1')
                     this.signal('signalHandler2')
+                    this.signal('signalHandler3')
+                    this.signal('signalHandler4')
                 }
             }
 
@@ -62,6 +87,10 @@
                             signals: {
                                 signalHandler1: ctx.signalHandler1,
                                 signalHandler2: () => console.log('signalHandler2'),
+                                signalHandler3: true,
+                                signalHandler4: 'renamedSignalHandler4',
+                                passSignal1: () => console.log('passSignal1'),
+                                renamedPassSignal2: () => console.log('renamedPassSignal2'),
                             }
                         }
 
@@ -70,6 +99,14 @@
 
                 signalHandler1(e) {
                     console.log('signalHandler1')
+                }
+
+                signalHandler3(e) {
+                    console.log('signalHandler3')
+                }
+
+                renamedSignalHandler4(e) {
+                    console.log('signalHandler4')
                 }
             }
 
