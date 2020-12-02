@@ -143,6 +143,12 @@ export default class TextTextureRenderer {
             this._settings.text = this.wrapWord(this._settings.text, wordWrapWidth - textIndent, suffix)
         }
 
+        // accept linebreak sequence
+        const hasLinebreakSequence = /\n\n+/g;
+        if (hasLinebreakSequence.test(this._settings.text)) {
+            this._settings.text = this._settings.text.replace(/\n(?=\n)/g, '\n ');
+        }
+
         // word wrap
         // preserve original text
         let linesInfo;
