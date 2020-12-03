@@ -21,12 +21,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-
-    <script src="../../../dist/lightning-web.js"></script>
     <script src="../../../devtools/lightning-inspect.js"></script>
 </head>
-<body>
+<body style="margin: 0; padding: 0">
     <script type="module">
+        import lng from '../../../src/lightning.mjs';
         //attachInspector(lng)
 
         window.onload = function() {
@@ -77,7 +76,7 @@
                         w: 900,
                         h: 900,
                         Bg: {
-                            src: "../../landscape.jpg", scale: 1,
+                            src: "../landscape.jpg", scale: 1,
                         },
                         Box: {
                             type: Box,
