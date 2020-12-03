@@ -140,6 +140,9 @@ export default class Application extends Component {
             }
 
             if (this._focusPath.length !== newFocusPath.length || index !== newFocusPath.length) {
+                if (this.__options.debug) {
+                  console.log('FOCUS ' + newFocusedComponent.getLocationString());
+                }
                 // Unfocus events.
                 for (let i = this._focusPath.length - 1; i >= index; i--) {
                     const unfocusedElement = this._focusPath.pop();
