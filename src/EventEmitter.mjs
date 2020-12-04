@@ -31,6 +31,28 @@ export default class EventEmitter {
 
     on(name, listener) {
         if (!this._hasEventListeners) {
+            this._eventFunction = {};
+            this._eventListeners = {};
+            this._hasEventListeners = true;
+        }
+
+        const current = this._eventFunction[name];
+        if (!current) {
+            this._eventFunction[name] = { on: listener };
+        } else if (!current.on) {
+            this._eventFunction[name] = { ...current, on: listener };
+        } else {
+            if (this._eventFunction[name].on !== EventEmitter.combiner) {
+                this._eventListeners[name] = { ...this._eventListeners[name], on: [this._eventFunction[name].on, listener] };
+                this._eventFunction[name].on = EventEmitter.combiner;
+            } else {
+                this._eventListeners[name].on.push(listener);
+            }
+        }
+    }
+
+    once(name, listener) {
+        if (!this._hasEventListeners) {
             this._eventFunction = {}
             this._eventListeners = {}
             this._hasEventListeners = true;
@@ -38,51 +60,72 @@ export default class EventEmitter {
 
         const current = this._eventFunction[name];
         if (!current) {
-            this._eventFunction[name] = listener;
+            this._eventFunction[name] = { once: listener };
+        } else if (!current.once) {
+            this._eventFunction[name] = { ...current, once: listener };
         } else {
-            if (this._eventFunction[name] !== EventEmitter.combiner) {
-                this._eventListeners[name] = [this._eventFunction[name], listener];
-                this._eventFunction[name] = EventEmitter.combiner;
+            if (this._eventFunction[name].once !== EventEmitter.combiner) {
+                this._eventListeners[name] = { ...this._eventListeners[name], once: [this._eventFunction[name].once, listener] };
+                this._eventFunction[name].once = EventEmitter.combiner;
             } else {
-                this._eventListeners[name].push(listener);
+                this._eventListeners[name].once.push(listener);
             }
         }
     }
 
     has(name, listener) {
         if (this._hasEventListeners) {
-            const current = this._eventFunction[name];
-            if (current) {
-                if (current === EventEmitter.combiner) {
-                    const listeners = this._eventListeners[name];
-                    let index = listeners.indexOf(listener);
-                    return (index >= 0);
-                } else if (this._eventFunction[name] === listener) {
-                    return true;
+            const hasWithType = (type) => {
+                const current = this._eventFunction[name][type];
+                if (current) {
+                    if (current === EventEmitter.combiner) {
+                        const listeners = this._eventListeners[name][type];
+                        let index = listeners.indexOf(listener);
+                        return (index >= 0);
+                    } else if (this._eventFunction[name][type] === listener) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                } else {
+                    return false;
                 }
-            }
+            };
+
+            return hasWithType('on') || hasWithType('once');
         }
         return false;
     }
 
     off(name, listener) {
         if (this._hasEventListeners) {
-            const current = this._eventFunction[name];
-            if (current) {
-                if (current === EventEmitter.combiner) {
-                    const listeners = this._eventListeners[name];
-                    let index = listeners.indexOf(listener);
-                    if (index >= 0) {
-                        listeners.splice(index, 1);
+            const offWithType = (type) => {
+                const current = this._eventFunction[name][type];
+                const otherType = type === 'on' ? 'once' : 'on';
+
+                if (current) {
+                    if (current === EventEmitter.combiner) {
+                        const listeners = this._eventListeners[name][type];
+                        let index = listeners.indexOf(listener);
+                        if (index >= 0) {
+                            listeners.splice(index, 1);
+                        }
+                        if (listeners.length === 1) {
+                            this._eventFunction[name][type] = listeners[0];
+                            delete this._eventListeners[name];
+                        }
+                    } else if (this._eventFunction[name][type] === listener) {
+                        if (this._eventFunction[name][otherType]) {
+                            this._eventFunction[name][type] = undefined;
+                        } else {
+                            this._eventFunction = undefined;
+                            this._hasEventListeners = false;
+                        }
                     }
-                    if (listeners.length === 1) {
-                        this._eventFunction[name] = listeners[0];
-                        this._eventListeners[name] = undefined;
-                    }
-                } else if (this._eventFunction[name] === listener) {
-                    this._eventFunction[name] = undefined;
                 }
             }
+            offWithType('on');
+            offWithType('once');
         }
     }
 
@@ -91,13 +134,27 @@ export default class EventEmitter {
     }
 
     emit(name, arg1, arg2, arg3) {
-        if (this._hasEventListeners) {
-            const func = this._eventFunction[name];
-            if (func) {
-                if (func === EventEmitter.combiner) {
-                    func(this, name, arg1, arg2, arg3);
+        if (this._hasEventListeners && this._eventFunction[name]) {
+            const onFunc = this._eventFunction[name].on;
+            const onceFunc = this._eventFunction[name].once;
+            if (onFunc) {
+                if (onFunc === EventEmitter.combiner) {
+                    onFunc(this, name, arg1, arg2, arg3);
                 } else {
-                    func(arg1, arg2, arg3);
+                    onFunc(arg1, arg2, arg3);
+                }
+            }
+            if (onceFunc) {
+                if (onceFunc === EventEmitter.combiner) {
+                    onceFunc(this, name, arg1, arg2, arg3);
+                    this._eventListeners[name].once.forEach(
+                        listener => this.off(name, listener)
+                    );
+                    // After n-1 listener, last listener is moved to eventFunction
+                    this.off(name, this._eventFunction[name].once);
+                } else {
+                    onceFunc(arg1, arg2, arg3);
+                    this.off(name, onceFunc);
                 }
             }
         }
@@ -105,14 +162,19 @@ export default class EventEmitter {
 
     listenerCount(name) {
         if (this._hasEventListeners) {
-            const func = this._eventFunction[name];
-            if (func) {
-                if (func === EventEmitter.combiner) {
-                    return this._eventListeners[name].length;
+            const countWithType = (type) => {
+                const func = this._eventFunction[name];
+                if (func && func[type]) {
+                    if (func[type] === EventEmitter.combiner) {
+                        return this._eventListeners[name][type].length;
+                    } else {
+                        return 1;
+                    }
                 } else {
-                    return 1;
+                    return 0;
                 }
             }
+            return countWithType('on') + countWithType('once');
         } else {
             return 0;
         }
@@ -122,16 +184,24 @@ export default class EventEmitter {
         if (this._hasEventListeners) {
             delete this._eventFunction[name];
             delete this._eventListeners[name];
+            this._hasEventListeners = false;
         }
     }
 
 }
 
 EventEmitter.combiner = function(object, name, arg1, arg2, arg3) {
-    const listeners = object._eventListeners[name];
-    if (listeners) {
+    const onListeners = object._eventListeners[name].on;
+    const onceListeners = object._eventListeners[name].once;
+    if (onListeners) {
         // Because listener may detach itself while being invoked, we use a forEach instead of for loop.
-        listeners.forEach((listener) => {
+        onListeners.forEach((listener) => {
+            listener(arg1, arg2, arg3);
+        });
+    }
+    if (onceListeners) {
+        // Because listener may detach itself while being invoked, we use a forEach instead of for loop.
+        onceListeners.forEach((listener) => {
             listener(arg1, arg2, arg3);
         });
     }
@@ -139,6 +209,7 @@ EventEmitter.combiner = function(object, name, arg1, arg2, arg3) {
 
 EventEmitter.addAsMixin = function(cls) {
     cls.prototype.on = EventEmitter.prototype.on;
+    cls.prototype.once = EventEmitter.prototype.once;
     cls.prototype.has = EventEmitter.prototype.has;
     cls.prototype.off = EventEmitter.prototype.off;
     cls.prototype.removeListener = EventEmitter.prototype.removeListener;
