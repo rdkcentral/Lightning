@@ -109,6 +109,16 @@
                 }
             }
         }
+
+        _init() {
+            this._animationDemo = this.animation({duration: 2, repeat: -1, actions: [
+                    {t: 'Dithering8', p: 'shader.graining', v: {0: 0.2, 0.5: 0.9, 1: 0.2}}
+                ]});
+        }
+
+        _active() {
+            this._animationDemo.start();
+        }
     }
 
     const options = {stage: {w: 1920, h: 1080, clearColor: 0xFF000000, canvas2d: false}};
