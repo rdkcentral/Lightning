@@ -42,7 +42,7 @@
                     w: SIZE,
                     h: SIZE,
                     rect: true,
-                    shader: {type: lng.shaders.LinearGradient, fromColor: 0xffff0000, toColor: 0xff0000ff}
+                    shader: {type: lng.shaders.LinearGradient, colors: [0xffff0000, 0xff0000ff]}
                 },
                 LinearGradient2: {
                     x: 480,
@@ -50,7 +50,7 @@
                     w: SIZE,
                     h: SIZE,
                     rect: true,
-                    shader: {type: lng.shaders.LinearGradient, fromColor: 0xffff0000, toColor: 0xff0000ff, angle: 0}
+                    shader: {type: lng.shaders.LinearGradient, colors: [0xffff0000, 0xff0000ff], angle: 0}
                 },
                 LinearGradient3: {
                     x: 870,
@@ -58,7 +58,7 @@
                     w: SIZE,
                     h: SIZE,
                     rect: true,
-                    shader: {type: lng.shaders.LinearGradient, fromColor: 0xffff0000, toColor: 0xff0000ff, from: [0, 0.5], to: [1, 0.5]}
+                    shader: {type: lng.shaders.LinearGradient, colors: [0xffff0000, 0xff0000ff], from: [0, 0.5], to: [1, 0.5]}
                 },
                 LinearGradient4: {
                     x: 1260,
@@ -66,7 +66,7 @@
                     w: SIZE,
                     h: SIZE,
                     rect: true,
-                    shader: {type: lng.shaders.LinearGradient, fromColor: 0xffff0000, toColor: 0xff0000ff, to: 0.5}
+                    shader: {type: lng.shaders.LinearGradient, colors: [0xffff0000, 0xff0000ff], to: 0.5}
                 },
                 LinearGradient5: {
                     x: 90,
@@ -74,7 +74,7 @@
                     w: SIZE,
                     h: SIZE,
                     rect: true,
-                    shader: {type: lng.shaders.LinearGradient, fromColor: 0xffff0000, toColor: 0xff0000ff, to: 1}
+                    shader: {type: lng.shaders.LinearGradient, colors: [0xffff0000, 0xff0000ff], to: 1}
                 },
                 LinearGradient6: {
                     x: 480,
@@ -82,7 +82,7 @@
                     w: SIZE,
                     h: SIZE,
                     rect: true,
-                    shader: {type: lng.shaders.LinearGradient, fromColor: 0xffff0000, toColor: 0xff0000ff, from: [0.4, 0.5], to: [0.6, 0.5]}
+                    shader: {type: lng.shaders.LinearGradient, colors: [0xffff0000, 0xff008000, 0xff0000ff, 0xff888800], from: [0, 0.5], to: [1, 0.5]}
                 },
                 LinearGradient7: {
                     x: 870,
@@ -90,35 +90,15 @@
                     w: SIZE,
                     h: SIZE,
                     rect: true,
-                    shader: {type: lng.shaders.LinearGradient, fromColor: 0xffff0000, toColor: 0xff0000ff, from: [0, 1], to: 0}
+                    shader: {type: lng.shaders.LinearGradient, colors: [0xffff0000, 0xff008000, 0xff0000ff, 0xff888800], from: [0, 1], to: 0}
                 },
                 LinearGradient8: {
                     x: 1260,
                     y: 480,
-                    w: 500,
+                    w: SIZE,
                     h: SIZE,
                     rect: true,
-                    shader: {type: lng.shaders.LinearGradient, fromColor: 0xffff0000, toColor: 0xff0000ff, angle: 20}
-                },
-                Test: {
-                    x: 1260,
-                    y: 480,
-                    w: 500,
-                    h: SIZE,
-                    Box1: {
-                        w: 10,
-                        h: 10,
-                        color: 0xff00ff00,
-                        rect: true,
-                        mount: 0.5
-                    },
-                    Box2: {
-                        w: 10,
-                        h: 10,
-                        color: 0xff00ff00,
-                        rect: true,
-                        mount: 0.5
-                    }
+                    shader: {type: lng.shaders.LinearGradient, colors: [0xffff0000, 0xff008000, 0xff0000ff, 0xff888800, 0xff880088], angle: 90}
                 },
                 Title: {
                     x: 90,
@@ -130,41 +110,17 @@
         }
 
         _init() {
-            this._animationDemo = this.animation({duration: 2, repeat: -1, actions: [
-                    {p: 'angle', v: {0: 0, 1: 180} },
+            this._animationDemo = this.animation({duration: 5, repeat: -1, actions: [
                     {t: 'LinearGradient6', p: 'shader.toX', v: {0: 0, 0.5: 0.4, 1: 0}},
                     {t: 'LinearGradient6', p: 'shader.fromX', v: {0: 1, 0.5: 0.6, 1: 1}},
                     {t: 'LinearGradient7', p: 'shader.toY', v: {0: 0, 0.5: 0.5, 1: 0}},
                     {t: 'LinearGradient7', p: 'shader.fromY', v: {0: 1, 0.5: 0.5, 1: 1}},
-                    {t: 'LinearGradient8', p: 'shader.degrees', v: {0: 0, 1: 360}}
+                    {t: 'LinearGradient8', p: 'shader.angle', v: {0: 0, 1: 360}}
                 ]});
         }
 
-        set angle(num) {
-            num = num + 90;
-            const degToRad = (d) => d * (m.PI / 180.0);
-            const m = Math;
-            const a = degToRad(num);
-            const fullDist = Math.abs(500 * m.cos(a)) +  Math.abs(300 * m.sin(a));
-            const center = {x: 250, y: 150};
-            const s = this._calcPoint(fullDist * 0.5, a, center);
-            const e = this._calcPoint(fullDist * 0.5, degToRad(num + 180), center);
-
-            this.tag('Test').patch({
-                Box1: {...s},
-                Box2: {...e}
-            })
-        }
-
-        _calcPoint(dist, a, center) {
-            return {
-                x: ((dist) * Math.cos(a) + center.x),
-                y: ((dist) * Math.sin(a) + center.y)
-            }
-        }
-
         _active() {
-            // this._animationDemo.start();
+            this._animationDemo.start();
         }
     }
 

@@ -25,9 +25,9 @@ export default class LinearGradientShader extends DefaultShader {
         super(context);
         this._from = [0.5, 0.0];
         this._to = [0.5, 1.0];
-        this._degrees = 0;
+        this._angle = 0;
         this._calcByAngle = 0;
-        this._stops = undefined;
+        this._stops = [];
         this._colors = [];
     }
 
@@ -88,8 +88,59 @@ export default class LinearGradientShader extends DefaultShader {
         this.redraw();
     }
 
+    set color1(argb) {
+        this._colors[0] = this._getNormalizedColor(argb);
+        this.redraw();
+    }
+
+    set color2(argb) {
+        this._colors[1] = this._getNormalizedColor(argb);
+        this.redraw();
+    }
+
+    set color3(argb) {
+        this._colors[2] = this._getNormalizedColor(argb);
+        this.redraw();
+    }
+
+    set color4(argb) {
+        this._colors[3] = this._getNormalizedColor(argb);
+        this.redraw();
+    }
+
+    set color5(argb) {
+        this._colors[4] = this._getNormalizedColor(argb);
+        this.redraw();
+    }
+
     set stops(arr) {
         this._stops = arr;
+        this.redraw();
+    }
+
+    set stop1(f) {
+        this._stops[0] = f;
+        this.redraw();
+    }
+
+    set stop2(f) {
+        this._stops[1] = f;
+        this.redraw();
+    }
+
+    set stop3(f) {
+        this._stops[2] = f;
+        this.redraw();
+    }
+
+    set stop4(f) {
+        this._stops[3] = f;
+        this.redraw();
+    }
+
+    set stop5(f) {
+        this._stops[4] = f;
+        this.redraw();
     }
 
     set angle(num) {
@@ -127,17 +178,18 @@ export default class LinearGradientShader extends DefaultShader {
         return new Float32Array(col);
     }
 
-
     setupUniforms(operation) {
         super.setupUniforms(operation);
         const owner = operation.shaderOwner;
         let stops = this._stops;
-
-        if(!stops || (stops && stops.length !== this._colors.length)) {
+        if(stops.length === 0 || (stops && stops.length !== this._colors.length)) {
             const tmp = [];
             for(let i = 0; i < this._colors.length; i++) {
                 if(stops[i]) {
                     tmp[i] = stops[i];
+                    if(stops[i - 1] === undefined && tmp[i - 2] !== undefined) {
+                        tmp[i - 1] = tmp[i - 2] + ((stops[i] - tmp[i - 2]) / 2);
+                    }
                 }
                 else {
                     tmp[i] = i * (1 / (this._colors.length - 1));
@@ -147,17 +199,17 @@ export default class LinearGradientShader extends DefaultShader {
         }
 
         this._setUniform('resolution', new Float32Array([owner._w, owner._h]), this.gl.uniform2fv);
+        this._setUniform('alpha', operation.getElementCore(0).renderContext.alpha, this.gl.uniform1f);
         this._setUniform('from', new Float32Array(this._from), this.gl.uniform2fv);
         this._setUniform('to', new Float32Array(this._to), this.gl.uniform2fv);
 
-        // this._setUniform('colors', [this._fromColor, this._toColor], this.gl.uniform4fv);
         this._setUniform('stops', new Float32Array(stops), this.gl.uniform1fv);
-        this._setUniform('colorStops', stops.length, this.gl.uniform1f);
+        this._setUniform('colorStops', stops.length, this.gl.uniform1i);
         this._setUniform('angle',  this._angle, this.gl.uniform1f);
         this._setUniform('calcByAngle', this._calcByAngle, this.gl.uniform1f);
 
         this._colors.forEach((color, index) => {
-            this._setUniform(`color${index+1}`, color, this.gl.uniform2fv);
+            this._setUniform(`color${index+1}`, color, this.gl.uniform4fv);
         });
     }
 }
@@ -176,6 +228,7 @@ LinearGradientShader.fragmentShaderSource = `
     varying vec2 vTextureCoord;
     varying vec4 vColor;
     uniform vec2 resolution;
+    uniform float alpha;
     uniform vec2 from;
     uniform vec2 to;
     
@@ -183,9 +236,10 @@ LinearGradientShader.fragmentShaderSource = `
     uniform vec4 color2;
     uniform vec4 color3;
     uniform vec4 color4;
+    uniform vec4 color5;
     
-    uniform float stops[4];
-    uniform float colorStops;
+    uniform float stops[16];
+    uniform int colorStops;
     
     uniform float angle;
     uniform float calcByAngle;
@@ -216,7 +270,7 @@ LinearGradientShader.fragmentShaderSource = `
         vec2 center = vTextureCoord.xy * resolution - (resolution * 0.5);
         
         if(calcByAngle > 0.0) {
-            float d = degrees + 90.0;
+            float d = angle + 90.0;
             float a = degToRad(d);
             float lineDist = abs(resolution.x * cos(a)) + abs(resolution.y * sin(a));
             f = calcPoint(lineDist * 0.5, a);
@@ -228,14 +282,34 @@ LinearGradientShader.fragmentShaderSource = `
         }
         
         vec2 gradVec = t - f;
-        float value = dot(vTextureCoord.xy * resolution - f, gradVec) / dot(gradVec, gradVec);
+        float dist = dot(vTextureCoord.xy * resolution - f, gradVec) / dot(gradVec, gradVec);
         
-        float colorStop1 = (value * 0.3);
-        float colorStop2 = (value * 0.8);
-        float test = (value - 0.0) / (0.2 - 0.0);
-        vec4 toC = vec4(colors[0][0], colors[0][1], colors[0][2], 1.0);
-        gl_FragColor = mix(toC, colors[2], clamp(value, 0.0, 1.0));
-        // value = clamp(value, 0.0, 1.0);
-        // gl_FragColor = fromLinear(mix(toLinear(colors[0][0]), toLinear(colors[0][1]), test));
+        vec4 colors[16];
+        colors[0] = color1;
+        colors[1] = color2;
+        colors[2] = color3;
+        colors[3] = color4;
+        colors[4] = color5;
+        
+        //start with blank canvas
+        vec4 colorOut = vec4(1.0);
+        
+        if(colorStops == 1) {
+            colorOut = colors[0];
+        }
+        else if(colorStops > 1) {
+            float stopCalc = (dist - stops[0]) / (stops[1] - stops[0]);
+            colorOut = fromLinear(mix(toLinear(colors[0]), toLinear(colors[1]), stopCalc));
+            //max 16 colors?
+            for(int i = 1; i < 16-1; i++) {
+                if(i < colorStops - 1) {
+                    float stopCalc = (dist - stops[i]) / (stops[i + 1] - stops[i]);
+                    colorOut = mix(colorOut, colors[i + 1], clamp(stopCalc, 0.0, 1.0));  
+                }
+                else {break;}
+            } 
+        }
+        
+        gl_FragColor = colorOut * alpha;
     }
 `;
