@@ -748,11 +748,9 @@ window.attachInspector = function({Element, ElementCore, Stage, Component, Eleme
     Object.defineProperty(ElementCore.prototype, 'isfocused', {
       // We are working on the core!
       get: function() {
-        console.log('Inspector geeting is focused')
         return this._isfocused
       },
       set: function(v) {
-        console.log('Inspector setting is focused')
         this._isfocused = v
 
         // Put the attribute 'isfocused' as the current value

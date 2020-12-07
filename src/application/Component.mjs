@@ -325,8 +325,6 @@ export default class Component extends Element {
     }
 
     _focus(newTarget, prevTarget) {
-      console.log('newTarget', newTarget)
-      console.log('prevTarget', prevTarget)
     }
 
     _unfocus(newTarget) {
