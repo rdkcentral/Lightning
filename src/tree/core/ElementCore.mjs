@@ -129,6 +129,12 @@ export default class ElementCore {
         this._isRoot = false;
 
         /**
+         * FOCUS!
+         */
+
+         this._isfocused = false;
+
+        /**
          * Iff true, during zSort, this element should be 're-sorted' because either:
          * - zIndex did chang
          * - zParent did change
@@ -159,6 +165,19 @@ export default class ElementCore {
         this.render = this._renderSimple;
 
         this._layout = null;
+    }
+
+    /**
+     * FOCUS SET/GET
+     *
+     * Focus property that tells if the item is focused or not
+     */
+    get isfocused() {
+      return this._isfocused
+    }
+
+    set isfocused(v) {
+      this._isfocused = Utils.isBoolean(v)
     }
 
     get offsetX() {

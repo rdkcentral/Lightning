@@ -1506,7 +1506,7 @@ export default class Element {
     set visible(v) {
         this.__core.visible = v;
     }
-    
+
     get colorUl() {
         return this.__core.colorUl;
     }
@@ -1594,6 +1594,19 @@ export default class Element {
             this.colorUr = v;
             this.colorBr = v;
         }
+    }
+
+    /**
+     * isfocused property of the Elemenet
+     *
+     * This property sets and gets if the element has focus
+     */
+    get isfocused() {
+      return this.__core.isfocused;
+    }
+
+    set isfocused(v) {
+      this.__core.isfocused = Utils.isBoolean(v) ? v : false;
     }
 
     get zIndex() {return this.__core.zIndex}

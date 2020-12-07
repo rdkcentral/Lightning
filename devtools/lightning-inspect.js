@@ -27,7 +27,7 @@ window.attachInspector = function({Element, ElementCore, Stage, Component, Eleme
     window.mutationCounter = 0;
     window.mutatingChildren = false;
     var observer = new MutationObserver(function(mutations) {
-        var fa = ["x", "y", "w", "h", "alpha", "mountX", "mountY", "pivotX", "pivotY", "scaleX", "scaleY", "rotation", "visible", "clipping", "rect", "colorUl", "colorUr", "colorBl", "colorBr", "color", "borderWidthLeft", "borderWidthRight", "borderWidthTop", "borderWidthBottom", "borderWidth", "borderColorLeft", "borderColorRight", "borderColorTop", "borderColorBottom", "borderColor", "zIndex", "forceZIndexContext", "renderToTexture", "renderToTextureLazy", "renderOffscreen", "colorizeResultTexture", "texture"];
+        var fa = ["x", "y", "w", "h", "alpha", "mountX", "mountY", "pivotX", "pivotY", "scaleX", "scaleY", "rotation", "visible", "clipping", "rect", "colorUl", "colorUr", "colorBl", "colorBr", "color", "borderWidthLeft", "borderWidthRight", "borderWidthTop", "borderWidthBottom", "borderWidth", "borderColorLeft", "borderColorRight", "borderColorTop", "borderColorBottom", "borderColor", "zIndex", "forceZIndexContext", "renderToTexture", "renderToTextureLazy", "renderOffscreen", "colorizeResultTexture", "texture", "isfocused"];
         var fac = fa.map(function(v) {return v.toLowerCase()});
 
         mutations.forEach(function(mutation) {
@@ -115,6 +115,9 @@ window.attachInspector = function({Element, ElementCore, Stage, Component, Eleme
                                     break;
                                 case "colorizeResultTexture":
                                     pv = false
+                                    break;
+                                case "isfocused":
+                                    pv = false;
                                     break;
                                 default:
                                     pv = 0;
@@ -739,6 +742,23 @@ window.attachInspector = function({Element, ElementCore, Stage, Component, Eleme
             }
         }
     });
+
+    // defining the isfocused property and attribute
+    ElementCore.prototype._isfocused = false;
+    Object.defineProperty(ElementCore.prototype, 'isfocused', {
+      // We are working on the core!
+      get: function() {
+        console.log('Inspector geeting is focused')
+        return this._isfocused
+      },
+      set: function(v) {
+        console.log('Inspector setting is focused')
+        this._isfocused = v
+
+        // Put the attribute 'isfocused' as the current value
+        val(this, 'isfocused', v, false)
+      }
+    })
 
     ElementCore.prototype.updateDebugTransforms = function() {
         const stage = this._element.stage
