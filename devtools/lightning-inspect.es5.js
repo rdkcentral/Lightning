@@ -762,22 +762,11 @@
           this.__renderOffscreen = v;
         }
       }
-    }); // defining the isfocused property and attribute
-
-    ElementCore.prototype._isfocused = false;
-    Object.defineProperty(ElementCore.prototype, 'isfocused', {
-      // We are working on the core!
-      get: function get() {
-        console.log('Inspector geeting is focused');
-        return this._isfocused;
-      },
-      set: function set(v) {
-        console.log('Inspector setting is focused');
-        this._isfocused = v; // Put the attribute 'isfocused' as the current value
-
-        val(this, 'isfocused', v, false);
-      }
     });
+
+    Element.prototype.updateDebugFocusState = function () {
+      val(this, 'hasfinalfocus', this.hasFinalFocus(), false);
+    };
 
     ElementCore.prototype.updateDebugTransforms = function () {
       var stage = this._element.stage;

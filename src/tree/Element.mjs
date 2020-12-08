@@ -1596,19 +1596,6 @@ export default class Element {
         }
     }
 
-    /**
-     * isfocused property of the Elemenet
-     *
-     * This property sets and gets if the element has focus
-     */
-    get isfocused() {
-      return this.__core.isfocused;
-    }
-
-    set isfocused(v) {
-      this.__core.isfocused = Utils.isBoolean(v) ? v : false;
-    }
-
     get zIndex() {return this.__core.zIndex}
     set zIndex(v) {
         this.__core.zIndex = v;

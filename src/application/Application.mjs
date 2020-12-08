@@ -103,10 +103,21 @@ export default class Application extends Component {
     }
 
     __updateFocus() {
+        const prevFocusedComponent = this._focusPath ? this._focusPath[this._focusPath.length - 1] : undefined;
         const notOverridden = this.__updateFocusRec();
 
         if (!Application.booting && notOverridden) {
             this.updateFocusSettings();
+        }
+
+        if (this.__options.debug) {
+            const newFocusedComponent = this._focusPath ? this._focusPath[this._focusPath.length - 1] : undefined;
+            prevFocusedComponent && prevFocusedComponent.updateDebugFocusState && prevFocusedComponent.updateDebugFocusState();
+            newFocusedComponent && newFocusedComponent.updateDebugFocusState && newFocusedComponent.updateDebugFocusState();
+
+            if (prevFocusedComponent !== newFocusedComponent) {
+                console.log('FOCUS ' + (newFocusedComponent && newFocusedComponent.getLocationString()));
+            }
         }
     }
 
@@ -140,12 +151,6 @@ export default class Application extends Component {
             }
 
             if (this._focusPath.length !== newFocusPath.length || index !== newFocusPath.length) {
-                // Set console focus
-                if (this.__options.debug) {
-                  console.log('FOCUS ' + newFocusedComponent.getLocationString());
-                  newFocusedComponent.isfocused = true
-                }
-
                 // Unfocus events.
                 for (let i = this._focusPath.length - 1; i >= index; i--) {
                     const unfocusedElement = this._focusPath.pop();
@@ -235,7 +240,7 @@ export default class Application extends Component {
             }
 
             current = nextFocus;
-        } while(true);
+        } while (true);
 
         return path;
     }
