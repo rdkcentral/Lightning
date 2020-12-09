@@ -102,8 +102,14 @@ export default class Application extends Component {
         this.__updateFocus();
     }
 
+    __focusedComponent() {
+        return this._focusPath ? this._focusPath[this._focusPath.length - 1] : undefined;
+    }
+
     __updateFocus() {
-        const prevFocusedComponent = this._focusPath ? this._focusPath[this._focusPath.length - 1] : undefined;
+        const prevFocusedComponent = this.__focusedComponent();
+
+        // The Application's focus path, therefore final focused component, may change here...
         const notOverridden = this.__updateFocusRec();
 
         if (!Application.booting && notOverridden) {
@@ -111,7 +117,9 @@ export default class Application extends Component {
         }
 
         if (this.__options.debug) {
-            const newFocusedComponent = this._focusPath ? this._focusPath[this._focusPath.length - 1] : undefined;
+            const newFocusedComponent = this.__focusedComponent();
+
+            // Testing for updateDebugFocusState safeties against lightning inspector not having been attached.
             prevFocusedComponent && prevFocusedComponent.updateDebugFocusState && prevFocusedComponent.updateDebugFocusState();
             newFocusedComponent && newFocusedComponent.updateDebugFocusState && newFocusedComponent.updateDebugFocusState();
 
@@ -127,7 +135,7 @@ export default class Application extends Component {
 
         const newFocusPath = this.__getFocusPath();
         const newFocusedComponent = newFocusPath[newFocusPath.length - 1];
-        const prevFocusedComponent = this._focusPath ? this._focusPath[this._focusPath.length - 1] : undefined;
+        const prevFocusedComponent = this.__focusedComponent();
 
         if (!prevFocusedComponent) {
             // Focus events.
