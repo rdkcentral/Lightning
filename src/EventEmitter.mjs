@@ -49,15 +49,27 @@ export default class EventEmitter {
         }
     }
 
+    once(name, listener) {
+        const wrapper = (arg1, arg2, arg3) => {
+            listener(arg1, arg2, arg3);
+            this.off(name, wrapper);
+        }
+        wrapper.__originalFunc = listener;
+        this.on(name, wrapper);
+    }
+
     has(name, listener) {
         if (this._hasEventListeners) {
             const current = this._eventFunction[name];
             if (current) {
                 if (current === EventEmitter.combiner) {
                     const listeners = this._eventListeners[name];
-                    let index = listeners.indexOf(listener);
-                    return (index >= 0);
-                } else if (this._eventFunction[name] === listener) {
+                    for (const l of listeners) {
+                        if (l === listener || l.__originalFunc == listener) {
+                            return true;
+                        }
+                    }
+                } else if (this._eventFunction[name] === listener || this._eventFunction[name].__originalFunc === listener) {
                     return true;
                 }
             }
@@ -75,11 +87,15 @@ export default class EventEmitter {
                     if (index >= 0) {
                         listeners.splice(index, 1);
                     }
+                    index = listeners.map((l) => l.__originalFunc).indexOf(listener);
+                    if (index >= 0) {
+                        listeners.splice(index, 1);
+                    }
                     if (listeners.length === 1) {
                         this._eventFunction[name] = listeners[0];
                         this._eventListeners[name] = undefined;
                     }
-                } else if (this._eventFunction[name] === listener) {
+                } else if (this._eventFunction[name] === listener || this._eventFunction[name].__originalFunc === listener) {
                     this._eventFunction[name] = undefined;
                 }
             }
@@ -113,9 +129,8 @@ export default class EventEmitter {
                     return 1;
                 }
             }
-        } else {
-            return 0;
         }
+        return 0;
     }
 
     removeAllListeners(name) {
@@ -130,10 +145,11 @@ export default class EventEmitter {
 EventEmitter.combiner = function(object, name, arg1, arg2, arg3) {
     const listeners = object._eventListeners[name];
     if (listeners) {
-        // Because listener may detach itself while being invoked, we use a forEach instead of for loop.
-        listeners.forEach((listener) => {
+        /* Because listener may detach itself while being invoked and therefore invalidate the iterator,
+           we need to create a copy to loop over it */
+        for (const listener of [...listeners]) {
             listener(arg1, arg2, arg3);
-        });
+        }
     }
 }
 
