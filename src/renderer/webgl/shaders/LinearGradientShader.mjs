@@ -175,7 +175,8 @@ export default class LinearGradientShader extends DefaultShader {
         col[0] *= col[3];
         col[1] *= col[3];
         col[2] *= col[3];
-        return new Float32Array(col);
+        return col;
+        // return new Float32Array(col);
     }
 
     setupUniforms(operation) {
@@ -208,9 +209,10 @@ export default class LinearGradientShader extends DefaultShader {
         this._setUniform('angle',  this._angle, this.gl.uniform1f);
         this._setUniform('calcByAngle', this._calcByAngle, this.gl.uniform1f);
 
-        this._colors.forEach((color, index) => {
-            this._setUniform(`color${index+1}`, color, this.gl.uniform4fv);
-        });
+        // this._colors.forEach((color, index) => {
+        //     this._setUniform(`color${index+1}`, color, this.gl.uniform4fv);
+        // });
+        this._setUniform('colors', new Float32Array(this._colors.reduce((acc, val) => acc.concat(val))), this.gl.uniform4fv);
     }
 }
 
@@ -232,11 +234,12 @@ LinearGradientShader.fragmentShaderSource = `
     uniform vec2 from;
     uniform vec2 to;
     
-    uniform vec4 color1;
-    uniform vec4 color2;
-    uniform vec4 color3;
-    uniform vec4 color4;
-    uniform vec4 color5;
+    // uniform vec4 color1;
+    // uniform vec4 color2;
+    // uniform vec4 color3;
+    // uniform vec4 color4;
+    // uniform vec4 color5;
+    uniform vec4 uColors[5];
     
     uniform float stops[16];
     uniform int colorStops;
@@ -285,11 +288,11 @@ LinearGradientShader.fragmentShaderSource = `
         float dist = dot(vTextureCoord.xy * resolution - f, gradVec) / dot(gradVec, gradVec);
         
         vec4 colors[16];
-        colors[0] = color1;
-        colors[1] = color2;
-        colors[2] = color3;
-        colors[3] = color4;
-        colors[4] = color5;
+        colors[0] = uColors[0];
+        colors[1] = uColors[1];
+        colors[2] = uColors[2];
+        colors[3] = uColors[3];
+        colors[4] = uColors[4];
         
         //start with blank canvas
         vec4 colorOut = vec4(1.0);
