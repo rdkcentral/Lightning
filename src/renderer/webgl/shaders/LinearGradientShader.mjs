@@ -212,7 +212,7 @@ export default class LinearGradientShader extends DefaultShader {
         // this._colors.forEach((color, index) => {
         //     this._setUniform(`color${index+1}`, color, this.gl.uniform4fv);
         // });
-        this._setUniform('colors', new Float32Array(this._colors.reduce((acc, val) => acc.concat(val))), this.gl.uniform4fv);
+        this._setUniform('uColors', new Float32Array(this._colors.reduce((acc, val) => acc.concat(val))), this.gl.uniform4fv);
     }
 }
 
