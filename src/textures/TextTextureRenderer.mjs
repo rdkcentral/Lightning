@@ -449,10 +449,8 @@ export default class TextTextureRenderer {
                 }
             }
 
-            if (result) {
-                resultLines.push(result);
-                result = '';
-            }
+            resultLines.push(result);
+            result = '';
 
             allLines = allLines.concat(resultLines);
 
