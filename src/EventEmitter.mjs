@@ -155,6 +155,7 @@ EventEmitter.combiner = function(object, name, arg1, arg2, arg3) {
 
 EventEmitter.addAsMixin = function(cls) {
     cls.prototype.on = EventEmitter.prototype.on;
+    cls.prototype.once = EventEmitter.prototype.once;
     cls.prototype.has = EventEmitter.prototype.has;
     cls.prototype.off = EventEmitter.prototype.off;
     cls.prototype.removeListener = EventEmitter.prototype.removeListener;
