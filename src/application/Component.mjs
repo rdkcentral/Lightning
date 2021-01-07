@@ -84,23 +84,27 @@ export default class Component extends Element {
         // 1. find binding position: find object and property name to be bound
         const obj = targetObj;
         const prop = targetProp;
-        const propName = propObj.__name;
-        const func = propObj.__func ? propObj.__func : (context) => context[propName];
+        const propDependencies = Array.isArray(propObj.__name) ? propObj.__name : [propObj.__name];
 
-        // 2. create setter for given object
-        if (!this.hasOwnProperty(propName)) {
-            this[`__prop_bindings_${propName}`] = [{__obj: obj, __prop: prop, __func: func}];
-            Object.defineProperty(this, propName, {
-                set: (value) => {
-                    this[`__prop_${propName}`] = value;
-                    for (const {__obj, __prop, __func} of this[`__prop_bindings_${propName}`]) {
-                        __obj[__prop] = __func(this);
-                    }
-                },
-                get: () => this[`__prop_${propName}`]
-            });
-        } else {
-            this[`__prop_bindings_${propName}`].push({__obj: obj, __prop: prop, __func: func});
+        // 2. create setters for every given dependency
+        for (let i = 0; i < propDependencies.length; i++) {
+            const propName = propDependencies[i];
+            const func = propObj.__func ? propObj.__func : (context) => context[propName];
+
+            if (!this.hasOwnProperty(propName)) {
+                this[`__prop_bindings_${propName}`] = [{__obj: obj, __prop: prop, __func: func}];
+                Object.defineProperty(this, propName, {
+                    set: (value) => {
+                        this[`__prop_${propName}`] = value;
+                        for (const {__obj, __prop, __func} of this[`__prop_bindings_${propName}`]) {
+                            __obj[__prop] = __func(this);
+                        }
+                    },
+                    get: () => this[`__prop_${propName}`]
+                });
+            } else {
+                this[`__prop_bindings_${propName}`].push({__obj: obj, __prop: prop, __func: func});
+            }
         }
     }
 
