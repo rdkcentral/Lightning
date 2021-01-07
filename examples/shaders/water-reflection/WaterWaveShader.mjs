@@ -17,15 +17,25 @@
  * limitations under the License.
  */
 
-import lng from '../../src/lightning.mjs'
+import lng from '../../../src/lightning.mjs'
 export default class WaterWaveShader extends lng.shaders.WebGLDefaultShader {
 
     constructor(context) {
         super(context);
+        this._horizon = 500;
     }
 
     restart() {
         this._start = Date.now()
+    }
+
+    get horizon() {
+        return this._horizon;
+    }
+
+    set horizon(v) {
+        this._horizon = v;
+        this.redraw();
     }
 
     setupUniforms(operation) {
@@ -44,6 +54,8 @@ export default class WaterWaveShader extends lng.shaders.WebGLDefaultShader {
         const w = operation.getRenderWidth();
         const h = operation.getRenderHeight();
         this._setUniform("dims", new Float32Array([w, h, w/h]), this.gl.uniform3fv);
+
+        this._setUniform("horizon", this._horizon, this.gl.uniform1f);
 
         this.redraw()
     }
@@ -81,17 +93,18 @@ WaterWaveShader.fragmentShaderSource = `
     uniform float t;
     uniform vec3 texDims;
     uniform vec3 dims;
-    
-    void addNormal(in float amplitude, in float t, in float v, in float wavelength, in float angle, inout vec2 delta) {
+    uniform float horizon;
+
+    void addNormal(in vec2 xy, in float amplitude, in float t, in float v, in float wavelength, in float angle, inout vec2 delta) {
         vec2 dir = vec2(cos(angle), sin(angle));
-        float dist = dot(gl_FragCoord.xy, dir);
+        float dist = dot(xy, dir);
         float dz = cos(2.0*M_PI * (v * t - dist) / wavelength) * (amplitude / wavelength);
         delta.x -= dz * dir.x;
         delta.y += dz * dir.y;
     }
 
-    void addRipple(in float amplitude, in vec2 pos, in float v, in float wavelength, in float fadeout, in float t0, in float t, inout vec2 delta) {
-        vec2 dir = gl_FragCoord.xy - pos;
+    void addRipple(in vec2 xy, in float amplitude, in vec2 pos, in float v, in float wavelength, in float fadeout, in float t0, in float t, inout vec2 delta) {
+        vec2 dir = xy - pos;
         float dist = length(dir);
         dir = dir / dist;
         if (t > t0) {
@@ -115,31 +128,43 @@ WaterWaveShader.fragmentShaderSource = `
     }
 
     void main(void){
+        // Calculate water position.
+        vec2 pos = gl_FragCoord.xy;
+        pos.x -= dims.x * 0.5;
+        if (projection.y > 0.0) {
+            pos.y = horizon - pos.y;
+        } else {
+            pos.y = horizon - (dims.y - pos.y);
+        }
+                
+        float h = 20.0;
+        float k = 500.0;
+
+        float mz = h * k / 50.0;
+        float z = -((h * k) / pos.y);
+        float x = pos.x * z / k;
+        
+        float mx = dims.x * mz / k;  
+
+        // Calculate top-down normal.
         vec2 delta = vec2(0.0, 0.0);
-        addNormal(2., t, 40., 80., 1.85*M_PI, delta);
-        addNormal(3., t, 40., 100., -0.4*M_PI, delta);
-        addNormal(4., t, 40., 60., 0.4*M_PI, delta);
+        vec2 xy = vec2(x, z);
+        addNormal(xy, 0.0125, t, 6., 5.0, 1.85*M_PI, delta);
+        addNormal(xy, 0.0225, t, 8., 6.0, -0.4*M_PI, delta);
+        addNormal(xy, 0.0125, t, 5., 4.0, 0.4*M_PI, delta);
 
-        addRipple(90.0, 0.4 * dims.xy, 120.0, 50.0, 0.05, 2.0, t, delta);
-
-        vec3 normal = normalize(vec3(delta, -1.0));
+        addRipple(xy, 0.5, vec2(0.0, 50.0), 10.0, 3.0, 0.35, 1.0, t, delta);
+        vec3 normal = normalize(vec3(delta.x, -1.0, delta.y));
         
-        vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
-        
-        // Water diffraction.
-        vec2 changeTxCoord = (20.0 * projection.x) * -0.33333 * normal.xy;
-        changeTxCoord.y = changeTxCoord.y * texDims.z;
-        color = 1.0 * texture2D(uSampler, vTextureCoord + changeTxCoord);
-
         // Reflection.
-        vec3 v = normalize(vec3(gl_FragCoord.xy - 0.5 * dims.xy, 1000.0));
+        vec3 v = normalize(vec3(x, 100.0, z));
         vec3 r = (v - 2.0 * normal * dot(normal, v));
         
-        r.xy -= 0.1;
-        float dist = dot(r.xy, r.xy);
-        color += 0.7 * mix(vec4(1.0, 1.0, 1.0, 1.0), vec4(0.2, 0.2, 0.5, 0.5), min(1.0, max(0.0, 40.0 * (dist - 0.01))));  
+        vec2 reflect = r.xy * ((mz - z) / r.z) + vec2(x, 0.0);
         
-        color.a = 1.0;
+        reflect.y = -reflect.y;
+        
+        vec4 color = texture2D(uSampler, vec2(reflect.x / mx + 0.5, 1.0 - (reflect.y / mx)));
         
         gl_FragColor = color * vColor;
     }

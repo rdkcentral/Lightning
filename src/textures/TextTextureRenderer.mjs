@@ -107,7 +107,7 @@ export default class TextTextureRenderer {
         const cutEx = this._settings.cutEx * precision;
         const cutSy = this._settings.cutSy * precision;
         const cutEy = this._settings.cutEy * precision;
-        const letterSpacing = this._settings.letterSpacing || 0;
+        const letterSpacing = (this._settings.letterSpacing || 0) * precision;
         const textIndent = this._settings.textIndent * precision;
 
         // Set font properties.
@@ -449,10 +449,8 @@ export default class TextTextureRenderer {
                 }
             }
 
-            if (result) {
-                resultLines.push(result);
-                result = '';
-            }
+            resultLines.push(result);
+            result = '';
 
             allLines = allLines.concat(resultLines);
 

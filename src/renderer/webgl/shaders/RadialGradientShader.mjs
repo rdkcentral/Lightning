@@ -21,36 +21,22 @@ import DefaultShader from "./DefaultShader.mjs";
 import StageUtils from "../../../tree/StageUtils.mjs";
 
 export default class RadialGradientShader extends DefaultShader {
-    
     constructor(context) {
         super(context);
-        
-        this._x = 0;
-        this._y = 0;
-
-        this.color = 0xFFFF0000;
-
-        this._radiusX = 100;
-        this._radiusY = 100;
-    }
-
-    set x(v) {
-        this._x = v;
-        this.redraw();
-    }
-
-    set y(v) {
-        this._y = v;
-        this.redraw();
+        this._pivot = [0, 0];
+        this._ic = 0xffffffff;
+        this._normalizedIC = this._getNormalizedColor(this._ic);
+        this._oc = 0x00ffffff;
+        this._normalizedOC = this._getNormalizedColor(this._oc);
+        this._radius = 0;
     }
 
     set radiusX(v) {
-        this._radiusX = v;
-        this.redraw();
+        this.radius = v;
     }
 
     get radiusX() {
-        return this._radiusX;
+        return this._radius;
     }
 
     set radiusY(v) {
@@ -63,73 +49,116 @@ export default class RadialGradientShader extends DefaultShader {
     }
 
     set radius(v) {
-        this.radiusX = v;
-        this.radiusY = v;
+        this._radius = v;
+        this.redraw();
+    }
+
+    set innerColor(argb) {
+        this._ic = argb;
+        this._normalizedIC = this._getNormalizedColor(argb);
+        this.redraw();
+    }
+
+    get innerColor() {
+        return this._ic;
+    }
+
+    set outerColor(argb) {
+        this._oc = argb;
+        this._normalizedOC = this._getNormalizedColor(argb);
+        this.redraw();
+    }
+
+    set color(argb) {
+        this.innerColor = argb;
     }
 
     get color() {
-        return this._color;
+        return this.innerColor;
     }
 
-    set color(v) {
-        if (this._color !== v) {
-            const col = StageUtils.getRgbaComponentsNormalized(v);
-            col[0] = col[0] * col[3];
-            col[1] = col[1] * col[3];
-            col[2] = col[2] * col[3];
+    get outerColor() {
+        return this._ic;
+    }
 
-            this._rawColor = new Float32Array(col);
+    set x(f) {
+        this._x = f;
+        this.redraw();
+    }
 
-            this.redraw();
+    set y(f) {
+        this._y = f;
+        this.redraw();
+    }
 
-            this._color = v;
+    set pivot(v) {
+        if(Array.isArray(v) && v.length === 2) {
+            this._pivot = v;
         }
+        else if(Array.isArray(v)) {
+            this._pivot = [v[0], v[1] || v[0]];
+        }
+        else {
+            this._pivot = [v, v];
+        }
+        this.redraw();
+    }
+
+    get pivot() {
+        return this._pivot[0];
+    }
+
+    set pivotY(f) {
+        this._pivot[1] = f;
+        this.redraw();
+    }
+
+    get pivotY() {
+        return this._pivot[1];
+    }
+
+    set pivotX(f) {
+        this._pivot[0] = f;
+        this.redraw();
+    }
+
+    get pivotX() {
+        return this._pivot[0];
+    }
+
+    _getNormalizedColor(color) {
+        const col = StageUtils.getRgbaComponentsNormalized(color);
+        col[0] *= col[3];
+        col[1] *= col[3];
+        col[2] *= col[3];
+        return new Float32Array(col);
     }
 
     setupUniforms(operation) {
         super.setupUniforms(operation);
-        // We substract half a pixel to get a better cutoff effect.
-        const rtc = operation.getNormalRenderTextureCoords(this._x, this._y);
-        this._setUniform("center", new Float32Array(rtc), this.gl.uniform2fv);
+        const owner = operation.shaderOwner;
 
-        this._setUniform("radius", 2 * this._radiusX / operation.getRenderWidth(), this.gl.uniform1f);
+        if(this._x) {
+            this._pivot[0] = this._x / owner.w;
+        }
+        if(this._y) {
+            this._pivot[1] = this._y / owner.h;
+        }
 
+        if(this._radius === 0) {
+            this._radius = owner.w * 0.5;
+        }
 
-        // Radial gradient shader is expected to be used on a single element. That element's alpha is used.
-        this._setUniform("alpha", operation.getElementCore(0).renderContext.alpha, this.gl.uniform1f);
-
-        this._setUniform("color", this._rawColor, this.gl.uniform4fv);
-        this._setUniform("aspectRatio", (this._radiusX/this._radiusY) * operation.getRenderHeight()/operation.getRenderWidth(), this.gl.uniform1f);
+        this._setUniform('innerColor', this._normalizedIC, this.gl.uniform4fv);
+        this._setUniform('fill', StageUtils.getRgbaComponentsNormalized(this._oc)[3], this.gl.uniform1f);
+        this._setUniform('outerColor', this._normalizedOC, this.gl.uniform4fv);
+        this._setUniform('pivot', new Float32Array(this._pivot),  this.gl.uniform2fv);
+        this._setUniform('resolution', new Float32Array([owner._w, owner._h]),  this.gl.uniform2fv);
+        this._setUniform('alpha', operation.getElementCore(0).renderContext.alpha, this.gl.uniform1f);
+        this._setUniform('radius',  this._radius, this.gl.uniform1f);
+        this._setUniform('radiusY',  (this._radiusY || this._radius), this.gl.uniform1f);
     }
-
 }
-
-RadialGradientShader.vertexShaderSource = `
-    #ifdef GL_ES
-    # ifdef GL_FRAGMENT_PRECISION_HIGH
-    precision highp float;
-    # else
-    precision lowp float;
-    # endif
-    #endif
-    attribute vec2 aVertexPosition;
-    attribute vec2 aTextureCoord;
-    attribute vec4 aColor;
-    uniform vec2 projection;
-    uniform vec2 center;
-    uniform float aspectRatio;
-    varying vec2 pos;
-    varying vec2 vTextureCoord;
-    varying vec4 vColor;
-    void main(void){
-        gl_Position = vec4(aVertexPosition.x * projection.x - 1.0, aVertexPosition.y * -abs(projection.y) + 1.0, 0.0, 1.0);
-        vTextureCoord = aTextureCoord;
-        vColor = aColor;
-        gl_Position.y = -sign(projection.y) * gl_Position.y;
-        pos = gl_Position.xy - center;
-        pos.y = pos.y * aspectRatio;
-    }
-`;
 
 RadialGradientShader.fragmentShaderSource = `
     #ifdef GL_ES
@@ -139,16 +168,27 @@ RadialGradientShader.fragmentShaderSource = `
     precision lowp float;
     # endif
     #endif
+    
+    #define PI 3.14159265359
+    
     varying vec2 vTextureCoord;
     varying vec4 vColor;
-    varying vec2 pos;
     uniform sampler2D uSampler;
+    uniform vec2 resolution;
+    uniform vec2 pivot;
+    uniform vec4 innerColor;
+    uniform vec4 outerColor;
     uniform float radius;
-    uniform vec4 color;
+    uniform float radiusY;
     uniform float alpha;
-    void main(void){
-        float dist = length(pos);
-        gl_FragColor = mix(color * alpha, texture2D(uSampler, vTextureCoord) * vColor, min(1.0, dist / radius));
+    uniform float fill;
+    uniform float aspectRatio;
+    
+    void main() {
+        vec2 point = vTextureCoord.xy * resolution;
+        vec2 projection = vec2(pivot.x * resolution.x, pivot.y * resolution.y);
+        float d = length((point - projection) / vec2(radius * 2.0, radiusY * 2.0));
+        vec4 color = mix(texture2D(uSampler, vTextureCoord) * vColor, outerColor * alpha, fill);
+        gl_FragColor = mix(innerColor * alpha, color, smoothstep(0.0, 1.0, d));
     }
 `;
-

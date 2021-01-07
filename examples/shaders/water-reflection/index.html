@@ -25,23 +25,25 @@
 </head>
 <body>
 <script type="module">
-    import lng from '../../src/lightning.mjs'
+    import lng from '../../../src/lightning.mjs'
     import WaterWaveShader from "./WaterWaveShader.mjs"
 
     window.onload = function() {
         class AppExample extends lng.Application {
             static _template() {
                 return {
-                    Circle: {src: "./stones.jpg", color: 0xFFAAAAAA, shader: {type: WaterWaveShader}, pivot: 0, scale: 1, w: 1280, h: 720}
+                    Tx: {y: 0, w: 1920, h: 1080, rtt: false,
+                        Top: {src: "./cityscape.jpg", pivot: 0, scale: 1, y: 720+50, mountY: 1, w: 1920, x: 0},
+                        Bottom: {src: "./cityscape.jpg", shader: {type: WaterWaveShader, horizon: 720}, pivot: 0, scale: 1, y: 720+50, w: 1920, h: 310},
+                    }
                 }
             }
         }
 
-        const options = {stage: {w:1280, h: 720, clearColor: 0xFFFFFFFF}}
+        const options = {stage: {w:1920, h: 1080, clearColor: 0xFF000000}}
         const app = new AppExample(options);
 
         document.body.appendChild(app.stage.getCanvas());
-
 
     }
 </script>
