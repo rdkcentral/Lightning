@@ -102,11 +102,30 @@ export default class Application extends Component {
         this.__updateFocus();
     }
 
+    __focusedComponent() {
+        return this._focusPath ? this._focusPath[this._focusPath.length - 1] : undefined;
+    }
+
     __updateFocus() {
+        const prevFocusedComponent = this.__focusedComponent();
+
+        // The Application's focus path, therefore final focused component, may change here...
         const notOverridden = this.__updateFocusRec();
 
         if (!Application.booting && notOverridden) {
             this.updateFocusSettings();
+        }
+
+        if (this.__options.debug) {
+            const newFocusedComponent = this.__focusedComponent();
+
+            // Testing for updateDebugFocusState safeties against lightning inspector not having been attached.
+            prevFocusedComponent && prevFocusedComponent.updateDebugFocusState && prevFocusedComponent.updateDebugFocusState();
+            newFocusedComponent && newFocusedComponent.updateDebugFocusState && newFocusedComponent.updateDebugFocusState();
+
+            if (prevFocusedComponent !== newFocusedComponent) {
+                console.log('FOCUS ' + (newFocusedComponent && newFocusedComponent.getLocationString()));
+            }
         }
     }
 
@@ -116,7 +135,7 @@ export default class Application extends Component {
 
         const newFocusPath = this.__getFocusPath();
         const newFocusedComponent = newFocusPath[newFocusPath.length - 1];
-        const prevFocusedComponent = this._focusPath ? this._focusPath[this._focusPath.length - 1] : undefined;
+        const prevFocusedComponent = this.__focusedComponent();
 
         if (!prevFocusedComponent) {
             // Focus events.
@@ -140,12 +159,6 @@ export default class Application extends Component {
             }
 
             if (this._focusPath.length !== newFocusPath.length || index !== newFocusPath.length) {
-                // Set console focus
-                if (this.__options.debug) {
-                  console.log('FOCUS ' + newFocusedComponent.getLocationString());
-                  newFocusedComponent.isfocused = true
-                }
-
                 // Unfocus events.
                 for (let i = this._focusPath.length - 1; i >= index; i--) {
                     const unfocusedElement = this._focusPath.pop();
@@ -235,7 +248,7 @@ export default class Application extends Component {
             }
 
             current = nextFocus;
-        } while(true);
+        } while (true);
 
         return path;
     }
