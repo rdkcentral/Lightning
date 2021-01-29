@@ -35,7 +35,7 @@
                         w: this.bindProp('size'),
                         h: this.bindProp('size', (context) => context.size / 4),
                         color: 0xff554433,
-                        shader: {type: lng.shaders.Outline},
+                        shader: {type: lng.shaders.Outline, width: this.bindProp('outlineWidth')},
                         Text: {
                             shader: null,
                             x: this.bindProp('size', (context) => context.size - 100),
@@ -49,7 +49,10 @@
                     this.animation({
                         repeat: -1,
                         duration: 5,
-                        actions: [{p: 'size', v: {0: 300, 0.5: 600, 1: 300}}]
+                        actions: [
+                            {p: 'size', v: {0: 300, 0.5: 600, 1: 300}},
+                            {p: 'outlineWidth', v: {0: 10, 0.5: 3, 1: 10}}
+                        ]
                     }).start();
                 }
             }

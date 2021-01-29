@@ -173,6 +173,11 @@ export default class Component extends Element {
                     const propKey = cursor + "__text";
                     loc.push(`var ${propKey} = ${cursor}.enableTextTexture()`);
                     this.parseTemplatePropRec(value, context, propKey);
+                } else if (key === "shader" && Utils.isObjectLiteral(value)) {
+                    const shaderCursor = `${cursor}["shader"]`
+                    store.push(value);
+                    loc.push(`${cursor}["${key}"] = store[${store.length - 1}]`);
+                    this.parsePropertyBindings(value, context, shaderCursor);
                 } else if (key === "texture" && Utils.isObjectLiteral(value)) {
                     const propKey = cursor + "__texture";
                     const type = value.type;
@@ -230,6 +235,21 @@ export default class Component extends Element {
                 } else {
                     // String etc.
                     loc.push(`${cursor}["${key}"] = ${JSON.stringify(value)}`);
+                }
+            }
+        });
+    }
+
+    static parsePropertyBindings(obj, context, cursor) {
+        const store = context.store;
+        const loc = context.loc;
+        const keys = Object.keys(obj);
+        keys.forEach(key => {
+            if (key !== "type") {
+                const value = obj[key];
+                if (Utils.isObjectLiteral(value) && value.__propertyBinding === true) {
+                    store.push(value);
+                    loc.push(`element.__bindProperty(store[${store.length - 1}], ${cursor}, "${key}")`);
                 }
             }
         });
