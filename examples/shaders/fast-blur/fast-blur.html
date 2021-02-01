@@ -39,10 +39,7 @@
                             },
                             Texture: {
                                 src: "../sampleImage.jpg", w: 900, h: 900
-                            }/*,
-                            Hello: {
-                                text: {text: "Hello world", fontSize: 100}
-                            }*/
+                            }
                         }}
                     }
                 }
@@ -66,12 +63,8 @@
                 }
             }
 
-            const options = {stage: {clearColor: 0xFFFF0000, w: 900, h: 900, canvas2d: false}};
+            const options = {stage: {clearColor: 0xFF000000, w: 900, h: 900, canvas2d: false}};
             const app = new AppExample(options);
-
-            const tx = new lng.textures.ImageTexture(app.stage);
-            tx.src = "../landscape.jpg";
-            tx.load()
 
             app.tag("Blur").animation({duration: 5, repeat: -1, actions: [
                     {p: 'amount', v: {0: 0, 1: 4}}
