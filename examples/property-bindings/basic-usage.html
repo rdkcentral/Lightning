@@ -33,7 +33,7 @@
                     return {
                         rect: true,
                         w: this.bindProp('size'),
-                        h: this.bindProp('size', (context) => context.size / 4),
+                        h: this.bindProp(['size', 'divider'], (context) => context.size / context.divider),
                         color: 0xff443322,
                         Title: {
                             text: {text: this.bindProp('title')}
@@ -43,6 +43,7 @@
 
                 _init() {
                     this.size = 300;
+                    this.divider = 4;
                     this.title = 'Hello World';
                 }
             }
