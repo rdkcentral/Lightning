@@ -67,6 +67,7 @@ import HoleShader from "./renderer/webgl/shaders/HoleShader.mjs";
 import RadialGradientShader from "./renderer/webgl/shaders/RadialGradientShader.mjs";
 import Light3dShader from "./renderer/webgl/shaders/Light3dShader.mjs";
 import PerspectiveShader from "./renderer/webgl/shaders/PerspectiveShader.mjs";
+import MagnifierShader from "./renderer/webgl/shaders/MagnifierShader.mjs";
 
 import C2dShader from "./renderer/c2d/C2dShader.mjs";
 import C2dDefaultShader from "./renderer/c2d/shaders/DefaultShader.mjs";
@@ -108,6 +109,7 @@ const lightning = {
         RadialGradient: RadialGradientShader,
         Light3d: Light3dShader,
         Perspective: PerspectiveShader,
+        Magnifier: MagnifierShader,
         WebGLShader,
         WebGLDefaultShader,
         C2dShader,

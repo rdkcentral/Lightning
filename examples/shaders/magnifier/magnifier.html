@@ -1,0 +1,104 @@
+<!--
+ If not stated otherwise in this file or this component's LICENSE file the
+ following copyright and licenses apply:
+
+ Copyright 2020 RDK Management
+
+ Licensed under the Apache License, Version 2.0 (the License);
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+<script type="module">
+    import lng from '../../../src/lightning.mjs';
+
+    const SIZE = [400, 400];
+    const RADIUS = 200;
+    const LOREM = "Lorem ipsum\n\ndolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
+
+    class MagnifierExample extends lng.Application {
+        static _template() {
+            return {
+                Scene: {
+                    w: 1920, h: 1080,
+                    Lorem: {
+                        x: 90,
+                        y: 90,
+                        w: 600,
+                        text: {text: LOREM, textAlign: "center"}
+                    },
+                    Image: {
+                        x: 750, y: 100,
+                        src: '../sampleImage.jpg',
+                        w: 600, h: 600,
+                        shader: {type: lng.shaders.Vignette}
+                    },
+                    rtt: true,
+                    shader: {
+                        type: lng.shaders.Magnifier,
+                        w: SIZE[0],
+                        h: SIZE[1],
+                        x: this.bindProp('magX'),
+                        y: this.bindProp('magY'),
+                        radius: RADIUS
+                    }
+                },
+                MagnifierBorder: {
+                    x: this.bindProp('magX'),
+                    y: this.bindProp('magY'),
+                    w: SIZE[0], h: SIZE[1],
+                    rect: true,
+                    shader: {
+                        type: lng.shaders.RoundedRectangle,
+                        stroke: 5,
+                        strokeColor: 0xffcccccc,
+                        fillColor: 0x00ffffff,
+                        radius: RADIUS
+                    }
+                }
+            };
+        }
+
+        _init() {
+            this.magX = 0;
+            this.magY = 0;
+            const X = 1500 - SIZE[0];
+            const Y = 600 - SIZE[1];
+            this.animation({
+                duration: 10,
+                repeat: -1,
+                delay: 1,
+                actions: [
+                    {p: 'magX', v: {0: 0, 0.25: X, 0.5: X, 0.75: 0, 1: 0}},
+                    {p: 'magY', v: {0: 0, 0.25: 0, 0.5: Y, 0.75: Y, 1: 0}},
+                ]
+            }).start();
+        }
+    }
+
+    const options = {stage: {w: 1920, h: 1080, clearColor: 0xFF000000, canvas2d: false}};
+    const app = new MagnifierExample(options);
+    document.body.appendChild(app.stage.getCanvas());
+</script>
+</body>
+</html>
