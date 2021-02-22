@@ -3,6 +3,7 @@
   "name": "@lightningjs/core",
   "version": "2.2.0",
   "license": "apache",
+  "sideEffects": false,
   "main": "dist/lightning.js",
   "module": "index.js",
   "files": [
