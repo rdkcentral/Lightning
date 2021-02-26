@@ -1,6 +1,5 @@
 # Events
 
-
 The following loading events can be fired by a texture:
 
 | Name | Description |
@@ -9,14 +8,11 @@ The following loading events can be fired by a texture:
 | `txError` | Fires when an error occurs when loading a texture. |
 | `txUnloaded` | Fires when a texture is unloaded. |
 
-
-## Live Demo
-
+## Code Example
 
 The following example shows a placeholder image when the first one does not load.
 
-
-```
+```js
 
 class TextureEventsExample extends lng.Application {
     static _template() {

@@ -1,6 +1,5 @@
 # Events
 
-
 A transition is an *EventEmitter* that can emit the following events:
 
 | Name | Description |
@@ -11,15 +10,12 @@ A transition is an *EventEmitter* that can emit the following events:
 | `finish` | Transition has finished |
 | `stop` | Transition is stopped |
 
-
-## Live Demo
-
+## Code Example
 
 Press **left**, **right**, **up** or **down** to move LilLightning. See how the text changes
 when the `start` and `finish` events are triggered after completion of each transition.
 
-
-```
+```js
 class BasicUsageExample extends lng.Application {
     static _template() {
         return {

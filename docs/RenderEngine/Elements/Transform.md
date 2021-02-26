@@ -1,6 +1,5 @@
 # Transform
 
-
 An element can be *scaled* or *rotated* along with all of its descendants.
 
 > Lightning supports independent rotation and scaling on both axes.
@@ -17,17 +16,11 @@ An element can be *scaled* or *rotated* along with all of its descendants.
 | `pivotX` | Float | 0.5 | Pivot position (horizontal axis) |
 | `pivotY` | Float | 0.5 | Pivot position (vertical axis) |
 
-
-
-
-
 ## Pivot
-
 
 The pivot point defines the point within the element (from 0 to 1) around which the rotation and / or scaling is performed.
 
-
-```
+```js
 class LiveDemo extends lng.Application {
     static _template() {
         return {     

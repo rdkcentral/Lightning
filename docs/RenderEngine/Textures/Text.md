@@ -1,8 +1,6 @@
 # Text
 
-
 The *text* texture enables the rendering of a piece of text within an element.
-
 
 You can use various properties to control the way in which you want to render text.
 
@@ -43,14 +41,9 @@ You can use various properties to control the way in which you want to render te
 | `cutSy` | Integer | 0 | y coordinate of text cutting starting position |
 | `cutEy` | Integer | 0 | y coordinate of text cutting ending position |
 
+## Code Example
 
-
-
-
-## Live Demo
-
-
-```
+```js
 class TextDemo extends lng.Application {
     static _template() {
         return {

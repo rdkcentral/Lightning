@@ -1,11 +1,9 @@
 # Render Tree
 
-
 The Lightning Render Tree can be considered *similar* to the HTML DOM Render Tree, because:
 
 * In both Render Trees, you can define the [elements](Elements/index.md) to be shown and how these elements are positioned and rendered.
 * You can set the properties of these elements to change the way they are displayed.
-
 
 Still, the Lightning Render Tree is completely *different* from the HTML DOM Render Tree, because:
 

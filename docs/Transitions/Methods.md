@@ -1,13 +1,10 @@
 # Methods
 
-
 You can use the various methods to get control over transitions, such as starting, stopping or resetting them.
-
 
 For example:
 
-
-```
+```js
 static _template(){
     return {
         MyObject:{ 
@@ -20,11 +17,9 @@ static _template(){
 
 ## How to Call
 
-
 To call a transition method, you have to get the correct transition `property` first, with `.transition(<property>)`. The following example calls the `start()` method of the `x` transition:
 
-
-```
+```js
 _init(){
    this.tag('MyObject').transition('x').start();
 }
@@ -43,14 +38,11 @@ _init(){
 | `reset(targetValue : number, p : number)` | Set the transition at a specific point in time (where p is a value between 0 and 1) |
 | `updateTargetValue(targetValue : number)` | Update the target value while keeping the current progress and value |
 
-
-## Live Demo
-
+## Code Example
 
 The example below shows various methods that can be called on transitions. Press **left** or **right** to swap between the transitions.
 
-
-```
+```js
 class BasicUsageExample extends lng.Application {
     static _template() {
         return {

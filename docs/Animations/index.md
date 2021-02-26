@@ -1,15 +1,12 @@
 # Animations
 
-
 You can use animations to describe a fixed change of property values over time.
 
 ## Defining an Animation
 
-
 You attach an animation to a *view* (i.e., the subject of the animation). For example:
 
-
-```
+```js
 const myAnimation = this.tag('MyAnimationObject').animation({
     duration: 1,                //duration of 1 second
     repeat: 0,                  //Plays only once
@@ -23,18 +20,15 @@ const myAnimation = this.tag('MyAnimationObject').animation({
 
 ## Starting an Animation
 
-
 You start an animation with the `start` method:
 
-
-```
+```js
 myAnimation.start();
 ```
 
-## Live Demo
+## Code Example
 
-
-```
+```js
 
 class BasicUsageExample extends lng.Application {
     static _template() {

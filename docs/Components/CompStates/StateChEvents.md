@@ -1,8 +1,6 @@
 # Change Events
 
-
 Each component state change fires an `$enter` and an `$exit` event.
-
 
 The following table contains a description of these events.
 
@@ -11,12 +9,9 @@ The following table contains a description of these events.
 | `$enter(event)` | Function | Triggers when entering a state. |
 | `$exit(event)` | Function | Triggers when exiting a state. |
 
-
-
 The `event` parameter contains information to help identifying the state changes, for example:
 
-
-```
+```js
 {
     newState: '',
     prevState: '',
@@ -24,10 +19,9 @@ The `event` parameter contains information to help identifying the state changes
 }
 ```
 
-## Live Demo
+## Code Example
 
-
-```
+```js
 class StateEventsExample extends lng.Application {
     static _template() {
         return {

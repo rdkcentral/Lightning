@@ -1,8 +1,6 @@
 # Components
 
-
 Components are added to your App's [template](../Templates/index.md) to make them reusable and extendable throughout the App.
-
 
 The usual flow is as follows:
 

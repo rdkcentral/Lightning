@@ -1,8 +1,6 @@
 # Component States
 
-
 You can use component states to easily keep track of what your application is doing at a certain state. Component states keep your code overview neat and consistent.
-
 
 The following topics describe the use of component states:
 

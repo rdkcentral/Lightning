@@ -1,6 +1,5 @@
 # Actions
 
-
 The actions of an animation define what happens with the specified views and properties while the animation is executed.
 
 ## Attributes
@@ -12,19 +11,15 @@ The actions of an animation define what happens with the specified views and pro
 | `v` | Object | {} | Definition of time-value function | See description |
 | `rv` | * | none | After stopping, the defined value `v` at progress 0 is used. If another value is desired, `rv` can be used. |  |
 
-
 ## Value Function
-
 
 The `v` attribute defines the progress-to-value function over time.
 
-## Live Demo
-
+## Code Example
 
 The example below contains some of the actions you can perform on an animation property, such as changing the `src`, `x` and `y` position, and the `scale`.
 
-
-```
+```js
 
 class BasicUsageExample extends lng.Application {
     static _template() {

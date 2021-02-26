@@ -1,11 +1,9 @@
 # Value Smoothing
 
-
 For each control point, you can specify how the value curve around it  should behave.
 The following example produces a 'bouncing ball' effect:
 
-
-```
+```js
 { p: 'y', 
     v: { 
         0: { v: -100, sm: 1, s:0 }, 
@@ -26,11 +24,9 @@ The following example produces a 'bouncing ball' effect:
 | `sme` | Float | 0.5 | Smooth end | Outgoing curve smoothness, if different from (incoming) smoothness (`sm`) |
 | `se` | Float | 0 | Slope end | Outgoing curve sloop, if different from (incoming) slope (`s`) |
 
+## Code Example
 
-## Live Demo
-
-
-```
+```js
 class BasicUsageExample extends lng.Application {
     static _template() {
         return {
@@ -69,7 +65,6 @@ class BasicUsageExample extends lng.Application {
         myAnimation.start();
     }
 }
-
 
 const App = new BasicUsageExample({stage: {w: window.innerWidth, h: window.innerHeight, useImageWorker: false}});
 document.body.appendChild(App.stage.getCanvas());

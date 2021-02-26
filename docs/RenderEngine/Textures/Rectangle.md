@@ -1,17 +1,14 @@
 # Rectangle
 
-
 The rectangle texture is a single-pixel texture that is stretched based on the dimensions of the element.
-
 
 You can use several `color` properties to give an element a solid background. If you set different colors for different edges, you can create linear gradients.
 
 > See [Rendering](../Elements/Rendering.md) for details about the available properties that are associated with texture colors.
 
-## Live Demo
+## Code Example
 
-
-```
+```js
 class TextureDemo extends lng.Application {
     static _template() {
         return {

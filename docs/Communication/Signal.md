@@ -1,18 +1,14 @@
 # Signal
 
-
 The `signal()` method notifies a component's parent that an event happened on the component. It gives the parent the opportunity to route the event to a handler.
 
-
-```
+```js
 this.signal('signalName', arg1, arg2... argx)
 ```
 
-
 You define the signals to be handled by a parent component by specifying the required `signals` property in the parent. The `signals` property contains a *literal object* that maps the signal name to a class method. If they are identical, the associated method name is used.
 
-
-```
+```js
 static _template() {
     return {
         Button: {
@@ -31,11 +27,9 @@ static _template() {
 
 ## Pass Signals
 
-
 If you would like to pass a signal to the parent, you could implement this by providing a *handler* that *re-signals* the signal. You can achieve this in a more convenient manner using the `passSignals` property:
 
-
-```
+```js
 static _template() {
     return {
         Button: {
@@ -48,13 +42,11 @@ static _template() {
 }
 ```
 
-## Live Demo
-
+## Code Example
 
 The example below shows a button that signals its parent to show / hide a message and change the font color.
 
-
-```
+```js
 class SignalDemo extends lng.Application {
     static _template() {
         return {

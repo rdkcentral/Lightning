@@ -1,15 +1,12 @@
 # State Switching
 
-
 You can switch states with `this._setState('MyStateName')`.
-
 
 The following example visualizes how state switching works, using a blue and green cube as example.
 
-## Live Demo
+## Code Example
 
-
-```
+```js
 //Press left or right to switch the states of the blue and green cube.
 
 class BasicUsageExample extends lng.Application {

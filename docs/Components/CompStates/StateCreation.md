@@ -1,13 +1,10 @@
 # State Creation
 
-
 You define component states by populating the `_state` definition with *states*, which are class objects.
-
 
 For example:
 
-
-```
+```js
 static _states() {
     return [
         class MyFirstState extends this {
@@ -17,11 +14,9 @@ static _states() {
 }
 ```
 
-
 States can overwrite the default component behavior, as shown in the following example:
 
-
-```
+```js
 _handleEnter(){
     // I am triggered when you press Enter
 }

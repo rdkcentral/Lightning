@@ -1,8 +1,6 @@
 # Texture Types
 
-
 An element will only render something when a *texture* is defined. A texture is rendered as a background, and the children are rendered in front of it.
-
 
 The easiest way to define a texture is by specifying one of the following shorthand properties:
 
@@ -11,10 +9,6 @@ The easiest way to define a texture is by specifying one of the following shorth
 | `rect` | Boolean | false | Solid color or gradient |
 | `src` | String | '' | Image texture |
 | `text` | Object | {} | Text texture |
-
-
-
-
 
 
 You can also specify a texture object *directly*, using one of the following texture types:
@@ -26,10 +20,9 @@ You can also specify a texture object *directly*, using one of the following tex
 * [Canvas](Canvas.md)
 * [Custom](Custom.md)
 
-## Live Demo
+## Code Example
 
-
-```
+```js
 class BasicUsageExample extends lng.Application {
     static _template() {
         return {

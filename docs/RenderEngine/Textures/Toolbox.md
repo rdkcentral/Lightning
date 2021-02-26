@@ -1,6 +1,5 @@
 # Toolbox
 
-
 The `lng.Tools` Class contains useful functions for creating some commonly used textures.
 
 ## Textures and Functions
@@ -11,11 +10,9 @@ The `lng.Tools` Class contains useful functions for creating some commonly used 
 | Drop-shadow rectangle | `lng.Tools.getShadowRect(w, h, radius = 0, blur = 5, margin = blur * 2)` |
 | SVG rendering | `lng.Tools.createSvg(cb, stage, url, w, h)` |
 
+## Code Example
 
-## Live Demo
-
-
-```
+```js
 class TextureDemo extends lng.Application {
     static _template() {
         return {

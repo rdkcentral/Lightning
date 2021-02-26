@@ -1,6 +1,5 @@
 # Attributes
 
-
 You can use transition attributes to define the general behavior of a transition.
 
 | Name | Type | Default | Description |
@@ -9,9 +8,7 @@ You can use transition attributes to define the general behavior of a transition
 | `delay` | Float | 0 | Delay in seconds before transition starts |
 | `timingFunction` | String | 'ease' | Timing function (see settings [below](#Timing-Function-Settings)) |
 
-
 ## Timing Function Settings
-
 
 You can specify the following settings for the `timingFunction`, which behave identical to the CSS timing function:
 
@@ -26,16 +23,13 @@ You can specify the following settings for the `timingFunction`, which behave id
 | `step-end` | Transition steps to end position |
 | `cubic-bezier(a,b,c,d)` | Custom bezier curve |
 
-
 > You can see all options in action at [cubic-bezier.com](http://cubic-bezier.com/).
 
-## Live Demo
-
+## Code Example
 
 The example below demonstrates the various `timingFunction` states in action. By pressing **left** or **right**, you can see the differences between the `linear`, `ease`, `ease-in`, `ease-out`, `ease-in-out`, `step-start`, and `step-end` states.
 
-
-```
+```js
 class BasicUsageExample extends lng.Application {
     static _template() {
         return {

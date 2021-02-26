@@ -1,21 +1,16 @@
 # Focus
 
-
 To handle key events, Lightning needs to know which component is the *active* component. This component and its descendants (including the App itself) are called the *focus path*.
-
 
 The focus path is determined by calling the `_getFocused()` method of the App object.
 
 ## Using the `getFocused()` Method
 
-
 By default, or if the `_getFocused()` method returns 'undefined', the focus path stops here and the App is the active component (and the focus path only contains the App itself).
-
 
 However, if `_getFocused()` returns a child component, that child component is also added to the focus path and the associated `_getFocused()` method is also invoked. To put it another way: the components may *delegate* focus to their descendants (see [below](#delegating-focus)).
 
 > This process is repeated *recursively* until the active component is found.
-
 
 The focus path is only *recalculated* at the following specific events:
 
@@ -25,11 +20,9 @@ The focus path is only *recalculated* at the following specific events:
 
 ## Delegating Focus
 
-
 A common way to delegate focus is to use [states](../Components/CompStates/index.md), which overrides the `_getFocused()` method within each state class:
 
-
-```
+```js
 static _states() {
     return [
         class Buttons extends this {
@@ -46,21 +39,17 @@ static _states() {
 }
 ```
 
-
 If the name of a `state` is based on your components, you can also use a *generic* method to control it:
 
-
-```
+```js
 _getFocused() {
     return this.tag(this.state)
 }
 ```
 
-
 For components that are generated dynamically (like a `list` with items served by an API), it is recommended that you create an `index` variable to delegate your focus. After that, you can bind some keys for the user to change the focus to a differed component:
 
-
-```
+```js
 _init() {
     this.index = 0
 }
@@ -89,11 +78,9 @@ _getFocused() {
 
 ## Using the `focus()` and `unfocus()` Methods
 
-
 Lightning fires `_focus()` and `_unfocus()` events on [components](../Components/index.md) when the focus changes. These methods can be used to change the appearance or state of the component:
 
-
-```
+```js
 _focus() {
     //add code to do something when your component receives focus
 }
@@ -103,10 +90,9 @@ _unfocus() {
 }
 ```
 
-## Live Demo
+## Code Example
 
-
-```
+```js
 class FocusDemo extends lng.Application {
     static _template() {
         return {

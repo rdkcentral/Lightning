@@ -1,15 +1,12 @@
 # Transitions
 
-
 A transition is a *gradual* change of a property value. Transitions are able to accept *dynamic* values, as opposed to [animations](../Animations/index.md), which use *fixed* values.
 
 ## Defining a Transition
 
-
 You define a transition within the template:
 
-
-```
+```js
 static _template() {
     return {
         MyTarget:{ transitions: {x: {duration: 2, timingFunction: 'ease'},
@@ -20,35 +17,27 @@ static _template() {
 
 ## Starting a Transition
 
-
 You can start a transition from within a patch:
 
-
-```
+```js
 this.tag('MyObject').patch({ smooth:{ x: 10, color: 0xFFFF0000 }});
 ```
 
-
 or using the `setSmooth` function:
 
-
-```
+```js
 this.tag('MyObject').setSmooth('x', 10);
 ```
 
-
 If required, you can also modify the transition settings as follows:
 
-
-```
+```js
 this.tag('MyObject').setSmooth('x', 10, {duration: 1});
 ```
 
-
 or from within a patch:
 
-
-```
+```js
 this.tag('MyObject').patch({ smooth:{ x: [10, 
    {duration: 4, delay: 4, timingFunction: 'linear' }
  ]}});
@@ -60,55 +49,44 @@ that you can specify a color animation as follows:
 
 ## Removing a Transition
 
-
 You can remove a transition by setting 'undefined' (using `null`):
 
-
-```
+```js
 this.tag('MyObject').patch({ transitions:{ x: null }});
 ```
 
-
 or using the `setSmooth` function:
 
-
-```
+```js
 this.tag('MyObject').setSmooth('x', undefined);
 ```
 
 ## Transition Target Value
 
-
 A transition changes the property itself. If you set a value to the same property while a transition is
 running, the value is immediately *overwritten* by the transition before the next frame is drawn. Also, getting the
 property value returns the *current* property value instead of the property transition target value.
 
-
 You can get the transition target value as follows:
 
-
-```
+```js
 const targetX = this.tag('MyObject').getSmooth('x');
 ```
 
 ## Fast Forward
 
-
 You can fast-forward the transition to the target value as follows:
 
-
-```
+```js
 this.tag('MyObject').fastForward('x');
 ```
 
-## Live Demo
+## Code Example
 
-
-In this demo, we let *LilLightning* compete with itself by using *three* different ways of transitioning.
+In this example, we let *LilLightning* compete with itself by using *three* different ways of transitioning.
 Press **right** to start the transitions, or **left** to reset.
 
-
-```
+```js
 class BasicUsageExample extends lng.Application {
     static _template() {
         return {

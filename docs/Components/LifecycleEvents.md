@@ -1,8 +1,6 @@
 # Lifecycle Events
 
-
 You can add logic to your App by implementing *lifecycle events*. These events are methods that are called when certain preset conditions (properties) apply.
-
 
 The following table contains an overview of the available lifecycle events.
 
@@ -21,12 +19,9 @@ The following table contains an overview of the available lifecycle events.
 | `_active()` | Activated (both enabled and on-screen) |
 | `_inactive()` | Inactive (either detached, invisible or off-screen) |
 
-
-
 For example, you can construct the lifecycle event `_construct()` to initialize game settings:
 
-
-```
+```js
 _construct(){
     // current player tile index
         this._index = 0;

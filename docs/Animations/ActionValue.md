@@ -1,8 +1,6 @@
 # Action Value
 
-
 Every action should have a `v` property specified, which defines the *value* that is applied to the action property during the animation.
-
 
 You can specify:
 
@@ -12,19 +10,15 @@ You can specify:
 
 ## Value Object
 
-
 In the example  below, the subject is moved vertically to 50 px at 25% of the animation. Then, it is moved to -50 px at 75% and back to 0, respectively:
 
-
-```
+```js
     {p: 'y', v: {0: 0, 0.25: 50, 0.75: -50, 1: 0}}
 ```
 
-
 You can also use a value object on non-numeric values, though they are not interpolated:
 
-
-```
+```js
 {p: 'text.text', v: {0: "hello", 0.25: "world", 0.75: "bye!"}}
 ```
 
@@ -33,24 +27,20 @@ that you can specify a color animation as follows: `{p: 'color', v: {0: 0xFFFF00
 
 ## Smoothing
 
-
 By default, all numeric values are *smoothened*. You can get a linear animation by specifying the `sm` property:
 
-
-```
+```js
 {p: 'rotation', v: {sm: 0, 0: 0, 1: 2*Math.PI}}
 ```
 
 > By default, the value of `sm` is 0.5, but it can also be increased to create a more smoothened value curve. The smoothness
 value is a value between 0 and 0.95 (setting it above 0.95 may lead to unexpected behavior).
 
-## Live Demo
-
+## Code Example
 
 In the following example, smoothing is applied to the left cube, and no smoothing is applied to the right cube:
 
-
-```
+```js
 
 class BasicUsageExample extends lng.Application {
     static _template() {

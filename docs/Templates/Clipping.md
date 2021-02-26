@@ -1,12 +1,10 @@
 # Clipping
 
-
 It's possible to use only a selected *part* of the currently set texture. Because the dimensions might also change, the element behaves as if the texture was only the selected part.
 
 > Texture clipping provides a high-performance way of implementing *spritemaps* and rendering only part of a texture.
 
 ## Enable / Disable Clipping
-
 
 You can *enable* texture clipping using the `enableClipping()` method, which uses `x`, `y`, `w` and `h` as parameters.
 
@@ -19,20 +17,14 @@ You can *enable* texture clipping using the `enableClipping()` method, which use
 
 
 
-
-
-
 To *disable* the active texture clipping, you can use the `disableClipping()` method.
 
 ## ResizeMode
 
-
 You can use `resizeMode` to determine the clipping automatically from the width and
 height of the source texture. This can be convenient if you are unsure about the exact image sizes but want the image to cover a specific area.
 
-
 The resize modes `cover` and `contain` are supported (see [below](#cover)).
-
 
 When the texture is loaded, the clipping is automatically
 defined. If the `resizeMode` value of an already loaded texture changes, it is immediately applied.
@@ -41,26 +33,20 @@ defined. If the `resizeMode` value of an already loaded texture changes, it is i
 
 ### Cover
 
-
 Using the `cover` resize mode, you can ensure that a texture covers a specific rectangular area.
-
 
 You can clip part of
 a texture. To control which part is clipped, you can set the `clipX` and `clipY` properties, which are
 values from 0 to 1.
 
-
 To clip the top, set `clipY` to 0. To clip the bottom, set `clipY` to 1.
-
 
 By default, (`clipX`, `clipY`)
 is set to (0.5, 0.5). This causes an equal amount to be clipped away from left / right or top / bottom.
 
-
 For example:
 
-
-```
+```js
 Cover: {
     texture: {resizeMode: {type: 'cover', w: 200, h: 200, clipY: 0},
       type: lng.textures.ImageTexture, src: 'image.png'}
@@ -69,16 +55,13 @@ Cover: {
 
 ### Contain
 
-
 Using the `contain` resize mode, you can fit an image in a specific rectangular area.
-
 
 One axis will fit to the
 specified size, while the other will be less than specified. To properly align the texture within the area, use a *wrapper*
 element as follows:
 
-
-```
+```js
 Wrapper: {
     rect: true, w: 200, h: 200, color: 0xFFAAAAAA,
     Contain: {
@@ -89,10 +72,9 @@ Wrapper: {
 }
 ```
 
-## Live Demo
+## Code Example
 
-
-```
+```js
 class TextureDemo extends lng.Application {
     static _template() {
         return {

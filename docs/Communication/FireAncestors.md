@@ -1,19 +1,16 @@
 # Fire Ancestors
 
-
 The `fireAncestors()` method sends a [signal](Signal.md) to a distant parent component, without propagating it to all the parents.
 
-
-```
+```js
 this.fireAncestors('$signalName', arg1, arg2... argx)
 ```
 
 > The signal *name* and *function* on your parent node must *both* have the prefix `$`.
 
-## Live Demo
+## Code Example
 
-
-```
+```js
 class FireAncestorDemo extends lng.Application {
     static _template() {
         return {
@@ -70,7 +67,6 @@ class ExampleButtonList extends lng.component {
         return this.children[this.index]
     }
 }
-
 
 class ExampleButton extends lng.component {
     static _template() {

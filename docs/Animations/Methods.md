@@ -1,6 +1,5 @@
 # Methods
 
-
 You can use the following methods on an animation:
 
 | Name | Description |
@@ -19,9 +18,7 @@ You can use the following methods on an animation:
 | `isActive() : Boolean` | Return 'true' if currently progressing (playing or stopping) |
 | `progress(dt : Float)` | Manually progress the animation forward by `dt` seconds |
 
-
 ## States
-
 
 It is important to remember that an animation can be in one of the following **states**:
 
@@ -32,10 +29,9 @@ It is important to remember that an animation can be in one of the following **s
 * `finished`
 * `paused`
 
-## Live Demo
+## Code Example
 
-
-```
+```js
 
 class BasicUsageExample extends lng.Application {
     static _template() {

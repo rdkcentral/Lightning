@@ -1,8 +1,6 @@
 # Render Engine
 
-
 The most important Lightning component is the *WebGL 2d Render Engine*. Its purpose is to convert the defined and changed [Render Tree](RenderTree.md) to a series of WebGL commands as fast as possible.
-
 
 Lightning subscribes to `requestAnimationFrame` for drawing the Render Tree frame. The actions that are executed, are:
 
@@ -12,9 +10,7 @@ Lightning subscribes to `requestAnimationFrame` for drawing the Render Tree fram
 
 ## Locate Updated Branches
 
-
 Generally, if the Render Tree has changed since the last frame was rendered, the changed branches are *immediately* tagged as `hasUpdates`.
-
 
 Drawing a frame starts with executing the following actions:
 
@@ -23,10 +19,8 @@ Drawing a frame starts with executing the following actions:
 of these branches
 3. Skip the branches without updates
 
-
 This workflow prevents a slow creation of large
 applications with many sections.
-
 
 Other Lightning features that contribute to a good rendering performance, are:
 
@@ -37,7 +31,6 @@ Other Lightning features that contribute to a good rendering performance, are:
 
 ## Populate Coordinate Buffers
 
-
 This steps involves the following actions:
 
 1. Traverse all visible and on-screen branches
@@ -46,9 +39,7 @@ This steps involves the following actions:
 
 ## Draw Textures
 
-
 Finally, the textures are drawn using WebGL commands.
-
 
 The result is an updated canvas filled with the current state of
 the Render Tree.

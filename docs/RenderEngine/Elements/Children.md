@@ -1,16 +1,12 @@
 # Children
 
-
 You use the `.children` property to set the configuration of child nodes. This property is an *Array* containing all child nodes, where every node has a `.children` property.
-
 
 If so desired, you can define the children array *directly* with an array of elements, or even *patch* objects.
 
-
 For example:
 
-
-```
+```js
 this.tag('List').children = items.map((item, index) => {
     return {
         type: ExampleListItem,
@@ -21,7 +17,6 @@ this.tag('List').children = items.map((item, index) => {
 ```
 
 ## ChildList Methods
-
 
 The `childList` property includes several methods to change the current configuration of the children. The methods are listed in the table below.
 
@@ -43,14 +38,9 @@ The `childList` property includes several methods to change the current configur
 | `get last() : Element` | Return the last view |
 | `sort(f : Function)` | Sort the children with the sort function |
 
+## Code Example
 
-
-
-
-## Live Demo
-
-
-```
+```js
 class TemplateDemo extends lng.Application {
     static _template() {
         return {

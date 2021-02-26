@@ -1,6 +1,5 @@
 # Positioning
 
-
 The following properties apply to the *position* of an element:
 
 | Name | Type | Default | Description |
@@ -13,15 +12,9 @@ The following properties apply to the *position* of an element:
 | `mountX` | Float | 0 | Texture mountpoint at horizontal axis |
 | `mountY` | Float | 0 | Texture mountpoint at vertical axis |
 
-
-
-
-
 ## Mountpoints
 
-
 You can define texture mountpoints by defining separate values for `mountX` and `mountY`, or by using the `mount` property which has identical  `mountX` and `mountY` values.
-
 
 Consider the following  example values for the `mount` property:
 
@@ -31,14 +24,11 @@ Consider the following  example values for the `mount` property:
 
 ## Dynamic Calculations
 
-
 Besides using numeric values (in pixels), you can also specify a *function* that returns a value based on the width (x, w) or height (y, w) dimensions of the parent. The function is called again as soon as the parent's dimensions change.
-
 
 For example:
 
-
-```
+```js
 class LiveDemo extends lng.Application {
     static _template() {
         return {

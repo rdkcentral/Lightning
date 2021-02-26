@@ -1,6 +1,5 @@
 # Events
 
-
 An animation is an *EventEmitter* that can emit the following events:
 
 | Name | Description |
@@ -17,11 +16,9 @@ An animation is an *EventEmitter* that can emit the following events:
 | `stopContinue` | Paused animation that was stopping, is resumed |
 | `stopFinish` | Animation finished stopping |
 
+## Code Example
 
-## Live Demo
-
-
-```
+```js
 
 class BasicUsageExample extends lng.Application {
     static _template() {

@@ -1,26 +1,20 @@
 # Patching
 
-
 Patching is a way to change the properties of existing elements in a template.
-
 
 You can use the Element method
 
-
-```
+```js
 patch(object : Object, createMode : Boolean)
 ```
-
 
 to patch part of the Render Tree.
 
 > A `patch` object has the same structure as the associated template.
 
-
 Patching allows you to set multiple properties for multiple views in a *single* statement. For example:
 
-
-```
+```js
 this.patch({
     Parent: {
         x: 150, alpha: 0.5,
@@ -31,11 +25,9 @@ this.patch({
 });
 ```
 
-
 You can also call a patch *directly* on a sub element:
 
-
-```
+```js
 this.tag("Parent").patch(
     x: 150, alpha: 0.5,
     Child: {
@@ -46,9 +38,7 @@ this.tag("Parent").patch(
 
 ## Adding New Elements
 
-
 By default, only properties of *existing* elements can be changed with patching.
-
 
 If an element reference is *unknown*, an error is generated. This is done to protect you from accidentally using the wrong references and creating new unnecessary elements.
 
@@ -56,24 +46,20 @@ If an element reference is *unknown*, an error is generated. This is done to pro
 
 ## Removing Elements
 
-
 You can remove an element by specifying 'undefined' instead of the settings object:
 
-
-```
+```js
 this.tag("Parent").patch(
     x: 150, alpha: 0.5,
     Child: undefined
 });
 ```
 
-## Live Demo
-
+## Code Example
 
 See the example below of how to patch the x-position for an object. Use the **left** or **right** key to move the object to its new position.
 
-
-```
+```js
 class BasicUsageExample extends lng.Application {
     static _template() {
         return {
@@ -89,7 +75,6 @@ class BasicUsageExample extends lng.Application {
         this.tag('LilLightning').patch({ x: 400 });
     }
 }
-
 
 const options = {stage: {w: window.innerWidth, h: window.innerHeight, clearColor: 0x00000000, Canvas2D: false, useImageWorker: false}, debug: true}
 options.keys = {

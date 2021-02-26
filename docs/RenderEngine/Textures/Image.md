@@ -1,17 +1,14 @@
 # Image
 
-
 An *image* texture accepts a `src` property (referring to the URI of an image) that is subsequently fetched, loaded and rendered.
 
 ## Events
 
-
 You can listen to texture [events](../../Templates/Events.md) to see whether an image has successfully loaded or not.
 
-## Live Demo
+## Code Example
 
-
-```
+```js
 
 class BasicUsageExample extends lng.Application {
     

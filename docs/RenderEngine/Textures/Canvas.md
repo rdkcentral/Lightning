@@ -1,12 +1,10 @@
 # Canvas
 
-
 You can draw something to a canvas and then render the result as a texture.
 
-## Live Demo
+## Code Example
 
-
-```
+```js
 
 class CanvasTextureExample extends lng.Application {
     static _template() {

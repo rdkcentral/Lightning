@@ -1,6 +1,5 @@
 # Lightning Core Reference
 
-
 The Reference Documentation for  Lightning Core contains detailed descriptions about various concepts of Lightning Core, which are:
 
 * [Runtime Configuration](RuntimeConfig/index.md)

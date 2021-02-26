@@ -1,6 +1,5 @@
 # Attributes
 
-
 You can use animation attributes to define the general behavior of an animation.
 
 | Name | Type | Default | Description | Values |
@@ -16,17 +15,14 @@ You can use animation attributes to define the general behavior of an animation.
 | `stopDelay` | Float | 0 | Delay in seconds before stopping |  |
 | `autostop` | Boolean | false | After the animation is finished, it is automatically stopped | 'true', 'false' |
 
-
 > The stop method `onetotwo` is a special stop method. Its action ranges are defined from progress 0 to 2, instead of 0 to 1. When stopping, the current
 animation is continued normally (up to progress 1), and then the progress is continued up to value 2.
 
-## Live Demo
-
+## Code Example
 
 Press **right** to start the animation, and press **left** to stop the animation and reverse it.
 
-
-```
+```js
 
 class BasicUsageExample extends lng.Application {
     static _template() {

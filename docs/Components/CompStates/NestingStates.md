@@ -1,26 +1,20 @@
 # State Nesting
 
-
 You can *nest* states by defining a component state within another component state (which by itself contains its own states).
-
 
 You switch from a state to its nested state  as follows:
 
-
-```
+```js
 this._setState('MyStateName.MyNestedStateName')
 ```
 
-
 The *advantage* of nesting is that you can stay in one state while leveraging from the benefits of a sub state.
-
 
 See the state nesting example below. If you press **right**, you enter the *blue* (cube) state, and if you press **right** again, you enter its nested state (the *green* cube).
 
-## Live Demo
+## Code Example
 
-
-```
+```js
 //Press right to $enter() the blue state.
 //Press right again to $enter() its nested state, which is the green cube.
 
