@@ -13,7 +13,7 @@ You can use animation attributes to define the general behavior of an animation.
 | `stopMethod` | String | fade | Method that defines the behavior of the animation when it is *stopped* | 'fade', 'reverse', 'forward', 'immediate', 'onetotwo' (see note [below](#onetotwo)) |
 | `stopDuration` | Float | 0 | Duration in seconds of stopping |  |
 | `stopDelay` | Float | 0 | Delay in seconds before stopping |  |
-| `autostop` | Boolean | false | After the animation is finished, it is automatically stopped | 'true', 'false' |
+| `autostop` | Boolean | false | After the animation is finished, it is automatically stopped | `true`, `false` |
 
 > The stop method `onetotwo` is a special stop method. Its action ranges are defined from progress 0 to 2, instead of 0 to 1. When stopping, the current
 animation is continued normally (up to progress 1), and then the progress is continued up to value 2.

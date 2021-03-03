@@ -19,7 +19,7 @@ You can use various properties to control the way in which you want to render te
 | `maxLines` | Integer | 0 | Maximum number of lines to display before truncation |
 | `maxLinesSuffix` | String | '..' | String to be displayed at the end of the line when truncation is used |
 | `wordWrapWidth` | Integer | 0 | Width that is set for text wrapping to next line |
-| `textOverflow` | String | null (disabled) | Truncates long blocks of text to the size specified in `wordWrapWidth`. Is active if `wordWrap` is set to 'false'. Possible values: 'ellipsis': string ends with `maxLinesSuffix`, 'clip': no suffix, 'custom string': string ends with user-defined string |
+| `textOverflow` | String | null (disabled) | Truncates long blocks of text to the size specified in `wordWrapWidth`. Is active if `wordWrap` is set to `false`. Possible values: 'ellipsis': string ends with `maxLinesSuffix`, 'clip': no suffix, 'custom string': string ends with user-defined string |
 | `textBaseline` | String | 'alphabetic' | Desired text baseline |
 | `textColor` | Hex | 0xFFFFFFFF | Desired text color |
 | `paddingLeft` | Integer | 0 | Padding left |

@@ -37,7 +37,7 @@ Specified in the element property: `flex: {}`.
 | Lightning | Type | CSS | Difference (if any) |
 |---|---|---|---|
 | `direction` | String | flex-direction |  |
-| `wrap` | Boolean | flex-wrap | Only wrap ('true') and no wrap ('false') are supported |
+| `wrap` | Boolean | flex-wrap | Only wrap (`true`) and no wrap (`false`) are supported |
 | `alignItems` | String | align-items | Baseline is not supported |
 | `alignContent` | String | align-items |  |
 | `justifyContent` | String | justify-content |  |

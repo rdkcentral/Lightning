@@ -12,10 +12,10 @@ You can use the following methods on an animation:
 | `finish()` | If currently playing, fast-forward the animation to the end. If stopping, fast forward it to the end of the stop animation |
 | `stop()` | Stop the animation (effect depends on the `stop `method and properties) |
 | `stopNow()` | Stop the animation immediately (as if  the `stop` method 'immediate' was set) |
-| `isPaused() : Boolean` | Return 'true' if the current state is 'paused' |
-| `isPlaying() : Boolean` | Return 'true' if the current state is 'playing' |
-| `isStopping() : Boolean` | Return 'true' if the current state is 'stopping' |
-| `isActive() : Boolean` | Return 'true' if currently progressing (playing or stopping) |
+| `isPaused() : Boolean` | Return `true` if the current state is 'paused' |
+| `isPlaying() : Boolean` | Return `true` if the current state is 'playing' |
+| `isStopping() : Boolean` | Return `true` if the current state is 'stopping' |
+| `isActive() : Boolean` | Return `true` if currently progressing (playing or stopping) |
 | `progress(dt : Float)` | Manually progress the animation forward by `dt` seconds |
 
 ## States

@@ -7,7 +7,7 @@ The [focus path](Focus.md) is responsible for key handling. When a key is receiv
 1. Search the focus path *top-down* for a component that contains a `_capture{Keyname}()` or `_captureKey()` method..
 2. If no capture handler was found, search *bottom-up* for a component that contains a `_handle{Keyname}()` or `_handleKey()` method.
 
-If a key handler returns 'false', propagation is not stopped and the next component is allowed to handle the key event.
+If a key handler returns `false`, propagation is not stopped and the next component is allowed to handle the key event.
 
 ## Key Mapping
 

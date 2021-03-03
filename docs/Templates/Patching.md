@@ -42,7 +42,7 @@ By default, only properties of *existing* elements can be changed with patching.
 
 If an element reference is *unknown*, an error is generated. This is done to protect you from accidentally using the wrong references and creating new unnecessary elements.
 
-> If you want to enable the creation of new elements in your patch, pass 'true' for the value of the `createMode` argument.
+> If you want to enable the creation of new elements in your patch, pass `true` for the value of the `createMode` argument.
 
 ## Removing Elements
 

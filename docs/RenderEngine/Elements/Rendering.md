@@ -25,7 +25,7 @@ The following properties determine how the active texture and / or descendant te
 
 You can set the visibility of an element in the following ways:
 
-* Using the `visible` property. If  the value of this property is set to 'false',  the element is not rendered (which saves performance). If an element is invisible, the off-screen elements are invisible as well, so you do not have to hide those manually to maintain a good performance.
+* Using the `visible` property. If  the value of this property is set to `false`,  the element is not rendered (which saves performance). If an element is invisible, the off-screen elements are invisible as well, so you do not have to hide those manually to maintain a good performance.
 * Using the `alpha` property, which defines the opacity of an element and its descendants. If the value of this property is set to 0 (zero), the element is not rendered.
 
 ## Color
@@ -34,7 +34,7 @@ You can use the `color` property to colorize the currently active texture. You c
 
 ## Clipping
 
-If the `clipping` property is set to 'true', everything outside the dimensions of the clipping area is *not* rendered. (The effect is similar to `overflow:hidden` in CSS.)
+If the `clipping` property is set to `true`, everything outside the dimensions of the clipping area is *not* rendered. (The effect is similar to `overflow:hidden` in CSS.)
 
 Setting this property might increase the performance, as descendants outside the clipping region are detected and not rendered.
 
