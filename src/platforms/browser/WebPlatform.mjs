@@ -44,6 +44,7 @@ export default class WebPlatform {
             this._imageWorker.destroy();
         }
         this._removeKeyHandler();
+        this._removeClickHandler();
     }
 
     startLoop() {
@@ -216,5 +217,17 @@ export default class WebPlatform {
         }
     }
 
+    registerClickHandler(clickHandler) {
+        this._clickListener = e => {
+            clickHandler(e);
+        };
+        window.addEventListener('mousedown', this._clickListener);
+    }
+
+    _removeClickHandler() {
+        if (this._clickListener) {
+            window.removeEventListener('mousedown', this._clickListener);
+        }
+    }
 }
 
