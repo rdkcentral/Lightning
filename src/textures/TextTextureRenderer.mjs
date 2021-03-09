@@ -143,6 +143,10 @@ export default class TextTextureRenderer {
             this._settings.text = this.wrapWord(this._settings.text, wordWrapWidth - textIndent, suffix)
         }
 
+        if (this._settings.wordBreak == 'break-all') {
+            this._settings.text = this.wordBreak(this._settings.text, width);
+        } 
+
         // word wrap
         // preserve original text
         let linesInfo;
@@ -150,7 +154,7 @@ export default class TextTextureRenderer {
             linesInfo = this.wrapText(this._settings.text, wordWrapWidth, letterSpacing, textIndent);
         } else {
             linesInfo = {l: this._settings.text.split(/(?:\r\n|\r|\n)/), n: []};
-            let i, n = linesInfo.l.length;
+            let n = linesInfo.l.length;
             for (let i = 0; i < n - 1; i++) {
                 linesInfo.n.push(i);
             }
@@ -372,9 +376,63 @@ export default class TextTextureRenderer {
         this.renderInfo = renderInfo;
     };
 
+    _getBreakIndex(word, width) {
+        const wordLen = word.length;
+        const wordWidth = this.measureText(word);
+
+        if (wordWidth <= width) {
+            return word.length;
+        }
+
+        let breakIndex = Math.floor((width * wordLen) / wordWidth);
+        let truncWordWidth = this.measureText(word.substring(0, breakIndex)).width
+
+        /* In case guess was overestimated, shrink it letter by letter. */
+        if (truncWordWidth > width) {
+            while (breakIndex > 0) {
+                truncWordWidth = this.measureText(word.substring(0, breakIndex)).width;
+                if (truncWordWidth > width) {
+                    breakIndex -= 1;
+                } else {
+                    break;
+                }
+            }
+
+        /* In case guess was underestimated, extend it letter by letter. */
+        } else {
+            while (breakIndex < wordLen) {
+                truncWordWidth = this.measureText(word.substring(0, breakIndex)).width;
+                if (truncWordWidth < width) {
+                    breakIndex += 1;
+                } else {
+                    // Finally, when bound is crossed, retract last letter.
+                    breakIndex -=1;
+                    break;
+                }
+            }
+        }
+        return breakIndex;
+
+    }
+
+    wordBreak(word, width) {
+        const parts = [];
+        while (true) {
+            const idx = this._getBreakIndex(word, width);
+            parts.push(word.slice(0, idx));
+
+            if (idx === word.length) {
+                break;
+            }
+
+            word = word.slice(idx);
+        }
+        return parts.join('\n');
+    }
+
     wrapWord(word, wordWrapWidth, suffix) {
         const suffixWidth = this._context.measureText(suffix).width;
-        const wordLen = word.length
+        const wordLen = word.length;
         const wordWidth = this._context.measureText(word).width;
 
         /* If word fits wrapWidth, do nothing */

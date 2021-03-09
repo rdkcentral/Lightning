@@ -120,6 +120,17 @@ export default class TextTexture extends Texture {
         }
     }
 
+    get wordBreak() {
+        return this._wordBreak;
+    }
+
+    set wordBreak(v) {
+        if (this._wordBreak !== v) {
+            this._wordBreak = v;
+            this._changed();
+        }
+    }
+
     get textOverflow() {
         return this._textOverflow;
     }
@@ -454,6 +465,7 @@ export default class TextTexture extends Texture {
         if (this.fontFace !== null) parts.push("ff" + (Array.isArray(this.fontFace) ? this.fontFace.join(",") : this.fontFace));
         if (this.wordWrap !== true) parts.push("wr" + (this.wordWrap ? 1 : 0));
         if (this.wordWrapWidth !== 0) parts.push("ww" + this.wordWrapWidth);
+        if (this.wordBreak !== 'normal') parts.push("wb" + this.wordBreak);
         if (this.textOverflow != "") parts.push("to" + this.textOverflow);
         if (this.lineHeight !== null) parts.push("lh" + this.lineHeight);
         if (this.textBaseline !== "alphabetic") parts.push("tb" + this.textBaseline);
@@ -532,6 +544,7 @@ export default class TextTexture extends Texture {
         if (this.fontFace !== null) nonDefaults["fontFace"] = this.fontFace;
         if (this.wordWrap !== true) nonDefaults["wordWrap"] = this.wordWrap;
         if (this.wordWrapWidth !== 0) nonDefaults["wordWrapWidth"] = this.wordWrapWidth;
+        if (this.wordBreak !== 'normal') nonDefaults["wordBreak"] = this.wordBreak;
         if (this.textOverflow != "") nonDefaults["textOverflow"] = this.textOverflow;
         if (this.lineHeight !== null) nonDefaults["lineHeight"] = this.lineHeight;
         if (this.textBaseline !== "alphabetic") nonDefaults["textBaseline"] = this.textBaseline;
@@ -575,6 +588,7 @@ export default class TextTexture extends Texture {
         obj.fontFace = this._fontFace;
         obj.wordWrap = this._wordWrap;
         obj.wordWrapWidth = this._wordWrapWidth;
+        obj.wordBreak = this._wordBreak;
         obj.textOverflow = this._textOverflow;
         obj.lineHeight = this._lineHeight;
         obj.textBaseline = this._textBaseline;
@@ -620,6 +634,7 @@ proto._fontStyle = "normal";
 proto._fontSize = 40;
 proto._fontFace = null;
 proto._wordWrap = true;
+proto._wordBreak = 'normal';
 proto._wordWrapWidth = 0;
 proto._textOverflow = "";
 proto._lineHeight = null;
