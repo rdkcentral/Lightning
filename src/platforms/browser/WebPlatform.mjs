@@ -45,6 +45,8 @@ export default class WebPlatform {
         }
         this._removeKeyHandler();
         this._removeClickHandler();
+        this._removeHoverHandler();
+        this._removeScrollWheelHandler();
     }
 
     startLoop() {
@@ -227,6 +229,19 @@ export default class WebPlatform {
     _removeClickHandler() {
         if (this._clickListener) {
             window.removeEventListener('mousedown', this._clickListener);
+        }
+    }
+
+    registerHoverHandler(hoverHandler) {
+        this._hoverListener = e => {
+            hoverHandler(e);
+        };
+        window.addEventListener('mousemove', this._hoverListener);
+    }
+
+    _removeHoverHandler() {
+        if (this._hoverListener) {
+            window.removeEventListener('mousemove', this._hoverListener);
         }
     }
 }

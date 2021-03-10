@@ -58,6 +58,10 @@ export default class Application extends Component {
             this.stage.platform.registerClickHandler((e) => {
                 this._receiveClick(e);
             });
+
+            this.stage.platform.registerHoverHandler((e) => {
+                this._receiveHover(e);
+            });
         }
     }
 
@@ -441,6 +445,41 @@ export default class Application extends Component {
                 const child = clickableChildren[n];
                 if (child && child["_handleClick"]) {
                     child._handleClick();
+                    break;
+                }
+            }
+        }
+    }
+
+    _receiveHover(e) {
+        const obj = e;
+        const {clientX, clientY} = obj;
+
+        if (clientX <= this.stage.w && clientY <= this.stage.h) {
+            // force a drawFrame to set any missing element dimensions
+            this.stage.drawFrame();
+            this.stage.application.fireTopDownHoverHandler(obj);
+        }
+    }
+
+    fireTopDownHoverHandler(obj) {
+        const {clientX, clientY} = obj;
+        let children = this.stage.application.children;
+
+        // reverse so while loops searches top down
+        let affected = this._findChildren([], children).reverse();
+        let hoverableChildren = this._withinClickableRange(affected, clientX, clientY);
+
+        if (hoverableChildren.length) {
+            hoverableChildren.sort((a,b) => {
+                return a.id > b.id ? 1: -1;
+            });
+            let n = hoverableChildren.length;
+
+            while (n--) {
+                const child = hoverableChildren[n];
+                if (child && child["_handleHover"]) {
+                    child._handleHover();
                     break;
                 }
             }
