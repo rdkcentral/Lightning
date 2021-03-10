@@ -54,7 +54,7 @@ export default class Application extends Component {
             });
         }
 
-        if (this.getOption("enableClicks")) {
+        if (this.getOption("enablePointer")) {
             this.stage.platform.registerClickHandler((e) => {
                 this._receiveClick(e);
             });
@@ -88,7 +88,7 @@ export default class Application extends Component {
             8: "Back",
             27: "Exit"
         });
-        opt('enableClicks', false);
+        opt('enablePointer', false);
     }
 
     __construct() {
@@ -426,38 +426,19 @@ export default class Application extends Component {
     fireTopDownClickHandler(obj) {
         const {clientX, clientY} = obj;
         let children = this.stage.application.children;
+
         // reverse so while loops searches top down
         let affected = this._findChildren([], children).reverse();
-        let n = affected.length;
-        const withinClickableRange = [];
-
-        // loop through affected children
-        // and perform collision detection
-        while (n--) {
-            const child = affected[n];
-            const precision = this.stage.getRenderPrecision();
-            const ctx = child.core.renderContext;
-
-            const cx = ctx.px * precision;
-            const cy = ctx.py * precision;
-            const cw = child.finalW * ctx.ta * precision;
-            const ch = child.finalH * ctx.td * precision;
-
-            if (cx > this.stage.w || cy > this.stage.h) {
-                continue;
-            }
-            if (this._testCollision(clientX, clientY, cx, cy, cw, ch)) {
-                withinClickableRange.push(child);
-            }
-        }
+        let clickableChildren = this._withinClickableRange(affected, clientX, clientY);
         
-        if (withinClickableRange.length) {
-            withinClickableRange.sort((a,b) => {
+        if (clickableChildren.length) {
+            clickableChildren.sort((a,b) => {
                 return a.id > b.id ? 1: -1;
             });
-            let n = withinClickableRange.length;
+            let n = clickableChildren.length;
+
             while (n--) {
-                const child = withinClickableRange[n];
+                const child = clickableChildren[n];
                 if (child && child["_handleClick"]) {
                     child._handleClick();
                     break;
@@ -479,6 +460,32 @@ export default class Application extends Component {
             }
         }
         return bucket;
+    }
+
+    _withinClickableRange(affectedChildren, cursorX, cursorY) {
+        let n = affectedChildren.length;
+        const candidates = [];
+
+        // loop through affected children
+        // and perform collision detection
+        while (n--) {
+            const child = affectedChildren[n];
+            const precision = this.stage.getRenderPrecision();
+            const ctx = child.core.renderContext;
+
+            const cx = ctx.px * precision;
+            const cy = ctx.py * precision;
+            const cw = child.finalW * ctx.ta * precision;
+            const ch = child.finalH * ctx.td * precision;
+
+            if (cx > this.stage.w || cy > this.stage.h) {
+                continue;
+            }
+            if (this._testCollision(cursorX, cursorY, cx, cy, cw, ch)) {
+                candidates.push(child);
+            }
+        }
+        return candidates;
     }
 
     _testCollision(px, py, cx, cy, cw, ch) {
