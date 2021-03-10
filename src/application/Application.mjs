@@ -62,6 +62,10 @@ export default class Application extends Component {
             this.stage.platform.registerHoverHandler((e) => {
                 this._receiveHover(e);
             });
+
+            this.stage.platform.registerScrollWheelHandler((e) => {
+                this._recieveScrollWheel(e);
+            });
         }
     }
 
@@ -414,6 +418,38 @@ export default class Application extends Component {
             }
         }
         return;
+    }
+
+    _recieveScrollWheel(e) {
+        const obj = e;
+        const {clientX, clientY, deltaY} = obj;
+
+        if (clientX <= this.stage.w && clientY <= this.stage.h) {
+            if (deltaY > 0) {
+                this.fireTopDownScrollWheelHandler("_handleScrollDown");
+            } else if (deltaY < 0) {
+                this.fireTopDownScrollWheelHandler("_handleScrollUp");
+            }
+        }
+    }
+
+    fireTopDownScrollWheelHandler(event) {
+        let children = this.stage.application.children;
+        let affected = this._findChildren([], children).reverse();
+        let n = affected.length;
+
+        while(n--) {
+            const child = affected[n];
+            if (child && child[event]) {
+                if (event == "_handleScrollDown") {
+                    child._handleScrollDown();
+                    break;
+                } else if (event == "_handleScrollUp") {
+                    child._handleScrollUp();
+                    break;
+                }         
+            }
+        }
     }
 
     _receiveClick(e) {

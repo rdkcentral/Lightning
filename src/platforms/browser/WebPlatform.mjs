@@ -244,5 +244,18 @@ export default class WebPlatform {
             window.removeEventListener('mousemove', this._hoverListener);
         }
     }
+
+    registerScrollWheelHandler(registerScrollWheelHandler) {
+        this._scrollWheelListener = e => {
+            registerScrollWheelHandler(e);
+        }
+        window.addEventListener('wheel', this._scrollWheelListener);
+    }
+
+    _removeScrollWheelHandler() {
+        if (this._scrollWheelListener) {
+            window.removeEventListener('wheel', this._scrollWheelListener);
+        }
+    }
 }
 
