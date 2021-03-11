@@ -34,6 +34,7 @@ export default class Application extends Component {
 
         this.__updateFocusCounter = 0;
         this.__keypressTimers = new Map();
+        this.__hoveredChild = null;
 
         // We must construct while the application is not yet attached.
         // That's why we 'init' the stage later (which actually emits the attach event).
@@ -515,7 +516,12 @@ export default class Application extends Component {
             while (n--) {
                 const child = hoverableChildren[n];
                 if (child && child["_handleHover"]) {
-                    child._handleHover();
+
+                    // only fire handler once per hover
+                    if (child !== this.__hoveredChild) {
+                        child._handleHover();
+                        this.__hoveredChild = child;
+                    }
                     break;
                 }
             }
