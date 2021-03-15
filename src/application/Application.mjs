@@ -460,11 +460,11 @@ export default class Application extends Component {
         if (clientX <= this.stage.w && clientY <= this.stage.h) {
             // force a drawFrame to set any missing element dimensions
             this.stage.drawFrame();
-            this.stage.application.fireTopDownClickHandler(obj);
+            this.stage.application.fireBottomUpClickHandler(obj);
         }
     }
 
-    fireTopDownClickHandler(obj) {
+    fireBottomUpClickHandler(obj) {
         const {clientX, clientY} = obj;
         let children = this.stage.application.children;
 
@@ -473,17 +473,29 @@ export default class Application extends Component {
         let clickableChildren = this._withinClickableRange(affected, clientX, clientY);
         
         if (clickableChildren.length) {
+            // Sort by zIndex and then id
             clickableChildren.sort((a,b) => {
-                return a.id > b.id ? 1: -1;
+                if (a.zIndex > b.zIndex) {
+                    return 1;
+                } else if (a.zIndex < b.zIndex) {
+                    return -1;
+                } else {
+                    return a.id > b.id ? 1: -1;
+                }
             });
             let n = clickableChildren.length;
 
-            while (n--) {
-                const child = clickableChildren[n];
+            // Assume target has highest zIndex (id when zIndex equal)
+            const target = clickableChildren.slice(-1)[0];
+            let child = target;
+
+            // Search tree bottom up for a handler
+            while (child !== null) {
                 if (child && child["_handleClick"]) {
-                    child._handleClick();
+                    child._handleClick(target);
                     break;
                 }
+                child = child.parent;
             }
         }
     }
