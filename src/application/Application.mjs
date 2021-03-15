@@ -427,9 +427,9 @@ export default class Application extends Component {
 
         if (clientX <= this.stage.w && clientY <= this.stage.h) {
             if (deltaY > 0) {
-                this.fireTopDownScrollWheelHandler("_handleScrollDown");
+                this.fireTopDownScrollWheelHandler("_captureScrollDown");
             } else if (deltaY < 0) {
-                this.fireTopDownScrollWheelHandler("_handleScrollUp");
+                this.fireTopDownScrollWheelHandler("_captureScrollUp");
             }
         }
     }
@@ -442,11 +442,11 @@ export default class Application extends Component {
         while(n--) {
             const child = affected[n];
             if (child && child[event]) {
-                if (event == "_handleScrollDown") {
-                    child._handleScrollDown();
+                if (event == "_captureScrollDown") {
+                    child._captureScrollDown();
                     break;
-                } else if (event == "_handleScrollUp") {
-                    child._handleScrollUp();
+                } else if (event == "_captureScrollUp") {
+                    child._captureScrollUp();
                     break;
                 }         
             }
