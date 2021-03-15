@@ -483,7 +483,6 @@ export default class Application extends Component {
                     return a.id > b.id ? 1: -1;
                 }
             });
-            let n = clickableChildren.length;
 
             // Assume target has highest zIndex (id when zIndex equal)
             const target = clickableChildren.slice(-1)[0];
@@ -507,11 +506,11 @@ export default class Application extends Component {
         if (clientX <= this.stage.w && clientY <= this.stage.h) {
             // force a drawFrame to set any missing element dimensions
             this.stage.drawFrame();
-            this.stage.application.fireTopDownHoverHandler(obj);
+            this.stage.application.fireBottomUpHoverHandler(obj);
         }
     }
 
-    fireTopDownHoverHandler(obj) {
+    fireBottomUpHoverHandler(obj) {
         const {clientX, clientY} = obj;
         let children = this.stage.application.children;
 
@@ -521,20 +520,28 @@ export default class Application extends Component {
 
         if (hoverableChildren.length) {
             hoverableChildren.sort((a,b) => {
-                return a.id > b.id ? 1: -1;
+                if (a.zIndex > b.zIndex) {
+                    return 1;
+                } else if (a.zIndex < b.zIndex) {
+                    return -1;
+                } else {
+                    return a.id > b.id ? 1: -1;
+                }
             });
-            let n = hoverableChildren.length;
 
-            while (n--) {
-                const child = hoverableChildren[n];
-                if (child && child["_handleHover"]) {
+            const target = hoverableChildren.slice(-1)[0];
 
-                    // only fire handler once per hover
-                    if (child !== this.__hoveredChild) {
-                        child._handleHover();
-                        this.__hoveredChild = child;
+            // Only fire handler when pointer target changes
+            if (target !== this.__hoveredChild) {
+                let child = target;
+                this.__hoveredChild = target;
+
+                while (child !== null) {
+                    if (child && child["_handleHover"]) {
+                        child._handleHover(target);
+                        break;
                     }
-                    break;
+                    child = child.parent;
                 }
             }
         }
