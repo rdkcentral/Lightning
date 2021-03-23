@@ -152,6 +152,13 @@ const createWorker = function() {
             this.config = e.data.config;
 
             var base = this.config.path;
+            // the constructing of the basepath fails
+            // if location.hash contains a slash
+            var hasHashPath = /#.*?\//;
+            if(hasHashPath.test(base)){
+                base = base.replace(/#.*$/,'');
+            }
+
             var parts = base.split("/");
             parts.pop();
             this._relativeBase = parts.join("/") + "/";

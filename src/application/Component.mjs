@@ -47,7 +47,7 @@ export default class Component extends Element {
         this.__construct();
 
         // Quick-apply template.
-        const func = this.constructor.getTemplateFunc();
+        const func = this.constructor.getTemplateFunc(this);
         func.f(this, func.a);
 
         this._build();
@@ -84,30 +84,34 @@ export default class Component extends Element {
         // 1. find binding position: find object and property name to be bound
         const obj = targetObj;
         const prop = targetProp;
-        const propName = propObj.__name;
-        const func = propObj.__func ? propObj.__func : (context) => context[propName];
+        const propDependencies = Array.isArray(propObj.__name) ? propObj.__name : [propObj.__name];
 
-        // 2. create setter for given object
-        if (!this.hasOwnProperty(propName)) {
-            this[`__prop_bindings_${propName}`] = [{__obj: obj, __prop: prop, __func: func}];
-            Object.defineProperty(this, propName, {
-                set: (value) => {
-                    this[`__prop_${propName}`] = value;
-                    for (const {__obj, __prop, __func} of this[`__prop_bindings_${propName}`]) {
-                        __obj[__prop] = __func(this);
-                    }
-                },
-                get: () => this[`__prop_${propName}`]
-            });
-        } else {
-            this[`__prop_bindings_${propName}`].push({__obj: obj, __prop: prop, __func: func});
+        // 2. create setters for every given dependency
+        for (let i = 0; i < propDependencies.length; i++) {
+            const propName = propDependencies[i];
+            const func = propObj.__func ? propObj.__func : (context) => context[propName];
+
+            if (!this.hasOwnProperty(propName)) {
+                this[`__prop_bindings_${propName}`] = [{__obj: obj, __prop: prop, __func: func}];
+                Object.defineProperty(this, propName, {
+                    set: (value) => {
+                        this[`__prop_${propName}`] = value;
+                        for (const {__obj, __prop, __func} of this[`__prop_bindings_${propName}`]) {
+                            __obj[__prop] = __func(this);
+                        }
+                    },
+                    get: () => this[`__prop_${propName}`]
+                });
+            } else {
+                this[`__prop_bindings_${propName}`].push({__obj: obj, __prop: prop, __func: func});
+            }
         }
     }
 
     /**
      * Returns a high-performance template patcher.
      */
-    static getTemplateFunc() {
+    static getTemplateFunc(ctx) {
         // We need a different template function per patch id.
         const name = "_templateFunc";
 
@@ -115,7 +119,7 @@ export default class Component extends Element {
         const hasName = '__has' + name;
         if (this[hasName] !== this) {
             this[hasName] = this;
-            this[name] = this.parseTemplate(this._template());
+            this[name] = this.parseTemplate(this._template(ctx));
         }
         return this[name];
     }
@@ -147,10 +151,10 @@ export default class Component extends Element {
                     const childCursor = `r${key.replace(/[^a-z0-9]/gi, "") + context.rid}`;
                     let type = value.type ? value.type : Element;
                     if (type === Element) {
-                        loc.push(`const ${childCursor} = element.stage.createElement()`);
+                        loc.push(`var ${childCursor} = element.stage.createElement()`);
                     } else {
                         store.push(type);
-                        loc.push(`const ${childCursor} = new store[${store.length - 1}](${cursor}.stage)`);
+                        loc.push(`var ${childCursor} = new store[${store.length - 1}](${cursor}.stage)`);
                     }
                     loc.push(`${childCursor}.ref = "${key}"`);
                     context.rid++;
@@ -167,14 +171,19 @@ export default class Component extends Element {
             } else {
                 if (key === "text") {
                     const propKey = cursor + "__text";
-                    loc.push(`const ${propKey} = ${cursor}.enableTextTexture()`);
+                    loc.push(`var ${propKey} = ${cursor}.enableTextTexture()`);
                     this.parseTemplatePropRec(value, context, propKey);
+                } else if (key === "shader" && Utils.isObjectLiteral(value)) {
+                    const shaderCursor = `${cursor}["shader"]`
+                    store.push(value);
+                    loc.push(`${cursor}["${key}"] = store[${store.length - 1}]`);
+                    this.parsePropertyBindings(value, context, shaderCursor);
                 } else if (key === "texture" && Utils.isObjectLiteral(value)) {
                     const propKey = cursor + "__texture";
                     const type = value.type;
                     if (type) {
                         store.push(type);
-                        loc.push(`const ${propKey} = new store[${store.length - 1}](${cursor}.stage)`);
+                        loc.push(`var ${propKey} = new store[${store.length - 1}](${cursor}.stage)`);
                         this.parseTemplatePropRec(value, context, propKey);
                         loc.push(`${cursor}["${key}"] = ${propKey}`);
                     } else {
@@ -226,6 +235,21 @@ export default class Component extends Element {
                 } else {
                     // String etc.
                     loc.push(`${cursor}["${key}"] = ${JSON.stringify(value)}`);
+                }
+            }
+        });
+    }
+
+    static parsePropertyBindings(obj, context, cursor) {
+        const store = context.store;
+        const loc = context.loc;
+        const keys = Object.keys(obj);
+        keys.forEach(key => {
+            if (key !== "type") {
+                const value = obj[key];
+                if (Utils.isObjectLiteral(value) && value.__propertyBinding === true) {
+                    store.push(value);
+                    loc.push(`element.__bindProperty(store[${store.length - 1}], ${cursor}, "${key}")`);
                 }
             }
         });
@@ -457,6 +481,10 @@ export default class Component extends Element {
                 if (fireEvent) {
                     if (fireEvent === true) {
                         fireEvent = event;
+                    }
+ 
+                    if (Utils.isFunction(fireEvent)) {
+                        return fireEvent(...args);
                     }
 
                     if (signalParent._hasMethod(fireEvent)) {

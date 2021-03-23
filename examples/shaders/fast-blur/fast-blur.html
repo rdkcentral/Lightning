@@ -21,11 +21,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <script src="../../devtools/lightning-inspect.js"></script>
+    <script src="../../../devtools/lightning-inspect.js"></script>
 </head>
 <body>
     <script type="module">
-        import lng from '../../src/lightning.mjs'
+        import lng from '../../../src/lightning.mjs'
         // attachInspector(lng)
 
         window.start = function() {
@@ -38,11 +38,8 @@
                                 type: Sub
                             },
                             Texture: {
-                                src: "../landscape.jpg"
-                            }/*,
-                            Hello: {
-                                text: {text: "Hello world", fontSize: 100}
-                            }*/
+                                src: "../sampleImage.jpg", w: 900, h: 900
+                            }
                         }}
                     }
                 }
@@ -66,12 +63,8 @@
                 }
             }
 
-            const options = {stage: {clearColor: 0xFFFF0000, w: 900, h: 900, canvas2d: false}};
+            const options = {stage: {clearColor: 0xFF000000, w: 900, h: 900, canvas2d: false}};
             const app = new AppExample(options);
-
-            const tx = new lng.textures.ImageTexture(app.stage);
-            tx.src = "../landscape.jpg";
-            tx.load()
 
             app.tag("Blur").animation({duration: 5, repeat: -1, actions: [
                     {p: 'amount', v: {0: 0, 1: 4}}
