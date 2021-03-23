@@ -427,9 +427,13 @@ export default class Application extends Component {
 
         if (clientX <= this.stage.w && clientY <= this.stage.h) {
             if (deltaY > 0) {
-                this.fireTopDownScrollWheelHandler("_captureScrollDown");
+                if (!this.fireTopDownScrollWheelHandler("_captureScrollDown")) {
+                    this.fireBottomUpScrollWheelHandler("_handleScrollDown", obj);
+                }
             } else if (deltaY < 0) {
-                this.fireTopDownScrollWheelHandler("_captureScrollUp");
+                if (!this.fireTopDownScrollWheelHandler("_captureScrollUp")) {
+                    this.fireBottomUpScrollWheelHandler("_handleScrollUp", obj);
+                }
             }
         }
     }
@@ -442,14 +446,55 @@ export default class Application extends Component {
         while(n--) {
             const child = affected[n];
             if (child && child[event]) {
-                if (event == "_captureScrollDown") {
+                if (event === "_captureScrollDown") {
                     child._captureScrollDown();
-                    break;
-                } else if (event == "_captureScrollUp") {
+                    return true;
+                } else if (event === "_captureScrollUp") {
                     child._captureScrollUp();
-                    break;
+                    return true;;
                 }         
             }
+        }
+        return false
+    }
+
+    fireBottomUpScrollWheelHandler(event, obj) {
+        const {clientX, clientY} = obj;
+        let children = this.stage.application.children;
+
+        let affected = this._findChildren([], children).reverse();
+        let scrollableChildren = this._withinClickableRange(affected, clientX, clientY);
+
+        if (scrollableChildren.length) {
+            // Sort by zIndex and then id
+            scrollableChildren.sort((a,b) => {
+                if (a.zIndex > b.zIndex) {
+                    return 1;
+                } else if (a.zIndex < b.zIndex) {
+                    return -1;
+                } else {
+                    return a.id > b.id ? 1: -1;
+                }
+            });
+
+            // Assume target has highest zIndex (id when zIndex equal)
+            const target = scrollableChildren.slice(-1)[0];
+            let child = target;
+
+            // Search tree bottom up for a handler
+            while (child !== null) {
+                if (child && child[event]) {
+                    if (event === "_handleScrollDown") {
+                        child._handleScrollDown();
+                        return true;
+                    } else if (event === "_handleScrollUp") {
+                        child._handleScrollUp();
+                        return true;;
+                    }         
+                }
+                child = child.parent;
+            }
+            return false
         }
     }
 
