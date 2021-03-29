@@ -460,42 +460,23 @@ export default class Application extends Component {
 
     fireBottomUpScrollWheelHandler(event, obj) {
         const {clientX, clientY} = obj;
-        let children = this.stage.application.children;
+        const target = this._getTargetChild(clientX, clientY);
+        let child = target;
 
-        let affected = this._findChildren([], children).reverse();
-        let scrollableChildren = this._withinClickableRange(affected, clientX, clientY);
-
-        if (scrollableChildren.length) {
-            // Sort by zIndex and then id
-            scrollableChildren.sort((a,b) => {
-                if (a.zIndex > b.zIndex) {
-                    return 1;
-                } else if (a.zIndex < b.zIndex) {
-                    return -1;
-                } else {
-                    return a.id > b.id ? 1: -1;
-                }
-            });
-
-            // Assume target has highest zIndex (id when zIndex equal)
-            const target = scrollableChildren.slice(-1)[0];
-            let child = target;
-
-            // Search tree bottom up for a handler
-            while (child !== null) {
-                if (child && child[event]) {
-                    if (event === "_handleScrollDown") {
-                        child._handleScrollDown();
-                        return true;
-                    } else if (event === "_handleScrollUp") {
-                        child._handleScrollUp();
-                        return true;;
-                    }         
-                }
-                child = child.parent;
+        // Search tree bottom up for a handler
+        while (child !== null) {
+            if (child && child[event]) {
+                if (event === "_handleScrollDown") {
+                    child._handleScrollDown();
+                    return true;
+                } else if (event === "_handleScrollUp") {
+                    child._handleScrollUp();
+                    return true;;
+                }         
             }
-            return false
+            child = child.parent;
         }
+        return false
     }
 
     _receiveClick(e) {
@@ -511,36 +492,16 @@ export default class Application extends Component {
 
     fireBottomUpClickHandler(obj) {
         const {clientX, clientY} = obj;
-        let children = this.stage.application.children;
+        const target = this._getTargetChild(clientX, clientY);
+        let child = target;
 
-        // reverse so while loops searches top down
-        let affected = this._findChildren([], children).reverse();
-        let clickableChildren = this._withinClickableRange(affected, clientX, clientY);
-        
-        if (clickableChildren.length) {
-            // Sort by zIndex and then id
-            clickableChildren.sort((a,b) => {
-                if (a.zIndex > b.zIndex) {
-                    return 1;
-                } else if (a.zIndex < b.zIndex) {
-                    return -1;
-                } else {
-                    return a.id > b.id ? 1: -1;
-                }
-            });
-
-            // Assume target has highest zIndex (id when zIndex equal)
-            const target = clickableChildren.slice(-1)[0];
-            let child = target;
-
-            // Search tree bottom up for a handler
-            while (child !== null) {
-                if (child && child["_handleClick"]) {
-                    child._handleClick(target);
-                    break;
-                }
-                child = child.parent;
+        // Search tree bottom up for a handler
+        while (child !== null) {
+            if (child && child["_handleClick"]) {
+                child._handleClick(target);
+                break;
             }
+            child = child.parent;
         }
     }
 
@@ -557,38 +518,44 @@ export default class Application extends Component {
 
     fireBottomUpHoverHandler(obj) {
         const {clientX, clientY} = obj;
-        let children = this.stage.application.children;
+        const target = this._getTargetChild(clientX, clientY);
 
-        // reverse so while loops searches top down
-        let affected = this._findChildren([], children).reverse();
+        // Only fire handler when pointer target changes
+        if (target && (target !== this.__hoveredChild)) {
+            let child = target;
+            this.__hoveredChild = target;
+
+            while (child !== null) {
+                if (child && child["_handleHover"]) {
+                    child._handleHover(target);
+                    break;
+                }
+                child = child.parent;
+            }
+        }
+    }
+
+    _getTargetChild(clientX, clientY) {
+        let children = this.stage.application.children;
+        let affected = this._findChildren([], children);
         let hoverableChildren = this._withinClickableRange(affected, clientX, clientY);
 
-        if (hoverableChildren.length) {
-            hoverableChildren.sort((a,b) => {
-                if (a.zIndex > b.zIndex) {
-                    return 1;
-                } else if (a.zIndex < b.zIndex) {
-                    return -1;
-                } else {
-                    return a.id > b.id ? 1: -1;
-                }
-            });
-
-            const target = hoverableChildren.slice(-1)[0];
-
-            // Only fire handler when pointer target changes
-            if (target !== this.__hoveredChild) {
-                let child = target;
-                this.__hoveredChild = target;
-
-                while (child !== null) {
-                    if (child && child["_handleHover"]) {
-                        child._handleHover(target);
-                        break;
-                    }
-                    child = child.parent;
-                }
+        hoverableChildren.sort((a,b) => {
+            // Sort by zIndex and then id
+            if (a.zIndex > b.zIndex) {
+                return 1;
+            } else if (a.zIndex < b.zIndex) {
+                return -1;
+            } else {
+                return a.id > b.id ? 1: -1;
             }
+        });
+
+        if (hoverableChildren.length) {
+            // Assume target has highest zIndex (id when zIndex equal)
+            return hoverableChildren.slice(-1)[0];
+        } else {
+            return null
         }
     }
 
