@@ -143,10 +143,6 @@ export default class TextTextureRenderer {
             this._settings.text = this.wrapWord(this._settings.text, wordWrapWidth - textIndent, suffix)
         }
 
-        if (this._settings.wordBreak == 'break-all') {
-            this._settings.text = this.wordBreak(this._settings.text, width);
-        } 
-
         // word wrap
         // preserve original text
         let linesInfo;
@@ -427,7 +423,7 @@ export default class TextTextureRenderer {
 
             word = word.slice(idx);
         }
-        return parts.join('\n');
+        return parts;
     }
 
     wrapWord(word, wordWrapWidth, suffix) {
@@ -487,7 +483,14 @@ export default class TextTextureRenderer {
             let resultLines = [];
             let result = '';
             let spaceLeft = wordWrapWidth - indent;
+
             let words = lines[i].split(' ');
+
+            if (this._settings.wordBreak == 'break-all') {
+                words = words.map((w) => this.wordBreak(w, wordWrapWidth));
+                words = [].concat(...words);
+            }
+
             for (let j = 0; j < words.length; j++) {
                 const wordWidth = this.measureText(words[j], letterSpacing);
                 const wordWidthWithSpace = wordWidth + this.measureText(' ',letterSpacing);
