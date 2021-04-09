@@ -70,7 +70,7 @@ export default class ImageTexture extends Texture {
         }
 
         return (cb) => {
-            return this.stage.platform.loadSrcTexture({src: src, hasAlpha: hasAlpha}, cb);
+            return this.stage.platform.loadSrcTexture({src: src, hasAlpha: hasAlpha, permanent: this.permanent}, cb);
         }
     }
 

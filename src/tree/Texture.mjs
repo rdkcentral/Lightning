@@ -115,6 +115,13 @@ export default class Texture {
          */
         this._mustUpdate = true;
 
+        /**
+         * Indicates whether texture will be collected by GC or stay throughout lifetime of a program.
+         * @type {boolean}
+         * @private
+         */
+        this._permanent = false;
+
     }
 
     get source() {
@@ -123,6 +130,14 @@ export default class Texture {
             this.stage.removeUpdateSourceTexture(this);
         }
         return this._source;
+    }
+
+    set permanent(v) {
+        this._permanent = v;
+    }
+
+    get permanent() {
+        return this._permanent;
     }
 
     addElement(v) {

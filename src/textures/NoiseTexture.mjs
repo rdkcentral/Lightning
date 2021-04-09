@@ -27,6 +27,7 @@ export default class NoiseTexture extends Texture {
 
     _getSourceLoader() {
         const gl = this.stage.gl;
+        const perm = this.permanent;
         return function(cb) {
             const noise = new Uint8Array(128 * 128 * 4);
             for (let i = 0; i < 128 * 128 * 4; i+=4) {
@@ -44,8 +45,7 @@ export default class NoiseTexture extends Texture {
                 texParams[gl.TEXTURE_MIN_FILTER] = gl.NEAREST;
                 texParams[gl.TEXTURE_MAG_FILTER] = gl.NEAREST;
             }
-
-            cb(null, {source: noise, w: 128, h: 128, texParams: texParams});
+            cb(null, {source: noise, w: 128, h: 128, texParams: texParams, permanent: perm});
         }
     }
 

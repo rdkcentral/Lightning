@@ -497,17 +497,19 @@ export default class TextTexture extends Texture {
             args.fontFace = this.stage.getOption('defaultFontFace');
         }
 
+        const perm = this.permanent;
+
         return function (cb) {
             const canvas = this.stage.platform.getDrawingCanvas();
             const renderer = new TextTextureRenderer(this.stage, canvas, args);
             const p = renderer.draw();
-
             if (p) {
                 p.then(() => {
                     /* FIXME: on some platforms (e.g. RPI), throttling text textures cause artifacts */
                     cb(null, Object.assign({
                         renderInfo: renderer.renderInfo,
-                        throttle: false
+                        throttle: false,
+                        permanent: perm,
                     }, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas)));
                 }).catch((err) => {
                     cb(err);
@@ -515,7 +517,8 @@ export default class TextTexture extends Texture {
             } else {
                 cb(null, Object.assign({
                     renderInfo: renderer.renderInfo,
-                    throttle: false
+                    throttle: false,
+                    permanent: perm,
                 }, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas)));
             }
         };

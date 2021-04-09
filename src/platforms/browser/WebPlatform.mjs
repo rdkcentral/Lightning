@@ -79,7 +79,7 @@ export default class WebPlatform {
         }
     }
 
-    loadSrcTexture({src, hasAlpha}, cb) {
+    loadSrcTexture({src, hasAlpha, permanent}, cb) {
         let cancelCb = undefined;
         let isPng = (src.indexOf(".png") >= 0) || src.substr(0, 21) == 'data:image/png;base64';
         if (this._imageWorker) {
@@ -93,7 +93,8 @@ export default class WebPlatform {
                     source: imageBitmap,
                     renderInfo: {src: src},
                     hasAlpha: hasAlphaChannel,
-                    premultiplyAlpha: true
+                    premultiplyAlpha: true,
+                    permanent: permanent,
                 });
             };
             cancelCb = function() {
@@ -118,7 +119,8 @@ export default class WebPlatform {
                 cb(null, {
                     source: image,
                     renderInfo: {src: src},
-                    hasAlpha: isPng || hasAlpha
+                    hasAlpha: isPng || hasAlpha,
+                    permanent: permanent,
                 });
             };
             image.src = src;

@@ -48,7 +48,9 @@ export default class StaticCanvasTexture extends Texture {
                 if (err) {
                     return cb(err);
                 }
-                cb(null, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas));
+                cb(null, Object.assign({
+                    permanent: this.permanent,
+                }, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas)));
             }, this.stage);
         }
     }
