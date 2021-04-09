@@ -294,7 +294,6 @@ export default class TextureSource {
     }
 
     isUsed() {
-        console.log('p', this.permanent)
         return this._activeTextureCount > 0;
     }
 
