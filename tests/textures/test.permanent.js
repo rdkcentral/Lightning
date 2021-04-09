@@ -50,7 +50,8 @@ describe('Texture permanency', function() {
                     const element = app.stage.createElement({
                         Item: {
                             texture: {...texture, permanent: true},
-                        visible: false}
+                            visible: false
+                        }
                     });
 
                     app.children = [element];
@@ -63,11 +64,11 @@ describe('Texture permanency', function() {
                         }),
                         new Promise((resolve) => {
                             setTimeout(() => {
-                                chai.assert(true, 'Texture load timed out')
-                                resolve()
-                            }, 500)
+                                chai.assert(true, 'Texture load timed out');
+                                resolve();
+                            }, 500);
                         })
-                    ])
+                    ]);
 
                     stage.drawFrame();
 
@@ -79,7 +80,8 @@ describe('Texture permanency', function() {
                     const element = app.stage.createElement({
                         Item: {
                             texture: {...texture, permanent: true},
-                        visible: false}
+                            visible: false
+                        }
                     });
 
                     app.children = [element];
@@ -97,8 +99,8 @@ describe('Texture permanency', function() {
                         }),
                         new Promise((resolve) => {
                             setTimeout(() => {
-                                if (!loaded) chai.assert(false, 'Texture load timeout')
-                            }, 500)
+                                if (!loaded) chai.assert(false, 'Texture load timeout');
+                            }, 500);
                         })
                     ]);
 
@@ -113,7 +115,8 @@ describe('Texture permanency', function() {
                     const element = app.stage.createElement({
                         Item: {
                             texture: {...texture},
-                        visible: true}
+                            visible: true
+                        }
                     });
 
                     app.children = [element];
@@ -132,10 +135,10 @@ describe('Texture permanency', function() {
                         }),
                         new Promise(() => {
                             setTimeout(() => {
-                                if (!loaded) chai.assert(false, 'Texture load timeout')
-                            }, 500)
+                                if (!loaded) chai.assert(false, 'Texture load timeout');
+                            }, 500);
                         })
-                    ])
+                    ]);
 
                     stage.drawFrame();
 
@@ -147,7 +150,7 @@ describe('Texture permanency', function() {
                     const element = app.stage.createElement({
                         Item: {
                             texture: {...texture, permanent: true},
-                        visible: true
+                            visible: true
                         }
                     });
 
@@ -168,9 +171,9 @@ describe('Texture permanency', function() {
                         new Promise(() => {
                             setTimeout(() => {
                                 if (!loaded) chai.assert(false, 'Texture load timeout')
-                            }, 500)
+                            }, 500);
                         })
-                    ])
+                    ]);
 
                     stage.drawFrame();
 
