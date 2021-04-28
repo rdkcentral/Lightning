@@ -172,7 +172,13 @@ export default class Component extends Element {
                 if (key === "text") {
                     const propKey = cursor + "__text";
                     loc.push(`var ${propKey} = ${cursor}.enableTextTexture()`);
-                    this.parseTemplatePropRec(value, context, propKey);
+                    if (value.__propertyBinding === true) {
+                        // Allow binding entire objects to text property
+                        store.push(value);
+                        loc.push(`element.__bindProperty(store[${store.length - 1}], ${cursor}, "${key}")`);
+                    } else {
+                        this.parseTemplatePropRec(value, context, propKey);
+                    }
                 } else if (key === "shader" && Utils.isObjectLiteral(value)) {
                     const shaderCursor = `${cursor}["shader"]`
                     store.push(value);

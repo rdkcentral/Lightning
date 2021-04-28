@@ -661,6 +661,18 @@ window.attachInspector = function({Element, ElementCore, Stage, Component, Eleme
         }
     });
 
+    Element.prototype.$testId = null;
+    Object.defineProperty(Element.prototype, 'testId', {
+        get: function() {
+            return this.$testId;
+        },
+        set: function(v) {
+            if (this.$testId !== v) {
+                this.$testId = v;
+                val(this, 'data-testid', v, null);
+            }
+        }
+    });
 
     var checkColors = function(elementRenderer) {
         let element = elementRenderer._element;
