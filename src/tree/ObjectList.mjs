@@ -51,6 +51,12 @@ export default class ObjectList {
                 return item;
             }
 
+            if (Utils.isObjectLiteral(item)) {
+                const o = item;
+                item = this.createItem(o);
+                item.patch(o);
+            }
+
             if (currentIndex != -1) {
                 this.setAt(item, index);
             } else {
@@ -89,6 +95,13 @@ export default class ObjectList {
 
     setAt(item, index) {
         if (index >= 0 && index <= this._items.length) {
+
+            if (Utils.isObjectLiteral(item)) {
+                const o = item;
+                item = this.createItem(o);
+                item.patch(o);
+            }
+
             let currentIndex = this._items.indexOf(item);
             if (currentIndex != -1) {
                 if (currentIndex !== index) {
