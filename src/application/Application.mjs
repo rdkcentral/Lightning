@@ -501,7 +501,7 @@ export default class Application extends Component {
         const target = this._getTargetChild(clientX, clientY);
 
         // Only fire handlers when pointer target changes
-        if (target && (target !== this.__hoveredChild)) {
+        if (target !== this.__hoveredChild) {
             if (this.__hoveredChild) {
                 let child = this.__hoveredChild;
 
