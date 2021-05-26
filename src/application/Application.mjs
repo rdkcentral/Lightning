@@ -484,8 +484,6 @@ export default class Application extends Component {
         const {clientX, clientY} = obj;
 
         if (clientX <= this.stage.w && clientY <= this.stage.h) {
-            // force a drawFrame to set any missing element dimensions
-            this.stage.drawFrame();
             this.stage.application.fireBottomUpClickHandler(obj);
         }
     }
@@ -510,8 +508,6 @@ export default class Application extends Component {
         const {clientX, clientY} = obj;
 
         if (clientX <= this.stage.w && clientY <= this.stage.h) {
-            // force a drawFrame to set any missing element dimensions
-            this.stage.drawFrame();
             this.stage.application.fireBottomUpHoverHandler(obj);
         }
     }
