@@ -516,8 +516,20 @@ export default class Application extends Component {
         const {clientX, clientY} = obj;
         const target = this._getTargetChild(clientX, clientY);
 
-        // Only fire handler when pointer target changes
+        // Only fire handlers when pointer target changes
         if (target && (target !== this.__hoveredChild)) {
+            if (this.__hoveredChild) {
+                let child = this.__hoveredChild;
+
+                while (child !== null) {
+                    if (child && child["_handleUnhover"]) {
+                        child._handleUnhover(this.__hoveredChild);
+                        break;
+                    }
+                    child = child.parent;
+                }
+            }
+
             let child = target;
             this.__hoveredChild = target;
 
