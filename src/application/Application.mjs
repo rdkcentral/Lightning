@@ -423,22 +423,16 @@ export default class Application extends Component {
 
     _recieveScrollWheel(e) {
         const obj = e;
-        const {clientX, clientY, deltaY} = obj;
+        const {clientX, clientY,} = obj;
 
         if (clientX <= this.stage.w && clientY <= this.stage.h) {
-            if (deltaY > 0) {
-                if (!this.fireTopDownScrollWheelHandler("_captureScrollDown")) {
-                    this.fireBottomUpScrollWheelHandler("_handleScrollDown", obj);
-                }
-            } else if (deltaY < 0) {
-                if (!this.fireTopDownScrollWheelHandler("_captureScrollUp")) {
-                    this.fireBottomUpScrollWheelHandler("_handleScrollUp", obj);
-                }
+            if (!this.fireTopDownScrollWheelHandler("_captureScroll", obj)) {
+                this.fireBottomUpScrollWheelHandler("_handleScroll", obj);
             }
         }
     }
 
-    fireTopDownScrollWheelHandler(event) {
+    fireTopDownScrollWheelHandler(event, obj) {
         let children = this.stage.application.children;
         let affected = this._findChildren([], children).reverse();
         let n = affected.length;
@@ -446,16 +440,11 @@ export default class Application extends Component {
         while(n--) {
             const child = affected[n];
             if (child && child[event]) {
-                if (event === "_captureScrollDown") {
-                    child._captureScrollDown();
-                    return true;
-                } else if (event === "_captureScrollUp") {
-                    child._captureScrollUp();
-                    return true;;
-                }         
+                child._captureScroll(obj);
+                return true; 
             }
         }
-        return false
+        return false;
     }
 
     fireBottomUpScrollWheelHandler(event, obj) {
@@ -466,13 +455,8 @@ export default class Application extends Component {
         // Search tree bottom up for a handler
         while (child !== null) {
             if (child && child[event]) {
-                if (event === "_handleScrollDown") {
-                    child._handleScrollDown();
-                    return true;
-                } else if (event === "_handleScrollUp") {
-                    child._handleScrollUp();
-                    return true;;
-                }         
+                child._handleScroll(obj);
+                return true;
             }
             child = child.parent;
         }
