@@ -44,6 +44,9 @@ export default class WebPlatform {
             this._imageWorker.destroy();
         }
         this._removeKeyHandler();
+        this._removeClickHandler();
+        this._removeHoverHandler();
+        this._removeScrollWheelHandler();
     }
 
     startLoop() {
@@ -216,5 +219,43 @@ export default class WebPlatform {
         }
     }
 
+    registerClickHandler(clickHandler) {
+        this._clickListener = e => {
+            clickHandler(e);
+        };
+        window.addEventListener('mousedown', this._clickListener);
+    }
+
+    _removeClickHandler() {
+        if (this._clickListener) {
+            window.removeEventListener('mousedown', this._clickListener);
+        }
+    }
+
+    registerHoverHandler(hoverHandler) {
+        this._hoverListener = e => {
+            hoverHandler(e);
+        };
+        window.addEventListener('mousemove', this._hoverListener);
+    }
+
+    _removeHoverHandler() {
+        if (this._hoverListener) {
+            window.removeEventListener('mousemove', this._hoverListener);
+        }
+    }
+
+    registerScrollWheelHandler(registerScrollWheelHandler) {
+        this._scrollWheelListener = e => {
+            registerScrollWheelHandler(e);
+        }
+        window.addEventListener('wheel', this._scrollWheelListener);
+    }
+
+    _removeScrollWheelHandler() {
+        if (this._scrollWheelListener) {
+            window.removeEventListener('wheel', this._scrollWheelListener);
+        }
+    }
 }
 
