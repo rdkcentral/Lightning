@@ -423,7 +423,7 @@ export default class Application extends Component {
 
     _recieveScrollWheel(e) {
         const obj = e;
-        const {clientX, clientY,} = obj;
+        const {clientX, clientY} = obj;
 
         if (clientX <= this.stage.w && clientY <= this.stage.h) {
             if (!this.fireTopDownScrollWheelHandler("_captureScroll", obj)) {
@@ -460,7 +460,7 @@ export default class Application extends Component {
             }
             child = child.parent;
         }
-        return false
+        return false;
     }
 
     _receiveClick(e) {
@@ -547,7 +547,7 @@ export default class Application extends Component {
             // Assume target has highest zIndex (id when zIndex equal)
             return hoverableChildren.slice(-1)[0];
         } else {
-            return null
+            return null;
         }
     }
 
