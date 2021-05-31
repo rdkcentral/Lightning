@@ -34,6 +34,7 @@ export default class Application extends Component {
 
         this.__updateFocusCounter = 0;
         this.__keypressTimers = new Map();
+        this.__hoveredChild = null;
 
         // We must construct while the application is not yet attached.
         // That's why we 'init' the stage later (which actually emits the attach event).
@@ -51,6 +52,20 @@ export default class Application extends Component {
 
             this.stage.platform.registerKeyupHandler((e) => {
                 this._receiveKeyup(e);
+            });
+        }
+
+        if (this.getOption("enablePointer")) {
+            this.stage.platform.registerClickHandler((e) => {
+                this._receiveClick(e);
+            });
+
+            this.stage.platform.registerHoverHandler((e) => {
+                this._receiveHover(e);
+            });
+
+            this.stage.platform.registerScrollWheelHandler((e) => {
+                this._recieveScrollWheel(e);
             });
         }
     }
@@ -82,6 +97,7 @@ export default class Application extends Component {
             8: "Back",
             27: "Exit"
         });
+        opt('enablePointer', false);
     }
 
     __construct() {
@@ -403,6 +419,187 @@ export default class Application extends Component {
             }
         }
         return;
+    }
+
+    _recieveScrollWheel(e) {
+        const obj = e;
+        const {clientX, clientY} = obj;
+
+        if (clientX <= this.stage.w && clientY <= this.stage.h) {
+            if (!this.fireTopDownScrollWheelHandler("_captureScroll", obj)) {
+                this.fireBottomUpScrollWheelHandler("_handleScroll", obj);
+            }
+        }
+    }
+
+    fireTopDownScrollWheelHandler(event, obj) {
+        let children = this.stage.application.children;
+        let affected = this._findChildren([], children).reverse();
+        let n = affected.length;
+
+        while(n--) {
+            const child = affected[n];
+            if (child && child[event]) {
+                child._captureScroll(obj);
+                return true; 
+            }
+        }
+        return false;
+    }
+
+    fireBottomUpScrollWheelHandler(event, obj) {
+        const {clientX, clientY} = obj;
+        const target = this._getTargetChild(clientX, clientY);
+        let child = target;
+
+        // Search tree bottom up for a handler
+        while (child !== null) {
+            if (child && child[event]) {
+                child._handleScroll(obj);
+                return true;
+            }
+            child = child.parent;
+        }
+        return false;
+    }
+
+    _receiveClick(e) {
+        const obj = e;
+        const {clientX, clientY} = obj;
+
+        if (clientX <= this.stage.w && clientY <= this.stage.h) {
+            this.stage.application.fireBottomUpClickHandler(obj);
+        }
+    }
+
+    fireBottomUpClickHandler(obj) {
+        const {clientX, clientY} = obj;
+        const target = this._getTargetChild(clientX, clientY);
+        let child = target;
+
+        // Search tree bottom up for a handler
+        while (child !== null) {
+            if (child && child["_handleClick"]) {
+                child._handleClick(target);
+                break;
+            }
+            child = child.parent;
+        }
+    }
+
+    _receiveHover(e) {
+        const obj = e;
+        const {clientX, clientY} = obj;
+
+        if (clientX <= this.stage.w && clientY <= this.stage.h) {
+            this.stage.application.fireBottomUpHoverHandler(obj);
+        }
+    }
+
+    fireBottomUpHoverHandler(obj) {
+        const {clientX, clientY} = obj;
+        const target = this._getTargetChild(clientX, clientY);
+
+        // Only fire handlers when pointer target changes
+        if (target !== this.__hoveredChild) {
+            if (this.__hoveredChild) {
+                let child = this.__hoveredChild;
+
+                while (child !== null) {
+                    if (child && child["_handleUnhover"]) {
+                        child._handleUnhover(this.__hoveredChild);
+                        break;
+                    }
+                    child = child.parent;
+                }
+            }
+
+            let child = target;
+            this.__hoveredChild = target;
+
+            while (child !== null) {
+                if (child && child["_handleHover"]) {
+                    child._handleHover(target);
+                    break;
+                }
+                child = child.parent;
+            }
+        }
+    }
+
+    _getTargetChild(clientX, clientY) {
+        let children = this.stage.application.children;
+        let affected = this._findChildren([], children);
+        let hoverableChildren = this._withinClickableRange(affected, clientX, clientY);
+
+        hoverableChildren.sort((a,b) => {
+            // Sort by zIndex and then id
+            if (a.zIndex > b.zIndex) {
+                return 1;
+            } else if (a.zIndex < b.zIndex) {
+                return -1;
+            } else {
+                return a.id > b.id ? 1: -1;
+            }
+        });
+
+        if (hoverableChildren.length) {
+            // Assume target has highest zIndex (id when zIndex equal)
+            return hoverableChildren.slice(-1)[0];
+        } else {
+            return null;
+        }
+    }
+
+    _findChildren(bucket, children) {
+        let n = children.length;
+        while (n--) {
+            const child = children[n];
+            // only add active children
+            if (child.__active) {
+                bucket.push(child);
+                if (child.hasChildren()) {
+                    this._findChildren(bucket, child.children);
+                }
+            }
+        }
+        return bucket;
+    }
+
+    _withinClickableRange(affectedChildren, cursorX, cursorY) {
+        let n = affectedChildren.length;
+        const candidates = [];
+
+        // loop through affected children
+        // and perform collision detection
+        while (n--) {
+            const child = affectedChildren[n];
+            const precision = this.stage.getRenderPrecision();
+            const ctx = child.core.renderContext;
+
+            const cx = ctx.px * precision;
+            const cy = ctx.py * precision;
+            const cw = child.finalW * ctx.ta * precision;
+            const ch = child.finalH * ctx.td * precision;
+
+            if (cx > this.stage.w || cy > this.stage.h) {
+                continue;
+            }
+            if (this._testCollision(cursorX, cursorY, cx, cy, cw, ch)) {
+                candidates.push(child);
+            }
+        }
+        return candidates;
+    }
+
+    _testCollision(px, py, cx, cy, cw, ch) {
+        if (px >= cx &&
+            px <= cx + cw &&
+            py >= cy &&
+            py <= cy + ch) {
+            return true;
+        }
+        return false;
     }
 
     destroy() {
