@@ -556,7 +556,7 @@ export default class Application extends Component {
         while (n--) {
             const child = children[n];
             // only add active children
-            if (child.__active) {
+            if (child.__active && child.collision) {
                 bucket.push(child);
                 if (child.hasChildren()) {
                     this._findChildren(bucket, child.children);
@@ -575,7 +575,7 @@ export default class Application extends Component {
         while (n--) {
             const child = affectedChildren[n];
             const precision = this.stage.getRenderPrecision();
-            const ctx = child.core.renderContext;
+            const ctx = child.core._worldContext;
 
             const cx = ctx.px * precision;
             const cy = ctx.py * precision;
@@ -585,6 +585,11 @@ export default class Application extends Component {
             if (cx > this.stage.w || cy > this.stage.h) {
                 continue;
             }
+
+            if (child.parent.core._scissor && !this._testCollision(cursorX, cursorY, ...child.parent.core._scissor)) {
+                continue
+            }
+
             if (this._testCollision(cursorX, cursorY, cx, cy, cw, ch)) {
                 candidates.push(child);
             }

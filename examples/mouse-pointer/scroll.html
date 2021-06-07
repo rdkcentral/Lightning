@@ -1,0 +1,112 @@
+<!--
+ If not stated otherwise in this file or this component's LICENSE file the
+ following copyright and licenses apply:
+
+ Copyright 2020 RDK Management
+
+ Licensed under the Apache License, Version 2.0 (the License);
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <script src="../../../devtools/lightning-inspect.js"></script>
+    <style>
+        body.disable-scroll {
+            position: fixed;
+            width: 100%;
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0">
+    <script type="module">
+        import lng from '../../../src/lightning.mjs';
+        // attachInspector(lng)
+
+
+        window.onload = function() {
+
+            const ENABLE_POINTER = true;
+            const LOREM = "Lorem ipsum\n\ndolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
+
+            class Paragraph extends lng.Component {
+                static _template() {
+                    return {
+                        w: 400, h: 400,
+                        rect: true,
+                        color: 0x11cccccc,
+                        clipping: true,
+                        Lorem: {
+                            w: 400,
+                            alpha: 1,
+                            text: {text: LOREM, textAlign: "center", fontSize: 30},
+
+                            BackToTop: {
+                                x: 225, y: 650,
+                                color: 0xffcccccc,
+                                text: {text: 'Back to top', textColor: 0xffccccccc, fontSize: 25}
+                            }
+                        },
+                    }
+                }
+
+                _handleScroll(event, target) {
+                    const lorem = this.tag('Lorem');
+                    lorem.y = Math.max(Math.min(0, lorem.y - event.deltaY), -400);
+                }
+
+                _handleHover(target) {
+                    this.setSmooth('color', 0x22ccffcc);
+                    if (target.__ref == 'BackToTop') {
+                        target.setSmooth('color', 0xffffffff);
+                        target.setSmooth('scale', 1.2);
+                    }
+                }
+
+                _handleUnhover(target) {
+                    this.setSmooth('color', 0x11cccccc)
+                    if (target.__ref == 'BackToTop') {
+                        target.setSmooth('color', 0xffcccccc);
+                        target.setSmooth('scale', 1.0);
+                    }
+                }
+
+                _handleClick(target) {
+                    if (target.__ref == 'BackToTop') {
+                        const lorem = this.tag('Lorem');
+                        lorem.setSmooth('y', 0);
+                    }
+                }
+            }
+
+            class BasicUsageExample extends lng.Application {
+                static _template() {
+                    return {
+                        Paragraph1: {type: Paragraph, x: 50, y: 150},
+                        Paragraph2: {type: Paragraph, x: 500, y: 150},
+                        Text: {text: {text: 'Hover over a text block and use the mouse to scroll it.', textColor: 0xcccccccc}, x: 100, y: 50}
+                    }
+                }
+
+            }
+
+            const options = {stage: {w: 1080, h: 720, clearColor: 0xFF000000, canvas2d: false, useImageWorker: false}, debug: true, enablePointer: ENABLE_POINTER}
+
+            const app = new BasicUsageExample(options);
+
+            document.body.appendChild(app.stage.getCanvas());
+        }
+    </script>
+</body>
+</html>
