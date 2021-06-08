@@ -497,17 +497,27 @@ export default class TextTexture extends Texture {
             args.fontFace = this.stage.getOption('defaultFontFace');
         }
 
+        const gl = this.stage.gl;
+
         return function (cb) {
             const canvas = this.stage.platform.getDrawingCanvas();
             const renderer = new TextTextureRenderer(this.stage, canvas, args);
             const p = renderer.draw();
+
+            const texParams = {};
+
+            // Prevent text blur when text texture is downscaled
+            if (gl) {
+                texParams[gl.TEXTURE_MAG_FILTER] = gl.NEAREST;
+            }
 
             if (p) {
                 p.then(() => {
                     /* FIXME: on some platforms (e.g. RPI), throttling text textures cause artifacts */
                     cb(null, Object.assign({
                         renderInfo: renderer.renderInfo,
-                        throttle: false
+                        throttle: false,
+                        texParams: texParams,
                     }, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas)));
                 }).catch((err) => {
                     cb(err);
@@ -515,7 +525,8 @@ export default class TextTexture extends Texture {
             } else {
                 cb(null, Object.assign({
                     renderInfo: renderer.renderInfo,
-                    throttle: false
+                    throttle: false,
+                    texParams: texParams,
                 }, this.stage.platform.getTextureOptionsForDrawingCanvas(canvas)));
             }
         };
