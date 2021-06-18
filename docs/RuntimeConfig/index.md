@@ -34,7 +34,7 @@ const App = new MyApp(options);
 | `fixedDt` | Number | 0 (auto) | Fixed time step per frame (in ms) |
 | `useImageWorker` | Boolean | true | By default, use a Web Worker that parses images off-thread (web only) |
 | `autostart` | Boolean | true | If set to *false*, no automatic binding to  `requestAnimationFrame` |
-| `Canvas2D` | Boolean | false | If set tot *true*, the Render Engine uses Canvas2D instead of WebGL (limitations apply, see details below) |
+| `canvas2D` | Boolean | false | If set tot *true*, the Render Engine uses Canvas2D instead of WebGL (limitations apply, see details below) |
 
 
 ## Downscaling
@@ -57,9 +57,9 @@ If this amount is reached, Lightning only performs an *unused texture cleanup*. 
 
 > A single pixel uses between 4 and 6 bytes of GPU memory.
 
-## Limitations of `Canvas2D`
+## Limitations of `canvas2D`
 
-If WebGL is not available or if Canvas2D is set to *false*, Lightning uses *Canvas2D* for rendering output.
+If WebGL is not available or if `canvas2D` is set to *false*, Lightning uses *Canvas2D* for rendering output.
 
 Note that some functionality (such as WebGL-only shaders) will not work (the default shader will be used instead).
 

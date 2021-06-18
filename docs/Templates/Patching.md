@@ -76,7 +76,7 @@ class BasicUsageExample extends lng.Application {
     }
 }
 
-const options = {stage: {w: window.innerWidth, h: window.innerHeight, clearColor: 0x00000000, Canvas2D: false, useImageWorker: false}, debug: true}
+const options = {stage: {w: window.innerWidth, h: window.innerHeight, clearColor: 0x00000000, canvas2D: false, useImageWorker: false}, debug: true}
 options.keys = {
     38: "Up",
     40: "Down",
