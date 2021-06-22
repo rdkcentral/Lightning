@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-window.attachInspector = function({Element, ElementCore, Stage, Component, ElementTexturizer, Texture}) {
+window.attachInspector = function({Application, Element, ElementCore, Stage, Component, ElementTexturizer, Texture}) {
 
     const isAlreadyAttached = window.hasOwnProperty('mutationCounter');
     if (isAlreadyAttached) {
@@ -810,6 +810,22 @@ window.attachInspector = function({Element, ElementCore, Stage, Component, Eleme
     Element.prototype._setDisplayedTexture = function() {
         _setDisplayedTexture.apply(this, arguments)
         updateTextureAttribs(this)
+    }
+
+    const _updateFocus = Application.prototype.__updateFocus
+    Application.prototype.__updateFocus = function() {
+        const prev = this._focusPath && this._focusPath.length ? this._focusPath[this._focusPath.length - 1] : null;
+        _updateFocus.apply(this, arguments)
+        const focused = this._focusPath && this._focusPath.length ? this._focusPath[this._focusPath.length - 1] : null;
+
+        if (prev != focused) {
+            if (prev) {
+                val(prev, 'focused', false, false);
+            }
+            if (focused) {
+                val(focused, 'focused', true, false);
+            }
+        }
     }
 };
 
