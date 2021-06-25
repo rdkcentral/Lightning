@@ -426,14 +426,31 @@ export default class TextTextureRenderer {
         let lines = text.split(/\r?\n/g);
         let allLines = [];
         let realNewlines = [];
+        const spaceWidth = this.measureText(' ', letterSpacing);
         for (let i = 0; i < lines.length; i++) {
             let resultLines = [];
             let result = '';
             let spaceLeft = wordWrapWidth - indent;
             let words = lines[i].split(' ');
+
             for (let j = 0; j < words.length; j++) {
-                const wordWidth = this.measureText(words[j], letterSpacing);
-                const wordWidthWithSpace = wordWidth + this.measureText(' ',letterSpacing);
+                let word = words[j];
+                let wordWidth = this.measureText(word, letterSpacing);
+                let wordWidthWithSpace = wordWidth + spaceWidth;
+
+                // truncate word if width is greater then word wrap width
+                if (wordWidth > wordWrapWidth) {
+                    const truncWord = this.wrapWord(word, spaceLeft - spaceWidth, '');
+
+                    // push remaining chars back as one word
+                    words.splice(j + 1, 0, word.substring(truncWord.length, word.length));
+                    word = truncWord;
+
+                    // calculate width of truncated word
+                    wordWidth = this.measureText(word, letterSpacing);
+                    wordWidthWithSpace = wordWidth + spaceWidth;
+                }
+
                 if (j === 0 || wordWidthWithSpace > spaceLeft) {
                     // Skip printing the newline if it's the first word of the line that is.
                     // greater than the word wrap width.
@@ -441,12 +458,14 @@ export default class TextTextureRenderer {
                         resultLines.push(result);
                         result = '';
                     }
-                    result += words[j];
+                    result += word;
                     spaceLeft = wordWrapWidth - wordWidth - (j === 0 ? indent : 0);
-                }
-                else {
+                } else if (result) {
                     spaceLeft -= wordWidthWithSpace;
-                    result += ' ' + words[j];
+                    result += ' ' + word;
+                } else {
+                    spaceLeft -= wordWrapWidth;
+                    result = word;
                 }
             }
 
