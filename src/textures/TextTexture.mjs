@@ -109,6 +109,17 @@ export default class TextTexture extends Texture {
         }
     }
 
+    get wordBreak() {
+        return this._wordBreak;
+    }
+
+    set wordBreak(v) {
+        if (this._wordBreak !== v) {
+            this._wordBreak = v;
+            this._changed();
+        }
+    }
+
     get wordWrapWidth() {
         return this._wordWrapWidth;
     }
@@ -453,6 +464,7 @@ export default class TextTexture extends Texture {
         if (this.fontSize !== 40) parts.push("fs" + this.fontSize);
         if (this.fontFace !== null) parts.push("ff" + (Array.isArray(this.fontFace) ? this.fontFace.join(",") : this.fontFace));
         if (this.wordWrap !== true) parts.push("wr" + (this.wordWrap ? 1 : 0));
+        if (this.wordBreak !== false) parts.push("wb" + (this.wordBreak ? 1 : 0));
         if (this.wordWrapWidth !== 0) parts.push("ww" + this.wordWrapWidth);
         if (this.textOverflow != "") parts.push("to" + this.textOverflow);
         if (this.lineHeight !== null) parts.push("lh" + this.lineHeight);
@@ -542,6 +554,7 @@ export default class TextTexture extends Texture {
         if (this.fontSize !== 40) nonDefaults["fontSize"] = this.fontSize;
         if (this.fontFace !== null) nonDefaults["fontFace"] = this.fontFace;
         if (this.wordWrap !== true) nonDefaults["wordWrap"] = this.wordWrap;
+        if (this.wordBreak !== false) nonDefaults["wordBreak"] = this.wordBreak;
         if (this.wordWrapWidth !== 0) nonDefaults["wordWrapWidth"] = this.wordWrapWidth;
         if (this.textOverflow != "") nonDefaults["textOverflow"] = this.textOverflow;
         if (this.lineHeight !== null) nonDefaults["lineHeight"] = this.lineHeight;
@@ -585,6 +598,7 @@ export default class TextTexture extends Texture {
         obj.fontSize = this._fontSize;
         obj.fontFace = this._fontFace;
         obj.wordWrap = this._wordWrap;
+        obj.wordBreak = this._wordBreak;
         obj.wordWrapWidth = this._wordWrapWidth;
         obj.textOverflow = this._textOverflow;
         obj.lineHeight = this._lineHeight;
@@ -631,6 +645,7 @@ proto._fontStyle = "normal";
 proto._fontSize = 40;
 proto._fontFace = null;
 proto._wordWrap = true;
+proto._wordBreak = false;
 proto._wordWrapWidth = 0;
 proto._textOverflow = "";
 proto._lineHeight = null;

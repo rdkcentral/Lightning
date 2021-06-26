@@ -439,7 +439,7 @@ export default class TextTextureRenderer {
                 let wordWidthWithSpace = wordWidth + spaceWidth;
 
                 // truncate word if width is greater then word wrap width
-                if (wordWidth > wordWrapWidth) {
+                if (wordWidth > wordWrapWidth && this._settings.wordBreak) {
                     const truncWord = this.wrapWord(word, spaceLeft - spaceWidth, '');
 
                     // push remaining chars back as one word
