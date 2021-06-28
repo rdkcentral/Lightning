@@ -562,7 +562,9 @@ export default class Application extends Component {
             const child = children[n];
             // only add active children
             if (child.__active && child.collision) {
-                bucket.push(child);
+                if (child.collision === true) {
+                    bucket.push(child);
+                }
                 if (child.hasChildren()) {
                     this._findChildren(bucket, child.children);
                 }

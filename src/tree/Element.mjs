@@ -112,12 +112,6 @@ export default class Element {
         this._w = 0;
 
         this._h = 0;
-
-        /**
-         * When enablePointer setting is on, this flag will be checked if the element should respond
-         * to the mouse events.
-         */
-        this._collision = true;
     }
 
     __start() {
@@ -184,6 +178,7 @@ export default class Element {
 
         this._updateAttachedFlag();
         this._updateEnabledFlag();
+        this._updateCollision();
 
         if (this.isRoot && parent) {
             this._throwError("Root should not be added as a child! Results are unspecified!");
@@ -1423,6 +1418,16 @@ export default class Element {
 
     set collision(v) {
         this._collision = v;
+    }
+
+    _updateCollision() {
+        if (this.collision && this.__parent && this.__parent.collision === undefined) {
+            /**
+             * Mark collision as 2 to indicate atleast one descendant has collision enabled.
+             * This narrows down the search for elements with active collision.
+            */
+            this.__parent.collision = 2;
+        }
     }
 
     get scaleX() {
