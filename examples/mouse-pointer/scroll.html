@@ -21,7 +21,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <script src="../../../devtools/lightning-inspect.js"></script>
+    <script src="../../devtools/lightning-inspect.js"></script>
     <style>
         body.disable-scroll {
             position: fixed;
@@ -31,9 +31,8 @@
 </head>
 <body style="margin: 0; padding: 0">
     <script type="module">
-        import lng from '../../../src/lightning.mjs';
+        import lng from '../../src/lightning.mjs';
         // attachInspector(lng)
-
 
         window.onload = function() {
 
@@ -70,7 +69,7 @@
 
                 _handleHover(target) {
                     this.setSmooth('color', 0x22ccffcc);
-                    if (target.__ref == 'BackToTop') {
+                    if (target.ref == 'BackToTop') {
                         target.setSmooth('color', 0xffffffff);
                         target.setSmooth('scale', 1.2);
                     }
@@ -78,14 +77,14 @@
 
                 _handleUnhover(target) {
                     this.setSmooth('color', 0x11cccccc)
-                    if (target.__ref == 'BackToTop') {
+                    if (target.ref == 'BackToTop') {
                         target.setSmooth('color', 0xffcccccc);
                         target.setSmooth('scale', 1.0);
                     }
                 }
 
                 _handleClick(target) {
-                    if (target.__ref == 'BackToTop') {
+                    if (target.ref == 'BackToTop') {
                         const lorem = this.tag('Lorem');
                         lorem.setSmooth('y', 0);
                     }
