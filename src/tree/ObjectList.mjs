@@ -152,17 +152,21 @@ export default class ObjectList {
     };
 
     removeAt(index) {
-        let item = this._items[index];
+        if (index >= 0 && index < this._items.length) {
+            const item = this._items[index];
 
-        if (item.ref) {
-            this._refs[item.ref] = undefined;
+            if (item.ref) {
+                this._refs[item.ref] = undefined;
+            }
+
+            this._items.splice(index, 1);
+
+            this.onRemove(item, index);
+
+            return item;
+        } else {
+            throw new Error(`removeAt: The index ${index} is out of bounds ${this._items.length - 1}`);
         }
-
-        this._items.splice(index, 1);
-
-        this.onRemove(item, index);
-
-        return item;
     };
 
     clear() {
