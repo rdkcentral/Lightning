@@ -26,42 +26,60 @@
 <body style="margin: 0; padding: 0">
     <script type="module">
         import lng from '../../src/lightning.mjs';
+        //attachInspector(lng)
 
         window.onload = function() {
-            class BasicUsageExample extends lng.Application {
+
+            const ENABLE_POINTER = true;
+
+            class Card extends lng.Component {
                 static _template() {
                     return {
+                        w: 200,
+                        h: 200,
                         rect: true,
-                        w: this.bindProp('size'),
-                        h: this.bindProp('size', (context) => context.size / 4),
-                        color: 0xff554433,
-                        shader: {type: lng.shaders.Outline, width: this.bindProp('outlineWidth')},
-                        Text: {
-                            shader: null,
-                            x: this.bindProp('size', (context) => context.size - 100),
-                            y: this.bindProp('size', (context) => context.size / 4 - 50),
-                            text: {text: 'Hello'}
-                        }
+                        color: 0xffaa7777,
+                        collision: true,
+                        Text: {text: {text: 'Click me!'}, x: 25, y: 50, rotation: 0.5}
                     }
                 }
 
-                _init() {
+                _handleClick() {
                     this.animation({
-                        repeat: -1,
-                        duration: 5,
+                        duration: 0.2,
                         actions: [
-                            {p: 'size', v: {0: 300, 0.5: 600, 1: 300}},
-                            {p: 'outlineWidth', v: {0: 10, 0.5: 3, 1: 10}}
+                            {p: 'scale', v: {0: 1.0, 0.5: 1.1, 1: 1.0}}
                         ]
                     }).start();
                 }
+
+                _handleHover() {
+                    this.setSmooth('color', 0xff77aa77);
+                }
+
+                _handleUnhover() {
+                    this.setSmooth('color', 0xffaa7777);
+                }
+
+
+            }
+            class BasicUsageExample extends lng.Application {
+                static _template() {
+                    return {
+                        Card1: {type: Card, x: 50, y: 50},
+                        Card2: {type: Card, x: 50 + 200 + 25, y: 50},
+                        Card3: {type: Card, x: 50 + 400 + 50, y: 50, collision: false, alpha: 0.5}
+                    }
+                }
+
             }
 
-            const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000, canvas2d: false, useImageWorker: false}, debug: true}
+            const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000, canvas2d: false, useImageWorker: false}, debug: true, enablePointer: ENABLE_POINTER}
+
             const app = new BasicUsageExample(options);
+
             document.body.appendChild(app.stage.getCanvas());
         }
     </script>
 </body>
 </html>
-
