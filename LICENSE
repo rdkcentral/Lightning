@@ -200,9 +200,20 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
-   Images and other files from Facebook (Docusaurus) are licensed thus:
-   Copyright (c) 2017-present, Facebook, Inc.
-   Licensed under the MIT license
+   All metadata files (including, but not limited to bb, bbappend,
+   bbclass, inc and conf files) are MIT licensed unless otherwise stated.
+   Source code included in tree for individual recipes is under the
+   LICENSE stated in the associated recipe (.bb file) unless otherwise
+   stated. All other files to have license as explicitly stated or default
+   to Apache-2.0.
 
-   Copyright (c) Facebook, Inc. and its affiliates.
-   Licensed under the MIT license
+
+   The MIT License
+   ---------------
+   Copyright <YEAR> <COPYRIGHT HOLDER>
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
