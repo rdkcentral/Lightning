@@ -144,6 +144,8 @@ export default class TextTextureRendererAdvanced {
         renderInfo.cutEx = cutEx;
         renderInfo.cutSy = cutSy;
         renderInfo.cutEy = cutEy;
+        renderInfo.textIndent = this._settings.textIndent * precision;
+        renderInfo.wordBreak = this._settings.wordBreak;
 
         let text = renderInfo.text;
 
@@ -165,7 +167,14 @@ export default class TextTextureRendererAdvanced {
 
         text = this.tokenize(text);
         text = this.parse(text);
-        text = this.measure(text, letterSpacing)
+        text = this.measure(text, letterSpacing);
+        if (renderInfo.textIndent) {
+            text = this.indent(text, renderInfo.textIndent);
+        }
+        if (renderInfo.wordBreak) {
+            text = text.reduce((acc, t) => acc.concat(this.wordBreak(t, renderInfo.w)), [])
+        }
+
 
 
         // Calculate detailed drawing information
@@ -229,6 +238,7 @@ export default class TextTextureRendererAdvanced {
                 l.text.pop();
             }
         }
+
 
         // Calculate line width
         for (let l of renderInfo.lines) {
@@ -344,9 +354,12 @@ export default class TextTextureRendererAdvanced {
         }
 
         // Draw text
-        this._context.fillStyle = StageUtils.getRgbaString(this._settings.textColor);
+        const defaultColor = StageUtils.getRgbaString(this._settings.textColor);
+        let currentColor = defaultColor;
+        this._context.fillStyle = defaultColor;
         for (const line of renderInfo.lines) {
             for (const t of line.text) {
+                let lx = 0;
 
                 if (t.text == '\n') {
                     continue;
@@ -356,13 +369,19 @@ export default class TextTextureRendererAdvanced {
                     continue;
                 }
 
+                if (t.color != currentColor) {
+                    currentColor = t.color;
+                    this._context.fillStyle = currentColor;
+                }
+
                 this._context.font = t.fontStyle;
 
                 // Draw with letter spacing
                 if (t.letters) {
                     for (let l of t.letters) {
-                        const _x = renderInfo.lines[t.lineNo].x + t.x + l.x;
+                        const _x = renderInfo.lines[t.lineNo].x + t.x + lx;
                         this._context.fillText(l.text, _x, renderInfo.lines[t.lineNo].y + renderInfo.fontSize);
+                        lx += l.width;
                     }
                 // Standard drawing
                 } else {
@@ -399,7 +418,7 @@ export default class TextTextureRendererAdvanced {
     }
 
     tokenize(text) {
-        const re =/ |\n|<i>|<\/i>|<b>|<\/b>/g
+        const re =/ |\n|<i>|<\/i>|<b>|<\/b>|<color=0[xX][0-9a-fA-F]{8}>|<\/color>/g
     
         const delimeters = text.match(re) || [];
         const words = text.split(re) || [];
@@ -416,6 +435,10 @@ export default class TextTextureRendererAdvanced {
     parse(tokens) {
         let italic = 0;
         let bold = 0;
+        let colorStack = [StageUtils.getRgbaString(this._settings.textColor)];
+        let color = 0;
+
+        const colorRegexp = /<color=(?<color>0[xX][0-9a-fA-F]{8})/;
     
         return tokens.map((t) => {
             if (t == '<i>') {
@@ -430,11 +453,23 @@ export default class TextTextureRendererAdvanced {
             } else if (t == '</b>' && bold > 0) {
                 bold -= 1;
                 t = '';
+            } else if (t == '</color>') {
+                if (colorStack.length > 1) {
+                    color -= 1;
+                    colorStack.pop();
+                }
+                t = '';
+            } else if (colorRegexp.test(t)) {
+                colorStack.push(StageUtils.getRgbaString(parseInt(colorRegexp.exec(t).groups['color'])));
+                color += 1;
+                t = '';
             }
+
             return {
-                'text': t,
-                'italic': italic,
-                'bold': bold,
+                text: t,
+                italic: italic,
+                bold: bold,
+                color: colorStack[color],
             }
         })
         .filter((o) => o.text != '');
@@ -459,14 +494,17 @@ export default class TextTextureRendererAdvanced {
             // Letter by letter detail for letter spacing
             if (letterSpacing > 0) {
                 p.letters = p.text.split('').map((l) => {return {text: l}});
-                let _x = 0;
                 for (let l of p.letters) {
-                    l.x = _x;
-                    _x += this.measureText(l.text, letterSpacing);
+                    l.width = this.measureText(l.text, letterSpacing);
                 }
             }
 
         }
+        return parsed;
+    }
+
+    indent(parsed, textIndent) {
+        parsed.splice(0, 0, {text: "", width: textIndent});
         return parsed;
     }
 
@@ -511,5 +549,96 @@ export default class TextTextureRendererAdvanced {
 
         /* If wrapWidth is too short to even contain suffix alone, return empty string */
         return word.substring(0, cutoffIndex) + (wordWrapWidth >= suffixWidth ? suffix : '')
+    }
+
+    _getBreakIndex(word, width) {
+        const wordLen = word.length;
+        const wordWidth = this.measureText(word);
+
+        if (wordWidth <= width) {
+            return {breakIndex: word.length, truncWordWidth: wordWidth};
+        }
+
+        let breakIndex = Math.floor((width * wordLen) / wordWidth);
+        let truncWordWidth = this.measureText(word.substring(0, breakIndex))
+
+        /* In case guess was overestimated, shrink it letter by letter. */
+        if (truncWordWidth > width) {
+            while (breakIndex > 0) {
+                truncWordWidth = this.measureText(word.substring(0, breakIndex));
+                if (truncWordWidth > width) {
+                    breakIndex -= 1;
+                } else {
+                    break;
+                }
+            }
+
+        /* In case guess was underestimated, extend it letter by letter. */
+        } else {
+            while (breakIndex < wordLen) {
+                truncWordWidth = this.measureText(word.substring(0, breakIndex));
+                if (truncWordWidth < width) {
+                    breakIndex += 1;
+                } else {
+                    // Finally, when bound is crossed, retract last letter.
+                    breakIndex -=1;
+                    break;
+                }
+            }
+        }
+        return {breakIndex, truncWordWidth};
+
+    }
+
+    wordBreak(word, width) {
+        if (!word.text) {
+            return word
+        }
+        const parts = [];
+        let text = word.text;
+        if (!word.letters) {
+            while (true) {
+                const {breakIndex, truncWordWidth} = this._getBreakIndex(text, width);
+                parts.push({...word});
+                parts[parts.length - 1].text = text.slice(0, breakIndex);
+                parts[parts.length - 1].width = truncWordWidth;
+
+                if (breakIndex === text.length) {
+                    break;
+                }
+
+                text = text.slice(breakIndex);
+            }
+        } else {
+            let totalWidth = 0;
+            let letters = [];
+            let breakIndex = 0;
+            for (const l of word.letters) {
+                if (totalWidth + l.width >= width) {
+                    parts.push({...word});
+                    parts[parts.length - 1].text = text.slice(0, breakIndex);
+                    parts[parts.length - 1].width = totalWidth;
+                    parts[parts.length - 1].letters = letters;
+                    text = text.slice(breakIndex);
+                    totalWidth = 0;
+                    letters = [];
+                    breakIndex = 0;
+
+                } else {
+                    breakIndex += 1;
+                    letters.push(l);
+                    totalWidth += l.width;
+                }
+            }
+
+            if (totalWidth > 0) {
+                parts.push({...word});
+                parts[parts.length - 1].text = text.slice(0, breakIndex);
+                parts[parts.length - 1].width = totalWidth;
+                parts[parts.length - 1].letters = letters;
+            }
+        }
+
+        return parts;
     }
 }
