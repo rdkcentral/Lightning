@@ -34,8 +34,10 @@ export default class TextTextureRendererAdvanced {
     };
 
     setFontProperties() {
-        this._context.font = Utils.isSpark ? this._stage.platform.getFontSetting(this) : this._getFontSetting();
+        const font = Utils.isSpark ? this._stage.platform.getFontSetting(this) : this._getFontSetting();
+        this._context.font = font;
         this._context.textBaseline = this._settings.textBaseline;
+        return font;
     };
 
     _getFontSetting() {
@@ -110,7 +112,7 @@ export default class TextTextureRendererAdvanced {
         const letterSpacing = this._settings.letterSpacing || 0;
 
         // Set font properties.
-        this.setFontProperties();
+        renderInfo.baseFont = this.setFontProperties();
 
         renderInfo.w = w;
         renderInfo.width = w;
@@ -172,10 +174,9 @@ export default class TextTextureRendererAdvanced {
             text = this.indent(text, renderInfo.textIndent);
         }
         if (renderInfo.wordBreak) {
-            text = text.reduce((acc, t) => acc.concat(this.wordBreak(t, renderInfo.w)), [])
+            text = text.reduce((acc, t) => acc.concat(this.wordBreak(t, renderInfo.w, renderInfo.baseFont)), [])
+            this.resetFontStyle()
         }
-
-
 
         // Calculate detailed drawing information
         let x = paddingLeft;
@@ -475,21 +476,27 @@ export default class TextTextureRendererAdvanced {
         .filter((o) => o.text != '');
     }
 
-    measure(parsed, letterSpacing = 0) {
+    applyFontStyle(word, baseFont) {
+        let font = baseFont;
+        if (word.bold) {
+            font = 'bold ' + font;
+        }
+        if (word.italic) {
+            font = 'italic ' + font;
+        }
+        this._context.font = font
+        word.fontStyle = font;
+    }
+
+    resetFontStyle(baseFont) {
+        this._context.font = baseFont;
+    }
+
+    measure(parsed, letterSpacing = 0, baseFont) {
         const ctx = this._context;
-        const baseFont = ctx.font;
         for (const p of parsed) {
-            let font = baseFont;
-            ctx.font = baseFont;
-            if (p.bold) {
-                font = 'bold ' + font;
-            }
-            if (p.italic) {
-                font = 'italic ' + font;
-            }
-            ctx.font = font;
+            this.applyFontStyle(p, baseFont);
             p.width = this.measureText(p.text, letterSpacing);
-            p.fontStyle = font;
 
             // Letter by letter detail for letter spacing
             if (letterSpacing > 0) {
@@ -500,6 +507,7 @@ export default class TextTextureRendererAdvanced {
             }
 
         }
+        this.resetFontStyle(baseFont);
         return parsed;
     }
 
@@ -590,10 +598,11 @@ export default class TextTextureRendererAdvanced {
 
     }
 
-    wordBreak(word, width) {
+    wordBreak(word, width, baseFont) {
         if (!word.text) {
             return word
         }
+        this.applyFontStyle(word, baseFont)
         const parts = [];
         let text = word.text;
         if (!word.letters) {
