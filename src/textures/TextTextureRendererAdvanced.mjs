@@ -247,6 +247,7 @@ export default class TextTextureRendererAdvanced {
         }
 
         renderInfo.width = this._settings.w != 0 ? this._settings.w * precision : Math.max(...renderInfo.lines.map((l) => l.width)) + paddingRight;
+        renderInfo.w = renderInfo.width;
 
         // Apply maxLinesSuffix
         if (renderInfo.maxLines && renderInfo.lineNum > renderInfo.maxLines && renderInfo.maxLinesSuffix) {
