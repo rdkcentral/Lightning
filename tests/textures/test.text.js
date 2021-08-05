@@ -171,8 +171,8 @@ describe('text', function() {
                     '~~~~~~~~~~~~~~~~~~~~~~~~~..................................',
                     '                                      Hello',
                     'Hello.                                 !',
-                ].forEach((c) => {
-                    it(`should apply textOverflow properly [text='${c}']`, function() {
+                ].forEach((t) => {
+                    it(`should apply textOverflow properly [text='${t}']`, function() {
                         const WRAP_WIDTH = 200;
                         const element = app.stage.createElement({
                             Item: {
@@ -181,7 +181,7 @@ describe('text', function() {
                                     wordWrap: false,
                                     textOverflow: 'ellipsis',
                                     wordWrapWidth: WRAP_WIDTH,
-                                    text: c,
+                                    text: t,
                                     async: false,
                                     ...SETTINGS
                                 }, visible: true},
@@ -200,15 +200,15 @@ describe('text', function() {
                     {textOverflow: 'clip', suffix: null},
                     {textOverflow: 'ellipsis', suffix: '..'},
                     {textOverflow: '(...)', suffix: '(...)'}
-                ].forEach((c) => {
-                    it(`should not wrap paragraph [overflow=${c.textOverflow}]`, function() {
+                ].forEach((t) => {
+                    it(`should not wrap paragraph [overflow=${t.textOverflow}]`, function() {
                         const WRAP_WIDTH = 900;
                         const element = app.stage.createElement({
                             Item: {
                                 texture: {
                                     type: TestTexture,
                                     wordWrap: false,
-                                    textOverflow: c.textOverflow,
+                                    textOverflow: t.textOverflow,
                                     wordWrapWidth: WRAP_WIDTH,
                                     text: EXAMPLE_TEXT,
                                     async: false,
@@ -221,8 +221,8 @@ describe('text', function() {
                         chai.assert(texture.source.renderInfo.lines.length === 1);
                         chai.assert(texture.source.renderInfo.w < WRAP_WIDTH);
                         chai.assert(texture.source.renderInfo.w > 0);
-                        if (c.suffix !== null) {
-                            chai.assert(texture.source.renderInfo.lines[0].substr(-c.suffix.length) == c.suffix);
+                        if (t.suffix !== null) {
+                            chai.assert(texture.source.renderInfo.lines[0].substr(-t.suffix.length) == t.suffix);
                         }
                     });
 
