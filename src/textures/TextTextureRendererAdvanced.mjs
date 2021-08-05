@@ -407,7 +407,14 @@ export default class TextTextureRendererAdvanced {
         if (renderInfo.cutSx || renderInfo.cutSy) {
             this._context.translate(renderInfo.cutSx, renderInfo.cutSy);
         }
-        
+ 
+        // Postprocess renderInfo.lines to be compatible with standard version
+        renderInfo.lines = renderInfo.lines.map((l) => l.text.reduce((acc, v) => acc + v.text, ''));
+        if (renderInfo.maxLines) {
+            renderInfo.lines = renderInfo.lines.slice(0, renderInfo.maxLines);
+        }
+
+
         this.renderInfo = renderInfo;
 
     };
