@@ -150,6 +150,7 @@ export default class TextTextureRendererAdvanced {
         renderInfo.wordBreak = this._settings.wordBreak;
 
         let text = renderInfo.text;
+        let wrapWidth = renderInfo.wordWrap ? (renderInfo.wordWrapWidth || renderInfo.width) : renderInfo.width;
 
         // Text overflow
         if (renderInfo.textOverflow && !renderInfo.wordWrap) {
@@ -170,19 +171,20 @@ export default class TextTextureRendererAdvanced {
         text = this.tokenize(text);
         text = this.parse(text);
         text = this.measure(text, letterSpacing);
+
         if (renderInfo.textIndent) {
             text = this.indent(text, renderInfo.textIndent);
         }
+
         if (renderInfo.wordBreak) {
-            text = text.reduce((acc, t) => acc.concat(this.wordBreak(t, renderInfo.w, renderInfo.baseFont)), [])
+            text = text.reduce((acc, t) => acc.concat(this.wordBreak(t, wrapWidth, renderInfo.baseFont)), [])
             this.resetFontStyle()
         }
 
         // Calculate detailed drawing information
         let x = paddingLeft;
         let lineNo = 0;
-        let wrapWidth = renderInfo.wordWrap ? (renderInfo.wordWrapWidth || renderInfo.width) : renderInfo.width;
-        //wrapWidth += paddingLeft;
+
         for (const t of text) {
             // Wrap text
             if (renderInfo.wordWrap && x + t.width > wrapWidth || t.text == '\n') {
