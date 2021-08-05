@@ -7,4 +7,3 @@ Lightning is a (TV) app development framework that offers great portability and 
 
 ## Documentation
 [Documentation](https://rdkcentral.github.io/Lightning)
-
