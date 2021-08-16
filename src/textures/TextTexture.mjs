@@ -507,7 +507,8 @@ export default class TextTexture extends Texture {
             const texParams = {};
 
             // Prevent text blur when text texture is downscaled
-            if (gl) {
+            const sharpen = this.stage.getRenderPrecision() < this.stage.getOption('textRenderSharpPrecision') && args.fontSize < this.stage.getOption('textRenderSharpFontSize')
+            if (gl && sharpen) {
                 texParams[gl.TEXTURE_MAG_FILTER] = gl.NEAREST;
             }
 
