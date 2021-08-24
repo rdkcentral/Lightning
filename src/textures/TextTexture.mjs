@@ -29,7 +29,11 @@ export default class TextTexture extends Texture {
     }
 
     static renderer(stage, canvas, settings) {
-        return new TextTextureRenderer(stage, canvas, settings);
+        if (this.advancedRenderer) {
+            return new TextTextureRendererAdvanced(stage, canvas, settings);
+        } else {
+            return new TextTextureRenderer(stage, canvas, settings);
+        }
     }
 
     get text() {
@@ -116,6 +120,17 @@ export default class TextTexture extends Texture {
     set wordWrapWidth(v) {
         if (this._wordWrapWidth !== v) {
             this._wordWrapWidth = v;
+            this._changed();
+        }
+    }
+
+    get wordBreak() {
+        return this._wordBreak;
+    }
+
+    set wordBreak(v) {
+        if (this._wordBreak !== v) {
+            this._wordBreak = v;
             this._changed();
         }
     }
@@ -406,6 +421,17 @@ export default class TextTexture extends Texture {
         }
     }
 
+    get advancedRenderer() {
+        return this._advancedRenderer;
+    }
+
+    set advancedRenderer(v) {
+        if (this._advancedRenderer !== v) {
+            this._advancedRenderer = v;
+            this._changed();
+        }
+    }
+
     set letterSpacing(v) {
         if (this._letterSpacing !== v) {
             this._letterSpacing = v;
@@ -454,6 +480,7 @@ export default class TextTexture extends Texture {
         if (this.fontFace !== null) parts.push("ff" + (Array.isArray(this.fontFace) ? this.fontFace.join(",") : this.fontFace));
         if (this.wordWrap !== true) parts.push("wr" + (this.wordWrap ? 1 : 0));
         if (this.wordWrapWidth !== 0) parts.push("ww" + this.wordWrapWidth);
+        if (this.wordBreak !== false) parts.push("wb" + this.wordBreak ? 1 : 0);
         if (this.textOverflow != "") parts.push("to" + this.textOverflow);
         if (this.lineHeight !== null) parts.push("lh" + this.lineHeight);
         if (this.textBaseline !== "alphabetic") parts.push("tb" + this.textBaseline);
@@ -485,6 +512,8 @@ export default class TextTexture extends Texture {
         if (this.cutSy) parts.push("csy" + this.cutSy);
         if (this.cutEy) parts.push("cey" + this.cutEy);
 
+        if (this.advancedRenderer) parts.push("aR" + this.advancedRenderer ? 1 : 0);
+
         let id = "TX$" + parts.join("|") + ":" + this.text;
         return id;
     }
@@ -501,7 +530,10 @@ export default class TextTexture extends Texture {
 
         return function (cb) {
             const canvas = this.stage.platform.getDrawingCanvas();
-            const renderer = new TextTextureRenderer(this.stage, canvas, args);
+            const renderer = (args.advancedRenderer)
+              ? new TextTextureRendererAdvanced(this.stage, canvas, args)
+              : new TextTextureRenderer(this.stage, canvas, args);
+            
             const p = renderer.draw();
 
             const texParams = {};
@@ -544,6 +576,7 @@ export default class TextTexture extends Texture {
         if (this.fontFace !== null) nonDefaults["fontFace"] = this.fontFace;
         if (this.wordWrap !== true) nonDefaults["wordWrap"] = this.wordWrap;
         if (this.wordWrapWidth !== 0) nonDefaults["wordWrapWidth"] = this.wordWrapWidth;
+        if (this.wordBreak !== false) nonDefaults["wordBreak"] = this.wordBreak;
         if (this.textOverflow != "") nonDefaults["textOverflow"] = this.textOverflow;
         if (this.lineHeight !== null) nonDefaults["lineHeight"] = this.lineHeight;
         if (this.textBaseline !== "alphabetic") nonDefaults["textBaseline"] = this.textBaseline;
@@ -574,6 +607,8 @@ export default class TextTexture extends Texture {
         if (this.cutEx) nonDefaults["cutEx"] = this.cutEx;
         if (this.cutSy) nonDefaults["cutSy"] = this.cutSy;
         if (this.cutEy) nonDefaults["cutEy"] = this.cutEy;
+
+        if (this.advancedRenderer) nonDefaults["renderer"] = this.advancedRenderer;
         return nonDefaults;
     }
 
@@ -587,6 +622,7 @@ export default class TextTexture extends Texture {
         obj.fontFace = this._fontFace;
         obj.wordWrap = this._wordWrap;
         obj.wordWrapWidth = this._wordWrapWidth;
+        obj.wordBreak = this._wordBreak;
         obj.textOverflow = this._textOverflow;
         obj.lineHeight = this._lineHeight;
         obj.textBaseline = this._textBaseline;
@@ -616,6 +652,7 @@ export default class TextTexture extends Texture {
         obj.cutEx = this._cutEx;
         obj.cutSy = this._cutSy;
         obj.cutEy = this._cutEy;
+        obj.advancedRenderer = this._advancedRenderer;
         return obj;
     }
 
@@ -633,6 +670,7 @@ proto._fontSize = 40;
 proto._fontFace = null;
 proto._wordWrap = true;
 proto._wordWrapWidth = 0;
+proto._wordBreak = false;
 proto._textOverflow = "";
 proto._lineHeight = null;
 proto._textBaseline = "alphabetic";
@@ -661,6 +699,8 @@ proto._cutSx = 0;
 proto._cutEx = 0;
 proto._cutSy = 0;
 proto._cutEy = 0;
+proto._advancedRenderer = false;
 
 
 import TextTextureRenderer from "./TextTextureRenderer.mjs";
+import TextTextureRendererAdvanced from "./TextTextureRendererAdvanced.mjs";
