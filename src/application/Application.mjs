@@ -593,7 +593,7 @@ export default class Application extends Component {
                 continue;
             }
 
-            if (child.parent.core._scissor && !this._testCollision(cursorX, cursorY, ...child.parent.core._scissor)) {
+            if (!child.parent.skipScissorCollisionCheck && child.parent.core._scissor && !this._testCollision(cursorX, cursorY, ...child.parent.core._scissor)) {
                 continue
             }
 
