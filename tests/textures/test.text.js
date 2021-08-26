@@ -49,7 +49,6 @@ describe('text', function() {
         advancedRenderer: {advancedRenderer: true}
     }
 
-    console.log('WAA')
     for (const [setting, SETTINGS] of Object.entries(settings)) {
         describe(setting, function() {
             describe('entry check', function() {
@@ -114,7 +113,6 @@ describe('text', function() {
                     app.children = [element];
                     const texture = app.tag("Item").texture;
                     stage.drawFrame();
-                    console.log('WAH WAH', texture.source.renderInfo.lines.slice(-1))
                     chai.assert(texture.source.renderInfo.lines.length === 10);
                     chai.assert(texture.source.renderInfo.lines.slice(-1)[0].substr(-6) == 'eget..');
                 });
@@ -226,7 +224,7 @@ describe('text', function() {
                         }
                     });
 
-                    it(`should not wrap text that fits [overflow=${c.textOverflow}]`, function() {
+                    it(`should not wrap text that fits [overflow=${t.textOverflow}]`, function() {
                         const WRAP_WIDTH = 250;
                         const element = app.stage.createElement({
                             Reference:{
@@ -240,7 +238,7 @@ describe('text', function() {
                                 texture: {
                                     type: TestTexture,
                                     wordWrap: false,
-                                    textOverflow: c.textOverflow,
+                                    textOverflow: t.textOverflow,
                                     wordWrapWidth: WRAP_WIDTH,
                                     text: 'Hello',
                                     async: false,
@@ -250,14 +248,13 @@ describe('text', function() {
                         app.children = [element];
                         const texture = app.tag("Item").texture;
                         stage.drawFrame();
-                        console.log(texture.source.renderInfo)
                         chai.assert(texture.source.renderInfo.lines.length === 1);
                         chai.assert(texture.source.renderInfo.w < WRAP_WIDTH);
                         chai.assert(texture.source.renderInfo.w > 0);
                         chai.assert(texture.source.renderInfo.lines[0].substr(-5) == 'Hello');
                     });
 
-                    it(`should work with empty strings [overflow=${c.textOverflow}]`, function() {
+                    it(`should work with empty strings [overflow=${t.textOverflow}]`, function() {
                         const WRAP_WIDTH = 100;
                         const element = app.stage.createElement({
                             Reference:{
@@ -271,7 +268,7 @@ describe('text', function() {
                                 texture: {
                                     type: TestTexture,
                                     wordWrap: false,
-                                    textOverflow: c.textOverflow,
+                                    textOverflow: t.textOverflow,
                                     wordWrapWidth: WRAP_WIDTH,
                                     text: '',
                                     async: false,
