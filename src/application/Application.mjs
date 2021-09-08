@@ -593,8 +593,10 @@ export default class Application extends Component {
                 continue;
             }
 
-            if (child.parent.core._scissor && !this._testCollision(cursorX, cursorY, ...child.parent.core._scissor)) {
-                continue
+            if (child.parent.core._scissor) {
+                const scissor = child.parent.core._scissor.map((v) => v * precision);
+                if (!this._testCollision(cursorX, cursorY, ...scissor))
+                    continue
             }
 
             if (this._testCollision(cursorX, cursorY, cx, cy, cw, ch)) {
