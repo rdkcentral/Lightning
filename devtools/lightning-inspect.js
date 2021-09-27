@@ -797,7 +797,11 @@ window.attachInspector = function({Application, Element, ElementCore, Stage, Com
                         f += c
                     }
                 }
-                val(element, `texture-${f}`, nonDefaults[key], false);
+                if (nonDefaults[key].toString() === '0') {
+                    val(element, `texture-${f}`, nonDefaults[key], true);
+                } else {
+                    val(element, `texture-${f}`, nonDefaults[key], false);
+                }
             })
         }
     }
