@@ -209,15 +209,20 @@ export default class TextTextureRenderer {
             innerWidth = maxLineWidth;
         }
 
-        // calculate text height
-        lineHeight = lineHeight || fontSize;
-
         let height;
         if (h) {
             height = h;
         } else {
             const baselineOffset = (this._settings.textBaseline != 'bottom') ? 0.5 * fontSize : 0;
-            height = lineHeight * (lines.length - 1) + baselineOffset + Math.max(lineHeight, fontSize) + offsetY;
+            if (lineHeight) {
+                height = lineHeight * lines.length;
+            } else {
+                lineHeight = fontSize;
+                height = lineHeight * (lines.length - 1) + baselineOffset + Math.max(lineHeight, fontSize) + offsetY;
+            }
+        }
+        if (!lineHeight) {
+            lineHeight = fontSize;
         }
 
         if (offsetY === null) {
