@@ -278,6 +278,21 @@ window.attachInspector = function({Application, Element, ElementCore, Stage, Com
         }
     };
 
+    var valStrict = function(c, n, v, dv) {
+        if (c._element) {
+            c = c._element;
+        }
+        if (v === dv) {
+            if (c.dhtmlRemoveAttribute) {
+                c.dhtmlRemoveAttribute(n);
+            }
+        } else {
+            if (c.dhtmlSetAttribute) {
+                c.dhtmlSetAttribute(n, v);
+            }
+        }
+    };
+
     Element.prototype.dhtmlRemoveAttribute = function() {
         // We don't want the attribute listeners to be called during the next observer cycle.
         this.__ignore_attrib_changes = window.mutationCounter;
@@ -797,7 +812,7 @@ window.attachInspector = function({Application, Element, ElementCore, Stage, Com
                         f += c
                     }
                 }
-                val(element, `texture-${f}`, nonDefaults[key], false);
+                valStrict(element, `texture-${f}`, nonDefaults[key], false);
             })
         }
     }
