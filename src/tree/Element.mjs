@@ -2067,7 +2067,8 @@ export default class Element {
 
     toJSON() {
         const ref = [`${this.constructor.name}`];
-        const tree = {[ref]: {}};
+        const tree = {};
+        tree[ref] = {};
 
         if (this.hasChildren()) {
             Element.collectChildren(tree[ref], this.__childList);
