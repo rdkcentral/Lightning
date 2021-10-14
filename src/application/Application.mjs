@@ -507,27 +507,29 @@ export default class Application extends Component {
 
         // Only fire handlers when pointer target changes
         if (target !== this.__hoveredChild) {
-            if (this.__hoveredChild) {
-                let child = this.__hoveredChild;
 
-                while (child !== null) {
-                    if (child && child["_handleUnhover"]) {
-                        child._handleUnhover(this.__hoveredChild);
-                        break;
+            let hoveredBranch = new Set();
+            let newHoveredBranch = new Set();
+
+            if (target) {
+                newHoveredBranch = new Set(target.getAncestors());
+            }
+
+            if (this.__hoveredChild) {
+                hoveredBranch = new Set(this.__hoveredChild.getAncestors());
+                for (const elem of [...hoveredBranch].filter((e) => !newHoveredBranch.has(e))) {
+                    if (elem["_handleUnhover"]) {
+                        elem._handleUnhover();
                     }
-                    child = child.parent;
                 }
             }
 
-            let child = target;
             this.__hoveredChild = target;
 
-            while (child !== null) {
-                if (child && child["_handleHover"]) {
-                    child._handleHover(target);
-                    break;
+            for (const elem of [...newHoveredBranch].filter((e) => !hoveredBranch.has(e))) {
+                if (elem["_handleHover"]) {
+                    elem._handleHover();
                 }
-                child = child.parent;
             }
         }
     }

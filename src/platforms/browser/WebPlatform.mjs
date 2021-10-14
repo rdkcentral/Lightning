@@ -74,9 +74,13 @@ export default class WebPlatform {
     }
 
     uploadGlTexture(gl, textureSource, source, options) {
-        if (source instanceof ImageData || source instanceof HTMLImageElement || source instanceof HTMLCanvasElement || source instanceof HTMLVideoElement || (window.ImageBitmap && source instanceof ImageBitmap)) {
+        if (source instanceof ImageData || source instanceof HTMLImageElement || source instanceof HTMLVideoElement || (window.ImageBitmap && source instanceof ImageBitmap)) {
             // Web-specific data types.
             gl.texImage2D(gl.TEXTURE_2D, 0, options.internalFormat, options.format, options.type, source);
+        } else if (source instanceof HTMLCanvasElement) {
+            // Workaround for some browsers (e.g. Tizen) as they do not convert canvas data to texture correctly, sometimes causing artifacts.
+            const ctx = source.getContext('2d');
+            gl.texImage2D(gl.TEXTURE_2D, 0, options.internalFormat, options.format, options.type, ctx.getImageData(0, 0, source.width, source.height));
         } else {
             gl.texImage2D(gl.TEXTURE_2D, 0, options.internalFormat, textureSource.w, textureSource.h, 0, options.format, options.type, source);
         }
