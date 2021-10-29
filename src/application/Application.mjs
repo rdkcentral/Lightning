@@ -518,17 +518,29 @@ export default class Application extends Component {
             if (this.__hoveredChild) {
                 hoveredBranch = new Set(this.__hoveredChild.getAncestors());
                 for (const elem of [...hoveredBranch].filter((e) => !newHoveredBranch.has(e))) {
-                    if (elem["_handleUnhover"]) {
-                        elem._handleUnhover();
+                    const c = Component.getComponent(elem);
+                    if (c["_handleUnhover"]) {
+                        c._handleUnhover(elem);
                     }
                 }
             }
 
             this.__hoveredChild = target;
 
-            for (const elem of [...newHoveredBranch].filter((e) => !hoveredBranch.has(e))) {
-                if (elem["_handleHover"]) {
-                    elem._handleHover();
+            const diffBranch = [...newHoveredBranch].filter((e) => !hoveredBranch.has(e))
+            for (const elem of diffBranch) {
+                const c = Component.getComponent(elem);
+                if (c["_handleHover"]) {
+                    c._handleHover(elem);
+                }
+            }
+
+            // Rerun _handleHover for target element in case it's been hovered
+            // back from its child
+            if (diffBranch.length === 0 && target) {
+                const c = Component.getComponent(target);
+                if (c["_handleHover"]) {
+                    c._handleHover(target);
                 }
             }
         }
