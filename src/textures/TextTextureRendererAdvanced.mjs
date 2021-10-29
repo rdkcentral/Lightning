@@ -170,7 +170,7 @@ export default class TextTextureRendererAdvanced {
 
         text = this.tokenize(text);
         text = this.parse(text);
-        text = this.measure(text, letterSpacing);
+        text = this.measure(text, letterSpacing, renderInfo.baseFont);
 
         if (renderInfo.textIndent) {
             text = this.indent(text, renderInfo.textIndent);
@@ -254,20 +254,28 @@ export default class TextTextureRendererAdvanced {
         // Apply maxLinesSuffix
         if (renderInfo.maxLines && renderInfo.lineNum > renderInfo.maxLines && renderInfo.maxLinesSuffix) {
             const index = renderInfo.maxLines - 1;
-            let lastLineText = text.filter((t) => t.lineNo == index);
+            let lastLineText = text.filter((t) => t.lineNo == index)
             let suffix = renderInfo.maxLinesSuffix;
             suffix = this.tokenize(suffix);
             suffix = this.parse(suffix);
-            suffix = this.measure(suffix, renderInfo.letterSpacing)[0];
+            suffix = this.measure(suffix, renderInfo.letterSpacing, renderInfo.baseFont)[0];
             suffix.lineNo = index;
+            if (lastLineText.length) {
+                suffix.x = lastLineText[lastLineText.length - 1].x + lastLineText[lastLineText.length - 1].width;
+            } else {
+                suffix.x = 0;
+            }
             lastLineText.push(suffix)
 
             let _w = lastLineText.reduce((acc, t) => acc + t.width, 0);
             while (_w > renderInfo.width || lastLineText[lastLineText.length - 2].text == ' ') {
                 lastLineText.splice(lastLineText.length - 2, 1);
                 _w = lastLineText.reduce((acc, t) => acc + t.width, 0);
-                const prev = lastLineText[lastLineText.length - 2]
+                const prev = lastLineText[lastLineText.length - 2] || {x: 0, width: 0}
                 suffix.x = prev.x + prev.width;
+                if (lastLineText.length < 2) {
+                    break;
+                }
             }
 
             renderInfo.lines[index].text = lastLineText;
@@ -503,7 +511,6 @@ export default class TextTextureRendererAdvanced {
     }
 
     measure(parsed, letterSpacing = 0, baseFont) {
-        const ctx = this._context;
         for (const p of parsed) {
             this.applyFontStyle(p, baseFont);
             p.width = this.measureText(p.text, letterSpacing);
@@ -600,6 +607,7 @@ export default class TextTextureRendererAdvanced {
                 } else {
                     // Finally, when bound is crossed, retract last letter.
                     breakIndex -=1;
+                    truncWordWidth = this.measureText(word.substring(0, breakIndex));
                     break;
                 }
             }
