@@ -94,7 +94,7 @@ export default class ObjectList {
     }
 
     setAt(item, index) {
-        if (index >= 0 && index <= this._items.length) {
+        if (index >= 0 && index < this._items.length) {
 
             if (Utils.isObjectLiteral(item)) {
                 const o = item;

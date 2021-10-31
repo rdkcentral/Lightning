@@ -206,6 +206,16 @@ export default class Element {
         return p;
     };
 
+    getAncestors() {
+        const a = [];
+        let p = this;
+        while (p) {
+            a.push(p);
+            p = p.__parent;
+        }
+        return a;
+    }
+
     getAncestorAtDepth(depth) {
         let levels = this.getDepth() - depth;
         if (levels < 0) {
@@ -2057,7 +2067,8 @@ export default class Element {
 
     toJSON() {
         const ref = [`${this.constructor.name}`];
-        const tree = {[ref]: {}};
+        const tree = {};
+        tree[ref] = {};
 
         if (this.hasChildren()) {
             Element.collectChildren(tree[ref], this.__childList);

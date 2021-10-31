@@ -507,27 +507,41 @@ export default class Application extends Component {
 
         // Only fire handlers when pointer target changes
         if (target !== this.__hoveredChild) {
-            if (this.__hoveredChild) {
-                let child = this.__hoveredChild;
 
-                while (child !== null) {
-                    if (child && child["_handleUnhover"]) {
-                        child._handleUnhover(this.__hoveredChild);
-                        break;
+            let hoveredBranch = new Set();
+            let newHoveredBranch = new Set();
+
+            if (target) {
+                newHoveredBranch = new Set(target.getAncestors());
+            }
+
+            if (this.__hoveredChild) {
+                hoveredBranch = new Set(this.__hoveredChild.getAncestors());
+                for (const elem of [...hoveredBranch].filter((e) => !newHoveredBranch.has(e))) {
+                    const c = Component.getComponent(elem);
+                    if (c["_handleUnhover"]) {
+                        c._handleUnhover(elem);
                     }
-                    child = child.parent;
                 }
             }
 
-            let child = target;
             this.__hoveredChild = target;
 
-            while (child !== null) {
-                if (child && child["_handleHover"]) {
-                    child._handleHover(target);
-                    break;
+            const diffBranch = [...newHoveredBranch].filter((e) => !hoveredBranch.has(e))
+            for (const elem of diffBranch) {
+                const c = Component.getComponent(elem);
+                if (c["_handleHover"]) {
+                    c._handleHover(elem);
                 }
-                child = child.parent;
+            }
+
+            // Rerun _handleHover for target element in case it's been hovered
+            // back from its child
+            if (diffBranch.length === 0 && target) {
+                const c = Component.getComponent(target);
+                if (c["_handleHover"]) {
+                    c._handleHover(target);
+                }
             }
         }
     }
@@ -593,8 +607,10 @@ export default class Application extends Component {
                 continue;
             }
 
-            if (child.parent.core._scissor && !this._testCollision(cursorX, cursorY, ...child.parent.core._scissor)) {
-                continue
+            if (child.parent.core._scissor) {
+                const scissor = child.parent.core._scissor.map((v) => v * precision);
+                if (!this._testCollision(cursorX, cursorY, ...scissor))
+                    continue
             }
 
             if (this._testCollision(cursorX, cursorY, cx, cy, cw, ch)) {
