@@ -178,6 +178,7 @@ export default class Stage extends EventEmitter {
         opt('textRenderIssueMargin', 0);
         opt('textRenderSharpFontSize', 40);
         opt('textRenderSharpPrecision', 1.0);
+        opt('fontSharp',{precision:0.6666666667, fontSize: 39})
         opt('clearColor', [0, 0, 0, 0]);
         opt('defaultFontFace', 'sans-serif');
         opt('fixedDt', 0);
