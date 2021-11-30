@@ -18,6 +18,7 @@
  */
 
 import Texture from "../tree/Texture.mjs";
+import Utils from "../tree/Utils.mjs";
 
 export default class TextTexture extends Texture {
 
@@ -538,8 +539,17 @@ export default class TextTexture extends Texture {
 
             const texParams = {};
 
+            const sharpCfg = this.stage.getOption('fontSharp');
+            let sharpen = false;
+
             // Prevent text blur when text texture is downscaled
-            const sharpen = this.stage.getRenderPrecision() < this.stage.getOption('textRenderSharpPrecision') && args.fontSize < this.stage.getOption('textRenderSharpFontSize')
+            if (Utils.isBoolean(sharpCfg)) {
+                sharpen = sharpCfg;
+            } else if (Utils.isObject(sharpCfg)) {
+                const precision = this.stage.getRenderPrecision();
+                sharpen = precision <= sharpCfg.precision && args.fontSize <= sharpCfg.fontSize;
+            }
+
             if (gl && sharpen) {
                 texParams[gl.TEXTURE_MAG_FILTER] = gl.NEAREST;
             }
