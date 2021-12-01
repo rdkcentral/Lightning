@@ -193,15 +193,26 @@ window.attachInspector = function({Application, Element, ElementCore, Stage, Com
             var root = document.createElement('DIV');
             document.body.appendChild(root);
             var self = this;
-            setTimeout(function() {
-                var bcr = self.stage.getCanvas().getBoundingClientRect();
+            let updateRootStyleFromCanvas = function (bcr) {
                 root.style.left = bcr.left + 'px';
                 root.style.top = bcr.top + 'px';
                 root.style.width = Math.ceil(bcr.width / self.stage.getRenderPrecision()) + 'px';
                 root.style.height = Math.ceil(bcr.height / self.stage.getRenderPrecision()) + 'px';
                 root.style.transformOrigin = '0 0 0';
                 root.style.transform = 'scale(' + self.stage.getRenderPrecision() + ',' + self.stage.getRenderPrecision() + ')';
-            }, 1000);
+            }
+
+            if (ResizeObserver != null) {
+                const resize_ob = new ResizeObserver(function (entries) {
+                    updateRootStyleFromCanvas(entries[0].contentRect);
+                });
+                // start observing for resize
+                resize_ob.observe(this.stage.getCanvas());
+            } else {
+                setTimeout(function () {
+                    updateRootStyleFromCanvas(self.stage.getCanvas().getBoundingClientRect());
+                }, 1000);
+            }
 
             root.style.position = 'absolute';
             root.style.overflow = 'hidden';
