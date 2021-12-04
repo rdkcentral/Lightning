@@ -1,0 +1,175 @@
+<!--
+ If not stated otherwise in this file or this component's LICENSE file the
+ following copyright and licenses apply:
+
+ Copyright 2020 Metrological
+
+ Licensed under the Apache License, Version 2.0 (the License);
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+
+    <script src="../../devtools/lightning-inspect.js"></script>
+</head>
+<body>
+    <script type="module">
+        //attachInspector(lng)
+        import lng from '../../src/lightning.mjs';
+        const TEXT = "This text is normal.\nThis text is <b>bold</b>.\nThis text is <i>italic</i>.\nThis text is <color=0xffcc2222>red</color>.\nThis text is brokennnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn up.\n"
+        const LORUM = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum'
+        const MORETEXT = 'This is more text. Idk what else to say, other that this is very text-y and im feeling texxy.'
+        const SKYPETEXT = 'elke text change this.tag("MyThing").text = "foo"'
+        const SLACKTEXT = 'Join TSF & OCP today during a :brownbag: TSF Brown Bag Feedback Session :brownbag: - give us the good :good_morning_sun:, bad :badger: and ugly :badger1: on TSF and how to make it easier for you to use! Tell us what works and what doesnt! Bend the ears of @todd_outten and @vhowar000! Here is the meeting link or Reply to this and I can forward you the invite.'
+
+        const availableTexts = [
+            TEXT, LORUM, MORETEXT, SKYPETEXT, SLACKTEXT
+        ]
+
+        const alignments = ['left', 'right', 'center']
+
+        const colors = [
+            0xFFFF0000,
+            0xFFF0F8FF,
+            0xFFFAEBD7,
+            0xFF00FFFF,
+            0xFF7FFFD4,
+            0xFFF0FFFF
+        ]
+
+        window.onload = function() {
+            class BasicUsageExample extends lng.Application {
+                static _template() {
+                    return {
+                        Bg: {
+                            x: 600,
+                            y: 600,
+                            src: "/examples/landscape.jpg", scale: 1,
+                        },
+                        Text: {
+                            w: 500,
+                            wordBreak: true,
+                            advancedRenderer: true,
+                            text: TEXT
+                        },
+                        Time: {
+                            x: 300,
+                            y: 600,
+                            text: {
+                                text: '',
+                            }
+                        },
+                        MoreText : {
+                            x: 200,
+                            y: 500,
+                            text: {
+                                text: 'Just some more text',
+                            }
+                        },
+                        TextTwo : {
+                            x: 200,
+                            y: 500,
+                            text: {
+                                text: TEXT,
+                            }
+                        },
+                        TextThree: {
+                            x: 100,
+                            y: 200,
+                            text: {
+                                text: TEXT
+                            }
+                        },
+                        TextFour: {
+                            x: 100,
+                            y: 200,
+                            text: {
+                                text: TEXT
+                            }
+                        }
+                    }
+                }
+
+                getTime() {
+                    const now = new Date()
+                    return `${now.getHours() < 10 ? '0' + now.getHours() : now.getHours()}:${now.getMinutes() < 10 ? '0' + now.getMinutes() : now.getMinutes()}:${now.getSeconds() < 10 ? '0' + now.getSeconds() : now.getSeconds()}:${now.getUTCMilliseconds < 10 ? '0' + now.getUTCMilliseconds : now.getUTCMilliseconds()}`
+                }
+
+                getRandomInt(max) {
+                    return Math.floor(Math.random() * max);
+                }
+
+                textRandomizer() {
+                    const resp = {
+                        text: {
+                            text: availableTexts[ this.getRandomInt( availableTexts.length -1 ) ],
+                            fontSize: 5 + this.getRandomInt(40),
+                            lineHeight: 5 + this.getRandomInt(40),
+                            maxLines: 2 + this.getRandomInt(5),
+                            wordWrapWidth: 400
+                        },
+                        x: 25 + this.getRandomInt(1200),
+                        y: 25 + this.getRandomInt(720),
+                        color: colors[ this.getRandomInt( colors.length-1 ) ]
+                    }
+
+                    return resp
+                }
+
+                updateTimeInterval() {
+                    this.tag('Time').patch({
+                        text: {
+                            text: this.getTime()
+                        }
+                    });
+
+                    this.tag('Text').patch(this.textRandomizer());
+                    this.tag('MoreText').patch(this.textRandomizer());
+                    this.tag('TextTwo').patch(this.textRandomizer());
+                    this.tag('TextThree').patch(this.textRandomizer());
+                    this.tag('TextFour').patch(this.textRandomizer());
+                }
+
+                _setup() {
+                    setInterval(() => {
+                        this.updateTimeInterval();
+                    }, 1);
+
+
+                    setInterval(() => {
+                        console.log('Beep boop GC')
+                        this.stage.gc();
+                    }, 5000);
+
+                    /*
+                    this.animation({
+                        duration: 2, repeat:-1,
+                        actions:[
+                                { p:'x' ,v: {0:120, 0.5: 400, 1: 120} }
+                            ]
+                        }).start();
+                        */
+                    }
+            }
+
+            const options = {stage: {w: 1280, h: 720, clearColor: 0xFF000000, canvas2d: false, useImageWorker: false, precision: 2/3}, debug: true}
+
+            const app = new BasicUsageExample(options);
+
+            document.body.appendChild(app.stage.getCanvas());
+        }
+    </script>
+</body>
+</html>
