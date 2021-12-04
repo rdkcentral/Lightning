@@ -29,6 +29,9 @@ export default class WebPlatform {
         this.stage = stage;
         this._looping = false;
         this._awaitingLoop = false;
+        this._canvasPool = [];
+
+        this.createCanvasPool();
 
         if (this.stage.getOption("useImageWorker")) {
             if (!window.createImageBitmap || !window.Worker) {
@@ -36,6 +39,14 @@ export default class WebPlatform {
             } else {
                 this._imageWorker = new ImageWorker();
             }
+        }
+    }
+
+    createCanvasPool() {
+        const poolSize = this.stage.getOption('canvasPool') || 5;
+
+        for (let i=0; i<poolSize; i++) {
+            this._canvasPool.push( document.createElement('canvas') );
         }
     }
 
@@ -81,6 +92,9 @@ export default class WebPlatform {
             // Workaround for some browsers (e.g. Tizen) as they do not convert canvas data to texture correctly, sometimes causing artifacts.
             const ctx = source.getContext('2d');
             gl.texImage2D(gl.TEXTURE_2D, 0, options.internalFormat, options.format, options.type, ctx.getImageData(0, 0, source.width, source.height));
+
+            ctx.clearRect(0, 0, source.width, source.height);
+            this._canvasPool.push(source);
         } else {
             gl.texImage2D(gl.TEXTURE_2D, 0, options.internalFormat, textureSource.w, textureSource.h, 0, options.format, options.type, source);
         }
@@ -186,7 +200,12 @@ export default class WebPlatform {
 
     getDrawingCanvas() {
         // We can't reuse this canvas because textures may load async.
-        return document.createElement('canvas');
+        // WvB  ¯\_(ツ)_/¯
+        //return document.createElement('canvas');
+
+        const canvas = this._canvasPool.pop()
+        console.log('getDrawingCanvas canvas pool: ', this._canvasPool.length)
+        return canvas;
     }
 
     getTextureOptionsForDrawingCanvas(canvas) {
