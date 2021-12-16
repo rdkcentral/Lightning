@@ -38,10 +38,11 @@ const App = new MyApp(options);
 | `memoryPressure` | Number | 24e6 | Maximum GPU memory usage in pixels (see details below) |
 | `clearColor` | Float[] | [0,0,0,0] | Background color in ARGB values (0 to 1) |
 | `defaultFontFace` | String | sans-serif | Font face for text rendering |
+| `fontSharp` | Object, Boolean | { precision:0.6666666667, fontSize: 39 } | Determine when to apply gl.NEAREST to TEXTURE_MAG_FILTER |
 | `fixedDt` | Number | 0 (auto) | Fixed time step per frame (in ms) |
 | `useImageWorker` | Boolean | true | By default, use a Web Worker that parses images off-thread (web only) |
 | `autostart` | Boolean | true | If set to *false*, no automatic binding to  `requestAnimationFrame` |
-| `Canvas2D` | Boolean | false | If set tot *true*, the Render Engine uses Canvas2D instead of WebGL (limitations apply, see details below) |
+| `canvas2d` | Boolean | false | If set tot *true*, the Render Engine uses canvas2d instead of WebGL (limitations apply, see details below) |
 
 
 
@@ -62,6 +63,29 @@ As a result, the text and off-screen textures are rendered at a *lower resolutio
 
 
 Downscaling with the `precision` option generally works well. But keep in mind that WebGL rasterizes as *pixel boundaries*, so when it uses a line width of 2 in 1080p quality, it may render at either 2px or 3px in 720p (depending on the rendered pixel offset). If you encounter such problems, you have to set the sizing at a multiple of 3.
+
+
+## FontSharp
+
+By default we apply `gl.LINEAR` to texture `TEXTURE_MAG_FILTER` parameter. This can lead to a more blurry font
+when we try to render smaller fonts on lower precisions. By changing the `fontSharp` stage setting you can adjust the behaviour:
+
+```js
+fontSharp: {
+    precision:0.6666666667,
+    fontSize: 39
+}
+```
+
+means: set texture magnification filter (gl.TEXTURE_MAG_FILTER) to `gl.NEAREST` when the font-size of our current text texture is
+lower or equal to 39 and our render precision is lower or equal to 0.6666666667.
+
+```js
+fontSharp: false
+```
+
+Will disable it completely and will use `gl.LINEAR` as texture magnification filter.
+
 
 ## GPU Memory Tweak
 
