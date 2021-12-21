@@ -67,6 +67,8 @@ export default class Application extends Component {
             this.stage.platform.registerScrollWheelHandler((e) => {
                 this._recieveScrollWheel(e);
             });
+
+            this.cursor = 'default';
         }
     }
 
@@ -522,6 +524,9 @@ export default class Application extends Component {
                     if (c["_handleUnhover"]) {
                         c._handleUnhover(elem);
                     }
+                    if (elem.parent && elem.parent.cursor) {
+                        this.stage.getCanvas().style.cursor = elem.parent.cursor;
+                    }
                 }
             }
 
@@ -533,6 +538,12 @@ export default class Application extends Component {
                 if (c["_handleHover"]) {
                     c._handleHover(elem);
                 }
+            }
+
+            // New element hover cursor
+            const lastElement = diffBranch[0];
+            if (lastElement && lastElement.cursor) {
+                this.stage.getCanvas().style.cursor = lastElement.cursor;
             }
 
             // Rerun _handleHover for target element in case it's been hovered
