@@ -305,7 +305,7 @@ export default class Application extends Component {
 
     _receiveKeydown(e) {
         const obj = e;
-        const key = this.__keymap[e.keyCode];
+        const key = this._getKey(e);
         const path = this.focusPath;
 
         let keys;
@@ -352,7 +352,7 @@ export default class Application extends Component {
      */
     _receiveKeyup(e) {
         const obj = e;
-        const key = this.__keymap[e.keyCode];
+        const key = this._getKey(e);
 
         let keys;
         if (key) {
@@ -383,6 +383,19 @@ export default class Application extends Component {
                 }
             }
         }
+    }
+
+    _getKey(e) {
+        const code = e.keyCode;
+        let mapping = this.__keymap;
+        const modifier = ['shift', 'ctrl'].filter(m => {
+            return e[`${m}Key`] && mapping[m] && mapping[m][code];
+        });
+
+        if (modifier.length) {
+            mapping = mapping[modifier.shift()];
+        }
+        return mapping[code];
     }
 
     /**
