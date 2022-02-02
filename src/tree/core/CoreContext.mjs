@@ -100,13 +100,23 @@ export default class CoreContext {
         this._fillRenderState();
 
         if (this.stage.getOption('readPixelsBeforeDraw')) {
-            const pixels = new Uint8Array(4);
-            const gl = this.stage.gl;
-            gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+            this._readPixels();
         }
 
         // Now run them with the render executor.
         this._performRender();
+
+        // Block OpenGL pipeline to prevent framebuffer flickering
+        // on certain devices
+        if (this.stage.getOption('readPixelsAfterDraw')) {
+            this._readPixels();
+        }
+    }
+
+    _readPixels() {
+        const pixels = new Uint8Array(4);
+        const gl = this.stage.gl;
+        gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
     }
 
     _fillRenderState() {
