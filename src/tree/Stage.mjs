@@ -38,6 +38,7 @@ export default class Stage extends EventEmitter {
 
         this._usedMemory = 0;
         this._lastGcFrame = 0;
+        this._render = this.getOption('render');
 
         const platformType = Stage.platform ? Stage.platform : PlatformLoader.load(options);
         this.platform = new platformType();
@@ -186,6 +187,7 @@ export default class Stage extends EventEmitter {
         opt('canvas2d', false);
         opt('platform', null);
         opt('readPixelsBeforeDraw', false);
+        opt('render', true);
     }
 
     setApplication(app) {
@@ -289,7 +291,9 @@ export default class Stage extends EventEmitter {
         if (changes) {
             this._updatingFrame = true;
             this.ctx.update();
-            this.ctx.render();
+            if(this.render){
+                this.ctx.render();
+            }
             this._updatingFrame = false;
         }
 
@@ -376,6 +380,14 @@ export default class Stage extends EventEmitter {
 
     get coordsHeight() {
         return this.h / this._options.precision;
+    }
+
+    set render(v){
+        this._render = v;
+    }
+
+    get render(){
+        return this._render;
     }
 
     addMemoryUsage(delta) {
