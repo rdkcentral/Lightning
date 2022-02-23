@@ -74,8 +74,7 @@
 
             }
 
-            const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000, canvas2d: false, useImageWorker: false}, debug: true, enablePointer: ENABLE_POINTER}
-
+            const options = {stage: {w: 1080, h: 720, clearColor: 0xFF000000, canvas2d: false, useImageWorker: false, devicePixelRatio: 2}, debug: true, enablePointer: ENABLE_POINTER}
             const app = new BasicUsageExample(options);
 
             document.body.appendChild(app.stage.getCanvas());
