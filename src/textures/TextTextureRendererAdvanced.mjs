@@ -119,8 +119,7 @@ export default class TextTextureRendererAdvanced {
         renderInfo.text = this._settings.text;
         renderInfo.precision = precision;
         renderInfo.fontSize = fontSize;
-        // 0 is used as the baseline ratio if none is provided so it has no impact over the browser default rendering.
-        renderInfo.fontBaselineRatio = this._settings.fontBaselineRatio || 0.0 
+        renderInfo.fontBaselineRatio = this._settings.fontBaselineRatio;
         renderInfo.lineHeight = lineHeight;
         renderInfo.letterSpacing = letterSpacing;
         renderInfo.textAlign = this._settings.textAlign;
@@ -222,9 +221,9 @@ export default class TextTextureRendererAdvanced {
         // To retrieve this ratio, you would do this calculation:
         //     (FontUnitsPerEm − hhea.Ascender − hhea.Descender) / (2 × FontUnitsPerEm)
         //
-        // This give you the ratio for the baseline, which is then used to figure out 
+        // This give you the ratio for the baseline, which is then used to figure out
         // where the baseline is relative to the bottom of the text bounding box.
-        const baselineOffsetInPx = renderInfo.fontBaselineRatio * renderInfo.fontSize
+        const baselineOffsetInPx = renderInfo.fontBaselineRatio * renderInfo.fontSize;
 
         // Vertical align
         let vaOffset = 0;
