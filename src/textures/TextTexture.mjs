@@ -87,7 +87,7 @@ export default class TextTexture extends Texture {
     
     set fontBaselineRatio(v) {
         if (this._fontBaselineRatio !== v) {
-            this._fontBaselineRatio = v
+            this._fontBaselineRatio = v;
             this._changed();
         }
     }
@@ -724,6 +724,7 @@ proto._cutEx = 0;
 proto._cutSy = 0;
 proto._cutEy = 0;
 proto._advancedRenderer = false;
+proto._fontBaselineRatio = 0;
 
 
 import TextTextureRenderer from "./TextTextureRenderer.mjs";
