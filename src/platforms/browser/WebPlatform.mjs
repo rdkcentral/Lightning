@@ -78,8 +78,8 @@ export default class WebPlatform {
             // Web-specific data types.
             gl.texImage2D(gl.TEXTURE_2D, 0, options.internalFormat, options.format, options.type, source);
         } else if (source instanceof HTMLCanvasElement) {
-            if (Utils.isZiggo) {
-                // Ziggo EOS and Selene have issues with getImageData implementation causing artifacts.
+            if (Utils.isZiggo || Utils.isSkyTitan) {
+                // Ziggo EOS, Ziggo Selene and Sky Titan Stbs have issues with getImageData implementation causing artifacts.
                 gl.texImage2D(gl.TEXTURE_2D, 0, options.internalFormat, options.format, options.type, source);
             } else {
                 // Workaround for some browsers (e.g. Tizen) as they do not convert canvas data to texture correctly, sometimes causing artifacts.

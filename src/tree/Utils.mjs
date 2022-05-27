@@ -196,3 +196,4 @@ Utils.isSpark = (typeof sparkscene !== "undefined");
 Utils.isNode = (typeof window === "undefined") || Utils.isSpark;
 Utils.isPS4 = Utils.isWeb && (navigator.userAgent.indexOf("PlayStation 4") !== -1);
 Utils.isZiggo = Utils.isWeb && (navigator.userAgent.indexOf("EOSSTB") !== -1 || navigator.userAgent.indexOf("HZNSTB") !== -1);
+Utils.isSkyTitan = Utils.isWeb && (navigator.userAgent.indexOf("Sky, ES340") !== -1);
