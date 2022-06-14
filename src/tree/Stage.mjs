@@ -259,7 +259,17 @@ export default class Stage extends EventEmitter {
         return (this._updateSourceTextures && this._updateSourceTextures.has(texture));
     }
 
-    drawFrame() {
+
+    _performUpdateSource() {
+        if (this._updateSourceTextures.size) {
+            this._updateSourceTextures.forEach(texture => {
+                texture._performUpdateSource();
+            });
+            this._updateSourceTextures = new Set();
+        }
+    }
+
+    _calculateDt() {
         this.startTime = this.currentTime;
         this.currentTime = this.platform.getHrTime();
 
@@ -268,18 +278,22 @@ export default class Stage extends EventEmitter {
         } else {
             this.dt = (!this.startTime) ? .02 : .001 * (this.currentTime - this.startTime);
         }
+    }
 
+    updateFrame() {
+        this._calculateDt();
         this.emit('frameStart');
-
-        if (this._updateSourceTextures.size) {
-            this._updateSourceTextures.forEach(texture => {
-                texture._performUpdateSource();
-            });
-            this._updateSourceTextures = new Set();
-        }
-
+        this._performUpdateSource();
         this.emit('update');
+    }
 
+    idleFrame() {
+        this.textureThrottler.processSome();
+        this.emit('frameEnd');
+        this.frameCounter++;
+    }
+
+    drawFrame() {
         const changes = this.ctx.hasRenderUpdates();
 
         // Update may cause textures to be loaded in sync, so by processing them here we may be able to show them
