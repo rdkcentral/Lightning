@@ -119,6 +119,7 @@ export default class TextTextureRendererAdvanced {
         renderInfo.text = this._settings.text;
         renderInfo.precision = precision;
         renderInfo.fontSize = fontSize;
+        renderInfo.fontBaselineRatio = this._settings.fontBaselineRatio;
         renderInfo.lineHeight = lineHeight;
         renderInfo.letterSpacing = letterSpacing;
         renderInfo.textAlign = this._settings.textAlign;
@@ -202,12 +203,36 @@ export default class TextTextureRendererAdvanced {
         }
         renderInfo.lineNum = lineNo + 1;
 
+        if (this._settings.h) {
+            renderInfo.h = this._settings.h;
+        } else if (renderInfo.maxLines && renderInfo.maxLines < renderInfo.lineNum) {
+            renderInfo.h = renderInfo.maxLines * renderInfo.lineHeight + fontSize / 2;
+        } else if (renderInfo.lineHeight > fontSize) {
+            // When lineheight is larger than the font size we're rendering, we set the height of the canvas based on the number of lines we're rendering.
+            // This makes each "line" a containing box that is line height sized, and text is positioned inside that box.
+            //
+            // Ideographic fonts may break this model, and require additional space?
+            renderInfo.h = renderInfo.lineNum * renderInfo.lineHeight
+        } else {
+            renderInfo.h = renderInfo.lineNum * renderInfo.lineHeight + fontSize / 2;
+        }
+
+        // This calculates the baseline offset in pixels from the font size.
+        // To retrieve this ratio, you would do this calculation:
+        //     (FontUnitsPerEm − hhea.Ascender − hhea.Descender) / (2 × FontUnitsPerEm)
+        //
+        // This give you the ratio for the baseline, which is then used to figure out
+        // where the baseline is relative to the bottom of the text bounding box.
+        const baselineOffsetInPx = renderInfo.fontBaselineRatio * renderInfo.fontSize;
+
         // Vertical align
         let vaOffset = 0;
-        if (renderInfo.verticalAlign == 'middle') {
-            vaOffset += (renderInfo.lineHeight - renderInfo.fontSize) / 2;
+        if (renderInfo.verticalAlign == 'top' && this._context.textBaseline == 'alphabetic') {
+            vaOffset = -baselineOffsetInPx;
+        } else if (renderInfo.verticalAlign == 'middle') {
+            vaOffset = (renderInfo.lineHeight - renderInfo.fontSize - baselineOffsetInPx) / 2;
         } else if (this._settings.verticalAlign == 'bottom') {
-            vaOffset += renderInfo.lineHeight - renderInfo.fontSize;
+            vaOffset = renderInfo.lineHeight - renderInfo.fontSize;
         }
 
         // Calculate lines information
@@ -280,14 +305,6 @@ export default class TextTextureRendererAdvanced {
 
             renderInfo.lines[index].text = lastLineText;
             renderInfo.lines[index].width = _w;
-        }
-
-        if (this._settings.h) {
-            renderInfo.h = this._settings.h;
-        } else if (renderInfo.maxLines && renderInfo.maxLines < renderInfo.lineNum) {
-            renderInfo.h = renderInfo.maxLines * renderInfo.lineHeight + fontSize / 2;
-        } else {
-            renderInfo.h = renderInfo.lineNum * renderInfo.lineHeight + fontSize / 2;
         }
 
         // Horizontal alignment offset

@@ -81,6 +81,17 @@ export default class TextTexture extends Texture {
         }
     }
 
+    get fontBaselineRatio() {
+        return this._fontBaselineRatio;
+    }
+    
+    set fontBaselineRatio(v) {
+        if (this._fontBaselineRatio !== v) {
+            this._fontBaselineRatio = v;
+            this._changed();
+        }
+    }
+
     get fontSize() {
         return this._fontSize;
     }
@@ -478,6 +489,7 @@ export default class TextTexture extends Texture {
         if (this.h !== 0) parts.push("h " + this.h);
         if (this.fontStyle !== "normal") parts.push("fS" + this.fontStyle);
         if (this.fontSize !== 40) parts.push("fs" + this.fontSize);
+        if (this.fontBaselineRatio !== 0) parts.push('fb' + this.fontBaselineRatio);
         if (this.fontFace !== null) parts.push("ff" + (Array.isArray(this.fontFace) ? this.fontFace.join(",") : this.fontFace));
         if (this.wordWrap !== true) parts.push("wr" + (this.wordWrap ? 1 : 0));
         if (this.wordWrapWidth !== 0) parts.push("ww" + this.wordWrapWidth);
@@ -583,6 +595,7 @@ export default class TextTexture extends Texture {
         if (this.h !== 0) nonDefaults['h'] = this.h;
         if (this.fontStyle !== "normal") nonDefaults['fontStyle'] = this.fontStyle;
         if (this.fontSize !== 40) nonDefaults["fontSize"] = this.fontSize;
+        if (this.fontBaselineRatio !== 0) nonDefaults['fontBaselineRatio'] = this.fontBaselineRatio;
         if (this.fontFace !== null) nonDefaults["fontFace"] = this.fontFace;
         if (this.wordWrap !== true) nonDefaults["wordWrap"] = this.wordWrap;
         if (this.wordWrapWidth !== 0) nonDefaults["wordWrapWidth"] = this.wordWrapWidth;
@@ -629,6 +642,7 @@ export default class TextTexture extends Texture {
         obj.h = this._h;
         obj.fontStyle = this._fontStyle;
         obj.fontSize = this._fontSize;
+        obj.fontBaselineRatio = this._fontBaselineRatio;
         obj.fontFace = this._fontFace;
         obj.wordWrap = this._wordWrap;
         obj.wordWrapWidth = this._wordWrapWidth;
@@ -710,6 +724,7 @@ proto._cutEx = 0;
 proto._cutSy = 0;
 proto._cutEy = 0;
 proto._advancedRenderer = false;
+proto._fontBaselineRatio = 0;
 
 
 import TextTextureRenderer from "./TextTextureRenderer.mjs";
