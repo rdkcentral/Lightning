@@ -1,6 +1,6 @@
 # Spinner2
 
-The Spinner shader allows you to draw a loading / spinner icon on the screen.
+The Spinner2 shader allows you to draw a loading / spinner icon on the screen. The Spinner2 shader is a successor to the Spinner shader which we do not recommend you use, its namespace however remains for backwards compatibility.
 
 ## Usage
 
