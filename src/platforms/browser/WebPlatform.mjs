@@ -156,26 +156,27 @@ export default class WebPlatform {
             }
             
             var littleEndian = (view.getUint32(12) === 16909060) ? true : false;
-            var data = {};
-            data.glType = view.getUint32(16, littleEndian);
-            data.glTypeSize = view.getUint32(20, littleEndian);
-            data.glFormat = view.getUint32(24, littleEndian);
-            data.glInternalFormat = view.getUint32(28, littleEndian);
-            data.glBaseInternalFormat = view.getUint32(32, littleEndian);
-            data.pixelWidth = view.getUint32(36, littleEndian);
-            data.pixelHeight = view.getUint32(40, littleEndian);
-            data.pixelDepth = view.getUint32(44, littleEndian);
-            data.numberOfArrayElements = view.getUint32(48, littleEndian);
-            data.numberOfFaces = view.getUint32(52, littleEndian);
-            data.numberOfMipmapLevels = view.getUint32(56, littleEndian);
-            data.bytesOfKeyValueData = view.getUint32(60, littleEndian);
-            data.kvps = [];
-            data.mipmaps = [];
-            var offset = 60
-            if (data.bytesOfKeyValueData > 0) {
-                // TODO: read kvps and insert in data.
-            }
-            offset += data.bytesOfKeyValueData + 4;
+            var data = {
+                glType: view.getUint32(16, littleEndian),
+                glTypeSize: view.getUint32(20, littleEndian),
+                glFormat: view.getUint32(24, littleEndian),
+                glInternalFormat: view.getUint32(28, littleEndian),
+                glBaseInternalFormat: view.getUint32(32, littleEndian),
+                pixelWidth: view.getUint32(36, littleEndian),
+                pixelHeight: view.getUint32(40, littleEndian),
+                pixelDepth: view.getUint32(44, littleEndian),
+                numberOfArrayElements: view.getUint32(48, littleEndian),
+                numberOfFaces: view.getUint32(52, littleEndian),
+                numberOfMipmapLevels: view.getUint32(56, littleEndian),
+                bytesOfKeyValueData: view.getUint32(60, littleEndian),
+                kvps: [],
+                mipmaps: [],
+            };
+            
+            var offset = 64
+            // Key Value Pairs of data start at byte offset 64
+            // But the only known kvp is the API version, so skipping parsing.
+            offset += data.bytesOfKeyValueData;
             
             for (var i = 0; i < data.numberOfMipmapLevels; i++) {
                 var imageSize = view.getUint32(offset);
