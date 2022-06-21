@@ -166,20 +166,21 @@ export default class WebGLRenderer extends Renderer {
 
         if (compressed) {
             this.stage.platform.uploadCompressedGlTexture(gl, textureSource, source);
-        } else {
-            const texOptions = format.texOptions;
-            texOptions.format = texOptions.format || (format.hasAlpha ? gl.RGBA : gl.RGB);
-            texOptions.type = texOptions.type || gl.UNSIGNED_BYTE;
-            texOptions.internalFormat = texOptions.internalFormat || texOptions.format;
-            if (options && options.imageRef) {
-                texOptions.imageRef = options.imageRef;
-            }
-            
-            this.stage.platform.uploadGlTexture(gl, textureSource, source, texOptions);
-            
-            glTexture.params = Utils.cloneObjShallow(texParams);
-            glTexture.options = Utils.cloneObjShallow(texOptions);
+            return glTexture;
         }
+         
+        const texOptions = format.texOptions;
+        texOptions.format = texOptions.format || (format.hasAlpha ? gl.RGBA : gl.RGB);
+        texOptions.type = texOptions.type || gl.UNSIGNED_BYTE;
+        texOptions.internalFormat = texOptions.internalFormat || texOptions.format;
+        if (options && options.imageRef) {
+            texOptions.imageRef = options.imageRef;
+        }
+        
+        this.stage.platform.uploadGlTexture(gl, textureSource, source, texOptions);
+        
+        glTexture.params = Utils.cloneObjShallow(texParams);
+        glTexture.options = Utils.cloneObjShallow(texOptions);
 
         return glTexture;
     }
