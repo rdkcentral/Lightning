@@ -37,7 +37,7 @@ You can customize the appearance of the Vignette shader with the following sette
 You can set the magnitude of the Vignette shader with a `float`. The value of magnitude determines the degrees of fading around the light source.
 
 ### intensity
-You can set the intensity of the Vignette shader with a `float`. The value of intensity determines the strenght of the light source.
+You can set the intensity of the Vignette shader with a `float`. The value of intensity determines the strength of the light source.
 
 ### pivot
 You can set the pivot of the Vignette with either an `array` or `float`. The pivot is the center of where the Vignette is drawn. To let the pivot fall within the texture the value should range from 0 - 1. The value can also range outside that if you wish so.
