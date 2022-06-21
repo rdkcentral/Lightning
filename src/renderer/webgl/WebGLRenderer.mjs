@@ -32,6 +32,10 @@ export default class WebGLRenderer extends Renderer {
     constructor(stage) {
         super(stage);
         this.shaderPrograms = new Map();
+        this._compressedTextureExtension = (
+            stage.gl.getExtension('WEBGL_compressed_texture_etc1') ||
+            stage.gl.getExtension('WEBGL_compressed_texture_s3tc')
+        )
     }
 
     destroy() {
@@ -105,6 +109,10 @@ export default class WebGLRenderer extends Renderer {
         const gl = this.stage.gl;
 
         const source = options.source;
+        let compressed = false;
+        if (options.renderInfo) {
+            compressed = options.renderInfo.compressed || false
+        }
 
         const format = {
             premultiplyAlpha: true,
@@ -150,18 +158,22 @@ export default class WebGLRenderer extends Renderer {
             gl.texParameteri(gl.TEXTURE_2D, parseInt(key), value);
         });
 
-        const texOptions = format.texOptions;
-        texOptions.format = texOptions.format || (format.hasAlpha ? gl.RGBA : gl.RGB);
-        texOptions.type = texOptions.type || gl.UNSIGNED_BYTE;
-        texOptions.internalFormat = texOptions.internalFormat || texOptions.format;
-        if (options && options.imageRef) {
-            texOptions.imageRef = options.imageRef;
+        if (compressed) {
+            this.stage.platform.uploadCompressedGlTexture(gl, textureSource, source);
+        } else {
+            const texOptions = format.texOptions;
+            texOptions.format = texOptions.format || (format.hasAlpha ? gl.RGBA : gl.RGB);
+            texOptions.type = texOptions.type || gl.UNSIGNED_BYTE;
+            texOptions.internalFormat = texOptions.internalFormat || texOptions.format;
+            if (options && options.imageRef) {
+                texOptions.imageRef = options.imageRef;
+            }
+            
+            this.stage.platform.uploadGlTexture(gl, textureSource, source, texOptions);
+            
+            glTexture.params = Utils.cloneObjShallow(texParams);
+            glTexture.options = Utils.cloneObjShallow(texOptions);
         }
-
-        this.stage.platform.uploadGlTexture(gl, textureSource, source, texOptions);
-
-        glTexture.params = Utils.cloneObjShallow(texParams);
-        glTexture.options = Utils.cloneObjShallow(texOptions);
 
         return glTexture;
     }
