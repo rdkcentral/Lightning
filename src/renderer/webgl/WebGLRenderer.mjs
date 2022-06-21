@@ -32,10 +32,16 @@ export default class WebGLRenderer extends Renderer {
     constructor(stage) {
         super(stage);
         this.shaderPrograms = new Map();
-        this._compressedTextureExtension = (
-            stage.gl.getExtension('WEBGL_compressed_texture_etc1') ||
-            stage.gl.getExtension('WEBGL_compressed_texture_s3tc')
-        )
+        this._compressedTextureExtensions = {
+            astc: stage.gl.getExtension('WEBGL_compressed_texture_astc'),
+            etc1: stage.gl.getExtension('WEBGL_compressed_texture_etc1'),
+            s3tc: stage.gl.getExtension('WEBGL_compressed_texture_s3tc'),
+            pvrtc: stage.gl.getExtension('WEBGL_compressed_texture_pvrtc'),
+        }
+    }
+
+    get compressedTextureExtensions() {
+        return this._compressedTextureExtensions
     }
 
     destroy() {
