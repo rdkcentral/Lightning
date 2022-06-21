@@ -19,13 +19,27 @@ To use the Perspective shader you need to apply it to the shader property of an 
 class MyApp extends Lightning.Application {
     static _template() {
         return {
-            Picture: {w: 300, h: 300, src: 'MyImage.jpg', shader: {type: Lightning.shaders.Perspective, rx: Math.PI * 0.25}}
+            Picture: {w: 300, h: 300, src: 'MyImage.jpg', shader: {type: Lightning.shaders.Perspective, rx: 49 * Math.PI / 180}}
         }
     }
 }
 
 //in a component
-this.tag('Picture').shader = {type: Lightning.shaders.Perspective, rx: Math.PI * 0.25}
+this.tag('Picture').shader = {type: Lightning.shaders.Perspective, rx: 49 * Math.PI / 180}
+```
+
+### Calculating Rotation
+
+Rotation in Lightning is done with radian values. You can use the following formula to calculate the correct value from degrees to radians;
+
+```
+degrees * Math.PI / 180
+```
+
+If you for example to rotate a tag 33 degrees;
+
+```
+33 * Math.PI / 180
 ```
 
 You can customize the appearance of the Perspective shader with the following setters.
@@ -33,13 +47,13 @@ You can customize the appearance of the Perspective shader with the following se
 ## Setters
 
 ### rx
-You can the rotate the texture over the X-axis with a `float`.
+You can the rotate the texture over the X-axis with a `float`. Expected input is the degrees in radians.
 
 ### ry
-You can the rotate the texture over the Y-axis with a `float`.
+You can the rotate the texture over the Y-axis with a `float`. Expected input is the degrees in radians.
 
 ### z
-You can position the texture on the X-axis with a `float`.
+You can position the texture on the X-axis with a `float`. Expected input is the degrees in radians.
 
 ## Getters
 

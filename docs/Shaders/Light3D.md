@@ -19,13 +19,27 @@ To use the Light 3D shader you need to apply it to the shader property of an ele
 class MyApp extends Lightning.Application {
     static _template() {
         return {
-            Picture: {w: 300, h: 300, src: 'MyImage.jpg', shader: {type: Lightning.shaders.Light3d, strength: 0.9, rx: Math.PI * 0.25}}
+            Picture: {w: 300, h: 300, src: 'MyImage.jpg', shader: {type: Lightning.shaders.Light3d, strength: 0.9, rx: 23 * Math.PI / 180}}
         }
     }
 }
 
 //in a component
-this.tag('Picture').shader = {type: Lightning.shaders.Light3d, strength: 0.9, rx: Math.PI * 0.25}
+this.tag('Picture').shader = {type: Lightning.shaders.Light3d, strength: 0.9, rx: 23 * Math.PI / 180}
+```
+
+### Calculating Rotation
+
+Rotation in Lightning is done with radian values. You can use the following formula to calculate the correct value from degrees to radians;
+
+```
+degrees * Math.PI / 180
+```
+
+If you for example to rotate a tag 33 degrees;
+
+```
+33 * Math.PI / 180
 ```
 
 You can customize the appearance of the Light 3D shader with the following setters.
@@ -39,13 +53,13 @@ You can set the strength of the lighting effect with a `float`. Default is 0.5.
 You can set the ambient value of the lighting effect with a `float`. Default is 0.5.
 
 ### rx
-You can the rotate the texture over the X-axis with a `float`.
+You can the rotate the texture over the X-axis with a `float`. Expected input is the degrees in radians.
 
 ### ry
-You can the rotate the texture over the Y-axis with a `float`.
+You can the rotate the texture over the Y-axis with a `float`. Expected input is the degrees in radians.
 
 ### z
-You can position the texture on the X-axis with a `float`.
+You can position the texture on the Z-axis with a `float`. Expected input is the degrees in radians.
 
 ### pivotX
 Sets from where to rotate the X-axis with a `float`. This value is generally inherited by the parent element but can be overwritten with this setter.
