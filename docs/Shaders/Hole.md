@@ -19,7 +19,18 @@ To use the Hole shader you need to apply it to the shader property of an element
 class MyApp extends Lightning.Application {
     static _template() {
         return {
-            Hole: {w: 300, h: 300, rect: true, shader: {type: Lightning.shaders.Hole, w: 150, w: 120, x: 40, y: 20}}
+            Hole: {
+                w: 300,
+                h: 300,
+                rect: true,
+                shader: {
+                    type: Lightning.shaders.Hole,
+                    w: 150,
+                    w: 120,
+                    x: 40,
+                    y: 20
+                }
+            }
         }
     }
 }
@@ -27,6 +38,8 @@ class MyApp extends Lightning.Application {
 //in a component
 this.tag('Hole').shader = {type: Lightning.shaders.Hole, w: 150, w: 120, x: 40, y: 20}
 ```
+
+**Important:** In most cases, the Element or Component that the shader is applied to must have an explicitly defined `w` and `h`. Image Elements do not require this as their `w` and `h` are automatically set to the dimensions of the loaded image.
 
 You can customize the appearance of the Hole shader with the following setters.
 
@@ -70,4 +83,4 @@ returns a `float` with the value of the radius of the corners of the cutout.
 
 Visit the following site to see various examples of the Rounded Rectangle Shader.
 
-<https://lightningjs.io/examples/#/shaders/hole>
+<https://lightningjs.io/examples/#/shaders/hole-punch>
