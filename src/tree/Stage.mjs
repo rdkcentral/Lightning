@@ -39,6 +39,10 @@ export default class Stage extends EventEmitter {
         this._usedMemory = 0;
         this._lastGcFrame = 0;
 
+        // attempt to track VRAM usage more accurately by accounting for different color channels
+        this._usedVramAlpha = 0;
+        this._usedVramNonAlpha = 0;
+
         const platformType = Stage.platform ? Stage.platform : PlatformLoader.load(options);
         this.platform = new platformType();
 
@@ -394,6 +398,27 @@ export default class Stage extends EventEmitter {
 
     get usedMemory() {
         return this._usedMemory;
+    }
+
+    addVramUsage(delta, alpha) {
+        if (alpha) {
+            this._usedVramAlpha += delta;
+        }
+        else {
+            this._usedVramNonAlpha += delta;
+        }
+    }
+
+    get usedVramAlpha() {
+        return this._usedVramAlpha;
+    }
+
+    get usedVramNonAlpha() {
+        return this._usedVramNonAlpha;
+    }
+
+    get usedVram() {
+        return this._usedVramAlpha + this._usedVramNonAlpha;
     }
 
     gc(aggressive) {
