@@ -109,11 +109,11 @@ export default class WebGLRenderer extends Renderer {
                 case gl.UNSIGNED_BYTE:
                     return 4;
 
-                case gl.UNSIGNED_SHORT_4_4_4_$:
+                case gl.UNSIGNED_SHORT_4_4_4_4:
                     return 2;
 
                 case gl.UNSIGNED_SHORT_5_5_5_1:
-                    return 1;
+                    return 2;
 
                 default:
                     throw new Error('Invalid type specified for GL_RGBA format');
