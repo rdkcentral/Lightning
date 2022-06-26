@@ -474,7 +474,7 @@ export default class TextTextureRendererAdvanced {
         let colorStack = [StageUtils.getRgbaString(this._settings.textColor)];
         let color = 0;
 
-        const colorRegexp = /<color=(?<color>0[xX][0-9a-fA-F]{8})/;
+        const colorRegexp = /<color=(0[xX][0-9a-fA-F]{8})>/;
     
         return tokens.map((t) => {
             if (t == '<i>') {
@@ -496,9 +496,13 @@ export default class TextTextureRendererAdvanced {
                 }
                 t = '';
             } else if (colorRegexp.test(t)) {
-                colorStack.push(StageUtils.getRgbaString(parseInt(colorRegexp.exec(t).groups['color'])));
+                const matched = colorRegexp.exec(t);
+                colorStack.push(
+                    StageUtils.getRgbaString(parseInt(matched[1]))
+                );
                 color += 1;
                 t = '';
+
             }
 
             return {
