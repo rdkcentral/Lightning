@@ -474,7 +474,7 @@ export default class TextTextureRendererAdvanced {
         let colorStack = [StageUtils.getRgbaString(this._settings.textColor)];
         let color = 0;
 
-        const colorRegexp = /<color=(0[xX][0-9a-fA-F]{8})/;
+        const colorRegexp = /<color=(0[xX][0-9a-fA-F]{8})>/;
     
         return tokens.map((t) => {
             if (t == '<i>') {
