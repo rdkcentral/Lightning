@@ -1,9 +1,6 @@
 import TextureSource from "../TextureSource.mjs";
 import ElementCore from "./ElementCore.mjs";
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-interface NativeTexture {}
-
 export default class ElementTexturizer {
   constructor(elementCore: ElementCore);
   get enabled(): boolean;
@@ -27,8 +24,8 @@ export default class ElementTexturizer {
   release(): void;
   releaseRenderTexture(): void;
 
-  reuseTextureAsRenderTexture(nativeTexture: NativeTexture): void;
+  reuseTextureAsRenderTexture(nativeTexture: TextureSource.NativeTexture): void;
   hasRenderTexture(): boolean;
-  getRenderTexture(): NativeTexture;
-  getResultTexture(): NativeTexture;
+  getRenderTexture(): TextureSource.NativeTexture | null;
+  getResultTexture(): TextureSource.NativeTexture | null;
 }

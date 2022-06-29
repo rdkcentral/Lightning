@@ -24,12 +24,12 @@ declare namespace ListComponent {
     itemScrollOffset: number;
 
     /**
-     * The transition definition that is being used when scrolling the items
+     * @deprecated Duplicate of {@link scrollTransition}
      */
     scrollTransitionSettings: TransitionSettings.Literal;
 
     /**
-     * {@inheritDoc scrollTransitionSettings}
+     * The transition definition that is being used when scrolling the items
      */
     scrollTransition: TransitionSettings.Literal;
 
@@ -83,15 +83,15 @@ declare class ListComponent<
   readonly itemList: ListItems<ItemType>;
 
   /**
-   * {@inheritDoc SmoothScalableComponent.Literal.text}
+   * Items patched into the ListComponent
    *
+   * @remarks
    * WARNING: You may ONLY set `Element.PatchTemplate<Element.LooseLiteral> | Element.PatchTemplate<Element.ExtractLiteral<ItemType>>[]`
    * to this property
    *
-   * @remarks
    * Note: This property will always return `ItemType[]` when read.
    *
-   * @see {@link SmoothScalableComponent.Literal.text}
+   * @see {@link ListComponent.Literal.items}
    */
   items: ItemType[] | Element.PatchTemplate<Element.LooseLiteral> | Element.PatchTemplate<Element.ExtractLiteral<ItemType>>[]
 

@@ -3,9 +3,10 @@ import CoreQuadOperation from "../../tree/core/CoreQuadOperation.mjs";
 import Shader from "../../tree/Shader.mjs";
 import WebGLCoreQuadOperation from "./WebGLCoreQuadOperation.mjs";
 
-type GLUniformFunction = WebGLRenderingContext['uniform1f'] | WebGLRenderingContext['uniform2fv'];
-
-export default class WebGLShader extends Shader {
+declare namespace WebGLShader {
+  export type GLUniformFunction = WebGLRenderingContext['uniform1f'] | WebGLRenderingContext['uniform2fv'];
+}
+declare class WebGLShader extends Shader {
   static vertexShaderSource: string;
   static fragmentShaderSource: string;
 
@@ -27,7 +28,7 @@ export default class WebGLShader extends Shader {
   protected _setUniform(
     name: string,
     value: number | Float32Array,
-    glFunction: GLUniformFunction,
+    glFunction: WebGLShader.GLUniformFunction,
   ): void;
 
   protected getExtraAttribBytesPerVertex(): number;
@@ -36,3 +37,5 @@ export default class WebGLShader extends Shader {
   ): number;
   protected setExtraAttribsInBuffer(operation: WebGLCoreQuadOperation): void;
 }
+
+export default WebGLShader;

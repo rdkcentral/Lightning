@@ -1,0 +1,13 @@
+{
+  "include": ["**/*.d.ts"],
+  "exclude": ["types"],
+  "typedocOptions": {
+    "entryPoints": ["index.typedoc.d.ts"],
+    "out": "typedocs",
+    "entryPointStrategy": "expand",
+    "intentionallyNotExported": [
+      "src/tree/Element.d.mts:TransformPossibleLiteral",
+      "src/components/ListComponent.d.mts:ListItems",
+    ]
+  }
+}

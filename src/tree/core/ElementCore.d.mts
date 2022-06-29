@@ -1,25 +1,23 @@
-import { Flex, FlexItem, HeightFunc, WidthFunc } from "../Element.mjs";
+import Element from "../Element.mjs";
 import Shader from "../Shader.mjs";
 import TextureSource from "../TextureSource.mjs";
 import ElementTexturizer from "./ElementTexturizer.mjs";
 
-export type OnAfterCalcsCallback = (el: Element) => void;
-export type OnAfterUpdateCallback = (el: Element) => void;
-export type OnUpdateCallback = (el: Element, core: ElementCore) => void; // eslint-disable-line no-use-before-define
-
-export interface RenderContext {
-  alpha: number;
-  isIdentity(): boolean;
-  isSquare(): boolean;
-  px: number;
-  py: number;
-  ta: number;
-  tb: number;
-  tc: number;
-  td: number;
+declare namespace ElementCore {
+  export interface RenderContext {
+    alpha: number;
+    isIdentity(): boolean;
+    isSquare(): boolean;
+    px: number;
+    py: number;
+    ta: number;
+    tb: number;
+    tc: number;
+    td: number;
+  }
 }
 
-export default class ElementCore {
+declare class ElementCore {
   constructor(element: Element);
 
   static sortZIndexedChildren(a: ElementCore, b: ElementCore): number;
@@ -55,16 +53,16 @@ export default class ElementCore {
   set colorBr(v: number);
   get displayedTextureSource(): TextureSource;
   get element(): Element;
-  get flex(): Flex;
-  set flex(v: Flex);
-  get flexItem(): FlexItem;
-  set flexItem(flexItem: FlexItem);
+  get flex(): Element.Flex;
+  set flex(v: Element.Flex);
+  get flexItem(): Element.FlexItem;
+  set flexItem(flexItem: Element.FlexItem);
   get forceZIndexContext(): boolean;
   set forceZIndexContext(v: boolean);
-  get funcH(): HeightFunc | undefined;
-  set funcH(v: HeightFunc | undefined);
-  get funcW(): WidthFunc | undefined;
-  set funcW(v: WidthFunc | undefined);
+  get funcH(): ((parentHeight: number) => number) | undefined;
+  set funcH(v: ((parentHeight: number) => number) | undefined);
+  get funcW(): ((parentWidth: number) => number) | undefined;
+  set funcW(v: ((parentWidth: number) => number) | undefined);
   get isRoot(): boolean;
   get mount(): number;
   set mount(v: number);
@@ -72,20 +70,20 @@ export default class ElementCore {
   set mountX(v: number);
   get mountY(): number;
   set mountY(v: number);
-  get offsetX(): number | WidthFunc;
-  set offsetX(v: number | WidthFunc);
-  get offsetY(): number | HeightFunc;
-  set offsetY(v: number | HeightFunc);
-  set onAfterCalcs(f: OnAfterCalcsCallback | undefined);
-  set onAfterUpdate(f: OnAfterUpdateCallback | undefined);
-  set onUpdate(f: OnUpdateCallback | undefined);
+  get offsetX(): number | ((parentWidth: number) => number);
+  set offsetX(v: number | ((parentWidth: number) => number));
+  get offsetY(): number | ((parentHeight: number) => number);
+  set offsetY(v: number | ((parentHeight: number) => number));
+  set onAfterCalcs(f: Element.OnAfterCalcsCallback | undefined);
+  set onAfterUpdate(f: Element.OnAfterUpdateCallback | undefined);
+  set onUpdate(f: Element.OnUpdateCallback | undefined);
   get pivot(): number;
   set pivot(v: number);
   get pivotX(): number;
   set pivotX(v: number);
   get pivotY(): number;
   set pivotY(v: number);
-  get renderContext(): RenderContext;
+  get renderContext(): ElementCore.RenderContext;
   get rotation(): number;
   set rotation(v: number);
   get scale(): number;
@@ -119,8 +117,10 @@ export default class ElementCore {
   update(): void;
 
   public _children: ElementCore[]; // TODO This should be protected but it's useful for getElementsAt method
-  protected _renderContext: RenderContext;
+  protected _renderContext: ElementCore.RenderContext;
   protected _scissor?: [number, number, number, number];
 
   protected _setHasUpdates(): void;
 }
+
+export default ElementCore;

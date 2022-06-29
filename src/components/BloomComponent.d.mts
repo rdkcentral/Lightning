@@ -11,20 +11,12 @@ declare namespace BloomComponent {
     content: Element.PatchTemplate<Element.LooseLiteral>;
 
     /**
-     * {@inheritDoc FastBlurComponent.Literal.paddingX}
-     *
-     * WARNING: DO NOT read from this property. It is WRITE-ONLY. It will return `undefined`.
-     *
-     * @see {@link FastBlurComponent.Literal.paddingX}
+     * X Padding
      */
     paddingX: number;
 
     /**
-     * {@inheritDoc FastBlurComponent.Literal.paddingY}
-     *
-     * WARNING: DO NOT read from this property. It is WRITE-ONLY. It will return `undefined`.
-     *
-     * @see {@link FastBlurComponent.Literal.paddingY}
+     * Y Padding
      */
     paddingY: number;
 
@@ -44,7 +36,7 @@ declare class BloomComponent
   set content(v: Element.PatchTemplate<Element.LooseLiteral>);
 
   /**
-   * {@inheritDoc BloomComponent.Literal.paddingX}
+   * X Padding
    *
    * WARNING: DO NOT read from this property. It is WRITE-ONLY. It will return `undefined`.
    *
@@ -53,7 +45,7 @@ declare class BloomComponent
   paddingX: number;
 
   /**
-   * {@inheritDoc BloomComponent.Literal.paddingY}
+   * Y Padding
    *
    * WARNING: DO NOT read from this property. It is WRITE-ONLY. It will return `undefined`.
    *

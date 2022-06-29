@@ -1,17 +1,17 @@
 import Stage from "../../tree/Stage.mjs";
-import TextureSource, { LoadCancelCallback, TextureSourceData, TextureSourceLoadOptions } from "../../tree/TextureSource.mjs";
+import TextureSource from "../../tree/TextureSource.mjs";
 
 export default class WebPlatform {
   destroy(): void;
   getDrawingCanvas(): HTMLCanvasElement;
   getTextureOptionsForDrawingCanvas(
     canvas: HTMLCanvasElement,
-  ): TextureSourceLoadOptions;
+  ): TextureSource.LoadOptions;
   init(stage: Stage): void;
   loadSrcTexture(
     options: { hasAlpha: boolean; src: string },
-    cb: unknown,
-  ): LoadCancelCallback;
+    cb: TextureSource.LoaderCallback,
+  ): TextureSource.LoadCancelCallback;
   loop(): void;
   nextFrame(changes: boolean): void;
   startLoop(): void;
@@ -19,7 +19,7 @@ export default class WebPlatform {
   uploadGlTexture(
     gl: WebGLRenderingContext,
     textureSource: TextureSource,
-    source: TextureSourceData,
+    source: TextureSource.NativeTexture,
     options: unknown,
   ): void;
   getHrTime(): number;

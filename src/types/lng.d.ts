@@ -14,6 +14,7 @@ import * as shaders from './lng.shaders.helper';
 import * as textures from './lng.textures.helper';
 import * as components from './lng.components.helper';
 import * as tools from './lng.tools.helper';
+import * as types from './lng.types.helper';
 
 export {
   Application,
@@ -32,4 +33,8 @@ export {
   textures,
   components,
   tools
+};
+
+export type {
+  types
 };

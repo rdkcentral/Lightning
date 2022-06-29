@@ -12,25 +12,30 @@ import CoreContext from "./core/CoreContext.mjs";
 import ElementCore from "./core/ElementCore.mjs";
 import TextureManager from "./TextureManager.mjs";
 
-export interface StageOptions {
-  canvas2d: boolean;
-  clearColor: [number, number, number, number];
-  defaultFontFace: string;
-  fixedDt: number | undefined;
-  h: number;
-  memoryPressure: number;
-  precision: number;
-  textRenderIssueMargin: string;
-  textRenderSharpFontSize: number;
-  textRenderSharpPrecision: number;
-  useImageWorker: boolean;
-  w: number;
+
+
+declare namespace Stage {
+  /**
+   * Normalized components (varying between 0.0 and 1.0)
+   */
+  export type RGBA = [number, number, number, number];
+
+  export interface StageOptions {
+    canvas2d: boolean;
+    clearColor: [number, number, number, number];
+    defaultFontFace: string;
+    fixedDt: number | undefined;
+    h: number;
+    memoryPressure: number;
+    precision: number;
+    textRenderIssueMargin: string;
+    textRenderSharpFontSize: number;
+    textRenderSharpPrecision: number;
+    useImageWorker: boolean;
+    w: number;
+  }
 }
-
-type ARGB = number; // Hexadecimal number
-type RGBA = [number, number, number, number]; // Normalized components (varying between 0.0 and 1.0)
-
-export default class Stage extends EventEmitter {
+declare class Stage extends EventEmitter {
   animations: AnimationManager;
   application: Application;
   c2d?: CanvasRenderingContext2D;
@@ -49,7 +54,7 @@ export default class Stage extends EventEmitter {
   renderer: WebGLRenderer | C2dRenderer;
   textureManager: TextureManager;
   transitions: TransitionManager;
-  _options: StageOptions;
+  _options: Stage.StageOptions;
 
   get root(): Element;
   get usedMemory(): number;
@@ -64,17 +69,19 @@ export default class Stage extends EventEmitter {
 
   /**
    * Value can be one of 3 types:
-   * - ARGB, an hexadecimal number (so it must begin with 0x)
+   * - number, an hexadecimal number (so it must begin with 0x)
    * - RGBA, an array of normalized components (varying between 0.0 and 1.0)
    * - null, which causes the stage to not be cleared before each frame
    */
-  setClearColor(value: ARGB | RGBA | null): void;
-  getClearColor(): RGBA | null;
+  setClearColor(value: number | Stage.RGBA | null): void;
+  getClearColor(): Stage.RGBA | null;
   getOption<
-    T extends keyof StageOptions,
-    O extends StageOptions[T]
+    T extends keyof Stage.StageOptions,
+    O extends Stage.StageOptions[T]
   >(optionKey: T): O;
 
   drawFrame(): void;
   drawText(renderer: TextTextureRenderer): void;
 }
+
+export default Stage;

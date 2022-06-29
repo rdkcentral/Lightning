@@ -1,15 +1,15 @@
 import Stage from "./Stage.mjs";
-import TextureSource, { TextureSourceLoaderCallback } from "./TextureSource.mjs";
-
-export interface ResizeMode {
-  clipX?: number;
-  clipY?: number;
-  h: number;
-  type: string;
-  w: number;
-}
+import TextureSource from "./TextureSource.mjs";
 
 declare namespace Texture {
+  export interface ResizeMode {
+    clipX?: number;
+    clipY?: number;
+    h: number;
+    type: string;
+    w: number;
+  }
+
   export interface Literal {
     type?: typeof Texture;
     [s: string]: any; // Anything goes for now
@@ -22,7 +22,7 @@ declare class Texture {
   clipping: boolean;
   mh: number;
   mw: number;
-  resizeMode: ResizeMode;
+  resizeMode: Texture.ResizeMode;
   source: TextureSource | null;
   _source: TextureSource | null;
 
@@ -46,7 +46,7 @@ declare class Texture {
 
   protected _getIsValid(): boolean;
   protected _getLookupId(): string | null;
-  protected _getSourceLoader(): (callback: TextureSourceLoaderCallback) => void;
+  protected _getSourceLoader(): (callback: TextureSource.LoaderCallback) => void;
 
   addElement(el: Element): void;
   decActiveCount(): void;

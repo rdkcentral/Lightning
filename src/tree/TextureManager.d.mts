@@ -1,5 +1,5 @@
 import Stage from "./Stage.mjs";
-import TextureSource, { TextureSourceLoader } from "./TextureSource.mjs";
+import TextureSource from "./TextureSource.mjs";
 
 type UploadTextureSourceOptions = unknown;
 
@@ -31,7 +31,7 @@ export default class TextureManager {
    */
   gc(): void;
   getReusableTextureSource(id: string): TextureSource;
-  getTextureSource(func: TextureSourceLoader, id: string): TextureSource;
+  getTextureSource(func: TextureSource.Loader, id: string): TextureSource;
 
   uploadTextureSource(
     textureSource: TextureSource,

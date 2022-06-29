@@ -2,7 +2,7 @@ import Stage from "../tree/Stage.mjs";
 import StageUtils from "../tree/StageUtils.mjs";
 
 declare namespace TransitionSettings {
-  export interface Literal {  // !!! Rename
+  export interface Literal {
     delay?: number;
     duration?: number;
     timingFunction?: StageUtils.TimingFunction;

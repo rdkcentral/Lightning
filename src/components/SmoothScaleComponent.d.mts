@@ -21,6 +21,7 @@ declare class SmoothScaleComponent<
   extends Component<SmoothScaleComponent.Literal<ContentType>>
   implements Component.ImplementLiteral<SmoothScaleComponent.Literal<ContentType>>
 {
+  // @ts-expect-error
   content: ContentType; // !!! Solve this problem
   //content: ContentType | Element.PatchTemplate<Element.ExtractLiteral<ContentType>>;
   // get content(): Element.PatchTemplate<Element.ExtractLiteral<ContentType>>;

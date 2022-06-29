@@ -5,7 +5,7 @@ import TransitionSettings from "../animation/TransitionSettings.mjs";
 import Component from "../application/Component.mjs";
 import EventEmitter from "../EventEmitter.mjs";
 import TextTexture from "../textures/TextTexture.mjs";
-import ElementCore, { OnAfterUpdateCallback } from "./core/ElementCore.mjs";
+import ElementCore from "./core/ElementCore.mjs";
 import ElementTexturizer from "./core/ElementTexturizer.mjs";
 import ElementChildList from "./ElementChildList.mjs";
 import Shader from "./Shader.mjs";
@@ -13,45 +13,59 @@ import Stage from "./Stage.mjs";
 import Texture from "./Texture.mjs";
 import TextureSource from "./TextureSource.mjs";
 
-export interface Flex {
-  alignContent?:
-    | 'flex-start'
-    | 'flex-end'
-    | 'center'
-    | 'space-between'
-    | 'space-around'
-    | 'space-evenly'
-    | 'stretch';
-  alignItems?: 'flex-start' | 'flex-end' | 'center' | 'stretch';
-  direction?: 'column' | 'row';
-  justifyContent?:
-    | 'flex-start'
-    | 'flex-end'
-    | 'center'
-    | 'space-between'
-    | 'space-around'
-    | 'space-evenly';
-  padding?: number;
-  paddingBottom?: number;
-  paddingLeft?: number;
-  paddingRight?: number;
-  paddingTop?: number;
-  wrap?: boolean;
-}
-
-export interface FlexItem {
-  margin?: number;
-  marginBottom?: number;
-  marginLeft?: number;
-  marginRight?: number;
-  marginTop?: number;
-}
-
-export type WidthFunc = (parentWidth: number) => number;
-export type HeightFunc = (parentHeight: number) => number;
-
-
 declare namespace Element {
+  /**
+   * ???
+   */
+  export type OnAfterCalcsCallback = (el: Element) => void;
+  /**
+   * ???
+   */
+  export type OnAfterUpdateCallback = (el: Element) => void;
+  /**
+   * ???
+   */
+  export type OnUpdateCallback = (el: Element, core: ElementCore) => void; // eslint-disable-line no-use-before-define
+  /**
+   * ???
+   */
+  export interface Flex {
+    alignContent?:
+      | 'flex-start'
+      | 'flex-end'
+      | 'center'
+      | 'space-between'
+      | 'space-around'
+      | 'space-evenly'
+      | 'stretch';
+    alignItems?: 'flex-start' | 'flex-end' | 'center' | 'stretch';
+    direction?: 'column' | 'row';
+    justifyContent?:
+      | 'flex-start'
+      | 'flex-end'
+      | 'center'
+      | 'space-between'
+      | 'space-around'
+      | 'space-evenly';
+    padding?: number;
+    paddingBottom?: number;
+    paddingLeft?: number;
+    paddingRight?: number;
+    paddingTop?: number;
+    wrap?: boolean;
+  }
+
+  /***
+   * ???
+   */
+  export interface FlexItem {
+    margin?: number;
+    marginBottom?: number;
+    marginLeft?: number;
+    marginRight?: number;
+    marginTop?: number;
+  }
+
   /**
    * An object keyed by transitionable Element properties (numeric properties).
    *
@@ -129,45 +143,45 @@ declare namespace Element {
      * X position of this Element
      *
      * @remarks
-     * If set with a {@link WidthFunc} the value is made dynamic based
+     * If set with a method the value is made dynamic based
      * on the parent Element's width.
      *
      * @defaultValue 0
      */
-    x: number | WidthFunc;
+    x: number | ((parentWidth: number) => number);
 
     /**
      * Y position of this Element
      *
      * @remarks
-     * If set with a {@link HeightFunc} the value is made dynamic based
+     * If set with a method the value is made dynamic based
      * on the parent Element's height.
      *
      * @defaultValue 0
      */
-    y: number | HeightFunc;
+    y: number | ((parentHeight: number) => number);
 
     /**
      * Width of this Element
      *
      * @remarks
-     * If set with a {@link WidthFunc} the value is made dynamic based
+     * If set with a method the value is made dynamic based
      * on the parent Element's width.
      *
      * @defaultValue 0
      */
-    w: number | WidthFunc;
+    w: number | ((parentWidth: number) => number);
 
     /**
      * Height of this Element
      *
      * @remarks
-     * If set with a {@link HeightFunc} the value is made dynamic based
+     * If set with a method the value is made dynamic based
      * on the parent Element's height.
      *
      * @defaultValue 0
      */
-    h: number | HeightFunc;
+    h: number | ((parentHeight: number) => number);
 
     /**
      * ???
@@ -367,9 +381,12 @@ declare namespace Element {
     visible: boolean;
 
     /**
-     * ???
+     * Text settings / texture
      *
      * @remarks
+     * When set, the Element adopts a `TextTexture` and renders the text / settings
+     * laid out in this property.
+     *
      * Cannot be set at the same time as {@link rect} or {@link src}.
      */
     text: TextTexture.Literal | string | null;
@@ -437,63 +454,90 @@ declare namespace Element {
     src: string | undefined;
 
     /**
-     * The (maximum) expected texture source width. Used for within bounds determination while
-     * texture is not yet loaded.
+     * The maximum expected texture source width.
+     *
+     * @remarks
+     * Used for within bounds determination while texture is not yet loaded.
      *
      * If not set, 2048 is used by ElementCore.update()
      */
     mw: number;
+
     /**
-     * The (maximum) expected texture source height. Used for within bounds determination while
-     * texture is not yet loaded.
+     * The maximum expected texture source height.
+     *
+     * @remarks
+     * Used for within bounds determination while texture is not yet loaded.
      *
      * If not set, 2048 is used by ElementCore.update()
      */
     mh: number;
 
     /**
-     * ???
+     * Upper-left Corner Rectangle Color
+     *
+     * @see {@link color}
      */
     colorUl: number;
 
     /**
-     * ???
+     * Upper-right Corner Rectangle Color
+     *
+     * @see {@link color}
      */
     colorUr: number;
 
 
     /**
-     * ???
+     * Bottom-left Corner Rectangle Color
+     *
+     * @see {@link color}
      */
     colorBl: number;
 
     /**
-     * ???
+     * Bottom-right Corner Rectangle Color
+     *
+     * @see {@link color}
      */
     colorBr: number;
 
     /**
-     * ???
+     * Rectangle Color
+     *
+     * @remarks
+     * This and the other `color*` properties are used to change the color of the
+     * Element when {@link rect} is set to `true`.
+     *
+     * This property sets all of the corners/sides to the same color.
      */
     color: number;
 
     /**
-     * ???
+     * Top Side Rectangle Color
+     *
+     * @see {@link color}
      */
     colorTop: number;
 
     /**
-     * ???
+     * Bottom Side Rectangle Color
+     *
+     * @see {@link color}
      */
     colorBottom: number;
 
     /**
-     * ???
+     * Left Side Rectangle Color
+     *
+     * @see {@link color}
      */
     colorLeft: number;
 
     /**
-     * ???
+     * Right Side Rectangle Color
+     *
+     * @see {@link color}
      */
     colorRight: number;
 
@@ -794,16 +838,11 @@ declare class Element<
   forceZIndexContext: boolean;
 
   /**
-   * {@inheritDoc Element.Literal.texture}
+   * ??? (make sure matches literal vesrion)
    *
    * @see {@link Element.Literal.texture}
    */
   get texture(): TextureType | null;
-  /**
-   * {@inheritDoc Element.Literal.texture}
-   *
-   * @see {@link Element.Literal.texture}
-   */
   set texture(v: TextureType | Texture.Literal | null);
 
   /**
@@ -897,16 +936,16 @@ declare class Element<
   boundsMargin: [number, number, number, number] | null;
 
   get x(): number;
-  set x(x: number | WidthFunc);
+  set x(x: number | ((parentWidth: number) => number));
 
   get y(): number;
-  set y(y: number | HeightFunc);
+  set y(y: number | ((parentHeight: number) => number));
 
   get w(): number;
-  set w(w: number | WidthFunc);
+  set w(w: number | ((parentWidth: number) => number));
 
   get h(): number;
-  set h(h: number | HeightFunc);
+  set h(h: number | ((parentHeight: number) => number));
 
   collision: boolean | 2;
 
@@ -963,13 +1002,9 @@ declare class Element<
   hasChildren(): boolean;
 
   /**
-   * This will always return an array of Element objects (`Element[]`) !!!!
+   * Take a close look at this !!!!
    */
   get children(): Array<Element>;
-
-  /**
-   * This will accept as children any object[]`) !!! verify this
-   */
   set children(children: Array<Element> | Array<{ [id: string]: any }>); // eslint-disable-line @typescript-eslint/no-explicit-any
 
   /**
@@ -982,9 +1017,7 @@ declare class Element<
   ): T;
 
   /**
-   * {@inheritDoc parent}
-   *
-   * @see {@link parent}
+   * @deprecated Duplicate of {@link parent}
    */
   readonly p: Element | null;
 
@@ -996,8 +1029,9 @@ declare class Element<
   src: string | undefined;
 
   /**
-   * {@inheritDoc Element.Literal.mw}
+   * The maximum expected texture source width.
    *
+   * @remarks
    * WARNING: DO NOT read from this property. It is WRITE-ONLY. It will return `undefined`.
    *
    * @see {@link Element.Literal.mw}
@@ -1005,8 +1039,9 @@ declare class Element<
   mw: number;
 
   /**
-   * {@inheritDoc Element.Literal.mh}
+   * The maximum expected texture source height.
    *
+   * @remarks
    * WARNING: DO NOT read from this property. It is WRITE-ONLY. It will return `undefined`.
    *
    * @see {@link Element.Literal.mh}
@@ -1021,11 +1056,11 @@ declare class Element<
   enableTextTexture(): TextTexture;
 
   /**
-   * {@inheritDoc Element.Literal.text}
-   *
-   * WARNING: You may ONLY set `TextTexture.Literal | string` to this property
+   * Text settings / texture
    *
    * @remarks
+   * WARNING: You may ONLY set `TextTexture.Literal | string` to this property
+   *
    * Note: This property will always return `TextTexture | null` when read.
    *
    * @see {@link Element.Literal.text}
@@ -1037,15 +1072,14 @@ declare class Element<
   //set onAfterCalcs(f) { !!!!
 
   /**
-   * {@inheritDoc Element.Literal.onAfterUpdate}
+   * ??? (make sure matches literal version)
    *
    * @remarks
-   *
    * Note: This property will always return `undefined` when read.
    *
    * @see {@link Element.Literal.onAfterUpdate}
    */
-  onAfterUpdate: OnAfterUpdateCallback | null | undefined;
+  onAfterUpdate: Element.OnAfterUpdateCallback | null | undefined;
 
   /**
    * Forces an update loop.
@@ -1087,23 +1121,21 @@ declare class Element<
   transition(property: string, settings: TransitionSettings.Literal): null;
 
   /**
-   * {@inheritDoc Element.transitions}
+   * ??? (make sure matches literal version)
    *
+   * @remarks
    * WARNING: DO NOT read from this property. It is WRITE-ONLY. It will return `undefined`.
    *
-   * @see {@link Element.transitions}
+   * @see {@link Element.Literal.transitions}
    */
   transitions: Record<string, Record<string, TransitionSettings.Literal>>;
 
   /**
-   * @see {@link Element.Literal.smooth}
+   * !!!! Why do I need to set the getter type for the setter to work?
    *
-   * !!! Why do I need to set the getter type for the setter to work?
+   * @see {@link Element.Literal.smooth}
    */
   get smooth(): Element.SmoothLiteral<LiteralType>;
-  /**
-   * @see {@link Element.Literal.smooth}
-   */
   set smooth(object: Element.SmoothLiteral<LiteralType>);
 
   /**
@@ -1178,9 +1210,9 @@ declare class Element<
     settings?: TransitionSettings.Literal,
   ): void;
 
-  flex: Flex;
+  flex: Element.Flex;
 
-  flexItem: FlexItem;
+  flexItem: Element.FlexItem;
   //toJSON() {
   //static collectChildren(tree, children) {
   //static getProperties(element) {

@@ -13,6 +13,7 @@ declare namespace BorderComponent {
     /**
      * Border width
      *
+     * @remarks
      * When patched, this sets the width of all borders
      */
     borderWidth: number;
@@ -67,6 +68,7 @@ declare namespace BorderComponent {
     /**
      * Top border element / template
      *
+     * @remarks
      * Use to customize the border beyond color/width
      */
     borderTop: Element.PatchTemplate<Element.LooseLiteral>;
@@ -74,6 +76,7 @@ declare namespace BorderComponent {
     /**
      * Top border element / template
      *
+     * @remarks
      * Use to customize the border beyond color/width
      */
     borderRight: Element.PatchTemplate<Element.LooseLiteral>;
@@ -81,6 +84,7 @@ declare namespace BorderComponent {
     /**
      * Top border element / template
      *
+     * @remarks
      * Use to customize the border beyond color/width
      */
     borderBottom: Element.PatchTemplate<Element.LooseLiteral>;
@@ -88,6 +92,7 @@ declare namespace BorderComponent {
     /**
      * Top border element / template
      *
+     * @remarks
      * Use to customize the border beyond color/width
      */
     borderLeft: Element.PatchTemplate<Element.LooseLiteral>;
@@ -95,6 +100,7 @@ declare namespace BorderComponent {
     /**
      * Border template
      *
+     * @remarks
      * When patched, applies the patch template to all borders
      */
     borders: Element.PatchTemplate<Element.LooseLiteral>;
@@ -133,8 +139,9 @@ declare class BorderComponent
   set borderLeft(v: Element.PatchTemplate<Element.LooseLiteral>);
 
   /**
-   * {@inheritDoc BorderComponent.Literal.borders}
+   * Border template
    *
+   * @remarks
    * WARNING: DO NOT read from this property. It is WRITE-ONLY. It will return `undefined`.
    *
    * @see {@link BorderComponent.Literal.borders}

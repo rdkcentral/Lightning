@@ -16,7 +16,9 @@
   "exports": "./index.js",
   "scripts": {
     "build": "rollup -c",
-    "release": "npm run build && npm publish --access public"
+    "release": "npm run build && npm publish --access public",
+    "typedoc": "typedoc --tsconfig tsconfig.typedoc.json",
+    "tsd": "tsd"
   },
   "repository": {
     "type": "git",
@@ -38,6 +40,7 @@
     "rollup-plugin-license": "2.5.0",
     "rollup-plugin-terser": "^5.1.2",
     "sinon": "^7.5.0",
-    "tsd": "^0.21.0"
+    "tsd": "^0.21.0",
+    "typedoc": "^0.23.2"
   }
 }

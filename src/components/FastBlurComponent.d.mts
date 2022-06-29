@@ -10,8 +10,14 @@ declare namespace FastBlurComponent {
      */
     content: Element.PatchTemplate<Element.LooseLiteral>;
 
+    /**
+     * X Padding
+     */
     paddingX: number;
 
+    /**
+     * Y Padding
+     */
     paddingY: number;
 
     /**
@@ -30,8 +36,9 @@ declare class FastBlurComponent
   set content(v: Element.PatchTemplate<Element.LooseLiteral>);
 
   /**
-   * {@inheritDoc FastBlurComponent.Literal.paddingX}
+   * X Padding
    *
+   * @remarks
    * WARNING: DO NOT read from this property. It is WRITE-ONLY. It will return `undefined`.
    *
    * @see {@link FastBlurComponent.Literal.paddingX}
@@ -39,8 +46,9 @@ declare class FastBlurComponent
   paddingX: number;
 
   /**
-   * {@inheritDoc FastBlurComponent.Literal.paddingY}
+   * Y Padding
    *
+   * @remarks
    * WARNING: DO NOT read from this property. It is WRITE-ONLY. It will return `undefined`.
    *
    * @see {@link FastBlurComponent.Literal.paddingY}

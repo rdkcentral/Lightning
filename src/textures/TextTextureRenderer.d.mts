@@ -1,74 +1,31 @@
 import Stage from "../tree/Stage.mjs";
-import { RenderInfo } from "../tree/TextureSource.mjs";
-import { TextAlign, TextBaseline, TextVerticalAlign } from "./TextTexture.mjs";
+import TextureSource from "../tree/TextureSource.mjs";
+import TextTexture from "./TextTexture.mjs";
 
-export interface LineInfo {
-  // allLines - lines after wrapping
-  l: Array<string>;
-  // realNewLines - length of each resulting line
-  n: Array<number>;
+declare namespace TextTextureRenderer {
+  export interface LineInfo {
+    /**
+     * allLines - lines after wrapping
+     */
+    l: Array<string>;
+    /**
+     * realNewLines - length of each resulting line
+     */
+    n: Array<number>;
+  }
 }
 
-export interface TextTextureSettingsLiteral {
-  cutEx: number;
-  cutEy: number;
-  cutSx: number;
-  cutSy: number;
-  fontFace: string | null;
-  fontSize: number;
-  fontStyle: string;
-  h: number;
-  highlight: boolean;
-  highlightColor: number;
-  highlightHeight: number;
-  highlightOffset: number;
-  highlightPaddingLeft: number;
-  highlightPaddingRight: number;
-  letterSpacing: number;
-  lineHeight: number | null;
-  maxLines: number;
-  maxLinesSuffix: string;
-  offsetY: number | null;
-  /**
-   * @deprecated
-   * Avoid using this, since it will create a larger texture
-   */
-  paddingLeft: number;
-  /**
-   * @deprecated
-   * Avoid using this, since it will create a larger texture
-   */
-  paddingRight: number;
-  precision?: number;
-  shadow: string;
-  shadowBlur: number;
-  shadowColor: number;
-  shadowOffsetX: number;
-  shadowOffsetY: number;
-  text: string;
-  textAlign: TextAlign;
-  textBaseline: TextBaseline;
-  textColor: number;
-  textIndent: number;
-  textOverflow: string;
-  verticalAlign: TextVerticalAlign;
-  w: number;
-  wordBreak: boolean;
-  wordWrap: boolean;
-  wordWrapWidth: number;
-}
-
-export default class TextTextureRenderer {
+declare class TextTextureRenderer {
   constructor(
     stage: Stage,
     canvas: HTMLCanvasElement,
-    settings: TextTextureSettingsLiteral,
+    settings: Required<TextTexture.Literal>,
   );
 
-  private _settings: TextTextureSettingsLiteral;
-  renderInfo?: RenderInfo;
+  private _settings: Required<TextTexture.Literal>;
+  renderInfo?: TextureSource.RenderInfo;
 
-  _calculateRenderInfo(): RenderInfo;
+  _calculateRenderInfo(): TextureSource.RenderInfo;
   draw(): Promise<void> | void;
   getPrecision(): number;
   measureText(word: string, space?: number): number;
@@ -78,6 +35,8 @@ export default class TextTextureRenderer {
     wordWrapWidth: number,
     letterSpacing: number,
     indent: number,
-  ): LineInfo;
+  ): TextTextureRenderer.LineInfo;
   wrapWord(text: string, wordWrapWidth: number, suffix?: string): string;
 }
+
+export default TextTextureRenderer;
