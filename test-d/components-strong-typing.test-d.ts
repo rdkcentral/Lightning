@@ -219,16 +219,36 @@ class MyComponentC extends lng.Component<MyComponentC.Literal> implements lng.Co
         MyComponentA: {
           color: 0x0000ff,
           myProperty: '123',
-          // @ts-expect-error Property should error since it doesn't exist !!! clean up
-          INVALID_PROP: 12345
         },
-        // Not sure why this property isn't erroring!!!
+      },
+    });
+
+    // Unknown properties should error at all levels
+    this.patch({
+      MyComponentB: {
+        color: 0xffffffff
+      },
+      // @ts-expect-error Property should error since it doesn't exist
+      INVALID_PROP: 12345
+    });
+    this.patch({
+      MyComponentB: {
+        src: 'Test',
         // @ts-expect-error Property should error since it doesn't exist
         INVALID_PROP: 12345
       },
-      // Not sure why this property isn't erroring!!!
-      // @ts-expect-error Property should error since it doesn't exist
-      INVALID_PROP: 12345
+    });
+    this.patch({
+      MyComponentB: {
+        color: 0xffffffff,
+        src: 'Test',
+        MyComponentA: {
+          color: 0x0000ff,
+          myProperty: '123',
+          // @ts-expect-error Property should error since it doesn't exist !!! clean up
+          INVALID_PROP: 12345
+        },
+      },
     });
   }
 

@@ -177,7 +177,10 @@ class MyElementTest extends lng.Component<MyElementTest.Literal> implements lng.
       rtt: 123,
       // @ts-expect-error Should not be able to set non-numeric properties
       renderToTexture: [123, { delay: 0, duration: 10, timingFunction: 'ease-in' }],
-      // It would be OK if this errored. But doesn't today due to forces out of our control. !!!
+    };
+    // Unknown properties should error
+    this.MyStrongElement.smooth = {
+      // @ts-expect-error
       INVALID_PROP: 'INVALID_PROP',
     };
     this.patch({
@@ -192,7 +195,15 @@ class MyElementTest extends lng.Component<MyElementTest.Literal> implements lng.
           rtt: 123,
           // @ts-expect-error Should not be able to set non-numeric properties
           renderToTexture: [123, { delay: 0, duration: 10, timingFunction: 'ease-in' }],
-          // It would be OK if this errored. But doesn't today due to forces out of our control. !!!
+        }
+      }
+    });
+    // Unknown properties should error
+    this.patch({
+      MyStrongElement: {
+        smooth: {
+          x: 123,
+          // @ts-expect-error
           INVALID_PROP: 'this cannot be a string'
         }
       }
