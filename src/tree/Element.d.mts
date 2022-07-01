@@ -14,6 +14,8 @@ import Texture from "./Texture.mjs";
 import TextureSource from "./TextureSource.mjs";
 
 declare namespace Element {
+  export type Constructor<C extends Element = Element> = new (...a: any[]) => C;
+
   /**
    * ???
    */
@@ -92,6 +94,7 @@ declare namespace Element {
     [P in keyof SmoothLiteral<LT> as SmoothLiteral<LT>[P] extends undefined ? never : P]: SmoothLiteral<LT>[P]
   };
 
+  // !!! Rename Literal to something like "Template" or something similar
   export interface Literal {
     /**
      * ???
@@ -613,7 +616,15 @@ declare namespace Element {
    */
    export type PatchTemplate<LiteralType extends Element.Literal = Element.Literal> = {
     [P in keyof LiteralType]?:
-      LiteralType[P] extends Element.Literal ? PatchTemplate<LiteralType[P]> : LiteralType[P]
+      LiteralType[P] extends Component.Constructor
+        ?
+          { type?: LiteralType[P] } & PatchTemplate<InstanceType<LiteralType[P]>['__$type_Literal']>
+        :
+          LiteralType[P] extends Element.Constructor
+            ?
+              PatchTemplate<InstanceType<LiteralType[P]>['__$type_Literal']>
+            :
+              LiteralType[P]
   };
 
   /**
@@ -627,23 +638,15 @@ declare namespace Element {
    * - If it's a `Element.Literal`
    *   - Return `Element<Literal>`
    * - Else return `Default`
-   *
+   * !!! Change name
    * @hidden
    */
   export type TransformPossibleLiteral<PossibleLiteralType, Default = PossibleLiteralType> =
-    PossibleLiteralType extends Component.Literal
+    PossibleLiteralType extends Element.Constructor
       ?
-        InstanceType<NonNullable<PossibleLiteralType['type']>>
+        InstanceType<PossibleLiteralType>
       :
-        PossibleLiteralType extends Element.Literal
-          ?
-            string extends keyof PossibleLiteralType // PossibleLiteralType is LooseLiteral
-              ?
-                Element<Element.LooseLiteral>
-              :
-                Element<Element.Literal>
-          :
-            Default;
+        Default;
 
   /**
    * Converts a Literal into an interface that is implemented by the Literal's Component class
@@ -692,7 +695,7 @@ declare namespace Element {
 
 declare class Element<
   // Elements use loose typing literals by default (for use of use as Elements aren't often fully definable)
-  LiteralType extends Element.Literal = Element.LooseLiteral,
+  LiteralType extends Element.LooseLiteral = Element.LooseLiteral,
   TextureType extends Texture = Texture,
 > extends EventEmitter implements Element.Literal {
   constructor(stage: Stage);

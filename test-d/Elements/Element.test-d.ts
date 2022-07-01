@@ -4,10 +4,9 @@ import ListComponent from '../../src/components/ListComponent.mjs';
 
 namespace MyElementTest {
   export interface Literal extends lng.Component.Literal {
-    type: typeof MyElementTest;
-    MyStrongElement: lng.Element.Literal;
-    MyLooseElement: lng.Element.LooseLiteral;
-    TestComponent: ListComponent.Literal;
+    MyStrongElement: typeof lng.Element<lng.Element.Literal>;
+    MyLooseElement: typeof lng.Element;
+    TestComponent: typeof ListComponent;
   }
 }
 
@@ -15,13 +14,14 @@ namespace MyElementTest {
  * Component that tests all the properties that should be on an Element
  */
 class MyElementTest extends lng.Component<MyElementTest.Literal> implements lng.Component.ImplementLiteral<MyElementTest.Literal> {
-  static _template(): lng.Component.Template<MyElementTest> {
+  static _template(): lng.Component.Template<MyElementTest.Literal> {
     // !!! Finish this test
     return {
+      // You should NOT be required to provide explicit parameter type `number` for these!
       x: (w) => w,
-      y: (h) => h,
+      y: (h: number) => h,
       w: (w) => w,
-      h: (h) => h,
+      h: (h: number) => h,
       smooth: {
         x: [100, { delay: 0, duration: 10, timingFunction: 'ease-in' }],
         y: 200,

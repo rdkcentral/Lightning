@@ -2,13 +2,12 @@ import lng from '../../index';
 
 namespace Container {
   export interface Literal extends lng.Component.Literal {
-    type: typeof Container;
-    BloomComponent: lng.Component.ExtractLiteral<lng.components.BloomComponent>;
+    BloomComponent: typeof lng.components.BloomComponent;
   }
 }
 
 class Container extends lng.Component<Container.Literal> implements lng.Component.ImplementLiteral<Container.Literal> {
-  static _template(): lng.Component.Template<Container> {
+  static _template(): lng.Component.Template<Container.Literal> {
     // Template validity
     return {
       BloomComponent: {

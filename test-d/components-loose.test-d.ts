@@ -4,7 +4,7 @@
 import lng from '../index.js';
 
 class MyLooseComponentA extends lng.Component<lng.Component.LooseLiteral> {
-  static _template(): lng.Component.Template<MyLooseComponentA> {
+  static _template(): lng.Component.Template {
     return {
       x: (w) => w,
       y: (h) => h,
@@ -28,7 +28,7 @@ class MyLooseComponentA extends lng.Component<lng.Component.LooseLiteral> {
 }
 
 class MyLooseComponentB extends lng.Component<lng.Component.LooseLiteral> {
-  static _template(): lng.Component.Template<MyLooseComponentB> {
+  static _template(): lng.Component.Template<lng.Component.LooseLiteral> {
     return {
       x: 0,
       y: 0,
@@ -60,7 +60,7 @@ class MyLooseComponentB extends lng.Component<lng.Component.LooseLiteral> {
     this.patch({
       MyLooseComponentA: {
         color: 0xffffffff,
-        src: 'Test'
+        src: 'Test',
       }
     });
   }
@@ -73,7 +73,7 @@ class MyLooseComponentB extends lng.Component<lng.Component.LooseLiteral> {
 }
 
 export class MyLooseComponentC extends lng.Component<lng.Component.LooseLiteral> {
-  static _template(): lng.Component.Template<MyLooseComponentC> {
+  static _template(): lng.Component.Template<lng.Component.LooseLiteral> {
     return {
       x: 0,
       y: 0,
@@ -139,7 +139,7 @@ export class MyLooseComponentC extends lng.Component<lng.Component.LooseLiteral>
  * Components are implicitly loosely typed. Here's a simple test for that.
  */
 class MyLooseComponentImplicit extends lng.Component {
-  static _template(): lng.Component.Template<MyLooseComponentA> {
+  static _template(): lng.Component.Template {
     return {
       x: (w) => w,
       y: (h) => h,

@@ -6,7 +6,6 @@ import Element from "../tree/Element.mjs";
 
 declare namespace ListComponent {
   export interface Literal<ItemType extends Element = Element> extends Component.Literal {
-    type: typeof ListComponent<ItemType>
     /**
      * Items patched into the ListComponent
      */
@@ -175,12 +174,21 @@ declare class ListComponent<
 
   itemScrollOffset: number;
 
-  get scrollTransitionSettings(): TransitionSettings;
-  set scrollTransitionSettings(v: TransitionSettings.Literal);
+  /**
+   * !!! Add warning
+   *
+   * get scrollTransitionSettings(): TransitionSettings;
+   * set scrollTransitionSettings(v: TransitionSettings.Literal);
+   */
+  scrollTransitionSettings: TransitionSettings | TransitionSettings.Literal;
 
-  get scrollTransition(): TransitionSettings;
-  set scrollTransition(v: TransitionSettings.Literal); // !!! Do we need special Patch modifier to make optional proeprties?
-
+  /**
+   * !!! Add warning
+   *
+   * get scrollTransition(): TransitionSettings;
+   * set scrollTransition(v: TransitionSettings.Literal);
+   */
+  scrollTransition: TransitionSettings | TransitionSettings.Literal;
 
   get progressAnimation(): AnimationSettings | null;
   set progressAnimation(v: AnimationSettings | AnimationSettings.Literal | null);

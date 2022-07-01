@@ -12,23 +12,14 @@ function withMixin<
 >(
   Base: BaseType
 ) {
-  // !!! See if we can make this easier
-  interface IMixinClass {
-    mixinMethod(): number;
-    readonly mixinReadonlyProp: string;
-    mixinProp1: string;
-    mixinProp2: number;
-  }
-
   interface MixinLiteral extends lng.Component.Literal {
-    type: lng.Component.Constructor<InstanceType<BaseType> & IMixinClass>;
     mixinProp1: string;
     mixinProp2: number;
   }
 
   type LiteralType = MixinLiteral & lng.Component.ExtractLiteral<InstanceType<BaseType>>;
 
-  return class MixinClass extends Base implements IMixinClass {
+  return class MixinClass extends Base implements lng.Component.ImplementLiteral<MixinLiteral> {
     // Mixin implementation
     mixinProp1: string = '';
     mixinProp2: number = 123;
@@ -41,19 +32,21 @@ function withMixin<
       return this.mixinProp1;
     }
 
-    // Patch override required
+    // Must override patch
+    // Due to limitation preventing using this['__$type_Literal'] at the base Element level
+    // https://github.com/microsoft/TypeScript/issues/49672
     patch(template: Element.PatchTemplate<LiteralType>): void {
       super.patch(template);
     }
 
 
-    // Override of __$type_Literal
+    // Must also override __$type_Literal
     __$type_Literal: LiteralType = {} as LiteralType;
   }
 }
 
 class MixedInListComponent extends withMixin(lng.components.ListComponent) {
-  _init() { // !!! Check in on: https://github.com/microsoft/TypeScript/issues/49672
+  _init() {
     // Make sure we have correct access to the mixed in things!
     expectType<string>(this.mixinProp1);
     expectType<number>(this.mixinProp2);
@@ -82,21 +75,27 @@ class MixedInListComponent extends withMixin(lng.components.ListComponent) {
     // Make sure we can patch ourselves directly for both!
     this.patch({
       mixinProp1: 'abc',
-      mixinProp2: 123
+      mixinProp2: 123,
+    });
+
+    // Unknown properties should not be allowed
+    this.patch({
+      // @ts-expect-error
+      INVALID_PROP: 123
     });
   }
 }
 
 namespace Container {
   export interface Literal extends lng.Component.Literal {
-    type: typeof Container;
-    MixedInListComponent: lng.Component.ExtractLiteral<MixedInListComponent>;
-    MixedInListComponent_Error: lng.Component.ExtractLiteral<MixedInListComponent>;
+    // type: typeof Container;
+    MixedInListComponent: typeof MixedInListComponent // lng.Component.ExtractLiteral<MixedInListComponent>;
+    MixedInListComponent_Error: typeof MixedInListComponent // lng.Component.ExtractLiteral<MixedInListComponent>;
   }
 }
 
 class Container extends lng.Component<Container.Literal> implements lng.Component.ImplementLiteral<Container.Literal> {
-  static _template(): lng.Component.Template<Container> {
+  static _template(): lng.Component.Template<Container.Literal> {
     // Template validity
     return {
       MixedInListComponent: {
@@ -108,7 +107,7 @@ class Container extends lng.Component<Container.Literal> implements lng.Componen
         // @ts-expect-error type must be MixedInListComponent
         type: lng.components.ListComponent,
         mixinProp1: 'abc',
-        mixinProp2: 123,
+        mixinProp2: 123
       }
     };
   }
@@ -134,6 +133,21 @@ class Container extends lng.Component<Container.Literal> implements lng.Componen
       }
     });
 
+    // Indirect patch - Unknown props shouldn't be allowed
+    this.patch({
+      MixedInListComponent: {
+        type: MixedInListComponent,
+        mixinProp1: 'abc',
+        mixinProp2: 123,
+        items: [
+          { text: 'abc' },
+          { text: 'abc' }
+        ],
+        // @ts-expect-error
+        INVALID_PROP: 123
+      }
+    });
+
     // Direct patch
     this.MixedInListComponent.patch({
       mixinProp1: 'abc',
@@ -142,6 +156,13 @@ class Container extends lng.Component<Container.Literal> implements lng.Componen
         { text: 'abc' },
         { text: 'abc' }
       ],
+    });
+
+    // Direct patch - Should not allow unknown props
+    // @ts-expect-error
+    this.MixedInListComponent.patch({
+      mixinProp1: 'abc',
+      INVALID_PROP: 123
     });
 
     // Function calls

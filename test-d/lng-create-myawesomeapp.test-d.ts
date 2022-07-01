@@ -7,19 +7,18 @@ import lng from '../index.js';
 
 export declare namespace App {
   export interface Literal extends lng.Component.Literal {
-    type: typeof App;
     /**
      * Background of the App
      */
-    Background: lng.Element.Literal;
+    Background: typeof lng.Element;
     /**
      * Lightning Logo that appears on the background
      */
-    Logo: lng.Element.Literal;
+    Logo: typeof lng.Element;
     /**
      * Text that appears below Lightning Logo
      */
-    Text: lng.Element.Literal;
+    Text: typeof lng.Element;
   }
 }
 
@@ -32,7 +31,7 @@ export class App extends lng.Component<App.Literal> implements lng.Component.Imp
   readonly Logo = this.getByRef('Logo')!;
   readonly Text = this.getByRef('Text')!;
 
-  static _template(): lng.Component.Template<App> {
+  static _template(): lng.Component.Template<App.Literal> {
     return {
       Background: {
         w: 1920,

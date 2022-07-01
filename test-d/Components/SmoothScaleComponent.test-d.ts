@@ -3,14 +3,13 @@ import { expectType } from 'tsd';
 
 namespace Container {
   export interface Literal extends lng.Component.Literal {
-    type: typeof Container;
-    SmoothScaleComponent: lng.Element.ExtractLiteral<lng.components.SmoothScaleComponent>;
-    SmoothScaleComponent_SpecificType: lng.Element.ExtractLiteral<lng.components.SmoothScaleComponent<lng.components.ListComponent>>;
+    SmoothScaleComponent: typeof lng.components.SmoothScaleComponent;
+    SmoothScaleComponent_SpecificType: typeof lng.components.SmoothScaleComponent<lng.components.ListComponent>;
   }
 }
 
 class Container extends lng.Component<Container.Literal> implements lng.Component.ImplementLiteral<Container.Literal> {
-  static _template(): lng.Component.Template<Container> {
+  static _template(): lng.Component.Template<Container.Literal> {
     // Template validity
     return {
       SmoothScaleComponent: {

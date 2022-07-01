@@ -3,7 +3,6 @@ import Element from "../tree/Element.mjs";
 
 declare namespace SmoothScaleComponent { // !!! Go back and make all other components ContentType changable
   interface Literal<ContentType extends Element = Element> extends Component.Literal {
-    type: Component.Constructor<SmoothScaleComponent>;
     /**
      * Content patched into SmoothScaleComponent
      */

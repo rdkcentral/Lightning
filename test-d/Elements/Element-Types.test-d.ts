@@ -9,13 +9,10 @@ import ListComponent from '../../src/components/ListComponent.mjs';
 
 
 export interface TestLiteral extends lng.Component.Literal {
-  type: typeof lng.Component;
-  MyStrongElement: lng.Element.Literal;
-  MyLooseElement: lng.Element.LooseLiteral;
-  MyListComponent: ListComponent.Literal;
+  MyStrongElement: typeof lng.Element<lng.Element.Literal>;
+  MyLooseElement: typeof lng.Element;
+  MyListComponent: typeof ListComponent;
 }
-
-
 
 //
 // TransformPossibleLiteral

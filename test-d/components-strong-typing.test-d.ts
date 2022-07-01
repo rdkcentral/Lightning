@@ -7,13 +7,12 @@ import { MyLooseComponentC } from './components-loose.test-d.js';
 
 namespace MyComponentA {
   export interface Literal extends lng.Component.Literal {
-    type: typeof MyComponentA;
     myProperty: string;
   }
 }
 
 class MyComponentA extends lng.Component<MyComponentA.Literal> implements lng.Component.ImplementLiteral<MyComponentA.Literal> {
-  static _template(): lng.Component.Template<MyComponentA> {
+  static _template(): lng.Component.Template<MyComponentA.Literal> {
     return {
       x: (w) => w,
       y: (h) => h,
@@ -39,16 +38,15 @@ class MyComponentA extends lng.Component<MyComponentA.Literal> implements lng.Co
 
 namespace MyComponentB {
   export interface Literal extends lng.Component.Literal {
-    type: typeof MyComponentB;
     myPropertyB: string;
-    MyComponentA: lng.Component.ExtractLiteral<MyComponentA>;
-    MyComponentA_Error: lng.Component.ExtractLiteral<MyComponentA>;
-    MyComponentA_Error2: lng.Component.ExtractLiteral<MyComponentA>;
+    MyComponentA: typeof MyComponentA;
+    MyComponentA_Error: typeof MyComponentA;
+    MyComponentA_Error2: typeof MyComponentA;
   }
 }
 
 class MyComponentB extends lng.Component<MyComponentB.Literal> implements lng.Component.ImplementLiteral<MyComponentB.Literal> {
-  static _template(): lng.Component.Template<MyComponentB> {
+  static _template(): lng.Component.Template<MyComponentB.Literal> {
     return {
       x: 0,
       y: 0,
@@ -88,8 +86,29 @@ class MyComponentB extends lng.Component<MyComponentB.Literal> implements lng.Co
       w: 123,
       h: 321
     });
+
+    // Patch should not require 'type' in a child component
     this.patch({
       MyComponentA: {
+        color: 0xffffffff,
+        src: 'Test'
+      }
+    });
+
+    // But a type is OK
+    this.patch({
+      MyComponentA: {
+        type: MyComponentA,
+        color: 0xffffffff,
+        src: 'Test'
+      }
+    });
+
+    // But the type must be the right one
+    this.patch({
+      MyComponentA: {
+        // @ts-expect-error Must be MyComponentA
+        type: MyComponentB,
         color: 0xffffffff,
         src: 'Test'
       }
@@ -101,15 +120,14 @@ class MyComponentB extends lng.Component<MyComponentB.Literal> implements lng.Co
 
 namespace MyComponentC {
   export interface Literal extends lng.Component.Literal {
-    type: typeof MyComponentC;
     propC: string;
-    MyComponentB: lng.Component.ExtractLiteral<MyComponentB>;
-    MyLooseComponentC: lng.Component.ExtractLiteral<MyLooseComponentC>;
+    MyComponentB: typeof MyComponentB;
+    MyLooseComponentC: typeof MyLooseComponentC;
   }
 }
 
 class MyComponentC extends lng.Component<MyComponentC.Literal> implements lng.Component.ImplementLiteral<MyComponentC.Literal> {
-  static _template(): lng.Component.Template<MyComponentC> {
+  static _template(): lng.Component.Template<MyComponentC.Literal> {
     return {
       x: 0,
       y: 0,
@@ -164,6 +182,33 @@ class MyComponentC extends lng.Component<MyComponentC.Literal> implements lng.Co
     // Ability to patch direclty into child loosely typed component
     this.MyLooseComponentC.patch({
       anythingGoes: 123,
+    });
+
+    // Patch should not require 'type' in a child component
+    this.patch({
+      MyComponentB: {
+        color: 0xffffffff,
+        src: 'Test'
+      }
+    });
+
+    // But a type is OK
+    this.patch({
+      MyComponentB: {
+        type: MyComponentB,
+        color: 0xffffffff,
+        src: 'Test'
+      }
+    });
+
+    // But the type must be the right one
+    this.patch({
+      MyComponentB: {
+        // @ts-expect-error Must be MyComponentB
+        type: MyComponentA,
+        color: 0xffffffff,
+        src: 'Test'
+      }
     });
 
     // Ability to patch deeply into object

@@ -96,11 +96,11 @@ declare namespace TextTexture {
      *
      * @remarks
      * The Advanced Text Renderer adds support for:
-     * - <b> tag for bold text
+     * - `<b>` tag for bold text
      *   - Example: `<b>This is bold</b>`
-     * - <i> tag for italics text
+     * - `<i>` tag for italics text
      *   - Example: `<i>This is italics</i>`
-     * - <color=$ARGB> tag for colored text
+     * - `<color=$ARGB>` tag for colored text
      *   - Example: `<color=0xff00ff00>This is green</color>`
      * - Enables the use of {@link wordBreak}
      *

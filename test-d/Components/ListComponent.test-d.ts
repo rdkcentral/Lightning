@@ -5,14 +5,13 @@ import AnimationSettings from '../../src/animation/AnimationSettings.mjs';
 
 namespace Container {
   export interface Literal extends lng.Component.Literal {
-    type: typeof Container;
-    ListComponent: lng.Element.ExtractLiteral<lng.components.ListComponent>;
-    ListComponent_Specific: lng.Element.ExtractLiteral<lng.components.ListComponent<lng.components.BloomComponent>>;
+    ListComponent: typeof lng.components.ListComponent;
+    ListComponent_Specific: typeof lng.components.ListComponent<lng.components.BloomComponent>;
   }
 }
 
 class Container extends lng.Component<Container.Literal> implements lng.Component.ImplementLiteral<Container.Literal> {
-  static _template(): lng.Component.Template<Container> {
+  static _template(): lng.Component.Template<Container.Literal> {
     // Template validity
     return {
       ListComponent: {
@@ -84,8 +83,8 @@ class Container extends lng.Component<Container.Literal> implements lng.Componen
     expectType<number>(this.ListComponent.itemSize);
     expectType<number>(this.ListComponent.viewportScrollOffset);
     expectType<number>(this.ListComponent.itemScrollOffset);
-    expectType<TransitionSettings>(this.ListComponent.scrollTransitionSettings);
-    expectType<TransitionSettings>(this.ListComponent.scrollTransition);
+    expectType<TransitionSettings | TransitionSettings.Literal>(this.ListComponent.scrollTransitionSettings);
+    expectType<TransitionSettings | TransitionSettings.Literal>(this.ListComponent.scrollTransition);
     expectType<AnimationSettings | null>(this.ListComponent.progressAnimation);
     expectType<boolean>(this.ListComponent.roll);
     expectType<number>(this.ListComponent.rollMin);

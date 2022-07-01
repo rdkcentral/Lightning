@@ -3,7 +3,7 @@ import Texture from "../tree/Texture.mjs";
 import Application from "./Application.mjs";
 
 declare namespace Component {
-  export type Constructor<C extends Component<Literal>> = new (...a: any[]) => C;
+  export type Constructor<C extends Component = Component> = new (...a: any[]) => C;
 
   /**
    * Base strongly-typed Literal for a Component
@@ -26,33 +26,32 @@ declare namespace Component {
    * ```
    */
   export interface Literal extends Element.Literal {
-    type: Constructor<Component<Literal>>// new (...a: any[]) => Component<Literal>;
+    // !!! Insert component specific things
   }
 
   /**
    * Loose form of lng.Component.Literal that allows any additional 'any' properties
    */
   export interface LooseLiteral extends Component.Literal {
-    type: Constructor<Component<LooseLiteral>>
     [s: string]: any
   }
 
   /**
    * Forces nested Literals in a _template() Template to define their 'type'
    */
-  type TemplateRequireType<LT extends Component.Literal> = {
-    type: NonNullable<LT['type']>
+  type TemplateRequireType<T extends Component.Constructor> = {
+    type: T
   } & {
-    [P in keyof LT]?:
-      LT[P] extends Component.Literal
+    [P in keyof InstanceType<T>['__$type_Literal']]?:
+      InstanceType<T>['__$type_Literal'][P] extends Component.Constructor
         ?
-          TemplateRequireType<LT[P]>
+          TemplateRequireType<InstanceType<T>['__$type_Literal'][P]>
         :
-          LT[P] extends Element.Literal
+          InstanceType<T>['__$type_Literal'][P] extends Element.Constructor
             ?
-              TemplateLiteral<LT[P]>
+              TemplateLiteral<InstanceType<InstanceType<T>['__$type_Literal'][P]>['__$type_Literal']>
             :
-              LT[P]
+              InstanceType<T>['__$type_Literal'][P]
   };
 
   /**
@@ -63,24 +62,24 @@ declare namespace Component {
    */
    export type TemplateLiteral<LT extends Element.Literal = Element.LooseLiteral> = {
     [P in keyof LT]?:
-      LT[P] extends Component.Literal
+      LT[P] extends Component.Constructor
         ?
           TemplateRequireType<LT[P]>
         :
-          LT[P] extends Element.Literal
+          LT[P] extends Element.Constructor
             ?
-              TemplateLiteral<LT[P]>
+              TemplateLiteral<InstanceType<LT[P]>['__$type_Literal']>
             :
               LT[P]
   };
 
   /**
-   * Type used for the return result of _template().
+   * Type used for the return result of _template(). !!! merge with above
    *
    * All Literal properties are made optional. Nested Literal properties are also made
    * optional, except for the `type` propety which is made requred.
    */
-  export type Template<T extends Element = Element> = TemplateLiteral<T['__$type_Literal']>;
+  export type Template<LiteralType extends Element.Literal = Element.LooseLiteral> = TemplateLiteral<LiteralType>;
 
   /**
    * Duplicate of {@link Element.ImplementLiteral} for convenience
@@ -120,7 +119,7 @@ declare namespace Component {
 
 declare class Component<
   // Components use loose typing Literals by default
-  LiteralType extends Component.Literal = Component.LooseLiteral
+  LiteralType extends Component.LooseLiteral = Component.LooseLiteral
 > extends Element<
   LiteralType
 > implements Element.ImplementLiteral<Component.Literal> {

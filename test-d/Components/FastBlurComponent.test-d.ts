@@ -2,13 +2,12 @@ import lng from '../../index';
 
 namespace Container {
   export interface Literal extends lng.Component.Literal {
-    type: typeof Container;
-    FastBlurComponent: lng.Component.ExtractLiteral<lng.components.FastBlurComponent>;
+    FastBlurComponent: typeof lng.components.FastBlurComponent;
   }
 }
 
 class Container extends lng.Component<Container.Literal> implements lng.Component.ImplementLiteral<Container.Literal> {
-  static _template(): lng.Component.Template<Container> {
+  static _template(): lng.Component.Template<Container.Literal> {
     // Template validity
     return {
       FastBlurComponent: {

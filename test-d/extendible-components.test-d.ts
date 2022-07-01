@@ -6,13 +6,12 @@ import lng from '../index.js';
 
 namespace Animal {
   export interface Literal extends lng.Component.Literal {
-    type: lng.Component.Constructor<Animal>;
     name: string;
   }
 }
 
 class Animal<Literal extends Animal.Literal = Animal.Literal> extends lng.Component<Literal> implements lng.Component.ImplementLiteral<Animal.Literal> {
-  static _template(): lng.Component.Template<Animal> {
+  static _template(): lng.Component.Template<Animal.Literal> {
     return {
       x: (w) => w,
       y: (h) => h,
@@ -47,7 +46,6 @@ class Animal<Literal extends Animal.Literal = Animal.Literal> extends lng.Compon
 
 namespace Mammal {
   export interface Literal extends Animal.Literal {
-    type: lng.Component.Constructor<Mammal>;
     hairType: 'definitive' | 'vibrissae' | 'pelage' | 'spines' | 'bristles' | 'velli' | 'wool';
   }
 }
@@ -83,7 +81,6 @@ class Mammal<Literal extends Mammal.Literal = Mammal.Literal> extends Animal<Lit
 
 namespace Bear {
   export interface Literal extends Mammal.Literal {
-    type: lng.Component.Constructor<Bear>;
     bearType: 'black' | 'grizzlie' | 'polar';
   }
 }
@@ -120,7 +117,6 @@ class Bear extends Mammal<Bear.Literal> implements lng.Component.ImplementLitera
 
 namespace Cat {
   export interface Literal extends Mammal.Literal {
-    type: lng.Component.Constructor<Cat>;
     catType: 'house' | 'lion' | 'tiger' | 'leopard';
   }
 }
