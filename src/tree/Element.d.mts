@@ -19,15 +19,15 @@ declare namespace Element {
   /**
    * ???
    */
-  export type OnAfterCalcsCallback = (el: Element) => void;
+  export type OnAfterCalcsCallback<T extends Element = Element> = (el: T) => void;
   /**
    * ???
    */
-  export type OnAfterUpdateCallback = (el: Element) => void;
+  export type OnAfterUpdateCallback<T extends Element = Element> = (el: T) => void;
   /**
    * ???
    */
-  export type OnUpdateCallback = (el: Element, core: ElementCore) => void; // eslint-disable-line no-use-before-define
+  export type OnUpdateCallback<T extends Element = Element> = (el: T, core: ElementCore) => void;
   /**
    * ???
    */
@@ -597,9 +597,9 @@ declare namespace Element {
     clipbox: boolean;
 
     /**
-     * ???
+     * Set the children of this Element
      */
-    children: Array<Element> | Array<{ [id: string]: any }> // Verify !!!
+    children: Array<Element> | Array<{ [id: string]: any}>
 
     /**
      * Setup one or more transitions
@@ -608,6 +608,16 @@ declare namespace Element {
      * This is the same as calling {@link Element.transition()} for each property.
      */
     transitions: TransitionsLiteral;
+
+    /**
+     * ???
+     */
+    onUpdate: OnUpdateCallback | undefined | null;
+
+    /**
+     * ???
+     */
+    onAfterCalcs: OnAfterCalcsCallback | undefined | null;
 
     /**
      * ???
@@ -989,15 +999,19 @@ declare class Element<
   hasChildren(): boolean;
 
   /**
-   * Take a close look at this !!!!
+   * Set/get the children of this Element
+   *
+   * @set {@link Element.Literal.children}
    */
   get children(): Array<Element>;
-  set children(children: Array<Element> | Array<{ [id: string]: any }>); // eslint-disable-line @typescript-eslint/no-explicit-any
+  set children(children: Array<Element> | Array<{ [id: string]: any }>);
 
   /**
+   * !!!!
+   *
    * @deprecated
    * While available this method calls this.childList.a(...) which is a slower method that
-   * accepts a Template as input - since this is slower, it should be avoided !!!!
+   * accepts a Template as input - since this is slower, it should be avoided.
    */
   add<T extends Element>(
     element: Component.Template | T | Array<Component.Template> | Array<T>,
@@ -1054,9 +1068,25 @@ declare class Element<
    */
   text: TextTexture | TextTexture.Literal | string | null;
 
-  //set onUpdate(f) { !!!!
+  /**
+   * ??? (make sure matches literal version)
+   *
+   * @remarks
+   * Note: This property will always return `undefined` when read.
+   *
+   * @see {@link Element.Literal.onAfterUpdate}
+   */
+  onUpdate: Element.OnUpdateCallback | null | undefined;
 
-  //set onAfterCalcs(f) { !!!!
+  /**
+   * ??? (make sure matches literal version)
+   *
+   * @remarks
+   * Note: This property will always return `undefined` when read.
+   *
+   * @see {@link Element.Literal.onAfterUpdate}
+   */
+  onAfterCalcs: Element.OnAfterCalcsCallback | null | undefined;
 
   /**
    * ??? (make sure matches literal version)
