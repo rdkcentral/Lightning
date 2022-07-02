@@ -15,7 +15,7 @@ export interface TestLiteral extends lng.Component.Literal {
 }
 
 //
-// TransformPossibleLiteral
+// TransformPossibleElement
 //
 expectType<lng.Element<lng.Element.Literal, lng.Texture>>({} as lng.Element.TransformPossibleElement<TestLiteral['MyStrongElement']>);
 expectType<lng.Element<lng.Element.LooseLiteral, lng.Texture>>({} as lng.Element.TransformPossibleElement<TestLiteral['MyLooseElement']>);
