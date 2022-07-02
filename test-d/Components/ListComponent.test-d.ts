@@ -251,13 +251,15 @@ class Container extends lng.Component<Container.Literal> implements lng.Componen
     this.ListComponent_Specific.items = [ // But array form should be strict
       {
         alpha: 0.5,
-        // @ts-expect-error Should error but isn't right now !!!
+        // TODO: See if this can be fixed in a later version of TypeScript
+        // Should error but isn't likely due to complexity of union for `items`
         amount: '123',
         paddingX: 1,
       },
       {
         alpha: 0.5,
-        // @ts-expect-error Should error but isn't right now !!!
+        // TODO: See if this can be fixed in a later version of TypeScript
+        // Should error but isn't likely due to complexity of union for `items`
         amount: '123',
         paddingX: 1,
       }
