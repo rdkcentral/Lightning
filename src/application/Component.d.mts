@@ -82,12 +82,31 @@ declare namespace Component {
   export type Template<LiteralType extends Element.Literal = Element.LooseLiteral> = TemplateLiteral<LiteralType>;
 
   /**
-   * Duplicate of {@link Element.ImplementLiteral} for convenience
+   * Converts a Literal into an interface that is implemented by the Literal's Component class
    *
-   * @see {@link Element.ImplementLiteral}
+   * @remarks
+   * This transforms the Literal type in the following ways:
+   * - Any `Element` / `Component` constructor type values are replaced with the corresponding instance type.
+   *
+   * @example
+   * ```ts
+   * namespace Container {
+   *   export interface Literal extends lng.Component.Literal {
+   *     BloomComponent: typeof lng.components.BloomComponent;
+   *   }
+   * }
+   *
+   * class Container
+   *   extends lng.Component<Container.Literal>
+   *   implements lng.Component.ImplementLiteral<Container.Literal> {
+   *   // Component Implementation
+   * }
+   * ```
    */
-  export type ImplementLiteral<LiteralType extends Element.Literal> = Element.ImplementLiteral<LiteralType>
-
+   export type ImplementLiteral<LiteralType extends Component.Literal> = {
+      [P in keyof LiteralType as P extends keyof Component.Literal ? never : P]:
+        Element.TransformPossibleElement<LiteralType[P]>
+    };
   /**
    * Extracts the input Component's Literal value
    */
@@ -122,7 +141,7 @@ declare class Component<
   LiteralType extends Component.LooseLiteral = Component.LooseLiteral
 > extends Element<
   LiteralType
-> implements Element.ImplementLiteral<Component.Literal> {
+> {
   /**
    * @deprecated !!! remove?
    * You should avoid using templates

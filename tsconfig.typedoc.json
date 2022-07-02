@@ -6,7 +6,7 @@
     "out": "typedocs",
     "entryPointStrategy": "expand",
     "intentionallyNotExported": [
-      "src/tree/Element.d.mts:TransformPossibleLiteral",
+      "src/tree/Element.d.mts:TransformPossibleElement",
       "src/components/ListComponent.d.mts:ListItems",
     ]
   }

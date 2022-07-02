@@ -7,11 +7,10 @@ declare namespace Application {
   }
 
   interface Literal extends Component.Literal {
-    type: typeof Application
   }
 }
 
-declare class Application extends Component<Application.Literal> implements Component.ImplementLiteral<Application.Literal> {
+declare class Application extends Component<Application.Literal> {
   constructor(appSettings: Application.Settings);
   get focusPath(): Element[] | undefined;
   updateFocusPath(): void;

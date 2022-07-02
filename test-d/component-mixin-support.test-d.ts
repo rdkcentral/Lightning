@@ -88,9 +88,8 @@ class MixedInListComponent extends withMixin(lng.components.ListComponent) {
 
 namespace Container {
   export interface Literal extends lng.Component.Literal {
-    // type: typeof Container;
-    MixedInListComponent: typeof MixedInListComponent // lng.Component.ExtractLiteral<MixedInListComponent>;
-    MixedInListComponent_Error: typeof MixedInListComponent // lng.Component.ExtractLiteral<MixedInListComponent>;
+    MixedInListComponent: typeof MixedInListComponent
+    MixedInListComponent_Error: typeof MixedInListComponent
   }
 }
 

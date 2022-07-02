@@ -174,8 +174,8 @@ type ShouldBeTemplateRequireType_SubComponentLiteral = TemplatedLiteral_TestLite
 expectType<lng.Component.TemplateRequireType<typeof SubComponent> | undefined>({} as ShouldBeTemplateRequireType_SubComponentLiteral);
 
  //
- // TransformPossibleLiteral
+ // TransformPossibleElement
  //
- expectType<lng.Element<lng.Element.Literal, lng.Texture>>({} as lng.Element.TransformPossibleLiteral<TestLiteral['MyStrongElement']>);
- expectType<lng.Element<lng.Element.LooseLiteral, lng.Texture>>({} as lng.Element.TransformPossibleLiteral<TestLiteral['MyLooseElement']>);
- expectType<lng.components.ListComponent>({} as lng.Element.TransformPossibleLiteral<TestLiteral['MyListComponent']>);
+ expectType<lng.Element<lng.Element.Literal, lng.Texture>>({} as lng.Element.TransformPossibleElement<TestLiteral['MyStrongElement']>);
+ expectType<lng.Element<lng.Element.LooseLiteral, lng.Texture>>({} as lng.Element.TransformPossibleElement<TestLiteral['MyLooseElement']>);
+ expectType<lng.components.ListComponent>({} as lng.Element.TransformPossibleElement<TestLiteral['MyListComponent']>);

@@ -4,13 +4,12 @@ import BorderComponent from '../../src/components/BorderComponent.mjs';
 
 namespace Container {
   export interface Literal extends lng.Component.Literal {
-    type: typeof Container;
-    BorderComponent: lng.Component.ExtractLiteral<lng.components.BorderComponent>;
+    BorderComponent: typeof lng.components.BorderComponent;
   }
 }
 
 class Container extends lng.Component<Container.Literal> implements lng.Component.ImplementLiteral<Container.Literal> {
-  static _template(): lng.Component.Template<Container> {
+  static _template(): lng.Component.Template<Container.Literal> {
     // Template validity
     return {
       BorderComponent: {

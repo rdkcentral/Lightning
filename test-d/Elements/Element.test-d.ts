@@ -162,11 +162,45 @@ class MyElementTest extends lng.Component<MyElementTest.Literal> implements lng.
     expectType<void>(this.MyLooseElement.fastForward('texture.x' as any));
     expectType<void>(this.MyLooseElement.fastForward('texture.INVALID_PROP.INVALID_PROP' as any));
 
+    //
+    // set transitions()
+    //
+    // Quick check that `get transitions` also has `undefined` in its type
+    expectType<undefined>(this.MyStrongElement.transitions);
+    // Can set transitions
+    this.MyStrongElement.transitions = {
+      x: {
+        delay: 123,
+        duration: 123,
+        timingFunction: 'ease-out'
+      },
+      mh: {
+        delay: 123
+      },
+    };
+    // Can set empty object
+    this.MyStrongElement.transitions = {};
+    // Can't set non-numeric properties
+    this.MyStrongElement.transitions = {
+      // @ts-expect-error
+      rtt: {
+        delay: 123,
+        duration: 123,
+        timingFunction: 'ease-out'
+      },
+    };
+    // Can't set anything else (protection from accidental any)
+    // @ts-expect-error
+    this.MyStrongElement.transitions = 123;
+    // @ts-expect-error
+    this.MyStrongElement.transitions = 'abc';
 
     //
     // set smooth()
     //
     // # STRONG #
+    // Quick check that `get smooth` also has `undefined` in its type
+    expectType<lng.Element.SmoothLiteral<lng.Element.Literal> | undefined>(this.MyStrongElement.smooth);
     this.MyStrongElement.smooth = {
       alpha: 1.0,
       x: 123,

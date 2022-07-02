@@ -51,7 +51,7 @@ namespace Mammal {
 }
 
 class Mammal<Literal extends Mammal.Literal = Mammal.Literal> extends Animal<Literal> implements lng.Component.ImplementLiteral<Mammal.Literal> {
-  static _template(): lng.Component.Template<Mammal> {
+  static _template(): lng.Component.Template<Mammal.Literal> {
     return {
       name: 'Unknown',
       hairType: 'bristles'
@@ -86,7 +86,7 @@ namespace Bear {
 }
 
 class Bear extends Mammal<Bear.Literal> implements lng.Component.ImplementLiteral<Bear.Literal> {
-  static _template(): lng.Component.Template<Bear> {
+  static _template(): lng.Component.Template<Bear.Literal> {
     return {
       x: 0,
       y: 0,
@@ -122,7 +122,7 @@ namespace Cat {
 }
 
 class Cat extends Mammal<Cat.Literal> implements lng.Component.ImplementLiteral<Cat.Literal> {
-  static _template(): lng.Component.Template<Cat> {
+  static _template(): lng.Component.Template<Cat.Literal> {
     return {
       x: 0,
       y: 0,

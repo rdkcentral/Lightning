@@ -69,6 +69,19 @@ declare namespace Element {
   }
 
   /**
+   * An object keyed by transitionable Element properties (numeric properties)
+   * and valued by {@link lng.types.TransitionSettings.Literal}
+   */
+  export type TransitionsLiteral<LT = Literal> = {
+  [P in keyof LT]?:
+    number extends LT[P]
+      ?
+        TransitionSettings.Literal
+      :
+        never
+  };
+
+  /**
    * An object keyed by transitionable Element properties (numeric properties).
    *
    * For each property:
@@ -80,11 +93,11 @@ declare namespace Element {
    */
   export type SmoothLiteral<LT = Literal> = {
     [P in keyof LT]?:
-      Extract<LT[P], number> extends never
+      number extends LT[P]
         ?
-          never
-        :
           number | [ number, TransitionSettings.Literal ]
+        :
+          never
   };
 
   /**
@@ -438,7 +451,6 @@ declare namespace Element {
      * Starts a smooth transition for all the included properties of the object
      *
      * @remarks
-     *
      * This is the same as calling {@link Element.setSmooth()} for each property.
      *
      * @see {@link Element.SmoothLiteral} for type details
@@ -590,9 +602,12 @@ declare namespace Element {
     children: Array<Element> | Array<{ [id: string]: any }> // Verify !!!
 
     /**
-     * ???
+     * Setup one or more transitions
+     *
+     * @remarks
+     * This is the same as calling {@link Element.transition()} for each property.
      */
-    transitions: Record<string, TransitionSettings.Literal>;
+    transitions: TransitionsLiteral;
 
     /**
      * ???
@@ -628,63 +643,25 @@ declare namespace Element {
   };
 
   /**
-   * If `PossibleLiteralType` is a Literal, convert it to it's instantiated form.
+   * If `PossibleElementConstructor` is an Element Constructor, convert it to it's instantiated form.
+   * Otherwise, return the input type (or something else by setting `Default`)
    *
-   * @remarks
-   * - If it's a `Component.Literal`
-   *   - Return `Component.Literal['type']`
-   * - If it's a `Element.LooseLiteral`
-   *   - Return `Element<LooseLiteral>`
-   * - If it's a `Element.Literal`
-   *   - Return `Element<Literal>`
-   * - Else return `Default`
-   * !!! Change name
+   * @internal
    * @hidden
    */
-  export type TransformPossibleLiteral<PossibleLiteralType, Default = PossibleLiteralType> =
-    PossibleLiteralType extends Element.Constructor
+  export type TransformPossibleElement<PossibleElementConstructor, Default = PossibleElementConstructor> =
+    PossibleElementConstructor extends Element.Constructor
       ?
-        InstanceType<PossibleLiteralType>
+        InstanceType<PossibleElementConstructor>
       :
         Default;
-
-  /**
-   * Converts a Literal into an interface that is implemented by the Literal's Component class
-   *
-   * @remarks
-   * This transforms the Literal type in the following ways:
-   * - The `type` key is removed.
-   * - Any `Component.Literal` type values are replaced with the component's instance type.
-   * - Any `Element.LooseLiteral` type values are replaced with `Element<Element.LooseLiteral>`.
-   * - Any `Element.Literal` type values are replaced with `Element<Element.Literal>`.
-   *
-   * @example
-   * ```ts
-   * namespace Container {
-   *   export interface Literal extends lng.Component.Literal {
-   *     type: typeof Container;
-   *     BloomComponent: lng.Component.ExtractLiteral<lng.components.BloomComponent>;
-   *   }
-   * }
-   *
-   * class Container
-   *   extends lng.Component<Container.Literal>
-   *   implements lng.Component.ImplementLiteral<Container.Literal> {
-   *   // Component Implementation
-   * }
-   * ```
-   */
-  export type ImplementLiteral<LiteralType extends Element.Literal> = {
-    [P in keyof LiteralType as P extends 'type' ? never : P]:
-      TransformPossibleLiteral<LiteralType[P]>
-  };
 
   /**
    * Get an object containing all the Refs (child Literals) in a Literal
    */
   export type LiteralRefs<LiteralType extends Element.Literal> = {
-    [P in keyof LiteralType as TransformPossibleLiteral<LiteralType[P], never> extends never ? never : P]:
-      TransformPossibleLiteral<LiteralType[P], never>
+    [P in keyof LiteralType as TransformPossibleElement<LiteralType[P], never> extends never ? never : P]:
+      TransformPossibleElement<LiteralType[P], never>
   };
 
   /**
@@ -697,7 +674,7 @@ declare class Element<
   // Elements use loose typing literals by default (for use of use as Elements aren't often fully definable)
   LiteralType extends Element.LooseLiteral = Element.LooseLiteral,
   TextureType extends Texture = Texture,
-> extends EventEmitter implements Element.Literal {
+> extends EventEmitter {
   constructor(stage: Stage);
 
   readonly id: number;
@@ -919,7 +896,10 @@ declare class Element<
    */
   getByRef<RefKey extends keyof Element.LiteralRefs<LiteralType>>(ref: RefKey): Element.LiteralRefs<LiteralType>[RefKey] | undefined;
 
-  // getLocationString() { !!!!
+  /**
+   * Get the location identifier of this Element???
+   */
+  getLocationString(): string;
 
   // toString() {
   // - This is inherent on any class
@@ -927,9 +907,13 @@ declare class Element<
   // static getPrettyString(obj, indent: string): string;
   // - Utility method used by toString()
 
-  // getSettings() { !!!!
+  /**
+   * Get Settings object representing this Element
+   */
+  getSettings(): Element.Literal;
 
-  // getNonDefaults() { !!!!
+  // getNonDefaults() {
+  // - Internal use only
 
   /**
    * `true` if Element is within the bounds margin
@@ -1111,12 +1095,12 @@ declare class Element<
   animation(animation: AnimationSettings.Literal): Animation;
 
   /***
-   * ??? !!!!
+   * ???
    */
   transition(property: string): Transition;
 
   /**
-   * ??? !!!!
+   * ???
    *
    * @param property
    * @param settings
@@ -1124,21 +1108,25 @@ declare class Element<
   transition(property: string, settings: TransitionSettings.Literal): null;
 
   /**
-   * ??? (make sure matches literal version)
+   * Setup one or more transitions
    *
    * @remarks
    * WARNING: DO NOT read from this property. It is WRITE-ONLY. It will return `undefined`.
    *
    * @see {@link Element.Literal.transitions}
    */
-  transitions: Record<string, Record<string, TransitionSettings.Literal>>;
+  // @ts-ignore-error Prevent ts(2380)
+  get transitions(): undefined;
+  set transitions(v: Element.TransitionsLiteral<Element.Literal>);
 
   /**
-   * !!!! Why do I need to set the getter type for the setter to work?
+   * Starts a smooth transition for all the included properties of the object
    *
    * @see {@link Element.Literal.smooth}
    */
-  get smooth(): Element.SmoothLiteral<LiteralType>;
+  // The getter type needs to have SmoothLiteral in its union for some reason thats not clear
+  // @ts-ignore-error Prevent ts(2380)
+  get smooth(): Element.SmoothLiteral<LiteralType> | undefined;
   set smooth(object: Element.SmoothLiteral<LiteralType>);
 
   /**
@@ -1159,8 +1147,6 @@ declare class Element<
   fastForward<Key extends keyof Element.SmoothLiteral<LiteralType>>(
     property: number extends LiteralType[Key] ? Key : never
   ): void;
-
-// set transitions(object) { !!!!
 
   /**
    * Get the current target value of an active transition.
