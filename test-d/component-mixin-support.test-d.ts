@@ -12,14 +12,14 @@ function withMixin<
 >(
   Base: BaseType
 ) {
-  interface MixinLiteral extends lng.Component.TemplateSpecStrong {
+  interface MixinTemplateSpec extends lng.Component.TemplateSpecStrong {
     mixinProp1: string;
     mixinProp2: number;
   }
 
-  type LiteralType = MixinLiteral & lng.Component.ExtractTemplateSpec<InstanceType<BaseType>>;
+  type TemplateSpecType = MixinTemplateSpec & lng.Component.ExtractTemplateSpec<InstanceType<BaseType>>;
 
-  return class MixinClass extends Base implements lng.Component.ImplementTemplateSpec<MixinLiteral> {
+  return class MixinClass extends Base implements lng.Component.ImplementTemplateSpec<MixinTemplateSpec> {
     // Mixin implementation
     mixinProp1: string = '';
     mixinProp2: number = 123;
@@ -35,13 +35,13 @@ function withMixin<
     // Must override patch
     // Due to limitation preventing using this['__$type_TemplateSpec'] at the base Element level
     // https://github.com/microsoft/TypeScript/issues/49672
-    patch(template: Element.PatchTemplate<LiteralType>): void {
+    patch(template: Element.PatchTemplate<TemplateSpecType>): void {
       super.patch(template);
     }
 
 
     // Must also override __$type_TemplateSpec
-    __$type_TemplateSpec: LiteralType = {} as LiteralType;
+    __$type_TemplateSpec: TemplateSpecType = {} as TemplateSpecType;
   }
 }
 

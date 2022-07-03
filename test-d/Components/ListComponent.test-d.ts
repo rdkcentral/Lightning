@@ -76,10 +76,8 @@ class Container extends lng.Component<Container.TemplateSpec> implements lng.Com
 
     // Direct property getting (TemplateSpec properties)
     expectType<
-      lng.Element[] |
-      lng.Element.PatchTemplate<lng.Element.TemplateSpecLoose> |
-      lng.Element.PatchTemplate<lng.Element.ExtractTemplateSpec<lng.Element>>[]
-    >(this.ListComponent.items); // @@@ Revisit reducing this if TS allows differing getters and setters
+      lng.Element[]
+    >(this.ListComponent.items);
     expectType<number>(this.ListComponent.itemSize);
     expectType<number>(this.ListComponent.viewportScrollOffset);
     expectType<number>(this.ListComponent.itemScrollOffset);
@@ -101,19 +99,10 @@ class Container extends lng.Component<Container.TemplateSpec> implements lng.Com
     expectType<number>(this.ListComponent.realIndex);
 
     // Direct property setting (TemplateSpec properties)
-    this.ListComponent.items = {
-      alpha: 1,
-      Child1: {
-        text: 'child1'
-      },
-      Child2: {
-        text: 'child2'
-      }
-    };
     this.ListComponent.items = [
       { text: 'child1' },
       { text: 'child2' }
-    ]
+    ];
     this.ListComponent.itemSize = 123;
     this.ListComponent.viewportScrollOffset = 123;
     this.ListComponent.itemScrollOffset = 123;
@@ -238,28 +227,16 @@ class Container extends lng.Component<Container.TemplateSpec> implements lng.Com
     });
 
     // Specific type tests
-    this.ListComponent_Specific.items = { // Obj form should be Element.LooseLiteral
-      alpha: 0.5,
-      amount: '123',
-      AnythingGoes: {
-        text: '123',
-        amount: '123', // Should be a number, but can't help it in a LooseLiteral
-        paddingX: 1
-      }
-    };
-
-    this.ListComponent_Specific.items = [ // But array form should be strict
+    this.ListComponent_Specific.items = [
       {
         alpha: 0.5,
-        // TODO: See if this can be fixed in a later version of TypeScript
-        // Should error but isn't likely due to complexity of union for `items`
+        // @ts-expect-error amount is spected to be a number
         amount: '123',
         paddingX: 1,
       },
       {
         alpha: 0.5,
-        // TODO: See if this can be fixed in a later version of TypeScript
-        // Should error but isn't likely due to complexity of union for `items`
+        // @ts-expect-error amount is spected to be a number
         amount: '123',
         paddingX: 1,
       }
@@ -268,6 +245,6 @@ class Container extends lng.Component<Container.TemplateSpec> implements lng.Com
     expectType<lng.tools.ObjectListWrapper<lng.components.BloomComponent>>(this.ListComponent_Specific.itemList);
     expectType<lng.components.BloomComponent | null>(this.ListComponent_Specific.getElement(0));
     expectType<lng.components.BloomComponent | null>(this.ListComponent_Specific.element);
-    expectType<lng.Element.PatchTemplate<lng.Element.TemplateSpecLoose>>(this.ListComponent_Specific.items); // @@@ Revisit reducing this down to only what is really returned
+    expectType<lng.components.BloomComponent[]>(this.ListComponent_Specific.items);
   }
 }

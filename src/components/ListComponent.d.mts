@@ -9,9 +9,7 @@ declare namespace ListComponent {
     /**
      * Items patched into the ListComponent
      */
-    items: Element.PatchTemplate<Element.TemplateSpecLoose> | Element.PatchTemplate<Element.ExtractTemplateSpec<ItemType>>[];
-    // The first type in the union, Component.PatchTemplate<Element.LooseLiteral>, is Element.LooseLiteral
-    // on purpose, as in this form, there is no way to guarantee it's children confrom to the requirements of T
+    items: Element.PatchTemplate<Element.ExtractTemplateSpec<ItemType>>[];
 
     /**
      * The scroll area size in pixels per item
@@ -77,7 +75,6 @@ declare class ListComponent<
   ItemType extends Element = Element
 >
   extends Component<ListComponent.TemplateSpec<ItemType>>
-  implements Component.ImplementTemplateSpec<ListComponent.TemplateSpec<ItemType>>
 {
   readonly itemList: ListItems<ItemType>;
 
@@ -85,14 +82,16 @@ declare class ListComponent<
    * Items patched into the ListComponent
    *
    * @remarks
-   * WARNING: You may ONLY set `Element.PatchTemplate<Element.LooseLiteral> | Element.PatchTemplate<Element.ExtractLiteral<ItemType>>[]`
+   * WARNING: You may ONLY set `Element.PatchTemplate<Element.ExtractTemplateSpec<ItemType>>`
    * to this property
    *
    * Note: This property will always return `ItemType[]` when read.
    *
    * @see {@link ListComponent.TemplateSpec.items}
    */
-  items: ItemType[] | Element.PatchTemplate<Element.TemplateSpecLoose> | Element.PatchTemplate<Element.ExtractTemplateSpec<ItemType>>[]
+  // @ts-ignore-error: Prevent ts(2380)
+  get items(): ItemType[];
+  set items(items: Element.PatchTemplate<Element.ExtractTemplateSpec<ItemType>>[]);
 
   /**
    * Select a specific item by index

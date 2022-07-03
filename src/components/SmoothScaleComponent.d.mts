@@ -18,14 +18,10 @@ declare class SmoothScaleComponent<
   ContentType extends Element = Element
 >
   extends Component<SmoothScaleComponent.TemplateSpec<ContentType>>
-  implements Component.ImplementTemplateSpec<SmoothScaleComponent.TemplateSpec<ContentType>>
 {
-  // @ts-expect-error
-  content: ContentType; // !!! Solve this problem
-  //content: ContentType | Element.PatchTemplate<Element.ExtractLiteral<ContentType>>;
-  // get content(): Element.PatchTemplate<Element.ExtractLiteral<ContentType>>;
-  // set content(v: Element.PatchTemplate<Element.ExtractLiteral<ContentType>>);
-
+  // @ts-expect-error Prevent ts(2380)
+  get content(): ContentType;
+  set content(content: Element.PatchTemplate<Element.ExtractTemplateSpec<ContentType>>);
   smoothScale: number;
 }
 

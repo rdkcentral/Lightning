@@ -1,5 +1,5 @@
 /**
- * Tests for loosely typed Components with LooseLiteral
+ * Tests for loosely typed Components with TemplateSpecLoose
  */
 import lng from '../index.js';
 
