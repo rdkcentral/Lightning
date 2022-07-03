@@ -54,6 +54,12 @@ class MyTestComponent
   }
 }
 
+export interface MyTestComponentTemplateSpec_Loose extends lng.Component.TemplateSpecStrong {
+  ParentElementStrong: typeof lng.Element<{
+    ComponentChildA: typeof ListComponent;
+  } & lng.Element.TemplateSpecLoose>;
+}
+
 // Expect an error here when `lng.Element.TemplateSpecStrong` is not intersected after the inline
 // TemplateSpec type. if the requirement for this can be elimintated that would be good!
 export interface MyTestComponentTemplateSpec_Error extends lng.Component.TemplateSpecStrong {
