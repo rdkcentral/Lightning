@@ -3,7 +3,7 @@
  */
 import lng from '../index.js';
 
-class MyLooseComponentA extends lng.Component<lng.Component.LooseLiteral> {
+class MyLooseComponentA extends lng.Component<lng.Component.TemplateSpecLoose> {
   static _template(): lng.Component.Template {
     return {
       x: (w) => w,
@@ -27,8 +27,8 @@ class MyLooseComponentA extends lng.Component<lng.Component.LooseLiteral> {
   }
 }
 
-class MyLooseComponentB extends lng.Component<lng.Component.LooseLiteral> {
-  static _template(): lng.Component.Template<lng.Component.LooseLiteral> {
+class MyLooseComponentB extends lng.Component<lng.Component.TemplateSpecLoose> {
+  static _template(): lng.Component.Template<lng.Component.TemplateSpecLoose> {
     return {
       x: 0,
       y: 0,
@@ -72,8 +72,8 @@ class MyLooseComponentB extends lng.Component<lng.Component.LooseLiteral> {
   }
 }
 
-export class MyLooseComponentC extends lng.Component<lng.Component.LooseLiteral> {
-  static _template(): lng.Component.Template<lng.Component.LooseLiteral> {
+export class MyLooseComponentC extends lng.Component<lng.Component.TemplateSpecLoose> {
+  static _template(): lng.Component.Template<lng.Component.TemplateSpecLoose> {
     return {
       x: 0,
       y: 0,

@@ -5,11 +5,11 @@ import ObjectListWrapper from "../tools/ObjectListWrapper.mjs";
 import Element from "../tree/Element.mjs";
 
 declare namespace ListComponent {
-  export interface Literal<ItemType extends Element = Element> extends Component.Literal {
+  export interface TemplateSpec<ItemType extends Element = Element> extends Component.TemplateSpecStrong {
     /**
      * Items patched into the ListComponent
      */
-    items: Element.PatchTemplate<Element.LooseLiteral> | Element.PatchTemplate<Element.ExtractLiteral<ItemType>>[];
+    items: Element.PatchTemplate<Element.TemplateSpecLoose> | Element.PatchTemplate<Element.ExtractTemplateSpec<ItemType>>[];
     // The first type in the union, Component.PatchTemplate<Element.LooseLiteral>, is Element.LooseLiteral
     // on purpose, as in this form, there is no way to guarantee it's children confrom to the requirements of T
 
@@ -76,8 +76,8 @@ declare namespace ListComponent {
 declare class ListComponent<
   ItemType extends Element = Element
 >
-  extends Component<ListComponent.Literal<ItemType>>
-  implements Component.ImplementLiteral<ListComponent.Literal<ItemType>>
+  extends Component<ListComponent.TemplateSpec<ItemType>>
+  implements Component.ImplementTemplateSpec<ListComponent.TemplateSpec<ItemType>>
 {
   readonly itemList: ListItems<ItemType>;
 
@@ -90,9 +90,9 @@ declare class ListComponent<
    *
    * Note: This property will always return `ItemType[]` when read.
    *
-   * @see {@link ListComponent.Literal.items}
+   * @see {@link ListComponent.TemplateSpec.items}
    */
-  items: ItemType[] | Element.PatchTemplate<Element.LooseLiteral> | Element.PatchTemplate<Element.ExtractLiteral<ItemType>>[]
+  items: ItemType[] | Element.PatchTemplate<Element.TemplateSpecLoose> | Element.PatchTemplate<Element.ExtractTemplateSpec<ItemType>>[]
 
   /**
    * Select a specific item by index

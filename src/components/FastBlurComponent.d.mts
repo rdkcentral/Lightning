@@ -2,13 +2,13 @@ import Component from "../application/Component.mjs";
 import Element from "../tree/Element.mjs";
 
 declare namespace FastBlurComponent {
-  export interface Literal extends Component.Literal {
+  export interface TemplateSpec extends Component.TemplateSpecStrong {
     /**
      * Content can be any Element / Component
      *
      * It is patched into the FastBlurComponent
      */
-    content: Element.PatchTemplate<Element.LooseLiteral>;
+    content: Element.PatchTemplate<Element.TemplateSpecLoose>;
 
     /**
      * X Padding
@@ -29,11 +29,11 @@ declare namespace FastBlurComponent {
 }
 
 declare class FastBlurComponent
-  extends Component<FastBlurComponent.Literal>
-  implements Component.ImplementLiteral<FastBlurComponent.Literal>
+  extends Component<FastBlurComponent.TemplateSpec>
+  implements Component.ImplementTemplateSpec<FastBlurComponent.TemplateSpec>
 {
   get content(): Element;
-  set content(v: Element.PatchTemplate<Element.LooseLiteral>);
+  set content(v: Element.PatchTemplate<Element.TemplateSpecLoose>);
 
   /**
    * X Padding
@@ -41,7 +41,7 @@ declare class FastBlurComponent
    * @remarks
    * WARNING: DO NOT read from this property. It is WRITE-ONLY. It will return `undefined`.
    *
-   * @see {@link FastBlurComponent.Literal.paddingX}
+   * @see {@link FastBlurComponent.TemplateSpec.paddingX}
    */
   paddingX: number;
 
@@ -51,7 +51,7 @@ declare class FastBlurComponent
    * @remarks
    * WARNING: DO NOT read from this property. It is WRITE-ONLY. It will return `undefined`.
    *
-   * @see {@link FastBlurComponent.Literal.paddingY}
+   * @see {@link FastBlurComponent.TemplateSpec.paddingY}
    */
   paddingY: number;
 

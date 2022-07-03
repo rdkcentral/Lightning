@@ -1,18 +1,18 @@
 /**
- * Tests for strongly typed Components using defined Literal
+ * Tests for strongly typed Components using defined TemplateSpec
  */
 
 import lng from '../index.js';
 import { MyLooseComponentC } from './components-loose.test-d.js';
 
 namespace MyComponentA {
-  export interface Literal extends lng.Component.Literal {
+  export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
     myProperty: string;
   }
 }
 
-class MyComponentA extends lng.Component<MyComponentA.Literal> implements lng.Component.ImplementLiteral<MyComponentA.Literal> {
-  static _template(): lng.Component.Template<MyComponentA.Literal> {
+class MyComponentA extends lng.Component<MyComponentA.TemplateSpec> implements lng.Component.ImplementTemplateSpec<MyComponentA.TemplateSpec> {
+  static _template(): lng.Component.Template<MyComponentA.TemplateSpec> {
     return {
       x: (w) => w,
       y: (h) => h,
@@ -37,7 +37,7 @@ class MyComponentA extends lng.Component<MyComponentA.Literal> implements lng.Co
 }
 
 namespace MyComponentB {
-  export interface Literal extends lng.Component.Literal {
+  export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
     myPropertyB: string;
     MyComponentA: typeof MyComponentA;
     MyComponentA_Error: typeof MyComponentA;
@@ -45,8 +45,8 @@ namespace MyComponentB {
   }
 }
 
-class MyComponentB extends lng.Component<MyComponentB.Literal> implements lng.Component.ImplementLiteral<MyComponentB.Literal> {
-  static _template(): lng.Component.Template<MyComponentB.Literal> {
+class MyComponentB extends lng.Component<MyComponentB.TemplateSpec> implements lng.Component.ImplementTemplateSpec<MyComponentB.TemplateSpec> {
+  static _template(): lng.Component.Template<MyComponentB.TemplateSpec> {
     return {
       x: 0,
       y: 0,
@@ -119,15 +119,15 @@ class MyComponentB extends lng.Component<MyComponentB.Literal> implements lng.Co
 }
 
 namespace MyComponentC {
-  export interface Literal extends lng.Component.Literal {
+  export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
     propC: string;
     MyComponentB: typeof MyComponentB;
     MyLooseComponentC: typeof MyLooseComponentC;
   }
 }
 
-class MyComponentC extends lng.Component<MyComponentC.Literal> implements lng.Component.ImplementLiteral<MyComponentC.Literal> {
-  static _template(): lng.Component.Template<MyComponentC.Literal> {
+class MyComponentC extends lng.Component<MyComponentC.TemplateSpec> implements lng.Component.ImplementTemplateSpec<MyComponentC.TemplateSpec> {
+  static _template(): lng.Component.Template<MyComponentC.TemplateSpec> {
     return {
       x: 0,
       y: 0,
@@ -255,6 +255,6 @@ class MyComponentC extends lng.Component<MyComponentC.Literal> implements lng.Co
   propC: string = '';
 
   get MyLooseComponentC(): MyLooseComponentC {
-    return this.getByRef('MyLooseComponentC')!; // !!! Look into solving this by automatically injecting this into Literal type
+    return this.getByRef('MyLooseComponentC')!;
   }
 }

@@ -2,14 +2,14 @@ import lng from '../../index';
 import { expectType } from 'tsd';
 
 namespace Container {
-  export interface Literal extends lng.Component.Literal {
+  export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
     SmoothScaleComponent: typeof lng.components.SmoothScaleComponent;
     SmoothScaleComponent_SpecificType: typeof lng.components.SmoothScaleComponent<lng.components.ListComponent>;
   }
 }
 
-class Container extends lng.Component<Container.Literal> implements lng.Component.ImplementLiteral<Container.Literal> {
-  static _template(): lng.Component.Template<Container.Literal> {
+class Container extends lng.Component<Container.TemplateSpec> implements lng.Component.ImplementTemplateSpec<Container.TemplateSpec> {
+  static _template(): lng.Component.Template<Container.TemplateSpec> {
     // Template validity
     return {
       SmoothScaleComponent: {
@@ -40,15 +40,15 @@ class Container extends lng.Component<Container.Literal> implements lng.Componen
   SmoothScaleComponent_SpecificType: lng.components.SmoothScaleComponent<lng.components.ListComponent> = this.getByRef('SmoothScaleComponent_SpecificType')!;
 
   _init() {
-    // Direct property getting (Literal properties)
+    // Direct property getting (TemplateSpec properties)
     expectType<lng.Element>(this.SmoothScaleComponent.content);
     expectType<number>(this.SmoothScaleComponent.smoothScale);
 
-    // Direct property getting (Non-Literal readonly properties)
+    // Direct property getting (Non-TemplateSpec readonly properties)
     // None
 
 
-    // Direct property setting (Literal properties)
+    // Direct property setting (TemplateSpec properties)
     this.SmoothScaleComponent.content = {
       alpha: 123,
       // @ts-expect-error Sanity check: visible must be a boolean

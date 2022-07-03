@@ -4,20 +4,20 @@
 import { expectNotType, expectType } from 'tsd';
 import lng from '../../index.js';
 
-export interface SubComponentLiteral extends lng.Component.Literal {
-  MyStrongElement: typeof lng.Element<lng.Element.Literal>;
-  MyLooseElement: typeof lng.Element<lng.Element.LooseLiteral>;
+export interface SubComponentLiteral extends lng.Component.TemplateSpecStrong {
+  MyStrongElement: typeof lng.Element<lng.Element.TemplateSpecStrong>;
+  MyLooseElement: typeof lng.Element<lng.Element.TemplateSpecLoose>;
   MyListComponent: typeof lng.components.ListComponent;
 }
 
-class SubComponent extends lng.Component<SubComponentLiteral> implements lng.Component.ImplementLiteral<SubComponentLiteral> {
+class SubComponent extends lng.Component<SubComponentLiteral> implements lng.Component.ImplementTemplateSpec<SubComponentLiteral> {
   MyStrongElement = this.getByRef('MyStrongElement')!;
   MyLooseElement = this.getByRef('MyLooseElement')!;
   MyListComponent = this.getByRef('MyListComponent')!;
 }
 
-export interface TestLiteral extends lng.Component.Literal {
-  MyStrongElement: typeof lng.Element<lng.Element.Literal>;
+export interface TestLiteral extends lng.Component.TemplateSpecStrong {
+  MyStrongElement: typeof lng.Element<lng.Element.TemplateSpecStrong>;
   MyLooseElement: typeof lng.Element;
   MyListComponent: typeof lng.components.ListComponent;
   MySubComponent: typeof SubComponent;
@@ -91,18 +91,18 @@ const t80: TemplateRequireType_SubComponent = {
 };
 // Child Loose Element is a TemplateLiteral<Element.LooseLiteral>
 type T20 = NonNullable<TemplateRequireType_SubComponent['MyLooseElement']>;
-expectType<lng.Component.TemplateLiteral<lng.Element.LooseLiteral & { smooth: lng.Element.SmoothLiteral<lng.Element.LooseLiteral>; }>>({} as T20);
-expectNotType<lng.Component.TemplateLiteral<lng.Element.Literal & { smooth: lng.Element.SmoothLiteral<lng.Element.Literal>; }>>({} as T20);
+expectType<lng.Component.Template<lng.Element.TemplateSpecLoose & { smooth: lng.Element.SmoothTemplate<lng.Element.TemplateSpecLoose>; }>>({} as T20);
+expectNotType<lng.Component.Template<lng.Element.TemplateSpecStrong & { smooth: lng.Element.SmoothTemplate<lng.Element.TemplateSpecStrong>; }>>({} as T20);
 // Child Strong Element is a TemplateLiteral<Element.LooseLiteral>
 type T30 = NonNullable<TemplateRequireType_SubComponent['MyStrongElement']>;
-expectType<lng.Component.TemplateLiteral<lng.Element.Literal>>({} as T30);
-expectNotType<lng.Component.TemplateLiteral<lng.Element.LooseLiteral>>({} as T30);
+expectType<lng.Component.Template<lng.Element.TemplateSpecStrong>>({} as T30);
+expectNotType<lng.Component.Template<lng.Element.TemplateSpecLoose>>({} as T30);
 
 //
 // TemplateLiteral
 //
-type TemplatedLiteral_TestLiteral = lng.Component.TemplateLiteral<TestLiteral>;
-type TemplatedLiteral_Element = lng.Component.TemplateLiteral<lng.Element.Literal>;
+type TemplatedLiteral_TestLiteral = lng.Component.Template<TestLiteral>;
+type TemplatedLiteral_Element = lng.Component.Template<lng.Element.TemplateSpecStrong>;
 // Type is not allowed
 const t90: TemplatedLiteral_TestLiteral = {};
 const t100: TemplatedLiteral_TestLiteral = {
@@ -160,12 +160,12 @@ const t140: TemplatedLiteral_TestLiteral = {
     }
   }
 };
-// Check that MyStrongElement is a TemplateLiteral<lng.Element.Literal>
+// Check that MyStrongElement is a TemplateLiteral<lng.Element.TemplateSpecStrong>
 type ShouldBeTemplateLiteral_Element_Literal = TemplatedLiteral_TestLiteral['MyStrongElement'];
-expectType<lng.Component.TemplateLiteral<lng.Element.Literal> | undefined>({} as ShouldBeTemplateLiteral_Element_Literal);
+expectType<lng.Component.Template<lng.Element.TemplateSpecStrong> | undefined>({} as ShouldBeTemplateLiteral_Element_Literal);
 // Check that MyLooseElement is a TemplateLiteral<lng.Element.LooseLiteral>
 type ShouldBeTemplateLiteral_Element_LooseLiteral = TemplatedLiteral_TestLiteral['MyLooseElement'];
-expectType<lng.Component.TemplateLiteral<lng.Element.LooseLiteral & { smooth: lng.Element.SmoothLiteral<lng.Element.LooseLiteral>; }> | undefined>({} as ShouldBeTemplateLiteral_Element_LooseLiteral);
+expectType<lng.Component.Template<lng.Element.TemplateSpecLoose & { smooth: lng.Element.SmoothTemplate<lng.Element.TemplateSpecLoose>; }> | undefined>({} as ShouldBeTemplateLiteral_Element_LooseLiteral);
 // Check that MyListComponent is a TemplateLiteral<lng.components.ListComponent>
 type ShouldBeTemplateRequireType_ListComponent_Literal = TemplatedLiteral_TestLiteral['MyListComponent'];
 expectType<lng.Component.TemplateRequireType<typeof lng.components.ListComponent> | undefined>({} as ShouldBeTemplateRequireType_ListComponent_Literal);
@@ -176,6 +176,6 @@ expectType<lng.Component.TemplateRequireType<typeof SubComponent> | undefined>({
  //
  // TransformPossibleElement
  //
- expectType<lng.Element<lng.Element.Literal, lng.Texture>>({} as lng.Element.TransformPossibleElement<TestLiteral['MyStrongElement']>);
- expectType<lng.Element<lng.Element.LooseLiteral, lng.Texture>>({} as lng.Element.TransformPossibleElement<TestLiteral['MyLooseElement']>);
+ expectType<lng.Element<lng.Element.TemplateSpecStrong, lng.Texture>>({} as lng.Element.TransformPossibleElement<TestLiteral['MyStrongElement']>);
+ expectType<lng.Element<lng.Element.TemplateSpecLoose, lng.Texture>>({} as lng.Element.TransformPossibleElement<TestLiteral['MyLooseElement']>);
  expectType<lng.components.ListComponent>({} as lng.Element.TransformPossibleElement<TestLiteral['MyListComponent']>);

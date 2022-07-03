@@ -6,11 +6,11 @@ declare namespace Application {
     // !!!
   }
 
-  interface Literal extends Component.Literal {
+  interface TemplateSpec extends Component.TemplateSpecStrong {
   }
 }
 
-declare class Application extends Component<Application.Literal> {
+declare class Application extends Component<Application.TemplateSpec> {
   constructor(appSettings: Application.Settings);
   get focusPath(): Element[] | undefined;
   updateFocusPath(): void;

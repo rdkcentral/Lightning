@@ -7,24 +7,24 @@ import lng from '../../index.js';
 import ListComponent from '../../src/components/ListComponent.mjs';
 
 namespace MyElementTest {
-  export interface Literal extends lng.Component.Literal {
+  export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
     ParentElementStrong: typeof lng.Element<{
       ComponentChildA: typeof ListComponent;
       ChildElement: typeof lng.Element<{
         GrandchildElement: typeof lng.Element;
-      } & lng.Element.Literal>,
-    } & lng.Element.Literal>;
+      } & lng.Element.TemplateSpecStrong>,
+    } & lng.Element.TemplateSpecStrong>;
     ParentElementLoose: typeof lng.Element<{
       ChildElementLoose: typeof lng.Element<{
         GrandchildElement: typeof lng.Element;
-      } & lng.Element.LooseLiteral>
-    } & lng.Element.LooseLiteral>;
+      } & lng.Element.TemplateSpecLoose>
+    } & lng.Element.TemplateSpecLoose>;
   }
 }
 
 class MyTestComponent
-  extends lng.Component<MyElementTest.Literal>
-  implements lng.Component.ImplementLiteral<MyElementTest.Literal> {
+  extends lng.Component<MyElementTest.TemplateSpec>
+  implements lng.Component.ImplementTemplateSpec<MyElementTest.TemplateSpec> {
   ParentElementStrong = this.getByRef('ParentElementStrong')!;
   ParentElementLoose = this.getByRef('ParentElementLoose')!;
 
@@ -34,7 +34,7 @@ class MyTestComponent
     const ChildElement = this.ParentElementStrong.getByRef('ChildElement')!;
     // And they are of the right type
     expectType<lng.components.ListComponent>(ComponentChildA);
-    expectType<lng.Element<{ GrandchildElement: typeof lng.Element; } & lng.Element.Literal>>(ChildElement);
+    expectType<lng.Element<{ GrandchildElement: typeof lng.Element; } & lng.Element.TemplateSpecStrong>>(ChildElement);
     // Also confirm you can get a grand-child element
     expectType<lng.Element>(ChildElement.getByRef('GrandchildElement')!);
 
@@ -49,14 +49,14 @@ class MyTestComponent
 
     // And make sure known children can still be reached in a typesafe way
     expectType<
-      lng.Element<{ GrandchildElement: typeof lng.Element; } & lng.Element.LooseLiteral>
+      lng.Element<{ GrandchildElement: typeof lng.Element; } & lng.Element.TemplateSpecLoose>
     >(this.ParentElementLoose.getByRef('ChildElementLoose')!);
   }
 }
 
-// Expect an error here when `lng.Element.Literal` is not interected after the inline
-// Literal type. if the requirement for this can be elimintated that would be good!
-export interface MyTestComponentLiteral_Error extends lng.Component.Literal {
+// Expect an error here when `lng.Element.TemplateSpecStrong` is not intersected after the inline
+// TemplateSpec type. if the requirement for this can be elimintated that would be good!
+export interface MyTestComponentTemplateSpec_Error extends lng.Component.TemplateSpecStrong {
   // @ts-expect-error
   ParentElementStrong: typeof lng.Element<{
     ComponentChildA: typeof ListComponent;

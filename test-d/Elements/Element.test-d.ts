@@ -3,8 +3,8 @@ import lng from '../../index.js';
 import ListComponent from '../../src/components/ListComponent.mjs';
 
 namespace MyElementTest {
-  export interface Literal extends lng.Component.Literal {
-    MyStrongElement: typeof lng.Element<lng.Element.Literal>;
+  export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
+    MyStrongElement: typeof lng.Element<lng.Element.TemplateSpecStrong>;
     MyLooseElement: typeof lng.Element;
     TestComponent: typeof ListComponent;
   }
@@ -13,8 +13,8 @@ namespace MyElementTest {
 /**
  * Component that tests all the properties that should be on an Element
  */
-class MyElementTest extends lng.Component<MyElementTest.Literal> implements lng.Component.ImplementLiteral<MyElementTest.Literal> {
-  static _template(): lng.Component.Template<MyElementTest.Literal> {
+class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements lng.Component.ImplementTemplateSpec<MyElementTest.TemplateSpec> {
+  static _template(): lng.Component.Template<MyElementTest.TemplateSpec> {
     // !!! Finish this test
     return {
       // You should NOT be required to provide explicit parameter type `number` for these!
@@ -99,8 +99,8 @@ class MyElementTest extends lng.Component<MyElementTest.Literal> implements lng.
     // getByRef
     //
     // # STRONG #
-    expectType<lng.Element<lng.Element.LooseLiteral, lng.Texture> | undefined>(this.getByRef('MyLooseElement'));
-    expectType<lng.Element<lng.Element.Literal, lng.Texture> | undefined>(this.getByRef('MyStrongElement'));
+    expectType<lng.Element<lng.Element.TemplateSpecLoose, lng.Texture> | undefined>(this.getByRef('MyLooseElement'));
+    expectType<lng.Element<lng.Element.TemplateSpecStrong, lng.Texture> | undefined>(this.getByRef('MyStrongElement'));
     // @ts-expect-error Don't allow anything in a strongly typed Element
     this.getByRef('Anything');
     // # LOOSE #
@@ -200,7 +200,7 @@ class MyElementTest extends lng.Component<MyElementTest.Literal> implements lng.
     //
     // # STRONG #
     // Quick check that `get smooth` also has `undefined` in its type
-    expectType<lng.Element.SmoothLiteral<lng.Element.Literal> | undefined>(this.MyStrongElement.smooth);
+    expectType<lng.Element.SmoothTemplate<lng.Element.TemplateSpecStrong> | undefined>(this.MyStrongElement.smooth);
     this.MyStrongElement.smooth = {
       alpha: 1.0,
       x: 123,
@@ -391,7 +391,7 @@ class MyElementTest extends lng.Component<MyElementTest.Literal> implements lng.
   }
 }
 
-const element: lng.Element<lng.Element.Literal> = {} as any;
+const element: lng.Element<lng.Element.TemplateSpecStrong> = {} as any;
 
 element.setSmooth('x', 12);
 element.setSmooth('y', 12);

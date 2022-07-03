@@ -3,13 +3,13 @@ import lng from '../../index';
 import BorderComponent from '../../src/components/BorderComponent.mjs';
 
 namespace Container {
-  export interface Literal extends lng.Component.Literal {
+  export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
     BorderComponent: typeof lng.components.BorderComponent;
   }
 }
 
-class Container extends lng.Component<Container.Literal> implements lng.Component.ImplementLiteral<Container.Literal> {
-  static _template(): lng.Component.Template<Container.Literal> {
+class Container extends lng.Component<Container.TemplateSpec> implements lng.Component.ImplementTemplateSpec<Container.TemplateSpec> {
+  static _template(): lng.Component.Template<Container.TemplateSpec> {
     // Template validity
     return {
       BorderComponent: {

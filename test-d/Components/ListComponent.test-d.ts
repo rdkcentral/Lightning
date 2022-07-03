@@ -4,14 +4,14 @@ import TransitionSettings from '../../src/animation/TransitionSettings.mjs';
 import AnimationSettings from '../../src/animation/AnimationSettings.mjs';
 
 namespace Container {
-  export interface Literal extends lng.Component.Literal {
+  export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
     ListComponent: typeof lng.components.ListComponent;
     ListComponent_Specific: typeof lng.components.ListComponent<lng.components.BloomComponent>;
   }
 }
 
-class Container extends lng.Component<Container.Literal> implements lng.Component.ImplementLiteral<Container.Literal> {
-  static _template(): lng.Component.Template<Container.Literal> {
+class Container extends lng.Component<Container.TemplateSpec> implements lng.Component.ImplementTemplateSpec<Container.TemplateSpec> {
+  static _template(): lng.Component.Template<Container.TemplateSpec> {
     // Template validity
     return {
       ListComponent: {
@@ -74,11 +74,11 @@ class Container extends lng.Component<Container.Literal> implements lng.Componen
     expectType<lng.components.ListComponent>(this.getByRef('ListComponent')!);
     expectType<lng.components.ListComponent<lng.components.BloomComponent>>(this.getByRef('ListComponent_Specific')!);
 
-    // Direct property getting (Literal properties)
+    // Direct property getting (TemplateSpec properties)
     expectType<
       lng.Element[] |
-      lng.Element.PatchTemplate<lng.Element.LooseLiteral> |
-      lng.Element.PatchTemplate<lng.Element.ExtractLiteral<lng.Element>>[]
+      lng.Element.PatchTemplate<lng.Element.TemplateSpecLoose> |
+      lng.Element.PatchTemplate<lng.Element.ExtractTemplateSpec<lng.Element>>[]
     >(this.ListComponent.items); // @@@ Revisit reducing this if TS allows differing getters and setters
     expectType<number>(this.ListComponent.itemSize);
     expectType<number>(this.ListComponent.viewportScrollOffset);
@@ -91,7 +91,7 @@ class Container extends lng.Component<Container.Literal> implements lng.Componen
     expectType<boolean>(this.ListComponent.invertDirection);
     expectType<boolean>(this.ListComponent.horizontal);
 
-    // Direct property getting (Non-Literal readonly properties)
+    // Direct property getting (Non-TemplateSpec readonly properties)
     expectType<lng.tools.ObjectListWrapper<lng.Element>>(this.ListComponent.itemList);
     expectType<lng.Element | null>(this.ListComponent.element);
     expectType<number>(this.ListComponent.length);
@@ -100,7 +100,7 @@ class Container extends lng.Component<Container.Literal> implements lng.Componen
     expectType<number>(this.ListComponent.index);
     expectType<number>(this.ListComponent.realIndex);
 
-    // Direct property setting (Literal properties)
+    // Direct property setting (TemplateSpec properties)
     this.ListComponent.items = {
       alpha: 1,
       Child1: {
@@ -268,6 +268,6 @@ class Container extends lng.Component<Container.Literal> implements lng.Componen
     expectType<lng.tools.ObjectListWrapper<lng.components.BloomComponent>>(this.ListComponent_Specific.itemList);
     expectType<lng.components.BloomComponent | null>(this.ListComponent_Specific.getElement(0));
     expectType<lng.components.BloomComponent | null>(this.ListComponent_Specific.element);
-    expectType<lng.Element.PatchTemplate<lng.Element.LooseLiteral>>(this.ListComponent_Specific.items); // @@@ Revisit reducing this down to only what is really returned
+    expectType<lng.Element.PatchTemplate<lng.Element.TemplateSpecLoose>>(this.ListComponent_Specific.items); // @@@ Revisit reducing this down to only what is really returned
   }
 }

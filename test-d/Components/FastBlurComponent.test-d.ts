@@ -1,13 +1,13 @@
 import lng from '../../index';
 
 namespace Container {
-  export interface Literal extends lng.Component.Literal {
+  export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
     FastBlurComponent: typeof lng.components.FastBlurComponent;
   }
 }
 
-class Container extends lng.Component<Container.Literal> implements lng.Component.ImplementLiteral<Container.Literal> {
-  static _template(): lng.Component.Template<Container.Literal> {
+class Container extends lng.Component<Container.TemplateSpec> implements lng.Component.ImplementTemplateSpec<Container.TemplateSpec> {
+  static _template(): lng.Component.Template<Container.TemplateSpec> {
     // Template validity
     return {
       FastBlurComponent: {

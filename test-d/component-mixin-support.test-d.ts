@@ -12,14 +12,14 @@ function withMixin<
 >(
   Base: BaseType
 ) {
-  interface MixinLiteral extends lng.Component.Literal {
+  interface MixinLiteral extends lng.Component.TemplateSpecStrong {
     mixinProp1: string;
     mixinProp2: number;
   }
 
-  type LiteralType = MixinLiteral & lng.Component.ExtractLiteral<InstanceType<BaseType>>;
+  type LiteralType = MixinLiteral & lng.Component.ExtractTemplateSpec<InstanceType<BaseType>>;
 
-  return class MixinClass extends Base implements lng.Component.ImplementLiteral<MixinLiteral> {
+  return class MixinClass extends Base implements lng.Component.ImplementTemplateSpec<MixinLiteral> {
     // Mixin implementation
     mixinProp1: string = '';
     mixinProp2: number = 123;
@@ -33,15 +33,15 @@ function withMixin<
     }
 
     // Must override patch
-    // Due to limitation preventing using this['__$type_Literal'] at the base Element level
+    // Due to limitation preventing using this['__$type_TemplateSpec'] at the base Element level
     // https://github.com/microsoft/TypeScript/issues/49672
     patch(template: Element.PatchTemplate<LiteralType>): void {
       super.patch(template);
     }
 
 
-    // Must also override __$type_Literal
-    __$type_Literal: LiteralType = {} as LiteralType;
+    // Must also override __$type_TemplateSpec
+    __$type_TemplateSpec: LiteralType = {} as LiteralType;
   }
 }
 
@@ -87,14 +87,14 @@ class MixedInListComponent extends withMixin(lng.components.ListComponent) {
 }
 
 namespace Container {
-  export interface Literal extends lng.Component.Literal {
+  export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
     MixedInListComponent: typeof MixedInListComponent
     MixedInListComponent_Error: typeof MixedInListComponent
   }
 }
 
-class Container extends lng.Component<Container.Literal> implements lng.Component.ImplementLiteral<Container.Literal> {
-  static _template(): lng.Component.Template<Container.Literal> {
+class Container extends lng.Component<Container.TemplateSpec> implements lng.Component.ImplementTemplateSpec<Container.TemplateSpec> {
+  static _template(): lng.Component.Template<Container.TemplateSpec> {
     // Template validity
     return {
       MixedInListComponent: {

@@ -2,11 +2,11 @@ import Component from "../application/Component.mjs";
 import Element from "../tree/Element.mjs";
 
 declare namespace SmoothScaleComponent { // !!! Go back and make all other components ContentType changable
-  interface Literal<ContentType extends Element = Element> extends Component.Literal {
+  interface TemplateSpec<ContentType extends Element = Element> extends Component.TemplateSpecStrong {
     /**
      * Content patched into SmoothScaleComponent
      */
-    content: Element.PatchTemplate<Element.ExtractLiteral<ContentType>>;
+    content: Element.PatchTemplate<Element.ExtractTemplateSpec<ContentType>>;
     /**
      * Smooth scale factor
      */
@@ -17,8 +17,8 @@ declare namespace SmoothScaleComponent { // !!! Go back and make all other compo
 declare class SmoothScaleComponent<
   ContentType extends Element = Element
 >
-  extends Component<SmoothScaleComponent.Literal<ContentType>>
-  implements Component.ImplementLiteral<SmoothScaleComponent.Literal<ContentType>>
+  extends Component<SmoothScaleComponent.TemplateSpec<ContentType>>
+  implements Component.ImplementTemplateSpec<SmoothScaleComponent.TemplateSpec<ContentType>>
 {
   // @ts-expect-error
   content: ContentType; // !!! Solve this problem

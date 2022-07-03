@@ -5,13 +5,13 @@
 import lng from '../index.js';
 
 namespace Animal {
-  export interface Literal extends lng.Component.Literal {
+  export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
     name: string;
   }
 }
 
-class Animal<Literal extends Animal.Literal = Animal.Literal> extends lng.Component<Literal> implements lng.Component.ImplementLiteral<Animal.Literal> {
-  static _template(): lng.Component.Template<Animal.Literal> {
+class Animal<TemplateSpecType extends Animal.TemplateSpec = Animal.TemplateSpec> extends lng.Component<TemplateSpecType> implements lng.Component.ImplementTemplateSpec<Animal.TemplateSpec> {
+  static _template(): lng.Component.Template<Animal.TemplateSpec> {
     return {
       x: (w) => w,
       y: (h) => h,
@@ -29,13 +29,13 @@ class Animal<Literal extends Animal.Literal = Animal.Literal> extends lng.Compon
   _init() {
     this.name = 'unkonwn2';
 
-    // 'as Literal' required due to ts(2345)
+    // 'as TemplateSpecType' required due to ts(2345)
     this.patch({
       name: 'Still Unkown'
-    } as Literal);
+    } as TemplateSpecType);
 
     // If this and same error below go away it's a good thing! Update the tests and documentation
-    // @ts-expect-error 'as Literal' required
+    // @ts-expect-error 'as TemplateSpecType' required
     this.patch({
       name: 'Still Unkown'
     });
@@ -45,13 +45,13 @@ class Animal<Literal extends Animal.Literal = Animal.Literal> extends lng.Compon
 }
 
 namespace Mammal {
-  export interface Literal extends Animal.Literal {
+  export interface TemplateSpec extends Animal.TemplateSpec {
     hairType: 'definitive' | 'vibrissae' | 'pelage' | 'spines' | 'bristles' | 'velli' | 'wool';
   }
 }
 
-class Mammal<Literal extends Mammal.Literal = Mammal.Literal> extends Animal<Literal> implements lng.Component.ImplementLiteral<Mammal.Literal> {
-  static _template(): lng.Component.Template<Mammal.Literal> {
+class Mammal<TemplateSpecType extends Mammal.TemplateSpec = Mammal.TemplateSpec> extends Animal<TemplateSpecType> implements lng.Component.ImplementTemplateSpec<Mammal.TemplateSpec> {
+  static _template(): lng.Component.Template<Mammal.TemplateSpec> {
     return {
       name: 'Unknown',
       hairType: 'bristles'
@@ -62,31 +62,31 @@ class Mammal<Literal extends Mammal.Literal = Mammal.Literal> extends Animal<Lit
     this.name = 'unkonwn2';
     this.hairType = 'definitive';
 
-    // 'as Literal' required due to ts(2345)
+    // 'as TemplateSpecType' required due to ts(2345)
     this.patch({
       name: 'Still Unkown',
       hairType: 'pelage'
-    } as Literal);
+    } as TemplateSpecType);
 
     // If this and error above goes away, it's a good thing! Update the tests and documentation
-    // @ts-expect-error 'as Literal' required
+    // @ts-expect-error 'as TemplateSpecStrong' required
     this.patch({
       name: 'Still Unkown',
       hairType: 'pelage'
     });
   }
 
-  hairType: Mammal.Literal['hairType'] = 'bristles'
+  hairType: Mammal.TemplateSpec['hairType'] = 'bristles'
 }
 
 namespace Bear {
-  export interface Literal extends Mammal.Literal {
+  export interface TemplateSpec extends Mammal.TemplateSpec {
     bearType: 'black' | 'grizzlie' | 'polar';
   }
 }
 
-class Bear extends Mammal<Bear.Literal> implements lng.Component.ImplementLiteral<Bear.Literal> {
-  static _template(): lng.Component.Template<Bear.Literal> {
+class Bear extends Mammal<Bear.TemplateSpec> implements lng.Component.ImplementTemplateSpec<Bear.TemplateSpec> {
+  static _template(): lng.Component.Template<Bear.TemplateSpec> {
     return {
       x: 0,
       y: 0,
@@ -112,17 +112,17 @@ class Bear extends Mammal<Bear.Literal> implements lng.Component.ImplementLitera
     });
   }
 
-  bearType: Bear.Literal['bearType'] = 'black';
+  bearType: Bear.TemplateSpec['bearType'] = 'black';
 }
 
 namespace Cat {
-  export interface Literal extends Mammal.Literal {
+  export interface TemplateSpec extends Mammal.TemplateSpec {
     catType: 'house' | 'lion' | 'tiger' | 'leopard';
   }
 }
 
-class Cat extends Mammal<Cat.Literal> implements lng.Component.ImplementLiteral<Cat.Literal> {
-  static _template(): lng.Component.Template<Cat.Literal> {
+class Cat extends Mammal<Cat.TemplateSpec> implements lng.Component.ImplementTemplateSpec<Cat.TemplateSpec> {
+  static _template(): lng.Component.Template<Cat.TemplateSpec> {
     return {
       x: 0,
       y: 0,
@@ -148,5 +148,5 @@ class Cat extends Mammal<Cat.Literal> implements lng.Component.ImplementLiteral<
     });
   }
 
-  catType: Cat.Literal['catType'] = 'house';
+  catType: Cat.TemplateSpec['catType'] = 'house';
 }

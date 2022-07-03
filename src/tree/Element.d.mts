@@ -20,14 +20,17 @@ declare namespace Element {
    * ???
    */
   export type OnAfterCalcsCallback<T extends Element = Element> = (el: T) => void;
+
   /**
    * ???
    */
   export type OnAfterUpdateCallback<T extends Element = Element> = (el: T) => void;
+
   /**
    * ???
    */
   export type OnUpdateCallback<T extends Element = Element> = (el: T, core: ElementCore) => void;
+
   /**
    * ???
    */
@@ -72,13 +75,13 @@ declare namespace Element {
    * An object keyed by transitionable Element properties (numeric properties)
    * and valued by {@link lng.types.TransitionSettings.Literal}
    */
-  export type TransitionsLiteral<LT = Literal> = {
-  [P in keyof LT]?:
-    number extends LT[P]
-      ?
-        TransitionSettings.Literal
-      :
-        never
+  export type TransitionsTemplate<TemplateSpecType = TemplateSpecStrong> = {
+    [P in keyof TemplateSpecType]?:
+      number extends TemplateSpecType[P]
+        ?
+          TransitionSettings.Literal
+        :
+          never
   };
 
   /**
@@ -91,7 +94,7 @@ declare namespace Element {
    *   - array[0] = Property value to smoothly transition to
    *   - array[1] = Settings describing the transition
    */
-  export type SmoothLiteral<LT = Literal> = {
+  export type SmoothTemplate<LT = TemplateSpecStrong> = {
     [P in keyof LT]?:
       number extends LT[P]
         ?
@@ -101,14 +104,13 @@ declare namespace Element {
   };
 
   /**
-   * Valid numeric property keys from SmoothLiteral
+   * Valid numeric property keys from SmoothTemplate
    */
-  export type SmoothLiteralKeys<LT = Literal> = keyof {
-    [P in keyof SmoothLiteral<LT> as SmoothLiteral<LT>[P] extends undefined ? never : P]: SmoothLiteral<LT>[P]
+  export type SmoothTemplateKeys<LT = TemplateSpecStrong> = keyof {
+    [P in keyof SmoothTemplate<LT> as SmoothTemplate<LT>[P] extends undefined ? never : P]: SmoothTemplate<LT>[P]
   };
 
-  // !!! Rename Literal to something like "Template" or something similar
-  export interface Literal {
+  export interface TemplateSpecStrong {
     /**
      * ???
      */
@@ -202,7 +204,7 @@ declare namespace Element {
     /**
      * ???
      */
-    collision: boolean | 2; // !!! this can be 2 sometimes. Need to confirm how this works
+    collision: boolean | 2;
 
     /**
      * Rectangle texture mode
@@ -453,9 +455,9 @@ declare namespace Element {
      * @remarks
      * This is the same as calling {@link Element.setSmooth()} for each property.
      *
-     * @see {@link Element.SmoothLiteral} for type details
+     * @see {@link Element.SmoothTemplate} for type details
      */
-    smooth: SmoothLiteral;
+    smooth: SmoothTemplate;
 
     /**
      * Image source URI
@@ -607,7 +609,7 @@ declare namespace Element {
      * @remarks
      * This is the same as calling {@link Element.transition()} for each property.
      */
-    transitions: TransitionsLiteral;
+    transitions: TransitionsTemplate;
 
     /**
      * ???
@@ -626,30 +628,28 @@ declare namespace Element {
   }
 
   /**
-   * Loose form of lng.Element.Literal that allows any additional 'any' properties
+   * Loose form of lng.Element.TemplateSpecStrong that allows any additional 'any' properties
    */
-  export interface LooseLiteral extends Element.Literal {
+  export interface TemplateSpecLoose extends Element.TemplateSpecStrong {
     [s: string]: any
   }
 
   /**
    * Type used for patch() parameter.
    *
-   * All Literal properties are made optional, including properties of nested Literals.
-   *
-   * Note: Unlike lng.Component.Template<T>, this takes a Literal type instead of an Element / Component type.
+   * All TemplateSpec properties are made optional, including properties of nested TemplateSpecs.
    */
-   export type PatchTemplate<LiteralType extends Element.Literal = Element.Literal> = {
-    [P in keyof LiteralType]?:
-      LiteralType[P] extends Component.Constructor
+   export type PatchTemplate<TemplateSpecType extends Element.TemplateSpecStrong = Element.TemplateSpecStrong> = {
+    [P in keyof TemplateSpecType]?:
+      TemplateSpecType[P] extends Component.Constructor
         ?
-          { type?: LiteralType[P] } & PatchTemplate<InstanceType<LiteralType[P]>['__$type_Literal']>
+          { type?: TemplateSpecType[P] } & PatchTemplate<InstanceType<TemplateSpecType[P]>['__$type_TemplateSpec']>
         :
-          LiteralType[P] extends Element.Constructor
+          TemplateSpecType[P] extends Element.Constructor
             ?
-              PatchTemplate<InstanceType<LiteralType[P]>['__$type_Literal']>
+              PatchTemplate<InstanceType<TemplateSpecType[P]>['__$type_TemplateSpec']>
             :
-              LiteralType[P]
+              TemplateSpecType[P]
   };
 
   /**
@@ -667,22 +667,22 @@ declare namespace Element {
         Default;
 
   /**
-   * Get an object containing all the Refs (child Literals) in a Literal
+   * Get an object containing all the Refs (child Element / Components) in a TemplateSpec
    */
-  export type LiteralRefs<LiteralType extends Element.Literal> = {
-    [P in keyof LiteralType as TransformPossibleElement<LiteralType[P], never> extends never ? never : P]:
-      TransformPossibleElement<LiteralType[P], never>
+  export type TemplateSpecRefs<TemplateSpec extends Element.TemplateSpecStrong> = {
+    [P in keyof TemplateSpec as TransformPossibleElement<TemplateSpec[P], never> extends never ? never : P]:
+      TransformPossibleElement<TemplateSpec[P], never>
   };
 
   /**
-   * Extracts the input Element's Literal value
+   * Extracts the input Element's TemplateSpec value
    */
-  export type ExtractLiteral<T extends Element = Element> = T['__$type_Literal'];
+  export type ExtractTemplateSpec<T extends Element = Element> = T['__$type_TemplateSpec'];
 }
 
 declare class Element<
-  // Elements use loose typing literals by default (for use of use as Elements aren't often fully definable)
-  LiteralType extends Element.LooseLiteral = Element.LooseLiteral,
+  // Elements use loose typing TemplateSpecs by default (for use of use as Elements aren't often fully definable)
+  TemplateSpecType extends Element.TemplateSpecLoose = Element.TemplateSpecLoose,
   TextureType extends Texture = Texture,
 > extends EventEmitter {
   constructor(stage: Stage);
@@ -765,7 +765,6 @@ declare class Element<
 
   readonly stage: Stage;
 
-  // Overridables !!!
   _onSetup(): void;
 
   _onAttach(): void;
@@ -818,7 +817,7 @@ declare class Element<
   textureIsLoaded(): boolean;
 
   /**
-   * Load the texture that was set by {@link Element.Literal.texture}
+   * Load the texture that was set by {@link Element.TemplateSpecStrong.texture}
    */
   loadTexture(): void;
 
@@ -830,7 +829,7 @@ declare class Element<
   /**
    * ??? (make sure matches literal vesrion)
    *
-   * @see {@link Element.Literal.texture}
+   * @see {@link Element.TemplateSpecStrong.texture}
    */
   get texture(): TextureType | null;
   set texture(v: TextureType | Texture.Literal | null);
@@ -904,7 +903,7 @@ declare class Element<
    *
    * @param ref
    */
-  getByRef<RefKey extends keyof Element.LiteralRefs<LiteralType>>(ref: RefKey): Element.LiteralRefs<LiteralType>[RefKey] | undefined;
+  getByRef<RefKey extends keyof Element.TemplateSpecRefs<TemplateSpecType>>(ref: RefKey): Element.TemplateSpecRefs<TemplateSpecType>[RefKey] | undefined;
 
   /**
    * Get the location identifier of this Element???
@@ -920,7 +919,7 @@ declare class Element<
   /**
    * Get Settings object representing this Element
    */
-  getSettings(): Element.Literal;
+  getSettings(): Element.TemplateSpecStrong;
 
   // getNonDefaults() {
   // - Internal use only
@@ -1001,7 +1000,7 @@ declare class Element<
   /**
    * Set/get the children of this Element
    *
-   * @set {@link Element.Literal.children}
+   * @set {@link Element.TemplateSpecStrong.children}
    */
   get children(): Array<Element>;
   set children(children: Array<Element> | Array<{ [id: string]: any }>);
@@ -1035,7 +1034,7 @@ declare class Element<
    * @remarks
    * WARNING: DO NOT read from this property. It is WRITE-ONLY. It will return `undefined`.
    *
-   * @see {@link Element.Literal.mw}
+   * @see {@link Element.TemplateSpecStrong.mw}
    */
   mw: number;
 
@@ -1045,7 +1044,7 @@ declare class Element<
    * @remarks
    * WARNING: DO NOT read from this property. It is WRITE-ONLY. It will return `undefined`.
    *
-   * @see {@link Element.Literal.mh}
+   * @see {@link Element.TemplateSpecStrong.mh}
    */
   mh: number;
 
@@ -1064,9 +1063,11 @@ declare class Element<
    *
    * Note: This property will always return `TextTexture | null` when read.
    *
-   * @see {@link Element.Literal.text}
+   * @see {@link Element.TemplateSpecStrong.text}
    */
-  text: TextTexture | TextTexture.Literal | string | null;
+  // @ts-ignore-error Prevent ts(2380)
+  get text(): TextTexture | null;
+  set text(text: TextTexture.Literal | string);
 
   /**
    * ??? (make sure matches literal version)
@@ -1074,7 +1075,7 @@ declare class Element<
    * @remarks
    * Note: This property will always return `undefined` when read.
    *
-   * @see {@link Element.Literal.onAfterUpdate}
+   * @see {@link Element.TemplateSpecStrong.onAfterUpdate}
    */
   onUpdate: Element.OnUpdateCallback | null | undefined;
 
@@ -1084,7 +1085,7 @@ declare class Element<
    * @remarks
    * Note: This property will always return `undefined` when read.
    *
-   * @see {@link Element.Literal.onAfterUpdate}
+   * @see {@link Element.TemplateSpecStrong.onAfterUpdate}
    */
   onAfterCalcs: Element.OnAfterCalcsCallback | null | undefined;
 
@@ -1094,7 +1095,7 @@ declare class Element<
    * @remarks
    * Note: This property will always return `undefined` when read.
    *
-   * @see {@link Element.Literal.onAfterUpdate}
+   * @see {@link Element.TemplateSpecStrong.onAfterUpdate}
    */
   onAfterUpdate: Element.OnAfterUpdateCallback | null | undefined;
 
@@ -1120,7 +1121,7 @@ declare class Element<
 
   readonly texturizer: ElementTexturizer;
 
-  patch(template: Element.PatchTemplate<LiteralType>): void;
+  patch(template: Element.PatchTemplate<TemplateSpecType>): void;
 
   animation(animation: AnimationSettings.Literal): Animation;
 
@@ -1143,21 +1144,21 @@ declare class Element<
    * @remarks
    * WARNING: DO NOT read from this property. It is WRITE-ONLY. It will return `undefined`.
    *
-   * @see {@link Element.Literal.transitions}
+   * @see {@link Element.TemplateSpecStrong.transitions}
    */
   // @ts-ignore-error Prevent ts(2380)
   get transitions(): undefined;
-  set transitions(v: Element.TransitionsLiteral<Element.Literal>);
+  set transitions(v: Element.TransitionsTemplate<Element.TemplateSpecStrong>);
 
   /**
    * Starts a smooth transition for all the included properties of the object
    *
-   * @see {@link Element.Literal.smooth}
+   * @see {@link Element.TemplateSpecStrong.smooth}
    */
   // The getter type needs to have SmoothLiteral in its union for some reason thats not clear
   // @ts-ignore-error Prevent ts(2380)
-  get smooth(): Element.SmoothLiteral<LiteralType> | undefined;
-  set smooth(object: Element.SmoothLiteral<LiteralType>);
+  get smooth(): Element.SmoothTemplate<TemplateSpecType> | undefined;
+  set smooth(object: Element.SmoothTemplate<TemplateSpecType>);
 
   /**
    * Fast-forward a currently transitioning property to its target value
@@ -1174,8 +1175,8 @@ declare class Element<
    *
    * @param property
    */
-  fastForward<Key extends keyof Element.SmoothLiteral<LiteralType>>(
-    property: number extends LiteralType[Key] ? Key : never
+  fastForward<Key extends keyof Element.SmoothTemplate<TemplateSpecType>>(
+    property: number extends TemplateSpecType[Key] ? Key : never
   ): void;
 
   /**
@@ -1197,13 +1198,13 @@ declare class Element<
    * @param property
    * @param value
    */
-  getSmooth<Key extends keyof Element.SmoothLiteral<LiteralType>>(
-    property: number extends LiteralType[Key] ? Key : never
+  getSmooth<Key extends keyof Element.SmoothTemplate<TemplateSpecType>>(
+    property: number extends TemplateSpecType[Key] ? Key : never
   ): number | undefined;
-  getSmooth<Key extends keyof Element.SmoothLiteral<LiteralType>>(
+  getSmooth<Key extends keyof Element.SmoothTemplate<TemplateSpecType>>(
     property: Key,
-    value: number extends LiteralType[Key] ? number : never,
-  ): number extends LiteralType[Key] ? number : never;
+    value: number extends TemplateSpecType[Key] ? number : never,
+  ): number extends TemplateSpecType[Key] ? number : never;
 
   /**
    * Start a smooth transition of `property` to the target `value`. Optionally
@@ -1223,9 +1224,9 @@ declare class Element<
    * @param value Target value
    * @param settings Transition settings
    */
-  setSmooth<Key extends keyof Element.SmoothLiteral<LiteralType>>(
+  setSmooth<Key extends keyof Element.SmoothTemplate<TemplateSpecType>>(
     property: Key,
-    value: number extends LiteralType[Key] ? number : never,
+    value: number extends TemplateSpecType[Key] ? number : never,
     settings?: TransitionSettings.Literal,
   ): void;
 
@@ -1241,7 +1242,7 @@ declare class Element<
    *
    * NOT AVAILABLE AT RUNTIME.
    */
-  readonly __$type_Literal: LiteralType & { smooth: Element.SmoothLiteral<LiteralType> };
+  readonly __$type_TemplateSpec: TemplateSpecType & { smooth: Element.SmoothTemplate<TemplateSpecType> };
 
   // Purposely not exposed:
   // getTags();

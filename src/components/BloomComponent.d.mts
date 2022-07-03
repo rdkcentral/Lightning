@@ -2,13 +2,13 @@ import Component from "../application/Component.mjs";
 import Element from "../tree/Element.mjs";
 
 declare namespace BloomComponent {
-  export interface Literal extends Component.Literal {
+  export interface TemplateSpec extends Component.TemplateSpecStrong {
     /**
      * Content can be any Element / Component
      *
      * It is patched into the BloomComponent
      */
-    content: Element.PatchTemplate<Element.LooseLiteral>;
+    content: Element.PatchTemplate<Element.TemplateSpecLoose>;
 
     /**
      * X Padding
@@ -29,18 +29,18 @@ declare namespace BloomComponent {
 }
 
 declare class BloomComponent
-  extends Component<BloomComponent.Literal>
-  implements Component.ImplementLiteral<BloomComponent.Literal>
+  extends Component<BloomComponent.TemplateSpec>
+  implements Component.ImplementTemplateSpec<BloomComponent.TemplateSpec>
 {
   get content(): Element;
-  set content(v: Element.PatchTemplate<Element.LooseLiteral>);
+  set content(v: Element.PatchTemplate<Element.TemplateSpecLoose>);
 
   /**
    * X Padding
    *
    * WARNING: DO NOT read from this property. It is WRITE-ONLY. It will return `undefined`.
    *
-   * @see {@link BloomComponent.Literal.paddingX}
+   * @see {@link BloomComponent.TemplateSpec.paddingX}
    */
   paddingX: number;
 
@@ -49,7 +49,7 @@ declare class BloomComponent
    *
    * WARNING: DO NOT read from this property. It is WRITE-ONLY. It will return `undefined`.
    *
-   * @see {@link BloomComponent.Literal.paddingY}
+   * @see {@link BloomComponent.TemplateSpec.paddingY}
    */
   paddingY: number;
 

@@ -2,13 +2,13 @@ import Component from "../application/Component.mjs";
 import Element from "../tree/Element.mjs";
 
 declare namespace BorderComponent {
-  export interface Literal extends Component.Literal {
+  export interface TemplateSpec extends Component.TemplateSpecStrong {
     /**
      * Content can be any Element / Component
      *
      * It is patched into the BorderComponent
      */
-    content: Element.PatchTemplate<Element.LooseLiteral>;
+    content: Element.PatchTemplate<Element.TemplateSpecLoose>;
 
     /**
      * Border width
@@ -71,7 +71,7 @@ declare namespace BorderComponent {
      * @remarks
      * Use to customize the border beyond color/width
      */
-    borderTop: Element.PatchTemplate<Element.LooseLiteral>;
+    borderTop: Element.PatchTemplate<Element.TemplateSpecLoose>;
 
     /**
      * Top border element / template
@@ -79,7 +79,7 @@ declare namespace BorderComponent {
      * @remarks
      * Use to customize the border beyond color/width
      */
-    borderRight: Element.PatchTemplate<Element.LooseLiteral>;
+    borderRight: Element.PatchTemplate<Element.TemplateSpecLoose>;
 
     /**
      * Top border element / template
@@ -87,7 +87,7 @@ declare namespace BorderComponent {
      * @remarks
      * Use to customize the border beyond color/width
      */
-    borderBottom: Element.PatchTemplate<Element.LooseLiteral>;
+    borderBottom: Element.PatchTemplate<Element.TemplateSpecLoose>;
 
     /**
      * Top border element / template
@@ -95,7 +95,7 @@ declare namespace BorderComponent {
      * @remarks
      * Use to customize the border beyond color/width
      */
-    borderLeft: Element.PatchTemplate<Element.LooseLiteral>;
+    borderLeft: Element.PatchTemplate<Element.TemplateSpecLoose>;
 
     /**
      * Border template
@@ -103,16 +103,16 @@ declare namespace BorderComponent {
      * @remarks
      * When patched, applies the patch template to all borders
      */
-    borders: Element.PatchTemplate<Element.LooseLiteral>;
+    borders: Element.PatchTemplate<Element.TemplateSpecLoose>;
   }
 }
 
 declare class BorderComponent
-  extends Component<BorderComponent.Literal>
-  implements Component.ImplementLiteral<BorderComponent.Literal>
+  extends Component<BorderComponent.TemplateSpec>
+  implements Component.ImplementTemplateSpec<BorderComponent.TemplateSpec>
 {
   get content(): Element;
-  set content(v: Element.PatchTemplate<Element.LooseLiteral>);
+  set content(v: Element.PatchTemplate<Element.TemplateSpecLoose>);
 
   borderWidth: number;
   borderWidthTop: number;
@@ -127,16 +127,16 @@ declare class BorderComponent
   colorBorderLeft: number;
 
   get borderTop(): Element;
-  set borderTop(v: Element.PatchTemplate<Element.LooseLiteral>);
+  set borderTop(v: Element.PatchTemplate<Element.TemplateSpecLoose>);
 
   get borderRight(): Element;
-  set borderRight(v: Element.PatchTemplate<Element.LooseLiteral>);
+  set borderRight(v: Element.PatchTemplate<Element.TemplateSpecLoose>);
 
   get borderBottom(): Element;
-  set borderBottom(v: Element.PatchTemplate<Element.LooseLiteral>);
+  set borderBottom(v: Element.PatchTemplate<Element.TemplateSpecLoose>);
 
   get borderLeft(): Element;
-  set borderLeft(v: Element.PatchTemplate<Element.LooseLiteral>);
+  set borderLeft(v: Element.PatchTemplate<Element.TemplateSpecLoose>);
 
   /**
    * Border template
@@ -144,9 +144,9 @@ declare class BorderComponent
    * @remarks
    * WARNING: DO NOT read from this property. It is WRITE-ONLY. It will return `undefined`.
    *
-   * @see {@link BorderComponent.Literal.borders}
+   * @see {@link BorderComponent.TemplateSpec.borders}
    */
-  borders: Element.PatchTemplate<Element.LooseLiteral>;
+  borders: Element.PatchTemplate<Element.TemplateSpecLoose>;
 }
 
 export default BorderComponent;
