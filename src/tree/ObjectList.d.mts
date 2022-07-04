@@ -1,10 +1,16 @@
+import Utils from "./Utils.mjs";
+
+/**
+ * Manages a list of objects.
+ * Objects may be patched. Then, they can be referenced using the 'ref' (string) property.
+ */
 export default class ObjectList<ItemType, LiteralType extends Record<string | number | symbol, unknown>> {
   /**
    * Add `object` to the end of the ObjectList, transforming it to `ItemType` instances if necessary.
    *
    * @remarks
    * If `object` is:
-   * - An Object Literal (See: {@link lng.Utils.isObjectLiteral})...
+   * - An Object Literal (See: {@link Utils.isObjectLiteral})...
    *   - It will be tranformed into an instantiated `ItemType` via {@link createItem()} before
    *     being added to the ObjectList.
    * - An array...
@@ -16,7 +22,7 @@ export default class ObjectList<ItemType, LiteralType extends Record<string | nu
    * Returns the `ItemType` instance that was added to the ObjectList, except if `object` is an
    * array in which it will return `null`
    */
-  a(object: LiteralType | LiteralType[] | ItemType[]): ItemType | null;
+  a(object: LiteralType | Array<LiteralType | ItemType>): ItemType | null;
   /**
    * Add `object` to the end of the ObjectList
    *
@@ -34,9 +40,32 @@ export default class ObjectList<ItemType, LiteralType extends Record<string | nu
    * Empty the ObjectList
    */
   clear(): void;
+  /**
+   * Execute `callback` for each item in the ObjectList
+   *
+   * @param callback
+   */
   forEach(callback: (item: ItemType, index: number, array: ItemType[]) => void): void;
+  /**
+   * Returns the array of items
+   *
+   * @remarks
+   * The array returned is the same used internally by the ObjectList.
+   */
   get(): ItemType[];
+  /**
+   * Get item by `index`
+   *
+   * @param index
+   * @returns Item if `index` is greather than/equal to 0 and less than {@link length}, otherwise undefined.
+   */
   getAt(index: number): ItemType | undefined;
+  /**
+   * Get item by ref string
+   *
+   * @param ref
+   * @returns Item at ref string, or undefined if not found.
+   */
   getByRef(ref: string): ItemType | undefined;
 
   /**
@@ -96,5 +125,8 @@ export default class ObjectList<ItemType, LiteralType extends Record<string | nu
    * @param object
    */
   isItem(object: Record<string, unknown>): boolean | 1 | undefined;
+  /**
+   * Number of items in the ObjectList
+   */
   get length(): number;
 }

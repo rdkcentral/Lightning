@@ -1,4 +1,5 @@
 {
+  "extends": "./tsconfig.json",
   "include": ["**/*.d.ts"],
   "exclude": ["types"],
   "typedocOptions": {

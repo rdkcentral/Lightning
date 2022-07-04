@@ -690,11 +690,18 @@ declare namespace Element {
   export type ExtractTemplateSpec<T extends Element = Element> = T['__$type_TemplateSpec'];
 }
 
+/**
+ * Allows all the documentation of Element.TemplateSpecStrong to be inherited by Element
+ */
+type Documentation = {
+  [s in keyof Element.TemplateSpecStrong]: unknown;
+}
+
 declare class Element<
   // Elements use loose typing TemplateSpecs by default (for use of use as Elements aren't often fully definable)
   TemplateSpecType extends Element.TemplateSpecLoose = Element.TemplateSpecLoose,
   TextureType extends Texture = Texture,
-> extends EventEmitter {
+> extends EventEmitter implements Documentation {
   constructor(stage: Stage);
 
   readonly id: number;
@@ -1016,14 +1023,14 @@ declare class Element<
   set children(children: Array<Element> | Array<{ [id: string]: any }>);
 
   /**
-   * !!!!
+   * Add element to end of this Element's childList
    *
    * @deprecated
    * While available this method calls this.childList.a(...) which is a slower method that
    * accepts a Template as input - since this is slower, it should be avoided.
    */
-  add<T extends Element>(
-    element: Component.Template | T | Array<Component.Template> | Array<T>,
+  add<T extends Element = Element>(
+    element: Element.PatchTemplate | Array<Element.PatchTemplate | Element>,
   ): T;
 
   /**
