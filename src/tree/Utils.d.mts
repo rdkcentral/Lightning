@@ -8,9 +8,40 @@ export default class Utils {
   static clone<T>(v: T): T;
   static cloneObjShallow(obj: unknown): unknown;
   static merge<T, U>(obj1: T, obj2: U): T;
-  static isObject(value: unknown): boolean;
+
+  /**
+   * Returns `true` if `value` is any JavaScript object value that you can access keys
+   * from. This includes plain JavaScript objects, functions and objects instantiated
+   * from classes.
+   *
+   * @param value
+   */
+  static isObject(value: unknown): value is Record<string | number | symbol, unknown>;
+
+  /**
+   * @deprecated Not used by the Lightning codebase
+   */
   static isPlainObject(value: unknown): boolean;
-  static isObjectLiteral(value: unknown): boolean;
+
+  /**
+   * Returns `true` if `value` is an "Object Literal", an plain JavaScript object that is
+   * not instantiated from a class.
+   *
+   * @remarks
+   * ```
+   * Utils.isObjectLiteral({}) === true;
+   * Utils.isObjectLiteral({
+   *   type: MyComponent,
+   *   x: 0,
+   *   y: 100
+   * }) === true;
+   * Utils.isObjectLiteral(new Component()) === false;
+   * Utils.isObjectLiteral(123) === false;
+   * Utils.isObjectLiteral(null) === false;
+   * ```
+   * @param value
+   */
+  static isObjectLiteral(value: unknown): value is Record<string | number | symbol, unknown>;
   static getArrayIndex(index: number, arr: unknown[]): number;
   static getModuloIndex(index: number, len: number): number;
 

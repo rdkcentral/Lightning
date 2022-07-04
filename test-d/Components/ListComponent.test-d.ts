@@ -90,7 +90,7 @@ class Container extends lng.Component<Container.TemplateSpec> implements lng.Com
     expectType<boolean>(this.ListComponent.horizontal);
 
     // Direct property getting (Non-TemplateSpec readonly properties)
-    expectType<lng.tools.ObjectListWrapper<lng.Element>>(this.ListComponent.itemList);
+    expectType<lng.tools.ObjectListWrapper<lng.Element, lng.Element.PatchTemplate<lng.Element['__$type_TemplateSpec']>>>(this.ListComponent.itemList);
     expectType<lng.Element | null>(this.ListComponent.element);
     expectType<number>(this.ListComponent.length);
     expectType<'x' | 'y'>(this.ListComponent.property);
@@ -242,7 +242,12 @@ class Container extends lng.Component<Container.TemplateSpec> implements lng.Com
       }
     ];
 
-    expectType<lng.tools.ObjectListWrapper<lng.components.BloomComponent>>(this.ListComponent_Specific.itemList);
+    expectType<
+      lng.tools.ObjectListWrapper<
+        lng.components.BloomComponent,
+        lng.Element.PatchTemplate<lng.components.BloomComponent['__$type_TemplateSpec']>
+      >
+    >(this.ListComponent_Specific.itemList);
     expectType<lng.components.BloomComponent | null>(this.ListComponent_Specific.getElement(0));
     expectType<lng.components.BloomComponent | null>(this.ListComponent_Specific.element);
     expectType<lng.components.BloomComponent[]>(this.ListComponent_Specific.items);

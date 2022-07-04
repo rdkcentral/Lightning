@@ -213,7 +213,7 @@ declare class ListComponent<
 
 export default ListComponent;
 
-declare class ListItems<T extends Element = Element> extends ObjectListWrapper<T> {
+declare class ListItems<T extends Element = Element> extends ObjectListWrapper<T, Element.PatchTemplate<T['__$type_TemplateSpec']>> {
   // Purposely not exposed:
   // onAdd(item, index)
   // checkStarted(index)
