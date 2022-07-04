@@ -6,7 +6,7 @@ import AnimationSettings from '../../src/animation/AnimationSettings.mjs';
 namespace Container {
   export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
     ListComponent: typeof lng.components.ListComponent;
-    ListComponent_Specific: typeof lng.components.ListComponent<lng.components.BloomComponent>;
+    ListComponent_Specific: typeof lng.components.ListComponent<typeof lng.components.BloomComponent>;
   }
 }
 
@@ -67,12 +67,12 @@ class Container extends lng.Component<Container.TemplateSpec> implements lng.Com
   }
 
   ListComponent: lng.components.ListComponent = this.getByRef('ListComponent')!;
-  ListComponent_Specific: lng.components.ListComponent<lng.components.BloomComponent> = this.getByRef('ListComponent_Specific')!;
+  ListComponent_Specific: lng.components.ListComponent<typeof lng.components.BloomComponent> = this.getByRef('ListComponent_Specific')!;
 
   _init() {
     // Verify types of ListComponents
     expectType<lng.components.ListComponent>(this.getByRef('ListComponent')!);
-    expectType<lng.components.ListComponent<lng.components.BloomComponent>>(this.getByRef('ListComponent_Specific')!);
+    expectType<lng.components.ListComponent<typeof lng.components.BloomComponent>>(this.getByRef('ListComponent_Specific')!);
 
     // Direct property getting (TemplateSpec properties)
     expectType<

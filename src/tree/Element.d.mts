@@ -635,11 +635,21 @@ declare namespace Element {
   }
 
   /**
+   * Type used for patching an array of Elements/Compnents
+   */
+  export type PatchTemplateArray<T extends Element.Constructor = typeof Element> =
+    T extends Component.Constructor
+      ?
+        Array<{ type: T } & PatchTemplate<InstanceType<T>['__$type_TemplateSpec']>>
+      :
+        Array<PatchTemplate<InstanceType<T>['__$type_TemplateSpec']>>;
+
+  /**
    * Type used for patch() parameter.
    *
    * All TemplateSpec properties are made optional, including properties of nested TemplateSpecs.
    */
-   export type PatchTemplate<TemplateSpecType extends Element.TemplateSpecStrong = Element.TemplateSpecStrong> = {
+   export type PatchTemplate<TemplateSpecType extends Element.TemplateSpecStrong = Element.TemplateSpecLoose> = {
     [P in keyof TemplateSpecType]?:
       TemplateSpecType[P] extends Component.Constructor
         ?

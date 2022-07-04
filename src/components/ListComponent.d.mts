@@ -5,11 +5,11 @@ import ObjectListWrapper from "../tools/ObjectListWrapper.mjs";
 import Element from "../tree/Element.mjs";
 
 declare namespace ListComponent {
-  export interface TemplateSpec<ItemType extends Element = Element> extends Component.TemplateSpecStrong {
+  export interface TemplateSpec<ItemType extends Element.Constructor = Element.Constructor> extends Component.TemplateSpecStrong {
     /**
      * Items patched into the ListComponent
      */
-    items: Element.PatchTemplate<Element.ExtractTemplateSpec<ItemType>>[];
+    items: Element.PatchTemplateArray<ItemType>;
 
     /**
      * The scroll area size in pixels per item
@@ -72,26 +72,26 @@ declare namespace ListComponent {
 }
 
 declare class ListComponent<
-  ItemType extends Element = Element
+  ItemType extends Element.Constructor = Element.Constructor
 >
   extends Component<ListComponent.TemplateSpec<ItemType>>
 {
-  readonly itemList: ListItems<ItemType>;
+  readonly itemList: ListItems<InstanceType<ItemType>>;
 
   /**
    * Items patched into the ListComponent
    *
    * @remarks
-   * WARNING: You may ONLY set `Element.PatchTemplate<Element.ExtractTemplateSpec<ItemType>>`
+   * WARNING: You may ONLY set `Element.PatchTemplateArray<ItemType>[]`
    * to this property
    *
-   * Note: This property will always return `ItemType[]` when read.
+   * Note: This property will always return `InstanceType<ItemType>[]` when read.
    *
    * @see {@link ListComponent.TemplateSpec.items}
    */
   // @ts-ignore-error: Prevent ts(2380)
-  get items(): ItemType[];
-  set items(items: Element.PatchTemplate<Element.ExtractTemplateSpec<ItemType>>[]);
+  get items(): InstanceType<ItemType>[];
+  set items(items: Element.PatchTemplateArray<ItemType>);
 
   /**
    * Select a specific item by index
@@ -124,7 +124,7 @@ declare class ListComponent<
    * Get item Element by an index
    * @param index
    */
-  getElement(index: number): ItemType | null;
+  getElement(index: number): InstanceType<ItemType> | null;
 
   /**
    * Re-render the list
@@ -134,7 +134,7 @@ declare class ListComponent<
   /**
    * Currently selected item Element
    */
-  readonly element: ItemType | null;
+  readonly element: InstanceType<ItemType> | null;
 
   /**
    * Number of items

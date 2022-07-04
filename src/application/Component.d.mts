@@ -243,7 +243,7 @@ declare class Component<
   _focus(newTarget: Element, prevTarget: Element): void;
   _unfocus(newTarget: Element): void;
   _focusChange(newTarget: Element, prevTarget: Element): void;
-  _getFocused(): Component<Component.TemplateSpecStrong> | undefined;
+  _getFocused(): Component<Component.TemplateSpecStrong> | null | undefined;
   _signal(): void;
 
   // !!! Do these handlers more universally if possible
