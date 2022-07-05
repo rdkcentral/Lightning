@@ -985,15 +985,35 @@ declare class Element<
 
   boundsMargin: [number, number, number, number] | null;
 
+  /**
+   * X position of this Element
+   *
+   * @see {@link Element.TemplateSpecStrong.x}
+   */
   get x(): number;
   set x(x: number | ((parentWidth: number) => number));
 
+  /**
+   * Y position of this Element
+   *
+   * @see {@link Element.TemplateSpecStrong.y}
+   */
   get y(): number;
   set y(y: number | ((parentHeight: number) => number));
 
+  /**
+   * Width of this Element
+   *
+   * @see {@link Element.TemplateSpecStrong.w}
+   */
   get w(): number;
   set w(w: number | ((parentWidth: number) => number));
 
+  /**
+   * Height of this Element
+   *
+   * @see {@link Element.TemplateSpecStrong.h}
+   */
   get h(): number;
   set h(h: number | ((parentHeight: number) => number));
 
@@ -1158,6 +1178,11 @@ declare class Element<
    */
   forceUpdate(): void;
 
+  /**
+   * Get/set a shader of/on this Element
+   *
+   * @see {@link Element.TemplateSpecStrong.shader}
+   */
   get shader(): Shader | Shader.Literal<typeof Shader> | null;
   set shader(v: Shader | Shader.Literal<typeof Shader> | null | undefined);
 
@@ -1175,6 +1200,11 @@ declare class Element<
 
   readonly texturizer: ElementTexturizer;
 
+  /**
+   * ???
+   *
+   * @param template
+   */
   patch(template: Element.PatchTemplate<TemplateSpecType>): void;
 
   animation(animation: AnimationSettings.Literal): Animation;

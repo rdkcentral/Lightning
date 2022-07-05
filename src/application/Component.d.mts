@@ -110,10 +110,10 @@ declare namespace Component {
    * }
    * ```
    */
-   export type ImplementTemplateSpec<TemplateSpecType extends Component.TemplateSpecStrong> = {
-      [P in keyof TemplateSpecType as P extends keyof Component.TemplateSpecStrong ? never : P]:
-        Element.TransformPossibleElement<P, TemplateSpecType[P]>
-    };
+  export type ImplementTemplateSpec<TemplateSpecType extends Component.TemplateSpecStrong> = {
+    [P in keyof TemplateSpecType as P extends keyof Component.TemplateSpecStrong ? never : P]:
+      Element.TransformPossibleElement<P, TemplateSpecType[P]>
+  };
   /**
    * Extracts the input Component's TemplateSpec value
    */
@@ -141,7 +141,6 @@ declare namespace Component {
   // eslint-disable-next-line prettier/prettier
   export type FireAncestorsEvent = `$${string}`;
 }
-
 
 declare class Component<
   // Components use loose typing TemplateSpecs by default
