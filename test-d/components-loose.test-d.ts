@@ -3,7 +3,8 @@
  */
 import lng from '../index.js';
 
-class MyLooseComponentA extends lng.Component<lng.Component.TemplateSpecLoose> {
+// Should be able to create a loose Component with unknown properties
+class MyLooseComponentA extends lng.Component {
   static _template(): lng.Component.Template {
     return {
       x: (w) => w,
@@ -17,6 +18,7 @@ class MyLooseComponentA extends lng.Component<lng.Component.TemplateSpecLoose> {
       mountY: 1.0,
       myProperty: 'abc',
       THIS_DOESNT_EXIST_BUT_ITS_OK: 12345,
+      Test: {}
     };
   }
 
@@ -68,7 +70,8 @@ class MyLooseComponentB extends lng.Component<lng.Component.TemplateSpecLoose> {
   myPropertyB: string = '';
 
   get MyLooseComponentA(): MyLooseComponentA {
-    return this.tag('MyLooseComponentA')!;
+    // Get by Ref should still work
+    return this.getByRef('MyLooseComponentA')!;
   }
 }
 

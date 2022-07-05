@@ -1,5 +1,4 @@
-import Element from "../tree/Element.mjs";
-import Texture from "../tree/Texture.mjs";
+import Element, { InlineElement, ValidRef } from "../tree/Element.mjs";
 import Application from "./Application.mjs";
 
 declare namespace Component {
@@ -62,19 +61,31 @@ declare namespace Component {
    * Type used for the return result of _template().
    *
    * All TemplateSpec properties are made optional. Nested TemplateSpec properties are also made
-   * optional, except for the `type` propety which is made requred.
+   * optional, except for the `type` propety which is made required.
    */
-   export type Template<TemplateSpecType extends Component.TemplateSpecStrong = Component.TemplateSpecLoose> = {
+   export type Template<TemplateSpecType extends Element.TemplateSpecStrong = Component.TemplateSpecLoose> = {
     [P in keyof TemplateSpecType]?:
-      TemplateSpecType[P] extends Component.Constructor
+      P extends ValidRef
         ?
-          TemplateRequireType<TemplateSpecType[P]>
-        :
-          TemplateSpecType[P] extends Element.Constructor
+          TemplateSpecType[P] extends Component.Constructor
             ?
-              Template<InstanceType<TemplateSpecType[P]>['__$type_TemplateSpec']>
+              TemplateRequireType<TemplateSpecType[P]>
             :
-              TemplateSpecType[P]
+              TemplateSpecType[P] extends Element.Constructor
+                ?
+                  Template<InstanceType<TemplateSpecType[P]>['__$type_TemplateSpec']>
+                :
+                  Template<Element<InlineElement<TemplateSpecType[P]>>['__$type_TemplateSpec']>
+        :
+          P extends keyof Element.TemplateSpecStrong
+            ?
+              TemplateSpecType[P] // P is a Element property key
+            :
+              string extends P
+                ?
+                  any // Support Loose Elements: keyof loose Elements `P` will always be a `string`, so let anything go
+                :
+                  undefined // Otherwise allow the property to only be undefined
   };
 
   /**
@@ -101,7 +112,7 @@ declare namespace Component {
    */
    export type ImplementTemplateSpec<TemplateSpecType extends Component.TemplateSpecStrong> = {
       [P in keyof TemplateSpecType as P extends keyof Component.TemplateSpecStrong ? never : P]:
-        Element.TransformPossibleElement<TemplateSpecType[P]>
+        Element.TransformPossibleElement<P, TemplateSpecType[P]>
     };
   /**
    * Extracts the input Component's TemplateSpec value

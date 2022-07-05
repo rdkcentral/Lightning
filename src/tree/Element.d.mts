@@ -13,6 +13,31 @@ import Stage from "./Stage.mjs";
 import Texture from "./Texture.mjs";
 import TextureSource from "./TextureSource.mjs";
 
+/**
+ * Set of all capital letters
+ *
+ * @hidden Internal use only
+ */
+type Alphabet = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z';
+
+/**
+ * Any string that begins with a capital letter
+ *
+ * @hidden Internal use only
+ */
+export type ValidRef = `${Alphabet}${string}`;
+
+/**
+ * Filters out any non-ref keys from an inline Element template and returns the filtered
+ * type with Strong Element template spec.
+ *
+ * @hidden Internal use only
+ */
+export type InlineElement<ElementTemplate> = {
+  [P in keyof ElementTemplate as P extends ValidRef ? P : never]:
+    ElementTemplate[P]
+} & Element<Element.TemplateSpecStrong>['__$type_TemplateSpec'];
+
 declare namespace Element {
   export type Constructor<C extends Element = Element> = new (...a: any[]) => C;
 
@@ -651,37 +676,49 @@ declare namespace Element {
    */
    export type PatchTemplate<TemplateSpecType extends Element.TemplateSpecStrong = Element.TemplateSpecLoose> = {
     [P in keyof TemplateSpecType]?:
-      TemplateSpecType[P] extends Component.Constructor
+      P extends ValidRef
         ?
-          { type?: TemplateSpecType[P] } & PatchTemplate<InstanceType<TemplateSpecType[P]>['__$type_TemplateSpec']>
-        :
-          TemplateSpecType[P] extends Element.Constructor
+          TemplateSpecType[P] extends Component.Constructor
             ?
-              PatchTemplate<InstanceType<TemplateSpecType[P]>['__$type_TemplateSpec']>
+              { type?: TemplateSpecType[P] } & PatchTemplate<InstanceType<TemplateSpecType[P]>['__$type_TemplateSpec']>
             :
-              TemplateSpecType[P]
+              TemplateSpecType[P] extends Element.Constructor
+                ?
+                  PatchTemplate<InstanceType<TemplateSpecType[P]>['__$type_TemplateSpec']>
+                :
+                  PatchTemplate<InlineElement<TemplateSpecType[P]>>
+        :
+          TemplateSpecType[P]
   };
 
   /**
-   * If `PossibleElementConstructor` is an Element Constructor, convert it to it's instantiated form.
+   * If `PossibleElementConstructor` is an inline Element or a Component Constructor, convert it to it's instantiated form.
    * Otherwise, return the input type (or something else by setting `Default`)
    *
    * @internal
    * @hidden
    */
-  export type TransformPossibleElement<PossibleElementConstructor, Default = PossibleElementConstructor> =
-    PossibleElementConstructor extends Element.Constructor
+  export type TransformPossibleElement<Key, PossibleElementConstructor, Default = PossibleElementConstructor> =
+    string extends Key
       ?
-        InstanceType<PossibleElementConstructor>
+        any // Support Loose Elements: keyof loose Elements `P` will always be a `string`, so let anything go
       :
-        Default;
+        Key extends ValidRef // Support Strong Elements
+          ?
+            PossibleElementConstructor extends Element.Constructor
+              ?
+                InstanceType<PossibleElementConstructor>
+              :
+                Element<InlineElement<PossibleElementConstructor>>
+          :
+            Default;
 
   /**
    * Get an object containing all the Refs (child Element / Components) in a TemplateSpec
    */
   export type TemplateSpecRefs<TemplateSpec extends Element.TemplateSpecStrong> = {
-    [P in keyof TemplateSpec as TransformPossibleElement<TemplateSpec[P], never> extends never ? never : P]:
-      TransformPossibleElement<TemplateSpec[P], never>
+    [P in keyof TemplateSpec as TransformPossibleElement<P, TemplateSpec[P], never> extends never ? never : P]:
+      TransformPossibleElement<P, TemplateSpec[P], never>
   };
 
   /**
@@ -897,7 +934,7 @@ declare class Element<
    *
    * @param tagName
    */
-  tag<T extends Element>(tagName: string): T | undefined;
+  tag<T extends Element = Element>(tagName: string): T | undefined;
 
   /**
    * Returns all Elements from the subtree that have this tag.
@@ -1250,7 +1287,7 @@ declare class Element<
   flex: Element.Flex;
 
   flexItem: Element.FlexItem;
-  //toJSON() {
+  //toJSON() { !!!!
   //static collectChildren(tree, children) {
   //static getProperties(element) {
 

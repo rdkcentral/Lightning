@@ -2,6 +2,7 @@
  * Tests for strongly typed Components using defined TemplateSpec
  */
 
+import { expectType } from 'tsd';
 import lng from '../index.js';
 import { MyLooseComponentC } from './components-loose.test-d.js';
 
@@ -11,6 +12,22 @@ namespace MyComponentA {
   }
 }
 
+// Direct TemplateSpec properties should not be allowed to be set from the _template
+const t100: lng.Component.Template<MyComponentA.TemplateSpec> = {
+  // @ts-expect-error
+  myProperty: 'abc'
+};
+// Direct properties should instead be of type `undefined`
+// Though it would be better if the direct property key wasn't allowed at all
+expectType<undefined>(t100['myProperty']);
+
+// Unknown properties should not be allowed
+const t200: lng.Component.Template<MyComponentA.TemplateSpec> = {
+  // @ts-expect-error
+  INVALID_PROP: 1234
+};
+
+// We should be able to create a component from the TemplateSpec
 class MyComponentA extends lng.Component<MyComponentA.TemplateSpec> implements lng.Component.ImplementTemplateSpec<MyComponentA.TemplateSpec> {
   static _template(): lng.Component.Template<MyComponentA.TemplateSpec> {
     return {
@@ -23,9 +40,6 @@ class MyComponentA extends lng.Component<MyComponentA.TemplateSpec> implements l
       mount: 0.0,
       mountX: 0.5,
       mountY: 1.0,
-      myProperty: 'abc',
-      // @ts-expect-error Property should error since it doesn't exist
-      INVALID_PROP: 12345
     };
   }
 
@@ -113,9 +127,19 @@ class MyComponentB extends lng.Component<MyComponentB.TemplateSpec> implements l
         src: 'Test'
       }
     });
+
+    // Support patching out a ref via `undefined`
+    this.patch({
+      MyComponentA: undefined,
+    });
+
+    // Get component by ref should work
+    expectType<MyComponentA | undefined>(this.getByRef('MyComponentA'));
   }
 
   myPropertyB: string = '';
+
+
 }
 
 namespace MyComponentC {

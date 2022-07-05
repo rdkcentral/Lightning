@@ -488,7 +488,7 @@ export default class Component extends Element {
                     if (fireEvent === true) {
                         fireEvent = event;
                     }
- 
+
                     if (Utils.isFunction(fireEvent)) {
                         return fireEvent(...args);
                     }

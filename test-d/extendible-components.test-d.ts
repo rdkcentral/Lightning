@@ -22,17 +22,16 @@ class Animal<TemplateSpecType extends Animal.TemplateSpec = Animal.TemplateSpec>
       mount: 0.0,
       mountX: 0.5,
       mountY: 1.0,
-      name: '123'
     };
   }
 
   _init() {
     this.name = 'unkonwn2';
 
-    // 'as TemplateSpecType' required due to ts(2345)
+    // 'as ...' required due to ts(2345)
     this.patch({
-      name: 'Still Unkown'
-    } as TemplateSpecType);
+      name: 'Still unknown'
+    } as lng.Element.PatchTemplate<Animal.TemplateSpec> as lng.Element.PatchTemplate<TemplateSpecType>);
 
     // If this and same error below go away it's a good thing! Update the tests and documentation
     // @ts-expect-error 'as TemplateSpecType' required
@@ -53,8 +52,7 @@ namespace Mammal {
 class Mammal<TemplateSpecType extends Mammal.TemplateSpec = Mammal.TemplateSpec> extends Animal<TemplateSpecType> implements lng.Component.ImplementTemplateSpec<Mammal.TemplateSpec> {
   static _template(): lng.Component.Template<Mammal.TemplateSpec> {
     return {
-      name: 'Unknown',
-      hairType: 'bristles'
+      rect: true
     };
   }
 
@@ -62,11 +60,11 @@ class Mammal<TemplateSpecType extends Mammal.TemplateSpec = Mammal.TemplateSpec>
     this.name = 'unkonwn2';
     this.hairType = 'definitive';
 
-    // 'as TemplateSpecType' required due to ts(2345)
+    // 'as ...' required due to ts(2345)
     this.patch({
       name: 'Still Unkown',
-      hairType: 'pelage'
-    } as TemplateSpecType);
+      hairType: 'definitive'
+    } as lng.Element.PatchTemplate<Mammal.TemplateSpec> as lng.Element.PatchTemplate<TemplateSpecType>);
 
     // If this and error above goes away, it's a good thing! Update the tests and documentation
     // @ts-expect-error 'as TemplateSpecStrong' required
@@ -97,7 +95,6 @@ class Bear extends Mammal<Bear.TemplateSpec> implements lng.Component.ImplementT
       mount: 0.0,
       mountX: 0.5,
       mountY: 1.0,
-      bearType: 'grizzlie'
     };
   }
 
@@ -133,7 +130,6 @@ class Cat extends Mammal<Cat.TemplateSpec> implements lng.Component.ImplementTem
       mount: 0.0,
       mountX: 0.5,
       mountY: 1.0,
-      catType: 'house'
     };
   }
 

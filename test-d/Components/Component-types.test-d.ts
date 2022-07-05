@@ -172,10 +172,3 @@ expectType<lng.Component.TemplateRequireType<typeof lng.components.ListComponent
 // Check that MySubComponent is a Template<SubComponentTemplateSpec>
 type ShouldBeTemplateRequireType_SubComponentTemplateSpec = Template_TestTemplateSpec['MySubComponent'];
 expectType<lng.Component.TemplateRequireType<typeof SubComponent> | undefined>({} as ShouldBeTemplateRequireType_SubComponentTemplateSpec);
-
- //
- // TransformPossibleElement
- //
- expectType<lng.Element<lng.Element.TemplateSpecStrong, lng.Texture>>({} as lng.Element.TransformPossibleElement<TestTemplateSpec['MyStrongElement']>);
- expectType<lng.Element<lng.Element.TemplateSpecLoose, lng.Texture>>({} as lng.Element.TransformPossibleElement<TestTemplateSpec['MyLooseElement']>);
- expectType<lng.components.ListComponent>({} as lng.Element.TransformPossibleElement<TestTemplateSpec['MyListComponent']>);
