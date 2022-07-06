@@ -35,6 +35,7 @@ export {
   tools
 };
 
+// `types` has to be exported as type so TS/IDEs don't allow you access it from runtime context
 export type {
   types
 };
