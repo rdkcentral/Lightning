@@ -11,8 +11,8 @@ declare namespace Texture {
   }
 
   export interface Literal {
-    type?: typeof Texture;
-    [s: string]: any; // Anything goes for now
+    type: typeof Texture;
+    [s: string]: any; // Anything goes for now !!!
   }
 }
 

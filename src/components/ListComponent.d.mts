@@ -21,12 +21,14 @@ declare namespace ListComponent {
     itemScrollOffset: number;
 
     /**
-     * @deprecated Duplicate of {@link scrollTransition}
+     * The transition definition used when scrolling between items
      */
     scrollTransitionSettings: TransitionSettings.Literal;
 
     /**
-     * The transition definition that is being used when scrolling the items
+     * Alias for {@link scrollTransitionSettings}
+     *
+     * @see {@link scrollTransitionSettings}
      */
     scrollTransition: TransitionSettings.Literal;
 
@@ -55,7 +57,7 @@ declare namespace ListComponent {
     /**
      * Inverts the scrolling direction.
      *
-     * Warning: Can only be set on creation of the component
+     * WARNING: Can only be set on creation of the component
      */
     invertDirection: boolean;
 
@@ -65,16 +67,21 @@ declare namespace ListComponent {
      * false, undefined = vertical
      * true = horizontal
      *
-     * Warning: Can only be set on creation of the component
+     * WARNING: Can only be set on creation of the component
      */
     horizontal: boolean;
   }
+}
+
+type Documentation = {
+  [s in keyof ListComponent.TemplateSpec]: unknown;
 }
 
 declare class ListComponent<
   ItemType extends Element.Constructor = Element.Constructor
 >
   extends Component<ListComponent.TemplateSpec<ItemType>>
+  implements Documentation
 {
   readonly itemList: ListItems<InstanceType<ItemType>>;
 
@@ -174,21 +181,27 @@ declare class ListComponent<
   itemScrollOffset: number;
 
   /**
-   * !!! Add warning
+   * The transition definition used when scrolling between items
    *
-   * get scrollTransitionSettings(): TransitionSettings;
-   * set scrollTransitionSettings(v: TransitionSettings.Literal);
+   * @see {@link ListComponent.TemplateSpec.scrollTransitionSettings}
    */
-  scrollTransitionSettings: TransitionSettings | TransitionSettings.Literal;
+  get scrollTransitionSettings(): TransitionSettings;
+  set scrollTransitionSettings(v: TransitionSettings.Literal);
 
   /**
-   * !!! Add warning
+   * Alias for {@link scrollTransitionSettings}
    *
-   * get scrollTransition(): TransitionSettings;
-   * set scrollTransition(v: TransitionSettings.Literal);
+   * @see {@link ListComponent.TemplateSpec.scrollTransitionSettings}
    */
-  scrollTransition: TransitionSettings | TransitionSettings.Literal;
+  get scrollTransition(): TransitionSettings;
+  set scrollTransition(v: TransitionSettings.Literal);
 
+  /**
+   * Definition for a custom animation that is applied when an item is
+   * (partially) selected.
+   *
+   * @see {@link ListComponent.TemplateSpec.progressAnimation}
+   */
   get progressAnimation(): AnimationSettings | null;
   set progressAnimation(v: AnimationSettings | AnimationSettings.Literal | null);
 
@@ -207,8 +220,6 @@ declare class ListComponent<
   // - Seems to be called internally only by ListItems
   // update()
   // - Seems to be internal
-  //
-
 }
 
 export default ListComponent;

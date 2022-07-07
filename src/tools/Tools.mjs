@@ -21,6 +21,9 @@ import Utils from "../tree/Utils.mjs";
 import StageUtils from "../tree/StageUtils.mjs";
 import StaticCanvasTexture from "../textures/StaticCanvasTexture.mjs"
 
+/**
+ * Useful functions for creating some commonly used textures.
+ */
 export default class Tools {
 
     static getCanvasTexture(canvasFactory, lookupId) {

@@ -17,8 +17,6 @@ type EventEmitterParameters<PossibleFunction> =
       [];
 
 declare namespace EventEmitter {
-  // export type EventListener = (arg1?: unknown, arg2?: unknown, arg3?: unknown) => void; !!! remove?
-
   /**
    * Extend or use the DefaultEventMap to support loosely typed events.
    *
@@ -26,7 +24,7 @@ declare namespace EventEmitter {
    * This EventMap accepts any string as an event name, and accepts any arguments as well.
    */
   interface DefaultEventMap {
-    [s: string]: (arg1?: any, arg2?: any, arg3?: any) => void;
+    [s: string]: (...args: any[]) => void;
   }
 
   export interface Mixin<EventMap = DefaultEventMap> {

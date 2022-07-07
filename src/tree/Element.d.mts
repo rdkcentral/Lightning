@@ -776,6 +776,9 @@ declare class Element<
 
   readonly isRoot: boolean;
 
+  /**
+   * Gets the number of levels deep this Element is in the render tree.
+   */
   getDepth(): number;
 
   /**
