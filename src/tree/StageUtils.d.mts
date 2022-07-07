@@ -1,15 +1,3 @@
-declare namespace StageUtils {
-  export type TimingFunction =
-    | 'linear'
-    | 'ease'
-    | 'ease-in'
-    | 'ease-out'
-    | 'ease-in-out'
-    | 'step-start'
-    | 'step-end'
-    | `cubic-bezier(${string})`;
-}
-
 declare class StageUtils {
   static mergeColors(c1: number, c2: number, p: number): number;
   static mergeNumbers(v1: number, v2: number, p: number): number;

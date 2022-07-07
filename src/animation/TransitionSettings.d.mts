@@ -1,11 +1,20 @@
 import Stage from "../tree/Stage.mjs";
-import StageUtils from "../tree/StageUtils.mjs";
 
 declare namespace TransitionSettings {
+  export type TimingFunction =
+    | 'linear'
+    | 'ease'
+    | 'ease-in'
+    | 'ease-out'
+    | 'ease-in-out'
+    | 'step-start'
+    | 'step-end'
+    | `cubic-bezier(${string})`;
+
   export interface Literal {
     delay?: number;
     duration?: number;
-    timingFunction?: StageUtils.TimingFunction;
+    timingFunction?: TimingFunction;
   }
 }
 
@@ -17,8 +26,8 @@ declare class TransitionSettings implements TransitionSettings.Literal {
   duration: number;
   isTransitionSettings: boolean;
 
-  get timingFunction(): StageUtils.TimingFunction;
-  set timingFunction(timingFunction: StageUtils.TimingFunction);
+  get timingFunction(): TransitionSettings.TimingFunction;
+  set timingFunction(timingFunction: TransitionSettings.TimingFunction);
 }
 
 export default TransitionSettings;

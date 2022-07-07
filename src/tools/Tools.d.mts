@@ -4,6 +4,9 @@ declare namespace Tools {
   export type CornerRadius = number | [number, number, number, number];
 }
 
+/**
+ * Useful functions for creating some commonly used textures.
+ */
 declare class Tools {
   /**
    * Constructs a Texture definition for an HTML Canvas Element based Texture
