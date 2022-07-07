@@ -142,6 +142,9 @@ declare namespace Element {
     ref: string | undefined;
 
     /**
+     * Element's Texture
+     *
+     * @remarks
      * ???
      */
     texture: Texture | Texture.Literal | null;
@@ -757,10 +760,14 @@ declare class Element<
   /**
    * Gets the ancestor of this Element that is `l` levels back.
    *
+   * @remarks
+   * Examples:
    * - If `l` === 0:
    *   - Will return this Element
-   * - If `l` === 1
+   * - If `l` === 1:
    *   - Will return this Element's parent
+   * - If `l` === 2:
+   *   - Will return this Element's grandparent
    *
    * @param l Number of levels to go back
    */
@@ -784,11 +791,11 @@ declare class Element<
   /**
    * Gets the ancestor of this Element that has the depth of `depth` in the render tree.
    *
-   * - If `depth` === 0:
+   * - If `depth` === `0`:
    *   - Will return the root Element (generally the Application)
-   * - If `depth` === 1:
+   * - If `depth` === `1`:
    *   - Will return the ancestor that is the child of the root Element
-   * - If `depth` === this.getDepth()
+   * - If `depth` === `this.getDepth()`
    *   - Will return this Element
    *
    * @param depth Depth in the render tree from the root Element
@@ -811,12 +818,39 @@ declare class Element<
    */
   getSharedAncestor(c: Element): Element | null;
 
+  /**
+   * Attached State
+   *
+   * @remarks
+   * `true` if this {@link Element} is attached, otherwise `false`.
+   *
+   * @see {@link https://lightningjs.io/docs/#/lightning-core-reference/Components/LifecycleEvents?id=lifecycle-events|Lifecycle Events}
+   */
   readonly attached: boolean;
 
+  /**
+   * Enabled State
+   *
+   * @remarks
+   * `true` if this {@link Element} is enabled, otherwise `false`.
+   *
+   * @see {@link https://lightningjs.io/docs/#/lightning-core-reference/Components/LifecycleEvents?id=lifecycle-events|Lifecycle Events}
+   */
   readonly enabled: boolean;
 
+  /**
+   * Active State
+   *
+   * @remarks
+   * `true` if this {@link Element} is active, otherwise `false`.
+   *
+   * @see {@link https://lightningjs.io/docs/#/lightning-core-reference/Components/LifecycleEvents?id=lifecycle-events|Lifecycle Events}
+   */
   readonly active: boolean;
 
+  /**
+   * Application's Global {@link Stage}
+   */
   readonly stage: Stage;
 
   _onSetup(): void;
@@ -1074,7 +1108,7 @@ declare class Element<
   /**
    * Set/get the children of this Element
    *
-   * @set {@link Element.TemplateSpecStrong.children}
+   * @see {@link Element.TemplateSpecStrong.children}
    */
   get children(): Array<Element>;
   set children(children: Array<Element> | Array<{ [id: string]: any }>);

@@ -12,8 +12,6 @@ import CoreContext from "./core/CoreContext.mjs";
 import ElementCore from "./core/ElementCore.mjs";
 import TextureManager from "./TextureManager.mjs";
 
-
-
 declare namespace Stage {
   /**
    * Normalized components (varying between 0.0 and 1.0)
@@ -35,6 +33,10 @@ declare namespace Stage {
     w: number;
   }
 }
+
+/**
+ * Application render tree
+ */
 declare class Stage extends EventEmitter {
   animations: AnimationManager;
   application: Application;
@@ -43,8 +45,8 @@ declare class Stage extends EventEmitter {
   dt: number;
   /**
    * Bit flags:
-   * 0 - device requires flush workaround
-   * 1 - frame requires flush workaround
+   * - 0 - device requires flush workaround
+   * - 1 - frame requires flush workaround
    */
   flushFlags: number;
   frameCounter: number;
@@ -69,7 +71,7 @@ declare class Stage extends EventEmitter {
 
   /**
    * Value can be one of 3 types:
-   * - number, an hexadecimal number (so it must begin with 0x)
+   * - `number`, an hexadecimal number (so it must begin with 0x)
    * - RGBA, an array of normalized components (varying between 0.0 and 1.0)
    * - null, which causes the stage to not be cleared before each frame
    */

@@ -128,7 +128,7 @@ declare namespace AnimationActionSettings {
      */
     selector?: string;
     /**
-     * Abbreviated form of {@link selector}
+     * Alias for {@link selector}
      *
      * @see {@link selector}
      */
@@ -141,7 +141,7 @@ declare namespace AnimationActionSettings {
      */
     properties?: string | Array<string>;
     /**
-     * Abbreviated form of {@link properties}
+     * Alias for {@link properties}
      *
      * @see {@link properties}
      */
@@ -154,7 +154,7 @@ declare namespace AnimationActionSettings {
      */
     value?: AnimationActionValue;
     /**
-     * Abbreviated form of {@link value}
+     * Alias for {@link value}
      *
      * @see {@link value}
      */
@@ -167,7 +167,7 @@ declare namespace AnimationActionSettings {
      */
     resetValue?: AnimatableValueTypes;
     /**
-     * Abbreviated form of {@link resetValue}
+     * Alias for {@link resetValue}
      *
      * @see {@link resetValue}
      */
