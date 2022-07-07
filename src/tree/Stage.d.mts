@@ -32,12 +32,21 @@ declare namespace Stage {
     useImageWorker: boolean;
     w: number;
   }
+
+  /**
+   * Events produced by Stage along with their handler signatures
+   */
+  export interface EventMap {
+    frameStart: () => void;
+    update: () => void;
+    frameEnd: () => void;
+  }
 }
 
 /**
  * Application render tree
  */
-declare class Stage extends EventEmitter {
+declare class Stage extends EventEmitter<Stage.EventMap> {
   animations: AnimationManager;
   application: Application;
   c2d?: CanvasRenderingContext2D;

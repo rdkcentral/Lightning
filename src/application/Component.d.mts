@@ -1,4 +1,6 @@
+import EventEmitter from "../EventEmitter.mjs";
 import Element, { InlineElement, ValidRef } from "../tree/Element.mjs";
+import Texture from "../tree/Texture.mjs";
 import Application from "./Application.mjs";
 
 declare namespace Component {
@@ -144,9 +146,12 @@ declare namespace Component {
 
 declare class Component<
   // Components use loose typing TemplateSpecs by default
-  TemplateSpecType extends Component.TemplateSpecLoose = Component.TemplateSpecLoose
+  TemplateSpecType extends Component.TemplateSpecLoose = Component.TemplateSpecLoose,
+  EventMap extends Element.EventMap = Element.EventMap
 > extends Element<
-  TemplateSpecType
+  TemplateSpecType,
+  Texture,
+  EventMap
 > {
   /**
    * Override to provide your own Component's template

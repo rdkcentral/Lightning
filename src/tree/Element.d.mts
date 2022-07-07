@@ -728,6 +728,26 @@ declare namespace Element {
    * Extracts the input Element's TemplateSpec value
    */
   export type ExtractTemplateSpec<T extends Element = Element> = T['__$type_TemplateSpec'];
+
+  export interface EventMap {
+    /**
+     * Texture Failed to Load
+     *
+     * @param error Error that occurred
+     * @param textureSource Textured that fa
+     */
+    txError(error: Error, textureSource: TextureSource): void;
+    /**
+     * Texture Loaded
+     *
+     * @param texture
+     */
+    txLoaded: (texture: Texture) => void,
+    /**
+     * Texture Unloaded
+     */
+    txUnloaded: (texture: Texture) => void,
+  }
 }
 
 /**
@@ -741,7 +761,8 @@ declare class Element<
   // Elements use loose typing TemplateSpecs by default (for use of use as Elements aren't often fully definable)
   TemplateSpecType extends Element.TemplateSpecLoose = Element.TemplateSpecLoose,
   TextureType extends Texture = Texture,
-> extends EventEmitter implements Documentation {
+  EventMap extends Element.EventMap = Element.EventMap
+> extends EventEmitter<EventMap> implements Documentation {
   constructor(stage: Stage);
 
   readonly id: number;

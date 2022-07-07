@@ -1,14 +1,42 @@
-declare namespace EventEmitter {
-  export type EventListener = (arg1?: unknown, arg2?: unknown, arg3?: unknown) => void;
+/**
+ * If `PossibleFunction` is a function, it returns the parameters from it as a tuple.
+ * Otherwise, it returns an empty array tuple.
+ *
+ * @privateRemarks
+ * This is a "safe" version of the included `Parameters` type. It allows us to extract parameters
+ * from an EventMap function signature without having to enforce a generic constraint on all
+ * EventMaps, which isn't practical without blowing up type safety.
+ *
+ * @hidden
+ */
+type EventEmitterParameters<PossibleFunction> =
+  PossibleFunction extends (...args: any[]) => any
+    ?
+      Parameters<PossibleFunction>
+    :
+      [];
 
-  export interface Mixin {
+declare namespace EventEmitter {
+  // export type EventListener = (arg1?: unknown, arg2?: unknown, arg3?: unknown) => void; !!! remove?
+
+  /**
+   * Extend or use the DefaultEventMap to support loosely typed events.
+   *
+   * @remarks
+   * This EventMap accepts any string as an event name, and accepts any arguments as well.
+   */
+  interface DefaultEventMap {
+    [s: string]: (arg1?: any, arg2?: any, arg3?: any) => void;
+  }
+
+  export interface Mixin<EventMap = DefaultEventMap> {
     /**
      * Adds the listener function to the end of the listeners array for the event named `name`.
      *
      * @param name
      * @param listener
      */
-    on(name: string, listener: EventListener): void;
+    on<EventName extends keyof EventMap>(name: EventName, listener: EventMap[EventName]): void;
 
     /**
      * Adds a **one-time** listener function for the event named `name`. The next time `name`
@@ -17,7 +45,7 @@ declare namespace EventEmitter {
      * @param name
      * @param listener
      */
-    once(name: string, listener: EventListener): void;
+    once<EventName extends keyof EventMap>(name: EventName, listener: EventMap[EventName]): void;
 
     /**
      * Returns `true` if the listeners array for the event named `name` includes `listener`
@@ -25,7 +53,7 @@ declare namespace EventEmitter {
      * @param name
      * @param listener
      */
-    has(name: string, listener: EventListener): boolean;
+    has<EventName extends keyof EventMap>(name: EventName, listener: EventMap[EventName]): boolean;
 
     /**
      * Removes the specified listener from the listener array for the event named `name`.
@@ -33,7 +61,7 @@ declare namespace EventEmitter {
      * @param name
      * @param listener
      */
-    off(name: string, listener: EventListener): void;
+    off<EventName extends keyof EventMap>(name: EventName, listener: EventMap[EventName]): void;
 
     /**
      * Synchronously calls each of the listeners registered for the event named `name`,
@@ -44,7 +72,7 @@ declare namespace EventEmitter {
      * @param arg2
      * @param arg3
      */
-    emit(name: string, arg1?: unknown, arg2?: unknown, arg3?: unknown): void;
+    emit<EventName extends keyof EventMap>(name: EventName, ...args: EventEmitterParameters<EventMap[EventName]>): void;
 
     /**
      * Alias for {@link off}
@@ -52,30 +80,36 @@ declare namespace EventEmitter {
      * @param name
      * @param listener
      */
-    removeListener(name: string, listener: EventListener): void;
+    removeListener<EventName extends keyof EventMap>(name: EventName, listener: EventMap[EventName]): void;
 
     /**
      * Returns the number of listeners listening to the event named `name`.
      *
      * @param name
      */
-    listenerCount(name: string): number;
+    listenerCount<EventName extends keyof EventMap>(name: EventName): number;
 
     /**
      * Removes all listeners of the event named `name`.
      *
      * @param name
      */
-    removeAllListeners(name: string): void;
+    removeAllListeners<EventName extends keyof EventMap>(name: EventName): void;
   }
 }
 
-interface EventEmitter extends EventEmitter.Mixin {
-
-}
-
-declare class EventEmitter implements EventEmitter.Mixin {
+declare class EventEmitter<EventMap = EventEmitter.DefaultEventMap> implements EventEmitter.Mixin<EventMap> {
   constructor();
+  // Copy/pasted (minus typedoc comments) from EventEmitter.Mixin
+  on<EventName extends keyof EventMap>(name: EventName, listener: EventMap[EventName]): void;
+  once<EventName extends keyof EventMap>(name: EventName, listener: EventMap[EventName]): void;
+  has<EventName extends keyof EventMap>(name: EventName, listener: EventMap[EventName]): boolean;
+  off<EventName extends keyof EventMap>(name: EventName, listener: EventMap[EventName]): void;
+  emit<EventName extends keyof EventMap>(name: EventName, ...args: EventEmitterParameters<EventMap[EventName]>): void;
+  removeListener<EventName extends keyof EventMap>(name: EventName, listener: EventMap[EventName]): void;
+  listenerCount<EventName extends keyof EventMap>(name: EventName): number;
+  removeAllListeners<EventName extends keyof EventMap>(name: EventName): void;
+
   static addAsMixin<T extends (...args: any[]) => {}>(cls: T): void;
 }
 
