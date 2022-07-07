@@ -2,7 +2,7 @@ import AnimationSettings from "./AnimationSettings.mjs";
 
 declare namespace Animation {
   /**
-   * @see {Animation.STATES} for value enum
+   * @see {@link Animation.STATES} for value enum
    */
   type State = typeof Animation['STATES'][keyof typeof Animation['STATES']];
 }
