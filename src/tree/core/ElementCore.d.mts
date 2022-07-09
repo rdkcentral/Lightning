@@ -100,6 +100,14 @@ declare class ElementCore {
   get zIndex(): number;
   set zIndex(v: number);
 
+  /**
+   * Fill the array `children` with all the ElementCore instances (including itself and
+   * its children) that intersect the point (`x`, `y`)
+   *
+   * @param x
+   * @param y
+   * @param children
+   */
   collectAtCoord(x: number, y: number, children: ElementCore[]): void;
   disableFuncH(): void;
   disableFuncW(): void;

@@ -14,6 +14,10 @@ export default class CoreContext {
   destroy(): void;
   hasRenderUpdates(): boolean;
   render(): void;
+
+  /**
+   * @see {@link Stage.update()}
+   */
   update(): void;
 
   protected _performForcedZSorts(): void;

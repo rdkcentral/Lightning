@@ -24,7 +24,7 @@ declare namespace Component {
    *     ElementChild2: typeof MyCoolComponent;
    *   } & lng.Element.TemplateSpec>;
    *   // ^----- Child elements should be typed by `typeof lng.Element`
-   *   content: Component.PatchTemplate<Element.TemplateSpecLoose>;
+   *   content: Element.PatchTemplate<Element.TemplateSpecLoose>;
    *   // ^----- If your Component has a property that when set, patches
    *   //        the value into itself, use `PatchTemplate<ComponentTemplateSpecType>`
    * }
@@ -40,6 +40,11 @@ declare namespace Component {
   export interface TemplateSpecLoose extends Component.TemplateSpecStrong {
     [s: string]: any
   }
+
+  /**
+   * Patch object for new Components (requires 'type' key because object hasn't been created yet)
+   */
+  export type NewPatchTemplate<T extends Component.Constructor> = { type: T } & Element.PatchTemplate<InstanceType<T>['__$type_TemplateSpec']>;
 
   /**
    * Forces nested TemplateSpecTypes in a _template() Template to define their 'type'

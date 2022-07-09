@@ -112,6 +112,7 @@ declare namespace Element {
   /**
    * An object keyed by transitionable Element properties (numeric properties).
    *
+   * @remarks
    * For each property:
    * - If the value is a `number`:
    *   - Property value to smoothly transition to (using the default transition)
@@ -668,7 +669,7 @@ declare namespace Element {
   export type PatchTemplateArray<T extends Element.Constructor = typeof Element> =
     T extends Component.Constructor
       ?
-        Array<{ type: T } & PatchTemplate<InstanceType<T>['__$type_TemplateSpec']>>
+        Array<Component.NewPatchTemplate<T>>
       :
         Array<PatchTemplate<InstanceType<T>['__$type_TemplateSpec']>>;
 

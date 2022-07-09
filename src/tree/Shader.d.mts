@@ -2,8 +2,8 @@ import CoreContext from "./core/CoreContext.mjs";
 import ElementCore from "./core/ElementCore.mjs";
 
 declare namespace Shader {
-  export interface Literal<T extends typeof Shader> {
-    type?: T;
+  export interface Literal {
+    type: typeof Shader;
     [key: string]: any; // Anything goes for now
   }
 }
