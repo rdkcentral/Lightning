@@ -2,13 +2,13 @@ import Component from "../application/Component.mjs";
 import Element from "../tree/Element.mjs";
 
 declare namespace FastBlurComponent {
-  export interface TemplateSpec extends Component.TemplateSpecStrong {
+  export interface TemplateSpec<ContentType extends Element = Element> extends Component.TemplateSpecStrong {
     /**
      * Content can be any Element / Component
      *
      * It is patched into the FastBlurComponent
      */
-    content: Element.PatchTemplate<Element.TemplateSpecLoose>;
+    content: Element.PatchTemplate<Element.ExtractTemplateSpec<ContentType>>;
 
     /**
      * X Padding
@@ -28,12 +28,14 @@ declare namespace FastBlurComponent {
   }
 }
 
-declare class FastBlurComponent
-  extends Component<FastBlurComponent.TemplateSpec>
-  implements Component.ImplementTemplateSpec<FastBlurComponent.TemplateSpec>
+declare class FastBlurComponent<
+  ContentType extends Element = Element
+>
+  extends Component<FastBlurComponent.TemplateSpec<ContentType>>
 {
-  get content(): Element;
-  set content(v: Element.PatchTemplate<Element.TemplateSpecLoose>);
+  // @ts-expect-error Prevent ts(2380)
+  get content(): ContentType;
+  set content(v: Element.PatchTemplate<Element.ExtractTemplateSpec<ContentType>>);
 
   /**
    * X Padding

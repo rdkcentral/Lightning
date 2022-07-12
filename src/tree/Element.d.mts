@@ -479,6 +479,16 @@ declare namespace Element {
     colorizeResultTexture: boolean;
 
     /**
+     * ???
+     */
+    flex: Element.Flex;
+
+    /**
+     * ???
+     */
+    flexItem: Element.FlexItem;
+
+    /**
      * Starts a smooth transition for all the included properties of the object
      *
      * @remarks
@@ -591,6 +601,11 @@ declare namespace Element {
      * ???
      */
     zIndex: number;
+
+    /**
+     * ???
+     */
+    forceZIndexContext: boolean;
 
     /**
      * Defines whether clipping should be turned on or off for this element

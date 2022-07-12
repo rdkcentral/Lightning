@@ -1,5 +1,6 @@
 import CoreContext from "../../../tree/core/CoreContext.mjs";
 import Element from "../../../tree/Element.mjs"; // Used in documentation
+import WebGLShader from "../WebGLShader.mjs";
 /**
  * Base Class for a WebGL Shader in Lightning
  *
