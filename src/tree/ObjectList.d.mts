@@ -99,7 +99,7 @@ export default class ObjectList<ItemType, LiteralType extends Record<string | nu
    */
   remove(object: ItemType): void;
   /**
-   * Remove the object from the ObjectList at `index
+   * Remove the object from the ObjectList at `index`
    *
    * @param index
    * @returns The object removed
