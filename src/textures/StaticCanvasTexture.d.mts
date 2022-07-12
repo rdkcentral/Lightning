@@ -1,4 +1,3 @@
-import Tools from "../tools/Tools.mjs";
 import Stage from "../tree/Stage.mjs";
 import Texture from "../tree/Texture.mjs";
 
@@ -38,6 +37,9 @@ declare namespace StaticCanvasTexture {
   }
 }
 
+/**
+ * Documentation
+ */
 declare class StaticCanvasTexture extends Texture {
   constructor(stage: Stage);
 

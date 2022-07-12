@@ -7,10 +7,10 @@ import WebGLShader from "../WebGLShader.mjs";
  * @remarks
  * This class provides a default set of non-altering shader programs and can be extended to build new WebGL
  * shaders in Lightning. A Shader in Lightning can consist of both a
- * {@link https://www.khronos.org/opengl/wiki/Fragment_Shader Fragment Shader} program and a
- * {@link https://www.khronos.org/opengl/wiki/Vertex_Shader Vertex Shader} program.
+ * [Fragment Shader](https://www.khronos.org/opengl/wiki/Fragment_Shader) program and a
+ * [Vertex Shader](https://www.khronos.org/opengl/wiki/Vertex_Shader) program.
  *
- * Shaders can be set on Lightning Elements (See: {@link Element.TemplateSpec.shader}) to enable many
+ * Shaders can be set on Lightning Elements (See: {@link Element.TemplateSpecStrong.shader}) to enable many
  * amazing GPU driven effects.
  */
 export default class DefaultShader extends WebGLShader {
@@ -20,7 +20,7 @@ export default class DefaultShader extends WebGLShader {
    *
    * @remarks
    * This static property is overridden by subclass shaders to the GLSL source
-   * code for a {@link https://www.khronos.org/opengl/wiki/Fragment_Shader Fragment Shader} program.
+   * code for a [Fragment Shader](https://www.khronos.org/opengl/wiki/Fragment_Shader) program.
    *
    * @example
    * ```ts
@@ -47,7 +47,7 @@ export default class DefaultShader extends WebGLShader {
    *
    * @remarks
    * This default shader program is replaced by subclass shaders to the GLSL source
-   * code for a {@link https://www.khronos.org/opengl/wiki/Vertex_Shader Vertex Shader} program.
+   * code for a [Vertex Shader](https://www.khronos.org/opengl/wiki/Vertex_Shader) program.
    *
    * @example
    * ```ts

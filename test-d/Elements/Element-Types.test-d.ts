@@ -45,6 +45,7 @@ function InlineElement_Test() {
         };
     } & lng.Element.TemplateSpecStrong & {
         smooth: lng.Element.SmoothTemplate<lng.Element.TemplateSpecStrong>;
+        transitions: lng.Element.TransitionsTemplate<lng.Element.TemplateSpecStrong>;
     }
   >({} as T100);
 }
@@ -222,6 +223,7 @@ function PatchTemplate_Test() {
   expectType<
     lng.Element.PatchTemplate<lng.Element.TemplateSpecLoose & {
         smooth: lng.Element.SmoothTemplate<lng.Element.TemplateSpecLoose>;
+        transitions: lng.Element.TransitionsTemplate<lng.Element.TemplateSpecLoose>;
     }> | undefined
   >({} as T400);
   // Component
@@ -234,6 +236,7 @@ function PatchTemplate_Test() {
       lng.components.ListComponent.TemplateSpec &
       {
         smooth: lng.Element.SmoothTemplate<lng.components.ListComponent.TemplateSpec>;
+        transitions: lng.Element.TransitionsTemplate<lng.components.ListComponent.TemplateSpec>;
       }
     >
     | undefined

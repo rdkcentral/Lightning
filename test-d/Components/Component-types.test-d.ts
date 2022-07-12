@@ -91,8 +91,18 @@ const t80: TemplateRequireType_SubComponent = {
 };
 // Child Loose Element is a Template<Element.TemplateSpecLoose>
 type T20 = NonNullable<TemplateRequireType_SubComponent['MyLooseElement']>;
-expectType<lng.Component.Template<lng.Element.TemplateSpecLoose & { smooth: lng.Element.SmoothTemplate<lng.Element.TemplateSpecLoose>; }>>({} as T20);
-expectNotType<lng.Component.Template<lng.Element.TemplateSpecStrong & { smooth: lng.Element.SmoothTemplate<lng.Element.TemplateSpecStrong>; }>>({} as T20);
+expectType<
+  lng.Component.Template<lng.Element.TemplateSpecLoose & {
+    smooth: lng.Element.SmoothTemplate<lng.Element.TemplateSpecLoose>;
+    transitions: lng.Element.TransitionsTemplate<lng.Element.TemplateSpecLoose>;
+  }>
+>({} as T20);
+expectNotType<
+  lng.Component.Template<lng.Element.TemplateSpecStrong & {
+    smooth: lng.Element.SmoothTemplate<lng.Element.TemplateSpecStrong>;
+    transitions: lng.Element.TransitionsTemplate<lng.Element.TemplateSpecStrong>;
+  }>
+>({} as T20);
 // Child Strong Element is a Template<Element.TemplateSpecLoose>
 type T30 = NonNullable<TemplateRequireType_SubComponent['MyStrongElement']>;
 expectType<lng.Component.Template<lng.Element.TemplateSpecStrong>>({} as T30);
@@ -165,7 +175,12 @@ type ShouldBeTemplate_Element_TemplateSpec = Template_TestTemplateSpec['MyStrong
 expectType<lng.Component.Template<lng.Element.TemplateSpecStrong> | undefined>({} as ShouldBeTemplate_Element_TemplateSpec);
 // Check that MyLooseElement is a Template<lng.Element.TemplateSpecLoose>
 type ShouldBeTemplate_Element_TemplateSpecLoose = Template_TestTemplateSpec['MyLooseElement'];
-expectType<lng.Component.Template<lng.Element.TemplateSpecLoose & { smooth: lng.Element.SmoothTemplate<lng.Element.TemplateSpecLoose>; }> | undefined>({} as ShouldBeTemplate_Element_TemplateSpecLoose);
+expectType<
+  lng.Component.Template<lng.Element.TemplateSpecLoose & {
+    smooth: lng.Element.SmoothTemplate<lng.Element.TemplateSpecLoose>;
+    transitions: lng.Element.TransitionsTemplate<lng.Element.TemplateSpecLoose>;
+  }
+> | undefined>({} as ShouldBeTemplate_Element_TemplateSpecLoose);
 // Check that MyListComponent is a Template<lng.components.ListComponent>
 type ShouldBeTemplateRequireType_ListComponent_TemplateSpec = Template_TestTemplateSpec['MyListComponent'];
 expectType<lng.Component.TemplateRequireType<typeof lng.components.ListComponent> | undefined>({} as ShouldBeTemplateRequireType_ListComponent_TemplateSpec);

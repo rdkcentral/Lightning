@@ -188,73 +188,73 @@ declare class Component<
   /**
    * Overridable method called during the `construct` lifecycle phase
    *
-   * @see {@link ??? link to lightning lifecycle docs}
+   * See [Lifecycle Events](https://lightningjs.io/docs/#/lightning-core-reference/Components/LifecycleEvents).
    */
   _construct(): void;
   /**
    * Overridable method called during the `build` lifecycle phase
    *
-   * @see {@link ??? link to lightning lifecycle docs}
+   * See [Lifecycle Events](https://lightningjs.io/docs/#/lightning-core-reference/Components/LifecycleEvents).
    */
   _build(): void;
   /**
    * Overridable method called during the `setup` lifecycle phase
    *
-   * @see {@link ??? link to lightning lifecycle docs}
+   * See [Lifecycle Events](https://lightningjs.io/docs/#/lightning-core-reference/Components/LifecycleEvents).
    */
   _setup(): void;
   /**
    * Overridable method called during the `init` lifecycle phase
    *
-   * @see {@link ??? link to lightning lifecycle docs}
+   * See [Lifecycle Events](https://lightningjs.io/docs/#/lightning-core-reference/Components/LifecycleEvents).
    */
   _init(): void;
   /**
    * Overridable method called when the Component is attached
    *
-   * @see {@link ??? link to lightning lifecycle docs}
+   * See [Lifecycle Events](https://lightningjs.io/docs/#/lightning-core-reference/Components/LifecycleEvents).
    */
   _attach(): void;
   /**
    * Overridable method called when the Component is detached
    *
-   * @see {@link ??? link to lightning lifecycle docs}
+   * See [Lifecycle Events](https://lightningjs.io/docs/#/lightning-core-reference/Components/LifecycleEvents).
    */
   _detach(): void;
   /**
    * Overridable method called only during the first `enable` lifecycle phase
    *
-   * @see {@link ??? link to lightning lifecycle docs}
+   * See [Lifecycle Events](https://lightningjs.io/docs/#/lightning-core-reference/Components/LifecycleEvents).
    */
   _firstEnable(): void;
   /**
    * Overridable method called during the `enable` lifecycle phase
    *
-   * @see {@link ??? link to lightning lifecycle docs}
+   * See [Lifecycle Events](https://lightningjs.io/docs/#/lightning-core-reference/Components/LifecycleEvents).
    */
   _enable(): void;
   /**
    * Overridable method called during the `disable` lifecycle phase
    *
-   * @see {@link ??? link to lightning lifecycle docs}
+   * See [Lifecycle Events](https://lightningjs.io/docs/#/lightning-core-reference/Components/LifecycleEvents).
    */
   _disable(): void;
   /**
    * Overridable method called only during the first `active` lifecycle phase
    *
-   * @see {@link ??? link to lightning lifecycle docs}
+   * See [Lifecycle Events](https://lightningjs.io/docs/#/lightning-core-reference/Components/LifecycleEvents).
    */
   _firstActive(): void;
   /**
    * Overridable method called during the `active` lifecycle phase
    *
-   * @see {@link ??? link to lightning lifecycle docs}
+   * See [Lifecycle Events](https://lightningjs.io/docs/#/lightning-core-reference/Components/LifecycleEvents).
    */
   _active(): void;
   /**
    * Overridable method called during the `inactive` lifecycle phase
    *
-   * @see {@link ??? link to lightning lifecycle docs}
+   * See [Lifecycle Events](https://lightningjs.io/docs/#/lightning-core-reference/Components/LifecycleEvents).
    */
   _inactive(): void;
   _onDataProvided(): void;

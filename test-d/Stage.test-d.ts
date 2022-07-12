@@ -14,7 +14,7 @@ function ElementTests() {
     viewportScrollOffset: 'abc' // this should be a number
   });
   expectNotType<lng.components.ListComponent>(t100);
-  expectType<lng.Component | lng.Element>(t100);
+  expectType<lng.Element>(t100);
 
   /// However it is inferred, if they are correct
   const t200 = stage.element({
@@ -57,7 +57,7 @@ function CTests() {
     viewportScrollOffset: 'abc' // this should be a number
   });
   expectNotType<lng.components.ListComponent>(t100);
-  expectType<lng.Component | lng.Element>(t100);
+  expectType<lng.Element>(t100);
 
   /// However it is inferred, if they are correct
   const t200 = stage.c({

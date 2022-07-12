@@ -64,7 +64,7 @@ declare class Tools {
    * @param w Width of rectangle
    * @param h Height of rectangle
    * @param radius Corner radius of rectangle
-   * @param blur {@link https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/shadowBlur#value | shadowBlur (MDN)}
+   * @param blur [shadowBlur (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/shadowBlur#value)
    * @param margin Offset to shift shadow
    */
   static getShadowRect(

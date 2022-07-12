@@ -864,7 +864,7 @@ declare class Element<
    * @remarks
    * `true` if this {@link Element} is attached, otherwise `false`.
    *
-   * @see {@link https://lightningjs.io/docs/#/lightning-core-reference/Components/LifecycleEvents?id=lifecycle-events|Lifecycle Events}
+   * See [Lifecycle Events](https://lightningjs.io/docs/#/lightning-core-reference/Components/LifecycleEvents?id=lifecycle-events).
    */
   readonly attached: boolean;
 
@@ -874,7 +874,7 @@ declare class Element<
    * @remarks
    * `true` if this {@link Element} is enabled, otherwise `false`.
    *
-   * @see {@link https://lightningjs.io/docs/#/lightning-core-reference/Components/LifecycleEvents?id=lifecycle-events|Lifecycle Events}
+   * See [Lifecycle Events](https://lightningjs.io/docs/#/lightning-core-reference/Components/LifecycleEvents?id=lifecycle-events).
    */
   readonly enabled: boolean;
 
@@ -884,7 +884,7 @@ declare class Element<
    * @remarks
    * `true` if this {@link Element} is active, otherwise `false`.
    *
-   * @see {@link https://lightningjs.io/docs/#/lightning-core-reference/Components/LifecycleEvents?id=lifecycle-events|Lifecycle Events}
+   * See [Lifecycle Events](https://lightningjs.io/docs/#/lightning-core-reference/Components/LifecycleEvents?id=lifecycle-events).
    */
   readonly active: boolean;
 

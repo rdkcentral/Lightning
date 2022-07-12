@@ -41,6 +41,6 @@
     "rollup-plugin-terser": "^5.1.2",
     "sinon": "^7.5.0",
     "tsd": "^0.21.0",
-    "typedoc": "^0.23.2"
+    "typedoc": "^0.23.7"
   }
 }

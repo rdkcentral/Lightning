@@ -21,6 +21,7 @@ import CoreQuadList from "../tree/core/CoreQuadList.mjs";
 import CoreQuadOperation from "../tree/core/CoreQuadOperation.mjs";
 import CoreRenderState from "../tree/core/CoreRenderState.mjs";
 import ElementChildList from "../tree/ElementChildList.mjs";
+import ObjectList from "../tree/ObjectList.mjs";
 import Shader from "../tree/Shader.mjs";
 import TextureManager from "../tree/TextureManager.mjs";
 import TextureSource from "../tree/TextureSource.mjs";
@@ -49,4 +50,5 @@ export {
   WebGLRenderer,
   WebGLCoreQuadOperation,
   WebGLCoreQuadList,
+  ObjectList
 }

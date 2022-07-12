@@ -81,8 +81,8 @@ class Container extends lng.Component<Container.TemplateSpec> implements lng.Com
     expectType<number>(this.ListComponent.itemSize);
     expectType<number>(this.ListComponent.viewportScrollOffset);
     expectType<number>(this.ListComponent.itemScrollOffset);
-    expectType<TransitionSettings | TransitionSettings.Literal>(this.ListComponent.scrollTransitionSettings);
-    expectType<TransitionSettings | TransitionSettings.Literal>(this.ListComponent.scrollTransition);
+    expectType<TransitionSettings>(this.ListComponent.scrollTransitionSettings);
+    expectType<TransitionSettings>(this.ListComponent.scrollTransition);
     expectType<AnimationSettings | null>(this.ListComponent.progressAnimation);
     expectType<boolean>(this.ListComponent.roll);
     expectType<number>(this.ListComponent.rollMin);

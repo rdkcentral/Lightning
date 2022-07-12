@@ -1,16 +1,11 @@
 import AnimationSettings from "./AnimationSettings.mjs";
 
-/**
- * Types we're allowing animations on
- *
- * @privateRemarks
- * Add to this if we want to open this up more
- *
- * @hidden
- */
-type AnimatableValueTypes = number | boolean | string;
-
 declare namespace AnimationActionSettings {
+  /**
+   * Types animations are allowed on
+   */
+  export type AnimatableValueTypes = number | boolean | string;
+
   export type AnimationActionValue =
     AnimatableValueTypes |
     AnimationActionSettings.AnimationActionPointMap |
