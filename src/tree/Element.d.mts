@@ -441,7 +441,7 @@ declare namespace Element {
     /**
      * Set a shader on this Element
      */
-    shader: Shader | Shader.Literal<typeof Shader> | null | undefined;
+    shader: Shader | Shader.Literal | null | undefined;
 
     /**
      * If set to `true`, enables Render-to-Texture mode on this Element
@@ -1257,8 +1257,8 @@ declare class Element<
    *
    * @see {@link Element.TemplateSpecStrong.shader}
    */
-  get shader(): Shader | Shader.Literal<typeof Shader> | null;
-  set shader(v: Shader | Shader.Literal<typeof Shader> | null | undefined);
+  get shader(): Shader | Shader.Literal | null;
+  set shader(v: Shader | Shader.Literal | null | undefined);
 
   renderToTexture: boolean;
 
@@ -1300,20 +1300,24 @@ declare class Element<
    * Setup one or more transitions
    *
    * @remarks
-   * WARNING: DO NOT read from this property. It is WRITE-ONLY. It will return `undefined`.
+   * **WARNING:** DO NOT read from this property. It is WRITE-ONLY. It will always return `undefined`.
    *
    * @see {@link Element.TemplateSpecStrong.transitions}
    */
+  // The getter type needs to have TransitionsTemplate in its union for some reason thats not clear
   // @ts-ignore-error Prevent ts(2380)
-  get transitions(): undefined;
-  set transitions(v: Element.TransitionsTemplate<Element.TemplateSpecStrong>);
+  get transitions(): Element.TransitionsTemplate<TemplateSpecType> | undefined;
+  set transitions(v: Element.TransitionsTemplate<TemplateSpecType>);
 
   /**
    * Starts a smooth transition for all the included properties of the object
    *
+   * @remarks
+   * **WARNING:** DO NOT read from this property. It is WRITE-ONLY. It will always return `undefined`.
+   *
    * @see {@link Element.TemplateSpecStrong.smooth}
    */
-  // The getter type needs to have SmoothLiteral in its union for some reason thats not clear
+  // The getter type needs to have SmoothTemplate in its union for some reason thats not clear
   // @ts-ignore-error Prevent ts(2380)
   get smooth(): Element.SmoothTemplate<TemplateSpecType> | undefined;
   set smooth(object: Element.SmoothTemplate<TemplateSpecType>);
@@ -1400,7 +1404,10 @@ declare class Element<
    *
    * NOT AVAILABLE AT RUNTIME.
    */
-  readonly __$type_TemplateSpec: TemplateSpecType & { smooth: Element.SmoothTemplate<TemplateSpecType> };
+  readonly __$type_TemplateSpec: TemplateSpecType & {
+    smooth: Element.SmoothTemplate<TemplateSpecType>
+    transitions: Element.TransitionsTemplate<TemplateSpecType>
+  };
 
   // Purposely not exposed:
   // getTags();

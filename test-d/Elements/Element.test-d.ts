@@ -165,8 +165,7 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
     //
     // set transitions()
     //
-    // Quick check that `get transitions` also has `undefined` in its type
-    expectType<undefined>(this.MyStrongElement.transitions);
+    // # STRONG #
     // Can set transitions
     this.MyStrongElement.transitions = {
       x: {
@@ -176,6 +175,15 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
       },
       mh: {
         delay: 123
+      },
+    };
+    // Can't set transitions for invalid props
+    this.MyStrongElement.transitions = {
+      // @ts-expect-error
+      itemSize: { // itemSize is only on ListComponent (see test below)
+        delay: 123,
+        duration: 123,
+        timingFunction: 'ease-out'
       },
     };
     // Can set empty object
@@ -194,6 +202,51 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
     this.MyStrongElement.transitions = 123;
     // @ts-expect-error
     this.MyStrongElement.transitions = 'abc';
+    // Test for Component props
+    this.TestComponent.transitions = {
+      itemSize: {
+        delay: 123
+      }
+    };
+    // Still unknown props aren't allowed
+    this.TestComponent.transitions = {
+      // @ts-expect-error
+      INVALID_PROP: {
+        delay: 123
+      }
+    }
+
+
+    // # LOOSE #
+    // Can set transitions on an unknown prop
+    this.MyLooseElement.transitions = {
+      x: {
+        delay: 123,
+        duration: 123,
+        timingFunction: 'ease-out'
+      },
+      INVALID_PROP: {
+        delay: 123,
+        duration: 123,
+        timingFunction: 'ease-in-out'
+      }
+    };
+    // Can set empty object
+    this.MyLooseElement.transitions = {};
+    // Can't set non-numeric properties
+    this.MyLooseElement.transitions = {
+      // @ts-expect-error
+      rtt: {
+        delay: 123,
+        duration: 123,
+        timingFunction: 'ease-out'
+      },
+    };
+    // Can't set anything else (protection from accidental any)
+    // @ts-expect-error
+    this.MyLooseElement.transitions = 123;
+    // @ts-expect-error
+    this.MyLooseElement.transitions = 'abc';
 
     //
     // set smooth()
