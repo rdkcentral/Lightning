@@ -37,6 +37,8 @@ export default class WebPlatform {
                 this._imageWorker = new ImageWorker();
             }
         }
+
+        this._registerVisibilityChangeHandler();
     }
 
     destroy() {
@@ -47,6 +49,7 @@ export default class WebPlatform {
         this._removeClickHandler();
         this._removeHoverHandler();
         this._removeScrollWheelHandler();
+        this._removeVisibilityChangeHandler();
     }
 
     startLoop() {
@@ -266,5 +269,23 @@ export default class WebPlatform {
             window.removeEventListener('wheel', this._scrollWheelListener);
         }
     }
-}
 
+    /**
+     * Fix for issue reported at: https://github.com/WebPlatformForEmbedded/WPEWebKit/issues/882
+     */
+    _registerVisibilityChangeHandler() {
+        this._visibilityChangeHandler = () => {
+            if (document.visibilityState === 'visible') {
+                this.stage.root.core.setHasRenderUpdates(2);
+                this.stage.drawFrame();
+            }
+        }
+        document.addEventListener('visibilitychange', this._visibilityChangeHandler);
+    }
+
+    _removeVisibilityChangeHandler() {
+        if (this._visibilityChangeHandler) {
+            document.removeEventListener('visibilitychange', this._visibilityChangeHandler);
+        }
+    }
+}
