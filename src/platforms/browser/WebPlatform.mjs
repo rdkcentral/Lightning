@@ -94,8 +94,9 @@ export default class WebPlatform {
             self._awaitingLoop = false;
             if (self._looping) {
                 self.stage.updateFrame();
-                self.switchLoop();
-                console.log('Active loop', self.stage.ctx.hasRenderUpdates());
+                if (self.stage.getOption("pauseRafLoopOnIdle")) {
+                    self.switchLoop();
+                }
                 self.stage.drawFrame();
                 requestAnimationFrame(lp);
                 self._awaitingLoop = true;
