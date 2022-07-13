@@ -1,4 +1,0 @@
-# Shaders
-
-
-*** WORK IN PROGRESS ***
