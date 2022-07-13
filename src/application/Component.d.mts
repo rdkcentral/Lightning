@@ -9,6 +9,7 @@ declare namespace Component {
   /**
    * Base strongly-typed TemplateSpec for a Component
    *
+   * @example
    * If you inherit from this, follow this example closely:
    * ```
    * export interface MyComponentTemplateSpec extends lng.Component.TemplateSpecStrong {
@@ -17,13 +18,13 @@ declare namespace Component {
    *   // ^----- Your properties should not be optional (so TS can enforce that they are implemented in your Component)
    *   MyChildComponent: typeof MyChildComponent
    *   // ^----- Child components should be typed by their `typeof` types
-   *   MyChildElement: typeof lng.Element
-   *   // ^----- Child elements should be typed by `typeof lng.Element`
-   *   MyChildInlineElementType: typeof lng.Element<{
-   *     ElementChild1: typeof lng.Element;
+   *   MyChildElement: {}
+   *   // ^----- Child elements should inserted with `{}`
+   *   MyChildInlineElementType: {
+   *     ElementChild1: {};
    *     ElementChild2: typeof MyCoolComponent;
-   *   } & lng.Element.TemplateSpec>;
-   *   // ^----- Child elements should be typed by `typeof lng.Element`
+   *   };
+   *   // ^----- Example of nested Elements/Components
    *   content: Element.PatchTemplate<Element.TemplateSpecLoose>;
    *   // ^----- If your Component has a property that when set, patches
    *   //        the value into itself, use `PatchTemplate<ComponentTemplateSpecType>`
@@ -174,6 +175,10 @@ declare class Component<
   _handleRight?(e: KeyboardEvent): boolean | void;
   _handleUp?(e: KeyboardEvent): boolean | void;
   _handleDown?(e: KeyboardEvent): boolean | void;
+  /**
+   * Handle Enter
+   * @param e
+   */
   _handleEnter?(e: KeyboardEvent): boolean | void;
   _handleBack?(e: KeyboardEvent): boolean | void;
 

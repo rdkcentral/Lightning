@@ -6,6 +6,13 @@ declare namespace AnimationSettings {
    */
   export type StopMethod = typeof AnimationSettings['STOP_METHODS'][keyof typeof AnimationSettings['STOP_METHODS']];
 
+  /**
+   * Animation Settings object literal
+   *
+   * @remarks
+   * See [Animation Attributes](https://lightningjs.io/docs/#/lightning-core-reference/Animations/Attributes) for more
+   * information.
+   */
   export interface Literal {
     /**
      * Animation Actions

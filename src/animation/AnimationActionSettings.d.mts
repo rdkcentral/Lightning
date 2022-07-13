@@ -114,6 +114,13 @@ declare namespace AnimationActionSettings {
     sm?: number;
   }
 
+  /**
+   * Animation Action Settings object literal
+   *
+   * @remarks
+   * See [Animation Actions](https://lightningjs.io/docs/#/lightning-core-reference/Animations/Actions)
+   * for more information.
+   */
   export interface Literal {
     /**
      * Selector
