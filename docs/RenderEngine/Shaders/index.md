@@ -1,4 +1,4 @@
-# Lightning Core Shaders
+# Shaders
 
 Shaders in Lightning allow you to alter textures, or draw various effects over the gpu. By default the Lightning Core provides shaders that apply some of the most common used effects for you to use.
 
