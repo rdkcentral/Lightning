@@ -16,7 +16,7 @@ export default class CoreContext {
   render(): void;
 
   /**
-   * @see {@link Stage.update()}
+   * @see {@link Stage.update}
    */
   update(): void;
 

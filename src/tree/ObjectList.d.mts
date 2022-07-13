@@ -11,10 +11,10 @@ export default class ObjectList<ItemType, LiteralType extends Record<string | nu
    * @remarks
    * If `object` is:
    * - An Object Literal (See: {@link Utils.isObjectLiteral})...
-   *   - It will be tranformed into an instantiated `ItemType` via {@link createItem()} before
+   *   - It will be tranformed into an instantiated `ItemType` via {@link createItem} before
    *     being added to the ObjectList.
    * - An array...
-   *   - Each item of the Array will be recursively sent to {@link a()}.
+   *   - Each item of the Array will be recursively sent to {@link a}.
    * - An `ItemType`...
    *   - It will be added directly to the ObjectList
    * @param object
@@ -83,12 +83,12 @@ export default class ObjectList<ItemType, LiteralType extends Record<string | nu
    *         - The new Object Literal is patched into the existing object
    *     - If it does not:
    *       - The new object is added to the end of the ObjectList, transforming any Object Literals
-   *         with {@link createItem()} beforehand.
+   *         with {@link createItem} beforehand.
    * - An array:
    *   - The items of the ObjectList are replaced by the array:
    *     - Instantiated `ItemList` objects are used directly.
    *     - Object Literals are patched into any existing items (matched by their `ref` values)
-   *     - Object Literals that don't match existing items are created via {@link createItem()}.
+   *     - Object Literals that don't match existing items are created via {@link createItem}.
    * @param settings
    */
   patch(settings: Record<string, ItemType | LiteralType> | Array<ItemType | LiteralType>): void;

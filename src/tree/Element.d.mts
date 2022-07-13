@@ -492,7 +492,7 @@ declare namespace Element {
      * Starts a smooth transition for all the included properties of the object
      *
      * @remarks
-     * This is the same as calling {@link Element.setSmooth()} for each property.
+     * This is the same as calling {@link Element.setSmooth} for each property.
      *
      * @see {@link Element.SmoothTemplate} for type details
      */
@@ -651,7 +651,7 @@ declare namespace Element {
      * Setup one or more transitions
      *
      * @remarks
-     * This is the same as calling {@link Element.transition()} for each property.
+     * This is the same as calling {@link Element.transition} for each property.
      */
     transitions: TransitionsTemplate;
 
@@ -852,7 +852,8 @@ declare class Element<
   /**
    * Gets the first common ancestor Element that this Element and another Element `c` share.
    *
-   * - Returns `null` if there are no common ancestors
+   * @remarks
+   * Returns `null` if there are no common ancestors
    *
    * @param c Element to find common ancestor with
    */
@@ -1395,7 +1396,7 @@ declare class Element<
   flex: Element.Flex;
 
   flexItem: Element.FlexItem;
-  //toJSON() { !!!!
+  //toJSON() {
   //static collectChildren(tree, children) {
   //static getProperties(element) {
 

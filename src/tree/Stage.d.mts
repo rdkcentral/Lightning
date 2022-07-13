@@ -270,7 +270,7 @@ declare class Stage extends EventEmitter<Stage.EventMap> {
    * Stops the rendering loop
    *
    * @remarks
-   * This will halt all frame rendering until {@link resume()} is called.
+   * This will halt all frame rendering until {@link resume} is called.
    */
   stop(): void;
 
@@ -278,7 +278,7 @@ declare class Stage extends EventEmitter<Stage.EventMap> {
    * Resumes the rendering loop
    *
    * @remarks
-   * This must be called after {@link stop()} to resume frame rendering.
+   * This must be called after {@link stop} to resume frame rendering.
    */
   resume(): void;
 
@@ -346,12 +346,12 @@ declare class Stage extends EventEmitter<Stage.EventMap> {
    * @remarks
    *
    * - If `settings` are provided:
-   *   - Calls/returns {@link element()} with the provided `settings`.
+   *   - Calls/returns {@link element} with the provided `settings`.
    * - Otherwise:
    *   - Creates/returns a plain {@link Element} instance.
    *
    * Note: This method does NOT construct Components. For that, see
-   * {@link element()}
+   * {@link element}
    */
   createElement(settings?: Element.PatchTemplate): Element;
 
@@ -394,9 +394,9 @@ declare class Stage extends EventEmitter<Stage.EventMap> {
   element(settings: Element.PatchTemplate | Element): Element;
 
   /**
-   * Alias for {@link element()}
+   * Alias for {@link element}
    *
-   * @see {@link element()}
+   * @see {@link element}
    */
   c<T extends Component.Constructor>(settings: Component.NewPatchTemplate<T>): InstanceType<T>;
   c(settings: Element): Element;

@@ -16,7 +16,7 @@ export default class ElementChildList extends ObjectList<Element, Element.PatchT
    *   - It will be tranformed into an instantiated Element before
    *     being added to the ElementChildList.
    * - An array...
-   *   - Each item of the Array will be recursively sent to {@link a()}.
+   *   - Each item of the Array will be recursively sent to {@link a}.
    * - An {@link Element}...
    *   - It will be added directly to the ElementChildList
    * @param object
