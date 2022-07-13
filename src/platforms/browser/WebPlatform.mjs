@@ -78,7 +78,7 @@ export default class WebPlatform {
             // Web-specific data types.
             gl.texImage2D(gl.TEXTURE_2D, 0, options.internalFormat, options.format, options.type, source);
         } else if (source instanceof HTMLCanvasElement) {
-            if (Utils.isZiggo) {
+            if (Utils.isZiggo || this.stage.getOption("forceTxCanvasSource")) {
                 // Ziggo EOS and Selene have issues with getImageData implementation causing artifacts.
                 gl.texImage2D(gl.TEXTURE_2D, 0, options.internalFormat, options.format, options.type, source);
             } else {
