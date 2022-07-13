@@ -1,6 +1,6 @@
 # Shaders
 
-Shaders in Lightning allow you to alter textures, or draw various effects over the gpu. By default the Lightning Core provides shaders that apply some of the most common used effects for you to use.
+Shaders in Lightning allow you to alter textures, or draw various effects over the GPU. By default, the Lightning Core provides shaders that apply some of the most commonly used effects for you to use.
 
 ## Usage
 
@@ -32,7 +32,7 @@ Most of the shaders we provide have a selection of setters for you to customize 
 
 ### Animating
 
-You can animate shaders by addressing the shader property of an element. For example if you want to change the radius of a Rounded Rectangle:
+You can animate shaders by addressing the shader property of an element. For example, if you want to change the radius of a Rounded Rectangle:
 
 ```js
 const myAnimation = this.tag('Box').animation({

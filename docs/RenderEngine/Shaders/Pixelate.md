@@ -1,6 +1,6 @@
 # Pixelate
 
-With the Pixelate shader you can pixalate the to be rendered texture with a specific pixel size.
+With the Pixelate shader, you can pixelate the texture to be rendered with a specific pixel size.
 
 ## Usage
 

@@ -4,7 +4,7 @@ If you have a device that allows a Mouse or Pointer device, Lightning can listen
 
 To enable Mouse input, set `enablePointer: true` in your application options.
 
-In your component you can add the following methods to handle Hover, UnHover, and click events.
+In your component, you can add the following methods to handle Hover, UnHover, and click events.
 
 ```
 _handleClick() {

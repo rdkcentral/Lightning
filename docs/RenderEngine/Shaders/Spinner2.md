@@ -1,6 +1,6 @@
 # Spinner2
 
-The Spinner2 shader allows you to draw a loading / spinner icon on the screen. The Spinner2 shader is a successor to the Spinner shader which we do not recommend you use, its namespace however remains for backwards compatibility.
+The Spinner2 shader allows you to draw a loading / spinner icon on the screen. The Spinner2 shader is a successor to the Spinner shader which we do not recommend you use, its namespace however remains for backward compatibility.
 
 ## Usage
 
@@ -33,7 +33,7 @@ You can customize the appearance of the Spinner shader with the following setter
 ## Setters
 
 ### radius
-You can set the radius of the Spinner shader with a `float`. By default this is calculated by dividing the current width by 2.
+You can set the radius of the Spinner shader with a `float`. By default, this is calculated by dividing the current width by 2.
 
 ### stroke
 You can set the width of the spinner with the stroke property setting a `float`.
@@ -42,7 +42,7 @@ You can set the width of the spinner with the stroke property setting a `float`.
 You can set the color with an `argb` value typically used in Lightning. Default is `0xffffffff`
 
 ### backgroundColor
-You can set the backgroundColor of the spinner with an `argb` value typically used in Lightning, default is `0xff000000`.
+You can set the backgroundColor of the spinner with an `argb` value typically used in Lightning. Default is `0xff000000`.
 
 ### showDot
 You can show a dot where the shader starts to draw by setting a `boolean`.

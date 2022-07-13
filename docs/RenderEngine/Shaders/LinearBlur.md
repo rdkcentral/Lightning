@@ -1,6 +1,6 @@
 # Linear Blur
 
-With the Linear Blur shader you can add a linear blur effect to the to be rendered texture.
+With the Linear Blur shader, you can add a linear blur effect to the texture to be rendered.
 
 ## Usage
 

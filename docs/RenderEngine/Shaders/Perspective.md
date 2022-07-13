@@ -1,6 +1,6 @@
 # Perspective
 
-With the Perspective shader you can add a lighting & 3D effect to the to be rendered texture.
+With the Perspective shader, you can add a lighting & 3D effect to the texture to be rendered.
 
 ## Usage
 
@@ -36,7 +36,7 @@ Rotation in Lightning is done with radian values. You can use the following form
 degrees * Math.PI / 180
 ```
 
-If you for example to rotate a tag 33 degrees;
+For example, to rotate a tag 33 degrees;
 
 ```
 33 * Math.PI / 180
@@ -47,10 +47,10 @@ You can customize the appearance of the Perspective shader with the following se
 ## Setters
 
 ### rx
-You can the rotate the texture over the X-axis with a `float`. Expected input is the degrees in radians.
+You can rotate the texture over the X-axis with a `float`. Expected input is the degrees in radians.
 
 ### ry
-You can the rotate the texture over the Y-axis with a `float`. Expected input is the degrees in radians.
+You can rotate the texture over the Y-axis with a `float`. Expected input is the degrees in radians.
 
 ### z
 You can position the texture on the X-axis with a `float`. Expected input is the degrees in radians.
