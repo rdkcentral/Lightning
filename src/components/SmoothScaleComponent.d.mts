@@ -1,7 +1,7 @@
 import Component from "../application/Component.mjs";
 import Element from "../tree/Element.mjs";
 
-declare namespace SmoothScaleComponent { // !!! Go back and make all other components ContentType changable
+declare namespace SmoothScaleComponent {
   interface TemplateSpec<ContentType extends Element = Element> extends Component.TemplateSpecStrong {
     /**
      * Content patched into SmoothScaleComponent
@@ -17,7 +17,7 @@ declare namespace SmoothScaleComponent { // !!! Go back and make all other compo
 declare class SmoothScaleComponent<
   ContentType extends Element = Element
 >
-  extends Component<SmoothScaleComponent.TemplateSpec<ContentType>>
+  extends Component<{ TemplateSpecType: SmoothScaleComponent.TemplateSpec<ContentType> }>
 {
   // @ts-expect-error Prevent ts(2380)
   get content(): ContentType;

@@ -24,7 +24,7 @@ export default class ElementChildList extends ObjectList<Element, Element.PatchT
    * Returns the Element instance that was added to the ElementChildList, except if `object` is an
    * array in which it will return `null`
    */
-   a(object: Element.PatchTemplate | Array<Element.PatchTemplate | Element>): Element | null;
+   a(object: Element.PatchTemplate | Element | Array<Element.PatchTemplate | Element>): Element | null;
    /**
     * Add `element` to the end of the ElementChildList.
     *

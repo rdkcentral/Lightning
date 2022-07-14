@@ -29,7 +29,7 @@ class MyLooseComponentA extends lng.Component {
   }
 }
 
-class MyLooseComponentB extends lng.Component<lng.Component.TemplateSpecLoose> {
+class MyLooseComponentB extends lng.Component<{ TemplateSpecType: lng.Component.TemplateSpecLoose }> {
   static _template(): lng.Component.Template<lng.Component.TemplateSpecLoose> {
     return {
       x: 0,
@@ -75,7 +75,7 @@ class MyLooseComponentB extends lng.Component<lng.Component.TemplateSpecLoose> {
   }
 }
 
-export class MyLooseComponentC extends lng.Component<lng.Component.TemplateSpecLoose> {
+export class MyLooseComponentC extends lng.Component<{ TemplateSpecType: lng.Component.TemplateSpecLoose }> {
   static _template(): lng.Component.Template<lng.Component.TemplateSpecLoose> {
     return {
       x: 0,

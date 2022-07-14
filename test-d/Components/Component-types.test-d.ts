@@ -5,19 +5,19 @@ import { expectNotType, expectType } from 'tsd';
 import lng from '../../index.js';
 
 export interface SubComponentTemplateSpec extends lng.Component.TemplateSpecStrong {
-  MyStrongElement: typeof lng.Element<lng.Element.TemplateSpecStrong>;
-  MyLooseElement: typeof lng.Element<lng.Element.TemplateSpecLoose>;
+  MyStrongElement: typeof lng.Element<{ TemplateSpecType: lng.Element.TemplateSpecStrong }>;
+  MyLooseElement: typeof lng.Element<{ TemplateSpecType: lng.Element.TemplateSpecLoose }>;
   MyListComponent: typeof lng.components.ListComponent;
 }
 
-class SubComponent extends lng.Component<SubComponentTemplateSpec> implements lng.Component.ImplementTemplateSpec<SubComponentTemplateSpec> {
+class SubComponent extends lng.Component<{ TemplateSpecType: SubComponentTemplateSpec }> implements lng.Component.ImplementTemplateSpec<SubComponentTemplateSpec> {
   MyStrongElement = this.getByRef('MyStrongElement')!;
   MyLooseElement = this.getByRef('MyLooseElement')!;
   MyListComponent = this.getByRef('MyListComponent')!;
 }
 
 export interface TestTemplateSpec extends lng.Component.TemplateSpecStrong {
-  MyStrongElement: typeof lng.Element<lng.Element.TemplateSpecStrong>;
+  MyStrongElement: typeof lng.Element<{ TemplateSpecType: lng.Element.TemplateSpecStrong }>;
   MyLooseElement: typeof lng.Element;
   MyListComponent: typeof lng.components.ListComponent;
   MySubComponent: typeof SubComponent;

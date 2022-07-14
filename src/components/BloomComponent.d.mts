@@ -2,13 +2,13 @@ import Component from "../application/Component.mjs";
 import Element from "../tree/Element.mjs";
 
 declare namespace BloomComponent {
-  export interface TemplateSpec extends Component.TemplateSpecStrong {
+  export interface TemplateSpec<ContentType extends Element = Element> extends Component.TemplateSpecStrong {
     /**
      * Content can be any Element / Component
      *
      * It is patched into the BloomComponent
      */
-    content: Element.PatchTemplate<Element.TemplateSpecLoose>;
+    content: Element.PatchTemplate<Element.ExtractTemplateSpec<ContentType>>;
 
     /**
      * X Padding
@@ -28,12 +28,12 @@ declare namespace BloomComponent {
   }
 }
 
-declare class BloomComponent
-  extends Component<BloomComponent.TemplateSpec>
-  implements Component.ImplementTemplateSpec<BloomComponent.TemplateSpec>
+declare class BloomComponent<ContentType extends Element = Element>
+  extends Component<{ TemplateSpecType: BloomComponent.TemplateSpec<ContentType> }>
 {
-  get content(): Element;
-  set content(v: Element.PatchTemplate<Element.TemplateSpecLoose>);
+  // @ts-expect-error Prevent ts(2380)
+  get content(): ContentType;
+  set content(v: Element.PatchTemplate<Element.ExtractTemplateSpec<ContentType>>);
 
   /**
    * X Padding

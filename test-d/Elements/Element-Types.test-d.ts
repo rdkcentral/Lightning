@@ -7,12 +7,12 @@ import { InlineElement } from '../../src/tree/Element.mjs';
 
 export interface TestTemplateSpec extends lng.Component.TemplateSpecStrong {
   MyStrongElement_InlineEmpty: {},
-  MyStrongElement_ExplicitType: typeof lng.Element<lng.Element.TemplateSpecStrong>;
+  MyStrongElement_ExplicitType: typeof lng.Element<{ TemplateSpecType: lng.Element.TemplateSpecStrong }>;
   MyLooseElement: typeof lng.Element;
   MyListComponent: typeof lng.components.ListComponent;
   MyStrongElement_InlineChildren: {
     Child1: {},
-    Child2: typeof lng.Element<lng.Element.TemplateSpecStrong>,
+    Child2: typeof lng.Element<{ TemplateSpecType: lng.Element.TemplateSpecStrong }>,
     Child3: typeof lng.components.ListComponent
   }
 }
@@ -58,21 +58,21 @@ function TransformPossibleElement_Test() {
   // Strong Element (implicit inline, empty)
   type T100 = lng.Element.TransformPossibleElement<'ValidRef', TestTemplateSpec['MyStrongElement_InlineEmpty']>;
   expectType<
-    lng.Element<InlineElement<{}>>
+    lng.Element<{ TemplateSpecType: InlineElement<{}> }>
   >({} as T100);
   // Strong Element (explicit type)
   type T200 = lng.Element.TransformPossibleElement<'ValidRef', TestTemplateSpec['MyStrongElement_ExplicitType']>;
   expectType<
-    lng.Element<
-      lng.Element.TemplateSpecStrong
-    >
+    lng.Element<{
+      TemplateSpecType: lng.Element.TemplateSpecStrong
+    }>
   >({} as T200);
   // Loose Element
   type T300 = lng.Element.TransformPossibleElement<'ValidRef', TestTemplateSpec['MyLooseElement']>;
   expectType<
-    lng.Element<
-      lng.Element.TemplateSpecLoose
-    >
+    lng.Element<{
+      TemplateSpecType: lng.Element.TemplateSpecLoose
+    }>
   >({} as T300);
   // Component
   type T400 = lng.Element.TransformPossibleElement<'ValidRef', TestTemplateSpec['MyListComponent']>;
@@ -80,13 +80,13 @@ function TransformPossibleElement_Test() {
   // Strong Element (implicit inline, children)
   type T550 = lng.Element.TransformPossibleElement<'ValidRef', TestTemplateSpec['MyStrongElement_InlineChildren']>;
   expectType<
-    lng.Element<
-      InlineElement<{
+    lng.Element<{
+      TemplateSpecType: InlineElement<{
         Child1: {};
-        Child2: typeof lng.Element<lng.Element.TemplateSpecStrong>;
+        Child2: typeof lng.Element<{ TemplateSpecType: lng.Element.TemplateSpecStrong }>;
         Child3: typeof lng.components.ListComponent;
       }>
-    >
+    }>
   >({} as T550);
 
   /// If the `Key` is not a valid ref (i.e. doesn't begin with a capital letter) then it shouldn't be transformed
@@ -247,7 +247,7 @@ function PatchTemplate_Test() {
     lng.Element.PatchTemplate<
       InlineElement<{
         Child1: {};
-        Child2: typeof lng.Element<lng.Element.TemplateSpecStrong>,
+        Child2: typeof lng.Element<{ TemplateSpecType: lng.Element.TemplateSpecStrong }>,
         Child3: typeof lng.components.ListComponent;
       }>
     > | undefined

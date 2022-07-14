@@ -2,13 +2,13 @@ import Component from "../application/Component.mjs";
 import Element from "../tree/Element.mjs";
 
 declare namespace BorderComponent {
-  export interface TemplateSpec extends Component.TemplateSpecStrong {
+  export interface TemplateSpec<ContentType extends Element = Element> extends Component.TemplateSpecStrong {
     /**
      * Content can be any Element / Component
      *
      * It is patched into the BorderComponent
      */
-    content: Element.PatchTemplate<Element.TemplateSpecLoose>;
+    content: Element.PatchTemplate<Element.ExtractTemplateSpec<ContentType>>;
 
     /**
      * Border width
@@ -107,12 +107,12 @@ declare namespace BorderComponent {
   }
 }
 
-declare class BorderComponent
-  extends Component<BorderComponent.TemplateSpec>
-  implements Component.ImplementTemplateSpec<BorderComponent.TemplateSpec>
+declare class BorderComponent<ContentType extends Element = Element>
+  extends Component<{ TemplateSpecType: BorderComponent.TemplateSpec<ContentType> }>
 {
-  get content(): Element;
-  set content(v: Element.PatchTemplate<Element.TemplateSpecLoose>);
+  // @ts-expect-error Prevent ts(2380)
+  get content(): ContentType;
+  set content(v: Element.PatchTemplate<Element.ExtractTemplateSpec<ContentType>>);
 
   borderWidth: number;
   borderWidthTop: number;

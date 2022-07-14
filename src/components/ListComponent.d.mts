@@ -80,7 +80,7 @@ type Documentation = {
 declare class ListComponent<
   ItemType extends Element.Constructor = Element.Constructor
 >
-  extends Component<ListComponent.TemplateSpec<ItemType>>
+  extends Component<{ TemplateSpecType: ListComponent.TemplateSpec<ItemType> }>
   implements Documentation
 {
   readonly itemList: ListItems<InstanceType<ItemType>>;

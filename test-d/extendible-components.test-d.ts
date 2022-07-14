@@ -10,7 +10,7 @@ namespace Animal {
   }
 }
 
-class Animal<TemplateSpecType extends Animal.TemplateSpec = Animal.TemplateSpec> extends lng.Component<TemplateSpecType> implements lng.Component.ImplementTemplateSpec<Animal.TemplateSpec> {
+class Animal<TemplateSpecType extends Animal.TemplateSpec = Animal.TemplateSpec> extends lng.Component<{ TemplateSpecType: TemplateSpecType }> implements lng.Component.ImplementTemplateSpec<Animal.TemplateSpec> {
   static _template(): lng.Component.Template<Animal.TemplateSpec> {
     return {
       x: (w) => w,

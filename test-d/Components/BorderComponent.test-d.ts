@@ -5,10 +5,11 @@ import BorderComponent from '../../src/components/BorderComponent.mjs';
 namespace Container {
   export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
     BorderComponent: typeof lng.components.BorderComponent;
+    BorderComponent_SpecificType: typeof lng.components.BorderComponent<lng.components.ListComponent>
   }
 }
 
-class Container extends lng.Component<Container.TemplateSpec> implements lng.Component.ImplementTemplateSpec<Container.TemplateSpec> {
+class Container extends lng.Component<{ TemplateSpecType: Container.TemplateSpec }> implements lng.Component.ImplementTemplateSpec<Container.TemplateSpec> {
   static _template(): lng.Component.Template<Container.TemplateSpec> {
     // Template validity
     return {
@@ -76,11 +77,24 @@ class Container extends lng.Component<Container.TemplateSpec> implements lng.Com
             INVALID_PROP: 123,
           }
         }
+      },
+      BorderComponent_SpecificType: {
+        type: lng.components.BorderComponent,
+        content: {
+          alpha: 123,
+          items: [
+            { text: 'abc' }
+          ],
+          // @ts-expect-error Sanity check: horizontal must be a boolean
+          horizontal: 123
+        },
+        smoothScale: 123
       }
     };
   }
 
-  readonly BorderComponent: BorderComponent = this.tag('BorderComponent')!;
+  readonly BorderComponent: BorderComponent = this.getByRef('BorderComponent')!;
+  readonly BorderComponent_SpecificType = this.getByRef('BorderComponent_SpecificType')!;
 
   _init() {
     // Direct property setting
@@ -251,6 +265,44 @@ class Container extends lng.Component<Container.TemplateSpec> implements lng.Com
           INVALID_PROP: 123,
         }
       }
+    });
+
+    // Specific type tests
+    this.BorderComponent_SpecificType.content = {
+      alpha: 123,
+      items: [
+        { text: 'abc' }
+      ],
+      // @ts-expect-error Sanity check: horizontal must be a boolean
+      horizontal: 123
+    };
+
+    expectType<lng.components.ListComponent>(this.BorderComponent_SpecificType.content);
+
+    this.patch({
+      BorderComponent_SpecificType: {
+        content: {
+          alpha: 123,
+          items: [
+            { text: 'abc' }
+          ],
+          // @ts-expect-error Sanity check: horizontal must be a boolean
+          horizontal: 123
+        },
+        smoothScale: 123
+      }
+    });
+
+    this.BorderComponent_SpecificType.patch({
+      content: {
+        alpha: 123,
+        items: [
+          { text: 'abc' }
+        ],
+        // @ts-expect-error Sanity check: horizontal must be a boolean
+        horizontal: 123
+      },
+      smoothScale: 123
     });
   }
 }

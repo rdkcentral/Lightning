@@ -16,7 +16,10 @@ declare namespace Application {
   }
 }
 
-declare class Application extends Component<Application.TemplateSpec, Application.EventMap> implements EventEmitter<Application.EventMap> {
+declare class Application extends Component<{
+  TemplateSpecType: Application.TemplateSpec,
+  EventMap: Application.EventMap
+}> implements EventEmitter<Application.EventMap> {
   constructor(appSettings: Application.Settings);
   get focusPath(): Element[] | undefined;
   updateFocusPath(): void;

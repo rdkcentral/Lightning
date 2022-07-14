@@ -1,12 +1,14 @@
+import { expectType } from 'tsd';
 import lng from '../../index';
 
 namespace Container {
   export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
     FastBlurComponent: typeof lng.components.FastBlurComponent;
+    FastBlurComponent_SpecificType: typeof lng.components.FastBlurComponent<lng.components.ListComponent>;
   }
 }
 
-class Container extends lng.Component<Container.TemplateSpec> implements lng.Component.ImplementTemplateSpec<Container.TemplateSpec> {
+class Container extends lng.Component<{ TemplateSpecType: Container.TemplateSpec }> implements lng.Component.ImplementTemplateSpec<Container.TemplateSpec> {
   static _template(): lng.Component.Template<Container.TemplateSpec> {
     // Template validity
     return {
@@ -20,6 +22,18 @@ class Container extends lng.Component<Container.TemplateSpec> implements lng.Com
             text: 'Hello World'
           }
         }
+      },
+      FastBlurComponent_SpecificType: {
+        type: lng.components.FastBlurComponent,
+        content: {
+          alpha: 123,
+          items: [
+            { text: 'abc' }
+          ],
+          // @ts-expect-error Sanity check: horizontal must be a boolean
+          horizontal: 123
+        },
+        smoothScale: 123
       }
     };
   }
@@ -36,7 +50,6 @@ class Container extends lng.Component<Container.TemplateSpec> implements lng.Com
     this.FastBlurComponent.content = {
       src: 'image'
     };
-    this.FastBlurComponent.content = this.FastBlurComponent;
 
     // Indirect patch
     this.patch({
@@ -67,9 +80,49 @@ class Container extends lng.Component<Container.TemplateSpec> implements lng.Com
         }
       }
     });
+
+    // Specific type tests
+    this.FastBlurComponent_SpecificType.content = {
+      alpha: 123,
+      items: [
+        { text: 'abc' }
+      ],
+      // @ts-expect-error Sanity check: horizontal must be a boolean
+      horizontal: 123
+    };
+
+    expectType<lng.components.ListComponent>(this.FastBlurComponent_SpecificType.content);
+
+    this.patch({
+      FastBlurComponent_SpecificType: {
+        content: {
+          alpha: 123,
+          items: [
+            { text: 'abc' }
+          ],
+          // @ts-expect-error Sanity check: horizontal must be a boolean
+          horizontal: 123
+        },
+        smoothScale: 123
+      }
+    });
+
+    this.FastBlurComponent_SpecificType.patch({
+      content: {
+        alpha: 123,
+        items: [
+          { text: 'abc' }
+        ],
+        // @ts-expect-error Sanity check: horizontal must be a boolean
+        horizontal: 123
+      },
+      smoothScale: 123
+    });
   }
 
   get FastBlurComponent(): lng.components.FastBlurComponent {
     return this.tag('FastBlurComponent')!;
   }
+
+  readonly FastBlurComponent_SpecificType = this.getByRef('FastBlurComponent_SpecificType')!;
 }

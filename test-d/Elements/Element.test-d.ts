@@ -4,7 +4,7 @@ import ListComponent from '../../src/components/ListComponent.mjs';
 
 namespace MyElementTest {
   export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
-    MyStrongElement: typeof lng.Element<lng.Element.TemplateSpecStrong>;
+    MyStrongElement: typeof lng.Element<{ TemplateSpecType: lng.Element.TemplateSpecStrong }>;
     MyLooseElement: typeof lng.Element;
     TestComponent: typeof ListComponent;
   }
@@ -13,7 +13,7 @@ namespace MyElementTest {
 /**
  * Component that tests all the properties that should be on an Element
  */
-class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements lng.Component.ImplementTemplateSpec<MyElementTest.TemplateSpec> {
+class MyElementTest extends lng.Component<{ TemplateSpecType: MyElementTest.TemplateSpec }> implements lng.Component.ImplementTemplateSpec<MyElementTest.TemplateSpec> {
   static _template(): lng.Component.Template<MyElementTest.TemplateSpec> {
     // !!! Finish this test
     return {
@@ -99,8 +99,18 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
     // getByRef
     //
     // # STRONG #
-    expectType<lng.Element<lng.Element.TemplateSpecLoose, lng.Texture> | undefined>(this.getByRef('MyLooseElement'));
-    expectType<lng.Element<lng.Element.TemplateSpecStrong, lng.Texture> | undefined>(this.getByRef('MyStrongElement'));
+    expectType<
+      lng.Element<{
+        TemplateSpecType: lng.Element.TemplateSpecLoose,
+        TextureType: lng.Texture
+      }> | undefined
+    >(this.getByRef('MyLooseElement'));
+    expectType<
+      lng.Element<{
+        TemplateSpecType: lng.Element.TemplateSpecStrong,
+        TextureType: lng.Texture
+      }> | undefined
+    >(this.getByRef('MyStrongElement'));
     // @ts-expect-error Don't allow anything in a strongly typed Element
     this.getByRef('Anything');
     // # LOOSE #
@@ -444,7 +454,9 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
   }
 }
 
-const element: lng.Element<lng.Element.TemplateSpecStrong> = {} as any;
+const element: lng.Element<{
+  TemplateSpecType: lng.Element.TemplateSpecStrong
+}> = {} as any;
 
 element.setSmooth('x', 12);
 element.setSmooth('y', 12);

@@ -28,7 +28,7 @@ const t200: lng.Component.Template<MyComponentA.TemplateSpec> = {
 };
 
 // We should be able to create a component from the TemplateSpec
-class MyComponentA extends lng.Component<MyComponentA.TemplateSpec> implements lng.Component.ImplementTemplateSpec<MyComponentA.TemplateSpec> {
+class MyComponentA extends lng.Component<{ TemplateSpecType: MyComponentA.TemplateSpec }> implements lng.Component.ImplementTemplateSpec<MyComponentA.TemplateSpec> {
   static _template(): lng.Component.Template<MyComponentA.TemplateSpec> {
     return {
       x: (w) => w,
@@ -59,7 +59,7 @@ namespace MyComponentB {
   }
 }
 
-class MyComponentB extends lng.Component<MyComponentB.TemplateSpec> implements lng.Component.ImplementTemplateSpec<MyComponentB.TemplateSpec> {
+class MyComponentB extends lng.Component<{ TemplateSpecType: MyComponentB.TemplateSpec }> implements lng.Component.ImplementTemplateSpec<MyComponentB.TemplateSpec> {
   static _template(): lng.Component.Template<MyComponentB.TemplateSpec> {
     return {
       x: 0,
@@ -150,7 +150,7 @@ namespace MyComponentC {
   }
 }
 
-class MyComponentC extends lng.Component<MyComponentC.TemplateSpec> implements lng.Component.ImplementTemplateSpec<MyComponentC.TemplateSpec> {
+class MyComponentC extends lng.Component<{ TemplateSpecType: MyComponentC.TemplateSpec }> implements lng.Component.ImplementTemplateSpec<MyComponentC.TemplateSpec> {
   static _template(): lng.Component.Template<MyComponentC.TemplateSpec> {
     return {
       x: 0,
