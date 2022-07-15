@@ -759,42 +759,42 @@ declare namespace Element {
      */
     txUnloaded: (texture: Texture) => void,
   }
+
+  /**
+   * Additional types to pass to an Element
+   */
+  export type Config = {
+    TextureType?: Texture,
+    EventMapType?: Element.EventMap
+  };
 }
 
 /**
- * Additional types to pass to an Element
+ * Extracts the EventMapType from Element Config
  */
-export type ElementTypes = {
-  TextureType?: Texture,
-  EventMapType?: Element.EventMap
-};
-
-/**
- * Extracts the EventMapType from ElementTypes
- */
-type EventMap<Types extends ElementTypes> =
-  Types['EventMapType'] extends Element.EventMap
+type EventMapType<Config extends Element.Config> =
+  Config['EventMapType'] extends Element.EventMap
     ?
-      Types['EventMapType']
+      Config['EventMapType']
     :
       Element.EventMap;
 
 /**
- * Extracts the TextureType from ElementTypes
+ * Extracts the TextureType from Element Config
  */
-type TextureType<Types extends ElementTypes> =
-  Types['TextureType'] extends Texture
-  ?
-    Types['TextureType']
-  :
-    Texture;
+type TextureType<Config extends Element.Config> =
+  Config['TextureType'] extends Texture
+    ?
+      Config['TextureType']
+    :
+      Texture;
 
 
 declare class Element<
   // Elements use loose typing TemplateSpecs by default (for ease of use as Elements aren't often fully definable)
   TemplateSpecType extends Element.TemplateSpecLoose = Element.TemplateSpecLoose,
-  Types extends ElementTypes = {}
-> extends EventEmitter<EventMap<Types>> implements Documentation<Element.TemplateSpecStrong> {
+  Config extends Element.Config = {}
+> extends EventEmitter<EventMapType<Config>> implements Documentation<Element.TemplateSpecStrong> {
   constructor(stage: Stage);
 
   readonly id: number;
@@ -976,14 +976,14 @@ declare class Element<
    *
    * @see {@link Element.TemplateSpecStrong.texture}
    */
-  get texture(): TextureType<Types> | null;
-  set texture(v: TextureType<Types> | Texture.Literal | null);
+  get texture(): TextureType<Config> | null;
+  set texture(v: TextureType<Config> | Texture.Literal | null);
 
   /**
    * The currently displayed texture. While this.texture is loading,
    * this one may be different.
    */
-  readonly displayedTexture: TextureType<Types> | null;
+  readonly displayedTexture: TextureType<Config> | null;
 
   // onTextureSourceLoaded() {
   // - Internal use only. Calling/overriding this can break things

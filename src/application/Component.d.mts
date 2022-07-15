@@ -1,4 +1,4 @@
-import Element, { ElementTypes, InlineElement, ValidRef } from "../tree/Element.mjs";
+import Element, { InlineElement, ValidRef } from "../tree/Element.mjs";
 import Stage from "../tree/Stage.mjs";
 import Texture from "../tree/Texture.mjs";
 import Application from "./Application.mjs";
@@ -150,6 +150,10 @@ declare namespace Component {
   export type PassSignals = Record<string, string | true | undefined>;
   // eslint-disable-next-line prettier/prettier
   export type FireAncestorsEvent = `$${string}`;
+
+  export interface Config extends Element.Config {
+    SignalsType?: Signals
+  }
 }
 
 
@@ -157,11 +161,11 @@ declare namespace Component {
 declare class Component<
   // Components use loose typing TemplateSpecs by default
   TemplateSpecType extends Component.TemplateSpecLoose = Component.TemplateSpecLoose,
-  Types extends ElementTypes = {}
+  Config extends Component.Config = {}
 
 > extends Element<
   TemplateSpecType,
-  Types
+  Config
 > {
   // SDK ??? !!!
   static getFonts(): Component.Font[]; // Should be app only?
@@ -751,7 +755,6 @@ declare class Component<
    * @param args
    */
   signal(event: string, ...args: unknown[]): unknown;
-  // !!!!!
 
   // _signal(event: any, args: any): any;
   // _getParentSignalHandler(): any;
