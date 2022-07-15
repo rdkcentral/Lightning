@@ -1,6 +1,7 @@
 import AnimationSettings from "../animation/AnimationSettings.mjs";
 import TransitionSettings from "../animation/TransitionSettings.mjs";
 import Component from "../application/Component.mjs";
+import { Documentation } from "../internalTypes.mjs";
 import ObjectListWrapper from "../tools/ObjectListWrapper.mjs";
 import Element from "../tree/Element.mjs";
 
@@ -73,15 +74,11 @@ declare namespace ListComponent {
   }
 }
 
-type Documentation = {
-  [s in keyof ListComponent.TemplateSpec]: unknown;
-}
-
 declare class ListComponent<
   ItemType extends Element.Constructor = Element.Constructor
 >
   extends Component<ListComponent.TemplateSpec<ItemType>>
-  implements Documentation
+  implements Documentation<ListComponent.TemplateSpec>
 {
   readonly itemList: ListItems<InstanceType<ItemType>>;
 

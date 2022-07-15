@@ -7,6 +7,16 @@
 
 
 /**
+ * Allows all the documentation of a template spec to be inherited by any Element
+ *
+ * @hidden Internal use only
+ */
+ export type Documentation<T> = {
+  // WARNING: You cannot use conditional key manipulation here or it will not allow documentation to be passed down
+  [P in keyof T]: unknown;
+}
+
+/**
  * Reduce the specificity of T if it is assignable to one of
  * the types in U
  *
@@ -18,9 +28,10 @@
  * ReduceSpecificity<true, number | boolean> === boolean
  * ```
  *
+ * @hidden Internal use only
  * ###
  */
-type ReduceSpecificity<T, U> =
+export type ReduceSpecificity<T, U> =
   U extends U
     ?
       boolean extends U // Special case for booleans, since they are represented as (true | false) internally

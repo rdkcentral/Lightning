@@ -5,6 +5,7 @@ import TransitionSettings from "../animation/TransitionSettings.mjs";
 import Component from "../application/Component.mjs";
 import { AnimatableValueTypes, ExtractAnimatableValueTypes } from "../commonTypes.mjs";
 import EventEmitter from "../EventEmitter.mjs";
+import { Documentation } from "../internalTypes.mjs";
 import TextTexture from "../textures/TextTexture.mjs";
 import ElementCore from "./core/ElementCore.mjs";
 import ElementTexturizer from "./core/ElementTexturizer.mjs";
@@ -761,13 +762,6 @@ declare namespace Element {
 }
 
 /**
- * Allows all the documentation of Element.TemplateSpecStrong to be inherited by Element
- */
-type Documentation = {
-  [s in keyof Element.TemplateSpecStrong]: unknown;
-}
-
-/**
  * Additional types to pass to an Element
  */
 export type ElementTypes = {
@@ -797,13 +791,10 @@ type TextureType<Types extends ElementTypes> =
 
 
 declare class Element<
+  // Elements use loose typing TemplateSpecs by default (for ease of use as Elements aren't often fully definable)
   TemplateSpecType extends Element.TemplateSpecLoose = Element.TemplateSpecLoose,
   Types extends ElementTypes = {}
-  // // Elements use loose typing TemplateSpecs by default (for use of use as Elements aren't often fully definable)
-  // TemplateSpecType extends Element.TemplateSpecLoose = Element.TemplateSpecLoose,
-  // TextureType extends Texture = Texture,
-  // EventMap extends Element.EventMap = Element.EventMap
-> extends EventEmitter<EventMap<Types>> implements Documentation {
+> extends EventEmitter<EventMap<Types>> implements Documentation<Element.TemplateSpecStrong> {
   constructor(stage: Stage);
 
   readonly id: number;
