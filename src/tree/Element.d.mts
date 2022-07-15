@@ -3,6 +3,7 @@ import AnimationSettings from "../animation/AnimationSettings.mjs";
 import Transition from "../animation/Transition.mjs";
 import TransitionSettings from "../animation/TransitionSettings.mjs";
 import Component from "../application/Component.mjs";
+import { AnimatableValueTypes, ExtractAnimatableValueTypes } from "../commonTypes.mjs";
 import EventEmitter from "../EventEmitter.mjs";
 import TextTexture from "../textures/TextTexture.mjs";
 import ElementCore from "./core/ElementCore.mjs";
@@ -102,11 +103,11 @@ declare namespace Element {
    */
   export type TransitionsTemplate<TemplateSpecType = TemplateSpecStrong> = {
     [P in keyof TemplateSpecType]?:
-      number extends TemplateSpecType[P]
+      ExtractAnimatableValueTypes<TemplateSpecType[P]> extends never
         ?
-          TransitionSettings.Literal
-        :
           never
+        :
+          TransitionSettings.Literal
   };
 
   /**
@@ -120,20 +121,13 @@ declare namespace Element {
    *   - array[0] = Property value to smoothly transition to
    *   - array[1] = Settings describing the transition
    */
-  export type SmoothTemplate<LT = TemplateSpecStrong> = {
-    [P in keyof LT]?:
-      number extends LT[P]
+  export type SmoothTemplate<TemplateSpecType = TemplateSpecStrong> = {
+    [P in keyof TemplateSpecType]?:
+      ExtractAnimatableValueTypes<TemplateSpecType[P]> extends never
         ?
-          number | [ number, TransitionSettings.Literal ]
-        :
           never
-  };
-
-  /**
-   * Valid numeric property keys from SmoothTemplate
-   */
-  export type SmoothTemplateKeys<LT = TemplateSpecStrong> = keyof {
-    [P in keyof SmoothTemplate<LT> as SmoothTemplate<LT>[P] extends undefined ? never : P]: SmoothTemplate<LT>[P]
+        :
+          ExtractAnimatableValueTypes<TemplateSpecType[P]> | [ ExtractAnimatableValueTypes<TemplateSpecType[P]>, TransitionSettings.Literal ]
   };
 
   export interface TemplateSpecStrong {
@@ -1370,7 +1364,7 @@ declare class Element<
    * @param property
    */
   fastForward<Key extends keyof Element.SmoothTemplate<TemplateSpecType>>(
-    property: number extends TemplateSpecType[Key] ? Key : never
+    property: ExtractAnimatableValueTypes<TemplateSpecType[Key]> extends never ? never : Key
   ): void;
 
   /**
@@ -1393,12 +1387,12 @@ declare class Element<
    * @param value
    */
   getSmooth<Key extends keyof Element.SmoothTemplate<TemplateSpecType>>(
-    property: number extends TemplateSpecType[Key] ? Key : never
-  ): number | undefined;
-  getSmooth<Key extends keyof Element.SmoothTemplate<TemplateSpecType>>(
-    property: Key,
-    value: number extends TemplateSpecType[Key] ? number : never,
-  ): number extends TemplateSpecType[Key] ? number : never;
+    property: ExtractAnimatableValueTypes<TemplateSpecType[Key]> extends never ? never : Key
+  ): ExtractAnimatableValueTypes<TemplateSpecType[Key]> | undefined;
+  getSmooth<Key extends keyof Element.SmoothTemplate<TemplateSpecType>, Value extends ExtractAnimatableValueTypes<TemplateSpecType[Key]>>(
+    property: Value extends never ? never : Key,
+    value: Value,
+  ): ReduceSpecificity<Value, AnimatableValueTypes>;
 
   /**
    * Start a smooth transition of `property` to the target `value`. Optionally

@@ -8,6 +8,7 @@ import AnimationSettings from "../animation/AnimationSettings.mjs";
 import Transition from "../animation/Transition.mjs";
 import TransitionManager from "../animation/TransitionManager.mjs";
 import TransitionSettings from "../animation/TransitionSettings.mjs";
+import { AnimatableValueTypes } from "../commonTypes.mjs";
 import WebPlatform from "../platforms/browser/WebPlatform.mjs";
 import C2dCoreQuadList from "../renderer/c2d/C2dCoreQuadList.mjs";
 import C2dCoreQuadOperation from "../renderer/c2d/C2dCoreQuadOperation.mjs";
@@ -50,5 +51,6 @@ export {
   WebGLRenderer,
   WebGLCoreQuadOperation,
   WebGLCoreQuadList,
-  ObjectList
+  ObjectList,
+  AnimatableValueTypes
 }

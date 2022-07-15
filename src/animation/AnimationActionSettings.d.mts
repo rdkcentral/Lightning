@@ -1,11 +1,7 @@
+import { AnimatableValueTypes } from "../commonTypes.mjs";
 import AnimationSettings from "./AnimationSettings.mjs";
 
 declare namespace AnimationActionSettings {
-  /**
-   * Types animations are allowed on
-   */
-  export type AnimatableValueTypes = number | boolean | string;
-
   export type AnimationActionValue =
     AnimatableValueTypes |
     AnimationActionSettings.AnimationActionPointMap |

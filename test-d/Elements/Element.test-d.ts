@@ -15,7 +15,6 @@ namespace MyElementTest {
  */
 class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements lng.Component.ImplementTemplateSpec<MyElementTest.TemplateSpec> {
   static _template(): lng.Component.Template<MyElementTest.TemplateSpec> {
-    // !!! Finish this test
     return {
       // You should NOT be required to provide explicit parameter type `number` for these!
       x: (w) => w,
@@ -27,12 +26,14 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
         y: 200,
         alpha: 1.0,
         rotation: [3.14, { delay: 0, duration: 10, timingFunction: 'ease-in' }],
-        // @ts-expect-error Should not be able to set non-numeric properties
         visible: false,
-        // @ts-expect-error Should not be able to set non-numeric properties
-        rtt: 123,
-        // @ts-expect-error Should not be able to set non-numeric properties
-        renderToTexture: [123, { delay: 0, duration: 10, timingFunction: 'ease-in' }],
+        text: 'abc',
+        // @ts-expect-error Type must match type of property
+        rtt: 123, // rtt is a boolean
+        // @ts-expect-error Type must match type of property
+        renderToTexture: [123, { delay: 0, duration: 10, timingFunction: 'ease-in' }], // renderToTexture is a boolean
+        // @ts-expect-error Should not be able to set non-animatable properties
+        smooth: {},
       },
       MyStrongElement: {
         x: 123,
@@ -45,12 +46,14 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
           y: 200,
           alpha: 1.0,
           rotation: [3.14, { delay: 0, duration: 10, timingFunction: 'ease-in' }],
-          // @ts-expect-error Should not be able to set non-numeric properties
           visible: false,
-          // @ts-expect-error Should not be able to set non-numeric properties
-          rtt: 123,
-          // @ts-expect-error Should not be able to set non-numeric properties
-          renderToTexture: [123, { delay: 0, duration: 10, timingFunction: 'ease-in' }],
+          text: 'abc',
+          // @ts-expect-error Type must match type of property
+          rtt: 123, // rtt is a boolean
+          // @ts-expect-error Type must match type of property
+          renderToTexture: [123, { delay: 0, duration: 10, timingFunction: 'ease-in' }], // renderToTexture is a boolean
+          // @ts-expect-error Should not be able to set non-animatable properties
+          smooth: {},
         }
       }
     };
@@ -99,22 +102,8 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
     // getByRef
     //
     // # STRONG #
-    expectType<
-      lng.Element<
-        lng.Element.TemplateSpecLoose,
-        {
-          TextureType: lng.Texture
-        }
-      > | undefined
-    >(this.getByRef('MyLooseElement'));
-    expectType<
-      lng.Element<
-        lng.Element.TemplateSpecStrong,
-        {
-          TextureType: lng.Texture
-        }
-      > | undefined
-    >(this.getByRef('MyStrongElement'));
+    expectType<lng.Element<lng.Element.TemplateSpecLoose> | undefined>(this.getByRef('MyLooseElement'));
+    expectType<lng.Element<lng.Element.TemplateSpecStrong> | undefined>(this.getByRef('MyStrongElement'));
     // @ts-expect-error Don't allow anything in a strongly typed Element
     this.getByRef('Anything');
     // # LOOSE #
@@ -137,11 +126,10 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
     // # STRONG #
     expectType<void>(this.MyStrongElement.fastForward('x'));
     expectType<void>(this.MyStrongElement.fastForward('alpha'));
-    // @ts-expect-error Should not be able to fastForward on non-numeric properties
+    // Should be able to fastForward non-numeric properties
     this.MyStrongElement.fastForward('rtt');
-    // @ts-expect-error
     this.MyStrongElement.fastForward('visible');
-    // @ts-expect-error
+    // @ts-expect-error But not object based properties
     this.MyStrongElement.fastForward('smooth');
     // @ts-expect-error Should not be able to fastForward unknown properties
     this.MyStrongElement.fastForward('INVALID_PROP');
@@ -159,14 +147,15 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
     expectType<void>(this.MyLooseElement.fastForward('alpha'));
     // Loose elements will allow any unknown prop to be gotten
     expectType<void>(this.MyLooseElement.fastForward('INVALID_PROP'));
-    // @ts-expect-error But not known props that aren't numeric....
+    // Even props that aren't numeric....
     this.MyLooseElement.fastForward('rtt');
-    // @ts-expect-error
-    this.MyLooseElement.fastForward('visible', 123);
-    // @ts-expect-error
-    this.MyLooseElement.fastForward('smooth', 123);
-    // @ts-expect-error
-    this.MyLooseElement.fastForward('text', 123);
+    this.MyLooseElement.fastForward('text');
+    // @ts-expect-error Type of second param must match the property type
+    this.MyLooseElement.fastForward('visible', 123); // visible is a boolean
+    // @ts-expect-error text is a string
+    this.MyLooseElement.fastForward('text', true);
+    // @ts-expect-error Cannot get non-animatable proprties
+    this.MyLooseElement.fastForward('smooth', {});
     // @ts-expect-error Unknown props still must be set with a number / tuple
     this.MyLooseElement.fastForward('INVALID_PROP', 'strings are not allowed');
     // Property paths are implicitly supported by loose Elements.
@@ -202,10 +191,29 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
     };
     // Can set empty object
     this.MyStrongElement.transitions = {};
-    // Can't set non-numeric properties
+    // Can set non-numeric properties (AnimatableValueTypes)
+    this.MyStrongElement.transitions = {
+      rtt: {
+        delay: 123,
+        duration: 123,
+        timingFunction: 'ease-out'
+      },
+      text: {
+        delay: 123,
+        duration: 123,
+        timingFunction: 'ease-out'
+      },
+    };
+    // Can't set non-animatable properties
     this.MyStrongElement.transitions = {
       // @ts-expect-error
-      rtt: {
+      smooth: {
+        delay: 123,
+        duration: 123,
+        timingFunction: 'ease-out'
+      },
+      // @ts-expect-error
+      transitions: {
         delay: 123,
         duration: 123,
         timingFunction: 'ease-out'
@@ -247,9 +255,8 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
     };
     // Can set empty object
     this.MyLooseElement.transitions = {};
-    // Can't set non-numeric properties
+    // Can set non-numeric properties (AnimatableValueTypes)
     this.MyLooseElement.transitions = {
-      // @ts-expect-error
       rtt: {
         delay: 123,
         duration: 123,
@@ -272,12 +279,14 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
       alpha: 1.0,
       x: 123,
       w: 123,
-      // @ts-expect-error Should not be able to set non-numeric properties
       visible: false,
-      // @ts-expect-error Should not be able to set non-numeric properties
-      rtt: 123,
-      // @ts-expect-error Should not be able to set non-numeric properties
-      renderToTexture: [123, { delay: 0, duration: 10, timingFunction: 'ease-in' }],
+      text: 'abc',
+      // @ts-expect-error Type must match type of property
+      rtt: 123, // rtt is a boolean
+      // @ts-expect-error Type must match type of property
+      renderToTexture: [123, { delay: 0, duration: 10, timingFunction: 'ease-in' }], // renderToTexture is a boolean
+      // @ts-expect-error Should not be able to set non-animatable properties
+      smooth: {},
     };
     // Unknown properties should error
     this.MyStrongElement.smooth = {
@@ -290,12 +299,14 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
           alpha: 1.0,
           x: 123,
           w: 123,
-          // @ts-expect-error Should not be able to set non-numeric properties
           visible: false,
-          // @ts-expect-error Should not be able to set non-numeric properties
-          rtt: 123,
-          // @ts-expect-error Should not be able to set non-numeric properties
-          renderToTexture: [123, { delay: 0, duration: 10, timingFunction: 'ease-in' }],
+          text: 'abc',
+          // @ts-expect-error Type must match type of property
+          rtt: 123, // rtt is a boolean
+          // @ts-expect-error Type must match type of property
+          renderToTexture: [123, { delay: 0, duration: 10, timingFunction: 'ease-in' }], // renderToTexture is a boolean
+          // @ts-expect-error Should not be able to set non-animatable properties
+          smooth: {},
         }
       }
     });
@@ -314,31 +325,36 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
       alpha: 1.0,
       x: 123,
       w: 123,
-      // @ts-expect-error Should not be able to set non-numeric properties
       visible: false,
-      // @ts-expect-error Should not be able to set non-numeric properties
-      rtt: 123,
-      // @ts-expect-error Should not be able to set non-numeric properties
-      renderToTexture: [123, { delay: 0, duration: 10, timingFunction: 'ease-in' }],
-      // @ts-expect-error Smooth cannot set unknown properties as a non-number/tuple
+      text: 'abc',
+      // @ts-expect-error Type must match type of property
+      rtt: 123, // rtt is a boolean
+      // @ts-expect-error Type must match type of property
+      renderToTexture: [123, { delay: 0, duration: 10, timingFunction: 'ease-in' }], // renderToTexture is a boolean
+      // @ts-expect-error Should not be able to set non-animatable properties
+      smooth: {},
+      // Smooth can set unknown properties as a non-number/tuple
       INVALID_PROP1: 'this cannot be a string',
-      // But it can set them as numbers / tuples
+      // And it can set them as numbers / tuples
       INVALID_PROP2: 123,
-      // Smooth cannot set unknown properties to a string
-      INVALID_PROP3: [123, { delay: 0, duration: 10, timingFunction: 'ease-in' }],
+      // Smooth can set unknown properties to a string
+      INVALID_PROP3: ['abc', { delay: 0, duration: 10, timingFunction: 'ease-in' }],
     };
+
     this.patch({
       MyLooseElement: {
         smooth: {
           alpha: 1.0,
           x: 123,
           w: 123,
-          // @ts-expect-error Should not be able to set non-numeric properties
           visible: false,
-          // @ts-expect-error Should not be able to set non-numeric properties
-          rtt: 123,
-          // @ts-expect-error Should not be able to set non-numeric properties
-          renderToTexture: [123, { delay: 0, duration: 10, timingFunction: 'ease-in' }],
+          text: ['abc', { delay: 0 }],
+          // @ts-expect-error Type must match type of property
+          rtt: 123, // rtt is a boolean
+          // @ts-expect-error Type must match type of property
+          renderToTexture: [123, { delay: 0, duration: 10, timingFunction: 'ease-in' }], // renderToTexture is a boolean
+          // @ts-expect-error Should not be able to set non-animatable properties
+          smooth: {},
         }
       }
     });
@@ -404,18 +420,18 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
     // # STRONG #
     expectType<number| undefined>(this.MyStrongElement.getSmooth('x'));
     expectType<number>(this.MyStrongElement.getSmooth('alpha', 123));
-    // @ts-expect-error Should not be able to getSmooth on non-numeric properties
-    this.MyStrongElement.getSmooth('rtt');
-    // @ts-expect-error
-    this.MyStrongElement.getSmooth('rtt', 123);
-    // @ts-expect-error
-    this.MyStrongElement.getSmooth('visible');
+    // Should be able to getSmooth on non-numeric properties (AnimatableValueTypes)
+    expectType<boolean | undefined>(this.MyStrongElement.getSmooth('rtt'));
+    expectType<string | undefined>(this.MyStrongElement.getSmooth('text'));
+
+    // @ts-expect-error But second parameter's type needs to match
+    this.MyStrongElement.getSmooth('rtt', 123); // rtt is a boolean, 123 isn't compatible
     // @ts-expect-error
     this.MyStrongElement.getSmooth('visible', 123);
-    // @ts-expect-error
+    // @ts-expect-error Cannot get non-animatable properties
     this.MyStrongElement.getSmooth('smooth');
     // @ts-expect-error
-    this.MyStrongElement.getSmooth('smooth', 123);
+    this.MyStrongElement.getSmooth('smooth', {});
     // @ts-expect-error Should not be able to getSmooth unknown properties
     this.MyStrongElement.getSmooth('INVALID_PROP', 123);
     // Strongly typed property paths are not supported (due to typescript limitations). The following should error:
@@ -428,7 +444,7 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
     // @ts-expect-error
     this.MyStrongElement.getSmooth('texture.INVALID_PROP.INVALID_PROP', 123);
     // If the developer wants to use property paths, they can opt-in via `as any`
-    expectType<number | undefined>(this.MyStrongElement.getSmooth('texture.x' as any));
+    expectType<lng.types.AnimatableValueTypes | undefined>(this.MyStrongElement.getSmooth('texture.x' as any));
     expectType<number>(this.MyStrongElement.getSmooth('texture.x' as any, 123));
     expectType<number>(this.MyStrongElement.getSmooth('texture.INVALID_PROP.INVALID_PROP' as any, 123));
     expectType<number>(this.MyStrongElement.getSmooth('texture.INVALID_PROP.INVALID_PROP' as any, 123));
@@ -437,24 +453,31 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
     expectType<number| undefined>(this.MyLooseElement.getSmooth('x'));
     expectType<number>(this.MyLooseElement.getSmooth('alpha', 123));
     // Loose elements will allow any unknown prop to be gotten
-    expectType<number | undefined>(this.MyLooseElement.getSmooth('INVALID_PROP'));
-    expectType<number>(this.MyLooseElement.getSmooth('INVALID_PROP', 123));
-    // @ts-expect-error But not known props that aren't numeric....
-    this.MyLooseElement.getSmooth('rtt', 123);
+    expectType<lng.types.AnimatableValueTypes | undefined>(this.MyLooseElement.getSmooth('INVALID_PROP'));
+    expectType<string | number | boolean>(this.MyLooseElement.getSmooth('INVALID_PROP', 123));
+    // @ts-expect-error But for known props the second parameter type must match the type of the property
+    this.MyLooseElement.getSmooth('rtt', 123); // Should be boolean
     // @ts-expect-error
-    this.MyLooseElement.getSmooth('visible', 123);
+    this.MyLooseElement.getSmooth('visible', 123); // Should be boolean
     // @ts-expect-error
-    this.MyLooseElement.getSmooth('smooth', 123);
+    this.MyLooseElement.getSmooth('text', 123); // Should be String
+    // Non-animatable properties are not gettable:
     // @ts-expect-error
-    this.MyLooseElement.getSmooth('text', 123);
-    // @ts-expect-error Unknown props still must be set with a number / tuple
-    this.MyLooseElement.getSmooth('INVALID_PROP', 'strings are not allowed');
+    this.MyLooseElement.getSmooth('smooth', {});
+    // @ts-expect-error
+    this.MyLooseElement.getSmooth('smooth');
+    // Known props that are strings / boolean are supported (AnimatableValueTypes)
+    this.MyLooseElement.getSmooth('rtt', true);
+    this.MyLooseElement.getSmooth('visible', false);
+    this.MyLooseElement.getSmooth('text', 'abc');
     // Property paths are implicitly supported by loose Elements.
-    expectType<number | undefined>(this.MyLooseElement.getSmooth('texture.x'));
-    expectType<number>(this.MyLooseElement.getSmooth('texture.INVALID_PROP.INVALID_PROP', 123));
+    expectType<any>(this.MyLooseElement.getSmooth('texture.x'));
+    expectType<any>(this.MyLooseElement.getSmooth('texture.INVALID_PROP.INVALID_PROP', 123));
+    // Unknown props can be set with a string
+    this.MyLooseElement.getSmooth('INVALID_PROP', 'strings are allowed');
     // The `as any` case should still work for loose Elements
-    expectType<number | undefined>(this.MyLooseElement.getSmooth('texture.x' as any));
-    expectType<number>(this.MyLooseElement.getSmooth('texture.INVALID_PROP.INVALID_PROP' as any, 123));
+    expectType<any>(this.MyLooseElement.getSmooth('texture.x' as any));
+    expectType<any>(this.MyLooseElement.getSmooth('texture.INVALID_PROP.INVALID_PROP' as any, 123));
   }
 }
 
