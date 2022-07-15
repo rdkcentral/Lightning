@@ -1,11 +1,18 @@
 import { expectType } from 'tsd';
 import lng from '../../index.js';
 import ListComponent from '../../src/components/ListComponent.mjs';
+import { InlineElement } from '../../src/tree/Element.mjs';
 
 namespace MyElementTest {
   export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
-    MyStrongElement: typeof lng.Element<lng.Element.TemplateSpecStrong>;
-    MyLooseElement: typeof lng.Element;
+    MyStrongElement: {
+      ChildElement: {},
+      ChildComponent: typeof ListComponent
+    };
+    MyLooseElement: typeof lng.Element<{
+      ChildElement: {},
+      ChildComponent: typeof ListComponent
+    } & lng.Element.TemplateSpecLoose>;
     TestComponent: typeof ListComponent;
   }
 }
@@ -102,8 +109,18 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
     // getByRef
     //
     // # STRONG #
-    expectType<lng.Element<lng.Element.TemplateSpecLoose> | undefined>(this.getByRef('MyLooseElement'));
-    expectType<lng.Element<lng.Element.TemplateSpecStrong> | undefined>(this.getByRef('MyStrongElement'));
+    expectType<
+      lng.Element<{
+        ChildElement: {};
+        ChildComponent: typeof ListComponent;
+      } & lng.Element.TemplateSpecLoose> | undefined
+    >(this.getByRef('MyLooseElement'));
+    expectType<
+      lng.Element<InlineElement<{
+        ChildElement: {};
+        ChildComponent: typeof ListComponent;
+      }>> | undefined
+    >(this.getByRef('MyStrongElement'));
     // @ts-expect-error Don't allow anything in a strongly typed Element
     this.getByRef('Anything');
     // # LOOSE #
@@ -121,6 +138,215 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
     expectType<number>(this.MyStrongElement.mw);
 
     //
+    // patch()
+    //
+    // # STRONG #
+    /// Patching nothing
+    expectType<void>(this.MyStrongElement.patch({}))
+    /// Supports patching own properties
+    expectType<void>(
+      this.MyStrongElement.patch({
+        alpha: 1.0,
+        color: 0xffffffff,
+        scale: 2
+      })
+    );
+    /// Supports deleting child Elements
+    expectType<void>(
+      this.MyStrongElement.patch({
+        ChildElement: undefined,
+        ChildComponent: undefined
+      })
+    );
+    /// Supports patching child Elements
+    expectType<void>(
+      this.MyStrongElement.patch({
+        ChildElement: {
+          alpha: 1.0
+        },
+        ChildComponent: {
+          x: 123,
+          y: 123
+        }
+      })
+    );
+    /// Supports patching child Components with component specific properties
+    expectType<void>(
+      this.MyStrongElement.patch({
+        ChildComponent: {
+          itemSize: 123 // Specific to ListComponent
+        }
+      })
+    );
+    /// Supports patching in new child Component by type
+    expectType<void>(
+      this.MyStrongElement.patch({
+        ChildComponent: {
+          type: lng.components.ListComponent,
+          x: 123,
+          y: 123
+        }
+      })
+    );
+    /// Errors when patching unknown properties
+    this.MyStrongElement.patch({
+      // @ts-expect-error
+      unknownProp: 1.0,
+    });
+    /// Errors when patching unknown child Elements
+    this.MyStrongElement.patch({
+      // @ts-expect-error
+      UnknownChild1: undefined,
+    });
+    this.MyStrongElement.patch({
+      // @ts-expect-error
+      UnknownChild2: {},
+    });
+    this.MyStrongElement.patch({
+      // @ts-expect-error
+      UnknownChild3: {
+        x: 123,
+        y: 123
+      },
+    });
+
+    // # LOOSE #
+    /// Patching nothing
+    expectType<void>(this.MyLooseElement.patch({}))
+    /// Supports patching own properties
+    expectType<void>(
+      this.MyLooseElement.patch({
+        alpha: 1.0,
+        color: 0xffffffff,
+        scale: 2
+      })
+    );
+    /// Supports deleting child Elements
+    expectType<void>(
+      this.MyLooseElement.patch({
+        ChildElement: undefined,
+        ChildComponent: undefined
+      })
+    );
+    /// Supports patching child Elements
+    expectType<void>(
+      this.MyLooseElement.patch({
+        ChildElement: {
+          alpha: 1.0
+        },
+        ChildComponent: {
+          x: 123,
+          y: 123
+        }
+      })
+    );
+    /// Supports patching child Components with component specific properties
+    expectType<void>(
+      this.MyLooseElement.patch({
+        ChildComponent: {
+          itemSize: 123 // Specific to ListComponent
+        }
+      })
+    );
+    /// Supports patching in new child Component by type
+    expectType<void>(
+      this.MyLooseElement.patch({
+        ChildComponent: {
+          type: lng.components.ListComponent,
+          x: 123,
+          y: 123
+        }
+      })
+    );
+    /// Support patching unknown properties in Loose Elements
+    this.MyLooseElement.patch({
+      unknownProp: 1.0,
+    });
+    /// Support patching unknown child Elements in Loose Elements
+    this.MyLooseElement.patch({
+      UnknownChild1: undefined,
+    });
+    this.MyLooseElement.patch({
+      UnknownChild2: {},
+    });
+    this.MyLooseElement.patch({
+      UnknownChild3: {
+        x: 123,
+        y: 123
+      },
+    });
+    // Support patching unkonwn child Elements deeply in Loose Elements
+    this.MyLooseElement.patch({
+      UnknownChild3: {
+        UnknownGrandchild: {
+          x: 123,
+        }
+      },
+    });
+    //
+    // transition()
+    //
+    // # STRONG #
+    expectType<lng.types.Transition>(this.MyStrongElement.transition('x'));
+    expectType<lng.types.Transition>(this.MyStrongElement.transition('alpha'));
+    expectType<null>(this.MyStrongElement.transition('x', { delay: 0, duration: 10 }));
+    expectType<null>(this.MyStrongElement.transition('alpha', { delay: 0, timingFunction: 'ease-in' }));
+    // Should be able to get / set transitions for non-numeric properties
+    expectType<lng.types.Transition>(this.MyStrongElement.transition('rtt'));
+    expectType<lng.types.Transition>(this.MyStrongElement.transition('text'));
+    expectType<null>(this.MyStrongElement.transition('rtt', { duration: 10 }));
+    expectType<null>(this.MyStrongElement.transition('text', { duration: 10 }));
+    // @ts-expect-error But not non-animatable properties
+    this.MyStrongElement.transition('smooth');
+    // @ts-expect-error
+    this.MyStrongElement.transition('smooth', { duration: 10 });
+    // @ts-expect-error Should not be able to get / set transition unknown properties
+    this.MyStrongElement.transition('INVALID_PROP');
+    // @ts-expect-error
+    this.MyStrongElement.transition('INVALID_PROP', { duration: 10 });
+    // Strongly typed property paths are not supported (due to typescript limitations). The following should error:
+    // @ts-expect-error
+    this.MyStrongElement.transition('texture.x');
+    // @ts-expect-error
+    this.MyStrongElement.transition('texture.x', { duration: 10 });
+    // @ts-expect-error
+    this.MyStrongElement.transition('texture.INVALID_PROP.INVALID_PROP');
+    // @ts-expect-error
+    this.MyStrongElement.transition('texture.INVALID_PROP.INVALID_PROP', { duration: 10 });
+    // If the developer wants to use property paths, they can opt-in via `as any`
+    expectType<lng.types.Transition>(this.MyStrongElement.transition('texture.x' as any));
+    expectType<lng.types.Transition>(this.MyStrongElement.transition('texture.INVALID_PROP.INVALID_PROP' as any));
+    expectType<null>(this.MyStrongElement.transition('texture.x' as any, { timingFunction: 'ease-in' }));
+    expectType<null>(this.MyStrongElement.transition('texture.INVALID_PROP.INVALID_PROP' as any, { timingFunction: 'ease-in' }));
+
+    // # LOOSE #
+    expectType<lng.types.Transition>(this.MyLooseElement.transition('x'));
+    expectType<lng.types.Transition>(this.MyLooseElement.transition('alpha'));
+    expectType<null>(this.MyLooseElement.transition('x', { delay: 0, duration: 10 }));
+    expectType<null>(this.MyLooseElement.transition('alpha', { delay: 0, timingFunction: 'ease-in' }));
+    // Loose elements will allow any unknown prop to be set / gotten
+    expectType<lng.types.Transition>(this.MyLooseElement.transition('INVALID_PROP'));
+    expectType<null>(this.MyLooseElement.transition('INVALID_PROP', { duration: 10 }));
+    // Even props that aren't numeric....
+    expectType<lng.types.Transition>(this.MyLooseElement.transition('rtt'));
+    expectType<lng.types.Transition>(this.MyLooseElement.transition('text'));
+    expectType<null>(this.MyLooseElement.transition('rtt', { delay: 10 }));
+    expectType<null>(this.MyLooseElement.transition('text', { timingFunction: 'ease-out' }));
+    // @ts-expect-error Cannot get / set non-animatable properties
+    this.MyLooseElement.transition('smooth');
+    // @ts-expect-error
+    this.MyLooseElement.transition('smooth', { duration: 10 });
+    // Property paths are implicitly supported by loose Elements.
+    expectType<lng.types.Transition>(this.MyLooseElement.transition('texture.x'));
+    expectType<lng.types.Transition>(this.MyLooseElement.transition('texture.INVALID_PROP.INVALID_PROP'));
+    expectType<null>(this.MyLooseElement.transition('texture.x', { duration: 10 }));
+    expectType<null>(this.MyLooseElement.transition('texture.INVALID_PROP.INVALID_PROP', { timingFunction: 'step-start' }));
+    // The `as any` case should still work for loose Elements
+    expectType<lng.types.Transition>(this.MyLooseElement.transition('texture.x' as any));
+    expectType<lng.types.Transition>(this.MyLooseElement.transition('texture.INVALID_PROP.INVALID_PROP' as any));
+    expectType<null>(this.MyLooseElement.transition('texture.x' as any, { duration: 10 }));
+    expectType<null>(this.MyLooseElement.transition('texture.INVALID_PROP.INVALID_PROP' as any, { timingFunction: 'step-start' }));
+    //
     // fastForward()
     //
     // # STRONG #
@@ -129,7 +355,7 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
     // Should be able to fastForward non-numeric properties
     this.MyStrongElement.fastForward('rtt');
     this.MyStrongElement.fastForward('visible');
-    // @ts-expect-error But not object based properties
+    // @ts-expect-error But not non-animatable properties
     this.MyStrongElement.fastForward('smooth');
     // @ts-expect-error Should not be able to fastForward unknown properties
     this.MyStrongElement.fastForward('INVALID_PROP');
@@ -148,16 +374,10 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
     // Loose elements will allow any unknown prop to be gotten
     expectType<void>(this.MyLooseElement.fastForward('INVALID_PROP'));
     // Even props that aren't numeric....
-    this.MyLooseElement.fastForward('rtt');
-    this.MyLooseElement.fastForward('text');
-    // @ts-expect-error Type of second param must match the property type
-    this.MyLooseElement.fastForward('visible', 123); // visible is a boolean
-    // @ts-expect-error text is a string
-    this.MyLooseElement.fastForward('text', true);
+    expectType<void>(this.MyLooseElement.fastForward('rtt'));
+    expectType<void>(this.MyLooseElement.fastForward('text'));
     // @ts-expect-error Cannot get non-animatable proprties
-    this.MyLooseElement.fastForward('smooth', {});
-    // @ts-expect-error Unknown props still must be set with a number / tuple
-    this.MyLooseElement.fastForward('INVALID_PROP', 'strings are not allowed');
+    this.MyLooseElement.fastForward('smooth');
     // Property paths are implicitly supported by loose Elements.
     expectType<void>(this.MyLooseElement.fastForward('texture.x'));
     expectType<void>(this.MyLooseElement.fastForward('texture.INVALID_PROP.INVALID_PROP'));
@@ -274,7 +494,11 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
     //
     // # STRONG #
     // Quick check that `get smooth` also has `undefined` in its type
-    expectType<lng.Element.SmoothTemplate<lng.Element.TemplateSpecStrong> | undefined>(this.MyStrongElement.smooth);
+    expectType<
+      lng.Element.SmoothTemplate<
+        InlineElement<{ ChildElement: {}; ChildComponent: typeof ListComponent; }>
+      > | undefined
+    >(this.MyStrongElement.smooth);
     this.MyStrongElement.smooth = {
       alpha: 1.0,
       x: 123,

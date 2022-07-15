@@ -1292,32 +1292,58 @@ declare class Element<
   readonly texturizer: ElementTexturizer;
 
   /**
-   * ???
+   * Patches settings of this Element plus child Elements of the render tree.
+   *
+   * @remarks
+   * See [Patching](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Patching?id=patching) for
+   * more information.
    *
    * @param template
    */
   patch(template: Element.PatchTemplate<TemplateSpecType>): void;
 
-  animation(animation: AnimationSettings.Literal): Animation;
-
-  /***
-   * ???
-   */
-  transition(property: string): Transition;
-
   /**
    * ???
+   * @param animation
+   */
+  animation(animation: AnimationSettings.Literal): Animation;
+
+  /**
+   * Get/set Transition for `property`
+   *
+   * @remarks
+   * This method has 2 overloads:
+   * - If `settings` param is provided:
+   *   - Set the Transition `settings` for `property`
+   * - If `settings` param is NOT provided:
+   *   - Get the {@link Transition} instance for `property`
+   *
+   * See [Transitions](https://lightningjs.io/docs/#/lightning-core-reference/Transitions/index) for more
+   * information.
    *
    * @param property
-   * @param settings
+   * @param settings Transition settings to configure `property` with in this Element (optional)
    */
-  transition(property: string, settings: TransitionSettings.Literal): null;
+  transition<
+    Key extends keyof Element.TransitionsTemplate<TemplateSpecType>
+  >(
+    property: ExtractAnimatableValueTypes<TemplateSpecType[Key]> extends never ? never : Key
+  ): Transition;
+  transition<
+    Key extends keyof Element.TransitionsTemplate<TemplateSpecType>
+  >(
+    property: ExtractAnimatableValueTypes<TemplateSpecType[Key]> extends never ? never : Key,
+    settings: TransitionSettings.Literal
+  ): null;
 
   /**
    * Setup one or more transitions
    *
    * @remarks
    * **WARNING:** DO NOT read from this property. It is WRITE-ONLY. It will always return `undefined`.
+   *
+   * See [Transitions](https://lightningjs.io/docs/#/lightning-core-reference/Transitions/index) for more
+   * information.
    *
    * @see {@link Element.TemplateSpecStrong.transitions}
    */
@@ -1340,7 +1366,7 @@ declare class Element<
   set smooth(object: Element.SmoothTemplate<TemplateSpecType>);
 
   /**
-   * Fast-forward a currently transitioning property to its target value
+   * Fast-forward a currently transitioning `property` to its target value
    * immediately.
    *
    * @remarks
@@ -1354,7 +1380,7 @@ declare class Element<
    *
    * @param property
    */
-  fastForward<Key extends keyof Element.SmoothTemplate<TemplateSpecType>>(
+  fastForward<Key extends keyof Element.TransitionsTemplate<TemplateSpecType>>(
     property: ExtractAnimatableValueTypes<TemplateSpecType[Key]> extends never ? never : Key
   ): void;
 
