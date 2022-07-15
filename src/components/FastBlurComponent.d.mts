@@ -31,7 +31,7 @@ declare namespace FastBlurComponent {
 declare class FastBlurComponent<
   ContentType extends Element = Element
 >
-  extends Component<{ TemplateSpecType: FastBlurComponent.TemplateSpec<ContentType> }>
+  extends Component<FastBlurComponent.TemplateSpec<ContentType>>
 {
   // @ts-expect-error Prevent ts(2380)
   get content(): ContentType;

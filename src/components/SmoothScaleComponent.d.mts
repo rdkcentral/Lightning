@@ -17,7 +17,7 @@ declare namespace SmoothScaleComponent {
 declare class SmoothScaleComponent<
   ContentType extends Element = Element
 >
-  extends Component<{ TemplateSpecType: SmoothScaleComponent.TemplateSpec<ContentType> }>
+  extends Component<SmoothScaleComponent.TemplateSpec<ContentType>>
 {
   // @ts-expect-error Prevent ts(2380)
   get content(): ContentType;

@@ -36,7 +36,7 @@ export type ValidRef = `${Alphabet}${string}`;
 export type InlineElement<ElementTemplate> = {
   [P in keyof ElementTemplate as P extends ValidRef ? P : never]:
     ElementTemplate[P]
-} & Element<{ TemplateSpecType: Element.TemplateSpecStrong }>['__$type_TemplateSpec'];
+} & Element<Element.TemplateSpecStrong>['__$type_TemplateSpec'];
 
 declare namespace Element {
   export type Constructor<C extends Element = Element> = new (...a: any[]) => C;
@@ -728,9 +728,7 @@ declare namespace Element {
               ?
                 InstanceType<PossibleElementConstructor>
               :
-                Element<{
-                  TemplateSpecType: InlineElement<PossibleElementConstructor>
-                }>
+                Element<InlineElement<PossibleElementConstructor>>
           :
             Default;
 
@@ -775,21 +773,27 @@ type Documentation = {
   [s in keyof Element.TemplateSpecStrong]: unknown;
 }
 
+/**
+ * Additional types to pass to an Element
+ */
 export type ElementTypes = {
-  TemplateSpecType?: Element.TemplateSpecLoose
   TextureType?: Texture,
-  EventMap?: Element.EventMap
+  EventMapType?: Element.EventMap
 };
 
-type OptionalGenericType<Type, Default = undefined> = Type extends object ? Type : Default;
-
+/**
+ * Extracts the EventMapType from ElementTypes
+ */
 type EventMap<Types extends ElementTypes> =
-  Types['EventMap'] extends Element.EventMap
+  Types['EventMapType'] extends Element.EventMap
     ?
-      Types['EventMap']
+      Types['EventMapType']
     :
       Element.EventMap;
 
+/**
+ * Extracts the TextureType from ElementTypes
+ */
 type TextureType<Types extends ElementTypes> =
   Types['TextureType'] extends Texture
   ?
@@ -797,14 +801,9 @@ type TextureType<Types extends ElementTypes> =
   :
     Texture;
 
-export type TemplateSpecType<Types extends ElementTypes> =
-  Types['TemplateSpecType'] extends Element.TemplateSpecLoose
-    ?
-      Types['TemplateSpecType']
-    :
-      Element.TemplateSpecLoose
 
 declare class Element<
+  TemplateSpecType extends Element.TemplateSpecLoose = Element.TemplateSpecLoose,
   Types extends ElementTypes = {}
   // // Elements use loose typing TemplateSpecs by default (for use of use as Elements aren't often fully definable)
   // TemplateSpecType extends Element.TemplateSpecLoose = Element.TemplateSpecLoose,
@@ -1064,7 +1063,7 @@ declare class Element<
    *
    * @param ref
    */
-  getByRef<RefKey extends keyof Element.TemplateSpecRefs<TemplateSpecType<Types>>>(ref: RefKey): Element.TemplateSpecRefs<TemplateSpecType<Types>>[RefKey] | undefined;
+  getByRef<RefKey extends keyof Element.TemplateSpecRefs<TemplateSpecType>>(ref: RefKey): Element.TemplateSpecRefs<TemplateSpecType>[RefKey] | undefined;
 
   /**
    * Get the location identifier of this Element???
@@ -1312,7 +1311,7 @@ declare class Element<
    *
    * @param template
    */
-  patch(template: Element.PatchTemplate<TemplateSpecType<Types>>): void;
+  patch(template: Element.PatchTemplate<TemplateSpecType>): void;
 
   animation(animation: AnimationSettings.Literal): Animation;
 
@@ -1339,8 +1338,8 @@ declare class Element<
    */
   // The getter type needs to have TransitionsTemplate in its union for some reason thats not clear
   // @ts-ignore-error Prevent ts(2380)
-  get transitions(): Element.TransitionsTemplate<TemplateSpecType<Types>> | undefined;
-  set transitions(v: Element.TransitionsTemplate<TemplateSpecType<Types>>);
+  get transitions(): Element.TransitionsTemplate<TemplateSpecType> | undefined;
+  set transitions(v: Element.TransitionsTemplate<TemplateSpecType>);
 
   /**
    * Starts a smooth transition for all the included properties of the object
@@ -1352,8 +1351,8 @@ declare class Element<
    */
   // The getter type needs to have SmoothTemplate in its union for some reason thats not clear
   // @ts-ignore-error Prevent ts(2380)
-  get smooth(): Element.SmoothTemplate<TemplateSpecType<Types>> | undefined;
-  set smooth(object: Element.SmoothTemplate<TemplateSpecType<Types>>);
+  get smooth(): Element.SmoothTemplate<TemplateSpecType> | undefined;
+  set smooth(object: Element.SmoothTemplate<TemplateSpecType>);
 
   /**
    * Fast-forward a currently transitioning property to its target value
@@ -1370,8 +1369,8 @@ declare class Element<
    *
    * @param property
    */
-  fastForward<Key extends keyof Element.SmoothTemplate<TemplateSpecType<Types>>>(
-    property: number extends TemplateSpecType<Types>[Key] ? Key : never
+  fastForward<Key extends keyof Element.SmoothTemplate<TemplateSpecType>>(
+    property: number extends TemplateSpecType[Key] ? Key : never
   ): void;
 
   /**
@@ -1393,13 +1392,13 @@ declare class Element<
    * @param property
    * @param value
    */
-  getSmooth<Key extends keyof Element.SmoothTemplate<TemplateSpecType<Types>>>(
-    property: number extends TemplateSpecType<Types>[Key] ? Key : never
+  getSmooth<Key extends keyof Element.SmoothTemplate<TemplateSpecType>>(
+    property: number extends TemplateSpecType[Key] ? Key : never
   ): number | undefined;
-  getSmooth<Key extends keyof Element.SmoothTemplate<TemplateSpecType<Types>>>(
+  getSmooth<Key extends keyof Element.SmoothTemplate<TemplateSpecType>>(
     property: Key,
-    value: number extends TemplateSpecType<Types>[Key] ? number : never,
-  ): number extends TemplateSpecType<Types>[Key] ? number : never;
+    value: number extends TemplateSpecType[Key] ? number : never,
+  ): number extends TemplateSpecType[Key] ? number : never;
 
   /**
    * Start a smooth transition of `property` to the target `value`. Optionally
@@ -1419,9 +1418,9 @@ declare class Element<
    * @param value Target value
    * @param settings Transition settings
    */
-  setSmooth<Key extends keyof Element.SmoothTemplate<TemplateSpecType<Types>>>(
+  setSmooth<Key extends keyof Element.SmoothTemplate<TemplateSpecType>>(
     property: Key,
-    value: number extends TemplateSpecType<Types>[Key] ? number : never,
+    value: number extends TemplateSpecType[Key] ? number : never,
     settings?: TransitionSettings.Literal,
   ): void;
 
@@ -1437,9 +1436,9 @@ declare class Element<
    *
    * NOT AVAILABLE AT RUNTIME.
    */
-  readonly __$type_TemplateSpec: TemplateSpecType<Types> & {
-    smooth: Element.SmoothTemplate<TemplateSpecType<Types>>
-    transitions: Element.TransitionsTemplate<TemplateSpecType<Types>>
+  readonly __$type_TemplateSpec: TemplateSpecType & {
+    smooth: Element.SmoothTemplate<TemplateSpecType>
+    transitions: Element.TransitionsTemplate<TemplateSpecType>
   };
 
   // Purposely not exposed:

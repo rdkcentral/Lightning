@@ -29,7 +29,7 @@ declare namespace BloomComponent {
 }
 
 declare class BloomComponent<ContentType extends Element = Element>
-  extends Component<{ TemplateSpecType: BloomComponent.TemplateSpec<ContentType> }>
+  extends Component<BloomComponent.TemplateSpec<ContentType>>
 {
   // @ts-expect-error Prevent ts(2380)
   get content(): ContentType;

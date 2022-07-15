@@ -1,4 +1,4 @@
-import Element, { ElementTypes, InlineElement, TemplateSpecType, ValidRef } from "../tree/Element.mjs";
+import Element, { ElementTypes, InlineElement, ValidRef } from "../tree/Element.mjs";
 import Stage from "../tree/Stage.mjs";
 import Texture from "../tree/Texture.mjs";
 import Application from "./Application.mjs";
@@ -83,7 +83,7 @@ declare namespace Component {
                 ?
                   Template<InstanceType<TemplateSpecType[P]>['__$type_TemplateSpec']>
                 :
-                  Template<Element<{ TemplateSpecType: InlineElement<TemplateSpecType[P]>}>['__$type_TemplateSpec']>
+                  Template<Element<InlineElement<TemplateSpecType[P]>>['__$type_TemplateSpec']>
         :
           P extends keyof Element.TemplateSpecStrong
             ?
@@ -155,11 +155,12 @@ declare namespace Component {
 
 
 declare class Component<
+  // Components use loose typing TemplateSpecs by default
+  TemplateSpecType extends Component.TemplateSpecLoose = Component.TemplateSpecLoose,
   Types extends ElementTypes = {}
-// // Components use loose typing TemplateSpecs by default
-  // TemplateSpecType extends Component.TemplateSpecLoose = Component.TemplateSpecLoose,
-  // EventMap extends Element.EventMap = Element.EventMap
+
 > extends Element<
+  TemplateSpecType,
   Types
 > {
   // SDK ??? !!!
@@ -189,7 +190,7 @@ declare class Component<
   _getState(): string;
   $enter(event: Component.StateMachineEvent, ...extraArgs: unknown[]): void;
   $exit(event: Component.StateMachineEvent, ...extraArgs: unknown[]): void;
-  get _routedType(): Component<{ TemplateSpecType: Component.TemplateSpecStrong }> | undefined;
+  get _routedType(): Component<Component.TemplateSpecStrong> | undefined;
 
   /**
    * Internal property that is set to `true` after {@link _init} is called.
@@ -243,7 +244,7 @@ declare class Component<
    * @param stage
    * @param properties
    */
-  constructor(stage: Stage, properties?: Element.PatchTemplate<TemplateSpecType<Types>>);
+  constructor(stage: Stage, properties?: Element.PatchTemplate<TemplateSpecType>);
 
   // __start(): void;
   // - Internal. Sets up state machine

@@ -93,7 +93,7 @@ namespace Container {
   }
 }
 
-class Container extends lng.Component<{ TemplateSpecType: Container.TemplateSpec }> implements lng.Component.ImplementTemplateSpec<Container.TemplateSpec> {
+class Container extends lng.Component<Container.TemplateSpec> implements lng.Component.ImplementTemplateSpec<Container.TemplateSpec> {
   static _template(): lng.Component.Template<Container.TemplateSpec> {
     // Template validity
     return {
