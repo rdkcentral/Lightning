@@ -444,17 +444,17 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
     // @ts-expect-error
     this.MyStrongElement.getSmooth('texture.INVALID_PROP.INVALID_PROP', 123);
     // If the developer wants to use property paths, they can opt-in via `as any`
-    expectType<lng.types.AnimatableValueTypes | undefined>(this.MyStrongElement.getSmooth('texture.x' as any));
+    expectType<any>(this.MyStrongElement.getSmooth('texture.x' as any));
     expectType<number>(this.MyStrongElement.getSmooth('texture.x' as any, 123));
-    expectType<number>(this.MyStrongElement.getSmooth('texture.INVALID_PROP.INVALID_PROP' as any, 123));
-    expectType<number>(this.MyStrongElement.getSmooth('texture.INVALID_PROP.INVALID_PROP' as any, 123));
+    expectType<boolean>(this.MyStrongElement.getSmooth('texture.INVALID_PROP.INVALID_PROP' as any, true));
+    expectType<string>(this.MyStrongElement.getSmooth('texture.INVALID_PROP.INVALID_PROP' as any, 'abc'));
 
     // # LOOSE #
     expectType<number| undefined>(this.MyLooseElement.getSmooth('x'));
     expectType<number>(this.MyLooseElement.getSmooth('alpha', 123));
     // Loose elements will allow any unknown prop to be gotten
-    expectType<lng.types.AnimatableValueTypes | undefined>(this.MyLooseElement.getSmooth('INVALID_PROP'));
-    expectType<string | number | boolean>(this.MyLooseElement.getSmooth('INVALID_PROP', 123));
+    expectType<any>(this.MyLooseElement.getSmooth('INVALID_PROP'));
+    expectType<number>(this.MyLooseElement.getSmooth('INVALID_PROP', 123));
     // @ts-expect-error But for known props the second parameter type must match the type of the property
     this.MyLooseElement.getSmooth('rtt', 123); // Should be boolean
     // @ts-expect-error
@@ -472,12 +472,12 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
     this.MyLooseElement.getSmooth('text', 'abc');
     // Property paths are implicitly supported by loose Elements.
     expectType<any>(this.MyLooseElement.getSmooth('texture.x'));
-    expectType<any>(this.MyLooseElement.getSmooth('texture.INVALID_PROP.INVALID_PROP', 123));
+    expectType<number>(this.MyLooseElement.getSmooth('texture.INVALID_PROP.INVALID_PROP', 123));
     // Unknown props can be set with a string
     this.MyLooseElement.getSmooth('INVALID_PROP', 'strings are allowed');
     // The `as any` case should still work for loose Elements
     expectType<any>(this.MyLooseElement.getSmooth('texture.x' as any));
-    expectType<any>(this.MyLooseElement.getSmooth('texture.INVALID_PROP.INVALID_PROP' as any, 123));
+    expectType<number>(this.MyLooseElement.getSmooth('texture.INVALID_PROP.INVALID_PROP' as any, 123));
   }
 }
 

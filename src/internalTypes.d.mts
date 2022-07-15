@@ -34,7 +34,7 @@
 export type ReduceSpecificity<T, U> =
   U extends U
     ?
-      boolean extends U // Special case for booleans, since they are represented as (true | false) internally
+      true extends U // Special case for booleans, since they are represented as (true | false) internally
         ?
           T extends boolean
             ?
@@ -42,10 +42,18 @@ export type ReduceSpecificity<T, U> =
             :
               never
         :
-          T extends U
+          false extends U
             ?
-              U
+              T extends boolean
+                ?
+                  boolean
+                :
+                  never
             :
-              never
+              T extends U
+                ?
+                  U
+                :
+                  never
         :
           never;
