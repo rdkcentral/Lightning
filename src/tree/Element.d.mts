@@ -1333,7 +1333,7 @@ declare class Element<
    *
    * @param animation
    */
-  animation<Key extends keyof TemplateSpecType>(animation: AnimationSettings.Literal<Pick<TemplateSpecType, Key>, Key>): void;
+  animation<Key extends keyof TemplateSpecType>(animation: AnimationSettings.Literal<Pick<TemplateSpecType, Key>, Key>): Animation;
 
   /**
    * Get/set Transition for `property`

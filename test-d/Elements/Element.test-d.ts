@@ -289,12 +289,12 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
     //
     // # STRONG & LOOSE #
     /// Accepts types of known props with the correct types (value, point map, callback)
-    this.MyStrongElement.animation({
+    expectType<lng.types.Animation>(this.MyStrongElement.animation({
       duration: 10,
       actions: [
         { p: 'x', v: 123 },
         { p: 'x', v: { 0: 123, 0.25: { v: 123 }, 0.75: { v: 123 }, 1: 321 } },
-        { p: 'x', v: (p) => 123 },
+        { p: 'x', v: (p) => p },
         { p: 'text', v: 'abc' },
         { p: 'text', v: { 0: 'abc', 0.25: { v: 'abc' }, 0.75: { v: 'cba' }, 1: 'cba' } },
         { p: 'text', v: (p) => 'abc' },
@@ -302,13 +302,13 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
         { p: 'rtt', v: { 0: false, 0.25: { v: true }, 0.75: { v: false }, 1: true, sm: 123 } },
         { p: 'rtt', v: (p) => true },
       ]
-    });
-    this.MyLooseElement.animation({
+    }));
+    expectType<lng.types.Animation>(this.MyLooseElement.animation({
       duration: 10,
       actions: [
         { p: 'x', v: 123 },
         { p: 'x', v: { 0: 123, 0.25: { v: 123 }, 0.75: { v: 123 }, 1: 321 } },
-        { p: 'x', v: (p) => 123 },
+        { p: 'x', v: (p) => p },
         { p: 'text', v: 'abc' },
         { p: 'text', v: { 0: 'abc', 0.25: { v: 'abc' }, 0.75: { v: 'cba' }, 1: 'cba' } },
         { p: 'text', v: (p) => 'abc' },
@@ -316,7 +316,7 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
         { p: 'rtt', v: { 0: false, 0.25: { v: true }, 0.75: { v: false }, 1: true, sm: 123 } },
         { p: 'rtt', v: (p) => true },
       ]
-    });
+    }));
 
     /// Properties animated with varying boolean values work properly (special case required due to former bug)
     this.MyStrongElement.animation({
@@ -417,7 +417,7 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
       duration: 10,
       actions: [
         { p: 'itemSize', v: 123 }, // 'itemSize' is specific to TestComponent
-        // @ts-expect-error
+        // @ts-expect-error 'itemSize' needs to be number
         { p: 'itemSize', v: 'abc' }
       ]
     });
