@@ -59,25 +59,23 @@ export type CompileTemplateSpecType<
 declare namespace Element {
   export type Constructor<C extends Element = Element> = new (...a: any[]) => C;
 
-  /**
-   * ???
-   */
   export type OnAfterCalcsCallback<T extends Element = Element> = (el: T) => void;
 
-  /**
-   * ???
-   */
   export type OnAfterUpdateCallback<T extends Element = Element> = (el: T) => void;
 
-  /**
-   * ???
-   */
   export type OnUpdateCallback<T extends Element = Element> = (el: T, core: ElementCore) => void;
 
-  /**
-   * ???
-   */
   export interface Flex {
+    /**
+     * Flexbox container align content
+     *
+     * @remarks
+     * CSS Documentation:
+     * - [`align-content` (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/align-content)
+     *
+     * See [Flexbox](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Flexbox) documentation
+     * for more information.
+     */
     alignContent?:
       | 'flex-start'
       | 'flex-end'
@@ -86,8 +84,41 @@ declare namespace Element {
       | 'space-around'
       | 'space-evenly'
       | 'stretch';
+    /**
+     * Flexbox container align items
+     *
+     * @remarks
+     * Difference from CSS:
+     * - Baseline is not supported
+     *
+     * CSS Documentation:
+     * - [`align-items` (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/align-items)
+     *
+     * See [Flexbox](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Flexbox) documentation
+     * for more information.
+     */
     alignItems?: 'flex-start' | 'flex-end' | 'center' | 'stretch';
+    /**
+     * Flexbox container direction
+     *
+     * @remarks
+     * CSS Documentation:
+     * - [`flex-direction` (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/flex-direction)
+     *
+     * See [Flexbox](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Flexbox) documentation
+     * for more information.
+     */
     direction?: 'column' | 'row';
+    /**
+     * Flexbox container justify content
+     *
+     * @remarks
+     * CSS Documentation:
+     * - [`justify-content` (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/justify-content)
+     *
+     * See [Flexbox](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Flexbox) documentation
+     * for more information.
+     */
     justifyContent?:
       | 'flex-start'
       | 'flex-end'
@@ -95,23 +126,214 @@ declare namespace Element {
       | 'space-between'
       | 'space-around'
       | 'space-evenly';
+    /**
+     * Flexbox container padding
+     *
+     * @remarks
+     * CSS Documentation:
+     * - [`padding` (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/padding)
+     *
+     * See [Flexbox](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Flexbox) documentation
+     * for more information.
+     */
     padding?: number;
+    /**
+     * Flexbox container padding bottom
+     *
+     * @remarks
+     * CSS Documentation:
+     * - [`padding-bottom` (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/padding-bottom)
+     *
+     * See [Flexbox](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Flexbox) documentation
+     * for more information.
+     */
     paddingBottom?: number;
+    /**
+     * Flexbox container padding left
+     *
+     * @remarks
+     * CSS Documentation:
+     * - [`padding-left` (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/padding-left)
+     *
+     * See [Flexbox](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Flexbox) documentation
+     * for more information.
+     */
     paddingLeft?: number;
+    /**
+     * Flexbox container padding right
+     *
+     * @remarks
+     * CSS Documentation:
+     * - [`padding-right` (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/padding-right)
+     *
+     * See [Flexbox](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Flexbox) documentation
+     * for more information.
+     */
     paddingRight?: number;
+    /**
+     * Flexbox container padding top
+     *
+     * @remarks
+     * CSS Documentation:
+     * - [`padding-top` (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/padding-top)
+     *
+     * See [Flexbox](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Flexbox) documentation
+     * for more information.
+     */
     paddingTop?: number;
+    /**
+     * Flexbox container wrap
+     *
+     * @remarks
+     * Difference from CSS:
+     * - Only wrap (`true`) and no wrap (`false`) are supported
+     *
+     * CSS Documentation:
+     * - [`flex-wrap` (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/flex-wrap)
+     *
+     * See [Flexbox](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Flexbox) documentation
+     * for more information.
+     */
     wrap?: boolean;
   }
 
-  /***
-   * ???
-   */
   export interface FlexItem {
+    /**
+     * Flexbox item grow
+     *
+     * @remarks
+     * CSS Documentation:
+     * - [`flex-grow` (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/flex-grow)
+     *
+     * See [Flexbox](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Flexbox) documentation
+     * for more information.
+     */
+    grow?: number;
+    /**
+     * Flexbox item shrink
+     *
+     * @remarks
+     * Difference from CSS:
+     * - Non-containers are not shrinkable by default
+     *
+     * CSS Documentation:
+     * - [`flex-shrink` (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/flex-shrink)
+     *
+     * See [Flexbox](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Flexbox) documentation
+     * for more information.
+     */
+    shrink?: number;
+    /**
+     * Flexbox item align self
+     *
+     * @remarks
+     * CSS Documentation:
+     * - [`align-self` (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/align-self)
+     *
+     * See [Flexbox](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Flexbox) documentation
+     * for more information.
+     */
+    alignSelf?: string;
+    /**
+     * Flexbox item minimum width
+     *
+     * @remarks
+     * Difference from CSS:
+     * CSS Documentation:
+     * - [`min-width` (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/min-width)
+     *
+     * See [Flexbox](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Flexbox) documentation
+     * for more information.
+     */
+    minWidth?: number;
+    /**
+     * Flexbox item minimum height
+     *
+     * @remarks
+     * CSS Documentation:
+     * - [`min-height` (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/min-height)
+     *
+     * See [Flexbox](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Flexbox) documentation
+     * for more information.
+     */
+    minHeight?: number;
+    /**
+     * Flexbox item maximum width
+     *
+     * @remarks
+     * CSS Documentation:
+     * - [`max-width` (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/max-width)
+     *
+     * See [Flexbox](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Flexbox) documentation
+     * for more information.
+     */
+    maxWidth?: number;
+    /**
+     * Flexbox item maximum height
+     *
+     * @remarks
+     * CSS Documentation:
+     * - [`max-height` (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/max-height)
+     *
+     * See [Flexbox](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Flexbox) documentation
+     * for more information.
+     */
+    maxHeight?: number;
+    /**
+     * Flexbox item margin
+     *
+     * @remarks
+     * CSS Documentation:
+     * - [`margin` (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/margin)
+     *
+     * See [Flexbox](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Flexbox) documentation
+     * for more information.
+     */
     margin?: number;
-    marginBottom?: number;
+    /**
+     * Flexbox item margin left
+     *
+     * @remarks
+     * CSS Documentation:
+     * - [`margin-left` (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/margin-left)
+     *
+     * See [Flexbox](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Flexbox) documentation
+     * for more information.
+     */
     marginLeft?: number;
-    marginRight?: number;
+    /**
+     * Flexbox item margin top
+     *
+     * @remarks
+     * CSS Documentation:
+     * - [`margin-top` (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/margin-top)
+     *
+     * See [Flexbox](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Flexbox) documentation
+     * for more information.
+     */
     marginTop?: number;
+    /**
+     * Flexbox item margin bottom
+     *
+     * @remarks
+     * CSS Documentation:
+     * - [`margin-bottom` (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/margin-bottom)
+     *
+     * See [Flexbox](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Flexbox) documentation
+     * for more information.
+     */
+    marginBottom?: number;
+    /**
+     * Flexbox item margin right
+     *
+     * @remarks
+     * CSS Documentation:
+     * - [`margin-right` (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/margin-right)
+     *
+     * See [Flexbox](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Flexbox) documentation
+     * for more information.
+     */
+    marginRight?: number;
   }
 
   /**
@@ -149,15 +371,12 @@ declare namespace Element {
 
   export interface TemplateSpecStrong {
     /**
-     * ???
+     * Element's reference key
      */
     ref: string | undefined;
 
     /**
      * Element's Texture
-     *
-     * @remarks
-     * ???
      */
     texture: Texture | Texture.Literal | null;
 
@@ -480,7 +699,12 @@ declare namespace Element {
     rttLazy: boolean;
 
     /**
-     * ???
+     * Forces the Element's contents to be rendered to an offscreen frame buffer. If set to `true`,
+     * the Element will not be drawn onto the screen.
+     *
+     * @remarks
+     * You can use this offscreen texture as a sampler for drawing other elements. So,
+     * {@link renderToTexture} must be set to true for this to work.
      */
     renderOffscreen: boolean;
 
@@ -490,12 +714,20 @@ declare namespace Element {
     colorizeResultTexture: boolean;
 
     /**
-     * ???
+     * Flexbox container properties
+     *
+     * @remarks
+     * See [Flexbox](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Flexbox) documentation
+     * for more information.
      */
     flex: Element.Flex;
 
     /**
-     * ???
+     * Flexbox item properties
+     *
+     * @remarks
+     * See [Flexbox](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Flexbox) documentation
+     * for more information.
      */
     flexItem: Element.FlexItem;
 
@@ -609,12 +841,24 @@ declare namespace Element {
     colorRight: number;
 
     /**
-     * ???
+     * Z-index
+     *
+     * @remarks
+     * See [Z-Indexing](https://lightningjs.io/docs/#/lightning-core-reference/RenderEngine/Elements/Rendering?id=z-indexing)
+     * for more information.
+     *
+     * @defaultValue 0
      */
     zIndex: number;
 
     /**
-     * ???
+     * Forces a new z-index context for children of this Element.
+     *
+     * @remarks
+     * See [Z-Indexing](https://lightningjs.io/docs/#/lightning-core-reference/RenderEngine/Elements/Rendering?id=z-indexing)
+     * for more information.
+     *
+     * @defaultValue false
      */
     forceZIndexContext: boolean;
 
@@ -667,7 +911,7 @@ declare namespace Element {
     transitions: TransitionsTemplate;
 
     /**
-     * ???
+     * Callback called before the Element's flexbox layout is updated.
      */
     onUpdate: OnUpdateCallback | undefined | null;
 
@@ -677,7 +921,7 @@ declare namespace Element {
     onAfterCalcs: OnAfterCalcsCallback | undefined | null;
 
     /**
-     * ???
+     * Callback called after the Element's flexbox layout is updated.
      */
     onAfterUpdate: OnAfterUpdateCallback | undefined | null;
   }
@@ -953,22 +1197,41 @@ declare class Element<
   readonly renderHeight: number;
 
   /**
-   * ???
+   * If flexbox is enabled for this Element, contains the final X position of
+   * the Element after the layout update operation has been done.
+   *
+   * @remarks
+   * See [Flexbox - Final Coordinates](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Flexbox?id=final-coordinates)
+   * for more information.
    */
   readonly finalX: number;
-
   /**
-   * ???
+   * If flexbox is enabled for this Element, contains the final Y position of
+   * the Element after the layout update operation has been done.
+   *
+   * @remarks
+   * See [Flexbox - Final Coordinates](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Flexbox?id=final-coordinates)
+   * for more information.
    */
   readonly finalY: number;
 
   /**
-   * ???
+   * If flexbox is enabled for this Element, contains the final width of
+   * the Element after the layout update operation has been done.
+   *
+   * @remarks
+   * See [Flexbox - Final Coordinates](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Flexbox?id=final-coordinates)
+   * for more information.
    */
   readonly finalW: number;
 
   /**
-   * ???
+   * If flexbox is enabled for this Element, contains the final height of
+   * the Element after the layout update operation has been done.
+   *
+   * @remarks
+   * See [Flexbox - Final Coordinates](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Flexbox?id=final-coordinates)
+   * for more information.
    */
   readonly finalH: number;
 
@@ -982,9 +1245,6 @@ declare class Element<
    */
   loadTexture(): void;
 
-  /**
-   * ???
-   */
   forceZIndexContext: boolean;
 
   /**
@@ -1073,7 +1333,7 @@ declare class Element<
   getByRef<RefKey extends keyof Element.TemplateSpecRefs<TemplateSpecType>>(ref: RefKey): Element.TemplateSpecRefs<TemplateSpecType>[RefKey] | undefined;
 
   /**
-   * Get the location identifier of this Element???
+   * Get the location identifier of this Element
    */
   getLocationString(): string;
 
@@ -1257,7 +1517,7 @@ declare class Element<
   set text(text: TextTexture.Literal | string);
 
   /**
-   * ??? (make sure matches literal version)
+   * Callback called before the Element's flexbox layout is updated.
    *
    * @remarks
    * Note: This property will always return `undefined` when read.
@@ -1277,7 +1537,7 @@ declare class Element<
   onAfterCalcs: Element.OnAfterCalcsCallback | null | undefined;
 
   /**
-   * ??? (make sure matches literal version)
+   * Callback called after the Element's flexbox layout is updated.
    *
    * @remarks
    * Note: This property will always return `undefined` when read.
