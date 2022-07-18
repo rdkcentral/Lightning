@@ -29,7 +29,6 @@
  * ```
  *
  * @hidden Internal use only
- * ###
  */
 export type ReduceSpecificity<T, U> =
   U extends U

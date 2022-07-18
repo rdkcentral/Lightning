@@ -1,4 +1,6 @@
 import AnimationActionSettings from "./AnimationActionSettings.mjs";
+import Element from "../tree/Element.mjs";
+import { ExtractAnimatableValueTypes } from "../commonTypes.mjs";
 
 declare namespace AnimationSettings {
   /**
@@ -13,7 +15,10 @@ declare namespace AnimationSettings {
    * See [Animation Attributes](https://lightningjs.io/docs/#/lightning-core-reference/Animations/Attributes) for more
    * information.
    */
-  export interface Literal {
+  export interface Literal<
+    TemplateSpecType = Element.TemplateSpecStrong,
+    Key = keyof TemplateSpecType,
+  > {
     /**
      * Animation Actions
      *
@@ -24,7 +29,13 @@ declare namespace AnimationSettings {
      *
      * @defaultValue `[]`
      */
-    actions: Array<AnimationActionSettings.Literal>;
+    actions: Array<
+      Key extends keyof TemplateSpecType // This splits up the individual string literal union of Key (if it is a union)
+        ?
+          AnimationActionSettings.Literal<Key, ExtractAnimatableValueTypes<TemplateSpecType[Key]>>
+        :
+          never
+    >;
 
     /**
      * Delay (in seconds)
@@ -115,14 +126,14 @@ declare namespace AnimationSettings {
   }
 }
 
-declare class AnimationSettings implements AnimationSettings.Literal {
-  constructor();
-
-  duration: number;
-  repeat: number;
-  stopMethod: AnimationSettings.StopMethod;
-  get actions(): Array<AnimationActionSettings>;
-  set actions(v: Array<AnimationActionSettings>);
+declare class AnimationSettings {
+  // !!!! Remove this body and mark as internal use only? (simplifies our setup)
+  // constructor();
+  // duration: number;
+  // repeat: number;
+  // stopMethod: AnimationSettings.StopMethod;
+  // get actions(): Array<AnimationActionSettings<Key>>;
+  // set actions(v: Array<AnimationActionSettings<Key>>);
 
   /**
    * Stop Methods

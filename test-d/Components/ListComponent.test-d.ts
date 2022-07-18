@@ -41,17 +41,14 @@ class Container extends lng.Component<Container.TemplateSpec> implements lng.Com
           timingFunction: 'cubic-bezier(0.1,0.2,0.3,0.4)'
         },
         progressAnimation: {
+          duration: 10,
           actions: [
             {
-              properties: 'prop',
-              // @ts-expect-error Sanity test: selector needs to be a string
-              selector: 123,
-              value: {
+              p: 'x',
+              v: {
                 0: 12,
                 1: 31,
                 sm: 12,
-                // @ts-expect-error
-                INVALID_PROP: 123
               }
             }
           ],
@@ -153,16 +150,13 @@ class Container extends lng.Component<Container.TemplateSpec> implements lng.Com
           timingFunction: 'cubic-bezier(0.1,0.2,0.3,0.4)'
         },
         progressAnimation: {
+          duration: 10,
           actions: [
             {
-              properties: 'prop',
-              selector: 'selector',
-              value: {
-                0: 12,
-                1: 31,
-                sm: 12,
-                // @ts-expect-error
-                INVALID_PROP: 123
+              p: 'alpha',
+              v: {
+                0: 123,
+                1: 123,
               }
             }
           ],
@@ -204,16 +198,14 @@ class Container extends lng.Component<Container.TemplateSpec> implements lng.Com
         timingFunction: 'cubic-bezier(0.1,0.2,0.3,0.4)'
       },
       progressAnimation: {
+        duration: 10,
         actions: [
           {
-            properties: 'prop',
-            selector: 'selector',
-            value: {
+            p: 'x',
+            v: {
               0: 12,
               1: 31,
               sm: 12,
-              // @ts-expect-error
-              INVALID_PROP: 123
             }
           }
         ],

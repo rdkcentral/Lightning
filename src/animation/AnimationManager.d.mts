@@ -12,6 +12,6 @@ export default class AnimationManager {
     element: Element,
     settings: AnimationSettings | AnimationSettings.Literal,
   ): Animation;
-  createSettings(settings: AnimationActionSettings.Literal): AnimationSettings;
+  createSettings(settings: AnimationSettings.Literal): AnimationSettings;
   progress(): void;
 }

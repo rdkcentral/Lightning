@@ -1,13 +1,15 @@
-import { AnimatableValueTypes } from "../commonTypes.mjs";
+import { AnimatableValueTypes, ExtractAnimatableValueTypes } from "../commonTypes.mjs";
 import AnimationSettings from "./AnimationSettings.mjs";
+import type Element from "../tree/Element.mjs";
+
 
 declare namespace AnimationActionSettings {
-  export type AnimationActionValue =
-    AnimatableValueTypes |
-    AnimationActionSettings.AnimationActionPointMap |
-    ((progress: number) => AnimatableValueTypes);
+  export type AnimationActionValue<ValueType extends AnimatableValueTypes> =
+    ValueType |
+    AnimationActionSettings.AnimationActionPointMap<ValueType> |
+    ((progress: number) => ValueType);
 
-  export interface AnimationActionPoint {
+  export interface AnimationActionPoint<ValueType extends AnimatableValueTypes> {
     /**
      * Slope
      *
@@ -57,7 +59,7 @@ declare namespace AnimationActionSettings {
      *
      * @defaultValue 0
      */
-    v: AnimatableValueTypes | ((progress: number) => AnimatableValueTypes);
+    v: ValueType | ((progress: number) => ValueType);
   }
 
   /**
@@ -95,9 +97,12 @@ declare namespace AnimationActionSettings {
    *   1: 500
    * }
    * ```
+   *
+   * See [Action Value](https://lightningjs.io/docs/#/lightning-core-reference/Animations/ActionValue)
+   * for more information.
    */
-  export interface AnimationActionPointMap {
-    [index: number]: number | AnimationActionPoint;
+  export interface AnimationActionPointMap<ValueType extends AnimatableValueTypes> {
+    [index: number]: ValueType | AnimationActionPoint<ValueType>;
     /**
      * Default Smoothness
      *
@@ -117,69 +122,85 @@ declare namespace AnimationActionSettings {
    * See [Animation Actions](https://lightningjs.io/docs/#/lightning-core-reference/Animations/Actions)
    * for more information.
    */
-  export interface Literal {
+  export interface Literal<Key, ValueType extends AnimatableValueTypes> {
+    // selector?: string;
+    // - Removed for same reasons as `properties` below
+
     /**
-     * Selector
+     * Tag selector (see {@link Element.tag} function) on which the animation will be applied
      *
      * @remarks
-     * ???
-     */
-    selector?: string;
-    /**
-     * Alias for {@link selector}
+     * - If you specify this:
+     *   - The child Elements (of the Element you're calling {@link Element.animation} on) that
+     *     match the selector string will be animated.
+     * - Otherwise:
+     *   - The Element you are calling `animation()` on will be animated.
+     *
+     * WARNING: Because it's impossible to make tag selection type-safe it is recommended
+     * you do not use `t` when using TypeScript. Instead, call `animation()` directly on
+     * each Element you wish to animate.
      *
      * @see {@link selector}
+     * @deprecated See note about type-safety in the Remarks section.
      */
     t?: string;
+
+    // properties?: Key | Array<Key>;
+    // - Removed because its duplicative and potentially error prone
+    // - Also cannot safely type an array of keys to animate at once, seems less useful too
+    // - `p` was chosen as this is what is documented. Documentation also never shows the array
+    //   of "properties" form
+
     /**
-     * Properties to Animate
+     * Property to animate
      *
      * @remarks
-     * ???
+     * See [Action Value](https://lightningjs.io/docs/#/lightning-core-reference/Animations/ActionValue?id=action-value)
+     * for more information.
      */
-    properties?: string | Array<string>;
+    p?: Key;
+
+    // value?: AnimationActionSettings.AnimationActionValue<ValueType>
+    // - Removed for same reasons as `properties` above
+
     /**
-     * Alias for {@link properties}
-     *
-     * @see {@link properties}
-     */
-    p?: string | Array<string>;
-    /**
-     * Value
-     *
-     * @remarks
-     * ???
-     */
-    value?: AnimationActionValue;
-    /**
-     * Alias for {@link value}
-     *
-     * @see {@link value}
-     */
-    v?: AnimationActionValue;
-    /**
-     * Reset Value
+     * Value object decribing animation
      *
      * @remarks
-     * ???
+     * See [Action Value](https://lightningjs.io/docs/#/lightning-core-reference/Animations/ActionValue?id=action-value)
+     * for more information.
      */
-    resetValue?: AnimatableValueTypes;
+    v?:
+      // Square brackets opt-out of of "distributive behavior" in conditioanl type
+      // (https://www.typescriptlang.org/docs/handbook/2/conditional-types.html#distributive-conditional-types)
+      [ValueType] extends [never]
+        ?
+          never
+        :
+          AnimationActionSettings.AnimationActionValue<ValueType>
+    // resetValue?: AnimatableValueTypes;
+    // - Removed for same reasons as `properties` above
+
     /**
-     * Alias for {@link resetValue}
+     * Reset value
      *
-     * @see {@link resetValue}
+     * @remarks
+     * After manually stopping the animation, the defined value `v` at progress 0 is used.
+     * If another value is desired, `rv` can be used.
+     *
+     * See [Action Value](https://lightningjs.io/docs/#/lightning-core-reference/Animations/ActionValue?id=action-value)
+     * for more information.
      */
-    rv?: AnimatableValueTypes;
+    rv?: AnimationActionSettings.AnimationActionValue<ValueType>;
   }
 }
 
 
-declare class AnimationActionSettings implements AnimationActionSettings.Literal {
-  constructor(animationSettings: AnimationSettings);
-
-  set selector(v: string);
-  set value(v: AnimationActionSettings.AnimationActionPointMap);
-  set properties(v: string | Array<string>);
+declare class AnimationActionSettings {
+  // !!!! Remove this body and mark as internal use only? (simplifies our setup)
+  // set selector(v: string);
+  // set value(v: AnimationActionSettings.AnimationActionPointMap);
+  // set properties(v: string | Array<string>);
 }
 
 export default AnimationActionSettings;

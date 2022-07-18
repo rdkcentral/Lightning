@@ -40,6 +40,22 @@ export type InlineElement<ElementTemplate> = {
     ElementTemplate[P]
 } & Element<Element.TemplateSpecStrong>['__$type_TemplateSpec'];
 
+/**
+ * Returns a CompiledTemplateSpecType with all types from the TemplateSpec properly combined
+ *
+ * @privateRemarks
+ * Used to build: __$type_TemplateSpec
+ *
+ * ###
+ */
+export type CompileTemplateSpecType<
+  TemplateSpecType extends Element.TemplateSpecStrong,
+  Config extends Element.Config
+> =
+  TemplateSpecType & {
+    smooth: Element.SmoothTemplate<TemplateSpecType>
+    transitions: Element.TransitionsTemplate<TemplateSpecType>
+  };
 declare namespace Element {
   export type Constructor<C extends Element = Element> = new (...a: any[]) => C;
 
@@ -1023,7 +1039,13 @@ declare class Element<
   /**
    * Returns one of the Elements from the subtree that has this tag.
    *
+   * @remarks
+   * WARNING: Because it's impossible to make tag selection type-safe, in useful way, it is recommended
+   * you do not use `tag()` when using TypeScript. Instead, call {@link Element.getByRef} to get direct
+   * child Elements. You can chain them to access deeper children of an Element.
+   *
    * @param tagName
+   * @deprecated Use {@link Element.getByRef} instead. See note about type-safety in the Remarks section.
    */
   tag<T extends Element = Element>(tagName: string): T | undefined;
 
@@ -1303,10 +1325,15 @@ declare class Element<
   patch(template: Element.PatchTemplate<TemplateSpecType>): void;
 
   /**
-   * ???
+   * Attach an animation to this Element
+   *
+   * @remarks
+   * See [Animations](https://lightningjs.io/docs/#/lightning-core-reference/Animations/index) for
+   * more information.
+   *
    * @param animation
    */
-  animation(animation: AnimationSettings.Literal): Animation;
+  animation<Key extends keyof TemplateSpecType>(animation: AnimationSettings.Literal<Pick<TemplateSpecType, Key>, Key>): void;
 
   /**
    * Get/set Transition for `property`
@@ -1447,10 +1474,7 @@ declare class Element<
    *
    * NOT AVAILABLE AT RUNTIME.
    */
-  readonly __$type_TemplateSpec: TemplateSpecType & {
-    smooth: Element.SmoothTemplate<TemplateSpecType>
-    transitions: Element.TransitionsTemplate<TemplateSpecType>
-  };
+  readonly __$type_TemplateSpec: CompileTemplateSpecType<TemplateSpecType, Config>
 
   // Purposely not exposed:
   // getTags();
