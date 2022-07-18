@@ -376,7 +376,11 @@ declare namespace Element {
     ref: string | undefined;
 
     /**
-     * Element's Texture
+     * Set the Element's texture
+     *
+     * @remarks
+     * See [Texture Types](https://lightningjs.io/docs/#/lightning-core-reference/RenderEngine/Textures/index) for
+     * more information.
      */
     texture: Texture | Texture.Literal | null;
 
@@ -473,6 +477,9 @@ declare namespace Element {
      *
      * @remarks
      * Cannot be set at the same time as {@link src} or {@link text}.
+     *
+     * See [Texture Types](https://lightningjs.io/docs/#/lightning-core-reference/RenderEngine/Textures/index) for
+     * more information.
      *
      * @defaultValue false
      *
@@ -665,6 +672,9 @@ declare namespace Element {
      * laid out in this property.
      *
      * Cannot be set at the same time as {@link rect} or {@link src}.
+     *
+     * See [Texture Types](https://lightningjs.io/docs/#/lightning-core-reference/RenderEngine/Textures/index) for
+     * more information.
      */
     text: TextTexture.Literal | string | null;
 
@@ -749,6 +759,9 @@ declare namespace Element {
      *
      * @remarks
      * Cannot be set at the same time as {@link rect} or {@link text}.
+     *
+     * See [Texture Types](https://lightningjs.io/docs/#/lightning-core-reference/RenderEngine/Textures/index) for
+     * more information.
      */
     src: string | undefined;
 
@@ -1186,14 +1199,8 @@ declare class Element<
 
   _onResize(): void;
 
-  /**
-   * ???
-   */
   readonly renderWidth: number;
 
-  /**
-   * ???
-   */
   readonly renderHeight: number;
 
   /**
@@ -1248,7 +1255,11 @@ declare class Element<
   forceZIndexContext: boolean;
 
   /**
-   * ??? (make sure matches literal vesrion)
+   * Get/set the Element's texture
+   *
+   * @remarks
+   * See [Texture Types](https://lightningjs.io/docs/#/lightning-core-reference/RenderEngine/Textures/index) for
+   * more information.
    *
    * @see {@link Element.TemplateSpecStrong.texture}
    */
