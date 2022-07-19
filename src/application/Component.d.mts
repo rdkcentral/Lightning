@@ -1,8 +1,11 @@
+import { HandleReturnType, HandlerParameters, SignalMapType } from "../internalTypes.mjs";
 import Element, { InlineElement, ValidRef } from "../tree/Element.mjs";
 import Stage from "../tree/Stage.mjs";
-import Texture from "../tree/Texture.mjs";
 import Application from "./Application.mjs";
 
+//
+// Public types
+//
 declare namespace Component {
   export type Constructor<C extends Component = Component> = new (...a: any[]) => C;
 
@@ -39,7 +42,7 @@ declare namespace Component {
      * See (Signals)[https://lightningjs.io/docs/#/lightning-core-reference/Communication/Signal?id=signal] for more
      * information.
      */
-    signals: Component.Signals;
+    signals: Signals;
     /**
      * Gets/sets the Pass Signals for this Component.
      *
@@ -47,7 +50,7 @@ declare namespace Component {
      * See [Pass Signals](https://lightningjs.io/docs/#/lightning-core-reference/Communication/Signal?id=pass-signals)
      * for more information.
      */
-    passSignals: Component.PassSignals;
+    passSignals: PassSignals;
   }
 
   /**
@@ -161,28 +164,43 @@ declare namespace Component {
     sharedState: string;
   }
 
-  export type Signals = Record<string, boolean | string | ((...args: unknown[]) => unknown)>;
-  export type PassSignals = Record<string, string | true | undefined>;
   // eslint-disable-next-line prettier/prettier
   export type FireAncestorsEvent = `$${string}`;
 
-  export interface TypeConfig extends Element.TypeConfig {
-    SignalsType?: Signals
+  export interface EventMap extends Element.EventMap {
+    // Provided empty for consistent convention and to to allow augmentation
   }
 
-  export type SignalsType<Config extends TypeConfig> =
-    NonNullable<Config['SignalsType']>
+  export interface SignalMap {
+    // Provided empty for consistent convention and to to allow augmentation
+  }
+
+  export interface TypeConfig extends Element.TypeConfig {
+    EventMapType?: EventMap
+    SignalMapType?: SignalMap
+  }
 }
 
+//
+// Private types
+//
+type Signals<SignalMapType = Record<string, ((...args: any) => any)>> = {
+  [Key in keyof SignalMapType]:
+    boolean | string | ((...args: HandlerParameters<SignalMapType[Key]>) => HandleReturnType<SignalMapType[Key]>)
+}
 
+type PassSignals<SignalMapType = Record<string, ((...args: any) => any)>> = {
+  [Key in keyof SignalMapType]:
+    string | true | undefined
+}
 
 declare class Component<
   // Components use loose typing TemplateSpecs by default
   TemplateSpecType extends Component.TemplateSpecLoose = Component.TemplateSpecLoose,
-  Config extends Component.TypeConfig = Component.TypeConfig
+  TypeConfig extends Component.TypeConfig = Component.TypeConfig
 > extends Element<
   TemplateSpecType,
-  Config
+  TypeConfig
 > {
   // SDK !!!
   static getFonts(): Component.Font[]; // Should be app only?
@@ -723,8 +741,8 @@ declare class Component<
    *
    * @param v
    */
-  get signals(): Component.Signals;
-  set signals(v: Component.Signals);
+  get signals(): Signals<SignalMapType<TypeConfig>>;
+  set signals(v: Signals<SignalMapType<TypeConfig>>);
 
   // get alterSignals(): undefined;
   // set alterSignals(v: any);
@@ -740,8 +758,8 @@ declare class Component<
    *
    * @param v
    */
-  get passSignals(): Component.PassSignals;
-  set passSignals(v: Component.PassSignals);
+  get passSignals(): PassSignals<SignalMapType<TypeConfig>>;
+  set passSignals(v: PassSignals<SignalMapType<TypeConfig>>);
 
   /**
    * Alter the Pass Signals for this Component

@@ -8,26 +8,32 @@ declare namespace Application {
     // !!!
   }
 
-  interface TemplateSpec extends Component.TemplateSpecStrong {
-  }
-
-  interface EventMap extends Element.EventMap {
-    // This is here so it can be augmented by Applications
-  }
-
   export interface TemplateSpecStrong extends Component.TemplateSpecStrong {
     // No additional template spec on an Application
   }
 
   /**
-   * Loose form of lng.Component.TemplateSpecStrong that allows any additional 'any' properties
+   * Loose form of lng.Application.TemplateSpecStrong that allows any additional 'any' properties
    */
   export interface TemplateSpecLoose extends Application.TemplateSpecStrong {
     [s: string]: any
   }
 
+  interface TemplateSpec extends Component.TemplateSpecStrong {
+    // Provided empty for consistent convention and to to allow augmentation
+  }
+
+  interface EventMap extends Element.EventMap {
+    // Provided empty for consistent convention and to to allow augmentation
+  }
+
+  interface SignalMap extends Component.SignalMap {
+    // Provided empty for consistent convention and to to allow augmentation
+  }
+
   export interface TypeConfig extends Component.TypeConfig {
-    EventMapType?: Application.EventMap
+    EventMapType?: EventMap,
+    SignalMapType?: SignalMap
   }
 }
 
@@ -36,123 +42,21 @@ declare class Application<
   TemplateSpecType extends Application.TemplateSpecLoose = Application.TemplateSpecLoose,
   TypeConfig extends Application.TypeConfig = Application.TypeConfig
 > extends Component<
-  Application.TemplateSpec,
-  {
-    EventMapType: Element.EventMapType<TypeConfig>, // !!! DO TESTS FOR ALL THESE AND MAKE SURE THEY WORK AS EXPECTED
-    TextureType: Element.TextureType<TypeConfig>,
-    SignalsType: Component.SignalsType<TypeConfig>
-  }
+  TemplateSpecType,
+  TypeConfig
 > implements EventEmitter<Application.EventMap> {
 
+  // __updateFocusCounter: any;
+  // __keypressTimers: any;
+  // __hoveredChild: any;
+  // __keymap: any;
+  // __options: any;
+  // __updateFocusId: any;
+  // _focusPath: any;
+  // __prevFocusSettings: any;
+  // _destroyed: any;
+  // - Private properties
 
-  /**
-   * __updateFocusCounter
-   *
-   * @remarks
-   * ???
-   *
-   */
-  __updateFocusCounter: any;
-
-  /**
-   * __keypressTimers
-   *
-   * @remarks
-   * ???
-   *
-   */
-  __keypressTimers: any;
-
-  /**
-   * __hoveredChild
-   *
-   * @remarks
-   * ???
-   *
-   */
-  __hoveredChild: any;
-
-  /**
-   * __keymap
-   *
-   * @remarks
-   * ???
-   *
-   */
-  __keymap: any;
-
-  /**
-   * cursor
-   *
-   * @remarks
-   * ???
-   *
-   */
-  cursor: string | undefined;
-
-  /**
-   * __options
-   *
-   * @remarks
-   * ???
-   *
-   */
-  __options: any;
-
-  /**
-   * __updateFocusId
-   *
-   * @remarks
-   * ???
-   *
-   */
-  __updateFocusId: any;
-
-  /**
-   * _focusPath
-   *
-   * @remarks
-   * ???
-   *
-   */
-  _focusPath: any;
-
-  /**
-   * __prevFocusSettings
-   *
-   * @remarks
-   * ???
-   *
-   */
-  __prevFocusSettings: any;
-
-  /**
-   * stage
-   *
-   * @remarks
-   * ???
-   *
-   */
-  stage: any;
-
-  /**
-   * _destroyed
-   *
-   * @remarks
-   * ???
-   *
-   */
-  _destroyed: any;
-
-  /**
-   * constructor
-   *
-   * @remarks
-   * ???
-   *
-   * @param options
-   * @param properties
-   */
   constructor(options?: Partial<Application.Options>, properties?: Element.PatchTemplate<TemplateSpecType>);
 
   /**
@@ -188,29 +92,20 @@ declare class Application<
   // updateFocusSettings(): void;
   // - Internal use only
 
-  /**
-   * _handleFocusSettings
-   *
-   * @remarks
-   * ???
-   *
-   * @param settings
-   * @param prevSettings
-   * @param focused
-   * @param prevFocused
-   */
-  _handleFocusSettings(settings: any, prevSettings: any, focused: any, prevFocused: any): void;
+  // _handleFocusSettings(settings: any, prevSettings: any, focused: any, prevFocused: any): void;
+  // - Already defined on Component
 
   // __getFocusPath(): any;
   // - Internal use only
+
   /**
-   * focusPath
+   * Active focus path of the application
    *
    * @remarks
-   * ???
-   *
+   * If defined, index 0 will always be the root Application component branching hierarchically to the Component
+   * with final focus at the end of the array.
    */
-  get focusPath(): Element[] | undefined;
+  get focusPath(): Component[] | undefined;
 
   // focusTopDownEvent(events: any, ...args: any[]): any;
   // focusBottomUpEvent(events: any, ...args: any[]): any;

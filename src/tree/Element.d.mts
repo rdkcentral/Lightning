@@ -5,7 +5,7 @@ import TransitionSettings from "../animation/TransitionSettings.mjs";
 import Component from "../application/Component.mjs";
 import { AnimatableValueTypes, ExtractAnimatableValueTypes } from "../commonTypes.mjs";
 import EventEmitter from "../EventEmitter.mjs";
-import { Documentation, ReduceSpecificity } from "../internalTypes.mjs";
+import { Documentation, EventMapType, ReduceSpecificity, TextureType } from "../internalTypes.mjs";
 import TextTexture from "../textures/TextTexture.mjs";
 import ElementCore from "./core/ElementCore.mjs";
 import ElementTexturizer from "./core/ElementTexturizer.mjs";
@@ -50,7 +50,7 @@ export type InlineElement<ElementTemplate> = {
  */
 export type CompileTemplateSpecType<
   TemplateSpecType extends Element.TemplateSpecStrong,
-  Config extends Element.Config
+  Config extends Element.TypeConfig
 > =
   TemplateSpecType & {
     smooth: Element.SmoothTemplate<TemplateSpecType>
@@ -376,7 +376,20 @@ declare namespace Element {
     ref: string | undefined;
 
     /**
-     * Set the Element's texture
+     * Hover cursor
+     *
+     * @remarks
+     * See the keyword values at [`cursor` CSS property (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#values) for valid values.
+     *
+     * See [PR #356](https://github.com/rdkcentral/Lightning/pull/356) for more information on this
+     * feature.
+     *
+     * @defaultValue `undefined` (no cursor)
+     */
+    cursor: string | undefined;
+
+    /**
+     * Set this Element's texture
      *
      * @remarks
      * See [Texture Types](https://lightningjs.io/docs/#/lightning-core-reference/RenderEngine/Textures/index) for
@@ -1036,43 +1049,24 @@ declare namespace Element {
   /**
    * Additional types to pass to an Element
    */
-  export type Config = {
+  export interface TypeConfig {
     TextureType?: Texture,
     EventMapType?: Element.EventMap
-  };
+  }
 }
-
-/**
- * Extracts the EventMapType from Element Config
- */
-type EventMapType<Config extends Element.Config> =
-  Config['EventMapType'] extends Element.EventMap
-    ?
-      Config['EventMapType']
-    :
-      Element.EventMap;
-
-/**
- * Extracts the TextureType from Element Config
- */
-type TextureType<Config extends Element.Config> =
-  Config['TextureType'] extends Texture
-    ?
-      Config['TextureType']
-    :
-      Texture;
-
 
 declare class Element<
   // Elements use loose typing TemplateSpecs by default (for ease of use as Elements aren't often fully definable)
   TemplateSpecType extends Element.TemplateSpecLoose = Element.TemplateSpecLoose,
-  Config extends Element.Config = {}
-> extends EventEmitter<EventMapType<Config>> implements Documentation<Element.TemplateSpecStrong> {
+  TypeConfig extends Element.TypeConfig = Element.TypeConfig
+> extends EventEmitter<EventMapType<TypeConfig>> implements Documentation<Element.TemplateSpecStrong> {
   constructor(stage: Stage);
 
   readonly id: number;
 
   ref: string | undefined;
+
+  cursor: string | undefined;
 
   readonly core: ElementCore;
 
@@ -1263,14 +1257,14 @@ declare class Element<
    *
    * @see {@link Element.TemplateSpecStrong.texture}
    */
-  get texture(): TextureType<Config> | null;
-  set texture(v: TextureType<Config> | Texture.Literal | null);
+  get texture(): TextureType<TypeConfig> | null;
+  set texture(v: TextureType<TypeConfig> | Texture.Literal | null);
 
   /**
    * The currently displayed texture. While this.texture is loading,
    * this one may be different.
    */
-  readonly displayedTexture: TextureType<Config> | null;
+  readonly displayedTexture: TextureType<TypeConfig> | null;
 
   // onTextureSourceLoaded() {
   // - Internal use only. Calling/overriding this can break things
@@ -1745,7 +1739,7 @@ declare class Element<
    *
    * NOT AVAILABLE AT RUNTIME.
    */
-  readonly __$type_TemplateSpec: CompileTemplateSpecType<TemplateSpecType, Config>
+  readonly __$type_TemplateSpec: CompileTemplateSpecType<TemplateSpecType, TypeConfig>
 
   // Purposely not exposed:
   // getTags();

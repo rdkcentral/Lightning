@@ -4,7 +4,8 @@
  * @hidden
  * @module
  */
-
+import Component from './application/Component.mjs';
+import Element from './tree/Element.mjs'
 
 /**
  * Allows all the documentation of a template spec to be inherited by any Element
@@ -56,3 +57,44 @@ export type ReduceSpecificity<T, U> =
                   never
         :
           never;
+
+
+/**
+ * Extracts the EventMapType from Element Config
+ */
+export type EventMapType<TypeConfig extends Element.TypeConfig> = NonNullable<TypeConfig['EventMapType']>;
+
+/**
+ * Extracts the TextureType from Element TypeConfig
+ */
+export type TextureType<TypeConfig extends Element.TypeConfig> = NonNullable<TypeConfig['TextureType']>;
+
+/**
+ * Extracts the SignalMapType from Component TypeConfig
+ */
+export type SignalMapType<TypeConfig extends Component.TypeConfig> = NonNullable<TypeConfig['SignalMapType']>;
+
+/**
+ * If `PossibleFunction` is a function, it returns the parameters from it as a tuple.
+ * Otherwise, it returns an empty array tuple.
+ *
+ * @privateRemarks
+ * This is a "safe" version of the included `Parameters` type. It allows us to extract parameters
+ * from an EventMap function signature without having to enforce a generic constraint on all
+ * EventMaps, which isn't practical without blowing up type safety.
+ *
+ * @hidden
+ */
+export type HandlerParameters<PossibleFunction> =
+  PossibleFunction extends (...args: any[]) => any
+    ?
+      Parameters<PossibleFunction>
+    :
+      [];
+
+export type HandleReturnType<PossibleFunction> =
+  PossibleFunction extends (...args: any[]) => any
+    ?
+      ReturnType<PossibleFunction>
+    :
+      [];

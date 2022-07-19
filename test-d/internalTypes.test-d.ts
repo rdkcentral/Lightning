@@ -1,7 +1,11 @@
 import { expectType } from "tsd";
-import { ReduceSpecificity } from "../src/internalTypes.mjs";
+import { EventMapType, ReduceSpecificity, SignalMapType, TextureType } from "../src/internalTypes.mjs";
+import Application from '../src/application/Application.mjs';
+import Component from '../src/application/Component.mjs';
+import Element from '../src/application/Component.mjs';
+import Texture from "../src/tree/Texture.mjs";
 
-function ReduceSpecificityTests() {
+function ReduceSpecificity_Tests() {
   // Should work for a single type passed to param U
   function IndividualTypes() {
     // string
@@ -45,4 +49,37 @@ function ReduceSpecificityTests() {
     }
   }
 
+}
+
+
+function EventMapType_Tests() {
+  expectType<Element.EventMap>({} as EventMapType<Element.TypeConfig>);
+  expectType<Component.EventMap>({} as EventMapType<Component.TypeConfig>);
+  expectType<Application.EventMap>({} as EventMapType<Application.TypeConfig>);
+
+  interface MyComponentEventMap extends Component.EventMap {
+    myEvent(): void;
+  }
+  interface MyComponentTypeConfig extends Component.TypeConfig {
+    EventMapType?: MyComponentEventMap
+  }
+  expectType<MyComponentEventMap>({} as EventMapType<MyComponentTypeConfig>);
+}
+
+function TextureType_Tests() {
+  expectType<Texture>({} as TextureType<Element.TypeConfig>);
+  expectType<Texture>({} as TextureType<Component.TypeConfig>);
+  expectType<Texture>({} as TextureType<Application.TypeConfig>);
+}
+
+function SignalMapType_Tests() {
+  expectType<Component.SignalMap>({} as SignalMapType<Component.TypeConfig>);
+
+  interface MyComponentSignalMap extends Component.SignalMap {
+    myEvent(): void;
+  }
+  interface MyComponentTypeConfig extends Component.TypeConfig {
+    SignalMapType?: MyComponentSignalMap
+  }
+  expectType<MyComponentSignalMap>({} as SignalMapType<MyComponentTypeConfig>);
 }

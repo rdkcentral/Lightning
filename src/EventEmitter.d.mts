@@ -1,20 +1,4 @@
-/**
- * If `PossibleFunction` is a function, it returns the parameters from it as a tuple.
- * Otherwise, it returns an empty array tuple.
- *
- * @privateRemarks
- * This is a "safe" version of the included `Parameters` type. It allows us to extract parameters
- * from an EventMap function signature without having to enforce a generic constraint on all
- * EventMaps, which isn't practical without blowing up type safety.
- *
- * @hidden
- */
-type EventEmitterParameters<PossibleFunction> =
-  PossibleFunction extends (...args: any[]) => any
-    ?
-      Parameters<PossibleFunction>
-    :
-      [];
+import { HandlerParameters } from "./internalTypes.mjs";
 
 declare namespace EventEmitter {
   /**
@@ -70,7 +54,7 @@ declare namespace EventEmitter {
      * @param arg2
      * @param arg3
      */
-    emit<EventName extends keyof EventMap>(name: EventName, ...args: EventEmitterParameters<EventMap[EventName]>): void;
+    emit<EventName extends keyof EventMap>(name: EventName, ...args: HandlerParameters<EventMap[EventName]>): void;
 
     /**
      * Alias for {@link off}
@@ -103,7 +87,7 @@ declare class EventEmitter<EventMap = EventEmitter.DefaultEventMap> implements E
   once<EventName extends keyof EventMap>(name: EventName, listener: EventMap[EventName]): void;
   has<EventName extends keyof EventMap>(name: EventName, listener: EventMap[EventName]): boolean;
   off<EventName extends keyof EventMap>(name: EventName, listener: EventMap[EventName]): void;
-  emit<EventName extends keyof EventMap>(name: EventName, ...args: EventEmitterParameters<EventMap[EventName]>): void;
+  emit<EventName extends keyof EventMap>(name: EventName, ...args: HandlerParameters<EventMap[EventName]>): void;
   removeListener<EventName extends keyof EventMap>(name: EventName, listener: EventMap[EventName]): void;
   listenerCount<EventName extends keyof EventMap>(name: EventName): number;
   removeAllListeners<EventName extends keyof EventMap>(name: EventName): void;
