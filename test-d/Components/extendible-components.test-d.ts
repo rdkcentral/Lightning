@@ -8,9 +8,21 @@ namespace Animal {
   export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
     name: string;
   }
+
+  export interface EventMap extends lng.Component.EventMap {
+    birthed(): void;
+    died(): void;
+  }
+
+  export interface TypeConfig extends lng.Component.TypeConfig {
+    EventMapType: EventMap;
+  }
 }
 
-class Animal<TemplateSpecType extends Animal.TemplateSpec = Animal.TemplateSpec> extends lng.Component<TemplateSpecType> implements lng.Component.ImplementTemplateSpec<Animal.TemplateSpec> {
+class Animal<
+  TemplateSpecType extends Animal.TemplateSpec = Animal.TemplateSpec,
+  TypeConfig extends Animal.TypeConfig = Animal.TypeConfig
+> extends lng.Component<TemplateSpecType, TypeConfig> implements lng.Component.ImplementTemplateSpec<Animal.TemplateSpec> {
   static _template(): lng.Component.Template<Animal.TemplateSpec> {
     return {
       x: (w) => w,
@@ -25,65 +37,84 @@ class Animal<TemplateSpecType extends Animal.TemplateSpec = Animal.TemplateSpec>
     };
   }
 
-  _init() {
-    this.name = 'unkonwn2';
-
-    // 'as ...' required due to ts(2345)
-    this.patch({
-      name: 'Still unknown'
-    } as lng.Element.PatchTemplate<Animal.TemplateSpec> as lng.Element.PatchTemplate<TemplateSpecType>);
-
-    // If this and same error below go away it's a good thing! Update the tests and documentation
-    // @ts-expect-error 'as TemplateSpecType' required
-    this.patch({
-      name: 'Still Unkown'
-    });
-  }
-
   name: string = '';
+
+  _init() {
+    this.name = 'unknown';
+
+    // This assertion is required for components that are sub-classable
+    // See: https://github.com/microsoft/TypeScript/issues/43621 and related issues
+    (this as Animal).patch({
+      name: 'Still unknown'
+    });
+
+    (this as Animal).emit('birthed');
+    (this as Animal).emit('died');
+  }
 }
 
 namespace Mammal {
   export interface TemplateSpec extends Animal.TemplateSpec {
     hairType: 'definitive' | 'vibrissae' | 'pelage' | 'spines' | 'bristles' | 'velli' | 'wool';
   }
+
+  export interface EventMap extends Animal.EventMap {
+    growHair(length: number): void;
+  }
+
+  export interface TypeConfig extends Animal.TypeConfig {
+    EventMapType: EventMap
+  }
 }
 
-class Mammal<TemplateSpecType extends Mammal.TemplateSpec = Mammal.TemplateSpec> extends Animal<TemplateSpecType> implements lng.Component.ImplementTemplateSpec<Mammal.TemplateSpec> {
+class Mammal<
+  TemplateSpecType extends Mammal.TemplateSpec = Mammal.TemplateSpec,
+  TypeConfig extends Mammal.TypeConfig = Mammal.TypeConfig
+> extends Animal<TemplateSpecType, TypeConfig> implements lng.Component.ImplementTemplateSpec<Mammal.TemplateSpec> {
   static _template(): lng.Component.Template<Mammal.TemplateSpec> {
     return {
       rect: true
     };
   }
 
-  _init() {
+  hairType: Mammal.TemplateSpec['hairType'] = 'bristles'
+
+  // Instead of `as` assertion this can be asserted as first param of any method
+  _init(this: Mammal) {
     this.name = 'unkonwn2';
     this.hairType = 'definitive';
 
-    // 'as ...' required due to ts(2345)
     this.patch({
       name: 'Still Unkown',
       hairType: 'definitive'
-    } as lng.Element.PatchTemplate<Mammal.TemplateSpec> as lng.Element.PatchTemplate<TemplateSpecType>);
-
-    // If this and error above goes away, it's a good thing! Update the tests and documentation
-    // @ts-expect-error 'as TemplateSpecStrong' required
-    this.patch({
-      name: 'Still Unkown',
-      hairType: 'pelage'
     });
-  }
 
-  hairType: Mammal.TemplateSpec['hairType'] = 'bristles'
+    this.emit('birthed');
+    this.emit('growHair', 7);
+    this.emit('died');
+  }
 }
 
 namespace Bear {
   export interface TemplateSpec extends Mammal.TemplateSpec {
     bearType: 'black' | 'grizzlie' | 'polar';
   }
+
+  export interface EventMap extends Mammal.EventMap {
+    roar(loudness: number): void;
+    stealPicnicBasket(): void;
+    eatHoney(amount: number): void;
+  }
+
+  export interface TypeConfig extends Mammal.TypeConfig {
+    EventMapType: EventMap
+  }
 }
 
-class Bear extends Mammal<Bear.TemplateSpec> implements lng.Component.ImplementTemplateSpec<Bear.TemplateSpec> {
+class Bear extends Mammal<
+  Bear.TemplateSpec,
+  Bear.TypeConfig
+> implements lng.Component.ImplementTemplateSpec<Bear.TemplateSpec> {
   static _template(): lng.Component.Template<Bear.TemplateSpec> {
     return {
       x: 0,
@@ -112,7 +143,13 @@ class Bear extends Mammal<Bear.TemplateSpec> implements lng.Component.ImplementT
       actions: [
         { p: 'bearType', v: 'grizzlie' }
       ]
-    })
+    });
+    this.emit('birthed');
+    this.emit('eatHoney', 500);
+    this.emit('growHair', 7);
+    this.emit('roar', 11);
+    this.emit('stealPicnicBasket');
+    this.emit('died');
   }
 
   bearType: Bear.TemplateSpec['bearType'] = 'black';
@@ -122,9 +159,19 @@ namespace Cat {
   export interface TemplateSpec extends Mammal.TemplateSpec {
     catType: 'house' | 'lion' | 'tiger' | 'leopard';
   }
+
+  export interface EventMap extends Mammal.EventMap {
+    lickPaws(): void;
+    chaseMouse(): void;
+    lookDisinterested(): void;
+  }
+
+  export interface TypeConfig extends Mammal.TypeConfig {
+    EventMapType: EventMap;
+  }
 }
 
-class Cat extends Mammal<Cat.TemplateSpec> implements lng.Component.ImplementTemplateSpec<Cat.TemplateSpec> {
+class Cat extends Mammal<Cat.TemplateSpec, Cat.TypeConfig> implements lng.Component.ImplementTemplateSpec<Cat.TemplateSpec> {
   static _template(): lng.Component.Template<Cat.TemplateSpec> {
     return {
       x: 0,
@@ -148,6 +195,13 @@ class Cat extends Mammal<Cat.TemplateSpec> implements lng.Component.ImplementTem
       hairType: 'definitive',
       catType: 'lion'
     });
+
+    this.emit('birthed');
+    this.emit('growHair', 2);
+    this.emit('lickPaws');
+    this.emit('lookDisinterested');
+    this.emit('chaseMouse');
+    this.emit('died');
   }
 
   catType: Cat.TemplateSpec['catType'] = 'house';
