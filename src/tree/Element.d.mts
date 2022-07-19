@@ -1050,8 +1050,8 @@ declare namespace Element {
    * Additional types to pass to an Element
    */
   export interface TypeConfig {
-    TextureType?: Texture,
-    EventMapType?: Element.EventMap
+    TextureType: Texture,
+    EventMapType: Element.EventMap
   }
 }
 

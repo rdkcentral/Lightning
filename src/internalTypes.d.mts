@@ -61,18 +61,24 @@ export type ReduceSpecificity<T, U> =
 
 /**
  * Extracts the EventMapType from Element Config
+ *
+ * @hidden
  */
-export type EventMapType<TypeConfig extends Element.TypeConfig> = NonNullable<TypeConfig['EventMapType']>;
+export type EventMapType<TypeConfig extends Element.TypeConfig> = TypeConfig['EventMapType'];
 
 /**
  * Extracts the TextureType from Element TypeConfig
+ *
+ * @hidden
  */
-export type TextureType<TypeConfig extends Element.TypeConfig> = NonNullable<TypeConfig['TextureType']>;
+export type TextureType<TypeConfig extends Element.TypeConfig> = TypeConfig['TextureType'];
 
 /**
  * Extracts the SignalMapType from Component TypeConfig
+ *
+ * @hidden
  */
-export type SignalMapType<TypeConfig extends Component.TypeConfig> = NonNullable<TypeConfig['SignalMapType']>;
+export type SignalMapType<TypeConfig extends Component.TypeConfig> = TypeConfig['SignalMapType'];
 
 /**
  * If `PossibleFunction` is a function, it returns the parameters from it as a tuple.
@@ -92,7 +98,16 @@ export type HandlerParameters<PossibleFunction> =
     :
       [];
 
-export type HandleReturnType<PossibleFunction> =
+/**
+ * If `PossibleFunction` is a function, it returns the parameters from it as a tuple.
+ * Otherwise, it returns an empty array tuple.
+ *
+ * @privateRemarks
+ * Like HandlerParameter above, this is a "safe" version of the included `ReturnType` type.
+ *
+ * @hidden
+ */
+export type HandlerReturnType<PossibleFunction> =
   PossibleFunction extends (...args: any[]) => any
     ?
       ReturnType<PossibleFunction>

@@ -1,4 +1,4 @@
-import { expectType } from "tsd";
+import { expectError, expectType } from "tsd";
 import { EventMapType, ReduceSpecificity, SignalMapType, TextureType } from "../src/internalTypes.mjs";
 import Application from '../src/application/Application.mjs';
 import Component from '../src/application/Component.mjs';
@@ -61,15 +61,21 @@ function EventMapType_Tests() {
     myEvent(): void;
   }
   interface MyComponentTypeConfig extends Component.TypeConfig {
-    EventMapType?: MyComponentEventMap
+    EventMapType: MyComponentEventMap
   }
   expectType<MyComponentEventMap>({} as EventMapType<MyComponentTypeConfig>);
+
+  // @ts-expect-error Providing an empty object type is not supported
+  type T1000 = EventMapType<{}>;
 }
 
 function TextureType_Tests() {
   expectType<Texture>({} as TextureType<Element.TypeConfig>);
   expectType<Texture>({} as TextureType<Component.TypeConfig>);
   expectType<Texture>({} as TextureType<Application.TypeConfig>);
+
+  // @ts-expect-error Providing an empty object type is not supported
+  type T1000 = TextureType<{}>;
 }
 
 function SignalMapType_Tests() {
@@ -79,7 +85,10 @@ function SignalMapType_Tests() {
     myEvent(): void;
   }
   interface MyComponentTypeConfig extends Component.TypeConfig {
-    SignalMapType?: MyComponentSignalMap
+    SignalMapType: MyComponentSignalMap
   }
   expectType<MyComponentSignalMap>({} as SignalMapType<MyComponentTypeConfig>);
+
+  // @ts-expect-error Providing an empty object type is not supported
+  type T1000 = SignalMapType<{}>;
 }

@@ -1,4 +1,4 @@
-import { HandleReturnType, HandlerParameters, SignalMapType } from "../internalTypes.mjs";
+import { HandlerReturnType, HandlerParameters, SignalMapType } from "../internalTypes.mjs";
 import Element, { InlineElement, ValidRef } from "../tree/Element.mjs";
 import Stage from "../tree/Stage.mjs";
 import Application from "./Application.mjs";
@@ -176,8 +176,8 @@ declare namespace Component {
   }
 
   export interface TypeConfig extends Element.TypeConfig {
-    EventMapType?: EventMap
-    SignalMapType?: SignalMap
+    EventMapType: EventMap
+    SignalMapType: SignalMap
   }
 }
 
@@ -186,7 +186,7 @@ declare namespace Component {
 //
 type Signals<SignalMapType = Record<string, ((...args: any) => any)>> = {
   [Key in keyof SignalMapType]:
-    boolean | string | ((...args: HandlerParameters<SignalMapType[Key]>) => HandleReturnType<SignalMapType[Key]>)
+    boolean | string | ((...args: HandlerParameters<SignalMapType[Key]>) => HandlerReturnType<SignalMapType[Key]>)
 }
 
 type PassSignals<SignalMapType = Record<string, ((...args: any) => any)>> = {

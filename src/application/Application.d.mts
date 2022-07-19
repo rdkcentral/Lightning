@@ -32,8 +32,8 @@ declare namespace Application {
   }
 
   export interface TypeConfig extends Component.TypeConfig {
-    EventMapType?: EventMap,
-    SignalMapType?: SignalMap
+    EventMapType: EventMap,
+    SignalMapType: SignalMap
   }
 }
 
