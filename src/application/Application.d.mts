@@ -1,6 +1,5 @@
 import EventEmitter from "../EventEmitter.mjs";
 import Element from "../tree/Element.mjs";
-import Texture from "../tree/Texture.mjs";
 import Component from "./Component.mjs";
 
 declare namespace Application {
@@ -17,10 +16,6 @@ declare namespace Application {
    */
   export interface TemplateSpecLoose extends Application.TemplateSpecStrong {
     [s: string]: any
-  }
-
-  interface TemplateSpec extends Component.TemplateSpecStrong {
-    // Provided empty for consistent convention and to to allow augmentation
   }
 
   interface EventMap extends Element.EventMap {

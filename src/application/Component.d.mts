@@ -140,6 +140,17 @@ declare namespace Component {
     [P in keyof TemplateSpecType as P extends keyof Component.TemplateSpecStrong ? never : P]:
       Element.TransformPossibleElement<P, TemplateSpecType[P]>
   };
+
+  export type Signals<SignalMapType = Record<never, never>> = {
+    [Key in keyof SignalMapType]?:
+      boolean | string | ((...args: HandlerParameters<SignalMapType[Key]>) => HandlerReturnType<SignalMapType[Key]>)
+  }
+
+  export type PassSignals<SignalMapType = Record<never, never>> = {
+    [Key in keyof SignalMapType]?:
+      string | true | undefined
+  }
+
   /**
    * Extracts the input Component's TemplateSpec value
    */
@@ -164,9 +175,12 @@ declare namespace Component {
     sharedState: string;
   }
 
-  // eslint-disable-next-line prettier/prettier
   export type FireAncestorsEvent = `$${string}`;
 
+  export interface FireAncestorsMap {
+    $enter(event: Component.StateMachineEvent, ...args: unknown[]): void;
+    $exit(event: Component.StateMachineEvent, ...args: unknown[]): void;
+  }
   export interface EventMap extends Element.EventMap {
     // Provided empty for consistent convention and to to allow augmentation
   }
@@ -179,19 +193,6 @@ declare namespace Component {
     EventMapType: EventMap
     SignalMapType: SignalMap
   }
-}
-
-//
-// Private types
-//
-type Signals<SignalMapType = Record<string, ((...args: any) => any)>> = {
-  [Key in keyof SignalMapType]:
-    boolean | string | ((...args: HandlerParameters<SignalMapType[Key]>) => HandlerReturnType<SignalMapType[Key]>)
-}
-
-type PassSignals<SignalMapType = Record<string, ((...args: any) => any)>> = {
-  [Key in keyof SignalMapType]:
-    string | true | undefined
 }
 
 declare class Component<
@@ -741,8 +742,8 @@ declare class Component<
    *
    * @param v
    */
-  get signals(): Signals<SignalMapType<TypeConfig>>;
-  set signals(v: Signals<SignalMapType<TypeConfig>>);
+  get signals(): Component.Signals<SignalMapType<TypeConfig>>;
+  set signals(v: Component.Signals<SignalMapType<TypeConfig>>);
 
   // get alterSignals(): undefined;
   // set alterSignals(v: any);
@@ -758,8 +759,8 @@ declare class Component<
    *
    * @param v
    */
-  get passSignals(): PassSignals<SignalMapType<TypeConfig>>;
-  set passSignals(v: PassSignals<SignalMapType<TypeConfig>>);
+  get passSignals(): Component.PassSignals<SignalMapType<TypeConfig>>;
+  set passSignals(v: Component.PassSignals<SignalMapType<TypeConfig>>);
 
   /**
    * Alter the Pass Signals for this Component
@@ -813,7 +814,7 @@ declare class Component<
    * @param name
    * @param args
    */
-  fireAncestors(name: Component.FireAncestorsEvent, ...args: unknown[]): any;
+  fireAncestors<Name extends keyof Component.FireAncestorsMap>(name: Name, ...args: HandlerParameters<Component.FireAncestorsMap[Name]>): HandlerReturnType<Component.FireAncestorsMap[Name]>;
 
   // _doFireAncestors(name: any, args: any): any;
   // - Internal

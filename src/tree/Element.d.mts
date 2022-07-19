@@ -5,7 +5,7 @@ import TransitionSettings from "../animation/TransitionSettings.mjs";
 import Component from "../application/Component.mjs";
 import { AnimatableValueTypes, ExtractAnimatableValueTypes } from "../commonTypes.mjs";
 import EventEmitter from "../EventEmitter.mjs";
-import { Documentation, EventMapType, ReduceSpecificity, TextureType } from "../internalTypes.mjs";
+import { Documentation, EventMapType, ReduceSpecificity, SignalMapType, TextureType } from "../internalTypes.mjs";
 import TextTexture from "../textures/TextTexture.mjs";
 import ElementCore from "./core/ElementCore.mjs";
 import ElementTexturizer from "./core/ElementTexturizer.mjs";
@@ -50,11 +50,17 @@ export type InlineElement<ElementTemplate> = {
  */
 export type CompileTemplateSpecType<
   TemplateSpecType extends Element.TemplateSpecStrong,
-  Config extends Element.TypeConfig
+  TypeConfig extends Element.TypeConfig
 > =
   TemplateSpecType & {
-    smooth: Element.SmoothTemplate<TemplateSpecType>
-    transitions: Element.TransitionsTemplate<TemplateSpecType>
+    smooth: Element.SmoothTemplate<TemplateSpecType>,
+    transitions: Element.TransitionsTemplate<TemplateSpecType>,
+    // signals:
+    //   TypeConfig extends Component.TypeConfig
+    //     ?
+    //       Component.Signals<SignalMapType<TypeConfig>>
+    //     :
+    //       undefined
   };
 declare namespace Element {
   export type Constructor<C extends Element = Element> = new (...a: any[]) => C;

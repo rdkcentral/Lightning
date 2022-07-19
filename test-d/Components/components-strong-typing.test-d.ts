@@ -3,17 +3,17 @@
  */
 
 import { expectType } from 'tsd';
-import lng from '../../index.js';
+import { Lightning } from '../../index.typedoc.js';
 import { MyLooseComponentC } from './components-loose.test-d.js';
 
 namespace MyComponentA {
-  export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
+  export interface TemplateSpec extends Lightning.Component.TemplateSpecStrong {
     myProperty: string;
   }
 }
 
 // Direct TemplateSpec properties should not be allowed to be set from the _template
-const t100: lng.Component.Template<MyComponentA.TemplateSpec> = {
+const t100: Lightning.Component.Template<MyComponentA.TemplateSpec> = {
   // @ts-expect-error
   myProperty: 'abc'
 };
@@ -22,14 +22,24 @@ const t100: lng.Component.Template<MyComponentA.TemplateSpec> = {
 expectType<undefined>(t100['myProperty']);
 
 // Unknown properties should not be allowed
-const t200: lng.Component.Template<MyComponentA.TemplateSpec> = {
+const t200: Lightning.Component.Template<MyComponentA.TemplateSpec> = {
   // @ts-expect-error
   INVALID_PROP: 1234
 };
 
+declare module '../../index.typedoc.js' {
+  namespace Lightning {
+    namespace Component {
+      interface FireAncestorsMap {
+        $augmentedComponentsStrongTypingTest(a: number): string;
+      }
+    }
+  }
+}
+
 // We should be able to create a component from the TemplateSpec
-class MyComponentA extends lng.Component<MyComponentA.TemplateSpec> implements lng.Component.ImplementTemplateSpec<MyComponentA.TemplateSpec> {
-  static _template(): lng.Component.Template<MyComponentA.TemplateSpec> {
+class MyComponentA extends Lightning.Component<MyComponentA.TemplateSpec> implements Lightning.Component.ImplementTemplateSpec<MyComponentA.TemplateSpec> {
+  static _template(): Lightning.Component.Template<MyComponentA.TemplateSpec> {
     return {
       x: (w) => w,
       y: (h) => h,
@@ -43,6 +53,10 @@ class MyComponentA extends lng.Component<MyComponentA.TemplateSpec> implements l
     };
   }
 
+  _init() {
+    this.fireAncestors('$augmentedComponentsStrongTypingTest', 123);
+  }
+
   set myProperty(v: string) {}
 
   get myProperty(): string {
@@ -51,7 +65,7 @@ class MyComponentA extends lng.Component<MyComponentA.TemplateSpec> implements l
 }
 
 namespace MyComponentB {
-  export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
+  export interface TemplateSpec extends Lightning.Component.TemplateSpecStrong {
     myPropertyB: string;
     MyComponentA: typeof MyComponentA;
     MyComponentA_Error: typeof MyComponentA;
@@ -59,8 +73,8 @@ namespace MyComponentB {
   }
 }
 
-class MyComponentB extends lng.Component<MyComponentB.TemplateSpec> implements lng.Component.ImplementTemplateSpec<MyComponentB.TemplateSpec> {
-  static _template(): lng.Component.Template<MyComponentB.TemplateSpec> {
+class MyComponentB extends Lightning.Component<MyComponentB.TemplateSpec> implements Lightning.Component.ImplementTemplateSpec<MyComponentB.TemplateSpec> {
+  static _template(): Lightning.Component.Template<MyComponentB.TemplateSpec> {
     return {
       x: 0,
       y: 0,
@@ -143,15 +157,15 @@ class MyComponentB extends lng.Component<MyComponentB.TemplateSpec> implements l
 }
 
 namespace MyComponentC {
-  export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
+  export interface TemplateSpec extends Lightning.Component.TemplateSpecStrong {
     propC: string;
     MyComponentB: typeof MyComponentB;
     MyLooseComponentC: typeof MyLooseComponentC;
   }
 }
 
-class MyComponentC extends lng.Component<MyComponentC.TemplateSpec> implements lng.Component.ImplementTemplateSpec<MyComponentC.TemplateSpec> {
-  static _template(): lng.Component.Template<MyComponentC.TemplateSpec> {
+class MyComponentC extends Lightning.Component<MyComponentC.TemplateSpec> implements Lightning.Component.ImplementTemplateSpec<MyComponentC.TemplateSpec> {
+  static _template(): Lightning.Component.Template<MyComponentC.TemplateSpec> {
     return {
       x: 0,
       y: 0,
@@ -183,7 +197,7 @@ class MyComponentC extends lng.Component<MyComponentC.TemplateSpec> implements l
   readonly MyComponentA: MyComponentA = this.tag('MyComponentB')!;
   readonly MyComponentB: MyComponentB;
 
-  constructor(stage: lng.Stage) {
+  constructor(stage: Lightning.Stage) {
     super(stage);
     this.MyComponentB = this.tag('MyComponentB')!;
   }
