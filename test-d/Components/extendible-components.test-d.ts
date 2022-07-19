@@ -2,7 +2,7 @@
  * Tests for the ability to allow your strongly typed components to be extendible
  */
 
-import lng from '../index.js';
+import lng from '../../index.js';
 
 namespace Animal {
   export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
@@ -107,6 +107,12 @@ class Bear extends Mammal<Bear.TemplateSpec> implements lng.Component.ImplementT
       hairType: 'pelage',
       bearType: 'polar'
     });
+    this.animation({
+      duration: 10,
+      actions: [
+        { p: 'bearType', v: 'grizzlie' }
+      ]
+    })
   }
 
   bearType: Bear.TemplateSpec['bearType'] = 'black';

@@ -32,7 +32,22 @@ declare namespace Component {
    * ```
    */
   export interface TemplateSpecStrong extends Element.TemplateSpecStrong {
-    // !!! Insert component specific things
+    /**
+     * Sets the Signals for this Component.
+     *
+     * @remarks
+     * See (Signals)[https://lightningjs.io/docs/#/lightning-core-reference/Communication/Signal?id=signal] for more
+     * information.
+     */
+    signals: Component.Signals;
+    /**
+     * Gets/sets the Pass Signals for this Component.
+     *
+     * @remarks
+     * See [Pass Signals](https://lightningjs.io/docs/#/lightning-core-reference/Communication/Signal?id=pass-signals)
+     * for more information.
+     */
+    passSignals: Component.PassSignals;
   }
 
   /**
@@ -151,9 +166,12 @@ declare namespace Component {
   // eslint-disable-next-line prettier/prettier
   export type FireAncestorsEvent = `$${string}`;
 
-  export interface Config extends Element.Config {
+  export interface TypeConfig extends Element.TypeConfig {
     SignalsType?: Signals
   }
+
+  export type SignalsType<Config extends TypeConfig> =
+    NonNullable<Config['SignalsType']>
 }
 
 
@@ -161,13 +179,12 @@ declare namespace Component {
 declare class Component<
   // Components use loose typing TemplateSpecs by default
   TemplateSpecType extends Component.TemplateSpecLoose = Component.TemplateSpecLoose,
-  Config extends Component.Config = {}
-
+  Config extends Component.TypeConfig = Component.TypeConfig
 > extends Element<
   TemplateSpecType,
   Config
 > {
-  // SDK ??? !!!
+  // SDK !!!
   static getFonts(): Component.Font[]; // Should be app only?
   _onDataProvided(): void;
   _onMounted(): void;
@@ -181,10 +198,6 @@ declare class Component<
   _handleRight?(e: KeyboardEvent): boolean | void;
   _handleUp?(e: KeyboardEvent): boolean | void;
   _handleDown?(e: KeyboardEvent): boolean | void;
-  /**
-   * Handle Enter
-   * @param e
-   */
   _handleEnter?(e: KeyboardEvent): boolean | void;
   _handleBack?(e: KeyboardEvent): boolean | void;
 

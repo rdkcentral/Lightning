@@ -32,7 +32,7 @@ declare namespace Stage {
    * See the "Runtime Configuration" page of the Lightning Docs for detailed
    * information.
    */
-  export interface StageOptions {
+  export interface Options {
     /**
      * If specified, an existing Canvas to be used for rendering
      * by Lightning
@@ -206,7 +206,7 @@ declare class Stage extends EventEmitter<Stage.EventMap> {
   /**
    * Constructor for Stage
    */
-  constructor(options?: Partial<Stage.StageOptions>);
+  constructor(options?: Partial<Stage.Options>);
 
   /**
    * Gets the Renderer that is being utilized
@@ -238,11 +238,11 @@ declare class Stage extends EventEmitter<Stage.EventMap> {
   isC2d(): boolean;
 
   /**
-   * Gets an option value from the active set of {@link Stage.StageOptions}
+   * Gets an option value from the active set of {@link Stage.Options}
    */
   getOption<
-    T extends keyof Stage.StageOptions,
-    O extends Stage.StageOptions[T]
+    T extends keyof Stage.Options,
+    O extends Stage.Options[T]
   >(optionKey: T): O;
 
   // _setOptions(o: Partial<Stage.StageOptions>): void;
@@ -296,7 +296,7 @@ declare class Stage extends EventEmitter<Stage.EventMap> {
   getCanvas(): HTMLCanvasElement;
 
   /**
-   * Gets the {@link Stage.StageOptions.precision} option.
+   * Gets the {@link Stage.Options.precision} option.
    */
   getRenderPrecision(): number;
 
@@ -331,7 +331,7 @@ declare class Stage extends EventEmitter<Stage.EventMap> {
   /**
    * Sets the Stage's Clear Color
    *
-   * @see {@link Stage.StageOptions.clearColor} for details
+   * @see {@link Stage.Options.clearColor} for details
    */
   setClearColor(clearColor: number | Stage.RGBA | null): void;
 
@@ -407,7 +407,7 @@ declare class Stage extends EventEmitter<Stage.EventMap> {
    * Gets the width of the rendered Stage
    *
    * @remarks
-   * This comes directly from the `w` Stage option ({@link Stage.StageOptions.w}).
+   * This comes directly from the `w` Stage option ({@link Stage.Options.w}).
    */
   get w(): number;
 
@@ -415,7 +415,7 @@ declare class Stage extends EventEmitter<Stage.EventMap> {
    * Gets the height of the rendered Stage
    *
    * @remarks
-   * This comes directly from the `h` Stage option ({@link Stage.StageOptions.w}).
+   * This comes directly from the `h` Stage option ({@link Stage.Options.w}).
    */
   get h(): number;
 

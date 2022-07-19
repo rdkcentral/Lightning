@@ -3,9 +3,9 @@
  */
 
 import { expectType } from 'tsd';
-import lng from '../index.js';
-import TransitionSettings from '../src/animation/TransitionSettings.mjs';
-import Element from '../src/tree/Element.mjs';
+import lng from '../../index.js';
+import TransitionSettings from '../../src/animation/TransitionSettings.mjs';
+import Element from '../../src/tree/Element.mjs';
 
 function withMixin<
   BaseType extends lng.Component.Constructor<lng.Component>

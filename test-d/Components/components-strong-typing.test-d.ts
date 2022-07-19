@@ -3,7 +3,7 @@
  */
 
 import { expectType } from 'tsd';
-import lng from '../index.js';
+import lng from '../../index.js';
 import { MyLooseComponentC } from './components-loose.test-d.js';
 
 namespace MyComponentA {
