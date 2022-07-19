@@ -3,6 +3,8 @@
  */
 import { expectAssignable, expectType } from 'tsd';
 import lng from '../../index.js';
+import { CompileTemplateSpecType_Component } from '../../src/application/Component.mjs';
+import { SignalMapType } from '../../src/internalTypes.mjs';
 import { InlineElement } from '../../src/tree/Element.mjs';
 
 export interface TestTemplateSpec extends lng.Component.TemplateSpecStrong {
@@ -229,11 +231,10 @@ function PatchTemplate_Test() {
       type?: typeof lng.components.ListComponent | undefined;
     } &
     lng.Element.PatchTemplate<
-      lng.components.ListComponent.TemplateSpec &
-      {
-        smooth: lng.Element.SmoothTemplate<lng.components.ListComponent.TemplateSpec>;
-        transitions: lng.Element.TransitionsTemplate<lng.components.ListComponent.TemplateSpec>;
-      }
+      CompileTemplateSpecType_Component<
+        lng.components.ListComponent.TemplateSpec,
+        lng.Component.TypeConfig
+      >
     >
     | undefined
   >({} as T500);

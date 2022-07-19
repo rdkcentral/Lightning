@@ -1,5 +1,5 @@
 import { HandlerReturnType, HandlerParameters, SignalMapType } from "../internalTypes.mjs";
-import Element, { InlineElement, ValidRef } from "../tree/Element.mjs";
+import Element, { CompileTemplateSpecType, InlineElement, ValidRef } from "../tree/Element.mjs";
 import Stage from "../tree/Stage.mjs";
 import Application from "./Application.mjs";
 
@@ -194,6 +194,18 @@ declare namespace Component {
     SignalMapType: SignalMap
   }
 }
+
+//
+// Private Types
+//
+export type CompileTemplateSpecType_Component<
+  TemplateSpecType extends Component.TemplateSpecStrong,
+  TypeConfig extends Component.TypeConfig
+> =
+  CompileTemplateSpecType<TemplateSpecType, TypeConfig> & {
+    signals: Component.Signals<SignalMapType<TypeConfig>>
+    passSignals: Component.PassSignals<SignalMapType<TypeConfig>>
+  };
 
 declare class Component<
   // Components use loose typing TemplateSpecs by default
@@ -786,7 +798,7 @@ declare class Component<
    * @param event
    * @param args
    */
-  signal(event: string, ...args: unknown[]): unknown;
+  signal<Name extends keyof SignalMapType<TypeConfig>>(event: Name, ...args: HandlerParameters<SignalMapType<TypeConfig>[Name]>): HandlerReturnType<SignalMapType<TypeConfig>[Name]>;
 
   // _signal(event: any, args: any): any;
   // _getParentSignalHandler(): any;
@@ -846,6 +858,12 @@ declare class Component<
    */
   static getParent(element: Element): Component | null;
 
+  /**
+   * Phantom type that holds the LiteralType.
+   *
+   * NOT AVAILABLE AT RUNTIME.
+   */
+  readonly __$type_TemplateSpec: CompileTemplateSpecType_Component<TemplateSpecType, TypeConfig>
 }
 
 export default Component;

@@ -55,12 +55,6 @@ export type CompileTemplateSpecType<
   TemplateSpecType & {
     smooth: Element.SmoothTemplate<TemplateSpecType>,
     transitions: Element.TransitionsTemplate<TemplateSpecType>,
-    // signals:
-    //   TypeConfig extends Component.TypeConfig
-    //     ?
-    //       Component.Signals<SignalMapType<TypeConfig>>
-    //     :
-    //       undefined
   };
 declare namespace Element {
   export type Constructor<C extends Element = Element> = new (...a: any[]) => C;
