@@ -43,10 +43,10 @@ const App = new MyApp(options);
 | `useImageWorker` | Boolean | true | By default, use a Web Worker that parses images off-thread (web only) |
 | `autostart` | Boolean | true | If set to *false*, no automatic binding to  `requestAnimationFrame` |
 | `canvas2d` | Boolean | false | If set tot *true*, the Render Engine uses canvas2d instead of WebGL (limitations apply, see details below) |
-| `readPixelsBeforeDraw` | Boolean | false | If set tot *true*, forces the Render Engine to readPixels before drawing, turning the Render pipeline to synchronous (this helps with flickering artifacts on certain devices). Note this will affect performance! |
-| `readPixelsAfterDraw` | Boolean | false | If set tot *true*, forces the Render Engine to readPixels after drawing turning the Render pipeline synchronous (this helps with flickering artifacts on certain devices). Note this will affect performance! |
-| `forceTxCanvasSource` | Boolean | false | If set tot *true*, forces the Render Engine to use the canvasSource over getImageData for text (this helps with text generation on certain devices). |
-
+| `readPixelsBeforeDraw` | Boolean | false | If set to *true*, forces the Render Engine to readPixels before drawing, turning the Render pipeline to synchronous (this helps with flickering artifacts on certain devices). Note this will affect performance! |
+| `readPixelsAfterDraw` | Boolean | false | If set to *true*, forces the Render Engine to readPixels after drawing turning the Render pipeline synchronous (this helps with flickering artifacts on certain devices). Note this will affect performance! |
+| `forceTxCanvasSource` | Boolean | false | If set to *true*, forces the Render Engine to use the canvasSource over getImageData for text (this helps with text generation on certain devices). |
+| `pauseRafLoopOnIdle` | Boolean | false | If set to *true* will stop the Render Engine from calling `RequestAnimationFrame` when there are no stage updates. |
 
 
 
