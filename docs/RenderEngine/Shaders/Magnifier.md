@@ -1,6 +1,6 @@
 # Magnifier
 
-The Magnifier shader magnifies a section of the to be rendered of the to be rendered texture.
+The Magnifier shader magnifies a section of the to be rendered of the texture to be rendered.
 
 ## Usage
 
@@ -40,13 +40,13 @@ You can set the width of the magnified section with a `float`,
 You can set the height of the magnified section with a `float`,
 
 ### x
-You can set the x position where magnified section should start with a `float`,
+You can set the x position where the magnified section should start with a `float`,
 
 ### y
-You can set the y position where magnified section should start with a `float`,
+You can set the y position where the magnified section should start with a `float`,
 
 ### radius
-You can set the radius of magnified section with a `float`. This shader only supports an even radius for each corner.
+You can set the radius of the magnified section with a `float`. This shader only supports an even radius for each corner.
 
 
 ## Getters

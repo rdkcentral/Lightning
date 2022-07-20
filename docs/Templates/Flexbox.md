@@ -1,7 +1,7 @@
 # Flexbox
 
 
-Sometimes, absolute positioning is not enough. You may want to position elements stacked horizontally or vertically, or wrap items when there are too much to fit in an area. This process is called *layouting* and Lightning has a simple solution for it, which is called *Flexbox*.
+Sometimes, absolute positioning is not enough. You may want to position elements stacked horizontally or vertically, or wrap items when there is too much to fit in an area. This process is called *layouting* and Lightning has a simple solution for it, which is called *Flexbox*.
 
 
 Flexbox allows you to dynamically stack items of rows and columns. In Lightning, the `flex` and `flexItem` properties define the flex layout settings.
@@ -92,7 +92,7 @@ When an element is invisible (`visible: false`) it is *ignored* in the flex layo
 ## Auto Sizing
 
 
-A flex container can have a *fixed* or *specified*`w` and / `h`. This may affect the positioning of the items within it.
+A flex container can have a *fixed* or *specified* `w` and / `h`. This may affect the positioning of the items within it.
 
 
 It is also possible to *not* specify it (or set it to 0). In that case, the flex container will always *fit to the contents* on those axes. This is deliberately inconsistent with HTML CSS, where the fitting on the flex container depends on the axis (the horizontal axis usually falls back to the parent width), which feels as a rather odd behavior.
@@ -108,7 +108,7 @@ When enabling flexbox, the `x` and `y` properties act as relative positions to t
 After the layout has been done, you can find the element's coordinates and size by using the `finalX`, `finalY`, `finalW`, `finalH` element properties.
 
 
-To ensure a full stage layout (without rendering), you can use `this.stage.update()`. After that the `finalX` etc. properties will contain the correct value.
+To ensure a full stage layout (without rendering), you can use `this.stage.update()`. After that, the `finalX` etc. properties will contain the correct value.
 
 ## Live Demo
 

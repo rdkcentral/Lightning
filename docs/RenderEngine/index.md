@@ -24,8 +24,7 @@ of these branches
 3. Skip the branches without updates
 
 
-This workflow prevents a slow creation of large
-applications with many sections.
+This workflow prevents a slow creation of large applications with many sections.
 
 
 Other Lightning features that contribute to a good rendering performance, are:
@@ -38,7 +37,7 @@ Other Lightning features that contribute to a good rendering performance, are:
 ## Populate Coordinate Buffers
 
 
-This steps involves the following actions:
+This step involves the following actions:
 
 1. Traverse all visible and on-screen branches
 2. Gather the textures to be drawn (including their coordinates)

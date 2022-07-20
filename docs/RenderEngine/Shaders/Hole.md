@@ -1,6 +1,6 @@
 # Hole
 
-The Hole shader cuts out a rectangle out of the texture. This can be used when you want to show something like live TV or a video on the background but still want a good looking background around it.
+The Hole shader cuts a rectangle out of the texture. This can be used when you want to show something like live TV or a video in the background but still want a good looking background around it.
 
 ## Usage
 

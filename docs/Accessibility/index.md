@@ -1,12 +1,12 @@
 # Accessibility
 
-As with all interfaces, Accessbility starts with good design choices. We recommend reading [Designing for Web Accessibility](https://www.w3.org/WAI/tips/designing/) from the W3C for an extensive list of best practices on creating an accessible UI.
+As with all interfaces, Accessibility starts with good design choices. We recommend reading [Designing for Web Accessibility](https://www.w3.org/WAI/tips/designing/) from the W3C for an extensive list of best practices for creating an accessible UI.
 
-Since Lightning is a WebGL rendering library, we can't take advantage of the standard HTML components and the browsers built in ARIA attributes. Instead, we recommend using the [Lightning UI Component library](https://github.com/rdkcentral/Lightning-UI-Components) which also includes a [withAnnouncer mixin](https://rdkcentral.github.io/Lightning-UI-Components/?path=/docs/mixins-withannouncer--basic) that allows for relevant information to be voiced along the [focus path](../RemoteControl/Focus.md) of the application. By default it uses the [speechSynthesis API](https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesis), but can be customized to use any speech engine available on the device.
+Since Lightning is a WebGL rendering library, we can't take advantage of the standard HTML components and the browser's built-in ARIA attributes. Instead, we recommend using the [Lightning UI Component library](https://github.com/rdkcentral/Lightning-UI-Components) which also includes a [withAnnouncer mixin](https://rdkcentral.github.io/Lightning-UI-Components/?path=/docs/mixins-withannouncer--basic) that allows for relevant information to be voiced along the [focus path](../HandlingInput/RemoteControl/Focus.md) of the application. By default, it uses the [speechSynthesis API](https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesis), but can be customized to use any speech engine available on the device.
 
-## How withAnnouncer works
+## How `withAnnouncer` works
 
-Lightning applications use a concept called the [focus path](../RemoteControl/Focus.md) and each component can delegate focus to a child component. This creates a heirarchy like the following table shows:
+Lightning applications use a concept called the [focus path](../RemoteControl/Focus.md) and each component can delegate focus to a child component. This creates a hierarchy like the following table shows:
 
 | Index | Component | Property | Value |
 | --- | ---- | ------------ | ------------- |
@@ -30,4 +30,4 @@ The `withAnnouncer` mixin will travel through the `_focusPath` looking for `comp
 
 ## Example Apps
 
-To get a better understanding of withAnnouncer, we've built a sample application you can check out: https://github.com/ComcastSamples/lightning-ui-tmdb - Be sure to turn on Announcer by pressing V and debug by D and opening developer tools.
+To get a better understanding of `withAnnouncer`, we've built a sample application you can check out: https://github.com/ComcastSamples/lightning-ui-tmdb - Be sure to turn on *Announcer* by pressing `V` and debug by `D` and opening developer tools.
