@@ -1,6 +1,7 @@
 import AnimationActionSettings from "./AnimationActionSettings.mjs";
 import Element from "../tree/Element.mjs";
 import { ExtractAnimatableValueTypes } from "../commonTypes.mjs";
+import TransitionSettings from "../animation/TransitionSettings.mjs"; // Documenation
 
 declare namespace AnimationSettings {
   /**
@@ -101,8 +102,20 @@ declare namespace AnimationSettings {
      * Method that defines the behavior of the animation when it is stopped.
      *
      * @defaultValue `fade`
+     *
+     * @see {@link AnimationSettings.STOP_METHODS}
      */
     stopMethod?: StopMethod;
+
+    /**
+     * Stop Duration
+     *
+     * @remarks
+     * Duration in seconds of stopping
+     *
+     * @defaultValue `0` (use {@link duration})
+     */
+    stopDuration?: number;
 
     /**
      * Stop Delay
@@ -140,40 +153,50 @@ declare class AnimationSettings {
    */
   static STOP_METHODS: {
     /**
-     * Fade
+     * Transitions the animating properties using the {@link TransitionSettings.Literal.timingFunction `"ease"` timing function}
+     * to their {@link AnimationActionSettings.Literal.rv reset values} using the {@link AnimationSettings.Literal.stopDuration stopDuration}.
      *
      * @remarks
-     * ???
+     * If the reset value is not set for a property, the starting value is used instead.
+     *
+     * If the stopDuration is not provided, the regular {@link AnimationSettings.Literal.duration duration} is used instead.
      */
     FADE: 'fade',
     /**
-     * Reverse
+     * Reverses animation back to its starting point using the {@link AnimationSettings.Literal.stopDuration stopDuration}.
      *
      * @remarks
-     * ???
+     * If the stopDuration is not provided, the regular {@link AnimationSettings.Literal.duration duration} is used instead.
+     *
+     * Note: If any of the animating properties have a {@link AnimationActionSettings.Literal.rv reset value} set the
+     * they will be set immediately to those values after the stop animation completes. If you do not want this, make
+     * sure not to set them.
      */
     REVERSE: 'reverse',
     /**
-     * Forward
+     * Animation continues forward to its normal finish state and then immediately sets the animating properties
+     * to their {@link AnimationActionSettings.Literal.rv reset values}.
      *
      * @remarks
-     * ???
+     * If the reset value is not set for a property, the starting value is used instead.
      */
     FORWARD: 'forward',
     /**
-     * Immediate
+     * Animation immediately stops and sets the animating properties to their
+     * {@link AnimationActionSettings.Literal.rv reset values}.
      *
      * @remarks
-     * ???
+     * If the reset value is not set for a property, the starting value is used instead.
      */
     IMMEDIATE: 'immediate',
     /**
-     * One-to-Two
+     * A special stop method. It's action ranges are defined from progress `0.0` to `2.0`,
+     * instead of `0.0` to `1.0`. When stopping, the current animation is continued normally
+     * (up to progress 1), then the progress is continued up to value 2, and then the animating properties
+     * are immediately set to their {@link AnimationActionSettings.Literal.rv reset values}.
      *
      * @remarks
-     * A special stop method. Its action ranges are defined from progress 0 to 2,
-     * instead of 0 to 1. When stopping, the current animation is continued normally
-     * (up to progress 1), and then the progress is continued up to value 2.
+     * If the reset value is not set for a property, the starting value is used instead.
      */
     ONETOTWO: 'onetotwo'
   };

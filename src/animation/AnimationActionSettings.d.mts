@@ -191,7 +191,7 @@ declare namespace AnimationActionSettings {
      * See [Action Value](https://lightningjs.io/docs/#/lightning-core-reference/Animations/ActionValue?id=action-value)
      * for more information.
      */
-    rv?: AnimationActionSettings.AnimationActionValue<ValueType>;
+    rv?: ValueType;
   }
 }
 

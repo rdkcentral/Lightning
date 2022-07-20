@@ -5,8 +5,26 @@ declare namespace TransitionSettings {
    * Timing function types
    *
    * @remarks
+   * Values
+   * - `"ease"`
+   *   - Transition starts at a constant speed and ends slowing down
+   * - `"linear"`
+   *   - Straight point-to-point animation
+   * - `"ease-in"`
+   *   - Transition starts slow and continues in a constant speed
+   * - `"ease-out"`
+   *   - Transition starts at a constant speed and ends slowing down
+   * - `"ease-in-out"`
+   *   - Transition starts slow, continues at a constant speed, and ends slowing down
+   * - `"step-start"`
+   *   - Transition steps to start position
+   * - `"step-end"`
+   *   - Transition steps to end position
+   * - `"cubic-bezier(a,b,c,d)"`
+   *   - Custom bezier curve (See: [cubic-bezier.com](https://cubic-bezier.com/))
+   *
    * See [Timing Function Settings](https://lightningjs.io/docs/#/lightning-core-reference/Transitions/Attributes?id=timing-function-settings)
-   * for more information
+   * for more information.
    */
   export type TimingFunction =
     | 'linear'
@@ -42,10 +60,28 @@ declare namespace TransitionSettings {
      * Timing function to use for animation
      *
      * @remarks
-     * See [Timing Function Settings](https://lightningjs.io/docs/#/lightning-core-reference/Transitions/Attributes?id=timing-function-settings)
-     * for more information
+     * Values
+     * - `"ease"`
+     *   - Transition starts at a constant speed and ends slowing down
+     * - `"linear"`
+     *   - Straight point-to-point animation
+     * - `"ease-in"`
+     *   - Transition starts slow and continues in a constant speed
+     * - `"ease-out"`
+     *   - Transition starts at a constant speed and ends slowing down
+     * - `"ease-in-out"`
+     *   - Transition starts slow, continues at a constant speed, and ends slowing down
+     * - `"step-start"`
+     *   - Transition steps to start position
+     * - `"step-end"`
+     *   - Transition steps to end position
+     * - `"cubic-bezier(a,b,c,d)"`
+     *   - Custom bezier curve (See: [cubic-bezier.com](https://cubic-bezier.com/))
      *
-     * @defaultValue `'ease'`
+     * See [Timing Function Settings](https://lightningjs.io/docs/#/lightning-core-reference/Transitions/Attributes?id=timing-function-settings)
+     * for more information.
+     *
+     * @defaultValue `"ease"`
      */
     timingFunction?: TimingFunction;
   }
