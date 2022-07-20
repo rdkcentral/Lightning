@@ -19,10 +19,10 @@ declare class TextTextureRenderer {
   constructor(
     stage: Stage,
     canvas: HTMLCanvasElement,
-    settings: Required<TextTexture.Literal>,
+    settings: Required<TextTexture.Settings>,
   );
 
-  private _settings: Required<TextTexture.Literal>;
+  private _settings: Required<TextTexture.Settings>;
   renderInfo?: TextureSource.RenderInfo;
 
   _calculateRenderInfo(): TextureSource.RenderInfo;

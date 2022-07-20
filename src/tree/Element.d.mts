@@ -395,7 +395,7 @@ declare namespace Element {
      * See [Texture Types](https://lightningjs.io/docs/#/lightning-core-reference/RenderEngine/Textures/index) for
      * more information.
      */
-    texture: Texture | Texture.Literal | null;
+    texture: Texture | Texture.Settings | null;
 
     /**
      * Creates a tag context
@@ -701,7 +701,7 @@ declare namespace Element {
      * See [Texture Types](https://lightningjs.io/docs/#/lightning-core-reference/RenderEngine/Textures/index) for
      * more information.
      */
-    text: TextTexture.Literal | string | null;
+    text: TextTexture.Settings | string | null;
 
     /**
      * Set a shader on this Element
@@ -1272,7 +1272,7 @@ declare class Element<
    * @see {@link Element.TemplateSpecStrong.texture}
    */
   get texture(): TextureType<TypeConfig> | null;
-  set texture(v: TextureType<TypeConfig> | Texture.Literal | null);
+  set texture(v: TextureType<TypeConfig> | Texture.Settings | null);
 
   /**
    * The currently displayed texture. While this.texture is loading,
@@ -1533,7 +1533,7 @@ declare class Element<
    */
   // @ts-ignore-error Prevent ts(2380)
   get text(): TextTexture | null;
-  set text(text: TextTexture.Literal | string);
+  set text(text: TextTexture.Settings | string);
 
   /**
    * Callback called before the Element's flexbox layout is updated.

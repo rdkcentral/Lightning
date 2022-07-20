@@ -27,7 +27,7 @@ declare class Tools {
      * @see {@link StaticCanvasTexture.Content.lookupId}
      */
     lookupId: string,
-  ): StaticCanvasTexture.Literal;
+  ): StaticCanvasTexture.Settings;
 
   /**
    * Gets a Texture defintion for a Rounded Rectangle
@@ -50,7 +50,7 @@ declare class Tools {
     strokeColor?: number,
     fill?: boolean,
     fillColor?: number,
-  ): StaticCanvasTexture.Literal;
+  ): StaticCanvasTexture.Settings;
 
   // static createRoundRect(stage, w, h, radius, strokeWidth, strokeColor, fill, fillColor) {
   // - This returns an HTML Canvas element and is used privately by getRoundRect
@@ -73,7 +73,7 @@ declare class Tools {
     radius?: Tools.CornerRadius,
     blur?: number,
     margin?: number
-  ): StaticCanvasTexture.Literal;
+  ): StaticCanvasTexture.Settings;
 
   // static createShadowRect(stage, w, h, radius, blur, margin) {
   // - This returns an HTML Canvas element and is used privately by getShadowRect
@@ -92,7 +92,7 @@ declare class Tools {
     url: string,
     w: number,
     h: number
-  ): StaticCanvasTexture.Literal;
+  ): StaticCanvasTexture.Settings;
 
   // static createSvg(cb, stage, url, w, h) {
   // - This returns an HTML Canvas element and is used privately by getSvgTexture

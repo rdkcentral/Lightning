@@ -30,9 +30,10 @@ declare namespace TextTexture {
   export type TextVerticalAlign = 'top' | 'middle' | 'bottom';
 
   /**
-   * Text Texture Settings Literal
+   * Text Texture Settings
    */
-  export interface Literal extends Pick<Texture.Literal, 'x' | 'y' | 'w' | 'h' | 'resizeMode'> {
+  export interface Settings extends Texture.Settings {
+    type?: typeof TextTexture,
     /**
      * Text to display
      *
@@ -423,20 +424,20 @@ declare namespace TextTexture {
   }
 }
 
-declare class TextTexture extends Texture implements Required<TextTexture.Literal> {
+declare class TextTexture extends Texture implements Required<Omit<TextTexture.Settings, 'type'>> {
   constructor(stage: Stage);
 
   protected static renderer(
     stage: Stage,
     canvas: HTMLCanvasElement,
-    settings: TextTexture.Literal,
+    settings: TextTexture.Settings,
   ): TextTextureRenderer;
 
   protected _changed(): void;
 
   protected stage: Stage;
 
-  cloneArgs(): Required<TextTexture.Literal>;
+  cloneArgs(): Required<TextTexture.Settings>;
 
   get text(): string;
   set text(text: string);

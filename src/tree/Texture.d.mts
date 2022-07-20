@@ -74,8 +74,8 @@ declare namespace Texture {
     clipY?: number;
   }
 
-  export interface Literal {
-    type: typeof Texture;
+  export interface Settings {
+    type?: typeof Texture;
     /**
      * Texture clipping x-offset
      *
@@ -145,6 +145,9 @@ declare namespace Texture {
      * @defaultValue `null` (disabled)
      */
     resizeMode?: ResizeMode | null,
+  }
+
+  export interface SettingsLoose extends Settings {
     [s: string]: any; // Anything goes for now !!!
   }
 }

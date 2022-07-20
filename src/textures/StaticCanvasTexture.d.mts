@@ -31,9 +31,9 @@ declare namespace StaticCanvasTexture {
     lookupId?: string;
   }
 
-  export interface Literal extends Texture.Literal {
-    type: typeof StaticCanvasTexture;
-    content: StaticCanvasTexture.Content;
+  export interface Settings extends Texture.Settings {
+    type?: typeof StaticCanvasTexture;
+    content?: StaticCanvasTexture.Content;
   }
 }
 
