@@ -108,7 +108,7 @@ declare class Application<
 > extends Component<
   TemplateSpecType,
   TypeConfig
-> implements EventEmitter<Application.EventMap> {
+> {
 
   // __updateFocusCounter: any;
   // __keypressTimers: any;
