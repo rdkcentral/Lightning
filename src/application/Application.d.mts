@@ -1,10 +1,8 @@
-import EventEmitter from "../EventEmitter.mjs";
 import Element from "../tree/Element.mjs";
 import Stage from "../tree/Stage.mjs";
 import Component from "./Component.mjs";
 
 declare namespace Application {
-
   /**
    * Key Map structure
    */
