@@ -1,14 +1,83 @@
 import EventEmitter from "../EventEmitter.mjs";
 import Element from "../tree/Element.mjs";
+import Stage from "../tree/Stage.mjs";
 import Component from "./Component.mjs";
 
 declare namespace Application {
-  interface Options {
-    // !!!
+
+  /**
+   * Key Map structure
+   */
+  export interface KeyMap {
+    [s: number]: string | undefined
+  }
+
+  /**
+   * Application options
+   *
+   * @remarks
+   * See [Runtime Config](https://lightningjs.io/docs/#/lightning-core-reference/RuntimeConfig/index?id=runtime-configuration)
+   * for more information.
+   */
+  export interface Options {
+    /**
+     * Stage options for the application
+     *
+     * @see {@link Stage.Options}
+     */
+    stage: Partial<Stage.Options>
+
+    /**
+     * Sets a custom keymap for use by the application
+     *
+     * @remarks
+     * A {@link KeyMap} is just a object keyed by [key codes](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/keyCode)
+     *
+     * See [Key Handling - Key Mapping](https://lightningjs.io/docs/#/lightning-core-reference/HandlingInput/RemoteControl/KeyHandling?id=key-mapping)
+     * for more information.
+     *
+     * @defaultValue
+     * ```
+     * {
+     *      38: "Up",
+     *      40: "Down",
+     *      37: "Left",
+     *      39: "Right",
+     *      13: "Enter",
+     *      8: "Back",
+     *      27: "Exit"
+     * }
+     * ```
+     */
+    keys: KeyMap;
+
+    /**
+     * Enables mouse input, if set to `true`
+     *
+     * @remarks
+     * See [Mouse Input](https://lightningjs.io/docs/#/lightning-core-reference/HandlingInput/Mouse?id=mouse-input)
+     * for more information.
+     *
+     * @defaultValue `false`
+     */
+    enablePointer: boolean;
+
+    /**
+     * Enables debug mode, if set to `true`
+     *
+     * @remarks
+     * Shows changes to the focus path for debug purposes
+     *
+     * See [Mouse Input](https://lightningjs.io/docs/#/lightning-core-reference/HandlingInput/Mouse?id=mouse-input)
+     * for more information.
+     *
+     * @defaultValue `false`
+     */
+    debug: boolean
   }
 
   export interface TemplateSpecStrong extends Component.TemplateSpecStrong {
-    // No additional template spec on an Application
+    // Provided empty for consistent convention and to to allow augmentation
   }
 
   /**
@@ -18,11 +87,11 @@ declare namespace Application {
     [s: string]: any
   }
 
-  interface EventMap extends Element.EventMap {
+  export interface EventMap extends Element.EventMap {
     // Provided empty for consistent convention and to to allow augmentation
   }
 
-  interface SignalMap extends Component.SignalMap {
+  export interface SignalMap extends Component.SignalMap {
     // Provided empty for consistent convention and to to allow augmentation
   }
 
@@ -56,12 +125,6 @@ declare class Application<
 
   /**
    * Gets an option value from the active set of {@link Application.ApplicationOptions}
-   *
-   * @remarks
-   * ???
-   * - 'keys'
-   * - 'enablePointer'
-   * - 'debug'
    */
   getOption<
     T extends keyof Application.Options,
