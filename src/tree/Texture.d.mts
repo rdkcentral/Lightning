@@ -3,15 +3,148 @@ import TextureSource from "./TextureSource.mjs";
 
 declare namespace Texture {
   export interface ResizeMode {
-    clipX?: number;
-    clipY?: number;
-    h: number;
-    type: string;
+    /**
+     * Resize mode to use
+     *
+     * @remarks
+     * Options
+     * - `"cover"`
+     *   - Ensure that the texture covers the entire rectangular area defined by {@link w} and {@link h}.
+     *     - {@link clipX} and {@link clipY} can be used to adjust how the texture is clipped into the rectangle.
+     * - `"contain"`
+     *   - Fits an image into the rectangular area defined by {@link w} and {@link h}.
+     *
+     * See [Clipping - ResizeMode](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Clipping?id=resizemode)
+     * for more information.
+     */
+    type: 'cover' | 'contain';
+    /**
+     * Width of rectangular area (in pixels)
+     *
+     * @remarks
+     * See [Clipping - ResizeMode](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Clipping?id=resizemode)
+     * for more information.
+     */
     w: number;
+    /**
+     * Height of rectangular area (in pixels)
+     *
+     * @remarks
+     * See [Clipping - ResizeMode](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Clipping?id=resizemode)
+     * for more information.
+     */
+    h: number;
+    /**
+     * X-Axis clip factor
+     *
+     * @remarks
+     * This can be any floating point number between `0.0` and `1.0`.
+     *
+     * Examples
+     * - `0.0` = Clips the left of the texture, showing the entire right.
+     * - `0.5` (default) = Clips the left and right off equally.
+     * - `1.0` = Clips the right of the texture, showing the entire left.
+     *
+     * Note: This property is only valid for the `"cover"` {@link type resize mode}.
+     *
+     * See [Clipping - ResizeMode](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Clipping?id=resizemode)
+     * for more information.
+     *
+     * @defaultValue `0.5`
+     */
+    clipX?: number;
+    /**
+     * Y-Axis clip factor
+     *
+     * @remarks
+     * This can be any floating point number between `0.0` and `1.0`.
+     *
+     * Examples
+     * - `0.0` = Clips the top of the texture, showing the entire bottom.
+     * - `0.5` (default) = Clips the top and bottom off equally.
+     * - `1.0` = Clips the bottom of the texture, showing the entire top.
+     *
+     * Note: This property is only valid for the `"cover"` {@link type resize mode}.
+     *
+     * See [Clipping - ResizeMode](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Clipping?id=resizemode)
+     * for more information.
+     *
+     * @defaultValue `0.5`
+     */
+    clipY?: number;
   }
 
   export interface Literal {
     type: typeof Texture;
+    /**
+     * Texture clipping x-offset
+     *
+     * @remarks
+     * This should not be set at the same time as {@link resizeMode}.
+     *
+     * See [Clipping](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Clipping?id=clipping) for
+     * more information.
+     */
+    x?: number;
+    /**
+     * Texture clipping x-offset
+     *
+     * @remarks
+     * This should not be set at the same time as {@link resizeMode}.
+     *
+     * See [Clipping](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Clipping?id=clipping) for
+     * more information.
+     */
+    y?: number;
+    /**
+     * Texture clipping width
+     *
+     * @remarks
+     * If `0` then shows full width.
+     *
+     * This should not be set at the same time as {@link resizeMode}.
+     *
+     * See [Clipping](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Clipping?id=clipping) for
+     * more information.
+     */
+    w?: number;
+    /**
+     * Texture clipping height
+     *
+     * @remarks
+     * If `0` then shows full width.
+     *
+     * This should not be set at the same time as {@link resizeMode}.
+     *
+     * See [Clipping](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Clipping?id=clipping) for
+     * more information.
+     */
+    h?: number;
+    /**
+     * Texture render precision
+     *
+     * @see {Stage.Options.precision}
+     */
+    precision?: number;
+    /**
+     * Texture resize mode (Automatic resize + clipping)
+     *
+     * @remarks
+     * When set, enables automatic clipping to a specific rectangular area.
+     *
+     * Note: `resizeMode` actually modifies the following texture clipping properties, so it should not be set at
+     * the same time as them:
+     * - {@link x}.
+     * - {@link y}.
+     * - {@link w}.
+     * - {@link h}.
+     *
+     * See [Clipping - ResizeMode](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Clipping?id=resizemode)
+     * for more information.
+     *
+     * @defaultValue `null` (disabled)
+     */
+    resizeMode?: ResizeMode | null,
     [s: string]: any; // Anything goes for now !!!
   }
 }

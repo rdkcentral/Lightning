@@ -4,17 +4,17 @@ import TextTextureRenderer from "./TextTextureRenderer.mjs";
 
 declare namespace TextTexture {
   /**
-   * ???
+   * Text Overflow Values
    */
   export type TextOverflow = 'ellipsis' | 'clip' | (string & Record<never, never>);
 
-  /**
-   * ???
+  /***
+   * Text Horizontal Align Values
    */
   export type TextAlign = 'left' | 'center' | 'right';
 
   /***
-   * ???
+   * Text Baseline Values
    */
   export type TextBaseline =
     | 'alphabetic'
@@ -24,73 +24,383 @@ declare namespace TextTexture {
     | 'ideographic'
     | 'bottom';
 
-  /**
-   * ???
+  /***
+   * Text Vertical Align Values
    */
   export type TextVerticalAlign = 'top' | 'middle' | 'bottom';
 
   /**
-   * ???
+   * Text Texture Settings Literal
    */
-  export interface Literal {
+  export interface Literal extends Pick<Texture.Literal, 'x' | 'y' | 'w' | 'h' | 'resizeMode'> {
+    /**
+     * Text to display
+     *
+     * @defaultValue `""`
+     */
     text?: string;
-    w?: number;
-    h?: number;
+    /**
+     * Font style
+     *
+     * @defaultValue `"normal"`
+     */
     fontStyle?: string;
+    /**
+     * Font size (in pixels)
+     *
+     * @defaultValue `40`
+     */
     fontSize?: number;
+    /**
+     * Font baseline ratio (Advanced Text Renderer only)
+     *
+     * @remarks
+     * This can be used to improve vertical text alignment when using the Advanced Text Renderer.
+     *
+     * You MUST enable {@link advancedRenderer} in order to use this.
+     *
+     * See [PR #378](https://github.com/rdkcentral/Lightning/pull/378) for more information
+     * about this feature.
+     *
+     * To calculate the ratio for a particular font face, you can do this calculation from font metadata:
+     * ```
+     *     (head.unitsPerEm − hhea.Ascender − hhea.Descender) / (2 × head.unitsPerEm)
+     * ```
+     *
+     * This give you the ratio for the baseline, which is then used to figure out
+     * where the baseline is relative to the bottom of the text bounding box.
+     *
+     * The input values can be retrieved using the [opentype.js Font Inspector](https://opentype.js.org/font-inspector.html).
+     *
+     * @defaultValue `0`
+     */
     fontBaselineRatio?: number;
-    fontFace?: string;
+    /**
+     * Font family
+     *
+     * @defaultValue `null` (uses {@link Stage.Options.defaultFontFace})
+     */
+    fontFace?: string | null;
+    /**
+     * Word wrap mode
+     *
+     * @remarks
+     * When enabled (default), long lines that exceed {@link wordWrapWidth} will be be broken into new lines.
+     *
+     * @defaultValue `true`
+     */
     wordWrap?: boolean;
+    /**
+     * Word wrap width (in pixels)
+     *
+     * @remarks
+     * - When {@link wordWrap} is enabled:
+     *   - Long lines that exceed this width will be broken into new lines.
+     * - When {@link wordWrap} is disabled AND when {@link textOverflow} is enabled:
+     *   - Text that exceeds this width will be truncated.
+     *
+     * @defaultValue `0`
+     */
     wordWrapWidth?: number;
     /**
-     * Enables Word Breaking (Advanced Text Renderer only)
+     * Word Breaking mode (Advanced Text Renderer only)
      *
      * @remarks
      * When enabled, words that overflow the set width of the texture will
      * be broken to another line.
      *
-     * You MUST enable {@link advancedRenderer} in order to use this
+     * You MUST enable {@link advancedRenderer} in order to use this.
      *
-     * @defaultValue false
+     * @defaultValue `false`
      */
     wordBreak?: boolean;
-    textOverflow?: TextOverflow;
-    lineHeight?: number;
+    /**
+     * Text overflow mode
+     *
+     * @remarks
+     * When enabled, truncates long blocks of text with a suffix (like "..") to the size specified in
+     * {@link wordWrapWidth}. {@link wordWrap} must be *disabled* for this to work.
+     *
+     * Values
+     * - `"ellipsis"`: Truncated text will end in {@link maxLinesSuffix}.
+     * - `"clip"`: Truncated text will not end in a suffix.
+     * - any `string`: Truncated text will end in this user-defined suffix.
+     *
+     * @defaultValue `null` (disabled)
+     */
+    textOverflow?: TextOverflow | null;
+    /**
+     * Line height (in pixels)
+     *
+     * @defaultValue `null`
+     */
+    lineHeight?: number | null;
+    /**
+     * Text baseline
+     *
+     * @remarks
+     * See [`CanvasRenderingContext2D.textBaseline` (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/textBaseline)
+     * for the available options.
+     *
+     * @defaultValue `"alphabetic"`
+     */
     textBaseline?: TextBaseline;
+    /**
+     * Horizontal text alignment
+     *
+     * @defaultValue `"left"`
+     */
     textAlign?: TextAlign;
+    /**
+     * Vertical text aligment
+     *
+     * @remarks
+     * If lineHeight is larger than fontSize, this value specifies how text should be aligned vertically
+     * inside each line.
+     *
+     * @defaultValue `"top"`
+     */
     verticalAlign?: TextVerticalAlign;
+    /**
+     * Text Y offset (in pixels)
+     *
+     * @remarks
+     * Translates the position of rendered text along the Y-axis.
+     *
+     * This value must be equal to at least the {@link fontSize} (which is the default) for the first line of
+     * text to be completely visible in the texture. If set to `0`, the first line of text will be completely
+     * clipped.
+     *
+     * @defaultValue `null` (fontSize)
+     */
     offsetY?: number | null;
+    /**
+     * Maximum number of lines to display before truncation
+     *
+     * @remarks
+     * If this is set to a value greater than 0, multiline text will be truncated
+     * at this number of lines. The {@link maxLinesSuffix} will be inserted at the
+     * end of the last rendered line of text.
+     *
+     * @defaultValue `0` (line truncation disabled)
+     */
     maxLines?: number;
+    /**
+     * String rendered at the end of a truncated line of text
+     *
+     * @remarks
+     * This suffix is used in the following situations:
+     * - {@link maxLines} is enabled and is exceeded.
+     * - {@link wordWrap} is disabled, {@link textOverflow} is set to `"ellipsis"`,
+     *   and {@link wordWrapWidth} is exceeded.
+     *
+     * @defaultValue `".."`
+     */
     maxLinesSuffix?: string;
+    /**
+     * Render precision of text
+     *
+     * @see {@link Stage.Options.precision}
+     *
+     * @defaultValue {@link Stage.Options.precision} stage option
+     */
     precision?: number;
+    /**
+     * Text color
+     *
+     * @defaultValue `0xFFFFFFFF` (white)
+     */
     textColor?: number;
     /**
+     * Padding left (in pixels)
+     *
      * @remarks
-     * Using this will result in a larger texture.
+     * Using this will result in a larger texture size allocation.
      */
     paddingLeft?: number;
     /**
+     * Padding right (in pixels)
+     *
      * @remarks
-     * Using this will result in a larger texture.
+     * Using this will result in a larger texture size allocation.
      */
     paddingRight?: number;
+    /**
+     * Text shadow mode
+     *
+     * @remarks
+     * If set, enables a text shadow behind the rendered text controlled by these properties:
+     * - {@link shadowColor}.
+     * - {@link shadowOffsetX}.
+     * - {@link shadowOffsetY}.
+     * - {@link shadowBlur}.
+     *
+     * See [CanvasRenderingContext2D - Shadows (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D#shadows)
+     * for more information on the properties that determine shadows.
+     *
+     * @defaultValue `false`
+     */
     shadow?: boolean;
+    /**
+     * Text shadow color
+     *
+     * @remarks
+     * {@link shadow} must be enabled for this property to have any affect.
+     *
+     * See [`CanvasRenderingContext2D.shadowColor` (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/shadowColor)
+     * for more information on this property.
+     *
+     * @defaultValue `0xFF000000` (black)
+     */
     shadowColor?: number;
+    /**
+     * Text shadow X offset (in pixels)
+     *
+     * @remarks
+     * {@link shadow} must be enabled for this property to have any affect.
+     *
+     * See [`CanvasRenderingContext2D.shadowOffsetX` (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/shadowOffsetX)
+     * for more information on this property.
+     *
+     * @defaultValue `0`
+     */
     shadowOffsetX?: number;
+    /**
+     * Text shadow Y offset
+     *
+     * @remarks
+     * {@link shadow} must be enabled for this property to have any affect.
+     *
+     * See [`CanvasRenderingContext2D.shadowOffsetY` (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/shadowOffsetY)
+     * for more information on this property.
+     *
+     * @defaultValue `0`
+     */
     shadowOffsetY?: number;
+    /**
+     * Text shadow blur iterations
+     *
+     * @remarks
+     * {@link shadow} must be enabled for this property to have any affect.
+     *
+     * See [`CanvasRenderingContext2D.shadowBlur` (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/shadowBlur)
+     * for more information on this property.
+     *
+     * @defaultValue `5`
+     */
     shadowBlur?: number;
+    /**
+     * Highlight mode
+     *
+     * @remarks
+     * If set, enables a solid color highlight behind the rendered text controlled by these properties:
+     * - {@link highlightColor}.
+     * - {@link highlightHeight}.
+     * - {@link highlightOffset}.
+     * - {@link highlightPaddingLeft}.
+     * - {@link highlightPaddingRight}.
+     *
+     * @defaultValue `false`
+     */
     highlight?: boolean;
+    /**
+     * Highlight height (in pixels)
+     *
+     * @remarks
+     * {@link highlight} must be enabled for this property to have any affect.
+     *
+     * @defaultValue `0` ({@link fontSize} multiplied by 1.5)
+     */
     highlightHeight?: number;
+    /**
+     * Highlight color
+     *
+     * @remarks
+     * {@link highlight} must be enabled for this property to have any affect.
+     *
+     * @defaultValue `0xFF000000` (black)
+     */
     highlightColor?: number;
+    /**
+     * Highlight Y offset (in pixels)
+     *
+     * @remarks
+     * Shifts the rendered highlight blocks down the Y-axis.
+     *
+     * {@link highlight} must be enabled for this property to have any affect.
+     *
+     * @defaultValue `0`
+     */
     highlightOffset?: number;
+    /**
+     * Highlight left padding (in pixels)
+     *
+     * @remarks
+     * - If `> 0`:
+     *   - Adds additional highlight to the left of each highlighted line.
+     * - If `< 0`:
+     *   - Removes highlight from the left side of each highlighted line.
+     *
+     * {@link highlight} must be enabled for this property to have any affect.
+     *
+     * @defaultValue `0`
+     */
     highlightPaddingLeft?: number;
+    /**
+     * Highlight right padding (in pixels)
+     *
+     * @remarks
+     * - If `> 0`:
+     *   - Adds additional highlight to the right of each highlighted line.
+     * - If `< 0`:
+     *   - Removes highlight from the right side of each highlighted line.
+     *
+     * {@link highlight} must be enabled for this property to have any affect.
+     *
+     * @defaultValue `0`
+     */
     highlightPaddingRight?: number;
+    /**
+     * Spacing between letters
+     *
+     * @remarks
+     * Adds or removes spacing between letters. Negative values are allowed.
+     *
+     * Warning: Setting this to anything but `0` can slow down the rendering of text.
+     *
+     * @defaultValue `0` (disabled)
+     */
     letterSpacing?: number;
+    /**
+     * Indent of the first line of text (in pixels)
+     *
+     * @defaultValue `0`
+     */
     textIndent?: number;
-    cutEx?: number;
-    cutEy?: number;
+    /**
+     * X coordinate of text cutting start position (in pixels)
+     *
+     * @defaultValue `0`
+     */
     cutSx?: number;
+     /**
+      * Y coordinate of text cutting start position (in pixels)
+      *
+      * @defaultValue `0`
+      */
     cutSy?: number;
+    /**
+     * X coordinate of text cutting end position (in pixels)
+     *
+     * @defaultValue `0`
+     */
+    cutEx?: number;
+    /**
+     * Y coordinate of text cutting end position (in pixels)
+     *
+     * @defaultValue `0`
+     */
+    cutEy?: number;
     /**
      * Enables the Advanced Text Renderer
      *

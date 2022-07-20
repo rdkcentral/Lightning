@@ -400,6 +400,7 @@ declare namespace Element {
     /**
      * Creates a tag context
      *
+     * @remarks
      * Tagged Elements in this branch will not be reachable
      * from ancestors of this Element.
      *
@@ -422,7 +423,6 @@ declare namespace Element {
      *       sides is `100`.
      *
      * @remarks
-     *
      * The Bounds Margin influences whether an Element will be rendered as if it were
      * on screen. If the Bounds Margin is `0` on all sides, then this Element will only be
      * rendered if exactly any part of it's rectangle is potentially visible on screen. Adding
@@ -485,10 +485,10 @@ declare namespace Element {
     /**
      * Rectangle texture mode
      *
+     * @remarks
      * When set, this Element adopts a RectangleTexture as its Texture
      * and displays a rectangle colored by the various `color*` properties.
      *
-     * @remarks
      * Cannot be set at the same time as {@link src} or {@link text}.
      *
      * See [Texture Types](https://lightningjs.io/docs/#/lightning-core-reference/RenderEngine/Textures/index) for
@@ -511,6 +511,7 @@ declare namespace Element {
     /**
      * Scale Horizontal Tranform
      *
+     * @remarks
      * Stretches or shrinks this Element along the horizontal axis.
      *
      * @defaultValue 1.0
@@ -520,6 +521,7 @@ declare namespace Element {
     /**
      * Scale Vertical Tranform
      *
+     * @remarks
      * Stretches or shrinks this Element along the vertical axis.
      *
      * @defaultValue 1.0
@@ -529,6 +531,7 @@ declare namespace Element {
     /**
      * Scale Tranform
      *
+     * @remarks
      * Stretches or shrinks this Element along both the horizontal and
      * vertical axes.
      *
@@ -539,10 +542,11 @@ declare namespace Element {
     /**
      * Rotational Pivot Position (horizonal axis)
      *
+     * @remarks
      * Controls the pivot that the {@link rotation} property rotates around along
-     * the horizontal axis.
+     * the horizontal axis. Can be any floating point number between `0.0` and `1.0`.
      *
-     * Examples:
+     * Examples
      * - `0.0` = left
      * - `0.5` (default) = center
      * - `1.0` = right
@@ -554,10 +558,11 @@ declare namespace Element {
     /**
      * Rotational Pivot Position (vertical axis)
      *
+     * @remarks
      * Controls the pivot that the {@link rotation} property rotates around along
-     * both the vertical axes.
+     * both the vertical axes. Can be any floating point number between `0.0` and `1.0`.
      *
-     * Examples:
+     * Examples
      * - `0.0` = top
      * - `0.5` (default) = center
      * - `1.0` = bottom
@@ -568,10 +573,12 @@ declare namespace Element {
     /**
      * Rotational Pivot Position
      *
+     * @remarks
      * Controls the pivot that the {@link rotation} property rotates around along
-     * both the horizontal and vertical axis.
+     * both the horizontal and vertical axis. Can be any floating point number between
+     * `0.0` and `1.0`.
      *
-     * Examples:
+     * Examples
      * - `0.0` = top-left
      * - `0.5` (default) = center
      * - `1.0` = bottom-right
@@ -583,10 +590,12 @@ declare namespace Element {
     /**
      * Texture mountpoint on horizontal axis
      *
+     * @remarks
      * Controls the position within the Element that is placed at {@link x} and
-     * {@link y} along the horizontal axis.
+     * {@link y} along the horizontal axis. Can be any floating point number between
+     * `0.0` and `1.0`.
      *
-     * Examples:
+     * Examples
      * - `0.0` (default) = left side
      * - `0.5` = center
      * - `1.0` = right side
@@ -598,10 +607,12 @@ declare namespace Element {
     /**
      * Texture mountpoint on vertical axis
      *
+     * @remarks
      * Controls the position within the Element that is placed at {@link x} and
-     * {@link y} along the vertical axis.
+     * {@link y} along the vertical axis. Can be any floating point number between
+     * `0.0` and `1.0`.
      *
-     * Examples:
+     * Examples
      * - `0.0` (default) = top side
      * - `0.5` = center
      * - `1.0` = bottom side
@@ -613,8 +624,10 @@ declare namespace Element {
     /**
      * Texture mountpoint
      *
+     * @remarks
      * Controls the position within the Element that is placed at {@link x} and
-     * {@link y} along both the horizontal and vertical axes.
+     * {@link y} along both the horizontal and vertical axes. Can be any floating
+     * point number between `0.0` and `1.0`.
      *
      * Examples:
      * - `0.0` (default) = top-left corner
@@ -628,6 +641,7 @@ declare namespace Element {
     /**
      * Rotation Transform (in radians)
      *
+     * @remarks
      * Rotates this Element around the pivot (defined by {@link pivot}, {@link pivotX},
      * and {@link pivotY}).
      *
@@ -645,12 +659,11 @@ declare namespace Element {
      * Defines the opacity of this Element and its descendants. This can be any number
      * between `0.0` (0% opacity) and `1.0` (100% opacity).
      *
+     * @remarks
      * - If set to `0.0`:
      *   - This Element is not rendered, but will still maintain its space in a Flex Box layout
      * - If set to `1.0` (default):
      *   - This Element is rendered with 100% opacity.
-     *
-     * @remarks
      *
      * The {@link visible} property takes prescendence over `alpha`.
      *
@@ -661,12 +674,11 @@ declare namespace Element {
     /**
      * Defines the visibility of this Element and its descendents.
      *
+     * @remarks
      * - If set to `true` (default):
      *   - This Element is rendered.
      * - If set to `false`:
      *   - This Element is not rendered and its space in a Flex Box layout is collapsed.
-     *
-     * @remarks
      *
      * If an element is invisible, the off-screen Elements are invisible as well,
      * so you do not have to hide those manually to maintain a good performance.
@@ -705,7 +717,7 @@ declare namespace Element {
      * work on an entire component as well as enabling advanced transformations
      * (like rotations).
      *
-     * @defaultValue false
+     * @defaultValue `false`
      */
     renderToTexture: boolean;
 
@@ -715,9 +727,9 @@ declare namespace Element {
     rtt: boolean;
 
     /**
-     * Determines if the texture is always updated or only when necessary.
+     * Determines if the texture is always updated or only when necessary
      *
-     * @defaultValue false
+     * @defaultValue `false`
      */
     rttLazy: boolean;
 
@@ -884,20 +896,19 @@ declare namespace Element {
      * See [Z-Indexing](https://lightningjs.io/docs/#/lightning-core-reference/RenderEngine/Elements/Rendering?id=z-indexing)
      * for more information.
      *
-     * @defaultValue false
+     * @defaultValue `false`
      */
     forceZIndexContext: boolean;
 
     /**
      * Defines whether clipping should be turned on or off for this element
      *
+     * @remarks
      * - If set to `true`:
      *   - Everything outside the dimensions of this Element is not
      *     rendered. (The effect is similar to overflow:hidden in CSS.)
      * - If set to `false` (default):
      *   - Everything outside the dimensions of this Element is rendered.
-     *
-     * @remarks
      *
      * Setting this property might increase the performance, as descendants outside the
      * clipping region are detected and not rendered.
@@ -913,13 +924,16 @@ declare namespace Element {
     clipping: boolean;
 
     /**
+     * Clipbox
+     *
+     * @remarks
      * If set to `true` (default), does not render any of this Element's children if the
      * Element itself is completely out-of-bounds.
      *
      * Explicitly set this to `false` to enable rendering of children in that
      * situation.
      *
-     * @defaultValue true
+     * @defaultValue `true`
      */
     clipbox: boolean;
 

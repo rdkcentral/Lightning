@@ -29,7 +29,7 @@ declare namespace Stage {
    * Options used to configure the Lightning Stage
    *
    * @remarks
-   * See the "Runtime Configuration" page of the Lightning Docs for detailed
+   * See the [Runtime Configuration](https://lightningjs.io/docs/#/lightning-core-reference/RuntimeConfig/index) for more
    * information.
    */
   export interface Options {
@@ -68,7 +68,8 @@ declare namespace Stage {
      * Maximum GPU memory usage in pixels
      *
      * @remarks
-     * See note on "GPU Memory Tweak" in the Lightning Docs
+     * See [Runtime Config - GPU Memory Tweak](https://lightningjs.io/docs/#/lightning-core-reference/RuntimeConfig/index?id=gpu-memory-tweak)
+     * for more information.
      *
      * @defaultValue `24e6`
      */
@@ -86,10 +87,11 @@ declare namespace Stage {
      */
     textRenderIssueMargin: number;
     /**
-     * ???
+     * FontSharp settings
      *
      * @remarks
-     * See note on "FontSharp" in the Lightning Docs
+     * See [Runtime Config - FontSharp](https://lightningjs.io/docs/#/lightning-core-reference/RuntimeConfig/index?id=fontsharp)
+     * for more information.
      *
      * @defaultValue `{precision:0.6666666667, fontSize: 24}`
      */
@@ -136,7 +138,8 @@ declare namespace Stage {
      * Global stage scaling
      *
      * @remarks
-     * See note on "Downscaling" in the Lightning docs.
+     * See [Runtime Config - Downscaling](https://lightningjs.io/docs/#/lightning-core-reference/RuntimeConfig/index?id=downscaling) for more
+     * information.
      *
      * @defaultValue `1`
      */
@@ -146,7 +149,8 @@ declare namespace Stage {
      * instead of WebGL for rendering.
      *
      * @remarks
-     * See note on "Limitations of `Canvas2D`" in the Lightning Docs.
+     * See [Runtime Config - Limitations of Canvas2D](https://lightningjs.io/docs/#/lightning-core-reference/RuntimeConfig/index?id=limitations-of-canvas2d)
+     * for information about the limitations of using Canvas2D.
      *
      * @defaultValue `false`
      */
@@ -477,7 +481,8 @@ declare class Stage extends EventEmitter<Stage.EventMap> {
    * Call this to ensure the `finalX`, `finalY`, `finalW`, `finalH` properties
    * of {@link Element}s are updated appropriately without waiting for a frame to render.
    *
-   * See the "Flexbox" page in the Lightning docs.
+   * See [Flexbox](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Flexbox?id=flexbox)
+   * for more information.
    */
   update(): void;
 
