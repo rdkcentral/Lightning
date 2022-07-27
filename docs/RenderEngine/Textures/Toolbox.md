@@ -9,7 +9,7 @@ The `lng.Tools` Class contains useful functions for creating some commonly used 
 |---|---|
 | Rounded rectangle | `lng.Tools.getRoundRect(w, h, radius, strokeWidth, strokeColor, fill, fillColor)` |
 | Drop-shadow rectangle | `lng.Tools.getShadowRect(w, h, radius = 0, blur = 5, margin = blur * 2)` |
-| SVG rendering | `lng.Tools.createSvg(cb, stage, url, w, h)` |
+| SVG rendering | `lng.Tools.getSvgTexture(url, w, h)` |
 
 
 ## Live Demo
@@ -31,6 +31,12 @@ class TextureDemo extends lng.Application {
                 zIndex: 1,
                 color: 0x66000000,
                 texture: lng.Tools.getShadowRect(150, 40, 4, 10, 15),
+            },
+            Svg: {
+                x: 10,
+                y: 50,
+                zIndex: 0,
+                texture: lng.Tools.getSvgTexture(Utils.asset('images/image.svg'), 50, 50),
             }
         }
     }
