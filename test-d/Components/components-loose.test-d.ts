@@ -91,7 +91,7 @@ export class MyLooseComponentC extends lng.Component<lng.Component.TemplateSpecL
         type: MyLooseComponentB,
         myPropertyB: 'abc',
         MyLooseComponentA: {
-          type: MyLooseComponentA, // !!! This shouldn't be necessary
+          type: MyLooseComponentA,
           color: 0xff00ff
         }
       },

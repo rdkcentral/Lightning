@@ -23,5 +23,4 @@ export default class WebPlatform {
     options: unknown,
   ): void;
   getHrTime(): number;
-  // TODO the above is not an exhaustive list of this class !!!
 }

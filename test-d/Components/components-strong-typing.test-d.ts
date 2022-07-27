@@ -180,7 +180,7 @@ class MyComponentC extends Lightning.Component<MyComponentC.TemplateSpec> implem
         type: MyComponentB,
         myPropertyB: 'abc',
         MyComponentA: {
-          type: MyComponentA, // !!! This shouldn't be necessary
+          type: MyComponentA,
           color: 0xff00ff
         }
       },
@@ -283,7 +283,7 @@ class MyComponentC extends Lightning.Component<MyComponentC.TemplateSpec> implem
         MyComponentA: {
           color: 0x0000ff,
           myProperty: '123',
-          // @ts-expect-error Property should error since it doesn't exist !!! clean up
+          // @ts-expect-error Property should error since it doesn't exist
           INVALID_PROP: 12345
         },
       },
