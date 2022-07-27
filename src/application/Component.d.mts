@@ -7,6 +7,9 @@ import Application from "./Application.mjs";
 // Public types
 //
 declare namespace Component {
+  /**
+   * Constructor type for a Component
+   */
   export type Constructor<C extends Component = Component> = new (...a: any[]) => C;
 
   /**
@@ -161,14 +164,6 @@ declare namespace Component {
     f: (...args: any) => any;
   }
 
-  export interface Font {
-    descriptors?: {
-      [prop: string]: any;
-    };
-    family: string;
-    url: string;
-  }
-
   export interface StateMachineEvent {
     newState: string;
     prevState: string;
@@ -215,16 +210,11 @@ declare class Component<
   TemplateSpecType,
   TypeConfig
 > {
-  // SDK !!!
-  static getFonts(): Component.Font[]; // Should be app only?
-  _onDataProvided(): void;
-  _onMounted(): void;
-  _onChanged(): void;
-
   // !!! Do these handlers more universally if possible
   _captureKey?(e: KeyboardEvent): boolean | void;
-  _captureBack?(e: KeyboardEvent): boolean | void;
   _handleKey?(e: KeyboardEvent): boolean | void;
+
+  _captureBack?(e: KeyboardEvent): boolean | void;
   _handleLeft?(e: KeyboardEvent): boolean | void;
   _handleRight?(e: KeyboardEvent): boolean | void;
   _handleUp?(e: KeyboardEvent): boolean | void;
@@ -859,9 +849,9 @@ declare class Component<
   static getParent(element: Element): Component | null;
 
   /**
-   * Phantom type that holds the LiteralType.
+   * Phantom type that holds the TemplateSpec.
    *
-   * NOT AVAILABLE AT RUNTIME.
+   * Internal Use Only. NOT AVAILABLE AT RUNTIME.
    */
   readonly __$type_TemplateSpec: CompileTemplateSpecType_Component<TemplateSpecType, TypeConfig>
 }

@@ -22,6 +22,10 @@ declare namespace Animation {
      */
     start(): void;
     /**
+     * Animation finished
+     */
+    finish(): void;
+    /**
      * Paused animation is resumed
      */
     resume(): void;

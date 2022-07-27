@@ -4,6 +4,11 @@ import Component from "./Component.mjs";
 
 declare namespace Application {
   /**
+   * Constructor type for an Application
+   */
+  export type Constructor<C extends Application = Application> = new (...a: any[]) => C;
+
+  /**
    * Key Map structure
    */
   export interface KeyMap {

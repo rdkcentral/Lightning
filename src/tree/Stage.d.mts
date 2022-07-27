@@ -59,7 +59,7 @@ declare namespace Stage {
      */
     h: number;
     /**
-     * ???
+     * Base path used by the `ImageTexture`
      *
      * @defaultValue `null`
      */

@@ -90,13 +90,27 @@ declare namespace TransitionSettings {
 
 
 declare class TransitionSettings implements TransitionSettings.Literal {
+  isTransitionSettings: true;
+
+  /**
+   * Constructor
+   *
+   * @param stage
+   */
   constructor(stage: Stage);
+
   delay: number;
   duration: number;
-  isTransitionSettings: boolean;
 
   get timingFunction(): TransitionSettings.TimingFunction;
   set timingFunction(timingFunction: TransitionSettings.TimingFunction);
+
+  /**
+   * Patches in new transition settings
+   *
+   * @param settingsLiteral
+   */
+  patch(settingsLiteral: TransitionSettings.Literal): void;
 }
 
 export default TransitionSettings;

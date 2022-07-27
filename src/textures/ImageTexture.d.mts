@@ -1,7 +1,15 @@
 import Stage from "../tree/Stage.mjs";
 import Texture from "../tree/Texture.mjs";
 
-export default class ImageTexture extends Texture {
+declare namespace ImageTexture {
+  export interface Settings extends Texture.Settings {
+    type?: typeof ImageTexture;
+    src?: string;
+    hasAlpha?: boolean;
+  }
+}
+
+declare class ImageTexture extends Texture {
   constructor(stage: Stage);
 
   get hasAlpha(): boolean;
@@ -10,3 +18,5 @@ export default class ImageTexture extends Texture {
   get src(): string | undefined;
   set src(src: string | undefined);
 }
+
+export default ImageTexture;

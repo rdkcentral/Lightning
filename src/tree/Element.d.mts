@@ -57,6 +57,9 @@ export type CompileTemplateSpecType<
     transitions: Element.TransitionsTemplate<TemplateSpecType>,
   };
 declare namespace Element {
+  /**
+   * Constructor type for an Element
+   */
   export type Constructor<C extends Element = Element> = new (...a: any[]) => C;
 
   export type OnAfterCalcsCallback<T extends Element = Element> = (el: T) => void;
