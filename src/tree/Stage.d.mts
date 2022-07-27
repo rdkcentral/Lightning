@@ -31,6 +31,9 @@ declare namespace Stage {
    * @remarks
    * See the [Runtime Configuration](https://lightningjs.io/docs/#/lightning-core-reference/RuntimeConfig/index) for more
    * information.
+   *
+   * @privateRemarks
+   * All options in this interface should be required.
    */
   export interface Options {
     /**
@@ -162,17 +165,47 @@ declare namespace Stage {
      */
     platform: typeof WebPlatform | null;
     /**
-     * ???
+     * If set to `true`, forces the Render Engine to readPixels **before** drawing, turning the Render pipeline
+     * synchronous.
+     *
+     * @remarks
+     * This option helps with flickering artifacts on certain devices.
+     *
+     * Note: This will affect performance!
+     *
+     * See [PR #393](https://github.com/rdkcentral/Lightning/pull/393) for more information about this option.
      *
      * @defaultValue `false`
+     * @see {@link readPixelsAfterDraw}
      */
     readPixelsBeforeDraw: boolean;
     /**
-     * ???
+     * If set to `true`, forces the Render Engine to readPixels **after** drawing, turning the Render pipeline
+     * synchronous.
+     *
+     * @remarks
+     * This option helps with flickering artifacts on certain devices.
+     *
+     * Note: This will affect performance!
+     *
+     * See [PR #393](https://github.com/rdkcentral/Lightning/pull/393) for more information about this option.
+     *
+     * @defaultValue `false`
+     * @see {@link readPixelsBeforeDraw}
+     */
+    readPixelsAfterDraw: boolean;
+
+    /**
+     * If set to `true`, forces the Render Engine to use the canvasSource over getImageData for text
+     *
+     * @remarks
+     * This helps with text generation on certain devices.
+     *
+     * See [PR #393](https://github.com/rdkcentral/Lightning/pull/393) for more information about this option.
      *
      * @defaultValue `false`
      */
-    readPixelsAfterDraw: boolean;
+    forceTxCanvasSource: boolean;
   }
 
   /**
