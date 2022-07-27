@@ -145,20 +145,26 @@ declare namespace Texture {
      * @defaultValue `null` (disabled)
      */
     resizeMode?: ResizeMode | null,
+
+    [s: string]: any; // Anything goes for now
   }
 
-  export interface SettingsLoose extends Settings {
-    [s: string]: any; // Anything goes for now !!!
-  }
+  export type SourceLoaderCallback = (callback: TextureSource.LoaderCallback) => void;
 }
 
 declare class Texture {
+  isTexture: true;
+
+  // This is a hack that helps TypeScript to differentiate the Texture class and the `Texture.Settings` interface.
+  type: undefined;
+
   constructor(stage: Stage);
 
   clipping: boolean;
   mh: number;
   mw: number;
   resizeMode: Texture.ResizeMode;
+  readonly stage: Stage;
   source: TextureSource | null;
   _source: TextureSource | null;
 
@@ -182,8 +188,9 @@ declare class Texture {
 
   protected _getIsValid(): boolean;
   protected _getLookupId(): string | null;
-  protected _getSourceLoader(): (callback: TextureSource.LoaderCallback) => void;
+  protected _getSourceLoader(): Texture.SourceLoaderCallback;
 
+  _changed(): void;
   addElement(el: Element): void;
   decActiveCount(): void;
   getRenderHeight(): number;
