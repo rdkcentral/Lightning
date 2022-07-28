@@ -9,7 +9,7 @@ export default class Renderer {
 
   createShader<T extends typeof Shader>(
     ctx: CoreContext,
-    settings: Shader.Literal,
+    settings: Shader.SettingsLoose,
   ): InstanceType<T>;
 
   isValidShaderType(shaderType: typeof Shader): boolean;

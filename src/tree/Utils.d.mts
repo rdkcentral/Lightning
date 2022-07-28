@@ -24,8 +24,8 @@ export default class Utils {
   static isPlainObject(value: unknown): boolean;
 
   /**
-   * Returns `true` if `value` is an "Object Literal", an plain JavaScript object that is
-   * not instantiated from a class.
+   * Returns `true` if `value` is an Object Literal (a plain JavaScript object that is
+   * not instantiated from a class)
    *
    * @remarks
    * ```

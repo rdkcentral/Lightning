@@ -148,7 +148,7 @@ declare namespace Texture {
   }
 
   /**
-   * Loose form of Texture Settings
+   * Loose form of Texture {@link Settings}
    */
   export interface SettingsLoose extends Settings {
     [s: string]: any;

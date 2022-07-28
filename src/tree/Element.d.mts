@@ -398,7 +398,7 @@ declare namespace Element {
      * See [Texture Types](https://lightningjs.io/docs/#/lightning-core-reference/RenderEngine/Textures/index) for
      * more information.
      */
-    texture: Texture | Texture.Settings | null;
+    texture: Texture | Texture.SettingsLoose | null;
 
     /**
      * Creates a tag context
@@ -709,7 +709,7 @@ declare namespace Element {
     /**
      * Set a shader on this Element
      */
-    shader: Shader | Shader.Literal | null | undefined;
+    shader: Shader | Shader.SettingsLoose | null;
 
     /**
      * If set to `true`, enables Render-to-Texture mode on this Element
@@ -1581,8 +1581,8 @@ declare class Element<
    *
    * @see {@link Element.TemplateSpecStrong.shader}
    */
-  get shader(): Shader | Shader.Literal | null;
-  set shader(v: Shader | Shader.Literal | null | undefined);
+  get shader(): Shader | Shader.SettingsLoose | null;
+  set shader(v: Shader | Shader.SettingsLoose | null | undefined);
 
   renderToTexture: boolean;
 

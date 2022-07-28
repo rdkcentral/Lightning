@@ -395,7 +395,7 @@ declare class Stage extends EventEmitter<Stage.EventMap> {
   /**
    * Create a Shader instance from its settings
    */
-  createShader(settings: Shader.Literal): Shader;
+  createShader(settings: Shader.SettingsLoose): Shader;
 
   /**
    * Creates and returns a new {@link Element} / {@link Component} instance

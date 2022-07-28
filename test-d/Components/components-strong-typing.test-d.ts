@@ -85,6 +85,18 @@ class MyComponentB extends Lightning.Component<MyComponentB.TemplateSpec> implem
       mount: 0.0,
       mountX: 0.5,
       mountY: 1.0,
+      texture: {
+        type: Lightning.textures.NoiseTexture,
+        x: 10,
+        y: 10,
+        // Unknown props should be allowed (for now, because Texture.SettingsLoose)
+        unknownProp1: 'abc'
+      },
+      shader: {
+        type: Lightning.shaders.BoxBlur,
+        // Unknown props should be allowed (for now, because Texture.SettingsLoose)
+        unknownProp1: 'abc'
+      },
       MyComponentA: {
         type: MyComponentA,
         myProperty: 'abc',
