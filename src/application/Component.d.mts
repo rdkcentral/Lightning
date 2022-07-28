@@ -188,6 +188,79 @@ declare namespace Component {
     EventMapType: EventMap
     SignalMapType: SignalMap
   }
+
+  /**
+   * Augmentable interface for supplying custom key handler methods for components.
+   *
+   * @remarks
+   * If augmented, these key handlers will entirely replace the {@link DefaultKeyHandlers}
+   * as the key handlers used for all Components in the application.
+   *
+   * If you wish to only add new keys, and not remove any, augment {@link DefaultKeyHandlers}
+   * instead.
+   */
+  export interface CustomKeyHandlers {
+    // Designed for augmentation
+  }
+
+  /**
+   * Augmentable interface containing the default key handlers methods (defined in the [Key Map](https://lightningjs.io/docs/#/lightning-core-reference/HandlingInput/RemoteControl/KeyHandling?id=key-mapping))
+   *
+   * @remarks
+   * This interface is used to supply key handlers defintiions to {@link Component} unless {@link CustomKeyHandlers} is
+   * augmented.
+   *
+   * This interface itself may be augmented in order to add new key names, while preserving the default ones.
+   */
+  export interface DefaultKeyHandlers {
+    // Designed for augmentation
+    _handleUp?(e: KeyboardEvent): boolean | void;
+    _captureUp?(e: KeyboardEvent): boolean | void;
+
+    _handleDown?(e: KeyboardEvent): boolean | void;
+    _captureDown?(e: KeyboardEvent): boolean | void;
+
+    _handleLeft?(e: KeyboardEvent): boolean | void;
+    _captureLeft?(e: KeyboardEvent): boolean | void;
+
+    _handleRight?(e: KeyboardEvent): boolean | void;
+    _captureRight?(e: KeyboardEvent): boolean | void;
+
+    _handleEnter?(e: KeyboardEvent): boolean | void;
+    _captureEnter?(e: KeyboardEvent): boolean | void;
+
+    _handleBack?(e: KeyboardEvent): boolean | void;
+    _captureBack?(e: KeyboardEvent): boolean | void;
+
+    _handleExit?(e: KeyboardEvent): boolean | void;
+    _captureExit?(e: KeyboardEvent): boolean | void;
+  }
+
+  type IsCustomKeyHandlersAugmented =
+    object extends Required<CustomKeyHandlers>
+      ?
+        false
+      :
+        true;
+
+  /**
+   * Application Key Handlers that are overridable by Components
+   *
+   * @remarks
+   * If {@link CustomKeyHandlers} is augmented, this type is `CustomKeyHandlers`. If it is
+   * not augmented, it is {@link DefaultKeyHandlers}.
+   *
+   * @privateRemarks
+   * Ideally we could automate the augmentation process a lot more with a simple string literal
+   * union of key names, but due to [TypeScript#27689](https://github.com/microsoft/TypeScript/issues/27689)
+   * this is not possible while retaining the simple method override capability of these methods.
+   */
+  export type KeyHandlers =
+    IsCustomKeyHandlersAugmented extends true
+      ?
+        CustomKeyHandlers
+      :
+        DefaultKeyHandlers;
 }
 
 //
@@ -202,6 +275,11 @@ export type CompileTemplateSpecType_Component<
     passSignals: Component.PassSignals<SignalMapType<TypeConfig>>
   };
 
+// Mixes in the KeyHandler overridable methods
+interface Component extends Component.KeyHandlers {
+  // Intentionally left blank
+}
+
 declare class Component<
   // Components use loose typing TemplateSpecs by default
   TemplateSpecType extends Component.TemplateSpecLoose = Component.TemplateSpecLoose,
@@ -210,17 +288,8 @@ declare class Component<
   TemplateSpecType,
   TypeConfig
 > {
-  // !!! Do these handlers more universally if possible
   _captureKey?(e: KeyboardEvent): boolean | void;
   _handleKey?(e: KeyboardEvent): boolean | void;
-
-  _captureBack?(e: KeyboardEvent): boolean | void;
-  _handleLeft?(e: KeyboardEvent): boolean | void;
-  _handleRight?(e: KeyboardEvent): boolean | void;
-  _handleUp?(e: KeyboardEvent): boolean | void;
-  _handleDown?(e: KeyboardEvent): boolean | void;
-  _handleEnter?(e: KeyboardEvent): boolean | void;
-  _handleBack?(e: KeyboardEvent): boolean | void;
 
   // Added by the StateMachine !!! Can we pull from statemachine?
   static _states(): typeof Component[];
