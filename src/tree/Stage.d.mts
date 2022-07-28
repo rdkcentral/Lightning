@@ -504,8 +504,7 @@ declare class Stage extends EventEmitter<Stage.EventMap> {
   /**
    * Creates a new Canvas Element for use for offscreen drawing
    */
-  // getDrawingCanvas(): HTMLCanvasElement;
-  // - Internal use only
+  getDrawingCanvas(): HTMLCanvasElement;
 
   /**
    * Force update of the render tree layout
