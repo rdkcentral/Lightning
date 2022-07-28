@@ -308,6 +308,9 @@ declare class Component<
   TemplateSpecType,
   TypeConfig
 > {
+  //
+  // Key handlers
+  //
   /**
    * Overridable catch-all **top-down** _key-down_ event handler
    *
@@ -376,13 +379,66 @@ declare class Component<
    */
   _handleKeyRelease?(e: KeyboardEvent): boolean | void;
 
-  // State Machine
-  static _states(): typeof Component[];
+  //
+  // State Machine methods
+  //
+  /**
+   * Overridable static method for providing your [Component States](https://lightningjs.io/docs/#/lightning-core-reference/Components/CompStates/index).
+   *
+   * @remarks
+   * See [State Creation](https://lightningjs.io/docs/#/lightning-core-reference/Components/CompStates/StateCreation)
+   * for more information.
+   */
+  static _states(): Component.Constructor[];
+
+  /**
+   * Switches to the specified `state`
+   *
+   * @remarks
+   * See [State Switching](https://lightningjs.io/docs/#/lightning-core-reference/Components/CompStates/SwitchingStates)
+   * for more information.
+   *
+   * @param state State to switch to
+   * @param args Optional arguments passed to the entering/exiting states' $enter and $exit handlers
+   */
   _setState(state: string, args?: unknown[]): void;
+
+  /**
+   * Gets the current state name
+   */
   _getState(): string;
-  $enter(event: Component.StateMachineEvent, ...extraArgs: unknown[]): void;
-  $exit(event: Component.StateMachineEvent, ...extraArgs: unknown[]): void;
-  get _routedType(): Component<Component.TemplateSpecStrong> | undefined;
+
+  /**
+   * Overridable event handler called when a state is entered
+   *
+   * @remarks
+   * To be implemented only in [State classes](https://lightningjs.io/docs/#/lightning-core-reference/Components/CompStates/index).
+   *
+   * See [Change Events](https://lightningjs.io/docs/#/lightning-core-reference/Components/CompStates/StateChEvents)
+   * for more information.
+   *
+   * @param event Event containing current state, last state, etc.
+   * @param args Args passed to the call to {@link _setState} that triggered this event.
+   */
+  $enter?(event: Component.StateMachineEvent, ...args: unknown[]): void;
+
+  /**
+   * Overridable event handler called when a state is exited
+   *
+   * @remarks
+   * To be implemented only in [State classes](https://lightningjs.io/docs/#/lightning-core-reference/Components/CompStates/index).
+   *
+   * See [Change Events](https://lightningjs.io/docs/#/lightning-core-reference/Components/CompStates/StateChEvents)
+   * for more information.
+   *
+   * @param event Event containing current state, last state, etc.
+   * @param args Args passed to the call to {@link _setState} that triggered this event.
+   */
+  $exit?(event: Component.StateMachineEvent, ...args: unknown[]): void;
+
+  //
+  // Other Properties / Methods
+  //
 
   /**
    * Internal property that is set to `true` after {@link _init} is called.
