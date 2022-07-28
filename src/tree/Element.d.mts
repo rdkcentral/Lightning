@@ -1278,7 +1278,7 @@ declare class Element<
    * @see {@link Element.TemplateSpecStrong.texture}
    */
   get texture(): TextureType<TypeConfig> | null;
-  set texture(v: TextureType<TypeConfig> | Texture.Settings | null);
+  set texture(v: TextureType<TypeConfig> | Texture.SettingsLoose | null);
 
   /**
    * The currently displayed texture. While this.texture is loading,

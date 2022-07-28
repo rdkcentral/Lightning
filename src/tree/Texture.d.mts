@@ -145,8 +145,13 @@ declare namespace Texture {
      * @defaultValue `null` (disabled)
      */
     resizeMode?: ResizeMode | null,
+  }
 
-    [s: string]: any; // Anything goes for now
+  /**
+   * Loose form of Texture Settings
+   */
+  export interface SettingsLoose extends Settings {
+    [s: string]: any;
   }
 
   export type SourceLoaderCallback = (callback: TextureSource.LoaderCallback) => void;
