@@ -23,7 +23,7 @@ class Animal<
   TemplateSpecType extends Animal.TemplateSpec = Animal.TemplateSpec,
   TypeConfig extends Animal.TypeConfig = Animal.TypeConfig
 > extends lng.Component<TemplateSpecType, TypeConfig> implements lng.Component.ImplementTemplateSpec<Animal.TemplateSpec> {
-  static _template(): lng.Component.Template<Animal.TemplateSpec> {
+  static override _template(): lng.Component.Template<Animal.TemplateSpec> {
     return {
       x: (w) => w,
       y: (h) => h,
@@ -39,7 +39,7 @@ class Animal<
 
   name: string = '';
 
-  _init() {
+  override _init() {
     this.name = 'unknown';
 
     // This assertion is required for components that are sub-classable
@@ -71,7 +71,7 @@ class Mammal<
   TemplateSpecType extends Mammal.TemplateSpec = Mammal.TemplateSpec,
   TypeConfig extends Mammal.TypeConfig = Mammal.TypeConfig
 > extends Animal<TemplateSpecType, TypeConfig> implements lng.Component.ImplementTemplateSpec<Mammal.TemplateSpec> {
-  static _template(): lng.Component.Template<Mammal.TemplateSpec> {
+  static override _template(): lng.Component.Template<Mammal.TemplateSpec> {
     return {
       rect: true
     };
@@ -80,7 +80,7 @@ class Mammal<
   hairType: Mammal.TemplateSpec['hairType'] = 'bristles'
 
   // Instead of `as` assertion this can be asserted as first param of any method
-  _init(this: Mammal) {
+  override _init(this: Mammal) {
     this.name = 'unkonwn2';
     this.hairType = 'definitive';
 
@@ -115,7 +115,7 @@ class Bear extends Mammal<
   Bear.TemplateSpec,
   Bear.TypeConfig
 > implements lng.Component.ImplementTemplateSpec<Bear.TemplateSpec> {
-  static _template(): lng.Component.Template<Bear.TemplateSpec> {
+  static override _template(): lng.Component.Template<Bear.TemplateSpec> {
     return {
       x: 0,
       y: 0,
@@ -129,7 +129,7 @@ class Bear extends Mammal<
     };
   }
 
-  _init() {
+  override _init() {
     this.name = 'Coldilocks';
     this.hairType = 'pelage';
     this.bearType = 'grizzlie';
@@ -172,7 +172,7 @@ namespace Cat {
 }
 
 class Cat extends Mammal<Cat.TemplateSpec, Cat.TypeConfig> implements lng.Component.ImplementTemplateSpec<Cat.TemplateSpec> {
-  static _template(): lng.Component.Template<Cat.TemplateSpec> {
+  static override _template(): lng.Component.Template<Cat.TemplateSpec> {
     return {
       x: 0,
       y: 0,
@@ -186,7 +186,7 @@ class Cat extends Mammal<Cat.TemplateSpec, Cat.TypeConfig> implements lng.Compon
     };
   }
 
-  _init() {
+  override _init() {
     this.name = 'Buyo';
     this.hairType = 'pelage';
     this.catType = 'house';

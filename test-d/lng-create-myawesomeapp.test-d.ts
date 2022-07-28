@@ -17,7 +17,7 @@ export declare namespace App {
 export class App extends lng.Component<App.TemplateSpec> implements lng.Component.ImplementTemplateSpec<App.TemplateSpec> {
   readonly Logo = this.getByRef('Logo')!;
 
-  static _template(): lng.Component.Template<App.TemplateSpec> {
+  static override _template(): lng.Component.Template<App.TemplateSpec> {
     return {
       Logo: {
         x: 960,

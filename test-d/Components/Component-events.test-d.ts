@@ -74,7 +74,7 @@ namespace MyParentComponent {
 class MyParentComponent extends Lightning.Component<MyParentComponent.TemplateSpec, MyParentComponent.TypeConfig> {
   MyComponent = this.getByRef('MyComponent')!;
 
-  static _template(): Lightning.Component.Template<MyParentComponent.TemplateSpec> {
+  static override _template(): Lightning.Component.Template<MyParentComponent.TemplateSpec> {
     return {
       MyComponent: {
         type: MyComponent,
@@ -88,7 +88,7 @@ class MyParentComponent extends Lightning.Component<MyParentComponent.TemplateSp
     };
   }
 
-  _handleEnter() {
+  override _handleEnter() {
     this.MyComponent.sendMoney(100);
   }
 
@@ -108,7 +108,7 @@ namespace MyApplication {
 class MyApplication extends Lightning.Application<MyApplication.TemplateSpec> {
   MyParentComponent = this.getByRef('MyParentComponent')!;
 
-  static _template(): Lightning.Component.Template<MyApplication.TemplateSpec> {
+  static override _template(): Lightning.Component.Template<MyApplication.TemplateSpec> {
     return {
       MyParentComponent: {
         type: MyParentComponent,
@@ -122,7 +122,7 @@ class MyApplication extends Lightning.Application<MyApplication.TemplateSpec> {
     };
   }
 
-  _init() {
+  override _init() {
     this.MyParentComponent.MyComponent.on('burglarAlarm', (sound) => {
       expectType<boolean>(this.fireAncestors('$callPolice'));
     })

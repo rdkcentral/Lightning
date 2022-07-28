@@ -9,7 +9,7 @@ namespace Container {
 }
 
 class Container extends lng.Component<Container.TemplateSpec> implements lng.Component.ImplementTemplateSpec<Container.TemplateSpec> {
-  static _template(): lng.Component.Template<Container.TemplateSpec> {
+  static override _template(): lng.Component.Template<Container.TemplateSpec> {
     // Template validity
     return {
       FastBlurComponent: {
@@ -38,7 +38,7 @@ class Container extends lng.Component<Container.TemplateSpec> implements lng.Com
     };
   }
 
-  _init() {
+  override _init() {
     // Direct property setting
     this.FastBlurComponent.amount = 3;
     // @ts-expect-error Shouldn't allow a string

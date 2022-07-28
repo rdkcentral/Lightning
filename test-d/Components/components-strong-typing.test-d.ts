@@ -39,7 +39,7 @@ declare module '../../index.typedoc.js' {
 
 // We should be able to create a component from the TemplateSpec
 class MyComponentA extends Lightning.Component<MyComponentA.TemplateSpec> implements Lightning.Component.ImplementTemplateSpec<MyComponentA.TemplateSpec> {
-  static _template(): Lightning.Component.Template<MyComponentA.TemplateSpec> {
+  static override _template(): Lightning.Component.Template<MyComponentA.TemplateSpec> {
     return {
       x: (w) => w,
       y: (h) => h,
@@ -53,7 +53,7 @@ class MyComponentA extends Lightning.Component<MyComponentA.TemplateSpec> implem
     };
   }
 
-  _init() {
+  override _init() {
     this.fireAncestors('$augmentedComponentsStrongTypingTest', 123);
   }
 
@@ -74,7 +74,7 @@ namespace MyComponentB {
 }
 
 class MyComponentB extends Lightning.Component<MyComponentB.TemplateSpec> implements Lightning.Component.ImplementTemplateSpec<MyComponentB.TemplateSpec> {
-  static _template(): Lightning.Component.Template<MyComponentB.TemplateSpec> {
+  static override _template(): Lightning.Component.Template<MyComponentB.TemplateSpec> {
     return {
       x: 0,
       y: 0,
@@ -105,7 +105,7 @@ class MyComponentB extends Lightning.Component<MyComponentB.TemplateSpec> implem
   readonly MyComponentA_Error: MyComponentA = this.getByRef('MyComponentA_Error')!;
   readonly MyComponentA_Error2: MyComponentA = this.getByRef('MyComponentA_Error2')!;
 
-  _init() {
+  override _init() {
     this.MyComponentA.myProperty = '123';
     this.MyComponentA.x = 100;
     this.MyComponentA.patch({
@@ -165,7 +165,7 @@ namespace MyComponentC {
 }
 
 class MyComponentC extends Lightning.Component<MyComponentC.TemplateSpec> implements Lightning.Component.ImplementTemplateSpec<MyComponentC.TemplateSpec> {
-  static _template(): Lightning.Component.Template<MyComponentC.TemplateSpec> {
+  static override _template(): Lightning.Component.Template<MyComponentC.TemplateSpec> {
     return {
       x: 0,
       y: 0,
@@ -202,7 +202,7 @@ class MyComponentC extends Lightning.Component<MyComponentC.TemplateSpec> implem
     this.MyComponentB = this.tag('MyComponentB')!;
   }
 
-  _init() {
+  override _init() {
     // Ability to patch individual properties on components (inherent TypeScript behavior)
     this.MyComponentB.myPropertyB = '123';
     this.MyComponentB.x = 100;

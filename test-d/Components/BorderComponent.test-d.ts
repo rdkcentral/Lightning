@@ -10,7 +10,7 @@ namespace Container {
 }
 
 class Container extends lng.Component<Container.TemplateSpec> implements lng.Component.ImplementTemplateSpec<Container.TemplateSpec> {
-  static _template(): lng.Component.Template<Container.TemplateSpec> {
+  static override _template(): lng.Component.Template<Container.TemplateSpec> {
     // Template validity
     return {
       BorderComponent: {
@@ -96,7 +96,7 @@ class Container extends lng.Component<Container.TemplateSpec> implements lng.Com
   readonly BorderComponent: BorderComponent = this.getByRef('BorderComponent')!;
   readonly BorderComponent_SpecificType = this.getByRef('BorderComponent_SpecificType')!;
 
-  _init() {
+  override _init() {
     // Direct property setting
     this.BorderComponent.content = {
       rtt: true,

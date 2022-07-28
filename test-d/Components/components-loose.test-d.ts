@@ -5,7 +5,7 @@ import lng from '../../index.js';
 
 // Should be able to create a loose Component with unknown properties
 class MyLooseComponentA extends lng.Component {
-  static _template(): lng.Component.Template {
+  static override _template(): lng.Component.Template {
     return {
       x: (w) => w,
       y: (h) => h,
@@ -30,7 +30,7 @@ class MyLooseComponentA extends lng.Component {
 }
 
 class MyLooseComponentB extends lng.Component<lng.Component.TemplateSpecLoose> {
-  static _template(): lng.Component.Template<lng.Component.TemplateSpecLoose> {
+  static override _template(): lng.Component.Template<lng.Component.TemplateSpecLoose> {
     return {
       x: 0,
       y: 0,
@@ -50,7 +50,7 @@ class MyLooseComponentB extends lng.Component<lng.Component.TemplateSpecLoose> {
     };
   }
 
-  _init() {
+  override _init() {
     this.MyLooseComponentA.myProperty = '123';
     this.MyLooseComponentA.x = 100;
     this.MyLooseComponentA.patch({
@@ -76,7 +76,7 @@ class MyLooseComponentB extends lng.Component<lng.Component.TemplateSpecLoose> {
 }
 
 export class MyLooseComponentC extends lng.Component<lng.Component.TemplateSpecLoose> {
-  static _template(): lng.Component.Template<lng.Component.TemplateSpecLoose> {
+  static override _template(): lng.Component.Template<lng.Component.TemplateSpecLoose> {
     return {
       x: 0,
       y: 0,
@@ -98,7 +98,7 @@ export class MyLooseComponentC extends lng.Component<lng.Component.TemplateSpecL
     };
   }
 
-  _init() {
+  override _init() {
     // Ability to patch individual properties on components (inherent TypeScript behavior)
     this.MyLooseComponentB.myPropertyB = '123';
     this.MyLooseComponentB.x = 100;
@@ -142,7 +142,7 @@ export class MyLooseComponentC extends lng.Component<lng.Component.TemplateSpecL
  * Components are implicitly loosely typed. Here's a simple test for that.
  */
 class MyLooseComponentImplicit extends lng.Component {
-  static _template(): lng.Component.Template {
+  static override _template(): lng.Component.Template {
     return {
       x: (w) => w,
       y: (h) => h,

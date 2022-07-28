@@ -35,18 +35,18 @@ function withMixin<
     // Must override patch
     // Due to limitation preventing using this['__$type_TemplateSpec'] at the base Element level
     // https://github.com/microsoft/TypeScript/issues/49672
-    patch(template: Element.PatchTemplate<TemplateSpecType>): void {
+    override patch(template: Element.PatchTemplate<TemplateSpecType>): void {
       super.patch(template);
     }
 
 
     // Must also override __$type_TemplateSpec
-    __$type_TemplateSpec: TemplateSpecType = {} as TemplateSpecType;
+    override __$type_TemplateSpec: TemplateSpecType = {} as TemplateSpecType;
   }
 }
 
 class MixedInListComponent extends withMixin(lng.components.ListComponent) {
-  _init() {
+  override _init() {
     // Make sure we have correct access to the mixed in things!
     expectType<string>(this.mixinProp1);
     expectType<number>(this.mixinProp2);
@@ -94,7 +94,7 @@ namespace Container {
 }
 
 class Container extends lng.Component<Container.TemplateSpec> implements lng.Component.ImplementTemplateSpec<Container.TemplateSpec> {
-  static _template(): lng.Component.Template<Container.TemplateSpec> {
+  static override _template(): lng.Component.Template<Container.TemplateSpec> {
     // Template validity
     return {
       MixedInListComponent: {
@@ -114,7 +114,7 @@ class Container extends lng.Component<Container.TemplateSpec> implements lng.Com
   MixedInListComponent: MixedInListComponent = this.getByRef('MixedInListComponent')!;
   MixedInListComponent_Error: MixedInListComponent = this.getByRef('MixedInListComponent_Error')!;
 
-  _init(this: Container) {
+  override _init(this: Container) {
     // Direct property setting
     this.MixedInListComponent.mixinProp1 = 'xyz';
     this.MixedInListComponent.mixinProp2 = 123;

@@ -21,7 +21,7 @@ namespace MyElementTest {
  * Component that tests all the properties that should be on an Element
  */
 class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements lng.Component.ImplementTemplateSpec<MyElementTest.TemplateSpec> {
-  static _template(): lng.Component.Template<MyElementTest.TemplateSpec> {
+  static override _template(): lng.Component.Template<MyElementTest.TemplateSpec> {
     return {
       // You should NOT be required to provide explicit parameter type `number` for these!
       x: (w) => w,
@@ -70,7 +70,7 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
   MyLooseElement = this.getByRef('MyLooseElement')!;
   TestComponent = this.getByRef('TestComponent')!;
 
-  _init() {
+  override _init() {
     //
     // finalX (readonly)
     //

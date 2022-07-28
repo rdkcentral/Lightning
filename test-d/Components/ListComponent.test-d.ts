@@ -11,7 +11,7 @@ namespace Container {
 }
 
 class Container extends lng.Component<Container.TemplateSpec> implements lng.Component.ImplementTemplateSpec<Container.TemplateSpec> {
-  static _template(): lng.Component.Template<Container.TemplateSpec> {
+  static override _template(): lng.Component.Template<Container.TemplateSpec> {
     // Template validity
     return {
       ListComponent: {
@@ -66,7 +66,7 @@ class Container extends lng.Component<Container.TemplateSpec> implements lng.Com
   ListComponent: lng.components.ListComponent = this.getByRef('ListComponent')!;
   ListComponent_Specific: lng.components.ListComponent<typeof lng.components.BloomComponent> = this.getByRef('ListComponent_Specific')!;
 
-  _init() {
+  override _init() {
     // Verify types of ListComponents
     expectType<lng.components.ListComponent>(this.getByRef('ListComponent')!);
     expectType<lng.components.ListComponent<typeof lng.components.BloomComponent>>(this.getByRef('ListComponent_Specific')!);

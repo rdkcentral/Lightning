@@ -9,7 +9,7 @@ namespace Container {
 }
 
 class Container extends lng.Component<Container.TemplateSpec> implements lng.Component.ImplementTemplateSpec<Container.TemplateSpec> {
-  static _template(): lng.Component.Template<Container.TemplateSpec> {
+  static override _template(): lng.Component.Template<Container.TemplateSpec> {
     // Template validity
     return {
       SmoothScaleComponent: {
@@ -39,7 +39,7 @@ class Container extends lng.Component<Container.TemplateSpec> implements lng.Com
   SmoothScaleComponent: lng.components.SmoothScaleComponent = this.getByRef('SmoothScaleComponent')!;
   SmoothScaleComponent_SpecificType: lng.components.SmoothScaleComponent<lng.components.ListComponent> = this.getByRef('SmoothScaleComponent_SpecificType')!;
 
-  _init() {
+  override _init() {
     // Direct property getting (TemplateSpec properties)
     expectType<lng.Element>(this.SmoothScaleComponent.content);
     expectType<number>(this.SmoothScaleComponent.smoothScale);

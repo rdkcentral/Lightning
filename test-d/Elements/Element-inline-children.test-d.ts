@@ -28,7 +28,7 @@ class MyTestComponent
   ParentElementStrong = this.getByRef('ParentElementStrong')!;
   ParentElementLoose = this.getByRef('ParentElementLoose')!;
 
-  _init() {
+  override _init() {
     // Confirm you can get child elements by ref
     const ComponentChildA = this.ParentElementStrong.getByRef('ComponentChildA')!;
     const ChildElement = this.ParentElementStrong.getByRef('ChildElement')!;
