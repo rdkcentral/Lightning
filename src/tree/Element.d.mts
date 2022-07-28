@@ -960,6 +960,9 @@ declare namespace Element {
 
     /**
      * ???
+     *
+     * @remarks
+     * After Calcs may change render coords, scissor and/or recBoundsMargin.
      */
     onAfterCalcs: OnAfterCalcsCallback | undefined | null;
 

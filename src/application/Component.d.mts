@@ -198,6 +198,9 @@ declare namespace Component {
    *
    * If you wish to only add new keys, and not remove any, augment {@link DefaultKeyHandlers}
    * instead.
+   *
+   * See [Key Handling](https://lightningjs.io/docs/#/lightning-core-reference/HandlingInput/RemoteControl/KeyHandling?id=key-handling)
+   * for more information.
    */
   export interface CustomKeyHandlers {
     // Designed for augmentation
@@ -211,29 +214,46 @@ declare namespace Component {
    * augmented.
    *
    * This interface itself may be augmented in order to add new key names, while preserving the default ones.
+   *
+   * See [Key Handling](https://lightningjs.io/docs/#/lightning-core-reference/HandlingInput/RemoteControl/KeyHandling?id=key-handling)
+   * for more information.
    */
   export interface DefaultKeyHandlers {
     // Designed for augmentation
-    _handleUp?(e: KeyboardEvent): boolean | void;
     _captureUp?(e: KeyboardEvent): boolean | void;
+    _captureUpRelease?(e: KeyboardEvent): boolean | void;
+    _handleUp?(e: KeyboardEvent): boolean | void;
+    _handleUpRelease?(e: KeyboardEvent): boolean | void;
 
-    _handleDown?(e: KeyboardEvent): boolean | void;
     _captureDown?(e: KeyboardEvent): boolean | void;
+    _captureDownRelease?(e: KeyboardEvent): boolean | void;
+    _handleDown?(e: KeyboardEvent): boolean | void;
+    _handleDownRelease?(e: KeyboardEvent): boolean | void;
 
-    _handleLeft?(e: KeyboardEvent): boolean | void;
     _captureLeft?(e: KeyboardEvent): boolean | void;
+    _captureLeftRelease?(e: KeyboardEvent): boolean | void;
+    _handleLeft?(e: KeyboardEvent): boolean | void;
+    _handleLeftRelease?(e: KeyboardEvent): boolean | void;
 
-    _handleRight?(e: KeyboardEvent): boolean | void;
     _captureRight?(e: KeyboardEvent): boolean | void;
+    _captureRightRelease?(e: KeyboardEvent): boolean | void;
+    _handleRight?(e: KeyboardEvent): boolean | void;
+    _handleRightRelease?(e: KeyboardEvent): boolean | void;
 
-    _handleEnter?(e: KeyboardEvent): boolean | void;
     _captureEnter?(e: KeyboardEvent): boolean | void;
+    _captureEnterRelease?(e: KeyboardEvent): boolean | void;
+    _handleEnter?(e: KeyboardEvent): boolean | void;
+    _handleEnterRelease?(e: KeyboardEvent): boolean | void;
 
-    _handleBack?(e: KeyboardEvent): boolean | void;
     _captureBack?(e: KeyboardEvent): boolean | void;
+    _captureBackRelease?(e: KeyboardEvent): boolean | void;
+    _handleBack?(e: KeyboardEvent): boolean | void;
+    _handleBackRelease?(e: KeyboardEvent): boolean | void;
 
-    _handleExit?(e: KeyboardEvent): boolean | void;
     _captureExit?(e: KeyboardEvent): boolean | void;
+    _captureExitRelease?(e: KeyboardEvent): boolean | void;
+    _handleExit?(e: KeyboardEvent): boolean | void;
+    _handleExitRelease?(e: KeyboardEvent): boolean | void;
   }
 
   type IsCustomKeyHandlersAugmented =
@@ -288,10 +308,75 @@ declare class Component<
   TemplateSpecType,
   TypeConfig
 > {
+  /**
+   * Overridable catch-all **top-down** _key-down_ event handler
+   *
+   * @remarks
+   * If there's a more specific handler implemented for the key, such as `_captureEnter()`, this method will
+   * not be called.
+   *
+   * If a key handler returns ‘false’, propagation is not stopped and the next component is allowed to
+   * handle the key event.
+   *
+   * See [Key Handling](https://lightningjs.io/docs/#/lightning-core-reference/HandlingInput/RemoteControl/KeyHandling?id=key-handling)
+   * for more information.
+   *
+   * @param e
+   */
   _captureKey?(e: KeyboardEvent): boolean | void;
+
+  /**
+   * Overridable catch-all **bottom-up** _key-down_ event handler
+   *
+   * @remarks
+   * If there's a more specific handler implemented for the key, such as `_handleEnter()`, this method will
+   * not be called.
+   *
+   * If a key handler returns ‘false’, propagation is not stopped and the next component is allowed to
+   * handle the key event.
+   *
+   * See [Key Handling](https://lightningjs.io/docs/#/lightning-core-reference/HandlingInput/RemoteControl/KeyHandling?id=key-handling)
+   * for more information.
+   *
+   * @param e
+   */
   _handleKey?(e: KeyboardEvent): boolean | void;
 
-  // Added by the StateMachine !!! Can we pull from statemachine?
+  /**
+   * Overridable catch-all **top-down** _key-up_ event handler
+   *
+   * @remarks
+   * If there's a more specific handler implemented for the key, such as `_captureEnterRelease()`, this method will
+   * not be called.
+   *
+   * If a key handler returns ‘false’, propagation is not stopped and the next component is allowed to
+   * handle the key event.
+   *
+   * See [Key Handling](https://lightningjs.io/docs/#/lightning-core-reference/HandlingInput/RemoteControl/KeyHandling?id=key-handling)
+   * for more information.
+   *
+   * @param e
+   */
+  _captureKeyRelease?(e: KeyboardEvent): boolean | void;
+
+ /**
+   * Overridable catch-all **bottom-up** _key-up_ event handler
+   *
+   * @remarks
+   * If there's a more specific handler implemented for the key, such as `_handleEnterRelease()`, this method will
+   * not be called.
+   *
+   * If a key handler returns ‘false’, propagation is not stopped and the next component is allowed to
+   * handle the key event.
+   *
+   * See [Key Handling](https://lightningjs.io/docs/#/lightning-core-reference/HandlingInput/RemoteControl/KeyHandling?id=key-handling)
+   * for more information.
+   *
+   * @param e
+   */
+  _handleKeyRelease?(e: KeyboardEvent): boolean | void;
+
+  // State Machine
   static _states(): typeof Component[];
   _setState(state: string, args?: unknown[]): void;
   _getState(): string;
