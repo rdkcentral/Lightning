@@ -125,7 +125,7 @@ declare class ElementCore {
 
   update(): void;
 
-  public _children: ElementCore[]; // TODO This should be protected but it's useful for getElementsAt method
+  protected _children: ElementCore[];
   protected _renderContext: ElementCore.RenderContext;
   protected _scissor?: [number, number, number, number];
 

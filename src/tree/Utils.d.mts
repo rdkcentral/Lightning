@@ -18,9 +18,6 @@ export default class Utils {
    */
   static isObject(value: unknown): value is Record<string | number | symbol, unknown>;
 
-  /**
-   * @deprecated Not used by the Lightning codebase
-   */
   static isPlainObject(value: unknown): boolean;
 
   /**

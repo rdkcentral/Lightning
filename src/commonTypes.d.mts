@@ -14,7 +14,5 @@ export type AnimatableValueTypes = number | boolean | string;
  *
  * @remarks
  * Returns `never`, if none of `Types` are AnimatableValueTypes.
- *
- * ###
  */
 export type ExtractAnimatableValueTypes<Types> = Extract<Types, AnimatableValueTypes>;

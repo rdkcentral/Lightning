@@ -70,8 +70,6 @@ declare class TextureSource {
   permanent: boolean;
   renderInfo: TextureSource.RenderInfo;
 
-  // TODO fix this when a definite solution is provided by Metrological to access image headers
-  get dominantColors(): number[] | undefined;
   get lookupId(): string | undefined;
 
   cancel(): void;
@@ -82,8 +80,6 @@ declare class TextureSource {
   isLoaded(): boolean;
   isLoading(): boolean;
   isUsed(): boolean;
-
-  // Function called when there is an error loading a texture.
   onError(e: unknown): void;
 
   get nativeTexture(): TextureSource.NativeTexture | null;

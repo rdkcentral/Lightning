@@ -197,10 +197,7 @@ declare namespace AnimationActionSettings {
 
 
 declare class AnimationActionSettings {
-  // !!!! Remove this body and mark as internal use only? (simplifies our setup)
-  // set selector(v: string);
-  // set value(v: AnimationActionSettings.AnimationActionPointMap);
-  // set properties(v: string | Array<string>);
+  // STUB
 }
 
 export default AnimationActionSettings;

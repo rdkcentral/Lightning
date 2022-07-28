@@ -140,13 +140,7 @@ declare namespace AnimationSettings {
 }
 
 declare class AnimationSettings {
-  // !!!! Remove this body and mark as internal use only? (simplifies our setup)
-  // constructor();
-  // duration: number;
-  // repeat: number;
-  // stopMethod: AnimationSettings.StopMethod;
-  // get actions(): Array<AnimationActionSettings<Key>>;
-  // set actions(v: Array<AnimationActionSettings<Key>>);
+  // STUB
 
   /**
    * Stop Methods

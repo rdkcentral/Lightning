@@ -45,8 +45,6 @@ export type InlineElement<ElementTemplate> = {
  *
  * @privateRemarks
  * Used to build: __$type_TemplateSpec
- *
- * ###
  */
 export type CompileTemplateSpecType<
   TemplateSpecType extends Element.TemplateSpecStrong,
@@ -1489,7 +1487,7 @@ declare class Element<
   ): T;
 
   /**
-   * @deprecated Duplicate of {@link parent}
+   * @deprecated Alias of {@link parent}
    */
   readonly p: Element | null;
 
