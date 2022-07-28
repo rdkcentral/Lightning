@@ -8,7 +8,10 @@ import { SignalMapType } from '../../src/internalTypes.mjs';
 import { InlineElement } from '../../src/tree/Element.mjs';
 
 export interface TestTemplateSpec extends lng.Component.TemplateSpecStrong {
-  MyStrongElement_InlineEmpty: {},
+  prop1: string;
+  prop2: number;
+  prop3: boolean;
+  MyStrongElement_InlineEmpty: {};
   MyStrongElement_ExplicitType: typeof lng.Element<lng.Element.TemplateSpecStrong>;
   MyLooseElement: typeof lng.Element;
   MyListComponent: typeof lng.components.ListComponent;
@@ -249,4 +252,19 @@ function PatchTemplate_Test() {
       }>
     > | undefined
   >({} as T600);
+}
+
+//
+// TemplateSpecRefs
+//
+function TemplateSpecRefs_Test() {
+  /// Should remove all prop keys and resolve Element / Component types
+  type T1000 = lng.Element.TemplateSpecRefs<TestTemplateSpec>;
+  expectType<{
+    MyStrongElement_InlineEmpty: lng.Element<InlineElement<{}>>;
+    MyStrongElement_ExplicitType: lng.Element<lng.Element.TemplateSpecStrong>;
+    MyLooseElement: lng.Element;
+    MyListComponent:lng.components.ListComponent;
+    MyStrongElement_InlineChildren: lng.Element<InlineElement<TestTemplateSpec['MyStrongElement_InlineChildren']>>;
+  }>({} as T1000);
 }

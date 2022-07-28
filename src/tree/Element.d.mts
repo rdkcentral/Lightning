@@ -1013,7 +1013,6 @@ declare namespace Element {
    * If `PossibleElementConstructor` is an inline Element or a Component Constructor, convert it to it's instantiated form.
    * Otherwise, return the input type (or something else by setting `Default`)
    *
-   * @internal
    * @hidden
    */
   export type TransformPossibleElement<Key, PossibleElementConstructor, Default = PossibleElementConstructor> =
@@ -1032,7 +1031,12 @@ declare namespace Element {
             Default;
 
   /**
-   * Get an object containing all the Refs (child Element / Components) in a TemplateSpec
+   * Gets an object shape containing all the Refs (child Element / Components) in a TemplateSpec
+   *
+   * @remarks
+   * The refs are transformed into proper Element / Component references
+   *
+   * @hidden
    */
   export type TemplateSpecRefs<TemplateSpec extends Element.TemplateSpecStrong> = {
     [P in keyof TemplateSpec as TransformPossibleElement<P, TemplateSpec[P], never> extends never ? never : P]:

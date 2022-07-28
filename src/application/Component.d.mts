@@ -121,28 +121,43 @@ declare namespace Component {
    * Converts a TemplateSpec into an interface that is implemented by a Component class
    *
    * @remarks
-   * This transforms the TemplateSpec type in the following ways:
-   * - Any `Element` / `Component` constructor type values are replaced with the corresponding instance type.
+   * This transforms the TemplateSpec type leaving only the properties of your Component.
+   * These are the properties with the lowercase keys, such as `prop1` and `prop2` in the example
+   * below.
+   *
+   * This ensures your Component has the properties required by the TemplateSpec.
    *
    * @example
    * ```ts
    * namespace Container {
    *   export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
-   *     BloomComponent: typeof lng.components.BloomComponent;
+   *     prop1: number;
+   *     prop2: string;
+   *     ChildElement: {};
+   *     ChildComponent: typeof lng.components.BloomComponent;
    *   }
    * }
    *
    * class Container
    *   extends lng.Component<Container.TemplateSpec>
    *   implements lng.Component.ImplementTemplateSpec<Container.TemplateSpec> {
-   *   // Component Implementation
+   *   // The interface requires that prop1 exist as a `number`
+   *   // and that `prop2` exists as a string.
+   *   // These can be implemented as either getter/setter pairs or
+   *   // instance properties.
+   *   get prop1(): number {
+   *     // Getter implementation
+   *   }
+   *   set prop1(v: number) {
+   *     // Setter implementation
+   *   }
+   *
+   *   prop2: string;
    * }
    * ```
    */
-  export type ImplementTemplateSpec<TemplateSpecType extends Component.TemplateSpecStrong> = {
-    [P in keyof TemplateSpecType as P extends keyof Component.TemplateSpecStrong ? never : P]:
-      Element.TransformPossibleElement<P, TemplateSpecType[P]>
-  };
+  export type ImplementTemplateSpec<TemplateSpecType extends Component.TemplateSpecStrong> =
+    Omit<TemplateSpecType, keyof Component.TemplateSpecStrong | ValidRef>;
 
   export type Signals<SignalMapType = Record<never, never>> = {
     [Key in keyof SignalMapType]?:
