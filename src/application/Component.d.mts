@@ -82,6 +82,14 @@ declare namespace Component {
   }
 
   /**
+   * Patch object for new Components (requires 'type' key because object hasn't been created yet)
+   *
+   * @remarks
+   * Aliased here in `Component` for convenience
+   */
+  export type NewPatchTemplate<T extends Component.Constructor> = Element.NewPatchTemplate<T>;
+
+  /**
    * Forces nested TemplateSpecTypes in a _template() Template to define their 'type'
    */
   type TemplateRequireType<T extends Component.Constructor> = {
