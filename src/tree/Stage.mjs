@@ -321,6 +321,10 @@ export default class Stage extends EventEmitter {
         return this._updatingFrame;
     }
 
+    renderFrame() {
+        this.ctx.frame();
+    }
+
     forceRenderUpdate() {
         // Enforce re-rendering.
         if (this.root) {
