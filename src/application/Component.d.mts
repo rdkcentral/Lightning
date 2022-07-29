@@ -17,7 +17,7 @@ declare namespace Component {
    *
    * @example
    * If you inherit from this, follow this example closely:
-   * ```
+   * ```ts
    * export interface MyComponentTemplateSpec extends lng.Component.TemplateSpecStrong {
    *   myProperty1: number;
    *   myProperty2: string;

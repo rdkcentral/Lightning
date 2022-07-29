@@ -167,7 +167,7 @@ declare namespace AnimationActionSettings {
      * See [Action Value](https://lightningjs.io/docs/#/lightning-core-reference/Animations/ActionValue?id=action-value)
      * for more information.
      *
-     * @examples
+     * @example
      * ```ts
      * this.MyStrongElement.animation({
      *   duration: 10,
