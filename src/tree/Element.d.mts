@@ -1,5 +1,5 @@
 import Animation from "../animation/Animation.mjs";
-import AnimationSettings from "../animation/AnimationSettings.mjs";
+import AnimationSettings, { AnimationForceLiteral } from "../animation/AnimationSettings.mjs";
 import Transition from "../animation/Transition.mjs";
 import TransitionSettings from "../animation/TransitionSettings.mjs";
 import Component from "../application/Component.mjs";
@@ -54,6 +54,7 @@ export type CompileTemplateSpecType<
     smooth: Element.SmoothTemplate<TemplateSpecType>,
     transitions: Element.TransitionsTemplate<TemplateSpecType>,
   };
+
 declare namespace Element {
   /**
    * Constructor type for an Element
@@ -1620,7 +1621,7 @@ declare class Element<
    *
    * @param animation
    */
-  animation<Key extends keyof TemplateSpecType>(animation: AnimationSettings.Literal<Pick<TemplateSpecType, Key>, Key>): Animation;
+  animation<Key extends keyof TemplateSpecType | AnimationForceLiteral>(animation: AnimationSettings.Literal<Pick<TemplateSpecType, Key>, Key>): Animation;
 
   /**
    * Get/set Transition for `property`

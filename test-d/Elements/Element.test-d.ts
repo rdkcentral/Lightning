@@ -301,6 +301,16 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
         { p: 'rtt', v: false },
         { p: 'rtt', v: { 0: false, 0.25: { v: true }, 0.75: { v: false }, 1: true, sm: 123 } },
         { p: 'rtt', v: (p) => true },
+        // Force assertions
+        { p: 'texture.x' as '$$number', v: 123 },
+        { p: 'texture.x' as '$$number', v: { 0: 123, 0.25: { v: 123 }, 0.75: { v: 123 }, 1: 321 } },
+        { p: 'texture.x' as '$$number', v: (p) => p },
+        { p: 'text.wordWrap' as '$$boolean', v: true },
+        { p: 'text.wordWrap' as '$$boolean', v: true },
+        { p: 'text.wordWrap' as '$$boolean', v: true },
+        { p: 'text.text' as '$$string', v: 'abc' },
+        { p: 'text.text' as '$$string', v: { 0: 'abc', 0.25: { v: 'abc' }, 0.75: { v: 'cba' }, 1: 'cba' } },
+        { p: 'text.text' as '$$string', v: (p) => 'abc'}
       ]
     }));
     expectType<lng.types.Animation>(this.MyLooseElement.animation({
@@ -315,6 +325,16 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
         { p: 'rtt', v: false },
         { p: 'rtt', v: { 0: false, 0.25: { v: true }, 0.75: { v: false }, 1: true, sm: 123 } },
         { p: 'rtt', v: (p) => true },
+        // Force assertions
+        { p: 'texture.x' as '$$number', v: 123 },
+        { p: 'texture.x' as '$$number', v: { 0: 123, 0.25: { v: 123 }, 0.75: { v: 123 }, 1: 321 } },
+        { p: 'texture.x' as '$$number', v: (p) => p },
+        { p: 'text.wordWrap' as '$$boolean', v: true },
+        { p: 'text.wordWrap' as '$$boolean', v: true },
+        { p: 'text.wordWrap' as '$$boolean', v: true },
+        { p: 'text.text' as '$$string', v: 'abc' },
+        { p: 'text.text' as '$$string', v: { 0: 'abc', 0.25: { v: 'abc' }, 0.75: { v: 'cba' }, 1: 'cba' } },
+        { p: 'text.text' as '$$string', v: (p) => 'abc'}
       ]
     }));
 
@@ -360,6 +380,25 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
         { p: 'rtt', v: { 0: { v: 123 }, 1: { v: 123 } } },
         // @ts-expect-error
         { p: 'rtt', v: (p) => 123 },
+        // Force assertions
+        // @ts-expect-error
+        { p: 'texture.x' as '$$number', v: true },
+        // @ts-expect-error
+        { p: 'texture.x' as '$$number', v: { 0: true, 0.25: { v: true }, 0.75: { v: true }, 1: false } },
+        // @ts-expect-error
+        { p: 'texture.x' as '$$number', v: (p) => false },
+        // @ts-expect-error
+        { p: 'text.wordWrap' as '$$boolean', v: 'abc' },
+        // @ts-expect-error
+        { p: 'text.wordWrap' as '$$boolean', v: 'abc' },
+        // @ts-expect-error
+        { p: 'text.wordWrap' as '$$boolean', v: 'abc' },
+        // @ts-expect-error
+        { p: 'text.text' as '$$string', v: 123 },
+        // @ts-expect-error
+        { p: 'text.text' as '$$string', v: { 0: 123, 0.25: { v: 123 }, 0.75: { v: 123 }, 1: 123 } },
+        // @ts-expect-error
+        { p: 'text.text' as '$$string', v: (p) => 123}
       ]
     });
     this.MyLooseElement.animation({
@@ -389,6 +428,24 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
         { p: 'rtt', v: { 0: { v: 123 }, 1: { v: 123 } } },
         // @ts-expect-error
         { p: 'rtt', v: (p) => 123 },
+        // @ts-expect-error
+        { p: 'texture.x' as '$$number', v: true },
+        // @ts-expect-error
+        { p: 'texture.x' as '$$number', v: { 0: true, 0.25: { v: true }, 0.75: { v: true }, 1: false } },
+        // @ts-expect-error
+        { p: 'texture.x' as '$$number', v: (p) => false },
+        // @ts-expect-error
+        { p: 'text.wordWrap' as '$$boolean', v: 'abc' },
+        // @ts-expect-error
+        { p: 'text.wordWrap' as '$$boolean', v: 'abc' },
+        // @ts-expect-error
+        { p: 'text.wordWrap' as '$$boolean', v: 'abc' },
+        // @ts-expect-error
+        { p: 'text.text' as '$$string', v: 123 },
+        // @ts-expect-error
+        { p: 'text.text' as '$$string', v: { 0: 123, 0.25: { v: 123 }, 0.75: { v: 123 }, 1: 123 } },
+        // @ts-expect-error
+        { p: 'text.text' as '$$string', v: (p) => 123}
       ]
     });
 
@@ -434,6 +491,9 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
         { p: 'unknown1', v: { 0: 'abc', 0.25: { v: 'abc' }, 0.75: 'cba', 1.0: 'cba', sm: 5 } },
         { p: 'unknown2', v: { 0: true, 0.25: { v: true }, 0.75: { v: false }, 1.0: false, sm: 5 } },
         { p: 'unknown3', v: { 0: 123, 0.25: { v: 123 }, 0.75: { v: 321 }, 1.0: 321, sm: 5 } },
+        { p: 'unknown1', v: (p: number) => 123 },
+        { p: 'unknown2', v: (p: number) => true },
+        { p: 'unknown3', v: (p: number) => 'abc' },
       ]
     });
 

@@ -1,6 +1,6 @@
 import AnimationActionSettings from "./AnimationActionSettings.mjs";
 import Element from "../tree/Element.mjs";
-import { ExtractAnimatableValueTypes } from "../commonTypes.mjs";
+import { AnimatableValueTypes, ExtractAnimatableValueTypes } from "../commonTypes.mjs";
 import TransitionSettings from "../animation/TransitionSettings.mjs"; // Documenation
 
 declare namespace AnimationSettings {
@@ -18,7 +18,7 @@ declare namespace AnimationSettings {
    */
   export interface Literal<
     TemplateSpecType = Element.TemplateSpecStrong,
-    Key = keyof TemplateSpecType,
+    Key = keyof TemplateSpecType | AnimationForceLiteral,
   > {
     /**
      * Animation Actions
@@ -31,11 +31,15 @@ declare namespace AnimationSettings {
      * @defaultValue `[]`
      */
     actions: Array<
-      Key extends keyof TemplateSpecType // This splits up the individual string literal union of Key (if it is a union)
+      Key extends AnimationForceLiteral
         ?
-          AnimationActionSettings.Literal<Key, ExtractAnimatableValueTypes<TemplateSpecType[Key]>>
+          AnimationActionSettings.Literal<Key, AnimationForceType<Key>>
         :
-          never
+          Key extends keyof TemplateSpecType // This splits up the individual string literal union of Key (if it is a union)
+            ?
+              AnimationActionSettings.Literal<Key, ExtractAnimatableValueTypes<TemplateSpecType[Key]>>
+            :
+              never
     >;
 
     /**
@@ -138,6 +142,24 @@ declare namespace AnimationSettings {
     autostop?: boolean;
   }
 }
+
+export type AnimationForceLiteral = '$$number' | '$$string' | '$$boolean';
+
+export type AnimationForceType<T extends AnimationForceLiteral> =
+  T extends '$$number'
+    ?
+      number
+    :
+      T extends '$$string'
+        ?
+          string
+        :
+          T extends '$$boolean'
+            ?
+              boolean
+            :
+              never;
+
 
 declare class AnimationSettings {
   // STUB

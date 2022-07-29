@@ -155,8 +155,35 @@ declare namespace AnimationActionSettings {
      * Property to animate
      *
      * @remarks
+     * **IMPORTANT**: If you'd like to animate nested properties (i.e. 'texture.x', 'shader.angle', 'text.text'),
+     * you will need to suffix them with "Force Assertions", since it is not possible to derive their types
+     * in the type system:
+     * - number: `as '$$number'`
+     * - string: `as '$$string'`
+     * - boolean: `as '$$boolean'`
+     *
+     * See the examples below to see how to use them.
+     *
      * See [Action Value](https://lightningjs.io/docs/#/lightning-core-reference/Animations/ActionValue?id=action-value)
      * for more information.
+     *
+     * @examples
+     * ```ts
+     * this.MyStrongElement.animation({
+     *   duration: 10,
+     *   actions: [
+     *     { p: 'x', v: 100 },
+     *     { p: 'x', v: { 0: 100, 0.25: { v: 200 }, 0.75: { v: 300 }, 1: 400 } },
+     *     { p: 'x', v: (p) => 100 * p },
+     *     { p: 'rtt', v: false },
+     *     { p: 'rtt', v: { 0: false, 0.25: { v: true }, 0.75: { v: false }, 1: true, sm: 0.5 } },
+     *     { p: 'rtt', v: (p) => true },
+     *     { p: 'texture.x' as '$$number', v: 123 },
+     *     { p: 'text.text' as '$$string', v: 'some string' },
+     *     { p: 'text.wordWrap' as '$$boolean', v: true }
+     *   ]
+     * })
+     * ```
      */
     p?: Key;
 
