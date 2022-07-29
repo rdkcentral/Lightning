@@ -2,7 +2,7 @@ import { expectType } from "tsd";
 import { AnimationForceType } from "../src/animation/AnimationSettings.mjs";
 
 
-function AnimationForceType_Tests {
+function AnimationForceType_Tests() {
   /// Converts the force type literals into their corresponding types
   expectType<number>({} as AnimationForceType<'$$number'>);
   expectType<boolean>({} as AnimationForceType<'$$boolean'>);

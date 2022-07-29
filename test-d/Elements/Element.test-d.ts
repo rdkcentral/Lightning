@@ -916,6 +916,25 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
     // The `as any` case should still work for loose Elements
     expectType<any>(this.MyLooseElement.getSmooth('texture.x' as any));
     expectType<number>(this.MyLooseElement.getSmooth('texture.INVALID_PROP.INVALID_PROP' as any, 123));
+
+    //
+    // add()
+    //
+    /// Infers component type from `type`
+    expectType<ListComponent>(this.MyStrongElement.add({
+      type: ListComponent,
+      itemSize: 123
+    }));
+    /// If `type` isn't provided, it infers Element
+    expectType<lng.Element>(this.MyStrongElement.add({
+      x: 123,
+      y: 123
+    }));
+    /// If you pass an Element directly you get that element back
+    expectType<typeof this.MyLooseElement>(this.MyStrongElement.add(this.MyLooseElement));
+    expectType<typeof this.TestComponent>(this.MyStrongElement.add(this.TestComponent));
+    /// If you pass an array, you get `null` back
+    expectType<null>(this.MyStrongElement.add([this.MyLooseElement, this.TestComponent]));
   }
 }
 

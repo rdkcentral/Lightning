@@ -982,11 +982,20 @@ declare namespace Element {
    * Type used for patching an array of Elements/Compnents
    */
   export type PatchTemplateArray<T extends Element.Constructor = typeof Element> =
+    Array<Element.NewPatchTemplate<T>>;
+
+  /**
+   * Patch object for new Elements / Components
+   *
+   * @remarks
+   * Components require the 'type'
+   */
+  export type NewPatchTemplate<T extends Element.Constructor = Element.Constructor> =
     T extends Component.Constructor
       ?
-        Array<Component.NewPatchTemplate<T>>
+        { type: T } & Element.PatchTemplate<InstanceType<T>['__$type_TemplateSpec']>
       :
-        Array<PatchTemplate<InstanceType<T>['__$type_TemplateSpec']>>;
+        Element.PatchTemplate<InstanceType<T>['__$type_TemplateSpec']>;
 
   /**
    * Type used for patch() parameter.
@@ -1084,6 +1093,8 @@ declare class Element<
   TypeConfig extends Element.TypeConfig = Element.TypeConfig
 > extends EventEmitter<EventMapType<TypeConfig>> implements Documentation<Element.TemplateSpecStrong> {
   constructor(stage: Stage);
+
+  isElement: 1;
 
   readonly id: number;
 
@@ -1482,14 +1493,17 @@ declare class Element<
 
   /**
    * Add element to end of this Element's childList
-   *
-   * @deprecated
-   * While available this method calls this.childList.a(...) which is a slower method that
-   * accepts a Template as input - since this is slower, it should be avoided.
    */
-  add<T extends Element = Element>(
-    element: Element.PatchTemplate | Array<Element.PatchTemplate | Element>,
+  add<T extends Element>(
+    element: T,
   ): T;
+  add<T extends Component.Constructor>(element: Element.NewPatchTemplate<T>): InstanceType<T>;
+  add(
+    element: Array<Element.NewPatchTemplate | Element>,
+  ): null;
+  add(
+    element: Element.NewPatchTemplate,
+  ): Element;
 
   /**
    * @deprecated Alias of {@link parent}

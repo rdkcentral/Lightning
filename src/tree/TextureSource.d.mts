@@ -34,7 +34,6 @@ declare namespace TextureSource {
   ) => void;
 
   export interface RenderInfo<T = string[]> {
-    bbH?: number; // Custom value added by the Peacock team to improve text layout
     cutEx: number;
     cutEy: number;
     cutSx: number;

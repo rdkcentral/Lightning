@@ -22,7 +22,8 @@ export default class ObjectList<ItemType, LiteralType extends Record<string | nu
    * Returns the `ItemType` instance that was added to the ObjectList, except if `object` is an
    * array in which it will return `null`
    */
-  a(object: LiteralType | Array<LiteralType | ItemType>): ItemType | null;
+  a(object: Array<LiteralType | ItemType>): null;
+  a(object: LiteralType | ItemType): ItemType;
   /**
    * Add `object` to the end of the ObjectList
    *

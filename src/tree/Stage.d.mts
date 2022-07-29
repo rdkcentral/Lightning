@@ -425,7 +425,7 @@ declare class Stage extends EventEmitter<Stage.EventMap> {
    * });
    * ```
    */
-  element<T extends Component.Constructor>(settings: Component.NewPatchTemplate<T>): InstanceType<T>;
+  element<T extends Component.Constructor>(settings: Element.NewPatchTemplate<T>): InstanceType<T>;
   element(settings: Element): Element;
   element(settings: Element.PatchTemplate): Element;
   element(settings: Element.PatchTemplate | Element): Element;
@@ -435,7 +435,7 @@ declare class Stage extends EventEmitter<Stage.EventMap> {
    *
    * @see {@link element}
    */
-  c<T extends Component.Constructor>(settings: Component.NewPatchTemplate<T>): InstanceType<T>;
+  c<T extends Component.Constructor>(settings: Element.NewPatchTemplate<T>): InstanceType<T>;
   c(settings: Element): Element;
   c(settings: Element.PatchTemplate): Element;
   c(settings: Element.PatchTemplate | Element): Element;
