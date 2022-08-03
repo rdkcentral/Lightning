@@ -867,6 +867,13 @@ declare namespace Element {
      * Element when {@link rect} is set to `true`.
      *
      * This property sets all of the corners/sides to the same color.
+     *
+     * The color value is expressed as an ARGB hexadecimal value:
+     * ```
+     *    A R G B
+     *    | | | |
+     * 0xffeeddcc
+     * ```
      */
     color: number;
 
