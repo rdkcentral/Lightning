@@ -17,9 +17,71 @@
  * limitations under the License.
  */
 import { HandlerReturnType, HandlerParameters, SignalMapType } from "../internalTypes.mjs";
-import Element, { CompileTemplateSpecType, InlineElement, ValidRef } from "../tree/Element.mjs";
+import Element, { CompileElementTemplateSpecType, InlineElement, ValidRef } from "../tree/Element.mjs";
 import Stage from "../tree/Stage.mjs";
 import Application from "./Application.mjs";
+
+//
+// Private Types
+//
+export type CompileComponentTemplateSpecType<
+  TemplateSpecType extends Component.TemplateSpecStrong,
+  TypeConfig extends Component.TypeConfig
+> =
+  CompileElementTemplateSpecType<TemplateSpecType, TypeConfig> & {
+    signals: Component.Signals<TypeConfig>
+    passSignals: Component.PassSignals<TypeConfig>
+  };
+
+/**
+ * Returns `true` if the CustomKeyHandlers interface is augmented
+ *
+ * @hidden Internal use only
+ */
+type IsCustomKeyHandlersAugmented =
+  object extends Required<Component.CustomKeyHandlers>
+    ?
+      false
+    :
+      true;
+
+/**
+ * Signals by SignalMap
+ *
+ * @hidden Internal use only
+ */
+export type __Signals<SignalMapType = Record<never, never>> = {
+  [Key in keyof SignalMapType]?:
+    boolean | string | ((...args: HandlerParameters<SignalMapType[Key]>) => HandlerReturnType<SignalMapType[Key]>)
+}
+
+/**
+ * PassSignals by SignalMap
+ *
+ * @hidden Internal use only
+ */
+export type __PassSignals<SignalMapType = Record<never, never>> = {
+  [Key in keyof SignalMapType]?:
+    string | true | undefined
+}
+
+/**
+ * Forces nested TemplateSpecTypes in a _template() Template to define their 'type'
+ */
+export type TemplateRequireType<T extends Component.Constructor> = {
+  type: T
+} & {
+  [P in keyof InstanceType<T>['__$type_TemplateSpec']]?:
+    InstanceType<T>['__$type_TemplateSpec'][P] extends Component.Constructor
+      ?
+        TemplateRequireType<InstanceType<T>['__$type_TemplateSpec'][P]>
+      :
+        InstanceType<T>['__$type_TemplateSpec'][P] extends Element.Constructor
+          ?
+            Component.Template<InstanceType<InstanceType<T>['__$type_TemplateSpec'][P]>['__$type_TemplateSpec']>
+          :
+            InstanceType<T>['__$type_TemplateSpec'][P]
+};
 
 //
 // Public types
@@ -88,24 +150,6 @@ declare namespace Component {
    * Aliased here in `Component` for convenience
    */
   export type NewPatchTemplate<T extends Component.Constructor> = Element.NewPatchTemplate<T>;
-
-  /**
-   * Forces nested TemplateSpecTypes in a _template() Template to define their 'type'
-   */
-  type TemplateRequireType<T extends Component.Constructor> = {
-    type: T
-  } & {
-    [P in keyof InstanceType<T>['__$type_TemplateSpec']]?:
-      InstanceType<T>['__$type_TemplateSpec'][P] extends Component.Constructor
-        ?
-          TemplateRequireType<InstanceType<T>['__$type_TemplateSpec'][P]>
-        :
-          InstanceType<T>['__$type_TemplateSpec'][P] extends Element.Constructor
-            ?
-              Template<InstanceType<InstanceType<T>['__$type_TemplateSpec'][P]>['__$type_TemplateSpec']>
-            :
-              InstanceType<T>['__$type_TemplateSpec'][P]
-  };
 
   /**
    * Type used for the return result of _template().
@@ -180,36 +224,49 @@ declare namespace Component {
   export type ImplementTemplateSpec<TemplateSpecType extends Component.TemplateSpecStrong> =
     Omit<TemplateSpecType, keyof Component.TemplateSpecStrong | ValidRef>;
 
-  export type Signals<SignalMapType = Record<never, never>> = {
-    [Key in keyof SignalMapType]?:
-      boolean | string | ((...args: HandlerParameters<SignalMapType[Key]>) => HandlerReturnType<SignalMapType[Key]>)
-  }
+  /**
+   * Signals type
+   */
+  export type Signals<TypeConfig extends Component.TypeConfig = Component.TypeConfig> = __Signals<SignalMapType<TypeConfig>>;
 
-  export type PassSignals<SignalMapType = Record<never, never>> = {
-    [Key in keyof SignalMapType]?:
-      string | true | undefined
-  }
+  /**
+   * PassSignals type
+   */
+  export type PassSignals<TypeConfig extends Component.TypeConfig = Component.TypeConfig> = __PassSignals<SignalMapType<TypeConfig>>;
 
   /**
    * Extracts the input Component's TemplateSpec value
    */
   export type ExtractTemplateSpec<T extends Component> = T['__$type_TemplateSpec'];
 
-  export interface ParsedTemplate {
-    a: any;
-    f: (...args: any) => any;
-  }
-
+  /**
+   * State machine data passed to the {@link Component.$enter} and {@link Component.$exit} events of states
+   */
   export interface StateMachineEvent {
     newState: string;
     prevState: string;
     sharedState: string;
   }
 
-  export type FireAncestorsEvent = `$${string}`;
-
+  /**
+   * Augmentable structure containing `fireAncestors()` events
+   *
+   * @see {@link Component.fireAncestors}
+   */
   export interface FireAncestorsMap {
+    /**
+     * Reserved for {@link Component.$enter} state machine event
+     *
+     * @param event
+     * @param args
+     */
     $enter(event: Component.StateMachineEvent, ...args: unknown[]): void;
+    /**
+     * Reserved for {@link Component.$exit} state machine event
+     *
+     * @param event
+     * @param args
+     */
     $exit(event: Component.StateMachineEvent, ...args: unknown[]): void;
   }
   export interface EventMap extends Element.EventMap {
@@ -292,13 +349,6 @@ declare namespace Component {
     _handleExitRelease?(e: KeyboardEvent): boolean | void;
   }
 
-  type IsCustomKeyHandlersAugmented =
-    object extends Required<CustomKeyHandlers>
-      ?
-        false
-      :
-        true;
-
   /**
    * Application Key Handlers that are overridable by Components
    *
@@ -318,18 +368,6 @@ declare namespace Component {
       :
         DefaultKeyHandlers;
 }
-
-//
-// Private Types
-//
-export type CompileTemplateSpecType_Component<
-  TemplateSpecType extends Component.TemplateSpecStrong,
-  TypeConfig extends Component.TypeConfig
-> =
-  CompileTemplateSpecType<TemplateSpecType, TypeConfig> & {
-    signals: Component.Signals<SignalMapType<TypeConfig>>
-    passSignals: Component.PassSignals<SignalMapType<TypeConfig>>
-  };
 
 // Mixes in the KeyHandler overridable methods
 interface Component extends Component.KeyHandlers {
@@ -990,8 +1028,8 @@ declare class Component<
    *
    * @param v
    */
-  get signals(): Component.Signals<SignalMapType<TypeConfig>>;
-  set signals(v: Component.Signals<SignalMapType<TypeConfig>>);
+  get signals(): Component.Signals<TypeConfig>;
+  set signals(v: Component.Signals<TypeConfig>);
 
   // get alterSignals(): undefined;
   // set alterSignals(v: any);
@@ -1007,8 +1045,8 @@ declare class Component<
    *
    * @param v
    */
-  get passSignals(): Component.PassSignals<SignalMapType<TypeConfig>>;
-  set passSignals(v: Component.PassSignals<SignalMapType<TypeConfig>>);
+  get passSignals(): Component.PassSignals<TypeConfig>;
+  set passSignals(v: Component.PassSignals<TypeConfig>);
 
   /**
    * Alter the Pass Signals for this Component
@@ -1099,7 +1137,7 @@ declare class Component<
    *
    * Internal Use Only. NOT AVAILABLE AT RUNTIME.
    */
-  readonly __$type_TemplateSpec: CompileTemplateSpecType_Component<TemplateSpecType, TypeConfig>
+  readonly __$type_TemplateSpec: CompileComponentTemplateSpecType<TemplateSpecType, TypeConfig>
 }
 
 export default Component;

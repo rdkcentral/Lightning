@@ -19,7 +19,7 @@
 import { expectType } from 'tsd';
 import lng from '../../index.js';
 import ListComponent from '../../src/components/ListComponent.mjs';
-import { InlineElement } from '../../src/tree/Element.mjs';
+import { InlineElement, SmoothTemplate } from '../../src/tree/Element.mjs';
 
 namespace MyElementTest {
   export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
@@ -727,7 +727,7 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
     // # STRONG #
     // Quick check that `get smooth` also has `undefined` in its type
     expectType<
-      lng.Element.SmoothTemplate<
+      SmoothTemplate<
         InlineElement<{ ChildElement: {}; ChildComponent: typeof ListComponent; }>
       > | undefined
     >(this.MyStrongElement.smooth);

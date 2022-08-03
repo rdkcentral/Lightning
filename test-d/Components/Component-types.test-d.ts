@@ -21,6 +21,8 @@
  */
 import { expectNotType, expectType } from 'tsd';
 import lng from '../../index.js';
+import { TemplateRequireType } from '../../src/application/Component.mjs';
+import { SmoothTemplate, TransitionsTemplate } from '../../src/tree/Element.mjs';
 
 export interface SubComponentTemplateSpec extends lng.Component.TemplateSpecStrong {
   MyStrongElement: typeof lng.Element<lng.Element.TemplateSpecStrong>;
@@ -44,7 +46,7 @@ export interface TestTemplateSpec extends lng.Component.TemplateSpecStrong {
 //
 // TemplateRequireType
 //
-type TemplateRequireType_SubComponent = lng.Component.TemplateRequireType<typeof SubComponent>;
+type TemplateRequireType_SubComponent = TemplateRequireType<typeof SubComponent>;
 // `type` is required but nothing else is
 const t10: TemplateRequireType_SubComponent = {
   type: SubComponent
@@ -64,7 +66,7 @@ const t40: TemplateRequireType_SubComponent = {
 };
 // Child Components must be returned as TemplateRequireType<>
 type T10 = NonNullable<TemplateRequireType_SubComponent['MyListComponent']>;
-expectType<lng.Component.TemplateRequireType<typeof lng.components.ListComponent>>({} as T10);
+expectType<TemplateRequireType<typeof lng.components.ListComponent>>({} as T10);
 // Child Components require `type`
 const t50: TemplateRequireType_SubComponent = {
   type: SubComponent,
@@ -111,14 +113,14 @@ const t80: TemplateRequireType_SubComponent = {
 type T20 = NonNullable<TemplateRequireType_SubComponent['MyLooseElement']>;
 expectType<
   lng.Component.Template<lng.Element.TemplateSpecLoose & {
-    smooth: lng.Element.SmoothTemplate<lng.Element.TemplateSpecLoose>;
-    transitions: lng.Element.TransitionsTemplate<lng.Element.TemplateSpecLoose>;
+    smooth: SmoothTemplate<lng.Element.TemplateSpecLoose>;
+    transitions: TransitionsTemplate<lng.Element.TemplateSpecLoose>;
   }>
 >({} as T20);
 expectNotType<
   lng.Component.Template<lng.Element.TemplateSpecStrong & {
-    smooth: lng.Element.SmoothTemplate<lng.Element.TemplateSpecStrong>;
-    transitions: lng.Element.TransitionsTemplate<lng.Element.TemplateSpecStrong>;
+    smooth: SmoothTemplate<lng.Element.TemplateSpecStrong>;
+    transitions: TransitionsTemplate<lng.Element.TemplateSpecStrong>;
   }>
 >({} as T20);
 // Child Strong Element is a Template<Element.TemplateSpecLoose>
@@ -195,13 +197,13 @@ expectType<lng.Component.Template<lng.Element.TemplateSpecStrong> | undefined>({
 type ShouldBeTemplate_Element_TemplateSpecLoose = Template_TestTemplateSpec['MyLooseElement'];
 expectType<
   lng.Component.Template<lng.Element.TemplateSpecLoose & {
-    smooth: lng.Element.SmoothTemplate<lng.Element.TemplateSpecLoose>;
-    transitions: lng.Element.TransitionsTemplate<lng.Element.TemplateSpecLoose>;
+    smooth: SmoothTemplate<lng.Element.TemplateSpecLoose>;
+    transitions: TransitionsTemplate<lng.Element.TemplateSpecLoose>;
   }
 > | undefined>({} as ShouldBeTemplate_Element_TemplateSpecLoose);
 // Check that MyListComponent is a Template<lng.components.ListComponent>
 type ShouldBeTemplateRequireType_ListComponent_TemplateSpec = Template_TestTemplateSpec['MyListComponent'];
-expectType<lng.Component.TemplateRequireType<typeof lng.components.ListComponent> | undefined>({} as ShouldBeTemplateRequireType_ListComponent_TemplateSpec);
+expectType<TemplateRequireType<typeof lng.components.ListComponent> | undefined>({} as ShouldBeTemplateRequireType_ListComponent_TemplateSpec);
 // Check that MySubComponent is a Template<SubComponentTemplateSpec>
 type ShouldBeTemplateRequireType_SubComponentTemplateSpec = Template_TestTemplateSpec['MySubComponent'];
-expectType<lng.Component.TemplateRequireType<typeof SubComponent> | undefined>({} as ShouldBeTemplateRequireType_SubComponentTemplateSpec);
+expectType<TemplateRequireType<typeof SubComponent> | undefined>({} as ShouldBeTemplateRequireType_SubComponentTemplateSpec);

@@ -19,7 +19,7 @@
 /**
  * This file contains internal types that are common to multiple modules
  *
- * @hidden
+ * @hidden Internal use only
  * @module
  */
 import Component from './application/Component.mjs';
@@ -80,21 +80,21 @@ export type ReduceSpecificity<T, U> =
 /**
  * Extracts the EventMapType from Element Config
  *
- * @hidden
+ * @hidden Internal use only
  */
 export type EventMapType<TypeConfig extends Element.TypeConfig> = TypeConfig['EventMapType'];
 
 /**
  * Extracts the TextureType from Element TypeConfig
  *
- * @hidden
+ * @hidden Internal use only
  */
 export type TextureType<TypeConfig extends Element.TypeConfig> = TypeConfig['TextureType'];
 
 /**
  * Extracts the SignalMapType from Component TypeConfig
  *
- * @hidden
+ * @hidden Internal use only
  */
 export type SignalMapType<TypeConfig extends Component.TypeConfig> = TypeConfig['SignalMapType'];
 
@@ -107,7 +107,7 @@ export type SignalMapType<TypeConfig extends Component.TypeConfig> = TypeConfig[
  * from an EventMap function signature without having to enforce a generic constraint on all
  * EventMaps, which isn't practical without blowing up type safety.
  *
- * @hidden
+ * @hidden Internal use only
  */
 export type HandlerParameters<PossibleFunction> =
   PossibleFunction extends (...args: any[]) => any
@@ -123,7 +123,7 @@ export type HandlerParameters<PossibleFunction> =
  * @privateRemarks
  * Like HandlerParameter above, this is a "safe" version of the included `ReturnType` type.
  *
- * @hidden
+ * @hidden Internal use only
  */
 export type HandlerReturnType<PossibleFunction> =
   PossibleFunction extends (...args: any[]) => any

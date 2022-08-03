@@ -33,6 +33,10 @@ import Stage from "./Stage.mjs";
 import Texture from "./Texture.mjs";
 import TextureSource from "./TextureSource.mjs";
 
+//
+// Private types
+//
+
 /**
  * Set of all capital letters
  *
@@ -59,20 +63,88 @@ export type InlineElement<ElementTemplate> = {
 } & Element<Element.TemplateSpecStrong>['__$type_TemplateSpec'];
 
 /**
+ * An object keyed by transitionable Element properties
+ *
+ * @hidden Internal use only
+ */
+export type SmoothTemplate<TemplateSpecType = Element.TemplateSpecStrong> = {
+  [P in keyof TemplateSpecType]?:
+    ExtractAnimatableValueTypes<TemplateSpecType[P]> extends never
+      ?
+        never
+      :
+        ExtractAnimatableValueTypes<TemplateSpecType[P]> | [ ExtractAnimatableValueTypes<TemplateSpecType[P]>, TransitionSettings.Literal ]
+};
+
+/**
+ * An object keyed by transitionable Element properties (numeric properties)
+ * and valued by {@link lng.types.TransitionSettings.Literal}
+ *
+ * @hidden Internal use only
+ */
+export type TransitionsTemplate<TemplateSpecType = Element.TemplateSpecStrong> = {
+  [P in keyof TemplateSpecType]?:
+    ExtractAnimatableValueTypes<TemplateSpecType[P]> extends never
+      ?
+        never
+      :
+        TransitionSettings.Literal
+};
+
+/**
  * Returns a CompiledTemplateSpecType with all types from the TemplateSpec properly combined
  *
  * @privateRemarks
  * Used to build: __$type_TemplateSpec
+ *
+ * @hidden Internal use only
  */
-export type CompileTemplateSpecType<
+export type CompileElementTemplateSpecType<
   TemplateSpecType extends Element.TemplateSpecStrong,
   TypeConfig extends Element.TypeConfig
 > =
   TemplateSpecType & {
-    smooth: Element.SmoothTemplate<TemplateSpecType>,
-    transitions: Element.TransitionsTemplate<TemplateSpecType>,
+    smooth: SmoothTemplate<TemplateSpecType>,
+    transitions: TransitionsTemplate<TemplateSpecType>,
   };
 
+/**
+ * If `PossibleElementConstructor` is an inline Element or a Component Constructor, convert it to it's instantiated form.
+ * Otherwise, return the input type (or something else by setting `Default`)
+ *
+ * @hidden Internal use only
+ */
+export type TransformPossibleElement<Key, PossibleElementConstructor, Default = PossibleElementConstructor> =
+  string extends Key
+    ?
+      any // Support Loose Elements: keyof loose Elements `P` will always be a `string`, so let anything go
+    :
+      Key extends ValidRef // Support Strong Elements
+        ?
+          PossibleElementConstructor extends Element.Constructor
+            ?
+              InstanceType<PossibleElementConstructor>
+            :
+              Element<InlineElement<PossibleElementConstructor>>
+        :
+          Default;
+
+/**
+ * Gets an object shape containing all the Refs (child Element / Components) in a TemplateSpec
+ *
+ * @remarks
+ * The refs are transformed into proper Element / Component references
+ *
+ * @hidden Internal use only
+ */
+export type TemplateSpecRefs<TemplateSpec extends Element.TemplateSpecStrong> = {
+  [P in keyof TemplateSpec as TransformPossibleElement<P, TemplateSpec[P], never> extends never ? never : P]:
+    TransformPossibleElement<P, TemplateSpec[P], never>
+};
+
+//
+// Public types
+//
 declare namespace Element {
   /**
    * Constructor type for an Element
@@ -355,39 +427,6 @@ declare namespace Element {
      */
     marginRight?: number;
   }
-
-  /**
-   * An object keyed by transitionable Element properties (numeric properties)
-   * and valued by {@link lng.types.TransitionSettings.Literal}
-   */
-  export type TransitionsTemplate<TemplateSpecType = TemplateSpecStrong> = {
-    [P in keyof TemplateSpecType]?:
-      ExtractAnimatableValueTypes<TemplateSpecType[P]> extends never
-        ?
-          never
-        :
-          TransitionSettings.Literal
-  };
-
-  /**
-   * An object keyed by transitionable Element properties (numeric properties).
-   *
-   * @remarks
-   * For each property:
-   * - If the value is a `number`:
-   *   - Property value to smoothly transition to (using the default transition)
-   * - If the value is a 2-value array:
-   *   - array[0] = Property value to smoothly transition to
-   *   - array[1] = Settings describing the transition
-   */
-  export type SmoothTemplate<TemplateSpecType = TemplateSpecStrong> = {
-    [P in keyof TemplateSpecType]?:
-      ExtractAnimatableValueTypes<TemplateSpecType[P]> extends never
-        ?
-          never
-        :
-          ExtractAnimatableValueTypes<TemplateSpecType[P]> | [ ExtractAnimatableValueTypes<TemplateSpecType[P]>, TransitionSettings.Literal ]
-  };
 
   export interface TemplateSpecStrong {
     /**
@@ -792,7 +831,12 @@ declare namespace Element {
      * @remarks
      * This is the same as calling {@link Element.setSmooth} for each property.
      *
-     * @see {@link Element.SmoothTemplate} for type details
+     * For each property:
+     * - If the value is a `number`:
+     *   - Property value to smoothly transition to (using the default transition)
+     * - If the value is a 2-value array:
+     *   - array[0] = Property value to smoothly transition to
+     *   - array[1] = Settings describing the transition
      */
     smooth: SmoothTemplate;
 
@@ -1042,40 +1086,6 @@ declare namespace Element {
                   PatchTemplate<InlineElement<TemplateSpecType[P]>>
         :
           TemplateSpecType[P]
-  };
-
-  /**
-   * If `PossibleElementConstructor` is an inline Element or a Component Constructor, convert it to it's instantiated form.
-   * Otherwise, return the input type (or something else by setting `Default`)
-   *
-   * @hidden
-   */
-  export type TransformPossibleElement<Key, PossibleElementConstructor, Default = PossibleElementConstructor> =
-    string extends Key
-      ?
-        any // Support Loose Elements: keyof loose Elements `P` will always be a `string`, so let anything go
-      :
-        Key extends ValidRef // Support Strong Elements
-          ?
-            PossibleElementConstructor extends Element.Constructor
-              ?
-                InstanceType<PossibleElementConstructor>
-              :
-                Element<InlineElement<PossibleElementConstructor>>
-          :
-            Default;
-
-  /**
-   * Gets an object shape containing all the Refs (child Element / Components) in a TemplateSpec
-   *
-   * @remarks
-   * The refs are transformed into proper Element / Component references
-   *
-   * @hidden
-   */
-  export type TemplateSpecRefs<TemplateSpec extends Element.TemplateSpecStrong> = {
-    [P in keyof TemplateSpec as TransformPossibleElement<P, TemplateSpec[P], never> extends never ? never : P]:
-      TransformPossibleElement<P, TemplateSpec[P], never>
   };
 
   /**
@@ -1394,7 +1404,7 @@ declare class Element<
    *
    * @param ref
    */
-  getByRef<RefKey extends keyof Element.TemplateSpecRefs<TemplateSpecType>>(ref: RefKey): Element.TemplateSpecRefs<TemplateSpecType>[RefKey] | undefined;
+  getByRef<RefKey extends keyof TemplateSpecRefs<TemplateSpecType>>(ref: RefKey): TemplateSpecRefs<TemplateSpecType>[RefKey] | undefined;
 
   /**
    * Get the location identifier of this Element
@@ -1679,12 +1689,12 @@ declare class Element<
    * @param settings Transition settings to configure `property` with in this Element (optional)
    */
   transition<
-    Key extends keyof Element.TransitionsTemplate<TemplateSpecType>
+    Key extends keyof TransitionsTemplate<TemplateSpecType>
   >(
     property: ExtractAnimatableValueTypes<TemplateSpecType[Key]> extends never ? never : Key
   ): Transition;
   transition<
-    Key extends keyof Element.TransitionsTemplate<TemplateSpecType>
+    Key extends keyof TransitionsTemplate<TemplateSpecType>
   >(
     property: ExtractAnimatableValueTypes<TemplateSpecType[Key]> extends never ? never : Key,
     settings: TransitionSettings.Literal
@@ -1703,21 +1713,30 @@ declare class Element<
    */
   // The getter type needs to have TransitionsTemplate in its union for some reason thats not clear
   // @ts-ignore-error Prevent ts(2380)
-  get transitions(): Element.TransitionsTemplate<TemplateSpecType> | undefined;
-  set transitions(v: Element.TransitionsTemplate<TemplateSpecType>);
+  get transitions(): TransitionsTemplate<TemplateSpecType> | undefined;
+  set transitions(v: TransitionsTemplate<TemplateSpecType>);
 
   /**
    * Starts a smooth transition for all the included properties of the object
    *
    * @remarks
+   * This is the same as calling {@link Element.setSmooth} for each property.
+   *
+   * For each property:
+   * - If the value is a `number`:
+   *   - Property value to smoothly transition to (using the default transition)
+   * - If the value is a 2-value array:
+   *   - array[0] = Property value to smoothly transition to
+   *   - array[1] = Settings describing the transition
+   *
    * **WARNING:** DO NOT read from this property. It is WRITE-ONLY. It will always return `undefined`.
    *
    * @see {@link Element.TemplateSpecStrong.smooth}
    */
   // The getter type needs to have SmoothTemplate in its union for some reason thats not clear
   // @ts-ignore-error Prevent ts(2380)
-  get smooth(): Element.SmoothTemplate<TemplateSpecType> | undefined;
-  set smooth(object: Element.SmoothTemplate<TemplateSpecType>);
+  get smooth(): SmoothTemplate<TemplateSpecType> | undefined;
+  set smooth(object: SmoothTemplate<TemplateSpecType>);
 
   /**
    * Fast-forward a currently transitioning `property` to its target value
@@ -1734,7 +1753,7 @@ declare class Element<
    *
    * @param property
    */
-  fastForward<Key extends keyof Element.TransitionsTemplate<TemplateSpecType>>(
+  fastForward<Key extends keyof TransitionsTemplate<TemplateSpecType>>(
     property: ExtractAnimatableValueTypes<TemplateSpecType[Key]> extends never ? never : Key
   ): void;
 
@@ -1757,10 +1776,10 @@ declare class Element<
    * @param property
    * @param value
    */
-  getSmooth<Key extends keyof Element.SmoothTemplate<TemplateSpecType>>(
+  getSmooth<Key extends keyof SmoothTemplate<TemplateSpecType>>(
     property: ExtractAnimatableValueTypes<TemplateSpecType[Key]> extends never ? never : Key
   ): ExtractAnimatableValueTypes<TemplateSpecType[Key]> | undefined;
-  getSmooth<Key extends keyof Element.SmoothTemplate<TemplateSpecType>, Value extends ExtractAnimatableValueTypes<TemplateSpecType[Key]>>(
+  getSmooth<Key extends keyof SmoothTemplate<TemplateSpecType>, Value extends ExtractAnimatableValueTypes<TemplateSpecType[Key]>>(
     property: Value extends never ? never : Key,
     value: Value,
   ): ReduceSpecificity<Value, AnimatableValueTypes>;
@@ -1783,7 +1802,7 @@ declare class Element<
    * @param value Target value
    * @param settings Transition settings
    */
-  setSmooth<Key extends keyof Element.SmoothTemplate<TemplateSpecType>>(
+  setSmooth<Key extends keyof SmoothTemplate<TemplateSpecType>>(
     property: Key,
     value: number extends TemplateSpecType[Key] ? number : never,
     settings?: TransitionSettings.Literal,
@@ -1801,7 +1820,7 @@ declare class Element<
    *
    * NOT AVAILABLE AT RUNTIME.
    */
-  readonly __$type_TemplateSpec: CompileTemplateSpecType<TemplateSpecType, TypeConfig>
+  readonly __$type_TemplateSpec: CompileElementTemplateSpecType<TemplateSpecType, TypeConfig>
 
   // Purposely not exposed:
   // getTags();

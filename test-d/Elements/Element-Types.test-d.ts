@@ -21,9 +21,9 @@
  */
 import { expectAssignable, expectType } from 'tsd';
 import lng from '../../index.js';
-import { CompileTemplateSpecType_Component } from '../../src/application/Component.mjs';
+import { CompileComponentTemplateSpecType } from '../../src/application/Component.mjs';
 import { SignalMapType } from '../../src/internalTypes.mjs';
-import { InlineElement } from '../../src/tree/Element.mjs';
+import { InlineElement, SmoothTemplate, TemplateSpecRefs, TransformPossibleElement, TransitionsTemplate } from '../../src/tree/Element.mjs';
 
 export interface TestTemplateSpec extends lng.Component.TemplateSpecStrong {
   prop1: string;
@@ -67,8 +67,8 @@ function InlineElement_Test() {
             childInvalidRef: string; // This is OK because InlineElement is not recursive
         };
     } & lng.Element.TemplateSpecStrong & {
-        smooth: lng.Element.SmoothTemplate<lng.Element.TemplateSpecStrong>;
-        transitions: lng.Element.TransitionsTemplate<lng.Element.TemplateSpecStrong>;
+        smooth: SmoothTemplate<lng.Element.TemplateSpecStrong>;
+        transitions: TransitionsTemplate<lng.Element.TemplateSpecStrong>;
     }
   >({} as T100);
 }
@@ -79,25 +79,25 @@ function InlineElement_Test() {
 function TransformPossibleElement_Test() {
   /// If `Key` is a valid ref string (i.e. begins with a capital letter) then transform it to an Element/Component instance type
   // Strong Element (implicit inline, empty)
-  type T100 = lng.Element.TransformPossibleElement<'ValidRef', TestTemplateSpec['MyStrongElement_InlineEmpty']>;
+  type T100 = TransformPossibleElement<'ValidRef', TestTemplateSpec['MyStrongElement_InlineEmpty']>;
   expectType<
     lng.Element<InlineElement<{}>>
   >({} as T100);
   // Strong Element (explicit type)
-  type T200 = lng.Element.TransformPossibleElement<'ValidRef', TestTemplateSpec['MyStrongElement_ExplicitType']>;
+  type T200 = TransformPossibleElement<'ValidRef', TestTemplateSpec['MyStrongElement_ExplicitType']>;
   expectType<
     lng.Element<lng.Element.TemplateSpecStrong>
   >({} as T200);
   // Loose Element
-  type T300 = lng.Element.TransformPossibleElement<'ValidRef', TestTemplateSpec['MyLooseElement']>;
+  type T300 = TransformPossibleElement<'ValidRef', TestTemplateSpec['MyLooseElement']>;
   expectType<
     lng.Element<lng.Element.TemplateSpecLoose>
   >({} as T300);
   // Component
-  type T400 = lng.Element.TransformPossibleElement<'ValidRef', TestTemplateSpec['MyListComponent']>;
+  type T400 = TransformPossibleElement<'ValidRef', TestTemplateSpec['MyListComponent']>;
   expectType<lng.components.ListComponent>({} as T400);
   // Strong Element (implicit inline, children)
-  type T550 = lng.Element.TransformPossibleElement<'ValidRef', TestTemplateSpec['MyStrongElement_InlineChildren']>;
+  type T550 = TransformPossibleElement<'ValidRef', TestTemplateSpec['MyStrongElement_InlineChildren']>;
   expectType<
     lng.Element<
       InlineElement<{
@@ -109,35 +109,35 @@ function TransformPossibleElement_Test() {
   >({} as T550);
 
   /// If the `Key` is not a valid ref (i.e. doesn't begin with a capital letter) then it shouldn't be transformed
-  type T500 = lng.Element.TransformPossibleElement<'invalidRef', TestTemplateSpec['MyStrongElement_InlineEmpty']>;
+  type T500 = TransformPossibleElement<'invalidRef', TestTemplateSpec['MyStrongElement_InlineEmpty']>;
   expectType<TestTemplateSpec['MyStrongElement_InlineEmpty']>({} as T500);
-  type T600 = lng.Element.TransformPossibleElement<'invalidRef', TestTemplateSpec['MyStrongElement_ExplicitType']>;
+  type T600 = TransformPossibleElement<'invalidRef', TestTemplateSpec['MyStrongElement_ExplicitType']>;
   expectType<TestTemplateSpec['MyStrongElement_ExplicitType']>({} as T600);
-  type T700 = lng.Element.TransformPossibleElement<'invalidRef', TestTemplateSpec['MyLooseElement']>;
+  type T700 = TransformPossibleElement<'invalidRef', TestTemplateSpec['MyLooseElement']>;
   expectType<TestTemplateSpec['MyLooseElement']>({} as T700);
-  type T800 = lng.Element.TransformPossibleElement<'invalidRef', TestTemplateSpec['MyListComponent']>;
+  type T800 = TransformPossibleElement<'invalidRef', TestTemplateSpec['MyListComponent']>;
   expectType<TestTemplateSpec['MyListComponent']>({} as T800);
-  type T900 = lng.Element.TransformPossibleElement<'invalidRef', TestTemplateSpec['MyStrongElement_InlineEmpty']>;
+  type T900 = TransformPossibleElement<'invalidRef', TestTemplateSpec['MyStrongElement_InlineEmpty']>;
   expectType<TestTemplateSpec['MyStrongElement_InlineEmpty']>({} as T900);
 
   /// If `Key` is any `string` then we should return anything
-  type T1000 = lng.Element.TransformPossibleElement<string, TestTemplateSpec['MyStrongElement_InlineEmpty']>;
+  type T1000 = TransformPossibleElement<string, TestTemplateSpec['MyStrongElement_InlineEmpty']>;
   expectType<any>({} as T1000);
-  type T1100 = lng.Element.TransformPossibleElement<string, TestTemplateSpec['MyStrongElement_ExplicitType']>;
+  type T1100 = TransformPossibleElement<string, TestTemplateSpec['MyStrongElement_ExplicitType']>;
   expectType<any>({} as T1100);
-  type T1200 = lng.Element.TransformPossibleElement<string, TestTemplateSpec['MyLooseElement']>;
+  type T1200 = TransformPossibleElement<string, TestTemplateSpec['MyLooseElement']>;
   expectType<any>({} as T1200);
-  type T1300 = lng.Element.TransformPossibleElement<string, TestTemplateSpec['MyListComponent']>;
+  type T1300 = TransformPossibleElement<string, TestTemplateSpec['MyListComponent']>;
   expectType<any>({} as T1300);
-  type T1400 = lng.Element.TransformPossibleElement<string, TestTemplateSpec['MyStrongElement_InlineEmpty']>;
+  type T1400 = TransformPossibleElement<string, TestTemplateSpec['MyStrongElement_InlineEmpty']>;
   expectType<any>({} as T1400);
 
   /// The Default for standard prop keys (non-ref keys) is the actual value type
-  type T1500 = lng.Element.TransformPossibleElement<'x', number>;
+  type T1500 = TransformPossibleElement<'x', number>;
   expectType<number>({} as T1500);
 
   /// The Default for standard prop keys (non-ref keys) can be changed
-  type T1600 = lng.Element.TransformPossibleElement<'x', number, string>;
+  type T1600 = TransformPossibleElement<'x', number, string>;
   expectType<string>({} as T1600);
 }
 
@@ -234,15 +234,15 @@ function PatchTemplate_Test() {
   type T300 = T100['MyStrongElement_ExplicitType'];
   expectType<
     lng.Element.PatchTemplate<lng.Element.TemplateSpecStrong & {
-        smooth: lng.Element.SmoothTemplate<lng.Element.TemplateSpecStrong>;
+        smooth: SmoothTemplate<lng.Element.TemplateSpecStrong>;
     }> | undefined
   >({} as T300);
   // Loose element
   type T400 = T100['MyLooseElement'];
   expectType<
     lng.Element.PatchTemplate<lng.Element.TemplateSpecLoose & {
-        smooth: lng.Element.SmoothTemplate<lng.Element.TemplateSpecLoose>;
-        transitions: lng.Element.TransitionsTemplate<lng.Element.TemplateSpecLoose>;
+        smooth: SmoothTemplate<lng.Element.TemplateSpecLoose>;
+        transitions: TransitionsTemplate<lng.Element.TemplateSpecLoose>;
     }> | undefined
   >({} as T400);
   // Component
@@ -252,7 +252,7 @@ function PatchTemplate_Test() {
       type?: typeof lng.components.ListComponent | undefined;
     } &
     lng.Element.PatchTemplate<
-      CompileTemplateSpecType_Component<
+      CompileComponentTemplateSpecType<
         lng.components.ListComponent.TemplateSpec,
         lng.Component.TypeConfig
       >
@@ -277,7 +277,7 @@ function PatchTemplate_Test() {
 //
 function TemplateSpecRefs_Test() {
   /// Should remove all prop keys and resolve Element / Component types
-  type T1000 = lng.Element.TemplateSpecRefs<TestTemplateSpec>;
+  type T1000 = TemplateSpecRefs<TestTemplateSpec>;
   expectType<{
     MyStrongElement_InlineEmpty: lng.Element<InlineElement<{}>>;
     MyStrongElement_ExplicitType: lng.Element<lng.Element.TemplateSpecStrong>;

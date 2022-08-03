@@ -12,7 +12,7 @@
       "src/EventEmitter.d.mts:EventEmitterParameters",
       "src/components/ListComponent.d.mts:Documentation",
       "src/tree/Element.d.mts:Documentation",
-      "src/tree/Element.d.mts:Element.TransformPossibleElement",
+      "src/tree/Element.d.mts:TransformPossibleElement",
       "src/tree/Element.d.mts:ValidRef",
       "src/tree/Element.d.mts:InlineElement"
     ]
