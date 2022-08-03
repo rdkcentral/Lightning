@@ -25,17 +25,17 @@ import { CompileComponentTemplateSpecType } from '../../src/application/Componen
 import { SignalMapType } from '../../src/internalTypes.mjs';
 import { InlineElement, SmoothTemplate, TemplateSpecRefs, TransformPossibleElement, TransitionsTemplate } from '../../src/tree/Element.mjs';
 
-export interface TestTemplateSpec extends lng.Component.TemplateSpecStrong {
+export interface TestTemplateSpec extends lng.Component.TemplateSpec {
   prop1: string;
   prop2: number;
   prop3: boolean;
   MyStrongElement_InlineEmpty: {};
-  MyStrongElement_ExplicitType: typeof lng.Element<lng.Element.TemplateSpecStrong>;
+  MyStrongElement_ExplicitType: typeof lng.Element<lng.Element.TemplateSpec>;
   MyLooseElement: typeof lng.Element;
   MyListComponent: typeof lng.components.ListComponent;
   MyStrongElement_InlineChildren: {
     Child1: {},
-    Child2: typeof lng.Element<lng.Element.TemplateSpecStrong>,
+    Child2: typeof lng.Element<lng.Element.TemplateSpec>,
     Child3: typeof lng.components.ListComponent
   }
 }
@@ -66,9 +66,9 @@ function InlineElement_Test() {
             ChildValidRef: string;
             childInvalidRef: string; // This is OK because InlineElement is not recursive
         };
-    } & lng.Element.TemplateSpecStrong & {
-        smooth: SmoothTemplate<lng.Element.TemplateSpecStrong>;
-        transitions: TransitionsTemplate<lng.Element.TemplateSpecStrong>;
+    } & lng.Element.TemplateSpec & {
+        smooth: SmoothTemplate<lng.Element.TemplateSpec>;
+        transitions: TransitionsTemplate<lng.Element.TemplateSpec>;
     }
   >({} as T100);
 }
@@ -86,7 +86,7 @@ function TransformPossibleElement_Test() {
   // Strong Element (explicit type)
   type T200 = TransformPossibleElement<'ValidRef', TestTemplateSpec['MyStrongElement_ExplicitType']>;
   expectType<
-    lng.Element<lng.Element.TemplateSpecStrong>
+    lng.Element<lng.Element.TemplateSpec>
   >({} as T200);
   // Loose Element
   type T300 = TransformPossibleElement<'ValidRef', TestTemplateSpec['MyLooseElement']>;
@@ -102,7 +102,7 @@ function TransformPossibleElement_Test() {
     lng.Element<
       InlineElement<{
         Child1: {};
-        Child2: typeof lng.Element<lng.Element.TemplateSpecStrong>;
+        Child2: typeof lng.Element<lng.Element.TemplateSpec>;
         Child3: typeof lng.components.ListComponent;
       }>
     >
@@ -233,8 +233,8 @@ function PatchTemplate_Test() {
   // Strong Element (explicity type)
   type T300 = T100['MyStrongElement_ExplicitType'];
   expectType<
-    lng.Element.PatchTemplate<lng.Element.TemplateSpecStrong & {
-        smooth: SmoothTemplate<lng.Element.TemplateSpecStrong>;
+    lng.Element.PatchTemplate<lng.Element.TemplateSpec & {
+        smooth: SmoothTemplate<lng.Element.TemplateSpec>;
     }> | undefined
   >({} as T300);
   // Loose element
@@ -265,7 +265,7 @@ function PatchTemplate_Test() {
     lng.Element.PatchTemplate<
       InlineElement<{
         Child1: {};
-        Child2: typeof lng.Element<lng.Element.TemplateSpecStrong>,
+        Child2: typeof lng.Element<lng.Element.TemplateSpec>,
         Child3: typeof lng.components.ListComponent;
       }>
     > | undefined
@@ -280,7 +280,7 @@ function TemplateSpecRefs_Test() {
   type T1000 = TemplateSpecRefs<TestTemplateSpec>;
   expectType<{
     MyStrongElement_InlineEmpty: lng.Element<InlineElement<{}>>;
-    MyStrongElement_ExplicitType: lng.Element<lng.Element.TemplateSpecStrong>;
+    MyStrongElement_ExplicitType: lng.Element<lng.Element.TemplateSpec>;
     MyLooseElement: lng.Element;
     MyListComponent:lng.components.ListComponent;
     MyStrongElement_InlineChildren: lng.Element<InlineElement<TestTemplateSpec['MyStrongElement_InlineChildren']>>;

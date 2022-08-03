@@ -20,7 +20,7 @@ import { expectType } from 'tsd';
 import lng from '../../index';
 
 namespace Container {
-  export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
+  export interface TemplateSpec extends lng.Component.TemplateSpec {
     BloomComponent: typeof lng.components.BloomComponent;
     BloomComponent_SpecificType: typeof lng.components.BloomComponent<lng.components.ListComponent>;
   }

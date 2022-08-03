@@ -20,7 +20,7 @@ import { expectType } from 'tsd';
 import lng from '../../index';
 
 namespace Container {
-  export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
+  export interface TemplateSpec extends lng.Component.TemplateSpec {
     FastBlurComponent: typeof lng.components.FastBlurComponent;
     FastBlurComponent_SpecificType: typeof lng.components.FastBlurComponent<lng.components.ListComponent>;
   }

@@ -24,7 +24,7 @@ import ObjectListWrapper from "../tools/ObjectListWrapper.mjs";
 import Element from "../tree/Element.mjs";
 
 declare namespace ListComponent {
-  export interface TemplateSpec<ItemType extends Element.Constructor = Element.Constructor> extends Component.TemplateSpecStrong {
+  export interface TemplateSpec<ItemType extends Element.Constructor = Element.Constructor> extends Component.TemplateSpec {
     /**
      * Items patched into the ListComponent
      */

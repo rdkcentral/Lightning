@@ -30,7 +30,7 @@ function withMixin<
 >(
   Base: BaseType
 ) {
-  interface MixinTemplateSpec extends lng.Component.TemplateSpecStrong {
+  interface MixinTemplateSpec extends lng.Component.TemplateSpec {
     mixinProp1: string;
     mixinProp2: number;
   }
@@ -105,7 +105,7 @@ class MixedInListComponent extends withMixin(lng.components.ListComponent) {
 }
 
 namespace Container {
-  export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
+  export interface TemplateSpec extends lng.Component.TemplateSpec {
     MixedInListComponent: typeof MixedInListComponent
     MixedInListComponent_Error: typeof MixedInListComponent
   }

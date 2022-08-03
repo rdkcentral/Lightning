@@ -23,7 +23,7 @@
 import lng from '../../index.js';
 
 namespace Animal {
-  export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
+  export interface TemplateSpec extends lng.Component.TemplateSpec {
     name: string;
   }
 

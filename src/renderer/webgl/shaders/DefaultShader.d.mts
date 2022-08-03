@@ -28,7 +28,7 @@ import WebGLShader from "../WebGLShader.mjs";
  * [Fragment Shader](https://www.khronos.org/opengl/wiki/Fragment_Shader) program and a
  * [Vertex Shader](https://www.khronos.org/opengl/wiki/Vertex_Shader) program.
  *
- * Shaders can be set on Lightning Elements (See: {@link Element.TemplateSpecStrong.shader}) to enable many
+ * Shaders can be set on Lightning Elements (See: {@link Element.TemplateSpec.shader}) to enable many
  * amazing GPU driven effects.
  */
 export default class DefaultShader extends WebGLShader {

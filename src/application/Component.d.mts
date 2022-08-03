@@ -25,7 +25,7 @@ import Application from "./Application.mjs";
 // Private Types
 //
 export type CompileComponentTemplateSpecType<
-  TemplateSpecType extends Component.TemplateSpecStrong,
+  TemplateSpecType extends Component.TemplateSpec,
   TypeConfig extends Component.TypeConfig
 > =
   CompileElementTemplateSpecType<TemplateSpecType, TypeConfig> & {
@@ -98,7 +98,7 @@ declare namespace Component {
    * @example
    * If you inherit from this, follow this example closely:
    * ```ts
-   * export interface MyComponentTemplateSpec extends lng.Component.TemplateSpecStrong {
+   * export interface MyComponentTemplateSpec extends lng.Component.TemplateSpec {
    *   myProperty1: number;
    *   myProperty2: string;
    *   // ^----- Your properties should not be optional (so TS can enforce that they are implemented in your Component)
@@ -117,7 +117,7 @@ declare namespace Component {
    * }
    * ```
    */
-  export interface TemplateSpecStrong extends Element.TemplateSpecStrong {
+  export interface TemplateSpec extends Element.TemplateSpec {
     /**
      * Sets the Signals for this Component.
      *
@@ -137,9 +137,9 @@ declare namespace Component {
   }
 
   /**
-   * Loose form of lng.Component.TemplateSpecStrong that allows any additional 'any' properties
+   * Loose form of lng.Component.TemplateSpec that allows any additional 'any' properties
    */
-  export interface TemplateSpecLoose extends Component.TemplateSpecStrong {
+  export interface TemplateSpecLoose extends Component.TemplateSpec {
     [s: string]: any
   }
 
@@ -157,7 +157,7 @@ declare namespace Component {
    * All TemplateSpec properties are made optional. Nested TemplateSpec properties are also made
    * optional, except for the `type` propety which is made required.
    */
-   export type Template<TemplateSpecType extends Element.TemplateSpecStrong = Component.TemplateSpecLoose> = {
+   export type Template<TemplateSpecType extends Element.TemplateSpec = Component.TemplateSpecLoose> = {
     [P in keyof TemplateSpecType]?:
       P extends ValidRef
         ?
@@ -171,7 +171,7 @@ declare namespace Component {
                 :
                   Template<Element<InlineElement<TemplateSpecType[P]>>['__$type_TemplateSpec']>
         :
-          P extends keyof Element.TemplateSpecStrong
+          P extends keyof Element.TemplateSpec
             ?
               TemplateSpecType[P] // P is a Element property key
             :
@@ -195,7 +195,7 @@ declare namespace Component {
    * @example
    * ```ts
    * namespace Container {
-   *   export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
+   *   export interface TemplateSpec extends lng.Component.TemplateSpec {
    *     prop1: number;
    *     prop2: string;
    *     ChildElement: {};
@@ -221,8 +221,8 @@ declare namespace Component {
    * }
    * ```
    */
-  export type ImplementTemplateSpec<TemplateSpecType extends Component.TemplateSpecStrong> =
-    Omit<TemplateSpecType, keyof Component.TemplateSpecStrong | ValidRef>;
+  export type ImplementTemplateSpec<TemplateSpecType extends Component.TemplateSpec> =
+    Omit<TemplateSpecType, keyof Component.TemplateSpec | ValidRef>;
 
   /**
    * Signals type

@@ -60,14 +60,14 @@ export type ValidRef = `${Alphabet}${string}`;
 export type InlineElement<ElementTemplate> = {
   [P in keyof ElementTemplate as P extends ValidRef ? P : never]:
     ElementTemplate[P]
-} & Element<Element.TemplateSpecStrong>['__$type_TemplateSpec'];
+} & Element<Element.TemplateSpec>['__$type_TemplateSpec'];
 
 /**
  * An object keyed by transitionable Element properties
  *
  * @hidden Internal use only
  */
-export type SmoothTemplate<TemplateSpecType = Element.TemplateSpecStrong> = {
+export type SmoothTemplate<TemplateSpecType = Element.TemplateSpec> = {
   [P in keyof TemplateSpecType]?:
     ExtractAnimatableValueTypes<TemplateSpecType[P]> extends never
       ?
@@ -82,7 +82,7 @@ export type SmoothTemplate<TemplateSpecType = Element.TemplateSpecStrong> = {
  *
  * @hidden Internal use only
  */
-export type TransitionsTemplate<TemplateSpecType = Element.TemplateSpecStrong> = {
+export type TransitionsTemplate<TemplateSpecType = Element.TemplateSpec> = {
   [P in keyof TemplateSpecType]?:
     ExtractAnimatableValueTypes<TemplateSpecType[P]> extends never
       ?
@@ -100,7 +100,7 @@ export type TransitionsTemplate<TemplateSpecType = Element.TemplateSpecStrong> =
  * @hidden Internal use only
  */
 export type CompileElementTemplateSpecType<
-  TemplateSpecType extends Element.TemplateSpecStrong,
+  TemplateSpecType extends Element.TemplateSpec,
   TypeConfig extends Element.TypeConfig
 > =
   TemplateSpecType & {
@@ -137,7 +137,7 @@ export type TransformPossibleElement<Key, PossibleElementConstructor, Default = 
  *
  * @hidden Internal use only
  */
-export type TemplateSpecRefs<TemplateSpec extends Element.TemplateSpecStrong> = {
+export type TemplateSpecRefs<TemplateSpec extends Element.TemplateSpec> = {
   [P in keyof TemplateSpec as TransformPossibleElement<P, TemplateSpec[P], never> extends never ? never : P]:
     TransformPossibleElement<P, TemplateSpec[P], never>
 };
@@ -428,7 +428,7 @@ declare namespace Element {
     marginRight?: number;
   }
 
-  export interface TemplateSpecStrong {
+  export interface TemplateSpec {
     /**
      * Element's reference key
      */
@@ -1041,9 +1041,9 @@ declare namespace Element {
   }
 
   /**
-   * Loose form of lng.Element.TemplateSpecStrong that allows any additional 'any' properties
+   * Loose form of lng.Element.TemplateSpec that allows any additional 'any' properties
    */
-  export interface TemplateSpecLoose extends Element.TemplateSpecStrong {
+  export interface TemplateSpecLoose extends Element.TemplateSpec {
     [s: string]: any
   }
 
@@ -1071,7 +1071,7 @@ declare namespace Element {
    *
    * All TemplateSpec properties are made optional, including properties of nested TemplateSpecs.
    */
-   export type PatchTemplate<TemplateSpecType extends Element.TemplateSpecStrong = Element.TemplateSpecLoose> = {
+   export type PatchTemplate<TemplateSpecType extends Element.TemplateSpec = Element.TemplateSpecLoose> = {
     [P in keyof TemplateSpecType]?:
       P extends ValidRef
         ?
@@ -1126,7 +1126,7 @@ declare class Element<
   // Elements use loose typing TemplateSpecs by default (for ease of use as Elements aren't often fully definable)
   TemplateSpecType extends Element.TemplateSpecLoose = Element.TemplateSpecLoose,
   TypeConfig extends Element.TypeConfig = Element.TypeConfig
-> extends EventEmitter<EventMapType<TypeConfig>> implements Documentation<Element.TemplateSpecStrong> {
+> extends EventEmitter<EventMapType<TypeConfig>> implements Documentation<Element.TemplateSpec> {
   constructor(stage: Stage);
 
   isElement: 1;
@@ -1311,7 +1311,7 @@ declare class Element<
   textureIsLoaded(): boolean;
 
   /**
-   * Load the texture that was set by {@link Element.TemplateSpecStrong.texture}
+   * Load the texture that was set by {@link Element.TemplateSpec.texture}
    */
   loadTexture(): void;
 
@@ -1324,7 +1324,7 @@ declare class Element<
    * See [Texture Types](https://lightningjs.io/docs/#/lightning-core-reference/RenderEngine/Textures/index) for
    * more information.
    *
-   * @see {@link Element.TemplateSpecStrong.texture}
+   * @see {@link Element.TemplateSpec.texture}
    */
   get texture(): TextureType<TypeConfig> | null;
   set texture(v: TextureType<TypeConfig> | Texture.SettingsLoose | null);
@@ -1420,7 +1420,7 @@ declare class Element<
   /**
    * Get Settings object representing this Element
    */
-  getSettings(): Element.TemplateSpecStrong;
+  getSettings(): Element.TemplateSpec;
 
   // getNonDefaults() {
   // - Internal use only
@@ -1435,7 +1435,7 @@ declare class Element<
   /**
    * X position of this Element
    *
-   * @see {@link Element.TemplateSpecStrong.x}
+   * @see {@link Element.TemplateSpec.x}
    */
   get x(): number;
   set x(x: number | ((parentWidth: number) => number));
@@ -1443,7 +1443,7 @@ declare class Element<
   /**
    * Y position of this Element
    *
-   * @see {@link Element.TemplateSpecStrong.y}
+   * @see {@link Element.TemplateSpec.y}
    */
   get y(): number;
   set y(y: number | ((parentHeight: number) => number));
@@ -1451,7 +1451,7 @@ declare class Element<
   /**
    * Width of this Element
    *
-   * @see {@link Element.TemplateSpecStrong.w}
+   * @see {@link Element.TemplateSpec.w}
    */
   get w(): number;
   set w(w: number | ((parentWidth: number) => number));
@@ -1459,7 +1459,7 @@ declare class Element<
   /**
    * Height of this Element
    *
-   * @see {@link Element.TemplateSpecStrong.h}
+   * @see {@link Element.TemplateSpec.h}
    */
   get h(): number;
   set h(h: number | ((parentHeight: number) => number));
@@ -1521,7 +1521,7 @@ declare class Element<
   /**
    * Set/get the children of this Element
    *
-   * @see {@link Element.TemplateSpecStrong.children}
+   * @see {@link Element.TemplateSpec.children}
    */
   get children(): Array<Element>;
   set children(children: Array<Element> | Array<{ [id: string]: any }>);
@@ -1558,7 +1558,7 @@ declare class Element<
    * @remarks
    * WARNING: DO NOT read from this property. It is WRITE-ONLY. It will return `undefined`.
    *
-   * @see {@link Element.TemplateSpecStrong.mw}
+   * @see {@link Element.TemplateSpec.mw}
    */
   mw: number;
 
@@ -1568,7 +1568,7 @@ declare class Element<
    * @remarks
    * WARNING: DO NOT read from this property. It is WRITE-ONLY. It will return `undefined`.
    *
-   * @see {@link Element.TemplateSpecStrong.mh}
+   * @see {@link Element.TemplateSpec.mh}
    */
   mh: number;
 
@@ -1587,7 +1587,7 @@ declare class Element<
    *
    * Note: This property will always return `TextTexture | null` when read.
    *
-   * @see {@link Element.TemplateSpecStrong.text}
+   * @see {@link Element.TemplateSpec.text}
    */
   // @ts-ignore-error Prevent ts(2380)
   get text(): TextTexture | null;
@@ -1599,7 +1599,7 @@ declare class Element<
    * @remarks
    * Note: This property will always return `undefined` when read.
    *
-   * @see {@link Element.TemplateSpecStrong.onAfterUpdate}
+   * @see {@link Element.TemplateSpec.onAfterUpdate}
    */
   onUpdate: Element.OnUpdateCallback | null | undefined;
 
@@ -1609,7 +1609,7 @@ declare class Element<
    * @remarks
    * Note: This property will always return `undefined` when read.
    *
-   * @see {@link Element.TemplateSpecStrong.onAfterUpdate}
+   * @see {@link Element.TemplateSpec.onAfterUpdate}
    */
   onAfterCalcs: Element.OnAfterCalcsCallback | null | undefined;
 
@@ -1619,7 +1619,7 @@ declare class Element<
    * @remarks
    * Note: This property will always return `undefined` when read.
    *
-   * @see {@link Element.TemplateSpecStrong.onAfterUpdate}
+   * @see {@link Element.TemplateSpec.onAfterUpdate}
    */
   onAfterUpdate: Element.OnAfterUpdateCallback | null | undefined;
 
@@ -1631,7 +1631,7 @@ declare class Element<
   /**
    * Get/set a shader of/on this Element
    *
-   * @see {@link Element.TemplateSpecStrong.shader}
+   * @see {@link Element.TemplateSpec.shader}
    */
   get shader(): Shader | Shader.SettingsLoose | null;
   set shader(v: Shader | Shader.SettingsLoose | null | undefined);
@@ -1709,7 +1709,7 @@ declare class Element<
    * See [Transitions](https://lightningjs.io/docs/#/lightning-core-reference/Transitions/index) for more
    * information.
    *
-   * @see {@link Element.TemplateSpecStrong.transitions}
+   * @see {@link Element.TemplateSpec.transitions}
    */
   // The getter type needs to have TransitionsTemplate in its union for some reason thats not clear
   // @ts-ignore-error Prevent ts(2380)
@@ -1731,7 +1731,7 @@ declare class Element<
    *
    * **WARNING:** DO NOT read from this property. It is WRITE-ONLY. It will always return `undefined`.
    *
-   * @see {@link Element.TemplateSpecStrong.smooth}
+   * @see {@link Element.TemplateSpec.smooth}
    */
   // The getter type needs to have SmoothTemplate in its union for some reason thats not clear
   // @ts-ignore-error Prevent ts(2380)

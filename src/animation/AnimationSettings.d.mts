@@ -35,7 +35,7 @@ declare namespace AnimationSettings {
    * information.
    */
   export interface Literal<
-    TemplateSpecType = Element.TemplateSpecStrong,
+    TemplateSpecType = Element.TemplateSpec,
     Key = keyof TemplateSpecType | AnimationForceLiteral,
   > {
     /**

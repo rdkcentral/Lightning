@@ -25,13 +25,13 @@ import lng from '../../index.js';
 import ListComponent from '../../src/components/ListComponent.mjs';
 
 namespace MyElementTest {
-  export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
+  export interface TemplateSpec extends lng.Component.TemplateSpec {
     ParentElementStrong: typeof lng.Element<{
         ComponentChildA: typeof ListComponent;
         ChildElement: typeof lng.Element<{
             GrandchildElement: typeof lng.Element;
-        } & lng.Element.TemplateSpecStrong>,
-    } & lng.Element.TemplateSpecStrong>;
+        } & lng.Element.TemplateSpec>,
+    } & lng.Element.TemplateSpec>;
     ParentElementLoose: typeof lng.Element<{
         ChildElementLoose: typeof lng.Element<{
             GrandchildElement: typeof lng.Element;
@@ -53,7 +53,7 @@ class MyTestComponent
     // And they are of the right type
     expectType<lng.components.ListComponent>(ComponentChildA);
     expectType<lng.Element<
-      { GrandchildElement: typeof lng.Element; } & lng.Element.TemplateSpecStrong
+      { GrandchildElement: typeof lng.Element; } & lng.Element.TemplateSpec
     >>(ChildElement);
     // Also confirm you can get a grand-child element
     expectType<lng.Element>(ChildElement.getByRef('GrandchildElement')!);
@@ -76,15 +76,15 @@ class MyTestComponent
   }
 }
 
-export interface MyTestComponentTemplateSpec_Loose extends lng.Component.TemplateSpecStrong {
+export interface MyTestComponentTemplateSpec_Loose extends lng.Component.TemplateSpec {
   ParentElementStrong: typeof lng.Element<{
     ComponentChildA: typeof ListComponent;
   } & lng.Element.TemplateSpecLoose>;
 }
 
-// Expect an error here when `lng.Element.TemplateSpecStrong` is not intersected after the inline
+// Expect an error here when `lng.Element.TemplateSpec` is not intersected after the inline
 // TemplateSpec type. if the requirement for this can be elimintated that would be good!
-export interface MyTestComponentTemplateSpec_Error extends lng.Component.TemplateSpecStrong {
+export interface MyTestComponentTemplateSpec_Error extends lng.Component.TemplateSpec {
   // @ts-expect-error
   ParentElementStrong: typeof lng.Element<{
     ComponentChildA: typeof ListComponent;

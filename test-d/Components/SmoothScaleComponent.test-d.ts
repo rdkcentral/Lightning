@@ -20,7 +20,7 @@ import lng from '../../index';
 import { expectType } from 'tsd';
 
 namespace Container {
-  export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
+  export interface TemplateSpec extends lng.Component.TemplateSpec {
     SmoothScaleComponent: typeof lng.components.SmoothScaleComponent;
     SmoothScaleComponent_SpecificType: typeof lng.components.SmoothScaleComponent<lng.components.ListComponent>;
   }

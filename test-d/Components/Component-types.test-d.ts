@@ -24,8 +24,8 @@ import lng from '../../index.js';
 import { TemplateRequireType } from '../../src/application/Component.mjs';
 import { SmoothTemplate, TransitionsTemplate } from '../../src/tree/Element.mjs';
 
-export interface SubComponentTemplateSpec extends lng.Component.TemplateSpecStrong {
-  MyStrongElement: typeof lng.Element<lng.Element.TemplateSpecStrong>;
+export interface SubComponentTemplateSpec extends lng.Component.TemplateSpec {
+  MyStrongElement: typeof lng.Element<lng.Element.TemplateSpec>;
   MyLooseElement: typeof lng.Element<lng.Element.TemplateSpecLoose>;
   MyListComponent: typeof lng.components.ListComponent;
 }
@@ -36,8 +36,8 @@ class SubComponent extends lng.Component<SubComponentTemplateSpec> implements ln
   MyListComponent = this.getByRef('MyListComponent')!;
 }
 
-export interface TestTemplateSpec extends lng.Component.TemplateSpecStrong {
-  MyStrongElement: typeof lng.Element<lng.Element.TemplateSpecStrong>;
+export interface TestTemplateSpec extends lng.Component.TemplateSpec {
+  MyStrongElement: typeof lng.Element<lng.Element.TemplateSpec>;
   MyLooseElement: typeof lng.Element;
   MyListComponent: typeof lng.components.ListComponent;
   MySubComponent: typeof SubComponent;
@@ -118,21 +118,21 @@ expectType<
   }>
 >({} as T20);
 expectNotType<
-  lng.Component.Template<lng.Element.TemplateSpecStrong & {
-    smooth: SmoothTemplate<lng.Element.TemplateSpecStrong>;
-    transitions: TransitionsTemplate<lng.Element.TemplateSpecStrong>;
+  lng.Component.Template<lng.Element.TemplateSpec & {
+    smooth: SmoothTemplate<lng.Element.TemplateSpec>;
+    transitions: TransitionsTemplate<lng.Element.TemplateSpec>;
   }>
 >({} as T20);
 // Child Strong Element is a Template<Element.TemplateSpecLoose>
 type T30 = NonNullable<TemplateRequireType_SubComponent['MyStrongElement']>;
-expectType<lng.Component.Template<lng.Element.TemplateSpecStrong>>({} as T30);
+expectType<lng.Component.Template<lng.Element.TemplateSpec>>({} as T30);
 expectNotType<lng.Component.Template<lng.Element.TemplateSpecLoose>>({} as T30);
 
 //
 // Template
 //
 type Template_TestTemplateSpec = lng.Component.Template<TestTemplateSpec>;
-type Template_Element = lng.Component.Template<lng.Element.TemplateSpecStrong>;
+type Template_Element = lng.Component.Template<lng.Element.TemplateSpec>;
 // Type is not allowed
 const t90: Template_TestTemplateSpec = {};
 const t100: Template_TestTemplateSpec = {
@@ -190,9 +190,9 @@ const t140: Template_TestTemplateSpec = {
     }
   }
 };
-// Check that MyStrongElement is a Template<lng.Element.TemplateSpecStrong>
+// Check that MyStrongElement is a Template<lng.Element.TemplateSpec>
 type ShouldBeTemplate_Element_TemplateSpec = Template_TestTemplateSpec['MyStrongElement'];
-expectType<lng.Component.Template<lng.Element.TemplateSpecStrong> | undefined>({} as ShouldBeTemplate_Element_TemplateSpec);
+expectType<lng.Component.Template<lng.Element.TemplateSpec> | undefined>({} as ShouldBeTemplate_Element_TemplateSpec);
 // Check that MyLooseElement is a Template<lng.Element.TemplateSpecLoose>
 type ShouldBeTemplate_Element_TemplateSpecLoose = Template_TestTemplateSpec['MyLooseElement'];
 expectType<

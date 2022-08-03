@@ -22,7 +22,7 @@ import ListComponent from '../../src/components/ListComponent.mjs';
 import { InlineElement, SmoothTemplate } from '../../src/tree/Element.mjs';
 
 namespace MyElementTest {
-  export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
+  export interface TemplateSpec extends lng.Component.TemplateSpec {
     MyStrongElement: {
       ChildElement: {},
       ChildComponent: typeof ListComponent
@@ -956,7 +956,7 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
   }
 }
 
-const element: lng.Element<lng.Element.TemplateSpecStrong> = {} as any;
+const element: lng.Element<lng.Element.TemplateSpec> = {} as any;
 
 element.setSmooth('x', 12);
 element.setSmooth('y', 12);

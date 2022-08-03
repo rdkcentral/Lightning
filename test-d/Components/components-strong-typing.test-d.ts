@@ -25,7 +25,7 @@ import { Lightning } from '../../index.typedoc.js';
 import { MyLooseComponentC } from './components-loose.test-d.js';
 
 namespace MyComponentA {
-  export interface TemplateSpec extends Lightning.Component.TemplateSpecStrong {
+  export interface TemplateSpec extends Lightning.Component.TemplateSpec {
     myProperty: string;
   }
 }
@@ -83,7 +83,7 @@ class MyComponentA extends Lightning.Component<MyComponentA.TemplateSpec> implem
 }
 
 namespace MyComponentB {
-  export interface TemplateSpec extends Lightning.Component.TemplateSpecStrong {
+  export interface TemplateSpec extends Lightning.Component.TemplateSpec {
     myPropertyB: string;
     MyComponentA: typeof MyComponentA;
     MyComponentA_Error: typeof MyComponentA;
@@ -187,7 +187,7 @@ class MyComponentB extends Lightning.Component<MyComponentB.TemplateSpec> implem
 }
 
 namespace MyComponentC {
-  export interface TemplateSpec extends Lightning.Component.TemplateSpecStrong {
+  export interface TemplateSpec extends Lightning.Component.TemplateSpec {
     propC: string;
     MyComponentB: typeof MyComponentB;
     MyLooseComponentC: typeof MyLooseComponentC;

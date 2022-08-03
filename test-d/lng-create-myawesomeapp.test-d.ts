@@ -24,7 +24,7 @@ import { Utils } from '@lightningjs/sdk'
 import lng from '../index.js';
 
 export declare namespace App {
-  export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
+  export interface TemplateSpec extends lng.Component.TemplateSpec {
     /**
      * Lightning Logo that appears on the background
      */

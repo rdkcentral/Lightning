@@ -21,7 +21,7 @@ import lng from '../../index';
 import BorderComponent from '../../src/components/BorderComponent.mjs';
 
 namespace Container {
-  export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
+  export interface TemplateSpec extends lng.Component.TemplateSpec {
     BorderComponent: typeof lng.components.BorderComponent;
     BorderComponent_SpecificType: typeof lng.components.BorderComponent<lng.components.ListComponent>
   }

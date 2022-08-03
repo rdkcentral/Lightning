@@ -22,7 +22,7 @@ import TransitionSettings from '../../src/animation/TransitionSettings.mjs';
 import AnimationSettings from '../../src/animation/AnimationSettings.mjs';
 
 namespace Container {
-  export interface TemplateSpec extends lng.Component.TemplateSpecStrong {
+  export interface TemplateSpec extends lng.Component.TemplateSpec {
     ListComponent: typeof lng.components.ListComponent;
     ListComponent_Specific: typeof lng.components.ListComponent<typeof lng.components.BloomComponent>;
   }

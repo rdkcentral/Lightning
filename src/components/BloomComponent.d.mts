@@ -20,7 +20,7 @@ import Component from "../application/Component.mjs";
 import Element from "../tree/Element.mjs";
 
 declare namespace BloomComponent {
-  export interface TemplateSpec<ContentType extends Element = Element> extends Component.TemplateSpecStrong {
+  export interface TemplateSpec<ContentType extends Element = Element> extends Component.TemplateSpec {
     /**
      * Content can be any Element / Component
      *

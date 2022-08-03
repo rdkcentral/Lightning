@@ -39,7 +39,7 @@ declare module '../../index.typedoc.js' {
 }
 
 namespace MyComponent {
-  export interface TemplateSpec extends Lightning.Component.TemplateSpecStrong {
+  export interface TemplateSpec extends Lightning.Component.TemplateSpec {
 
   }
 
@@ -75,7 +75,7 @@ class MyComponent extends Lightning.Component<
 }
 
 namespace MyParentComponent {
-  export interface TemplateSpec extends Lightning.Component.TemplateSpecStrong {
+  export interface TemplateSpec extends Lightning.Component.TemplateSpec {
     MyComponent: typeof MyComponent
   }
 
@@ -118,7 +118,7 @@ class MyParentComponent extends Lightning.Component<MyParentComponent.TemplateSp
 
 
 namespace MyApplication {
-  export interface TemplateSpec extends Lightning.Application.TemplateSpecStrong {
+  export interface TemplateSpec extends Lightning.Application.TemplateSpec {
     MyParentComponent: typeof MyParentComponent
   }
 }

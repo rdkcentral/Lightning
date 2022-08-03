@@ -97,14 +97,14 @@ declare namespace Application {
     debug: boolean
   }
 
-  export interface TemplateSpecStrong extends Component.TemplateSpecStrong {
+  export interface TemplateSpec extends Component.TemplateSpec {
     // Provided empty for consistent convention and to to allow augmentation
   }
 
   /**
-   * Loose form of lng.Application.TemplateSpecStrong that allows any additional 'any' properties
+   * Loose form of lng.Application.TemplateSpec that allows any additional 'any' properties
    */
-  export interface TemplateSpecLoose extends Application.TemplateSpecStrong {
+  export interface TemplateSpecLoose extends Application.TemplateSpec {
     [s: string]: any
   }
 

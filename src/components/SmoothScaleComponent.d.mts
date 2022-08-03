@@ -20,7 +20,7 @@ import Component from "../application/Component.mjs";
 import Element from "../tree/Element.mjs";
 
 declare namespace SmoothScaleComponent {
-  interface TemplateSpec<ContentType extends Element = Element> extends Component.TemplateSpecStrong {
+  interface TemplateSpec<ContentType extends Element = Element> extends Component.TemplateSpec {
     /**
      * Content patched into SmoothScaleComponent
      */
