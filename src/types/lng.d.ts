@@ -28,11 +28,11 @@ import ElementCore from '../tree/core/ElementCore.mjs';
 import ElementTexturizer from '../tree/core/ElementTexturizer.mjs';
 import Texture from '../tree/Texture.mjs';
 import EventEmitter from '../EventEmitter.mjs';
-import * as shaders from './lng.shaders.helper';
-import * as textures from './lng.textures.helper';
-import * as components from './lng.components.helper';
-import * as tools from './lng.tools.helper';
-import * as types from './lng.types.helper';
+import * as shaders from './lng.shaders.namespace';
+import * as textures from './lng.textures.namespace';
+import * as components from './lng.components.namespace';
+import * as tools from './lng.tools.namespace';
+import * as types from './lng.types.namespace';
 
 export {
   Application,

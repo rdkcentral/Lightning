@@ -39,7 +39,7 @@ import SpinnerShader from "../renderer/webgl/shaders/SpinnerShader.mjs"
 import SpinnerShader2 from "../renderer/webgl/shaders/SpinnerShader2.mjs"
 import VignetteShader from "../renderer/webgl/shaders/VignetteShader.mjs"
 import WebGLShader from "../renderer/webgl/WebGLShader.mjs"
-import * as c2d from "./lng.shaders.c2d.helper"
+import * as c2d from "./lng.shaders.c2d.namespace"
 
 
 export {
