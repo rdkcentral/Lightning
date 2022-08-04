@@ -104,13 +104,13 @@ declare namespace Component {
    *   // ^----- Your properties should not be optional (so TS can enforce that they are implemented in your Component)
    *   MyChildComponent: typeof MyChildComponent
    *   // ^----- Child components should be typed by their `typeof` types
-   *   MyChildElement: {}
-   *   // ^----- Child elements should inserted with `{}`
+   *   MyChildElement: object
+   *   // ^----- Child elements, which contain no children, should inserted with `object`
    *   MyChildInlineElementType: {
-   *     ElementChild1: {};
+   *     ElementChild1: object;
    *     ElementChild2: typeof MyCoolComponent;
    *   };
-   *   // ^----- Example of nested Elements/Components
+   *   // ^----- Child elements, which have children of their own, are inserted with an inline-object type
    *   content: Element.PatchTemplate<Element.TemplateSpecLoose>;
    *   // ^----- If your Component has a property that when set, patches
    *   //        the value into itself, use `PatchTemplate<ComponentTemplateSpecType>`
