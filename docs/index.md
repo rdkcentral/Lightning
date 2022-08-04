@@ -65,4 +65,5 @@ The Reference Documentation for Lightning Core contains detailed descriptions ab
   * [Signal](Communication/Signal.md)
   * [Fire Ancestors](Communication/FireAncestors.md)
 * [Accessibility](Accessibility/index.md)
+* [TypeScript](TypeScript/index.md)
 <!---TOC_end--->
