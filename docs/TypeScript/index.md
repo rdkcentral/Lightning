@@ -23,6 +23,24 @@ If you find yourself in this kind of place, do the following:
 - Add a TODO comment for yourself or your team to address later.
 - If you think the issue is caused by a mistake on our end, please don't hesitate to write up an [issue](https://github.com/rdkcentral/Lightning/issues) or a [PR](https://github.com/rdkcentral/Lightning/pulls).
 
+### Suggested tsconfig.json
+
+TypeScript projects must include a [TSConfig file](https://www.typescriptlang.org/docs/handbook/tsconfig-json.html) (`tsconfig.json`) at the root the project repo. The following configuration, particularly the compiler options: `strict`, `noUncheckedIndexedAccess`, and `noImplicitOverride` keys, are what we recommend as a starting point for a new Lightning app written in TypeScript. You may modify these to meet the needs of your project.
+
+```json
+{
+  "compilerOptions": {
+    "outDir": "build-ts",
+    "target": "ES2019",
+    "lib": ["ES2019", "DOM"],
+    "moduleResolution": "node",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true
+  }
+}
+```
+
 ### Importing
 
 Lightning should only be imported from a single import as such:
@@ -43,28 +61,14 @@ const animation: Lightning.types.Animation;
 const transition: Lightning.types.Transition;
 ```
 
-### Suggested tsconfig.json
+### Components
 
-TypeScript projects must include a [TSConfig file](https://www.typescriptlang.org/docs/handbook/tsconfig-json.html) (`tsconfig.json`) at the root the project repo. The following configuration, particularly the compiler options: `strict`, `noUncheckedIndexedAccess`, and `noImplicitOverride` keys, are what we recommend as a starting point for a new Lightning app written in TypeScript. You may modify these to meet the needs of your project.
+See [Components](Components/index.md) for how to create and use Components in Lightning with TypeScript.
 
-```json
-{
-  "compilerOptions": {
-    "outDir": "build-ts",
-    "target": "ES2019",
-    "lib": ["ES2019", "DOM"],
-    "moduleResolution": "node",
-    "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "noImplicitOverride": true
-  }
-}
-```
+### Guidelines / Gotchas
+
+See [Guidelines / Gotchas](GuidelinesGotchas.md) for additional things to keep in mind while writing a Lightning app with TypeScript.
 
 ### Augmentation
 
-T
-
-### Component Type Configs
-
-Coming Soon
+See [Augmentation](Augmentation.md) for information on how to add app-specific types / structures to globally defined Lightning types.
