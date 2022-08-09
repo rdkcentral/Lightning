@@ -2,6 +2,10 @@
 
 While great care was taken to make Lightning as type-safe as possible out of the box there is some care you need to take in order to maximize type-safety. There are also areas where type-safety is not possible. Keeping these guidelines and gotchas in mind (as well as familiarizing yourself with the rest of our documentation on TypeScript) will help you and your team enjoy the power of TypeScript with the least amount of headaches.
 
+## DOM `Element` vs `Lightning.Element`
+
+TypeScript globally exposes a class interface called `Element` which is a [DOM Element](https://developer.mozilla.org/en-US/docs/Web/API/Element). If you use the lone identifier `Element` as a type in your Lightning App, it will not cause an error, but you very likely meant to use `Lightning.Element`. This can cause invalid property access issues and type mismatches during assignements.
+
 ## Use `getByRef()` instead of `tag()`
 
 Because it is virtually impossible to get TypeScript to accurately and implicitly type the return value of the `tag()` method, it's recommended to create getters in your components that both retrieve and explicitly type any child Elements or Components. That is, only use the tag() method inside these getters. This helps isolate the areas where explicit typing is needed (and where it could be incorrect) and makes the rest of your interaction with a Component much more type safe.
