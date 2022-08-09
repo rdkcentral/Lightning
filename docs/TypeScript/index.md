@@ -1,6 +1,6 @@
 # TypeScript
 
-As of version !!!, Lightning Core comes bundled with type definitions and in-code documentation which allow you to build Lightning apps in [TypeScript](https://www.typescriptlang.org/). The following documentation assumes to an extent that you are already familiar with the basics of writting a Lightning app in JavaScript, but even if you have no experience at all with Lightning, you may find the tips below as well as the Lightning CLI `lng create` boilerplate (coming soon) and the types/documentation available now in your IDE by using TypeScript enough to get started.
+As of version 2.7.0, Lightning Core comes bundled with type definitions and in-code documentation which allow you to build Lightning apps in [TypeScript](https://www.typescriptlang.org/). The following documentation assumes to an extent that you are already familiar with the basics of writting a Lightning app in JavaScript, but even if you have no experience at all with Lightning, you may find the tips below as well as the Lightning CLI `lng create` boilerplate (coming soon) and the types/documentation available now in your IDE by using TypeScript enough to get started.
 
 TypeScript compilation is supported out of the box by Lightning CLI as of version [v2.8.0](https://github.com/rdkcentral/Lightning-CLI/blob/master/CHANGELOG.md#v280).
 
