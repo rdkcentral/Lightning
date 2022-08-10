@@ -130,9 +130,14 @@ export type TransformPossibleElement<Key, PossibleElementConstructor, Default = 
           Default;
 
 /**
+ * Returns `true` if TemplateSpec is loose, `false` if it is strong
+ */
+export type IsLooseTemplateSpec<TemplateSpec extends Element.TemplateSpec> = string extends keyof TemplateSpec ? true : false;
+
+/**
  * Gets an object shape containing all the Refs (child Element / Components) in a TemplateSpec
  *
- * @remarks
+ * @privateRemarks
  * The refs are transformed into proper Element / Component references
  *
  * @hidden Internal use only
@@ -140,6 +145,182 @@ export type TransformPossibleElement<Key, PossibleElementConstructor, Default = 
 export type TemplateSpecRefs<TemplateSpec extends Element.TemplateSpec> = {
   [P in keyof TemplateSpec as TransformPossibleElement<P, TemplateSpec[P], never> extends never ? never : P]:
     TransformPossibleElement<P, TemplateSpec[P], never>
+};
+
+/**
+ * Returns `true` if T is a type that should terminate the calculation of
+ * tag paths.
+ *
+ * @hidden Internal use only
+ */
+type IsTerminus<T> =
+    T extends (string | number | boolean | any[] | Element.Constructor)
+        ?
+            true
+        :
+            T extends object
+                ?
+                    object extends T
+                        ?
+                            true
+                        :
+                            false
+                :
+                    false
+
+/**
+ * Generates a union of template spec object path string tuples where the last
+ * tuple item is the value type for that path (wrapped in a single element tuple)
+ *
+ * @privateRemarks
+ * This is a helper type function for {@link TaggedElements}
+ *
+ * Example:
+ *
+ * ```ts
+ * type Result = SpecToTagPaths<{
+ *   MyElement: object
+ *   MyParentElement: {
+ *     MyChildComponent: typeof MyComponent
+ *     MyChildElement: {
+ *       MyGrandChildElement: object
+ *     }
+ *   }
+ * }>
+ * ```
+ *
+ * Equates to:
+ *
+ * ```ts
+ * type Result =
+ *   ['MyElement', [object]] |
+ *   ['MyParentElement', [{
+ *      MyChildComponent: typeof MyComponent
+ *      MyChildElement: {
+ *        MyGrandChildElement: object
+ *      }
+ *   }]] |
+ *   ['MyParentElement', 'MyChildComponent', [typeof MyComponent]]
+ *   ['MyParentElement', 'MyChildElement', [{ MyGrandChildElement: object }]] |
+ *   ['MyParentElement', 'MyChildElement', 'MyGrandChildElement', [object]];
+ * ```
+ *
+ * @hidden Internal use only
+ */
+export type SpecToTagPaths<T> =
+    IsTerminus<T> extends true
+        ?
+            [[T]]
+        :
+            {
+                [K in Extract<keyof T, string>]: [K, ...SpecToTagPaths<T[K]>] | [K, [T[K]]]
+            }[Extract<keyof T, string>]
+
+/**
+ * Joins the given path string tuple into a single `.` separated string tag path
+ *
+ * @hidden Internal use only
+ */
+type Join<T extends string[]> =
+    T extends [] ? never :
+    T extends [infer F] ? F :
+    T extends [infer F, ...infer R] ?
+    F extends string ?
+    `${F}.${Join<Extract<R, string[]>>}` : never : string;
+
+/**
+ * Combines tag paths returned by {@link SpecToTagPaths} into a complete flattened object shape
+ *
+ * @privateRemarks
+ * This is a helper type function for {@link TaggedElements}.
+ *
+ * Only path elements that are a valid reference name (i.e. start with a capital letter {@link ValidRef}) are
+ * included.
+ *
+ * Example:
+ *
+ * ```ts
+ * type Result = CombineTagPaths<
+ *   ['MyElement', [object]] |
+ *   ['MyParentElement', [{
+ *      MyChildComponent: typeof MyComponent
+ *      MyChildElement: {
+ *        MyGrandChildElement: object
+ *      }
+ *   }]] |
+ *   ['MyParentElement', 'MyChildComponent', [typeof MyComponent]]
+ *   ['MyParentElement', 'MyChildElement', [{ MyGrandChildElement: object }]] |
+ *   ['MyParentElement', 'MyChildElement', 'MyGrandChildElement', [object]]
+ * >
+ * ```
+ *
+ * equates to:
+ *
+ * ```ts
+ * type Result = {
+ *   'MyElement': object;
+ *   'MyParentElement': {
+ *      MyChildComponent: typeof MyComponent
+ *      MyChildElement: {
+ *        MyGrandChildElement: object
+ *      }
+ *   };
+ *   'MyParentElement.MyChildComponent': typeof MyComponent;
+ *   'MyParentElement.MyChildElement': { MyGrandChildElement: object };
+ *   'MyParentElement.MyChildElement.MyGrandChildElement': object
+ * }
+ * ```
+ *
+ * @hidden Internal use only
+ */
+type CombineTagPaths<TagPaths extends any[]> = {
+    [PathWithType in TagPaths as PathWithType extends [...infer Path extends ValidRef[], [any]] ? Join<Path> : never]:
+        PathWithType extends [...any, [infer Type]]
+            ?
+                Type
+            :
+                never;
+}
+
+/**
+ * Returns a flattened map of the TemplateSpec where each key is is a `.` separated tag path to an element
+ *
+ * @privateRemarks
+ *
+ * Example:
+ * ```ts
+ * type Result = TaggedElements<{
+ *   MyElement: object
+ *   MyParentElement: {
+ *     MyChildComponent: typeof MyComponent
+ *     MyChildElement: {
+ *       MyGrandChildElement: object
+ *     }
+ *   }
+ * }>
+ * ```
+ *
+ * equates to:
+ *
+ * ```ts
+ * type Result = {
+ *   'MyElement': Lightning.Element<InlineElement<object>>;
+ *   'MyParentElement': Lightning.Element<InlineElement<{
+ *      MyChildComponent: typeof MyComponent
+ *      MyChildElement: {
+ *        MyGrandChildElement: object
+ *      }
+ *   }>>;
+ *   'MyParentElement.MyChildComponent': MyComponent;
+ *   'MyParentElement.MyChildElement': Lightning.Element<InlineElement<{ MyGrandChildElement: object }>>;
+ *   'MyParentElement.MyChildElement.MyGrandChildElement': Lightning.Element<InlineElement<object>>
+ * }
+ * ```
+ *
+ * @hidden Internal use only
+ */
+export type TaggedElements<TemplateSpec extends Element.TemplateSpec> = {
+  [K in keyof CombineTagPaths<SpecToTagPaths<TemplateSpec>>]: TransformPossibleElement<K, CombineTagPaths<SpecToTagPaths<TemplateSpec>>[K]>;
 };
 
 //
@@ -1371,18 +1552,31 @@ declare class Element<
   getCornerPoints(): [number, number, number, number, number, number, number, number];
 
   /**
-   * Returns one of the Elements from the subtree that has this tag.
+   * Returns one of the Elements from the subtree that has this tag path.
    *
    * @remarks
-   * WARNING: Because it's impossible to make tag selection type-safe, in useful way, it is recommended
-   * you do not use `tag()` when using TypeScript. Instead, call {@link Element.getByRef} to get direct
-   * child Elements. You can chain them to access deeper children of an Element.
+   * Using {@link getByRef} may be slightly more performant, but only works one level at a time.
    *
-   * @param tagName
-   * @deprecated Use {@link Element.getByRef} instead. See note about type-safety in the Remarks section.
+   * In strongly typed Components, only fully qualified paths are supported in a type-safe way
+   * (i.e. 'MyChild.MyGrandChild.MyGreatGrandChild'). If you'd like to reference a deep element
+   * by its ref name (i.e. just 'MyGreatGrandChild') you can opt into this by asserting `as any`:
+   *
+   * ```ts
+   * // No error and is typed
+   * this.tag('MyChild.MyGrandChild.MyGreatGrandChild')
+   * ```
+   *
+   * ```ts
+   * // Needs `any` assertion and is typed as `any`
+   * this.tag('MyGreatGrandChild' as any)
+   * ```
+   *
+   * See [Tags](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Tags?id=tags) for more
+   * information.
+   * @param tagName `.` separated tag path
    */
-  tag<T extends Element = Element>(tagName: string): T | undefined;
-
+  tag<Path extends keyof TaggedElements<TemplateSpecType>>(tagName: Path): TaggedElements<TemplateSpecType>[Path] | undefined;
+  tag(tagName: IsLooseTemplateSpec<TemplateSpecType> extends true ? string : never): any;
   /**
    * Returns all Elements from the subtree that have this tag.
    *

@@ -22,6 +22,7 @@
 
 import { expectType } from 'tsd';
 import { Lightning } from '../../index.typedoc.js';
+import { TaggedElements, SpecToTagPaths } from '../../src/tree/Element.mjs';
 import { MyLooseComponentC } from './components-loose.test-d.js';
 
 namespace MyComponentA {
@@ -88,6 +89,9 @@ namespace MyComponentB {
     MyComponentA: typeof MyComponentA;
     MyComponentA_Error: typeof MyComponentA;
     MyComponentA_Error2: typeof MyComponentA;
+    MyElement: {
+      NestedElement: object,
+    }
   }
 }
 
@@ -224,7 +228,7 @@ class MyComponentC extends Lightning.Component<MyComponentC.TemplateSpec> implem
     };
   }
 
-  readonly MyComponentA: MyComponentA = this.tag('MyComponentB')!;
+  readonly MyComponentA = this.tag('MyComponentA' as any)!;
   readonly MyComponentB: MyComponentB;
 
   constructor(stage: Lightning.Stage) {

@@ -20,6 +20,7 @@
  * Tests for loosely typed Components with TemplateSpecLoose
  */
 import lng from '../../index.js';
+import { TaggedElements } from '../../src/tree/Element.mjs';
 
 // Should be able to create a loose Component with unknown properties
 class MyLooseComponentA extends lng.Component {
@@ -148,11 +149,11 @@ export class MyLooseComponentC extends lng.Component<lng.Component.TemplateSpecL
   propC: string = '';
 
   get MyLooseComponentB(): MyLooseComponentB {
-    return this.tag('MyLooseComponentB')!;
+    return this.tag('MyLooseComponentB') as MyLooseComponentB;
   }
 
   get MyLooseComponentA(): MyLooseComponentA {
-    return this.tag('MyLooseComponentB.MyLooseComponentA')!;
+    return this.tag('MyLooseComponentB.MyLooseComponentA') as MyLooseComponentA;
   }
 }
 

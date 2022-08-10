@@ -17,7 +17,9 @@
  * limitations under the License.
  */
 /**
- * Unit tests for the Element types / type utilities
+ * Unit tests for the Component types / type utilities
+ *
+ * @module
  */
 import { expectNotType, expectType } from 'tsd';
 import lng from '../../index.js';

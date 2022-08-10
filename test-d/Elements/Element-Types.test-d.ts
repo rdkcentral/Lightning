@@ -18,25 +18,32 @@
  */
 /**
  * Unit tests for the Element types / type utilities
+ *
+ * @module
  */
 import { expectAssignable, expectType } from 'tsd';
 import lng from '../../index.js';
 import { CompileComponentTemplateSpecType } from '../../src/application/Component.mjs';
 import { SignalMapType } from '../../src/internalTypes.mjs';
-import { InlineElement, SmoothTemplate, TemplateSpecRefs, TransformPossibleElement, TransitionsTemplate } from '../../src/tree/Element.mjs';
+import { InlineElement, IsLooseTemplateSpec, SmoothTemplate, TaggedElements, TemplateSpecRefs, TransformPossibleElement, TransitionsTemplate } from '../../src/tree/Element.mjs';
 
 export interface TestTemplateSpec extends lng.Component.TemplateSpec {
   prop1: string;
   prop2: number;
   prop3: boolean;
   MyStrongElement_InlineEmpty: {};
+  MyStrongElement_InlineEmpty2: object;
   MyStrongElement_ExplicitType: typeof lng.Element<lng.Element.TemplateSpec>;
   MyLooseElement: typeof lng.Element;
   MyListComponent: typeof lng.components.ListComponent;
   MyStrongElement_InlineChildren: {
     Child1: {},
-    Child2: typeof lng.Element<lng.Element.TemplateSpec>,
-    Child3: typeof lng.components.ListComponent
+    Child2: object,
+    Child3: typeof lng.Element<lng.Element.TemplateSpec>,
+    Child4: typeof lng.components.ListComponent,
+    Child5: {
+      GrandChild1: object
+    }
   }
 }
 
@@ -102,8 +109,10 @@ function TransformPossibleElement_Test() {
     lng.Element<
       InlineElement<{
         Child1: {};
-        Child2: typeof lng.Element<lng.Element.TemplateSpec>;
-        Child3: typeof lng.components.ListComponent;
+        Child2: object;
+        Child3: typeof lng.Element<lng.Element.TemplateSpec>;
+        Child4: typeof lng.components.ListComponent;
+        Child5: { GrandChild1: object };
       }>
     >
   >({} as T550);
@@ -216,10 +225,10 @@ function PatchTemplate_Test() {
       Child1: {
         color: 123,
       },
-      Child2: {
+      Child3: {
         text: 'abc',
       },
-      Child3: {
+      Child4: {
         itemSize: 123
       }
     }
@@ -265,8 +274,12 @@ function PatchTemplate_Test() {
     lng.Element.PatchTemplate<
       InlineElement<{
         Child1: {};
-        Child2: typeof lng.Element<lng.Element.TemplateSpec>,
-        Child3: typeof lng.components.ListComponent;
+        Child2: object,
+        Child3: typeof lng.Element<lng.Element.TemplateSpec>,
+        Child4: typeof lng.components.ListComponent,
+        Child5: {
+          GrandChild1: object
+        }
       }>
     > | undefined
   >({} as T600);
@@ -280,9 +293,51 @@ function TemplateSpecRefs_Test() {
   type T1000 = TemplateSpecRefs<TestTemplateSpec>;
   expectType<{
     MyStrongElement_InlineEmpty: lng.Element<InlineElement<{}>>;
+    MyStrongElement_InlineEmpty2: lng.Element<InlineElement<object>>;
     MyStrongElement_ExplicitType: lng.Element<lng.Element.TemplateSpec>;
     MyLooseElement: lng.Element;
     MyListComponent:lng.components.ListComponent;
     MyStrongElement_InlineChildren: lng.Element<InlineElement<TestTemplateSpec['MyStrongElement_InlineChildren']>>;
   }>({} as T1000);
+}
+
+//
+// TaggedElements
+//
+function TaggedElements_Test() {
+  /// Strong template specs returns flat tag path map
+  type T1000 = TaggedElements<TestTemplateSpec>;
+  expectType<{
+    'MyStrongElement_InlineEmpty': lng.Element<InlineElement<{}>>;
+    'MyStrongElement_InlineEmpty2': lng.Element<InlineElement<object>>;
+    'MyStrongElement_ExplicitType': lng.Element<lng.Element.TemplateSpec>;
+    'MyLooseElement': lng.Element;
+    'MyListComponent': lng.components.ListComponent;
+    'MyStrongElement_InlineChildren': lng.Element<InlineElement<TestTemplateSpec['MyStrongElement_InlineChildren']>>;
+    'MyStrongElement_InlineChildren.Child1': lng.Element<InlineElement<{}>>;
+    'MyStrongElement_InlineChildren.Child2': lng.Element<InlineElement<object>>;
+    'MyStrongElement_InlineChildren.Child3': lng.Element<lng.Element.TemplateSpec>;
+    'MyStrongElement_InlineChildren.Child4': lng.components.ListComponent;
+    'MyStrongElement_InlineChildren.Child5': lng.Element<InlineElement<TestTemplateSpec['MyStrongElement_InlineChildren']['Child5']>>;
+    'MyStrongElement_InlineChildren.Child5.GrandChild1': lng.Element<InlineElement<object>>;
+  }>({} as T1000);
+
+  /// Loose template specs return empty object type
+  type T2000 = TaggedElements<TestTemplateSpec & lng.Component.TemplateSpecLoose>;
+  expectType<{}>({} as T2000);
+}
+
+//
+// IsLooseTemplateSpec
+//
+function IsLooseTemplateSpec_Test() {
+  /// Strong template specs return `false`
+  expectType<false>({} as IsLooseTemplateSpec<lng.Element.TemplateSpec>);
+  expectType<false>({} as IsLooseTemplateSpec<lng.Component.TemplateSpec>);
+  expectType<false>({} as IsLooseTemplateSpec<TestTemplateSpec>);
+
+  /// Strong template specs return `true`
+  expectType<true>({} as IsLooseTemplateSpec<lng.Element.TemplateSpecLoose>);
+  expectType<true>({} as IsLooseTemplateSpec<lng.Component.TemplateSpecLoose>);
+  expectType<true>({} as IsLooseTemplateSpec<TestTemplateSpec & lng.Component.TemplateSpecLoose>);
 }

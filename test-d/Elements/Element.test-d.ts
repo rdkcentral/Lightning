@@ -146,6 +146,41 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
     expectType<any>(this.MyLooseElement.getByRef('Anything'));
 
     //
+    // tag
+    //
+    // # STRONG #
+    // Should be able to do what getByRef can do...
+    expectType<
+      lng.Element<{
+        ChildElement: {};
+        ChildComponent: typeof ListComponent;
+      } & lng.Element.TemplateSpecLoose> | undefined
+    >(this.tag('MyLooseElement'));
+    expectType<
+      lng.Element<InlineElement<{
+        ChildElement: {};
+        ChildComponent: typeof ListComponent;
+      }>> | undefined
+    >(this.tag('MyStrongElement'));
+    // @ts-expect-error Don't allow anything in a strongly typed Element
+    this.tag('Anything');
+    // Unless you use `as any`
+    expectType<any>(this.tag('Anything' as any));
+
+    // Should be able to access elements deeply
+    expectType<
+      lng.components.ListComponent | undefined
+    >(this.tag('MyStrongElement.ChildComponent'));
+
+    expectType<
+      lng.Element<InlineElement<{}>, lng.Element.TypeConfig> | undefined
+    >(this.tag('MyStrongElement.ChildElement'));
+
+    // # LOOSE #
+    expectType<any>(this.MyLooseElement.tag('Anything'));
+    expectType<any>(this.MyLooseElement.tag('Anything'));
+
+    //
     // mw
     //
     this.MyStrongElement.mw = 123;
