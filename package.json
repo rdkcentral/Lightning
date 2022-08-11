@@ -6,6 +6,18 @@
   "main": "dist/lightning.js",
   "module": "index.js",
   "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./index.d.ts",
+        "default": "./index.js"
+      },
+      "require": {
+        "types": "./dist/lightning.js",
+        "default": "./index.d.ts"
+      }
+    }
+  },
   "files": [
     "tsconfig.json",
     "index.js",
@@ -14,7 +26,6 @@
     "dist/**",
     "devtools/**"
   ],
-  "exports": "./index.js",
   "scripts": {
     "build": "rollup -c",
     "release": "npm run build && npm publish --access public",
