@@ -149,7 +149,7 @@ class MyComponent /* ... */ {
 }
 ```
 
-You may then choose to make any of your Component's descendants easily accessible via private/public properties. Note that we use `this.getByRef()` instead of `this.tag()` because it is much more type-safe. Your IDE will even give you auto-completes on the valid children ref names based on your TemplateSpec so you can avoid typos.
+You may then choose to make any of your Component's descendants easily accessible via private/public properties. `this.tag()` or `this.getByRef()` can be used to get at your components. We chose `getByRef()` in the example below as it is a bit more performant. In either case, your IDE provides you with an auto-complete prompt on the valid child paths / ref names based on your TemplateSpec so you can avoid typos.
 
 ```ts
 class MyComponent /* ... */ {
@@ -178,7 +178,7 @@ class MyComponent /* ... */ {
   /*
     If we have a descendant that may or may not exist at any given time, we must implement it as a getter
 
-    This way `getByRef` is called each time the descendant is needed. And note, this time we do not use
+    This way `getByRef()` is called each time the descendant is needed. And note, this time we do not use
     the `!` non-null assertion operator since it's existance must be checked at runtime.
    */
   get GrandChild1() {
@@ -189,7 +189,22 @@ class MyComponent /* ... */ {
 }
 ```
 
-Your Component should then be set for further implementation and use as children by other Components.
+For reference, here's the the equivalent using `tag()`:
+```ts
+class MyComponent /* ... */ {
+  private _MyChildElementWithChildren = this.tag('MyChildElementWithChildren')!;
+  private _GrandChild3 = this.tag('MyChildElementWithChildren.GrandChild3')!;
+  GreatGrandChild1 = this.tag('MyChildElementWithChildren.GrandChild3.GreatGrandChild1')!;
+  get GrandChild1() {
+    return this.tag('MyChildElementWithChildren.GrandChild1')!;
+  }
+  // ...
+}
+```
+
+Notice that you do not need to explicitly add types to each property. TypeScript automatically derives the types of each property from the return value type of `getByRef()` or `tag()`.
+
+At this point your Component should be set for further implementation and use as children by other Components.
 
 ```ts
 class MyComponent /* ... */ {
