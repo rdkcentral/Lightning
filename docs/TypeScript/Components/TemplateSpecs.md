@@ -206,3 +206,17 @@ class MyComponent /* ... */ {
   }
 }
 ```
+
+## Loose Components
+
+If you'd like to opt-out of some of the type safety aspects within a Component you can create a Loose Template Spec. To do this simply extend your Template Spec from `Lightning.Component.TemplateSpecLoose`. A Component that uses a Loose Template Spec is known as a Loose Component.
+
+```ts
+export interface MyComponentTemplateSpec extends Lightning.Component.TemplateSpecLoose {
+  // ...
+}
+```
+
+Doing this allows any arbitrary properties / child ref keys, in addition to the ones declared in the Template Spec, to be set on your component during `_template` creation and patches.
+
+By default, all Components that do not set their own Template Spec are Loose. This allows Components that you may import from a third-party library that doesn't yet support TypeScript to be used in your app with little upfront friction.
