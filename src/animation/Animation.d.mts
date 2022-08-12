@@ -90,7 +90,7 @@ declare namespace Animation {
  * Represents an Animation of an Element
  *
  * @remarks
- * Animations can be created by calling {@link Element.animate animate()} on any {@link Element}.
+ * Animations can be created by calling {@link Element.animation} on any {@link Element}.
  *
  * See [Animations](https://lightningjs.io/docs/#/lightning-core-reference/Animations/index) for
  * more information.

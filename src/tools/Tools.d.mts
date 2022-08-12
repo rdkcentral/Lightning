@@ -38,11 +38,11 @@ declare class Tools {
    */
   static getCanvasTexture(
     /**
-     * @see {@link StaticCanvasTexture.Content.factory}
+     * @see {@link Lightning.textures.StaticCanvasTexture.Content.factory}
      */
     canvasFactory: StaticCanvasTexture.Factory,
     /**
-     * @see {@link StaticCanvasTexture.Content.lookupId}
+     * @see {@link Lightning.textures.StaticCanvasTexture.Content.lookupId}
      */
     lookupId: string,
   ): StaticCanvasTexture.Settings;
@@ -50,7 +50,7 @@ declare class Tools {
   /**
    * Gets a Texture defintion for a Rounded Rectangle
    *
-   * The Rounded Rectangle is drawn onto an HTML Canvas, and then rendered by Lightning via a {@link StaticCanvasTexture}
+   * The Rounded Rectangle is drawn onto an HTML Canvas, and then rendered by Lightning via a {@link Lightning.textures.StaticCanvasTexture}
    *
    * @param w Width of rectangle
    * @param h Height of rectangle
@@ -77,7 +77,7 @@ declare class Tools {
    * Gets a Texture defintion for a Drop-Shadow Rectangle
    *
    * @remarks
-   * The Shadow Rectangle is drawn onto an HTML Canvas, and then rendered by Lightning via a {@link StaticCanvasTexture}
+   * The Shadow Rectangle is drawn onto an HTML Canvas, and then rendered by Lightning via a {@link Lightning.textures.StaticCanvasTexture}
    *
    * @param w Width of rectangle
    * @param h Height of rectangle
@@ -100,7 +100,7 @@ declare class Tools {
    * Gets a Texture defintion for an SVG Texture
    *
    * @remarks
-   * The SVG is downloaded, drawn onto an HTML Canvas, and then rendered by Lightning via a {@link StaticCanvasTexture}
+   * The SVG is downloaded, drawn onto an HTML Canvas, and then rendered by Lightning via a {@link Lightning.textures.StaticCanvasTexture}
    *
    * @param url URL to the SVG file
    * @param w Width to render the SVG at

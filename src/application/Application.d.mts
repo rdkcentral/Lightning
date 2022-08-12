@@ -145,7 +145,7 @@ declare class Application<
   constructor(options?: Partial<Application.Options>, properties?: Element.PatchTemplate<TemplateSpecType>);
 
   /**
-   * Gets an option value from the active set of {@link Application.ApplicationOptions}
+   * Gets an option value from the active set of {@link Application.Options}
    */
   getOption<
     T extends keyof Application.Options,

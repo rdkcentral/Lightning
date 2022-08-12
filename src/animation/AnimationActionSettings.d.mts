@@ -98,7 +98,7 @@ declare namespace AnimationActionSettings {
    * **V** is a `number` it's interpreted as {@link AnimationActionPoint.v} with default
    * values used all other animation settings.
    *
-   * Note: If the animation's {@link AnimationSettings.Literal.StopMethod} is `onetotwo`
+   * Note: If the animation's {@link AnimationSettings.Literal.stopMethod} is `onetotwo`
    * then **P** may also range to `2`. See {@link AnimationSettings.STOP_METHODS.ONETOTWO}.
    *
    * @example

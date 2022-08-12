@@ -1666,7 +1666,7 @@ declare class Element<
   get h(): number;
   set h(h: number | ((parentHeight: number) => number));
 
-  collision: boolean | 2;
+  collision: boolean;
 
   scaleX: number;
 
