@@ -158,7 +158,6 @@ declare namespace AnimationActionSettings {
      * you do not use `t` when using TypeScript. Instead, call `animation()` directly on
      * each Element you wish to animate.
      *
-     * @see {@link selector}
      * @deprecated See note about type-safety in the Remarks section.
      */
     t?: string;

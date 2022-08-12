@@ -96,13 +96,16 @@ declare namespace Stage {
      */
     memoryPressure: number;
     /**
-     * ???
+     * Memory size of quad buffer (in bytes)
      *
      * @defaultValue `2e6`
      */
     bufferMemory: number;
     /**
-     * ???
+     * Number of additional pixels to add to the width of every text texture
+     *
+     * @remarks
+     * WARNING: This can distort text.
      *
      * @defaultValue `0`
      */

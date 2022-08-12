@@ -718,9 +718,13 @@ declare namespace Element {
     h: number | ((parentHeight: number) => number);
 
     /**
-     * ???
+     * Mouse pointer collision
+     *
+     * @remarks
+     * If set `true`, then it allows a [Mouse Pointer](https://lightningjs.io/docs/#/lightning-core-reference/HandlingInput/Mouse?id=mouse-input)
+     * to click/hover over this Element.
      */
-    collision: boolean | 2;
+    collision: boolean;
 
     /**
      * Rectangle texture mode
@@ -949,6 +953,11 @@ declare namespace Element {
     shader: Shader | Shader.SettingsLoose | null;
 
     /**
+     * @see {@link rtt}
+     */
+    renderToTexture: boolean;
+
+    /**
      * If set to `true`, enables Render-to-Texture mode on this Element
      *
      * @remarks
@@ -958,11 +967,6 @@ declare namespace Element {
      * (like rotations).
      *
      * @defaultValue `false`
-     */
-    renderToTexture: boolean;
-
-    /**
-     * @see {@link renderToTexture}
      */
     rtt: boolean;
 
@@ -984,7 +988,10 @@ declare namespace Element {
     renderOffscreen: boolean;
 
     /**
-     * ???
+     * If set to `true`, applies a colorization effect to the resulting texture when {@link rtt} is on.
+     *
+     * @remarks
+     * This property has no effect if {@link rtt} is not enabled.
      */
     colorizeResultTexture: boolean;
 
@@ -1212,6 +1219,7 @@ declare namespace Element {
      *
      * @remarks
      * After Calcs may change render coords, scissor and/or recBoundsMargin.
+     *
      */
     onAfterCalcs: OnAfterCalcsCallback | undefined | null;
 
@@ -1874,7 +1882,7 @@ declare class Element<
    * - If `settings` param is provided:
    *   - Set the Transition `settings` for `property`
    * - If `settings` param is NOT provided:
-   *   - Get the {@link Transition} instance for `property`
+   *   - Get the {@link Lightning.types.Transition} instance for `property`
    *
    * See [Transitions](https://lightningjs.io/docs/#/lightning-core-reference/Transitions/index) for more
    * information.

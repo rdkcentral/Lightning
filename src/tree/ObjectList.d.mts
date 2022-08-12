@@ -92,7 +92,7 @@ export default class ObjectList<ItemType, LiteralType extends Record<string | nu
    *
    * @remarks
    * If `settings` is:
-   * - An Object Literal (See: {@link lng.Utils.isObjectLiteral})...
+   * - An Object Literal (See: {@link Lightning.Utils.isObjectLiteral})...
    *   - The keys of the Object Literal are treated as ref strings. Each key is looked up in the
    *     set of existing items:
    *     - If the object at the ref key already exists in the ObjectList:

@@ -374,6 +374,9 @@ interface Component extends Component.KeyHandlers {
   // Intentionally left blank
 }
 
+/**
+ * Lightning Component
+ */
 declare class Component<
   // Components use loose typing TemplateSpecs by default
   TemplateSpecType extends Component.TemplateSpecLoose = Component.TemplateSpecLoose,
@@ -595,15 +598,61 @@ declare class Component<
   _refocus(): void;
 
   /**
-   * bindProp
+   * Used to data bind one or more properties to another property
    *
    * @remarks
-   * ???
+   * WARNING: This method has no inherent type safety. Use with caution.
    *
-   * @param name
-   * @param func
+   * @example
+   * ```ts
+   *
+   * export interface BasicUsageExampleTemplateSpec {
+   *   // Component Properties
+   *   size: number;
+   *   divider: number;
+   *   title: string;
+   *
+   *   // Component Children
+   *   Title: object;
+   * }
+   *
+   * // Since Lightning creates these properties behind the scenes via `bindProp()`
+   * // we need to tell TypeScript that these will already exist.
+   * export interface BasicUsageExample {
+   *   size: number;
+   *   divider: number;
+   *   title: string;
+   * }
+   *
+   * export class BasicUsageExample
+   *   extends Lightning.Component<TemplateSpec>
+   *   implements Lightning.Component.ImplementTemplateSpec<TemplateSpec> {
+   *
+   *   static override _template(): Lightning.Component.Template<TemplateSpec> {
+   *     return {
+   *       rect: true,
+   *       w: this.bindProp('size'),
+   *       h: this.bindProp(['size', 'divider'], (context: BasicUsageExample) => context.size / context.divider),
+   *       color: 0xff443322,
+   *       Title: {
+   *         text: {text: this.bindProp('title')}
+   *       }
+   *     }
+   *   }
+   *
+   *   override _init() {
+   *     this.size = 300;
+   *     this.divider = 4;
+   *     this.title = 'Hello World';
+   *   }
+   * }
+   * ```
+   *
+   * @param name The name or names of input properties
+   * @param func A callback that is called when one of the input properties change.
+   * - The `context` parameter is the instance of the Component that `_template` was defined/executed on.
    */
-  static bindProp(name: any, func?: any): any;
+  static bindProp<T>(name: string | string[], func?: (context: any) => T): T;
 
   // __bindProperty(propObj: any, targetObj: any, targetProp: any): void;
   // - Internal

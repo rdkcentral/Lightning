@@ -110,7 +110,7 @@ export default class ElementChildList extends ObjectList<Element, Element.PatchT
     *
     * @remarks
     * If `settings` is:
-    * - An Object Literal (See: {@link lng.Utils.isObjectLiteral})...
+    * - An Object Literal (See: {@link Lightning.Utils.isObjectLiteral})...
     *   - The keys of the Object Literal are treated as ref strings. Each key is looked up in the
     *     set of existing items:
     *     - If an Element with the ref key already exists in the ElementChildList:
