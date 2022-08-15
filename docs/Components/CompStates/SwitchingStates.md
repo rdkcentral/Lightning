@@ -4,7 +4,7 @@
 You can switch states with `this._setState('MyStateName')`.
 
 
-The following example visualizes how state switching works, using a blue and green cube as example.
+The following example visualizes how state switching works, using a blue and green cube as an example.
 
 ## Live Demo
 

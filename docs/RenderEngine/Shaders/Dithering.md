@@ -1,6 +1,6 @@
 # Dithering
 
-With the Dithering shader you can add a graining effect to the to be rendered texture.
+With the Dithering shader, you can add a graining effect to the texture to be rendered.
 
 ## Usage
 
@@ -36,7 +36,7 @@ You can customize the appearance of the Dithering shader with the following sett
 You can set the graining value with a `float`.
 
 ### random
-You can set if the graining should be random everytime the shader is generated with a `boolean`.
+You can set if the graining should be random every time the shader is generated with a `boolean`.
 
 ## Getters
 

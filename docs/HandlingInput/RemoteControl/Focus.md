@@ -57,7 +57,7 @@ _getFocused() {
 ```
 
 
-For components that are generated dynamically (like a `list` with items served by an API), it is recommended that you create an `index` variable to delegate your focus. After that, you can bind some keys for the user to change the focus to a differed component:
+For components that are generated dynamically (like a `list` with items served by an API), it is recommended that you create an `index` variable to delegate your focus. After that, you can bind some keys for the user to change the focus to a different component:
 
 
 ```

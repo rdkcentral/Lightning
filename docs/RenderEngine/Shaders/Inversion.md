@@ -1,6 +1,6 @@
 # Inversion
 
-With the Inversion shader you can invert the colors the to be rendered texture with a specific amount.
+With the Inversion shader, you can invert the colors of the texture to be rendered with a specific amount.
 
 ## Usage
 

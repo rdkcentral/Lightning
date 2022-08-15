@@ -34,9 +34,9 @@ You can customize the appearance of the Rounded Rectangle shader with the follow
 ## Setters
 
 ### radius
-You can set the radius of the Rounded Rectangle shader with a `float` or and `array`.
+You can set the radius of the Rounded Rectangle shader with a `float` or an `array`.
 
-When a `float` value is given the shader will appoint that value to each corner of the rectangle. When an `array` is given the shader checks the length of given array in order to appoint the correct value to each corner.
+When a `float` value is given the shader will appoint that value to each corner of the rectangle. When an `array` is given the shader checks the length of the given array in order to appoint the correct value to each corner.
 
 When the `array` length is two:
 
@@ -80,7 +80,7 @@ const corners = {
 }
 ```
 
-When the `array` length is something different then the first three examples:
+When the `array` length is something different than the first three examples:
 
 ```js
 const radius = [20, 30, 40, 50];
@@ -113,7 +113,7 @@ You can add a stroke to the Rounded Rectangle shader by setting a `float` bigger
 You can set the strokeColor with an `argb` value typically used in Lightning. Default is `0x00ffffff`
 
 ### fillColor
-You can set the fillColor of the RoundedRectangle with an `argb` value typically used in Lightning, default is `0xffffffff`.
+You can set the fillColor of the RoundedRectangle with an `argb` value typically used in Lightning. Default is `0xffffffff`.
 
 ### blend
 The blend property allows you to use the Rounded Rectangle to blend with the texture. The expected value is a `float` that ranges from 0 - 1;

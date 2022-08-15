@@ -34,9 +34,9 @@ You can customize the appearance of the Fade Out shader with the following sette
 ## Setters
 
 ### fade
-You can set the fade of the Fade Out shader with a `float` or and `array`.
+You can set the fade of the Fade Out shader with a `float` or an `array`.
 
-When a `float` value is given the shader will appoint that value to each corner of the rectangle. When an `array` is given the shader checks the length of given array in order to appoint the correct value to each corner.
+When a `float` value is given the shader will appoint that value to each corner of the rectangle. When an `array` is given the shader checks the length of the given array in order to appoint the correct value to each corner.
 
 When the `array` length is two:
 

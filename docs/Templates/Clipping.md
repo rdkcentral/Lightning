@@ -35,7 +35,7 @@ The resize modes `cover` and `contain` are supported (see [below](#cover)).
 
 
 When the texture is loaded, the clipping is automatically
-defined. If the `resizeMode` value of an already loaded texture changes, it is immediately applied.
+defined. If the `resizeMode` value of the already loaded texture changes, it is immediately applied.
 
 > Because `resizeMode` actually changes the clipping attributes, you should either set the clipping attributes manually or specify the resizeMode (but not both).
 
@@ -73,9 +73,7 @@ Cover: {
 Using the `contain` resize mode, you can fit an image in a specific rectangular area.
 
 
-One axis will fit to the
-specified size, while the other will be less than specified. To properly align the texture within the area, use a *wrapper*
-element as follows:
+One axis will fit to the specified size, while the other will be less than specified. To properly align the texture within the area, use a *wrapper* element as follows:
 
 
 ```

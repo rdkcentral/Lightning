@@ -80,4 +80,4 @@ document.body.appendChild(App.stage.getCanvas());
 Although `_getLookupId()` is not required, it can be used to determine if the same texture was already generated and therefore can be reused. This saves memory and performance when using it from multiple views.
 
 
-`_getSourceLoader()` returns a function that is able to load the texture itself. The source may be an instance of any uploadable type (like ImageData, HTMLImageElement, HTMLCanvasElement, HTMLVideoElement, ImageBitmap or ArrayBufferView). It is important that you call call the super method `_changed()` to make sure that the texture is properly reloaded.
+`_getSourceLoader()` returns a function that is able to load the texture itself. The source may be an instance of any uploadable type (like ImageData, HTMLImageElement, HTMLCanvasElement, HTMLVideoElement, ImageBitmap or ArrayBufferView). It is important that you call the super method `_changed()` to make sure that the texture is properly reloaded.

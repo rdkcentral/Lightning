@@ -20,7 +20,7 @@ const App = new MyApp(options);
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `debug` | Boolean | false | Shows changes to the focus path for debug purposes |
-| `keys` | Object | Object | A custom [key map](../RemoteControl/KeyHandling.md#key-mapping) |
+| `keys` | Object | Object | A custom [key map](../HandlingInput/RemoteControl/KeyHandling.md#key-mapping) |
 
 
 

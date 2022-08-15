@@ -120,7 +120,7 @@ export default class TextTextureRenderer {
         let innerWidth = width - (paddingLeft);
         if (innerWidth < 10) {
             width += (10 - innerWidth);
-            innerWidth += (10 - innerWidth);
+            innerWidth = 10;
         }
 
         if (!wordWrapWidth) {
