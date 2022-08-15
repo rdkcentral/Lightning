@@ -160,12 +160,10 @@ export default class TextureManager {
 
     _freeManagedTextureSource(textureSource) {
         if (textureSource.isLoaded()) {
-            // add VRAM tracking if using the webgl renderer
-            this._updateVramUsage(textureSource, -1);
-
             this._nativeFreeTextureSource(textureSource);
             this._addMemoryUsage(-textureSource.w * textureSource.h);
 
+            // add VRAM tracking if using the webgl renderer
             this._updateVramUsage(textureSource, -1);
         }
 
