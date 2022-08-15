@@ -5,15 +5,32 @@
   "license": "Apache-2.0",
   "main": "dist/lightning.js",
   "module": "index.js",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./index.d.ts",
+        "default": "./index.js"
+      },
+      "require": {
+        "types": "./dist/lightning.js",
+        "default": "./index.d.ts"
+      }
+    }
+  },
   "files": [
+    "tsconfig.json",
     "index.js",
+    "index.d.ts",
     "src/**",
     "dist/**",
     "devtools/**"
   ],
   "scripts": {
     "build": "rollup -c",
-    "release": "npm run build && npm publish --access public"
+    "release": "npm run build && npm publish --access public",
+    "typedoc": "typedoc --tsconfig tsconfig.typedoc.json",
+    "tsd": "tsd"
   },
   "repository": {
     "type": "git",
@@ -34,6 +51,8 @@
     "rollup-plugin-cleanup": "^3.1.1",
     "rollup-plugin-license": "2.5.0",
     "rollup-plugin-terser": "^5.1.2",
-    "sinon": "^7.5.0"
+    "sinon": "^7.5.0",
+    "tsd": "^0.21.0",
+    "typedoc": "^0.23.10"
   }
 }
