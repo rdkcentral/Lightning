@@ -1,0 +1,22 @@
+{
+  "include": [
+    "**/*.d.mts", "**/*.d.ts", "**/*.ts"
+  ],
+  "compilerOptions": {
+    "lib": ["ES2018", "DOM"],
+    "outDir": "types",
+    "sourceMap": true,
+    "module": "Node16",
+    "target": "ES2020",
+    "moduleResolution": "node",
+    "allowJs": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "noImplicitOverride": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": true
+  }
+}

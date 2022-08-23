@@ -2,11 +2,12 @@
 
 ## v2.7.0
 
-*26 jul 2022*
+*15 aug 2022*
 
+- Added TypeScript Support (#407)
 - Enabled RAF idle usage with stage option 'pauseRafLoopOnIdle'(#402)
-- Fixed regression on Ziggo platforms(#364)
-- Added glReadPixels support after rendering(#388)
+- Fixed regression on Ziggo platforms (#364)
+- Added glReadPixels support after rendering (#388)
 - Updated Readme file with correct LightningJs Documentation URL.(#383)
 - Improved support for vertical alignment on advanced text renderer. (#378)
 - Removed regex named capture groups from text parser (#394)

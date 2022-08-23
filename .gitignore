@@ -41,3 +41,9 @@ jspm_packages
 dist
 
 .idea
+
+# Prevent `tsc` generated typescript types from ended up in the repo
+/types
+
+# Type Docs
+/typedocs
