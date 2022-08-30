@@ -113,8 +113,9 @@ export default class WebPlatform {
             if (Utils.isZiggo || this.stage.getOption("forceTxCanvasSource")) {
                 // Ziggo EOS and Selene have issues with getImageData implementation causing artifacts.
                 gl.texImage2D(gl.TEXTURE_2D, 0, options.internalFormat, options.format, options.type, source);
-            } else {
+            } else if (source.width > 0 && source.height > 0) {
                 // Workaround for some browsers (e.g. Tizen) as they do not convert canvas data to texture correctly, sometimes causing artifacts.
+                // Width/Height check added because of https://github.com/rdkcentral/Lightning/issues/412
                 const ctx = source.getContext('2d');
                 gl.texImage2D(gl.TEXTURE_2D, 0, options.internalFormat, options.format, options.type, ctx.getImageData(0, 0, source.width, source.height));
             }
