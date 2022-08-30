@@ -296,7 +296,7 @@ export default class Stage extends EventEmitter {
         this.frameCounter++;
     }
 
-    drawFrame() {
+    renderFrame() {
         const changes = this.ctx.hasRenderUpdates();
 
         // Update may cause textures to be loaded in sync, so by processing them here we may be able to show them
@@ -321,8 +321,13 @@ export default class Stage extends EventEmitter {
         return this._updatingFrame;
     }
 
-    renderFrame() {
-        this.ctx.frame();
+    drawFrame() {
+        // Maintain original functionality of `drawFrame()` while retaining the
+        // RAF mitigration feature from: https://github.com/rdkcentral/Lightning/pull/402
+        // The full functionality of this method is relied directly by our own unit tests and
+        // the unit tests of third party users
+        this.updateFrame();
+        this.renderFrame();
     }
 
     forceRenderUpdate() {

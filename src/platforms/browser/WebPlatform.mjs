@@ -97,7 +97,7 @@ export default class WebPlatform {
                 if (self.stage.getOption("pauseRafLoopOnIdle")) {
                     self.switchLoop();
                 }
-                self.stage.drawFrame();
+                self.stage.renderFrame();
                 requestAnimationFrame(lp);
                 self._awaitingLoop = true;
             }
@@ -307,7 +307,7 @@ export default class WebPlatform {
         this._visibilityChangeHandler = () => {
             if (document.visibilityState === 'visible') {
                 this.stage.root.core.setHasRenderUpdates(2);
-                this.stage.drawFrame();
+                this.stage.renderFrame();
             }
         }
         document.addEventListener('visibilitychange', this._visibilityChangeHandler);

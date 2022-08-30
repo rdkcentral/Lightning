@@ -375,10 +375,9 @@ declare class Stage extends EventEmitter<Stage.EventMap> {
   // - Internal Use Only
 
   /**
-   * Draws a new frame
+   * Updates and renders a new frame
    */
-  // drawFrame(): void;
-  // - Internal Use Only
+  drawFrame(): void;
 
   /**
    * Returns `true` if the frame is currently updating
@@ -386,7 +385,7 @@ declare class Stage extends EventEmitter<Stage.EventMap> {
   isUpdatingFrame(): boolean;
 
   // renderFrame(): void;
-  // - Dead code
+  // - Internal Use Only
 
   /**
    * Force a re-render
