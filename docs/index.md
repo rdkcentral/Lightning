@@ -73,7 +73,7 @@ The Reference Documentation for Lightning Core contains detailed descriptions ab
     * [Template Specs](TypeScript/Components/TemplateSpecs.md)
     * [Type Configs](TypeScript/Components/TypeConfigs.md)
     * [Subclassable Components](TypeScript/Components/SubclassableComponents.md)
-  * [Guidelines / Gotchas](TypeScript/Augmentation.md)
+  * [Guidelines / Gotchas](TypeScript/GuidelinesGotchas.md)
   * [Augmentation](TypeScript/Augmentation.md)
 
 <!---TOC_end--->
