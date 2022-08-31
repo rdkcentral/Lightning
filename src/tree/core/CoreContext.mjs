@@ -38,6 +38,8 @@ export default class CoreContext {
         this._renderTextureId = 1;
 
         this._zSorts = [];
+
+        this.renderToTextureCount = 0;
     }
 
     get usedMemory() {
@@ -108,9 +110,13 @@ export default class CoreContext {
 
         // Block OpenGL pipeline to prevent framebuffer flickering
         // on certain devices
-        if (this.stage.getOption('readPixelsAfterDraw')) {
+        if (this.stage.getOption('readPixelsAfterDraw') &&
+            this.renderToTextureCount >= this.stage.getOption('readPixelsAfterDrawThreshold')
+        ) {
             this._readPixels();
         }
+
+        this.renderToTextureCount = 0;
     }
 
     _readPixels() {

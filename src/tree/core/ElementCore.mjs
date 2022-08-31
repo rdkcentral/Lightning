@@ -1818,6 +1818,8 @@ export default class ElementCore {
                     // Ignore this branch and don't draw anything.
                     return;
                 } else if (!this._texturizer.hasRenderTexture() || (hasRenderUpdates >= 3)) {
+                    // Tell the renderer we're rendering a renderToTexture element in this next frame
+                    this.ctx.renderToTextureCount++;
                     // Switch to default shader for building up the render texture.
                     renderState.setShader(renderState.defaultShader, this);
 
