@@ -233,6 +233,17 @@ declare namespace Stage {
     readPixelsAfterDrawThreshold: number;
 
     /**
+     * If set to `true`, logs debug information about each frame including
+     * how many render-to-texture elements were re-rendered.
+     *
+     * @remarks
+     * This may impact performance and should not be turned on in production.
+     *
+     * @defaultValue `false`
+     */
+    debugFrame: boolean;
+
+    /**
      * If set to `true`, forces the Render Engine to use the canvasSource over getImageData for text
      *
      * @remarks
