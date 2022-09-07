@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.7.1
+
+*07 sep 2022*
+
+- Added support for smart read pixels after draw (#417)
+
+
 ## v2.7.0
 
 *15 aug 2022*
