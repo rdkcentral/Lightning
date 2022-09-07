@@ -194,8 +194,6 @@ declare namespace Stage {
      *
      * Note: This will affect performance!
      *
-     * See [PR #393](https://github.com/rdkcentral/Lightning/pull/393) for more information about this option.
-     *
      * @defaultValue `false`
      * @see {@link readPixelsAfterDraw}
      */
@@ -210,6 +208,7 @@ declare namespace Stage {
      *
      * Note: This will affect performance!
      *
+
      * You may set {@link readPixelsAfterDrawThreshold} to control the number of render-to-texture element re-renders
      * that trigger the syncronous pipeline.
      *
@@ -219,7 +218,6 @@ declare namespace Stage {
      * @see {@link readPixelsBeforeDraw}
      */
     readPixelsAfterDraw: boolean;
-
     /**
      * If {@link readPixelsAfterDraw} is set to `true`, this is the number of render-to-texture element re-renders
      * in a frame that will trigger the synchronous Render pipeline.
@@ -254,8 +252,17 @@ declare namespace Stage {
      * @defaultValue `false`
      */
     forceTxCanvasSource: boolean;
+    /**
+     * If set to `true`, will stop the Render Engine from calling `RequestAnimationFrame` when there are no
+     * stage updates.
+     *
+     * @remarks
+     * See [Issue #380](https://github.com/rdkcentral/Lightning/issues/380) for more information about this option.
+     *
+     * @defaultValue `false`
+     */
+    pauseRafLoopOnIdle: boolean;
   }
-
   /**
    * Events produced by Stage along with their handler signatures
    */
@@ -395,10 +402,9 @@ declare class Stage extends EventEmitter<Stage.EventMap> {
   // - Internal Use Only
 
   /**
-   * Draws a new frame
+   * Updates and renders a new frame
    */
-  // drawFrame(): void;
-  // - Internal Use Only
+  drawFrame(): void;
 
   /**
    * Returns `true` if the frame is currently updating
@@ -406,7 +412,7 @@ declare class Stage extends EventEmitter<Stage.EventMap> {
   isUpdatingFrame(): boolean;
 
   // renderFrame(): void;
-  // - Dead code
+  // - Internal Use Only
 
   /**
    * Force a re-render

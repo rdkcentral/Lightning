@@ -97,7 +97,7 @@ export default class WebPlatform {
                 if (self.stage.getOption("pauseRafLoopOnIdle")) {
                     self.switchLoop();
                 }
-                self.stage.drawFrame();
+                self.stage.renderFrame();
                 requestAnimationFrame(lp);
                 self._awaitingLoop = true;
             }
@@ -113,8 +113,9 @@ export default class WebPlatform {
             if (Utils.isZiggo || this.stage.getOption("forceTxCanvasSource")) {
                 // Ziggo EOS and Selene have issues with getImageData implementation causing artifacts.
                 gl.texImage2D(gl.TEXTURE_2D, 0, options.internalFormat, options.format, options.type, source);
-            } else {
+            } else if (source.width > 0 && source.height > 0) {
                 // Workaround for some browsers (e.g. Tizen) as they do not convert canvas data to texture correctly, sometimes causing artifacts.
+                // Width/Height check added because of https://github.com/rdkcentral/Lightning/issues/412
                 const ctx = source.getContext('2d');
                 gl.texImage2D(gl.TEXTURE_2D, 0, options.internalFormat, options.format, options.type, ctx.getImageData(0, 0, source.width, source.height));
             }
@@ -306,7 +307,7 @@ export default class WebPlatform {
         this._visibilityChangeHandler = () => {
             if (document.visibilityState === 'visible') {
                 this.stage.root.core.setHasRenderUpdates(2);
-                this.stage.drawFrame();
+                this.stage.renderFrame();
             }
         }
         document.addEventListener('visibilitychange', this._visibilityChangeHandler);
