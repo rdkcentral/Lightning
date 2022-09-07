@@ -24,6 +24,8 @@ import ElementCore from "./ElementCore.mjs";
 export default class CoreContext {
   stage: Stage;
 
+  renderToTextureCount: number;
+
   constructor(stage: Stage);
 
   get renderState(): CoreRenderState;

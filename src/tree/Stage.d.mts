@@ -198,6 +198,7 @@ declare namespace Stage {
      * @see {@link readPixelsAfterDraw}
      */
     readPixelsBeforeDraw: boolean;
+
     /**
      * If set to `true`, forces the Render Engine to readPixels **after** drawing, turning the Render pipeline
      * synchronous.
@@ -207,15 +208,41 @@ declare namespace Stage {
      *
      * Note: This will affect performance!
      *
-     * See [PR #388](https://github.com/rdkcentral/Lightning/pull/388) for more information about this option.
+
+     * You may set {@link readPixelsAfterDrawThreshold} to control the number of render-to-texture element re-renders
+     * that trigger the syncronous pipeline.
+     *
+     * See [PR #393](https://github.com/rdkcentral/Lightning/pull/393) for more information about this option.
      *
      * @defaultValue `false`
      * @see {@link readPixelsBeforeDraw}
      */
     readPixelsAfterDraw: boolean;
     /**
-     * If set to `true`, forces the Render Engine to use the canvasSource over getImageData for canvas
-     * textures.
+     * If {@link readPixelsAfterDraw} is set to `true`, this is the number of render-to-texture element re-renders
+     * in a frame that will trigger the synchronous Render pipeline.
+     *
+     * @remarks
+     * This can enable full performance on frames that would not normally suffer from the flickering artifacts
+     * exhibited on certain devices.
+
+     * @defaultValue `0`
+     */
+    readPixelsAfterDrawThreshold: number;
+
+    /**
+     * If set to `true`, logs debug information about each frame including
+     * how many render-to-texture elements were re-rendered.
+     *
+     * @remarks
+     * This may impact performance and should not be turned on in production.
+     *
+     * @defaultValue `false`
+     */
+    debugFrame: boolean;
+
+    /**
+     * If set to `true`, forces the Render Engine to use the canvasSource over getImageData for text
      *
      * @remarks
      * This helps with text generation on certain devices.
