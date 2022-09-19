@@ -1,5 +1,16 @@
 # Changelog
 
+## v2.7.1
+
+*19 sep 2022*
+
+- Added support for smart read pixels after draw (#417)
+- Fixed "handling input" section of docs index (#416)
+- Added missing 'pauseRafLoopOnIdle' stage option type def and small doc updates (#415)
+- Reverted original functionality of drawFrame() (#414)
+- Fixed fatal exception when attempting to render 0x0 canvas texture without forceTxCanvasSource option (#413)
+- Added typescript docs (#409)
+
 ## v2.7.0
 
 *15 aug 2022*

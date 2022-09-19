@@ -71,8 +71,8 @@ export interface MyComponentTemplateSpec extends Lightning.Component.TemplateSpe
 After you create a Template Spec, you can now apply it to your Component. Whether you are creating a new Component from scratch or converting an existing Component to TypeScript the idea is the same:
 - Extend from `Lightning.Component` like normal, adding the Template Spec to the first generic parameter of it:
   - `extends Lightning.Component<MyTemplateSpec>`
-- Implement the `Lightning.Component.ImplementsTemplateSpec` interface, adding the Template Spec to the first generic parameter as well:
-  - `implements Lightning.Component.ImplementsTemplateSpec<MyTemplateSpec>`
+- Implement the `Lightning.Component.ImplementTemplateSpec` interface, adding the Template Spec to the first generic parameter as well:
+  - `implements Lightning.Component.ImplementTemplateSpec<MyTemplateSpec>`
 - Write the static `_template` method signature, including `Lightning.Component.Template` as the return value, but also adding the Template Spec as the generic param:
   - `static _template(): Lightning.Component.Template<MyTemplateSpec> {}`
 
@@ -80,7 +80,7 @@ It should look like the following:
 ```ts
 class MyComponent
   extends Lightning.Component<MyTemplateSpec>
-  implements Lightning.Component.ImplementsTemplateSpec<MyTemplateSpec> {
+  implements Lightning.Component.ImplementTemplateSpec<MyTemplateSpec> {
 
   static override _template(): Lightning.Component.Template<MyTemplateSpec> {}
 }
@@ -90,7 +90,7 @@ At this point, TypeScript should be giving you errors about the class not implem
 
 ```ts
 class MyComponent /* ... */ {
-  // The ImplementsTemplateSpec inteface will enforce that these are implemented
+  // The ImplementTemplateSpec inteface will enforce that these are implemented
   get myProperty1(): number { /* Implement */ }
   set myProperty1(v: number) { /* Implement */ }
   get myProperty2(): string { /* Implement */ }

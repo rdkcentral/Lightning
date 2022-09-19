@@ -187,6 +187,8 @@ export default class Stage extends EventEmitter {
         opt('platform', null);
         opt('readPixelsBeforeDraw', false);
         opt('readPixelsAfterDraw', false);
+        opt('readPixelsAfterDrawThreshold', 0);
+        opt('debugFrame', false);
         opt('forceTxCanvasSource', false);
         opt('pauseRafLoopOnIdle', false);
     }
