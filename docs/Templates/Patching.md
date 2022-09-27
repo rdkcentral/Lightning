@@ -36,7 +36,7 @@ You can also call a patch *directly* on a sub element:
 
 
 ```
-this.tag("Parent").patch(
+this.tag("Parent").patch({
     x: 150, alpha: 0.5,
     Child: {
         x: 100, y: 100
@@ -61,7 +61,7 @@ You can remove an element by specifying 'undefined' instead of the settings obje
 
 
 ```
-this.tag("Parent").patch(
+this.tag("Parent").patch({
     x: 150, alpha: 0.5,
     Child: undefined
 });
