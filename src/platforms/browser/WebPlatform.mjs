@@ -145,6 +145,7 @@ export default class WebPlatform {
      * https://www.khronos.org/registry/KTX/specs/1.0/ktxspec_v1.html
      **/
     handleKtxLoad(cb, src) {
+        var self = this;
         return function() {
             var arraybuffer = this.response;
             var view = new DataView(arraybuffer);
@@ -152,7 +153,7 @@ export default class WebPlatform {
             // identifier, big endian
             var targetIdentifier = 3632701469
             if (targetIdentifier !== (view.getUint32(0) + view.getUint32(4) + view.getUint32(8))) {
-                cb('parsing failed: identifier ktx mismatch')
+                cb('Parsing failed: identifier ktx mismatch:', src)
             }
             
             var littleEndian = (view.getUint32(12) === 16909060) ? true : false;
@@ -171,7 +172,26 @@ export default class WebPlatform {
                 bytesOfKeyValueData: view.getUint32(60, littleEndian),
                 kvps: [],
                 mipmaps: [],
+                get width() { return this.pixelWidth},
+                get height() { return this.pixelHeight},
             };
+
+            const props = (obj) => {
+                const p = [];
+                for (let v in obj) {
+                    p.push(obj[v]);
+                }
+                return p;
+            }
+
+            const formats = Object.values(self.stage.renderer.getCompressedTextureExtensions())
+            .filter((obj) => obj != null)
+            .map((obj) => props(obj))
+            .reduce((prev, current) => prev.concat(current));
+
+            if (!formats.includes(data.glInternalFormat)) {
+                console.warn("[Lightning] Unrecognized texture extension format:", src, data.glInternalFormat, self.stage.renderer.getCompressedTextureExtensions());
+            }
             
             var offset = 64
             // Key Value Pairs of data start at byte offset 64

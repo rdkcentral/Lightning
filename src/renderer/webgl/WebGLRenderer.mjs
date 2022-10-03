@@ -40,7 +40,7 @@ export default class WebGLRenderer extends Renderer {
         }
     }
 
-    get compressedTextureExtensions() {
+    getCompressedTextureExtensions() {
         return this._compressedTextureExtensions
     }
 
