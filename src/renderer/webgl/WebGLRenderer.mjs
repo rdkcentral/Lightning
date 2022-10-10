@@ -101,6 +101,42 @@ export default class WebGLRenderer extends Renderer {
         gl.deleteTexture(glTexture);
     }
 
+    _getBytesPerPixel(fmt, type) {
+        const gl = this.stage.gl;
+        
+        if (fmt == gl.RGBA) {
+            switch(type) {
+                case gl.UNSIGNED_BYTE:
+                    return 4;
+
+                case gl.UNSIGNED_SHORT_4_4_4_4:
+                    return 2;
+
+                case gl.UNSIGNED_SHORT_5_5_5_1:
+                    return 2;
+
+                default:
+                    throw new Error('Invalid type specified for GL_RGBA format');
+            }
+        }
+        else if (fmt == gl.RGB) {
+            switch(type) {
+                case gl.UNSIGNED_BYTE:
+                    return 3;
+
+                case gl.UNSIGNED_BYTE_5_6_5:
+                    return 2;
+
+                default:
+                    throw new Error('Invalid type specified for GL_RGB format');
+            }
+        }
+        else
+        {
+            throw new Error('Invalid format specified in call to _getBytesPerPixel()');
+        }
+    }
+
     uploadTextureSource(textureSource, options) {
         const gl = this.stage.gl;
 
@@ -162,6 +198,9 @@ export default class WebGLRenderer extends Renderer {
 
         glTexture.params = Utils.cloneObjShallow(texParams);
         glTexture.options = Utils.cloneObjShallow(texOptions);
+
+        // calculate bytes per pixel for vram usage tracking
+        glTexture.bytesPerPixel = this._getBytesPerPixel(texOptions.format, texOptions.type);
 
         return glTexture;
     }

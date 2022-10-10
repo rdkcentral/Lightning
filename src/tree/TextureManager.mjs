@@ -18,6 +18,7 @@
  */
 
 import TextureSource from "./TextureSource.mjs";
+import Stage from './Stage.mjs';
 
 export default class TextureManager {
 
@@ -96,13 +97,37 @@ export default class TextureManager {
         this._uploadedTextureSources.push(textureSource);
         
         this.addToLookupMap(textureSource);
+
+        // add VRAM tracking if using the webgl renderer
+        this._updateVramUsage(textureSource, 1);
     }
 
     _addMemoryUsage(delta) {
         this._usedMemory += delta;
         this.stage.addMemoryUsage(delta);
     }
-    
+
+    _updateVramUsage(textureSource, sign) {
+        const nativeTexture = textureSource.nativeTexture;
+        var usage;
+
+        // do nothing if webgl isn't even supported
+        if (!Stage.isWebglSupported())
+            return;
+
+        // or if there is no native texture
+        if (!textureSource.isLoaded())
+            return;
+
+        // or, finally, if there is no bytes per pixel specified
+        if (!nativeTexture.hasOwnProperty('bytesPerPixel') || isNaN(nativeTexture.bytesPerPixel))
+            return;
+
+        usage = sign * (textureSource.w * textureSource.h * nativeTexture.bytesPerPixel);
+
+        this.stage.addVramUsage(usage, textureSource.hasAlpha);
+    }
+
     addToLookupMap(textureSource) {
         const lookupId = textureSource.lookupId;
         if (lookupId) {
@@ -137,6 +162,9 @@ export default class TextureManager {
         if (textureSource.isLoaded()) {
             this._nativeFreeTextureSource(textureSource);
             this._addMemoryUsage(-textureSource.w * textureSource.h);
+
+            // add VRAM tracking if using the webgl renderer
+            this._updateVramUsage(textureSource, -1);
         }
 
         // Should be reloaded.
