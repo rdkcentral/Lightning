@@ -61,7 +61,7 @@ export default class WebGLRenderer extends Renderer {
     createCoreRenderExecutor(ctx) {
         return new WebGLCoreRenderExecutor(ctx);
     }
-    
+
     createCoreRenderState(ctx) {
         return new CoreRenderState(ctx);
     }
@@ -83,18 +83,18 @@ export default class WebGLRenderer extends Renderer {
         glTexture.params[gl.TEXTURE_MIN_FILTER] = gl.LINEAR;
         glTexture.params[gl.TEXTURE_WRAP_S] = gl.CLAMP_TO_EDGE;
         glTexture.params[gl.TEXTURE_WRAP_T] = gl.CLAMP_TO_EDGE;
-        glTexture.options = {format: gl.RGBA, internalFormat: gl.RGBA, type: gl.UNSIGNED_BYTE};
+        glTexture.options = { format: gl.RGBA, internalFormat: gl.RGBA, type: gl.UNSIGNED_BYTE };
 
         // We need a specific framebuffer for every render texture.
         glTexture.framebuffer = gl.createFramebuffer();
-        glTexture.projection = new Float32Array([2/w, 2/h]);
+        glTexture.projection = new Float32Array([2 / w, 2 / h]);
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, glTexture.framebuffer);
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, glTexture, 0);
 
         return glTexture;
     }
-    
+
     freeRenderTexture(glTexture) {
         let gl = this.stage.gl;
         gl.deleteFramebuffer(glTexture.framebuffer);
@@ -103,9 +103,9 @@ export default class WebGLRenderer extends Renderer {
 
     _getBytesPerPixel(fmt, type) {
         const gl = this.stage.gl;
-        
-        if (fmt == gl.RGBA) {
-            switch(type) {
+
+        if (fmt === gl.RGBA) {
+            switch (type) {
                 case gl.UNSIGNED_BYTE:
                     return 4;
 
@@ -119,8 +119,8 @@ export default class WebGLRenderer extends Renderer {
                     throw new Error('Invalid type specified for GL_RGBA format');
             }
         }
-        else if (fmt == gl.RGB) {
-            switch(type) {
+        else if (fmt === gl.RGB) {
+            switch (type) {
                 case gl.UNSIGNED_BYTE:
                     return 3;
 
@@ -131,8 +131,7 @@ export default class WebGLRenderer extends Renderer {
                     throw new Error('Invalid type specified for GL_RGB format');
             }
         }
-        else
-        {
+        else {
             throw new Error('Invalid format specified in call to _getBytesPerPixel()');
         }
     }

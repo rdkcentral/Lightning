@@ -535,9 +535,24 @@ declare class Stage extends EventEmitter<Stage.EventMap> {
   // addMemoryUsage(delta: any): void;
   // - Internal use only.
   /**
-   * Amount of texture memory used (in bytes)
+   * Amount of memory used (in pixels)
    */
   get usedMemory(): number;
+
+  /**
+   * Amount of memory used by textures (in bytes)
+   */
+  get usedVram(): number;
+
+  /**
+   * Amount of memory used by textures with alpha channel (in bytes)
+   */
+  get usedVramAlpha(): number;
+
+   /**
+   * Amount of memory used by textures without alpha channel (in bytes)
+   */
+  get usedVramNonAlpha(): number;
 
   /**
    * Runs the texture memory garbage collector.
