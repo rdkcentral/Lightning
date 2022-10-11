@@ -105,6 +105,22 @@ export default class WebPlatform {
         requestAnimationFrame(lp);
     }
 
+    uploadCompressedGlTexture(gl, textureSource, source, options) {
+        gl.compressedTexImage2D(
+            gl.TEXTURE_2D, 
+            0, 
+            source.glInternalFormat, 
+            source.pixelWidth, 
+            source.pixelHeight, 
+            0,
+            new DataView(source.mipmaps[0]),
+        )
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    }
+
     uploadGlTexture(gl, textureSource, source, options) {
         if (source instanceof ImageData || source instanceof HTMLImageElement || source instanceof HTMLVideoElement || (window.ImageBitmap && source instanceof ImageBitmap)) {
             // Web-specific data types.
@@ -124,10 +140,92 @@ export default class WebPlatform {
         }
     }
 
+    /**
+     * KTX File format specification
+     * https://www.khronos.org/registry/KTX/specs/1.0/ktxspec_v1.html
+     **/
+    handleKtxLoad(cb, src) {
+        var self = this;
+        return function() {
+            var arraybuffer = this.response;
+            var view = new DataView(arraybuffer);
+            
+            // identifier, big endian
+            var targetIdentifier = 3632701469
+            if (targetIdentifier !== (view.getUint32(0) + view.getUint32(4) + view.getUint32(8))) {
+                cb('Parsing failed: identifier ktx mismatch:', src)
+            }
+            
+            var littleEndian = (view.getUint32(12) === 16909060) ? true : false;
+            var data = {
+                glType: view.getUint32(16, littleEndian),
+                glTypeSize: view.getUint32(20, littleEndian),
+                glFormat: view.getUint32(24, littleEndian),
+                glInternalFormat: view.getUint32(28, littleEndian),
+                glBaseInternalFormat: view.getUint32(32, littleEndian),
+                pixelWidth: view.getUint32(36, littleEndian),
+                pixelHeight: view.getUint32(40, littleEndian),
+                pixelDepth: view.getUint32(44, littleEndian),
+                numberOfArrayElements: view.getUint32(48, littleEndian),
+                numberOfFaces: view.getUint32(52, littleEndian),
+                numberOfMipmapLevels: view.getUint32(56, littleEndian),
+                bytesOfKeyValueData: view.getUint32(60, littleEndian),
+                kvps: [],
+                mipmaps: [],
+                get width() { return this.pixelWidth},
+                get height() { return this.pixelHeight},
+            };
+
+            const props = (obj) => {
+                const p = [];
+                for (let v in obj) {
+                    p.push(obj[v]);
+                }
+                return p;
+            }
+
+            const formats = Object.values(self.stage.renderer.getCompressedTextureExtensions())
+            .filter((obj) => obj != null)
+            .map((obj) => props(obj))
+            .reduce((prev, current) => prev.concat(current));
+
+            if (!formats.includes(data.glInternalFormat)) {
+                console.warn("[Lightning] Unrecognized texture extension format:", src, data.glInternalFormat, self.stage.renderer.getCompressedTextureExtensions());
+            }
+            
+            var offset = 64
+            // Key Value Pairs of data start at byte offset 64
+            // But the only known kvp is the API version, so skipping parsing.
+            offset += data.bytesOfKeyValueData;
+            
+            for (var i = 0; i < data.numberOfMipmapLevels; i++) {
+                var imageSize = view.getUint32(offset);
+                offset += 4;
+                data.mipmaps.push(view.buffer.slice(offset, imageSize));
+                offset += imageSize
+            }
+            
+            cb(null, {
+                source: data,
+                renderInfo: { src: src, compressed: true },
+            })
+        }
+    }
+
     loadSrcTexture({src, hasAlpha}, cb) {
         let cancelCb = undefined;
         let isPng = (src.indexOf(".png") >= 0) || src.substr(0, 21) == 'data:image/png;base64';
-        if (this._imageWorker) {
+        let isKtx = src.indexOf('.ktx') >= 0;
+        if (isKtx) {
+          let request = new XMLHttpRequest();
+          request.addEventListener("load", this.handleKtxLoad(cb, src));
+          request.open("GET", src);
+          request.responseType = "arraybuffer";
+          request.send();
+          cancelCb = function() {
+            request.abort();
+          }
+        } else if (this._imageWorker) {
             // WPE-specific image parser.
             const image = this._imageWorker.create(src);
             image.onError = function(err) {
@@ -136,7 +234,7 @@ export default class WebPlatform {
             image.onLoad = function({imageBitmap, hasAlphaChannel}) {
                 cb(null, {
                     source: imageBitmap,
-                    renderInfo: {src: src},
+                    renderInfo: {src: src, compressed: false},
                     hasAlpha: hasAlphaChannel,
                     premultiplyAlpha: true
                 });
@@ -162,7 +260,7 @@ export default class WebPlatform {
             image.onload = function() {
                 cb(null, {
                     source: image,
-                    renderInfo: {src: src},
+                    renderInfo: {src: src, compressed: false},
                     hasAlpha: isPng || hasAlpha
                 });
             };

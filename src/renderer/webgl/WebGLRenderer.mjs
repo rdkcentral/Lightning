@@ -32,6 +32,16 @@ export default class WebGLRenderer extends Renderer {
     constructor(stage) {
         super(stage);
         this.shaderPrograms = new Map();
+        this._compressedTextureExtensions = {
+            astc: stage.gl.getExtension('WEBGL_compressed_texture_astc'),
+            etc1: stage.gl.getExtension('WEBGL_compressed_texture_etc1'),
+            s3tc: stage.gl.getExtension('WEBGL_compressed_texture_s3tc'),
+            pvrtc: stage.gl.getExtension('WEBGL_compressed_texture_pvrtc'),
+        }
+    }
+
+    getCompressedTextureExtensions() {
+        return this._compressedTextureExtensions
     }
 
     destroy() {
@@ -140,6 +150,10 @@ export default class WebGLRenderer extends Renderer {
         const gl = this.stage.gl;
 
         const source = options.source;
+        let compressed = false;
+        if (options.renderInfo) {
+            compressed = options.renderInfo.compressed || false
+        }
 
         const format = {
             premultiplyAlpha: true,
@@ -185,6 +199,11 @@ export default class WebGLRenderer extends Renderer {
             gl.texParameteri(gl.TEXTURE_2D, parseInt(key), value);
         });
 
+        if (compressed) {
+            this.stage.platform.uploadCompressedGlTexture(gl, textureSource, source);
+            return glTexture;
+        }
+         
         const texOptions = format.texOptions;
         texOptions.format = texOptions.format || (format.hasAlpha ? gl.RGBA : gl.RGB);
         texOptions.type = texOptions.type || gl.UNSIGNED_BYTE;
@@ -192,9 +211,9 @@ export default class WebGLRenderer extends Renderer {
         if (options && options.imageRef) {
             texOptions.imageRef = options.imageRef;
         }
-
+        
         this.stage.platform.uploadGlTexture(gl, textureSource, source, texOptions);
-
+        
         glTexture.params = Utils.cloneObjShallow(texParams);
         glTexture.options = Utils.cloneObjShallow(texOptions);
 

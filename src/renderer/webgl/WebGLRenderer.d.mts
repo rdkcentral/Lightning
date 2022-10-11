@@ -21,4 +21,5 @@ import Renderer from "../Renderer.mjs";
 
 export default class WebGLRenderer extends Renderer {
   constructor(stage: Stage);
+  getCompressedTextureExtensions(): Object;
 }
