@@ -19,40 +19,97 @@
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8" />
     <script src="../../../devtools/lightning-inspect.js"></script>
 </head>
+
 <body style="margin: 0; padding: 0">
     <script type="module">
         import lng from '../../../src/lightning.mjs';
         attachInspector(lng)
 
-        window.onload = function() {
-            // const IMG = 'sampleImage-s3tc.ktx';
-            //const IMG = 'sampleImage-pvrtc.ktx';
-            // const IMG = 'sampleImage-etc1.ktx';
-            //const IMG = 'sampleImage-astc_4x4.ktx';
-            const IMG = 'lightning-etc1.pvr';
-
+        window.onload = function () {
+            const images = [
+                { compression: 'etc1', container: 'pvr', src: 'lightning-etc1.pvr' },
+                { compression: 's3tc', container: 'ktx', src: 'sampleImage-s3tc.ktx' },
+                { compression: 'pvrtc', container: 'ktx', src: 'sampleImage-pvrtc.ktx' },
+                { compression: 'etc1', container: 'ktx', src: 'sampleImage-etc1.ktx' },
+                { compression: 'astc_4x4', container: 'ktx', src: 'sampleImage-astc_4x4.ktx' },
+            ];
             class BasicUsageExample extends lng.Application {
                 static _template() {
-                    return {                        
-                        Image: {
-                            src: IMG
+                    return {
+                        Header: {
+                            rect: true, w: 1920, h: 150, color: 0xff7f8088,
+                            Tx: {
+                                x: 100, y: 50,
+                                text: {
+                                    text: ''
+                                }
+                            }
+                        },
+                        Images: {
+                            x: 50, y: 200, children: []
                         }
                     }
                 }
 
                 _init() {
-                    // this.stage.on('console',({data})=>{
-                    //     this.tag("T").text = data;
-                    // })
-                    console.log('Supported compressed texture formats:', this.stage.renderer.getCompressedTextureExtensions());
+                    const ext = this.stage.renderer.getCompressedTextureExtensions();
+                    const support = Object.keys(ext).reduce((arr, type) => {
+                        if (!!ext[type]) {
+                            arr.push(type);
+                        }
+                        return arr;
+                    }, [])
+                    this.tag("Tx").text = `supported compression: ${support.join(' | ')}`;
+
+                    this.tag("Images").children = images.map((image, index) => {
+                        return {
+                            type: CompressedImage,
+                            imageSource: image.src,
+                            metadata: image,
+                            x: index % 4 * 370,
+                            y: Math.floor(index / 4) * 370
+                        }
+                    })
+
                 }
             }
 
-            const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000, canvas2d: false, useImageWorker: false}, debug: true}
+            class CompressedImage extends lng.Component {
+                static _template() {
+                    return {
+                        scale: 0.6,
+                        Holder: {
+                            rect: true, color: 0xff9496a1,
+                            w: 526, h: 580,
+                            Image: {
+                                w: 512, h: 512,
+                                x: 6, y: 56,
+                            },
+                            Metadata: {
+                                x: 10, y: 3, color: 0xff000000,
+                                text: {
+                                    text: ''
+                                }
+                            }
+                        }
+                    }
+                }
+
+                set imageSource(v) {
+                    this.tag('Image').src = v;
+                }
+
+                set metadata(v) {
+                    this.tag('Metadata').text = `${v.compression} | ${v.container}`;
+                }
+            }
+
+            const options = { stage: { w: 1920, h: 1080, precision: 2 / 3, clearColor: 0xFF000000, canvas2d: false, useImageWorker: false }, debug: true }
 
             const app = new BasicUsageExample(options);
 
@@ -60,4 +117,5 @@
         }
     </script>
 </body>
+
 </html>
