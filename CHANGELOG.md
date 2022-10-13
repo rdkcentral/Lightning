@@ -1,5 +1,18 @@
 # Changelog
 
+## v2.7.2
+
+*14 oct 2022*
+
+- Added support for PVR container (#423)
+- Updated patching.md file (#422)
+- Minor documentation updates (#405)
+- Added support to track vram usage (#395)
+- Added support for compressed texture (#391)
+    * Updated WebGl Renderer types
+    * Added ability to WebGL renderer to report what compressed textures are supported.
+    * Add basic compressed texture support.
+
 ## v2.7.1
 
 *19 sep 2022*
@@ -332,4 +345,5 @@
 
 ### Fixes
 * Fixed text rendering artifacts sometimes appearing on RPI platform (#41)
+
 
