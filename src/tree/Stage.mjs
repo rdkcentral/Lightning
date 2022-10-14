@@ -39,6 +39,10 @@ export default class Stage extends EventEmitter {
         this._usedMemory = 0;
         this._lastGcFrame = 0;
 
+        // attempt to track VRAM usage more accurately by accounting for different color channels
+        this._usedVramAlpha = 0;
+        this._usedVramNonAlpha = 0;
+
         const platformType = Stage.platform ? Stage.platform : PlatformLoader.load(options);
         this.platform = new platformType();
 
@@ -79,9 +83,12 @@ export default class Stage extends EventEmitter {
         if (this.getCanvas()) {
             if (this.getOption('devicePixelRatio') !== 1) {
                 const ratio = this.getOption('devicePixelRatio');
+                // set correct display sie
                 this.getCanvas().style.width = this._options['w'] / ratio  + 'px';
                 this.getCanvas().style.height = this._options['h'] / ratio + 'px';
             }
+
+            // set display buffer size
             this._options.w = this.getCanvas().width;
             this._options.h = this.getCanvas().height;
         }
@@ -191,14 +198,17 @@ export default class Stage extends EventEmitter {
         opt('canvas2d', false);
         opt('platform', null);
         opt('readPixelsBeforeDraw', false);
-        opt('devicePixelRatio', 1)
+        opt('devicePixelRatio', 1)       
+        opt('readPixelsAfterDraw', false);
+        opt('readPixelsAfterDrawThreshold', 0);
+        opt('debugFrame', false);
+        opt('forceTxCanvasSource', false);
+        opt('pauseRafLoopOnIdle', false);
 
         if (o['devicePixelRatio'] != null && o['devicePixelRatio'] !== 1) {
-            console.log('o', o)
             this._options['precision'] *= o['devicePixelRatio']
             this._options['w'] *= o['devicePixelRatio']
             this._options['h'] *= o['devicePixelRatio']
-
         }
     }
 
@@ -273,7 +283,17 @@ export default class Stage extends EventEmitter {
         return (this._updateSourceTextures && this._updateSourceTextures.has(texture));
     }
 
-    drawFrame() {
+
+    _performUpdateSource() {
+        if (this._updateSourceTextures.size) {
+            this._updateSourceTextures.forEach(texture => {
+                texture._performUpdateSource();
+            });
+            this._updateSourceTextures = new Set();
+        }
+    }
+
+    _calculateDt() {
         this.startTime = this.currentTime;
         this.currentTime = this.platform.getHrTime();
 
@@ -282,18 +302,22 @@ export default class Stage extends EventEmitter {
         } else {
             this.dt = (!this.startTime) ? .02 : .001 * (this.currentTime - this.startTime);
         }
+    }
 
+    updateFrame() {
+        this._calculateDt();
         this.emit('frameStart');
-
-        if (this._updateSourceTextures.size) {
-            this._updateSourceTextures.forEach(texture => {
-                texture._performUpdateSource();
-            });
-            this._updateSourceTextures = new Set();
-        }
-
+        this._performUpdateSource();
         this.emit('update');
+    }
 
+    idleFrame() {
+        this.textureThrottler.processSome();
+        this.emit('frameEnd');
+        this.frameCounter++;
+    }
+
+    renderFrame() {
         const changes = this.ctx.hasRenderUpdates();
 
         // Update may cause textures to be loaded in sync, so by processing them here we may be able to show them
@@ -318,8 +342,13 @@ export default class Stage extends EventEmitter {
         return this._updatingFrame;
     }
 
-    renderFrame() {
-        this.ctx.frame();
+    drawFrame() {
+        // Maintain original functionality of `drawFrame()` while retaining the
+        // RAF mitigration feature from: https://github.com/rdkcentral/Lightning/pull/402
+        // The full functionality of this method is relied directly by our own unit tests and
+        // the unit tests of third party users
+        this.updateFrame();
+        this.renderFrame();
     }
 
     forceRenderUpdate() {
@@ -407,6 +436,27 @@ export default class Stage extends EventEmitter {
 
     get usedMemory() {
         return this._usedMemory;
+    }
+
+    addVramUsage(delta, alpha) {
+        if (alpha) {
+            this._usedVramAlpha += delta;
+        }
+        else {
+            this._usedVramNonAlpha += delta;
+        }
+    }
+
+    get usedVramAlpha() {
+        return this._usedVramAlpha;
+    }
+
+    get usedVramNonAlpha() {
+        return this._usedVramNonAlpha;
+    }
+
+    get usedVram() {
+        return this._usedVramAlpha + this._usedVramNonAlpha;
     }
 
     gc(aggressive) {

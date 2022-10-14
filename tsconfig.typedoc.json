@@ -1,0 +1,34 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["**/*.d.ts"],
+  "exclude": ["types"],
+  "typedocOptions": {
+    "entryPoints": ["index.typedoc.d.ts"],
+    "out": "typedocs",
+    "entryPointStrategy": "expand",
+    "intentionallyNotExported": [
+      "src/components/ListComponent.d.mts:ListItems",
+      "src/tree/Element.d.mts:ValidRef",
+      "src/tree/Element.d.mts:InlineElement",
+      "src/internalTypes.d.mts:Documentation",
+      "src/application/Component.d.mts:IsCustomKeyHandlersAugmented",
+      "src/application/Component.d.mts:__PassSignals",
+      "src/internalTypes.d.mts:SignalMapType",
+      "src/application/Component.d.mts:__Signals",
+      "src/application/Component.d.mts:TemplateRequireType",
+      "src/application/Component.d.mts:CompileComponentTemplateSpecType",
+      "src/internalTypes.d.mts:TextureType",
+      "src/tree/Element.d.mts:CompileElementTemplateSpecType",
+      "src/tree/Element.d.mts:SmoothTemplate",
+      "src/tree/Element.d.mts:TransitionsTemplate",
+      "src/internalTypes.d.mts:HandlerReturnType",
+      "src/tree/Element.d.mts:TemplateSpecRefs",
+      "src/tree/Element.d.mts:TaggedElements",
+      "src/animation/AnimationSettings.d.mts:AnimationForceLiteral",
+      "src/animation/AnimationSettings.d.mts:AnimationForceType",
+      "src/internalTypes.d.mts:HandlerParameters",
+      "src/internalTypes.d.mts:EventMapType",
+      "src/tree/Element.d.mts:IsLooseTemplateSpec",
+    ]
+  }
+}

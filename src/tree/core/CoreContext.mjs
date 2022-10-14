@@ -38,6 +38,8 @@ export default class CoreContext {
         this._renderTextureId = 1;
 
         this._zSorts = [];
+
+        this.renderToTextureCount = 0;
     }
 
     get usedMemory() {
@@ -96,17 +98,39 @@ export default class CoreContext {
     }
 
     _render() {
+        const debugFrame = this.stage.getOption('debugFrame');
         // Obtain a sequence of the quad operations.
         this._fillRenderState();
 
         if (this.stage.getOption('readPixelsBeforeDraw')) {
-            const pixels = new Uint8Array(4);
-            const gl = this.stage.gl;
-            gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+            this._readPixels();
         }
 
         // Now run them with the render executor.
         this._performRender();
+
+        if (debugFrame) {
+            console.log(`[Lightning] RTT Renders in frame: ${this.renderToTextureCount}`)
+        }
+
+        // Block OpenGL pipeline to prevent framebuffer flickering
+        // on certain devices
+        if (this.stage.getOption('readPixelsAfterDraw') &&
+            this.renderToTextureCount >= this.stage.getOption('readPixelsAfterDrawThreshold')
+        ) {
+            if (debugFrame) {
+                console.log(`[Lightning] readPixelsAfterDraw behavior triggered`)
+            }
+            this._readPixels();
+        }
+
+        this.renderToTextureCount = 0;
+    }
+
+    _readPixels() {
+        const pixels = new Uint8Array(4);
+        const gl = this.stage.gl;
+        gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
     }
 
     _fillRenderState() {

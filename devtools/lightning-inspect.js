@@ -203,7 +203,7 @@ window.attachInspector = function({Application, Element, ElementCore, Stage, Com
                 root.style.transform = 'scale(' + p + ',' + p + ')';
             }
 
-            if (ResizeObserver != null) {
+            if (window.ResizeObserver != null) {
                 const resize_ob = new ResizeObserver(function (entries) {
                     updateRootStyleFromCanvas(entries[0].contentRect);
                 });
