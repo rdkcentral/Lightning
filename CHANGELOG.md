@@ -2,9 +2,8 @@
 
 ## v2.8.0
 
-*18 oct 2022*
+*19 oct 2022*
 
-- Added support for compressed texture (#423)
 - Updated patching.md file (#422)
 - Minor documentation updates (#405)
 - Added support to track vram usage (#395)
