@@ -26,7 +26,7 @@ To call a transition method, you have to get the correct transition `property` f
 
 ```
 _init(){
-   this.tag('MyObject').transition('x').start();
+   this.tag('MyObject').transition('x').start(100);
 }
 ```
 
@@ -34,12 +34,11 @@ _init(){
 
 | Name | Description |
 |---|---|
-| `start()` | Start (or restart if already running) the transition |
+| `start(targetValue : number)` | Start a new transition (similar to calling `setSmooth()`) |
 | `stop()` | Stop the transition (at the current value) |
 | `pause()` | Alias for `stop()` |
 | `play()` | Resume the paused transition |
 | `finish()` | Fast-forward the transition (to the target value) |
-| `start(targetValue : number)` | Start a new transition (similar to calling `setSmooth()`) |
 | `reset(targetValue : number, p : number)` | Set the transition at a specific point in time (where p is a value between 0 and 1) |
 | `updateTargetValue(targetValue : number)` | Update the target value while keeping the current progress and value |
 

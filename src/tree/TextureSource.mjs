@@ -102,6 +102,17 @@ export default class TextureSource {
          */
         this._imageRef = null;
 
+
+        /**
+         * Track whether or not there is an alpha channel in this source
+         * @type {boolean}
+         * @private
+         */
+         this._hasAlpha = false;
+    }
+
+    get hasAlpha() {
+        return this._hasAlpha;
     }
 
     get loadError() {
@@ -256,6 +267,7 @@ export default class TextureSource {
     setSource(options) {
         const source = options.source;
 
+        this._hasAlpha = (options ? (options.hasAlpha || false) : false);
         this.w = source.width || (options && options.w) || 0;
         this.h = source.height || (options && options.h) || 0;
 

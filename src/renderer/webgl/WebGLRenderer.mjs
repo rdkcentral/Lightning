@@ -32,6 +32,16 @@ export default class WebGLRenderer extends Renderer {
     constructor(stage) {
         super(stage);
         this.shaderPrograms = new Map();
+        this._compressedTextureExtensions = {
+            astc: stage.gl.getExtension('WEBGL_compressed_texture_astc'),
+            etc1: stage.gl.getExtension('WEBGL_compressed_texture_etc1'),
+            s3tc: stage.gl.getExtension('WEBGL_compressed_texture_s3tc'),
+            pvrtc: stage.gl.getExtension('WEBGL_compressed_texture_pvrtc'),
+        }
+    }
+
+    getCompressedTextureExtensions() {
+        return this._compressedTextureExtensions
     }
 
     destroy() {
@@ -61,7 +71,7 @@ export default class WebGLRenderer extends Renderer {
     createCoreRenderExecutor(ctx) {
         return new WebGLCoreRenderExecutor(ctx);
     }
-    
+
     createCoreRenderState(ctx) {
         return new CoreRenderState(ctx);
     }
@@ -83,28 +93,67 @@ export default class WebGLRenderer extends Renderer {
         glTexture.params[gl.TEXTURE_MIN_FILTER] = gl.LINEAR;
         glTexture.params[gl.TEXTURE_WRAP_S] = gl.CLAMP_TO_EDGE;
         glTexture.params[gl.TEXTURE_WRAP_T] = gl.CLAMP_TO_EDGE;
-        glTexture.options = {format: gl.RGBA, internalFormat: gl.RGBA, type: gl.UNSIGNED_BYTE};
+        glTexture.options = { format: gl.RGBA, internalFormat: gl.RGBA, type: gl.UNSIGNED_BYTE };
 
         // We need a specific framebuffer for every render texture.
         glTexture.framebuffer = gl.createFramebuffer();
-        glTexture.projection = new Float32Array([2/w, 2/h]);
+        glTexture.projection = new Float32Array([2 / w, 2 / h]);
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, glTexture.framebuffer);
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, glTexture, 0);
 
         return glTexture;
     }
-    
+
     freeRenderTexture(glTexture) {
         let gl = this.stage.gl;
         gl.deleteFramebuffer(glTexture.framebuffer);
         gl.deleteTexture(glTexture);
     }
 
+    _getBytesPerPixel(fmt, type) {
+        const gl = this.stage.gl;
+
+        if (fmt === gl.RGBA) {
+            switch (type) {
+                case gl.UNSIGNED_BYTE:
+                    return 4;
+
+                case gl.UNSIGNED_SHORT_4_4_4_4:
+                    return 2;
+
+                case gl.UNSIGNED_SHORT_5_5_5_1:
+                    return 2;
+
+                default:
+                    throw new Error('Invalid type specified for GL_RGBA format');
+            }
+        }
+        else if (fmt === gl.RGB) {
+            switch (type) {
+                case gl.UNSIGNED_BYTE:
+                    return 3;
+
+                case gl.UNSIGNED_BYTE_5_6_5:
+                    return 2;
+
+                default:
+                    throw new Error('Invalid type specified for GL_RGB format');
+            }
+        }
+        else {
+            throw new Error('Invalid format specified in call to _getBytesPerPixel()');
+        }
+    }
+
     uploadTextureSource(textureSource, options) {
         const gl = this.stage.gl;
 
         const source = options.source;
+        let compressed = false;
+        if (options.renderInfo) {
+            compressed = options.renderInfo.compressed || false
+        }
 
         const format = {
             premultiplyAlpha: true,
@@ -150,6 +199,11 @@ export default class WebGLRenderer extends Renderer {
             gl.texParameteri(gl.TEXTURE_2D, parseInt(key), value);
         });
 
+        if (compressed) {
+            this.stage.platform.uploadCompressedGlTexture(gl, textureSource, source);
+            return glTexture;
+        }
+         
         const texOptions = format.texOptions;
         texOptions.format = texOptions.format || (format.hasAlpha ? gl.RGBA : gl.RGB);
         texOptions.type = texOptions.type || gl.UNSIGNED_BYTE;
@@ -157,11 +211,14 @@ export default class WebGLRenderer extends Renderer {
         if (options && options.imageRef) {
             texOptions.imageRef = options.imageRef;
         }
-
+        
         this.stage.platform.uploadGlTexture(gl, textureSource, source, texOptions);
-
+        
         glTexture.params = Utils.cloneObjShallow(texParams);
         glTexture.options = Utils.cloneObjShallow(texOptions);
+
+        // calculate bytes per pixel for vram usage tracking
+        glTexture.bytesPerPixel = this._getBytesPerPixel(texOptions.format, texOptions.type);
 
         return glTexture;
     }
