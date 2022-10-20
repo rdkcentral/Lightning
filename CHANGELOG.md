@@ -2,7 +2,7 @@
 
 ## v2.8.0
 
-*19 oct 2022*
+*20 oct 2022*
 
 - Updated patching.md file (#422)
 - Minor documentation updates (#405)
