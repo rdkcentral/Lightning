@@ -30,15 +30,19 @@ export default class LightningShader extends lng.shaders.WebGLDefaultShader {
         this._start = Date.now()
     }
 
-    set lightColor(v){
-       this._lightColor = StageUtils.getRgbaComponentsNormalized(v);
+    set lightColor(v) {
+        this._lightColor = StageUtils.getRgbaComponentsNormalized(v);
     }
 
-    set flash(v){
-        this._flash = v?1:0;
-        setTimeout(()=>{
+    set flash(v) {
+        this._flash = v ? 1 : 0;
+        setTimeout(() => {
             this._flash = 0;
-        },300)
+        }, 400)
+    }
+
+    set onFlash(fn) {
+        this._onFlash = fn;
     }
 
 
@@ -48,13 +52,24 @@ export default class LightningShader extends lng.shaders.WebGLDefaultShader {
         const h = operation.getRenderHeight();
         if (!this._start) {
             this._start = Date.now()
-            
+
         }
         const renderPrecision = this.ctx.stage.getRenderPrecision();
         const frame = this.ctx.stage.frameCounter;
         const uTime = 0.001 * (Date.now() - this._start);
 
-        this._setUniform("uTime", uTime, this.gl.uniform1f);        
+        if (this._onFlash) {
+            const time = uTime * 5;
+            const index = Math.floor(time);
+            const p = this.step(0.9, this.hash11(index));
+            const flash = p > 0.01 || this._flash;
+            if (flash) {
+                this._onFlash();
+            }
+        }
+
+
+        this._setUniform("uTime", uTime, this.gl.uniform1f);
         this._setUniform('uResolution', new Float32Array([w * renderPrecision, h * renderPrecision]), this.gl.uniform2fv);
         this._setUniform('uFrame', frame, this.gl.uniform1f);
         this._setUniform('uLightcolor', this._lightColor, this.gl.uniform4fv);
@@ -62,6 +77,38 @@ export default class LightningShader extends lng.shaders.WebGLDefaultShader {
 
         this.redraw()
     }
+
+    step(edge, input) {
+        return edge > input ? 0.0 : 1.0;
+    }
+
+    hash11(p) {
+        p = this.fract(p * .1031);
+        p *= p + 33.33;
+        p *= p + p;
+        return this.fract(p);
+    }
+
+    fract(p) {
+        let sign = 0;
+        let num = Number(p);
+        if (isNaN(num) || Math.abs(num) === Infinity) {
+            return num;
+        } else if (num < 0) {
+            num = -num;
+            sign = 1;
+        }
+        if (String(num).includes('.') && !String(num).includes('e')) {
+            let toFract = String(num);
+            toFract = Number('0' + toFract.slice(toFract.indexOf('.')));
+            return Math.abs(sign - toFract);
+        } else if (num < 1) {
+            return Math.abs(sign - num);
+        } else {
+            return 0;
+        }
+    }
+
 }
 
 LightningShader.fragmentShaderSource = `

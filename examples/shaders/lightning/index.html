@@ -37,15 +37,22 @@
 
     window.onload = function() {
         class AppExample extends lng.Application {
-            static _template() {
+            static _template(ctx) {
                 return {
                     Cloud: {
                         rect:true, w: 1920, h: 1080, color: 0xFFAAAAAA, 
                         shader: {
-                            type: LightningShader, lightColor: 0xff836bff
+                            type: LightningShader, lightColor: 0xff836bff,
+                            onFlash:()=>{
+                                ctx.handleFlash();
+                            }
                         }
                     }
                 }
+            }
+
+            handleFlash(){
+                //
             }
 
             _handleLeft(){
