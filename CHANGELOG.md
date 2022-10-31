@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.8.1
+
+*31 oct 2022*
+
+- Fixed Lightning inspector (#427)
+
 ## v2.8.0
 
 *20 oct 2022*
