@@ -207,12 +207,6 @@ export default class TextTextureRendererAdvanced {
             renderInfo.h = this._settings.h;
         } else if (renderInfo.maxLines && renderInfo.maxLines < renderInfo.lineNum) {
             renderInfo.h = renderInfo.maxLines * renderInfo.lineHeight + fontSize / 2;
-        } else if (renderInfo.lineHeight > fontSize) {
-            // When lineheight is larger than the font size we're rendering, we set the height of the canvas based on the number of lines we're rendering.
-            // This makes each "line" a containing box that is line height sized, and text is positioned inside that box.
-            //
-            // Ideographic fonts may break this model, and require additional space?
-            renderInfo.h = renderInfo.lineNum * renderInfo.lineHeight
         } else {
             renderInfo.h = renderInfo.lineNum * renderInfo.lineHeight + fontSize / 2;
         }
