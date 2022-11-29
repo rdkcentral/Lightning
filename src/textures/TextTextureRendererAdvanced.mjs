@@ -277,25 +277,23 @@ export default class TextTextureRendererAdvanced {
             let suffix = renderInfo.maxLinesSuffix;
             suffix = this.tokenize(suffix);
             suffix = this.parse(suffix);
-            suffix = this.measure(suffix, renderInfo.letterSpacing, renderInfo.baseFont)[0];
-            suffix.lineNo = index;
-            if (lastLineText.length) {
-                suffix.x = lastLineText[lastLineText.length - 1].x + lastLineText[lastLineText.length - 1].width;
-            } else {
-                suffix.x = 0;
+            suffix = this.measure(suffix, renderInfo.letterSpacing, renderInfo.baseFont);
+            for (const s of suffix) {
+                s.lineNo = index;
+                s.x = 0;
+                lastLineText.push(s)
             }
-            lastLineText.push(suffix)
 
+            const spl = suffix.length + 1
             let _w = lastLineText.reduce((acc, t) => acc + t.width, 0);
-            while (_w > renderInfo.width || lastLineText[lastLineText.length - 2].text == ' ') {
-                lastLineText.splice(lastLineText.length - 2, 1);
+            while (_w > renderInfo.width || lastLineText[lastLineText.length - spl].text == ' ') {
+                lastLineText.splice(lastLineText.length - spl, 1);
                 _w = lastLineText.reduce((acc, t) => acc + t.width, 0);
-                const prev = lastLineText[lastLineText.length - 2] || {x: 0, width: 0}
-                suffix.x = prev.x + prev.width;
-                if (lastLineText.length < 2) {
+                if (lastLineText.length < spl) {
                     break;
                 }
             }
+            this.alignLine(lastLineText, lastLineText[0].x)
 
             renderInfo.lines[index].text = lastLineText;
             renderInfo.lines[index].width = _w;
@@ -682,5 +680,19 @@ export default class TextTextureRendererAdvanced {
         }
 
         return parts;
+    }
+
+    alignLine(parsed, initialX = 0) {
+        let prevWidth = 0;
+        let prevX = initialX;
+        for (const word of parsed) {
+            if (word.text == '\n') {
+                continue;
+            }
+            word.x = prevX + prevWidth;
+            prevX = word.x;
+            prevWidth = word.width;
+        }
+
     }
 }
