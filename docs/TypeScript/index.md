@@ -41,6 +41,8 @@ TypeScript projects must include a [TSConfig file](https://www.typescriptlang.or
 }
 ```
 
+**Warning:** At a minimum, `strictNullChecks` [must be set to true](https://github.com/rdkcentral/Lightning-SDK/issues/358#issuecomment-1339321527) to avoid certain errors. This is done implicitly by setting `strict` to true as in the above configuration.
+
 ### Importing
 
 Lightning should only be imported from a single import as such:
