@@ -1330,9 +1330,6 @@ export default class Element {
              * condition in getter fn could impact transition performance
              * @todo: benchmark
              */
-
-            this._optFlags = 2;
-
             getter = new Function('obj',
                 `
                 const flags = obj.core.optFlags;
