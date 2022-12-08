@@ -2106,6 +2106,10 @@ export default class ElementCore {
         }
         return this._texturizer;
     }
+    
+    get optFlags(){
+        return this._optFlags;
+    }
 
     getCornerPoints() {
         let w = this._worldContext;

@@ -189,7 +189,7 @@ export default class Element {
         let depth = 0;
 
         let p = this.__parent;
-        while(p) {
+        while (p) {
             depth++;
             p = p.__parent;
         }
@@ -226,7 +226,7 @@ export default class Element {
 
     isAncestorOf(c) {
         let p = c;
-        while(p = p.parent) {
+        while (p = p.parent) {
             if (this === p) {
                 return true;
             }
@@ -1138,7 +1138,7 @@ export default class Element {
         let i;
         i = this.__parent ? this.__parent._children.getIndex(this) : "R";
         let localTags = this.getTags();
-        let str = this.__parent ? this.__parent.getLocationString(): "";
+        let str = this.__parent ? this.__parent.getLocationString() : "";
         if (this.ref) {
             str += ":[" + i + "]" + this.ref;
         } else if (localTags.length) {
@@ -1326,7 +1326,24 @@ export default class Element {
     static getGetter(propertyPath) {
         let getter = Element.PROP_GETTERS.get(propertyPath);
         if (!getter) {
-            getter = new Function('obj', 'return obj.' + propertyPath);
+            /**
+             * condition in getter fn could impact transition performance
+             * @todo: benchmark
+             */
+
+            this._optFlags = 2;
+
+            getter = new Function('obj',
+                `
+                const flags = obj.core.optFlags;
+                if(flags & 1 || flags & 2) {
+                    let fn = flags & 1 ? 'X': flags & 2 ? 'Y' : null;
+                    const prop = flags & 1 ? 'w' : 'h';
+                    obj.${propertyPath} = obj.core['func'+fn](obj.parent[prop]);
+                }
+                return obj.${propertyPath}
+                `
+            );
             Element.PROP_GETTERS.set(propertyPath, getter);
         }
         return getter;
@@ -1335,7 +1352,7 @@ export default class Element {
     static getSetter(propertyPath) {
         let setter = Element.PROP_SETTERS.get(propertyPath);
         if (!setter) {
-            setter = new Function('obj', 'v', 'obj.' + propertyPath + ' = v');
+            setter = new Function('obj', 'v', 'obj.' + propertyPath + ' = v;');
             Element.PROP_SETTERS.set(propertyPath, setter);
         }
         return setter;
@@ -1535,7 +1552,7 @@ export default class Element {
     set visible(v) {
         this.__core.visible = v;
     }
-    
+
     get colorUl() {
         return this.__core.colorUl;
     }
@@ -1625,22 +1642,22 @@ export default class Element {
         }
     }
 
-    get zIndex() {return this.__core.zIndex}
+    get zIndex() { return this.__core.zIndex }
     set zIndex(v) {
         this.__core.zIndex = v;
     }
 
-    get forceZIndexContext() {return this.__core.forceZIndexContext}
+    get forceZIndexContext() { return this.__core.forceZIndexContext }
     set forceZIndexContext(v) {
         this.__core.forceZIndexContext = v;
     }
 
-    get clipping() {return this.__core.clipping}
+    get clipping() { return this.__core.clipping }
     set clipping(v) {
         this.__core.clipping = v;
     }
 
-    get clipbox() {return this.__core.clipbox}
+    get clipbox() { return this.__core.clipbox }
     set clipbox(v) {
         this.__core.clipbox = v;
     }
@@ -2073,7 +2090,7 @@ export default class Element {
         if (this.hasChildren()) {
             Element.collectChildren(tree[ref], this.__childList);
         } else {
-            tree[ref] = {...Element.getProperties(this)};
+            tree[ref] = { ...Element.getProperties(this) };
         }
         return tree;
     }
@@ -2085,7 +2102,7 @@ export default class Element {
             const ref = `${element.__ref || `Element-${element.id}`}`;
             const properties = this.getProperties(element);
 
-            tree[ref] = {...properties};
+            tree[ref] = { ...properties };
 
             if (element.hasChildren()) {
                 tree[ref].children = {};
@@ -2123,7 +2140,7 @@ export default class Element {
                 props[key] = element[key];
             }
         }
-        return {...props, ...element.getNonDefaults()};
+        return { ...props, ...element.getNonDefaults() };
     }
 }
 
