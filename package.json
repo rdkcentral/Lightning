@@ -16,7 +16,8 @@
         "types": "./dist/lightning.js",
         "default": "./index.d.ts"
       }
-    }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "tsconfig.json",
