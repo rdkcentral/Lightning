@@ -2,14 +2,14 @@
  * Returns CSS font setting string for use in canvas context.
  *
  * @private
- * @param {Stage} stage
  * @param {string | string[]} fontFace
  * @param {string} fontStyle
  * @param {number} fontSize
  * @param {number} precision
+ * @param {string} defaultFontFace
  * @returns {string}
  */
-export function getFontSetting(stage, fontFace, fontStyle, fontSize, precision) {
+export function getFontSetting(fontFace, fontStyle, fontSize, precision, defaultFontFace) {
     let ff = fontFace;
 
     if (!Array.isArray(ff)) {
@@ -22,7 +22,7 @@ export function getFontSetting(stage, fontFace, fontStyle, fontSize, precision) 
         // Replace the default font face `null` with the actual default font face set
         // on the stage.
         if (curFf === null) {
-            curFf = stage.getOption('defaultFontFace');
+            curFf = defaultFontFace;
         }
         if (curFf === "serif" || curFf === "sans-serif") {
             ffs.push(curFf);

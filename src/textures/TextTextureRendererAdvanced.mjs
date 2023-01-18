@@ -36,11 +36,11 @@ export default class TextTextureRendererAdvanced {
 
     setFontProperties() {
         const font = getFontSetting(
-            this._stage,
             this._settings.fontFace,
             this._settings.fontStyle,
             this._settings.fontSize,
-            this.getPrecision()
+            this.getPrecision(),
+            this._stage.getOption('defaultFontFace')
         );
         this._context.font = font;
         this._context.textBaseline = this._settings.textBaseline;
@@ -50,11 +50,11 @@ export default class TextTextureRendererAdvanced {
     _load() {
         if (Utils.isWeb && document.fonts) {
             const fontSetting = getFontSetting(
-                this._stage,
                 this._settings.fontFace,
                 this._settings.fontStyle,
                 this._settings.fontSize,
-                this.getPrecision()
+                this.getPrecision(),
+                this._stage.getOption('defaultFontFace')
             );
             try {
                 if (!document.fonts.check(fontSetting, this._settings.text)) {
@@ -418,7 +418,7 @@ export default class TextTextureRendererAdvanced {
         if (renderInfo.cutSx || renderInfo.cutSy) {
             this._context.translate(renderInfo.cutSx, renderInfo.cutSy);
         }
- 
+
         // Postprocess renderInfo.lines to be compatible with standard version
         renderInfo.lines = renderInfo.lines.map((l) => l.text.reduce((acc, v) => acc + v.text, ''));
         if (renderInfo.maxLines) {
@@ -441,19 +441,19 @@ export default class TextTextureRendererAdvanced {
 
     tokenize(text) {
         const re =/ |\n|<i>|<\/i>|<b>|<\/b>|<color=0[xX][0-9a-fA-F]{8}>|<\/color>/g
-    
+
         const delimeters = text.match(re) || [];
         const words = text.split(re) || [];
-    
+
         let final = [];
         for (let i = 0; i < words.length; i++) {
             final.push(words[i], delimeters[i])
         }
         final.pop()
         return final.filter((word) => word != '');
-    
+
     }
-    
+
     parse(tokens) {
         let italic = 0;
         let bold = 0;
@@ -461,7 +461,7 @@ export default class TextTextureRendererAdvanced {
         let color = 0;
 
         const colorRegexp = /<color=(0[xX][0-9a-fA-F]{8})>/;
-    
+
         return tokens.map((t) => {
             if (t == '<i>') {
                 italic += 1;

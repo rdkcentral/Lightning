@@ -36,11 +36,11 @@ export default class TextTextureRenderer {
 
     setFontProperties() {
         this._context.font = getFontSetting(
-            this._stage,
             this._settings.fontFace,
             this._settings.fontStyle,
             this._settings.fontSize,
-            this.getPrecision()
+            this.getPrecision(),
+            this._stage.getOption('defaultFontFace'),
         );
         this._context.textBaseline = this._settings.textBaseline;
     };
@@ -48,11 +48,11 @@ export default class TextTextureRenderer {
     _load() {
         if (Utils.isWeb && document.fonts) {
             const fontSetting = getFontSetting(
-                this._stage,
                 this._settings.fontFace,
                 this._settings.fontStyle,
                 this._settings.fontSize,
-                this.getPrecision()
+                this.getPrecision(),
+                this._stage.getOption('defaultFontFace')
             );
             try {
                 if (!document.fonts.check(fontSetting, this._settings.text)) {
@@ -465,5 +465,5 @@ export default class TextTextureRenderer {
             return acc + this._context.measureText(char).width + space;
         }, 0);
     }
-    
+
 }
