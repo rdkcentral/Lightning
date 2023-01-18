@@ -2031,6 +2031,7 @@ export default class ElementCore {
                     a.splice(ptr);
                 }
             } else {
+                a.sort(ElementCore.sortZIndexedChildren); // Needed because items with same _zIndex may not be ordered by _updateTreeOrder
                 // Merge-sort arrays;
                 ptr = 0;
                 let i = 0;
