@@ -29,9 +29,15 @@
   ],
   "scripts": {
     "build": "rollup -c",
+    "build-vite": "mkdir -p dist-vite && rm -fr dist-vite/* && concurrently -c \"auto\" \"npm:build:lightning\" \"npm:build:lightning.min\" \"npm:build:lightning.es5\" \"npm:build:lightning.es5.min\"",
     "release": "npm run build && npm publish --access public",
     "typedoc": "typedoc --tsconfig tsconfig.typedoc.json",
-    "tsd": "tsd"
+    "tsd": "tsd",
+    "build:lightning": "vite build --mode production",
+    "build:lightning.min": "BUILD_MINIFY=true vite build --mode production",
+    "build:lightning.es5": "BUILD_ES5=true vite build --mode production",
+    "build:lightning.es5.min": "BUILD_ES5=true BUILD_MINIFY=true vite build --mode production",
+    "test": "vitest"
   },
   "repository": {
     "type": "git",
@@ -45,15 +51,22 @@
     "@babel/plugin-transform-parameters": "^7.8.3",
     "@babel/plugin-transform-spread": "^7.8.3",
     "@babel/preset-env": "^7.8.3",
+    "@rollup/plugin-babel": "^6.0.3",
+    "@rollup/plugin-terser": "^0.3.0",
+    "@vitejs/plugin-legacy": "^3.0.1",
     "chai": "^4.2.0",
+    "concurrently": "^7.6.0",
     "mocha": "^6.2.1",
-    "rollup": "^1.30.1",
+    "rollup": "^1.32.1",
     "rollup-plugin-babel": "^4.3.3",
     "rollup-plugin-cleanup": "^3.1.1",
     "rollup-plugin-license": "2.5.0",
     "rollup-plugin-terser": "^5.1.2",
     "sinon": "^7.5.0",
+    "terser": "^5.16.1",
     "tsd": "^0.21.0",
-    "typedoc": "^0.23.10"
+    "typedoc": "^0.23.10",
+    "vite": "^4.0.4",
+    "vitest": "^0.27.2"
   }
 }

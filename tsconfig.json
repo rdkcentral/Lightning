@@ -1,6 +1,6 @@
 {
   "include": [
-    "**/*.d.mts", "**/*.d.ts", "**/*.ts"
+    "**/*.d.mts", "**/*.d.ts", "**/*.ts", "**/*.mjs"
   ],
   "compilerOptions": {
     "lib": ["ES2018", "DOM"],
