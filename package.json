@@ -13,8 +13,8 @@
         "default": "./index.js"
       },
       "require": {
-        "types": "./dist/lightning.js",
-        "default": "./index.d.ts"
+        "types": "./index.d.ts",
+        "default": "./dist/lightning.js"
       }
     },
     "./package.json": "./package.json"
