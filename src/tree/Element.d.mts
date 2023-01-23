@@ -135,16 +135,16 @@ export type TransformPossibleElement<Key, PossibleElementConstructor, Default = 
 export type IsLooseTemplateSpec<TemplateSpec extends Element.TemplateSpec> = string extends keyof TemplateSpec ? true : false;
 
 /**
- * Gets an object shape containing all the Refs (child Element / Components) in a TemplateSpec
+ * Remove index signatures from an object
  *
  * @privateRemarks
- * The refs are transformed into proper Element / Component references
+ * Converts a loose Element template to a strong Element template by
+ * removing the index signature that Element.TemplateSpecLoose adds
  *
  * @hidden Internal use only
  */
-export type TemplateSpecRefs<TemplateSpec extends Element.TemplateSpec> = {
-  [P in keyof TemplateSpec as TransformPossibleElement<P, TemplateSpec[P], never> extends never ? never : P]:
-    TransformPossibleElement<P, TemplateSpec[P], never>
+export type RemoveIndex<T> = {
+  [ K in keyof T as string extends K ? never : number extends K ? never : K ] : T[K]
 };
 
 /**
@@ -173,7 +173,7 @@ type IsTerminus<T> =
  * tuple item is the value type for that path (wrapped in a single element tuple)
  *
  * @privateRemarks
- * This is a helper type function for {@link TaggedElements}
+ * This is a helper type function for {@link TemplateSpecTags}
  *
  * Example:
  *
@@ -232,7 +232,7 @@ type Join<T extends string[]> =
  * Combines tag paths returned by {@link SpecToTagPaths} into a complete flattened object shape
  *
  * @privateRemarks
- * This is a helper type function for {@link TaggedElements}.
+ * This is a helper type function for {@link TemplateSpecTags}.
  *
  * Only path elements that are a valid reference name (i.e. start with a capital letter {@link ValidRef}) are
  * included.
@@ -283,13 +283,62 @@ type CombineTagPaths<TagPaths extends any[]> = {
 }
 
 /**
+ * Like {@link CombineTagPaths} but only includes the first level of refs from TagPaths
+ *
+ * @privateRemarks
+ * This is a helper type function for {@link TemplateSpecTags}.
+ *
+ * Only path elements that are a valid reference name (i.e. start with a capital letter {@link ValidRef}) are
+ * included.
+ *
+ * Example:
+ *
+ * ```ts
+ * type Result = CombineTagPaths<
+ *   ['MyElement', [object]] |
+ *   ['MyParentElement', [{
+ *      MyChildComponent: typeof MyComponent
+ *      MyChildElement: {
+ *        MyGrandChildElement: object
+ *      }
+ *   }]] |
+ *   ['MyParentElement', 'MyChildComponent', [typeof MyComponent]]
+ *   ['MyParentElement', 'MyChildElement', [{ MyGrandChildElement: object }]] |
+ *   ['MyParentElement', 'MyChildElement', 'MyGrandChildElement', [object]]
+ * >
+ * ```
+ *
+ * equates to:
+ *
+ * ```ts
+ * type Result = {
+ *   'MyElement': object;
+ *   'MyParentElement': {
+ *      MyChildComponent: typeof MyComponent
+ *      MyChildElement: {
+ *        MyGrandChildElement: object
+ *      }
+ *   };
+ * }
+ * ```
+ */
+type CombineTagPathsSingleLevel<TagPaths extends any[]> = {
+  [PathWithType in TagPaths as PathWithType extends [infer Key extends ValidRef, [any]] ? Key : never]:
+      PathWithType extends [any, [infer Type]]
+          ?
+              Type
+          :
+              never;
+}
+
+/**
  * Returns a flattened map of the TemplateSpec where each key is is a `.` separated tag path to an element
  *
  * @privateRemarks
  *
  * Example:
  * ```ts
- * type Result = TaggedElements<{
+ * type Result = TemplateSpecTags<{
  *   MyElement: object
  *   MyParentElement: {
  *     MyChildComponent: typeof MyComponent
@@ -319,8 +368,20 @@ type CombineTagPaths<TagPaths extends any[]> = {
  *
  * @hidden Internal use only
  */
-export type TaggedElements<TemplateSpec extends Element.TemplateSpec> = {
+export type TemplateSpecTags<TemplateSpec extends Element.TemplateSpec> = {
   [K in keyof CombineTagPaths<SpecToTagPaths<TemplateSpec>>]: TransformPossibleElement<K, CombineTagPaths<SpecToTagPaths<TemplateSpec>>[K]>;
+};
+
+/**
+ * Gets an object shape containing all the Refs (child Element / Components) in a TemplateSpec
+ *
+ * @privateRemarks
+ * The refs are transformed into proper Element / Component references
+ *
+ * @hidden Internal use only
+ */
+export type TemplateSpecRefs<TemplateSpec extends Element.TemplateSpec> = {
+  [K in keyof CombineTagPathsSingleLevel<SpecToTagPaths<TemplateSpec>>]: TransformPossibleElement<K, CombineTagPathsSingleLevel<SpecToTagPaths<TemplateSpec>>[K]>;
 };
 
 //
@@ -1583,7 +1644,7 @@ declare class Element<
    * information.
    * @param tagName `.` separated tag path
    */
-  tag<Path extends keyof TaggedElements<TemplateSpecType>>(tagName: Path): TaggedElements<TemplateSpecType>[Path] | undefined;
+  tag<Path extends keyof TemplateSpecTags<RemoveIndex<TemplateSpecType>>>(tagName: Path): TemplateSpecTags<RemoveIndex<TemplateSpecType>>[Path] | undefined;
   tag(tagName: IsLooseTemplateSpec<TemplateSpecType> extends true ? string : never): any;
   /**
    * Returns all Elements from the subtree that have this tag.
@@ -1606,7 +1667,8 @@ declare class Element<
    *
    * @param ref
    */
-  getByRef<RefKey extends keyof TemplateSpecRefs<TemplateSpecType>>(ref: RefKey): TemplateSpecRefs<TemplateSpecType>[RefKey] | undefined;
+  getByRef<RefKey extends keyof TemplateSpecRefs<RemoveIndex<TemplateSpecType>>>(ref: RefKey): TemplateSpecRefs<RemoveIndex<TemplateSpecType>>[RefKey] | undefined;
+  getByRef(tagName: IsLooseTemplateSpec<TemplateSpecType> extends true ? string : never): any;
 
   /**
    * Get the location identifier of this Element

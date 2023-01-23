@@ -22,7 +22,7 @@
 
 import { expectType } from 'tsd';
 import { Lightning } from '../../index.typedoc.js';
-import { TaggedElements, SpecToTagPaths } from '../../src/tree/Element.mjs';
+import { TemplateSpecTags, SpecToTagPaths } from '../../src/tree/Element.mjs';
 import { MyLooseComponentC } from './components-loose.test-d.js';
 
 namespace MyComponentA {
