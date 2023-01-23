@@ -1,6 +1,80 @@
 # Subclassable Components
 
-Usually, when creating a Lightning Component you do not need to specify your own generic parameters which are mixed into the ones passed further down into the Component base class. However, there are times when you want to make your Component type flexible and perhaps just as flexible as the Component base class which allows you to pass a [Template Spec](./TemplateSpecs.md) and [Type Config](./TypeConfig.md).  Perhaps you want to create a `MyList<T>` component that accepts any child Component of type T. Or a completely flexible `MyBaseComponent<TemplateSpecType, TypeConfig>` which all of your App's Components extend. When doing this there are a few guidelines and gotchas you need to pay attention to that stem from some design choices in TypeScript.
+Usually, when creating a Lightning Component you do not need to specify your own generic parameters which are mixed into the ones passed further down into the Component base class. However, there are times when you want to make your Component type flexible and perhaps just as flexible as the Component base class which allows you to pass a [Template Spec](./TemplateSpecs.md) and [Type Config](./TypeConfig.md). Perhaps you want to create a `PageBase<T>` component that accepts any child Component of type T. Or a completely flexible `MyBaseComponent<TemplateSpecType, TypeConfig>` which all of your App's Components extend. When doing this there are a few guidelines and gotchas you need to pay attention to that stem from some design choices in TypeScript.
+
+## Basic Generic Ref Type
+
+If we want to create an extendible base Component called `PageBase<T>`, where `T` is the type of Component used for the content of a page appearing with a static header component, we start by laying down the definition of its Template Spec like so:
+
+```ts
+export interface PageTemplateSpec<
+  T extends Lightning.Component.Constructor = Lightning.Component.Constructor,
+> extends Lightning.Component.TemplateSpec {
+  Header: typeof Header
+  Content: T
+}
+```
+
+`Lightning.Component.Constructor` represents a `typeof` any Lightning Component. For example, if there's a component called `List` you can use `typeof List` as the type argument for `T`.
+
+Then we implement the `PageBase` class itself using the same generic type parameter passed down into the Template Spec:
+
+```ts
+export class PageBase<T extends Lightning.Component.Constructor = Lightning.Component.Constructor>
+  extends Lightning.Component<PageTemplateSpec<T>>
+  implements Lightning.Component.ImplementTemplateSpec<PageTemplateSpec<T>>
+{
+  static override _template(): Lightning.Component.Template<PageTemplateSpec> {
+    return {
+      w: (w: number) => w,
+      h: (h: number) => h,
+      rect: true,
+      color: 0xff0e0e0e,
+
+      Header: {
+        type: Header,
+      },
+      Content: undefined,
+    };
+  }
+
+  Content = this.getByRef('Content')!;
+}
+```
+
+We fill the base `_template()` out with how we want our base component to appear. Here a Header component is provided and we leave the Content component intentionally `undefined`. It will be provided by the subclass implementation. We also create a read-only property for `Content` which returns the result of `getByRef('Content')`.
+
+Notice how the return type of `_template()` does not reference `T`. Due to how class generics work in TypeScript you are not allowed to pass the generic parameters from the class definition. By leaving it out we open it to be used for any Lightning Component type.
+
+With this base we are ready to implement a subclass. Here we use a component called `List` as our Content component:
+
+```ts
+export class Discovery extends BasePage<typeof List> {
+  static override _template(): Lightning.Component.Template<IPageTemplateSpec<typeof List>> {
+    // Must assert the specific template type to the type of the template spec
+    // because `super._template()` isn't/can't be aware of List
+    const pageTemplate = super._template() as Lightning.Component.Template<
+      IPageTemplateSpec<typeof List>
+    >;
+
+    pageTemplate.Content = {
+      type: List,
+      w: (w: number) => w,
+      h: (h: number) => h,
+    };
+
+    return pageTemplate;
+  }
+
+  override _init() {
+    this.Content.someListSpecificProperty = false;
+  }
+}
+```
+
+Here the `_template()` method calls the base component's `_template()` method, and then supplements it's Content ref with the `List` component. We must use `as` to assert the correct final type of the template object because of what we said above about class generic parameters and static methods. From here, you should be able to reference `this.Content` in your component's implementation and it will automatically be resolved to an instance of `List`.
+
+## Extendible TemplateSpec / TypeConfig
 
 If we wish to create our own `MyBaseComponent` that provides its own base Template Spec and Event Map. First we start by creating our own interfaces for Template Spec and Type Config that extend their respective base interfaces from Component. The wrapping namespace `MyBaseComponent` is used purely for convention and organization. It is recommended but not required.
 
