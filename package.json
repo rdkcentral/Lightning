@@ -1,7 +1,7 @@
 {
   "author": "Metrological, Bas van Meurs <b.van.meurs@metrological.com>",
   "name": "@lightningjs/core",
-  "version": "2.8.1",
+  "version": "2.9.0",
   "license": "Apache-2.0",
   "main": "dist/lightning.js",
   "module": "index.js",
