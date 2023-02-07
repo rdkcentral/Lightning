@@ -5,18 +5,17 @@
   "license": "Apache-2.0",
   "type": "module",
   "types": "dist/index.d.ts",
-  "module": "dist/lightning.esm.js",
+  "module": "dist/index.js",
   "main": "dist/lightning.js",
   "exports": {
     ".": {
-      "import": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/lightning.esm.js"
-      },
-      "require": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/lightning.js"
-      }
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/lightning.js"
+    },
+    "./*.mjs": {
+      "types": "./dist/src/*.d.mts",
+      "import": "./dist/src/*.mjs"
     },
     "./package.json": "./package.json"
   },
@@ -25,11 +24,11 @@
     "devtools/**"
   ],
   "scripts": {
-    "build": "mkdir -p dist && rm -fr dist/* && concurrently -c \"auto\" \"npm:build:lightning\" \"npm:build:lightning.min\" \"npm:build:lightning.es5\" \"npm:build:lightning.es5.min\" \"npm:build:lightning-inspect.es5\" && npm run copy-extra-tsd-files",
+    "build": "mkdir -p dist && rm -fr dist/* && concurrently -c \"auto\" \"npm:build:lightning\" \"npm:build:lightning.min\" \"npm:build:lightning.es5\" \"npm:build:lightning.es5.min\" \"npm:build:lightning-inspect.es5\" && npm run src-to-dist",
     "release": "npm run build && npm publish --access public",
     "typedoc": "typedoc --tsconfig tsconfig.typedoc.json",
     "tsd": "tsd",
-    "copy-extra-tsd-files": "bash ./scripts/copy-extra-tsd-files.sh",
+    "src-to-dist": "bash ./scripts/src-to-dist.sh",
     "build:lightning-inspect.es5": "BUILD_INSPECTOR=true BUILD_ES5=true vite build --mode production",
     "build:lightning": "vite build --mode production",
     "build:lightning.min": "BUILD_MINIFY=true vite build --mode production",
@@ -60,8 +59,8 @@
     "terser": "^5.16.8",
     "tsd": "^0.21.0",
     "typedoc": "^0.23.10",
+    "typescript": "^4.9.5",
     "vite": "^4.0.4",
-    "vite-plugin-dts": "^2.0.2",
     "vitest": "^0.27.2"
   }
 }
