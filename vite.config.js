@@ -9,6 +9,8 @@ import dts from 'vite-plugin-dts';
 import cleanup from 'rollup-plugin-cleanup';
 // @ts-expect-error Ignore "Consider using --resolveJsonModule" error ts(2732)
 import packageJson from './package.json';
+import { fixTsImportsFromJs } from './custom-vite-plugin';
+
 
 const isEs5Build = process.env.BUILD_ES5 === 'true';
 const isMinifiedBuild = process.env.BUILD_MINIFY === 'true';
@@ -36,6 +38,7 @@ export default defineConfig(() => {
       cleanup({
         comments: 'none',
       }),
+      fixTsImportsFromJs(),
       /* ES5 (if requested) */
       isEs5Build && babel({
         presets: [

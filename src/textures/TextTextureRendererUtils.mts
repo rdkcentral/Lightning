@@ -1,15 +1,39 @@
+/*
+ * If not stated otherwise in this file or this component's LICENSE file the
+ * following copyright and licenses apply:
+ *
+ * Copyright 2020 Metrological
+ *
+ * Licensed under the Apache License, Version 2.0 (the License);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 /**
  * Returns CSS font setting string for use in canvas context.
  *
- * @private
- * @param {string | string[]} fontFace
- * @param {string} fontStyle
- * @param {number} fontSize
- * @param {number} precision
- * @param {string} defaultFontFace
- * @returns {string}
+ * @param fontFace
+ * @param fontStyle
+ * @param fontSize
+ * @param precision
+ * @param defaultFontFace
+ * @returns
  */
-export function getFontSetting(fontFace, fontStyle, fontSize, precision, defaultFontFace) {
+export function getFontSetting(
+    fontFace: string | string[],
+    fontStyle: string,
+    fontSize: number,
+    precision: number,
+    defaultFontFace: string
+): string {
     let ff = fontFace;
 
     if (!Array.isArray(ff)) {
@@ -40,7 +64,7 @@ export function getFontSetting(fontFace, fontStyle, fontSize, precision, default
  * @param {string} space
  * @returns {boolean}
  */
-export function isZeroWidthSpace(space) {
+export function isZeroWidthSpace(space: string) {
     return space === '' || space === '\u200B';
 }
 
@@ -50,18 +74,17 @@ export function isZeroWidthSpace(space) {
  * @param {string} space
  * @returns {boolean}
  */
-export function isSpace(space) {
+export function isSpace(space: string) {
     return isZeroWidthSpace(space) || space === ' ';
 }
 
 /**
  * Converts a string into an array of tokens and the words between them.
  *
- * @param {RegExp} tokenRegex
- * @param {string} text
- * @returns {string[]}
+ * @param tokenRegex
+ * @param text
  */
-export function tokenizeString(tokenRegex, text) {
+export function tokenizeString(tokenRegex: RegExp, text: string) {
     const delimeters = text.match(tokenRegex) || [];
     const words = text.split(tokenRegex) || [];
 
@@ -76,12 +99,11 @@ export function tokenizeString(tokenRegex, text) {
 /**
  * Measure the width of a string accounting for letter spacing.
  *
- * @param {CanvasRenderingContext2D} context
- * @param {string} word
- * @param {number} space
- * @returns
+ * @param context
+ * @param word
+ * @param space
  */
-export function measureText(context, word, space = 0) {
+export function measureText(context: CanvasRenderingContext2D, word: string, space: number = 0) {
     if (!space) {
         return context.measureText(word).width;
     }
@@ -107,15 +129,21 @@ export function measureText(context, word, space = 0) {
  * @param {number} indent
  * @returns
  */
-export function wrapText(context, text, wordWrapWidth, letterSpacing, indent) {
+export function wrapText(
+    context: CanvasRenderingContext2D,
+    text: string,
+    wordWrapWidth: number,
+    letterSpacing: number,
+    indent: number
+) {
     // Greedy wrapping algorithm that will wrap words as the line grows longer.
     // than its horizontal bounds.
     const spaceRegex = / |\u200B/g;
     let lines = text.split(/\r?\n/g);
-    let allLines = [];
-    let realNewlines = [];
+    let allLines: string[] = [];
+    let realNewlines: number[] = [];
     for (let i = 0; i < lines.length; i++) {
-        let resultLines = [];
+        let resultLines: string[] = [];
         let result = '';
         let spaceLeft = wordWrapWidth - indent;
         let words = lines[i].split(spaceRegex);
