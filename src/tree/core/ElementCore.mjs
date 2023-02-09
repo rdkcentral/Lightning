@@ -2031,7 +2031,7 @@ export default class ElementCore {
                     a.splice(ptr);
                 }
             } else {
-                a.sort(ElementCore.sortZIndexedChildren); // Needed because items with same _zIndex may not be ordered by _updateTreeOrder
+                a.sort(ElementCore.sortSameZIndexedChildren); // Needed because items with same _zIndex may not be ordered by _updateTreeOrder
                 // Merge-sort arrays;
                 ptr = 0;
                 let i = 0;
@@ -2273,6 +2273,9 @@ class ElementCoreContext {
 ElementCoreContext.IDENTITY = new ElementCoreContext();
 ElementCore.sortZIndexedChildren = function (a, b) {
     return (a._zIndex === b._zIndex ? a._updateTreeOrder - b._updateTreeOrder : a._zIndex - b._zIndex);
+};
+ElementCore.sortSameZIndexedChildren = function (a, b) {
+    return (a._zIndex === b._zIndex ? a._updateTreeOrder - b._updateTreeOrder : 0);
 };
 
 import ElementTexturizer from "./ElementTexturizer.mjs";
