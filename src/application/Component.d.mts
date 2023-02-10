@@ -16,8 +16,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { HandlerReturnType, HandlerParameters, SignalMapType } from "../internalTypes.mjs";
-import Element, { CompileElementTemplateSpecType, InlineElement, ValidRef } from "../tree/Element.mjs";
+import { HandlerReturnType, HandlerParameters, SignalMapType, ValidRef } from "../internalTypes.mjs";
+import Element, { CompileElementTemplateSpecType, InlineElement } from "../tree/Element.mjs";
 import Stage from "../tree/Stage.mjs";
 import Application from "./Application.mjs";
 

@@ -22,7 +22,6 @@
 
 import { expectType } from 'tsd';
 import { Lightning } from '../../index.typedoc.js';
-import { TemplateSpecTags, SpecToTagPaths } from '../../src/tree/Element.mjs';
 import { MyLooseComponentC } from './components-loose.test-d.js';
 
 namespace MyComponentA {
@@ -193,6 +192,9 @@ class MyComponentB extends Lightning.Component<MyComponentB.TemplateSpec> implem
 namespace MyComponentC {
   export interface TemplateSpec extends Lightning.Component.TemplateSpec {
     propC: string;
+    /// Make sure an element can be specified as a property
+    /// Previously adding a property like this completely broke tag/getByRef for the component
+    elementProp: Lightning.Element;
     MyComponentB: typeof MyComponentB;
     MyLooseComponentC: typeof MyLooseComponentC;
   }
@@ -325,6 +327,8 @@ class MyComponentC extends Lightning.Component<MyComponentC.TemplateSpec> implem
   }
 
   propC: string = '';
+
+  elementProp: Lightning.Element = this.tag('MyComponentB')!;
 
   get MyLooseComponentC(): MyLooseComponentC {
     return this.getByRef('MyLooseComponentC')!;

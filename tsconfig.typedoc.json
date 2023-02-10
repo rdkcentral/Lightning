@@ -8,7 +8,7 @@
     "entryPointStrategy": "expand",
     "intentionallyNotExported": [
       "src/components/ListComponent.d.mts:ListItems",
-      "src/tree/Element.d.mts:ValidRef",
+      "src/internalTypes.d.mts:ValidRef",
       "src/tree/Element.d.mts:InlineElement",
       "src/internalTypes.d.mts:Documentation",
       "src/application/Component.d.mts:IsCustomKeyHandlersAugmented",
