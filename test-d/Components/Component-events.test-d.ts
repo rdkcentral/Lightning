@@ -38,7 +38,10 @@ declare module '../../index.typedoc.js' {
   }
 }
 
-namespace MyComponent {
+//
+// Strong typing for signals and events
+//
+namespace MyComponent_Strong {
   export interface TemplateSpec extends Lightning.Component.TemplateSpec {
 
   }
@@ -58,9 +61,9 @@ namespace MyComponent {
   }
 }
 
-class MyComponent extends Lightning.Component<
-  MyComponent.TemplateSpec,
-  MyComponent.TypeConfig
+class MyComponent_Strong extends Lightning.Component<
+  MyComponent_Strong.TemplateSpec,
+  MyComponent_Strong.TypeConfig
 > {
   sendMoney(amount: number) {
     if (amount > 10000000) {
@@ -76,7 +79,10 @@ class MyComponent extends Lightning.Component<
 
 namespace MyParentComponent {
   export interface TemplateSpec extends Lightning.Component.TemplateSpec {
-    MyComponent: typeof MyComponent
+    MyComponent_Strong: typeof MyComponent_Strong
+    MyComponent_Strong2: typeof MyComponent_Strong
+    MyComponent_Strong3: typeof MyComponent_Strong
+    MyComponent_Strong4: typeof MyComponent_Strong
   }
 
   export interface SignalMap extends Lightning.Component.SignalMap {
@@ -90,24 +96,55 @@ namespace MyParentComponent {
 }
 
 class MyParentComponent extends Lightning.Component<MyParentComponent.TemplateSpec, MyParentComponent.TypeConfig> {
-  MyComponent = this.getByRef('MyComponent')!;
+  MyComponent_Strong = this.getByRef('MyComponent_Strong')!;
 
   static override _template(): Lightning.Component.Template<MyParentComponent.TemplateSpec> {
     return {
-      MyComponent: {
-        type: MyComponent,
+      MyComponent_Strong: {
+        type: MyComponent_Strong,
         signals: {
-          money: true
+          /// Boolean handler
+          money: true,
         },
         passSignals: {
           audit: true,
+        }
+      },
+      MyComponent_Strong2: {
+        type: MyComponent_Strong,
+        signals: {
+          /// Direct handler
+          money: (amount: number) => {},
+        },
+        passSignals: {
+          /// String handler
+          audit: 'audit',
+        }
+      },
+      MyComponent_Strong3: {
+        type: MyComponent_Strong,
+        signals: {
+          /// Direct handler
+          // @ts-expect-error Signal parameters are checked
+          money: (invalidParamType: string) => {},
+        },
+      },
+      MyComponent_Strong4: {
+        type: MyComponent_Strong,
+        signals: {
+          // @ts-expect-error Any signal is not allowed for strong TypeConfigs
+          notAValidSignal: true,
+        },
+        passSignals: {
+          // @ts-expect-error Any signal is not allowed for strong TypeConfigs
+          notAValidSignal: true,
         }
       }
     };
   }
 
   override _handleEnter() {
-    this.MyComponent.sendMoney(100);
+    this.MyComponent_Strong.sendMoney(100);
   }
 
   money(amount: number) {
@@ -116,15 +153,61 @@ class MyParentComponent extends Lightning.Component<MyParentComponent.TemplateSp
   }
 }
 
+//
+// Loose typing for signals and events
+//
+class MyComponent_Loose extends Lightning.Component {
+  override _init() {
+    /// Any signal can be emitted from loose components
+    expectType<any>(this.signal('anythingShouldGo', 100));
+    expectType<any>(this.signal('asWellAsAnyParam', 'string', 100, { a: 1 }, [1, 2, 3]));
+
+    ////// Loose Events
+
+    /// EventEmitter.on
+    expectType<void>(this.on('anythingShouldGo', () => {}));
+    expectType<void>(this.on('asWellAsAnyParam', (anyParam: number, shouldGo: string) => {}));
+
+    /// EventEmitter.once
+    expectType<void>(this.once('anythingShouldGo', () => {}));
+    expectType<void>(this.once('asWellAsAnyParam', (anyParam: number, shouldGo: string) => {}));
+
+    /// EventEmitter.has
+    expectType<boolean>(this.has('anythingShouldGo', () => {}));
+    expectType<boolean>(this.has('asWellAsAnyParam', (anyParam: number, shouldGo: string) => {}));
+
+    /// EventEmitter.off
+    expectType<void>(this.off('anythingShouldGo', () => {}));
+    expectType<void>(this.off('asWellAsAnyParam', (anyParam: number, shouldGo: string) => {}));
+
+    /// EventEmitter.emit
+    expectType<void>(this.emit('anythingShouldGo', 100));
+    expectType<void>(this.emit('asWellAsAnyParam', 'string', 100, { a: 1 }, [1, 2, 3]));
+
+    /// EventEmitter.removeListener
+    expectType<void>(this.removeListener('anythingShouldGo', () => {}));
+    expectType<void>(this.removeListener('asWellAsAnyParam', (anyParam: number, shouldGo: string) => {}));
+
+    /// EventEmitter.listenerCount
+    expectType<number>(this.listenerCount('anythingShouldGo'));
+    expectType<number>(this.listenerCount('asWellAsAnyParam'));
+
+    /// EventEmitter.removeAllListeners
+    expectType<void>(this.removeAllListeners('anythingShouldGo'));
+    expectType<void>(this.removeAllListeners('asWellAsAnyParam'));
+  }
+}
 
 namespace MyApplication {
   export interface TemplateSpec extends Lightning.Application.TemplateSpec {
     MyParentComponent: typeof MyParentComponent
+    MyComponent_Loose: typeof MyComponent_Loose
   }
 }
 
 class MyApplication extends Lightning.Application<MyApplication.TemplateSpec> {
   MyParentComponent = this.getByRef('MyParentComponent')!;
+  MyComponent_Loose = this.getByRef('MyComponent_Loose')!;
 
   static override _template(): Lightning.Component.Template<MyApplication.TemplateSpec> {
     return {
@@ -136,14 +219,38 @@ class MyApplication extends Lightning.Application<MyApplication.TemplateSpec> {
           },
           deposit: 'depositHandler'
         },
+      },
+      /// Loose TypeConfig allows any signals to be set up
+      MyComponent_Loose: {
+        type: MyComponent_Loose,
+        signals: {
+          anythingShouldGo: true,
+          asWellAsAnyDirectHandler() {
+            // Handle asWellAsAnyDirectHandler
+          },
+          orStringHandler: 'depositHandler'
+        },
+        passSignals: {
+          anythingShouldGo: true,
+          orStringHandler: 'depositHandler'
+        }
       }
     };
   }
 
   override _init() {
-    this.MyParentComponent.MyComponent.on('burglarAlarm', (sound) => {
+    ////// Strong TypeConfig allows only defined events to be set up
+    this.MyParentComponent.MyComponent_Strong.on('burglarAlarm', (sound) => {
       expectType<boolean>(this.fireAncestors('$callPolice'));
-    })
+    });
+
+    // @ts-expect-error Any event name is not allowed for strong TypeConfigs
+    this.MyParentComponent.MyComponent_Strong.on('anyEventNameIsNotAllowed', () => {});
+    // @ts-expect-error Defined event names cannot have invalid parameters
+    this.MyParentComponent.MyComponent_Strong.on('burglarAlarm', (sound, notValidParameter) => {});
+
+    ////// Loose TypeConfig allows any events to be set up
+    this.MyComponent_Loose.on('anythingShouldGo', (anyParam: number, shouldGo: string) => {});
   }
 
   depositHandler(amount: number) {

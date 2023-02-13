@@ -173,7 +173,7 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
     >(this.tag('MyStrongElement.ChildComponent'));
 
     expectType<
-      lng.Element<InlineElement<{}>, lng.Element.TypeConfig> | undefined
+      lng.Element<InlineElement<{}>, lng.Element.TypeConfigLoose> | undefined
     >(this.tag('MyStrongElement.ChildElement'));
 
     // # LOOSE #
