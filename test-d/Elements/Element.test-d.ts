@@ -988,6 +988,29 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
     expectType<typeof this.TestComponent>(this.MyStrongElement.add(this.TestComponent));
     /// If you pass an array, you get `null` back
     expectType<null>(this.MyStrongElement.add([this.MyLooseElement, this.TestComponent]));
+
+    //
+    // EventEmitter
+    //
+    // # LOOSE ONLY #
+    // Unless explicitly specified, all Elements default to having Loose Type Configs.
+    // Even if they have Strong Template Specs.
+    this.MyLooseElement.on('anythingIsAllowed', () => {});
+    this.MyStrongElement.on('anythingIsAllowed', () => {});
+    this.MyLooseElement.off('anythingIsAllowed', () => {});
+    this.MyStrongElement.off('anythingIsAllowed', () => {});
+    this.MyLooseElement.once('anythingIsAllowed', () => {});
+    this.MyStrongElement.once('anythingIsAllowed', () => {});
+    this.MyLooseElement.emit('anythingIsAllowed');
+    this.MyStrongElement.emit('anythingIsAllowed');
+    this.MyLooseElement.has('anythingIsAllowed', () => {});
+    this.MyStrongElement.has('anythingIsAllowed', () => {});
+    this.MyLooseElement.removeAllListeners('anythingIsAllowed');
+    this.MyStrongElement.removeAllListeners('anythingIsAllowed');
+    this.MyLooseElement.removeListener('anythingIsAllowed', () => {});
+    this.MyStrongElement.removeListener('anythingIsAllowed', () => {});
+    this.MyLooseElement.listenerCount('anythingIsAllowed');
+    this.MyStrongElement.listenerCount('anythingIsAllowed');
   }
 }
 

@@ -445,7 +445,7 @@ declare class Component<
    */
   _captureKeyRelease?(e: KeyboardEvent): boolean | void;
 
- /**
+  /**
    * Overridable catch-all **bottom-up** _key-up_ event handler
    *
    * @remarks
