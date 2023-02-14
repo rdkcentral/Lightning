@@ -59,6 +59,11 @@ namespace MyComponent_Strong {
     SignalMapType: SignalMap,
     EventMapType: EventMap
   }
+
+  export interface TypeConfigLoose extends Lightning.Component.TypeConfigLoose {
+    SignalMapType: SignalMap,
+    EventMapType: EventMap
+  }
 }
 
 class MyComponent_Strong extends Lightning.Component<
@@ -259,5 +264,122 @@ class MyApplication extends Lightning.Application<MyApplication.TemplateSpec> {
 
   $augmentedComponentsEventsTest(amount: number) {
 
+  }
+}
+
+//
+// Explicit Loose TypeConfigs
+//
+// A component can be configured explicitly to have a loose type config
+// Known signals and events will be type checked as usual but any signal or event can
+// still be set up.
+class MyComponent_Strong_LooseTypeConfig extends Lightning.Component<
+  MyComponent_Strong.TemplateSpec,
+  MyComponent_Strong.TypeConfigLoose
+> {
+  sendMoney(amount: number) {
+    /// Test that known events and signals are type checked
+    type T1000 = typeof this.emit<"burglarAlarm">;
+    expectType<(name: "burglarAlarm", sound: string) => void>({} as T1000);
+
+    type T2000 = typeof this.on<"burglarAlarm">;
+    expectType<(name: "burglarAlarm", listener: (sound: string) => void) => void>({} as T2000);
+
+    type T3000 = typeof this.signal<"audit">;
+    expectType<(event: "audit") => void>({} as T3000);
+
+    type T4000 = typeof this.signal<"money">;
+    expectType<(event: "money", amount: number) => void>({} as T4000);
+
+    /// Test that unknown events and signals are allowed without errors
+    type T5000 = typeof this.emit<"unknownEvent">;
+    expectType<(name: "unknownEvent", ...args: any[]) => void>({} as T5000);
+
+    type T6000 = typeof this.on<"unknownEvent">;
+    expectType<(name: "unknownEvent", listener: (...args: any[]) => void) => void>({} as T6000);
+
+    type T7000 = typeof this.signal<"unknownSignal">;
+    expectType<(event: "unknownSignal", ...args: any[]) => any>({} as T7000);
+
+    /// Test that the parameter types of known events and signals are inferred correctly
+    ///// Test the positive cases
+    this.emit('burglarAlarm', 'sound');
+    this.on('burglarAlarm', (sound) => {
+      expectType<string>(sound);
+    });
+    this.signal('audit');
+    this.signal('money', 100);
+    ///// Test the error cases
+    // @ts-expect-error second param should be a string
+    this.emit('burglarAlarm', 100);
+    // @ts-expect-error `sound` should be a string
+    this.on('burglarAlarm', (sound: number) => {});
+    // @ts-expect-error `audit` should not have any parameters
+    this.signal('audit', 100);
+    // @ts-expect-error `money` should have a number parameter
+    this.signal('money', '100');
+
+    /// Test that unknown events and signals are allowed without errors
+    this.emit('unknownEvent', 'sound');
+    this.on('unknownEvent', (sound: string) => {
+      expectType<string>(sound);
+    });
+    this.signal('unknownSignal');
+    this.signal('unknownSignal', 100);
+  }
+}
+
+namespace MyApplication_LooseTypeConfig {
+  export interface TemplateSpec extends Lightning.Application.TemplateSpec {
+    MyComponent1: typeof MyComponent_Strong_LooseTypeConfig;
+    MyComponent2: typeof MyComponent_Strong_LooseTypeConfig;
+  }
+}
+
+class MyApplication_LooseTypeConfig extends Lightning.Application<MyApplication_LooseTypeConfig.TemplateSpec> {
+  MyComponent1 = this.getByRef('MyComponent1')!;
+  MyComponent2 = this.getByRef('MyComponent2')!;
+
+
+  static override _template(): Lightning.Component.Template<MyApplication_LooseTypeConfig.TemplateSpec> {
+    return {
+      MyComponent1: {
+        type: MyComponent_Strong_LooseTypeConfig,
+        signals: {
+          /// Should allow known signals with a direct handler
+          audit(...args) {
+            /// Should infer the correct parameter types of known signals
+            expectType<[]>(args);
+          },
+          /// Should allow known signals with a direct handler
+          money(...args) {
+            /// Should infer the correct parameter types of known signals
+            expectType<[number]>(args);
+          },
+          /// Should allow unknown signals with a direct handler
+          unknownSignal(...args) {
+            /// Should infer unknown signal parmas as any[]
+            expectType<any[]>(args);
+          },
+          /// Should allow unknown signals with a string handler
+          unknownSignal2: 'handler',
+          /// Should allow unknown signals with a boolean handler
+          unknownSingal3: true,
+        },
+      },
+      MyComponent2: {
+        type: MyComponent_Strong_LooseTypeConfig,
+        signals: {
+          /// Should allow known signals with a string handler
+          audit: 'handler',
+          /// Should allow known signals with a boolean handler
+          money: true,
+        },
+      },
+    };
+  }
+
+  override _init() {
+    this.MyComponent1.emit('burglarAlarm', 'BANG!');
   }
 }
