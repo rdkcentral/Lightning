@@ -333,12 +333,14 @@ namespace MyApplication_LooseTypeConfig {
   export interface TemplateSpec extends Lightning.Application.TemplateSpec {
     MyComponent1: typeof MyComponent_Strong_LooseTypeConfig;
     MyComponent2: typeof MyComponent_Strong_LooseTypeConfig;
+    MyComponent3: typeof MyComponent_Strong_LooseTypeConfig;
   }
 }
 
 class MyApplication_LooseTypeConfig extends Lightning.Application<MyApplication_LooseTypeConfig.TemplateSpec> {
   MyComponent1 = this.getByRef('MyComponent1')!;
   MyComponent2 = this.getByRef('MyComponent2')!;
+  MyComponent3 = this.tag('MyComponent3')!;
 
 
   static override _template(): Lightning.Component.Template<MyApplication_LooseTypeConfig.TemplateSpec> {
@@ -374,6 +376,20 @@ class MyApplication_LooseTypeConfig extends Lightning.Application<MyApplication_
           audit: 'handler',
           /// Should allow known signals with a boolean handler
           money: true,
+        },
+      },
+      MyComponent3: {
+        type: MyComponent_Strong_LooseTypeConfig,
+        signals: {
+          /// Should NOT allow ANY signal (known or unknown) with completely invalid types
+          // @ts-expect-error Known signal handler can't be a number
+          audit: 100,
+          // @ts-expect-error Known signal handler can't be an object
+          money: {},
+          // @ts-expect-error Unknown signal handler can't be a number
+          unknownSignal: 100,
+          // @ts-expect-error Unknown signal handler can't be an object
+          unknownSignal2: {},
         },
       },
     };
