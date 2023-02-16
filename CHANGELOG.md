@@ -1,5 +1,17 @@
 # Changelog
 
+## v2.9.0
+*16 feb 2023*
+
+- Fixed issues related to package.json exports (#434)
+- Added a warning about `strictNullChecks` option to the TypeScript docs (#433)
+- Fixed an issue occurring while using `maxLinesSuffix` when `advancedRender` is set to `true` (#429)
+- Fixed an alignment issue occurring when the advanced text renderer is used (#428)
+- Added an example of basic subclassing to the TypeScript docs (#446)
+- Fixed an issue related to an inconsistency in the handling of default fonts
+- Added instant freeing up of text textures to prevent memory building up when text is being changed
+- Updated docs to add `letterSpacing` property to `Text` texture
+
 ## v2.8.1
 
 *31 oct 2022*

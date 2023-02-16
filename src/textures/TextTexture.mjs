@@ -534,11 +534,6 @@ export default class TextTexture extends Texture {
     _getSourceLoader() {
         const args = this.cloneArgs();
 
-        // Inherit font face from stage.
-        if (args.fontFace === null) {
-            args.fontFace = this.stage.getOption('defaultFontFace');
-        }
-
         const gl = this.stage.gl;
 
         return function (cb) {
