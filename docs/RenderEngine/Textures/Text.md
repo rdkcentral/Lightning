@@ -42,6 +42,8 @@ You can use various properties to control the way in which you want to render te
 | `cutEx` | Integer | 0 | x coordinate of text cutting ending position |
 | `cutSy` | Integer | 0 | y coordinate of text cutting starting position |
 | `cutEy` | Integer | 0 | y coordinate of text cutting ending position |
+| `letterSpacing` | Integer | 0 | Letter spacing of characters |
+
 
 
 
