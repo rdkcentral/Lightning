@@ -11,7 +11,7 @@ You can use various properties to control the way in which you want to render te
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `text` | String | '' | Text to display |
-| `fontFace` | Integer | null | Font family used for current text |
+| `fontFace` | String or String[] | `null` | Font family used for current text. If an array is provided, font families that appear later in the array are used as fallbacks. If the (default) `null` value is specified, the font family value specified in the `defaultFontFace` [Stage Option](../../RuntimeConfig/index.md#stage-configuration-options) is used. If the resolved font family (or families) is unavailable to the browser, a fallback is chosen by the browser. The special [CSS defined font family values](https://developer.mozilla.org/en-US/docs/Web/CSS/font-family#values) of "serif" and "sans-serif" may be used as well. |
 | `fontSize` | Integer | 40 | Font size |
 | `fontStyle` | String | 'normal' | Font style |
 | `lineHeight` | Integer | null | Line height |

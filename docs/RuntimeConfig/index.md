@@ -37,7 +37,7 @@ const App = new MyApp(options);
 | `precision` | Float | 1 | Global stage scaling (see details below) |
 | `memoryPressure` | Number | 24e6 | Maximum GPU memory usage in pixels (see details below) |
 | `clearColor` | Float[] | [0,0,0,0] | Background color in ARGB values (0 to 1) |
-| `defaultFontFace` | String | sans-serif | Font face for text rendering |
+| `defaultFontFace` | String | "sans-serif" | Default font family to use for text. See the [fontFace Text property](../RenderEngine/Textures/Text.md#properties) for how this value ends up being used. The special [CSS defined font family values](https://developer.mozilla.org/en-US/docs/Web/CSS/font-family#values) of "serif" and "sans-serif" may be used as well. |
 | `fontSharp` | Object, Boolean | { precision:0.6666666667, fontSize: 39 } | Determine when to apply gl.NEAREST to TEXTURE_MAG_FILTER |
 | `fixedDt` | Number | 0 (auto) | Fixed time step per frame (in ms) |
 | `useImageWorker` | Boolean | true | By default, use a Web Worker that parses images off-thread (web only) |

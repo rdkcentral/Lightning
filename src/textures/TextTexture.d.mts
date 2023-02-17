@@ -97,6 +97,14 @@ declare namespace TextTexture {
     /**
      * Font family
      *
+     * @remarks
+     * If an array is provided, font families that appear later in the array are used as fallbacks. If the
+     * (default) `null` value is specified, the font family value specified in the `defaultFontFace`
+     * {@link Stage.Options.defaultFontFace Stage Option} is used. If the resolved font
+     * family (or families) is unavailable to the browser, a fallback is chosen by the browser. The special
+     * [CSS defined font family values](https://developer.mozilla.org/en-US/docs/Web/CSS/font-family#values)
+     * of "serif" and "sans-serif" may be used as well.
+     *
      * @defaultValue `null` (uses {@link Stage.Options.defaultFontFace})
      */
     fontFace?: string | string[] | null;
