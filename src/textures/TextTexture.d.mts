@@ -99,7 +99,7 @@ declare namespace TextTexture {
      *
      * @defaultValue `null` (uses {@link Stage.Options.defaultFontFace})
      */
-    fontFace?: string | null;
+    fontFace?: string | string[] | null;
     /**
      * Word wrap mode
      *
