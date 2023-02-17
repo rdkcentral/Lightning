@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference types="vitest" />
 import { resolve } from 'path'
 import { defineConfig } from 'vite'
 import { babel } from '@rollup/plugin-babel';
@@ -11,7 +12,7 @@ import packageJson from './package.json';
 const isEs5Build = process.env.BUILD_ES5 === 'true';
 const isMinifiedBuild = process.env.BUILD_MINIFY === 'true';
 
-export default defineConfig(({ command, mode, ssrBuild }) => {
+export default defineConfig(() => {
   return {
     plugins: [
       /* Cleanup comments */
@@ -66,9 +67,6 @@ export default defineConfig(({ command, mode, ssrBuild }) => {
           return 'lightning' + extension;
         }
       },
-    },
-    vitest: {
-      commandLine: 'npm test --',
     },
   }
 });
