@@ -1,8 +1,12 @@
+// @ts-check
 import { resolve } from 'path'
 import { defineConfig } from 'vite'
 import { babel } from '@rollup/plugin-babel';
+import { banner } from './banner.vite-plugin';
+// @ts-expect-error Ignore esModuleInterop error ts(1259)
 import cleanup from 'rollup-plugin-cleanup';
-import license from 'rollup-plugin-license';
+// @ts-expect-error Ignore "Consider using --resolveJsonModule" error ts(2732)
+import packageJson from './package.json';
 
 const isEs5Build = process.env.BUILD_ES5 === 'true';
 const isMinifiedBuild = process.env.BUILD_MINIFY === 'true';
@@ -13,13 +17,8 @@ export default defineConfig(({ command, mode, ssrBuild }) => {
       /* Cleanup comments */
       cleanup({
         comments: 'none',
-        extensions: ['mjs']
       }),
-      // !!! License banner NOT working right now !!!
-      /* Add version number to bundle */
-      license({
-        banner: `Lightning v<%= pkg.version %>\n\n https://github.com/rdkcentral/Lightning`,
-      }),
+      /* ES5 (if requested) */
       isEs5Build && babel({
         presets: [
           [
@@ -35,6 +34,14 @@ export default defineConfig(({ command, mode, ssrBuild }) => {
           ],
         ],
       }),
+      /* Add comment banner to top of bundle */
+      banner([
+        '/*',
+        ` * Lightning v${packageJson.version}`,
+        ' *',
+        ' * https://github.com/rdkcentral/Lightning',
+        ' */',
+      ].join('\n')),
     ],
     build: {
       sourcemap: isMinifiedBuild,
