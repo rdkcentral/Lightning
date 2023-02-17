@@ -7,9 +7,8 @@ import { banner } from './banner.vite-plugin';
 import dts from 'vite-plugin-dts';
 // @ts-expect-error Ignore esModuleInterop error ts(1259)
 import cleanup from 'rollup-plugin-cleanup';
-// @ts-expect-error Ignore "Consider using --resolveJsonModule" error ts(2732)
 import packageJson from './package.json';
-import { fixTsImportsFromJs } from './custom-vite-plugin';
+import { fixTsImportsFromJs } from './fixTsImportsFromJs.vite-plugin';
 
 
 const isEs5Build = process.env.BUILD_ES5 === 'true';

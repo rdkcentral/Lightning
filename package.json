@@ -27,6 +27,7 @@
   "scripts": {
     "build": "mkdir -p dist && rm -fr dist/* && concurrently -c \"auto\" \"npm:build:lightning\" \"npm:build:lightning.min\" \"npm:build:lightning.es5\" \"npm:build:lightning.es5.min\" \"npm:build:lightning-inspect.es5\" && npm run copy-extra-tsd-files",
     "release": "npm run build && npm publish --access public",
+    "tsc": "tsc -P tsconfig.build.json",
     "typedoc": "typedoc --tsconfig tsconfig.typedoc.json",
     "tsd": "tsd",
     "copy-extra-tsd-files": "bash ./scripts/copy-extra-tsd-files.sh",

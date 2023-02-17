@@ -6,7 +6,8 @@
     "./src/**/*.d.ts",
     "./src/**/*.ts",
     "./src/**/*.mjs",
-    "./test-d/**/*.ts"
+    "./test-d/**/*.ts",
+    "vite.config.js"
   ],
   "compilerOptions": {
     "lib": ["ES2018", "DOM"],
