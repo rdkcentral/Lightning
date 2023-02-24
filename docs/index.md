@@ -75,5 +75,6 @@ The Reference Documentation for Lightning Core contains detailed descriptions ab
     * [Subclassable Components](TypeScript/Components/SubclassableComponents.md)
   * [Guidelines / Gotchas](TypeScript/GuidelinesGotchas.md)
   * [Augmentation](TypeScript/Augmentation.md)
+* [API Docs](/api/lightning-core)
 
 <!---TOC_end--->
