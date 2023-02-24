@@ -262,6 +262,14 @@ declare namespace Stage {
      * @defaultValue `false`
      */
     pauseRafLoopOnIdle: boolean;
+    /**
+     * The Device Pixel Ratio (DPR) affects how touch events are registered and handled on a device,
+     * including the conversion of physical pixel coordinates to logical pixel coordinates and the adjustment
+     * of element size and layout based on the device's pixel density.
+     *
+     * @defaultValue `1`
+     */
+    devicePixelRatio: number;
   }
   /**
    * Events produced by Stage along with their handler signatures

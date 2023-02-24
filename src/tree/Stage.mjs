@@ -195,6 +195,7 @@ export default class Stage extends EventEmitter {
         opt('debugFrame', false);
         opt('forceTxCanvasSource', false);
         opt('pauseRafLoopOnIdle', false);
+        opt('devicePixelRatio', 1);
     }
 
     setApplication(app) {

@@ -49,8 +49,7 @@ const App = new MyApp(options);
 | `debugFrame` | Boolean | false | If set to *true*, logs debug information about each frame including how many render-to-texture elements were re-rendered. This may impact performance and should not be turned on in production. |
 | `forceTxCanvasSource` | Boolean | false | If set to *true*, forces the Render Engine to use the canvasSource over getImageData for text (this helps with text generation on certain devices). |
 | `pauseRafLoopOnIdle` | Boolean | false | If set to *true* will stop the Render Engine from calling `RequestAnimationFrame` when there are no stage updates. |
-
-
+| `devicePixelRatio` | Number | 1 | The DPR is the logical to physical pixel density for a touch enabled device and affects how we calculate collisions |
 
 
 ## Downscaling
