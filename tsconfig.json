@@ -1,6 +1,12 @@
 {
   "include": [
-    "**/*.d.mts", "**/*.d.ts", "**/*.ts", "**/*.mjs"
+    "./index.js",
+    "./index.d.ts",
+    "./src/**/*.d.mts",
+    "./src/**/*.d.ts",
+    "./src/**/*.ts",
+    "./src/**/*.mjs",
+    "./test-d/**/*.ts"
   ],
   "compilerOptions": {
     "lib": ["ES2018", "DOM"],

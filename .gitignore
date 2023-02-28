@@ -39,7 +39,7 @@ jspm_packages
 .node_repl_history
 
 dist
-dist-vite
+dist-old
 
 .idea
 
@@ -48,3 +48,6 @@ dist-vite
 
 # Type Docs
 /typedocs
+
+# Dev tools
+/devtools

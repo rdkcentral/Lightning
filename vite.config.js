@@ -4,6 +4,7 @@ import { resolve } from 'path'
 import { defineConfig } from 'vite'
 import { babel } from '@rollup/plugin-babel';
 import { banner } from './banner.vite-plugin';
+import dts from 'vite-plugin-dts';
 // @ts-expect-error Ignore esModuleInterop error ts(1259)
 import cleanup from 'rollup-plugin-cleanup';
 // @ts-expect-error Ignore "Consider using --resolveJsonModule" error ts(2732)
@@ -15,6 +16,7 @@ const isMinifiedBuild = process.env.BUILD_MINIFY === 'true';
 export default defineConfig(() => {
   return {
     plugins: [
+      dts(),
       /* Cleanup comments */
       cleanup({
         comments: 'none',
@@ -45,9 +47,9 @@ export default defineConfig(() => {
       ].join('\n')),
     ],
     build: {
-      sourcemap: isMinifiedBuild,
+      sourcemap: true,
       emptyOutDir: false,
-      outDir: 'dist-vite',
+      outDir: 'dist',
       minify: isMinifiedBuild ? 'terser' : false,
       terserOptions: {
         keep_classnames: true,
@@ -56,13 +58,19 @@ export default defineConfig(() => {
       lib: {
         // Could also be a dictionary or array of multiple entry points
         entry: resolve(__dirname, 'src/lightning.mjs'),
-        formats: ['umd'],
+        /**
+         * @type {import('vite').LibraryFormats[]}
+         */
+        formats: ['umd', .../** @type {[] | ['es']} */ (isEs5Build ? [] : ['es'])],
         name: 'lng',
         // the proper extensions will be added
-        fileName: () => {
+        fileName: (format) => {
           let extension = isMinifiedBuild ? '.min.js' : '.js';
           if (isEs5Build) {
             extension = '.es5' + extension;
+          }
+          if (format === 'es') {
+            extension = '.esm' + extension;
           }
           return 'lightning' + extension;
         }
