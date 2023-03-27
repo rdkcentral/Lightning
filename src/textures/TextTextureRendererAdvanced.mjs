@@ -19,6 +19,7 @@
 
 import StageUtils from "../tree/StageUtils.mjs";
 import Utils from "../tree/Utils.mjs";
+import { getFontSetting } from "./TextTextureRendererUtils.mjs";
 
 export default class TextTextureRendererAdvanced {
 
@@ -34,34 +35,27 @@ export default class TextTextureRendererAdvanced {
     };
 
     setFontProperties() {
-        const font = Utils.isSpark ? this._stage.platform.getFontSetting(this) : this._getFontSetting();
+        const font = getFontSetting(
+            this._settings.fontFace,
+            this._settings.fontStyle,
+            this._settings.fontSize,
+            this.getPrecision(),
+            this._stage.getOption('defaultFontFace')
+        );
         this._context.font = font;
         this._context.textBaseline = this._settings.textBaseline;
         return font;
     };
 
-    _getFontSetting() {
-        let ff = this._settings.fontFace;
-
-        if (!Array.isArray(ff)) {
-            ff = [ff];
-        }
-
-        let ffs = [];
-        for (let i = 0, n = ff.length; i < n; i++) {
-            if (ff[i] === "serif" || ff[i] === "sans-serif") {
-                ffs.push(ff[i]);
-            } else {
-                ffs.push(`"${ff[i]}"`);
-            }
-        }
-
-        return `${this._settings.fontStyle} ${this._settings.fontSize * this.getPrecision()}px ${ffs.join(",")}`
-    }
-
     _load() {
         if (Utils.isWeb && document.fonts) {
-            const fontSetting = this._getFontSetting();
+            const fontSetting = getFontSetting(
+                this._settings.fontFace,
+                this._settings.fontStyle,
+                this._settings.fontSize,
+                this.getPrecision(),
+                this._stage.getOption('defaultFontFace')
+            );
             try {
                 if (!document.fonts.check(fontSetting, this._settings.text)) {
                     // Use a promise that waits for loading.
@@ -207,12 +201,6 @@ export default class TextTextureRendererAdvanced {
             renderInfo.h = this._settings.h;
         } else if (renderInfo.maxLines && renderInfo.maxLines < renderInfo.lineNum) {
             renderInfo.h = renderInfo.maxLines * renderInfo.lineHeight + fontSize / 2;
-        } else if (renderInfo.lineHeight > fontSize) {
-            // When lineheight is larger than the font size we're rendering, we set the height of the canvas based on the number of lines we're rendering.
-            // This makes each "line" a containing box that is line height sized, and text is positioned inside that box.
-            //
-            // Ideographic fonts may break this model, and require additional space?
-            renderInfo.h = renderInfo.lineNum * renderInfo.lineHeight
         } else {
             renderInfo.h = renderInfo.lineNum * renderInfo.lineHeight + fontSize / 2;
         }
@@ -283,25 +271,23 @@ export default class TextTextureRendererAdvanced {
             let suffix = renderInfo.maxLinesSuffix;
             suffix = this.tokenize(suffix);
             suffix = this.parse(suffix);
-            suffix = this.measure(suffix, renderInfo.letterSpacing, renderInfo.baseFont)[0];
-            suffix.lineNo = index;
-            if (lastLineText.length) {
-                suffix.x = lastLineText[lastLineText.length - 1].x + lastLineText[lastLineText.length - 1].width;
-            } else {
-                suffix.x = 0;
+            suffix = this.measure(suffix, renderInfo.letterSpacing, renderInfo.baseFont);
+            for (const s of suffix) {
+                s.lineNo = index;
+                s.x = 0;
+                lastLineText.push(s)
             }
-            lastLineText.push(suffix)
 
+            const spl = suffix.length + 1
             let _w = lastLineText.reduce((acc, t) => acc + t.width, 0);
-            while (_w > renderInfo.width || lastLineText[lastLineText.length - 2].text == ' ') {
-                lastLineText.splice(lastLineText.length - 2, 1);
+            while (_w > renderInfo.width || lastLineText[lastLineText.length - spl].text == ' ') {
+                lastLineText.splice(lastLineText.length - spl, 1);
                 _w = lastLineText.reduce((acc, t) => acc + t.width, 0);
-                const prev = lastLineText[lastLineText.length - 2] || {x: 0, width: 0}
-                suffix.x = prev.x + prev.width;
-                if (lastLineText.length < 2) {
+                if (lastLineText.length < spl) {
                     break;
                 }
             }
+            this.alignLine(lastLineText, lastLineText[0].x)
 
             renderInfo.lines[index].text = lastLineText;
             renderInfo.lines[index].width = _w;
@@ -364,7 +350,7 @@ export default class TextTextureRendererAdvanced {
             const hlPaddingRight = (renderInfo.highlightPaddingRight !== null ? renderInfo.highlightPaddingRight * precision : renderInfo.paddingRight);
 
             this._context.fillStyle = StageUtils.getRgbaString(hlColor);
-            const lineNum = renderInfo.maxLines ? Math.min(renderInfo.maxLines, renderInfo.lineNum) : renderInfo.lineNum; 
+            const lineNum = renderInfo.maxLines ? Math.min(renderInfo.maxLines, renderInfo.lineNum) : renderInfo.lineNum;
             for (let i = 0; i < lineNum; i++) {
                 const l = renderInfo.lines[i];
                 this._context.fillRect(l.x - hlPaddingLeft + paddingLeft, l.y + hlOffset, l.width + hlPaddingLeft + hlPaddingRight, hlHeight);
@@ -432,7 +418,7 @@ export default class TextTextureRendererAdvanced {
         if (renderInfo.cutSx || renderInfo.cutSy) {
             this._context.translate(renderInfo.cutSx, renderInfo.cutSy);
         }
- 
+
         // Postprocess renderInfo.lines to be compatible with standard version
         renderInfo.lines = renderInfo.lines.map((l) => l.text.reduce((acc, v) => acc + v.text, ''));
         if (renderInfo.maxLines) {
@@ -455,19 +441,19 @@ export default class TextTextureRendererAdvanced {
 
     tokenize(text) {
         const re =/ |\n|<i>|<\/i>|<b>|<\/b>|<color=0[xX][0-9a-fA-F]{8}>|<\/color>/g
-    
+
         const delimeters = text.match(re) || [];
         const words = text.split(re) || [];
-    
+
         let final = [];
         for (let i = 0; i < words.length; i++) {
             final.push(words[i], delimeters[i])
         }
         final.pop()
         return final.filter((word) => word != '');
-    
+
     }
-    
+
     parse(tokens) {
         let italic = 0;
         let bold = 0;
@@ -475,7 +461,7 @@ export default class TextTextureRendererAdvanced {
         let color = 0;
 
         const colorRegexp = /<color=(0[xX][0-9a-fA-F]{8})>/;
-    
+
         return tokens.map((t) => {
             if (t == '<i>') {
                 italic += 1;
@@ -688,5 +674,19 @@ export default class TextTextureRendererAdvanced {
         }
 
         return parts;
+    }
+
+    alignLine(parsed, initialX = 0) {
+        let prevWidth = 0;
+        let prevX = initialX;
+        for (const word of parsed) {
+            if (word.text == '\n') {
+                continue;
+            }
+            word.x = prevX + prevWidth;
+            prevX = word.x;
+            prevWidth = word.width;
+        }
+
     }
 }

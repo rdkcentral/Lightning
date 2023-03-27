@@ -326,6 +326,11 @@ export default class Texture {
                 }
 
                 oldSource.removeTexture(this);
+
+                // free up unused TextTextures immediately as they are not reused anyway
+                if(this['text'] && !oldSource.isUsed()) {
+                    this.manager.freeTextureSource(oldSource);
+                }
             }
 
             if (newSource) {

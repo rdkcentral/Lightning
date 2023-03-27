@@ -1,5 +1,32 @@
 # Changelog
 
+## v2.9.0
+*16 feb 2023*
+
+- Fixed issues related to package.json exports (#434)
+- Added a warning about `strictNullChecks` option to the TypeScript docs (#433)
+- Fixed an issue occurring while using `maxLinesSuffix` when `advancedRender` is set to `true` (#429)
+- Fixed an alignment issue occurring when the advanced text renderer is used (#428)
+- Added an example of basic subclassing to the TypeScript docs (#446)
+- Fixed an issue related to an inconsistency in the handling of default fonts
+- Added instant freeing up of text textures to prevent memory building up when text is being changed
+- Updated docs to add `letterSpacing` property to `Text` texture
+
+## v2.8.1
+
+*31 oct 2022*
+
+- Fixed Lightning inspector (#427)
+
+## v2.8.0
+
+*20 oct 2022*
+
+- Updated patching.md file (#422)
+- Minor documentation updates (#405)
+- Added support to track vram usage (#395)
+- Added texture compression support (#391)
+
 ## v2.7.1
 
 *19 sep 2022*
@@ -332,4 +359,5 @@
 
 ### Fixes
 * Fixed text rendering artifacts sometimes appearing on RPI platform (#41)
+
 

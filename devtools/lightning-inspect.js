@@ -205,7 +205,7 @@ window.attachInspector = function({Application, Element, ElementCore, Stage, Com
 
             if (window.ResizeObserver != null) {
                 const resize_ob = new ResizeObserver(function (entries) {
-                    updateRootStyleFromCanvas(entries[0].contentRect);
+                    updateRootStyleFromCanvas(entries[0].target.getBoundingClientRect());
                 });
                 // start observing for resize
                 resize_ob.observe(this.stage.getCanvas());

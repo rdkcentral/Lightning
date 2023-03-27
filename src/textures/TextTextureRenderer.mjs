@@ -19,6 +19,7 @@
 
 import StageUtils from "../tree/StageUtils.mjs";
 import Utils from "../tree/Utils.mjs";
+import { getFontSetting } from "./TextTextureRendererUtils.mjs";
 
 export default class TextTextureRenderer {
 
@@ -34,32 +35,25 @@ export default class TextTextureRenderer {
     };
 
     setFontProperties() {
-        this._context.font = Utils.isSpark ? this._stage.platform.getFontSetting(this) : this._getFontSetting();
+        this._context.font = getFontSetting(
+            this._settings.fontFace,
+            this._settings.fontStyle,
+            this._settings.fontSize,
+            this.getPrecision(),
+            this._stage.getOption('defaultFontFace'),
+        );
         this._context.textBaseline = this._settings.textBaseline;
     };
 
-    _getFontSetting() {
-        let ff = this._settings.fontFace;
-
-        if (!Array.isArray(ff)) {
-            ff = [ff];
-        }
-
-        let ffs = [];
-        for (let i = 0, n = ff.length; i < n; i++) {
-            if (ff[i] === "serif" || ff[i] === "sans-serif") {
-                ffs.push(ff[i]);
-            } else {
-                ffs.push(`"${ff[i]}"`);
-            }
-        }
-
-        return `${this._settings.fontStyle} ${this._settings.fontSize * this.getPrecision()}px ${ffs.join(",")}`
-    }
-
     _load() {
         if (Utils.isWeb && document.fonts) {
-            const fontSetting = this._getFontSetting();
+            const fontSetting = getFontSetting(
+                this._settings.fontFace,
+                this._settings.fontStyle,
+                this._settings.fontSize,
+                this.getPrecision(),
+                this._stage.getOption('defaultFontFace')
+            );
             try {
                 if (!document.fonts.check(fontSetting, this._settings.text)) {
                     // Use a promise that waits for loading.
@@ -471,5 +465,5 @@ export default class TextTextureRenderer {
             return acc + this._context.measureText(char).width + space;
         }, 0);
     }
-    
+
 }
