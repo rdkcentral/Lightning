@@ -1320,7 +1320,7 @@ declare class Element<
 
   isElement: 1;
 
-  readonly id: number;
+  get id(): number | string;
 
   ref: string | undefined;
 
