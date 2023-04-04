@@ -108,7 +108,7 @@ export default class TextTextureRenderer {
         this.setFontProperties();
 
         // Total width.
-        let width = w || (2048 / this.getPrecision());
+        let width = w || this._stage.getOption('w');
 
         // Inner width.
         let innerWidth = width - (paddingLeft);
