@@ -12,11 +12,26 @@ import packageJson from './package.json';
 
 const isEs5Build = process.env.BUILD_ES5 === 'true';
 const isMinifiedBuild = process.env.BUILD_MINIFY === 'true';
+const isInspectorBuild = process.env.BUILD_INSPECTOR === 'true';
+
+let outDir = 'dist';
+let entry = resolve(__dirname, 'src/lightning.mjs');
+let outputBase = 'lightning';
+let sourcemap = true;
+let useDts = true;
+
+if (isInspectorBuild) {
+  outDir = 'devtools';
+  entry = resolve(__dirname, 'devtools/lightning-inspect.js');
+  outputBase = 'lightning-inspector';
+  sourcemap = false;
+  useDts = false;
+}
 
 export default defineConfig(() => {
   return {
     plugins: [
-      dts(),
+      useDts && dts(),
       /* Cleanup comments */
       cleanup({
         comments: 'none',
@@ -47,9 +62,9 @@ export default defineConfig(() => {
       ].join('\n')),
     ],
     build: {
-      sourcemap: true,
+      sourcemap,
       emptyOutDir: false,
-      outDir: 'dist',
+      outDir,
       minify: isMinifiedBuild ? 'terser' : false,
       terserOptions: {
         keep_classnames: true,
@@ -57,7 +72,7 @@ export default defineConfig(() => {
       },
       lib: {
         // Could also be a dictionary or array of multiple entry points
-        entry: resolve(__dirname, 'src/lightning.mjs'),
+        entry,
         /**
          * @type {import('vite').LibraryFormats[]}
          */
@@ -72,7 +87,7 @@ export default defineConfig(() => {
           if (format === 'es') {
             extension = '.esm' + extension;
           }
-          return 'lightning' + extension;
+          return outputBase + extension;
         }
       },
     },
