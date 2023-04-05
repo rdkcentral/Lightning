@@ -96,7 +96,7 @@ export default class TextTextureRendererAdvanced {
         const fontSize = this._settings.fontSize * precision;
         // const offsetY = this._settings.offsetY === null ? null : (this._settings.offsetY * precision);
         const lineHeight = this._settings.lineHeight * precision || fontSize;
-        const w = this._settings.w != 0 ? this._settings.w * precision : 2048 / precision;
+        const w = this._settings.w != 0 ? this._settings.w * precision : this._stage.getOption('w');
         // const h = this._settings.h * precision;
         const wordWrapWidth = this._settings.wordWrapWidth * precision;
         const cutSx = this._settings.cutSx * precision;
