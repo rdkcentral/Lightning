@@ -23,7 +23,7 @@ let useDts = true;
 if (isInspectorBuild) {
   outDir = 'devtools';
   entry = resolve(__dirname, 'devtools/lightning-inspect.js');
-  outputBase = 'lightning-inspector';
+  outputBase = 'lightning-inspect';
   sourcemap = false;
   useDts = false;
 }

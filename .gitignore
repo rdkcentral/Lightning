@@ -39,7 +39,6 @@ jspm_packages
 .node_repl_history
 
 dist
-dist-old
 
 .idea
 
@@ -49,5 +48,5 @@ dist-old
 # Type Docs
 /typedocs
 
-# Dev tools
-/devtools
+# ES5 version of the Lightning Inspector
+/devtools/lightning-inspect.es5.js
