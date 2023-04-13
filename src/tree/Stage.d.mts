@@ -30,6 +30,7 @@ import ElementCore from "./core/ElementCore.mjs";
 import TextureManager from "./TextureManager.mjs";
 import Element from "./Element.mjs";
 import Shader from "./Shader.mjs";
+import type TextTexture from "../textures/TextTexture.mjs";
 
 declare namespace Stage {
   /**
@@ -134,7 +135,13 @@ declare namespace Stage {
      */
     clearColor: number | RGBA | null;
     /**
-     * Default font-face to use for text
+     * Default font family to use for text
+     *
+     * @remarks
+     * See {@link TextTexture.Settings.fontFace} for how this value ends up being used.
+     *
+     * The special [CSS defined font family values](https://developer.mozilla.org/en-US/docs/Web/CSS/font-family#values)
+     * of "serif" and "sans-serif" may be used as well.
      *
      * @defaultValue `'sans-serif'`
      */
