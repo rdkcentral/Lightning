@@ -23,7 +23,7 @@ import TransitionSettings from "../animation/TransitionSettings.mjs";
 import Component from "../application/Component.mjs";
 import { AnimatableValueTypes, ExtractAnimatableValueTypes } from "../commonTypes.mjs";
 import EventEmitter from "../EventEmitter.mjs";
-import { Documentation, EventMapType, ReduceSpecificity, SignalMapType, TextureType } from "../internalTypes.mjs";
+import { CombineTagPaths, CombineTagPathsSingleLevel, Documentation, EventMapType, ReduceSpecificity, SpecToTagPaths, TextureType, ValidRef } from "../internalTypes.mjs";
 import TextTexture from "../textures/TextTexture.mjs";
 import ElementCore from "./core/ElementCore.mjs";
 import ElementTexturizer from "./core/ElementTexturizer.mjs";
@@ -36,20 +36,6 @@ import TextureSource from "./TextureSource.mjs";
 //
 // Private types
 //
-
-/**
- * Set of all capital letters
- *
- * @hidden Internal use only
- */
-type Alphabet = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z';
-
-/**
- * Any string that begins with a capital letter
- *
- * @hidden Internal use only
- */
-export type ValidRef = `${Alphabet}${string}`;
 
 /**
  * Filters out any non-ref keys from an inline Element template and returns the filtered
@@ -135,152 +121,17 @@ export type TransformPossibleElement<Key, PossibleElementConstructor, Default = 
 export type IsLooseTemplateSpec<TemplateSpec extends Element.TemplateSpec> = string extends keyof TemplateSpec ? true : false;
 
 /**
- * Gets an object shape containing all the Refs (child Element / Components) in a TemplateSpec
+ * Remove index signatures from an object
  *
  * @privateRemarks
- * The refs are transformed into proper Element / Component references
+ * Converts a loose Element template to a strong Element template by
+ * removing the index signature that Element.TemplateSpecLoose adds
  *
  * @hidden Internal use only
  */
-export type TemplateSpecRefs<TemplateSpec extends Element.TemplateSpec> = {
-  [P in keyof TemplateSpec as TransformPossibleElement<P, TemplateSpec[P], never> extends never ? never : P]:
-    TransformPossibleElement<P, TemplateSpec[P], never>
+export type RemoveIndex<T> = {
+  [ K in keyof T as string extends K ? never : number extends K ? never : K ] : T[K]
 };
-
-/**
- * Returns `true` if T is a type that should terminate the calculation of
- * tag paths.
- *
- * @hidden Internal use only
- */
-type IsTerminus<T> =
-    T extends (string | number | boolean | any[] | Element.Constructor)
-        ?
-            true
-        :
-            T extends object
-                ?
-                    object extends T
-                        ?
-                            true
-                        :
-                            false
-                :
-                    false
-
-/**
- * Generates a union of template spec object path string tuples where the last
- * tuple item is the value type for that path (wrapped in a single element tuple)
- *
- * @privateRemarks
- * This is a helper type function for {@link TaggedElements}
- *
- * Example:
- *
- * ```ts
- * type Result = SpecToTagPaths<{
- *   MyElement: object
- *   MyParentElement: {
- *     MyChildComponent: typeof MyComponent
- *     MyChildElement: {
- *       MyGrandChildElement: object
- *     }
- *   }
- * }>
- * ```
- *
- * Equates to:
- *
- * ```ts
- * type Result =
- *   ['MyElement', [object]] |
- *   ['MyParentElement', [{
- *      MyChildComponent: typeof MyComponent
- *      MyChildElement: {
- *        MyGrandChildElement: object
- *      }
- *   }]] |
- *   ['MyParentElement', 'MyChildComponent', [typeof MyComponent]]
- *   ['MyParentElement', 'MyChildElement', [{ MyGrandChildElement: object }]] |
- *   ['MyParentElement', 'MyChildElement', 'MyGrandChildElement', [object]];
- * ```
- *
- * @hidden Internal use only
- */
-export type SpecToTagPaths<T> =
-    IsTerminus<T> extends true
-        ?
-            [[T]]
-        :
-            {
-                [K in Extract<keyof T, string>]: [K, ...SpecToTagPaths<T[K]>] | [K, [T[K]]]
-            }[Extract<keyof T, string>]
-
-/**
- * Joins the given path string tuple into a single `.` separated string tag path
- *
- * @hidden Internal use only
- */
-type Join<T extends string[]> =
-    T extends [] ? never :
-    T extends [infer F] ? F :
-    T extends [infer F, ...infer R] ?
-    F extends string ?
-    `${F}.${Join<Extract<R, string[]>>}` : never : string;
-
-/**
- * Combines tag paths returned by {@link SpecToTagPaths} into a complete flattened object shape
- *
- * @privateRemarks
- * This is a helper type function for {@link TaggedElements}.
- *
- * Only path elements that are a valid reference name (i.e. start with a capital letter {@link ValidRef}) are
- * included.
- *
- * Example:
- *
- * ```ts
- * type Result = CombineTagPaths<
- *   ['MyElement', [object]] |
- *   ['MyParentElement', [{
- *      MyChildComponent: typeof MyComponent
- *      MyChildElement: {
- *        MyGrandChildElement: object
- *      }
- *   }]] |
- *   ['MyParentElement', 'MyChildComponent', [typeof MyComponent]]
- *   ['MyParentElement', 'MyChildElement', [{ MyGrandChildElement: object }]] |
- *   ['MyParentElement', 'MyChildElement', 'MyGrandChildElement', [object]]
- * >
- * ```
- *
- * equates to:
- *
- * ```ts
- * type Result = {
- *   'MyElement': object;
- *   'MyParentElement': {
- *      MyChildComponent: typeof MyComponent
- *      MyChildElement: {
- *        MyGrandChildElement: object
- *      }
- *   };
- *   'MyParentElement.MyChildComponent': typeof MyComponent;
- *   'MyParentElement.MyChildElement': { MyGrandChildElement: object };
- *   'MyParentElement.MyChildElement.MyGrandChildElement': object
- * }
- * ```
- *
- * @hidden Internal use only
- */
-type CombineTagPaths<TagPaths extends any[]> = {
-    [PathWithType in TagPaths as PathWithType extends [...infer Path extends ValidRef[], [any]] ? Join<Path> : never]:
-        PathWithType extends [...any, [infer Type]]
-            ?
-                Type
-            :
-                never;
-}
 
 /**
  * Returns a flattened map of the TemplateSpec where each key is is a `.` separated tag path to an element
@@ -289,7 +140,7 @@ type CombineTagPaths<TagPaths extends any[]> = {
  *
  * Example:
  * ```ts
- * type Result = TaggedElements<{
+ * type Result = TemplateSpecTags<{
  *   MyElement: object
  *   MyParentElement: {
  *     MyChildComponent: typeof MyComponent
@@ -319,8 +170,20 @@ type CombineTagPaths<TagPaths extends any[]> = {
  *
  * @hidden Internal use only
  */
-export type TaggedElements<TemplateSpec extends Element.TemplateSpec> = {
+export type TemplateSpecTags<TemplateSpec extends Element.TemplateSpec> = {
   [K in keyof CombineTagPaths<SpecToTagPaths<TemplateSpec>>]: TransformPossibleElement<K, CombineTagPaths<SpecToTagPaths<TemplateSpec>>[K]>;
+};
+
+/**
+ * Gets an object shape containing all the Refs (child Element / Components) in a TemplateSpec
+ *
+ * @privateRemarks
+ * The refs are transformed into proper Element / Component references
+ *
+ * @hidden Internal use only
+ */
+export type TemplateSpecRefs<TemplateSpec extends Element.TemplateSpec> = {
+  [K in keyof CombineTagPathsSingleLevel<SpecToTagPaths<TemplateSpec>>]: TransformPossibleElement<K, CombineTagPathsSingleLevel<SpecToTagPaths<TemplateSpec>>[K]>;
 };
 
 //
@@ -1583,7 +1446,7 @@ declare class Element<
    * information.
    * @param tagName `.` separated tag path
    */
-  tag<Path extends keyof TaggedElements<TemplateSpecType>>(tagName: Path): TaggedElements<TemplateSpecType>[Path] | undefined;
+  tag<Path extends keyof TemplateSpecTags<RemoveIndex<TemplateSpecType>>>(tagName: Path): TemplateSpecTags<RemoveIndex<TemplateSpecType>>[Path] | undefined;
   tag(tagName: IsLooseTemplateSpec<TemplateSpecType> extends true ? string : never): any;
   /**
    * Returns all Elements from the subtree that have this tag.
@@ -1606,7 +1469,8 @@ declare class Element<
    *
    * @param ref
    */
-  getByRef<RefKey extends keyof TemplateSpecRefs<TemplateSpecType>>(ref: RefKey): TemplateSpecRefs<TemplateSpecType>[RefKey] | undefined;
+  getByRef<RefKey extends keyof TemplateSpecRefs<RemoveIndex<TemplateSpecType>>>(ref: RefKey): TemplateSpecRefs<RemoveIndex<TemplateSpecType>>[RefKey] | undefined;
+  getByRef(tagName: IsLooseTemplateSpec<TemplateSpecType> extends true ? string : never): any;
 
   /**
    * Get the location identifier of this Element

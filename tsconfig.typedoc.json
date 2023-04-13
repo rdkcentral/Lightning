@@ -8,7 +8,7 @@
     "entryPointStrategy": "expand",
     "intentionallyNotExported": [
       "src/components/ListComponent.d.mts:ListItems",
-      "src/tree/Element.d.mts:ValidRef",
+      "src/internalTypes.d.mts:ValidRef",
       "src/tree/Element.d.mts:InlineElement",
       "src/internalTypes.d.mts:Documentation",
       "src/application/Component.d.mts:IsCustomKeyHandlersAugmented",
@@ -23,12 +23,13 @@
       "src/tree/Element.d.mts:TransitionsTemplate",
       "src/internalTypes.d.mts:HandlerReturnType",
       "src/tree/Element.d.mts:TemplateSpecRefs",
-      "src/tree/Element.d.mts:TaggedElements",
+      "src/tree/Element.d.mts:TemplateSpecTags",
       "src/animation/AnimationSettings.d.mts:AnimationForceLiteral",
       "src/animation/AnimationSettings.d.mts:AnimationForceType",
       "src/internalTypes.d.mts:HandlerParameters",
       "src/internalTypes.d.mts:EventMapType",
       "src/tree/Element.d.mts:IsLooseTemplateSpec",
+      "src/tree/Element.d.mts:RemoveIndex"
     ]
   }
 }

@@ -25,7 +25,7 @@ import { expectAssignable, expectType } from 'tsd';
 import lng from '../../index.js';
 import { CompileComponentTemplateSpecType } from '../../src/application/Component.mjs';
 import { SignalMapType } from '../../src/internalTypes.mjs';
-import { InlineElement, IsLooseTemplateSpec, SmoothTemplate, TaggedElements, TemplateSpecRefs, TransformPossibleElement, TransitionsTemplate } from '../../src/tree/Element.mjs';
+import { InlineElement, IsLooseTemplateSpec, SmoothTemplate, TemplateSpecTags, TemplateSpecRefs, TransformPossibleElement, TransitionsTemplate } from '../../src/tree/Element.mjs';
 
 export interface TestTemplateSpec extends lng.Component.TemplateSpec {
   prop1: string;
@@ -302,11 +302,11 @@ function TemplateSpecRefs_Test() {
 }
 
 //
-// TaggedElements
+// TemplateSpecTags
 //
-function TaggedElements_Test() {
+function TemplateSpecTags_Test() {
   /// Strong template specs returns flat tag path map
-  type T1000 = TaggedElements<TestTemplateSpec>;
+  type T1000 = TemplateSpecTags<TestTemplateSpec>;
   expectType<{
     'MyStrongElement_InlineEmpty': lng.Element<InlineElement<{}>>;
     'MyStrongElement_InlineEmpty2': lng.Element<InlineElement<object>>;
@@ -323,7 +323,7 @@ function TaggedElements_Test() {
   }>({} as T1000);
 
   /// Loose template specs return empty object type
-  type T2000 = TaggedElements<TestTemplateSpec & lng.Component.TemplateSpecLoose>;
+  type T2000 = TemplateSpecTags<TestTemplateSpec & lng.Component.TemplateSpecLoose>;
   expectType<{}>({} as T2000);
 }
 
