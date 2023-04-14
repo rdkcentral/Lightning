@@ -606,7 +606,7 @@ export default class Application extends Component {
         // and perform collision detection
         while (n--) {
             const child = affectedChildren[n];
-            const precision = this.stage.getRenderPrecision();
+            const precision = this.stage.getRenderPrecision() / this.stage.getOption('devicePixelRatio');
             const ctx = child.core._worldContext;
 
             const cx = ctx.px * precision;
