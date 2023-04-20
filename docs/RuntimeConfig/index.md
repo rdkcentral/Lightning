@@ -66,7 +66,7 @@ To make this adjustment, you can use the `precision` property to perform a *glob
 
 By setting  `precision: 2`, the 1920 x-position will be mapped to a 3840-output pixel coordinate, effectively upscaling the content for 4K resolution. Please note that upscaling may result in reduced performance due to the higher GPU memory usage.
 
-Keep in mind thatWebGL rasterizes at pixel boundaries. This means that when it uses a line width of 2 in 1080p quality, it may render at either 2px or 3px in 720p (depending on the rendered pixel offset). If you encounter such problems, you'll need to set the sizing at a multiple of 3 to ensure proper rendering.
+Keep in mind that WebGL rasterizes at pixel boundaries. This means that when it uses a line width of 2 in 1080p quality, it may render at either 2px or 3px in 720p (depending on the rendered pixel offset). If you encounter such problems, you'll need to set the sizing at a multiple of 3 to ensure proper rendering.
 
 # Handling high pixel density (high DPI)
 
@@ -78,7 +78,7 @@ It's worth noting that canvas elements, like most graphics elements, have two si
 
 For a canvas element, the size of the content or drawingBuffer is determined by the width and height attributes of the canvas, while the display size is determined by the CSS attributes applied to the canvas. Setting `devicePixelRatio: 2` will result in the following:
 
-```js
+```html
 <canvas width="3840" height="2060" style="width: 1920px; height: 1080px;"></canvas>
 ```
 
