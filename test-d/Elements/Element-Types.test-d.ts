@@ -324,7 +324,22 @@ function TemplateSpecTags_Test() {
 
   /// Loose template specs return empty object type
   type T2000 = TemplateSpecTags<TestTemplateSpec & lng.Component.TemplateSpecLoose>;
-  expectType<{}>({} as T2000);
+  expectType<{
+    'MyStrongElement_InlineEmpty': lng.Element<InlineElement<{}>>;
+    'MyStrongElement_InlineEmpty2': lng.Element<InlineElement<object>>;
+    'MyStrongElement_ExplicitType': lng.Element<lng.Element.TemplateSpec>;
+    'MyLooseElement': lng.Element;
+    'MyListComponent': lng.components.ListComponent;
+    'MyStrongElement_InlineChildren': lng.Element<InlineElement<TestTemplateSpec['MyStrongElement_InlineChildren']>>;
+    'MyStrongElement_InlineChildren.Child1': lng.Element<InlineElement<{}>>;
+    'MyStrongElement_InlineChildren.Child2': lng.Element<InlineElement<object>>;
+    'MyStrongElement_InlineChildren.Child3': lng.Element<lng.Element.TemplateSpec>;
+    'MyStrongElement_InlineChildren.Child4': lng.components.ListComponent;
+    'MyStrongElement_InlineChildren.Child5': lng.Element<InlineElement<TestTemplateSpec['MyStrongElement_InlineChildren']['Child5']>>;
+    'MyStrongElement_InlineChildren.Child5.GrandChild1': lng.Element<InlineElement<object>>;
+  } & {
+    [s: string]: any;
+  }>({} as T2000);
 }
 
 //

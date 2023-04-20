@@ -22,8 +22,9 @@
  * @hidden Internal use only
  * @module
  */
+import EventEmitter from './EventEmitter.mjs';
 import Component from './application/Component.mjs';
-import Element from './tree/Element.mjs'
+import Element, { IsLooseTypeConfig } from './tree/Element.mjs'
 
 /**
  * Allows all the documentation of a template spec to be inherited by any Element
@@ -76,13 +77,15 @@ export type ReduceSpecificity<T, U> =
         :
           never;
 
-
 /**
  * Extracts the EventMapType from Element Config
  *
  * @hidden Internal use only
  */
-export type EventMapType<TypeConfig extends Element.TypeConfig> = TypeConfig['EventMapType'];
+export type EventMapType<TypeConfig extends Element.TypeConfig> =
+  IsLooseTypeConfig<TypeConfig> extends true
+  ? TypeConfig['EventMapType'] & { [s: string]: (...args: any[]) => void; }
+  : TypeConfig['EventMapType']
 
 /**
  * Extracts the TextureType from Element TypeConfig
@@ -96,7 +99,10 @@ export type TextureType<TypeConfig extends Element.TypeConfig> = TypeConfig['Tex
  *
  * @hidden Internal use only
  */
-export type SignalMapType<TypeConfig extends Component.TypeConfig> = TypeConfig['SignalMapType'];
+export type SignalMapType<TypeConfig extends Component.TypeConfig> =
+  IsLooseTypeConfig<TypeConfig> extends true
+    ? TypeConfig['SignalMapType'] & { [key: string]: (...args: any[]) => any }
+    : TypeConfig['SignalMapType']
 
 /**
  * If `PossibleFunction` is a function, it returns the parameters from it as a tuple.

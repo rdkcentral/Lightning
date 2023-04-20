@@ -121,6 +121,11 @@ export type TransformPossibleElement<Key, PossibleElementConstructor, Default = 
 export type IsLooseTemplateSpec<TemplateSpec extends Element.TemplateSpec> = string extends keyof TemplateSpec ? true : false;
 
 /**
+ * Returns `true` if TypeConfig is loose, `false` if it is strong
+ */
+export type IsLooseTypeConfig<TypeConfig extends Element.TypeConfig> = string extends keyof TypeConfig ? true : false;
+
+/**
  * Remove index signatures from an object
  *
  * @privateRemarks
@@ -171,8 +176,12 @@ export type RemoveIndex<T> = {
  * @hidden Internal use only
  */
 export type TemplateSpecTags<TemplateSpec extends Element.TemplateSpec> = {
-  [K in keyof CombineTagPaths<SpecToTagPaths<TemplateSpec>>]: TransformPossibleElement<K, CombineTagPaths<SpecToTagPaths<TemplateSpec>>[K]>;
-};
+  [K in keyof CombineTagPaths<SpecToTagPaths<RemoveIndex<TemplateSpec>>>]: TransformPossibleElement<K, CombineTagPaths<SpecToTagPaths<RemoveIndex<TemplateSpec>>>[K]>;
+} & (IsLooseTemplateSpec<TemplateSpec> extends true
+  ? {
+      [K in string]: any;
+    }
+  : {});
 
 /**
  * Gets an object shape containing all the Refs (child Element / Components) in a TemplateSpec
@@ -183,8 +192,12 @@ export type TemplateSpecTags<TemplateSpec extends Element.TemplateSpec> = {
  * @hidden Internal use only
  */
 export type TemplateSpecRefs<TemplateSpec extends Element.TemplateSpec> = {
-  [K in keyof CombineTagPathsSingleLevel<SpecToTagPaths<TemplateSpec>>]: TransformPossibleElement<K, CombineTagPathsSingleLevel<SpecToTagPaths<TemplateSpec>>[K]>;
-};
+  [K in keyof CombineTagPathsSingleLevel<SpecToTagPaths<RemoveIndex<TemplateSpec>>>]: TransformPossibleElement<K, CombineTagPathsSingleLevel<SpecToTagPaths<RemoveIndex<TemplateSpec>>>[K]>;
+} & (IsLooseTemplateSpec<TemplateSpec> extends true
+  ? {
+      [K in string]: any;
+    }
+  : {});
 
 //
 // Public types
@@ -1172,12 +1185,18 @@ declare namespace Element {
     TextureType: Texture,
     EventMapType: Element.EventMap
   }
+
+  export interface TypeConfigLoose extends TypeConfig {
+    TextureType: Texture
+    EventMapType: Element.EventMap
+    [s: string]: any
+  }
 }
 
 declare class Element<
   // Elements use loose typing TemplateSpecs by default (for ease of use as Elements aren't often fully definable)
   TemplateSpecType extends Element.TemplateSpecLoose = Element.TemplateSpecLoose,
-  TypeConfig extends Element.TypeConfig = Element.TypeConfig
+  TypeConfig extends Element.TypeConfigLoose = Element.TypeConfigLoose
 > extends EventEmitter<EventMapType<TypeConfig>> implements Documentation<Element.TemplateSpec> {
   constructor(stage: Stage);
 
@@ -1446,8 +1465,8 @@ declare class Element<
    * information.
    * @param tagName `.` separated tag path
    */
-  tag<Path extends keyof TemplateSpecTags<RemoveIndex<TemplateSpecType>>>(tagName: Path): TemplateSpecTags<RemoveIndex<TemplateSpecType>>[Path] | undefined;
-  tag(tagName: IsLooseTemplateSpec<TemplateSpecType> extends true ? string : never): any;
+  tag<Path extends keyof TemplateSpecTags<TemplateSpecType>>(tagName: Path): TemplateSpecTags<TemplateSpecType>[Path] | undefined;
+
   /**
    * Returns all Elements from the subtree that have this tag.
    *
@@ -1469,8 +1488,7 @@ declare class Element<
    *
    * @param ref
    */
-  getByRef<RefKey extends keyof TemplateSpecRefs<RemoveIndex<TemplateSpecType>>>(ref: RefKey): TemplateSpecRefs<RemoveIndex<TemplateSpecType>>[RefKey] | undefined;
-  getByRef(tagName: IsLooseTemplateSpec<TemplateSpecType> extends true ? string : never): any;
+  getByRef<RefKey extends keyof TemplateSpecRefs<TemplateSpecType>>(ref: RefKey): TemplateSpecRefs<TemplateSpecType>[RefKey] | undefined;
 
   /**
    * Get the location identifier of this Element
