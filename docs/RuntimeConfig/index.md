@@ -64,9 +64,9 @@ Assume that you have created an App for 1080p quality, where you've used a 1920x
 
 To make this adjustment, you can use the `precision` property to perform a *global rescale* of the coordinate system. For example, if you specify `precision: 2/3`, the 1920 x-position will be mapped to the 1280-output pixel coordinate. This downscaling generally works well and can improve quality (less pixel interpolation) while reducing memory usage.
 
-By setting  `precision: 2`, the 1920 x-position will be mapped to a 3840-output pixel coordinate, effectively upscaling the content for 4K resolution. Keep in mind that upscaling may result in reduced performance due to the higher GPU memory usage.
+By setting  `precision: 2`, the 1920 x-position will be mapped to a 3840-output pixel coordinate, effectively upscaling the content for 4K resolution. Please note that upscaling may result in reduced performance due to the higher GPU memory usage.
 
-Keep in mind that WebGL rasterizes at pixel boundaries. This means that when it uses a line width of 2 in 1080p quality, it may render at either 2px or 3px in 720p (depending on the rendered pixel offset). If you encounter such problems, you'll need to set the sizing at a multiple of 3 to ensure proper rendering.
+Keep in mind thatWebGL rasterizes at pixel boundaries. This means that when it uses a line width of 2 in 1080p quality, it may render at either 2px or 3px in 720p (depending on the rendered pixel offset). If you encounter such problems, you'll need to set the sizing at a multiple of 3 to ensure proper rendering.
 
 # Handling high pixel density (high DPI)
 
