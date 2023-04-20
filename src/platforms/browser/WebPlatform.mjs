@@ -50,11 +50,17 @@ export default class WebPlatform {
         if (this._imageWorker) {
             this._imageWorker.destroy();
         }
+
+        clearInterval(this._loopHandler);
+
         this._removeKeyHandler();
         this._removeClickHandler();
         this._removeHoverHandler();
         this._removeScrollWheelHandler();
         this._removeVisibilityChangeHandler();
+
+        this.stage = null;
+        delete this.stage;
     }
 
     startLoop() {

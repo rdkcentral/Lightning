@@ -36,6 +36,11 @@ export default class TextureThrottler {
     destroy() {
         this._sources = [];
         this._data = [];
+        this.stage = null;
+
+        delete this._sources;
+        delete this._data;
+        delete this.stage;
     }
 
     processSome() {

@@ -49,6 +49,21 @@ export default class CoreContext {
     destroy() {
         this._renderTexturePool.forEach(texture => this._freeRenderTexture(texture));
         this._usedMemory = 0;
+
+        this.stage = null;
+        this.root = null;
+
+        this.renderState = null;
+        this.renderExec = null;
+        this._renderTexturePool = null;
+        this._zSorts = null;
+
+        delete this.stage;
+        delete this.root;
+        delete this.renderState;
+        delete this.renderExec;
+        delete this._renderTexturePool;
+        delete this._zSorts;
     }
 
     hasRenderUpdates() {
