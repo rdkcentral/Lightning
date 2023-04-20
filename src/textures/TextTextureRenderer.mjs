@@ -19,7 +19,7 @@
 
 import StageUtils from "../tree/StageUtils.mjs";
 import Utils from "../tree/Utils.mjs";
-import { getFontSetting } from "./TextTextureRendererUtils.mjs";
+import { getFontSetting, isZeroWidthSpace, splitWords } from "./TextTextureRendererUtils.mjs";
 
 export default class TextTextureRenderer {
 
@@ -424,10 +424,13 @@ export default class TextTextureRenderer {
             let resultLines = [];
             let result = '';
             let spaceLeft = wordWrapWidth - indent;
-            let words = lines[i].split(' ');
-            for (let j = 0; j < words.length; j++) {
-                const wordWidth = this.measureText(words[j], letterSpacing);
-                const wordWidthWithSpace = wordWidth + this.measureText(' ',letterSpacing);
+            let words = splitWords(lines[i]);
+            for (let j = 0; j < words.length; j += 2) {
+                const space = words[j];
+                const word = words[j + 1];
+                const wordWidth = this.measureText(word, letterSpacing);
+                const spaceWidth = isZeroWidthSpace(space) ? 0 : this.measureText(space, letterSpacing);
+                const wordWidthWithSpace = wordWidth + spaceWidth;
                 if (j === 0 || wordWidthWithSpace > spaceLeft) {
                     // Skip printing the newline if it's the first word of the line that is.
                     // greater than the word wrap width.
@@ -435,12 +438,12 @@ export default class TextTextureRenderer {
                         resultLines.push(result);
                         result = '';
                     }
-                    result += words[j];
+                    result += word;
                     spaceLeft = wordWrapWidth - wordWidth - (j === 0 ? indent : 0);
                 }
                 else {
                     spaceLeft -= wordWidthWithSpace;
-                    result += ' ' + words[j];
+                    result += space + word;
                 }
             }
 

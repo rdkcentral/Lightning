@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getFontSetting } from './TextTextureRendererUtils.mjs';
+import { getFontSetting, splitWords, isSpace, isZeroWidthSpace } from './TextTextureRendererUtils.mjs';
 
 describe('TextTextureRendererUtils', () => {
   describe('getFontSetting', () => {
@@ -28,4 +28,52 @@ describe('TextTextureRendererUtils', () => {
       expect(getFontSetting(['serif', 'Arial', null], 'bold', 12, 1, 'Default')).toBe('bold 12px serif,"Arial","Default"');
     });
   });
+
+  describe('splitWords', () => {
+    it('should split on regular spaces', () => {
+      expect(splitWords('Hello There World')).toEqual(["", "Hello", " ", "There", " ", "World"]);
+      expect(splitWords('Hello  There   World')).toEqual(["", "Hello", "  ", "There", "   ", "World"]);
+
+    });
+    it('should split on zero-width spaces', () => {
+      expect(splitWords('Hello\u200BThere\u200BWorld')).toEqual(["", "Hello", "\u200B", "There", "\u200B", "World"]);
+      expect(splitWords('Hello\u200B\u200BThere\u200B\u200B\u200BWorld')).toEqual(["", "Hello", "\u200B\u200B", "There", "\u200B\u200B\u200B", "World"]);
+    });
+    it('should split on a combo of spaces and zero-width spaces', () => {
+      expect(splitWords('Hello\u200B There \u200B World')).toEqual(["", "Hello", "\u200B ", "There", " \u200B ", "World"]);
+    });
+    it('should capture the first group of spaces if the string begins with spaces', () => {
+      expect(splitWords(' Hello There World')).toEqual([" ", "Hello", " ", "There", " ", "World"]);
+      expect(splitWords(' \u200BHello There World')).toEqual([" \u200B", "Hello", " ", "There", " ", "World"]);
+    });
+  });
+
+  describe('isZeroWidthSpace', () => {
+    it('should return true for empty string', () => {
+      expect(isZeroWidthSpace('')).toBe(true);
+    });
+    it('should return true for zero-width space', () => {
+      expect(isZeroWidthSpace('\u200B')).toBe(true);
+    });
+    it('should return false for non-zero-width space', () => {
+      expect(isZeroWidthSpace(' ')).toBe(false);
+      expect(isZeroWidthSpace('a')).toBe(false);
+    });
+  });
+
+  describe('isSpace', () => {
+    it('should return true for empty string', () => {
+      expect(isSpace('')).toBe(true);
+    });
+    it('should return true for zero-width space', () => {
+      expect(isSpace('\u200B')).toBe(true);
+    });
+    it('should return true for regular space', () => {
+      expect(isSpace(' ')).toBe(true);
+    });
+    it('should return false for non-space', () => {
+      expect(isSpace('a')).toBe(false);
+    });
+  });
+
 });
