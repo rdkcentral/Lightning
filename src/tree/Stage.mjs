@@ -237,6 +237,7 @@ export default class Stage extends EventEmitter {
         this.gl = null;
         this.c2d = null;
         this.ctx = null;
+        this._options = null;
         this.platform = null;
         this.textureManager = null;
         this._renderer = null;
@@ -244,6 +245,7 @@ export default class Stage extends EventEmitter {
         delete this.gl;
         delete this.c2d;
         delete this.ctx;
+        delete this._options;
         delete this.platform;
         delete this.textureManager;
         delete this._renderer;
