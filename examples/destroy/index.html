@@ -1,0 +1,96 @@
+<!--
+ If not stated otherwise in this file or this component's LICENSE file the
+ following copyright and licenses apply:
+
+ Copyright 2020 Metrological
+
+ Licensed under the Apache License, Version 2.0 (the License);
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <script src="../../../devtools/lightning-inspect.js"></script>
+</head>
+<body style="margin: 0; padding: 0">
+    <script type="module">
+        import lng from '../../../src/lightning.mjs';
+        //attachInspector(lng)
+
+        let app = null;
+        let canvas = null;
+        const loadApp = () => {
+            class BasicUsageExample extends lng.Application {
+                static _template() {
+                    return {
+                        Bg: {
+                            src: "../landscape.jpg", scale: 1,
+                        },
+                        Primary: {
+                            Main: {rect: true, renderToTexture: true, w: 900, h: 900, colorLeft: 0x000000FF, colorRight: 0xFF0000FF
+                            },
+                            App: {alpha: 0.5, rect: true, w: 100, h: 100, scale: 1, texture: {type: lng.textures.NoiseTexture, x: 0, y: 0, w: 1000, h: 1000}}
+                        },
+                        Overlay: {}
+                    }
+                }
+
+                _handleLeft() {
+                    this.tag('Primary').setSmooth('x', this.tag('Primary').getSmooth('x') - 100)
+                }
+
+                _handleRight() {
+                    this.tag('Primary').setSmooth('x', this.tag('Primary').getSmooth('x') + 100)
+                    this._setState("Loading");
+                }
+
+                _handleUp() {
+                    this.tag('Primary').setSmooth('y', this.tag('Primary').getSmooth('y') - 100)
+                }
+
+                _handleDown() {
+                    this.tag('Primary').setSmooth('y', this.tag('Primary').getSmooth('y') + 100)
+                }
+
+            }
+
+            const options = {
+                stage: {
+                    w: 900, h: 900, clearColor: 0xFF000000, canvas2d: false, useImageWorker: false,
+                    forceTxCanvasSource: true,
+                    pauseRafLoopOnIdle: true
+                }, debug: true}
+
+            app = new BasicUsageExample(options);
+            canvas = app.stage.getCanvas()
+            document.body.appendChild(app.stage.getCanvas());
+        }
+
+
+        document.addEventListener("keydown", (e) => {
+            // spacebar
+            if (e.keyCode === 32) {
+                if (app) {
+                    app.destroy();
+                    document.body.removeChild(canvas);
+                    canvas = null;
+                    return app = null;
+                }
+
+                loadApp();
+            }
+        })
+    </script>
+</body>
+</html>

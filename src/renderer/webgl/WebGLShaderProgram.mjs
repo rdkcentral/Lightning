@@ -28,6 +28,7 @@ export default class WebGLShaderProgram {
         this.fragmentShaderSource = fragmentShaderSource;
 
         this._program = null;
+        this.gl = null;
 
         this._uniformLocations = new Map();
         this._attributeLocations = new Map();
@@ -109,8 +110,24 @@ export default class WebGLShaderProgram {
     destroy() {
         if (this._program) {
             this.gl.deleteProgram(this._program);
-            this._program = null;
         }
+
+        this._attributeLocations = null;
+        this._currentUniformValues = null;
+        this.fragmentShaderSource = null;
+        this._program = null;
+        this.gl = null;
+        this._uniformLocations = null;
+        this.vertexShaderSource = null;  
+
+        delete this.vertexShaderSource;
+        delete this._program;        
+        delete this._currentUniformValues;
+        delete this.fragmentShaderSource;
+        delete this.gl;
+        delete this._uniformLocations;
+        delete this._attributeLocations;
+
     }
 
     get glProgram() {

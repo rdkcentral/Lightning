@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.9.1
+
+*21 apr 2023*
+
+- 🔥 Hotfix for memory leak when `pauseRafLoopOnIdle` is enabled (introduced in v2.7.0)
+- Implemented additional cleanup of Lightning code that gets stuck on the heap after calling `destroy`
+
 ## v2.9.0
 *16 feb 2023*
 
