@@ -132,7 +132,7 @@ export default class Stage extends EventEmitter {
 
         try {
             return !!window.WebGLRenderingContext;
-        } catch(e) {
+        } catch (e) {
             return false;
         }
     }
@@ -180,7 +180,7 @@ export default class Stage extends EventEmitter {
         opt('memoryPressure', 24e6);
         opt('bufferMemory', 2e6);
         opt('textRenderIssueMargin', 0);
-        opt('fontSharp',{precision:0.6666666667, fontSize: 24})
+        opt('fontSharp', { precision: 0.6666666667, fontSize: 24 })
         opt('clearColor', [0, 0, 0, 0]);
         opt('defaultFontFace', 'sans-serif');
         opt('fixedDt', 0);
@@ -223,6 +223,32 @@ export default class Stage extends EventEmitter {
         this.ctx.destroy();
         this.textureManager.destroy();
         this._renderer.destroy();
+
+        // clear last rendered frame
+        if (this.gl) {
+            this.gl.clearColor(0.0, 0.0, 0.0, 0.0);
+            this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+        } else if (this.c2d) {
+            this.c2d.clearRect(
+                0, 0, this.c2d.canvas.width, this.c2d.canvas.height
+            );
+        }
+
+        this.gl = null;
+        this.c2d = null;
+        this.ctx = null;
+        this._options = null;
+        this.platform = null;
+        this.textureManager = null;
+        this._renderer = null;
+
+        delete this.gl;
+        delete this.c2d;
+        delete this.ctx;
+        delete this._options;
+        delete this.platform;
+        delete this.textureManager;
+        delete this._renderer;
     }
 
     stop() {
@@ -496,10 +522,10 @@ export default class Stage extends EventEmitter {
         }
     }
 
-    getChildrenByPosition(x, y){
+    getChildrenByPosition(x, y) {
         const children = [];
         this.root.core.update();
-        this.root.core.collectAtCoord(x,y,children);
+        this.root.core.collectAtCoord(x, y, children);
 
         return children;
     }

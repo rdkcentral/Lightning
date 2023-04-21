@@ -64,6 +64,9 @@ export default class WebGLCoreRenderExecutor extends CoreRenderExecutor {
         super.destroy();
         this.gl.deleteBuffer(this._attribsBuffer);
         this.gl.deleteBuffer(this._quadsBuffer);
+
+        this.gl = null;
+        delete this.gl;
     }
 
     _reset() {

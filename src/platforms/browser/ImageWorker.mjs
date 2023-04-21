@@ -30,6 +30,12 @@ export default class ImageWorker {
         if (this._worker) {
             this._worker.terminate();
         }
+
+        this._items = null;
+        this._worker = null;
+
+        delete this._items;
+        delete this._worker;        
     }
 
     _initWorker() {

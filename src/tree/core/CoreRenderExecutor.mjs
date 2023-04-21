@@ -29,6 +29,13 @@ export default class CoreRenderExecutor {
     }
 
     destroy() {
+        this.ctx = null;
+        this.renderState = null;
+        this.gl = null;
+
+        delete this.ctx;
+        delete this.renderState;
+        delete this.gl;
     }
 
     _reset() {
