@@ -27,6 +27,9 @@ export default class C2dTextureTintManager {
 
     destroy() {
         this.gc(true);
+
+        this.stage = null;
+        delete this.stage;
     }
 
     _addMemoryUsage(delta) {

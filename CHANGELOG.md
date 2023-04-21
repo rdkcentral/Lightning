@@ -1,7 +1,7 @@
 # Changelog
 
 ## v2.10.0
-*20 apr 2023*
+*24 apr 2023*
 
 - Integrated `Vite` to replace `rollup` bundler and integrated `Vitest` for unit testing
 - Implemented word wrapping support on zero-width breaking spaces (#450) (docs: [Word Wrap in Non-Latin Based Languages](https://lightningjs.io/docs/#/lightning-core-reference/RenderEngine/Textures/Text?id=word-wrap-in-non-latin-based-languages) ) 
@@ -13,6 +13,12 @@
 - Fixed TypeScript error with getByRef() when using generic type param as Ref value (#444)
 - Implemented default loose type configs for TypeScript.
 
+## v2.9.1
+
+*21 apr 2023*
+
+- 🔥 Hotfix for memory leak when `pauseRafLoopOnIdle` is enabled (introduced in v2.7.0)
+- Implemented additional cleanup of Lightning code that gets stuck on the heap after calling `destroy`
 
 ## v2.9.0
 *16 feb 2023*

@@ -38,6 +38,9 @@ export default class C2dRenderer extends Renderer {
 
     destroy() {
         this.tintManager.destroy();
+
+        this.tintManager = null;
+        delete this.tintManager;
     }
 
     _createDefaultShader(ctx) {

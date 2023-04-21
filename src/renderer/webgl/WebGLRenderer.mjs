@@ -46,6 +46,12 @@ export default class WebGLRenderer extends Renderer {
 
     destroy() {
         this.shaderPrograms.forEach(shaderProgram => shaderProgram.destroy());
+
+        this.shaderPrograms = null;
+        this._compressedTextureExtensions = null;
+
+        delete this.shaderPrograms;
+        delete this._compressedTextureExtensions;
     }
 
     _createDefaultShader(ctx) {
