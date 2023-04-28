@@ -130,3 +130,16 @@ class MyParentComponent extends Lightning.Component {
   // ...
 }
 ```
+
+## Loose Type Configs
+
+If a Type Config is not explicitly provided, a **Loose Type Config** will be used by default. This is similar to the [**Loose Template Spec**](TemplateSpecs.md). Events and Signals will be handled in a much more looser fashion, allowing you to hook up any Events/Signals regardless of if any are explicitly specified.
+
+You can also explicitly extend the base `LooseTypeConfig` interface if you want the best of both worlds. Explicitly specified Events and Signals will be type checked. But any other Event or Signal will be allowed and be able to emit/receive `any` set of parameters.
+
+```ts
+export interface TypeConfigLoose extends Lightning.Component.TypeConfigLoose {
+  SignalMapType: MyComponentSignalMap,
+  EventMapType: MyComponentEventMap
+}
+```

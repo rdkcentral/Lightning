@@ -45,3 +45,11 @@ function SpecialMethods() {
   // @ts-expect-error
   c.seekAncestorByType(Element);
 }
+
+/// Basic Component Specification Tests
+class MyComponent extends Component {
+  /// The id Component property should be overridable to return a string or a number
+  override get id(): string | number {
+    return 'MyComponent';
+  }
+}

@@ -66,6 +66,45 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
         w: 123,
         h: 123,
         tagRoot: true,
+        /// Test all the TextTexture properties
+        text: {
+          text: 'abc',
+          fontFace: ['Roboto', 'Arial'],
+          fontSize: 12,
+          fontStyle: 'normal',
+          textColor: 0xff0000ff,
+          textAlign: 'center',
+          fontBaselineRatio: 1,
+          wordWrap: true,
+          wordBreak: true,
+          wordWrapWidth: 100,
+          lineHeight: 20,
+          textBaseline: 'alphabetic',
+          verticalAlign: 'top',
+          offsetY: 1,
+          maxLines: 1,
+          maxLinesSuffix: '...',
+          precision: 1,
+          paddingLeft: 1,
+          paddingRight: 1,
+          shadow: true,
+          shadowColor: 0xff0000ff,
+          shadowOffsetX: 1,
+          shadowOffsetY: 1,
+          shadowBlur: 1,
+          highlight: true,
+          highlightColor: 0xff0000ff,
+          highlightOffset: 1,
+          highlightPaddingLeft: 1,
+          highlightPaddingRight: 1,
+          letterSpacing: 1,
+          textIndent: 1,
+          cutSx: 1,
+          cutEx: 1,
+          cutSy: 1,
+          cutEy: 1,
+          advancedRenderer: false,
+        },
         smooth: {
           x: [100, { delay: 0, duration: 10, timingFunction: 'ease-in' }],
           y: 200,
@@ -173,7 +212,7 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
     >(this.tag('MyStrongElement.ChildComponent'));
 
     expectType<
-      lng.Element<InlineElement<{}>, lng.Element.TypeConfig> | undefined
+      lng.Element<InlineElement<{}>, lng.Element.TypeConfigLoose> | undefined
     >(this.tag('MyStrongElement.ChildElement'));
 
     // # LOOSE #
@@ -988,6 +1027,29 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
     expectType<typeof this.TestComponent>(this.MyStrongElement.add(this.TestComponent));
     /// If you pass an array, you get `null` back
     expectType<null>(this.MyStrongElement.add([this.MyLooseElement, this.TestComponent]));
+
+    //
+    // EventEmitter
+    //
+    // # LOOSE ONLY #
+    // Unless explicitly specified, all Elements default to having Loose Type Configs.
+    // Even if they have Strong Template Specs.
+    this.MyLooseElement.on('anythingIsAllowed', () => {});
+    this.MyStrongElement.on('anythingIsAllowed', () => {});
+    this.MyLooseElement.off('anythingIsAllowed', () => {});
+    this.MyStrongElement.off('anythingIsAllowed', () => {});
+    this.MyLooseElement.once('anythingIsAllowed', () => {});
+    this.MyStrongElement.once('anythingIsAllowed', () => {});
+    this.MyLooseElement.emit('anythingIsAllowed');
+    this.MyStrongElement.emit('anythingIsAllowed');
+    this.MyLooseElement.has('anythingIsAllowed', () => {});
+    this.MyStrongElement.has('anythingIsAllowed', () => {});
+    this.MyLooseElement.removeAllListeners('anythingIsAllowed');
+    this.MyStrongElement.removeAllListeners('anythingIsAllowed');
+    this.MyLooseElement.removeListener('anythingIsAllowed', () => {});
+    this.MyStrongElement.removeListener('anythingIsAllowed', () => {});
+    this.MyLooseElement.listenerCount('anythingIsAllowed');
+    this.MyStrongElement.listenerCount('anythingIsAllowed');
   }
 }
 

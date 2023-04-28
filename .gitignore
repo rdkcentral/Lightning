@@ -47,3 +47,6 @@ dist
 
 # Type Docs
 /typedocs
+
+# ES5 version of the Lightning Inspector
+/devtools/lightning-inspect.es5.js

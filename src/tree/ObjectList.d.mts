@@ -148,4 +148,14 @@ export default class ObjectList<ItemType, LiteralType extends Record<string | nu
    * Number of items in the ObjectList
    */
   get length(): number;
+
+  /**
+   * Return first item in ObjectList
+   */
+  get first(): ItemType;
+
+  /**
+   * Return last item in ObjectList
+   */
+  get last(): ItemType;
 }

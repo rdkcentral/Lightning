@@ -81,6 +81,14 @@ export default class Stage extends EventEmitter {
 
         // Override width and height.
         if (this.getCanvas()) {
+            if (this.getOption('devicePixelRatio') !== 1) {
+                const ratio = this.getOption('devicePixelRatio');
+                // set correct display sie
+                this.getCanvas().style.width = this._options['w'] / ratio  + 'px';
+                this.getCanvas().style.height = this._options['h'] / ratio + 'px';
+            }
+
+            // set display buffer size
             this._options.w = this.getCanvas().width;
             this._options.h = this.getCanvas().height;
         }
@@ -190,11 +198,18 @@ export default class Stage extends EventEmitter {
         opt('canvas2d', false);
         opt('platform', null);
         opt('readPixelsBeforeDraw', false);
+        opt('devicePixelRatio', 1)       
         opt('readPixelsAfterDraw', false);
         opt('readPixelsAfterDrawThreshold', 0);
         opt('debugFrame', false);
         opt('forceTxCanvasSource', false);
         opt('pauseRafLoopOnIdle', false);
+
+        if (o['devicePixelRatio'] != null && o['devicePixelRatio'] !== 1) {
+            this._options['precision'] *= o['devicePixelRatio']
+            this._options['w'] *= o['devicePixelRatio']
+            this._options['h'] *= o['devicePixelRatio']
+        }
     }
 
     setApplication(app) {

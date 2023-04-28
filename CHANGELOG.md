@@ -1,5 +1,18 @@
 # Changelog
 
+## v2.10.0
+*24 apr 2023*
+
+- Integrated `Vite` to replace `rollup` bundler and integrated `Vitest` for unit testing
+- Implemented word wrapping support on zero-width breaking spaces (#450) (docs: [Word Wrap in Non-Latin Based Languages](https://lightningjs.io/docs/#/lightning-core-reference/RenderEngine/Textures/Text?id=word-wrap-in-non-latin-based-languages) ) 
+- Added support for device pixel ratio with an option `devicePixelRatio` (docs: [Global Stage Scaling](https://lightningjs.io/docs/#/lightning-core-reference/RuntimeConfig/index?id=#global-stage-scaling), [Handling high pixel density](https://lightningjs.io/docs/#/lightning-core-reference/RuntimeConfig/index?id=#handling-high-pixel-density-high-dpi) ) 
+- Fixed issue with text rendering at high precision levels causing incorrect word wrapping (#470)
+- Fixed issue with inability to override the id accessor of a Component with string accessor (#456)
+- Added first/last getters to TypeScript definitions for ObjectList
+- Fixed documentation and TypeScript definitions for TextTexture `fontFace`
+- Fixed TypeScript error with getByRef() when using generic type param as Ref value (#444)
+- Implemented default loose type configs for TypeScript.
+
 ## v2.9.1
 
 *21 apr 2023*

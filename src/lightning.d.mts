@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import * as lng from "./types/lng";
+import * as lng from "./types/lng.mjs";
 
 /**
  * This seeming nonsense helps us export all the types with the same names/structure as

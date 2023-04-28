@@ -194,12 +194,13 @@ window.attachInspector = function({Application, Element, ElementCore, Stage, Com
             document.body.appendChild(root);
             var self = this;
             let updateRootStyleFromCanvas = function (bcr) {
+                const p = self.stage.getRenderPrecision() / self.stage.getOption('devicePixelRatio');
                 root.style.left = bcr.left + 'px';
                 root.style.top = bcr.top + 'px';
-                root.style.width = Math.ceil(bcr.width / self.stage.getRenderPrecision()) + 'px';
-                root.style.height = Math.ceil(bcr.height / self.stage.getRenderPrecision()) + 'px';
+                root.style.width = Math.ceil(bcr.width / p) + 'px';
+                root.style.height = Math.ceil(bcr.height / p) + 'px';
                 root.style.transformOrigin = '0 0 0';
-                root.style.transform = 'scale(' + self.stage.getRenderPrecision() + ',' + self.stage.getRenderPrecision() + ')';
+                root.style.transform = 'scale(' + p + ',' + p + ')';
             }
 
             if (window.ResizeObserver != null) {

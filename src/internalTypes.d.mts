@@ -22,8 +22,9 @@
  * @hidden Internal use only
  * @module
  */
+import EventEmitter from './EventEmitter.mjs';
 import Component from './application/Component.mjs';
-import Element from './tree/Element.mjs'
+import Element, { IsLooseTypeConfig } from './tree/Element.mjs'
 
 /**
  * Allows all the documentation of a template spec to be inherited by any Element
@@ -76,13 +77,15 @@ export type ReduceSpecificity<T, U> =
         :
           never;
 
-
 /**
  * Extracts the EventMapType from Element Config
  *
  * @hidden Internal use only
  */
-export type EventMapType<TypeConfig extends Element.TypeConfig> = TypeConfig['EventMapType'];
+export type EventMapType<TypeConfig extends Element.TypeConfig> =
+  IsLooseTypeConfig<TypeConfig> extends true
+  ? TypeConfig['EventMapType'] & { [s: string]: (...args: any[]) => void; }
+  : TypeConfig['EventMapType']
 
 /**
  * Extracts the TextureType from Element TypeConfig
@@ -96,7 +99,10 @@ export type TextureType<TypeConfig extends Element.TypeConfig> = TypeConfig['Tex
  *
  * @hidden Internal use only
  */
-export type SignalMapType<TypeConfig extends Component.TypeConfig> = TypeConfig['SignalMapType'];
+export type SignalMapType<TypeConfig extends Component.TypeConfig> =
+  IsLooseTypeConfig<TypeConfig> extends true
+    ? TypeConfig['SignalMapType'] & { [key: string]: (...args: any[]) => any }
+    : TypeConfig['SignalMapType']
 
 /**
  * If `PossibleFunction` is a function, it returns the parameters from it as a tuple.
@@ -131,3 +137,201 @@ export type HandlerReturnType<PossibleFunction> =
       ReturnType<PossibleFunction>
     :
       void;
+
+/**
+ * Set of all capital letters
+ *
+ * @hidden Internal use only
+ */
+type Alphabet = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z';
+
+/**
+ * Any string that begins with a capital letter
+ *
+ * @hidden Internal use only
+ */
+export type ValidRef = `${Alphabet}${string}`;
+
+/**
+ * Returns `true` if T is a type that should terminate the calculation of
+ * tag paths.
+ *
+ * @hidden Internal use only
+ */
+type IsTerminus<T> =
+    T extends (string | number | boolean | any[] | Element.Constructor | Element)
+        ?
+            true
+        :
+            T extends object
+                ?
+                    object extends T
+                        ?
+                            true
+                        :
+                            false
+                :
+                    false
+
+/**
+ * Generates a union of template spec object path string tuples where the last
+ * tuple item is the value type for that path (wrapped in a single element tuple)
+ *
+ * @privateRemarks
+ * This is a helper type function for {@link TemplateSpecTags}
+ *
+ * Example:
+ *
+ * ```ts
+ * type Result = SpecToTagPaths<{
+ *   MyElement: object
+ *   MyParentElement: {
+ *     MyChildComponent: typeof MyComponent
+ *     MyChildElement: {
+ *       MyGrandChildElement: object
+ *     }
+ *   }
+ * }>
+ * ```
+ *
+ * Equates to:
+ *
+ * ```ts
+ * type Result =
+ *   ['MyElement', [object]] |
+ *   ['MyParentElement', [{
+ *      MyChildComponent: typeof MyComponent
+ *      MyChildElement: {
+ *        MyGrandChildElement: object
+ *      }
+ *   }]] |
+ *   ['MyParentElement', 'MyChildComponent', [typeof MyComponent]]
+ *   ['MyParentElement', 'MyChildElement', [{ MyGrandChildElement: object }]] |
+ *   ['MyParentElement', 'MyChildElement', 'MyGrandChildElement', [object]];
+ * ```
+ *
+ * @hidden Internal use only
+ */
+export type SpecToTagPaths<T> =
+    IsTerminus<T> extends true
+        ?
+            [[T]]
+        :
+            {
+                [K in Extract<keyof T, ValidRef>]: [K, ...SpecToTagPaths<T[K]>] | [K, [T[K]]]
+            }[Extract<keyof T, ValidRef>]
+
+/**
+ * Joins the given path string tuple into a single `.` separated string tag path
+ *
+ * @hidden Internal use only
+ */
+export type Join<T extends string[]> =
+    T extends [] ? never :
+    T extends [infer F] ? F :
+    T extends [infer F, ...infer R] ?
+    F extends string ?
+    `${F}.${Join<Extract<R, string[]>>}` : never : string;
+
+/**
+ * Combines tag paths returned by {@link SpecToTagPaths} into a complete flattened object shape
+ *
+ * @privateRemarks
+ * This is a helper type function for {@link TemplateSpecTags}.
+ *
+ * Only path elements that are a valid reference name (i.e. start with a capital letter {@link ValidRef}) are
+ * included.
+ *
+ * Example:
+ *
+ * ```ts
+ * type Result = CombineTagPaths<
+ *   ['MyElement', [object]] |
+ *   ['MyParentElement', [{
+ *      MyChildComponent: typeof Component
+ *      MyChildElement: {
+ *        MyGrandChildElement: object
+ *      }
+ *   }]] |
+ *   ['MyParentElement', 'MyChildComponent', [typeof Component]]
+ *   ['MyParentElement', 'MyChildElement', [{ MyGrandChildElement: object }]] |
+ *   ['MyParentElement', 'MyChildElement', 'MyGrandChildElement', [object]]
+ * >
+ * ```
+ *
+ * equates to:
+ *
+ * ```ts
+ * type Result = {
+ *   'MyElement': object;
+ *   'MyParentElement': {
+ *      MyChildComponent: typeof Component
+ *      MyChildElement: {
+ *        MyGrandChildElement: object
+ *      }
+ *   };
+ *   'MyParentElement.MyChildComponent': typeof Component;
+ *   'MyParentElement.MyChildElement': { MyGrandChildElement: object };
+ *   'MyParentElement.MyChildElement.MyGrandChildElement': object
+ * }
+ * ```
+ *
+ * @hidden Internal use only
+ */
+export type CombineTagPaths<TagPaths extends any[]> = {
+    [PathWithType in TagPaths as PathWithType extends [...infer Path extends string[], [any]] ? Join<Path> : never]:
+        PathWithType extends [...any, [infer Type]]
+            ?
+                Type
+            :
+                never;
+}
+
+/**
+ * Like {@link CombineTagPaths} but only includes the first level of refs from TagPaths
+ *
+ * @privateRemarks
+ * This is a helper type function for {@link TemplateSpecTags}.
+ *
+ * Only path elements that are a valid reference name (i.e. start with a capital letter {@link ValidRef}) are
+ * included.
+ *
+ * Example:
+ *
+ * ```ts
+ * type Result = CombineTagPathsSingleLevel<
+ *   ['MyElement', [object]] |
+ *   ['MyParentElement', [{
+ *      MyChildComponent: typeof Component
+ *      MyChildElement: {
+ *        MyGrandChildElement: object
+ *      }
+ *   }]] |
+ *   ['MyParentElement', 'MyChildComponent', [typeof Component]]
+ *   ['MyParentElement', 'MyChildElement', [{ MyGrandChildElement: object }]] |
+ *   ['MyParentElement', 'MyChildElement', 'MyGrandChildElement', [object]]
+ * >
+ * ```
+ *
+ * equates to:
+ *
+ * ```ts
+ * type Result = {
+ *   'MyElement': object;
+ *   'MyParentElement': {
+ *      MyChildComponent: typeof Component
+ *      MyChildElement: {
+ *        MyGrandChildElement: object
+ *      }
+ *   }
+ * }
+ * ```
+ */
+export type CombineTagPathsSingleLevel<TagPaths extends any[]> = {
+  [PathWithType in TagPaths as PathWithType extends [infer Key extends string, [any]] ? Key : never]:
+      PathWithType extends [any, [infer Type]]
+          ?
+              Type
+          :
+              never;
+}

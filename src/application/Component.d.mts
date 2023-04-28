@@ -16,8 +16,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { HandlerReturnType, HandlerParameters, SignalMapType } from "../internalTypes.mjs";
-import Element, { CompileElementTemplateSpecType, InlineElement, ValidRef } from "../tree/Element.mjs";
+import { HandlerReturnType, HandlerParameters, SignalMapType, ValidRef } from "../internalTypes.mjs";
+import Element, { CompileElementTemplateSpecType, InlineElement } from "../tree/Element.mjs";
 import Stage from "../tree/Stage.mjs";
 import Application from "./Application.mjs";
 
@@ -282,6 +282,12 @@ declare namespace Component {
     SignalMapType: SignalMap
   }
 
+  export interface TypeConfigLoose extends TypeConfig {
+    EventMapType: EventMap
+    SignalMapType: SignalMap
+    [s: string]: any
+  }
+
   /**
    * Augmentable interface for supplying custom key handler methods for components.
    *
@@ -380,7 +386,7 @@ interface Component extends Component.KeyHandlers {
 declare class Component<
   // Components use loose typing TemplateSpecs by default
   TemplateSpecType extends Component.TemplateSpecLoose = Component.TemplateSpecLoose,
-  TypeConfig extends Component.TypeConfig = Component.TypeConfig
+  TypeConfig extends Component.TypeConfigLoose = Component.TypeConfigLoose
 > extends Element<
   TemplateSpecType,
   TypeConfig
@@ -439,7 +445,7 @@ declare class Component<
    */
   _captureKeyRelease?(e: KeyboardEvent): boolean | void;
 
- /**
+  /**
    * Overridable catch-all **bottom-up** _key-up_ event handler
    *
    * @remarks

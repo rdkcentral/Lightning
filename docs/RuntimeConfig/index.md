@@ -35,9 +35,10 @@ const App = new MyApp(options);
 | `w` | Number | 1920 | Stage width in pixels |
 | `h` | Number | 1080 | Stage height in pixels |
 | `precision` | Float | 1 | Global stage scaling (see details below) |
+| `devicePixelRatio` | Float | 1 | Handling high DPI (see details below) |
 | `memoryPressure` | Number | 24e6 | Maximum GPU memory usage in pixels (see details below) |
 | `clearColor` | Float[] | [0,0,0,0] | Background color in ARGB values (0 to 1) |
-| `defaultFontFace` | String | sans-serif | Font face for text rendering |
+| `defaultFontFace` | String | "sans-serif" | Default font family to use for text. See the [fontFace Text property](../RenderEngine/Textures/Text.md#properties) for how this value ends up being used. The special [CSS defined font family values](https://developer.mozilla.org/en-US/docs/Web/CSS/font-family#values) of "serif" and "sans-serif" may be used as well. |
 | `fontSharp` | Object, Boolean | { precision:0.6666666667, fontSize: 39 } | Determine when to apply gl.NEAREST to TEXTURE_MAG_FILTER |
 | `fixedDt` | Number | 0 (auto) | Fixed time step per frame (in ms) |
 | `useImageWorker` | Boolean | true | By default, use a Web Worker that parses images off-thread (web only) |
@@ -49,25 +50,42 @@ const App = new MyApp(options);
 | `debugFrame` | Boolean | false | If set to *true*, logs debug information about each frame including how many render-to-texture elements were re-rendered. This may impact performance and should not be turned on in production. |
 | `forceTxCanvasSource` | Boolean | false | If set to *true*, forces the Render Engine to use the canvasSource over getImageData for text (this helps with text generation on certain devices). |
 | `pauseRafLoopOnIdle` | Boolean | false | If set to *true* will stop the Render Engine from calling `RequestAnimationFrame` when there are no stage updates. |
+| `devicePixelRatio` | Number | 1 | The DPR is the logical to physical pixel density for a touch enabled device and affects how we calculate collisions |
 
 
-
-
-## Downscaling
+## Global stage scaling
 
 > We advise you to always develop your TV App in a **1080p** coordinate system (the Lightning default).
 
 
-Assume that you have created an App for 1080p quality, so you have used a 1920x1080 coordinate system to position all of the content. However, you have found out that the App needs to be displayed in a 1280x720 resolution.
+Assume that you have created an App for 1080p quality, where you've used a 1920x1080 coordinate system to position all of the content. However, you've found out that the App needs to be displayed in a 1280x720 resolution.
 
 
-You can use the `precision` property to perform a  *global rescale* of the coordinate system. For example, if you specify `precision: 2/3`, the 1920 x-position will be mapped to the 1280-output pixel coordinate.
+To make this adjustment, you can use the `precision` property to perform a *global rescale* of the coordinate system. For example, if you specify `precision: 2/3`, the 1920 x-position will be mapped to the 1280-output pixel coordinate. This downscaling generally works well and can improve quality (less pixel interpolation) while reducing memory usage.
 
+By setting  `precision: 2`, the 1920 x-position will be mapped to a 3840-output pixel coordinate, effectively upscaling the content for 4K resolution. Please note that upscaling may result in reduced performance due to the higher GPU memory usage.
 
-As a result, the text and off-screen textures are rendered at a *lower resolution* by the [Render Engine](../RenderEngine/index.md), which increases quality (less pixel interpolation) and reduces memory usage.
+Keep in mind that WebGL rasterizes at pixel boundaries. This means that when it uses a line width of 2 in 1080p quality, it may render at either 2px or 3px in 720p (depending on the rendered pixel offset). If you encounter such problems, you'll need to set the sizing at a multiple of 3 to ensure proper rendering.
 
+# Handling high pixel density (high DPI)
 
-Downscaling with the `precision` option generally works well. But keep in mind that WebGL rasterizes as *pixel boundaries*, so when it uses a line width of 2 in 1080p quality, it may render at either 2px or 3px in 720p (depending on the rendered pixel offset). If you encounter such problems, you have to set the sizing at a multiple of 3.
+With the increasing number of devices in the market having high pixel densities (DPI), it's important to handle high DPI properly in your Lightning app. Fortunately, you can take advantage of the higher resolution by setting the devicePixelRatio property, which is a minor and generally non-disruptive change.
+It's worth noting that canvas elements, like most graphics elements, have two sizes
+
+- The size they are displayed in the page
+- The size of their content
+
+For a canvas element, the size of the content or drawingBuffer is determined by the width and height attributes of the canvas, while the display size is determined by the CSS attributes applied to the canvas. Setting `devicePixelRatio: 2` will result in the following:
+
+```html
+<canvas width="3840" height="2060" style="width: 1920px; height: 1080px;"></canvas>
+```
+
+a canvas that has a drawingBuffer of size 3840x2060 pixels but is displayed at a 1920x1080 viewport.
+
+When viewed on High DPI displays, the browser will automatically upscale the canvas content to ensure that it appears at the correct size on the screen. However, if the devicePixelRatio (DPR) is not set properly, a Lightning application may appear to render at a lower-than-native resolution, which can introduce aliasing.
+
+It's essential to handle high DPI properly to ensure that your Lightning app looks crisp and clear on high DPI displays
 
 
 ## FontSharp

@@ -1,37 +1,41 @@
 {
   "author": "Metrological, Bas van Meurs <b.van.meurs@metrological.com>",
   "name": "@lightningjs/core",
-  "version": "2.9.1",
+  "version": "2.10.0",
   "license": "Apache-2.0",
+  "type": "module",
+  "types": "dist/index.d.ts",
+  "module": "dist/lightning.esm.js",
   "main": "dist/lightning.js",
-  "module": "index.js",
-  "types": "index.d.ts",
   "exports": {
     ".": {
       "import": {
-        "types": "./index.d.ts",
-        "default": "./index.js"
+        "types": "./dist/index.d.ts",
+        "default": "./dist/lightning.esm.js"
       },
       "require": {
-        "types": "./index.d.ts",
+        "types": "./dist/index.d.ts",
         "default": "./dist/lightning.js"
       }
     },
     "./package.json": "./package.json"
   },
   "files": [
-    "tsconfig.json",
-    "index.js",
-    "index.d.ts",
-    "src/**",
     "dist/**",
     "devtools/**"
   ],
   "scripts": {
-    "build": "rollup -c",
+    "build": "mkdir -p dist && rm -fr dist/* && concurrently -c \"auto\" \"npm:build:lightning\" \"npm:build:lightning.min\" \"npm:build:lightning.es5\" \"npm:build:lightning.es5.min\" \"npm:build:lightning-inspect.es5\" && npm run copy-extra-tsd-files",
     "release": "npm run build && npm publish --access public",
     "typedoc": "typedoc --tsconfig tsconfig.typedoc.json",
-    "tsd": "tsd"
+    "tsd": "tsd",
+    "copy-extra-tsd-files": "bash ./scripts/copy-extra-tsd-files.sh",
+    "build:lightning-inspect.es5": "BUILD_INSPECTOR=true BUILD_ES5=true vite build --mode production",
+    "build:lightning": "vite build --mode production",
+    "build:lightning.min": "BUILD_MINIFY=true vite build --mode production",
+    "build:lightning.es5": "BUILD_ES5=true vite build --mode production",
+    "build:lightning.es5.min": "BUILD_ES5=true BUILD_MINIFY=true vite build --mode production",
+    "test": "vitest"
   },
   "repository": {
     "type": "git",
@@ -45,15 +49,19 @@
     "@babel/plugin-transform-parameters": "^7.8.3",
     "@babel/plugin-transform-spread": "^7.8.3",
     "@babel/preset-env": "^7.8.3",
+    "@rollup/plugin-babel": "^6.0.3",
+    "@types/node": "^18.14.0",
+    "@vitejs/plugin-legacy": "^3.0.1",
     "chai": "^4.2.0",
+    "concurrently": "^7.6.0",
     "mocha": "^6.2.1",
-    "rollup": "^1.30.1",
-    "rollup-plugin-babel": "^4.3.3",
     "rollup-plugin-cleanup": "^3.1.1",
-    "rollup-plugin-license": "2.5.0",
-    "rollup-plugin-terser": "^5.1.2",
     "sinon": "^7.5.0",
+    "terser": "^5.16.8",
     "tsd": "^0.21.0",
-    "typedoc": "^0.23.10"
+    "typedoc": "^0.23.10",
+    "vite": "^4.0.4",
+    "vite-plugin-dts": "^2.0.2",
+    "vitest": "^0.27.2"
   }
 }

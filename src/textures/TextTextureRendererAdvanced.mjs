@@ -19,7 +19,7 @@
 
 import StageUtils from "../tree/StageUtils.mjs";
 import Utils from "../tree/Utils.mjs";
-import { getFontSetting } from "./TextTextureRendererUtils.mjs";
+import { getFontSetting, isSpace } from "./TextTextureRendererUtils.mjs";
 
 export default class TextTextureRendererAdvanced {
 
@@ -96,7 +96,7 @@ export default class TextTextureRendererAdvanced {
         const fontSize = this._settings.fontSize * precision;
         // const offsetY = this._settings.offsetY === null ? null : (this._settings.offsetY * precision);
         const lineHeight = this._settings.lineHeight * precision || fontSize;
-        const w = this._settings.w != 0 ? this._settings.w * precision : 2048 / precision;
+        const w = this._settings.w != 0 ? this._settings.w * precision : this._stage.getOption('w');
         // const h = this._settings.h * precision;
         const wordWrapWidth = this._settings.wordWrapWidth * precision;
         const cutSx = this._settings.cutSx * precision;
@@ -250,7 +250,7 @@ export default class TextTextureRendererAdvanced {
             if (firstWord == '\n') {
                 l.text.shift();
             }
-            if (lastWord == ' ' || lastWord == '\n') {
+            if (isSpace(lastWord) || lastWord == '\n') {
                 l.text.pop();
             }
         }
@@ -280,7 +280,7 @@ export default class TextTextureRendererAdvanced {
 
             const spl = suffix.length + 1
             let _w = lastLineText.reduce((acc, t) => acc + t.width, 0);
-            while (_w > renderInfo.width || lastLineText[lastLineText.length - spl].text == ' ') {
+            while (_w > renderInfo.width || isSpace(lastLineText[lastLineText.length - spl].text)) {
                 lastLineText.splice(lastLineText.length - spl, 1);
                 _w = lastLineText.reduce((acc, t) => acc + t.width, 0);
                 if (lastLineText.length < spl) {
@@ -440,7 +440,7 @@ export default class TextTextureRendererAdvanced {
     }
 
     tokenize(text) {
-        const re =/ |\n|<i>|<\/i>|<b>|<\/b>|<color=0[xX][0-9a-fA-F]{8}>|<\/color>/g
+        const re =/ |\u200B|\n|<i>|<\/i>|<b>|<\/b>|<color=0[xX][0-9a-fA-F]{8}>|<\/color>/g
 
         const delimeters = text.match(re) || [];
         const words = text.split(re) || [];
