@@ -15,7 +15,7 @@ const isMinifiedBuild = process.env.BUILD_MINIFY === 'true';
 const isInspectorBuild = process.env.BUILD_INSPECTOR === 'true';
 
 let outDir = 'dist';
-let entry = resolve(__dirname, 'src/lightning.mjs');
+let entry = resolve(__dirname, isEs5Build ? 'src/lightning.mjs' : 'src/lightning.esm.mjs');
 let outputBase = 'lightning';
 let sourcemap = true;
 let useDts = true;
