@@ -19,7 +19,7 @@
 
 import StageUtils from "../tree/StageUtils.mjs";
 import Utils from "../tree/Utils.mjs";
-import { getFontSetting, isSpace } from "./TextTextureRendererUtils.mjs";
+import { getFontSetting, isSpace, measureText, tokenizeString } from "./TextTextureRendererUtils.mjs";
 
 export default class TextTextureRendererAdvanced {
 
@@ -430,28 +430,19 @@ export default class TextTextureRendererAdvanced {
 
     };
 
+    /**
+     * See {@link measureText}
+     *
+     * @param {string} word
+     * @param {number} space
+     * @returns {number}
+     */
     measureText(word, space = 0) {
-        if (!space) {
-            return this._context.measureText(word).width;
-        }
-        return word.split('').reduce((acc, char) => {
-            return acc + this._context.measureText(char).width + space;
-        }, 0);
+        return measureText(this._context, word, space);
     }
 
     tokenize(text) {
-        const re =/ |\u200B|\n|<i>|<\/i>|<b>|<\/b>|<color=0[xX][0-9a-fA-F]{8}>|<\/color>/g
-
-        const delimeters = text.match(re) || [];
-        const words = text.split(re) || [];
-
-        let final = [];
-        for (let i = 0; i < words.length; i++) {
-            final.push(words[i], delimeters[i])
-        }
-        final.pop()
-        return final.filter((word) => word != '');
-
+        return tokenizeString(/ |\u200B|\n|<i>|<\/i>|<b>|<\/b>|<color=0[xX][0-9a-fA-F]{8}>|<\/color>/g, text);
     }
 
     parse(tokens) {
@@ -541,9 +532,9 @@ export default class TextTextureRendererAdvanced {
     }
 
     wrapWord(word, wordWrapWidth, suffix) {
-        const suffixWidth = this._context.measureText(suffix).width;
+        const suffixWidth = this.measureText(suffix);
         const wordLen = word.length
-        const wordWidth = this._context.measureText(word).width;
+        const wordWidth = this.measureText(word);
 
         /* If word fits wrapWidth, do nothing */
         if (wordWidth <= wordWrapWidth) {
@@ -552,12 +543,12 @@ export default class TextTextureRendererAdvanced {
 
         /* Make initial guess for text cuttoff */
         let cutoffIndex = Math.floor((wordWrapWidth * wordLen) / wordWidth);
-        let truncWordWidth = this._context.measureText(word.substring(0, cutoffIndex)).width + suffixWidth;
+        let truncWordWidth = this.measureText(word.substring(0, cutoffIndex)) + suffixWidth;
 
         /* In case guess was overestimated, shrink it letter by letter. */
         if (truncWordWidth > wordWrapWidth) {
             while (cutoffIndex > 0) {
-                truncWordWidth = this._context.measureText(word.substring(0, cutoffIndex)).width + suffixWidth;
+                truncWordWidth = this.measureText(word.substring(0, cutoffIndex)) + suffixWidth;
                 if (truncWordWidth > wordWrapWidth) {
                     cutoffIndex -= 1;
                 } else {
@@ -568,7 +559,7 @@ export default class TextTextureRendererAdvanced {
         /* In case guess was underestimated, extend it letter by letter. */
         } else {
             while (cutoffIndex < wordLen) {
-                truncWordWidth = this._context.measureText(word.substring(0, cutoffIndex)).width + suffixWidth;
+                truncWordWidth = this.measureText(word.substring(0, cutoffIndex)) + suffixWidth;
                 if (truncWordWidth < wordWrapWidth) {
                     cutoffIndex += 1;
                 } else {
