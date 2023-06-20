@@ -94,9 +94,14 @@ export default class C2dRenderer extends Renderer {
             const canvas = document.createElement('canvas');
             canvas.width = options.w;
             canvas.height = options.h;
+            
+            const context = canvas.getContext('2d');
+            const imageData = context.createImageData(options.w, options.h);
+            const data = new Uint8ClampedArray(options.source.buffer);
+            
+            imageData.data.set(data);
+            context.putImageData(imageData, 0, 0);
 
-            const imageData = new ImageData(new Uint8ClampedArray(options.source.buffer), options.w, options.h);
-            canvas.getContext('2d').putImageData(imageData, 0, 0);
             return canvas;
         }
 
