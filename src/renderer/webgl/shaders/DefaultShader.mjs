@@ -74,10 +74,9 @@ export default class DefaultShader extends WebGLShader {
                     pos = i;
                 }
             }
-            if (pos < length) {
-                gl.bindTexture(gl.TEXTURE_2D, glTexture);
-                gl.drawElements(gl.TRIANGLES, 6 * (length - pos), gl.UNSIGNED_SHORT, (pos + operation.index) * 6 * 2);
-            }
+            
+            gl.bindTexture(gl.TEXTURE_2D, glTexture);
+            gl.drawElements(gl.TRIANGLES, 6 * (length - pos), gl.UNSIGNED_SHORT, (pos + operation.index) * 6 * 2);
         }
     }
 
