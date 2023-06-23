@@ -19,16 +19,18 @@
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8" />
     <script src="../../devtools/lightning-inspect.js"></script>
 </head>
+
 <body style="margin: 0; padding: 0">
     <script type="module">
         import lng from '../../src/lightning.mjs';
         //attachInspector(lng)
 
-        window.onload = function() {
+        window.onload = function () {
 
             const ENABLE_POINTER = true;
 
@@ -40,15 +42,16 @@
                         rect: true,
                         color: 0xffaa7777,
                         collision: true,
-                        Text: {text: {text: 'Click me!'}, x: 25, y: 50, rotation: 0.5}
+                        Text: { text: { text: 'Click me!' }, x: 25, y: 50, rotation: 0.5 }
                     }
                 }
 
-                _handleClick() {
+                _handleClick(el, { x, y }) { 
+                    console.log(x, y)   
                     this.animation({
                         duration: 0.2,
                         actions: [
-                            {p: 'scale', v: {0: 1.0, 0.5: 1.1, 1: 1.0}}
+                            { p: 'scale', v: { 0: 1.0, 0.5: 1.1, 1: 1.0 } }
                         ]
                     }).start();
                 }
@@ -60,25 +63,31 @@
                 _handleUnhover() {
                     this.setSmooth('color', 0xffaa7777);
                 }
-
-
             }
+
+
+
             class BasicUsageExample extends lng.Application {
                 static _template() {
                     return {
-                        Card1: {type: Card, x: 50, y: 50},
-                        Card2: {type: Card, x: 50 + 200 + 25, y: 50},
-                        Card3: {type: Card, x: 50 + 400 + 50, y: 50, collision: false, alpha: 0.5}
+                        Card1: { type: Card, x: 50, y: 50 },
+                        Card2: { type: Card, x: 50 + 200 + 25, y: 50 },
+                        Card3: { type: Card, x: 50 + 400 + 50, y: 50, collision: true, alpha: 0.5 }
                     }
+                }
+
+                _handleClick() {
+                    console.log('click on app')
                 }
 
             }
 
-            const options = {stage: {w: 1080, h: 720, clearColor: 0xFF000000, canvas2d: false, useImageWorker: false, devicePixelRatio: 2}, debug: true, enablePointer: ENABLE_POINTER}
+            const options = { stage: { w: 1080, h: 720, clearColor: 0xFF000000, canvas2d: false, useImageWorker: false, devicePixelRatio: 2 }, debug: true, enablePointer: ENABLE_POINTER }
             const app = new BasicUsageExample(options);
 
             document.body.appendChild(app.stage.getCanvas());
         }
     </script>
 </body>
+
 </html>
