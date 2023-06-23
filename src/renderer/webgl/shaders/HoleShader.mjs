@@ -124,6 +124,6 @@ HoleShader.fragmentShaderSource = `
         vec2 pos = vTextureCoord.xy * resolution - vec2(x, y) - vec2(w, h) / 2.0;
         vec2 size = vec2(w, h) / 2.0;
         float b = roundBox(pos, size, radius);
-        gl_FragColor = mix(color, vec4(0.0), b);
+        gl_FragColor = mix(color, vec4(0.0), b) * vColor;
     }
 `;
