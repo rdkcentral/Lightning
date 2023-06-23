@@ -487,8 +487,10 @@ export default class Application extends Component {
         // Search tree bottom up for a handler
         while (child !== null) {
             if (child && child["_handleClick"]) {
-                child._handleClick(target);
-                break;
+                const returnValue = child._handleClick(target);
+                if(returnValue !== false){
+                    break;
+                }
             }
             child = child.parent;
         }
