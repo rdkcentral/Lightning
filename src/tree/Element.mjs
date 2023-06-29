@@ -2100,7 +2100,7 @@ export default class Element {
         const props = {};
         const list = [
             "alpha", "active", "attached", "boundsMargin", "color", "clipping", "enabled", "h", "id", "isComponent",
-            "mount", "mountY", "mountX", "pivot", "pivotX", "pivotY", "ref", "renderOfScreen", "renderToTexture", "scale",
+            "mount", "mountY", "mountX", "pivot", "pivotX", "pivotY", "ref", "renderOffscreen", "renderToTexture", "scale",
             "scaleX", "scaleY", "state", "tag", "visible", "w", "x", "y", "zIndex",
             "!!flex", "!!flexItem", "hasFocus()", "hasFinalFocus()"
         ];
