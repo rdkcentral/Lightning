@@ -4,12 +4,9 @@ import { resolve } from 'path'
 import { defineConfig } from 'vite'
 import { babel } from '@rollup/plugin-babel';
 import { banner } from './banner.vite-plugin';
-import dts from 'vite-plugin-dts';
-// @ts-expect-error Ignore esModuleInterop error ts(1259)
 import cleanup from 'rollup-plugin-cleanup';
 import packageJson from './package.json';
 import { fixTsImportsFromJs } from './fixTsImportsFromJs.vite-plugin';
-
 
 const isEs5Build = process.env.BUILD_ES5 === 'true';
 const isMinifiedBuild = process.env.BUILD_MINIFY === 'true';
@@ -32,12 +29,11 @@ if (isInspectorBuild) {
 export default defineConfig(() => {
   return {
     plugins: [
-      useDts && dts(),
+      fixTsImportsFromJs(),
       /* Cleanup comments */
       cleanup({
         comments: 'none',
       }),
-      fixTsImportsFromJs(),
       /* ES5 (if requested) */
       isEs5Build && babel({
         presets: [

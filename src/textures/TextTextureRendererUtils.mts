@@ -61,20 +61,18 @@ export function getFontSetting(
 /**
  * Returns true if the given character is a zero-width space.
  *
- * @param {string} space
- * @returns {boolean}
+ * @param space
  */
-export function isZeroWidthSpace(space: string) {
+export function isZeroWidthSpace(space: string): boolean {
     return space === '' || space === '\u200B';
 }
 
 /**
  * Returns true if the given character is a zero-width space or a regular space.
  *
- * @param {string} space
- * @returns {boolean}
+ * @param space
  */
-export function isSpace(space: string) {
+export function isSpace(space: string): boolean {
     return isZeroWidthSpace(space) || space === ' ';
 }
 
@@ -84,13 +82,13 @@ export function isSpace(space: string) {
  * @param tokenRegex
  * @param text
  */
-export function tokenizeString(tokenRegex: RegExp, text: string) {
+export function tokenizeString(tokenRegex: RegExp, text: string): string[] {
     const delimeters = text.match(tokenRegex) || [];
     const words = text.split(tokenRegex) || [];
 
-    let final = [];
+    let final: string[] = [];
     for (let i = 0; i < words.length; i++) {
-        final.push(words[i], delimeters[i])
+        final.push(words[i]!, delimeters[i]!)
     }
     final.pop()
     return final.filter((word) => word != '');
@@ -103,7 +101,7 @@ export function tokenizeString(tokenRegex: RegExp, text: string) {
  * @param word
  * @param space
  */
-export function measureText(context: CanvasRenderingContext2D, word: string, space: number = 0) {
+export function measureText(context: CanvasRenderingContext2D, word: string, space: number = 0): number {
     if (!space) {
         return context.measureText(word).width;
     }
@@ -118,16 +116,20 @@ export function measureText(context: CanvasRenderingContext2D, word: string, spa
     }, 0);
 }
 
+export interface WrapTextResult {
+    l: string[];
+    n: number[];
+}
+
 /**
  * Applies newlines to a string to have it optimally fit into the horizontal
  * bounds set by the Text object's wordWrapWidth property.
  *
- * @param {CanvasRenderingContext2D} context
- * @param {string} text
- * @param {number} wordWrapWidth
- * @param {number} letterSpacing
- * @param {number} indent
- * @returns
+ * @param context
+ * @param text
+ * @param wordWrapWidth
+ * @param letterSpacing
+ * @param indent
  */
 export function wrapText(
     context: CanvasRenderingContext2D,
@@ -135,7 +137,7 @@ export function wrapText(
     wordWrapWidth: number,
     letterSpacing: number,
     indent: number
-) {
+): WrapTextResult {
     // Greedy wrapping algorithm that will wrap words as the line grows longer.
     // than its horizontal bounds.
     const spaceRegex = / |\u200B/g;
@@ -146,11 +148,11 @@ export function wrapText(
         let resultLines: string[] = [];
         let result = '';
         let spaceLeft = wordWrapWidth - indent;
-        let words = lines[i].split(spaceRegex);
-        let spaces = lines[i].match(spaceRegex) || [];
+        let words = lines[i]!.split(spaceRegex);
+        let spaces = lines[i]!.match(spaceRegex) || [];
         for (let j = 0; j < words.length; j++) {
             const space = spaces[j - 1] || '';
-            const word = words[j];
+            const word = words[j]!;
             const wordWidth = measureText(context, word, letterSpacing);
             const wordWidthWithSpace = wordWidth + measureText(context, space, letterSpacing);
             if (j === 0 || wordWidthWithSpace > spaceLeft) {

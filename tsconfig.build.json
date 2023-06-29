@@ -1,6 +1,14 @@
+/*
+ * Production build tsconfig
+ */
 {
   "extends": "./tsconfig.json",
   "include": [
-    "./index.js", "./src/**/*.d.mts", "./src/**/*.d.ts", "./src/**/*.ts", "./src/**/*.mjs"
+    "./index.ts", "./src/**/*.ts", "./src/**/*.mts"
   ],
+  "compilerOptions": {
+    "outDir": "./dist",
+    // Make sure we emit files from this tsconfig
+    "noEmit": false,
+  }
 }

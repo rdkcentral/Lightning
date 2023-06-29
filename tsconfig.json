@@ -1,7 +1,6 @@
 {
   "include": [
-    "./index.js",
-    "./index.d.ts",
+    "./index.ts",
     "./src/**/*.d.mts",
     "./src/**/*.d.ts",
     "./src/**/*.ts",
@@ -10,20 +9,31 @@
     "vite.config.js"
   ],
   "compilerOptions": {
+    "rootDir": "./",
     "lib": ["ES2018", "DOM"],
     "outDir": "types",
-    "sourceMap": true,
-    "module": "Node16",
-    "target": "ES2020",
+    "module": "ESNext",
+    "target": "ESNext",
     "moduleResolution": "node",
     "allowJs": true,
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "strict": true,
-    "noImplicitOverride": true,
-    "resolveJsonModule": true,
     "declaration": true,
+    "sourceMap": true,
     "declarationMap": true,
-    "emitDeclarationOnly": true
+    "isolatedModules": true,
+
+    // Don't emit any files via the root tsconfig.json
+    // (this is a project-wide config and includes the test-d folder which
+    // we don't want to accidentally emit files for)
+    "noEmit": true,
+
+    // Type Checking / Syntax Rules
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    // Add when upgrading past TypeScript 5.0:
+    // "verbatimModuleSyntax": true
   }
 }
