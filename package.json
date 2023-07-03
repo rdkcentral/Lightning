@@ -13,9 +13,9 @@
       "import": "./dist/index.js",
       "require": "./dist/lightning.js"
     },
-    "./*.mjs": {
-      "types": "./dist/src/*.d.mts",
-      "import": "./dist/src/*.mjs"
+    "./es": {
+      "types": "./dist/src/index.es.d.ts",
+      "import": "./dist/src/index.es.js"
     },
     "./package.json": "./package.json"
   },
