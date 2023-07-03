@@ -4,17 +4,17 @@
   "version": "2.10.0",
   "license": "Apache-2.0",
   "type": "module",
-  "types": "dist/src/lightning.esm.d.mts",
+  "types": "dist/index.d.ts",
   "module": "dist/lightning.esm.js",
   "main": "dist/lightning.js",
   "exports": {
     ".": {
       "import": {
-        "types": "./dist/src/lightning.esm.d.mts",
+        "types": "./dist/index.d.ts",
         "default": "./dist/lightning.esm.js"
       },
       "require": {
-        "types": "./dist/src/lightning.d.mts",
+        "types": "./dist/index.d.ts",
         "default": "./dist/lightning.js"
       }
     },
