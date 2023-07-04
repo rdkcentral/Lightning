@@ -1,0 +1,21 @@
+{
+  "author": "Metrological, Bas van Meurs <b.van.meurs@metrological.com>",
+  "name": "@lightningjs/core-es",
+  "version": "2.10.0",
+  "license": "Apache-2.0",
+  "type": "module",
+  "types": "types/core-es/src/index.d.ts",
+  "module": "dist/core-es/src/index.js",
+  "sideEffects": false,
+  "files": [
+    "dist/**",
+    "types/**"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:rdkcentral/Lightning.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rdkcentral/Lightning/issues"
+  }
+}

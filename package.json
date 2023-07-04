@@ -5,8 +5,8 @@
   "version": "2.10.0",
   "license": "Apache-2.0",
   "scripts": {
-    "clean": "mkdir -p packages/core/dist && rm -fr packages/core/dist/*",
-    "build": "npm run clean && concurrently -c \"auto\" \"npm:build:lightning\" \"npm:build:lightning.min\" \"npm:build:lightning.es5\" \"npm:build:lightning.es5.min\" \"npm:build:lightning-inspect.es5\" && npm run copy-extra-tsd-files",
+    "clean": "mkdir -p packages/core/dist && rm -fr packages/core/dist/* && mkdir -p packages/core-es/dist && rm -fr packages/core-es/dist/*",
+    "build": "npm run clean && concurrently -c \"auto\" \"npm:build:lightning\" \"npm:build:lightning.min\" \"npm:build:lightning.es5\" \"npm:build:lightning.es5.min\" \"npm:build:lightning-inspect.es5\" && npm run build:core-es && npm run copy-extra-tsd-files",
     "release": "npm run build && npm publish --access public",
     "typedoc": "typedoc --tsconfig tsconfig.typedoc.json",
     "tsd": "tsd",
@@ -16,6 +16,7 @@
     "build:lightning.min": "BUILD_MINIFY=true vite build --mode production",
     "build:lightning.es5": "BUILD_ES5=true vite build --mode production",
     "build:lightning.es5.min": "BUILD_ES5=true BUILD_MINIFY=true vite build --mode production",
+    "build:core-es": "tsc -P tsconfig.es.json",
     "test": "vitest"
   },
   "repository": {

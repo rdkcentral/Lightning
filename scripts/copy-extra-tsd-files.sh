@@ -14,3 +14,17 @@ cd "$(dirname "$0")/.."
 cp -r ./packages/core/src/types ./packages/core/dist/src/
 cp ./packages/core/src/internalTypes.d.mts ./packages/core/dist/src/
 cp ./packages/core/src/commonTypes.d.mts ./packages/core/dist/src/
+
+# Copy core src to the core-es/dist/ directories
+mkdir -p ./packages/core-es/dist/core
+cp -r ./packages/core/src ./packages/core-es/dist/core/src
+
+# Consolidate core-es types into the core-es/types/ directories
+mkdir -p ./packages/core-es/types
+rm -rf ./packages/core-es/types/*
+mkdir -p ./packages/core-es/types/core/src
+mkdir -p ./packages/core-es/types/core-es/src
+cp ./packages/core-es/dist/core-es/src/index.d.* ./packages/core-es/types/core-es/src
+cp -r ./packages/core/dist/src ./packages/core-es/types/core
+rm ./packages/core-es/types/core/src/lightning*
+rm -rf ./packages/core-es/types/core/src/types

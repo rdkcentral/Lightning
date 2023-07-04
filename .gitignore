@@ -44,6 +44,7 @@ dist
 
 # Prevent `tsc` generated typescript types from ended up in the repo
 /packages/core/types
+/packages/core-es/types
 
 # Type Docs
 /typedocs
