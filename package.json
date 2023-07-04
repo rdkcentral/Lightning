@@ -1,31 +1,12 @@
 {
   "author": "Metrological, Bas van Meurs <b.van.meurs@metrological.com>",
   "name": "@lightningjs/core",
+  "private": true,
   "version": "2.10.0",
   "license": "Apache-2.0",
-  "type": "module",
-  "types": "dist/index.d.ts",
-  "module": "dist/lightning.esm.js",
-  "main": "dist/lightning.js",
-  "exports": {
-    ".": {
-      "import": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/lightning.esm.js"
-      },
-      "require": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/lightning.js"
-      }
-    },
-    "./package.json": "./package.json"
-  },
-  "files": [
-    "dist/**",
-    "devtools/**"
-  ],
   "scripts": {
-    "build": "mkdir -p dist && rm -fr dist/* && concurrently -c \"auto\" \"npm:build:lightning\" \"npm:build:lightning.min\" \"npm:build:lightning.es5\" \"npm:build:lightning.es5.min\" \"npm:build:lightning-inspect.es5\" && npm run copy-extra-tsd-files",
+    "clean": "mkdir -p packages/core/dist && rm -fr packages/core/dist/*",
+    "build": "npm run clean && concurrently -c \"auto\" \"npm:build:lightning\" \"npm:build:lightning.min\" \"npm:build:lightning.es5\" \"npm:build:lightning.es5.min\" \"npm:build:lightning-inspect.es5\" && npm run copy-extra-tsd-files",
     "release": "npm run build && npm publish --access public",
     "typedoc": "typedoc --tsconfig tsconfig.typedoc.json",
     "tsd": "tsd",

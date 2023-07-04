@@ -1,29 +1,27 @@
 // @ts-check
 /// <reference types="vitest" />
-import { resolve } from 'path'
-import { defineConfig } from 'vite'
-import { babel } from '@rollup/plugin-babel';
-import { banner } from './banner.vite-plugin';
-import dts from 'vite-plugin-dts';
-// @ts-expect-error Ignore esModuleInterop error ts(1259)
-import cleanup from 'rollup-plugin-cleanup';
-// @ts-expect-error Ignore "Consider using --resolveJsonModule" error ts(2732)
-import packageJson from './package.json';
+import { resolve } from "path";
+import { defineConfig } from "vite";
+import { babel } from "@rollup/plugin-babel";
+import { banner } from "./banner.vite-plugin";
+import dts from "vite-plugin-dts";
+import cleanup from "rollup-plugin-cleanup";
+import packageJson from "./package.json";
 
-const isEs5Build = process.env.BUILD_ES5 === 'true';
-const isMinifiedBuild = process.env.BUILD_MINIFY === 'true';
-const isInspectorBuild = process.env.BUILD_INSPECTOR === 'true';
+const isEs5Build = process.env.BUILD_ES5 === "true";
+const isMinifiedBuild = process.env.BUILD_MINIFY === "true";
+const isInspectorBuild = process.env.BUILD_INSPECTOR === "true";
 
-let outDir = 'dist';
-let entry = resolve(__dirname, 'src/lightning.mjs');
-let outputBase = 'lightning';
+let outDir = "packages/core/dist";
+let entry = resolve(__dirname, "packages/core/src/lightning.mjs");
+let outputBase = "lightning";
 let sourcemap = true;
 let useDts = true;
 
 if (isInspectorBuild) {
-  outDir = 'devtools';
-  entry = resolve(__dirname, 'devtools/lightning-inspect.js');
-  outputBase = 'lightning-inspect';
+  outDir = "packages/core/devtools";
+  entry = resolve(__dirname, "packages/core/devtools/lightning-inspect.js");
+  outputBase = "lightning-inspect";
   sourcemap = false;
   useDts = false;
 }
@@ -34,38 +32,41 @@ export default defineConfig(() => {
       useDts && dts(),
       /* Cleanup comments */
       cleanup({
-        comments: 'none',
+        comments: "none",
       }),
       /* ES5 (if requested) */
-      isEs5Build && babel({
-        presets: [
-          [
-            '@babel/preset-env',
-            {
-              targets: {
-                chrome: '39',
+      isEs5Build &&
+        babel({
+          presets: [
+            [
+              "@babel/preset-env",
+              {
+                targets: {
+                  chrome: "39",
+                },
+                spec: true,
+                debug: false,
+                modules: false,
               },
-              spec: true,
-              debug: false,
-              modules: false,
-            },
+            ],
           ],
-        ],
-      }),
+        }),
       /* Add comment banner to top of bundle */
-      banner([
-        '/*',
-        ` * Lightning v${packageJson.version}`,
-        ' *',
-        ' * https://github.com/rdkcentral/Lightning',
-        ' */',
-      ].join('\n')),
+      banner(
+        [
+          "/*",
+          ` * Lightning v${packageJson.version}`,
+          " *",
+          " * https://github.com/rdkcentral/Lightning",
+          " */",
+        ].join("\n")
+      ),
     ],
     build: {
       sourcemap,
       emptyOutDir: false,
       outDir,
-      minify: isMinifiedBuild ? 'terser' : false,
+      minify: isMinifiedBuild ? "terser" : false,
       terserOptions: {
         keep_classnames: true,
         keep_fnames: true,
@@ -76,20 +77,23 @@ export default defineConfig(() => {
         /**
          * @type {import('vite').LibraryFormats[]}
          */
-        formats: ['umd', .../** @type {[] | ['es']} */ (isEs5Build ? [] : ['es'])],
-        name: 'lng',
+        formats: [
+          "umd",
+          .../** @type {[] | ['es']} */ (isEs5Build ? [] : ["es"]),
+        ],
+        name: "lng",
         // the proper extensions will be added
         fileName: (format) => {
-          let extension = isMinifiedBuild ? '.min.js' : '.js';
+          let extension = isMinifiedBuild ? ".min.js" : ".js";
           if (isEs5Build) {
-            extension = '.es5' + extension;
+            extension = ".es5" + extension;
           }
-          if (format === 'es') {
-            extension = '.esm' + extension;
+          if (format === "es") {
+            extension = ".esm" + extension;
           }
           return outputBase + extension;
-        }
+        },
       },
     },
-  }
+  };
 });

@@ -1,0 +1,34 @@
+{
+  "author": "Metrological, Bas van Meurs <b.van.meurs@metrological.com>",
+  "name": "@lightningjs/core",
+  "version": "2.10.0",
+  "license": "Apache-2.0",
+  "type": "module",
+  "types": "dist/index.d.ts",
+  "module": "dist/lightning.esm.js",
+  "main": "dist/lightning.js",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/lightning.esm.js"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/lightning.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist/**",
+    "devtools/**"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:rdkcentral/Lightning.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rdkcentral/Lightning/issues"
+  }
+}

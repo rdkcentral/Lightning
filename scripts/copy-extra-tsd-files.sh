@@ -10,7 +10,7 @@ set -e # Exit with nonzero exit code if anything fails
 # Make sure working directory is the root of the repository
 cd "$(dirname "$0")/.."
 
-# Copy the extra .d.ts files to the dist/ directory
-cp -r ./src/types ./dist/src/
-cp ./src/internalTypes.d.mts ./dist/src/
-cp ./src/commonTypes.d.mts ./dist/src/
+# Copy the extra .d.ts files to the core/dist/ directory
+cp -r ./packages/core/src/types ./packages/core/dist/src/
+cp ./packages/core/src/internalTypes.d.mts ./packages/core/dist/src/
+cp ./packages/core/src/commonTypes.d.mts ./packages/core/dist/src/

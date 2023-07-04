@@ -1,15 +1,16 @@
 {
   "include": [
-    "./index.js",
-    "./index.d.ts",
-    "./src/**/*.d.mts",
-    "./src/**/*.d.ts",
-    "./src/**/*.ts",
-    "./src/**/*.mjs",
-    "./test-d/**/*.ts"
+    "./packages/core/index.js",
+    "./packages/core/index.d.ts",
+    "./packages/core/src/**/*.d.mts",
+    "./packages/core/src/**/*.d.ts",
+    "./packages/core/src/**/*.ts",
+    "./packages/core/src/**/*.mjs",
+    "./packages/core/test-d/**/*.ts"
   ],
   "compilerOptions": {
     "lib": ["ES2018", "DOM"],
+    "rootDir": "./packages/core",
     "outDir": "types",
     "sourceMap": true,
     "module": "Node16",

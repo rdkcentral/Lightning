@@ -43,10 +43,10 @@ dist
 .idea
 
 # Prevent `tsc` generated typescript types from ended up in the repo
-/types
+/packages/core/types
 
 # Type Docs
 /typedocs
 
 # ES5 version of the Lightning Inspector
-/devtools/lightning-inspect.es5.js
+/packages/core/devtools/lightning-inspect.es5.js
