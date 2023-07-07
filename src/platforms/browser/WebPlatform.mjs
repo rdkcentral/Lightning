@@ -348,7 +348,8 @@ export default class WebPlatform {
             preserveDrawingBuffer: false
         };
 
-        let gl = canvas.getContext('webgl', opts) || canvas.getContext('experimental-webgl', opts);
+        let gl = canvas.getContext('webgl', opts) || canvas.getContext('experimental-webgl', opts) || canvas.getContext('webgl2', opts);
+
         if (!gl) {
             throw new Error('This browser does not support webGL.');
         }
