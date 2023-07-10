@@ -6,12 +6,12 @@
   "type": "module",
   "types": "dist/src/index.d.ts",
   "module": "dist/src/index.js",
-  "main": "dist/lightning.min.js",
+  "main": "dist/lightning.js",
   "exports": {
     ".": {
       "types": "./dist/src/index.d.ts",
       "import": "./dist/src/index.js",
-      "require": "./dist/lightning.min.js"
+      "require": "./dist/lightning.js"
     },
     "./package.json": "./package.json"
   },
