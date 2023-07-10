@@ -1,6 +1,5 @@
 {
   "include": [
-    "./index.ts",
     "./src/**/*.d.mts",
     "./src/**/*.d.ts",
     "./src/**/*.ts",

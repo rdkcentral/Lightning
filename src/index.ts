@@ -58,7 +58,11 @@ import SpinnerShader2 from "./renderer/webgl/shaders/SpinnerShader2.mjs";
 
 import Stage from "./tree/Stage.mjs";
 
-// tree-shakeable export
+// full export (no tree-shaking)
+import lng from "./lightning.mjs";
+export default lng;
+
+// tree-shakeable exports
 export {
   Application,
   Component,
