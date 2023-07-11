@@ -13,6 +13,11 @@
       "import": "./dist/src/index.js",
       "require": "./dist/lightning.js"
     },
+    "./devtools": {
+      "types": "./devtools/lightning-inspect.d.ts",
+      "import": "./devtools/lightning-inspect.js",
+      "require": "./devtools/lightning-inspect.es5.js"
+    },
     "./package.json": "./package.json"
   },
   "sideEffects": [
