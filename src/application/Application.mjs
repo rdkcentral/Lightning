@@ -252,7 +252,7 @@ export default class Application extends Component {
             }
 
             current = nextFocus;
-        } while(true);
+        } while (true);
 
         return path;
     }
@@ -430,7 +430,7 @@ export default class Application extends Component {
 
     _recieveScrollWheel(e) {
         const obj = e;
-        const {clientX, clientY} = obj;
+        const { clientX, clientY } = obj;
 
         if (clientX <= this.stage.w && clientY <= this.stage.h) {
             if (!this.fireTopDownScrollWheelHandler("_captureScroll", obj)) {
@@ -444,18 +444,18 @@ export default class Application extends Component {
         let affected = this._findChildren([], children).reverse();
         let n = affected.length;
 
-        while(n--) {
+        while (n--) {
             const child = affected[n];
             if (child && child[event]) {
                 child._captureScroll(obj);
-                return true; 
+                return true;
             }
         }
         return false;
     }
 
     fireBottomUpScrollWheelHandler(event, obj) {
-        const {clientX, clientY} = obj;
+        const { clientX, clientY } = obj;
         const target = this._getTargetChild(clientX, clientY);
         let child = target;
 
@@ -472,7 +472,7 @@ export default class Application extends Component {
 
     _receiveClick(e) {
         const obj = e;
-        const {clientX, clientY} = obj;
+        const { clientX, clientY } = obj;
 
         if (clientX <= this.stage.w && clientY <= this.stage.h) {
             this.stage.application.fireBottomUpClickHandler(obj);
@@ -480,15 +480,27 @@ export default class Application extends Component {
     }
 
     fireBottomUpClickHandler(obj) {
-        const {clientX, clientY} = obj;
+        const { clientX, clientY } = obj;
         const target = this._getTargetChild(clientX, clientY);
+        const precision = this.stage.getRenderPrecision() / this.stage.getOption('devicePixelRatio');
         let child = target;
 
         // Search tree bottom up for a handler
         while (child !== null) {
             if (child && child["_handleClick"]) {
-                child._handleClick(target);
-                break;
+                const { px, py } = child.core._worldContext;
+                const cx = px * precision;
+                const cy = py * precision;
+
+                const localCoords = {
+                    x: clientX - cx,
+                    y: clientY - cy
+                }
+
+                const returnValue = child._handleClick(target, localCoords);
+                if (returnValue !== false) {
+                    break;
+                }
             }
             child = child.parent;
         }
@@ -496,7 +508,7 @@ export default class Application extends Component {
 
     _receiveHover(e) {
         const obj = e;
-        const {clientX, clientY} = obj;
+        const { clientX, clientY } = obj;
 
         if (clientX <= this.stage.w && clientY <= this.stage.h) {
             this.stage.application.fireBottomUpHoverHandler(obj);
@@ -504,7 +516,7 @@ export default class Application extends Component {
     }
 
     fireBottomUpHoverHandler(obj) {
-        const {clientX, clientY} = obj;
+        const { clientX, clientY } = obj;
         const target = this._getTargetChild(clientX, clientY);
 
         // Only fire handlers when pointer target changes
@@ -562,14 +574,14 @@ export default class Application extends Component {
         let affected = this._findChildren([], children);
         let hoverableChildren = this._withinClickableRange(affected, clientX, clientY);
 
-        hoverableChildren.sort((a,b) => {
+        hoverableChildren.sort((a, b) => {
             // Sort by zIndex and then id
             if (a.zIndex > b.zIndex) {
                 return 1;
             } else if (a.zIndex < b.zIndex) {
                 return -1;
             } else {
-                return a.id > b.id ? 1: -1;
+                return a.id > b.id ? 1 : -1;
             }
         });
 
