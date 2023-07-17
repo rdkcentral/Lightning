@@ -4,21 +4,26 @@
   "version": "2.10.0",
   "license": "Apache-2.0",
   "type": "module",
-  "types": "dist/index.d.ts",
-  "module": "dist/index.js",
+  "types": "dist/src/index.d.ts",
+  "module": "dist/src/index.js",
   "main": "dist/lightning.js",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js",
       "require": "./dist/lightning.js"
     },
-    "./*.mjs": {
-      "types": "./dist/src/*.d.mts",
-      "import": "./dist/src/*.mjs"
+    "./devtools": {
+      "types": "./devtools/lightning-inspect.d.ts",
+      "import": "./devtools/lightning-inspect.js",
+      "require": "./devtools/lightning-inspect.es5.js"
     },
     "./package.json": "./package.json"
   },
+  "sideEffects": [
+    "dist/lightning.*",
+    "devtools/*"
+  ],
   "files": [
     "dist/**",
     "devtools/**"
