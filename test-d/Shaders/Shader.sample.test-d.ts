@@ -21,7 +21,7 @@
  *
  * @module
  */
-import Lightning from "../../index.js";
+import Lightning from "../../src/index.js";
 
 export default class PerspectiveShader extends Lightning.shaders.WebGLDefaultShader {
     _fudge = 0.2;

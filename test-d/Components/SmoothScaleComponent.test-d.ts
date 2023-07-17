@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import lng from '../../index';
+import lng from '../../src/index.js';
 import { expectType } from 'tsd';
 
 namespace Container {

@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 import { expectType } from 'tsd';
-import lng from '../../index';
+import lng from '../../src/index.js';
 import BorderComponent from '../../src/components/BorderComponent.mjs';
 
 namespace Container {

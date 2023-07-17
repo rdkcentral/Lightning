@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 import { expectType } from 'tsd';
-import lng from '../../index';
+import lng from '../../src/index.js';
 
 namespace Container {
   export interface TemplateSpec extends lng.Component.TemplateSpec {

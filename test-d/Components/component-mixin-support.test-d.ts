@@ -21,7 +21,7 @@
  */
 
 import { expectType } from 'tsd';
-import lng from '../../index.js';
+import lng from '../../src/index.js';
 import TransitionSettings from '../../src/animation/TransitionSettings.mjs';
 import Element from '../../src/tree/Element.mjs';
 

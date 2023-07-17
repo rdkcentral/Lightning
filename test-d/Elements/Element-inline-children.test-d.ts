@@ -21,7 +21,7 @@
  * child Elements or Components in them
  */
 import { expectType } from 'tsd';
-import lng from '../../index.js';
+import lng from '../../src/index.js';
 import ListComponent from '../../src/components/ListComponent.mjs';
 
 namespace MyElementTest {

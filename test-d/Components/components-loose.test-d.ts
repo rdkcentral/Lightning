@@ -19,7 +19,7 @@
 /**
  * Tests for loosely typed Components with TemplateSpecLoose
  */
-import lng from '../../index.js';
+import lng from '../../src/index.js';
 
 // Should be able to create a loose Component with unknown properties
 class MyLooseComponentA extends lng.Component {

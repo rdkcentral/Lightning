@@ -21,7 +21,7 @@
  */
 // @ts-expect-error
 import { Utils } from '@lightningjs/sdk'
-import lng from '../index.js';
+import lng from '../src/index.js';
 
 export declare namespace App {
   export interface TemplateSpec extends lng.Component.TemplateSpec {
