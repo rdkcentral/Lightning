@@ -13,10 +13,10 @@
       "import": "./dist/src/index.js",
       "require": "./dist/lightning.js"
     },
-    "./devtools": {
+    "./inspector": {
       "types": "./devtools/lightning-inspect.d.ts",
       "import": "./devtools/lightning-inspect.js",
-      "require": "./devtools/lightning-inspect.es5.js"
+      "require": "./devtools/lightning-inspect.js"
     },
     "./package.json": "./package.json"
   },
