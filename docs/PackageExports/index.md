@@ -11,7 +11,7 @@ The Lightning Core NPM package exports both the Lightning Core library (the defa
 import { Application, Component } from "@lightningjs/core";
 ```
 
-Lightning Core has historically always been available as a single default exported object from which you can access all of the various Lightning classes. As of v2.12, when using the ESM style, each Lightning class is now also available as a seperate tree shakable named export.
+Lightning Core has historically always been available as a single default exported object from which you can access all of the various Lightning classes. As of version 2.12, when using ESM, each Lightning class is now also available as a seperate tree shakable named export.
 
 Exclusively using the named ESM exports in your application enables the potential for your chosen bundler to [tree shake](https://developer.mozilla.org/en-US/docs/Glossary/Tree_shaking) Lightning's code so that the parts of Lightning that are not utilized by your application are left out of your bundle, reducing its size.
 
@@ -42,7 +42,7 @@ await import("@lightningjs/core/inspector");
 require("@lightningjs/core/inspector");
 ```
 
-Outside of including the Lightning Inspector via a seperate `<script>` tag in your application's HTML, you can import/require it as of v2.12:
+Outside of including the Lightning Inspector via a seperate `<script>` tag in your application's HTML, you can import/require it as of version 2.12:
 
 The Inspector itself does not export any functions/classes/etc via either module style, but it does execute when included and places an `attachInspector()` method onto the browser's `window` object.
 
