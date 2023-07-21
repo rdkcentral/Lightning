@@ -606,7 +606,7 @@ export default class Element {
             }
         }
 
-        const prevSource = this.__core.displayedTextureSource ? this.__core.displayedTextureSource._source : null;
+        const prevSource = this.__core.displayedTextureSource;
         const sourceChanged = (v ? v._source : null) !== prevSource;
 
         this.__displayedTexture = v;
