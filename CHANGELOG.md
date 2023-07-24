@@ -4,7 +4,6 @@
 *31 july 2023*
 
 - Updated typings of Element so `flexItem` can be `false` as referred to in the documentation.
-- Added named export for Lightning in the ESM build to fix the issue of directly using Module Augmentation with @lightningjs/core. (#480)
 - Fixed an issue related to applying vertex-specific color to the hole punch fragment.
 - Fixed the regression related to TextTextureRenderer word wrapping. (#488)
 - An unnecessary conditional in the default shader code was removed.
