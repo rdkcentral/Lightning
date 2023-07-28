@@ -1,5 +1,18 @@
 # Changelog
 
+## v2.11.0
+*31 july 2023*
+
+- Updated typings of Element so `flexItem` can be `false` as referred to in the documentation.
+- Fixed an issue related to applying vertex-specific color to the hole punch fragment.
+- Fixed the regression related to TextTextureRenderer word wrapping. (#488)
+- An unnecessary conditional in the default shader code was removed.
+- Fixed alpha channel detection when using in-process image handling. (#493)
+- Fixed a typo referencing the `renderOffscreen` method of `Element`.
+- Added `webgl2` as the fallback context option if `webgl` or `experimental-webgl` is unavailable. (#496)
+- Added event bubbling support for pointer events. (#485)
+- Added support for getting local coordinates with pointer events (#484)
+
 ## v2.10.0
 *24 apr 2023*
 

@@ -19,7 +19,7 @@
 
 import StageUtils from "../tree/StageUtils.mjs";
 import Utils from "../tree/Utils.mjs";
-import { getFontSetting, isZeroWidthSpace, splitWords } from "./TextTextureRendererUtils.mjs";
+import { getFontSetting, measureText, wrapText } from "./TextTextureRendererUtils.mjs";
 
 export default class TextTextureRenderer {
 
@@ -368,9 +368,9 @@ export default class TextTextureRenderer {
     };
 
     wrapWord(word, wordWrapWidth, suffix) {
-        const suffixWidth = this._context.measureText(suffix).width;
+        const suffixWidth = this.measureText(suffix);
         const wordLen = word.length
-        const wordWidth = this._context.measureText(word).width;
+        const wordWidth = this.measureText(word);
 
         /* If word fits wrapWidth, do nothing */
         if (wordWidth <= wordWrapWidth) {
@@ -379,12 +379,12 @@ export default class TextTextureRenderer {
 
         /* Make initial guess for text cuttoff */
         let cutoffIndex = Math.floor((wordWrapWidth * wordLen) / wordWidth);
-        let truncWordWidth = this._context.measureText(word.substring(0, cutoffIndex)).width + suffixWidth;
+        let truncWordWidth = this.measureText(word.substring(0, cutoffIndex)) + suffixWidth;
 
         /* In case guess was overestimated, shrink it letter by letter. */
         if (truncWordWidth > wordWrapWidth) {
             while (cutoffIndex > 0) {
-                truncWordWidth = this._context.measureText(word.substring(0, cutoffIndex)).width + suffixWidth;
+                truncWordWidth = this.measureText(word.substring(0, cutoffIndex)) + suffixWidth;
                 if (truncWordWidth > wordWrapWidth) {
                     cutoffIndex -= 1;
                 } else {
@@ -395,7 +395,7 @@ export default class TextTextureRenderer {
         /* In case guess was underestimated, extend it letter by letter. */
         } else {
             while (cutoffIndex < wordLen) {
-                truncWordWidth = this._context.measureText(word.substring(0, cutoffIndex)).width + suffixWidth;
+                truncWordWidth = this.measureText(word.substring(0, cutoffIndex)) + suffixWidth;
                 if (truncWordWidth < wordWrapWidth) {
                     cutoffIndex += 1;
                 } else {
@@ -411,62 +411,27 @@ export default class TextTextureRenderer {
     }
 
     /**
-     * Applies newlines to a string to have it optimally fit into the horizontal
-     * bounds set by the Text object's wordWrapWidth property.
+     * See {@link wrapText}
+     *
+     * @param {string} text
+     * @param {number} wordWrapWidth
+     * @param {number} letterSpacing
+     * @param {number} indent
+     * @returns
      */
     wrapText(text, wordWrapWidth, letterSpacing, indent = 0) {
-        // Greedy wrapping algorithm that will wrap words as the line grows longer.
-        // than its horizontal bounds.
-        let lines = text.split(/\r?\n/g);
-        let allLines = [];
-        let realNewlines = [];
-        for (let i = 0; i < lines.length; i++) {
-            let resultLines = [];
-            let result = '';
-            let spaceLeft = wordWrapWidth - indent;
-            let words = splitWords(lines[i]);
-            for (let j = 0; j < words.length; j += 2) {
-                const space = words[j];
-                const word = words[j + 1];
-                const wordWidth = this.measureText(word, letterSpacing);
-                const spaceWidth = isZeroWidthSpace(space) ? 0 : this.measureText(space, letterSpacing);
-                const wordWidthWithSpace = wordWidth + spaceWidth;
-                if (j === 0 || wordWidthWithSpace > spaceLeft) {
-                    // Skip printing the newline if it's the first word of the line that is.
-                    // greater than the word wrap width.
-                    if (j > 0) {
-                        resultLines.push(result);
-                        result = '';
-                    }
-                    result += word;
-                    spaceLeft = wordWrapWidth - wordWidth - (j === 0 ? indent : 0);
-                }
-                else {
-                    spaceLeft -= wordWidthWithSpace;
-                    result += space + word;
-                }
-            }
-
-            resultLines.push(result);
-            result = '';
-
-            allLines = allLines.concat(resultLines);
-
-            if (i < lines.length - 1) {
-                realNewlines.push(allLines.length);
-            }
-        }
-
-        return {l: allLines, n: realNewlines};
+        return wrapText(this._context, text, wordWrapWidth, letterSpacing, indent);
     };
 
+    /**
+     * See {@link measureText}
+     *
+     * @param {string} word
+     * @param {number} space
+     * @returns {number}
+     */
     measureText(word, space = 0) {
-        if (!space) {
-            return this._context.measureText(word).width;
-        }
-        return word.split('').reduce((acc, char) => {
-            return acc + this._context.measureText(char).width + space;
-        }, 0);
+        return measureText(this._context, word, space);
     }
 
 }

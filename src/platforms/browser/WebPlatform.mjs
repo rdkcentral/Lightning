@@ -267,7 +267,7 @@ export default class WebPlatform {
 
     loadSrcTexture({ src, hasAlpha }, cb) {
         let cancelCb = undefined;
-        let isPng = (src.indexOf(".png") >= 0) || src.substr(0, 21) == 'data:image/png;base64';
+        let isPng = (src.toLowerCase().indexOf(".png") >= 0) || src.substr(0, 21) == 'data:image/png;base64';
         let isKtx = src.indexOf('.ktx') >= 0;
         let isPvr = src.indexOf('.pvr') >= 0;
         if (isKtx || isPvr) {
@@ -348,7 +348,8 @@ export default class WebPlatform {
             preserveDrawingBuffer: false
         };
 
-        let gl = canvas.getContext('webgl', opts) || canvas.getContext('experimental-webgl', opts);
+        let gl = canvas.getContext('webgl', opts) || canvas.getContext('experimental-webgl', opts) || canvas.getContext('webgl2', opts);
+
         if (!gl) {
             throw new Error('This browser does not support webGL.');
         }

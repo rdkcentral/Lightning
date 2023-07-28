@@ -887,7 +887,7 @@ declare namespace Element {
      * See [Flexbox](https://lightningjs.io/docs/#/lightning-core-reference/Templates/Flexbox) documentation
      * for more information.
      */
-    flexItem: Element.FlexItem;
+    flexItem: Element.FlexItem | false;
 
     /**
      * Starts a smooth transition for all the included properties of the object
