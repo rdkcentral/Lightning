@@ -94,7 +94,7 @@ export default class ObjectList {
     }
 
     setAt(item, index) {
-        if (index >= 0 && index < this._items.length) {
+        if (index >= 0 && index <= this._items.length) {
 
             if (Utils.isObjectLiteral(item)) {
                 const o = item;
@@ -113,22 +113,25 @@ export default class ObjectList {
                     }
                 }
             } else {
-                if (index < this._items.length) {
+                if( index < this._items.length){
+
                     if (this._items[index].ref) {
                         this._refs[this._items[index].ref] = undefined;
                     }
+
+                    const prevItem = this._items[index];
+
+                    // Doesn't exist yet: overwrite current.
+                    this._items[index] = item;
+
+                    if (item.ref) {
+                        this._refs[item.ref] = item;
+                    }
+
+                    this.onSet(item, index, prevItem);
+                } else {
+                    throw new Error('setAt: The index ' + index + ' is out of bounds ' + this._items.length);
                 }
-
-                const prevItem = this._items[index];
-
-                // Doesn't exist yet: overwrite current.
-                this._items[index] = item;
-
-                if (item.ref) {
-                    this._refs[item.ref] = item;
-                }
-
-                this.onSet(item, index, prevItem);
             }
         } else {
             throw new Error('setAt: The index ' + index + ' is out of bounds ' + this._items.length);
