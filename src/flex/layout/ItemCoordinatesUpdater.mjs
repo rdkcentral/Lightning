@@ -136,9 +136,12 @@ export default class ItemCoordinatesUpdater {
     }
 
     _reverseMainAxisLayoutPos(item) {
-        const endPos = (item.flexItem._getMainAxisLayoutPos() + item.flexItem._getMainAxisLayoutSizeWithPaddingAndMargin());
-        const reversedPos = this._layout.mainAxisSize - endPos;
-        item.flexItem._setMainAxisLayoutPos(reversedPos);
+        if (!item._reversed) {
+            const endPos = (item.flexItem._getMainAxisLayoutPos() + item.flexItem._getMainAxisLayoutSizeWithPaddingAndMargin());
+            const reversedPos = this._layout.mainAxisSize - endPos;
+            item.flexItem._setMainAxisLayoutPos(reversedPos);
+            item._reversed = true;
+        }
     }
 
 }

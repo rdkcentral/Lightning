@@ -38,6 +38,7 @@ export default class FlexItem {
         this._marginTop = 0;
         this._marginRight = 0;
         this._marginBottom = 0;
+        this._reversed = false;
     }
 
     get item() {
