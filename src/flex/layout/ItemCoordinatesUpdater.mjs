@@ -136,11 +136,16 @@ export default class ItemCoordinatesUpdater {
     }
 
     _reverseMainAxisLayoutPos(item) {
+        if (item._reversed && item._recalc == 0) {
+            item._reversed = false;
+        }
         if (!item._reversed) {
             const endPos = (item.flexItem._getMainAxisLayoutPos() + item.flexItem._getMainAxisLayoutSizeWithPaddingAndMargin());
             const reversedPos = this._layout.mainAxisSize - endPos;
             item.flexItem._setMainAxisLayoutPos(reversedPos);
-            item._reversed = true;
+            if (item._recalc != 0) {
+                item._reversed = true;
+            }
         }
     }
 
