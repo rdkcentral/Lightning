@@ -2940,7 +2940,12 @@
     _recalcLocalTranslate() {
       let pivotXMul = this._pivotX * this._w;
       let pivotYMul = this._pivotY * this._h;
-      let px = this._x - (pivotXMul * this._localTa + pivotYMul * this._localTb) + pivotXMul;
+      let px;
+      if (this.ctx.stage.getOption("RTL")) {
+        px = this._x + (pivotXMul * this._localTa + pivotYMul * this._localTb) - pivotXMul;
+      } else {
+        px = this._x - (pivotXMul * this._localTa + pivotYMul * this._localTb) + pivotXMul;
+      }
       let py = this._y - (pivotXMul * this._localTc + pivotYMul * this._localTd) + pivotYMul;
       px -= this._mountX * this._w;
       py -= this._mountY * this._h;
@@ -3545,12 +3550,17 @@
           }
         }
         if (recalc & 6) {
-          w.px = pw.px + this._localPx * pw.ta;
+          let calculatedX = this._localPx;
+          if (this.ctx.stage.getOption("RTL")) {
+            const parentW = this._element.__parent ? this._parent.w || 0 : this.ctx.stage.getOption("w");
+            calculatedX = parentW - (this._w || 0) - this._localPx;
+          }
+          w.px = pw.px + calculatedX * pw.ta;
           w.py = pw.py + this._localPy * pw.td;
           if (pw.tb !== 0)
             w.px += this._localPy * pw.tb;
           if (pw.tc !== 0)
-            w.py += this._localPx * pw.tc;
+            w.py += calculatedX * pw.tc;
         }
         if (recalc & 4) {
           w.ta = this._localTa * pw.ta;
@@ -14020,6 +14030,7 @@ ${indent}  "${refs[i]}":`;
       opt("debugFrame", false);
       opt("forceTxCanvasSource", false);
       opt("pauseRafLoopOnIdle", false);
+      opt("RTL", false);
       if (o["devicePixelRatio"] != null && o["devicePixelRatio"] !== 1) {
         this._options["precision"] *= o["devicePixelRatio"];
         this._options["w"] *= o["devicePixelRatio"];

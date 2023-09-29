@@ -204,6 +204,7 @@ export default class Stage extends EventEmitter {
         opt('debugFrame', false);
         opt('forceTxCanvasSource', false);
         opt('pauseRafLoopOnIdle', false);
+        opt('RTL', false);
 
         if (o['devicePixelRatio'] != null && o['devicePixelRatio'] !== 1) {
             this._options['precision'] *= o['devicePixelRatio']
