@@ -6794,7 +6794,11 @@
             }
           }
         }
-        return word.substring(0, cutoffIndex) + (wordWrapWidth >= suffixWidth ? suffix : "");
+        if (this._stage.getOption("RTL")) {
+          return (wordWrapWidth >= suffixWidth ? suffix : "") + word.substring(0, cutoffIndex);
+        } else {
+          return word.substring(0, cutoffIndex) + (wordWrapWidth >= suffixWidth ? suffix : "");
+        }
       }
     }, {
       key: "wrapText",

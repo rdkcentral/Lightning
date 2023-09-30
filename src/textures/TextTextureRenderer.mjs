@@ -407,7 +407,11 @@ export default class TextTextureRenderer {
         }
 
         /* If wrapWidth is too short to even contain suffix alone, return empty string */
-        return word.substring(0, cutoffIndex) + (wordWrapWidth >= suffixWidth ? suffix : '');
+        if (this._stage.getOption('RTL')) {
+            return (wordWrapWidth >= suffixWidth ? suffix : '') + word.substring(0, cutoffIndex);
+        } else {
+            return word.substring(0, cutoffIndex) + (wordWrapWidth >= suffixWidth ? suffix : '');
+        }
     }
 
     /**
