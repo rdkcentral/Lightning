@@ -5167,6 +5167,10 @@ class TextTextureRenderer {
     this._canvas.width = Math.ceil(renderInfo.width + this._stage.getOption("textRenderIssueMargin"));
     this._canvas.height = Math.ceil(renderInfo.height);
     this.setFontProperties();
+    if (this._stage.getOption("RTL")) {
+      this._context.direction = "rtl";
+      this._context.textAlign = "left";
+    }
     if (renderInfo.fontSize >= 128) {
       this._context.globalAlpha = 0.01;
       this._context.fillRect(0, 0, 0.01, 0.01);
@@ -5268,11 +5272,7 @@ class TextTextureRenderer {
         }
       }
     }
-    if (this._stage.getOption("RTL")) {
-      return (wordWrapWidth >= suffixWidth ? suffix : "") + word.substring(0, cutoffIndex);
-    } else {
-      return word.substring(0, cutoffIndex) + (wordWrapWidth >= suffixWidth ? suffix : "");
-    }
+    return word.substring(0, cutoffIndex) + (wordWrapWidth >= suffixWidth ? suffix : "");
   }
   wrapText(text, wordWrapWidth, letterSpacing, indent = 0) {
     return wrapText(this._context, text, wordWrapWidth, letterSpacing, indent);

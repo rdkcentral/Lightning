@@ -270,6 +270,10 @@ export default class TextTextureRenderer {
 
         // Canvas context has been reset.
         this.setFontProperties();
+        if (this._stage.getOption('RTL')) {
+            this._context.direction = 'rtl';
+            this._context.textAlign = 'left';
+        }
 
         if (renderInfo.fontSize >= 128) {
             // WpeWebKit bug: must force compositing because cairo-traps-compositor will not work with text first.
@@ -407,11 +411,7 @@ export default class TextTextureRenderer {
         }
 
         /* If wrapWidth is too short to even contain suffix alone, return empty string */
-        if (this._stage.getOption('RTL')) {
-            return (wordWrapWidth >= suffixWidth ? suffix : '') + word.substring(0, cutoffIndex);
-        } else {
-            return word.substring(0, cutoffIndex) + (wordWrapWidth >= suffixWidth ? suffix : '');
-        }
+        return word.substring(0, cutoffIndex) + (wordWrapWidth >= suffixWidth ? suffix : '');
     }
 
     /**
