@@ -7683,6 +7683,9 @@
         return this._textAlign;
       },
       set: function set2(v) {
+        if (this.stage.getOption("RTL")) {
+          v = v == "right" ? "left" : "right";
+        }
         if (this._textAlign !== v) {
           this._textAlign = v;
           this._changed();
