@@ -624,6 +624,7 @@ export default class Element {
 
         if (sourceChanged) {
             if (this.__displayedTexture) {
+                this.stage.removeUpdateSourceTexture(this.__displayedTexture)
                 this.emit('txLoaded', this.__displayedTexture);
             } else {
                 this.emit('txUnloaded', this.__displayedTexture);
