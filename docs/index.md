@@ -5,6 +5,7 @@ The Reference Documentation for Lightning Core contains detailed descriptions ab
 
 ## Table of Contents
 <!---TOC_start--->
+* [Package Exports / Tree Shaking](PackageExports/index.md)
 * [Runtime Configuration](RuntimeConfig/index.md)
 * [Render Engine](RenderEngine/index.md)
   * [Render Tree](RenderEngine/RenderTree.md)

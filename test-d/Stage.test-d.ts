@@ -20,7 +20,7 @@
  * Tests for Stage
  */
 import { expectNotType, expectType } from 'tsd';
-import lng from '../index.js';
+import lng from '../src/index.js';
 
 const stage = new lng.Stage();
 
