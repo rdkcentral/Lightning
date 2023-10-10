@@ -41,6 +41,7 @@ export default class TextTextureRenderer {
             this._settings.fontSize,
             this.getPrecision(),
             this._stage.getOption('defaultFontFace'),
+            this._settings.fontWeight,
         );
         this._context.textBaseline = this._settings.textBaseline;
     };
@@ -52,7 +53,8 @@ export default class TextTextureRenderer {
                 this._settings.fontStyle,
                 this._settings.fontSize,
                 this.getPrecision(),
-                this._stage.getOption('defaultFontFace')
+                this._stage.getOption('defaultFontFace'),
+                this._settings.fontWeight,
             );
             try {
                 if (!document.fonts.check(fontSetting, this._settings.text)) {

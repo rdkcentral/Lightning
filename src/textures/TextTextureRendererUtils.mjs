@@ -9,7 +9,7 @@
  * @param {string} defaultFontFace
  * @returns {string}
  */
-export function getFontSetting(fontFace, fontStyle, fontSize, precision, defaultFontFace) {
+export function getFontSetting(fontFace, fontStyle, fontSize, precision, defaultFontFace, fontWeight) {
     let ff = fontFace;
 
     if (!Array.isArray(ff)) {
@@ -31,7 +31,7 @@ export function getFontSetting(fontFace, fontStyle, fontSize, precision, default
         }
     }
 
-    return `${fontStyle} ${fontSize * precision}px ${ffs.join(",")}`
+    return `${fontWeight} ${fontStyle} ${fontSize * precision}px ${ffs.join(",")}`
 }
 
 /**

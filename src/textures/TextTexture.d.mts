@@ -71,6 +71,12 @@ declare namespace TextTexture {
      */
     fontSize?: number;
     /**
+     * Font weight
+     *
+     * @defaultValue `normal`
+     */
+    fontWeight?: string | number;
+    /**
      * Font baseline ratio (Advanced Text Renderer only)
      *
      * @remarks
@@ -473,6 +479,9 @@ declare class TextTexture extends Texture implements Required<Omit<TextTexture.S
 
   get fontSize(): number;
   set fontSize(fontSize: number);
+
+  get fontWeight(): string | number;
+  set fontWeight(fontWeight: string | number);
 
   get fontBaselineRatio(): number;
   set fontBaselineRatio(fontBaselineRatio: number);

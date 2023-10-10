@@ -6389,7 +6389,7 @@
     }]);
     return ImageTexture2;
   }(Texture);
-  function getFontSetting(fontFace, fontStyle, fontSize, precision, defaultFontFace) {
+  function getFontSetting(fontFace, fontStyle, fontSize, precision, defaultFontFace, fontWeight) {
     var ff = fontFace;
     if (!Array.isArray(ff)) {
       ff = [ff];
@@ -6406,7 +6406,7 @@
         ffs.push('"'.concat(curFf, '"'));
       }
     }
-    return "".concat(fontStyle, " ").concat(fontSize * precision, "px ").concat(ffs.join(","));
+    return "".concat(fontWeight, " ").concat(fontStyle, " ").concat(fontSize * precision, "px ").concat(ffs.join(","));
   }
   function isZeroWidthSpace(space) {
     return space === "" || space === "​";
@@ -6498,7 +6498,7 @@
     }, {
       key: "setFontProperties",
       value: function setFontProperties() {
-        this._context.font = getFontSetting(this._settings.fontFace, this._settings.fontStyle, this._settings.fontSize, this.getPrecision(), this._stage.getOption("defaultFontFace"));
+        this._context.font = getFontSetting(this._settings.fontFace, this._settings.fontStyle, this._settings.fontSize, this.getPrecision(), this._stage.getOption("defaultFontFace"), this._settings.fontWeight);
         this._context.textBaseline = this._settings.textBaseline;
       }
     }, {
@@ -6506,7 +6506,7 @@
       value: function _load() {
         var _this = this;
         if (Utils$1.isWeb && document.fonts) {
-          var fontSetting = getFontSetting(this._settings.fontFace, this._settings.fontStyle, this._settings.fontSize, this.getPrecision(), this._stage.getOption("defaultFontFace"));
+          var fontSetting = getFontSetting(this._settings.fontFace, this._settings.fontStyle, this._settings.fontSize, this.getPrecision(), this._stage.getOption("defaultFontFace"), this._settings.fontWeight);
           try {
             if (!document.fonts.check(fontSetting, this._settings.text)) {
               return document.fonts.load(fontSetting, this._settings.text).catch((function(err) {
@@ -6831,7 +6831,7 @@
     }, {
       key: "setFontProperties",
       value: function setFontProperties() {
-        var font = getFontSetting(this._settings.fontFace, this._settings.fontStyle, this._settings.fontSize, this.getPrecision(), this._stage.getOption("defaultFontFace"));
+        var font = getFontSetting(this._settings.fontFace, this._settings.fontStyle, this._settings.fontSize, this.getPrecision(), this._stage.getOption("defaultFontFace"), this._settings.fontWeight);
         this._context.font = font;
         this._context.textBaseline = this._settings.textBaseline;
         return font;
@@ -6841,7 +6841,7 @@
       value: function _load() {
         var _this = this;
         if (Utils$1.isWeb && document.fonts) {
-          var fontSetting = getFontSetting(this._settings.fontFace, this._settings.fontStyle, this._settings.fontSize, this.getPrecision(), this._stage.getOption("defaultFontFace"));
+          var fontSetting = getFontSetting(this._settings.fontFace, this._settings.fontStyle, this._settings.fontSize, this.getPrecision(), this._stage.getOption("defaultFontFace"), this._settings.fontWeight);
           try {
             if (!document.fonts.check(fontSetting, this._settings.text)) {
               return document.fonts.load(fontSetting, this._settings.text).catch((function(err) {
@@ -7601,6 +7601,17 @@
         }
       }
     }, {
+      key: "fontWeight",
+      get: function get() {
+        return this._fontWeight;
+      },
+      set: function set2(v) {
+        if (this._fontWeight !== v) {
+          this._fontWeight = v;
+          this._changed();
+        }
+      }
+    }, {
       key: "fontFace",
       get: function get() {
         return this._fontFace;
@@ -7994,6 +8005,8 @@
           parts.push("fS" + this.fontStyle);
         if (this.fontSize !== 40)
           parts.push("fs" + this.fontSize);
+        if (this.fontWeight !== "normal")
+          parts.push("fw" + this.fontWeight);
         if (this.fontBaselineRatio !== 0)
           parts.push("fb" + this.fontBaselineRatio);
         if (this.fontFace !== null)
@@ -8123,6 +8136,8 @@
           nonDefaults["fontStyle"] = this.fontStyle;
         if (this.fontSize !== 40)
           nonDefaults["fontSize"] = this.fontSize;
+        if (this.fontWeight !== "normal")
+          nonDefaults["fontWeight"] = this.fontWeight;
         if (this.fontBaselineRatio !== 0)
           nonDefaults["fontBaselineRatio"] = this.fontBaselineRatio;
         if (this.fontFace !== null)
@@ -8204,6 +8219,7 @@
         obj.h = this._h;
         obj.fontStyle = this._fontStyle;
         obj.fontSize = this._fontSize;
+        obj.fontWeight = this._fontWeight;
         obj.fontBaselineRatio = this._fontBaselineRatio;
         obj.fontFace = this._fontFace;
         obj.wordWrap = this._wordWrap;
@@ -8259,6 +8275,7 @@
   proto._h = 0;
   proto._fontStyle = "normal";
   proto._fontSize = 40;
+  proto._fontWeight = "normal";
   proto._fontFace = null;
   proto._wordWrap = true;
   proto._wordWrapWidth = 0;

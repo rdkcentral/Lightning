@@ -103,6 +103,17 @@ export default class TextTexture extends Texture {
         }
     }
 
+    get fontWeight() {
+        return this._fontWeight;
+    }
+
+    set fontWeight(v) {
+        if (this._fontWeight !== v) {
+            this._fontWeight = v;
+            this._changed();
+        }
+    }
+
     get fontFace() {
         return this._fontFace;
     }
@@ -492,6 +503,7 @@ export default class TextTexture extends Texture {
         if (this.h !== 0) parts.push("h " + this.h);
         if (this.fontStyle !== "normal") parts.push("fS" + this.fontStyle);
         if (this.fontSize !== 40) parts.push("fs" + this.fontSize);
+        if (this.fontWeight !== 'normal') parts.push("fw" + this.fontWeight);
         if (this.fontBaselineRatio !== 0) parts.push('fb' + this.fontBaselineRatio);
         if (this.fontFace !== null) parts.push("ff" + (Array.isArray(this.fontFace) ? this.fontFace.join(",") : this.fontFace));
         if (this.wordWrap !== true) parts.push("wr" + (this.wordWrap ? 1 : 0));
@@ -593,6 +605,7 @@ export default class TextTexture extends Texture {
         if (this.h !== 0) nonDefaults['h'] = this.h;
         if (this.fontStyle !== "normal") nonDefaults['fontStyle'] = this.fontStyle;
         if (this.fontSize !== 40) nonDefaults["fontSize"] = this.fontSize;
+        if (this.fontWeight !== "normal") nonDefaults["fontWeight"] = this.fontWeight;
         if (this.fontBaselineRatio !== 0) nonDefaults['fontBaselineRatio'] = this.fontBaselineRatio;
         if (this.fontFace !== null) nonDefaults["fontFace"] = this.fontFace;
         if (this.wordWrap !== true) nonDefaults["wordWrap"] = this.wordWrap;
@@ -640,6 +653,7 @@ export default class TextTexture extends Texture {
         obj.h = this._h;
         obj.fontStyle = this._fontStyle;
         obj.fontSize = this._fontSize;
+        obj.fontWeight = this._fontWeight;
         obj.fontBaselineRatio = this._fontBaselineRatio;
         obj.fontFace = this._fontFace;
         obj.wordWrap = this._wordWrap;
@@ -689,6 +703,7 @@ proto._w = 0;
 proto._h = 0;
 proto._fontStyle = "normal";
 proto._fontSize = 40;
+proto._fontWeight = "normal";
 proto._fontFace = null;
 proto._wordWrap = true;
 proto._wordWrapWidth = 0;
