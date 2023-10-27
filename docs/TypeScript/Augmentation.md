@@ -4,6 +4,8 @@ There are certain global type structures provided by Lightning Core that your ap
 
 The following are the TypeScript interfaces exported by Lightning Core that are designed for augmentation. You may find need to augment other available interfaces. In this event, please let us know what interfaces you are augmenting so we may add use guidelines to this page (or submit a [PR](https://github.com/rdkcentral/Lightning/pulls)!).
 
+> As of version 2.12, interface augmentation can be done without using the Lightning SDK or other hacks.
+
 ## Component Key Handlers
 
 Key Handlers are the methods you implement in your Components in order to handle key events. These are based on the Key Map provided during Application initialization. Often times the default set of key handlers that come with Lightning are good enough. But sometimes you need to add additional keys to it or replace it altogether. Lightning's TypeScript implementation includes the default key map set of handlers in the Component class. This allows you to write your class and have TypeScript make sure the parameters/return values are proper:
@@ -39,17 +41,13 @@ See the examples below.
 When this interface is augmented, you add additional key handlers to the existing default set.
 
 ```ts
-import '@lightningjs/sdk'
-
-declare module '@lightningjs/sdk' {
-  namespace Lightning {
-    namespace Component {
-      interface DefaultKeyHandlers {
-        _captureHome?(e: KeyboardEvent): boolean | void;
-        _captureHomeRelease?(e: KeyboardEvent): boolean | void;
-        _handleHome?(e: KeyboardEvent): boolean | void;
-        _handleHomeRelease?(e: KeyboardEvent): boolean | void;
-      }
+declare module '@lightningjs/core' {
+  namespace Component {
+    interface DefaultKeyHandlers {
+      _captureHome?(e: KeyboardEvent): boolean | void;
+      _captureHomeRelease?(e: KeyboardEvent): boolean | void;
+      _handleHome?(e: KeyboardEvent): boolean | void;
+      _handleHomeRelease?(e: KeyboardEvent): boolean | void;
     }
   }
 }
@@ -62,17 +60,13 @@ When this interface is augmented, the entire set of `DefaultKeyHandlers` are rep
 
 Example:
 ```ts
-import '@lightningjs/sdk'
-
-declare module '@lightningjs/sdk' {
-  namespace Lightning {
-    namespace Component {
-      interface CustomKeyHandlers {
-        _captureHome?(e: KeyboardEvent): boolean | void;
-        _captureHomeRelease?(e: KeyboardEvent): boolean | void;
-        _handleHome?(e: KeyboardEvent): boolean | void;
-        _handleHomeRelease?(e: KeyboardEvent): boolean | void;
-      }
+declare module '@lightningjs/core' {
+  namespace Component {
+    interface CustomKeyHandlers {
+      _captureHome?(e: KeyboardEvent): boolean | void;
+      _captureHomeRelease?(e: KeyboardEvent): boolean | void;
+      _handleHome?(e: KeyboardEvent): boolean | void;
+      _handleHomeRelease?(e: KeyboardEvent): boolean | void;
     }
   }
 }
@@ -80,19 +74,15 @@ declare module '@lightningjs/sdk' {
 
 ## Lightning.Component.FireAncestorsMap
 
-Augmenting this interface this allows you to globally add to the events available in the `firstAncestors()` method available in any Component.
+Augmenting this interface this allows you to globally add to the events available in the `fireAncestors()` method available in any Component.
 
 Example:
 ```ts
-import '@lightningjs/sdk'
-
-declare module '@lightningjs/sdk' {
-  namespace Lightning {
-    namespace Component {
-      interface FireAncestorsMap {
-        $itemCreated(): void;
-        $selectItem(item: string, index: number): void;
-      }
+declare module '@lightningjs/core' {
+  namespace Component {
+    interface FireAncestorsMap {
+      $itemCreated(): void;
+      $selectItem(item: string, index: number): void;
     }
   }
 }
@@ -111,16 +101,12 @@ Some applications opt to use the root Application component (available from any 
 
 Example:
 ```ts
-import '@lightningjs/sdk'
-
-declare module '@lightningjs/sdk' {
-  namespace Lightning {
-    namespace Application {
-      interface EventMap {
-        titleLoaded(): void;
-        ratingColor(color: number): void;
-        setBackground(evt: { src: string }): void;
-      }
+declare module '@lightningjs/core' {
+  namespace Application {
+    interface EventMap {
+      titleLoaded(): void;
+      ratingColor(color: number): void;
+      setBackground(evt: { src: string }): void;
     }
   }
 }

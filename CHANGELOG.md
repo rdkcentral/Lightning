@@ -1,5 +1,19 @@
 # Changelog
 
+## v2.12.0
+*26 oct 2023*
+
+- Introduced a named export for Lightning in the ESM build to support direct module augmentation with `@lightningjs/core`, resolving issues with default export augmentation. (#480)
+- Modified the export structure to support tree-shaking. Lightning's ES modules can now be selectively imported /tree-shaken. (#490)
+- Enabled development in both TypeScript and JavaScript. Migrated specific files and ensured all source module files are appropriately managed in the `dist` directory.
+- Separated the Lightning Inspector with types as its own export.
+- Resolved an inconsistency in the zSorting algorithm where elements with the same zIndex were not correctly sorted by updateTreeOrder. (#443)
+- Addressed an exception causing infinite loops when accessing the texture.source property after text updates. This fix streamlines access to the renderInfo property without triggering a maximum call stack exception. (#447 and #348)
+- Resolved an issue where adding an already existing element to childList would throw an error. (#311 and #509)
+- Fixed an issue where SVG `txError` events were not being triggered due to missed error captures.
+- Fixed an issue where `txLoaded` event in elements over-fired due to incorrect texture change identification.
+
+
 ## v2.11.0
 *31 july 2023*
 

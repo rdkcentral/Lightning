@@ -1,5 +1,5 @@
 import { expectType } from 'tsd';
-import lng from '../../index.js';
+import lng from '../../src/index.js';
 import { TemplateSpecTags, TemplateSpecRefs } from '../../src/tree/Element.mjs';
 
 ///

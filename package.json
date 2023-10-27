@@ -1,35 +1,39 @@
 {
   "author": "Metrological, Bas van Meurs <b.van.meurs@metrological.com>",
   "name": "@lightningjs/core",
-  "version": "2.11.0",
+  "version": "2.12.0",
   "license": "Apache-2.0",
   "type": "module",
-  "types": "dist/index.d.ts",
-  "module": "dist/lightning.esm.js",
+  "types": "dist/src/index.d.ts",
+  "module": "dist/src/index.js",
   "main": "dist/lightning.js",
   "exports": {
     ".": {
-      "import": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/lightning.esm.js"
-      },
-      "require": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/lightning.js"
-      }
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js",
+      "require": "./dist/lightning.js"
+    },
+    "./inspector": {
+      "types": "./devtools/lightning-inspect.d.ts",
+      "import": "./devtools/lightning-inspect.js",
+      "require": "./devtools/lightning-inspect.js"
     },
     "./package.json": "./package.json"
   },
+  "sideEffects": [
+    "dist/lightning.*",
+    "devtools/*"
+  ],
   "files": [
     "dist/**",
     "devtools/**"
   ],
   "scripts": {
-    "build": "mkdir -p dist && rm -fr dist/* && concurrently -c \"auto\" \"npm:build:lightning\" \"npm:build:lightning.min\" \"npm:build:lightning.es5\" \"npm:build:lightning.es5.min\" \"npm:build:lightning-inspect.es5\" && npm run copy-extra-tsd-files",
+    "build": "mkdir -p dist && rm -fr dist/* && concurrently -c \"auto\" \"npm:build:lightning\" \"npm:build:lightning.min\" \"npm:build:lightning.es5\" \"npm:build:lightning.es5.min\" \"npm:build:lightning-inspect.es5\" && npm run src-to-dist",
     "release": "npm run build && npm publish --access public",
     "typedoc": "typedoc --tsconfig tsconfig.typedoc.json",
     "tsd": "tsd",
-    "copy-extra-tsd-files": "bash ./scripts/copy-extra-tsd-files.sh",
+    "src-to-dist": "bash ./scripts/src-to-dist.sh",
     "build:lightning-inspect.es5": "BUILD_INSPECTOR=true BUILD_ES5=true vite build --mode production",
     "build:lightning": "vite build --mode production",
     "build:lightning.min": "BUILD_MINIFY=true vite build --mode production",
@@ -59,9 +63,9 @@
     "sinon": "^7.5.0",
     "terser": "^5.16.8",
     "tsd": "^0.21.0",
-    "typedoc": "^0.23.10",
+    "typedoc": "^0.23.21",
+    "typescript": "^4.9.5",
     "vite": "^4.0.4",
-    "vite-plugin-dts": "^2.0.2",
     "vitest": "^0.27.2"
   }
 }

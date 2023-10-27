@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import lng from '../index.js';
+import lng from '../src/index.js';
 
 // `types` namespace should only be accessible in a type context
 // @ts-expect-error

@@ -22,7 +22,7 @@
  * @module
  */
 import { expectNotType, expectType } from 'tsd';
-import lng from '../../index.js';
+import lng from '../../src/index.js';
 import { TemplateRequireType } from '../../src/application/Component.mjs';
 import { SmoothTemplate, TransitionsTemplate } from '../../src/tree/Element.mjs';
 
