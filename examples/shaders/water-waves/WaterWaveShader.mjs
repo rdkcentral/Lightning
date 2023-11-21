@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-import lng from '../../../src/lightning.mjs'
+import lng from '../../../dist/src/lightning.mjs'
 export default class WaterWaveShader extends lng.shaders.WebGLDefaultShader {
 
     constructor(context) {
