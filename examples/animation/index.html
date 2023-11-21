@@ -21,11 +21,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <script src="../../../devtools/lightning-inspect.js"></script>
+
 </head>
 <body style="margin: 0; padding: 0">
     <script type="module">
-        import lng from '../../../dist/src/lightning.mjs';
+        import lng from '../../dist/src/lightning.mjs';
         //attachInspector(lng)
 
         window.onload = function() {
@@ -33,37 +33,36 @@
                 static _template() {
                     return {
                         Bg: {
-                            src: "../../landscape.jpg", scale: 1,
+                            rect: true, w: 1900, h: 1080, color: 0xFF000000
                         },
-                        Primary: {
-                            Main: {rect: true, renderToTexture: true, w: 900, h: 900, colorLeft: 0x000000FF, colorRight: 0xFF0000FF
-                            },
-                            App: {alpha: 0.5, rect: true, w: 100, h: 100, scale: 1, texture: {type: lng.textures.NoiseTexture, x: 0, y: 0, w: 1000, h: 1000}}
+                        Block: {
+                            rect: true, w: 200, h: 200, color: 0xFFFFFFFF, x: 0, y: 300
                         },
-                        Overlay: {}
                     }
                 }
 
-                _handleLeft() {
-                    this.tag('Primary').setSmooth('x', this.tag('Primary').getSmooth('x') - 100)
+                start() {
+                    this.blockAnimation.start()
                 }
 
-                _handleRight() {
-                    this.tag('Primary').setSmooth('x', this.tag('Primary').getSmooth('x') + 100)
-                    this._setState("Loading");
-                }
+                _init() {
+                    this.blockAnimation = this.tag('Block').animation({
+                        duration: 200 / 100,
+                        repeat: 0,
+                        stopMethod: 'immediate',
+                        // timingFunction: 'cubic-bezier(0.20, 1.00, 0.80, 1.00)',
+                        actions: [
+                            { p: 'x', v: { 0: { v: 0 }, 1: { v: 1900 - 200 } } }
+                        ],
+                    })
 
-                _handleUp() {
-                    this.tag('Primary').setSmooth('y', this.tag('Primary').getSmooth('y') - 100)
-                }
-
-                _handleDown() {
-                    this.tag('Primary').setSmooth('y', this.tag('Primary').getSmooth('y') + 100)
+                    console.log('start');
+                    this.blockAnimation.start();
                 }
 
             }
 
-            const options = {stage: {w: 900, h: 900, clearColor: 0xFF000000, canvas2d: false, useImageWorker: false}, debug: true}
+            const options = {stage: {w: 1900, h: 1080, clearColor: 0xFF000000, canvas2d: false, useImageWorker: false}, debug: true}
 
             const app = new BasicUsageExample(options);
 
