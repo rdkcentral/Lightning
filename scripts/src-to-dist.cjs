@@ -11,8 +11,11 @@ shell.cd(path.join(__dirname, '..'));
 // 1. Copy all the JavaScript source code (.js / .mjs) and
 //    all the manually written type definition files (.d.ts / .d.mts)
 console.log("Copying all JavaScript source code to ./dist...");
-shell.find('.')
-  .filter(file => file.match(/\.\/src\/.*\.(js|mjs|d\.mts|d\.ts)$/) && !file.match(/\.test\./))
+shell.find('./src/')
+  .filter(file => {
+    const ext = path.extname(file);
+    return ['.js', '.mjs', '.d.mts', '.d.ts'].includes(ext) && !file.includes('.test.');
+  })
   .forEach(file => {
     const distFile = path.join('./dist', file);
     shell.mkdir('-p', path.dirname(distFile));
