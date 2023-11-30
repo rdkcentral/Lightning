@@ -1403,10 +1403,18 @@ export default class ElementCore {
                 }
 
                 if (init || (recalc & 6)) {
-                    r.px = pr.px + this._localPx * pr.ta;
+                    let calculatedX = this._localPx;
+                    if (this.ctx.stage.getOption("RTL")) {
+                      const parentW = this._element.__parent
+                        ? this._parent.w || 0
+                        : this.ctx.stage.getOption("w");
+                      calculatedX = parentW - (this._w || 0) - this._localPx;
+                    }
+                    
+                    r.px = pr.px + calculatedX * pr.ta;
                     r.py = pr.py + this._localPy * pr.td;
                     if (pr.tb !== 0) r.px += this._localPy * pr.tb;
-                    if (pr.tc !== 0) r.py += this._localPx * pr.tc;
+                    if (pr.tc !== 0) r.py += calculatedX * pr.tc;
                 }
 
                 if (init) {
