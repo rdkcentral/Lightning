@@ -48,6 +48,8 @@ export default class ElementCore {
         this._onAfterUpdate = null;
 
         // All local translation/transform updates: directly propagated from x/y/w/h/scale/whatever.
+        this.isRTL = this.ctx.stage.getOption('RTL');
+        
         this._localPx = 0;
         this._localPy = 0;
 
@@ -529,7 +531,7 @@ export default class ElementCore {
         let pivotXMul = this._pivotX * this._w;
         let pivotYMul = this._pivotY * this._h;
         let px;
-        if (this.ctx.stage.getOption('RTL')) {
+        if (this.isRTL) {
             px = this._x + (pivotXMul * this._localTa + pivotYMul * this._localTb) - pivotXMul;
         } else {
             px = this._x - (pivotXMul * this._localTa + pivotYMul * this._localTb) + pivotXMul;
@@ -1356,7 +1358,7 @@ export default class ElementCore {
 
             if (recalc & 6) {
                 let calculatedX = this._localPx;
-                if (this.ctx.stage.getOption('RTL')) {
+                if (this.isRTL) {
                     const parentW = this._element.__parent ? this._parent.w || 0 : this.ctx.stage.getOption('w');
                     calculatedX = parentW - (this._w || 0) - this._localPx;
                 }
@@ -1404,7 +1406,7 @@ export default class ElementCore {
 
                 if (init || (recalc & 6)) {
                     let calculatedX = this._localPx;
-                    if (this.ctx.stage.getOption("RTL")) {
+                    if (this.isRTL) {
                       const parentW = this._element.__parent
                         ? this._parent.w || 0
                         : this.ctx.stage.getOption("w");
