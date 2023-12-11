@@ -59,7 +59,7 @@ class TemplateDemo extends lng.Application {
         }
     }
     _init() {
-        // let's generate dinamically some list items 
+        // let's generate dynamically some list items 
         // and give it to our list
         this.tag('List').items = [1,2,3,4].map((i) => ({label: i }))
     }
