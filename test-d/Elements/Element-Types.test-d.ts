@@ -22,7 +22,7 @@
  * @module
  */
 import { expectAssignable, expectType } from 'tsd';
-import lng from '../../index.js';
+import lng from '../../src/index.js';
 import { CompileComponentTemplateSpecType } from '../../src/application/Component.mjs';
 import { SignalMapType } from '../../src/internalTypes.mjs';
 import { InlineElement, IsLooseTemplateSpec, SmoothTemplate, TemplateSpecTags, TemplateSpecRefs, TransformPossibleElement, TransitionsTemplate } from '../../src/tree/Element.mjs';

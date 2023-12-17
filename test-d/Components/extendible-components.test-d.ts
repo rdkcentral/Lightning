@@ -20,7 +20,7 @@
  * Tests for the ability to allow your strongly typed components to be extendible
  */
 
-import lng from '../../index.js';
+import lng from '../../src/index.js';
 
 namespace Animal {
   export interface TemplateSpec extends lng.Component.TemplateSpec {

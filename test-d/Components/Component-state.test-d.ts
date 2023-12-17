@@ -22,7 +22,7 @@
  * @module
  */
 import { expectType } from 'tsd';
-import lng from '../../index.js';
+import lng from '../../src/index.js';
 
 class MyComponent extends lng.Component {
   override _init() {

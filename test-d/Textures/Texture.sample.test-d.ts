@@ -21,7 +21,7 @@
  *
  * @module
  */
-import Lightning from "../../index.js";
+import Lightning from "../../src/index.js";
 
 type DrawFrameCallback = (canvas: HTMLCanvasElement) => void;
 export default class DynamicCanvasTexture extends Lightning.Texture {

@@ -606,7 +606,7 @@ export default class Element {
             }
         }
 
-        const prevSource = this.__core.displayedTextureSource ? this.__core.displayedTextureSource._source : null;
+        const prevSource = this.__core.displayedTextureSource;
         const sourceChanged = (v ? v._source : null) !== prevSource;
 
         this.__displayedTexture = v;
@@ -624,6 +624,7 @@ export default class Element {
 
         if (sourceChanged) {
             if (this.__displayedTexture) {
+                this.stage.removeUpdateSourceTexture(this.__displayedTexture)
                 this.emit('txLoaded', this.__displayedTexture);
             } else {
                 this.emit('txUnloaded', this.__displayedTexture);

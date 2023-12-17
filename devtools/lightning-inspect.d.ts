@@ -2,7 +2,7 @@
  * If not stated otherwise in this file or this component's LICENSE file the
  * following copyright and licenses apply:
  *
- * Copyright 2022 Metrological
+ * Copyright 2023 Metrological
  *
  * Licensed under the Apache License, Version 2.0 (the License);
  * you may not use this file except in compliance with the License.
@@ -16,5 +16,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import lng from './src/lightning.mjs';
-export default lng;
+import type {
+  Application,
+  Component,
+  Element,
+  ElementCore,
+  ElementTexturizer,
+  Stage,
+  Texture,
+} from "../dist/src";
+
+declare interface ILng {
+  Application?: typeof Application;
+  Component?: typeof Component;
+  Element: typeof Element;
+  ElementCore: typeof ElementCore;
+  ElementTexturizer: typeof ElementTexturizer;
+  Stage: typeof Stage;
+  Texture: typeof Texture;
+}
+
+declare global {
+  interface Window {
+    attachInspector(lng: ILng): void;
+  }
+}
