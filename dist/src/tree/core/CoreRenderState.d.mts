@@ -16,5 +16,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import lng from './src/lightning.mjs';
-export default lng;
+import CoreQuadList from "./CoreQuadList.mjs";
+
+export default class CoreRenderState {
+  quads: CoreQuadList;
+}

@@ -1,5 +1,5 @@
 /*
- * Lightning v2.11.0
+ * Lightning v2.12.0
  *
  * https://github.com/rdkcentral/Lightning
  */
@@ -3625,6 +3625,7 @@
       this._localAlpha = 1;
       this._onAfterCalcs = null;
       this._onAfterUpdate = null;
+      this.isRTL = this.ctx.stage.getOption("RTL");
       this._localPx = 0;
       this._localPy = 0;
       this._localTa = 1;
@@ -4052,7 +4053,7 @@
         var pivotXMul = this._pivotX * this._w;
         var pivotYMul = this._pivotY * this._h;
         var px;
-        if (this.ctx.stage.getOption("RTL")) {
+        if (this.isRTL) {
           px = this._x + (pivotXMul * this._localTa + pivotYMul * this._localTb) - pivotXMul;
         } else {
           px = this._x - (pivotXMul * this._localTa + pivotYMul * this._localTb) + pivotXMul;
@@ -4796,7 +4797,7 @@
           }
           if (recalc & 6) {
             var calculatedX = this._localPx;
-            if (this.ctx.stage.getOption("RTL")) {
+            if (this.isRTL) {
               var parentW = this._element.__parent ? this._parent.w || 0 : this.ctx.stage.getOption("w");
               calculatedX = parentW - (this._w || 0) - this._localPx;
             }
@@ -4833,12 +4834,17 @@
               }
             }
             if (init || recalc & 6) {
-              _r.px = pr.px + this._localPx * pr.ta;
+              var _calculatedX = this._localPx;
+              if (this.isRTL) {
+                var _parentW = this._element.__parent ? this._parent.w || 0 : this.ctx.stage.getOption("w");
+                _calculatedX = _parentW - (this._w || 0) - this._localPx;
+              }
+              _r.px = pr.px + _calculatedX * pr.ta;
               _r.py = pr.py + this._localPy * pr.td;
               if (pr.tb !== 0)
                 _r.px += this._localPy * pr.tb;
               if (pr.tc !== 0)
-                _r.py += this._localPx * pr.tc;
+                _r.py += _calculatedX * pr.tc;
             }
             if (init) {
               recalc |= 2;
@@ -5299,6 +5305,8 @@
               a.splice(ptr);
             }
           } else {
+            a.splice(_n5);
+            + +a.sort(ElementCore2.sortZIndexedChildren);
             ptr = 0;
             var _i5 = 0;
             var _j2 = 0;
@@ -6389,24 +6397,24 @@
     }]);
     return ImageTexture2;
   }(Texture);
-  function getFontSetting(fontFace, fontStyle, fontSize, precision, defaultFontFace, fontWeight) {
-    var ff = fontFace;
+  function getFontSetting(fontFace, fontStyle, fontSize, precision, defaultFontFace) {
+    let ff = fontFace;
     if (!Array.isArray(ff)) {
       ff = [ff];
     }
-    var ffs = [];
-    for (var i = 0, n = ff.length; i < n; i++) {
-      var curFf = ff[i];
+    let ffs = [];
+    for (let i = 0, n = ff.length; i < n; i++) {
+      let curFf = ff[i];
       if (curFf === null) {
         curFf = defaultFontFace;
       }
       if (curFf === "serif" || curFf === "sans-serif") {
         ffs.push(curFf);
       } else {
-        ffs.push('"'.concat(curFf, '"'));
+        ffs.push(`"${curFf}"`);
       }
     }
-    return "".concat(fontWeight, " ").concat(fontStyle, " ").concat(fontSize * precision, "px ").concat(ffs.join(","));
+    return `${fontStyle} ${fontSize * precision}px ${ffs.join(",")}`;
   }
   function isZeroWidthSpace(space) {
     return space === "" || space === "​";
@@ -6415,49 +6423,42 @@
     return isZeroWidthSpace(space) || space === " ";
   }
   function tokenizeString(tokenRegex, text) {
-    var _this = this;
-    var delimeters = text.match(tokenRegex) || [];
-    var words = text.split(tokenRegex) || [];
-    var final = [];
-    for (var i = 0; i < words.length; i++) {
+    const delimeters = text.match(tokenRegex) || [];
+    const words = text.split(tokenRegex) || [];
+    let final = [];
+    for (let i = 0; i < words.length; i++) {
       final.push(words[i], delimeters[i]);
     }
     final.pop();
-    return final.filter((function(word) {
-      _newArrowCheck(this, _this);
-      return word != "";
-    }).bind(this));
+    return final.filter((word) => word != "");
   }
-  function measureText(context, word) {
-    var _this2 = this;
-    var space = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : 0;
+  function measureText(context, word, space = 0) {
     if (!space) {
       return context.measureText(word).width;
     }
-    return word.split("").reduce((function(acc, char) {
-      _newArrowCheck(this, _this2);
+    return word.split("").reduce((acc, char) => {
       if (isZeroWidthSpace(char)) {
         return acc;
       }
       return acc + context.measureText(char).width + space;
-    }).bind(this), 0);
+    }, 0);
   }
   function wrapText(context, text, wordWrapWidth, letterSpacing, indent) {
-    var spaceRegex = / |\u200B/g;
-    var lines = text.split(/\r?\n/g);
-    var allLines = [];
-    var realNewlines = [];
-    for (var i = 0; i < lines.length; i++) {
-      var resultLines = [];
-      var result = "";
-      var spaceLeft = wordWrapWidth - indent;
-      var words = lines[i].split(spaceRegex);
-      var spaces = lines[i].match(spaceRegex) || [];
-      for (var j = 0; j < words.length; j++) {
-        var space = spaces[j - 1] || "";
-        var word = words[j];
-        var wordWidth = measureText(context, word, letterSpacing);
-        var wordWidthWithSpace = wordWidth + measureText(context, space, letterSpacing);
+    const spaceRegex = / |\u200B/g;
+    let lines = text.split(/\r?\n/g);
+    let allLines = [];
+    let realNewlines = [];
+    for (let i = 0; i < lines.length; i++) {
+      let resultLines = [];
+      let result = "";
+      let spaceLeft = wordWrapWidth - indent;
+      let words = lines[i].split(spaceRegex);
+      let spaces = lines[i].match(spaceRegex) || [];
+      for (let j = 0; j < words.length; j++) {
+        const space = spaces[j - 1] || "";
+        const word = words[j];
+        const wordWidth = measureText(context, word, letterSpacing);
+        const wordWidthWithSpace = wordWidth + measureText(context, space, letterSpacing);
         if (j === 0 || wordWidthWithSpace > spaceLeft) {
           if (j > 0) {
             resultLines.push(result);
@@ -6477,10 +6478,7 @@
         realNewlines.push(allLines.length);
       }
     }
-    return {
-      l: allLines,
-      n: realNewlines
-    };
+    return { l: allLines, n: realNewlines };
   }
   var TextTextureRenderer = /* @__PURE__ */ function() {
     function TextTextureRenderer2(stage, canvas, settings) {
@@ -7694,7 +7692,7 @@
         return this._textAlign;
       },
       set: function set2(v) {
-        if (this.stage.getOption("RTL")) {
+        if (v != "center" && this.stage.getOption("RTL")) {
           v = v == "right" ? "left" : "right";
         }
         if (this._textAlign !== v) {
@@ -8623,7 +8621,7 @@
     }, {
       key: "setAt",
       value: function setAt(item, index) {
-        if (index >= 0 && index < this._items.length) {
+        if (index >= 0 && index <= this._items.length) {
           if (Utils$1.isObjectLiteral(item)) {
             var o = item;
             item = this.createItem(o);
@@ -8644,13 +8642,15 @@
               if (this._items[index].ref) {
                 this._refs[this._items[index].ref] = void 0;
               }
+              var prevItem = this._items[index];
+              this._items[index] = item;
+              if (item.ref) {
+                this._refs[item.ref] = item;
+              }
+              this.onSet(item, index, prevItem);
+            } else {
+              throw new Error("setAt: The index " + index + " is out of bounds " + this._items.length);
             }
-            var prevItem = this._items[index];
-            this._items[index] = item;
-            if (item.ref) {
-              this._refs[item.ref] = item;
-            }
-            this.onSet(item, index, prevItem);
           }
         } else {
           throw new Error("setAt: The index " + index + " is out of bounds " + this._items.length);
@@ -9496,7 +9496,7 @@
             prevTexture.removeElement(this);
           }
         }
-        var prevSource = this.__core.displayedTextureSource ? this.__core.displayedTextureSource._source : null;
+        var prevSource = this.__core.displayedTextureSource;
         var sourceChanged = (v ? v._source : null) !== prevSource;
         this.__displayedTexture = v;
         this._updateDimensions();
@@ -9510,6 +9510,7 @@
         }
         if (sourceChanged) {
           if (this.__displayedTexture) {
+            this.stage.removeUpdateSourceTexture(this.__displayedTexture);
             this.emit("txLoaded", this.__displayedTexture);
           } else {
             this.emit("txUnloaded", this.__displayedTexture);
@@ -16144,6 +16145,7 @@
     }]);
     return WebGLStateManager2;
   }();
+  const WebGLStateManager$1 = WebGLStateManager;
   var TextureManager = /* @__PURE__ */ function() {
     function TextureManager2(stage) {
       _classCallCheck(this, TextureManager2);
@@ -17699,7 +17701,7 @@
         }
       }
       if (_this.gl) {
-        WebGLStateManager.enable(_this.gl, "lightning");
+        WebGLStateManager$1.enable(_this.gl, "lightning");
       }
       _this._mode = _this.gl ? 0 : 1;
       if (_this.getCanvas()) {
@@ -18988,7 +18990,7 @@
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
           cb(null, canvas);
         }).bind(this);
-        img.onError = (function(err) {
+        img.onerror = (function(err) {
           _newArrowCheck(this, _this4);
           cb(err);
         }).bind(this);

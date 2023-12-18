@@ -1,5 +1,5 @@
 /*
- * Lightning v2.11.0
+ * Lightning v2.12.0
  *
  * https://github.com/rdkcentral/Lightning
  */
@@ -2566,6 +2566,7 @@
       this._localAlpha = 1;
       this._onAfterCalcs = null;
       this._onAfterUpdate = null;
+      this.isRTL = this.ctx.stage.getOption("RTL");
       this._localPx = 0;
       this._localPy = 0;
       this._localTa = 1;
@@ -2941,7 +2942,7 @@
       let pivotXMul = this._pivotX * this._w;
       let pivotYMul = this._pivotY * this._h;
       let px;
-      if (this.ctx.stage.getOption("RTL")) {
+      if (this.isRTL) {
         px = this._x + (pivotXMul * this._localTa + pivotYMul * this._localTb) - pivotXMul;
       } else {
         px = this._x - (pivotXMul * this._localTa + pivotYMul * this._localTb) + pivotXMul;
@@ -3551,7 +3552,7 @@
         }
         if (recalc & 6) {
           let calculatedX = this._localPx;
-          if (this.ctx.stage.getOption("RTL")) {
+          if (this.isRTL) {
             const parentW = this._element.__parent ? this._parent.w || 0 : this.ctx.stage.getOption("w");
             calculatedX = parentW - (this._w || 0) - this._localPx;
           }
@@ -3588,12 +3589,17 @@
             }
           }
           if (init || recalc & 6) {
-            r2.px = pr.px + this._localPx * pr.ta;
+            let calculatedX = this._localPx;
+            if (this.isRTL) {
+              const parentW = this._element.__parent ? this._parent.w || 0 : this.ctx.stage.getOption("w");
+              calculatedX = parentW - (this._w || 0) - this._localPx;
+            }
+            r2.px = pr.px + calculatedX * pr.ta;
             r2.py = pr.py + this._localPy * pr.td;
             if (pr.tb !== 0)
               r2.px += this._localPy * pr.tb;
             if (pr.tc !== 0)
-              r2.py += this._localPx * pr.tc;
+              r2.py += calculatedX * pr.tc;
           }
           if (init) {
             recalc |= 2;
@@ -4045,6 +4051,8 @@
             a.splice(ptr);
           }
         } else {
+          a.splice(n2);
+          + +a.sort(ElementCore.sortZIndexedChildren);
           ptr = 0;
           let i = 0;
           let j = 0;
@@ -4893,7 +4901,7 @@
       return obj;
     }
   }
-  function getFontSetting(fontFace, fontStyle, fontSize, precision, defaultFontFace, fontWeight) {
+  function getFontSetting(fontFace, fontStyle, fontSize, precision, defaultFontFace) {
     let ff = fontFace;
     if (!Array.isArray(ff)) {
       ff = [ff];
@@ -4910,7 +4918,7 @@
         ffs.push(`"${curFf}"`);
       }
     }
-    return `${fontWeight} ${fontStyle} ${fontSize * precision}px ${ffs.join(",")}`;
+    return `${fontStyle} ${fontSize * precision}px ${ffs.join(",")}`;
   }
   function isZeroWidthSpace(space) {
     return space === "" || space === "​";
@@ -5951,7 +5959,7 @@
       return this._textAlign;
     }
     set textAlign(v) {
-      if (this.stage.getOption("RTL")) {
+      if (v != "center" && this.stage.getOption("RTL")) {
         v = v == "right" ? "left" : "right";
       }
       if (this._textAlign !== v) {
@@ -6727,7 +6735,7 @@
       this.setAt(item, index);
     }
     setAt(item, index) {
-      if (index >= 0 && index < this._items.length) {
+      if (index >= 0 && index <= this._items.length) {
         if (Utils$1.isObjectLiteral(item)) {
           const o = item;
           item = this.createItem(o);
@@ -6748,13 +6756,15 @@
             if (this._items[index].ref) {
               this._refs[this._items[index].ref] = void 0;
             }
+            const prevItem = this._items[index];
+            this._items[index] = item;
+            if (item.ref) {
+              this._refs[item.ref] = item;
+            }
+            this.onSet(item, index, prevItem);
+          } else {
+            throw new Error("setAt: The index " + index + " is out of bounds " + this._items.length);
           }
-          const prevItem = this._items[index];
-          this._items[index] = item;
-          if (item.ref) {
-            this._refs[item.ref] = item;
-          }
-          this.onSet(item, index, prevItem);
         }
       } else {
         throw new Error("setAt: The index " + index + " is out of bounds " + this._items.length);
@@ -7413,7 +7423,7 @@
           prevTexture.removeElement(this);
         }
       }
-      const prevSource = this.__core.displayedTextureSource ? this.__core.displayedTextureSource._source : null;
+      const prevSource = this.__core.displayedTextureSource;
       const sourceChanged = (v ? v._source : null) !== prevSource;
       this.__displayedTexture = v;
       this._updateDimensions();
@@ -7427,6 +7437,7 @@
       }
       if (sourceChanged) {
         if (this.__displayedTexture) {
+          this.stage.removeUpdateSourceTexture(this.__displayedTexture);
           this.emit("txLoaded", this.__displayedTexture);
         } else {
           this.emit("txUnloaded", this.__displayedTexture);
@@ -12701,6 +12712,7 @@ ${indent}  "${refs[i]}":`;
       return gl;
     }
   }
+  const WebGLStateManager$1 = WebGLStateManager;
   class TextureManager {
     constructor(stage) {
       this.stage = stage;
@@ -13961,7 +13973,7 @@ ${indent}  "${refs[i]}":`;
         }
       }
       if (this.gl) {
-        WebGLStateManager.enable(this.gl, "lightning");
+        WebGLStateManager$1.enable(this.gl, "lightning");
       }
       this._mode = this.gl ? 0 : 1;
       if (this.getCanvas()) {
@@ -14961,7 +14973,7 @@ ${indent}  "${refs[i]}":`;
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         cb(null, canvas);
       };
-      img.onError = (err) => {
+      img.onerror = (err) => {
         cb(err);
       };
       if (!Utils$1.isPS4) {
