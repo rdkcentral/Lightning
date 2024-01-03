@@ -220,7 +220,7 @@
       }
     }
   }
-  let Utils$1 = class Utils2 {
+  let Utils$1 = class Utils {
     static isFunction(value) {
       return typeof value === "function";
     }
@@ -237,8 +237,8 @@
       return typeof value === "string";
     }
     static clone(v) {
-      if (Utils2.isObjectLiteral(v) || Array.isArray(v)) {
-        return Utils2.getDeepClone(v);
+      if (Utils$1.isObjectLiteral(v) || Array.isArray(v)) {
+        return Utils$1.getDeepClone(v);
       } else {
         return v;
       }
@@ -270,7 +270,7 @@
       return typeof value === "object" && value && value.constructor === Object;
     }
     static getArrayIndex(index, arr) {
-      return Utils2.getModuloIndex(index, arr.length);
+      return Utils$1.getModuloIndex(index, arr.length);
     }
     static getModuloIndex(index, len) {
       if (len === 0)
@@ -283,21 +283,21 @@
     }
     static getDeepClone(obj) {
       let i, c;
-      if (Utils2.isFunction(obj)) {
+      if (Utils$1.isFunction(obj)) {
         return obj;
       }
       if (Array.isArray(obj)) {
         c = [];
         let keys = Object.keys(obj);
         for (i = 0; i < keys.length; i++) {
-          c[keys[i]] = Utils2.getDeepClone(obj[keys[i]]);
+          c[keys[i]] = Utils$1.getDeepClone(obj[keys[i]]);
         }
         return c;
-      } else if (Utils2.isObject(obj)) {
+      } else if (Utils$1.isObject(obj)) {
         c = {};
         let keys = Object.keys(obj);
         for (i = 0; i < keys.length; i++) {
-          c[keys[i]] = Utils2.getDeepClone(obj[keys[i]]);
+          c[keys[i]] = Utils$1.getDeepClone(obj[keys[i]]);
         }
         return c;
       } else {
@@ -307,10 +307,10 @@
     static equalValues(v1, v2) {
       if (typeof v1 !== typeof v2)
         return false;
-      if (Utils2.isObjectLiteral(v1)) {
-        return Utils2.isObjectLiteral(v2) && Utils2.equalObjectLiterals(v1, v2);
+      if (Utils$1.isObjectLiteral(v1)) {
+        return Utils$1.isObjectLiteral(v2) && Utils$1.equalObjectLiterals(v1, v2);
       } else if (Array.isArray(v1)) {
-        return Array.isArray(v2) && Utils2.equalArrays(v1, v2);
+        return Array.isArray(v2) && Utils$1.equalArrays(v1, v2);
       } else {
         return v1 === v2;
       }
@@ -329,7 +329,7 @@
         }
         const v1 = obj1[k1];
         const v2 = obj2[k2];
-        if (!Utils2.equalValues(v1, v2)) {
+        if (!Utils$1.equalValues(v1, v2)) {
           return false;
         }
       }
@@ -2321,7 +2321,7 @@
         return;
       }
       if (!this._nativeTexture && !this.isLoading()) {
-        this.loadingSince = (/* @__PURE__ */ new Date()).getTime();
+        this.loadingSince = new Date().getTime();
         this._cancelCb = this.loader((err, options) => {
           if (this.isLoading()) {
             this._cancelCb = null;
@@ -2566,7 +2566,6 @@
       this._localAlpha = 1;
       this._onAfterCalcs = null;
       this._onAfterUpdate = null;
-      this.isRTL = this.ctx.stage.getOption("RTL");
       this._localPx = 0;
       this._localPy = 0;
       this._localTa = 1;
@@ -2942,7 +2941,7 @@
       let pivotXMul = this._pivotX * this._w;
       let pivotYMul = this._pivotY * this._h;
       let px;
-      if (this.isRTL) {
+      if (window.isRTL) {
         px = this._x + (pivotXMul * this._localTa + pivotYMul * this._localTb) - pivotXMul;
       } else {
         px = this._x - (pivotXMul * this._localTa + pivotYMul * this._localTb) + pivotXMul;
@@ -3552,7 +3551,7 @@
         }
         if (recalc & 6) {
           let calculatedX = this._localPx;
-          if (this.isRTL) {
+          if (window.isRTL) {
             const parentW = this._element.__parent ? this._parent.w || 0 : this.ctx.stage.getOption("w");
             calculatedX = parentW - (this._w || 0) - this._localPx;
           }
@@ -3590,7 +3589,7 @@
           }
           if (init || recalc & 6) {
             let calculatedX = this._localPx;
-            if (this.isRTL) {
+            if (window.isRTL) {
               const parentW = this._element.__parent ? this._parent.w || 0 : this.ctx.stage.getOption("w");
               calculatedX = parentW - (this._w || 0) - this._localPx;
             }
@@ -5181,7 +5180,7 @@
       this._canvas.width = Math.ceil(renderInfo.width + this._stage.getOption("textRenderIssueMargin"));
       this._canvas.height = Math.ceil(renderInfo.height);
       this.setFontProperties();
-      if (this._stage.getOption("RTL")) {
+      if (window.isRTL) {
         this._context.direction = "rtl";
         this._context.textAlign = "left";
       }
@@ -11882,7 +11881,7 @@ ${indent}  "${refs[i]}":`;
       return c2d;
     }
     getHrTime() {
-      return window.performance ? window.performance.now() : (/* @__PURE__ */ new Date()).getTime();
+      return window.performance ? window.performance.now() : new Date().getTime();
     }
     getDrawingCanvas() {
       return document.createElement("canvas");
