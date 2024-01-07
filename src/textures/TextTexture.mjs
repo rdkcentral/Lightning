@@ -196,7 +196,7 @@ export default class TextTexture extends Texture {
     }
 
     set textAlign(v) {
-        if (v != 'center' && this.stage.getOption('RTL')) {
+        if (v != 'center' && window.isRTL) {
             v = v == "right" ? "left" : "right";
         }
         if (this._textAlign !== v) {
