@@ -233,8 +233,8 @@ let Utils$1 = class Utils {
     return typeof value === "string";
   }
   static clone(v) {
-    if (Utils$1.isObjectLiteral(v) || Array.isArray(v)) {
-      return Utils$1.getDeepClone(v);
+    if (Utils.isObjectLiteral(v) || Array.isArray(v)) {
+      return Utils.getDeepClone(v);
     } else {
       return v;
     }
@@ -266,7 +266,7 @@ let Utils$1 = class Utils {
     return typeof value === "object" && value && value.constructor === Object;
   }
   static getArrayIndex(index, arr) {
-    return Utils$1.getModuloIndex(index, arr.length);
+    return Utils.getModuloIndex(index, arr.length);
   }
   static getModuloIndex(index, len) {
     if (len === 0)
@@ -279,21 +279,21 @@ let Utils$1 = class Utils {
   }
   static getDeepClone(obj) {
     let i, c;
-    if (Utils$1.isFunction(obj)) {
+    if (Utils.isFunction(obj)) {
       return obj;
     }
     if (Array.isArray(obj)) {
       c = [];
       let keys = Object.keys(obj);
       for (i = 0; i < keys.length; i++) {
-        c[keys[i]] = Utils$1.getDeepClone(obj[keys[i]]);
+        c[keys[i]] = Utils.getDeepClone(obj[keys[i]]);
       }
       return c;
-    } else if (Utils$1.isObject(obj)) {
+    } else if (Utils.isObject(obj)) {
       c = {};
       let keys = Object.keys(obj);
       for (i = 0; i < keys.length; i++) {
-        c[keys[i]] = Utils$1.getDeepClone(obj[keys[i]]);
+        c[keys[i]] = Utils.getDeepClone(obj[keys[i]]);
       }
       return c;
     } else {
@@ -303,10 +303,10 @@ let Utils$1 = class Utils {
   static equalValues(v1, v2) {
     if (typeof v1 !== typeof v2)
       return false;
-    if (Utils$1.isObjectLiteral(v1)) {
-      return Utils$1.isObjectLiteral(v2) && Utils$1.equalObjectLiterals(v1, v2);
+    if (Utils.isObjectLiteral(v1)) {
+      return Utils.isObjectLiteral(v2) && Utils.equalObjectLiterals(v1, v2);
     } else if (Array.isArray(v1)) {
-      return Array.isArray(v2) && Utils$1.equalArrays(v1, v2);
+      return Array.isArray(v2) && Utils.equalArrays(v1, v2);
     } else {
       return v1 === v2;
     }
@@ -325,7 +325,7 @@ let Utils$1 = class Utils {
       }
       const v1 = obj1[k1];
       const v2 = obj2[k2];
-      if (!Utils$1.equalValues(v1, v2)) {
+      if (!Utils.equalValues(v1, v2)) {
         return false;
       }
     }
@@ -2317,7 +2317,7 @@ class TextureSource {
       return;
     }
     if (!this._nativeTexture && !this.isLoading()) {
-      this.loadingSince = new Date().getTime();
+      this.loadingSince = (/* @__PURE__ */ new Date()).getTime();
       this._cancelCb = this.loader((err, options) => {
         if (this.isLoading()) {
           this._cancelCb = null;
@@ -5954,7 +5954,7 @@ class TextTexture extends Texture {
     return this._textAlign;
   }
   set textAlign(v) {
-    if (v != "center" && this.stage.getOption("RTL")) {
+    if (v != "center" && window.isRTL) {
       v = v == "right" ? "left" : "right";
     }
     if (this._textAlign !== v) {
@@ -11877,7 +11877,7 @@ class WebPlatform {
     return c2d;
   }
   getHrTime() {
-    return window.performance ? window.performance.now() : new Date().getTime();
+    return window.performance ? window.performance.now() : (/* @__PURE__ */ new Date()).getTime();
   }
   getDrawingCanvas() {
     return document.createElement("canvas");

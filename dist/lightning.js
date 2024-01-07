@@ -220,7 +220,7 @@
       }
     }
   }
-  let Utils$1 = class Utils {
+  let Utils$1 = class Utils2 {
     static isFunction(value) {
       return typeof value === "function";
     }
@@ -237,8 +237,8 @@
       return typeof value === "string";
     }
     static clone(v) {
-      if (Utils$1.isObjectLiteral(v) || Array.isArray(v)) {
-        return Utils$1.getDeepClone(v);
+      if (Utils2.isObjectLiteral(v) || Array.isArray(v)) {
+        return Utils2.getDeepClone(v);
       } else {
         return v;
       }
@@ -270,7 +270,7 @@
       return typeof value === "object" && value && value.constructor === Object;
     }
     static getArrayIndex(index, arr) {
-      return Utils$1.getModuloIndex(index, arr.length);
+      return Utils2.getModuloIndex(index, arr.length);
     }
     static getModuloIndex(index, len) {
       if (len === 0)
@@ -283,21 +283,21 @@
     }
     static getDeepClone(obj) {
       let i, c;
-      if (Utils$1.isFunction(obj)) {
+      if (Utils2.isFunction(obj)) {
         return obj;
       }
       if (Array.isArray(obj)) {
         c = [];
         let keys = Object.keys(obj);
         for (i = 0; i < keys.length; i++) {
-          c[keys[i]] = Utils$1.getDeepClone(obj[keys[i]]);
+          c[keys[i]] = Utils2.getDeepClone(obj[keys[i]]);
         }
         return c;
-      } else if (Utils$1.isObject(obj)) {
+      } else if (Utils2.isObject(obj)) {
         c = {};
         let keys = Object.keys(obj);
         for (i = 0; i < keys.length; i++) {
-          c[keys[i]] = Utils$1.getDeepClone(obj[keys[i]]);
+          c[keys[i]] = Utils2.getDeepClone(obj[keys[i]]);
         }
         return c;
       } else {
@@ -307,10 +307,10 @@
     static equalValues(v1, v2) {
       if (typeof v1 !== typeof v2)
         return false;
-      if (Utils$1.isObjectLiteral(v1)) {
-        return Utils$1.isObjectLiteral(v2) && Utils$1.equalObjectLiterals(v1, v2);
+      if (Utils2.isObjectLiteral(v1)) {
+        return Utils2.isObjectLiteral(v2) && Utils2.equalObjectLiterals(v1, v2);
       } else if (Array.isArray(v1)) {
-        return Array.isArray(v2) && Utils$1.equalArrays(v1, v2);
+        return Array.isArray(v2) && Utils2.equalArrays(v1, v2);
       } else {
         return v1 === v2;
       }
@@ -329,7 +329,7 @@
         }
         const v1 = obj1[k1];
         const v2 = obj2[k2];
-        if (!Utils$1.equalValues(v1, v2)) {
+        if (!Utils2.equalValues(v1, v2)) {
           return false;
         }
       }
@@ -2321,7 +2321,7 @@
         return;
       }
       if (!this._nativeTexture && !this.isLoading()) {
-        this.loadingSince = new Date().getTime();
+        this.loadingSince = (/* @__PURE__ */ new Date()).getTime();
         this._cancelCb = this.loader((err, options) => {
           if (this.isLoading()) {
             this._cancelCb = null;
@@ -5958,7 +5958,7 @@
       return this._textAlign;
     }
     set textAlign(v) {
-      if (v != "center" && this.stage.getOption("RTL")) {
+      if (v != "center" && window.isRTL) {
         v = v == "right" ? "left" : "right";
       }
       if (this._textAlign !== v) {
@@ -11881,7 +11881,7 @@ ${indent}  "${refs[i]}":`;
       return c2d;
     }
     getHrTime() {
-      return window.performance ? window.performance.now() : new Date().getTime();
+      return window.performance ? window.performance.now() : (/* @__PURE__ */ new Date()).getTime();
     }
     getDrawingCanvas() {
       return document.createElement("canvas");
