@@ -233,8 +233,8 @@ let Utils$1 = class Utils {
     return typeof value === "string";
   }
   static clone(v) {
-    if (Utils.isObjectLiteral(v) || Array.isArray(v)) {
-      return Utils.getDeepClone(v);
+    if (Utils$1.isObjectLiteral(v) || Array.isArray(v)) {
+      return Utils$1.getDeepClone(v);
     } else {
       return v;
     }
@@ -266,7 +266,7 @@ let Utils$1 = class Utils {
     return typeof value === "object" && value && value.constructor === Object;
   }
   static getArrayIndex(index, arr) {
-    return Utils.getModuloIndex(index, arr.length);
+    return Utils$1.getModuloIndex(index, arr.length);
   }
   static getModuloIndex(index, len) {
     if (len === 0)
@@ -279,21 +279,21 @@ let Utils$1 = class Utils {
   }
   static getDeepClone(obj) {
     let i, c;
-    if (Utils.isFunction(obj)) {
+    if (Utils$1.isFunction(obj)) {
       return obj;
     }
     if (Array.isArray(obj)) {
       c = [];
       let keys = Object.keys(obj);
       for (i = 0; i < keys.length; i++) {
-        c[keys[i]] = Utils.getDeepClone(obj[keys[i]]);
+        c[keys[i]] = Utils$1.getDeepClone(obj[keys[i]]);
       }
       return c;
-    } else if (Utils.isObject(obj)) {
+    } else if (Utils$1.isObject(obj)) {
       c = {};
       let keys = Object.keys(obj);
       for (i = 0; i < keys.length; i++) {
-        c[keys[i]] = Utils.getDeepClone(obj[keys[i]]);
+        c[keys[i]] = Utils$1.getDeepClone(obj[keys[i]]);
       }
       return c;
     } else {
@@ -303,10 +303,10 @@ let Utils$1 = class Utils {
   static equalValues(v1, v2) {
     if (typeof v1 !== typeof v2)
       return false;
-    if (Utils.isObjectLiteral(v1)) {
-      return Utils.isObjectLiteral(v2) && Utils.equalObjectLiterals(v1, v2);
+    if (Utils$1.isObjectLiteral(v1)) {
+      return Utils$1.isObjectLiteral(v2) && Utils$1.equalObjectLiterals(v1, v2);
     } else if (Array.isArray(v1)) {
-      return Array.isArray(v2) && Utils.equalArrays(v1, v2);
+      return Array.isArray(v2) && Utils$1.equalArrays(v1, v2);
     } else {
       return v1 === v2;
     }
@@ -325,7 +325,7 @@ let Utils$1 = class Utils {
       }
       const v1 = obj1[k1];
       const v2 = obj2[k2];
-      if (!Utils.equalValues(v1, v2)) {
+      if (!Utils$1.equalValues(v1, v2)) {
         return false;
       }
     }
@@ -2317,7 +2317,7 @@ class TextureSource {
       return;
     }
     if (!this._nativeTexture && !this.isLoading()) {
-      this.loadingSince = (/* @__PURE__ */ new Date()).getTime();
+      this.loadingSince = new Date().getTime();
       this._cancelCb = this.loader((err, options) => {
         if (this.isLoading()) {
           this._cancelCb = null;
@@ -11789,7 +11789,7 @@ class WebPlatform {
   loadSrcTexture({ src, hasAlpha }, cb) {
     let cancelCb = void 0;
     let isPng = src.toLowerCase().indexOf(".png") >= 0 || src.substr(0, 21) == "data:image/png;base64";
-    let isKtx = src.indexOf(".ktx") >= 0;
+    let isKtx = src.indexOf(".ktx") >= 0 || src.indexOf("type=etc") >= 0;
     let isPvr = src.indexOf(".pvr") >= 0;
     if (isKtx || isPvr) {
       let request = new XMLHttpRequest();
@@ -11877,7 +11877,7 @@ class WebPlatform {
     return c2d;
   }
   getHrTime() {
-    return window.performance ? window.performance.now() : (/* @__PURE__ */ new Date()).getTime();
+    return window.performance ? window.performance.now() : new Date().getTime();
   }
   getDrawingCanvas() {
     return document.createElement("canvas");

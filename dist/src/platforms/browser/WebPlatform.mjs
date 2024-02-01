@@ -268,7 +268,7 @@ export default class WebPlatform {
     loadSrcTexture({ src, hasAlpha }, cb) {
         let cancelCb = undefined;
         let isPng = (src.toLowerCase().indexOf(".png") >= 0) || src.substr(0, 21) == 'data:image/png;base64';
-        let isKtx = src.indexOf('.ktx') >= 0;
+        let isKtx = src.indexOf('.ktx') >= 0 || src.indexOf('type=etc') >= 0;
         let isPvr = src.indexOf('.pvr') >= 0;
         if (isKtx || isPvr) {
             let request = new XMLHttpRequest();
