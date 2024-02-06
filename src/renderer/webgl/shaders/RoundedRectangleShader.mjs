@@ -35,6 +35,10 @@ export default class RoundedRectangleShader extends DefaultShader {
         this._blend = Math.min(Math.max(p, 0), 1);
     }
 
+    get blend() {
+        return this._blend;
+    }
+
     set radius(v) {
         if(Array.isArray(v)) {
             if(v.length === 2) {
@@ -93,7 +97,7 @@ export default class RoundedRectangleShader extends DefaultShader {
     }
 
     get bottomLeft() {
-        return this._radius[4];
+        return this._radius[3];
     }
 
     set strokeColor(argb) {
@@ -229,6 +233,6 @@ RoundedRectangleShader.fragmentShaderSource = `
         vec4 tex = texture2D(uSampler, vTextureCoord) * vColor;
         vec4 blend = mix(vec4(1.0) * alpha, tex, blend);     
         vec4 layer1 = mix(vec4(0.0), tex * fillColor, fillMask(b));
-        gl_FragColor = mix(layer1, blend * strokeColor, innerBorderMask(b, stroke));
+        gl_FragColor = mix(layer1, blend * strokeColor, innerBorderMask(b + 1.0, stroke));
     }
 `;
