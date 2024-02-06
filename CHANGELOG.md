@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.12.1
+*07 feb 2024*
+
+- Fixed examples that were not working due to incorrect imports
+- Fixed build issues on non-*nix systems
+- Fixed some typos in the documentation
+
 ## v2.12.0
 *26 oct 2023*
 
