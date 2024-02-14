@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.12.1
+*07 feb 2024*
+
+- Fixed examples that were not working due to incorrect imports.
+- Fixed build issues on non-*nix systems.
+- Fixed some typos in the documentation.
+- Fixed an issue in RoundedRectangleShader where setting a stroke value resulted in incorrect clipping, especially noticeable when the radius is half the height.
+
 ## v2.12.0
 *26 oct 2023*
 

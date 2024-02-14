@@ -1,7 +1,7 @@
 {
   "author": "Metrological, Bas van Meurs <b.van.meurs@metrological.com>",
   "name": "@lightningjs/core",
-  "version": "2.12.0",
+  "version": "2.12.1",
   "license": "Apache-2.0",
   "type": "module",
   "types": "dist/src/index.d.ts",
@@ -29,16 +29,16 @@
     "devtools/**"
   ],
   "scripts": {
-    "build": "mkdir -p dist && rm -fr dist/* && concurrently -c \"auto\" \"npm:build:lightning\" \"npm:build:lightning.min\" \"npm:build:lightning.es5\" \"npm:build:lightning.es5.min\" \"npm:build:lightning-inspect.es5\" && npm run src-to-dist",
+    "build": "shx mkdir -p dist && shx rm -fr dist/* && concurrently -c \"auto\" \"npm:build:lightning\" \"npm:build:lightning.min\" \"npm:build:lightning.es5\" \"npm:build:lightning.es5.min\" \"npm:build:lightning-inspect.es5\" && npm run src-to-dist",
     "release": "npm run build && npm publish --access public",
     "typedoc": "typedoc --tsconfig tsconfig.typedoc.json",
     "tsd": "tsd",
-    "src-to-dist": "bash ./scripts/src-to-dist.sh",
-    "build:lightning-inspect.es5": "BUILD_INSPECTOR=true BUILD_ES5=true vite build --mode production",
+    "src-to-dist": "node ./scripts/src-to-dist.cjs",
+    "build:lightning-inspect.es5": "cross-env BUILD_INSPECTOR=true BUILD_ES5=true vite build --mode production",
     "build:lightning": "vite build --mode production",
-    "build:lightning.min": "BUILD_MINIFY=true vite build --mode production",
-    "build:lightning.es5": "BUILD_ES5=true vite build --mode production",
-    "build:lightning.es5.min": "BUILD_ES5=true BUILD_MINIFY=true vite build --mode production",
+    "build:lightning.min": "cross-env BUILD_MINIFY=true vite build --mode production",
+    "build:lightning.es5": "cross-env BUILD_ES5=true vite build --mode production",
+    "build:lightning.es5.min": "cross-env BUILD_ES5=true BUILD_MINIFY=true vite build --mode production",
     "test": "vitest"
   },
   "repository": {
@@ -58,8 +58,11 @@
     "@vitejs/plugin-legacy": "^3.0.1",
     "chai": "^4.2.0",
     "concurrently": "^7.6.0",
+    "cross-env": "^7.0.3",
     "mocha": "^6.2.1",
     "rollup-plugin-cleanup": "^3.1.1",
+    "shelljs": "^0.8.5",
+    "shx": "^0.3.4",
     "sinon": "^7.5.0",
     "terser": "^5.16.8",
     "tsd": "^0.21.0",
