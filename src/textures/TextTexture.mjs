@@ -84,7 +84,7 @@ export default class TextTexture extends Texture {
     get fontBaselineRatio() {
         return this._fontBaselineRatio;
     }
-    
+
     set fontBaselineRatio(v) {
         if (this._fontBaselineRatio !== v) {
             this._fontBaselineRatio = v;
@@ -466,6 +466,17 @@ export default class TextTexture extends Texture {
         return this._textIndent;
     }
 
+    set rtl(v) {
+        if (this._rtl !== v) {
+            this._rtl = v;
+            this._changed();
+        }
+    }
+
+    get rtl() {
+        return this._rtl;
+    }
+
     get precision() {
         return super.precision;
     }
@@ -541,7 +552,7 @@ export default class TextTexture extends Texture {
             const renderer = (args.advancedRenderer)
               ? new TextTextureRendererAdvanced(this.stage, canvas, args)
               : new TextTextureRenderer(this.stage, canvas, args);
-            
+
             const p = renderer.draw();
 
             const texParams = {};
@@ -620,6 +631,7 @@ export default class TextTexture extends Texture {
         if (this.highlightPaddingRight !== 0) nonDefaults["highlightPaddingRight"] = this.highlightPaddingRight;
         if (this.letterSpacing !== 0) nonDefaults["letterSpacing"] = this.letterSpacing;
         if (this.textIndent !== 0) nonDefaults["textIndent"] = this.textIndent;
+        if (this.rtl !== 0) nonDefaults["rtl"] = this.rtl;
 
         if (this.cutSx) nonDefaults["cutSx"] = this.cutSx;
         if (this.cutEx) nonDefaults["cutEx"] = this.cutEx;
@@ -667,6 +679,7 @@ export default class TextTexture extends Texture {
         obj.highlightPaddingRight = this._highlightPaddingRight;
         obj.letterSpacing = this._letterSpacing;
         obj.textIndent = this._textIndent;
+        obj.rtl = this._rtl;
         obj.cutSx = this._cutSx;
         obj.cutEx = this._cutEx;
         obj.cutSy = this._cutSy;
@@ -714,6 +727,7 @@ proto._highlightPaddingLeft = 0;
 proto._highlightPaddingRight = 0;
 proto._letterSpacing = 0;
 proto._textIndent = 0;
+proto._rtl = 0;
 proto._cutSx = 0;
 proto._cutEx = 0;
 proto._cutSy = 0;
