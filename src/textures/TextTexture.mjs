@@ -552,7 +552,7 @@ export default class TextTexture extends Texture {
             const renderer = (args.advancedRenderer)
               ? new TextTextureRendererAdvanced(this.stage, canvas, args)
               : new TextTextureRenderer(this.stage, canvas, args);
-
+            
             const p = renderer.draw();
 
             const texParams = {};
