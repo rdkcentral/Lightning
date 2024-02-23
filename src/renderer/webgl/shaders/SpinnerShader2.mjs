@@ -20,6 +20,8 @@
 import DefaultShader from "./DefaultShader.mjs";
 import StageUtils from "../../../tree/StageUtils.mjs";
 
+// amount of time a revolution of the spinner takes.
+const REVOLUTION_TIME = 1005;
 export default class SpinnerShader2 extends DefaultShader {
     constructor(context) {
         super(context);
@@ -114,7 +116,7 @@ export default class SpinnerShader2 extends DefaultShader {
         this._setUniform('radius',  radius, this.gl.uniform1f);
         this._setUniform('direction',  this._clockwise ? -1 : 1, this.gl.uniform1f);
         this._setUniform('showDot', !!this._showDot, this.gl.uniform1f);
-        this._setUniform('time', Date.now() - SpinnerShader2.spinSync, this.gl.uniform1f);
+        this._setUniform('time', (Date.now() - SpinnerShader2.spinSync) % REVOLUTION_TIME, this.gl.uniform1f);
         this._setUniform('period', this._period, this.gl.uniform1f);
         this._setUniform('alpha', operation.getElementCore(0).renderContext.alpha, this.gl.uniform1f);
 
