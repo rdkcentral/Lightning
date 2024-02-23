@@ -84,7 +84,7 @@ export default class TextTexture extends Texture {
     get fontBaselineRatio() {
         return this._fontBaselineRatio;
     }
-
+    
     set fontBaselineRatio(v) {
         if (this._fontBaselineRatio !== v) {
             this._fontBaselineRatio = v;
