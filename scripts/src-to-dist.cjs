@@ -14,7 +14,7 @@ console.log("Copying all JavaScript source code to ./dist...");
 shell.find('./src/')
   .filter(file => {
     const ext = path.extname(file);
-    return ['.js', '.mjs', '.d.mts', '.d.ts'].includes(ext) && !file.includes('.test.');
+    return ['.js', '.mjs', '.mts', '.ts'].includes(ext) && !file.includes('.test.');
   })
   .forEach(file => {
     const distFile = path.join('./dist', file);
