@@ -43,6 +43,7 @@ export default class TextTextureRenderer {
             this._stage.getOption('defaultFontFace'),
         );
         this._context.textBaseline = this._settings.textBaseline;
+        this._context.direction = this._settings.rtl ? "rtl" : "ltr";
     };
 
     _load() {
@@ -306,6 +307,9 @@ export default class TextTextureRenderer {
                 linePositionX += ((renderInfo.innerWidth - renderInfo.lineWidths[i]) / 2);
             }
             linePositionX += renderInfo.paddingLeft;
+            if (this._settings.rtl) {
+                linePositionX += renderInfo.lineWidths[i];
+            }
 
             drawLines.push({text: renderInfo.lines[i], x: linePositionX, y: linePositionY, w: renderInfo.lineWidths[i]});
         }

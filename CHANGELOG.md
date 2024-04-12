@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.13.0
+*11 apr 2024*
+
+- Fixed an issue causing not including TypeScript types in the build. (#527)
+- Enhanced handling of bidirectional text in TextTexture by setting canvas context direction to correct display of text blocks in RTL configurations.
+
 ## v2.12.1
 *07 feb 2024*
 
