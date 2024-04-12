@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.13.1
+*12 apr 2024*
+
+- Hotfix - Typescript types were not properly published
+
 ## v2.13.0
 *11 apr 2024*
 
