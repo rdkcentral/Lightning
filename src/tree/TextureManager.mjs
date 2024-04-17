@@ -139,7 +139,6 @@ export default class TextureManager {
 
     gc() {
         this.freeUnusedTextureSources();
-        this._cleanupLookupMap();
     }
     
     freeUnusedTextureSources() {
