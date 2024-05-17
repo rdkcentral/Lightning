@@ -8,6 +8,10 @@ Lightning is a (TV) app development framework that offers great portability and 
 ## Documentation
 [Documentation](https://lightningjs.io/docs/)
 
+## Lightning 3
+
+[Lightning 3](https://github.com/lightning-js/renderer) and [Blits](https://github.com/lightning-js/blits) are now available.
+
 ## Feedback, bugs, questions and support
 
 In case you find any _bugs_ or have _feature requests_, feel free to open an [issue](https://github.com/rdkcentral/Lightning/issues/new) on the GitHub repository.
