@@ -449,7 +449,7 @@ export default class Stage extends EventEmitter {
 
     addMemoryUsage(delta) {
         this._usedMemory += delta;
-        if (this._lastGcFrame !== this.frameCounter) {
+        if (delta > 0 && this._lastGcFrame !== this.frameCounter) {
             if (this._usedMemory > this.getOption('memoryPressure')) {
                 this.gc(false);
                 if (this._usedMemory > this.getOption('memoryPressure') - 2e6) {
