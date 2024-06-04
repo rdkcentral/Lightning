@@ -45,10 +45,10 @@ export function getFontSetting(
         let curFf = ff[i];
         // Replace the default font face `null` with the actual default font face set
         // on the stage.
-        if (curFf === null) {
+        if (curFf == null) {
             curFf = defaultFontFace;
         }
-        if (curFf === "serif" || curFf === "sans-serif") {
+        if (curFf.indexOf(' ') < 0) {
             ffs.push(curFf);
         } else {
             ffs.push(`"${curFf}"`);
