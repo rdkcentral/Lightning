@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.13.2
+*04 June 2024*
+
+- Fixes limiting behaviour that prevented using other system fonts. (#537)
+- Fixes duplicated call for `_cleanupLookupMap()` in the garbage collection function. (#520)
+- Fixes the issue causing double freeing of textures due to the garbage collection triggered during releasing memory. (#529)
+
 ## v2.13.1
 *12 apr 2024*
 
