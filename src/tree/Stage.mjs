@@ -343,6 +343,10 @@ export default class Stage extends EventEmitter {
         this.frameCounter++;
     }
 
+    onIdle() {
+        this.emit('idle');
+    }
+
     renderFrame() {
         const changes = this.ctx.hasRenderUpdates();
 
