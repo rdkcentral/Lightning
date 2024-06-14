@@ -101,12 +101,10 @@ export default class WebPlatform {
     }
 
     loop() {
-        // reset idle state
-        this._onIdle = false;
-
         let self = this;
         let lp = function () {
             self._awaitingLoop = false;
+            self._onIdle = false;
             if (self._looping) {
                 self.stage.updateFrame();
                 if (self.stage.getOption("pauseRafLoopOnIdle")) {
