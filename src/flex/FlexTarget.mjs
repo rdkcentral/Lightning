@@ -159,9 +159,11 @@ export default class FlexTarget {
 
     _enableFlexItem() {
         this._ensureFlexItem();
-        const flexParent = this._target._parent._layout;
-        this._flexItem.ctr = flexParent._flex;
-        flexParent.changedContents();
+        if (this._target._parent) {
+            const flexParent = this._target._parent._layout;
+            this._flexItem.ctr = flexParent._flex;
+            flexParent.changedContents();
+        }
         this._checkEnabled();
     }
 
