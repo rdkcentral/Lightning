@@ -182,7 +182,7 @@ declare class Animation extends EventEmitter<Animation.EventMap> {
   isFinished(): boolean;
 
   // checkActive(): void;
-  // - Internal use only
+  // - Only used internally
 
   /**
    * Returns ‘true’ if the animation is currently progressing (playing or stopping)
@@ -201,7 +201,7 @@ declare class Animation extends EventEmitter<Animation.EventMap> {
   // _getStopDuration(): any;
   // apply(): void;
   // reset(): void;
-  // - Internal use only
+  // - Only used internally
 
   /**
    * Gets the current state of the animation
