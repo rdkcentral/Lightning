@@ -462,7 +462,7 @@ declare class TextTexture extends Texture implements Required<Omit<TextTexture.S
   // protected _changed(): void;
   // protected stage: Stage;
   // cloneArgs(): Required<TextTexture.Settings>;
-  // - Internal use only
+  // - Internal Types
 
 
   get text(): string;

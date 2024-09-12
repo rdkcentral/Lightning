@@ -36,7 +36,7 @@ export type CompileComponentTemplateSpecType<
 /**
  * Returns `true` if the CustomKeyHandlers interface is augmented
  *
- * @hidden Internal use only
+ * @hidden Only used internally
  */
 type IsCustomKeyHandlersAugmented =
   object extends Required<Component.CustomKeyHandlers>
@@ -48,7 +48,7 @@ type IsCustomKeyHandlersAugmented =
 /**
  * Signals by SignalMap
  *
- * @hidden Internal use only
+ * @hidden Only used internally
  */
 export type __Signals<SignalMapType = Record<never, never>> = {
   [Key in keyof SignalMapType]?:
@@ -58,7 +58,7 @@ export type __Signals<SignalMapType = Record<never, never>> = {
 /**
  * PassSignals by SignalMap
  *
- * @hidden Internal use only
+ * @hidden Only used internally
  */
 export type __PassSignals<SignalMapType = Record<never, never>> = {
   [Key in keyof SignalMapType]?:
@@ -1190,7 +1190,7 @@ declare class Component<
   /**
    * Phantom type that holds the TemplateSpec.
    *
-   * Internal Use Only. NOT AVAILABLE AT RUNTIME.
+   * Only used internally. NOT AVAILABLE AT RUNTIME.
    */
   readonly __$type_TemplateSpec: CompileComponentTemplateSpecType<TemplateSpecType, TypeConfig>
 }
