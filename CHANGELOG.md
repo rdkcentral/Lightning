@@ -1,6 +1,11 @@
 # Changelog
 
 ## v2.14.0
+*20 September 2024*
+
+- Reworded TS comments
+
+## v2.14.0
 *24 June 2024*
 
 - Adds `onIdle` event when `pauseRafLoopOnIdle` is enabled.
