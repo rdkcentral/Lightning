@@ -115,7 +115,7 @@ export default class DefaultShader extends C2dShader {
 
         if (vc._colorUl === vc._colorUr) {
             if (vc._colorBl === vc._colorBr) {
-                if (vc._colorUl === vc.colorBl) {
+                if (vc._colorUl === vc._colorBl) {
                     // Single color.
                 } else {
                     // Vertical gradient.
