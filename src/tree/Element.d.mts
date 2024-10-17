@@ -41,7 +41,7 @@ import TextureSource from "./TextureSource.mjs";
  * Filters out any non-ref keys from an inline Element template and returns the filtered
  * type with Strong Element template spec.
  *
- * @hidden Internal use only
+ * @hidden Only used internally
  */
 export type InlineElement<ElementTemplate> = {
   [P in keyof ElementTemplate as P extends ValidRef ? P : never]:
@@ -51,7 +51,7 @@ export type InlineElement<ElementTemplate> = {
 /**
  * An object keyed by transitionable Element properties
  *
- * @hidden Internal use only
+ * @hidden Only used internally
  */
 export type SmoothTemplate<TemplateSpecType = Element.TemplateSpec> = {
   [P in keyof TemplateSpecType]?:
@@ -66,7 +66,7 @@ export type SmoothTemplate<TemplateSpecType = Element.TemplateSpec> = {
  * An object keyed by transitionable Element properties (numeric properties)
  * and valued by {@link lng.types.TransitionSettings.Literal}
  *
- * @hidden Internal use only
+ * @hidden Only used internally
  */
 export type TransitionsTemplate<TemplateSpecType = Element.TemplateSpec> = {
   [P in keyof TemplateSpecType]?:
@@ -83,7 +83,7 @@ export type TransitionsTemplate<TemplateSpecType = Element.TemplateSpec> = {
  * @privateRemarks
  * Used to build: __$type_TemplateSpec
  *
- * @hidden Internal use only
+ * @hidden Only used internally
  */
 export type CompileElementTemplateSpecType<
   TemplateSpecType extends Element.TemplateSpec,
@@ -98,7 +98,7 @@ export type CompileElementTemplateSpecType<
  * If `PossibleElementConstructor` is an inline Element or a Component Constructor, convert it to it's instantiated form.
  * Otherwise, return the input type (or something else by setting `Default`)
  *
- * @hidden Internal use only
+ * @hidden Only used internally
  */
 export type TransformPossibleElement<Key, PossibleElementConstructor, Default = PossibleElementConstructor> =
   string extends Key
@@ -132,7 +132,7 @@ export type IsLooseTypeConfig<TypeConfig extends Element.TypeConfig> = string ex
  * Converts a loose Element template to a strong Element template by
  * removing the index signature that Element.TemplateSpecLoose adds
  *
- * @hidden Internal use only
+ * @hidden Only used internally
  */
 export type RemoveIndex<T> = {
   [ K in keyof T as string extends K ? never : number extends K ? never : K ] : T[K]
@@ -173,7 +173,7 @@ export type RemoveIndex<T> = {
  * }
  * ```
  *
- * @hidden Internal use only
+ * @hidden Only used internally
  */
 export type TemplateSpecTags<TemplateSpec extends Element.TemplateSpec> = {
   [K in keyof CombineTagPaths<SpecToTagPaths<RemoveIndex<TemplateSpec>>>]: TransformPossibleElement<K, CombineTagPaths<SpecToTagPaths<RemoveIndex<TemplateSpec>>>[K]>;
@@ -189,7 +189,7 @@ export type TemplateSpecTags<TemplateSpec extends Element.TemplateSpec> = {
  * @privateRemarks
  * The refs are transformed into proper Element / Component references
  *
- * @hidden Internal use only
+ * @hidden Only used internally
  */
 export type TemplateSpecRefs<TemplateSpec extends Element.TemplateSpec> = {
   [K in keyof CombineTagPathsSingleLevel<SpecToTagPaths<RemoveIndex<TemplateSpec>>>]: TransformPossibleElement<K, CombineTagPathsSingleLevel<SpecToTagPaths<RemoveIndex<TemplateSpec>>>[K]>;
@@ -1407,10 +1407,10 @@ declare class Element<
   readonly displayedTexture: TextureType<TypeConfig> | null;
 
   // onTextureSourceLoaded() {
-  // - Internal use only. Calling/overriding this can break things
+  // - Only used internally. Calling/overriding this can break things
 
   // onTextureSourceLoadError(error: unknown): void;
-  // - Internal use only. Calling/overriding this can break things
+  // - Only used internally. Calling/overriding this can break things
 
   /**
    * Force re-create of render texture and re-invoke shader
@@ -1418,13 +1418,13 @@ declare class Element<
   forceRenderUpdate(): void;
 
   // onDisplayedTextureClippingChanged
-  // - Internal use only. Calling/overriding this can break things
+  // - Only used internally. Calling/overriding this can break things
 
   // onPrecisionChanged
-  // - Internal use only. Calling/overriding this can break things
+  // - Only used internally. Calling/overriding this can break things
 
   // onDimensionsChanged(w: number, h: number): void;
-  // - Internal use only. Calling/overriding this can break things
+  // - Only used internally. Calling/overriding this can break things
 
   /**
    * Get the corner points of this Element
@@ -1507,7 +1507,7 @@ declare class Element<
   getSettings(): Element.TemplateSpec;
 
   // getNonDefaults() {
-  // - Internal use only
+  // - Only used internally
 
   /**
    * `true` if Element is within the bounds margin
@@ -1915,7 +1915,7 @@ declare class Element<
   // get tags() {
   // set tags(v) {
   // set t(v) {
-  // - These tag related methods/properties seem very internal use only and it's not clear if there's a
+  // - These tag related methods/properties seem very Only used internally and it's not clear if there's a
   //   practical external use
   // static getGetter(propertyPath) {
   // static getSetter(propertyPath) {

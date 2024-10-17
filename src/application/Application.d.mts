@@ -155,7 +155,7 @@ declare class Application<
   // _setOptions(o: any): void;
   // __construct(): void;
   // __init(): void;
-  // - Internal use only
+  // - Only used internally
 
   /**
    * Update the focus path of the application
@@ -169,13 +169,13 @@ declare class Application<
   // __updateFocus(): void;
   // __updateFocusRec(): any;
   // updateFocusSettings(): void;
-  // - Internal use only
+  // - Only used internally
 
   // _handleFocusSettings(settings: any, prevSettings: any, focused: any, prevFocused: any): void;
   // - Already defined on Component
 
   // __getFocusPath(): any;
-  // - Internal use only
+  // - Only used internally
 
   /**
    * Active focus path of the application
@@ -202,7 +202,7 @@ declare class Application<
   // _findChildren(bucket: any, children: any): any;
   // _withinClickableRange(affectedChildren: any, cursorX: any, cursorY: any): any;
   // _testCollision(px: any, py: any, cx: any, cy: any, cw: any, ch: any): any;
-  // - Internal use only
+  // - Only used internally
 
   /**
    * Shuts down the Application and the Lightning Stage its rendered on.
@@ -213,7 +213,7 @@ declare class Application<
   destroy(): void;
 
   // _destroy(): void;
-  // - Internal use only
+  // - Only used internally
 
   /**
    * Gets the active Canvas HTML Element used for rendering

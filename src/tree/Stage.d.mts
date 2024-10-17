@@ -353,25 +353,25 @@ declare class Stage extends EventEmitter<Stage.EventMap> {
   >(optionKey: T): O;
 
   // _setOptions(o: Partial<Stage.StageOptions>): void;
-  // - Internal use only
+  // - Only used internally
 
   /**
    * Sets the active application root for the stage
    */
   // setApplication(app: Application): void;
-  // - Internal Use Only
+  // - Only used internally
 
   /**
    * Initializes the Stage
    */
   // init(): void;
-  // Internal Use Only
+  // Only used internally
 
   /**
    * Destroy's the Stage
    */
   // destroy(): void;
-  // - Internal Use Only
+  // - Only used internally
 
   /**
    * Stops the rendering loop
@@ -408,13 +408,13 @@ declare class Stage extends EventEmitter<Stage.EventMap> {
   getRenderPrecision(): number;
 
   // addUpdateSourceTexture(texture: any): void;
-  // - Internal Use Only
+  // - Only used internally
 
   // removeUpdateSourceTexture(texture: any): void;
-  // - Internal Use Only
+  // - Only used internally
 
   // hasUpdateSourceTexture(texture: any): any;
-  // - Internal Use Only
+  // - Only used internally
 
   /**
    * Updates and renders a new frame
@@ -427,7 +427,7 @@ declare class Stage extends EventEmitter<Stage.EventMap> {
   isUpdatingFrame(): boolean;
 
   // renderFrame(): void;
-  // - Internal Use Only
+  // - Only used internally
 
   /**
    * Force a re-render
@@ -548,7 +548,7 @@ declare class Stage extends EventEmitter<Stage.EventMap> {
   get coordsHeight(): number;
 
   // addMemoryUsage(delta: any): void;
-  // - Internal use only.
+  // - Only used internally.
   /**
    * Amount of memory used (in pixels)
    */
@@ -583,7 +583,7 @@ declare class Stage extends EventEmitter<Stage.EventMap> {
 
   // gcTextureMemory(aggressive?: any): void;
   // gcRenderTextureMemory(aggressive?: any): void;
-  // - Internal use only by `gc()`
+  // - Only used internally by `gc()`
 
   /**
    * Creates a new Canvas Element for use for offscreen drawing

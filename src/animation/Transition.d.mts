@@ -123,7 +123,7 @@ declare class Transition extends EventEmitter<Transition.EventMap> {
   isRunning(): boolean;
 
   // progress(dt: any): void;
-  // - Internal use only, called by TransitionManager
+  // - Only used internally, called by TransitionManager
   // invokeListeners(): void;
   // - Private
 

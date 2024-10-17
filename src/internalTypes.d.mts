@@ -19,7 +19,7 @@
 /**
  * This file contains internal types that are common to multiple modules
  *
- * @hidden Internal use only
+ * @hidden Only used internally
  * @module
  */
 import EventEmitter from './EventEmitter.mjs';
@@ -29,7 +29,7 @@ import Element, { IsLooseTypeConfig } from './tree/Element.mjs'
 /**
  * Allows all the documentation of a template spec to be inherited by any Element
  *
- * @hidden Internal use only
+ * @hidden Only used internally
  */
  export type Documentation<T> = {
   // WARNING: You cannot use conditional key manipulation here or it will not allow documentation to be passed down
@@ -48,7 +48,7 @@ import Element, { IsLooseTypeConfig } from './tree/Element.mjs'
  * ReduceSpecificity<true, number | boolean> === boolean
  * ```
  *
- * @hidden Internal use only
+ * @hidden Only used internally
  */
 export type ReduceSpecificity<T, U> =
   U extends U
@@ -80,7 +80,7 @@ export type ReduceSpecificity<T, U> =
 /**
  * Extracts the EventMapType from Element Config
  *
- * @hidden Internal use only
+ * @hidden Only used internally
  */
 export type EventMapType<TypeConfig extends Element.TypeConfig> =
   IsLooseTypeConfig<TypeConfig> extends true
@@ -90,14 +90,14 @@ export type EventMapType<TypeConfig extends Element.TypeConfig> =
 /**
  * Extracts the TextureType from Element TypeConfig
  *
- * @hidden Internal use only
+ * @hidden Only used internally
  */
 export type TextureType<TypeConfig extends Element.TypeConfig> = TypeConfig['TextureType'];
 
 /**
  * Extracts the SignalMapType from Component TypeConfig
  *
- * @hidden Internal use only
+ * @hidden Only used internally
  */
 export type SignalMapType<TypeConfig extends Component.TypeConfig> =
   IsLooseTypeConfig<TypeConfig> extends true
@@ -113,7 +113,7 @@ export type SignalMapType<TypeConfig extends Component.TypeConfig> =
  * from an EventMap function signature without having to enforce a generic constraint on all
  * EventMaps, which isn't practical without blowing up type safety.
  *
- * @hidden Internal use only
+ * @hidden Only used internally
  */
 export type HandlerParameters<PossibleFunction> =
   PossibleFunction extends (...args: any[]) => any
@@ -129,7 +129,7 @@ export type HandlerParameters<PossibleFunction> =
  * @privateRemarks
  * Like HandlerParameter above, this is a "safe" version of the included `ReturnType` type.
  *
- * @hidden Internal use only
+ * @hidden Only used internally
  */
 export type HandlerReturnType<PossibleFunction> =
   PossibleFunction extends (...args: any[]) => any
@@ -141,14 +141,14 @@ export type HandlerReturnType<PossibleFunction> =
 /**
  * Set of all capital letters
  *
- * @hidden Internal use only
+ * @hidden Only used internally
  */
 type Alphabet = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z';
 
 /**
  * Any string that begins with a capital letter
  *
- * @hidden Internal use only
+ * @hidden Only used internally
  */
 export type ValidRef = `${Alphabet}${string}`;
 
@@ -156,7 +156,7 @@ export type ValidRef = `${Alphabet}${string}`;
  * Returns `true` if T is a type that should terminate the calculation of
  * tag paths.
  *
- * @hidden Internal use only
+ * @hidden Only used internally
  */
 type IsTerminus<T> =
     T extends (string | number | boolean | any[] | Element.Constructor | Element)
@@ -210,7 +210,7 @@ type IsTerminus<T> =
  *   ['MyParentElement', 'MyChildElement', 'MyGrandChildElement', [object]];
  * ```
  *
- * @hidden Internal use only
+ * @hidden Only used internally
  */
 export type SpecToTagPaths<T> =
     IsTerminus<T> extends true
@@ -224,7 +224,7 @@ export type SpecToTagPaths<T> =
 /**
  * Joins the given path string tuple into a single `.` separated string tag path
  *
- * @hidden Internal use only
+ * @hidden Only used internally
  */
 export type Join<T extends string[]> =
     T extends [] ? never :
@@ -276,7 +276,7 @@ export type Join<T extends string[]> =
  * }
  * ```
  *
- * @hidden Internal use only
+ * @hidden Only used internally
  */
 export type CombineTagPaths<TagPaths extends any[]> = {
     [PathWithType in TagPaths as PathWithType extends [...infer Path extends string[], [any]] ? Join<Path> : never]:
