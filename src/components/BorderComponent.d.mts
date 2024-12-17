@@ -128,7 +128,6 @@ declare namespace BorderComponent {
 declare class BorderComponent<ContentType extends Element = Element>
   extends Component<BorderComponent.TemplateSpec<ContentType>>
 {
-  // @ts-expect-error Prevent ts(2380)
   get content(): ContentType;
   set content(v: Element.PatchTemplate<Element.ExtractTemplateSpec<ContentType>>);
 
