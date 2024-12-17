@@ -136,3 +136,5 @@ export {
   ObjectListProxy,
   ObjectListWrapper,
 };
+
+export type * from './types/lng.types.namespace.mjs';
