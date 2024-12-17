@@ -187,6 +187,8 @@ declare class Texture {
   mh: number;
   mw: number;
   resizeMode: Texture.ResizeMode;
+  enableClipping(x: number, y: number, w: number, h: number): void;
+  disableClipping(): void;
   readonly stage: Stage;
   source: TextureSource | null;
   _source: TextureSource | null;
