@@ -213,7 +213,7 @@ declare class Texture {
 
   protected _getIsValid(): boolean;
   protected _getLookupId(): string | null;
-  protected _getSourceLoader(): Texture.SourceLoaderCallback;
+  protected _getSourceLoader(): TextureSource.Loader;
 
   _changed(): void;
   addElement(el: Element): void;

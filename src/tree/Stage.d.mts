@@ -18,8 +18,8 @@
  */
 import AnimationManager from "../animation/AnimationManager.mjs";
 import TransitionManager from "../animation/TransitionManager.mjs";
-import Application from "../application/Application.mjs";
-import Component from "../application/Component.mjs";
+import type Application from "../application/Application.mjs";
+import type Component from "../application/Component.mjs";
 import EventEmitter from "../EventEmitter.mjs";
 import WebPlatform from "../platforms/browser/WebPlatform.mjs";
 import C2dRenderer from "../renderer/c2d/C2dRenderer.mjs";
