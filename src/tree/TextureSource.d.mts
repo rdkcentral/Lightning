@@ -38,6 +38,7 @@ declare namespace TextureSource {
     premultiplyAlpha: boolean;
     renderInfo: RenderInfo;
     source: NativeTexture;
+    throttle: boolean;
     w: number;
   }
 

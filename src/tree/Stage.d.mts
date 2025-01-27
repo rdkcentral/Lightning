@@ -285,6 +285,7 @@ declare namespace Stage {
     frameStart: () => void;
     update: () => void;
     frameEnd: () => void;
+    idle: () => void;
   }
 }
 
