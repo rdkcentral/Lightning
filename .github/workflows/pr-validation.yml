@@ -42,3 +42,5 @@ jobs:
     - name: Build
       run: npm run build
 
+    - name: Type Validation
+      run: npm run tsd
