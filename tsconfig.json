@@ -20,6 +20,7 @@
     "sourceMap": true,
     "declarationMap": true,
     "isolatedModules": true,
+    "skipLibCheck": true,
 
     // Don't emit any files via the root tsconfig.json
     // (this is a project-wide config and includes the test-d folder which
