@@ -75,6 +75,7 @@ import C2dBlurShader from "./renderer/c2d/shaders/BlurShader.mjs";
 import SpinnerShader2 from "./renderer/webgl/shaders/SpinnerShader2.mjs";
 
 import Stage from "./tree/Stage.mjs";
+import WebPlatform from "./platforms/browser/WebPlatform.mjs";
 
 // full export (no tree-shaking)
 import lng from "./lightning.mjs";
@@ -135,4 +136,7 @@ export {
   ObjMerger,
   ObjectListProxy,
   ObjectListWrapper,
+  WebPlatform,
 };
+
+export type * from './types/lng.types.namespace.mjs';

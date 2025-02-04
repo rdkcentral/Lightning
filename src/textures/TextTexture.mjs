@@ -30,7 +30,7 @@ export default class TextTexture extends Texture {
     }
 
     static renderer(stage, canvas, settings) {
-        if (this.advancedRenderer) {
+        if (settings.advancedRenderer) {
             return new TextTextureRendererAdvanced(stage, canvas, settings);
         } else {
             return new TextTextureRenderer(stage, canvas, settings);
@@ -549,9 +549,7 @@ export default class TextTexture extends Texture {
 
         return function (cb) {
             const canvas = this.stage.platform.getDrawingCanvas();
-            const renderer = (args.advancedRenderer)
-              ? new TextTextureRendererAdvanced(this.stage, canvas, args)
-              : new TextTextureRenderer(this.stage, canvas, args);
+            const renderer = TextTexture.renderer(this.stage, canvas, args);
             
             const p = renderer.draw();
 
