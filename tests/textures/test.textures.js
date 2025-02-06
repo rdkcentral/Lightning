@@ -74,6 +74,11 @@ describe('textures', function() {
         }
     }
 
+    after(() => {
+        stage.stop();
+        stage.getCanvas().remove();
+    });
+
     before(() => {
         class TestApplication extends lng.Application {}
         app = new TestApplication({stage: {w: 500, h: 500, clearColor: 0xFFFF0000, autostart: false}});

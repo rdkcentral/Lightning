@@ -22,6 +22,11 @@ describe('Longpress handling', function() {
     let app;
     let stage;
 
+    after(() => {
+        stage.stop();
+        stage.getCanvas().remove();
+    });
+    
     before(() => {
         class TestApp extends lng.Application {
             static _template() {

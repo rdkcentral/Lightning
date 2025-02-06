@@ -25,6 +25,13 @@ describe('Shaders', function() {
     let stageGL;
     let stage2D;
 
+    after(() => {
+        stageGL.stop();
+        stageGL.getCanvas().remove();
+        stage2D.stop();
+        stage2D.getCanvas().remove();
+    });
+
     before(() => {
         class TestApp extends lng.Application {
             static _template(){

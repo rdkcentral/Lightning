@@ -18,11 +18,10 @@
  */
 
 import FlexTestUtils from "./src/FlexTestUtils.mjs";
-import FlexLayout from "../../src/flex/layout/FlexLayout.mjs";
 
 const flexTestUtils = new FlexTestUtils();
 
-describe('relative', function() {
+describe('layout relative', function() {
     this.timeout(0);
     describe('absolute', () => {
 

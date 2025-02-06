@@ -37,6 +37,11 @@ describe('text', function() {
 
     class TestTexture extends lng.textures.TextTexture {}
 
+    after(() => {
+        stage.stop();
+        stage.getCanvas().remove();
+    });
+
     before(() => {
         class TestApplication extends lng.Application {}
         app = new TestApplication({stage: {w: 1000, h: 1000, clearColor: 0xFFFF0000, autostart: true}});
