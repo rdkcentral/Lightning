@@ -50,7 +50,7 @@ declare namespace TextureSource {
   export type Loader = (
     callback: LoaderCallback,
     source: TextureSource,
-  ) => LoadCancelCallback;
+  ) => LoadCancelCallback | void;
 
   export interface RenderInfo<T = string[]> {
     cutEx: number;

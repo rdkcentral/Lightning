@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 import { expectType } from 'tsd';
-import lng from '../../src/index.js';
+import lng, { type Transition } from '../../src/index.js';
 import ListComponent from '../../src/components/ListComponent.mjs';
 import { InlineElement, SmoothTemplate } from '../../src/tree/Element.mjs';
 
@@ -894,9 +894,9 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
     //
 
     // # STRONG #
-    // Expect it to return void
-    expectType<void>(this.MyStrongElement.setSmooth('x', 123));
-    expectType<void>(this.MyStrongElement.setSmooth('alpha', 1.0, { delay: 1, duration: 1, timingFunction: 'linear' }));
+    // Expect it to return Transition
+    expectType<Transition>(this.MyStrongElement.setSmooth('x', 123));
+    expectType<Transition>(this.MyStrongElement.setSmooth('alpha', 1.0, { delay: 1, duration: 1, timingFunction: 'linear' }));
     // @ts-expect-error Requires at least two parameters
     this.MyStrongElement.setSmooth('x');
     // @ts-expect-error Should not be able to setSmooth on non-numeric properties
@@ -911,17 +911,17 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
     // @ts-expect-error
     this.MyStrongElement.setSmooth('texture.INVALID_PROP.INVALID_PROP', 123, { delay: 1, duration: 1, timingFunction: 'linear' });
     // If the developer wants to use property paths, they can opt-in via `as any`
-    expectType<void>(this.MyStrongElement.setSmooth('texture.x' as any, 123));
-    expectType<void>(this.MyStrongElement.setSmooth('texture.INVALID_PROP.INVALID_PROP' as any, 123, { delay: 1, duration: 1, timingFunction: 'linear' }));
+    expectType<Transition>(this.MyStrongElement.setSmooth('texture.x' as any, 123));
+    expectType<Transition>(this.MyStrongElement.setSmooth('texture.INVALID_PROP.INVALID_PROP' as any, 123, { delay: 1, duration: 1, timingFunction: 'linear' }));
     // @ts-expect-error Unknown props cannot be used
     this.MyStrongElement.setSmooth('INVALID_PROP', 123);
     // @ts-expect-error Known number props cannot be set to non-numeric values
     this.MyStrongElement.setSmooth('mh', 'abc');
 
     // # LOOSE #
-    // Expect it to return void
-    expectType<void>(this.MyLooseElement.setSmooth('x', 123));
-    expectType<void>(this.MyLooseElement.setSmooth('alpha', 123, { delay: 1, duration: 1, timingFunction: 'linear' }));
+    // Expect it to return Transition
+    expectType<Transition>(this.MyLooseElement.setSmooth('x', 123));
+    expectType<Transition>(this.MyLooseElement.setSmooth('alpha', 123, { delay: 1, duration: 1, timingFunction: 'linear' }));
     // @ts-expect-error Requires at least two parameters
     this.MyLooseElement.setSmooth('x');
     // @ts-expect-error Should not be able to setSmooth on non-numeric properties
@@ -933,13 +933,13 @@ class MyElementTest extends lng.Component<MyElementTest.TemplateSpec> implements
     // @ts-expect-error Should not be able to set an 2-value tuple as the target value
     this.MyLooseElement.setSmooth('y', [123, { delay: 1, duration: 1, timingFunction: 'linear' }]);
     // Property paths are implicitly supported by loose Elements.
-    expectType<void>(this.MyLooseElement.setSmooth('texture.x', 123));
-    expectType<void>(this.MyLooseElement.setSmooth('texture.INVALID_PROP.INVALID_PROP', 123, { delay: 1, duration: 1, timingFunction: 'linear' }));
+    expectType<Transition>(this.MyLooseElement.setSmooth('texture.x', 123));
+    expectType<Transition>(this.MyLooseElement.setSmooth('texture.INVALID_PROP.INVALID_PROP', 123, { delay: 1, duration: 1, timingFunction: 'linear' }));
     // The `as any` case should still work for loose Elements
-    expectType<void>(this.MyLooseElement.setSmooth('texture.x' as any, 123));
-    expectType<void>(this.MyLooseElement.setSmooth('texture.INVALID_PROP.INVALID_PROP' as any, 123, { delay: 1, duration: 1, timingFunction: 'linear' }));
+    expectType<Transition>(this.MyLooseElement.setSmooth('texture.x' as any, 123));
+    expectType<Transition>(this.MyLooseElement.setSmooth('texture.INVALID_PROP.INVALID_PROP' as any, 123, { delay: 1, duration: 1, timingFunction: 'linear' }));
     // Unknown props may be used
-    expectType<void>(this.MyLooseElement.setSmooth('INVALID_PROP', 123));
+    expectType<Transition>(this.MyLooseElement.setSmooth('INVALID_PROP', 123));
     // @ts-expect-error Known number props cannot be set to non-numeric values
     this.MyLooseElement.setSmooth('mh', 'abc');
 
