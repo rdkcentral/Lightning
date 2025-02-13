@@ -40,7 +40,9 @@
     "build:lightning.es5": "cross-env BUILD_ES5=true vite build --mode production",
     "build:lightning.es5.min": "cross-env BUILD_ES5=true BUILD_MINIFY=true vite build --mode production",
     "test": "vitest",
-    "serve-playwright": "ws -d ."
+    "playwright:test": "playwright test",
+    "playwright:interactive": "playwright test --ui",
+    "playwright:serve": "ws -d ."
   },
   "repository": {
     "type": "git",
