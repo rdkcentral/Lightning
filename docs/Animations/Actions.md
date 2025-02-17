@@ -7,7 +7,7 @@ The actions of an animation define what happens with the specified views and pro
 
 | Name | Type | Default | Description | Values |
 |---|---|---|---|---|
-| `t` | String | none | Tag selector (see View.tag function) on which the animation must be applied | SomeTag,SomeTag.SomeSubTag |
+| `t` | String, Element | none | Either a tag selector (see View.tag function), or an Element reference, on which the animation must be applied | "SomeTag", "SomeTag.SomeSubTag" |
 | `p` | Property | none | Object property you want to animate | x, y, w, h, alpha, rotation, scale, texture.x, shader.someProp |
 | `v` | Object | {} | Definition of time-value function | See description |
 | `rv` | * | none | After stopping, the defined value `v` at progress 0 is used. If another value is desired, `rv` can be used. |  |
