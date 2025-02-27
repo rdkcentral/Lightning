@@ -290,6 +290,9 @@ export default class WebPlatform {
             }
         } else if (this._imageWorker) {
             // WPE-specific image parser.
+            if (typeof src !== 'string' || src.indexOf('://') < 0) {
+                return cb("Invalid image URL");
+            }
             const image = this._imageWorker.create(src);
             image.onError = function (err) {
                 return cb("Image load error");
