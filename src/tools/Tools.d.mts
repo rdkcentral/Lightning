@@ -17,6 +17,7 @@
  * limitations under the License.
  */
 import StaticCanvasTexture from "../textures/StaticCanvasTexture.mjs";
+import Stage from "../tree/Stage.mjs";
 
 declare namespace Tools {
   export type CornerRadius = number | [number, number, number, number];
@@ -112,8 +113,16 @@ declare class Tools {
     h: number
   ): StaticCanvasTexture.Settings;
 
-  // static createSvg(cb, stage, url, w, h) {
-  // - This returns an HTML Canvas element and is used privately by getSvgTexture
+  /**
+   * This returns an HTML Canvas element and is used privately by getSvgTexture
+   * 
+   * @param cb 
+   * @param stage 
+   * @param url 
+   * @param w 
+   * @param h 
+   */
+  static createSvg(cb: StaticCanvasTexture.FactoryCallback, stage: Stage, url: string, w: number, h: number): void;
 }
 
 export default Tools;

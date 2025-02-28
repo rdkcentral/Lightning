@@ -80,6 +80,13 @@ export default class ObjectList<ItemType, LiteralType extends Record<string | nu
    */
   getAt(index: number): ItemType | undefined;
   /**
+   * Find index of `object` in the ObjectList by strict equality
+   *
+   * @param object
+   * @returns Index of item, or -1 if not found
+   */
+  getIndex(object: ItemType): number;
+  /**
    * Get item by ref string
    *
    * @param ref

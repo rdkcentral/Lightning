@@ -1795,9 +1795,6 @@ declare class Element<
    *
    * @see {@link Element.TemplateSpec.transitions}
    */
-  // The getter type needs to have TransitionsTemplate in its union for some reason thats not clear
-  // @ts-ignore-error Prevent ts(2380)
-  get transitions(): TransitionsTemplate<TemplateSpecType> | undefined;
   set transitions(v: TransitionsTemplate<TemplateSpecType>);
 
   /**
@@ -1817,9 +1814,6 @@ declare class Element<
    *
    * @see {@link Element.TemplateSpec.smooth}
    */
-  // The getter type needs to have SmoothTemplate in its union for some reason thats not clear
-  // @ts-ignore-error Prevent ts(2380)
-  get smooth(): SmoothTemplate<TemplateSpecType> | undefined;
   set smooth(object: SmoothTemplate<TemplateSpecType>);
 
   /**
@@ -1890,7 +1884,7 @@ declare class Element<
     property: Key,
     value: number extends TemplateSpecType[Key] ? number : never,
     settings?: TransitionSettings.Literal,
-  ): void;
+  ): Transition;
 
   flex: Element.Flex;
 

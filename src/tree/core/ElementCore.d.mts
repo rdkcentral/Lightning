@@ -131,6 +131,7 @@ declare class ElementCore {
   disableFuncW(): void;
   getCornerPoints(): [number, number, number, number, number, number, number, number];
   getRenderTextureCoords(relX: number, relY: number): [number, number];
+  getAbsoluteCoords(relX: number, relY: number): [number, number];
   getRenderHeight(): number;
   getRenderWidth(): number;
   inBound(tx: number, ty: number): boolean;

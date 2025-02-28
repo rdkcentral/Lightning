@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import WebPlatform from './WebPlatform.mjs';
 
 // stub stage for now
@@ -146,6 +146,67 @@ describe('WebPlatform', () => {
 
             expect(cancelCb).toBeTypeOf('function');
         }));
+    });
+
+    describe('ImageWorker', () => {
+        afterEach( ()=> {
+            webPlatform._imageWorker = undefined;
+        });
+
+        it('loads well formed URLs', () => {
+            const mockImage = {
+                cancel: vi.fn()
+            };
+
+            webPlatform._imageWorker = {
+                create: vi.fn().mockReturnValue(mockImage)
+            };
+            
+            const opts = {
+                src: 'https://lightningjs.io/cool.PNG'
+            }
+
+            const cancelCb = webPlatform.loadSrcTexture(opts, () => {
+                throw 'Should not happen'
+            });
+
+            expect(webPlatform._imageWorker.create).toHaveBeenCalledWith(opts.src);
+            expect(typeof mockImage.onLoad).toBe('function');
+            expect(typeof mockImage.onError).toBe('function');
+            expect(mockImage.cancel).toHaveBeenCalledTimes(0);
+
+            cancelCb();
+
+            expect(mockImage.cancel).toHaveBeenCalledTimes(1);
+        });
+
+        it('fails with relative URLs', () => {
+            const mockImage = {
+                cancel: vi.fn()
+            };
+
+            webPlatform._imageWorker = {
+                create: vi.fn().mockReturnValue(mockImage)
+            };
+            
+            const opts = {
+                src: '/cool.PNG'
+            }
+
+            let gotError = undefined;
+            const cancelCb = webPlatform.loadSrcTexture(opts, (err, result) => {
+                gotError = err;
+                expect(result).toBeUndefined();
+            });
+
+            expect(gotError).toBe("Invalid image URL");
+            expect(webPlatform._imageWorker.create).toHaveBeenCalledTimes(0);
+            expect(mockImage.onLoad).toBeUndefined();
+            expect(mockImage.onError).toBeUndefined();
+            expect(mockImage.cancel).toHaveBeenCalledTimes(0);
+
+            expect(cancelCb).toBeUndefined();
+        });
     });
 });
 
