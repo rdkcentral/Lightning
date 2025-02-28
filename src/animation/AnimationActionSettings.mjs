@@ -24,8 +24,8 @@ export default class AnimationActionSettings {
         this.animationSettings = animationSettings;
 
         /**
-         * The selector that selects the elements.
-         * @type {string}
+         * The selector that selects the elements, or the element itself.
+         * @type {string | object}
          */
         this._selector = "";
 
@@ -96,7 +96,12 @@ export default class AnimationActionSettings {
     }
     
     getAnimatedElements(element) {
-        return element.select(this._selector);
+        const selector = this._selector;
+        if (typeof selector === 'string') {
+            return element.select(selector);
+        } else {
+            return [selector];
+        }
     }
 
     reset(element) {
