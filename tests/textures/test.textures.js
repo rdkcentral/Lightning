@@ -17,6 +17,8 @@
  * limitations under the License.
  */
 
+import lng from '../../src'
+
 describe('textures', function() {
     this.timeout(0);
 
