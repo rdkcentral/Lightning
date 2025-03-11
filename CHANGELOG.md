@@ -1,6 +1,15 @@
 # Changelog
 
-## v2.14.0
+## v2.15.0
+*11 March 2025*
+
+- Fixed issue related to imageWorker can't load relative URLs(#564)
+- Fixed regression issue related to types changes.(#562)
+- Fixed issue related to incorrect types(#558)
+- Added github workflow to validate PR's(#560)
+- Added support for animation by reference(#563)
+
+## v2.14.1
 *20 September 2024*
 
 - Reworded TS comments
