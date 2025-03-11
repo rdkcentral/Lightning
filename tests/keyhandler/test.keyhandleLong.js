@@ -17,11 +17,18 @@
  * limitations under the License.
  */
 
+import lng from '../../src'
+
 describe('Longpress handling', function() {
     this.timeout(0);
     let app;
     let stage;
 
+    after(() => {
+        stage.stop();
+        stage.getCanvas().remove();
+    });
+    
     before(() => {
         class TestApp extends lng.Application {
             static _template() {

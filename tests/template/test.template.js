@@ -115,14 +115,19 @@ describe('Template', function() {
     let app;
     let stage;
 
-    class TestApplication extends lng.Application {}
-    app = new TestApplication({stage: {w: 500, h: 500, clearColor: 0xFFFF0000, autostart: true}});
-    stage = app.stage;
-    document.body.appendChild(stage.getCanvas());
+    after(() => {
+      stage.stop();
+      stage.getCanvas().remove();
+    });
+
+    before(() => {
+      class TestApplication extends lng.Application {}
+      app = new TestApplication({stage: {w: 500, h: 500, clearColor: 0xFFFF0000, autostart: true}});
+      stage = app.stage;
+      document.body.appendChild(stage.getCanvas());
+    });
   
     for (const {template, func, name} of TEMPLATES) {
-
-      
       it(`[${name}] should be backwards compatibile`, function() {
         class TestComponent extends lng.Component {
           static _template() {
