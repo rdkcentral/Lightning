@@ -8,6 +8,7 @@
 - Fixed issue related to incorrect types(#558)
 - Added github workflow to validate PR's(#560)
 - Added support for animation by reference(#563)
+- Added Playwright browser tests(#561)
 
 ## v2.14.1
 *20 September 2024*
