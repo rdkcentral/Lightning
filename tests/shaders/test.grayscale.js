@@ -17,6 +17,8 @@
  * limitations under the License.
  */
 
+import lng from '../../src'
+
 describe('Shaders', function() {
     this.timeout(0);
 
@@ -24,6 +26,13 @@ describe('Shaders', function() {
     let app2D
     let stageGL;
     let stage2D;
+
+    after(() => {
+        stageGL.stop();
+        stageGL.getCanvas().remove();
+        stage2D.stop();
+        stage2D.getCanvas().remove();
+    });
 
     before(() => {
         class TestApp extends lng.Application {
