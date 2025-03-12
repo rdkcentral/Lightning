@@ -1,8 +1,9 @@
 # Changelog
 
 ## v2.15.0
-*11 March 2025*
+*12 March 2025*
 
+- Fixed issue related to image URL validation for image worker (#566)
 - Fixed issue related to imageWorker can't load relative URLs(#564)
 - Fixed regression issue related to types changes.(#562)
 - Fixed issue related to incorrect types(#558)
