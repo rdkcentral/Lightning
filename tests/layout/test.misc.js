@@ -17,12 +17,13 @@
  * limitations under the License.
  */
 
+import lng from '../../src'
 import FlexTestUtils from "./src/FlexTestUtils.mjs";
 
 const flexTestUtils = new FlexTestUtils();
 
 // These tests must be performed separately from HTML because we want it to behave differently (more consistently) than HTML.
-describe('layout', () => {
+describe('layout misc', () => {
     describe('force stretch', () => {
         flexTestUtils.addMochaTestForAnnotatedStructure('alignSelf:stretch', {
             flex: {},
@@ -105,6 +106,12 @@ describe('layout', () => {
 
     describe('get layout', () => {
         let app, stage;
+
+        after(() => {
+            stage.stop();
+            stage.getCanvas().remove();
+        });
+
         before(() => {
             class TestApplication extends lng.Application {}
             app = new TestApplication({stage: {w: 500, h: 500, clearColor: 0xFFFF0000, autostart: false}});

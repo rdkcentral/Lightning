@@ -17,6 +17,8 @@
  * limitations under the License.
  */
 
+import lng from '../../src'
+
 const EXAMPLE_TEXT =
 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin nibh augue, \
 suscipit a, scelerisque sed, lacinia in, mi. Cras vel lorem. Etiam pellentesque \
@@ -36,6 +38,11 @@ describe('text', function() {
     let stage;
 
     class TestTexture extends lng.textures.TextTexture {}
+
+    after(() => {
+        stage.stop();
+        stage.getCanvas().remove();
+    });
 
     before(() => {
         class TestApplication extends lng.Application {}

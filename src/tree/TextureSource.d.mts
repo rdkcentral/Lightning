@@ -38,18 +38,19 @@ declare namespace TextureSource {
     premultiplyAlpha: boolean;
     renderInfo: RenderInfo;
     source: NativeTexture;
+    throttle: boolean;
     w: number;
   }
 
   export type LoaderCallback = (
     err: Error | null,
     options?: LoadOptions,
-  ) => LoadCancelCallback;
+  ) => void;
 
   export type Loader = (
     callback: LoaderCallback,
     source: TextureSource,
-  ) => void;
+  ) => LoadCancelCallback | void;
 
   export interface RenderInfo<T = string[]> {
     cutEx: number;

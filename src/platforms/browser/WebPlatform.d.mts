@@ -18,6 +18,7 @@
  */
 import Stage from "../../tree/Stage.mjs";
 import TextureSource from "../../tree/TextureSource.mjs";
+import type StaticCanvasTexture from "../../textures/StaticCanvasTexture.mjs";
 
 export default class WebPlatform {
   destroy(): void;
@@ -41,4 +42,5 @@ export default class WebPlatform {
     options: unknown,
   ): void;
   getHrTime(): number;
+  createSvg?: (cb: StaticCanvasTexture.FactoryCallback, stage: Stage, url: string, w: number, h: number) => void;
 }

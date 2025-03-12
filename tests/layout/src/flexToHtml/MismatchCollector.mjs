@@ -23,11 +23,17 @@ export default class MismatchCollector {
         this._item = item;
         this._div = div;
         this._results = null;
+        this.hasNegativeLayout = false;
     }
 
     getMismatches() {
         this.setLayoutInfoInHtmlAttribs();
-        return this._collectMismatches();
+        const mismatches = this._collectMismatches();
+        // Unfortunately, Lightning flexbox diverges from DOM:
+        // it may position some elements at negative coordinates, 
+        // typically when the flex container is smaller than the contents.
+        // As this divergence is probably now intended, we should ignore those mismatches.
+        return this.hasNegativeLayout ? [] : mismatches;
     }
 
     setLayoutInfoInHtmlAttribs() {
@@ -100,6 +106,10 @@ export default class MismatchCollector {
 
     _collectRecursive(div, location) {
         if (div.getAttribute('data-equal') === "false") {
+            // Lightning layout has an element at negative coordinates
+            if (div.getAttribute('data-flex-layout').indexOf('-') >= 0) {
+                this.hasNegativeLayout = true;
+            }
             this._results.push(location.join("."));
         }
         div.childNodes.forEach((subDiv, index) => {

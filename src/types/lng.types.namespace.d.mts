@@ -35,6 +35,7 @@ import WebGLCoreQuadList from "../renderer/webgl/WebGLCoreQuadList.mjs";
 import WebGLCoreQuadOperation from "../renderer/webgl/WebGLCoreQuadOperation.mjs";
 import WebGLRenderer from "../renderer/webgl/WebGLRenderer.mjs";
 import TextTextureRenderer from "../textures/TextTextureRenderer.mjs";
+import TextTextureRendererAdvanced from "../textures/TextTextureRendererAdvanced.mjs";
 import CoreContext from "../tree/core/CoreContext.mjs";
 import CoreQuadList from "../tree/core/CoreQuadList.mjs";
 import CoreQuadOperation from "../tree/core/CoreQuadOperation.mjs";
@@ -59,6 +60,7 @@ export {
   TextureManager,
   TextureSource,
   TextTextureRenderer,
+  TextTextureRendererAdvanced,
   CoreContext,
   CoreRenderState,
   CoreQuadOperation,

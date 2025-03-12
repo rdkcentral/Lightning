@@ -37,7 +37,6 @@ declare class SmoothScaleComponent<
 >
   extends Component<SmoothScaleComponent.TemplateSpec<ContentType>>
 {
-  // @ts-expect-error Prevent ts(2380)
   get content(): ContentType;
   set content(content: Element.PatchTemplate<Element.ExtractTemplateSpec<ContentType>>);
   smoothScale: number;

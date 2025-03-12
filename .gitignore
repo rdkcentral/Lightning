@@ -50,3 +50,9 @@ dist
 
 # ES5 version of the Lightning Inspector
 /devtools/lightning-inspect.es5.js
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

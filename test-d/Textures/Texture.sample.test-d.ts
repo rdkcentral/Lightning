@@ -58,7 +58,7 @@ export default class DynamicCanvasTexture extends Lightning.Texture {
     return null;
   }
 
-  override _getSourceLoader(): Lightning.Texture.SourceLoaderCallback {
+  override _getSourceLoader(): Lightning.types.TextureSource.Loader {
     return (cb) => {
       cb(null, this.stage.platform.getTextureOptionsForDrawingCanvas(this._canvas));
     }

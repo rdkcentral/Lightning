@@ -105,7 +105,7 @@ const alignSelfAspect = FlexHtmlTester.createAspect('alignSelf', function(struct
 });
 
 const addSimpleStructureTests = (name, structure) => {
-    describe('structure:' + name, () => {
+    describe(name, () => {
         FlexHtmlTester.addMochaTestsFromAspects("wrap", structure, [
                 FlexHtmlTester.createAspectFromFlexProperty('direction', ["row", "row-reverse", "column", "column-reverse"]),
                 FlexHtmlTester.createAspectFromFlexProperty('wrap', [true, false]),
@@ -146,7 +146,7 @@ const addSimpleStructureTests = (name, structure) => {
 
 describe('layout', () => {
 
-    addSimpleStructureTests("html flexbox comparison (single level, excluding autosize)", {
+    addSimpleStructureTests("flexbox comparison", {
         flex: {},
         w: 100, h: 100,
         children: [
