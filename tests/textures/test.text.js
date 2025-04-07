@@ -17,8 +17,6 @@
  * limitations under the License.
  */
 
-import lng from '../../src'
-
 const EXAMPLE_TEXT =
 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin nibh augue, \
 suscipit a, scelerisque sed, lacinia in, mi. Cras vel lorem. Etiam pellentesque \

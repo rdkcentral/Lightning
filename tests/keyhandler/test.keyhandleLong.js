@@ -17,8 +17,6 @@
  * limitations under the License.
  */
 
-import lng from '../../src'
-
 describe('Longpress handling', function() {
     this.timeout(0);
     let app;

@@ -17,8 +17,6 @@
  * limitations under the License.
  */
 
-import lng from '../../src'
-
 describe('Key handling', function() {
     this.timeout(0);
     let app;

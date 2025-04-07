@@ -17,7 +17,6 @@
  * limitations under the License.
  */
 
-import lng from '../../src'
 import FlexTestUtils from "./src/FlexTestUtils.mjs";
 
 const flexTestUtils = new FlexTestUtils();
