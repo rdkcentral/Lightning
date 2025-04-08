@@ -17,8 +17,6 @@
  * limitations under the License.
  */
 
-import lng from '../../src'
-
 describe('Event Emitter', function() {
     let TestObj;
   

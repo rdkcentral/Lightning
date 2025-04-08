@@ -31,6 +31,28 @@ The Lightning is an open source project. If you want to contribute to it, please
 Before you submit your PR, make sure you install the projects dependencies, as this will activate automatic
 linting and code formatting in a Git commit hook.
 
+## Testing
+
+Make sure changes and new code are covered with unit tests or/and integration tests.
+
+### Unit tests (vitest)
+
+Test files are under `src/` with a `.test.mjs` or `.test.mts` extension.
+
+```
+npm run test
+```
+
+### Integration tests (Playwright)
+
+Test cases are under `tests/` and use either the ES5 build output or directly point to `.mjs` files (TypeScript won't run in the browser).
+
+```
+npx playwright install
+npm run build
+npm run playwright:interactive
+```
+
 ## Changelog
 
 Checkout the changelog [here](./CHANGELOG.md).
