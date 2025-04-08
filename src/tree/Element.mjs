@@ -282,6 +282,16 @@ export default class Element {
     };
 
     /**
+     * RTL direction flag changed
+     */
+    _updateDirection(rtl) {
+        if (this.texture instanceof TextTexture) {
+            this.texture.rtl = rtl;
+        }
+        this._onDirectionChanged();
+    }
+
+    /**
      * Updates the 'attached' flag for this branch.
      */
     _updateAttachedFlag() {
@@ -431,6 +441,9 @@ export default class Element {
     }
 
     _onResize() {
+    }
+
+    _onDirectionChanged() {
     }
 
     _getRenderWidth() {
@@ -1371,6 +1384,14 @@ export default class Element {
         return this.__core.boundsMargin;
     }
 
+    set rtl(value) {
+        this.__core.rtl = value;
+    }
+
+    get rtl() {
+        return this.__core.rtl;
+    }
+
     get x() {
         return this.__core.offsetX;
     }
@@ -1748,6 +1769,7 @@ export default class Element {
     enableTextTexture() {
         if (!this.texture || !(this.texture instanceof TextTexture)) {
             this.texture = new TextTexture(this.stage);
+            this.texture.rtl = this.__core._rtl; // quick flag access
 
             if (!this.texture.w && !this.texture.h) {
                 // Inherit dimensions from element.

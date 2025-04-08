@@ -104,6 +104,8 @@ declare class ElementCore {
   get renderContext(): ElementCore.RenderContext;
   get rotation(): number;
   set rotation(v: number);
+  get rtl(): boolean;
+  set rtl(value: boolean);
   get scale(): number;
   set scale(v: number);
   get scaleX(): number;
