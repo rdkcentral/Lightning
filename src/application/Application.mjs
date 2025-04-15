@@ -36,6 +36,9 @@ export default class Application extends Component {
         this.__keypressTimers = new Map();
         this.__hoveredChild = null;
 
+        // Default to LTR direction
+        this.core._ownRtl = false;
+
         // We must construct while the application is not yet attached.
         // That's why we 'init' the stage later (which actually emits the attach event).
         this.stage.init();
@@ -262,17 +265,52 @@ export default class Application extends Component {
     }
 
     /**
+     * Return direction aware events: if the 1st event includes `Left` or `Right`,
+     * this returns 2 different sets of events, where one is LTR (original) and one is RTL (reversed directions).
+     * 
+     * Using the LTR or RTL variant of the events will depend on a component's direction.
+     * @returns 
+     */
+    getDirectionAwareEvents(events) {
+        if (events.length > 0) {
+            if (events[0].indexOf('Left') > 0) {
+                return {
+                    eventsLtr: events,
+                    eventsRtl: [events[0].replace('Left', 'Right'), ...events.slice(1)],
+                    isHorizontalDirection: true
+                }
+            } else if (events[0].indexOf('Right') > 0) {
+                return {
+                    eventsLtr: events,
+                    eventsRtl: [events[0].replace('Right', 'Left'), ...events.slice(1)],
+                    isHorizontalDirection: true
+                }
+            }
+        }
+        return {
+            eventsLtr: events,
+            eventsRtl: events,
+            isHorizontalDirection: false
+        }
+    }
+
+    /**
      * Injects an event in the state machines, top-down from application to focused component.
      */
     focusTopDownEvent(events, ...args) {
         const path = this.focusPath;
         const n = path.length;
 
+        // RTL support
+        const { eventsLtr, eventsRtl, isHorizontalDirection } = this.getDirectionAwareEvents(events);
+
         // Multiple events.
         for (let i = 0; i < n; i++) {
-            const event = path[i]._getMostSpecificHandledMember(events);
+            const target = path[i];
+            const events = isHorizontalDirection && target.rtl ? eventsRtl : eventsLtr;
+            const event = target._getMostSpecificHandledMember(events);
             if (event !== undefined) {
-                const returnValue = path[i][event](...args);
+                const returnValue = target[event](...args);
                 if (returnValue !== false) {
                     return true;
                 }
@@ -289,11 +327,16 @@ export default class Application extends Component {
         const path = this.focusPath;
         const n = path.length;
 
+        // RTL support
+        const { eventsLtr, eventsRtl, isHorizontalDirection } = this.getDirectionAwareEvents(events);
+
         // Multiple events.
         for (let i = n - 1; i >= 0; i--) {
-            const event = path[i]._getMostSpecificHandledMember(events);
+            const target = path[i];
+            const events = isHorizontalDirection && target.rtl ? eventsRtl : eventsLtr;
+            const event = target._getMostSpecificHandledMember(events);
             if (event !== undefined) {
-                const returnValue = path[i][event](...args);
+                const returnValue = target[event](...args);
                 if (returnValue !== false) {
                     return true;
                 }
@@ -315,19 +358,20 @@ export default class Application extends Component {
 
         if (keys) {
             for (let i = 0, n = keys.length; i < n; i++) {
-                const hasTimer = this.__keypressTimers.has(keys[i]);
+                const key = keys[i];
+                const hasTimer = this.__keypressTimers.has(key);
                 // prevent event from getting fired when the timeout is still active
                 if (path[path.length - 1].longpress && hasTimer) {
                     return;
                 }
 
-                if (!this.stage.application.focusTopDownEvent([`_capture${keys[i]}`, "_captureKey"], obj)) {
-                    this.stage.application.focusBottomUpEvent([`_handle${keys[i]}`, "_handleKey"], obj);
+                if (!this.focusTopDownEvent([`_capture${key}`, "_captureKey"], obj)) {
+                    this.focusBottomUpEvent([`_handle${key}`, "_handleKey"], obj);
                 }
             }
         } else {
-            if (!this.stage.application.focusTopDownEvent(["_captureKey"], obj)) {
-                this.stage.application.focusBottomUpEvent(["_handleKey"], obj);
+            if (!this.focusTopDownEvent(["_captureKey"], obj)) {
+                this.focusBottomUpEvent(["_handleKey"], obj);
             }
         }
 
@@ -361,13 +405,14 @@ export default class Application extends Component {
 
         if (keys) {
             for (let i = 0, n = keys.length; i < n; i++) {
-                if (!this.stage.application.focusTopDownEvent([`_capture${keys[i]}Release`, "_captureKeyRelease"], obj)) {
-                    this.stage.application.focusBottomUpEvent([`_handle${keys[i]}Release`, "_handleKeyRelease"], obj);
+                const key = keys[i];
+                if (!this.focusTopDownEvent([`_capture${key}Release`, "_captureKeyRelease"], obj)) {
+                    this.focusBottomUpEvent([`_handle${key}Release`, "_handleKeyRelease"], obj);
                 }
             }
         } else {
-            if (!this.stage.application.focusTopDownEvent(["_captureKeyRelease"], obj)) {
-                this.stage.application.focusBottomUpEvent(["_handleKeyRelease"], obj);
+            if (!this.focusTopDownEvent(["_captureKeyRelease"], obj)) {
+                this.focusBottomUpEvent(["_handleKeyRelease"], obj);
             }
         }
 
@@ -417,8 +462,8 @@ export default class Application extends Component {
                 element._throwError("config value for longpress must be a number");
             } else {
                 this.__keypressTimers.set(key, setTimeout(() => {
-                    if (!this.stage.application.focusTopDownEvent([`_capture${key}Long`, "_captureKey"], {})) {
-                        this.stage.application.focusBottomUpEvent([`_handle${key}Long`, "_handleKey"], {});
+                    if (!this.focusTopDownEvent([`_capture${key}Long`, "_captureKey"], {})) {
+                        this.focusBottomUpEvent([`_handle${key}Long`, "_handleKey"], {});
                     }
 
                     this.__keypressTimers.delete(key);

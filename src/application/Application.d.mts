@@ -186,8 +186,9 @@ declare class Application<
    */
   get focusPath(): Component[] | undefined;
 
-  // focusTopDownEvent(events: any, ...args: any[]): any;
-  // focusBottomUpEvent(events: any, ...args: any[]): any;
+  // getDirectionAwareEvents(events: string[], ...args: any[]): { eventsLtr: string[], eventsRtl: string[], isHorizontalDirection };
+  // focusTopDownEvent(events: string[], ...args: any[]): any;
+  // focusBottomUpEvent(events: string[], ...args: any[]): any;
   // _receiveKeydown(e: KeyboardEvent): void;
   // _receiveKeyup(e: KeyboardEvent): void;
   // _startLongpressTimer(key: any, element: any): void;

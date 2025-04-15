@@ -43,7 +43,6 @@ export default class TextTextureRenderer {
             this._stage.getOption('defaultFontFace'),
         );
         this._context.textBaseline = this._settings.textBaseline;
-        this._context.direction = this._settings.rtl ? "rtl" : "ltr";
     };
 
     _load() {
@@ -288,6 +287,12 @@ export default class TextTextureRenderer {
 
         let drawLines = [];
 
+        let textAlign = this._settings.textAlign;
+        if (this._settings.rtl) {
+            if (!textAlign || textAlign === 'left') textAlign = 'right';
+            else if (textAlign === 'right') textAlign = 'left';
+        }
+
         // Draw lines line by line.
         for (let i = 0, n = renderInfo.lines.length; i < n; i++) {
             linePositionX = i === 0 ? renderInfo.textIndent : 0;
@@ -301,15 +306,12 @@ export default class TextTextureRenderer {
                 linePositionY += renderInfo.lineHeight - renderInfo.fontSize;
             }
 
-            if (this._settings.textAlign === 'right') {
+            if (textAlign === 'right') {
                 linePositionX += (renderInfo.innerWidth - renderInfo.lineWidths[i]);
-            } else if (this._settings.textAlign === 'center') {
+            } else if (textAlign === 'center') {
                 linePositionX += ((renderInfo.innerWidth - renderInfo.lineWidths[i]) / 2);
             }
             linePositionX += renderInfo.paddingLeft;
-            if (this._settings.rtl) {
-                linePositionX += renderInfo.lineWidths[i];
-            }
 
             drawLines.push({text: renderInfo.lines[i], x: linePositionX, y: linePositionY, w: renderInfo.lineWidths[i]});
         }

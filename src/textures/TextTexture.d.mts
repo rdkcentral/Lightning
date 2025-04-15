@@ -60,6 +60,13 @@ declare namespace TextTexture {
      */
     text?: string;
     /**
+     * Element has RTL (right-to-left) direction hint.
+     * When true, left/right alignement is reversed.
+     * 
+     * @defaultValue `false`
+     */
+    rtl?: boolean;
+    /**
      * Font style
      *
      * @defaultValue `"normal"`
@@ -468,6 +475,9 @@ declare class TextTexture extends Texture implements Required<Omit<TextTexture.S
 
   get text(): string;
   set text(text: string);
+
+  get rtl(): boolean;
+  set rtl(rtl: boolean);
 
   get fontStyle(): string;
   set fontStyle(fontStyle: string);
