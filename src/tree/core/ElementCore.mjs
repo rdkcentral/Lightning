@@ -1339,9 +1339,9 @@ export default class ElementCore {
         // update element when the direction changes
         if (!initial) {
             this._triggerRecalcTranslate();
-            // allow side effect
-            this._element._updateDirection(rtl);
         }
+        // allow side effect
+        this._element._updateDirection(rtl);
 
         // propagate
         if (this._children) {
