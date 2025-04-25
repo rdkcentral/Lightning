@@ -108,6 +108,12 @@ export default class TextTextureRendererAdvanced {
         // Set font properties.
         renderInfo.baseFont = this.setFontProperties();
 
+        let textAlign = this._settings.textAlign;
+        if (this._settings.rtl) {
+            if (!textAlign || textAlign === 'left') textAlign = 'right';
+            else if (textAlign === 'right') textAlign = 'left';
+        }
+
         renderInfo.w = w;
         renderInfo.width = w;
         renderInfo.text = this._settings.text;
@@ -116,7 +122,7 @@ export default class TextTextureRendererAdvanced {
         renderInfo.fontBaselineRatio = this._settings.fontBaselineRatio;
         renderInfo.lineHeight = lineHeight;
         renderInfo.letterSpacing = letterSpacing;
-        renderInfo.textAlign = this._settings.textAlign;
+        renderInfo.textAlign = textAlign;
         renderInfo.textColor = this._settings.textColor;
         renderInfo.verticalAlign = this._settings.verticalAlign;
         renderInfo.highlight = this._settings.highlight;
