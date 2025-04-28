@@ -343,10 +343,21 @@ describe("Right-to-Left layout", function () {
             textColor: 0xff000000,
           },
         },
+        LabelAdvanced: {
+          y: 40,
+          w: 600, // text should be visually aligned to the right at the end of the blue box
+          text: {
+            advancedRenderer: true,
+            text: "<b>Dynamic</b> attachment",
+            fontSize: 40,
+            textColor: 0xff000000,
+          },
+        },
       });
-
+      
       // before attachment to the app (and stage), the texture doesn't have the RTL flag (like its parent)
       chai.assert(!parent.tag("Label").texture.source.lookupId.includes("|rtl"));
+      chai.assert(!parent.tag("LabelAdvanced").texture.source.lookupId.includes("|rtl"));
 
       app.childList.add(parent);
       stage.drawFrame();
