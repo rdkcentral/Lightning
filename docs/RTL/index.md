@@ -22,16 +22,28 @@ Lightning elements (and components) have a `rtl` property to hint whether the el
 
 In practice, setting the application's `rtl` flag will mirror the entire application, as the property is inherited. It is however possible to set some element's `rtl` to an explicit `false` to prevent mirroring of a sub-tree of the application.
 
+The `rtl` flag will also mirror the text alignment: `left` and `right` alignment are automatically reversed. Note that this
+alone doesn't mean RTL text is correctly rendered - see "Bidirectional text layout" below.
+
 ### How input works in RTL
 
 A consequence of the choice of transparent mirroring is that the Left and Right key shoud be interpreted in accordance to the layout direction.
 
 This is also automatic, and pressing a Left or Right key will result in the opposite Right or Left key event to be received by components when their layout is mirrored.
 
-### How RTL text works
+### How bidirectional text layout works
 
-When the RTL flag is set, text alignement is mirrored, so left-aligned text becomes right-aligned.
+When working with RTL languages, we must support any combinations of LTR and RTL text: numbers and some words aren't translated; you may even have entire sentences untranslated.
 
-But RTL text support also requires to properly wrap text and render punctuation at the right place. Text also may be a combination of RTL and LTR text.
+Correctly rendering RTL text requires to support "bidirectional text layout", which is an advanced feature you must opt-in to.
 
-TODO
+```typescript
+import { TextTexture, TextTokenizer } from '@lightningjs/core';
+import { getBidiTokenizer } from '@lightningjs/core/bidiTokenizer';
+
+// Initialize bidi text support
+TextTokenizer.setCustomTokenizer(getBidiTokenizer());
+
+// Only the "advanced renderer" supports bidi layout
+TextTexture.forceAdvancedRenderer = true; 
+```

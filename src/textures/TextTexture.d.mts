@@ -18,8 +18,8 @@
  */
 import Stage from "../tree/Stage.mjs";
 import Texture from "../tree/Texture.mjs";
-import TextTextureRenderer from "./TextTextureRenderer.mjs";
-import TextTextureRendererAdvanced from "./TextTextureRendererAdvanced.mjs";
+import TextTextureRenderer from "./TextTextureRenderer.js";
+import TextTextureRendererAdvanced from "./TextTextureRendererAdvanced.js";
 
 declare namespace TextTexture {
   /**
@@ -461,7 +461,9 @@ declare namespace TextTexture {
 declare class TextTexture extends Texture implements Required<Omit<TextTexture.Settings, 'type'>> {
   constructor(stage: Stage);
 
-  protected static renderer(
+  public static forceAdvancedRenderer: boolean;
+  
+  public static renderer(
     stage: Stage,
     canvas: HTMLCanvasElement,
     settings: TextTexture.Settings

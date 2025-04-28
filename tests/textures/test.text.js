@@ -29,6 +29,12 @@ consequat, purus sapien ultricies dolor, et mollis pede metus eget nisi. Praesen
 sodales velit quis augue. Cras suscipit, urna at aliquam rhoncus, urna quam viverra \
 nisi, in interdum massa nibh nec erat.';
 
+// With advanced renderer, `renderInfo` lines are objects with `words` array
+function getLineText(info) {
+    if (info.words) return info.words.map(w => w.text).join('');
+    return info.text;
+}
+
 describe('text', function() {
     this.timeout(0);
 
@@ -100,7 +106,7 @@ describe('text', function() {
                     const texture = app.tag("Item").texture;
                     stage.drawFrame();
                     chai.assert(texture.source.renderInfo.lines.length > 1);
-                    chai.assert(texture.source.renderInfo.lines.slice(-1)[0].substr(-5) == 'erat.');
+                    chai.assert(getLineText(texture.source.renderInfo.lines.slice(-1)[0]).substr(-5) == 'erat.');
                 });
 
                 it('wrap paragraph [maxLines=10]', function() {
@@ -119,7 +125,7 @@ describe('text', function() {
                     const texture = app.tag("Item").texture;
                     stage.drawFrame();
                     chai.assert(texture.source.renderInfo.lines.length === 10);
-                    chai.assert(texture.source.renderInfo.lines.slice(-1)[0].substr(-6) == 'eget..');
+                    chai.assert(getLineText(texture.source.renderInfo.lines.slice(-1)[0]).substr(-5) == 'neq..');
                 });
             });
 
@@ -141,7 +147,7 @@ describe('text', function() {
                     const texture = app.tag("Item").texture;
                     stage.drawFrame();
                     chai.assert(texture.source.renderInfo.lines.length === 1);
-                    chai.assert(texture.source.renderInfo.lines[0].substr(-5) == 'erat.');
+                    chai.assert(getLineText(texture.source.renderInfo.lines[0]).substr(-5) == 'erat.');
                 });
 
                 it('should ignore textOverflow when wordWrap is enabled (by default)', function() {
@@ -161,7 +167,7 @@ describe('text', function() {
                     const texture = app.tag("Item").texture;
                     stage.drawFrame();
                     chai.assert(texture.source.renderInfo.lines.length === 5);
-                    chai.assert(texture.source.renderInfo.lines.slice(-1)[0].substr(-2) == '..');
+                    chai.assert(getLineText(texture.source.renderInfo.lines.slice(-1)[0]).substr(-2) == '..');
                 });
 
                 [
@@ -195,7 +201,7 @@ describe('text', function() {
                         chai.assert(texture.source.renderInfo.lines.length === 1);
                         chai.assert(texture.source.renderInfo.w < WRAP_WIDTH);
                         chai.assert(texture.source.renderInfo.w > 0);
-                        chai.assert(texture.source.renderInfo.lines[0].substr(-2) == '..');
+                        chai.assert(getLineText(texture.source.renderInfo.lines[0]).substr(-2) == '..');
                     });
                 });
 
@@ -225,7 +231,7 @@ describe('text', function() {
                         chai.assert(texture.source.renderInfo.w < WRAP_WIDTH);
                         chai.assert(texture.source.renderInfo.w > 0);
                         if (t.suffix !== null) {
-                            chai.assert(texture.source.renderInfo.lines[0].substr(-t.suffix.length) == t.suffix);
+                            chai.assert(getLineText(texture.source.renderInfo.lines[0]).substr(-t.suffix.length) == t.suffix);
                         }
                     });
 
@@ -256,7 +262,7 @@ describe('text', function() {
                         chai.assert(texture.source.renderInfo.lines.length === 1);
                         chai.assert(texture.source.renderInfo.w < WRAP_WIDTH);
                         chai.assert(texture.source.renderInfo.w > 0);
-                        chai.assert(texture.source.renderInfo.lines[0].substr(-5) == 'Hello');
+                        chai.assert(getLineText(texture.source.renderInfo.lines[0]).substr(-5) == 'Hello');
                     });
 
                     it(`should work with empty strings [overflow=${t.textOverflow}]`, function() {

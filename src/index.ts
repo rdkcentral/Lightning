@@ -34,6 +34,9 @@ import ObjectListWrapper from "./tools/ObjectListWrapper.mjs";
 import RectangleTexture from "./textures/RectangleTexture.mjs";
 import NoiseTexture from "./textures/NoiseTexture.mjs";
 import TextTexture from "./textures/TextTexture.mjs";
+import TextTokenizer from "./textures/TextTokenizer.js";
+import TextTextureRenderer from "./textures/TextTextureRenderer.js";
+import TextTextureRendererAdvanced from "./textures/TextTextureRendererAdvanced.js";
 import ImageTexture from "./textures/ImageTexture.mjs";
 import HtmlTexture from "./textures/HtmlTexture.mjs";
 import StaticTexture from "./textures/StaticTexture.mjs";
@@ -123,6 +126,9 @@ export {
   RectangleTexture,
   NoiseTexture,
   TextTexture,
+  TextTextureRenderer,
+  TextTextureRendererAdvanced,
+  TextTokenizer,
   ImageTexture,
   HtmlTexture,
   StaticTexture,

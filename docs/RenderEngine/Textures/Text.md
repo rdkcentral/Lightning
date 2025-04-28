@@ -47,18 +47,29 @@ You can use various properties to control the way in which you want to render te
 
 ## Word Wrap in Non-Latin Based Languages
 
+(or long URLs!)
+
 Enabling the `wordWrap` option causes lines of text that are too long for the
 specified `wordWrapWidth` to be broken into multiple lines. Lines are broken
 only at word boundaries. In most latin script based languages (i.e. English,
-Dutch, French, etc) the space " " character is the primary separator of word
+Dutch, French, etc) the space `" "` character is the primary separator of word
 boundaries.
 
 Many non-latin based languages (i.e. Chinese, Japanese, Thai and more) do not use spaces
 to separate words. Instead there is an assortment of rules that determine where
-word boundaries, for the purpose of line breaking, are allowed. Lightning
-currently does not implement these rules as there are many languages and writing
-systems to consider when implementing them. However, we do offer a work around
-that can be employed in your application as needed.
+word boundaries are, for the purpose of line breaking, are allowed. Lightning
+does not implement these rules as there are many languages and writing
+systems to consider when implementing them. However, we do offer solutions which
+can be employed in your application as needed.
+
+See [this GitHub issue](https://github.com/rdkcentral/Lightning/issues/450) for
+more information.
+
+### Tokenization
+
+Tokenization is the process of taking one text string and separating it in individual
+words which can be wrapped. By default Lightning will break the text on spaces, but
+also zero-width spaces.
 
 ### Zero-Width Spaces
 
@@ -67,32 +78,39 @@ Lightning supports line breaking at [Zero-Width Space](https://en.wikipedia.org/
 take up no actual space between visible characers. You can use them in
 your text strings and Lightning will line break on them when it needs to.
 
-You may want to write a function that you funnel all of your application's
-text strings into:
+You may pre-process text and add zero-width space characters to allow Lightning 
+to wrap these texts.
 
-```js
-function addZeroWidthSpaces(text) {
-    // Code that inserts Zero-Width Spaces into text and returns the new text
-}
+### Custom tokenizer
 
-class ZeroWidthSpaceTextDemo extends lng.Application {
-    static _template() {
-        return {
-            Text: {
-                text: {
-                    text: addZeroWidthSpaces('こんにちは。初めまして!')
-                }
-            }
-        }
-    }
-}
+Another approach is to override Lightning's default tokenizer.
+
+```typescript
+import { TextTokenizer } from '@lightningjs/core';
+
+// `budoux` is a tokenization library for Asian languages (Chinese, Thai...)
+import { loadDefaultSimplifiedChineseParser } from 'budoux';
+
+const getSimplifiedChineseTokenizer = (): TextTokenizer.ITextTokenizerFunction => {
+  const parser = loadDefaultSimplifiedChineseParser();
+  return (text) => [{ tokens: parser.parse(text) }];
+};
+
+TextTokenizer.setCustomTokenizer(getSimplifiedChineseTokenizer(), true); 
+// This Chinese tokenizer is very efficient but doesn't correctly tokenize English, 
+// so the second `true` parameter hints `TextTokenizer` to handle 100% English text
+// with the default tokenizer.
 ```
 
-See [this GitHub issue](https://github.com/rdkcentral/Lightning/issues/450) for
-more information.
+### Right-to-Left (RTL) support
+
+Languages like Arabic or Hebrew require special effort to be wrapped and rendered correctly.
+
+See [Right-to-left (RTL) support](../../RTL/index.md)
+
+
 
 ## Live Demo
-
 
 ```
 class TextDemo extends lng.Application {
