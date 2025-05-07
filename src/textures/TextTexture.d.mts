@@ -462,6 +462,7 @@ declare class TextTexture extends Texture implements Required<Omit<TextTexture.S
   constructor(stage: Stage);
 
   public static forceAdvancedRenderer: boolean;
+  public static allowTextTruncation: boolean;
   
   public static renderer(
     stage: Stage,

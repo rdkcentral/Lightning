@@ -22,10 +22,14 @@ import type { DirectedSpan } from "./TextTextureRendererAdvancedUtils.js";
 
 let bidi: BidiAPI;
 
+// https://www.unicode.org/reports/tr9/
+const reZeroWidthSpace = /[\u200B\u200E\u200F\u061C]/g;
+const reDirectionalFormat = /[\u202A\u202B\u202C\u202D\u202E\u202E\u2066\u2067\u2068\u2069]/g;
+
 const reQuoteStart = /^["“”«»]/;
 const reQuoteEnd = /["“”«»]$/;
-const rePunctuationStart = /^[.,،:;!?\(\)"-]+/;
-const rePunctuationEnd = /[.,،:;!?\(\)"-]+$/;
+const rePunctuationStart = /^[.,،:;!?()"-]+/;
+const rePunctuationEnd = /[.,،:;!?()"-]+$/;
 
 /**
  * Reverse punctuation characters, mirroring braces
@@ -153,9 +157,9 @@ export function getBidiTokenizer() {
       if (c === " ") {
         commit();
         tokens.push(c);
-      } else if (c === "\u200B") {
+      } else if (reZeroWidthSpace.test(c)) {
         commit();
-      } else {
+      } else if (!reDirectionalFormat.test(c)) {
         t += c;
       }
     }

@@ -35,6 +35,7 @@ import {
 } from "./TextTextureRendererUtils.js";
 import StageUtils from "../tree/StageUtils.mjs";
 import TextTokenizer from "./TextTokenizer.js";
+import TextTexture from "./TextTexture.mjs";
 
 export default class TextTextureRendererAdvanced extends TextTextureRenderer {
   override wrapText(text: string, wordWrapWidth: number): ILinesInfo {
@@ -54,6 +55,7 @@ export default class TextTextureRendererAdvanced extends TextTextureRenderer {
       this._settings.textOverflow,
       this._settings.wordWrap
     );
+    const allowTextTruncation = TextTexture.allowTextTruncation;
 
     let tags: string[];
     if (styled) {
@@ -82,7 +84,8 @@ export default class TextTextureRendererAdvanced extends TextTextureRenderer {
         wordWrapWidth,
         i === 0 ? this._settings.textIndent : 0,
         nowrap ? 1 : remainingLines,
-        suffix
+        suffix,
+        allowTextTruncation
       );
 
       wrappedLines.push(...lines);

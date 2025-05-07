@@ -30,6 +30,7 @@ export default class TextTexture extends Texture {
     }
 
     static forceAdvancedRenderer = false;
+    static allowTextTruncation = true;
 
     static renderer(stage, canvas, settings) {
         if (settings.advancedRenderer || TextTexture.forceAdvancedRenderer) {

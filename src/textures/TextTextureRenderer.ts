@@ -456,6 +456,7 @@ export default class TextTextureRenderer {
       this._settings.textOverflow,
       this._settings.wordWrap
     );
+    const wordBreak = this._settings.wordBreak;
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]!;
@@ -466,7 +467,8 @@ export default class TextTextureRenderer {
         this._settings.letterSpacing,
         i === 0 ? this._settings.textIndent : 0,
         nowrap ? 1 : maxLines,
-        suffix
+        suffix,
+        wordBreak
       );
 
       if (maxLines === 0) {

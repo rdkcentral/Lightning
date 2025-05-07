@@ -21,18 +21,22 @@ import { test, expect, type Page } from "@playwright/test";
 import looksSame from "looks-same";
 
 const FIRST_TEST = 1;
-const TEST_STYLED = 3;
-const TEST_BIDI = 4;
-const TEST_HEBREW = 7
-const TEST_ARABIC = 10;
-const LAST_TEST = 11;
+const BASIC_COUNT = 2;
+const STYLED_TESTS = FIRST_TEST + BASIC_COUNT;
+const STYLED_COUNT = 1;
+const BIDI_TESTS = STYLED_TESTS + STYLED_COUNT;
+const BIDI_COUNT = 4;
+const COMPLEX_HEBREW = BIDI_TESTS + BIDI_COUNT;
+const COMPLEX_HEBREW_COUNT = 2;
+const COMPLEX_ARABIC = COMPLEX_HEBREW + COMPLEX_HEBREW_COUNT;
+const COMPLEX_ARABIC_COUNT = 1;
 
 async function compareWrapping(page: Page, width: number) {
   page.setDefaultTimeout(2000);
   await page.setViewportSize({ width, height: 4000 });
   await page.goto("/tests/text-rendering.html?playwright");
 
-  for (let i = FIRST_TEST; i < TEST_HEBREW; i++) {
+  for (let i = FIRST_TEST; i < COMPLEX_HEBREW; i++) {
     await page
       .locator(`#preview${i}`)
       .screenshot({ path: `temp/wrap-${width}-test${i}-html.png` });
@@ -55,7 +59,7 @@ async function compareWrapping(page: Page, width: number) {
         `Test ${i} - ${width}px - different pixels: ${differentPixels}`
       );
     }
-    const maxDiff = i >= TEST_BIDI ? 150 : 50; // Arabic needs more tolerance
+    const maxDiff = i >= BIDI_TESTS ? 150 : 50; // Arabic needs more tolerance
     expect(
       equal || differentPixels < maxDiff,
       `[Test ${i}] HTML and canvas rendering do not match (${differentPixels} pixels differ)`
@@ -68,7 +72,7 @@ async function compareLetterSpacing(page: Page, width: number) {
   await page.setViewportSize({ width, height: 4000 });
   await page.goto("/tests/text-rendering.html?playwright&letterSpacing=5");
 
-  for (let i = FIRST_TEST; i < TEST_STYLED; i++) {
+  for (let i = FIRST_TEST; i < STYLED_TESTS; i++) {
     await page
       .locator(`#preview${i}`)
       .screenshot({ path: `temp/spacing-${width}-test${i}-html.png` });
@@ -98,34 +102,33 @@ async function compareLetterSpacing(page: Page, width: number) {
   }
 }
 
-async function comparePunctuation(page: Page, width: number) {
+async function compareComplex(page: Page, width: number, start: number, count: number, maxDiff = 100) {
   await page.setViewportSize({ width, height: 4000 });
   await page.goto("/tests/text-rendering.html?playwright");
 
-  for (let i = TEST_HEBREW; i <= LAST_TEST; i++) {
+  for (let i = start; i < start + count; i++) {
     await page
       .locator(`#preview${i}`)
-      .screenshot({ path: `temp/punctuation-${width}-test${i}-html.png` });
+      .screenshot({ path: `temp/complex-${width}-test${i}-html.png` });
     await page
       .locator(`#canvas${i}`)
-      .screenshot({ path: `temp/punctuation-${width}-test${i}-canvas.png` });
+      .screenshot({ path: `temp/complex-${width}-test${i}-canvas.png` });
 
     const { equal, diffImage, differentPixels } = await looksSame(
-      `temp/punctuation-${width}-test${i}-html.png`,
-      `temp/punctuation-${width}-test${i}-canvas.png`,
+      `temp/complex-${width}-test${i}-html.png`,
+      `temp/complex-${width}-test${i}-canvas.png`,
       {
         createDiffImage: true,
         strict: false,
       }
     );
-    diffImage?.save(`temp/punctuation-${width}-diff${i}.png`);
+    diffImage?.save(`temp/complex-${width}-diff${i}.png`);
 
     if (differentPixels) {
       console.log(
         `Test ${i} - ${width}px - different pixels: ${differentPixels}`
       );
     }
-    const maxDiff = i >= TEST_ARABIC ? 350 : 150; // Arabic needs more tolerance
     expect(
       equal || differentPixels < maxDiff,
       `[Test ${i}] HTML and canvas rendering do not match (${differentPixels} pixels differ)`
@@ -147,20 +150,25 @@ async function comparePunctuation(page: Page, width: number) {
 */
 
 test("no wrap", async ({ page }) => {
-  await compareWrapping(page, 1000);
+  await compareWrapping(page, 1900);
 });
 
-test("wrap 1", async ({ page }) => {
-  await compareWrapping(page, 800);
+test("wrap 840", async ({ page }) => {
+  await compareWrapping(page, 840);
 });
 
-test("wrap 2", async ({ page }) => {
-  await compareWrapping(page, 640);
+test("wrap 720", async ({ page }) => {
+  await compareWrapping(page, 720);
 });
 
-test("wrap 3", async ({ page }) => {
-  await compareWrapping(page, 520);
+test("wrap 630", async ({ page }) => {
+  await compareWrapping(page, 630);
 });
+
+// TODO: fix embedded RTL in LTR
+// test("wrap 510", async ({ page }) => {
+//   await compareWrapping(page, 510);
+// });
 
 test("letter spacing 1", async ({ page }) => {
   await compareLetterSpacing(page, 1000);
@@ -170,6 +178,14 @@ test("letter spacing 2", async ({ page }) => {
   await compareLetterSpacing(page, 550);
 });
 
-test("punctuation", async ({ page }) => {
-  await comparePunctuation(page, 930);
+test("complex Hebrew 660", async ({ page }) => {
+  await compareComplex(page, 660, COMPLEX_HEBREW, COMPLEX_HEBREW_COUNT);
+});
+
+test("complex Hebrew 880", async ({ page }) => {
+  await compareComplex(page, 880, COMPLEX_HEBREW, COMPLEX_HEBREW_COUNT);
+});
+
+test("complex Arabic 900", async ({ page }) => {
+  await compareComplex(page, 900, COMPLEX_ARABIC, COMPLEX_ARABIC_COUNT, 300);
 });

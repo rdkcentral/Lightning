@@ -137,7 +137,8 @@ export function layoutSpans(
   wrapWidth: number,
   textIndent: number,
   maxLines: number,
-  suffix: string
+  suffix: string,
+  allowTruncation = false
 ): LineLayout[] {
   // styling
   const { isStyled, baseStyle, updateStyle, getStyle } = lineStyle;
@@ -219,6 +220,7 @@ export function layoutSpans(
             endReached = true;
             break;
           }
+          // else TODO break word
           continue;
         }
 
@@ -267,36 +269,41 @@ export function layoutSpans(
     const maxLineWidth = wrapWidth - suffixWidth;
 
     if (line.width > maxLineWidth) {
-      // if we have a sub-expression (suite of words) in opposite direction,
-      // remove the first word, to ensure we don't lose the meaningful last word
+      // if we have a sub-expression (suite of words) not in the primary direction (embedded RTL in LTR or vice versa),
+      // remove the first word of this sequence, to ensure we don't lose the meaningful last word, unless it can be truncated
       let lastIndex = line.words.length - 1;
       let word = line.words[lastIndex]!;
       let index = lastIndex;
-      let removeOppositeEnd = true;
-      while (word.rtl !== primaryRtl && removeOppositeEnd) {
-        removeOppositeEnd = false;
-        while (index > 0 && word.rtl !== primaryRtl) {
-          word = line.words[--index]!;
-        }
-        if (word.text === " ") {
-          word = line.words[++index]!;
-        }
-        if (index >= 0 && index !== lastIndex) {
+
+      // TODO: this works well for English but not for embedded RTL
+      if (primaryRtl && !word.rtl) {
+        let removeOppositeEnd = true;
+        while (word.rtl !== primaryRtl && removeOppositeEnd) {
+          removeOppositeEnd = false;
+          // find direction change
+          while (index > 0 && word.rtl !== primaryRtl) {
+            word = line.words[--index]!;
+          }
+          ++index;
+          if (index < 0 || index === lastIndex) {
+            break;
+          }
+          // remove word
+          word = line.words[index]!;
           line.words.splice(index, 1);
           line.width -= word.width;
+          // remove extra space
           word = line.words[index]!;
           if (word.text === " ") {
             line.words.splice(index, 1);
             line.width -= word.width;
           }
-        } else {
-          break;
+          // repeat?
+          lastIndex = line.words.length - 1;
+          word = line.words[lastIndex]!;
+          index = lastIndex;
+          removeOppositeEnd = allowTruncation && word.width < suffixWidth * 2;
         }
-        // repeat?
-        lastIndex = line.words.length - 1;
-        word = line.words[lastIndex]!;
-        index = lastIndex;
-        removeOppositeEnd = word.width < suffixWidth * 2;
       }
 
       // shorten last word to fit ellipsis
@@ -305,16 +312,16 @@ export function layoutSpans(
         line.width -= last.width;
         const maxWidth = maxLineWidth - line.width;
 
-        if (maxWidth > 0) {
-          let { text, width, style } = last;
+        if (allowTruncation && maxWidth > 0) {
+          let { text, width, style, rtl } = last;
           if (style) {
             ctx.font = style.font;
           }
-          const reversed = primaryRtl !== last.rtl;
+          const reversed = primaryRtl !== rtl;
           do {
             text = reversed
-              ? text.substring(1)
-              : text.substring(0, text.length - 1);
+              ? trimWordStart(text, rtl)
+              : trimWordEnd(text, rtl);
             width = ctx.measureText(text).width;
           } while (width > maxWidth);
           if (width > suffixWidth) {
@@ -354,6 +361,67 @@ export function layoutSpans(
     }
   }
   return lines;
+}
+
+const rePunctuationStart = /^[.,،:;!?؟()"“”«»-]+/
+const rePunctuationEnd = /[.,،:;!?؟()"“”«»-]+$/
+
+export function trimWordEnd(text: string, rtl: boolean): string {
+  if (rtl) {
+    return trimRtlWordEnd(text);
+  }
+  return text.substring(0, text.length - 1);
+}
+
+export function trimWordStart(text: string, rtl: boolean): string {
+  if (rtl) {
+    return trimRtlWordStart(text);
+  }
+  return text.substring(1);
+}
+
+/**
+ * Trim RTL word end, preserving end punctuation
+ * @param text
+ * @returns
+ */
+function trimRtlWordEnd(text: string): string {
+  let match = text.match(rePunctuationStart);
+  if (match) {
+    const punctuation = match[0];
+    text = text.substring(punctuation.length);
+    return punctuation.substring(1) + text;
+  }
+  match = text.match(rePunctuationEnd);
+  if (match) {
+    const punctuation = match[0];
+    text = text.substring(0, text.length - punctuation.length);
+    if (text.length > 0) {
+      return text.substring(0, text.length - 1) + punctuation;
+    } else {
+      return punctuation.substring(1);
+    }
+  }
+  return text.substring(0, text.length - 1);
+}
+
+/**
+ * Trim RTL word start, preserving start punctuation
+ * @param text
+ * @returns
+ */
+function trimRtlWordStart(text: string): string {
+  const match = text.match(rePunctuationStart);
+  if (match) {
+    const punctuation = match[0];
+    text = text.substring(punctuation.length);
+    if (text.length > 0) {
+      return punctuation + text.substring(1);
+    } else {
+      return punctuation.substring(1);
+    }
+  }
+  return text.substring(1);
 }
 
 /**

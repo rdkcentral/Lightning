@@ -17,7 +17,11 @@
  * limitations under the License.
  */
 
-import type { ILineInfo, ISuffixInfo } from "./TextTextureRendererTypes.js";
+import type {
+  ILineInfo,
+  ILineWord,
+  ISuffixInfo,
+} from "./TextTextureRendererTypes.js";
 import TextTokenizer from "./TextTokenizer.js";
 
 /**
@@ -71,7 +75,8 @@ export function wrapText(
   letterSpacing: number,
   textIndent: number,
   maxLines: number,
-  suffix: string
+  suffix: string,
+  wordBreak: boolean
 ): ILineInfo[] {
   // Greedy wrapping algorithm that will wrap words as the line grows longer.
   // than its horizontal bounds.
@@ -89,6 +94,7 @@ export function wrapText(
     word = words[j]!;
     wordWidth =
       word === " " ? spaceWidth : measureText(context, word, letterSpacing);
+
     if (wordWidth > spaceLeft) {
       // early stop?
       if (maxLines > 0 && resultLines.length >= maxLines - 1) {
@@ -97,8 +103,8 @@ export function wrapText(
         overflow = true;
         break;
       }
-      // Skip printing the newline if it's the first word of the line that is.
-      // greater than the word wrap width.
+
+      // commit line
       if (j > 0 && result.length > 0) {
         resultLines.push({
           text: result,
@@ -106,8 +112,25 @@ export function wrapText(
         });
         result = "";
       }
+
+      // move word to next line, but drop a trailing space
       if (j > 0 && word === " ") wordWidth = 0;
-      else result += word;
+      else result = word;
+
+      // if word is too long, break it
+      if (wordBreak && wordWidth > wordWrapWidth) {
+        const broken = breakWord(context, word, wordWrapWidth, letterSpacing);
+        const last = broken.pop()!;
+        for (const k of broken) {
+          resultLines.push({
+            text: k.text,
+            width: k.width,
+          });
+        }
+        result = last.text;
+        wordWidth = last.width;
+      }
+
       totalWidth = wordWidth;
       spaceLeft = wordWrapWidth - wordWidth;
     } else {
@@ -160,7 +183,7 @@ export function getSuffix(
       nowrap: false,
     };
   }
-  
+
   if (!textOverflow) {
     return {
       suffix: "",
@@ -201,4 +224,47 @@ export function measureText(
 ): number {
   const { width } = context.measureText(word);
   return space > 0 ? width + word.length * space : width;
+}
+
+/**
+ * Break a word into smaller parts if it exceeds the maximum width.
+ *
+ * @param context
+ * @param word
+ * @param wordWrapWidth
+ * @param space
+ */
+export function breakWord(
+  context: CanvasRenderingContext2D,
+  word: string,
+  wordWrapWidth: number,
+  space: number = 0
+): ILineWord[] {
+  const result: ILineWord[] = [];
+  let token = "";
+  let prevWidth = 0;
+  // parts of the word fitting exactly wordWrapWidth
+  for (let i = 0; i < word.length; i++) {
+    const c = word.charAt(i);
+    token += c;
+    const width = measureText(context, token, space);
+    if (width > wordWrapWidth) {
+      result.push({
+        text: token.substring(0, token.length - 1),
+        width: prevWidth,
+      });
+      token = c;
+      prevWidth = measureText(context, token, space);
+    } else {
+      prevWidth = width;
+    }
+  }
+  // remaining text
+  if (token.length > 0) {
+    result.push({
+      text: token,
+      width: prevWidth,
+    });
+  }
+  return result;
 }

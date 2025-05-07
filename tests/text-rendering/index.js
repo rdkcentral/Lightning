@@ -17,12 +17,12 @@
  * limitations under the License.
  */
 
+import TextTexture from "../../dist/src/textures/TextTexture.mjs";
 import TextTextureRendererAdvanced from "../../dist/src/textures/TextTextureRendererAdvanced.js";
 import TextTextureRenderer from "../../dist/src/textures/TextTextureRenderer.js";
 import TextTokenizer from "../../dist/src/textures/TextTokenizer.js";
 
 let testN = 0;
-let stopRendering = false;
 let letterSpacing = 0;
 if (location.search.indexOf("letterSpacing") > 0) {
   const match = location.search.match(/letterSpacing=(\d+)/);
@@ -36,10 +36,9 @@ root.id = "root";
 document.body.appendChild(root);
 let renderWidth = window.innerWidth - 16;
 
-function demo() {
+async function demo() {
   // const t0 = performance.now();
   testN = 0;
-  stopRendering = false;
   root.innerHTML = "";
   root.style.width = renderWidth + "px";
   root.className = `spacing-${letterSpacing}`;
@@ -71,56 +70,57 @@ function demo() {
   // `bidiTokenizer.es5.js` attaches declarations to global `lng` object
   TextTokenizer.setCustomTokenizer(lng.getBidiTokenizer());
 
-  renderText(
+  await renderText(
     TextTextureRendererAdvanced,
-    "Something with arabic (that: أسباب لمشاهدة) in it.",
-    "left"
+    "Something with arabic embedded (that: !أسباب لمشاهدة).",
+      "left",
+      2,
+      false
   );
-  renderText(
+  await renderText(
+    TextTextureRendererAdvanced,
+    "Something with hebrew embedded (that: !באמצעות מצלמת).",
+      "left",
+  );
+
+  await renderText(
     TextTextureRendererAdvanced,
     "خمسة أسباب ①لمشاهدة عرض ONE Fight② Night 21",
-    "right"
+    "right",
+    2,
+    false
   );
-  renderText(
+
+  await renderText(
     TextTextureRendererAdvanced,
     'أكبر الرابحين من عرض ONE Fight Night 21 من بطولة "ون"',
-    "right"
-  );
-
-  // Punctuation
-
-  renderText(
-    TextTextureRendererAdvanced,
-    "הקש כדי להוסיף סרטים, תוכניות ועוד לרשימה שלי. לאחר מכן תוכל לצפות בהם מכאן בכל המכשירים שלך.",
-    "right"
-  );
-
-  renderText(
-    TextTextureRendererAdvanced,
-    "הגיע הזמן לעדכן את אפליקציית MyApp ולקבל את התכונות החדשות ביותר (והטובות ביותר!). סמוך עלינו - אתה תאהב אותן.",
-    "right"
-  );
-
-  renderText(
-    TextTextureRendererAdvanced,
-    "סרוק את קוד ה-QR באמצעות מצלמת הטלפון או הטאבלט שלך.",
-    "right"
-  );
-
-  renderText(
-    TextTextureRendererAdvanced,
-    "وسار فان دايك (33 عاما) الذي أصبح ركيزة أساسية في صفوف ليفربول منذ انضمامه عام 2018، على خطى المهاجم الدولي المصري محمد صلاح الذي مدد عقده قبل ستة أيام لعامين أيضا، منهيا أشهرا من التكهنات من خلال تمديد بقائه في أنفيلد؟",
     "right",
-    4
+    2,
+    false
   );
 
-  renderText(
+  // Complex tests
+
+  await renderText(
+    TextTextureRendererAdvanced,
+    "סרוק את קוד ה-QR באמצעות מצלמת הטלפון או הטאבלט שלך. (some english text)",
+    "right"
+  );
+
+  await renderText(
+    TextTextureRendererAdvanced,
+    "הגיע הזמן לעדכן את אפליקציית TheBrand ולקבל את התכונות (ביותר!) החדשות ביותר (והטובות ביותר!). סמוך עלינו - אתה תאהב אותן.",
+    "right"
+  );
+
+  await renderText(
     TextTextureRendererAdvanced,
     'أيضًا، نُدرج الأرقام ١٢٣٤٥٦٧٨٩٠، ورابط إلكتروني: user@example.com، مع علامات ترقيم؟!، ونصوص مختلطة الاتجاه مثل: "Hello, مرحبًا".',
     "right",
-    4
+    3,
+    false
   );
-  
+
   // console.log("done in", performance.now() - t0, "ms");
 }
 
@@ -139,11 +139,13 @@ async function renderText(
   Renderer /*typeof TextTextureRenderer*/,
   source /*string*/,
   textAlign /*"left" | "right" | "center"*/,
-  maxLines /*number*/ = 2,
-  textOverflow /*string*/ = ""
+  maxLines /*number = 2*/,
+  allowTextTruncation /*boolean = true*/
 ) {
-  if (stopRendering) return;
   testN++;
+  if (maxLines === undefined) maxLines = 2;
+  if (textAlign === undefined) textAlign = "left";
+  if (allowTextTruncation === undefined) allowTextTruncation = true;
 
   // re-add tags
   let text = source.replace(/①/g, "<b>").replace(/②/g, "</b>");
@@ -216,12 +218,11 @@ async function renderText(
     ...getDefaultSettings(),
     rtl: textAlign === "right",
     text,
-    // w: wordWrapWidth,
     wordWrapWidth,
-    textOverflow,
     maxLines,
     advancedRenderer: text.indexOf("</") > 0,
   };
+  TextTexture.allowTextTruncation = allowTextTruncation;
 
   try {
     const drawCanvas = document.createElement("canvas");
@@ -249,18 +250,6 @@ async function renderText(
     console.error(error);
   }
 }
-
-renderText.only = function (
-  Renderer /*typeof TextTextureRenderer*/,
-  source /*string*/,
-  textAlign /*"left" | "right" | "center"*/,
-  maxLines /*number = 2*/,
-  textOverflow /*string = ""*/
-) {
-  root.innerHTML = "";
-  renderText(Renderer, source, textAlign, maxLines, textOverflow);
-  stopRendering = true;
-};
 
 function getDefaultSettings() {
   return {
