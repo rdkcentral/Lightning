@@ -72,7 +72,7 @@ async function compareLetterSpacing(page: Page, width: number) {
   await page.setViewportSize({ width, height: 4000 });
   await page.goto("/tests/text-rendering.html?playwright&letterSpacing=5");
 
-  for (let i = FIRST_TEST; i < STYLED_TESTS; i++) {
+  for (let i = FIRST_TEST; i < STYLED_TESTS + STYLED_COUNT; i++) {
     await page
       .locator(`#preview${i}`)
       .screenshot({ path: `temp/spacing-${width}-test${i}-html.png` });

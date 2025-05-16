@@ -23,7 +23,7 @@ import type {
   ILineWordStyle,
 } from "./TextTextureRendererTypes.js";
 import StageUtils from "../tree/StageUtils.mjs";
-import { breakWord } from "./TextTextureRendererUtils.js";
+import { breakWord, measureText } from "./TextTextureRendererUtils.js";
 
 export interface DirectedSpan {
   rtl?: boolean;
@@ -140,6 +140,7 @@ export function layoutSpans(
   maxLines: number,
   suffix: string,
   wordBreak: boolean,
+  letterSpacing: number,
   allowTruncation: boolean
 ): LineLayout[] {
   // styling
@@ -149,8 +150,8 @@ export function layoutSpans(
   let style: ILineWordStyle | undefined = isStyled ? initialStyle : undefined;
 
   // cached metrics
-  const spaceWidth = ctx.measureText(" ").width;
-  const suffixWidth = ctx.measureText(suffix).width;
+  const spaceWidth = measureText(ctx, " ", letterSpacing);
+  const suffixWidth = measureText(ctx, suffix, letterSpacing);
 
   // layout state
   let rtl = Boolean(spans[0]?.rtl);
@@ -229,7 +230,7 @@ export function layoutSpans(
       }
 
       // measure word
-      let width = isSpace ? spaceWidth : ctx.measureText(text).width;
+      let width = isSpace ? spaceWidth : measureText(ctx, text, letterSpacing);
       x += width;
 
       // end of line

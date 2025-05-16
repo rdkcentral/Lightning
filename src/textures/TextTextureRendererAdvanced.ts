@@ -56,6 +56,7 @@ export default class TextTextureRendererAdvanced extends TextTextureRenderer {
       this._settings.wordWrap
     );
     const wordBreak = this._settings.wordBreak;
+    const letterSpacing = this._settings.letterSpacing;
     const allowTextTruncation = TextTexture.allowTextTruncation;
 
     let tags: string[];
@@ -87,6 +88,7 @@ export default class TextTextureRendererAdvanced extends TextTextureRenderer {
         nowrap ? 1 : remainingLines,
         suffix,
         wordBreak,
+        letterSpacing,
         allowTextTruncation
       );
 
@@ -117,9 +119,10 @@ export default class TextTextureRendererAdvanced extends TextTextureRenderer {
       const y = drawLine.y;
       let x = drawLine.x;
       for (let j = 0; j < words.length; j++) {
-        const word = words[j]!;
-        if (word.style !== currentStyle) {
-          currentStyle = word.style;
+        const { text, style, width } = words[j]!;
+        
+        if (style !== currentStyle) {
+          currentStyle = style;
           if (currentStyle) {
             const { font, color } = currentStyle;
             ctx.font = font;
@@ -127,8 +130,13 @@ export default class TextTextureRendererAdvanced extends TextTextureRenderer {
           }
         }
 
-        ctx.fillText(word.text, x, y);
-        x += word.width;
+        if (letterSpacing === 0) {
+          ctx.fillText(text, x, y);
+        } else {
+          this._fillTextWithLetterSpacing(ctx, text, x, y, letterSpacing);
+        }
+        
+        x += width;
       }
     }
   }
