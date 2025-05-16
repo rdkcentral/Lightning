@@ -55,6 +55,7 @@ export default class TextTextureRendererAdvanced extends TextTextureRenderer {
       this._settings.textOverflow,
       this._settings.wordWrap
     );
+    const wordBreak = this._settings.wordBreak;
     const allowTextTruncation = TextTexture.allowTextTruncation;
 
     let tags: string[];
@@ -85,6 +86,7 @@ export default class TextTextureRendererAdvanced extends TextTextureRenderer {
         i === 0 ? this._settings.textIndent : 0,
         nowrap ? 1 : remainingLines,
         suffix,
+        wordBreak,
         allowTextTruncation
       );
 

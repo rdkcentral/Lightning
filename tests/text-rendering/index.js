@@ -43,29 +43,36 @@ async function demo() {
   root.style.width = renderWidth + "px";
   root.className = `spacing-${letterSpacing}`;
 
+  // TextTokenizer.setCustomTokenizer(lng.getBidiTokenizer());
+  // await renderText(
+  //   TextTextureRendererAdvanced,
+  //   "Something with hebrew (that: מכאן בכל המכשירים שלך!) in it.",
+  //     "left",
+  //     2
+  // );
+  // return;
+
   TextTokenizer.setCustomTokenizer();
 
   // basic renderer
-  renderText(
+
+  await renderText(
     TextTextureRenderer,
-    "First line\nAnd a second line of some rather long text",
-    "left"
+    "First line\nAnd a second line of some rather long text"
   );
-  renderText(
+  await renderText(
     TextTextureRenderer,
-    "One first line of some rather long text.\nAnd another quite long line; maybe longer!",
-    "left"
+    "One first line of some rather long text.\nAnd another quite long line; maybe longer!"
   );
 
-  // advanced renderer
+  // styled rendering
 
-  renderText(
+  await renderText(
     TextTextureRendererAdvanced,
-    "First <b><color=0xff00ffff>line</color>\nAnd</b> a <i>second line</i> of some ra<b>th</b>er long text",
-    "left"
+    "First <b><color=0xff00ffff>line</color>\nAnd</b> a <i>second line</i> of some st<b>yl</b>ed text"
   );
 
-  // Bidi
+  // Bidi rendering
 
   // `bidiTokenizer.es5.js` attaches declarations to global `lng` object
   TextTokenizer.setCustomTokenizer(lng.getBidiTokenizer());

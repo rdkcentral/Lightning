@@ -30,9 +30,10 @@ sodales velit quis augue. Cras suscipit, urna at aliquam rhoncus, urna quam vive
 nisi, in interdum massa nibh nec erat.';
 
 // With advanced renderer, `renderInfo` lines are objects with `words` array
+/** @return {string} */
 function getLineText(info) {
-    if (info.words) return info.words.map(w => w.text).join('');
-    return info.text;
+    if (info.words) return info.words.map(w => w.text).join('').trimEnd();
+    return info.text.trimEnd();
 }
 
 describe('text', function() {
@@ -292,6 +293,94 @@ describe('text', function() {
                         chai.assert(texture.source == null);
                     });
 
+                });
+            });
+
+            describe('wordBreak', function() {
+                it('should not break 1st word without flag', function() {
+                    const element = app.stage.createElement({
+                        Item: {
+                            texture: {
+                                type: TestTexture,
+                                wordWrapWidth: 300,
+                                text: 'EXTRA-LONG-WORD lorem ipsum dolor sit amet.',
+                                async: false,
+                                ...SETTINGS
+                            }, visible: true},
+                    });
+                    app.children = [element];
+                    const texture = app.tag("Item").texture;
+                    stage.drawFrame();
+                    console.log(texture.source.renderInfo.lines);
+                    chai.assert(texture.source.renderInfo.lines.length === 3);
+                    chai.assert(getLineText(texture.source.renderInfo.lines[0]) === 'EXTRA-LONG-WORD');
+                });
+
+                it('should not break 2nd word without flag', function() {
+                    const element = app.stage.createElement({
+                        Item: {
+                            texture: {
+                                type: TestTexture,
+                                wordWrapWidth: 300,
+                                text: 'Sit EXTRA-LONG-WORD ipsum dolor sit amet.',
+                                async: false,
+                                ...SETTINGS
+                            }, visible: true},
+                    });
+                    app.children = [element];
+                    const texture = app.tag("Item").texture;
+                    stage.drawFrame();
+                    console.log(texture.source.renderInfo.lines);
+                    chai.assert(texture.source.renderInfo.lines.length === 4);
+                    chai.assert(getLineText(texture.source.renderInfo.lines[0]) === 'Sit');
+                    chai.assert(getLineText(texture.source.renderInfo.lines[1]) === 'EXTRA-LONG-WORD');
+                });
+
+                it('should break 1st word', function() {
+                    const element = app.stage.createElement({
+                        Item: {
+                            texture: {
+                                type: TestTexture,
+                                wordWrapWidth: 120,
+                                wordBreak: true,
+                                text: 'EXTRA-LONG-WORD lorem ipsum dolor sit amet.',
+                                async: false,
+                                ...SETTINGS
+                            }, visible: true},
+                    });
+                    app.children = [element];
+                    const texture = app.tag("Item").texture;
+                    stage.drawFrame();
+                    console.log(texture.source.renderInfo.lines);
+                    chai.assert(texture.source.renderInfo.lines.length === 9);
+                    chai.assert(getLineText(texture.source.renderInfo.lines[0]) === 'EXTR');
+                    chai.assert(getLineText(texture.source.renderInfo.lines[1]) === 'A-LO');
+                    chai.assert(getLineText(texture.source.renderInfo.lines[2]) === 'NG-W');
+                    chai.assert(getLineText(texture.source.renderInfo.lines[3]) === 'ORD');
+                });
+
+                it('should break 2nd word', function() {
+                    const element = app.stage.createElement({
+                        Item: {
+                            texture: {
+                                type: TestTexture,
+                                wordWrapWidth: 120,
+                                wordBreak: true,
+                                text: 'Sit EXTRA-LONG-WORD lorem ipsum dolor sit amet.',
+                                async: false,
+                                ...SETTINGS
+                            }, visible: true},
+                    });
+                    app.children = [element];
+                    const texture = app.tag("Item").texture;
+                    stage.drawFrame();
+                    console.log(texture.source.renderInfo.lines);
+                    chai.assert(texture.source.renderInfo.lines.length === 10);
+                    chai.assert(getLineText(texture.source.renderInfo.lines[0]) === 'Sit');
+                    chai.assert(getLineText(texture.source.renderInfo.lines[1]) === 'EXTR');
+                    chai.assert(getLineText(texture.source.renderInfo.lines[2]) === 'A-LO');
+                    chai.assert(getLineText(texture.source.renderInfo.lines[3]) === 'NG-W');
+                    chai.assert(getLineText(texture.source.renderInfo.lines[4]) === 'ORD');
                 });
             });
 

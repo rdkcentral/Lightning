@@ -23,6 +23,7 @@ import type {
   ILineWordStyle,
 } from "./TextTextureRendererTypes.js";
 import StageUtils from "../tree/StageUtils.mjs";
+import { breakWord } from "./TextTextureRendererUtils.js";
 
 export interface DirectedSpan {
   rtl?: boolean;
@@ -138,7 +139,8 @@ export function layoutSpans(
   textIndent: number,
   maxLines: number,
   suffix: string,
-  allowTruncation = false
+  wordBreak: boolean,
+  allowTruncation: boolean
 ): LineLayout[] {
   // styling
   const { isStyled, baseStyle, updateStyle, getStyle } = lineStyle;
@@ -160,13 +162,14 @@ export function layoutSpans(
     words: [],
   };
   const lines: LineLayout[] = [line];
+  let words: WordLayout[];
   let lineN = 1;
   let endReached = false;
-  let addEllipsis = false;
+  let overflow = false;
   let x = textIndent;
 
   // concatenate words
-  const appendWords = (words: WordLayout[]): void => {
+  const appendWords = (): void => {
     if (rtl !== primaryRtl) {
       words.reverse();
     }
@@ -180,6 +183,19 @@ export function layoutSpans(
       }
     }
     line.words.push(...words);
+    words = [];
+  };
+
+  const newLine = (): void => {
+    line = {
+      rtl,
+      width: 0,
+      text: "",
+      words: [],
+    };
+    lines.push(line);
+    lineN++;
+    x = 0;
   };
 
   // process tokens
@@ -187,14 +203,20 @@ export function layoutSpans(
     const span = spans[si]!;
     rtl = Boolean(span.rtl);
     const tokens = span.tokens;
-    let words: WordLayout[] = [];
+    words = [];
 
     for (let ti = 0; ti < tokens.length; ti++) {
+      // overflow?
+      if (maxLines && lineN > maxLines) {
+        endReached = true;
+        overflow = true;
+        break;
+      }
       let text = tokens[ti]!;
       const isSpace = text === " ";
 
       // update style?
-      if (isStyled && !isSpace) {
+      if (isStyled && !isSpace && text.length === 1) {
         const c = text.charCodeAt(0);
         if (c >= 0x2460 && c <= 0x2473) {
           // word is a style tag
@@ -207,64 +229,80 @@ export function layoutSpans(
       }
 
       // measure word
-      const width = isSpace ? spaceWidth : ctx.measureText(text).width;
+      let width = isSpace ? spaceWidth : ctx.measureText(text).width;
       x += width;
 
       // end of line
       if (x > wrapWidth) {
-        // single word longer than max size
-        if (words.length === 0 && line.words.length === 0) {
-          words.push({ text, width, style, rtl });
-          if (lineN === maxLines) {
-            addEllipsis = true;
-            endReached = true;
-            break;
-          }
-          // else TODO break word
-          continue;
-        }
-
         // last word of last line - ellipsis will be applied later
         if (lineN === maxLines) {
           words.push({ text, width, style, rtl });
-          addEllipsis = true;
+          overflow = true;
           endReached = true;
           break;
         }
 
-        // finalize line
-        appendWords(words);
-        measureLine(line);
-
-        // new line
-        x = width;
-        words = [];
-        line = {
-          rtl,
-          width: 0,
-          text: "",
-          words: [],
-        };
-        lines.push(line);
-        lineN++;
-        if (text === " ") {
-          // don't insert trailing space
+        // if word is wider than the line
+        if (width > wrapWidth) {
+          // commit line
+          if (line.words.length > 0 || words.length > 0) {
+            appendWords();
+            newLine();
+            x = width;
+          }
+          // either break the word, or push to new line
+          if (wordBreak) {
+            const broken = breakWord(ctx, text, wrapWidth, 0);
+            const last = broken.pop()!;
+            for (const k of broken) {
+              words.push({
+                text: k.text,
+                width: k.width,
+                style,
+                rtl,
+              });
+              appendWords();
+              newLine();
+            }
+            text = last.text;
+            x = width = last.width;
+          }
+          // add remaining/full word
+          words.push({ text, width, style, rtl });
           continue;
         }
+
+        // finalize line
+        appendWords();
+        newLine();
+        if (text === " ") {
+          // don't insert trailing space to the new line
+          continue;
+        }
+        // we will insert the word to the new line
+        x = width;
       }
 
       words.push({ text, width, style, rtl });
     }
 
     // append and continue?
-    appendWords(words);
+    appendWords();
     if (endReached) break;
   }
+
+  // prevent exceeding maxLines
+  if (maxLines > 0 && lines.length >= maxLines) {
+    lines.length = maxLines;
+  }
+
   // finalize
-  measureLine(line);
+  lines.forEach((line) => {
+    measureLine(line);
+  });
 
   // ellipsis
-  if (addEllipsis) {
+  if (overflow) {
     line = lines[lines.length - 1]!;
     const maxLineWidth = wrapWidth - suffixWidth;
 
@@ -319,9 +357,7 @@ export function layoutSpans(
           }
           const reversed = primaryRtl !== rtl;
           do {
-            text = reversed
-              ? trimWordStart(text, rtl)
-              : trimWordEnd(text, rtl);
+            text = reversed ? trimWordStart(text, rtl) : trimWordEnd(text, rtl);
             width = ctx.measureText(text).width;
           } while (width > maxWidth);
           if (width > suffixWidth) {
@@ -363,8 +399,8 @@ export function layoutSpans(
   return lines;
 }
 
-const rePunctuationStart = /^[.,،:;!?؟()"“”«»-]+/
-const rePunctuationEnd = /[.,،:;!?؟()"“”«»-]+$/
+const rePunctuationStart = /^[.,،:;!?؟()"“”«»-]+/;
+const rePunctuationEnd = /[.,،:;!?؟()"“”«»-]+$/;
 
 export function trimWordEnd(text: string, rtl: boolean): string {
   if (rtl) {

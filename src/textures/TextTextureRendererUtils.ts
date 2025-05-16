@@ -71,7 +71,7 @@ export function getFontSetting(
 export function wrapText(
   context: CanvasRenderingContext2D,
   text: string,
-  wordWrapWidth: number,
+  wrapWidth: number,
   letterSpacing: number,
   textIndent: number,
   maxLines: number,
@@ -85,19 +85,24 @@ export function wrapText(
   const spaceWidth = measureText(context, " ", letterSpacing);
   const resultLines: ILineInfo[] = [];
   let result = "";
-  let spaceLeft = wordWrapWidth - textIndent;
+  let spaceLeft = wrapWidth - textIndent;
   let word = "";
   let wordWidth = 0;
   let totalWidth = textIndent;
   let overflow = false;
   for (let j = 0; j < words.length; j++) {
+    // overflow?
+    if (maxLines && resultLines.length > maxLines) {
+      overflow = true;
+      break;
+    }
     word = words[j]!;
     wordWidth =
       word === " " ? spaceWidth : measureText(context, word, letterSpacing);
 
     if (wordWidth > spaceLeft) {
-      // early stop?
-      if (maxLines > 0 && resultLines.length >= maxLines - 1) {
+      // last word of last line overflows
+      if (maxLines && resultLines.length >= maxLines - 1) {
         result += word;
         totalWidth += wordWidth;
         overflow = true;
@@ -117,10 +122,10 @@ export function wrapText(
       if (j > 0 && word === " ") wordWidth = 0;
       else result = word;
 
-      // if word is too long, break it
-      if (wordBreak && wordWidth > wordWrapWidth) {
-        const broken = breakWord(context, word, wordWrapWidth, letterSpacing);
-        const last = broken.pop()!;
+      // if word is too long, break it (caution: it could produce more than maxLines)
+      if (wordBreak && wordWidth > wrapWidth) {
+        const broken = breakWord(context, word, wrapWidth, letterSpacing);
+        let last = broken.pop()!;
         for (const k of broken) {
           resultLines.push({
             text: k.text,
@@ -132,12 +137,17 @@ export function wrapText(
       }
 
       totalWidth = wordWidth;
-      spaceLeft = wordWrapWidth - wordWidth;
+      spaceLeft = wrapWidth - wordWidth;
     } else {
       spaceLeft -= wordWidth;
       totalWidth += wordWidth;
       result += word;
     }
+  }
+  
+  // prevent exceeding maxLines
+  if (maxLines > 0 && resultLines.length >= maxLines) {
+    resultLines.length = maxLines;
   }
 
   // shorten and append ellipsis, if any
@@ -146,7 +156,7 @@ export function wrapText(
       ? measureText(context, suffix, letterSpacing)
       : 0;
 
-    while (totalWidth + suffixWidth > wordWrapWidth) {
+    while (totalWidth + suffixWidth > wrapWidth) {
       result = result.substring(0, result.length - 1);
       totalWidth = measureText(context, result, letterSpacing);
     }

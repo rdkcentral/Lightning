@@ -136,7 +136,9 @@ describe("layoutSpans", () => {
       200,
       0,
       1,
-      "..."
+      "...",
+      false,
+      false
     );
     expect(lines.length).toBe(1);
     expect(lines[0]!.words[0]!.style).toBeUndefined();
@@ -157,7 +159,9 @@ describe("layoutSpans", () => {
       200,
       0,
       1,
-      "..."
+      "...",
+      false,
+      false
     );
     expect(lines.length).toBe(1);
 
