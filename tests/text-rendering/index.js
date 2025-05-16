@@ -234,8 +234,7 @@ async function renderText(
   try {
     const drawCanvas = document.createElement("canvas");
     const renderer = new Renderer(stage, drawCanvas, settings);
-    await renderer._load();
-    renderer._draw();
+    await renderer.draw();
 
     const ctx = canvas.getContext("2d");
     ctx.fillStyle = "white";

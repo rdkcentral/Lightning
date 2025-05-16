@@ -138,6 +138,7 @@ describe("layoutSpans", () => {
       1,
       "...",
       false,
+      0,
       false
     );
     expect(lines.length).toBe(1);
@@ -161,6 +162,7 @@ describe("layoutSpans", () => {
       1,
       "...",
       false,
+      0,
       false
     );
     expect(lines.length).toBe(1);

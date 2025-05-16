@@ -88,7 +88,7 @@ class TextTokenizer {
     const len = text.length;
     let startIndex = 0;
     let i = 0;
-    for (i; i < len; i++) {
+    for (; i < len; i++) {
       const c = text.charAt(i);
       if (c === " " || c === "\u200B") {
         if (i - startIndex > 0) {
