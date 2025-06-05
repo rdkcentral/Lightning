@@ -43,7 +43,7 @@ describe("Texture mirroring", function () {
     return { tl, tr, bl, br };
   }
 
-  function renderTest(canvas2d, radius, mirrorX, mirrorY) {
+  function renderTest(canvas2d, mirrorX, mirrorY) {
     class TestApplication extends lng.Application {}
     const app = new TestApplication({
       stage: { w: 100, h: 100, clearColor: 0xffffffff, autostart: false, canvas2d },
@@ -53,7 +53,7 @@ describe("Texture mirroring", function () {
 
     const element = app.stage.createElement({
       Item: {
-        texture: lng.Tools.getRoundRect(198, 198, radius, 0, 0, true, 0xffff0000),
+        texture: lng.Tools.getRoundRect(198, 198, [0, 30, 30, 30], 0, 0, true, 0xffff0000),
         pivot: 0,
         scale: 0.5 // ensure calculations work with scaling
       },
@@ -79,7 +79,7 @@ describe("Texture mirroring", function () {
   });
 
   it("non-mirrored control in webGl", () => {
-    renderTest(false, [0, 30, 30, 30], false);
+    renderTest(false, false);
 
     const capture = captureCanvasCornerColors(stage.getCanvas());
     chai.assert(
@@ -89,7 +89,7 @@ describe("Texture mirroring", function () {
   });
 
   it("can mirror horizontally in webGl", () => {
-    renderTest(false, [0, 30, 30, 30], true);
+    renderTest(false, true);
 
     const capture = captureCanvasCornerColors(stage.getCanvas());
     chai.assert(
@@ -99,7 +99,7 @@ describe("Texture mirroring", function () {
   });
 
   it("can mirror vertically in webGl", () => {
-    renderTest(false, [0, 30, 30, 30], false, true);
+    renderTest(false, false, true);
 
     const capture = captureCanvasCornerColors(stage.getCanvas());
     chai.assert(
@@ -109,7 +109,7 @@ describe("Texture mirroring", function () {
   });
 
   it("can mirror horizontally and vertically in webGl", () => {
-    renderTest(false, [0, 30, 30, 30], true, true);
+    renderTest(false, true, true);
 
     const capture = captureCanvasCornerColors(stage.getCanvas());
     chai.assert(
@@ -119,7 +119,7 @@ describe("Texture mirroring", function () {
   });
 
   it("non-mirrored control in canvas2d", () => {
-    renderTest(true, [0, 30, 30, 30], false);
+    renderTest(true, false);
 
     const capture = captureCanvasCornerColors(stage.getCanvas());
     chai.assert(
@@ -129,7 +129,7 @@ describe("Texture mirroring", function () {
   });
 
   it("can mirror horizontally in canvas2d", () => {
-    renderTest(true, [0, 30, 30, 30], true);
+    renderTest(true, true);
 
     const capture = captureCanvasCornerColors(stage.getCanvas());
     chai.assert(
@@ -139,7 +139,7 @@ describe("Texture mirroring", function () {
   });
 
   it("can mirror vertically in canvas2d", () => {
-    renderTest(true, [0, 30, 30, 30], false, true);
+    renderTest(true, false, true);
 
     const capture = captureCanvasCornerColors(stage.getCanvas());
     chai.assert(
@@ -149,7 +149,7 @@ describe("Texture mirroring", function () {
   });
 
   it("can mirror horizontally and vertically in canvas2d", () => {
-    renderTest(true, [0, 30, 30, 30], true, true);
+    renderTest(true, true, true);
 
     const capture = captureCanvasCornerColors(stage.getCanvas());
     chai.assert(
