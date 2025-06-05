@@ -75,7 +75,7 @@ describe("Texture mirroring", function () {
 
   afterEach(() => {
     stage.stop();
-    // stage.getCanvas().remove();
+    stage.getCanvas().remove();
   });
 
   it("non-mirrored control in webGl", () => {
