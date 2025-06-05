@@ -76,6 +76,19 @@ export default class DefaultShader extends C2dShader {
                 const sourceH = (stc ? 1 : (vc._bry - vc._uly)) * tx.h;
 
                 let colorize = !white;
+
+                // Handle horizontal mirroring if sourceW is negative
+                let drawSourceX = sourceX;
+                let drawSourceW = sourceW;
+                let destX = 0;
+                if (sourceW < 0) {
+                    drawSourceX = sourceX + sourceW;
+                    drawSourceW = -sourceW;
+                    ctx.save();
+                    ctx.scale(-1, 1);
+                    destX = -vc.w;
+                }
+
                 if (colorize) {
                     // @todo: cache the tint texture for better performance.
 
@@ -96,10 +109,15 @@ export default class DefaultShader extends C2dShader {
 
                     // Actually draw result.
                     ctx.fillStyle = 'white';
-                    ctx.drawImage(tintTexture, sourceX, sourceY, sourceW, sourceH, 0, 0, vc.w, vc.h);
+                    ctx.drawImage(tintTexture, drawSourceX, sourceY, drawSourceW, sourceH, destX, 0, vc.w, vc.h);
                 } else {
                     ctx.fillStyle = 'white';
-                    ctx.drawImage(tx, sourceX, sourceY, sourceW, sourceH, 0, 0, vc.w, vc.h);
+                    ctx.drawImage(tx, drawSourceX, sourceY, drawSourceW, sourceH, destX, 0, vc.w, vc.h);
+                }
+
+                if (sourceW < 0) {
+                    // cancel mirroring transform
+                    ctx.restore();
                 }
                 this._afterDrawEl(info);
                 ctx.globalAlpha = 1.0;
