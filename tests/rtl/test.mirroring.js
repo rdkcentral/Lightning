@@ -35,11 +35,15 @@ describe("Texture mirroring", function () {
     const tr = toNumberColor(
       ctx.getImageData(canvas.width - 2, 1, 1, 1).data
     );
+    const bl = toNumberColor(ctx.getImageData(1, canvas.height - 2, 1, 1).data);
+    const br = toNumberColor(
+      ctx.getImageData(canvas.width - 2, canvas.height - 2, 1, 1).data
+    );
 
-    return { left: tl, right: tr };
+    return { tl, tr, bl, br };
   }
 
-  function renderTest(canvas2d, radius, mirror) {
+  function renderTest(canvas2d, radius, mirrorX, mirrorY) {
     class TestApplication extends lng.Application {}
     const app = new TestApplication({
       stage: { w: 100, h: 100, clearColor: 0xffffffff, autostart: false, canvas2d },
@@ -56,10 +60,14 @@ describe("Texture mirroring", function () {
     });
     app.children = [element];
 
-    if (mirror) {
-      const item = app.tag("Item");
-      item.texture.enableClipping(200, 0, -200, 200);
-      item.w = 200;
+    const texture = app.tag("Item").texture;
+    if (mirrorX) {
+      texture.x = 200;
+      texture.w = -200;
+    }
+    if (mirrorY) {
+      texture.y = 200;
+      texture.h = -200;
     }
 
     stage.drawFrame();
@@ -67,7 +75,7 @@ describe("Texture mirroring", function () {
 
   afterEach(() => {
     stage.stop();
-    stage.getCanvas().remove();
+    // stage.getCanvas().remove();
   });
 
   it("non-mirrored control in webGl", () => {
@@ -75,18 +83,38 @@ describe("Texture mirroring", function () {
 
     const capture = captureCanvasCornerColors(stage.getCanvas());
     chai.assert(
-      capture.left === 0x0000ff && capture.right === 0xffffff,
-      "Left should be red, right should be white"
+      capture.tl === 0x0000ff && capture.tr === 0xffffff,
+      "Top-left should be red, top-right should be white"
     );
   });
 
-  it("can mirror in webGl", () => {
+  it("can mirror horizontally in webGl", () => {
     renderTest(false, [0, 30, 30, 30], true);
 
     const capture = captureCanvasCornerColors(stage.getCanvas());
     chai.assert(
-      capture.left === 0xffffff && capture.right === 0x0000ff,
-      "Left should be white, right should be red"
+      capture.tl === 0xffffff && capture.tr === 0x0000ff,
+      "Top-left should be white, top-right should be red"
+    );
+  });
+
+  it("can mirror vertically in webGl", () => {
+    renderTest(false, [0, 30, 30, 30], false, true);
+
+    const capture = captureCanvasCornerColors(stage.getCanvas());
+    chai.assert(
+      capture.tl === 0xffffff && capture.bl === 0x0000ff,
+      "Top-left should be white, bottom-left should be red"
+    );
+  });
+
+  it("can mirror horizontally and vertically in webGl", () => {
+    renderTest(false, [0, 30, 30, 30], true, true);
+
+    const capture = captureCanvasCornerColors(stage.getCanvas());
+    chai.assert(
+      capture.tl === 0xffffff && capture.br === 0x0000ff,
+      "Top-left should be white, bottom-right should be red"
     );
   });
 
@@ -95,19 +123,38 @@ describe("Texture mirroring", function () {
 
     const capture = captureCanvasCornerColors(stage.getCanvas());
     chai.assert(
-      capture.left === 0x0000ff && capture.right === 0xffffff,
-      "Left should be red, right should be white"
+      capture.tl === 0x0000ff && capture.tr === 0xffffff,
+      "Top-left should be red, top-right should be white"
     );
   });
 
-
-  it("can mirror in canvas2d", () => {
+  it("can mirror horizontally in canvas2d", () => {
     renderTest(true, [0, 30, 30, 30], true);
 
     const capture = captureCanvasCornerColors(stage.getCanvas());
     chai.assert(
-      capture.left === 0xffffff && capture.right === 0x0000ff,
-      "Left should be white, right should be red"
+      capture.tl === 0xffffff && capture.tr === 0x0000ff,
+      "Top-left should be white, top-right should be red"
+    );
+  });
+
+  it("can mirror vertically in canvas2d", () => {
+    renderTest(true, [0, 30, 30, 30], false, true);
+
+    const capture = captureCanvasCornerColors(stage.getCanvas());
+    chai.assert(
+      capture.tl === 0xffffff && capture.bl === 0x0000ff,
+      "Top-left should be white, bottom-left should be red"
+    );
+  });
+
+  it("can mirror horizontally and vertically in canvas2d", () => {
+    renderTest(true, [0, 30, 30, 30], true, true);
+
+    const capture = captureCanvasCornerColors(stage.getCanvas());
+    chai.assert(
+      capture.tl === 0xffffff && capture.br === 0x0000ff,
+      "Top-left should be white, bottom-right should be red"
     );
   });
 });

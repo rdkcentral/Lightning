@@ -77,16 +77,28 @@ export default class DefaultShader extends C2dShader {
 
                 let colorize = !white;
 
-                // Handle horizontal mirroring if sourceW is negative
+                // Handle horizontal and/or vertical mirroring
                 let drawSourceX = sourceX;
                 let drawSourceW = sourceW;
                 let destX = 0;
-                if (sourceW < 0) {
-                    drawSourceX = sourceX + sourceW;
-                    drawSourceW = -sourceW;
+                let drawSourceY = sourceY;
+                let drawSourceH = sourceH;
+                let destY = 0;
+                let mirroring = sourceW < 0 || sourceH < 0;
+                if (mirroring) {
                     ctx.save();
-                    ctx.scale(-1, 1);
-                    destX = -vc.w;
+                    if (sourceW < 0) {
+                        drawSourceX = sourceX + sourceW;
+                        drawSourceW = -sourceW;
+                        ctx.scale(-1, 1);
+                        destX = -vc.w;
+                    }
+                    if (sourceH < 0) {
+                        drawSourceY = sourceY + sourceH;
+                        drawSourceH = -sourceH;
+                        ctx.scale(1, -1);
+                        destY = -vc.h;
+                    }
                 }
 
                 if (colorize) {
@@ -109,14 +121,14 @@ export default class DefaultShader extends C2dShader {
 
                     // Actually draw result.
                     ctx.fillStyle = 'white';
-                    ctx.drawImage(tintTexture, drawSourceX, sourceY, drawSourceW, sourceH, destX, 0, vc.w, vc.h);
+                    ctx.drawImage(tintTexture, drawSourceX, drawSourceY, drawSourceW, drawSourceH, destX, destY, vc.w, vc.h);
                 } else {
                     ctx.fillStyle = 'white';
-                    ctx.drawImage(tx, drawSourceX, sourceY, drawSourceW, sourceH, destX, 0, vc.w, vc.h);
+                    ctx.drawImage(tx, drawSourceX, drawSourceY, drawSourceW, drawSourceH, destX, destY, vc.w, vc.h);
                 }
 
-                if (sourceW < 0) {
-                    // cancel mirroring transform
+                // cancel mirroring transform
+                if (mirroring) {
                     ctx.restore();
                 }
                 this._afterDrawEl(info);
