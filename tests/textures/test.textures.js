@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-describe('textures', function() {
+describe('Textures', function() {
     this.timeout(0);
 
     let app;

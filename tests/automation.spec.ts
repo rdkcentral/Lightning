@@ -43,12 +43,16 @@ async function testCase(page: Page, name: string): Promise<string> {
   return promise;
 }
 
-test('Texture', async ({ page }) => {
-  expect(await testCase(page, 'texture')).toBe('SUCCESS');
+test('Textures', async ({ page }) => {
+  expect(await testCase(page, 'Textures')).toBe('SUCCESS');
+});
+
+test('Texture mirroring', async ({ page }) => {
+  expect(await testCase(page, 'Texture mirroring')).toBe('SUCCESS');
 });
 
 test('Text', async ({ page }) => {
-  expect(await testCase(page, 'text')).toBe('SUCCESS');
+  expect(await testCase(page, 'Text')).toBe('SUCCESS');
 });
 
 test('Key handling', async ({ page }) => {
