@@ -49,15 +49,17 @@ describe("Texture mirroring", function () {
 
     const element = app.stage.createElement({
       Item: {
-        texture: lng.Tools.getRoundRect(98, 98, radius, 0, 0, true, 0xffff0000),
+        texture: lng.Tools.getRoundRect(198, 198, radius, 0, 0, true, 0xffff0000),
+        pivot: 0,
+        scale: 0.5 // ensure calculations work with scaling
       },
     });
     app.children = [element];
 
     if (mirror) {
       const item = app.tag("Item");
-      item.texture.enableClipping(100, 0, -100, 100);
-      item.w = 100;
+      item.texture.enableClipping(200, 0, -200, 200);
+      item.w = 200;
     }
 
     stage.drawFrame();
@@ -65,7 +67,7 @@ describe("Texture mirroring", function () {
 
   afterEach(() => {
     stage.stop();
-    stage.getCanvas().remove();
+    // stage.getCanvas().remove();
   });
 
   it("non-mirrored control in webGl", () => {
