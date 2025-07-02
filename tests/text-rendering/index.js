@@ -22,6 +22,7 @@ import TextTextureRendererAdvanced from "../../dist/src/textures/TextTextureRend
 import TextTextureRenderer from "../../dist/src/textures/TextTextureRenderer.js";
 import TextTokenizer from "../../dist/src/textures/TextTokenizer.js";
 
+const MAX_WIDTH = 2048; // max width of the canvas
 let testN = 0;
 let letterSpacing = 0;
 if (location.search.indexOf("letterSpacing") > 0) {
@@ -34,7 +35,7 @@ if (location.search.indexOf("letterSpacing") > 0) {
 const root = document.createElement("div");
 root.id = "root";
 document.body.appendChild(root);
-let renderWidth = window.innerWidth - 16;
+let renderWidth = Math.min(window.innerWidth - 16, MAX_WIDTH);
 
 async function demo() {
   // const t0 = performance.now();
@@ -43,15 +44,7 @@ async function demo() {
   root.style.width = renderWidth + "px";
   root.className = `spacing-${letterSpacing}`;
 
-  // TextTokenizer.setCustomTokenizer(lng.getBidiTokenizer());
-  // await renderText(
-  //   TextTextureRendererAdvanced,
-  //   "Something with hebrew (that: מכאן בכל המכשירים שלך!) in it.",
-  //     "left",
-  //     2
-  // );
-  // return;
-
+  // reset tokenizer
   TextTokenizer.setCustomTokenizer();
 
   // basic renderer
@@ -137,7 +130,7 @@ window.addEventListener("resize", () => {
   window.clearTimeout(timer);
   timer = window.setTimeout(() => {
     timer = 0;
-    renderWidth = window.innerWidth - 16;
+    renderWidth = Math.min(window.innerWidth - 16, MAX_WIDTH);
     demo();
   }, 10);
 });
