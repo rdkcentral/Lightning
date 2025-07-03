@@ -29,8 +29,11 @@ export default class TextTexture extends Texture {
         this._precision = this.stage.getOption('precision');
     }
 
+    static forceAdvancedRenderer = false;
+    static allowTextTruncation = true;
+
     static renderer(stage, canvas, settings) {
-        if (settings.advancedRenderer) {
+        if (settings.advancedRenderer || TextTexture.forceAdvancedRenderer) {
             return new TextTextureRendererAdvanced(stage, canvas, settings);
         } else {
             return new TextTextureRenderer(stage, canvas, settings);
@@ -735,5 +738,5 @@ proto._advancedRenderer = false;
 proto._fontBaselineRatio = 0;
 
 
-import TextTextureRenderer from "./TextTextureRenderer.mjs";
-import TextTextureRendererAdvanced from "./TextTextureRendererAdvanced.mjs";
+import TextTextureRenderer from "./TextTextureRenderer.js";
+import TextTextureRendererAdvanced from "./TextTextureRendererAdvanced.js";

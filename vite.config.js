@@ -11,6 +11,7 @@ import { fixTsImportsFromJs } from './fixTsImportsFromJs.vite-plugin';
 const isEs5Build = process.env.BUILD_ES5 === 'true';
 const isMinifiedBuild = process.env.BUILD_MINIFY === 'true';
 const isInspectorBuild = process.env.BUILD_INSPECTOR === 'true';
+const isBidiTokenizerBuild = process.env.BUILD_BIDI_TOKENIZER === 'true';
 
 let outDir = 'dist';
 let entry = resolve(__dirname, 'src/index.ts');
@@ -24,6 +25,14 @@ if (isInspectorBuild) {
   outputBase = 'lightning-inspect';
   sourcemap = false;
   useDts = false;
+}
+
+if (isBidiTokenizerBuild) {
+  outDir = 'dist';
+  entry = resolve(__dirname, 'src/textures/bidiTokenizer.ts');
+  outputBase = 'bidiTokenizer';
+  sourcemap = true;
+  useDts = true;
 }
 
 export default defineConfig(() => {
@@ -91,6 +100,7 @@ export default defineConfig(() => {
     },
     test: {
       exclude: [
+        './dist/**',
         './node_modules/**',
         './tests/**'
       ]
