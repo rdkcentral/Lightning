@@ -76,6 +76,31 @@ export default class DefaultShader extends C2dShader {
                 const sourceH = (stc ? 1 : (vc._bry - vc._uly)) * tx.h;
 
                 let colorize = !white;
+
+                // Handle horizontal and/or vertical mirroring
+                let drawSourceX = sourceX;
+                let drawSourceW = sourceW;
+                let destX = 0;
+                let drawSourceY = sourceY;
+                let drawSourceH = sourceH;
+                let destY = 0;
+                let mirroring = sourceW < 0 || sourceH < 0;
+                if (mirroring) {
+                    ctx.save();
+                    if (sourceW < 0) {
+                        drawSourceX = sourceX + sourceW;
+                        drawSourceW = -sourceW;
+                        ctx.scale(-1, 1);
+                        destX = -vc.w;
+                    }
+                    if (sourceH < 0) {
+                        drawSourceY = sourceY + sourceH;
+                        drawSourceH = -sourceH;
+                        ctx.scale(1, -1);
+                        destY = -vc.h;
+                    }
+                }
+
                 if (colorize) {
                     // @todo: cache the tint texture for better performance.
 
@@ -96,10 +121,15 @@ export default class DefaultShader extends C2dShader {
 
                     // Actually draw result.
                     ctx.fillStyle = 'white';
-                    ctx.drawImage(tintTexture, sourceX, sourceY, sourceW, sourceH, 0, 0, vc.w, vc.h);
+                    ctx.drawImage(tintTexture, drawSourceX, drawSourceY, drawSourceW, drawSourceH, destX, destY, vc.w, vc.h);
                 } else {
                     ctx.fillStyle = 'white';
-                    ctx.drawImage(tx, sourceX, sourceY, sourceW, sourceH, 0, 0, vc.w, vc.h);
+                    ctx.drawImage(tx, drawSourceX, drawSourceY, drawSourceW, drawSourceH, destX, destY, vc.w, vc.h);
+                }
+
+                // cancel mirroring transform
+                if (mirroring) {
+                    ctx.restore();
                 }
                 this._afterDrawEl(info);
                 ctx.globalAlpha = 1.0;
