@@ -219,9 +219,45 @@ export default class TextTextureRenderer {
       offsetY += lineHeight - fontSize;
     }
 
+    const rtl = this._settings.rtl;
+    let textAlign = this._settings.textAlign;
+    if (rtl) {
+      if (textAlign === "left") textAlign = "right";
+      else if (textAlign === "right") textAlign = "left";
+    }
+
+    let linePositionX;
+    let linePositionY;
+    const drawLines: IDrawLineInfo[] = [];
+
+    // Layout lines
+    for (let i = 0, n = lines.length; i < n; i++) {
+      const lineWidth = lineWidths[i] || 0;
+
+      linePositionX = rtl ? paddingRight : paddingLeft;
+      if (i === 0 && !rtl) {
+        linePositionX += textIndent;
+      }
+
+      if (textAlign === "right") {
+        linePositionX += innerWidth - lineWidth;
+      } else if (textAlign === "center") {
+        linePositionX += (innerWidth - lineWidth) / 2;
+      }
+
+      linePositionY = i * lineHeight + offsetY;
+
+      drawLines.push({
+        info: lines[i]!,
+        x: linePositionX,
+        y: linePositionY,
+        w: lineWidth,
+      });
+    }
+
     renderInfo.w = width;
     renderInfo.h = height;
-    renderInfo.lines = lines;
+    renderInfo.lines = drawLines;
     renderInfo.precision = precision;
 
     if (!width) {
@@ -285,54 +321,16 @@ export default class TextTextureRenderer {
       this._context.translate(-renderInfo.cutSx, -renderInfo.cutSy);
     }
 
-    const rtl = this._settings.rtl;
-    let textAlign = this._settings.textAlign;
-    if (rtl) {
-      if (textAlign === "left") textAlign = "right";
-      else if (textAlign === "right") textAlign = "left";
-    }
-
-    const offsetY = renderInfo.offsetY;
-
-    let linePositionX;
-    let linePositionY;
-
-    const drawLines: IDrawLineInfo[] = [];
-
-    // Layout lines
-    for (let i = 0, n = renderInfo.lines.length; i < n; i++) {
-      const lineWidth = renderInfo.lineWidths[i] || 0;
-
-      linePositionX = rtl ? renderInfo.paddingRight : renderInfo.paddingLeft;
-      if (i === 0 && !rtl) {
-        linePositionX += renderInfo.textIndent;
-      }
-
-      if (textAlign === "right") {
-        linePositionX += renderInfo.innerWidth - lineWidth;
-      } else if (textAlign === "center") {
-        linePositionX += (renderInfo.innerWidth - lineWidth) / 2;
-      }
-
-      linePositionY = i * renderInfo.lineHeight + offsetY;
-
-      drawLines.push({
-        info: renderInfo.lines[i]!,
-        x: linePositionX,
-        y: linePositionY,
-        w: lineWidth,
-      });
-    }
 
     if (this._settings.highlight) {
-      this._drawHighlight(precision, renderInfo, drawLines);
+      this._drawHighlight(precision, renderInfo);
     }
 
     if (this._settings.shadow) {
       this._drawShadow(precision);
     }
 
-    this._drawLines(drawLines, renderInfo.letterSpacing);
+    this._drawLines(renderInfo.lines, renderInfo.letterSpacing);
 
     if (this._settings.shadow) {
       this._restoreShadow();
@@ -404,8 +402,7 @@ export default class TextTextureRenderer {
 
   protected _drawHighlight(
     precision: number,
-    renderInfo: IRenderInfo,
-    drawLines: IDrawLineInfo[]
+    renderInfo: IRenderInfo
   ) {
     let color = this._settings.highlightColor || 0x00000000;
 
@@ -422,8 +419,8 @@ export default class TextTextureRenderer {
         : renderInfo.paddingRight;
 
     this._context.fillStyle = StageUtils.getRgbaString(color);
-    for (let i = 0; i < drawLines.length; i++) {
-      const drawLine = drawLines[i]!;
+    for (let i = 0; i < renderInfo.lines.length; i++) {
+      const drawLine = renderInfo.lines[i]!;
       this._context.fillRect(
         drawLine.x - hlPaddingLeft,
         drawLine.y - renderInfo.offsetY + offset,

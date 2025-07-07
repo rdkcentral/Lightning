@@ -69,7 +69,7 @@ export interface ILineInfo {
  * Complete text layout information
  */
 export interface IRenderInfo {
-  lines: ILineInfo[];
+  lines: IDrawLineInfo[];
   remainingText: string;
   moreTextLines: boolean;
   precision: number;
