@@ -23,8 +23,8 @@ import type { DirectedSpan } from "./TextTextureRendererAdvancedUtils.js";
 let bidi: BidiAPI;
 
 // https://www.unicode.org/reports/tr9/
-const reZeroWidthSpace = /[\u200B\u200E\u200F\u061C]/g;
-const reDirectionalFormat = /[\u202A\u202B\u202C\u202D\u202E\u202E\u2066\u2067\u2068\u2069]/g;
+const reZeroWidthSpace = /[\u200B\u200E\u200F\u061C]/;
+const reDirectionalFormat = /[\u202A\u202B\u202C\u202D\u202E\u202E\u2066\u2067\u2068\u2069]/;
 
 const reQuoteStart = /^["“”«»]/;
 const reQuoteEnd = /["“”«»]$/;
