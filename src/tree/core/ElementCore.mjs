@@ -19,6 +19,8 @@
 
 import FlexTarget from "../../flex/FlexTarget.mjs";
 
+const MIN_ALPHA_RENDER = 0.002;
+
 export default class ElementCore {
 
     constructor(element) {
@@ -1821,7 +1823,7 @@ export default class ElementCore {
             this.sortZIndexedChildren();
         }
 
-        if (this._outOfBounds < 2 && this._renderContext.alpha) {
+        if (this._outOfBounds < 2 && this._renderContext.alpha >= MIN_ALPHA_RENDER) {
             let renderState = this.renderState;
 
             if ((this._outOfBounds === 0) && this._displayedTextureSource) {
@@ -1861,7 +1863,7 @@ export default class ElementCore {
             this.sortZIndexedChildren();
         }
 
-        if (this._outOfBounds < 2 && this._renderContext.alpha) {
+        if (this._outOfBounds < 2 && this._renderContext.alpha >= MIN_ALPHA_RENDER) {
             let renderState = this.renderState;
 
             let mustRenderChildren = true;
@@ -2197,7 +2199,7 @@ export default class ElementCore {
 
     collectAtCoord(x, y, children) {
         // return when branch is hidden
-        if (this._renderContext.alpha === 0) {
+        if (this._renderContext.alpha < MIN_ALPHA_RENDER) {
             return;
         }
 
