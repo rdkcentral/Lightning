@@ -121,6 +121,8 @@ declare class ElementCore {
   /**
    * Fill the array `children` with all the ElementCore instances (including itself and
    * its children) that intersect the point (`x`, `y`)
+   * 
+   * To enforce z-sorting, the result should be sorted using `ElementCore.sortZIndexedChildren`.
    *
    * @param x
    * @param y

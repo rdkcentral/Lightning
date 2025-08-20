@@ -25,6 +25,7 @@ export default class CoreContext {
   stage: Stage;
 
   renderToTextureCount: number;
+  updateTreeOrder: number;
 
   constructor(stage: Stage);
 
