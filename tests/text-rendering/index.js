@@ -22,8 +22,14 @@ import TextTextureRendererAdvanced from "../../dist/src/textures/TextTextureRend
 import TextTextureRenderer from "../../dist/src/textures/TextTextureRenderer.js";
 import TextTokenizer from "../../dist/src/textures/TextTokenizer.js";
 
+const LRI = '\u2066'; // LRI - Left-to-Right Isolate ('ltr')
+const RLI = '\u2067'; // RLI - Right-to-Left Isolate ('rtl')
+const FSI = '\u2068'; // FSI - First Strong Isolate ('auto')
+const PDI = '\u2069'; // PDI - Pop Directional Isolate
+
 const MAX_WIDTH = 2048; // max width of the canvas
 let testN = 0;
+let sectionTitle = '';
 let letterSpacing = 0;
 if (location.search.indexOf("letterSpacing") > 0) {
   const match = location.search.match(/letterSpacing=(\d+)/);
@@ -48,6 +54,7 @@ async function demo() {
   TextTokenizer.setCustomTokenizer();
 
   // basic renderer
+  sectionTitle = 'Basic text renderer';
 
   await renderText(
     TextTextureRenderer,
@@ -59,6 +66,7 @@ async function demo() {
   );
 
   // styled rendering
+  sectionTitle = 'Advanced text renderer';
 
   await renderText(
     TextTextureRendererAdvanced,
@@ -66,6 +74,7 @@ async function demo() {
   );
 
   // Bidi rendering
+  sectionTitle = 'Bidirectional text';
 
   // `bidiTokenizer.es5.js` attaches declarations to global `lng` object
   TextTokenizer.setCustomTokenizer(lng.getBidiTokenizer());
@@ -99,7 +108,40 @@ async function demo() {
     false
   );
 
+  // Direction detection
+  sectionTitle = 'Direction detection';
+
+  // as numbers are weakly directional, the general direction should be RTL
+  await renderText(
+    TextTextureRendererAdvanced,
+    '1 2 ' + 'יום' + ' 3 4',
+    "right",
+    2,
+    false
+  );
+
+  await renderText(
+    TextTextureRendererAdvanced,
+    '1 שעות ו-2.5 דקות',
+    // '1 2 ' + 'יום' + ' 3 4',
+    "right",
+    2,
+    false
+  );
+
+  // this test enforces a general RTL direction, but each section is isolated with direction detection
+  // so the first part can be LTR but be rendered on the right side, and the RTL second part's `90` isn't 
+  // considered to be part of the first LTR part
+  await renderText(
+    TextTextureRendererAdvanced,
+    RLI + FSI + '<b>90 minutes</b>' + PDI + ' ' + FSI + '90 דקות' + PDI + PDI,
+    "right",
+    2,
+    false
+  );
+
   // Complex tests
+  sectionTitle = 'Complex cases';
 
   await renderText(
     TextTextureRendererAdvanced,
@@ -155,7 +197,7 @@ async function renderText(
   root.appendChild(testCase);
 
   const title = document.createElement("h2");
-  title.innerText = `Test ${testN}`;
+  title.innerHTML = `Test ${testN} <small>/ ${sectionTitle}</small>`;
   testCase.appendChild(title);
 
   // PREVIEW
@@ -172,7 +214,8 @@ async function renderText(
   const preview = document.createElement("p");
   preview.id = `preview${testN}`;
   preview.className = `lines-${maxLines}`;
-  preview.dir = "auto";
+  // DOM doesn't seem to detect the bidi isolate tag at the start of the text
+  preview.dir = text.startsWith(LRI) ? 'ltr' : text.startsWith(RLI) ? 'rtl' : 'auto';
   testCase.appendChild(preview);
   preview.innerHTML = previewText;
   preview.style.height = maxLines * 50 + "px";

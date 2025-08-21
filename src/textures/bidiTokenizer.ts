@@ -22,9 +22,16 @@ import type { DirectedSpan } from "./TextTextureRendererAdvancedUtils.js";
 
 let bidi: BidiAPI;
 
+type Direction = 'lri' | 'rli' | 'fsi' | 'default';
+
 // https://www.unicode.org/reports/tr9/
 const reZeroWidthSpace = /[\u200B\u200E\u200F\u061C]/;
 const reDirectionalFormat = /[\u202A\u202B\u202C\u202D\u202E\u202E\u2066\u2067\u2068\u2069]/;
+
+const LRI = '\u2066'; // Left-to-Right Isolate ('ltr')
+const RLI = '\u2067'; // Right-to-Left Isolate ('rtl')
+const FSI = '\u2068'; // First Strong Isolate ('auto')
+const PDI = '\u2069'; // Pop Directional Isolate
 
 const reQuoteStart = /^["“”«»]/;
 const reQuoteEnd = /["“”«»]$/;
@@ -116,20 +123,52 @@ export function getBidiTokenizer() {
   }
 
   function tokenize(text: string): DirectedSpan[] {
-    const { levels } = bidi.getEmbeddingLevels(text);
+    // initial direction
+    const dir = text.startsWith(LRI) ? 'ltr' : text.startsWith(RLI) ? 'rtl' : undefined;
+    const { levels } = bidi.getEmbeddingLevels(text, dir);
     let prevLevel = levels[0]!;
     let rtl = (prevLevel & 1) > 0;
-    let t = "";
-
-    const spans: DirectedSpan[] = [];
+    
+    const dirs: Direction[] = ['fsi'];
+    const spans: (DirectedSpan & { dir?: Direction })[] = [];
     let tokens: string[] = [];
-    spans.push({
+    let span: DirectedSpan & { dir?: Direction } = {
+      dir: dir === undefined ? 'fsi' : dir === 'ltr' ? 'lri' : 'rli',
       rtl,
       tokens,
-    });
+    };
+    spans.push(span);
+    let t = "";
+
+    // test whether the token has a strong direction
+    const detectDirection = (token: string): void => {
+      for (let i = 0; i < token.length; i++) {
+        const type = bidi.getBidiCharTypeName(token.charAt(i));
+        if (type === 'L') {
+          dirs[dirs.length - 1] = 'lri';
+          span.dir = 'lri';
+          span.rtl = false;
+          rtl = false;
+          break;
+        }
+        if (type === 'R' || type === 'AL') {
+          dirs[dirs.length - 1] = 'rli';
+          span.dir = 'rli';
+          span.rtl = true;
+          rtl = true;
+          break;
+        }
+      }
+    }
 
     const commit = () => {
       if (!t.length) return;
+
+      // auto direction
+      if (span.dir === 'fsi') {
+        detectDirection(t);
+      }
+
       if (rtl) {
         t = mirrorTokenPunctuation(t);
       }
@@ -137,33 +176,83 @@ export function getBidiTokenizer() {
       t = "";
     };
 
+    // start new span
     const flip = () => {
-      rtl = !rtl;
       tokens = [];
-      spans.push({
+      span = {
+        dir: dirs[dirs.length - 1]!,
         rtl,
-        tokens,
-      });
+        tokens: tokens,
+      };
+      spans.push(span);
+    };
+
+    const enterIsolate = (dir: Direction) => {
+      dirs.push(dir);
+      if (!tokens.length) {
+        if (dir !== 'fsi') span.dir = dir;
+      } else {
+        flip();
+      }
+    };
+
+    const endIsolate = () => {
+      dirs.pop();
+      if (dirs.length === 0) {
+        dirs.push('fsi');
+      }
     };
 
     for (let i = 0; i < text.length; i++) {
-      if (levels[i] !== prevLevel) {
-        prevLevel = levels[i]!;
+      const c = text.charAt(i);
+
+      // control characters
+      if (reDirectionalFormat.test(c)) {
         commit();
-        flip();
+        // direction isolates create an isolated span of text
+        if (c === LRI) {
+          enterIsolate('lri');
+        } else if (c === RLI) {
+          enterIsolate('rli');
+        } else if (c === FSI) {
+          enterIsolate('fsi');
+        } else if (c === PDI) {
+          endIsolate();
+        }
+        continue;
       }
 
-      const c = text.charAt(i);
+      // level change means direction change
+      if (levels[i] !== prevLevel) {
+        commit();
+        prevLevel = levels[i]!;
+        const _rtl = (prevLevel & 1) > 0;
+        if (rtl !== _rtl) {
+          rtl = _rtl;
+          if (span.dir === 'fsi') {
+            // append to auto-direction span
+            span.rtl = rtl;
+          } else {
+            flip();
+          }
+        }
+      }
+
       if (c === " ") {
         commit();
         tokens.push(c);
       } else if (reZeroWidthSpace.test(c)) {
         commit();
-      } else if (!reDirectionalFormat.test(c)) {
+      } else  {
         t += c;
       }
     }
     commit();
+
+    // remove dir, not needed
+    spans.forEach((span) => {
+      delete span.dir;
+    });
 
     return spans;
   }
