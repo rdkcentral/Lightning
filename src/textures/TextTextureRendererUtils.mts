@@ -101,8 +101,9 @@ export function tokenizeString(tokenRegex: RegExp, text: string): string[] {
  * @param word
  * @param space
  */
-export function measureText(context: CanvasRenderingContext2D, word: string, space: number = 0): number {
-    if (!space) {
+export function measureText(context: CanvasRenderingContext2D, word: string, space?: number): number {
+    const letterSpacing = space || 0;
+    if (!letterSpacing) {
         return context.measureText(word).width;
     }
     return word.split('').reduce((acc, char) => {
@@ -112,7 +113,7 @@ export function measureText(context: CanvasRenderingContext2D, word: string, spa
         if (isZeroWidthSpace(char)) {
             return acc;
         }
-        return acc + context.measureText(char).width + space;
+        return acc + context.measureText(char).width + letterSpacing;
     }, 0);
 }
 
