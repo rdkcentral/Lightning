@@ -47,3 +47,64 @@ TextTokenizer.setCustomTokenizer(getBidiTokenizer());
 // Only the "advanced renderer" supports bidi layout
 TextTexture.forceAdvancedRenderer = true; 
 ```
+
+### Text direction detection, control and isolation
+
+#### Direction detection
+
+By default the text renderer behaves as HTML `dir=auto`, which means it will detect the primary text direction to render text from the left or the right, while the text can be a combination of different directions. 
+
+This detection will consider strongly directional characters, which means that text starting with numbers (weak LTR) followed by RTL letters will be considered all RTL (numbers will still be rendered LTR themselves).
+
+#### Isolation
+
+Sometimes a text is a concatenation of multiple labels or sentences, like `{title} {description}` or `{tag 1} {tag 2} {tag 3}`, where each part could be either LTR or RTL text.
+
+Problems which can happen:
+
+- By default, the primary text direction will be detected and will determine how the whole will be rendered; if the 1st part is detected LTR, the text will look incorrectly rendered in a RTL app layout,
+- Parts can interact between each other: `90 {minutes} 90 {minutes in Hebrew}` would consider the 2nd `90` to be part of the initial LTR text.
+
+The solution is to use:
+
+- A strong direction isolate, to ensure the text is generally layed out in the UI direction, 
+- An auto-detection isolate wrapping each part, to ensure each part is individually detected and rendered correctly.
+
+Sample code:
+
+```typescript
+/** Left-to-Right Isolate ('ltr') */
+export const LRI = '\u2066';
+/** Right-to-Left Isolate ('rtl') */
+export const RLI = '\u2067';
+/** First Strong Isolate ('auto') */
+export const FSI = '\u2068';
+/** Pop Directional Isolate */
+export const PDI = '\u2069';
+
+/**
+ * Isolate text to avoid interactions with surrounding
+ * @param rtl - App direction
+ * @param text - label to isolate
+ */
+export function isolateText(rtl: boolean, text: string): string {
+  if (rtl) {
+    return `${FSI}${text}${PDI}`;
+  }
+  return text;
+}
+
+/**
+ * Concatenate isolated bidirectional text parts, while enforcing a general layout direction
+ * @param rtl - App direction
+ * @param parts - labels to isolate and concatenate
+ */
+export function concatenateIsolates(rtl: boolean, parts: (string | undefined)[]): string {
+  if (rtl) {
+    return RLI + FSI + parts.filter(Boolean).join(PDI + ' ' + FSI) + PDI + PDI;
+  }
+  // When app is LTR we don't load the bidi-tokenizer and don't expect RTL sentences,
+  // otherwise, follow the code above with a LRI isolate
+  return parts.filter(Boolean).join(' ');
+}
+```
