@@ -26,7 +26,9 @@ const STYLED_TESTS = FIRST_TEST + BASIC_COUNT;
 const STYLED_COUNT = 1;
 const BIDI_TESTS = STYLED_TESTS + STYLED_COUNT;
 const BIDI_COUNT = 4;
-const COMPLEX_HEBREW = BIDI_TESTS + BIDI_COUNT;
+const DETECTION_TESTS = BIDI_TESTS + BIDI_COUNT;
+const DETECTION_COUNT = 3;
+const COMPLEX_HEBREW = BIDI_TESTS + BIDI_COUNT + DETECTION_COUNT;
 const COMPLEX_HEBREW_COUNT = 2;
 const COMPLEX_ARABIC = COMPLEX_HEBREW + COMPLEX_HEBREW_COUNT;
 const COMPLEX_ARABIC_COUNT = 1;
@@ -89,6 +91,40 @@ async function compareLetterSpacing(page: Page, width: number) {
       }
     );
     diffImage?.save(`temp/spacing-${width}-diff${i}.png`);
+
+    if (differentPixels) {
+      console.log(
+        `Test ${i} - ${width}px - different pixels: ${differentPixels}`
+      );
+    }
+    expect(
+      equal || differentPixels < 50,
+      `[Test ${i}] HTML and canvas rendering do not match (${differentPixels} pixels differ)`
+    ).toBe(true);
+  }
+}
+
+async function compareDetection(page: Page, width: number, start: number, count: number) {
+  await page.setViewportSize({ width, height: 4000 });
+  await page.goto("/tests/text-rendering.html?playwright");
+
+  for (let i = start; i < start + count; i++) {
+    await page
+      .locator(`#preview${i}`)
+      .screenshot({ path: `temp/detection-${width}-test${i}-html.png` });
+    await page
+      .locator(`#canvas${i}`)
+      .screenshot({ path: `temp/detection-${width}-test${i}-canvas.png` });
+
+    const { equal, diffImage, differentPixels } = await looksSame(
+      `temp/detection-${width}-test${i}-html.png`,
+      `temp/detection-${width}-test${i}-canvas.png`,
+      {
+        createDiffImage: true,
+        strict: false,
+      }
+    );
+    diffImage?.save(`temp/detection-${width}-diff${i}.png`);
 
     if (differentPixels) {
       console.log(
@@ -176,6 +212,10 @@ test("letter spacing 1", async ({ page }) => {
 
 test("letter spacing 2", async ({ page }) => {
   await compareLetterSpacing(page, 550);
+});
+
+test("direction detection", async ({ page }) => {
+  await compareDetection(page, 1000, DETECTION_TESTS, DETECTION_COUNT);
 });
 
 test("complex Hebrew 660", async ({ page }) => {
