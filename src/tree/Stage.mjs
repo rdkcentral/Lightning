@@ -22,6 +22,7 @@
  */
 
 import EventEmitter from "../EventEmitter.mjs";
+import ElementCore from "./core/ElementCore.mjs";
 import Utils from "./Utils.mjs";
 import WebGLRenderer from "../renderer/webgl/WebGLRenderer.mjs";
 import C2dRenderer from "../renderer/c2d/C2dRenderer.mjs";
@@ -543,9 +544,11 @@ export default class Stage extends EventEmitter {
 
     getChildrenByPosition(x, y) {
         const children = [];
-        this.root.core.update();
+        this.ctx.updateTreeOrder = 0;
+        this.root.core.updateTreeOrder();
         this.root.core.collectAtCoord(x, y, children);
 
+        children.sort(ElementCore.sortZIndexedChildren);
         return children;
     }
 }
