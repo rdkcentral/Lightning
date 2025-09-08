@@ -1,0 +1,95 @@
+<!--
+ If not stated otherwise in this file or this component's LICENSE file the
+ following copyright and licenses apply:
+
+ Copyright 2020 Metrological
+
+ Licensed under the Apache License, Version 2.0 (the License);
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<!DOCTYPE html>
+<html>
+  <style>
+    body {
+      overflow: hidden;
+      background: white;
+    }
+    * {
+      font-size: 40px;
+      font-family: Arial;
+      line-height: 48px;
+    }
+    h2 {
+      background-color: lightgray;
+    }
+    h2 small {
+      font-size: 30px;
+      font-weight: normal;
+    }
+    p {
+      margin: 0;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      text-overflow: ellipsis;
+      text-indent: 40px;
+      overflow: hidden;
+    }
+    .lines-3 {
+      -webkit-line-clamp: 3;
+    }
+    .lines-4 {
+      -webkit-line-clamp: 4;
+    }
+    .spacing-1 p {
+      letter-spacing: 1px;
+    }
+    .spacing-2 p {
+      letter-spacing: 2px;
+    }
+    .spacing-3 p {
+      letter-spacing: 3px;
+    }
+    .spacing-4 p {
+      letter-spacing: 4px;
+    }
+    .spacing-5 p {
+      letter-spacing: 5px;
+    }
+    .hint-html {
+      direction: ltr;
+      font-size: 10px;
+      line-height: 14px;
+      background: lime;
+      margin: 2px;
+    }
+    .hint-canvas {
+      direction: ltr;
+      font-size: 10px;
+      line-height: 14px;
+      background: pink;
+      margin: 2px;
+    }
+    .outline p,
+    .outline canvas {
+      outline: solid 1px gray;
+    }
+  </style>
+  <body>
+    <script src="../dist/lightning.es5.js"></script>
+    <!-- opt-in RTL support -->
+    <script src="../dist/bidiTokenizer.es5.js"></script>
+
+    <script src="./text-rendering/index.js" type="module"></script>
+  </body>
+</html>

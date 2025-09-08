@@ -29,8 +29,11 @@ export default class TextTexture extends Texture {
         this._precision = this.stage.getOption('precision');
     }
 
+    static forceAdvancedRenderer = false;
+    static allowTextTruncation = true;
+
     static renderer(stage, canvas, settings) {
-        if (settings.advancedRenderer) {
+        if (settings.advancedRenderer || TextTexture.forceAdvancedRenderer) {
             return new TextTextureRendererAdvanced(stage, canvas, settings);
         } else {
             return new TextTextureRenderer(stage, canvas, settings);
@@ -530,6 +533,7 @@ export default class TextTexture extends Texture {
         if (this.highlightPaddingRight !== null) parts.push("hr" + this.highlightPaddingRight);
         if (this.letterSpacing !== null) parts.push("ls" + this.letterSpacing);
         if (this.textIndent !== null) parts.push("ti" + this.textIndent);
+        if (this.rtl) parts.push("rtl");
 
         if (this.cutSx) parts.push("csx" + this.cutSx);
         if (this.cutEx) parts.push("cex" + this.cutEx);
@@ -629,7 +633,7 @@ export default class TextTexture extends Texture {
         if (this.highlightPaddingRight !== 0) nonDefaults["highlightPaddingRight"] = this.highlightPaddingRight;
         if (this.letterSpacing !== 0) nonDefaults["letterSpacing"] = this.letterSpacing;
         if (this.textIndent !== 0) nonDefaults["textIndent"] = this.textIndent;
-        if (this.rtl !== 0) nonDefaults["rtl"] = this.rtl;
+        if (this.rtl) nonDefaults["rtl"] = this.rtl;
 
         if (this.cutSx) nonDefaults["cutSx"] = this.cutSx;
         if (this.cutEx) nonDefaults["cutEx"] = this.cutEx;
@@ -725,7 +729,7 @@ proto._highlightPaddingLeft = 0;
 proto._highlightPaddingRight = 0;
 proto._letterSpacing = 0;
 proto._textIndent = 0;
-proto._rtl = 0;
+proto._rtl = false;
 proto._cutSx = 0;
 proto._cutEx = 0;
 proto._cutSy = 0;
@@ -734,5 +738,5 @@ proto._advancedRenderer = false;
 proto._fontBaselineRatio = 0;
 
 
-import TextTextureRenderer from "./TextTextureRenderer.mjs";
-import TextTextureRendererAdvanced from "./TextTextureRendererAdvanced.mjs";
+import TextTextureRenderer from "./TextTextureRenderer.js";
+import TextTextureRendererAdvanced from "./TextTextureRendererAdvanced.js";

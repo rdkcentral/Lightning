@@ -1,7 +1,7 @@
 {
   "author": "Metrological, Bas van Meurs <b.van.meurs@metrological.com>",
   "name": "@lightningjs/core",
-  "version": "2.14.1",
+  "version": "2.16.0-beta.6",
   "license": "Apache-2.0",
   "type": "module",
   "types": "dist/src/index.d.ts",
@@ -16,7 +16,12 @@
     "./inspector": {
       "types": "./devtools/lightning-inspect.d.ts",
       "import": "./devtools/lightning-inspect.js",
-      "require": "./devtools/lightning-inspect.js"
+      "require": "./devtools/lightning-inspect.es5.js"
+    },
+    "./bidiTokenizer": {
+      "types": "./dist/src/textures/bidiTokenizer.d.ts",
+      "import": "./dist/src/textures/bidiTokenizer.js",
+      "require": "./dist/bidiTokenizer.es5.js"
     },
     "./package.json": "./package.json"
   },
@@ -29,12 +34,13 @@
     "devtools/**"
   ],
   "scripts": {
-    "build": "shx mkdir -p dist && shx rm -fr dist/* && concurrently -c \"auto\" \"npm:build:lightning\" \"npm:build:lightning.min\" \"npm:build:lightning.es5\" \"npm:build:lightning.es5.min\" \"npm:build:lightning-inspect.es5\" && npm run src-to-dist",
+    "build": "shx mkdir -p dist && shx rm -fr dist/* && concurrently -c \"auto\" \"npm:build:lightning\" \"npm:build:lightning.min\" \"npm:build:lightning.es5\" \"npm:build:lightning.es5.min\" \"npm:build:lightning-inspect.es5\" \"npm:build:bidi-tokenizer.es5\" && npm run src-to-dist",
     "release": "npm run build && npm publish --access public",
     "typedoc": "typedoc --tsconfig tsconfig.typedoc.json",
     "tsd": "tsd",
     "src-to-dist": "node ./scripts/src-to-dist.cjs",
     "build:lightning-inspect.es5": "cross-env BUILD_INSPECTOR=true BUILD_ES5=true vite build --mode production",
+    "build:bidi-tokenizer.es5": "cross-env BUILD_BIDI_TOKENIZER=true BUILD_ES5=true vite build --mode production",
     "build:lightning": "vite build --mode production",
     "build:lightning.min": "cross-env BUILD_MINIFY=true vite build --mode production",
     "build:lightning.es5": "cross-env BUILD_ES5=true vite build --mode production",
@@ -65,6 +71,7 @@
     "concurrently": "^7.6.0",
     "cross-env": "^7.0.3",
     "local-web-server": "^5.4.0",
+    "looks-same": "^9.0.1",
     "mocha": "^6.2.1",
     "rollup-plugin-cleanup": "^3.1.1",
     "shelljs": "^0.8.5",
@@ -76,5 +83,8 @@
     "typescript": "~5.3.3",
     "vite": "^4.0.4",
     "vitest": "^0.27.2"
+  },
+  "dependencies": {
+    "bidi-js": "^1.0.3"
   }
 }

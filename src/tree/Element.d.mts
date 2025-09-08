@@ -549,6 +549,16 @@ declare namespace Element {
      */
     boundsMargin: [number, number, number, number] | null;
 
+
+    /**
+     * Set RTL (right-to-left) flag on the element
+     * 
+     * Unless RTL is set, it is inherited from the parent element
+     * 
+     * @defaultValue null
+     */
+    rtl: boolean | null;
+
     /**
      * X position of this Element
      *
@@ -1333,6 +1343,9 @@ declare class Element<
 
   _onResize(): void;
 
+  /** RTL direction flag changed */
+  _onDirectionChanged(): void;
+
   readonly renderWidth: number;
 
   readonly renderHeight: number;
@@ -1515,6 +1528,14 @@ declare class Element<
   readonly withinBoundsMargin: boolean;
 
   boundsMargin: [number, number, number, number] | null;
+
+  /**
+   * RTL (right-to-left) layout direction flag
+   * 
+   * Set `null` to inherit from parent
+   */
+  get rtl(): boolean;
+  set rtl(value: boolean);
 
   /**
    * X position of this Element

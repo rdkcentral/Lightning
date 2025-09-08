@@ -18,8 +18,8 @@
  */
 import Stage from "../tree/Stage.mjs";
 import Texture from "../tree/Texture.mjs";
-import TextTextureRenderer from "./TextTextureRenderer.mjs";
-import TextTextureRendererAdvanced from "./TextTextureRendererAdvanced.mjs";
+import TextTextureRenderer from "./TextTextureRenderer.js";
+import TextTextureRendererAdvanced from "./TextTextureRendererAdvanced.js";
 
 declare namespace TextTexture {
   /**
@@ -59,6 +59,13 @@ declare namespace TextTexture {
      * @defaultValue `""`
      */
     text?: string;
+    /**
+     * Element has RTL (right-to-left) direction hint.
+     * When true, left/right alignement is reversed.
+     * 
+     * @defaultValue `false`
+     */
+    rtl?: boolean;
     /**
      * Font style
      *
@@ -454,7 +461,10 @@ declare namespace TextTexture {
 declare class TextTexture extends Texture implements Required<Omit<TextTexture.Settings, 'type'>> {
   constructor(stage: Stage);
 
-  protected static renderer(
+  public static forceAdvancedRenderer: boolean;
+  public static allowTextTruncation: boolean;
+  
+  public static renderer(
     stage: Stage,
     canvas: HTMLCanvasElement,
     settings: TextTexture.Settings
@@ -468,6 +478,9 @@ declare class TextTexture extends Texture implements Required<Omit<TextTexture.S
 
   get text(): string;
   set text(text: string);
+
+  get rtl(): boolean;
+  set rtl(rtl: boolean);
 
   get fontStyle(): string;
   set fontStyle(fontStyle: string);

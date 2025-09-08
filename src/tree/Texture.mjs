@@ -607,7 +607,7 @@ export default class Texture {
         }
 
         // If dimensions are unknown (texture not yet loaded), use maximum width as a fallback as render width to allow proper bounds checking.
-        return (this._w || (this._source ? this._source.getRenderWidth() - this._x : 0)) / this._precision;
+        return (Math.abs(this._w) || (this._source ? this._source.getRenderWidth() - this._x : 0)) / this._precision;
     }
 
     getRenderHeight() {
@@ -616,7 +616,7 @@ export default class Texture {
             return 0;
         }
 
-        return (this._h || (this._source ? this._source.getRenderHeight() - this._y : 0)) / this._precision;
+        return (Math.abs(this._h) || (this._source ? this._source.getRenderHeight() - this._y : 0)) / this._precision;
     }
 
     patch(settings) {

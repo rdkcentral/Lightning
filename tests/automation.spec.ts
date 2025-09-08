@@ -1,3 +1,22 @@
+/*
+ * If not stated otherwise in this file or this component's LICENSE file the
+ * following copyright and licenses apply:
+ *
+ * Copyright 2020 Metrological
+ *
+ * Licensed under the Apache License, Version 2.0 (the License);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { test, expect, type Page } from '@playwright/test';
 
 function promiseWithResolver<T = void>() {
@@ -24,12 +43,16 @@ async function testCase(page: Page, name: string): Promise<string> {
   return promise;
 }
 
-test('Texture', async ({ page }) => {
-  expect(await testCase(page, 'texture')).toBe('SUCCESS');
+test('Textures', async ({ page }) => {
+  expect(await testCase(page, 'Textures')).toBe('SUCCESS');
+});
+
+test('Texture mirroring', async ({ page }) => {
+  expect(await testCase(page, 'Texture mirroring')).toBe('SUCCESS');
 });
 
 test('Text', async ({ page }) => {
-  expect(await testCase(page, 'text')).toBe('SUCCESS');
+  expect(await testCase(page, 'Text')).toBe('SUCCESS');
 });
 
 test('Key handling', async ({ page }) => {
@@ -106,4 +129,8 @@ test('Layout flexbox comparison alignContent', async ({ page }) => {
 
 test('Layout flexbox comparison alignSelf', async ({ page }) => {
   expect(await testCase(page, 'layout flexbox comparison alignSelf')).toBe('SUCCESS');
+});
+
+test('RTL layout', async ({ page }) => {
+  expect(await testCase(page, 'Right-to-Left layout')).toBe('SUCCESS');
 });

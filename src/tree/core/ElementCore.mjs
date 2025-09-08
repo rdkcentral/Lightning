@@ -19,6 +19,8 @@
 
 import FlexTarget from "../../flex/FlexTarget.mjs";
 
+const MIN_ALPHA_RENDER = 0.002;
+
 export default class ElementCore {
 
     constructor(element) {
@@ -95,6 +97,9 @@ export default class ElementCore {
 
         this._colorUl = this._colorUr = this._colorBl = this._colorBr = 0xFFFFFFFF;
 
+        this._ownRtl = null; // inherit
+        this._rtl = null;
+
         this._x = 0;
         this._y = 0;
         this._w = 0;
@@ -159,6 +164,23 @@ export default class ElementCore {
         this.render = this._renderSimple;
 
         this._layout = null;
+    }
+
+    set rtl(value) {
+        if (value !== this._rtl) {
+            if (typeof value !== 'boolean') {
+                this._ownRtl = null;
+            } else {
+                this._ownRtl = value;
+            }
+            this.updateDirection(false);
+        }
+    }
+
+    get rtl() {
+        return typeof this._ownRtl === 'boolean' ?
+            this._ownRtl : 
+            this._parent ? this._parent.rtl : false;
     }
 
     get offsetX() {
@@ -611,6 +633,8 @@ export default class ElementCore {
             this._setRecalc(1 + 2 + 4);
 
             if (this._parent) {
+                // Align direction with parent
+                this.updateDirection(!prevParent);
                 // Force parent to propagate hasUpdates flag.
                 this._parent._setHasUpdates();
             }
@@ -1304,6 +1328,31 @@ export default class ElementCore {
         return this._boundsMargin;
     }
 
+    updateDirection(initial) {
+        // `initial` indicates that the element was just created
+
+        // Inherit RTL flag, unless locally overriden
+        const rtl = typeof this._ownRtl === 'boolean' ? this._ownRtl : this._parent._rtl;
+        if (rtl === this._rtl) {
+            return;
+        }
+        this._rtl = rtl;
+
+        // update element when the direction changes
+        if (!initial) {
+            this._triggerRecalcTranslate();
+        }
+        // allow side effect
+        this._element._updateDirection(rtl);
+
+        // propagate
+        if (this._children) {
+            for (let i = 0, n = this._children.length; i < n; i++) {
+                this._children[i].updateDirection(initial);
+            }
+        }
+    }
+
     update() {
         this._recalc |= this._parent._pRecalc;
 
@@ -1349,10 +1398,17 @@ export default class ElementCore {
             }
 
             if (recalc & 6) {
-                w.px = pw.px + this._localPx * pw.ta;
-                w.py = pw.py + this._localPy * pw.td;
-                if (pw.tb !== 0) w.px += this._localPy * pw.tb;
-                if (pw.tc !== 0) w.py += this._localPx * pw.tc;
+                let px = this._localPx;
+                const py = this._localPy;
+                const parent = this._parent;
+                if (parent && parent._rtl && parent._w) {
+                    // RTL parent: position is mirrored, starting from the right.
+                    px = parent._w - this._w * this._scaleX - px;
+                }
+                w.px = pw.px + px * pw.ta;
+                w.py = pw.py + py * pw.td;
+                if (pw.tb !== 0) w.px += py * pw.tb;
+                if (pw.tc !== 0) w.py += px * pw.tc;
             }
 
             if (recalc & 4) {
@@ -1767,7 +1823,7 @@ export default class ElementCore {
             this.sortZIndexedChildren();
         }
 
-        if (this._outOfBounds < 2 && this._renderContext.alpha) {
+        if (this._outOfBounds < 2 && this._renderContext.alpha >= MIN_ALPHA_RENDER) {
             let renderState = this.renderState;
 
             if ((this._outOfBounds === 0) && this._displayedTextureSource) {
@@ -1807,7 +1863,7 @@ export default class ElementCore {
             this.sortZIndexedChildren();
         }
 
-        if (this._outOfBounds < 2 && this._renderContext.alpha) {
+        if (this._outOfBounds < 2 && this._renderContext.alpha >= MIN_ALPHA_RENDER) {
             let renderState = this.renderState;
 
             let mustRenderChildren = true;
@@ -2143,7 +2199,7 @@ export default class ElementCore {
 
     collectAtCoord(x, y, children) {
         // return when branch is hidden
-        if (this._renderContext.alpha === 0) {
+        if (this._renderContext.alpha < MIN_ALPHA_RENDER) {
             return;
         }
 
