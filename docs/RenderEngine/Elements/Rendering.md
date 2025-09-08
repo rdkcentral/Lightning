@@ -33,6 +33,18 @@ You can set the visibility of an element in the following ways:
 * Using the `visible` property. If  the value of this property is set to 'false',  the element is not rendered (which saves performance). If an element is invisible, the off-screen elements are invisible as well, so you do not have to hide those manually to maintain a good performance.
 * Using the `alpha` property, which defines the opacity of an element and its descendants. If the value of this property is set to 0 (zero), the element is not rendered.
 
+### Alpha-based Performance Optimization
+
+Lightning automatically optimizes rendering performance by skipping elements with very low alpha values. Elements with an effective alpha of `0.001` or less are considered invisible and are automatically excluded from:
+
+* Rendering operations
+* Mouse hit testing and interaction detection
+
+This optimization helps improve performance by avoiding unnecessary rendering work for elements that are effectively invisible to users, while still allowing for texture loading and smooth fade-in/fade-out animations.
+
+Note: actual alpha test is `< 0.002` to avoid floating point errors when animating to `0.001`.
+
+
 ## Color
 
 
