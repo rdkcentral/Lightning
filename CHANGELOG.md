@@ -1,5 +1,12 @@
 # Changelog
 
+
+## v2.65.1
+*8 September 2025*
+
+- Fixed url checking when using data URLs (#575)
+
+
 ## v2.15.0
 *12 March 2025*
 
