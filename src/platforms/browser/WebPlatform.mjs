@@ -295,8 +295,9 @@ export default class WebPlatform {
             }
             
             // URL can start with http://, https://, and //
+            // (Ignore data URLs that start with data:)
             const separatorPos = src.indexOf('//');
-            if (separatorPos !== 0 && separatorPos !== 5 && separatorPos !== 6) {
+            if (!src.startsWith('data:') && separatorPos !== 0 && separatorPos !== 5 && separatorPos !== 6) {
                 return cb("Invalid image URL");
             }
 
