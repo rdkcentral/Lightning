@@ -427,7 +427,7 @@ declare class Stage extends EventEmitter<Stage.EventMap> {
    */
   isUpdatingFrame(): boolean;
 
-  // renderFrame(): void;
+  // renderFrame(): boolean;
   // - Only used internally
 
   /**

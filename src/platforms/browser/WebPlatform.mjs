@@ -33,8 +33,7 @@ export default class WebPlatform {
         // Alternative handler to avoid RAF when idle
         this._loopHandler = null;
         this._idleLoopCounter = 0;
-        this._idleLoopDelay = 60;
-        this._onIdle = false;
+        this._idleLoopDelay = 30;
 
         if (this.stage.getOption("useImageWorker")) {
             if (!window.createImageBitmap || !window.Worker) {
@@ -52,6 +51,7 @@ export default class WebPlatform {
             this._imageWorker.destroy();
         }
 
+        this._looping = false;
         clearInterval(this._loopHandler);
 
         this._removeKeyHandler();
@@ -75,44 +75,41 @@ export default class WebPlatform {
         this._looping = false;
     }
 
-    switchLoop() {
-        if (this._onIdle === false) {
-            this._onIdle = true;
-            this.stage.onIdle();
+    switchLoop(hasChanges) {
+        if (hasChanges) {
+            this._idleLoopCounter = 0;
+            return false;
+        }
+        if (++this._idleLoopCounter < this._idleLoopDelay) {
+            return false;
         }
 
-        if (this._idleLoopCounter < this._idleLoopDelay) {
-            this._idleLoopCounter++;
-            return;
-        }
-        if (!this.stage.ctx.hasRenderUpdates()) {
-            this.stopLoop();
-            this._loopHandler = setInterval(() => {
-                this.stage.updateFrame();
-                this.stage.idleFrame();
-                if (this.stage.ctx.hasRenderUpdates()) {
-                    clearInterval(this._loopHandler);
-                    this.startLoop();
-                };
-            }, 1000 / 60);
-        } else {
-            this._idleLoopCounter = 0;
-        }
+        this.stopLoop();
+        this._loopHandler = setInterval(() => {
+            this.stage.updateFrame();
+            const hasChanges = this.stage.renderFrame();
+            if (hasChanges) {
+                clearInterval(this._loopHandler);
+                this.startLoop();
+            }
+        }, 1000 / 30);
+
+        this.stage.onIdle();
+        return true;
     }
 
     loop() {
-        let self = this;
-        let lp = function () {
-            self._awaitingLoop = false;
-            self._onIdle = false;
-            if (self._looping) {
-                self.stage.updateFrame();
-                if (self.stage.getOption("pauseRafLoopOnIdle")) {
-                    self.switchLoop();
+        const pauseRafLoopOnIdle = this.stage.getOption("pauseRafLoopOnIdle");
+        const lp = () => {
+            this._awaitingLoop = false;
+            if (this._looping) {
+                this.stage.updateFrame();
+                const hasChanges = this.stage.renderFrame();
+                if (pauseRafLoopOnIdle && this.switchLoop(hasChanges)) {
+                    return;
                 }
-                self.stage.renderFrame();
                 requestAnimationFrame(lp);
-                self._awaitingLoop = true;
+                this._awaitingLoop = true;
             }
         }
         requestAnimationFrame(lp);
