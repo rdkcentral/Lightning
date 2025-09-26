@@ -180,6 +180,33 @@ describe('WebPlatform', () => {
             expect(mockImage.cancel).toHaveBeenCalledTimes(1);
         });
 
+        it('loads data URLs', () => {
+            const mockImage = {
+                cancel: vi.fn()
+            };
+
+            webPlatform._imageWorker = {
+                create: vi.fn().mockReturnValue(mockImage)
+            };
+            
+            const opts = {
+                src: 'data:image/png;base64;1234567890ABCDEFcoolPNGdude'
+            }
+
+            const cancelCb = webPlatform.loadSrcTexture(opts, () => {
+                throw 'Should not happen'
+            });
+
+            expect(webPlatform._imageWorker.create).toHaveBeenCalledWith(opts.src);
+            expect(typeof mockImage.onLoad).toBe('function');
+            expect(typeof mockImage.onError).toBe('function');
+            expect(mockImage.cancel).toHaveBeenCalledTimes(0);
+
+            cancelCb();
+
+            expect(mockImage.cancel).toHaveBeenCalledTimes(1);
+        });
+
         it('fails with relative URLs', () => {
             const mockImage = {
                 cancel: vi.fn()
