@@ -64,7 +64,7 @@
     "concurrently": "^7.6.0",
     "cross-env": "^7.0.3",
     "local-web-server": "^5.4.0",
-    "mocha": "^6.2.1",
+    "mocha": "^11.7.5",
     "rollup-plugin-cleanup": "^3.1.1",
     "shelljs": "^0.8.5",
     "shx": "^0.3.4",
