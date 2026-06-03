@@ -1403,7 +1403,8 @@ declare class Element<
    */
   loadTexture(): void;
 
-  forceZIndexContext: boolean;
+  get forceZIndexContext(): boolean;
+  set forceZIndexContext(v: boolean);
 
   /**
    * Get/set the Element's texture
@@ -1609,7 +1610,8 @@ declare class Element<
 
   colorRight: number;
 
-  zIndex: number;
+  get zIndex(): number;
+  set zIndex(v: number);
 
   clipping: boolean;
 
