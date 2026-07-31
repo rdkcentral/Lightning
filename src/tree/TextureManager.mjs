@@ -190,6 +190,7 @@ export default class TextureManager {
         if (textureSource.isLoaded()) {
             if (managed) {
                 this._addMemoryUsage(-textureSource.w * textureSource.h);
+                this._updateVramUsage(textureSource, -1);
                 this._uploadedTextureSources.splice(index, 1);
             }
             this._nativeFreeTextureSource(textureSource);
