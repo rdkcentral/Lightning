@@ -53,7 +53,7 @@ export default class TextureManager {
         for (let i = 0, n = this._uploadedTextureSources.length; i < n; i++) {
             this._nativeFreeTextureSource(this._uploadedTextureSources[i]);
         }
-        
+
         this.textureSourceHashmap.clear();
         this._usedMemory = 0;
     }
@@ -95,7 +95,7 @@ export default class TextureManager {
         nativeTexture.update = this.stage.frameCounter;
 
         this._uploadedTextureSources.push(textureSource);
-        
+
         this.addToLookupMap(textureSource);
 
         // add VRAM tracking if using the webgl renderer
@@ -140,7 +140,7 @@ export default class TextureManager {
     gc() {
         this.freeUnusedTextureSources();
     }
-    
+
     freeUnusedTextureSources() {
         let remainingTextureSources = [];
         for (let i = 0, n = this._uploadedTextureSources.length; i < n; i++) {
@@ -190,10 +190,13 @@ export default class TextureManager {
         if (textureSource.isLoaded()) {
             if (managed) {
                 this._addMemoryUsage(-textureSource.w * textureSource.h);
+                this._updateVramUsage(textureSource, -1);
                 this._uploadedTextureSources.splice(index, 1);
             }
             this._nativeFreeTextureSource(textureSource);
         }
+
+        this.textureSourceHashmap.delete(textureSource.lookupId);
 
         // Should be reloaded.
         textureSource.loadingSince = null;
