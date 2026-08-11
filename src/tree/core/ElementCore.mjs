@@ -758,6 +758,14 @@ export default class ElementCore {
         if (!this._worldContext.alpha && ((this._parent && this._parent._worldContext.alpha) && a)) {
             // Element is becoming visible. We need to force update.
             this._setRecalc(1 + 128);
+            
+            // Element was invisible and had stale _updateTreeOrder.
+            // If it's inside a z-context, the _zIndexedChildren array
+            // was sorted with that stale value — trigger a re-sort.
+            if (this._zParent) {
+                this._zIndexResort = true;
+                this._zParent.enableZSort();
+            }
         } else {
             this._setRecalc(1);
         }
