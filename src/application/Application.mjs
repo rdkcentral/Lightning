@@ -438,7 +438,7 @@ export default class Application extends Component {
 
     _recieveScrollWheel(e) {
         const obj = e;
-        const { clientX, clientY } = obj;
+        const {clientX, clientY} = obj;
 
         if (clientX <= this.stage.w && clientY <= this.stage.h) {
             if (!this.fireTopDownScrollWheelHandler("_captureScroll", obj)) {
@@ -463,7 +463,7 @@ export default class Application extends Component {
     }
 
     fireBottomUpScrollWheelHandler(event, obj) {
-        const { clientX, clientY } = obj;
+        const {clientX, clientY} = obj;
         const target = this._getTargetChild(clientX, clientY);
         let child = target;
 
@@ -480,7 +480,7 @@ export default class Application extends Component {
 
     _receiveClick(e) {
         const obj = e;
-        const { clientX, clientY } = obj;
+        const {clientX, clientY} = obj;
 
         if (clientX <= this.stage.w && clientY <= this.stage.h) {
             this.stage.application.fireBottomUpClickHandler(obj);
@@ -488,7 +488,7 @@ export default class Application extends Component {
     }
 
     fireBottomUpClickHandler(obj) {
-        const { clientX, clientY } = obj;
+        const {clientX, clientY} = obj;
         const target = this._getTargetChild(clientX, clientY);
         const precision = this.stage.getRenderPrecision() / this.stage.getOption('devicePixelRatio');
         let child = target;
@@ -496,7 +496,7 @@ export default class Application extends Component {
         // Search tree bottom up for a handler
         while (child !== null) {
             if (child && child["_handleClick"]) {
-                const { px, py } = child.core._worldContext;
+                const {px, py} = child.core._worldContext;
                 const cx = px * precision;
                 const cy = py * precision;
 
@@ -516,7 +516,7 @@ export default class Application extends Component {
 
     _receiveHover(e) {
         const obj = e;
-        const { clientX, clientY } = obj;
+        const {clientX, clientY} = obj;
 
         if (clientX <= this.stage.w && clientY <= this.stage.h) {
             this.stage.application.fireBottomUpHoverHandler(obj);
@@ -524,7 +524,7 @@ export default class Application extends Component {
     }
 
     fireBottomUpHoverHandler(obj) {
-        const { clientX, clientY } = obj;
+        const {clientX, clientY} = obj;
         const target = this._getTargetChild(clientX, clientY);
 
         // Only fire handlers when pointer target changes
@@ -542,7 +542,11 @@ export default class Application extends Component {
                 for (const elem of [...hoveredBranch].filter((e) => !newHoveredBranch.has(e))) {
                     const c = Component.getComponent(elem);
                     if (c["_handleUnhover"]) {
-                        c._handleUnhover(elem);
+                        try {
+                            c._handleUnhover(elem);
+                        } catch (e) {
+                            console.error(e);
+                        }
                     }
                     if (elem.parent && elem.parent.cursor) {
                         this.stage.getCanvas().style.cursor = elem.parent.cursor;
