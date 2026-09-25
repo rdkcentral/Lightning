@@ -580,7 +580,7 @@ export default class Element {
         if (texture !== prevTexture) {
             this.__texture = texture;
 
-            if (this.__texture) {
+            if (this.__texture && this.__texture.isValid) {
                 if (this.__enabled) {
                     this.__texture.addElement(this);
 
@@ -1557,7 +1557,7 @@ export default class Element {
     set visible(v) {
         this.__core.visible = v;
     }
-    
+
     get colorUl() {
         return this.__core.colorUl;
     }
