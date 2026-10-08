@@ -176,6 +176,15 @@ describe('Textures', function() {
                 });
                 app.children = [element];
 
+                let isRunning = true;
+                const renderLoop = () => {
+                    if (isRunning) {
+                        stage.drawFrame();
+                        requestAnimationFrame(renderLoop);
+                    }
+                };
+                requestAnimationFrame(renderLoop);
+
                 return new Promise((resolve, reject) => {
                     const item = app.tag("Item");
                     const timeoutId = setTimeout(() => reject(new Error("Texture did not load after timeout")), 200);
@@ -188,8 +197,8 @@ describe('Textures', function() {
                     item.src = '';
                     // 1x1 black pixel
                     item.texture.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
-                    item.texture.load();
-                    stage.drawFrame();
+                }).finally(() => {
+                    isRunning = false;
                 });
             });
         });
