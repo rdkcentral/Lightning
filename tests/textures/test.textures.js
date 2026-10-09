@@ -521,6 +521,7 @@ describe('Textures', function() {
 
                 chai.assert(texture.isLoaded(), "Texture must be loaded");
             });
+
             it('should recover load [with throttling]', () => {
                 const element = app.stage.createElement({
                     Item: {x: 550, texture: {type: TestTexture, async: true}}
@@ -628,6 +629,25 @@ describe('Textures', function() {
                 stage.textureManager.gc();
 
                 chai.assert(!stage.textureManager.getReusableTextureSource("test1"), "lookup id should be removed");
+            });
+
+            it('should release old source when element becomes inactive after src swap', () => {
+                const element = app.stage.createElement({
+                    Item: {texture: {type: TestTexture, lookupId: "old"}}
+                });
+                app.children = [element];
+                stage.drawFrame();
+
+                const item = app.tag("Item");
+                const oldTextureSource = item.texture.source;
+
+                item.texture = {type: TestTexture, lookupId: "new"};
+                item.visible = false;
+                stage.drawFrame();
+                stage.gc();
+
+                chai.assert(!oldTextureSource.isUsed(), "Old texture source should no longer be in use");
+                chai.assert(!stage.textureManager._uploadedTextureSources.includes(oldTextureSource), "Old texture source should be cleaned up by gc");
             });
         });
 
