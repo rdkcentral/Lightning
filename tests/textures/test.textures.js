@@ -169,6 +169,40 @@ describe('Textures', function() {
             });
         });
 
+        describe('invalid, then valid', () => {
+            it('should be loaded', () => {
+                const element = app.stage.createElement({
+                    Item: {w: 10, h: 10}
+                });
+                app.children = [element];
+
+                let isRunning = true;
+                const renderLoop = () => {
+                    if (isRunning) {
+                        stage.drawFrame();
+                        requestAnimationFrame(renderLoop);
+                    }
+                };
+                requestAnimationFrame(renderLoop);
+
+                return new Promise((resolve, reject) => {
+                    const item = app.tag("Item");
+                    const timeoutId = setTimeout(() => reject(new Error("Texture did not load after timeout")), 200);
+                    const handleTxLoaded = () => {
+                        item.off("txLoaded", handleTxLoaded);
+                        clearTimeout(timeoutId);
+                        resolve();
+                    };
+                    item.on("txLoaded", handleTxLoaded);
+                    item.src = '';
+                    // 1x1 black pixel
+                    item.texture.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+                }).finally(() => {
+                    isRunning = false;
+                });
+            });
+        });
+
         describe('async', () => {
             it('should load after async [without throttling]', () => {
                 const element = app.stage.createElement({
