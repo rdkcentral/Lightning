@@ -405,6 +405,10 @@ export default class Element {
     _unsetActiveFlag() {
         if (this.__texture) {
             this.__texture.decActiveCount();
+
+            if (this.__displayedTexture && this.__displayedTexture !== this.__texture) {
+                this.__displayedTexture.decActiveCount();
+            }
         }
 
         this.__active = false;
@@ -580,16 +584,16 @@ export default class Element {
         if (texture !== prevTexture) {
             this.__texture = texture;
 
-            if (this.__texture && this.__texture.isValid) {
-                if (this.__enabled) {
-                    this.__texture.addElement(this);
+            if (this.__texture && this.__enabled) {
+                this.__texture.addElement(this);
+            }
 
-                    if (this.withinBoundsMargin) {
-                        if (this.__texture.isLoaded()) {
-                            this._setDisplayedTexture(this.__texture);
-                        } else {
-                            this._enableTextureError();
-                        }
+            if (this.__texture && this.__texture.isValid) {
+                if (this.__enabled && this.withinBoundsMargin) {
+                    if (this.__texture.isLoaded()) {
+                        this._setDisplayedTexture(this.__texture);
+                    } else {
+                        this._enableTextureError();
                     }
                 }
             } else {
