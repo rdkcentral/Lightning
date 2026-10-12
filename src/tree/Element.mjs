@@ -405,6 +405,10 @@ export default class Element {
     _unsetActiveFlag() {
         if (this.__texture) {
             this.__texture.decActiveCount();
+
+            if (this.__displayedTexture && this.__displayedTexture !== this.__texture) {
+                this.__displayedTexture.decActiveCount();
+            }
         }
 
         this.__active = false;
