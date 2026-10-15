@@ -42,6 +42,7 @@ export default class TextureManager {
   addToLookupMap(textureSource: TextureSource): void;
 
   destroy(): void;
+  cancelPendingLoads(): void;
 
   /**
    * Drops all GPU-backed and in-flight texture state after a context loss

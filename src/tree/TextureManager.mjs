@@ -71,21 +71,16 @@ export default class TextureManager {
     }
 
     destroy() {
-        this.contextGeneration++;
+        this.cancelPendingLoads();
         if (this.stage && this.stage.textureThrottler) {
             this.stage.textureThrottler.clear();
         }
         // Abort in-flight decodes so they cannot upload after teardown,
         // and drop queued restores so dead sources can be collected,
         // including a teardown while the context is lost.
-        for (const source of this._loadingSources) {
-            source.contextGeneration++;
-            source.cancel();
-        }
         for (const source of this._restoreSources) {
             source.contextGeneration++;
         }
-        this._loadingSources.clear();
         this._restoreSources.clear();
 
         for (let i = 0, n = this._uploadedTextureSources.length; i < n; i++) {
@@ -94,6 +89,20 @@ export default class TextureManager {
 
         this.textureSourceHashmap.clear();
         this._usedMemory = 0;
+    }
+
+    /**
+     * Abort in-flight decodes before platform teardown. Image-worker cancel
+     * callbacks need the worker to still be alive; destroy() calls this too
+     * for standalone manager teardown.
+     */
+    cancelPendingLoads() {
+        this.contextGeneration++;
+        for (const source of [...this._loadingSources]) {
+            source.contextGeneration++;
+            source.cancel();
+        }
+        this._loadingSources.clear();
     }
 
     getReusableTextureSource(id) {

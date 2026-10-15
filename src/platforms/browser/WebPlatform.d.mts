@@ -22,6 +22,8 @@ import type StaticCanvasTexture from "../../textures/StaticCanvasTexture.mjs";
 
 export default class WebPlatform {
   destroy(): void;
+  /** Arms WebGL context-loss listeners without starting the frame loop. */
+  attachContextEvents(): void;
   getDrawingCanvas(): HTMLCanvasElement;
   getTextureOptionsForDrawingCanvas(
     canvas: HTMLCanvasElement,

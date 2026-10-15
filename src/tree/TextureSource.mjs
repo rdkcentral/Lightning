@@ -259,15 +259,19 @@ export default class TextureSource {
 
         if (!this._nativeTexture && !this.isLoading()) {
             const generation = this.contextGeneration;
+            const managerGeneration = this.manager.contextGeneration;
             this.manager.trackLoadingSource(this);
             this.loadingSince = (new Date()).getTime();
             this._cancelCb = this.loader((err, options) => {
-                // Check the generation before touching shared tracking: a
+                // Check both generations before touching shared tracking: a
                 // stale pre-loss callback must not untrack a replacement load
-                // started after it, or a later loss would miss invalidating
-                // that replacement. Stale results are always discarded, never
-                // reported as errors.
-                if (generation !== this.contextGeneration) {
+                // started after it (e.g. a source canceled before the loss,
+                // whose own generation was never bumped by invalidation), or
+                // a later loss would miss invalidating that replacement.
+                // Stale results are always discarded, never reported.
+                if (generation !== this.contextGeneration ||
+                    managerGeneration !== this.manager.contextGeneration
+                ) {
                     return;
                 }
                 this.manager.untrackLoadingSource(this);
@@ -299,6 +303,16 @@ export default class TextureSource {
     }
 
     processLoadedSource(options) {
+        if (this.stage.contextState !== undefined && this.stage.contextState !== 'running') {
+            // Finished while suspended (e.g. an async text draw resolving
+            // after a failed recovery): requeue for the next restore instead
+            // of uploading behind the state machine's back. No new loss to
+            // report — the stage already knows it is unavailable.
+            this.loadingSince = 0;
+            this._cancelCb = null;
+            this.manager.queueRestoreSource(this);
+            return;
+        }
         this.loadingSince = 0;
         this.setSource(options);
     }

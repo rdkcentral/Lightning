@@ -72,8 +72,14 @@ export default class ImageWorker {
     }
 
     cancel(image) {
-        this._worker.postMessage({type: "cancel", id: image.id});
-        this._items.delete(image.id);
+        // Guarded: cancellation can race platform teardown, after which the
+        // worker and its item map are gone.
+        if (this._worker) {
+            this._worker.postMessage({type: "cancel", id: image.id});
+        }
+        if (this._items) {
+            this._items.delete(image.id);
+        }
     }
 
     error(image, info) {

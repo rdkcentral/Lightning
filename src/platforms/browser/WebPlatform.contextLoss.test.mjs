@@ -66,13 +66,16 @@ function makeStage(canvas, glLost = false) {
         getOption: () => false,
         onContextLost: vi.fn(() => {
             stage.contextState = 'lost';
+            stage.pendingRestoreEvent = false;
         }),
         onContextRestored: vi.fn(() => {
             stage.contextState = 'running';
+            stage.pendingRestoreEvent = true;
             return true;
         }),
         onRecoveryFrameFailed: vi.fn(() => {
             stage.contextState = 'failed';
+            stage.pendingRestoreEvent = false;
             return true;
         }),
         onRecoveryFrameCompleted: vi.fn(),
@@ -231,6 +234,58 @@ describe('WebPlatform WebGL context events', () => {
         // An explicit resume restarts normally.
         platform.startLoop();
         expect(frames.size).toBe(1);
+        platform.stopLoop();
+    });
+
+    it('arms listeners without a loop for manual rendering and parks recovery', () => {
+        const { frames, runNext } = stubRaf();
+        const canvas = new EventTarget();
+        const stage = makeStage(canvas);
+        const platform = makePlatform(canvas, stage);
+        // Manual mode: init() attaches listeners, startLoop() never runs.
+        platform._userStopped = true;
+        platform.attachContextEvents();
+
+        const lost = new Event('webglcontextlost', { cancelable: true });
+        canvas.dispatchEvent(lost);
+        expect(lost.defaultPrevented).toBe(true);
+        expect(stage.onContextLost).toHaveBeenCalledOnce();
+        expect(frames.size).toBe(0);
+
+        canvas.dispatchEvent(new Event('webglcontextrestored'));
+        expect(stage.onContextRestored).toHaveBeenCalledOnce();
+        expect(frames.size).toBe(1);
+        runNext().callback(16);
+        expect(stage.onRecoveryFrameCompleted).toHaveBeenCalledOnce();
+        // Parked: no automatic loop started for a manual stage.
+        expect(frames.size).toBe(0);
+        expect(stage.contextState).toBe('running');
+        platform.stopLoop();
+    });
+
+    it('runs a canceled recovery frame on resume instead of dropping completion', () => {
+        const { frames, runNext } = stubRaf();
+        const canvas = new EventTarget();
+        const stage = makeStage(canvas);
+        const platform = makePlatform(canvas, stage);
+
+        platform.startLoop();
+        canvas.dispatchEvent(new Event('webglcontextlost', { cancelable: true }));
+        canvas.dispatchEvent(new Event('webglcontextrestored'));
+        // stop() before the recovery frame runs cancels it.
+        platform.stopLoop();
+        expect(frames.size).toBe(0);
+
+        // Resume must run the pending recovery first, not the normal loop.
+        platform.startLoop();
+        expect(frames.size).toBe(1);
+        expect(stage.onRecoveryFrameCompleted).not.toHaveBeenCalled();
+        runNext().callback(16);
+        expect(stage.onRecoveryFrameCompleted).toHaveBeenCalledOnce();
+        // ...and then the normal loop resumes.
+        expect(frames.size).toBe(1);
+        runNext().callback(32);
+        expect(stage.updateFrame).toHaveBeenCalledTimes(2);
         platform.stopLoop();
     });
 

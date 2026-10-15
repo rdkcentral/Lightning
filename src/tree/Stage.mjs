@@ -241,6 +241,12 @@ export default class Stage extends EventEmitter {
         }
 
         this.application.setAsRoot();
+        if (this.platform && typeof this.platform.attachContextEvents === 'function') {
+            // Arm loss prevention even when the automatic loop is not started
+            // (manual rendering): recovery listeners must exist before any
+            // frame runs, independent of the loop.
+            this.platform.attachContextEvents();
+        }
         if (this.getOption('autostart')) {
             this.platform.startLoop();
         }
@@ -255,6 +261,9 @@ export default class Stage extends EventEmitter {
             this.platform.suspendFrameLoop();
         }
         this.platform.stopLoop();
+        // Cancel pending loads while the image worker is still alive, but
+        // preserve the normal teardown order for GPU resource cleanup.
+        this.textureManager.cancelPendingLoads();
         this.platform.destroy();
         this.ctx.destroy();
         this.textureManager.destroy();

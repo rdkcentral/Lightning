@@ -120,6 +120,41 @@ describe('TextureManager context loss', () => {
         expect(manager.hasRestores()).toBe(false);
     });
 
+    it('discards a pre-cancel callback via the manager generation', () => {
+        const stage = makeStage();
+        const manager = new TextureManager(stage);
+        manager._nativeUploadTextureSource = vi.fn(() => ({}));
+        const callbacks = [];
+        const source = makeSource(manager, (cb) => {
+            callbacks.push(cb);
+        });
+
+        source.load();
+        const sourceGeneration = source.contextGeneration;
+        source.cancel();
+        expect(manager._loadingSources.has(source)).toBe(false);
+
+        // The canceled source is untracked, so invalidation never bumps its
+        // own generation — only the manager-wide one.
+        manager.invalidateContext();
+        expect(source.contextGeneration).toBe(sourceGeneration);
+
+        stage.contextState = 'running';
+        // The source loads again after restoration (element re-added).
+        source.load();
+        expect(callbacks.length).toBe(2);
+
+        // The stale callback predates the loss: discarded even though the
+        // source generation matches, and the replacement stays tracked.
+        callbacks[0](null, { source: canvasData() });
+        expect(manager._loadingSources.has(source)).toBe(true);
+        expect(source.loadError).toBeFalsy();
+        expect(stage.textureThrottler._sources.length).toBe(0);
+
+        callbacks[1](null, { source: canvasData() });
+        expect(stage.textureThrottler._sources.length).toBe(1);
+    });
+
     it('does not let a stale callback untrack a replacement load', () => {
         const stage = makeStage();
         const manager = new TextureManager(stage);
@@ -227,6 +262,28 @@ describe('TextureManager context loss', () => {
         expect(lost.loadError).toBeFalsy();
         expect(manager.hasRestores()).toBe(true);
         expect(stage._memory).toBe(0);
+    });
+
+    it('requeues late completions instead of uploading while suspended', () => {
+        const stage = makeStage();
+        const manager = new TextureManager(stage);
+        manager._nativeUploadTextureSource = vi.fn(() => ({}));
+        const source = makeSource(manager, () => {});
+        source.loadingSince = Date.now();
+        manager.trackLoadingSource(source);
+
+        // An async draw resolving after the stage moved to failed.
+        stage.contextState = 'failed';
+        source.processLoadedSource({ source: canvasData() });
+        expect(source.isLoaded()).toBe(false);
+        expect(source.isLoading()).toBe(false);
+        expect(manager._nativeUploadTextureSource).not.toHaveBeenCalled();
+        expect(manager.hasRestores()).toBe(true);
+
+        // The next successful restore picks it up normally.
+        stage.contextState = 'running';
+        expect(manager.processNextRestore()).toBe(true);
+        expect(manager.hasRestores()).toBe(false);
     });
 
     it('drops queued restores on destroy so dead textures can be collected', () => {

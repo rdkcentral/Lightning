@@ -32,8 +32,10 @@ export default class WebPlatform {
 
         // Explicit user intent: stopLoop() parks the loop without detaching
         // context listeners, so only an explicit startLoop()/resume() (not a
-        // context restoration) restarts it.
-        this._userStopped = false;
+        // context restoration) restarts it. Defaults to stopped: a stage that
+        // never started the automatic loop (manual rendering) must not get
+        // one started for it by a recovery.
+        this._userStopped = true;
 
         // Generation-gated loop callbacks: bumped on every suspend/stop so
         // stale rAF/timeout callbacks can never submit GPU work afterwards.
@@ -104,6 +106,14 @@ export default class WebPlatform {
             if (this._isStageSuspended()) {
                 return;
             }
+        }
+        // A restore completed but its recovery frame was canceled (e.g.
+        // stop() then resume()): run it before the normal loop, or
+        // pendingRestoreEvent would stick and contextRestored never emit.
+        if (this.stage.pendingRestoreEvent === true && this.stage.contextState === 'running') {
+            this._cancelScheduledFrame();
+            this._scheduleRecoveryFrame(this.stage);
+            return;
         }
         this._beginLoop();
     }
@@ -212,6 +222,16 @@ export default class WebPlatform {
             this._detachContextListeners();
             this._detachContextListeners = null;
         }
+    }
+
+    /**
+     * Arms context-loss prevention independently of the frame loop, for
+     * manual rendering (`autostart: false`) where `startLoop()` is never
+     * called. Without a listener calling `preventDefault()`, a loss in
+     * manual mode would be unrecoverable. Idempotent; detached on destroy.
+     */
+    attachContextEvents() {
+        this._attachContextEvents();
     }
 
     _scheduleRecoveryFrame(stage) {

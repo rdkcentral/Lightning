@@ -52,6 +52,7 @@ function makeStage() {
         textureManager: {
             invalidateContext: vi.fn(),
             restoreContext: vi.fn(),
+            cancelPendingLoads: vi.fn(),
             destroy: vi.fn(),
         },
         textureThrottler: {
@@ -250,6 +251,18 @@ describe('Stage WebGL context recovery', () => {
             'contextRestoreFailed',
         ]);
         expect(stage.onRecoveryFrameFailed(new Error('later'))).toBe(false);
+    });
+
+    it('cancels pending loads before tearing down the platform', () => {
+        const { stage } = makeStage();
+        const calls = [];
+        stage.platform.destroy = vi.fn(() => calls.push('platform'));
+        stage.textureManager.cancelPendingLoads = vi.fn(() => calls.push('cancel'));
+        stage.textureManager.destroy = vi.fn(() => calls.push('textures'));
+        stage.destroy();
+        // Pending loads are canceled while the image worker is still alive;
+        // GPU resource cleanup keeps its normal post-context teardown order.
+        expect(calls).toEqual(['cancel', 'platform', 'textures']);
     });
 
     it('tears down while lost without accepting further loss or restore', () => {
