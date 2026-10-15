@@ -30,6 +30,19 @@ export default class WebPlatform {
         this._looping = false;
         this._awaitingLoop = false;
 
+        // Explicit user intent: stopLoop() parks the loop without detaching
+        // context listeners, so only an explicit startLoop()/resume() (not a
+        // context restoration) restarts it. Defaults to stopped: a stage that
+        // never started the automatic loop (manual rendering) must not get
+        // one started for it by a recovery.
+        this._userStopped = true;
+
+        // Generation-gated loop callbacks: bumped on every suspend/stop so
+        // stale rAF/timeout callbacks can never submit GPU work afterwards.
+        this._loopGeneration = 0;
+        this._frameHandle = null;
+        this._detachContextListeners = null;
+
         // Alternative handler to avoid RAF when idle
         this._loopHandler = null;
         this._idleLoopCounter = 0;
@@ -51,7 +64,12 @@ export default class WebPlatform {
             this._imageWorker.destroy();
         }
 
+        this._loopGeneration++;
+        this._cancelScheduledFrame();
+        this._detachContextEvents();
+
         this._looping = false;
+        this._awaitingLoop = false;
         clearInterval(this._loopHandler);
 
         this._removeKeyHandler();
@@ -65,6 +83,44 @@ export default class WebPlatform {
     }
 
     startLoop() {
+        this._userStopped = false;
+        // Listeners stay attached until destroy (not stopLoop): a loss while
+        // stopped must still hit preventDefault(), or the browser would never
+        // fire webglcontextrestored and the stage would be stuck.
+        this._attachContextEvents();
+        // Reconcile a loss/restore missed while stopped and detached: a
+        // missed `webglcontextlost` without preventDefault may never fire
+        // `webglcontextrestored`, so poll once here instead of per-frame.
+        if (this._isWebglStage() && this.stage.gl) {
+            const glLost = this._isContextLost();
+            if (glLost === true && this.stage.contextState === 'running') {
+                this.stage.onContextLost();
+            } else if (glLost === false &&
+                (this.stage.contextState === 'lost' || this.stage.contextState === 'failed')) {
+                if (this.stage.onContextRestored() === true) {
+                    this._cancelScheduledFrame();
+                    this._scheduleRecoveryFrame(this.stage);
+                    return;
+                }
+            }
+            if (this._isStageSuspended()) {
+                return;
+            }
+        }
+        // A restore completed but its recovery frame was canceled (e.g.
+        // stop() then resume()): run it before the normal loop, or
+        // pendingRestoreEvent would stick and contextRestored never emit.
+        if (this.stage.pendingRestoreEvent === true && this.stage.contextState === 'running') {
+            this._cancelScheduledFrame();
+            this._scheduleRecoveryFrame(this.stage);
+            return;
+        }
+        this._beginLoop();
+    }
+
+    _beginLoop() {
+        this._cancelScheduledFrame();
+        this._loopGeneration++;
         this._looping = true;
         if (!this._awaitingLoop) {
             this.loop();
@@ -72,7 +128,165 @@ export default class WebPlatform {
     }
 
     stopLoop() {
+        // Park the loop but keep context listeners armed (see startLoop).
+        this._userStopped = true;
+        this._loopGeneration++;
+        this._cancelScheduledFrame();
         this._looping = false;
+        this._awaitingLoop = false;
+    }
+
+    /**
+     * Suspends scheduled frames without detaching context listeners.
+     *
+     * Called by the stage when GPU work becomes illegal (context loss /
+     * destroy) so that GL-error detection paths (which bypass canvas events)
+     * also invalidate stale rAF callbacks.
+     */
+    suspendFrameLoop() {
+        this._loopGeneration++;
+        this._cancelScheduledFrame();
+        this._looping = false;
+        this._awaitingLoop = false;
+    }
+
+    _cancelScheduledFrame() {
+        if (this._frameHandle !== null && this._frameHandle !== undefined) {
+            cancelAnimationFrame(this._frameHandle);
+        }
+        this._frameHandle = null;
+        // The canceled callback will never run to clear this itself.
+        this._awaitingLoop = false;
+        if (this._loopHandler) {
+            clearInterval(this._loopHandler);
+            this._loopHandler = null;
+        }
+    }
+
+    _isWebglStage() {
+        const stage = this.stage;
+        return !!(stage && typeof stage.isWebgl === 'function' && stage.isWebgl() && stage.contextState !== undefined);
+    }
+
+    _isStageSuspended() {
+        const stage = this.stage;
+        const state = stage ? stage.contextState : undefined;
+        return state !== undefined && state !== 'running';
+    }
+
+    _isContextLost() {
+        const gl = this.stage ? this.stage.gl : null;
+        return !!(gl && typeof gl.isContextLost === 'function' && gl.isContextLost());
+    }
+
+    _attachContextEvents() {
+        this._detachContextEvents();
+        if (!this._isWebglStage()) {
+            // Canvas2D recovery is explicitly out of scope.
+            return;
+        }
+        const stage = this.stage;
+        const canvas = stage.getCanvas ? stage.getCanvas() : null;
+        if (!canvas || !canvas.addEventListener) {
+            return;
+        }
+        const onLost = (event) => {
+            // Without preventDefault the browser will never fire
+            // `webglcontextrestored`.
+            if (event && event.preventDefault) {
+                event.preventDefault();
+            }
+            // Loop invalidation happens inside onContextLost via
+            // suspendFrameLoop(), so GL-error and canvas paths share it.
+            stage.onContextLost();
+        };
+        const onRestored = () => {
+            if (stage.contextState !== 'lost' && stage.contextState !== 'failed') {
+                return;
+            }
+            if (stage.onContextRestored() !== true) {
+                return;
+            }
+            this._scheduleRecoveryFrame(stage);
+        };
+        canvas.addEventListener('webglcontextlost', onLost);
+        canvas.addEventListener('webglcontextrestored', onRestored);
+        this._detachContextListeners = () => {
+            canvas.removeEventListener('webglcontextlost', onLost);
+            canvas.removeEventListener('webglcontextrestored', onRestored);
+        };
+    }
+
+    _detachContextEvents() {
+        if (this._detachContextListeners) {
+            this._detachContextListeners();
+            this._detachContextListeners = null;
+        }
+    }
+
+    /**
+     * Arms context-loss prevention independently of the frame loop, for
+     * manual rendering (`autostart: false`) where `startLoop()` is never
+     * called. Without a listener calling `preventDefault()`, a loss in
+     * manual mode would be unrecoverable. Idempotent; detached on destroy.
+     */
+    attachContextEvents() {
+        this._attachContextEvents();
+    }
+
+    _scheduleRecoveryFrame(stage) {
+        this._cancelScheduledFrame();
+        const generation = ++this._loopGeneration;
+        // The normal loop stays parked until the recovery frame completes.
+        this._looping = false;
+        this._awaitingLoop = false;
+        this._frameHandle = requestAnimationFrame(() => {
+            this._drawRecoveryFrame(stage, generation);
+        });
+    }
+
+    /**
+     * Runs a single recovery frame outside the normal loop before emitting
+     * `contextRestored`. A stopped/replaced callback performs no work.
+     *
+     * Error reporting: Lightning has no loop-error isolation, so a recovery
+     * failure claimed by the stage (emitted as `contextRestoreFailed`) is
+     * swallowed, while any other error rethrows to preserve fail-fast
+     * behavior for unrelated frame errors.
+     */
+    _drawRecoveryFrame(stage, generation) {
+        this._frameHandle = null;
+        if (generation !== this._loopGeneration || this._isStageSuspended()) {
+            return;
+        }
+        stage.updateFrame();
+        if (generation !== this._loopGeneration || this._isStageSuspended()) {
+            return;
+        }
+        try {
+            stage.renderFrame();
+        } catch (error) {
+            // A stopped/replaced callback must not fail a newer recovery attempt.
+            if (generation !== this._loopGeneration || this._isStageSuspended()) {
+                return;
+            }
+            if (stage.onRecoveryFrameFailed(error) === false) {
+                throw error;
+            }
+            return;
+        }
+        if (generation !== this._loopGeneration || this._isStageSuspended()) {
+            return;
+        }
+        stage.onRecoveryFrameCompleted();
+        if (generation === this._loopGeneration && !this._isStageSuspended()) {
+            // Honor an explicit stop(): the context is healthy and the stage
+            // coherent, but only the user restarts the loop. Listeners stay
+            // attached, so a later resume() reconciles and restarts.
+            if (!this._userStopped) {
+                this._beginLoop();
+            }
+        }
     }
 
     switchLoop(hasChanges) {
@@ -84,9 +298,10 @@ export default class WebPlatform {
             return false;
         }
 
-        this.stopLoop();
-        this._loopHandler = setInterval(() => {
-            this.stage.updateFrame();
+        // Park the rAF loop but keep context listeners attached so a loss
+        // while idle is still observed (stopLoop would detach them).
+        this.suspendFrameLoop();
+        this._loopHandler = setInterval(() => {            this.stage.updateFrame();
             const hasChanges = this.stage.renderFrame();
             if (hasChanges) {
                 clearInterval(this._loopHandler);
@@ -99,20 +314,42 @@ export default class WebPlatform {
     }
 
     loop() {
+        const generation = this._loopGeneration;
         const pauseRafLoopOnIdle = this.stage.getOption("pauseRafLoopOnIdle");
         const lp = () => {
             this._awaitingLoop = false;
+            this._frameHandle = null;
+            // Canceled/previous loops can still have queued callbacks; only
+            // the current generation may draw, and a lost context cannot
+            // accept GPU work.
+            if (generation !== this._loopGeneration) {
+                return;
+            }
             if (this._looping) {
+                if (this._isStageSuspended()) {
+                    return;
+                }
                 this.stage.updateFrame();
+                if (generation !== this._loopGeneration || this._isStageSuspended()) {
+                    return;
+                }
                 const hasChanges = this.stage.renderFrame();
+                if (generation !== this._loopGeneration) {
+                    return;
+                }
+                // Event handlers can stop the loop; do not reschedule a
+                // second loop from this now-stale callback.
+                if (generation !== this._loopGeneration || !this._looping) {
+                    return;
+                }
                 if (pauseRafLoopOnIdle && this.switchLoop(hasChanges)) {
                     return;
                 }
-                requestAnimationFrame(lp);
+                this._frameHandle = requestAnimationFrame(lp);
                 this._awaitingLoop = true;
             }
         }
-        requestAnimationFrame(lp);
+        this._frameHandle = requestAnimationFrame(lp);
     }
 
     uploadCompressedGlTexture(gl, textureSource, source, options) {

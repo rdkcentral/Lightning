@@ -87,6 +87,7 @@ declare class TextureSource {
   loadingSince: number | null;
   permanent: boolean;
   renderInfo: TextureSource.RenderInfo;
+  contextGeneration: number;
 
   get lookupId(): string | undefined;
 
@@ -94,12 +95,15 @@ declare class TextureSource {
   forEachActiveElement(callback: (element: Element) => void): void;
   getRenderWidth(): number;
   getRenderHeight(): number;
+  invalidateContext(): void;
   isError(): boolean;
   isLoaded(): boolean;
   isLoading(): boolean;
   isUsed(): boolean;
+  load(forceSync?: boolean): void;
   onError(e: unknown): void;
 
+  get loadError(): unknown;
   get nativeTexture(): TextureSource.NativeTexture | null;
 }
 

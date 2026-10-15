@@ -51,8 +51,8 @@ export default class CoreQuadList {
     }
 
     getTextureWidth(index) {
-        let nativeTexture = this.quadTextures[index];
-        if (nativeTexture.w) {
+        const nativeTexture = this.quadTextures[index];
+        if (nativeTexture && nativeTexture.w) {
             // Render texture;
             return nativeTexture.w;
         } else {
@@ -61,8 +61,8 @@ export default class CoreQuadList {
     }
 
     getTextureHeight(index) {
-        let nativeTexture = this.quadTextures[index];
-        if (nativeTexture.h) {
+        const nativeTexture = this.quadTextures[index];
+        if (nativeTexture && nativeTexture.h) {
             // Render texture;
             return nativeTexture.h;
         } else {

@@ -270,6 +270,18 @@ declare namespace Stage {
      */
     pauseRafLoopOnIdle: boolean;
     /**
+     * Milliseconds to wait for a `webglcontextrestored` event after a
+     * context loss before reporting the restoration as overdue via
+     * `contextRestoreFailed`.
+     *
+     * @remarks
+     * A timeout report is non-terminal: the stage stays `lost` and a late
+     * browser restoration is still accepted. Set to `0` to disable.
+     *
+     * @defaultValue `10000`
+     */
+    contextRestoreTimeout: number;
+    /**
      * The Device Pixel Ratio (DPR) affects how touch events are registered and handled on a device,
      * including the conversion of physical pixel coordinates to logical pixel coordinates and the adjustment
      * of element size and layout based on the device's pixel density.
@@ -286,7 +298,32 @@ declare namespace Stage {
     update: () => void;
     frameEnd: () => void;
     idle: () => void;
+    /**
+     * Emitted when the canvas WebGL context is lost; GPU work is suspended.
+     */
+    contextLost: (payload: { generation: number }) => void;
+    /**
+     * Emitted after the first recovery frame; textures may still be loading.
+     */
+    contextRestored: (payload: { generation: number; duration: number }) => void;
+    /**
+     * Emitted when GPU reinitialisation fails (terminal, stage is `failed`)
+     * or when restoration times out (non-terminal, stage stays `lost` and a
+     * late browser restoration is still accepted).
+     */
+    contextRestoreFailed: (payload: { generation: number; error: unknown }) => void;
   }
+
+  /**
+   * WebGL context recovery state.
+   *
+   * - `running`: GPU work is accepted.
+   * - `lost`: context gone, frame loop suspended.
+   * - `restoring`: transient re-init inside `onContextRestored`.
+   * - `failed`: re-init or the recovery frame failed, loop stays suspended.
+   * - `destroyed`: stage torn down, no further transitions accepted.
+   */
+  export type ContextState = 'running' | 'lost' | 'restoring' | 'failed' | 'destroyed';
 }
 
 /**
@@ -310,6 +347,20 @@ declare class Stage extends EventEmitter<Stage.EventMap> {
   rectangleTexture: RectangleTexture;
   textureManager: TextureManager;
   transitions: TransitionManager;
+
+  /**
+   * WebGL context recovery state. See {@link Stage.ContextState}.
+   */
+  contextState: Stage.ContextState;
+  /**
+   * Bumped on every context loss and destroy so stale async work can be
+   * discarded.
+   */
+  contextGeneration: number;
+  /**
+   * `true` once the stage has been destroyed.
+   */
+  destroyed: boolean;
 
   /**
    * Constructor for Stage
@@ -416,6 +467,30 @@ declare class Stage extends EventEmitter<Stage.EventMap> {
 
   // hasUpdateSourceTexture(texture: any): any;
   // - Only used internally
+
+  /**
+   * Marks the WebGL context as lost and suspends all GPU submission.
+   *
+   * Safe to call repeatedly: only the first call per loss takes effect.
+   */
+  onContextLost(): void;
+
+  /**
+   * Reinitializes renderer-owned GPU state after the browser restored the
+   * context. Returns `true` when recovery can proceed with a recovery frame.
+   */
+  onContextRestored(): boolean;
+
+  /**
+   * Reports a failed recovery frame. Returns `true` when the error was
+   * claimed as the terminal restore failure.
+   */
+  onRecoveryFrameFailed(error: unknown): boolean;
+
+  /**
+   * Completes a recovery frame, emitting `contextRestored`.
+   */
+  onRecoveryFrameCompleted(): void;
 
   /**
    * Updates and renders a new frame

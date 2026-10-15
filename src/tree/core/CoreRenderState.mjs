@@ -147,7 +147,17 @@ export default class CoreRenderState {
         }
 
         if (!nativeTexture) {
-            nativeTexture = elementCore._displayedTextureSource.nativeTexture;
+            const displayedSource = elementCore._displayedTextureSource;
+            nativeTexture = displayedSource ? displayedSource.nativeTexture : null;
+        }
+
+        if (nativeTexture === null || nativeTexture === undefined) {
+            // The source is not (yet) loaded — e.g. an image still decoding
+            // after a context-loss restore. Skip the quad the way never-loaded
+            // textures are skipped, instead of submitting a null handle that
+            // texture-size dependent shaders (Pixelate, BoxBlur) would
+            // dereference via getTextureWidth/Height, failing recovery.
+            return;
         }
 
         if (this._renderTextureInfo) {

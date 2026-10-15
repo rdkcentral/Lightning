@@ -34,6 +34,8 @@ export default class WebGLShaderProgram {
         this._attributeLocations = new Map();
 
         this._currentUniformValues = {};
+
+        this._destroyed = false;
     }
 
     compile(gl) {
@@ -68,6 +70,27 @@ export default class WebGLShaderProgram {
         // clean up some shaders
         gl.deleteShader(glVertShader);
         gl.deleteShader(glFragShader);
+    }
+
+    /**
+     * Recompiles the program against the restored context in place, keeping
+     * the wrapper (and every shader referencing it) stable. Throws when the
+     * recompile fails so the stage can report a terminal restore failure;
+     * the previous (dead) program stays cleared for the next attempt.
+     */
+    restoreContext(gl) {
+        if (this._destroyed) {
+            return;
+        }
+        this.gl = gl || this.gl;
+        this._program = null;
+        this._uniformLocations = new Map();
+        this._attributeLocations = new Map();
+        this._currentUniformValues = {};
+        this.compile(this.gl);
+        if (!this._program) {
+            throw new Error('Failed to restore shader program after context loss');
+        }
     }
 
     _glCompile(type, src) {
@@ -112,6 +135,7 @@ export default class WebGLShaderProgram {
             this.gl.deleteProgram(this._program);
         }
 
+        this._destroyed = true;
         this._attributeLocations = null;
         this._currentUniformValues = null;
         this.fragmentShaderSource = null;

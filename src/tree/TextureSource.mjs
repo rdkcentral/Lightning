@@ -109,6 +109,23 @@ export default class TextureSource {
          * @private
          */
          this._hasAlpha = false;
+
+        /**
+         * Context-loss generation at the time of the last invalidation.
+         * In-flight loader callbacks capture this value and discard their
+         * result when it no longer matches (never reported as a load error).
+         * @type {number}
+         */
+        this.contextGeneration = 0;
+
+        /**
+         * Whether completed loads of this source flow through the throttled
+         * upload queue (image-like) or upload immediately (cheap,
+         * canvas-generated). Used to prioritize restores after a context
+         * loss. Defaults to throttled until the first load completes.
+         * @type {boolean}
+         */
+        this._throttleUploads = true;
     }
 
     get hasAlpha() {
@@ -202,6 +219,9 @@ export default class TextureSource {
             }
             this.loadingSince = 0;
         }
+        if (this.manager) {
+            this.manager.untrackLoadingSource(this);
+        }
     }
 
     isLoaded() {
@@ -230,9 +250,31 @@ export default class TextureSource {
             return;
         }
 
+        if (this.stage.contextState !== undefined && this.stage.contextState !== 'running') {
+            // No GPU work while the context is unavailable: requeue for the
+            // post-restore drain instead of starting a doomed fetch.
+            this.manager.queueRestoreSource(this);
+            return;
+        }
+
         if (!this._nativeTexture && !this.isLoading()) {
+            const generation = this.contextGeneration;
+            const managerGeneration = this.manager.contextGeneration;
+            this.manager.trackLoadingSource(this);
             this.loadingSince = (new Date()).getTime();
             this._cancelCb = this.loader((err, options) => {
+                // Check both generations before touching shared tracking: a
+                // stale pre-loss callback must not untrack a replacement load
+                // started after it (e.g. a source canceled before the loss,
+                // whose own generation was never bumped by invalidation), or
+                // a later loss would miss invalidating that replacement.
+                // Stale results are always discarded, never reported.
+                if (generation !== this.contextGeneration ||
+                    managerGeneration !== this.manager.contextGeneration
+                ) {
+                    return;
+                }
+                this.manager.untrackLoadingSource(this);
                 // Ignore loads that come in after a cancel.
                 if (this.isLoading()) {
                     // Clear callback to avoid memory leaks.
@@ -246,6 +288,7 @@ export default class TextureSource {
                         // Emit txError.
                         this.onError(err);
                     } else if (options && options.source) {
+                        this._throttleUploads = (options.throttle !== false);
                         if (!this.stage.isUpdatingFrame() && !forceSync && (options.throttle !== false)) {
                             const textureThrottler = this.stage.textureThrottler;
                             this._cancelCb = textureThrottler.genericCancelCb;
@@ -260,6 +303,16 @@ export default class TextureSource {
     }
 
     processLoadedSource(options) {
+        if (this.stage.contextState !== undefined && this.stage.contextState !== 'running') {
+            // Finished while suspended (e.g. an async text draw resolving
+            // after a failed recovery): requeue for the next restore instead
+            // of uploading behind the state machine's back. No new loss to
+            // report — the stage already knows it is unavailable.
+            this.loadingSince = 0;
+            this._cancelCb = null;
+            this.manager.queueRestoreSource(this);
+            return;
+        }
         this.loadingSince = 0;
         this.setSource(options);
     }
@@ -297,12 +350,40 @@ export default class TextureSource {
             this.permanent = options.hasOwnProperty('permanent') ? options.permanent : true;
         } else {
             this.manager.uploadTextureSource(this, options);
+            if (!this._nativeTexture) {
+                // The context was lost mid-upload: the dead handle was
+                // dropped and the source requeued for restore. Neither an
+                // error nor a load event is appropriate here.
+                return;
+            }
         }
 
         // Must be cleared when reload is succesful.
         this._loadError = null;
 
         this.onLoad();
+    }
+
+    /**
+     * Drops GPU state after a context loss without any GL calls (the browser
+     * has already discarded this generation's resources) and without
+     * treating the loss as a texture error.
+     */
+    invalidateContext() {
+        this.contextGeneration++;
+        // Abort in-flight fetches so their late callbacks are discarded.
+        this.cancel();
+        this._cancelCb = null;
+        if (this._nativeTexture) {
+            if (!this._isResultTexture) {
+                this.manager._addMemoryUsage(-this.w * this.h);
+                // Must run before clearNativeTexture (it checks isLoaded()).
+                this.manager._updateVramUsage(this, -1);
+            }
+            this.clearNativeTexture();
+        } else {
+            this.loadingSince = 0;
+        }
     }
 
     isUsed() {

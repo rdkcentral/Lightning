@@ -25,6 +25,7 @@ import WebGLCoreRenderExecutor from "./WebGLCoreRenderExecutor.mjs";
 import CoreRenderState from "../../tree/core/CoreRenderState.mjs";
 import DefaultShader from "./shaders/DefaultShader.mjs";
 import WebGLShader from "./WebGLShader.mjs";
+import WebGLStateManager from "../../tools/WebGLStateManager.mjs";
 import Renderer from "../Renderer.mjs";
 
 export default class WebGLRenderer extends Renderer {
@@ -52,6 +53,37 @@ export default class WebGLRenderer extends Renderer {
 
         delete this.shaderPrograms;
         delete this._compressedTextureExtensions;
+    }
+
+    /**
+     * Recreates every renderer-owned GL object after the browser restored
+     * the context. `canvas.getContext()` returns the *same* underlying
+     * context object after restoration, so this re-wraps it and rebuilds
+     * VBOs and shader programs. Old GL handles were already discarded by
+     * the browser on loss, so no delete calls are needed. Throws when
+     * reinitialisation fails (the stage reports this as terminal).
+     */
+    restoreContext() {
+        const stage = this.stage;
+        const gl = stage.gl;
+        if (!gl) {
+            throw new Error('Cannot restore WebGL context: no GL context available');
+        }
+        // Reset cached GL state so every command re-emits against the
+        // restored context.
+        WebGLStateManager.enable(gl, "lightning");
+        this._compressedTextureExtensions = {
+            astc: gl.getExtension('WEBGL_compressed_texture_astc'),
+            etc1: gl.getExtension('WEBGL_compressed_texture_etc1'),
+            s3tc: gl.getExtension('WEBGL_compressed_texture_s3tc'),
+            pvrtc: gl.getExtension('WEBGL_compressed_texture_pvrtc'),
+        };
+        // Recompile shader programs in place to keep shader references stable.
+        this.shaderPrograms.forEach(shaderProgram => shaderProgram.restoreContext(gl));
+        const renderExec = stage.ctx && stage.ctx.renderExec;
+        if (renderExec && typeof renderExec.restoreContext === 'function') {
+            renderExec.restoreContext();
+        }
     }
 
     _createDefaultShader(ctx) {

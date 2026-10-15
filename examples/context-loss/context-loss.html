@@ -1,0 +1,263 @@
+<!--
+ If not stated otherwise in this file or this component's LICENSE file the
+ following copyright and licenses apply:
+
+ Copyright 2020 Metrological
+
+ Licensed under the Apache License, Version 2.0 (the License);
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="data:," />
+    <title>Lightning - WebGL context loss / restore</title>
+</head>
+<body style="margin: 0; padding: 0">
+    <div id="context-loss-overlay" style="display: none; position: absolute; left: 0; top: 0; width: 1280px; height: 720px; background: rgba(0, 0, 0, 0.55); color: #ff5555; font: 48px sans-serif; align-items: center; justify-content: center; text-align: center; pointer-events: none;"></div>
+    <script type="module">
+        import lng from '../../dist/src/lightning.mjs';
+
+        // Scene covers both restore paths: an image texture (async decode +
+        // throttled upload), solid color blocks (immediate reload), a text
+        // texture (cheap canvas path) and a render-to-texture element
+        // (re-renders on the forced post-restore update).
+        class ContextLossExample extends lng.Application {
+            static _template() {
+                return {
+                    Img: { x: 80, y: 60, src: '../landscape.jpg', scale: 0.8 },
+                    Red: { x: 700, y: 60, w: 220, h: 220, rect: true, color: 0xffff0000 },
+                    Green: { x: 960, y: 60, w: 220, h: 140, rect: true, color: 0xff00ff00 },
+                    // PixelateShader reads texture dimensions per quad: it covers
+                    // the recovery path where the shared image source has no
+                    // native texture yet.
+                    Pix: { x: 960, y: 240, w: 220, h: 148, src: '../landscape.jpg', shader: { type: lng.shaders.Pixelate } },
+                    Rtt: {
+                        x: 700, y: 320, w: 480, h: 200, renderToTexture: true,
+                        Label: {
+                            x: 20, y: 70, text: 'render-to-texture',
+                        },
+                        Box: { x: 20, y: 110, w: 120, h: 50, rect: true, color: 0xff0000ff },
+                    },
+                    Status: { x: 80, y: 620, text: 'Context running - click canvas to simulate loss' },
+                };
+            }
+        }
+
+        const options = {
+            stage: { w: 1280, h: 720, clearColor: 0xff000000, canvas2d: false, useImageWorker: false },
+            debug: true,
+        };
+
+        const app = new ContextLossExample(options);
+        const canvas = app.stage.getCanvas();
+        document.body.appendChild(canvas);
+
+        const status = app.tag('Status');
+        const img = app.tag('Img');
+        const setStatus = (text) => {
+            status.text = text;
+        };
+
+        const isImgLoaded = () => {
+            try {
+                const texture = img.texture;
+                return !!(texture && texture.isLoaded());
+            } catch (e) {
+                return false;
+            }
+        };
+
+        const seen = { lost: 0, restored: 0, failed: 0 };
+
+        // The in-canvas status line cannot repaint while the context is
+        // lost (all frame rendering is suspended), and some browsers keep
+        // compositing the last presented frame, so a lost context can look
+        // like nothing happened. This DOM overlay makes the state
+        // unmistakable; it is independent of WebGL.
+        const overlay = document.getElementById('context-loss-overlay');
+        const showOverlay = (html) => {
+            overlay.innerHTML = html;
+            overlay.style.display = 'flex';
+        };
+        const hideOverlay = () => {
+            overlay.style.display = 'none';
+        };
+
+        app.stage.on('contextLost', ({ generation }) => {
+            seen.lost++;
+            showOverlay('CONTEXT LOST<br><small style="font-size: 28px">click canvas to restore</small>');
+            setStatus(`CONTEXT LOST (gen ${generation}) - click canvas to restore`);
+            console.log(`[context-loss] contextLost generation=${generation}`);
+        });
+        app.stage.on('contextRestored', ({ generation, duration }) => {
+            seen.restored++;
+            hideOverlay();
+            setStatus(`Context restored (gen ${generation}, ${Math.round(duration)}ms) - click canvas to lose it again`);
+            console.log(`[context-loss] contextRestored generation=${generation} duration=${Math.round(duration)}ms`);
+        });
+        app.stage.on('contextRestoreFailed', ({ generation, error }) => {
+            seen.failed++;
+            showOverlay('RESTORE FAILED<br><small style="font-size: 28px">click canvas to retry</small>');
+            setStatus(`Restore FAILED (gen ${generation}) - click canvas to retry`);
+            console.warn(`[context-loss] contextRestoreFailed generation=${generation}`, error);
+        });
+
+        img.on('txError', (e) => {
+            console.error('[context-loss] image load error', e);
+        });        function getLoseContextExtension() {
+            const gl = app.stage.gl;
+            if (!gl) {
+                throw new Error('No WebGL context (canvas2d mode has no loss simulation)');
+            }
+            const ext = gl.getExtension('WEBGL_lose_context');
+            if (!ext) {
+                throw new Error('WEBGL_lose_context extension unavailable');
+            }
+            return ext;
+        }
+
+        // Fetch once while healthy: getExtension() returns null while the
+        // context is lost, so the same object must drive restore.
+        let loseExt = null;
+        try {
+            loseExt = getLoseContextExtension();
+        } catch (e) {
+            setStatus(`No context-loss extension: ${e.message}`);
+        }
+
+        let lost = false;
+        const hooks = {
+            get imgLoaded() {
+                return isImgLoaded();
+            },
+            get state() {
+                return app.stage.contextState;
+            },
+            get events() {
+                return seen;
+            },
+            lose() {
+                if (!loseExt) {
+                    throw new Error('WEBGL_lose_context extension unavailable');
+                }
+                loseExt.loseContext();
+                lost = true;
+            },
+            restore() {
+                if (!loseExt) {
+                    throw new Error('WEBGL_lose_context extension unavailable');
+                }
+                loseExt.restoreContext();
+                lost = false;
+            },
+        };
+        window.__contextLoss = hooks;
+        // Exposed for debugging and test harnesses.
+        window.__app = app;
+
+        canvas.addEventListener('click', () => {
+            if (!loseExt) {
+                return;
+            }
+            if (lost === false) {
+                hooks.lose();
+            } else {
+                hooks.restore();
+            }
+            setStatus(lost ? 'CONTEXT LOST - click canvas to restore' : 'Context running - click canvas to simulate loss');
+        });
+        console.log('[context-loss] ready! Click the canvas to toggle WebGL context loss.');
+
+        // Automation mode (`?automation`): runs the lose/restore cycle on its
+        // own and reports via console + window.__contextLossResult, mirroring
+        // the renderer integration test.
+        function waitFor(fn, timeoutMs, label) {
+            return new Promise((resolve, reject) => {
+                const start = Date.now();
+                const tick = () => {
+                    let ok = false;
+                    try {
+                        ok = fn();
+                    } catch (e) {
+                        reject(new Error(`Timed out waiting for ${label}: ${e.message}`));
+                        return;
+                    }
+                    if (ok) {
+                        resolve();
+                    } else if (Date.now() - start > timeoutMs) {
+                        reject(new Error(`Timed out waiting for ${label}`));
+                    } else {
+                        requestAnimationFrame(tick);
+                    }
+                };
+                tick();
+            });
+        }
+
+        function waitFrames(count) {
+            return new Promise((resolve) => {
+                const tick = () => {
+                    count--;
+                    if (count <= 0) {
+                        resolve();
+                        return;
+                    }
+                    requestAnimationFrame(tick);
+                };
+                requestAnimationFrame(tick);
+            });
+        }
+
+        async function automation() {
+            try {
+                await waitFor(() => hooks.imgLoaded === true, 10000, 'initial texture load');
+                // Let the healthy frame settle before the harness screenshots it.
+                await waitFrames(5);
+
+                hooks.lose();
+                await waitFor(() => hooks.state === 'lost', 5000, 'contextLost');
+
+                // Several frames while lost: rendering must stay suspended
+                // without crashing or submitting GPU work.
+                await waitFrames(15);
+                if (hooks.state !== 'lost') {
+                    throw new Error('Stage left lost state without a restore');
+                }
+
+                hooks.restore();
+                await waitFor(() => hooks.state === 'running', 15000, 'contextRestored');
+                await waitFor(() => hooks.imgLoaded === true, 15000, 'texture reload');
+                await waitFrames(5);
+                console.log('[context-loss] completed successfully');
+                window.__contextLossResult = { ok: true };
+            } catch (e) {
+                console.error(`[context-loss] FAILED: ${e.message}`);
+                // Paint an obviously wrong frame so a pixel comparison fails
+                // instead of hanging the harness.
+                const fallback = app.stage.createElement({
+                    x: 0, y: 0, w: 1280, h: 720, rect: true, color: 0xffff00ff,
+                });
+                app.children = [...app.children, fallback];
+                await waitFrames(5);
+                window.__contextLossResult = { ok: false, message: e.message };
+            }
+        }
+
+        if (new URLSearchParams(location.search).has('automation')) {
+            automation();
+        }
+    </script>
+</body>
+</html>

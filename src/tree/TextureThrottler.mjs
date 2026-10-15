@@ -43,12 +43,51 @@ export default class TextureThrottler {
         delete this.stage;
     }
 
+    /**
+     * Drops all queued uploads and returns the dropped sources so the
+     * texture manager can requeue them for post-restore reload.
+     */
+    clear() {
+        const sources = this._sources;
+        this._sources = [];
+        this._data = [];
+        return sources;
+    }
+
     processSome() {
-        if (this._sources.length) {
-            const start = Date.now();
-            do {
-                this._processItem();
-            } while(this._sources.length && (Date.now() - start < TextureThrottler.MAX_UPLOAD_TIME_PER_FRAME));
+        const stage = this.stage;
+        const manager = stage && stage.textureManager ? stage.textureManager : null;
+        if (
+            this._sources.length === 0 &&
+            (manager === null ||
+                typeof manager.hasRestores !== 'function' ||
+                manager.hasRestores() === false)
+        ) {
+            return;
+        }
+        const start = Date.now();
+        // Drain queued context restores first within the same budget:
+        // cheap sources complete inline, image sources kick off async
+        // decodes whose uploads still flow through the queue below.
+        while (
+            manager !== null &&
+            manager.hasRestores() === true &&
+            Date.now() - start < TextureThrottler.MAX_UPLOAD_TIME_PER_FRAME
+        ) {
+            if (manager.processNextRestore() === false) {
+                return;
+            }
+        }
+        const suspended = () => {
+            const s = this.stage;
+            return !!(s && s.contextState !== undefined && s.contextState !== 'running');
+        };
+        while (
+            suspended() === false &&
+            this._sources.length > 0 &&
+            Date.now() - start < TextureThrottler.MAX_UPLOAD_TIME_PER_FRAME
+        ) {
+            this._processItem();
         }
     }
 

@@ -22,6 +22,8 @@ import type StaticCanvasTexture from "../../textures/StaticCanvasTexture.mjs";
 
 export default class WebPlatform {
   destroy(): void;
+  /** Arms WebGL context-loss listeners without starting the frame loop. */
+  attachContextEvents(): void;
   getDrawingCanvas(): HTMLCanvasElement;
   getTextureOptionsForDrawingCanvas(
     canvas: HTMLCanvasElement,
@@ -35,6 +37,14 @@ export default class WebPlatform {
   nextFrame(changes: boolean): void;
   startLoop(): void;
   stopLoop(): void;
+  /**
+   * Suspends scheduled frames without detaching context listeners.
+   *
+   * Called by the stage when GPU work becomes illegal (context loss /
+   * destroy) so that GL-error detection paths also invalidate stale
+   * rAF callbacks.
+   */
+  suspendFrameLoop(): void;
   uploadGlTexture(
     gl: WebGLRenderingContext,
     textureSource: TextureSource,

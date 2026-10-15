@@ -172,8 +172,11 @@ export default class CircularPushShader extends DefaultShader {
     beforeDraw(operation) {
         const gl = this.gl;
         gl.activeTexture(gl.TEXTURE1);
-        if (!this._valuesTexture) {
+        if (!this._valuesTexture || this._valuesTextureGeneration !== this.ctx.stage.contextGeneration) {
+            // The browser discarded this handle on context loss (or it was
+            // never created): rebuild it. Dead handles need no delete call.
             this._valuesTexture = gl.createTexture();
+            this._valuesTextureGeneration = this.ctx.stage.contextGeneration;
             gl.bindTexture(gl.TEXTURE_2D, this._valuesTexture);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);

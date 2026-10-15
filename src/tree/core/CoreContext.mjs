@@ -37,6 +37,13 @@ export default class CoreContext {
 
         this._renderTextureId = 1;
 
+        /**
+         * Bumped by invalidateContext(). Texturizers stamp allocations with
+         * this generation so pre-loss render textures are never reused or
+         * returned to the fresh pool.
+         */
+        this.renderTextureGeneration = 0;
+
         this._zSorts = [];
 
         this.renderToTextureCount = 0;
@@ -44,6 +51,20 @@ export default class CoreContext {
 
     get usedMemory() {
         return this._usedMemory;
+    }
+
+    /**
+     * Drops pooled render textures after a context loss without GL calls
+     * (the browser already discarded them). They reallocate on demand and
+     * render-to-texture elements re-render on the forced post-restore update.
+     */
+    invalidateContext() {
+        if (this._usedMemory && this.stage) {
+            this.stage.addMemoryUsage(-this._usedMemory);
+        }
+        this._usedMemory = 0;
+        this._renderTexturePool = [];
+        this.renderTextureGeneration++;
     }
 
     destroy() {

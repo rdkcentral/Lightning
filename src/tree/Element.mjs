@@ -653,7 +653,12 @@ export default class Element {
         // This function is called when element is enabled, but we only want to set displayed texture for active elements.
         if (this.active) {
             // We may be dealing with a texture reloading, so we must force update.
+            // (On a same-source reload, e.g. after a context-loss restore,
+            // _setDisplayedTexture alone changes nothing observable and
+            // schedules no render updates, so without this the fresh pixels
+            // would never paint in an otherwise static scene.)
             this._setDisplayedTexture(this.__texture);
+            this.forceRenderUpdate();
         }
     };
 
