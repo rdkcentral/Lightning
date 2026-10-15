@@ -36,6 +36,8 @@ export default class ElementTexturizer {
 
         this._renderTextureReused = false;
 
+        this._renderTextureGeneration = 0;
+
         this._resultTextureSource = null;
 
         this._renderOffscreen = false;
@@ -135,9 +137,12 @@ export default class ElementTexturizer {
 
     releaseRenderTexture() {
         if (this._renderTexture) {
-            if (!this._renderTextureReused) {
+            if (!this._renderTextureReused &&
+                this._renderTextureGeneration === this.ctx.renderTextureGeneration) {
                 this.ctx.releaseRenderTexture(this._renderTexture);
             }
+            // A pre-loss handle is dead either way: never return it to the
+            // fresh pool, just drop it.
             this._renderTexture = null;
             this._renderTextureReused = false;
             this.updateResultTexture();
@@ -150,6 +155,7 @@ export default class ElementTexturizer {
             this.releaseRenderTexture();
             this._renderTexture = nativeTexture;
             this._renderTextureReused = true;
+            this._renderTextureGeneration = this.ctx.renderTextureGeneration;
         }
     }
 
@@ -158,9 +164,13 @@ export default class ElementTexturizer {
     }
 
     getRenderTexture() {
-        if (!this._renderTexture) {
+        if (!this._renderTexture ||
+            this._renderTextureGeneration !== this.ctx.renderTextureGeneration) {
+            // Pre-loss handle: the browser discarded it, allocate fresh.
+            this._renderTexture = null;
             this._renderTexture = this.ctx.allocateRenderTexture(this._core._w, this._core._h);
             this._renderTextureReused = false;
+            this._renderTextureGeneration = this.ctx.renderTextureGeneration;
         }
         return this._renderTexture;
     }

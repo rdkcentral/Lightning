@@ -70,6 +70,10 @@ export default class WebGLShader extends Shader {
     }
 
     useProgram() {
+        const contextState = this.ctx.stage.contextState;
+        if (contextState !== undefined && contextState !== 'running') {
+            return;
+        }
         this._init();
         this.gl.useProgram(this.glProgram);
         this.beforeUsage();

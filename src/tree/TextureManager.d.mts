@@ -37,9 +37,31 @@ export default class TextureManager {
 
   get usedMemory(): number;
 
+  contextGeneration: number;
+
   addToLookupMap(textureSource: TextureSource): void;
 
   destroy(): void;
+
+  /**
+   * Drops all GPU-backed and in-flight texture state after a context loss
+   * without treating the loss as a texture error. Reloadable sources move
+   * to the restore queue.
+   */
+  invalidateContext(): void;
+
+  /**
+   * Reloads cheap (non-throttled) restores immediately. Image-like sources
+   * stay queued for the throttled per-frame drain.
+   */
+  restoreContext(): void;
+
+  hasRestores(): boolean;
+  processNextRestore(): boolean;
+  queueRestoreSource(textureSource: TextureSource): void;
+  trackLoadingSource(textureSource: TextureSource): void;
+  untrackLoadingSource(textureSource: TextureSource): void;
+  notifyContextLost(): void;
 
   freeTextureSource(textureSource: TextureSource): void;
   freeUnusedTextureSources(): void;

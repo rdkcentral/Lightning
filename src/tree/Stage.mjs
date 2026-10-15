@@ -128,6 +128,18 @@ export default class Stage extends EventEmitter {
         this.ctx = new CoreContext(this);
 
         this._updateSourceTextures = new Set();
+
+        // WebGL context-loss recovery state. See onContextLost().
+        // running: GPU work is accepted. lost: context gone, loop suspended.
+        // restoring: transient re-init inside onContextRestored(). failed:
+        // re-init or the recovery frame failed, loop stays suspended.
+        // destroyed: stage torn down, no further transitions accepted.
+        this.contextState = 'running';
+        this.contextGeneration = 0;
+        this.contextLostAt = 0;
+        this.pendingRestoreEvent = false;
+        this.destroyed = false;
+        this._restoreTimeoutHandle = null;
     }
 
     get renderer() {
@@ -205,6 +217,7 @@ export default class Stage extends EventEmitter {
         opt('debugFrame', false);
         opt('forceTxCanvasSource', false);
         opt('pauseRafLoopOnIdle', false);
+        opt('contextRestoreTimeout', 10000);
 
         if (o['devicePixelRatio'] != null && o['devicePixelRatio'] !== 1) {
             this._options['precision'] *= o['devicePixelRatio']
@@ -234,6 +247,13 @@ export default class Stage extends EventEmitter {
     }
 
     destroy() {
+        this._clearRestoreTimeout();
+        this.contextState = 'destroyed';
+        this.destroyed = true;
+        this.contextGeneration++;
+        if (this.platform && this.platform.suspendFrameLoop) {
+            this.platform.suspendFrameLoop();
+        }
         this.platform.stopLoop();
         this.platform.destroy();
         this.ctx.destroy();
@@ -273,6 +293,157 @@ export default class Stage extends EventEmitter {
 
     resume() {
         this.platform.startLoop();
+    }
+
+    _getTimeStamp() {
+        if (this.platform && this.platform.getHrTime) {
+            return this.platform.getHrTime();
+        }
+        return Date.now();
+    }
+
+    _clearRestoreTimeout() {
+        if (this._restoreTimeoutHandle !== null && this._restoreTimeoutHandle !== undefined) {
+            clearTimeout(this._restoreTimeoutHandle);
+        }
+        this._restoreTimeoutHandle = null;
+    }
+
+    /**
+     * Marks the WebGL context as lost and suspends all GPU submission.
+     *
+     * Called from the canvas `webglcontextlost` handler and from GL-error
+     * detection paths (failed texture uploads). Safe to call repeatedly:
+     * only the first call per loss takes effect.
+     *
+     * Emits `contextLost` (`{generation}`). If the browser does not restore
+     * the context within `contextRestoreTimeout` ms, emits
+     * `contextRestoreFailed` but stays `lost` (non-terminal): a late browser
+     * restoration is still accepted.
+     */
+    onContextLost() {
+        if (this.contextState === 'destroyed' || this.contextState === 'lost') {
+            return;
+        }
+        // Invalidate stale loop callbacks first: GL-error detection paths
+        // call this directly and bypass the canvas event handler.
+        if (this.platform && this.platform.suspendFrameLoop) {
+            this.platform.suspendFrameLoop();
+        }
+        this.contextState = 'lost';
+        this.contextGeneration++;
+        this.contextLostAt = this._getTimeStamp();
+        this.pendingRestoreEvent = false;
+        if (this.textureManager && this.textureManager.invalidateContext) {
+            this.textureManager.invalidateContext();
+        }
+        if (this.ctx && this.ctx.invalidateContext) {
+            this.ctx.invalidateContext();
+        }
+        this._clearRestoreTimeout();
+        const generation = this.contextGeneration;
+        const timeout = this.getOption ? this.getOption('contextRestoreTimeout') : 10000;
+        const timeoutMs = (timeout === undefined || timeout === null) ? 10000 : timeout;
+        if (timeoutMs > 0) {
+            this._restoreTimeoutHandle = setTimeout(() => {
+                if (this.contextState !== 'lost' || this.contextGeneration !== generation) {
+                    return;
+                }
+                this._restoreTimeoutHandle = null;
+                this.emit('contextRestoreFailed', {
+                    generation,
+                    error: new Error('WebGL context restoration timed out')
+                });
+                // Non-terminal: a late browser restoration remains valid.
+            }, timeoutMs);
+        }
+        this.emit('contextLost', { generation: this.contextGeneration });
+    }
+
+    /**
+     * Reinitializes renderer-owned GPU state after the browser restored the
+     * context. Returns true when recovery can proceed with a recovery frame.
+     *
+     * Reinitialisation failure is terminal: the stage moves to `failed` and
+     * emits `contextRestoreFailed`. A second loss landing mid-restore aborts
+     * cleanly (returns false, stays `lost`).
+     */
+    onContextRestored() {
+        if (this.contextState !== 'lost' && this.contextState !== 'failed') {
+            return false;
+        }
+        const generation = this.contextGeneration;
+        this.contextState = 'restoring';
+        this._clearRestoreTimeout();
+        try {
+            const renderer = this._renderer;
+            if (!renderer || typeof renderer.restoreContext !== 'function') {
+                throw new Error('Renderer does not support context restoration');
+            }
+            renderer.restoreContext();
+            if (this.contextGeneration !== generation || this.contextState !== 'restoring') {
+                return false;
+            }
+            this.contextState = 'running';
+            if (this.textureManager && this.textureManager.restoreContext) {
+                this.textureManager.restoreContext();
+            }
+            if (this.contextGeneration !== generation || this.contextState !== 'running') {
+                return false;
+            }
+            // Reset frame timing so the recovery frame gets a sane dt.
+            this.startTime = 0;
+            this.currentTime = 0;
+            this.dt = 0;
+            // Rebuild everything including render-to-texture caches: their
+            // GPU handles died with the context, and a plain type-1 update
+            // would keep reusing the dead result textures.
+            const rootCore = (this.ctx && this.ctx.root) || (this.root && this.root.core);
+            if (rootCore) {
+                this._markRenderUpdatesRecursive(rootCore, 3);
+            } else {
+                this.forceRenderUpdate();
+            }
+            this.pendingRestoreEvent = true;
+            return true;
+        } catch (error) {
+            if (this.contextGeneration !== generation) {
+                return false;
+            }
+            this.contextState = 'failed';
+            this.emit('contextRestoreFailed', { generation, error });
+            return false;
+        }
+    }
+
+    /**
+     * Reports a failed recovery frame. Returns true when the error was
+     * claimed as the terminal restore failure (emits `contextRestoreFailed`,
+     * moves to `failed`); false when there is no pending restore, in which
+     * case the caller must rethrow to preserve fail-fast behavior.
+     */
+    onRecoveryFrameFailed(error) {
+        if (this.pendingRestoreEvent === false || this.contextState !== 'running') {
+            return false;
+        }
+        this.pendingRestoreEvent = false;
+        this.contextState = 'failed';
+        if (this.platform && this.platform.suspendFrameLoop) {
+            this.platform.suspendFrameLoop();
+        }
+        this.emit('contextRestoreFailed', { generation: this.contextGeneration, error });
+        return true;
+    }
+
+    onRecoveryFrameCompleted() {
+        if (this.pendingRestoreEvent === false || this.contextState !== 'running') {
+            return;
+        }
+        this.pendingRestoreEvent = false;
+        this.emit('contextRestored', {
+            generation: this.contextGeneration,
+            duration: this._getTimeStamp() - this.contextLostAt
+        });
     }
 
     get root() {
@@ -332,6 +503,9 @@ export default class Stage extends EventEmitter {
     }
 
     updateFrame() {
+        if (this.contextState !== 'running') {
+            return;
+        }
         this._calculateDt();
         this.emit('frameStart');
         this._performUpdateSource();
@@ -343,6 +517,9 @@ export default class Stage extends EventEmitter {
     }
 
     renderFrame() {
+        if (this.contextState !== 'running') {
+            return false;
+        }
         const changes = this.ctx.hasRenderUpdates();
 
         // Update may cause textures to be loaded in sync, so by processing them here we may be able to show them
@@ -382,6 +559,16 @@ export default class Stage extends EventEmitter {
         // Enforce re-rendering.
         if (this.root) {
             this.root.core._parent.setHasRenderUpdates(1);
+        }
+    }
+
+    _markRenderUpdatesRecursive(core, type) {
+        core._hasRenderUpdates = Math.max(type, core._hasRenderUpdates || 0);
+        const children = core._children;
+        if (children) {
+            for (let i = 0, n = children.length; i < n; i++) {
+                this._markRenderUpdatesRecursive(children[i], type);
+            }
         }
     }
 

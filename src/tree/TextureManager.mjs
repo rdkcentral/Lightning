@@ -43,6 +43,27 @@ export default class TextureManager {
          */
         this.textureSourceHashmap = new Map();
 
+        /**
+         * Context-loss generation. Bumped on every invalidation and on
+         * destroy so in-flight loader callbacks can discard stale results.
+         * @type {number}
+         */
+        this.contextGeneration = 0;
+
+        /**
+         * Sources with an in-flight fetch/decode.
+         * @type {Set<TextureSource>}
+         */
+        this._loadingSources = new Set();
+
+        /**
+         * Sources awaiting reload after a context loss. Image-like sources
+         * stay queued until the throttled per-frame drain picks them up;
+         * cheap sources reload immediately in restoreContext().
+         * @type {Set<TextureSource>}
+         */
+        this._restoreSources = new Set();
+
     }
 
     get usedMemory() {
@@ -50,6 +71,23 @@ export default class TextureManager {
     }
 
     destroy() {
+        this.contextGeneration++;
+        if (this.stage && this.stage.textureThrottler) {
+            this.stage.textureThrottler.clear();
+        }
+        // Abort in-flight decodes so they cannot upload after teardown,
+        // and drop queued restores so dead sources can be collected,
+        // including a teardown while the context is lost.
+        for (const source of this._loadingSources) {
+            source.contextGeneration++;
+            source.cancel();
+        }
+        for (const source of this._restoreSources) {
+            source.contextGeneration++;
+        }
+        this._loadingSources.clear();
+        this._restoreSources.clear();
+
         for (let i = 0, n = this._uploadedTextureSources.length; i < n; i++) {
             this._nativeFreeTextureSource(this._uploadedTextureSources[i]);
         }
@@ -78,6 +116,130 @@ export default class TextureManager {
         return textureSource;
     }
 
+    trackLoadingSource(textureSource) {
+        this._loadingSources.add(textureSource);
+    }
+
+    untrackLoadingSource(textureSource) {
+        this._loadingSources.delete(textureSource);
+    }
+
+    queueRestoreSource(textureSource) {
+        this._restoreSources.add(textureSource);
+    }
+
+    notifyContextLost() {
+        if (this.stage) {
+            this.stage.onContextLost();
+        }
+    }
+
+    _isGlContextLost() {
+        const gl = this.stage ? this.stage.gl : null;
+        return !!(gl && typeof gl.isContextLost === 'function' && gl.isContextLost());
+    }
+
+    /**
+     * Drops all GPU-backed and in-flight texture state after a context loss.
+     * Native handles are released without GL calls (the browser already
+     * discarded them) and nothing is reported as a texture error. Reloadable
+     * sources move to the restore queue; result (render-to-texture) sources
+     * are simply cleared and re-render on demand.
+     */
+    invalidateContext() {
+        this.contextGeneration++;
+        const throttler = this.stage ? this.stage.textureThrottler : null;
+        const dropped = throttler ? throttler.clear() : [];
+
+        for (const source of [...this._loadingSources]) {
+            source.invalidateContext();
+            if (!source.isResultTexture) {
+                this._restoreSources.add(source);
+            }
+        }
+        this._loadingSources.clear();
+
+        for (const source of [...this._uploadedTextureSources]) {
+            if (source.isResultTexture) {
+                source.clearNativeTexture();
+                continue;
+            }
+            source.invalidateContext();
+            this._restoreSources.add(source);
+        }
+        this._uploadedTextureSources = [];
+
+        // Decoded but not yet uploaded: the data is dropped with the dead
+        // context, the sources reload through the normal path.
+        for (const source of dropped) {
+            source.loadingSince = 0;
+            source._cancelCb = null;
+            source.contextGeneration++;
+            if (!source.isResultTexture) {
+                this._restoreSources.add(source);
+            }
+        }
+    }
+
+    /**
+     * Reloads cheap (non-throttled, canvas-generated) restores immediately.
+     * Image-like sources stay queued and stream in through the throttled
+     * per-frame drain. Previously evicted sources are left for on-demand
+     * load and genuine load errors are not retried.
+     */
+    restoreContext() {
+        for (const source of [...this._restoreSources]) {
+            if (source._throttleUploads !== false) {
+                continue;
+            }
+            this._restoreSources.delete(source);
+            if (source.loadError) {
+                continue;
+            }
+            if (!source.isUsed() && !source.permanent) {
+                continue;
+            }
+            source.load();
+            if (this._isContextSuspended()) {
+                break;
+            }
+        }
+    }
+
+    _isContextSuspended() {
+        const state = this.stage ? this.stage.contextState : undefined;
+        return state !== undefined && state !== 'running';
+    }
+
+    hasRestores() {
+        return this._restoreSources.size > 0;
+    }
+
+    /**
+     * Kicks a single queued restore. Returns false when the context became
+     * unavailable mid-drain so the throttler stops for this frame.
+     */
+    processNextRestore() {
+        const next = this._restoreSources.values().next();
+        if (next.done) {
+            return true;
+        }
+        const source = next.value;
+        this._restoreSources.delete(source);
+        if (this._isContextSuspended()) {
+            this._restoreSources.add(source);
+            return false;
+        }
+        if (source.loadError) {
+            return true;
+        }
+        if (!source.isUsed() && !source.permanent) {
+            return true;
+        }
+        source.load();
+        return !this._isContextSuspended();
+    }
+
     uploadTextureSource(textureSource, options) {
         if (textureSource.isLoaded()) return;
 
@@ -85,6 +247,16 @@ export default class TextureManager {
 
         // Load texture.
         const nativeTexture = this._nativeUploadTextureSource(textureSource, options);
+
+        if (this._isGlContextLost()) {
+            // The browser discarded the context mid-upload. Drop the dead
+            // handle without treating it as a texture error and requeue.
+            this._addMemoryUsage(-textureSource.w * textureSource.h);
+            textureSource.clearNativeTexture();
+            this._restoreSources.add(textureSource);
+            this.notifyContextLost();
+            return;
+        }
 
         textureSource._nativeTexture = nativeTexture;
 
