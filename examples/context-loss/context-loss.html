@@ -39,6 +39,10 @@
                     Img: { x: 80, y: 60, src: '../landscape.jpg', scale: 0.8 },
                     Red: { x: 700, y: 60, w: 220, h: 220, rect: true, color: 0xffff0000 },
                     Green: { x: 960, y: 60, w: 220, h: 140, rect: true, color: 0xff00ff00 },
+                    // PixelateShader reads texture dimensions per quad: it covers
+                    // the recovery path where the shared image source has no
+                    // native texture yet.
+                    Pix: { x: 960, y: 240, w: 220, h: 148, src: '../landscape.jpg', shader: { type: lng.shaders.Pixelate } },
                     Rtt: {
                         x: 700, y: 320, w: 480, h: 200, renderToTexture: true,
                         Label: {
