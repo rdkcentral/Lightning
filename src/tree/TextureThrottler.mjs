@@ -56,27 +56,38 @@ export default class TextureThrottler {
 
     processSome() {
         const stage = this.stage;
-        const manager = stage ? stage.textureManager : null;
-        const hasRestores = !!(manager && manager.hasRestores && manager.hasRestores());
-        if (this._sources.length || hasRestores) {
-            const start = Date.now();
-            // Drain queued context restores first within the same budget:
-            // cheap sources complete inline, image sources kick off async
-            // decodes whose uploads still flow through the queue below.
-            while (hasRestores && manager.hasRestores() &&
-                (Date.now() - start < TextureThrottler.MAX_UPLOAD_TIME_PER_FRAME)) {
-                if (manager.processNextRestore() === false) {
-                    return;
-                }
+        const manager = stage && stage.textureManager ? stage.textureManager : null;
+        if (
+            this._sources.length === 0 &&
+            (manager === null ||
+                typeof manager.hasRestores !== 'function' ||
+                manager.hasRestores() === false)
+        ) {
+            return;
+        }
+        const start = Date.now();
+        // Drain queued context restores first within the same budget:
+        // cheap sources complete inline, image sources kick off async
+        // decodes whose uploads still flow through the queue below.
+        while (
+            manager !== null &&
+            manager.hasRestores() === true &&
+            Date.now() - start < TextureThrottler.MAX_UPLOAD_TIME_PER_FRAME
+        ) {
+            if (manager.processNextRestore() === false) {
+                return;
             }
-            const suspended = () => {
-                const s = this.stage;
-                return !!(s && s.contextState !== undefined && s.contextState !== 'running');
-            };
-            while (!suspended() && this._sources.length &&
-                (Date.now() - start < TextureThrottler.MAX_UPLOAD_TIME_PER_FRAME)) {
-                this._processItem();
-            }
+        }
+        const suspended = () => {
+            const s = this.stage;
+            return !!(s && s.contextState !== undefined && s.contextState !== 'running');
+        };
+        while (
+            suspended() === false &&
+            this._sources.length > 0 &&
+            Date.now() - start < TextureThrottler.MAX_UPLOAD_TIME_PER_FRAME
+        ) {
+            this._processItem();
         }
     }
 

@@ -1,3 +1,22 @@
+/*
+ * If not stated otherwise in this file or this component's LICENSE file the
+ * following copyright and licenses apply:
+ *
+ * Copyright 2020 Metrological
+ *
+ * Licensed under the Apache License, Version 2.0 (the License);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import WebPlatform from './WebPlatform.mjs';
 
@@ -29,6 +48,7 @@ function makePlatform(canvas, stage) {
         stage,
         _looping: false,
         _awaitingLoop: false,
+        _userStopped: false,
         _loopGeneration: 0,
         _frameHandle: null,
         _loopHandler: null,
@@ -97,9 +117,10 @@ describe('WebPlatform WebGL context events', () => {
         expect(stage.renderFrame).toHaveBeenCalledTimes(2);
         expect(stage.onRecoveryFrameCompleted).toHaveBeenCalledOnce();
 
-        // The normal loop restarts afterwards (with a single reconcile poll).
+        // The normal loop restarts afterwards (no further reconcile poll:
+        // the recovery frame already proved the context healthy).
         expect(frames.size).toBe(1);
-        expect(stage.gl.isContextLost).toHaveBeenCalledOnce();
+        expect(stage.gl.isContextLost).not.toHaveBeenCalled();
 
         platform.stopLoop();
         expect(frames.size).toBe(0);
@@ -175,6 +196,40 @@ describe('WebPlatform WebGL context events', () => {
         expect(frames.size).toBe(1);
         runNext().callback(16);
         expect(stage.updateFrame).toHaveBeenCalledOnce();
+        expect(frames.size).toBe(1);
+        platform.stopLoop();
+    });
+
+    it('keeps loss prevention armed while stopped and parks restore', () => {
+        const { frames, runNext } = stubRaf();
+        const canvas = new EventTarget();
+        const stage = makeStage(canvas);
+        const platform = makePlatform(canvas, stage);
+
+        platform.startLoop();
+        platform.stopLoop();
+        expect(frames.size).toBe(0);
+
+        // A loss while stopped must still hit preventDefault(), or the
+        // browser would never fire webglcontextrestored.
+        const lost = new Event('webglcontextlost', { cancelable: true });
+        canvas.dispatchEvent(lost);
+        expect(lost.defaultPrevented).toBe(true);
+        expect(stage.onContextLost).toHaveBeenCalledOnce();
+        expect(frames.size).toBe(0);
+
+        // Restoration runs the recovery frame but must not restart a
+        // deliberately stopped loop.
+        canvas.dispatchEvent(new Event('webglcontextrestored'));
+        expect(stage.onContextRestored).toHaveBeenCalledOnce();
+        expect(frames.size).toBe(1);
+        runNext().callback(16);
+        expect(stage.onRecoveryFrameCompleted).toHaveBeenCalledOnce();
+        expect(frames.size).toBe(0);
+        expect(stage.contextState).toBe('running');
+
+        // An explicit resume restarts normally.
+        platform.startLoop();
         expect(frames.size).toBe(1);
         platform.stopLoop();
     });

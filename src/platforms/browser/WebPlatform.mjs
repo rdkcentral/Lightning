@@ -30,6 +30,11 @@ export default class WebPlatform {
         this._looping = false;
         this._awaitingLoop = false;
 
+        // Explicit user intent: stopLoop() parks the loop without detaching
+        // context listeners, so only an explicit startLoop()/resume() (not a
+        // context restoration) restarts it.
+        this._userStopped = false;
+
         // Generation-gated loop callbacks: bumped on every suspend/stop so
         // stale rAF/timeout callbacks can never submit GPU work afterwards.
         this._loopGeneration = 0;
@@ -76,6 +81,10 @@ export default class WebPlatform {
     }
 
     startLoop() {
+        this._userStopped = false;
+        // Listeners stay attached until destroy (not stopLoop): a loss while
+        // stopped must still hit preventDefault(), or the browser would never
+        // fire webglcontextrestored and the stage would be stuck.
         this._attachContextEvents();
         // Reconcile a loss/restore missed while stopped and detached: a
         // missed `webglcontextlost` without preventDefault may never fire
@@ -96,6 +105,10 @@ export default class WebPlatform {
                 return;
             }
         }
+        this._beginLoop();
+    }
+
+    _beginLoop() {
         this._cancelScheduledFrame();
         this._loopGeneration++;
         this._looping = true;
@@ -105,9 +118,10 @@ export default class WebPlatform {
     }
 
     stopLoop() {
+        // Park the loop but keep context listeners armed (see startLoop).
+        this._userStopped = true;
         this._loopGeneration++;
         this._cancelScheduledFrame();
-        this._detachContextEvents();
         this._looping = false;
         this._awaitingLoop = false;
     }
@@ -246,7 +260,12 @@ export default class WebPlatform {
         }
         stage.onRecoveryFrameCompleted();
         if (generation === this._loopGeneration && !this._isStageSuspended()) {
-            this.startLoop();
+            // Honor an explicit stop(): the context is healthy and the stage
+            // coherent, but only the user restarts the loop. Listeners stay
+            // attached, so a later resume() reconciles and restarts.
+            if (!this._userStopped) {
+                this._beginLoop();
+            }
         }
     }
 

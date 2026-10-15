@@ -401,9 +401,12 @@ export default class Stage extends EventEmitter {
             const rootCore = (this.ctx && this.ctx.root) || (this.root && this.root.core);
             if (rootCore) {
                 this._markRenderUpdatesRecursive(rootCore, 3);
-            } else {
-                this.forceRenderUpdate();
             }
+            // The recursive mark bypasses setHasRenderUpdates propagation, so
+            // it never reaches the dummy parent that hasRenderUpdates()
+            // reads: without this, an idle scene would skip the recovery
+            // render yet still emit contextRestored.
+            this.forceRenderUpdate();
             this.pendingRestoreEvent = true;
             return true;
         } catch (error) {
@@ -526,11 +529,25 @@ export default class Stage extends EventEmitter {
         // during the current frame already.
         this.textureThrottler.processSome();
 
+        // Uploads above run synchronously and may have detected a context
+        // loss; never submit a dirty frame on a dead context.
+        if (this.contextState !== 'running') {
+            return false;
+        }
+
         if (changes) {
             this._updatingFrame = true;
-            this.ctx.update();
-            this.ctx.render();
-            this._updatingFrame = false;
+            try {
+                this.ctx.update();
+                // Scene traversal runs synchronous canvas-texture uploads
+                // that can equally detect a loss; skip the render then.
+                if (this.contextState !== 'running') {
+                    return false;
+                }
+                this.ctx.render();
+            } finally {
+                this._updatingFrame = false;
+            }
         }
 
         this.platform.nextFrame(changes);

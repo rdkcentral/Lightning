@@ -1,3 +1,22 @@
+/*
+ * If not stated otherwise in this file or this component's LICENSE file the
+ * following copyright and licenses apply:
+ *
+ * Copyright 2020 Metrological
+ *
+ * Licensed under the Apache License, Version 2.0 (the License);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { describe, it, expect, vi } from 'vitest';
 import TextureManager from './TextureManager.mjs';
 import TextureSource from './TextureSource.mjs';
@@ -101,13 +120,48 @@ describe('TextureManager context loss', () => {
         expect(manager.hasRestores()).toBe(false);
     });
 
+    it('does not let a stale callback untrack a replacement load', () => {
+        const stage = makeStage();
+        const manager = new TextureManager(stage);
+        manager._nativeUploadTextureSource = vi.fn(() => ({}));
+        const callbacks = [];
+        const loader = (cb) => {
+            callbacks.push(cb);
+        };
+        const source = makeSource(manager, loader);
+
+        source.load();
+        expect(manager._loadingSources.has(source)).toBe(true);
+
+        manager.invalidateContext();
+        expect(manager._loadingSources.has(source)).toBe(false);
+
+        stage.contextState = 'running';
+        manager.processNextRestore();
+        expect(manager._loadingSources.has(source)).toBe(true);
+        expect(callbacks.length).toBe(2);
+
+        // The stale pre-loss callback arrives after the replacement started:
+        // it must neither untrack the replacement nor report an error.
+        callbacks[0](null, { source: canvasData() });
+        expect(manager._loadingSources.has(source)).toBe(true);
+        expect(source.loadError).toBeFalsy();
+        expect(stage.textureThrottler._sources.length).toBe(0);
+
+        // The replacement completes normally.
+        callbacks[1](null, { source: canvasData() });
+        expect(stage.textureThrottler._sources.length).toBe(1);
+    });
+
     it('routes a loss detected mid-upload to restore without a texture error', () => {
         const stage = makeStage();
         const manager = new TextureManager(stage);
-        const gl = { isContextLost: () => true };
-        stage.gl = gl;
+        // Healthy at upload start, lost by the time it finishes.
+        let lost = false;
+        stage.gl = { isContextLost: () => lost };
         let nativeUploads = 0;
         manager._nativeUploadTextureSource = () => {
+            lost = true;
             nativeUploads++;
             return {};
         };
@@ -123,6 +177,56 @@ describe('TextureManager context loss', () => {
         expect(source.loadError).toBeFalsy();
         expect(onContextLost).toHaveBeenCalledOnce();
         expect(manager.hasRestores()).toBe(true);
+    });
+
+    it('skips the upload when the context is already lost', () => {
+        const stage = makeStage();
+        stage.gl = { isContextLost: () => true };
+        const manager = new TextureManager(stage);
+        manager._nativeUploadTextureSource = vi.fn(() => ({}));
+        const notified = [];
+        stage.onContextLost = () => notified.push(true);
+        const source = makeSource(manager, (cb) => {
+            cb(null, { source: canvasData(), throttle: false });
+        });
+
+        source.load();
+        expect(manager._nativeUploadTextureSource).not.toHaveBeenCalled();
+        expect(source.isLoaded()).toBe(false);
+        expect(source.loadError).toBeFalsy();
+        expect(notified.length).toBe(1);
+        expect(manager.hasRestores()).toBe(true);
+        expect(stage._memory).toBe(0);
+    });
+
+    it('routes upload failures through recovery only when the context is lost', () => {
+        const stage = makeStage();
+        const manager = new TextureManager(stage);
+        const boom = new Error('upload failed');
+        manager._nativeUploadTextureSource = vi.fn(() => {
+            throw boom;
+        });
+        const notified = [];
+        stage.onContextLost = () => notified.push(true);
+
+        // Healthy context: unrelated errors still throw (and leak no memory).
+        const healthy = makeSource(manager, (cb) => {
+            cb(null, { source: canvasData(), throttle: false });
+        });
+        expect(() => healthy.load()).toThrow(boom);
+        expect(notified.length).toBe(0);
+        expect(stage._memory).toBe(0);
+
+        // Lost context: the same failure becomes a recovery, not an error.
+        stage.gl = { isContextLost: () => true };
+        const lost = makeSource(manager, (cb) => {
+            cb(null, { source: canvasData(), throttle: false });
+        });
+        lost.load();
+        expect(notified.length).toBe(1);
+        expect(lost.loadError).toBeFalsy();
+        expect(manager.hasRestores()).toBe(true);
+        expect(stage._memory).toBe(0);
     });
 
     it('drops queued restores on destroy so dead textures can be collected', () => {

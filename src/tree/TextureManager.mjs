@@ -243,10 +243,33 @@ export default class TextureManager {
     uploadTextureSource(textureSource, options) {
         if (textureSource.isLoaded()) return;
 
+        if (this._isGlContextLost()) {
+            // The context went away before the canvas event arrived (event
+            // dispatch is async): skip GPU work, requeue for restore.
+            this._restoreSources.add(textureSource);
+            this.notifyContextLost();
+            return;
+        }
+
         this._addMemoryUsage(textureSource.w * textureSource.h);
 
         // Load texture.
-        const nativeTexture = this._nativeUploadTextureSource(textureSource, options);
+        let nativeTexture;
+        try {
+            nativeTexture = this._nativeUploadTextureSource(textureSource, options);
+        } catch (error) {
+            this._addMemoryUsage(-textureSource.w * textureSource.h);
+            if (this._isGlContextLost()) {
+                // Some drivers hand back null handles on a lost context and
+                // fail below instead of ignoring the calls: treat it as a
+                // loss, not a texture error.
+                textureSource.clearNativeTexture();
+                this._restoreSources.add(textureSource);
+                this.notifyContextLost();
+                return;
+            }
+            throw error;
+        }
 
         if (this._isGlContextLost()) {
             // The browser discarded the context mid-upload. Drop the dead

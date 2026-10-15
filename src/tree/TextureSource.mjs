@@ -262,12 +262,15 @@ export default class TextureSource {
             this.manager.trackLoadingSource(this);
             this.loadingSince = (new Date()).getTime();
             this._cancelCb = this.loader((err, options) => {
-                this.manager.untrackLoadingSource(this);
-                // Discard in-flight decodes from before a context loss or
-                // destroy: they must never be marked failed.
+                // Check the generation before touching shared tracking: a
+                // stale pre-loss callback must not untrack a replacement load
+                // started after it, or a later loss would miss invalidating
+                // that replacement. Stale results are always discarded, never
+                // reported as errors.
                 if (generation !== this.contextGeneration) {
                     return;
                 }
+                this.manager.untrackLoadingSource(this);
                 // Ignore loads that come in after a cancel.
                 if (this.isLoading()) {
                     // Clear callback to avoid memory leaks.

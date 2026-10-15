@@ -1,3 +1,22 @@
+/*
+ * If not stated otherwise in this file or this component's LICENSE file the
+ * following copyright and licenses apply:
+ *
+ * Copyright 2020 Metrological
+ *
+ * Licensed under the Apache License, Version 2.0 (the License);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { describe, it, expect, vi } from 'vitest';
 import Stage from './Stage.mjs';
 
@@ -71,6 +90,9 @@ describe('Stage WebGL context recovery', () => {
         expect(stage.contextState).toBe('running');
         expect(renderer.restoreContext).toHaveBeenCalledOnce();
         expect(stage.textureManager.restoreContext).toHaveBeenCalledOnce();
+        // The dummy parent hasRenderUpdates() reads must be dirtied too,
+        // or an idle scene would skip the recovery render entirely.
+        expect(stage.root.core._parent.setHasRenderUpdates).toHaveBeenCalledWith(1);
         // Recovery is announced only after the first recovery frame.
         expect(events.map(([event]) => event)).toEqual(['contextLost']);
         expect(stage.pendingRestoreEvent).toBe(true);
@@ -104,6 +126,39 @@ describe('Stage WebGL context recovery', () => {
         expect(child._hasRenderUpdates).toBe(3);
         expect(grandchild._hasRenderUpdates).toBe(3);
         expect(events.map(([event]) => event)).toEqual(['contextLost']);
+    });
+
+    it('abandons a dirty frame when the loss lands mid-frame', () => {
+        const { stage } = makeStage();
+        Object.assign(stage.ctx, {
+            hasRenderUpdates: () => true,
+            update: vi.fn(),
+            render: vi.fn(),
+        });
+        Object.assign(stage, { _updatingFrame: false });
+
+        // Loss detected by a synchronous upload while draining the throttler.
+        stage.textureThrottler.processSome = vi.fn(() => stage.onContextLost());
+        expect(stage.renderFrame()).toBe(false);
+        expect(stage.ctx.update).not.toHaveBeenCalled();
+        expect(stage.ctx.render).not.toHaveBeenCalled();
+        expect(stage.isUpdatingFrame()).toBe(false);
+        expect(stage.contextState).toBe('lost');
+    });
+
+    it('skips the render when the loss lands during the scene update', () => {
+        const { stage } = makeStage();
+        Object.assign(stage.ctx, {
+            hasRenderUpdates: () => true,
+            update: vi.fn(() => stage.onContextLost()),
+            render: vi.fn(),
+        });
+        Object.assign(stage, { _updatingFrame: false });
+
+        expect(stage.renderFrame()).toBe(false);
+        expect(stage.ctx.update).toHaveBeenCalledOnce();
+        expect(stage.ctx.render).not.toHaveBeenCalled();
+        expect(stage.isUpdatingFrame()).toBe(false);
     });
 
     it('reports failed reinitialisation and does not resume GPU work', () => {
